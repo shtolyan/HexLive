@@ -30,6 +30,11 @@ public static class SimulationSystemRegistry
         // §72: AFTER MobSystem — it clears IsFighting for every NPC each medium
         // pass, so anything that sets the latch has to run later.
         engine.Register(new RaidSystem()); // §72: the outsider's hunt and the colony's answer
+        // §108: AFTER RaidSystem for the same reason it runs after MobSystem —
+        // the latch has to be the last word on IsFighting. After the raid, not
+        // before: if he is mid-raid when the party arrives, his own scene stays
+        // in charge of that tick and the hunt simply piles on.
+        engine.Register(new GroupHuntSystem()); // §108: the girls' pact and the beating
         // §72: BEFORE AnimalCombatSystem — a body has one swing slot, and a man
         // with a knife outranks a dog for that tick of attention.
         engine.Register(new HumanCombatSystem()); // §72: timed human-vs-human blows
@@ -50,6 +55,11 @@ public static class SimulationSystemRegistry
         engine.Register(new BedSiteSystem()); // §54.2: stakes progressive bed build-sites
         engine.Register(new WaterCollectorSystem()); // §54.15: rain fills the parked bottle
         engine.Register(new HazardSystem()); // §50: prepared amputation hazards
+
+        // §30.15: LAST, and it is the one system whose position does not matter —
+        // it only reads and emits. It goes at the end so it sees the tick as it
+        // finally settled, rather than half-way through someone else's pass.
+        engine.Register(new StuckDiagnosticSystem());
 
         // NOT registered, on purpose-of-record rather than by decision: SharkSystem.
         // It is implemented (Systems/Wildlife/SharkSystem.cs, TickLayer.Medium) and

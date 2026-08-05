@@ -103,8 +103,23 @@ public static class SpeechCatalog
         ["hurt_faint"] = new("Faint", Rank.Alarm, 20f),
         ["cry_corpse"] = new("Grief", Rank.Action, 25f),
         ["cry_bury"] = new("Bury", Rank.Action, 20f),
+        // §81.13: проигравший сцену абьюза бежит домой в слезах.
+        // §110.8: обещанного здесь «фолбэка на банк cry» не существовало —
+        // вторая ступень PlayVoiceLine ищет voice_<char>_cry, а таких файлов
+        // нет ни одного, и пузырь был немым. У группы теперь своя секция в
+        // HEXKUFA_LANGUAGE.md §7 (C15) и свои файлы.
+        ["cry_beaten"] = new("Grief", Rank.Action, 30f),
+        // §110: лежит и рыдает после стресс-краха. Ambient — потому что это
+        // фон состояния, а не событие; пауза between всхлипами = AmbientGap.
+        // §110: всхлип — не бормотание себе под нос, а сама сцена, поэтому
+        // ранг Action: слой Ambient молчит в компании (а подруга как раз
+        // подошла утешать) и держит пол в 25 с — на 60-секундный плач это два
+        // звука за всю истерику. Action оставляет только MinGap: хнычет каждые
+        // ~12 с, и рядом стоящая её слышит.
+        ["cry_breakdown"] = new("Grief", Rank.Action, 12f),
         ["angry_defend"] = new("Attack", Rank.Alarm, 10f),
         ["fear_dark_alone"] = new("Warning", Rank.Ambient, 120f),
+        ["fear_stranger"] = new("Warning", Rank.Alarm, 15f),
 
         // ---- D. conversation (one per TalkTopic) -------------------------
         ["happy_topic_smalltalk"] = new("SmallTalk", Rank.Talk, 0f),
@@ -127,6 +142,9 @@ public static class SpeechCatalog
 
         // ---- E. mutual aid (§53) ----------------------------------------
         ["happy_aid_give"] = new("Aid", Rank.Action, 12f),
+        // §110: «ну не плачь» — своя реплика утешения вместо общей на все виды
+        // помощи: над рыдающей помощница именно ГОВОРИТ, это вся её работа.
+        ["happy_console"] = new("Console", Rank.Action, 12f),
         ["happy_aid_thanks"] = new("Thanks", Rank.Action, 12f),
         ["sad_aid_ask"] = new("Help", Rank.Action, 20f)
     };
@@ -187,6 +205,12 @@ public static class SpeechCatalog
             "Flirt" => "happy_topic_flirt",
             "Joke" => "happy_topic_joke",
             "Grumble" => "angry_topic_grumble",
+            // §108: разговор ПРО НЕГО. Значок — злая гримаса ворчания: в самом
+            // пузыре его всё равно заслоняет портрет (лицо старше значка), а
+            // значок остаётся запасным на тот единственный игровой час, пока
+            // снимок ещё не сделан. Своей группы реплик на хекскуфе пока нет —
+            // берётся ворчание, заменится одной строкой.
+            "Stranger" => "angry_topic_grumble",
             "Hunger" => "sad_hunger",
             "Thirst" => "sad_thirst",
             "Pain" => "hurt_wound",
@@ -196,36 +220,147 @@ public static class SpeechCatalog
         };
     }
 
-    // One-shot social cue (WorldSnapshot.SocialCueKind). Null = this cue has no
-    // utterance of its own (the "+/-" pop already speaks for it).
-    public static string ForCue(string cueKind)
+    // ---- one-shot social cue (WorldSnapshot.SocialCueKind) ---------------
+
+
+    public readonly struct CueVisual
     {
-        return cueKind switch
+        public readonly string PopIcon;   // Resources/HexLive/UI/Emoji/<PopIcon>.png
+        public readonly string SpeechId;  // null = this cue has no utterance of its own
+
+        // §107.5: пузырь ОДИН, и место в нём разыгрывается по рангу — «хочу
+        // пить» никогда не перебьёт «рядом чужак». У кьюшки со своей репликой
+        // ранг берётся из неё; у молчаливой (TalkRequest, AbuseHurt) он живёт
+        // здесь, иначе такой кьюшке нечем было бы соревноваться за пузырь.
+        public readonly Rank Rank;
+
+        public CueVisual(string popIcon, string speechId, Rank rank = Rank.Action)
         {
-            "HelpCry" => "call_help",
-            "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" => "angry_defend",
-            "DangerSpotted" => "fear_wolf",
-            // §80: чужак-человек. Своей группы реплик пока нет — ставим
-            // «страх зверя»: молчать в момент, когда над головой всплыло его
-            // лицо, было бы хуже, чем сказать не совсем то. Заведём
-            // fear_stranger — заменится одной строкой.
-            "DangerStranger" => "fear_wolf",
-            "AidRequest" => "sad_aid_ask",
-            "AidIncoming" or "AidStarted" => "happy_aid_give",
-            "AidCompleted" => "happy_aid_thanks",
-            "WitnessedMurder" => "cry_corpse",
-            // §81: сцена абьюза. Своих групп на хекскуфе пока нет — берём
-            // ближайшие существующие, чтобы сцена не шла в полной тишине;
-            // заменится на angry_extort_* / cry_extort_* одной строкой.
-            "AbuseDemand" => "angry_attack",
-            "AbuseStruck" => "angry_attack",
-            "AbuseCry" or "AbuseGaveUp" => "cry_corpse",
-            "AbuseDefied" => "angry_defend",
-            "AbuseThreatened" or "AbuseHurt" or "AbuseSubmit" or "AbuseRefused"
-                or "AbuseTook" or "AbuseFled" => null,
-            "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => null,
-            _ => null
-        };
+            PopIcon = popIcon;
+            SpeechId = speechId;
+            Rank = rank;
+        }
+    }
+
+    // Кьюшка рисуется ДВАЖДЫ — картинкой над головой и репликой в бабле, — и
+    // раньше это были два рукописных switch'а в разных файлах. Они разошлись:
+    // на любой крик о помощи всплывала СОБАКА, хотя резать могла и рука
+    // человека. Одна таблица — расходиться больше негде.
+    //
+    // Ключ — вид кьюшки из симуляции, при необходимости с суффиксом «кто»:
+    // "HelpCry:dog" / "HelpCry:npc" / "DangerSpotted:<mobId>". Голый вид без
+    // суффикса остаётся рабочим ключом (старые снапшоты, реплеи).
+    private static readonly Dictionary<string, CueVisual> Cues = new()
+    {
+        // ---- крик о помощи: картинка зависит от того, КТО напал ----------
+        ["HelpCry:dog"] = new("Dogs", "call_help"),
+        ["HelpCry:npc"] = new("Attack", "call_help"),
+        ["HelpCry"] = new("Dogs", "call_help"),
+
+        ["HelpCryAssistStarted:dog"] = new("Dogs", "angry_defend"),
+        ["HelpCryAssistArrived:dog"] = new("Dogs", "angry_defend"),
+        ["HelpCryDefended:dog"] = new("Dogs", "angry_defend"),
+        ["HelpCryAssistStarted:npc"] = new("Attack", "angry_defend"),
+        ["HelpCryAssistArrived:npc"] = new("Attack", "angry_defend"),
+        ["HelpCryDefended:npc"] = new("Attack", "angry_defend"),
+        ["HelpCryAssistStarted"] = new("Dogs", "angry_defend"),
+        ["HelpCryAssistArrived"] = new("Dogs", "angry_defend"),
+        ["HelpCryDefended"] = new("Dogs", "angry_defend"),
+
+        ["HelpCryIgnored"] = new("Grumble", null, Rank.Talk),
+        ["HelpCryAnswer"] = new("Home", null, Rank.Action),
+        ["HelpCryAnswered"] = new("Home", null, Rank.Action),
+
+        // ---- угроза замечена издалека (§62/§72) --------------------------
+        // Над головой — жёлтый треугольник: это ещё не бой, это «вижу».
+        // Реплика уже про конкретного: зверь, акула или человек.
+        ["DangerSpotted:dog"] = new("Warning", "fear_wolf"),
+        ["DangerSpotted:shark"] = new("Warning", "fear_shark"),
+        ["DangerSpotted:*"] = new("Warning", "fear_flee"),
+        ["DangerSpotted"] = new("Warning", "fear_wolf"),
+        // §80: чужак-человек. Над ним всплывает ЛИЦО (портрет перекрывает
+        // иконку), а кричит она про чужака, а не про зверюгу.
+        ["DangerStranger"] = new("Warning", "fear_stranger"),
+
+        // ---- взаимопомощь (§53) ------------------------------------------
+        ["AidRequest"] = new("Food", "sad_aid_ask"),
+        ["AidIncoming"] = new("Food", "happy_aid_give"),
+        // §105 r5: помощь подписана по ВИДУ — над помощницей всплывает знак
+        // того, что она делает. Ключ приходит как "AidStarted:<AidKind>";
+        // неизвестный вид падает на общий "AidStarted" (см. ForCue).
+        ["AidStarted:Treat"] = new("Aid", "happy_aid_give"),
+        ["AidStarted:Medicate"] = new("Aid", "happy_aid_give"),
+        ["AidStarted:Feed"] = new("Food", "happy_aid_give"),
+        ["AidStarted:Hydrate"] = new("Thirst", "happy_aid_give"),
+        ["AidStarted:Console"] = new("Console", "happy_aid_give"),
+        ["AidStarted"] = new("Food", "happy_aid_give"),
+        ["AidCompleted"] = new("Food", "happy_aid_thanks"),
+
+        // ---- разговор ------------------------------------------------------
+        ["TalkRequest"] = new("SmallTalk", null, Rank.Talk),
+        ["TalkIncoming"] = new("SmallTalk", null, Rank.Talk),
+        ["TalkSuccess"] = new("Joke", null, Rank.Talk),
+        ["TalkRejected"] = new("Grumble", null, Rank.Talk),
+        ["TalkRefused"] = new("Grumble", null, Rank.Talk),
+        ["TalkQuarrel"] = new("Grumble", null, Rank.Talk),
+        ["Resentment"] = new("Grumble", null, Rank.Talk),
+
+        // Увидела убийство. Раньше здесь всплывала АКУЛА 🦈 — та же болезнь, что
+        // собака на человека: картинка из соседней строки таблицы.
+        ["WitnessedMurder"] = new("Death", "cry_corpse"),
+
+        // ---- §81: сцена абьюза. Своих групп на хекскуфе пока нет — берём
+        // ближайшие существующие, чтобы сцена не шла в полной тишине;
+        // заменится на angry_extort_* / cry_extort_* одной строкой.
+        ["AbuseDemand"] = new("Attack", "angry_attack"),
+        ["AbuseStruck"] = new("Attack", "angry_attack"),
+        ["AbuseThreatened"] = new("Warning", null, Rank.Alarm),
+        ["AbuseCowed"] = new("Warning", null, Rank.Alarm),
+        ["AbuseCry"] = new("Grief", "cry_corpse"),
+        ["AbuseGaveUp"] = new("Gift", "cry_corpse"),
+        ["AbuseHurt"] = new("Blood", null, Rank.Alarm),
+        ["AbuseSubmit"] = new("Gift", null, Rank.Alarm),
+        ["AbuseTook"] = new("Gift", null, Rank.Alarm),
+        ["AbuseDefied"] = new("Grumble", "angry_defend"),
+        ["AbuseRefused"] = new("Grumble", null, Rank.Alarm),
+        ["AbuseFled"] = new("Flee", null, Rank.Alarm),
+        // §81.13: проигравший сцену убегает домой с плачем.
+        ["AbuseFledHome"] = new("Flee", "cry_beaten"),
+
+        // ---- §108: сговор и увиденная сцена. Обе несут ЕГО id, так что над
+        // головой всплывает его лицо, а иконка — запасная на тот час, пока
+        // снимок ещё не сделан.
+        ["GroupHuntPact"] = new("Attack", "angry_defend"),
+        ["AbuseWitnessed"] = new("Warning", "angry_attack")
+    };
+
+    // Never fails: an unknown cue still draws (fallback icon, no utterance).
+    // A suffixed kind falls back to "<base>:*" and then to the bare base, so a
+    // new mob id shows a sane bubble the day it is added to the sim.
+    public static CueVisual ForCue(string cueKind)
+    {
+        if (string.IsNullOrEmpty(cueKind))
+        {
+            return new CueVisual(FallbackIcon, null);
+        }
+
+        if (Cues.TryGetValue(cueKind, out var visual))
+        {
+            return visual;
+        }
+
+        var cut = cueKind.IndexOf(':');
+        if (cut > 0)
+        {
+            var baseKind = cueKind[..cut];
+            if (Cues.TryGetValue(baseKind + ":*", out visual) ||
+                Cues.TryGetValue(baseKind, out visual))
+            {
+                return visual;
+            }
+        }
+
+        return new CueVisual(FallbackIcon, null);
     }
 
     // The verb she is performing right now (WorldSnapshot.CurrentInteraction) →
@@ -245,7 +380,10 @@ public static class SpeechCatalog
             "WashClothes" => "happy_wash",
             "Dress" => "happy_dress",
             "Bury" => "cry_bury",
-            "FeedOther" or "TreatOther" or "MedicateOther" or "ConsoleOther" or "HydrateOther"
+            // §110: утешение отделилось от остальной помощи — у него свои
+            // слова («ну не плачь») и свой значок.
+            "ConsoleOther" => "happy_console",
+            "FeedOther" or "TreatOther" or "MedicateOther" or "HydrateOther"
                 => "happy_aid_give",
             // §68: winding a dressing round her own wound — it hurts going on.
             "TreatSelf" => "hurt_wound",
@@ -270,6 +408,7 @@ public static class SpeechCatalog
         public bool Sick;
         public bool Asleep;
         public bool Fainted;
+        public bool Crying; // §110: лежит и рыдает
     }
 
     // The single worst thing about her right now, or null when she has nothing
@@ -295,6 +434,9 @@ public static class SpeechCatalog
             }
         }
 
+        // §110: пока она рыдает, жаловаться ей больше не на что — всхлип
+        // перебивает и голод, и жажду (порог 0 даёт k = 1, максимум шкалы).
+        Consider("cry_breakdown", s.Crying ? 1f : 0f, 0f);
         Consider("sad_hunger", s.Hunger, 0.60f);
         Consider("sad_thirst", s.Thirst, 0.60f);
         Consider("sleepy_tired", 1f - s.Energy, 0.75f);

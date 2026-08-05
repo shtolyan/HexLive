@@ -84,12 +84,9 @@ public static class AmputateSystemHelpers
         npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - damage * 0.5f);
         WoundMath.Inflict(world, npc, part, damage);
 
-        // Head/Torso at 0 kill outright (as in the sim); limbs may tear off.
-        if (npc.Body.VitalDestroyed(out var vital))
-        {
-            npc.Health = 0f;
-            Trace.Emit(world, npc.Id, "VitalPartDestroyed", $"{vital} destroyed (debug)");
-        }
+        // §105: как в симуляции — голова в ноль убивает сразу, грудь роняет в
+        // умирание, по уже лежащей удар срезает запас. Limbs may tear off.
+        MortalityHelpers.ResolveTrauma(world, npc, damage, "debug");
 
         TrySeverOnBite(world, npc, part, damage);
     }

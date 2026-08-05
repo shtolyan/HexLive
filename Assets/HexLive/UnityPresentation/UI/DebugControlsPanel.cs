@@ -25,7 +25,16 @@ namespace HexLive.UnityPresentation.UI
         public static bool HideClothing;
         public static float? SweatOverride;
 
+        // FOG-OF-WAR EXPERIMENT: the renderer hides object views no colony NPC
+        // remembers and mobs beyond the sim's spot radius. Visual-only.
+        // SelectedOnly narrows the fog to the currently selected NPC's own
+        // memory/eyes (falls back to the whole colony while nothing is
+        // selected — same convention as the "target:" label above).
+        public static bool FogOfWar;
+        public static bool FogOfWarSelectedOnly;
+
         [SerializeField] private SimulationRunnerBehaviour _runner;
+        [SerializeField] private BugReportPanel _bugReportPanel;
 
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.94f);
         private static readonly Color Raised = new(0.133f, 0.165f, 0.192f);
@@ -40,6 +49,8 @@ namespace HexLive.UnityPresentation.UI
 
         private UIDocument _document;
         private Label _targetLabel;
+        private Label _bugLabel;
+        private float _nextBugLabelRefresh;
 
         // Collapsible like the bottom character bar: hidden by default, a small
         // arrow tab pops it open, the header arrow tucks it away again.
@@ -48,6 +59,8 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _expandTab;
 
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
+
+        public void SetBugReportPanel(BugReportPanel panel) => _bugReportPanel = panel;
 
         private void Awake()
         {
@@ -81,6 +94,17 @@ namespace HexLive.UnityPresentation.UI
                 _targetLabel.text = NpcSelection.HasSelection
                     ? $"target: NPC #{NpcSelection.SelectedId}"
                     : "target: everyone";
+            }
+
+            // A "(N fixed)" tail on the bug-tracker button is how the player
+            // learns the agent closed something — refresh it lazily, the count
+            // only moves when BUGS.json does.
+            if (_bugLabel != null && Time.unscaledTime >= _nextBugLabelRefresh)
+            {
+                _nextBugLabelRefresh = Time.unscaledTime + 2f;
+                BugReportStore.CheckExternalChange();
+                var fixedCount = BugReportStore.CountWithStatus(BugReportStore.StatusFixed);
+                _bugLabel.text = fixedCount > 0 ? $"Bug tracker ({fixedCount} fixed)" : "Bug tracker";
             }
         }
 
@@ -157,6 +181,19 @@ namespace HexLive.UnityPresentation.UI
             _clothesButton = MakeButton("Hide clothes", Raised, ToggleClothes);
             _clothesLabel = (Label)_clothesButton[0];
             box.Add(_clothesButton);
+
+            _fogButton = MakeButton("[ ] Fog of war", Raised, ToggleFogOfWar);
+            _fogLabel = (Label)_fogButton[0];
+            box.Add(_fogButton);
+
+            _fogSelectedButton = MakeButton("[ ] Fog: selected only", Raised, ToggleFogSelectedOnly);
+            _fogSelectedLabel = (Label)_fogSelectedButton[0];
+            box.Add(_fogSelectedButton);
+
+            var bugButton = MakeButton("Bug tracker", new Color(0.28f, 0.38f, 0.55f),
+                () => _bugReportPanel?.Toggle());
+            _bugLabel = (Label)bugButton[0];
+            box.Add(bugButton);
 
             BuildExpandTab(root);
             ApplyCollapsed(); // hidden by default
@@ -237,6 +274,31 @@ namespace HexLive.UnityPresentation.UI
             if (_clothesLabel != null)
             {
                 _clothesLabel.text = HideClothing ? "Show clothes" : "Hide clothes";
+            }
+        }
+
+        private VisualElement _fogButton;
+        private Label _fogLabel;
+        private VisualElement _fogSelectedButton;
+        private Label _fogSelectedLabel;
+
+        private void ToggleFogOfWar()
+        {
+            FogOfWar = !FogOfWar;
+            if (_fogLabel != null)
+            {
+                _fogLabel.text = FogOfWar ? "[x] Fog of war" : "[ ] Fog of war";
+            }
+        }
+
+        private void ToggleFogSelectedOnly()
+        {
+            FogOfWarSelectedOnly = !FogOfWarSelectedOnly;
+            if (_fogSelectedLabel != null)
+            {
+                _fogSelectedLabel.text = FogOfWarSelectedOnly
+                    ? "[x] Fog: selected only"
+                    : "[ ] Fog: selected only";
             }
         }
 

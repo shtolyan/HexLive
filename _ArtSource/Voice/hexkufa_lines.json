@@ -802,6 +802,66 @@
    ]
   },
   {
+   "code": "C13",
+   "id": "fear_stranger",
+   "priority": "P1",
+   "hook": "заметила чужака-человека (§72 `DangerStranger`)",
+   "lines": [
+    {
+     "text": "[frightened] Ooi! Bezheksa! Bezheksa gulao!",
+     "ru": "Ой! Чужак! Чужак идёт!"
+    },
+    {
+     "text": "[whispering] Kuna? Bezheksa...",
+     "ru": "Кто это? Чужак..."
+    },
+    {
+     "text": "[frightened] Shoop! Bezheksa! Zada, zada!",
+     "ru": "Страшно! Чужак! Уйди, уйди!"
+    }
+   ]
+  },
+  {
+   "code": "C14",
+   "id": "cry_breakdown",
+   "priority": "P1",
+   "hook": "сломалась от стресса: легла и рыдает (§110 `CryingBreakdown`)",
+   "lines": [
+    {
+     "text": "[sobbing] Mifo... mifo",
+     "ru": "Не могу... не могу"
+    },
+    {
+     "text": "[crying] Birka zig... bi",
+     "ru": "Сердце рвётся... больно"
+    },
+    {
+     "text": "[sobbing, weak] Doma... doma",
+     "ru": "Домой... домой"
+    }
+   ]
+  },
+  {
+   "code": "C15",
+   "id": "cry_beaten",
+   "priority": "P1",
+   "hook": "проиграла сцену абьюза, бежит домой в слезах (§81.13 `AbuseFledHome`)",
+   "lines": [
+    {
+     "text": "[crying] Nhooo... bi nip",
+     "ru": "Оох... больно же"
+    },
+    {
+     "text": "[sobbing] Kush? Kush?",
+     "ru": "Почему? Почему?"
+    },
+    {
+     "text": "[crying, weak] Mo doma... doma",
+     "ru": "Я домой... домой"
+    }
+   ]
+  },
+  {
    "code": "D1",
    "id": "happy_topic_smalltalk",
    "priority": "P1",
@@ -1158,6 +1218,26 @@
     {
      "text": "[soothing] Mira-mira... ronka fesh nam",
      "ru": "Тихо-тихо... рана заживёт"
+    }
+   ]
+  },
+  {
+   "code": "E1a",
+   "id": "happy_console",
+   "priority": "P2",
+   "hook": "утешает рыдающую: «ну не плачь» (§110 `ConsoleOther`)",
+   "lines": [
+    {
+     "text": "[soothing] Mira, janeiko",
+     "ru": "Тихо, милая"
+    },
+    {
+     "text": "[caring] Mo nip tut. Dai lapa",
+     "ru": "Я здесь. Дай руку"
+    },
+    {
+     "text": "[soothing] Besshoop. Haro nam",
+     "ru": "Не страшно. Всё хорошо"
     }
    ]
   },

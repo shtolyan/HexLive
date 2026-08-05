@@ -101,6 +101,7 @@
 | `soi` | её, его |
 | `nuo` | наш |
 | `janeiko` | милая, подруга (обращение) |
+| `bezheksa` | чужак (Г3 `bez-` + `heksa` «свой круг»): человек не из наших |
 | `pisko` | тело, кожа |
 | `kopa` | голова |
 | `lapa` | рука |
@@ -655,6 +656,27 @@ Tired, Cold`) — значения едут в трейсах/снапшотах
 | `[whispering] Kuna nip? Hooo?` | Кто там? Эй? |
 | `[scared] Mora gulao... nho...` | Тьма идёт... ох... |
 
+#### C13 · `fear_stranger` · P1 — заметила чужака-человека (§72 `DangerStranger`)
+| Реплика | Русский |
+|---|---|
+| `[frightened] Ooi! Bezheksa! Bezheksa gulao!` | Ой! Чужак! Чужак идёт! |
+| `[whispering] Kuna? Bezheksa...` | Кто это? Чужак... |
+| `[frightened] Shoop! Bezheksa! Zada, zada!` | Страшно! Чужак! Уйди, уйди! |
+
+#### C14 · `cry_breakdown` · P1 — сломалась от стресса: легла и рыдает (§110 `CryingBreakdown`)
+| Реплика | Русский |
+|---|---|
+| `[sobbing] Mifo... mifo` | Не могу... не могу |
+| `[crying] Birka zig... bi` | Сердце рвётся... больно |
+| `[sobbing, weak] Doma... doma` | Домой... домой |
+
+#### C15 · `cry_beaten` · P1 — проиграла сцену абьюза, бежит домой в слезах (§81.13 `AbuseFledHome`)
+| Реплика | Русский |
+|---|---|
+| `[crying] Nhooo... bi nip` | Оох... больно же |
+| `[sobbing] Kush? Kush?` | Почему? Почему? |
+| `[crying, weak] Mo doma... doma` | Я домой... домой |
+
 ### D. Разговор (темы `TalkTopic`)
 
 Реплика говорящей играется на её ход в диалоге (`_talkTurnOn`), тема — из
@@ -787,6 +809,13 @@ Tired, Cold`) — значения едут в трейсах/снапшотах
 | `[caring] Mira, janeiko. Mo nip tut` | Тихо, милая. Я здесь |
 | `[caring] Dai lapa. Paku dai. Haro nam` | Дай руку. Вот еда. Всё будет хорошо |
 | `[soothing] Mira-mira... ronka fesh nam` | Тихо-тихо... рана заживёт |
+
+#### E1a · `happy_console` · P2 — утешает рыдающую: «ну не плачь» (§110 `ConsoleOther`)
+| Реплика | Русский |
+|---|---|
+| `[soothing] Mira, janeiko` | Тихо, милая |
+| `[caring] Mo nip tut. Dai lapa` | Я здесь. Дай руку |
+| `[soothing] Besshoop. Haro nam` | Не страшно. Всё хорошо |
 
 #### E2 · `happy_aid_thanks` · P2 — благодарность
 | Реплика | Русский |

@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jolly
   VertexCount: 8416
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -21,8 +23,10 @@ MonoBehaviour:
   Zones:
   - Zone: Head
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points:
     - Slot: 1
@@ -30,10 +34,16 @@ MonoBehaviour:
       BindPerU: 1.3007327
       BindPerV: 1.7610202
       Valid: 1
+      BindPos: {x: 0.020978667, y: 0.73233724, z: 0.009429667}
+      BindNormal: {x: 0.7942288, y: 0.60700625, z: 0.027276348}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points:
     - Slot: 1
@@ -41,6 +51,10 @@ MonoBehaviour:
       BindPerU: 1.2980766
       BindPerV: 1.5968457
       Valid: 1
+      BindPos: {x: -0.06999499, y: 0.49304304, z: 0.028301}
+      BindNormal: {x: 0.5327266, y: -0.3095752, z: 0.7876329}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points:
     - Slot: 1
@@ -48,3 +62,7 @@ MonoBehaviour:
       BindPerU: 1.2980714
       BindPerV: 1.5968454
       Valid: 1
+      BindPos: {x: 0.06999499, y: 0.49304298, z: 0.028301}
+      BindNormal: {x: -0.5327266, y: -0.3095752, z: 0.7876329}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

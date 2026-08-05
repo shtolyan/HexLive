@@ -233,6 +233,11 @@ namespace HexLive.Simulation.Content
                         // Pre-hold-distance exports carry no key; 0.9 matches
                         // the MobStats field default, not the shark's 0.
                         MeleeHoldDistance = F(m, "meleeHoldDistance", 0.9f),
+                        // §106: a pre-AttackMediums export carries no key — fall
+                        // back to the CATALOG default for this id (not the field
+                        // default Land, which would silently turn the shark
+                        // terrestrial on every stale export).
+                        AttackMediums = Medium(m, "attackMediums", Str(m, "id")),
                         RaidChancePerDay = F(m, "raidChancePerDay", 0f),
                         RaidPackSize = I(m, "raidPackSize", 0),
                     });
@@ -495,6 +500,7 @@ namespace HexLive.Simulation.Content
                   .Append($"\"aggroRadiusTiles\": {m.AggroRadiusTiles}, \"roamChance\": {N(m.RoamChance)}, ")
                   .Append($"\"chaseStepsPerTick\": {m.ChaseStepsPerTick}, \"glideSegmentSeconds\": {N(m.GlideSegmentSeconds)}, ")
                   .Append($"\"glideSnapDistance\": {N(m.GlideSnapDistance)}, \"meleeHoldDistance\": {N(m.MeleeHoldDistance)}, ")
+                  .Append($"\"attackMediums\": {Q(m.AttackMediums.ToString())}, ")
                   .Append($"\"raidChancePerDay\": {N(m.RaidChancePerDay)}, \"raidPackSize\": {m.RaidPackSize}}}");
             }
 
@@ -686,6 +692,23 @@ namespace HexLive.Simulation.Content
 
         private static bool B(Dictionary<string, object> d, string key) =>
             d.TryGetValue(key, out var v) && v is bool b && b;
+
+        // §106: attack medium rides as its enum name ("Land"/"Water"/
+        // "Amphibious"); a stale export without the key keeps the mob's own
+        // catalog default so the shark never silently turns terrestrial.
+        private static AttackMedium Medium(
+            Dictionary<string, object> d, string key, string mobId)
+        {
+            if (d.TryGetValue(key, out var v) && v is string s &&
+                System.Enum.TryParse<AttackMedium>(s, ignoreCase: true, out var parsed))
+            {
+                return parsed;
+            }
+
+            return MobCatalog.Defaults.TryGetValue(mobId, out var stats)
+                ? stats.AttackMediums
+                : AttackMedium.Land;
+        }
 
         private static IEnumerable<string> Strings(Dictionary<string, object> d, string key)
         {

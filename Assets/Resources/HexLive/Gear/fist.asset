@@ -38,21 +38,21 @@ MonoBehaviour:
   leftHandLocalEuler: {x: 0, y: 0, z: 0}
   strikes:
   - clip: {fileID: -203655887218126122, guid: 55abd891f39994135bc1052bba0034d9, type: 3}
-    hitDelaySeconds: 0.2
-    followSeconds: 0.2
-    cooldownSeconds: 0.2
+    hitDelaySeconds: 1.1
+    followSeconds: 0.4
+    cooldownSeconds: 1.5
   - clip: {fileID: -203655887218126122, guid: d7144a2a365494846ab36a3cebed517e, type: 3}
-    hitDelaySeconds: 0.2
-    followSeconds: 0.2
-    cooldownSeconds: 0.2
+    hitDelaySeconds: 1.1
+    followSeconds: 0.4
+    cooldownSeconds: 1.5
   - clip: {fileID: -203655887218126122, guid: d572f2017870f4c1e8c8ad72cc94c223, type: 3}
-    hitDelaySeconds: 0.2
-    followSeconds: 0.2
-    cooldownSeconds: 0.2
+    hitDelaySeconds: 1.1
+    followSeconds: 0.4
+    cooldownSeconds: 1.5
   - clip: {fileID: -203655887218126122, guid: 22743be69cd1e46d4a205c3a8258ad0a, type: 3}
-    hitDelaySeconds: 0.2
-    followSeconds: 0.2
-    cooldownSeconds: 0.2
+    hitDelaySeconds: 1.1
+    followSeconds: 0.4
+    cooldownSeconds: 1.5
   attackClips: []
   armedIdle: {fileID: -203655887218126122, guid: c9974fb6a0ab84183b5859ec5c4e7e93, type: 3}
   armedWalk: {fileID: 0}

@@ -46,25 +46,8 @@ public sealed partial class ExecutionSystem
         return true;
     }
 
-    private static bool CraftNeedsToolsOrWeapons(GoalType goal)
-    {
-        switch (goal)
-        {
-            case GoalType.CraftSpear:
-            case GoalType.CraftAxe:
-            case GoalType.CraftPickaxe:
-            case GoalType.CraftRack:
-            case GoalType.CraftTent:
-            case GoalType.CraftBow:
-            case GoalType.CraftArrows:
-            case GoalType.CraftRope:
-            case GoalType.CraftCloth:
-            case GoalType.CraftKnife:
-                return true;
-            default:
-                return false;
-        }
-    }
+    private static bool CraftNeedsToolsOrWeapons(GoalType goal) =>
+        AI.GoalCatalog.CraftNeedsHands(goal);
 
     // Spec §54 (R2): consume a recipe's inputs from the pack. Mirrors the exact
     // Remove-per-ingredient the effect switch used to do inline.
@@ -92,7 +75,7 @@ public sealed partial class ExecutionSystem
         for (var i = 0; i < fire.Contents.Count; i++)
         {
             var item = fire.Contents[i];
-            if (item.DefinitionId != "food.meat_cooked")
+            if (item.DefinitionId != ContentIds.MeatCooked)
             {
                 continue;
             }
@@ -108,7 +91,7 @@ public sealed partial class ExecutionSystem
             fire.CurrentUser = null;
             Trace.Emit(world, npc.Id, "MeatTakenFromSpit",
                 $"food.meat_cooked off the spit at Tile={fire.Tile.Q},{fire.Tile.R} " +
-                $"left hanging={BuildSiteMath.HangingMeat(fire, "food.meat_cooked")} " +
+                $"left hanging={BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked)} " +
                 $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
             return;
         }
@@ -133,7 +116,7 @@ public sealed partial class ExecutionSystem
                     $"Bandages={npc.Needs.Bandages} Herbal={npc.Needs.HerbalBandages}");
                 return true;
             case GoalType.CraftSpear:
-                GiveOrDrop(world, npc, "tool.spear");
+                GiveOrDrop(world, npc, ContentIds.Spear);
                 Trace.Emit(world, npc.Id, "CraftedSpear",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
@@ -141,47 +124,47 @@ public sealed partial class ExecutionSystem
             // hung on the spit at the station-craft arm and FireSystem roasts
             // it over time (a campfire-station recipe never crafts in place).
             case GoalType.CraftLeather:
-                ResolveWearConflicts(world, npc, "clothing.leather_pants");
-                npc.WornItems.Add("clothing.leather_pants");
+                ResolveWearConflicts(world, npc, ContentIds.LeatherPants);
+                npc.WornItems.Add(ContentIds.LeatherPants);
                 EquipmentMath.Recalculate(world, npc);
-                DropDisplacedGarments(world, npc); // §52.7: displaced pants' pockets relocate, overflow to ground
+                StowDisplacedGarments(world, npc); // §52.9 r2: displaced pants go to the pack, overflow to ground
                 Trace.Emit(world, npc.Id, "CraftedLeather",
                     $"Pants worn. Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
                 return true;
             case GoalType.CraftAxe:
-                GiveOrDrop(world, npc, "tool.axe_stone");
+                GiveOrDrop(world, npc, ContentIds.AxeStone);
                 Trace.Emit(world, npc.Id, "CraftedAxe",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
             case GoalType.CraftPickaxe:
-                GiveOrDrop(world, npc, "tool.pickaxe_stone");
+                GiveOrDrop(world, npc, ContentIds.PickaxeStone);
                 Trace.Emit(world, npc.Id, "CraftedPickaxe",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
             case GoalType.CraftBow:
-                GiveOrDrop(world, npc, "tool.bow");
+                GiveOrDrop(world, npc, ContentIds.Bow);
                 Trace.Emit(world, npc.Id, "CraftedBow",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
             case GoalType.CraftArrows:
-                GiveOrDrop(world, npc, "resource.arrow");
-                GiveOrDrop(world, npc, "resource.arrow");
-                GiveOrDrop(world, npc, "resource.arrow");
+                GiveOrDrop(world, npc, ContentIds.Arrow);
+                GiveOrDrop(world, npc, ContentIds.Arrow);
+                GiveOrDrop(world, npc, ContentIds.Arrow);
                 Trace.Emit(world, npc.Id, "CraftedArrows",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
             case GoalType.CraftRope:
-                GiveOrDrop(world, npc, "resource.rope");
+                GiveOrDrop(world, npc, ContentIds.Rope);
                 Trace.Emit(world, npc.Id, "CraftedRope",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
             case GoalType.CraftCloth:
-                GiveOrDrop(world, npc, "resource.cloth");
+                GiveOrDrop(world, npc, ContentIds.Cloth);
                 Trace.Emit(world, npc.Id, "CraftedCloth",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
             case GoalType.CraftKnife:
-                GiveOrDrop(world, npc, "tool.knife");
+                GiveOrDrop(world, npc, ContentIds.Knife);
                 Trace.Emit(world, npc.Id, "CraftedKnife",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
@@ -212,32 +195,15 @@ public sealed partial class ExecutionSystem
     // §gear-craft v2: which inventory ITEMS the craft lays on the ground for
     // the take beat. Non-item outputs (the bandage counter, leather worn
     // straight onto the body) return null and grant instantly at work's end.
-    private static string[] CraftGroundOutputs(GoalType goal) => goal switch
-    {
-        GoalType.CraftSpear => new[] { "tool.spear" },
-        GoalType.CraftAxe => new[] { "tool.axe_stone" },
-        GoalType.CraftPickaxe => new[] { "tool.pickaxe_stone" },
-        GoalType.CraftKnife => new[] { "tool.knife" },
-        GoalType.CraftBow => new[] { "tool.bow" },
-        GoalType.CraftArrows => new[] { "resource.arrow", "resource.arrow", "resource.arrow" },
-        GoalType.CraftRope => new[] { "resource.rope" },
-        GoalType.CraftCloth => new[] { "resource.cloth" },
-        _ => null
-    };
+    // §gear-craft v2: что крафт выкладывает на землю на такте «взять».
+    // Таблица в GoalCatalog: раньше это был ТРЕТИЙ параллельный switch по цели
+    // в одном файле, и все три надо было держать согласованными вручную.
+    private static string[] CraftGroundOutputs(GoalType goal) =>
+        AI.GoalCatalog.CraftGroundOutputs(goal);
 
     // The legacy per-goal trace names, kept stable for soak metrics.
-    private static string CraftedTraceName(GoalType goal) => goal switch
-    {
-        GoalType.CraftSpear => "CraftedSpear",
-        GoalType.CraftAxe => "CraftedAxe",
-        GoalType.CraftPickaxe => "CraftedPickaxe",
-        GoalType.CraftKnife => "CraftedKnife",
-        GoalType.CraftBow => "CraftedBow",
-        GoalType.CraftArrows => "CraftedArrows",
-        GoalType.CraftRope => "CraftedRope",
-        GoalType.CraftCloth => "CraftedCloth",
-        _ => "CraftedItem"
-    };
+    private static string CraftedTraceName(GoalType goal) =>
+        AI.GoalCatalog.CraftTraceName(goal);
 
     // §61: she kneels FACING the work — turn toward the centroid of the
     // laid-out pieces (beat 2) / the finished item (beat 3). Snap in the sim

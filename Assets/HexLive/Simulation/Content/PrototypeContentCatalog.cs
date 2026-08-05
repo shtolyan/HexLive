@@ -128,7 +128,7 @@ public static class PrototypeContentCatalog
                 // BuildFurniture planner could never TARGET it: stones for the
                 // ring were gathered, then had nowhere to go (0/18 delivered
                 // across every 25-day soak since the staged campfire shipped).
-                Tags = { "Campfire", "Obstacle", "FurnitureSite" },
+                Tags = { "Campfire", "Obstacle", "FurnitureSite", ObjectTags.HandBuilt },
                 // 0.55R (0.825 wu) blocks the anchor + the first two point
                 // rings (0.375 / 0.65-0.75 wu) — nobody paths through the
                 // flames — while the 1.10-1.18 wu ring stays standable, so
@@ -145,6 +145,11 @@ public static class PrototypeContentCatalog
                 // radius: FootprintClear rejects a bed whose 1.39 wu disc
                 // overlaps the fire's blocked points.
                 ObstacleRadius = 0.55f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
+                // §113: сам ОГОНЬ втрое уже угольного кольца выше. Рендер даёт
+                // костру 0.55R по ширине (ObjectFit), то есть радиус ~0.28R;
+                // 0.30R — он же плюс ладонь запаса. По этому числу тело обходит
+                // огонь, ложась на гексе костра сбоку, а не уходит с гекса.
+                SolidRadius = 0.30f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
                     // §63 r2: deposit/raise the §54.14 upgrade stages (stone
@@ -238,6 +243,10 @@ public static class PrototypeContentCatalog
                 Id = "rock.boulder",
                 DisplayName = "Boulder",
                 Tags = { "Boulder", "Obstacle" },
+                // §113: валун закрывает только свой узел (ObstacleRadius 0), но
+                // на экране это глыба 0.45R в поперечнике — тело обходит её,
+                // ложась рядом, а не сквозь. 0.25R = её радиус плюс запас.
+                SolidRadius = 0.25f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
                     new InteractionDefinition
@@ -535,13 +544,15 @@ public static class PrototypeContentCatalog
                         DurationTicks = 16,
                         Effects = { ComfortDelta = 0.1f }
                     },
+                    // §28.15F: обобрать тело — одна вещь за подход. Дольше
+                    // обычного подбора (4 такта): вещь надо СНЯТЬ с человека,
+                    // а не поднять с земли.
                     new InteractionDefinition
                     {
-                        Id = "bury.body",
-                        Type = InteractionType.Bury,
+                        Id = "loot.body",
+                        Type = InteractionType.Loot,
 
-                        DurationTicks = 20,
-                        Effects = { ComfortDelta = 0.15f }
+                        DurationTicks = 20
                     },
                     // Spec §54: a housemate's body can be butchered for meat + hide
                     // (cannibalism) — dark, gated behind starvation + a comfort hit.
@@ -553,7 +564,15 @@ public static class PrototypeContentCatalog
                         DurationTicks = SimBalance.ButcherDurationTicks,
                         Yields =
                         {
-                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = true },
+                            // §54.17 r2: meat goes INTO the butcher's pack
+                            // (Scatter=false → GiveOrDrop), not onto the
+                            // ground. Field soaks showed ground chunks are
+                            // never picked up — GetFood is gated off while any
+                            // food is in the pack (a coconut always is), so
+                            // every kill rotted where it fell. Carried meat
+                            // does not spoil and waits for a lit fire; the
+                            // full-pack fallback still drops at her feet.
+                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = false },
                             new HarvestDrop { DefinitionId = "resource.hide", Count = 1, Scatter = true }
                         }
                     }
@@ -577,29 +596,24 @@ public static class PrototypeContentCatalog
                         DurationTicks = SimBalance.ButcherDurationTicks,
                         Yields =
                         {
-                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = true },
+                            // §54.17 r2: same as butcher.body above — meat to
+                            // the pack, hide to the ground.
+                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = false },
                             new HarvestDrop { DefinitionId = "resource.hide", Count = 1, Scatter = true }
                         }
                     }
                 }
             },
-            // Spec 28.15D: permanent — CorpseSystem only decays the Corpse tag.
+            // §28.15C v3: могила ВЫВЕДЕНА ИЗ ОБОРОТА — хоронить больше некому и
+            // незачем, тело остаётся лежать там, где упало. Определение живёт
+            // дальше, но БЕЗ взаимодействий: без него старый сейв, в котором
+            // могилы успели появиться, не нашёл бы для них описания при
+            // загрузке. Ничто в мире её больше не порождает.
             ["grave.npc"] = new ObjectDefinition
             {
                 Id = "grave.npc",
                 DisplayName = "Grave",
-                Tags = { "Grave" },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "visit.grave",
-                        Type = InteractionType.Observe,
-
-                        DurationTicks = 12,
-                        Effects = { ComfortDelta = 0.1f }
-                    }
-                }
+                Tags = { "Grave" }
             },
             // Spec §50: a limb that came off a survivor. CurrentUser records
             // whose (which actor mesh); Variant records which limb. Tagged
@@ -626,7 +640,7 @@ public static class PrototypeContentCatalog
             {
                 Id = "station.drying_rack",
                 DisplayName = "Drying rack",
-                Tags = { "Station", "Rack" },
+                Tags = { "Station", "Rack", ObjectTags.HandBuilt },
                 Interactions =
                 {
                     new InteractionDefinition
@@ -647,7 +661,7 @@ public static class PrototypeContentCatalog
             {
                 Id = "station.water_collector",
                 DisplayName = "Water collector",
-                Tags = { "Station", "Obstacle" },
+                Tags = { "Station", "Obstacle", ObjectTags.HandBuilt },
                 Interactions =
                 {
                     new InteractionDefinition
@@ -720,7 +734,11 @@ public static class PrototypeContentCatalog
                 DisplayName = "Raw Meat",
                 // Deliberately NO Eat interaction: raw meat is inedible —
                 // the fire is the only path to calories (spec 29F.3).
-                Tags = { "RawMeat" },
+                // §54.17: "Food" lives HERE too, not only in the Unity asset
+                // override (meat_raw.asset isFood) — a world built from the
+                // bare catalog (unit tests, probes) must also let GetFood
+                // pick the chunk up, or the whole cook chain dies at step 1.
+                Tags = { "RawMeat", "Food" },
                 Interactions =
                 {
                     new InteractionDefinition
@@ -1012,7 +1030,9 @@ public static class PrototypeContentCatalog
                         Effects = { EnergyDelta = SimBalance.LeafBedEnergy } // spec 42
                     }
                 },
-                Tags = { "Bed", "Obstacle" }
+                // §54.9: HandBuilt — циновку вяжут руками из палок, верёвок и
+                // листьев, молоток для неё не нужен.
+                Tags = { "Bed", "Obstacle", ObjectTags.HandBuilt }
             },
             // Spec 31A.5B: everyone starts in "underwear.cloth" — that garment,
             // the coat, the armors and the imported wardrobe now all live in

@@ -31,6 +31,14 @@ MonoBehaviour:
   workSpeedGain: 0.3
   carrySlotThreshold: 0.85
   skillXpPerWorkTick: 0.0004
+  attributeTrainEnabled: 1
+  attributeTrainCeiling: 1.3
+  attributeTrainPerWorkTick: 0.00008
+  attributeTrainPerHit: 0.0004
+  attributeTrainPerDamage: 0.004
+  attributeTrainPerRunTick: 0.00002
+  attributeTrainPerHardshipTick: 0.00005
+  attributeHardshipGate: 0.7
   skillXpPerHit: 0.004
   skillLearnWitsGain: 0.8
   skillDiminishExp: 2

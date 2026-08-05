@@ -43,6 +43,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     [SerializeField] private bool _logImportantEventsToConsole = true;
     [SerializeField] private bool _logTraceEventsToConsole;
 
+    // Holds the prewarmed object prefabs alive. Resources.LoadAll hands back
+    // assets nothing references, which a later UnloadUnusedAssets would be free
+    // to drop again — and the whole point of loading them was to not read them
+    // from disk mid-tick.
+    private static GameObject[]? _objectPrefabPin;
+
     private ISimulationBackend? _backend;
     private long _lastLoggedSeq;
     private readonly List<SimulationEvent> _drainedEvents = new();
@@ -394,6 +400,23 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             Config.MobLibrary.LoadPrefab(mobId);
         }
 
+        // PERF (profiling, Aug-2026) — the same trap, one level out: a world
+        // OBJECT's model is loaded the first time one of its kind appears, which
+        // happens mid-game, inside the tick, on the main thread. The deep capture
+        // caught a 205 ms frame whose HexWorldRenderer.Update spent 67 ms in a
+        // single blocking File.Read. The whole folder goes in one call on
+        // purpose: a hand-kept id list here would drift the moment someone adds
+        // a prefab (8.3 MB / 64 assets, so there is nothing to ration).
+        _objectPrefabPin = Resources.LoadAll<GameObject>("HexLive/Objects");
+        // Dropped clothing is the other lazy path (ActorWardrobe reads
+        // Resources/HexLive/Wear/<id> per item). Warmed per KNOWN id rather than
+        // by folder: LoadAll over all of Wear/ would pull in garments this world
+        // never spawns, and the wear TEXTURES are the memory-heavy half.
+        foreach (var id in world.Content.ObjectDefinitions.Keys)
+        {
+            Wearing.GarmentDropFactory.Prewarm(id);
+        }
+
         // Loopback runs the local world through the wire codec, which interns
         // definition ids — build the table here so that path works too.
         HexLive.Simulation.Wire.DefinitionIdTable.Build(world.Content);
@@ -402,6 +425,16 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // The list itself lives in the simulation assembly so the game, the server
         // and headless probes cannot drift apart — see SimulationSystemRegistry.
         SimulationSystemRegistry.RegisterDefaults(engine);
+
+        // §30.14: бортовой самописец — по кольцу последних событий на каждого
+        // NPC, чтобы дебаг-панель могла показать, ЧТО эта делала до того, как
+        // застряла. Общее кольцо на 2048 записей на такой вопрос не отвечает:
+        // при ~200 событиях в тик оно живёт около одиннадцати тиков. Только в
+        // редакторе и development-сборках — там же, где включён полный трейс.
+        if (Application.isEditor || UnityEngine.Debug.isDebugBuild)
+        {
+            engine.World.FlightRecorder = HexLive.Simulation.Runtime.FlightRecorder.ForBehavior();
+        }
 
         _backend?.Shutdown();
         _backend = CreateBackend(new LocalEngineBackend(engine, clock, settings));

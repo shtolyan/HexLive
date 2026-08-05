@@ -16,7 +16,18 @@ internal static class Connectivity
     // Spec 31C.7: "can I stand next to it" — blocked/water anchors are
     // reachable through any passable dry neighbor (solid furniture and
     // river-water drink spots must stay visible to planning).
-    public static bool ReachableBeside(WorldState world, JunctionId from, JunctionId anchor, bool canJump = true)
+    //
+    // ⭐ §26.6A r5: this is the ROUTE question, and it must STAY the route
+    // question. The §26.6A table keeps "does a way exist" apart from "am I
+    // close enough" on purpose, and the first attempt at r5 quietly merged them
+    // here — a third body between the anchor and the world started reading as
+    // unreachable, objects fell out of perception with no PlanFailed to show
+    // for it, and 30 seeds × 10 days went 86/120 → 72/120 alive with two wipes.
+    // A body is walked AROUND. Refusing to reach THROUGH one is the start
+    // gate's job, and only its job.
+    public static bool ReachableBeside(
+        WorldState world, JunctionId from, JunctionId anchor, bool canJump = true,
+        WorldObjectState owner = null)
     {
         var anchorBlocked = !world.Junctions.Items.TryGetValue(anchor, out var junction) ||
             junction.Blocked || SpatialQueries.IsAllWaterJunction(world, anchor);
@@ -25,7 +36,8 @@ internal static class Connectivity
             return Reachable(world, from, anchor, canJump);
         }
 
-        SpatialQueries.CollectStandableAround(world, anchor, _besideScratch);
+        SpatialQueries.CollectStandableAround(world, anchor, _besideScratch, 96, float.MaxValue, owner,
+            SpatialQueries.RimPurpose.Route);
         foreach (var rim in _besideScratch)
         {
             if (Reachable(world, from, rim, canJump))

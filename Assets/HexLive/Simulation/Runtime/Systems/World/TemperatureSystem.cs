@@ -167,7 +167,10 @@ public sealed class TemperatureSystem : ISimulationSystem
                     //
                     // Порог, а не запрет: замёрзнуть до комы по-прежнему можно
                     // (§60 при здоровье 0.15), конечности по-прежнему до нуля.
-                    var thermalFloor = part is BodyPart.Head or BodyPart.Torso
+                    // §105 r4: витальные зоны — по общему списку (голова, грудь,
+                    // ТАЗ), а не по паре, вписанной руками. Без этого жара
+                    // доламывала бы таз в ноль и убивала мимо окна §105.
+                    var thermalFloor = BodyState.IsVital(part)
                         ? SimBalance.ThermalVitalFloor
                         : 0f;
                     npc.Body.Parts[part] = System.Math.Max(
@@ -175,10 +178,11 @@ public sealed class TemperatureSystem : ISimulationSystem
                 }
 
                 npc.Health = npc.Body.Mean();
-                if (npc.Body.VitalDestroyed(out _))
-                {
-                    npc.Health = 0f;
-                }
+                // §105: через общую развилку. (Порог ThermalVitalFloor выше
+                // нуля, так что температура сама витальную зону не доламывает —
+                // но ответ на «умерла или ещё умирает» в проекте один.)
+                MortalityHelpers.ResolveTrauma(world, npc, thermalHpHit,
+                    signed > 0f ? "heatstroke" : "hypothermia");
 
                 DamageReactionSystemHelpers.GrantAdrenaline(world, npc, thermalHpHit, signed > 0f ? "Heatstroke" : "Hypothermia");
 
@@ -202,8 +206,10 @@ public sealed class TemperatureSystem : ISimulationSystem
                 // Spec 40.7: bare skin under the sun slowly tans (weathered
                 // survivor). effectiveUv already carries the shade penalty
                 // (isShaded -> x0.2), so you tan LESS in shade. Rate tuned for
-                // ~100 real minutes of open-sun exposure to a full tan (that
-                // was "10 game days" back when a day was 2400 ticks).
+                // ~10 SUNNY GAME DAYS of open sun to a full tan — a per-DAY
+                // pacing, so when DayLengthTicks moved 2400 → 24000 (10× more
+                // sun ticks per day) TanRate/SunburnRate/SunExposureRate were
+                // all cut ×10 to keep it.
                 npc.Needs.TanLevel = MathUtil.Clamp01(
                     npc.Needs.TanLevel + (effectiveUv - 0.5f) * SimBalance.TanRate * uncovered.Count);
                 // Spec 40.7: acute redness rises faster than the tan settles —
@@ -248,7 +254,8 @@ public sealed class TemperatureSystem : ISimulationSystem
                     // он доводит до беспамятства (§60 кома при здоровье 0.15) и
                     // калечит конечности до нуля по-прежнему. Он просто не
                     // отрывает голову.
-                    var burnFloor = burntPart is BodyPart.Head or BodyPart.Torso
+                    // §105 r4: то же и для ожога — см. BodyState.VitalParts.
+                    var burnFloor = BodyState.IsVital(burntPart)
                         ? SimBalance.SunburnVitalFloor
                         : 0f;
                     npc.Body.Parts[burntPart] = System.Math.Max(
@@ -257,12 +264,10 @@ public sealed class TemperatureSystem : ISimulationSystem
                     npc.Health = npc.Body.Mean();
                     npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.15f);
                     npc.SunExposure = 0.5f;
-                    if (npc.Body.VitalDestroyed(out var burntVital))
-                    {
-                        npc.Health = 0f;
-                        Trace.Emit(world, npc.Id, "VitalPartDestroyed",
-                            $"{burntVital} destroyed by sunstroke");
-                    }
+                    // §105: через общую развилку (SunburnVitalFloor так же не
+                    // даёт солнцу оторвать голову — см. комментарий выше).
+                    MortalityHelpers.ResolveTrauma(
+                        world, npc, SimBalance.SunburnBurnDamage, "sunstroke");
 
                     DamageReactionSystemHelpers.GrantAdrenaline(world, npc, SimBalance.SunburnBurnDamage, "Sunburn");
 

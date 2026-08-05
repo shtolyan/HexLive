@@ -107,6 +107,9 @@ public sealed class NpcBootstrap
     // §74: material donor / hair prefab / voice folder. Empty = rolled too.
     public string SkinSet { get; set; } = string.Empty;
 
+    // §85: iris colour, an axis of its own. Empty = rolled.
+    public string EyeColor { get; set; } = string.Empty;
+
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;

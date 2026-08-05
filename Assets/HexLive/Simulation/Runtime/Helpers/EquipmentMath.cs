@@ -264,7 +264,7 @@ internal static class EquipmentMath
     public static float WarmthGainFromWearing(WorldState world, NPCState npc, string candidateId)
     {
         if (!world.Content.ObjectDefinitions.TryGetValue(candidateId, out var candidateDef) ||
-            candidateDef.Layer is not { } candidateLayer)
+            candidateDef.Layer is null)
         {
             return 0f; // not a wearable
         }
@@ -287,8 +287,7 @@ internal static class EquipmentMath
             // §52.9: same layer + an overlapping SLOT ⇒ this worn piece comes
             // off. Must use the exact predicate ResolveWearConflicts uses, or
             // the projected warmth prices a displacement that never happens.
-            if (wornDef.Layer == candidateLayer &&
-                WearSlotCatalog.SameSpot(candidateDef, wornDef))
+            if (WearSlotCatalog.Occupies(candidateDef, wornDef))
             {
                 displacedRaw += effective;
             }

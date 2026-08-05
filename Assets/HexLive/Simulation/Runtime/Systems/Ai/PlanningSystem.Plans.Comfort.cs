@@ -312,7 +312,8 @@ public sealed partial class PlanningSystem
         var besideReach = SpatialQueries.BesideReach(
             world.Content.ObjectDefinitions.TryGetValue(best.DefinitionId, out var besideDef)
                 ? besideDef.ObstacleRadius : 0f);
-        SpatialQueries.CollectStandableAround(world, best.Junctions[0], _rimScratch, 96, besideReach);
+        SpatialQueries.CollectStandableAround(world, best.Junctions[0], _rimScratch, 96, besideReach, best,
+            InteractionReach.RimMode);
         _rimScratch.Sort((a, b) =>
         {
             var da = world.Junctions.Items.TryGetValue(a, out var ja)
@@ -606,7 +607,7 @@ public sealed partial class PlanningSystem
         foreach (var perceived in npc.Perception.Objects)
         {
             if (perceived.IsReachable &&
-                perceived.DefinitionId == "campfire.spot" &&
+                perceived.DefinitionId == ContentIds.Campfire &&
                 world.Entities.Objects.TryGetValue(perceived.Id, out var campfire) &&
                 campfire.ResourceAmount > 0f &&
                 (fire is null || perceived.Distance < fire.Distance))

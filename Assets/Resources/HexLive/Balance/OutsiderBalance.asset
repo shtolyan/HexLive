@@ -62,3 +62,25 @@ MonoBehaviour:
   strangerCueCooldownTicks: 300
   dangerRingTiles: 3
   enemyDeathRelief: 0.15
+  groupHuntEnabled: 1
+  groupHuntMinGirls: 3
+  groupHuntGatherRadiusTiles: 4
+  groupHuntHateThreshold: -0.5
+  groupHuntTopicWeight: 1.2
+  groupHuntTopicHateGain: 1.5
+  groupHuntMaxPactDistanceTiles: 40
+  groupHuntLockTicks: 900
+  groupHuntSpreadTiles: 2
+  groupHuntTargetFleeHealth: 0.85
+  groupHuntHunterFleeDamage: 0.2
+  groupHuntHunterFleeWorstDrop: 0.25
+  groupHuntMinRemaining: 2
+  groupHuntCooldownTicks: 3000
+  groupHuntStressRelief: 0.25
+  groupHuntBondAffinity: 0.1
+  groupHuntTargetGrudge: 0.3
+  groupHuntWitnessAffinityLoss: 0.18
+  groupHuntWitnessRadiusTiles: 5
+  groupHuntMercyHolds: 0
+  groupHuntBlowsToRout: 6
+  abuseWoundedVitalFloor: 0.5

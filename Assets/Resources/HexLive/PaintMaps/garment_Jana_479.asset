@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jana
   VertexCount: 479
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -26,6 +28,10 @@ MonoBehaviour:
       BindPerU: 0.46273687
       BindPerV: 0.102541275
       Valid: 1
+      BindPos: {x: 0.04964915, y: 1.5495863, z: -0.0212322}
+      BindNormal: {x: -0.8446819, y: 0.5332561, z: -0.04637277}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points:
     - Slot: 1
@@ -33,13 +39,22 @@ MonoBehaviour:
       BindPerU: 0.35712636
       BindPerV: 0.10686729
       Valid: 1
+      BindPos: {x: 0.007674334, y: 1.2439189, z: -0.181642}
+      BindNormal: {x: 0.348713, y: 0.1981922, z: -0.91603446}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

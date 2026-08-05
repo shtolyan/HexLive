@@ -83,9 +83,13 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     [Range(0f, 2f)]
     [SerializeField] private float _hopLandingSeconds = 0.5f;
 
-    [Tooltip("ОТСТУП от стены (мировые единицы, перпендикулярно границе): взлетает ровно за столько ДО стены и приземляется ровно за столько ПОСЛЕ — симметрично. Больше = дальше от стены и длиннее прыжок.")]
+    [Tooltip("БЛИЖНИЙ конец прыжка — отступ у самой кромки (мировые единицы). СПРЫГИВАНИЕ отталкивается за столько ДО кромки; ЗАПРЫГИВАНИЕ приземляется за столько ПОСЛЕ неё.")]
     [Range(0.1f, 1.5f)]
     [SerializeField] private float _hopEdgePadding = 0.5f;
+
+    [Tooltip("ДАЛЬНИЙ конец прыжка (мировые единицы). СПРЫГИВАНИЕ приземляется за столько ЗА кромкой; ЗАПРЫГИВАНИЕ отталкивается за столько ДО неё (разбег). Длина прыжка = ближний + дальний.")]
+    [Range(0.2f, 1.2f)]
+    [SerializeField] private float _hopFarPadding = 0.65f;
 
     [Tooltip("НЫРОК: на сколько мировых единиц она уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
     [Range(0f, 1.5f)]
@@ -98,6 +102,14 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     [Tooltip("СПРЫГИВАНИЕ: доля полёта, до которой она летит РОВНО и не падает. 0.5 = падает только перелетев кромку (не задевает край). Меньше = падает раньше.")]
     [Range(0f, 0.95f)]
     [SerializeField] private float _hopDownFallStart = 0.5f;
+
+    [Tooltip("Какую долю полёта она РЕАЛЬНО летит: остаток окна уже стоит на месте приземления. Меньше = быстрее домчала и раньше встала (лечит «скользит после приземления»).")]
+    [Range(0.2f, 1f)]
+    [SerializeField] private float _hopFlightSettle = 0.65f;
+
+    [Tooltip("ЗАПРЫГИВАНИЕ: на какой доле полёта тело в самой верхней точке. Меньше = «сначала резко вверх, потом в сторону».")]
+    [Range(0.1f, 0.9f)]
+    [SerializeField] private float _hopUpApex = 0.35f;
 
     [Tooltip("Задержка старта симуляции после запуска сцены (реальные секунды): Unity успевает прогрузиться и отрисоваться, пока мир стоит на паузе.")]
     [Range(0f, 10f)]
@@ -124,8 +136,11 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         _tuningConfig.hopTakeoffSeconds = _hopTakeoffSeconds;
         _tuningConfig.hopLandingSeconds = _hopLandingSeconds;
         _tuningConfig.hopEdgePadding = _hopEdgePadding;
+        _tuningConfig.hopFarPadding = _hopFarPadding;
         _tuningConfig.hopDownUp = _hopDownUp;
         _tuningConfig.hopDownFallStartFrac = _hopDownFallStart;
+        _tuningConfig.hopFlightSettleFrac = _hopFlightSettle;
+        _tuningConfig.hopUpApexFrac = _hopUpApex;
         _tuningConfig.divePlungeDepth = _divePlungeDepth;
         _tuningConfig.swimEntryPauseSeconds = _treadPauseSeconds;
         _tuningConfig.swimSpeedFactor = _swimSpeedFactor;
@@ -141,6 +156,48 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         // start, so a live water-level slider would desync mesh vs actors).
     }
 
+    // Слайдеры сцены против ассета, который читает игра. Не правим ни то, ни
+    // другое — только показываем расхождение, иначе сцена тихо тюнит «свой»
+    // прыжок. Кнопки «Загрузить/Сохранить» под компонентом — как это свести.
+    private void WarnIfSlidersDriftedFromConfig()
+    {
+        if (_tuningConfig == null)
+        {
+            return;
+        }
+
+        var drift = new System.Text.StringBuilder();
+        void Check(string name, float scene, float asset)
+        {
+            if (Mathf.Abs(scene - asset) > 0.0001f)
+            {
+                drift.Append($"\n  {name}: сцена {scene}, ассет {asset}");
+            }
+        }
+
+        Check("hopSeconds", _hopSeconds, _tuningConfig.hopSeconds);
+        Check("downHopSeconds", _downHopSeconds, _tuningConfig.downHopSeconds);
+        Check("hopTakeoffSeconds", _hopTakeoffSeconds, _tuningConfig.hopTakeoffSeconds);
+        Check("hopLandingSeconds", _hopLandingSeconds, _tuningConfig.hopLandingSeconds);
+        Check("hopEdgePadding", _hopEdgePadding, _tuningConfig.hopEdgePadding);
+        Check("hopFarPadding", _hopFarPadding, _tuningConfig.hopFarPadding);
+        Check("hopDownUp", _hopDownUp, _tuningConfig.hopDownUp);
+        Check("hopDownFallStartFrac", _hopDownFallStart, _tuningConfig.hopDownFallStartFrac);
+        Check("hopFlightSettleFrac", _hopFlightSettle, _tuningConfig.hopFlightSettleFrac);
+        Check("hopUpApexFrac", _hopUpApex, _tuningConfig.hopUpApexFrac);
+        Check("divePlungeDepth", _divePlungeDepth, _tuningConfig.divePlungeDepth);
+        Check("swimEntryPauseSeconds", _treadPauseSeconds, _tuningConfig.swimEntryPauseSeconds);
+        Check("swimSpeedFactor", _swimSpeedFactor, _tuningConfig.swimSpeedFactor);
+
+        if (drift.Length > 0)
+        {
+            Debug.LogWarning(
+                "SwimTest: слайдеры сцены РАСХОДЯТСЯ с HexTuningConfig — играть будут " +
+                "значения СЦЕНЫ, а игра берёт ассет. Свести: кнопка «Загрузить настройки» " +
+                "(ассет → слайдеры) или «Сохранить настройки» (слайдеры → ассет)." + drift);
+        }
+    }
+
     // Editor button: the config asset -> the sliders (revert to saved).
     public void ReadSlidersFromConfig()
     {
@@ -154,8 +211,11 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         _hopTakeoffSeconds = _tuningConfig.hopTakeoffSeconds;
         _hopLandingSeconds = _tuningConfig.hopLandingSeconds;
         _hopEdgePadding = _tuningConfig.hopEdgePadding;
+        _hopFarPadding = _tuningConfig.hopFarPadding;
         _hopDownUp = _tuningConfig.hopDownUp;
         _hopDownFallStart = _tuningConfig.hopDownFallStartFrac;
+        _hopFlightSettle = _tuningConfig.hopFlightSettleFrac;
+        _hopUpApex = _tuningConfig.hopUpApexFrac;
         _divePlungeDepth = _tuningConfig.divePlungeDepth;
         _treadPauseSeconds = _tuningConfig.swimEntryPauseSeconds;
         _swimSpeedFactor = _tuningConfig.swimSpeedFactor;
@@ -186,6 +246,14 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         // statics, so what you set is what runs. To move a value into the
         // shipped code default, edit HexHopTuning.cs; to snap a slider back
         // to that default, right-click the field in the inspector → Reset.
+        //
+        // ⭐ И именно поэтому сцена умеет ТИХО откатывать настройки: игра читает
+        // HexTuningConfig, а эта сцена — свои сериализованные слайдеры, и стоит
+        // им разойтись, как прыжок здесь выглядит иначе, чем в игре («мы же это
+        // тюнили, почему вернулось?» — так и было: в сцене лежали Takeoff 0.25 /
+        // Landing 0.15 / DownHop 2 против 0.6 / 0.5 / 1 в ассете). Молчать об
+        // этом нельзя, перезаписывать слайдеры — тоже: просто говорим вслух.
+        WarnIfSlidersDriftedFromConfig();
 
         BuildEnvironment();
 
@@ -429,7 +497,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
             var previousTile = npc.Tile;
             npc.Movement.JunctionPath.Clear();
             npc.Movement.IsMoving = false;
-            npc.Movement.Status = MovementStatus.Idle;
+            npc.Movement.SetStatus(MovementStatus.Idle);
             npc.Movement.ClimbPauseTimer = 0f;
             npc.Movement.HopTimer = 0f;
             npc.Movement.HopPathIndex = -1;
@@ -472,9 +540,12 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         HexHopTuning.TakeoffSeconds = _hopTakeoffSeconds;
         HexHopTuning.LandingSeconds = _hopLandingSeconds;
         HexHopTuning.EdgePadding = _hopEdgePadding;
+        HexHopTuning.FarPadding = _hopFarPadding;
         HexHopTuning.DivePlungeDepth = _divePlungeDepth;
         HexHopTuning.DownHopUp = _hopDownUp;
         HexHopTuning.DownFallStartFrac = _hopDownFallStart;
+        HexHopTuning.FlightSettleFrac = _hopFlightSettle;
+        HexHopTuning.UpApexFrac = _hopUpApex;
     }
 
     // ---- environment ----

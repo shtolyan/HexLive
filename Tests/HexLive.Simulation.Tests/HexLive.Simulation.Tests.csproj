@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Гейты симуляции — то, что раньше пересобиралось в скретчпаде каждую сессию.
+
+        dotnet test Tests/HexLive.Simulation.Tests
+
+    Живёт ВНЕ Assets/, поэтому Unity этот проект не видит и PackageReference тут
+    законны — в отличие от HexLive.Simulation.Standalone.csproj, где любая
+    ссылка соберётся здесь и развалится в Unity (спек §59.3).
+
+    NUnit, а не xunit, по одной решающей причине: SimDataFile.Require мутирует
+    ПРОЦЕСС-ГЛОБАЛЬНЫЕ статики (BalanceReflection-поля, GearCatalog.Override,
+    WorldObjectLibrary.Override). xunit по умолчанию гоняет коллекции
+    параллельно — это гонка на общих каталогах by construction. NUnit внутри
+    сборки последователен, и он же стоит в Unity Test Framework, так что идиомы
+    переносимы, если тест когда-нибудь переедет внутрь Assets/.
+
+    ProjectReference, а не HintPath на DLL: пересобирается сам и не может
+    указать на устаревший DLL из ДРУГОГО чекаута (грабли из CLAUDE.md про
+    worktree).
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>HexLive.Simulation.Tests</RootNamespace>
+    <AssemblyName>HexLive.Simulation.Tests</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <BaseOutputPath>../../Build/dotnet/bin/HexLive.Simulation.Tests/</BaseOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Арена абьюза строится ТЕМ ЖЕ классом, что и сцена в Unity и прогон соака.
+      Файл живёт в UnityPresentation, но не ссылается на UnityEngine ни разу,
+      поэтому подключается сюда напрямую — так же, как в hexsoak.
+    -->
+    <Compile Include="../../Assets/HexLive/UnityPresentation/AbuseTest/AbuseTestWorld.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="known_hardcoded_ids.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

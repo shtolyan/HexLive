@@ -29,6 +29,32 @@ public sealed class MovementState
 
     public MovementStatus Status { get; set; } = MovementStatus.Idle;
 
+    // §71.3: ⭐ ЛЕГАСИ-ЛАТЧ ТЕМПА ЗАЖИВЛЕНИЯ. До честного статуса `Moving`
+    // ставился ТОЛЬКО веткой «шагнула, но не дошла до джанкшена» и висел до
+    // следующей записи. Бегун (шаг 0.675 > 0.375 решётки) в неё не попадал
+    // НИКОГДА — статус у него залипал на Rotating/Arrived, и штраф «на ходу
+    // раны затягиваются вдвое медленнее» его не касался. На этой случайной
+    // льготе оттюнена вся экономика сцен §81: гопник живёт на бегу и на
+    // побоях, и с честным штрафом он истекает кровью и умирает на тике ~15900
+    // (сид 313), не дожив ~700 тиков до сговора §108, который выигрывал гонку
+    // при старой семантике.
+    //
+    // Поэтому темп заживления (NeedsDecaySystem) читает НЕ Status, а этот
+    // латч, который повторяет старые записи дословно: его двигает SetStatus
+    // (все исторические места записи), и НЕ двигает честный `Status = Moving`
+    // из блока трансляции §71.3. Убрать латч = осознанное решение баланса §81,
+    // а не рефакторинг.
+    public bool WoundPaceMoving { get; set; }
+
+    // §71.3: статус + легаси-латч заживления. Все места записи статуса, кроме
+    // честного `Moving` из блока трансляции, обязаны ходить сюда — прямая
+    // запись Status мимо латча тихо меняет темп заживления (см. WoundPaceMoving).
+    public void SetStatus(MovementStatus status)
+    {
+        Status = status;
+        WoundPaceMoving = status == MovementStatus.Moving;
+    }
+
     public string StopReason { get; set; } = string.Empty;
 
     // Vestigial: only round-trips through the serializer, never used in logic
@@ -70,6 +96,12 @@ public sealed class MovementState
     // Where the hop lands — the presentation reads the exact target ground
     // height from it (water dives land BELOW the surface, not one step down).
     public TileCoord HopTargetTile { get; set; }
+    // §21.21B v15: where the hop takes off FROM (the tile holding HopFrom). The
+    // view builds the arc's height delta as target - from, so it no longer has
+    // to read npc.Tile — which the sim commits to the LANDING tile while the
+    // window is still open, zeroing the delta and leaving the body pinned a
+    // whole elevation step off the ground until the arc was cut to zero.
+    public TileCoord HopFromTile { get; set; }
     public int HopPathIndex { get; set; } = -1;
 }
 

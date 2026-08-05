@@ -262,6 +262,48 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         {
             RunCounterStrike(world, dog, target, inMelee);
         }
+
+        // 4) §104 r8: ПОДМОГА бьёт по тому же таймлайну, что и жертва.
+        //
+        // Помощницы дрались по легаси-модели (MobSystem, урон за средний
+        // проход) и не ставили НИ ОДНОГО видового сигнала: их удары были
+        // невидимы — кровь у собаки есть, замаха нет. Здесь они получают
+        // ровно то же, что жертва: окно анимации, штамп замаха, вариант удара.
+        if (SimBalance.TimedMeleeEverywhere && dog.Health > 0f)
+        {
+            RunAssistStrikes(world, dog);
+        }
+    }
+
+    /// <summary>
+    /// Удары тех, кто прибежал на помощь (§57): та же собака, тот же таймлайн.
+    /// Жертва обслужена выше и в список не попадает — <c>_struckNpcs</c>
+    /// держит правило «один замах на тело за проход».
+    /// </summary>
+    private void RunAssistStrikes(WorldState world, Wildlife.MobState dog)
+    {
+        foreach (var helper in world.Entities.Npcs.Values)
+        {
+            if (helper.Mind.CombatAssistDogId != dog.Id ||
+                helper.Health <= 0f ||
+                helper.Body.IsProne ||
+                helper.IsUnconscious(world.Tick) ||
+                !_struckNpcs.Add(helper.Id.Value))
+            {
+                continue;
+            }
+
+            // §106: a helper mid-swim throws no punches — swimmers don't strike.
+            var inMelee = HexSpatialMath.HexDistance(helper.Tile, dog.Tile) <= 1 &&
+                !(Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, helper));
+            if (inMelee)
+            {
+                helper.IsFighting = true;
+                FaceDog(world, helper, dog);
+            }
+
+            RunCounterStrike(world, dog, helper, inMelee);
+        }
     }
 
     // Instant reactive defense (fast layer). Mirrors MobSystem's medium-pass
@@ -317,82 +359,34 @@ public sealed class AnimalCombatSystem : ISimulationSystem
             return;
         }
 
+        // ⭐ НЕ EffectiveWeapon: назначенное сценой оружие сюда не относится.
+        // Сцена абьюза владеет ЧЕЛОВЕЧЕСКИМ боем, а ForcedMeleeWeaponId
+        // переживает момент, когда пара уже расцеплена (оппонента убили), но
+        // сцена ещё не дошла до End — тогда девушка вдруг лупила бы волка
+        // назначенными кулаками. Против зверя — лучшее, что в руках.
         var weaponId = npc.Body.CanUseToolsOrWeapons
             ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands)
             : string.Empty;
 
-        // The swing's damage moment: the animation started at the swing start;
-        // the blow connects HitDelaySeconds in. The next swing waits out the
-        // REST of the attack animation plus the standing recovery — knife:
-        // hit at 0.21 s, animation to 2.0 s, then 1.0 s recovery (3 s cycle).
-        // Variant gear (fists) reads the timings of the strike PICKED at the
-        // swing start instead of the flat sheet values.
-        if (npc.StrikeLandsAtTick > 0 && world.Tick >= npc.StrikeLandsAtTick)
+        // §104 r2: таймлайн замаха тут БОЛЬШЕ НЕ ЖИВЁТ — он один на всех, в
+        // MeleeSwing.TryAdvanceSwing. Здесь осталось ровно то, чем собачий бой
+        // отличается: урон принимает плоский Health (тела у собаки нет, а
+        // значит ни брони, ни раны, ни части тела) и своё событие.
+        //
+        // Раньше здесь стояла посимвольная копия того же таймлайна, вплоть до
+        // соли хеша 777. Именно она и разошлась: собачья половина ставила
+        // SwingStartTick, человеческая эту строку потеряла — и удары человека
+        // против человека не рисовались никогда (§103).
+        if (!MeleeSwing.TryAdvanceSwing(world, npc, inMelee, weaponId, out var strike, out _))
         {
-            npc.StrikeLandsAtTick = 0;
-            StrikeTimings(Content.GearCatalog.For(weaponId), npc.SwingStrikeIndex,
-                out var hitDelay, out var duration, out var cooldown);
-            // §76: same Agility recovery cut as the human swing (MeleeSwing) —
-            // the two timing sheets are duplicated on purpose (§72 explains
-            // why), so the attribute has to be applied in both or a nimble girl
-            // would be quick against people and average against dogs.
-            npc.StrikeReadyAtTick = world.Tick +
-                SecondsToTicks((duration - hitDelay + cooldown) *
-                    AttributeMath.AttackCooldownMult(npc));
-            // Spec 19.3C: hurt arms strike weaker; the weapon owns its damage.
-            var strike = Content.GearCatalog.Damage(weaponId) * npc.StrikeFactor();
-            dog.Health -= strike;
-            // §76: fighting a dog trains Combat too. This path is NOT reachable
-            // from MeleeSwing — RunCounterStrike bails early whenever a human
-            // fight owns the swing slot — so the award has to live here as well
-            // or a girl who only ever fought wolves would stay a novice.
-            SkillTrace.AwardHit(world, npc);
-            Trace.Emit(world, npc.Id, "DogFight",
-                $"Dog={dog.Id} struck -{strike:F3}" +
-                $"{(string.IsNullOrEmpty(weaponId) ? " (fists)" : " " + weaponId)} " +
-                $"DogHealth={System.Math.Max(0f, dog.Health):F2}");
             return;
         }
 
-        // Start the swing (замах) when recovered and the dog is in reach. The
-        // attack animation begins NOW; presentation plays it across the whole
-        // AttackAnimUntilTick window while the damage lands mid-clip. Variant
-        // gear picks ONE strike (deterministic hash) — fists roll a random
-        // punch/kick each exchange, and the view plays that exact clip.
-        if (npc.StrikeLandsAtTick == 0 && inMelee && world.Tick >= npc.StrikeReadyAtTick)
-        {
-            var gear = Content.GearCatalog.For(weaponId);
-            npc.SwingStrikeIndex = gear.HasStrikeVariants
-                ? System.Math.Min(gear.StrikeVariants.Length - 1,
-                    (int)(MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 777) *
-                        gear.StrikeVariants.Length))
-                : -1;
-            StrikeTimings(gear, npc.SwingStrikeIndex,
-                out var hitDelay, out var duration, out _);
-            npc.StrikeLandsAtTick = world.Tick + SecondsToTicks(hitDelay);
-            npc.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
-            npc.SwingStartTick = world.Tick;
-        }
-    }
-
-    // The current swing's timing sheet: the picked strike variant when the
-    // gear has one (fists), the flat gear numbers otherwise.
-    private static void StrikeTimings(Content.GearStats gear, int strikeIndex,
-        out float hitDelaySeconds, out float durationSeconds, out float cooldownSeconds)
-    {
-        if (gear.HasStrikeVariants && strikeIndex >= 0 &&
-            strikeIndex < gear.StrikeVariants.Length)
-        {
-            var variant = gear.StrikeVariants[strikeIndex];
-            hitDelaySeconds = variant.HitDelaySeconds;
-            durationSeconds = variant.AttackDurationSeconds;
-            cooldownSeconds = variant.CooldownSeconds;
-            return;
-        }
-
-        hitDelaySeconds = gear.HitDelaySeconds;
-        durationSeconds = gear.AttackDurationSeconds;
-        cooldownSeconds = gear.CooldownSeconds;
+        dog.Health -= strike;
+        Trace.Emit(world, npc.Id, "DogFight",
+            $"Dog={dog.Id} struck -{strike:F3}" +
+            $"{(string.IsNullOrEmpty(weaponId) ? " (fists)" : " " + weaponId)} " +
+            $"DogHealth={System.Math.Max(0f, dog.Health):F2}");
     }
 
     private static void LandBite(WorldState world, Wildlife.MobState dog, NPCState target)
@@ -401,6 +395,10 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // covering that part absorb it. §50: never a severed limb.
         var bitPart = AmputateSystemHelpers.RedirectFromStump(target,
             MobSystem.PickAttackPart(world, dog.Id));
+
+        // §104 r5: жертве всё равно, чем в неё прилетело — виду нужен ОДИН
+        // сигнал «сейчас попали», и укус даёт его тем же штампом, что удар.
+        MeleeSwing.StampHit(world, target, MeleeSwing.BiteWeaponId, bitPart, dog.Position);
         var partArmor = EquipmentMath.ArmorForPart(world, target, bitPart); // trace only
         var damage = EquipmentMath.Mitigate(world, target, bitPart, Stats(dog).AttackDamage);
         target.Body.Parts[bitPart] = System.Math.Max(0f, target.Body.Parts[bitPart] - damage);
@@ -418,12 +416,9 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         EquipmentMath.WearCoveringItems(world, target, bitPart,
             SimBalance.ClothingBiteDurabilityWear);
 
-        if (target.Body.VitalDestroyed(out var vitalPart))
-        {
-            target.Health = 0f;
-            Trace.Emit(world, target.Id, "VitalPartDestroyed",
-                $"{vitalPart} destroyed by Dog={dog.Id}");
-        }
+        // §105: единая развилка. Укус по уже лежащей на грани срезает запас
+        // смерти — зверь догрызает упавшую, и это ускоряет её конец.
+        MortalityHelpers.ResolveTrauma(world, target, damage, $"Dog={dog.Id}");
 
         Trace.Emit(world, target.Id, "DogFight",
             $"Dog={dog.Id} bit: {bitPart} -{damage:F3} (PartArmor={partArmor:F2}) " +
@@ -433,6 +428,26 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
     private static bool InMelee(WorldState world, Wildlife.MobState dog, NPCState target)
     {
+        // §105.14: притворяется мёртвой — зверь потерял к ней интерес и не
+        // кусает. Зеркало гейта medium-слоя (MobSystem.IsNpcInRefugeFrom):
+        // быстрый слой крутится между сбросом цели и укусом, так что без этой
+        // проверки он успевал бы догрызть уже брошенную цель.
+        if (target.IsPlayingDead(world.Tick))
+        {
+            return false;
+        }
+
+        // §106: adjacency alone is not a bite — the medium must match too. A
+        // wolf at the shore is one junction from the swimmer and still cannot
+        // reach her (and she, mid-stroke, cannot counter it either: the fast
+        // layer runs between the medium-pass target-drop and this check).
+        if (Spec106.WaterSanctuaryEnabled &&
+            !CombatMedium.CanEngage(world,
+                Content.MobCatalog.For(dog.MobId).AttackMediums, target))
+        {
+            return false;
+        }
+
         return target.CurrentJunction is { } npcJunction &&
             (npcJunction.Equals(dog.Junction) ||
              (world.Junctions.Items.TryGetValue(dog.Junction, out var dogJunction) &&

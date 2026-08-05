@@ -23,6 +23,7 @@
 # исходники headless-сборки (спек §59.3, CLAUDE.md «Headless simulation probes»).
 !HexLive.Simulation.Standalone.csproj
 !/Server/**/*.csproj
+!/Tests/**/*.csproj
 *.suo
 *.tmp
 *.user

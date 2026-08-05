@@ -66,7 +66,7 @@ public sealed partial class PlanningSystem
         // Наружу это и было тем «зависанием»: стоит вплотную к жертве, цель
         // «хочу докопаться», тяга 3.00, здоровье 1.00 — и полчаса ничего.
         // Мерка та же, что у боя: сцена всё равно требует ударной дистанции.
-        if (MeleeSwing.InReach(world, npc, mark))
+        if (InteractionReach.CanStrike(world, npc, mark))
         {
             // Взаимодействие происходит там, где он СТОИТ: гнать его на её
             // узел незачем, а «прибытие буквальное» в исполнении сверяется
@@ -89,7 +89,7 @@ public sealed partial class PlanningSystem
 
         // §97: подход БОЕВОЙ, а не разговорный. Прежде бронировался узел «на
         // расстоянии вытянутой руки» (§28.8) — а он бывает и через узел от неё,
-        // тогда как удар достаёт только до СОСЕДНЕГО: MeleeSwing.InReach меряет
+        // тогда как удар достаёт только до СОСЕДНЕГО: InteractionReach.CanStrike меряет
         // соседство узлов, а не метры. Пара сцеплялась, а удары не проходили —
         // сцена шла молча, без единого замаха.
         //
@@ -135,6 +135,8 @@ public sealed partial class PlanningSystem
             current.Health > 0f &&
             !current.IsUnconscious(world.Tick) &&
             !(Spec81.AbuseRespectsSanctuary && MobSystem.IsNpcInSanctuary(world, current)) &&
+            // §106: нырнула — коммит рассыпается, в воду он за ней не идёт.
+            !(Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, current)) &&
             HexSpatialMath.HexDistance(npc.Tile, current.Tile) <= Spec81.AbuseScanRadiusTiles)
         {
             return current;

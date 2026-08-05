@@ -28,6 +28,13 @@ public static class GarmentDropFactory
     public static bool IsGarment(string definitionId) =>
         ActorWardrobe.GetVisuals(definitionId).Count > 0;
 
+    // Pull this item's wear prefabs into memory behind the loading curtain. The
+    // lookup is cached, so the first time the item is actually DROPPED the view
+    // is built from RAM instead of paying a blocking Resources read inside the
+    // tick — see the prewarm block in SimulationRunnerBehaviour. A non-garment
+    // id is a cheap no-op that also caches the "nothing here" answer.
+    public static void Prewarm(string definitionId) => ActorWardrobe.GetVisuals(definitionId);
+
     // Builds a ground-drop visual for a sim item id, or null when the id has
     // no wear prefabs (caller falls back to its primitive). Root pivot = the
     // centre of the laid-out garment (group centre for multi-piece items).

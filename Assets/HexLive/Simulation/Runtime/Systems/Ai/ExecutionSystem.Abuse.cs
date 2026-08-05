@@ -13,18 +13,25 @@ namespace HexLive.Simulation.Runtime
 // §81: сама сцена. Пять тактов внутри ОДНОГО взаимодействия — требование,
 // плач, пара тычков, приговор, добыча.
 //
-// ⭐ Удары наносятся СЦЕНАРНО, а Mind.CombatOpponentNpcId не трогается вовсе.
-// Это не мелочь и не лень: боевая сцепка одновременно и пара, и заявка на
-// единственный слот замаха, и триггер для трёх посторонних читателей. Выставь
-// её — и HumanCombatSystem на быстром слое начнёт бесконечный обмен ударами
-// поверх взаимодействия, которое держит обоих на месте; закончить его будет
-// некому, потому что RaidSystem расцепляет только тех, у кого цель Raid. Плюс
-// MobSystem каждый средний проход гасит IsFighting, а PerceivedAgent считает
-// дерущуюся «занятой» — и она пропадает из поля зрения собственных помощниц
-// ровно тогда, когда они нужнее всего.
+// ⭐ КТО ЧЕМ ВЛАДЕЕТ (§97/§103; до них удары наносились отсюда напрямую и
+// боевая сцепка не трогалась вовсе):
 //
-// Поэтому: ApplyHumanBlow напрямую, ровно AbuseMaxBlows раз, по расписанию,
-// которым владеет сцена. Кулаками, не оружием.
+//   сцена (здесь)  — такты, чем бить, сколько ударов, когда приговор;
+//   FightScene     — объявление намерения и удержание пары;
+//   HumanCombatSystem — сами удары, на общем таймлайне замаха.
+//
+// Сцепка (Mind.CombatOpponentNpcId) теперь ВЫСТАВЛЯЕТСЯ, и это осознанно: она
+// одновременно пара, заявка на единственный слот замаха и триггер для трёх
+// посторонних читателей. Цена, которой боялись, оплачена явно — конец сцены
+// наступает по числу ЛЁГШИХ ударов (FightScene.IsComplete), а не по тому,
+// расцепит ли кто-нибудь пару; MobSystem каждый средний проход гасит
+// IsFighting, и сцена перезажигает его через FightScene.Latch, иначе вид
+// показывал бы мирную позу посреди драки.
+//
+// Оружие выбирает FightScene.PickWeapon: наезд начинается рукопашкой, а тесак
+// достают, когда уже ненавидят (лестница ненависти §93). Это не «кулаками
+// всегда» — симпатия падает с каждой сценой, и чем бьют, становится
+// следствием ИСТОРИИ отношений.
 public sealed partial class ExecutionSystem
 {
     private static void RunAbuse(WorldState world, NPCState npc)
@@ -64,7 +71,7 @@ public sealed partial class ExecutionSystem
         // Для сцены важно ровно одно: достаёт ли он до неё. Достаёт — начинаем
         // здесь; не достаёт и не идёт — ждём, как раньше.
         if (npc.Execution.Status == ExecutionStatus.None &&
-            !MeleeSwing.InReach(world, npc, mark) &&
+            !InteractionReach.CanStrike(world, npc, mark) &&
             npc.Plan.TargetJunctionId is { } wantJunction &&
             (npc.CurrentJunction is not { } atJunction || !atJunction.Equals(wantJunction)))
         {
@@ -80,6 +87,17 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // §106: нырнула — сцена рассыпается ЦЕЛИКОМ, в воду он не полезет.
+        // Стоит ДО ветки преследования: иначе Approach (CanStrike по пловчихе
+        // всегда false) отправил бы его догонять — ровно в море. Срыв, не
+        // полный кулдаун (§89: passing up ≠ попытка) — вылезет на берег, может
+        // попробовать снова.
+        if (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, mark))
+        {
+            AbortAbuse(world, npc, "MarkSwimming");
+            return;
+        }
+
         // §89: ⭐ ОНА ПРОСТО ОТОШЛА — он идёт следом, а не бросает затею.
         //
         // Раньше любой её шаг убивал сцену целиком: обрыв «MarkGone» случался
@@ -90,28 +108,21 @@ public sealed partial class ExecutionSystem
         // цели держит его на ней, и планировщик на следующем тике строит новый
         // подход. Он преследует, пока не истечёт замок.
         //
-        // §102 r4: ⭐ ДО СЦЕНЫ мерка преследования — ТА ЖЕ, ЧТО У СТАРТА §98.
-        // Здесь стояла метрическая дистанция разговора (Talk, 2R), а старт
-        // требует СОСЕДСТВА УЗЛОВ, и между мерками была мёртвая зона: стоя в
-        // кольце «ближе 2R, но не на соседнем узле», он не преследовал (по
-        // Talk уже близко) и не начинал (рукой не достаёт). Оба условия
-        // молчали, и он замирал напротив неё навечно. Замер на арене: 2951 из
-        // 12000 тиков в этом кольце, самый длинный застой — 2872 тика подряд.
-        // Правило одно, без промежуточного состояния: не достаю → иду;
-        // достаю → начинаю.
+        // §102 r4: ⭐ и «пора догонять», и «можно начинать» отвечает ОДНО место —
+        // InteractionReach.AssessMelee. Пока это были два условия в разных
+        // строках (метрический Talk у преследования, соседство узлов у старта),
+        // между ними жило кольцо, в котором молчали оба: он не догонял, потому
+        // что уже близко, и не начинал, потому что рукой не достаёт. Замер на
+        // арене — 2951 из 12000 тиков в этом кольце, застой 2872 тика подряд.
+        // Теперь «идти» это буквально «не действовать», и третьему состоянию
+        // взяться неоткуда. Гистерезис вход/удержание живёт внутри Assess.
         //
-        // ВНУТРИ идущей сцены мерка остаётся ШИРОКОЙ (Talk): ей позволено
-        // переминаться на пару шагов, не разрывая начатую сцену, — за узкую
-        // мерку здесь уже платили десятками срывов за прогон (§89). А до
-        // узкой проверки дело доходит только СТОЯ: пока подход строится или
+        // До узкой проверки дело доходит только СТОЯ: пока подход строится или
         // идётся, выходы выше (движение, §102 r3) возвращают раньше, поэтому
         // свежий план она не сбрасывает.
         var withinScene = npc.Execution.Status != ExecutionStatus.None;
-        var closeEnough = withinScene
-            ? InteractionReach.CheckStart(world, npc, mark.Position,
-                InteractionReach.Talk, $"Abuse NPC{markId.Value}")
-            : MeleeSwing.InReach(world, npc, mark);
-        if (!closeEnough)
+        if (InteractionReach.AssessMelee(world, npc, mark, withinScene,
+                $"Abuse NPC{markId.Value}") == MeleeApproach.Approach)
         {
             if (npc.Plan.TargetJunctionId is { } heldJunction)
             {
@@ -167,8 +178,11 @@ public sealed partial class ExecutionSystem
             // отношения портились, а драки не было ни одной. После §102 r4
             // преследование выше меряет ТОЙ ЖЕ меркой, так что сюда доходят
             // уже достающие; проверка остаётся страховкой на случай, если
-            // какой-нибудь будущий путь пустит сцену в обход неё.
-            if (!MeleeSwing.InReach(world, npc, mark))
+            // какой-нибудь будущий путь пустит сцену в обход неё — и идёт она
+            // через ТУ ЖЕ функцию, поэтому разойтись с преследованием больше
+            // не может даже при желании.
+            if (InteractionReach.AssessMelee(world, npc, mark, sceneStarted: false,
+                    $"Abuse NPC{markId.Value}") != MeleeApproach.Act)
             {
                 return;
             }
@@ -204,11 +218,12 @@ public sealed partial class ExecutionSystem
             // §97: чем он будет бить — решает глубина неприязни, а не «что
             // получше в рюкзаке». Наезд это наезд: кулаки; тесак достают, когда
             // уже ненавидят.
-            npc.Mind.ForcedMeleeWeaponId = PickAbuseWeapon(npc, mark);
-            npc.Mind.AbuseBlows = 0;
-
-            npc.IsFighting = true;
-            npc.Mind.CombatOpponentNpcId = mark.Id;
+            // §103: намерение сцены объявляется ОДНОЙ строкой — чем, сколько
+            // раз, с какой паузой. Дальше боевая система только сообщает о
+            // попаданиях, а сцена спрашивает «готово?».
+            FightScene.Begin(world, npc, mark,
+                FightScene.PickWeapon(npc, mark), Spec81.AbuseMaxBlows,
+                Spec81.AbuseBlowSpacing);
             // §100: она отвечает НЕ ВСЕГДА. Испугалась — стоит и терпит, и он
             // просто пару раз бьёт. Бросок детерминированный, поэтому реплей
             // повторяется в точности.
@@ -222,8 +237,17 @@ public sealed partial class ExecutionSystem
             CombatHelpSystem.RallyFriends(world, mark, null, npc.Id,
                 $"Abuse=NPC{npc.Id.Value}");
 
+            // §81.13: здоровье на входе — обеим сторонам. Разница на выходе
+            // решит, кто проиграл сцену и побежит домой плакать.
+            npc.Mind.SceneStartHealth = npc.Health;
+            mark.Mind.SceneStartHealth = mark.Health;
+
             SocialCueSignals.Stamp(world, npc, "AbuseDemand", mark.Id);
-            SocialCueSignals.Stamp(world, mark, "AbuseThreatened", npc.Id);
+            // §81.13: отшатывается (клип Rejected) только та, что РЕШИЛА не
+            // отвечать, — это её решение и есть. Решившая драться встаёт в
+            // боевую стойку, и отдельной кьюшки ей не нужно.
+            SocialCueSignals.Stamp(world, mark,
+                answers ? "AbuseThreatened" : "AbuseCowed", npc.Id);
             Trace.Emit(world, npc.Id, "AbuseStarted",
                 $"Mark=NPC{mark.Id.Value} Loot={npc.Mind.AbuseHasLoot} " +
                 $"Ratio={AbuseMath.Ratio(world, npc, mark):F2} " +
@@ -233,12 +257,26 @@ public sealed partial class ExecutionSystem
 
         var elapsed = world.Tick - npc.Execution.StartTick;
 
-        // --- Такт 2: она плачет ----------------------------------------------
+        // ⭐ ЗАЩЁЛКА БОЯ. MobSystem каждый средний проход гасит IsFighting у
+        // ВСЕХ, а перезащёлкивает потом только налёт (RaidSystem). Сцена
+        // выставляла флаг один раз на старте — и жила с ним ровно до
+        // ближайшего среднего тика, то есть один-три тика из двадцати.
+        //
+        // Для модели это было почти незаметно (удары наносит HumanCombatSystem
+        // по своим таймингам), а для ВИДА фатально: он читает IsFighting как
+        // «в боевой стойке», и вся сцена шла в мирной позе, без замахов.
+        FightScene.Latch(world, npc, mark);
+
+        // --- Такт 2: ей страшно ----------------------------------------------
+        //
+        // §81.13: ПЛАЧА здесь больше нет. Слёзы в первые же секунды сцены
+        // выглядели заученными — она ещё не знает, чем кончится. Стресс
+        // остаётся (страх настоящий), а плачет теперь ПРОИГРАВШИЙ — в
+        // развязке, перед бегством домой (см. FinishAbuse).
         if (npc.Mind.AbuseBeat < 1 && elapsed >= Spec81.AbuseBeatCryTicks)
         {
             npc.Mind.AbuseBeat = 1;
             mark.Needs.Stress = MathUtil.Clamp01(mark.Needs.Stress + Spec81.AbuseMarkStressCost);
-            SocialCueSignals.Stamp(world, mark, "AbuseCry", npc.Id);
             return;
         }
 
@@ -252,15 +290,29 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // --- Такт 4: приговор. Наступает по ЧИСЛУ УДАРОВ, а не только по
-        // времени: стычка кончается тем, что он своё сказал руками. --------
-        // §100: приговор строго ПО ВРЕМЕНИ. Раньше он наступал ещё и по числу
-        // ударов, и сцена схлопывалась за пару секунд, не успев прочитаться.
-        // Сколько ударов лечь успеет — столько и ляжет, но пять секунд драки
-        // будут.
-        if (npc.Mind.AbuseBeat < 4 && elapsed >= Spec81.AbuseBeatVerdictTicks)
+        // --- Такт 4: приговор ------------------------------------------------
+        //
+        // §103: наступает, КАК ТОЛЬКО ЛЕГЛИ ВСЕ НАЗНАЧЕННЫЕ УДАРЫ. §100 сделал
+        // его строго по времени, потому что тогда сцена схлопывалась за пару
+        // секунд — но лечилось не то: удары были невидимы из-за заглушечных
+        // таймингов клипа, а не слишком редки. С честной длиной клипа три
+        // удара сами занимают около девяти секунд, и держать сверху секундомер
+        // значит либо рвать сцену на середине замаха, либо заставлять его
+        // стоять столбом после последнего удара.
+        //
+        // Время осталось ПОТОЛКОМ: если удары почему-то не ложатся (она ушла,
+        // он не достаёт), сцена всё равно закончится.
+        // §104 r12: приговор ждёт, пока КЛИП последнего удара доиграет
+        // (SceneLastBlowRestTick) — иначе End обрывал прострелку и менял
+        // оружие в руке тем же тиком, что лёг хит. Потолок по времени
+        // остаётся страховкой на случай, если удары не ложатся вовсе.
+        if (npc.Mind.AbuseBeat < 4 &&
+            ((FightScene.IsComplete(npc) &&
+              world.Tick >= npc.Mind.SceneLastBlowRestTick) ||
+             elapsed >= Spec81.AbuseBeatVerdictTicks))
         {
             npc.Mind.AbuseBeat = 4;
+            npc.Mind.AbuseVerdictTick = world.Tick;
 
             // §97: ⭐ ВЫХОД ИЗ БОЯ ИМЕННО ЗДЕСЬ. Приговор — это и есть конец
             // драки: он своё сказал руками. Дальше идут только последствия
@@ -288,8 +340,20 @@ public sealed partial class ExecutionSystem
                 //
                 // Убийство отсюда возможно, и это осознанно: цена отказа должна
                 // быть настоящей, иначе отказывать будут всегда.
-                FinishAbuse(world, npc, mark, submitted: false, taken: null);
-                RaidSystem.EscalateToRaid(world, npc, mark, "AbuseDefied");
+                //
+                // §81.13: НО не когда он сам уже разбит. Кулачный гопник против
+                // ножа мог за сцену потерять больше, чем она, — эскалировать
+                // избитому нечем: он проиграл, плачет и бежит к себе (рут в
+                // FinishAbuse). Иначе «цена отказа» превращалась в бесплатное
+                // продолжение для того, кто драку уже проиграл.
+                var abuserLost = Spec81.AbuseRoutEnabled &&
+                    SceneDamage(npc) > SceneDamage(mark);
+                FinishAbuse(world, npc, mark, submitted: false, taken: null,
+                    allowRout: abuserLost);
+                if (!abuserLost)
+                {
+                    RaidSystem.EscalateToRaid(world, npc, mark, "AbuseDefied");
+                }
                 return;
             }
 
@@ -299,7 +363,12 @@ public sealed partial class ExecutionSystem
         }
 
         // --- Такт 5: добыча ---------------------------------------------------
-        if (npc.Mind.AbuseBeat < 5 && elapsed >= Spec81.AbuseBeatTakeTicks)
+        //
+        // §103: считается от ПРИГОВОРА, а не от начала сцены. Приговор теперь
+        // наступает по числу ударов и может прийтись на любой тик, а пауза
+        // перед тем, как он полезет в её рюкзак, должна быть одинаковой.
+        if (npc.Mind.AbuseBeat < 5 && npc.Mind.AbuseBeat >= 4 &&
+            world.Tick >= npc.Mind.AbuseVerdictTick + Spec81.AbuseTakeDelayTicks)
         {
             npc.Mind.AbuseBeat = 5;
             // §93: берём то, что у неё ЕСТЬ, а не только то, чего ему хочется.
@@ -339,78 +408,47 @@ public sealed partial class ExecutionSystem
     //
     // Расцеплять надо ОБЕ стороны и обязательно: HumanCombatSystem работает
     // ровно по CombatOpponentNpcId, и забытая пара — это вечная драка.
-    // §97: лестница ненависти — теперь она назначает оружие настоящему бою, а
-    // не рисует отдельный «сценарный» удар.
-    private static string PickAbuseWeapon(NPCState abuser, NPCState mark)
-    {
-        var affinity = abuser.Social.GetOrCreate(mark.Id).Affinity;
-        if (!abuser.Body.CanUseToolsOrWeapons || affinity > Spec81.AbuseWeaponAffinity)
-        {
-            return GearCatalog.Fist;
-        }
-
-        var best = SimBalance.BestMeleeWeapon(abuser.Inventory.Items, abuser.Body.IntactHands);
-        if (string.IsNullOrEmpty(best))
-        {
-            return GearCatalog.Fist;
-        }
-
-        var depth = MathUtil.Clamp01(
-            (Spec81.AbuseWeaponAffinity - affinity) /
-            System.Math.Max(0.0001f, 1f + Spec81.AbuseWeaponAffinity));
-        return depth >= Spec81.AbuseHeavyWeaponDepth ? best : LighterThan(abuser, best);
-    }
-
-    // Ступенька ниже самого тяжёлого — нож вместо мачете. Если ничего легче
-    // нет, остаются кулаки: лёгкая злость не берётся за тесак.
-    private static string LighterThan(NPCState npc, string heaviest)
-    {
-        string lighter = null;
-        foreach (var item in npc.Inventory.Items)
-        {
-            var id = item.DefinitionId;
-            if (id == heaviest)
-            {
-                continue;
-            }
-
-            var gear = GearCatalog.For(id);
-            if (gear.Id != id || gear.MeleePriority <= 0)
-            {
-                continue;
-            }
-
-            if (lighter is null || GearCatalog.Damage(id) > GearCatalog.Damage(lighter))
-            {
-                lighter = id;
-            }
-        }
-
-        return lighter ?? GearCatalog.Fist;
-    }
-
+    // §103: конец сцены — один вызов. Раньше здесь вручную гасились те же семь
+    // полей, и «намерение сцены» (сколько ударов) не снималось вовсе: оно жило
+    // до следующего Begin.
     private static void LeaveCombat(WorldState world, NPCState a, NPCState b)
     {
-        a.Mind.ForcedMeleeWeaponId = null;
+        var partner = b is not null && b.Mind.CombatOpponentNpcId is { } held && held.Equals(a.Id)
+            ? b
+            : null;
+
         if (b is not null)
         {
             b.Mind.ForcedMeleeWeaponId = null;
         }
 
-        a.IsFighting = false;
-        a.Mind.CombatOpponentNpcId = null;
-        a.StrikeLandsAtTick = 0;
+        FightScene.End(world, a, partner);
 
-        if (b is not null && b.Mind.CombatOpponentNpcId is { } held && held.Equals(a.Id))
+        // §109: сцена кончилась — из боя выходят ВСЕ, кто в неё вписался, а
+        // не только пара. Без этого защитница оставалась сцепленной с уже
+        // ушедшим обидчиком (CombatOpponentNpcId — это вечная драка для
+        // HumanCombatSystem) до чужой метлы, которой могло и не случиться.
+        foreach (var third in world.Entities.Npcs.Values)
         {
-            b.IsFighting = false;
-            b.Mind.CombatOpponentNpcId = null;
-            b.StrikeLandsAtTick = 0;
+            if (third.Mind.CombatAssistAttackerNpcId is { } assistId &&
+                assistId.Equals(a.Id))
+            {
+                CombatHelpSystem.ClearAssist(third);
+                third.Mind.CombatOpponentNpcId = null;
+                third.IsFighting = false;
+                FightScene.ReleaseSwingSlot(third);
+            }
         }
     }
 
+    // §81.13: сколько здоровья сторона оставила в сцене. Дельта, а не счётчик
+    // ударов: она видит броню, пощаду §86 и тычки подошедших защитниц.
+    private static float SceneDamage(NPCState npc) =>
+        System.Math.Max(0f, npc.Mind.SceneStartHealth - npc.Health);
+
     private static void FinishAbuse(
-        WorldState world, NPCState npc, NPCState mark, bool submitted, string taken)
+        WorldState world, NPCState npc, NPCState mark, bool submitted, string taken,
+        bool allowRout = true)
     {
         LeaveCombat(world, npc, mark);
 
@@ -446,6 +484,41 @@ public sealed partial class ExecutionSystem
         // показывает исход разговора.
         mark.Execution.LastTalkResultTick = world.Tick;
         mark.Execution.LastTalkAffinityDelta = -Spec81.AbuseAffinityLoss;
+
+        // ⭐ §108: СВИДЕТЕЛЬНИЦЫ. Без этого сцена портила отношения ровно с
+        // одной девушкой, а он фиксируется на удобной жертве: за арену он довёл
+        // одну до -1.00, пока две другие сидели на -0.35 и -0.42. Общей
+        // ненависти взяться было неоткуда, и сговор §108 не складывался почти
+        // никогда — не потому, что порог высок, а потому, что ненавидела его
+        // одна. Прецедент рядом: §56 роняет симпатию у всех, кто видел убийство.
+        // Под общим выключателем §108: «выключил — поведение как до §108»
+        // должно быть правдой целиком, а свидетельницы — его половина.
+        if (Spec108.GroupHuntEnabled && Spec108.GroupHuntWitnessAffinityLoss > 0f)
+        {
+            foreach (var witness in world.Entities.Npcs.Values)
+            {
+                if (witness.Id.Equals(mark.Id) || witness.Id.Equals(npc.Id) ||
+                    witness.Health <= 0f ||
+                    !FactionRelations.AreAllies(witness, mark) ||
+                    witness.IsUnconscious(world.Tick) ||
+                    witness.Execution.CurrentInteraction == InteractionType.Sleep ||
+                    HexSpatialMath.HexDistance(witness.Tile, mark.Tile) >
+                        Spec108.GroupHuntWitnessRadiusTiles)
+                {
+                    continue;
+                }
+
+                var seen = witness.Social.GetOrCreate(npc.Id);
+                seen.Affinity = MathUtil.Clamp(
+                    seen.Affinity - Spec108.GroupHuntWitnessAffinityLoss, -1f, 1f);
+                seen.Trust = MathUtil.Clamp(
+                    seen.Trust - Spec108.GroupHuntWitnessAffinityLoss, -1f, 1f);
+                SocialCueSignals.Stamp(world, witness, "AbuseWitnessed", npc.Id);
+                Trace.Emit(world, witness.Id, "AbuseWitnessed",
+                    $"Abuser=NPC{npc.Id.Value} Mark=NPC{mark.Id.Value} " +
+                    $"Affinity={seen.Affinity:F2}");
+            }
+        }
 
         Trace.Emit(world, npc.Id, submitted ? "AbuseDone" : "AbuseRebuffed",
             $"Mark=NPC{mark.Id.Value} Took={taken ?? "nothing"} " +
@@ -484,14 +557,61 @@ public sealed partial class ExecutionSystem
         npc.Execution.EndTick = 0;
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
+
+        // §81.13: РАЗВЯЗКА. Проигравший — кто потерял больше здоровья (при
+        // нуле и равенстве — жертва: её трясли, не наоборот) — плачет и бежит
+        // в СВОЙ лагерь. Без этого она через тик рубила кокос в двух шагах от
+        // обидчика, а разбитый гопник как ни в чём не бывало шёл исследовать.
+        // Плач именно ЗДЕСЬ, а не в начале сцены: слёзы до приговора выглядели
+        // заученными.
+        if (allowRout && Spec81.AbuseRoutEnabled)
+        {
+            var abuserLost = SceneDamage(npc) > SceneDamage(mark);
+            var loser = abuserLost ? npc : mark;
+            var winner = abuserLost ? mark : npc;
+            if (loser.Health > 0f &&
+                !loser.IsUnconscious(world.Tick) &&
+                !loser.Body.IsProne)
+            {
+                SocialCueSignals.Stamp(world, loser, "AbuseFledHome", winner.Id);
+                loser.Mind.SadWalkUntilTick = world.Tick + Spec81.SadWalkTicks;
+                var fled = MobSystem.TryFleeToCamp(world, loser,
+                    $"Routed after abuse by NPC{winner.Id.Value}");
+                Trace.Emit(world, loser.Id, "AbuseRouted",
+                    $"Winner=NPC{winner.Id.Value} SelfDmg={SceneDamage(loser):F2} " +
+                    $"WinnerDmg={SceneDamage(winner):F2} Fled={fled}");
+            }
+        }
     }
 
     private static void AbortAbuse(WorldState world, NPCState npc, string reason)
     {
+        // §81.15: сорванная сцена — тоже сцена. Раньше плакала и убегала
+        // только жертва ДОИГРАННОЙ сцены (FinishAbuse), а когда подруг
+        // набегало трое и сцена рвалась «Outnumbered» — самый частый исход
+        // после §109, — жертва как ни в чём не бывало возвращалась к кокосу.
+        // Слёзы «пропали» ровно в тот день, когда защитницы заработали.
+        var sceneRan = npc.Execution.CurrentInteraction == InteractionType.Abuse;
+
         if (npc.Mind.AbuseTargetNpcId is { } leavingId &&
             world.Entities.Npcs.TryGetValue(leavingId, out var leaving))
         {
             LeaveCombat(world, npc, leaving);
+
+            if (sceneRan && Spec81.AbuseRoutEnabled &&
+                leaving.Health > 0f &&
+                !leaving.IsUnconscious(world.Tick) &&
+                !leaving.Body.IsProne &&
+                !(Spec106.WaterSanctuaryEnabled &&
+                  CombatMedium.IsNpcSwimming(world, leaving)))
+            {
+                SocialCueSignals.Stamp(world, leaving, "AbuseFledHome", npc.Id);
+                leaving.Mind.SadWalkUntilTick = world.Tick + Spec81.SadWalkTicks;
+                var fled = MobSystem.TryFleeToCamp(world, leaving,
+                    $"Shaken after abuse by NPC{npc.Id.Value}");
+                Trace.Emit(world, leaving.Id, "AbuseRouted",
+                    $"Winner=none Reason={reason} Fled={fled}");
+            }
         }
         else
         {
@@ -504,10 +624,11 @@ public sealed partial class ExecutionSystem
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
 
-        npc.Execution.Status = ExecutionStatus.None;
-        npc.Execution.CurrentInteraction = null;
-        npc.Execution.StartTick = 0;
-        npc.Execution.EndTick = 0;
+        // Четыре сброса выполнения, стоявшие здесь, убраны: Abort строкой ниже
+        // выставляет ровно их — и ещё освобождает клеймы, раскладку крафта,
+        // приглашение к разговору, брони оставшихся шагов и несомую вещь.
+        // Дубль перед вызовом создавал ложное впечатление, будто демонтаж тут
+        // свой.
         PlanInterruption.Abort(world, npc, $"Abuse aborted: {reason}");
         PlanningSystem.AbandonAbuse(world, npc, reason);
     }

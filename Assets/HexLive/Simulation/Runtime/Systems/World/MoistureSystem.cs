@@ -145,7 +145,7 @@ public sealed class MoistureSystem : ISimulationSystem
     {
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId == "campfire.spot" && obj.ResourceAmount > 0f &&
+            if (obj.DefinitionId == ContentIds.Campfire && obj.ResourceAmount > 0f &&
                 HexSpatialMath.HexDistance(tile, obj.Tile) <= 1)
             {
                 return true;
@@ -164,7 +164,7 @@ public sealed class MoistureSystem : ISimulationSystem
 
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId == "station.drying_rack" && obj.Junctions.Count > 0 &&
+            if (obj.DefinitionId == ContentIds.DryingRack && obj.Junctions.Count > 0 &&
                 obj.Junctions[0].Equals(item.Junctions[0]))
             {
                 return true;

@@ -251,11 +251,12 @@ public sealed class PathfindingSystem : ISimulationSystem
     // and anyone already fighting or fleeing obviously ignore it.
     internal static bool AvoidsHostileRings(NPCState npc)
     {
+        // Кто обходит кольца ВРАЖДЕБНОЙ ФРАКЦИИ — колонка IgnoresHostileRings.
+        // Кольца зверя (§62, AvoidsThreatRings ниже) — ОТДЕЛЬНЫЙ набор, уже
+        // этого: налётчика в нём нет, потому что волк страшен обеим сторонам.
         return Spec72.Enabled &&
             !npc.IsFighting &&
-            npc.Mind.CurrentGoal != GoalType.Flee &&
-            npc.Mind.CurrentGoal != GoalType.Defend &&
-            npc.Mind.CurrentGoal != GoalType.Raid;
+            !AI.GoalCatalog.IgnoresHostileRings(npc.Mind.CurrentGoal);
     }
 
     // Spec §62: who pays the danger-ring cost. Fit fighters walk wherever they
@@ -305,7 +306,7 @@ public sealed class PathfindingSystem : ISimulationSystem
             var startJunction = npc.CurrentJunction ?? SpatialQueries.FindNearestJunction(world, npc.Position);
             if (startJunction is null)
             {
-                npc.Movement.Status = MovementStatus.Blocked;
+                npc.Movement.SetStatus(MovementStatus.Blocked);
                 npc.Movement.StopReason = "No current junction";
                 Trace.Emit(world, npc.Id, "PathBlocked",
                     $"No current junction found at Pos={Trace.FormatPos(npc.Position)}");
@@ -333,7 +334,7 @@ public sealed class PathfindingSystem : ISimulationSystem
                 danger, Spec62.DangerStepCost);
             if (path.Count == 0)
             {
-                npc.Movement.Status = MovementStatus.Blocked;
+                npc.Movement.SetStatus(MovementStatus.Blocked);
                 npc.Movement.StopReason = "No path";
                 Trace.Emit(world, npc.Id, "PathFailed",
                     $"No route from Junction={startJunction.Value.Value} to Junction={npc.Plan.TargetJunctionId.Value.Value}");
@@ -347,8 +348,17 @@ public sealed class PathfindingSystem : ISimulationSystem
             }
 
             npc.Movement.PathIndex = 1;
+            // §21.21B v15: a new path renumbers the steps, so hop state carried
+            // over from the old one is nonsense. HopPathIndex is the dangerous
+            // half: the wall scan is gated on `HopPathIndex != PathIndex`, and a
+            // hop that started on step 1 of the PREVIOUS path left it at 1 — the
+            // same value every new path starts with, so the scan was skipped on
+            // the first step and she crossed the elevation border WALKING. No
+            // hop, no arc, just a silent step up the cliff.
+            npc.Movement.HopArmed = false;
+            npc.Movement.HopPathIndex = -1;
             npc.Movement.IsMoving = path.Count > 1;
-            npc.Movement.Status = npc.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived;
+            npc.Movement.SetStatus(npc.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived);
             npc.Movement.StopReason = string.Empty;
 
             var pathJunctions = new System.Text.StringBuilder();
@@ -369,7 +379,14 @@ public sealed class PathfindingSystem : ISimulationSystem
             return true;
         }
 
-        if (npc.Mind.CurrentGoal == GoalType.Flee)
+        // §40.17 v2: CHASING a moving target is exempt, for the same reason
+        // fleeing is — the route has to be the shortest one, not the comfiest.
+        // A pursuer paying 4.5x for a ledge walks around it while the quarry
+        // simply hops it, so the gap grows every crossing: measured, §108's group
+        // hunt could no longer land a blow ("Arrived but he moved on", over and
+        // over), and it is the same reasoning that exempts mobs entirely.
+        if (npc.Mind.CurrentGoal is GoalType.Flee or GoalType.GroupHunt or
+            GoalType.Abuse or GoalType.Prey or GoalType.Hunt or GoalType.Defend)
         {
             return false;
         }

@@ -131,7 +131,9 @@ Transforms goal → steps
 
 ## 7. Pathfinding (Junction Graph)
 
-Pathfinding operates on the Junction graph via BFS.
+Pathfinding operates on the Junction graph via uniform-cost search (Dijkstra
+with relaxation — see §40.17 v2). Edge prices: flat 10, climb up 45, climb down
+25, strait 20, swim 40, plus §62's danger ring at +80.
 Path = `List<JunctionId>` — NPC walks junction-to-junction.
 Boundary junctions naturally connect tiles (they belong to multiple tiles).
 No separate tile-level or fragment-level pathfinding needed.
@@ -933,8 +935,12 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   deterministically scattered from the tile coord, one shared flat green
   material — no texture, no alpha. Gated by `_grassDetail` /
   `_grassBladesPerTile` on the renderer. **Flattening:** a lying body
-  (sleeping / fainted / corpse) hides its tile's grass clump and it pops
-  back after — O(lying bodies) per tick, only affected tiles toggle.
+  hides its tile's grass clump and it pops back after — O(lying bodies) per
+  tick, only affected tiles toggle. "Lying" is ONE predicate
+  (`HexWorldRenderer.IsLyingDown`, §113): asleep, fainted (§40.13), comatose
+  (§60), dying (§105), playing dead (§105.14), **crying (§110)** and crawling
+  (§50), plus every `corpse.npc` object. Hand-writing that union a second
+  time is exactly how the crying body ended up lying in unbent grass.
 - Water renders sunken below its tile top. The sea/water tops use the imported
   **Definitive Stylized Water URP** material
   (`Resources/HexLive/Water/StylizedWaterDefinitive.mat`, from the user's
@@ -1436,6 +1442,138 @@ Crossing to a tile one elevation level up OR down is a deliberate jump whose
 timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
 the sim and the presentation, so the two can never drift apart:
 
+- v17 — A HOP IS ATOMIC (fixes "спрыгнула, резко развернулась — и её телепает
+  наверх, она уже не прыгает", and the same thing at the water: "пошла стирать,
+  прыгнула в воду без плюха — отшвырнуло обратно на берег"). One cause behind
+  both. A hop lives in TWO places — `npc.Position` moves along the flight, but
+  `npc.Tile` only commits at touchdown — and the flight block sat BELOW the path
+  checks in `MovementSystem.Run`. So when a plan changed mid-flight
+  (`PlanInterruption` clears the path, IsMoving and, as it did, `HopTimer`), she
+  was abandoned in the air: position half-way between the levels, tile still the
+  takeoff one. The view draws an actor at the ground height of `npc.Tile`, so that
+  renders as an instant snap back onto the ledge she had just left — no clip, no
+  arc, no plunge. Three parts:
+  (1) the window now runs at the TOP of the loop (`RunHopWindow`), before every
+  early-out, so a hop finishes whatever the planner has decided since;
+  (2) `PlanInterruption` no longer kills `HopTimer` — only the PRE-flight
+  commitment (`HopArmed`, `HopPathIndex`) is cancelled. Once she is off the
+  ground she lands;
+  (3) touchdown bookkeeping no longer requires a path. It used to bail out with
+  "landed in place" — leaving exactly the mismatch above — whenever the landing
+  index pointed into a replaced list; now the tile, the swim entry and
+  `CurrentJunction` are committed regardless (the junction from
+  `SpatialQueries.FindNearestJunction`, or the next pathfinding call would route
+  her from the junction she took off at — a second way to teleport her back).
+  Guarded by `HopAtomicityTests`: it interrupts a plan MID-flight (not near the
+  takeoff point — that passes even on the broken code, which is how the first
+  version of the test fooled itself) and requires the window to close with
+  position and tile agreeing on ONE end of the flight. On the pre-fix code it
+  fails with "стоит в (19.06,-15.02) — это не взлёт и не посадка".
+  Note what is NOT a valid invariant here, since it looks like one: "the position
+  lies inside its own tile's hex". Boundary junctions belong to two or three
+  tiles and the tile comes from the DIRECTED resolver, so walking along a border
+  legitimately puts her up to ~1.65 wu from the centre of the tile she is
+  bookkept in. A test asserting the nearest centre fails on healthy worlds.
+- v16 — SHE LANDS, THEN PLANTS (fixes "he skates after landing", reported on the
+  CLIMB once v14 made the jump long). The sim spread the distance evenly over the
+  whole airborne beat, while the arc reaches the upper level early on purpose
+  (the apex overshoots the ledge) — so the body stood at ledge height and kept
+  gliding horizontally for another half second. Two knobs, both live sliders:
+  `FlightSettleFrac` (0.65) covers the distance over the FIRST fraction of the
+  beat and stands for the rest, and `UpApexFrac` (0.35, was a hard-coded 0.5)
+  moves the apex earlier so the read is "up first, then over" instead of one
+  diagonal glide. The view ends its arc on the same fraction — `SettleFrac(up)`
+  is the one source both read, so the clocks cannot drift.
+  **UP only.** A drop lands `FarPadding` out and never had the slide, and every
+  tick of movement timing reshuffles the dog dance: applied to both directions
+  this tipped seed 816616098 (the outsider finished the run comatose and §81's
+  abuse test went red). Measured after: climb touchdown 6 → 5 ticks from the
+  start of the hop, drop unchanged at 3.
+  Fallout worth knowing, because it is the same lesson as the mob exemption in
+  §40.17 v2: the seam weight made §108's group hunt unable to land a blow
+  ("Arrived but he moved on", repeatedly). A pursuer paying 4.5× for a ledge
+  walks around it while the quarry hops it, so the gap grows every crossing.
+  `ShouldWeightClimbs` now exempts every chase goal — GroupHunt, Abuse, Prey,
+  Hunt, Defend — on exactly the reasoning that already exempted Flee: a chase
+  needs the shortest route, not the comfiest.
+- v15 — THE ARC STOPPED GUESSING (fixes "she is either above the ground or
+  suddenly under it", reported after v14 shipped and traced to `645c5466`). That
+  commit moved the arc trigger from HopKind's rising edge to the `HopStartTick`
+  stamp so a hop survives a skipped tick — correct, but it also let the arc start
+  on ANY tick of the window, including the landing beat. There the sim has
+  already committed `npc.Tile` to the LANDING tile (`MovementSystem`, on
+  `flightT >= 1`) while `HopKind` is still set, so the renderer's
+  `ActorGroundY(HopTargetTile) - ActorGroundY(npc.Tile)` was **zero**: the body
+  held the takeoff level for the rest of the window, the root had already snapped
+  to the new level, and when `_jumpTimer` ran out the offset was cut to zero in
+  one frame. Dropping down that read as hovering then falling through; climbing
+  up, as sunk into the hex then popping out. It fires on ~1/4 of hops — whenever
+  frames skip ticks (fast-forward, a networked tick, a GC hitch) — which is why it
+  looked intermittent. Four parts:
+  (1) the snapshot carries `HopFromTile` (wire ProtocolVersion 2) and the view
+  builds the delta as `target - from`, so it is right in ANY phase — and it stays
+  in world units, which keeps a water dive landing at swim depth;
+  (2) the arc keeps the FULL window and starts at the phase the hop is already at
+  (`ageSeconds`), instead of shortening the window while still measuring the beat
+  fractions against the full `HopSeconds` — that mismatch made a late arc replay
+  the crouch and reach the target level at 75% of what was LEFT, i.e. after the
+  root snapped. The clip is CrossFaded in at the same phase for the same reason;
+  (3) the arc's base is the takeoff tile's ground level, not `transform.position.y`
+  — `SetHopSignal` runs inside `RenderSnapshot`, BEFORE the frame's interpolation,
+  so the live root Y is a tick stale;
+  (4) the window now ends by easing any residual offset out (~5 wu/s) instead of
+  cutting it, and an arc first seen after the flight is over is not started at all.
+  Also `PathfindingSystem` now clears `HopArmed`/`HopPathIndex` when it builds a
+  path: the wall scan is gated on `HopPathIndex != PathIndex`, and a hop that
+  started on step 1 of the previous path left it at 1 — the value every new path
+  starts with — so the scan was skipped on the first step and she crossed the
+  border WALKING, with no hop and no arc at all.
+  Known limitation, deliberately left: the arc runs on `Time.deltaTime` while the
+  sim runs on unscaled time, so `Time.timeScale = 0` (Esc menu) drifts their
+  phase. After (3) and (4) that is a phase shift, not a teleport.
+- v14 — ASYMMETRIC, MIRRORED BY DIRECTION (the drop "slid off the ledge"). The
+  symmetric ±`EdgePadding` model reads wrong at both ends, and at the shipped
+  `EdgePadding` 0.1 it was extreme: a 0.2 wu jump on a lattice of pitch 0.375,
+  flown at 0.44 wu/s against a 1.2 wu/s walk — she oozed off the step three
+  times slower than she walks. Now there are two paddings, and which end is which
+  flips with the direction:
+  DOWN takes off at −`EdgePadding` (off the very lip) and lands at +`FarPadding`;
+  UP takes off at −`FarPadding` (a run-up, leaving early) and lands at
+  +`EdgePadding` (on the lip). Length is `EdgePadding + FarPadding` either way
+  (0.75 shipped), so one number paces both, and the flight is 1.67 wu/s.
+  `FarPadding` 0.65 ≈ the second ring of lattice points past the border, which is
+  what "one point further out" means on this grid.
+  Not to be confused with the asymmetry v7 rejected: that one had takeoff FLUSH
+  on the wall (measured 0.00), so she walked into it before jumping. The near end
+  stays non-zero here. v10's "too big / too early" verdict was about a symmetric
+  length of 1.0 moving BOTH ends; only the far end moves now.
+  Two consequences that are load-bearing:
+  (a) the flight overshoots lattice points, so on touchdown the path is advanced
+  past every junction it flew over (projection inside the flight segment, within
+  0.3 wu of its axis) and `CurrentJunction` rides to the last one skipped —
+  otherwise the next step is a point BEHIND her and she walks back into the wall
+  she just left. The corridor bounds are not decoration: the first attempt skipped
+  "anything not ahead of the landing", and when a route turns back along the wall
+  that ate the entire path (measured: one skip of 118 junctions);
+  (b) the border is no longer crossed at half the flight but at
+  `EdgePadding / (EdgePadding + FarPadding)` — 0.13 down, 0.87 up — so
+  `DownFallStartFrac` is retuned to 0.15 (shipped) / 0.35 (code default) or her
+  feet scrape the lip. The UP arc needs no change: its overshoot already has her
+  above the ledge well before 0.87.
+  The wall scan looks ahead `max(EdgePadding, FarPadding) + 1.2`, since an UP
+  takeoff now sits further out. If a wall is still spotted too late for it, the
+  takeoff is CLAMPED ALONG THE FLIGHT AXIS to where she already is rather than
+  aimed behind her (the v9 lesson — a target behind her oscillated her in place
+  until she starved). It clamps the PROJECTION, not her raw position: taking the
+  position outright stretched an off-axis approach into a measured 2.4 wu
+  diagonal leap instead of 0.75. Measured after: every hop 0.75, except the
+  clamped ones, which are shorter by construction and never longer.
+  Soaked, 4 seeds × 12 000 ticks, ONE build with only the config differing (the
+  discipline matters — comparing across builds while another change was landing
+  produced a phantom regression): survivors **14/16 on the new geometry against
+  12/16 on the old**, i.e. no cost, inside the ±2 the dog dance moves anyway.
+  Tried and rejected in the same batch: `HopSeconds` 2.0 → 1.5 to make the longer
+  jump brisker — 10/16. The window stays 2.0.
 - v12 — CLIP ACTUALLY COMPRESSED TO THE WINDOW (the "master clock" was never
   wired). The design says the jump clip is compressed to exactly HopSeconds,
   but the animator's JumpUp/JumpDown states had `m_Speed 1` and NO speed
@@ -1560,6 +1698,16 @@ the sim and the presentation, so the two can never drift apart:
 - `LandIdleSeconds` (1.0): on reaching the edge junction the hop has landed —
   the NPC stands in plain idle (`ClimbPauseTimer`, status `Waiting`), then
   walks on.
+- ⭐ TWO SOURCES OF TRUTH, and the drift is silent. The game reads
+  `HexTuningConfig` (Resources); the **SwimTest scene reads its own serialized
+  sliders** and pushes them into `HexHopTuning` every frame, by design ("what you
+  dial in is what plays"). So the scene can quietly tune a DIFFERENT jump from the
+  one the game plays — which is exactly what "мы же это тюнили, почему
+  откатилось?" was: the scene still held Takeoff 0.25 / Landing 0.15 / DownHop 2 /
+  FallStart 0.225 against 0.6 / 0.5 / 1 / 0.15 in the asset. Fixed by updating the
+  scene, and `SwimTestBootstrap.Awake` now LOGS every field where the two differ,
+  since neither side may silently win. Sync with the component's own buttons:
+  "Загрузить настройки" (asset → sliders) or "Сохранить настройки" (sliders → asset).
 - windup regression fix: the saved `HexTuningConfig` asset had drifted to
   Takeoff 0.25 / Landing 1.0 — the whole flight packed into the front of the
   window, so the crouch beat was invisible and she seemed to launch
@@ -2259,6 +2407,29 @@ Skipping any of these leaks occupancy/reservations permanently.
 Starving is a status only: needs still clamp at their bounds and there is no
 death or damage in v1.
 
+**⭐ An interaction never outlives the plan that started it.** The cleanup above
+fires on a goal CHANGE, and for years that left a hole: a plan can also die
+*without* the goal moving (`ExecFailed` → `PlanStatus.Failed`), and then the
+verb it started stays switched on forever. `ExecutionSystem` will not clear it —
+the first line of its loop is `Plan.Status != Active → continue` — so the
+interaction can neither advance nor finish, while the planner calmly builds a
+fresh walking plan for the same goal on top of it.
+
+The symptom is visual and unmistakable: presentation mirrors
+`CurrentInteraction` every frame, so the body **slides across the island playing
+the action clip**. Found as "she drank a coconut and then skated away still
+drinking it" (seed 42: `Drink` started at tick 4825; two ticks later the pierced
+coconut left the pack; the same `Drink` goal was replanned into a 158-step walk;
+the drink clip and the coconut in hand rode along for 252 ticks). The orphan
+also kept the target object occupied and its junctions reserved.
+
+Rule: **`PlanningSystem`, on every replan, aborts an execution that is still
+`InProgress`** (full 23.17 cleanup, `GoalInterrupted` with reason
+`Replan over a live <verb>`). Guarded by `InteractionOrphanTests` — one gate on
+the seam, one on the prototype island ("nobody walks with a live interaction").
+A live interaction under an *active* matching plan is untouched: multi-sip
+drinking, staged craft and the laundry legs all keep `PlanStatus.Active`.
+
 ### 23.18 Decision Output
 
 The output of the decision system should be explicit.
@@ -2692,20 +2863,21 @@ movement refines from tile arrival to point arrival
 
 ### 25.7 Path Cost Model
 
-For v1, keep path cost simple and explicit.
+Cost is a property of the EDGE (a directed junction-to-junction step), as
+`long`, and it lives in one function: `HexPathfinder.ClimbCost`. The shipped
+prices and how they were derived are in §40.17 v2 — in short, flat 10 and every
+premium priced from the ticks the move actually costs (climb up 45, down 25,
+strait 20, swim 40), plus §62's danger ring on top.
 
-**Possible cost factors:**
+Two things this model deliberately is NOT:
 
-- tile walkability
-- blocked / reserved penalty
-- door or connector transitions
-- future extension: heat, crowding, danger
-
-```csharp
-float GetTileCost(TileCoord tile)
-```
-
-For the first slice, uniform cost is acceptable.
+- **not per-tile.** An early plan had `float GetTileCost(TileCoord)`. Elevation
+  cost cannot be expressed that way: the price belongs to CROSSING between two
+  levels, not to standing on either of them — a tile price would tax walking
+  along a wall exactly as much as jumping it, which is the bug §40.17 v2 fixes.
+- **not uniform.** "For the first slice, uniform cost is acceptable" held while
+  every edge cost 1; once prices differ, the search needs relaxation to honour
+  them (§40.17 v2, point 3).
 
 ### 25.8 Reachability vs Path Existence
 
@@ -3157,6 +3329,73 @@ Reach is measured twice — straight-line, and along the ground.
   1154→1166 interactions completed, 14 fires lit both ways), `InteractionTooFar`
   35→23, and the plan-level cost is `NoSuitableObject` on Gather goals — items
   stranded on a ledge are correctly no longer harvestable through the rock.
+
+#### 26.6A r5 — a THIRD body blocks the hands too
+
+r4 made terrain honest and left one hole open on purpose: the rim BFS still
+walked through **any** object footprint. That is right for the footprint you are
+working (you circle a fire to reach its rim) and wrong for anyone else's, and
+the sub-grid makes the difference exactly one junction wide:
+
+- every junction adjacency is **0.375 wu** — measured over all 192 920 edges,
+  not assumed; the `StandStepAllowance` comment claiming "~0.75 wu on a boundary
+  row" was simply stale;
+- `BesideReach(0)` is **0.80 wu** — i.e. **two** steps;
+- so exactly one blocked junction fits between the hand and the prize;
+- a palm trunk **is** exactly one blocked junction (`tree.palm` declares
+  `Obstacle` but no `ObstacleRadius`, so only its anchor closes), and a coconut
+  drops on a free junction of the palm's own tile (`FruitProductionSystem`).
+
+Hence the user's screenshot — a girl piercing a coconut through the trunk — was
+not a near miss but the arithmetic working as written.
+
+r5 states the invariant: **the rim may cross the footprint of the object it is
+being built FOR, and nothing else. Someone else's body is a wall exactly like a
+cliff.** One predicate carries it — `SpatialQueries.IsBarrierFor(world, j,
+target, purpose)` — and every caller already flows through it: the planner's
+beside-search, the coconut plan, the collector, the wash fetch, fireside
+furniture placement, and `InteractionReach.CheckObjectStart`. The violation
+emits the same `InteractionTooFar` trace, so the §26.6A soak counter covers this
+variant too.
+
+- **`RimPurpose` — the same two questions the §26.6A table already separates,
+  drawn one level down where the BFS can see them.** `Reach` ("may I work from
+  here") treats a third body as a wall; `Route` ("is there anywhere to stand
+  beside it at all") does not, because a body is walked AROUND. `PerceptionSystem`
+  and `Connectivity.ReachableBeside` ask `Route` and must keep asking it: merging
+  the two makes objects quietly stop being reachable, drop out of candidate lists,
+  and starve the colony with no `PlanFailed` to show for it.
+- **Own footprint = `WorldObjectState.BlockedJunctions`**, i.e. what this object
+  actually closed. Verified on the prototype island: 41 obstacles, **0** junctions
+  covered-but-not-owned, so the cheap identity test is also the correct one.
+- ⚠️ **MEASURED COST, and it is not zero.** Paired A/B on one tree, 30 seeds ×
+  24 000 ticks: **91/120 → 81/120 alive** (worse on 10 seeds, better on 4, no
+  total wipe either way), `plansFailed` +6%. The deaths shift toward COMBAT
+  (`VitalPartDestroyed` 4→10 over 12 seeds) rather than hunger — the colony is
+  not locked away from food, it loses working time walking around obstacles, and
+  it is already on a knife edge against dogs (§29C / `TimedMeleeEverywhere`).
+- **Part of that cost was the WORLD's fault, not the rule's, and is now fixed at
+  the source: `FruitProductionSystem.FindDropSpot` scores the drop.** A palm is
+  the one obstacle guaranteed to be beside its own fruit, and first-fit
+  ("the first passable free junction in slot order") routinely wedged the nut
+  against the trunk. That was survivable while the hand reached THROUGH the
+  trunk; under r5 it is simply food that rots. MEASURED over 12 seeds × 10 days:
+  nuts dropped unchanged (1270 → 1282) but picked up **1772 → 1595** and rotted
+  **625 → 651**. The drop now prefers the spot with the most legal approach
+  cells — counted by `InteractionReach.CountApproaches`, i.e. THE SAME predicate
+  the forager is later held to, so producer and planner cannot disagree — with
+  the fixed tile/slot order and strictly-greater comparison preserving
+  determinism, and an early-out at 4 so a cramped grove still gets its drop.
+  Result: pickups **1595 → 1682**, survival **81/120 → 84/120**, and the control
+  arm (rule off) stayed at exactly **91/120** — the change helps only where it
+  should and perturbs nothing else.
+- **`FindScatterSpot` deliberately did NOT get the same treatment.** The same
+  edit was tried and measured: it moved the CONTROL arm 91/120 → 84/120 too,
+  i.e. it reshuffled seeds rather than feeding anyone. A change that cannot show
+  a clean control is not an improvement, however plausible it reads.
+- Therefore r5 ships behind **`SimBalance.ReachThroughBodiesBlocked`** (default
+  ON — a visible lie costs more than a balance point). OFF restores r4 exactly.
+  The right compensation is dog damage, not giving the hand back its trunk.
 
 ### 26.7 Tick-Based Action Progress
 
@@ -4148,10 +4387,52 @@ heals. Relationships oscillate instead of saturating at eternal friendship.
 
 A housemate's death must not pass unnoticed.
 
-**Corpse:** death spawns `corpse.npc` at the death site (in addition to the
-dropped items, 31A.5A). `CurrentUser` stores *whose* corpse it is (the field
-is unused on corpses otherwise). The body decays away after **4800 ticks**
-(2 days, `CorpseSystem` on the ResourceAmount-as-timer pattern of 29E.3).
+**⭐ v3 (тела остаются): она НЕ исчезает.** Раньше смерть удаляла колонистку
+из мира, вываливала её гардероб и карманы кучей под ноги и оставляла объект
+`corpse.npc`, который истлевал за двое суток. Через два дня от человека не
+оставалось ничего — ни тела, ни места, ни повода вспомнить; а вещи колония
+получала обратно бесплатно, просто пройдя мимо.
+
+Теперь смерть — это **переезд, а не удаление**:
+
+| | Было | Стало (v3) |
+|---|---|---|
+| Сущность | `Entities.Npcs.Remove` — её нет | `NPCState` целиком → `Entities.Corpses` |
+| Вещи | падают на землю под ноги | **остаются на теле** — надетое и карманы |
+| Срок | истлевает за 4800 тиков | **лежит до конца игры** |
+| Убрать | само гниение, либо похороны | только нож (§56, разделка) |
+| Вид | капсула-заглушка, затем ничего | её собственное тело в позе падения |
+
+**Почему ОТДЕЛЬНЫЙ реестр, а не флаг `IsDead` в `Npcs`.** Живой ростер
+обходят несколько десятков систем, и каждая должна была бы вспомнить про флаг;
+забытая проверка — это труп, который решает, голосует в аукционе и идёт за
+водой, молча и не сразу. В отдельном словаре «мёртвых не тикает никто» —
+свойство структуры, а не дисциплины. Плата: тело не участвует ни в чём само,
+всё с ним делают через объект-якорь.
+
+**Якорь:** `corpse.npc` по-прежнему спавнится на джанкшене в ЦЕНТРЕ гекса
+смерти (§60.2a), `CurrentUser` хранит id покойной. Он больше не гниёт
+(`CorpseSystem` фильтрует только тег `Decays` — конечности и звериные туши) и
+ничего не рисует: тело рисует сама погибшая. Якорь нужен ровно для «подойти и
+что-то сделать»: оплакать (§28.15C), обобрать (§28.15F), разделать (§56).
+
+**Поза смерти — состояние мира, а не украшение кадра.**
+`NPCState.DeathAnimVariant` выбирается СИМУЛЯЦИЕЙ по хешу сида, один раз, в
+момент переезда, и едет в сейве (blob v20) и по проводу (wire v5, секция
+`Corpses`). Выбери вид клип сам через `Random` — и одно и то же тело лежало бы
+по-разному у сервера, у каждого зрителя и после каждой перезагрузки.
+
+«Упала прямо сейчас» против «лежит с прошлой сессии» вид различает по тому,
+был ли у него ЖИВОЙ вид этого тела кадром раньше: если был — она падает у него
+на глазах, клип `death2`/`death3` играется с нуля; если нет (загруженный сейв,
+только что подключившийся зритель) — тело появляется сразу на последнем кадре,
+и падения никто не видит. Отдельного «тика смерти» для этого нет намеренно:
+момент уже хранит `world.DeathRecords`, а второе поле с тем же смыслом рано
+или поздно разошлось бы с первым.
+
+Клип доигрывает — и **аниматор выключается совсем** (`enabled = false`, не
+`speed = 0`): позу больше некому сдвинуть, ни дыханию, ни взгляду, ни фиджетам,
+а накопленные за игру тела перестают что-либо стоить.
 
 **Learning of death:**
 
@@ -4174,35 +4455,65 @@ the ritual must survive the long walk to the body against everyday needs;
 0.5 kept getting interrupted mid-pilgrimage until the corpse rotted)
 targets the corpse with the existing `Observe` interaction (16 ticks).
 Completing it ends the mourning period early ("простился") with a small
-Comfort recovery (+0.1). If the corpse decays before anyone comes, grief
-simply times out.
+Comfort recovery (+0.1).
 
-### 28.15D Burial & Graves (Iteration 16)
+v3: тело больше не истлевает, поэтому прощание всегда доходит до конца —
+раньше скорбящая не успевала дойти, труп рассыпался по дороге, и горе просто
+истекало по таймеру. Ставка Mourn упрощена до 0.7 без второй ветки.
 
-The death arc closes: a body can be laid to rest, and fear becomes memory.
+### 28.15D Похороны — СНЯТЫ (v3)
 
-**Burial:**
+Механики похорон больше нет. Тело остаётся лежать там, где упало, до конца
+игры: остров помнит своих мёртвых, и место смерти — это место смерти, а не
+аккуратный холмик, который через день ничем не отличается от соседнего.
 
-| Rule | Value |
+Сняты: цель `Bury`, взаимодействие `bury.body`, спавн `grave.npc`, «посетить
+могилу от одиночества» (Observe на `Grave`) и события `Buried`/`VisitedGrave`.
+Ординалы `GoalType.Bury` и `InteractionType.Bury` остаются занятыми — сейв
+хранит и цели, и взаимодействия числом, и вырезание середины перемаркировало
+бы каждое последующее значение в каждом существующем сейве. Определение
+`grave.npc` тоже остаётся, но пустым, без взаимодействий: без него старый
+сейв, в котором могилы успели появиться, не нашёл бы для них описания при
+загрузке. Ничто в мире их больше не порождает.
+
+Заодно ушла «санктификация» — снятие метки страха с гекса смерти при
+захоронении. Метка и так истекает сама (2400 тиков), так что вечного страха
+это не оставляет.
+
+### 28.15F Обобрать тело (v3)
+
+Вещи остались на покойной — значит за ними надо **прийти**. Без этого правки
+не было бы вовсе, а был бы регресс: колония теряла бы весь снаряжённый на
+человека инвентарь навсегда.
+
+| Правило | Значение |
 |---|---|
-| `Bury` goal | any housemate who perceives/remembers a corpse; score 0.6 (below Mourn 0.7 — rite first, burial after) |
-| Interaction | `Bury` on the corpse, 20 ticks, no tool needed in v1 |
-| Result | corpse despawns → **`grave.npc` spawns at the same junction** (permanent, never decays; `CurrentUser` still records who lies there) |
-| Closure | the burier's mourning ends; Comfort +0.15 |
-| Sanctification | the death tile is removed from **every living NPC's** danger memory — the place is no longer frightening, it is sacred |
+| Цель | `GoalType.LootCorpse`, ставка **0.34** |
+| Доступна | видит достижимое тело, на котором ещё что-то есть, **и у неё есть свободный слот**, и она сейчас не скорбит |
+| Взаимодействие | `Loot` на `corpse.npc`, **20 тиков** (вещь надо снять с человека, а не поднять с земли) |
+| Берёт | **ОДНУ** вещь за подход: сначала карманы, потом надетое |
+| Итог | вещь у неё в рюкзаке, тело лежит дальше — пустое, но на месте |
 
-**Grave visits (remembrance):** the `Mourn` goal widens — when *not*
-grieving but lonely (Social < 0.35) and a grave is known, it targets the
-grave (Observe, 12 ticks, score 0.3): Comfort +0.1, **Social +0.15** — the
-dead keep a lasting social presence; lonely housemates come to talk to the
-grave.
+**Порядок «карманы раньше одежды» — не косметика.** Ёмкость карманов даётся
+одеждой: сними куртку раньше, чем вынешь из неё нож, — и на теле останется
+вещь, которую хранить уже негде.
 
-**Loot, not inheritance:** the deceased's dropped gear is simply
-**ownerless** — ordinary world items at the death site that anyone may pick
-up, wear, or use through the normal PickUp/Dress goals. There is no
-ownership or inheritance concept; the grave's `CurrentUser` records only
-*who lies there* (identity for grief), never possession of the items around
-it.
+**Ставка 0.34 — ниже прощания (0.7) намеренно.** Пока она скорбит, она не
+мародёрствует; горе проходит, вещи остаются. Ниже еды, воды и сна — это
+хозяйственная работа, а не нужда.
+
+**Гейт на свободные руки обязателен**, и это тот же урок, что стоил колонии
+жизни на кокосах (§HasUsableCoconut): когда доступность говорит «есть», а
+поход кончается ничем, цель выигрывает аукцион снова и снова. По той же
+причине доступность в аукционе и выбор цели в плане спрашивают ОДНИ И ТЕ ЖЕ
+функции — `CorpseMath`.
+
+**Разделка (§56) — единственное, что убирает тело.** При этом всё, что на нём
+ещё оставалось, вываливается под ноги: вещи не исчезают вместе с ней.
+
+**Loot, not inheritance:** права собственности в игре нет. `CurrentUser` на
+якоре записывает только *кто здесь лежит* (опознание для скорби), но никогда
+не владение вещами.
 
 ### 28.15E Conversation Topics & Overhead Bubbles (Iteration — Sims-style chat)
 
@@ -4261,6 +4572,13 @@ the bubble shows over the *initiator* only (matching the existing
 initiator-only talk animation); the outcome pop shows over both. Emoji glyph
 coverage depends on the platform font stack — the one piece to verify in a
 build (fallback: swap `TalkTopicVisuals` glyphs for sprite icons).
+
+⚠️ **Пересмотрено §67.10 и §107.3.** `TextMesh` рисует цветные эмодзи белым
+«тофу» — глифы заменены PNG-спрайтами (`Resources/HexLive/UI/Emoji/`), а
+`TalkTopicVisuals` от таблицы глифов остался только `IsKnown()`. Одноразовые
+социальные кьюшки (§80/§81), которые всплывали над головой голой картинкой мимо
+системы баблов, с §107.3 рисуются СВОИМ белым баблом. Поп отношений «+/−» из
+абзаца выше остаётся взлетающим значком — это индикатор результата, не реплика.
 
 ### 28.16 Design Rules
 
@@ -5077,7 +5395,10 @@ prepare.
 
 **Sanctuary:** dogs never enter Indoor tiles — roaming, chasing, and
 spawning all skip indoor junctions. Home is safe; "run home" is a real
-strategy, not a metaphor.
+strategy, not a metaphor. §106 adds the second form of refuge: **deep water**.
+A target the mob's `AttackMediums` cannot reach (a swimmer, for a land wolf) is
+dropped IMMEDIATELY (`DogLostTarget … (in the water)`), not after the
+chase-stall timer — the shore statue read as a bug, not as patience.
 
 **Flight:**
 
@@ -5318,13 +5639,30 @@ seeds wiped — hunts stay rare-but-real at 4.)
   the availability window, not the curve, protects mealtimes. (History:
   0.15 + 0.5 × Hunger was strictly dominated — zero hunts across four
   seeds; an uncapped 0.3 + 0.5 × Hunger caused starving storms.)
-- The plan is a move-only chase to the rabbit's junction; the rabbit flees;
-  re-planning each arrival produces a genuine pursuit (NPC walk speed beats
-  hop speed).
-- Kill resolution is automatic on adjacency (RabbitSystem): seeded roll,
-  **50 % kill / 50 % miss**. Miss → rabbit spooked, hunter gets a Hunt
-  cooldown. Kill → rabbit despawns; **1 raw meat + 1 hide auto-loot** into
-  the hunter's inventory (overflow drops at feet).
+- The plan is a move-only chase to the crab's junction — a LIVE one. The
+  original «re-plan on arrival» pursuit was a standing ping-pong: the plan
+  aimed at the junction the crab occupied at planning time, arrival reset
+  the goal to None, and the hunter stood through a full decision auction
+  while the crab hopped away — a hunt that structurally never cashed in.
+  Now (r2): (a) the Hunt plan **retargets every Medium tick** the crab's
+  junction differs from the plan's (PlanningSystem falls through the
+  active-plan skip, soft-resetting movement the §21.21B way — never
+  mid-flight); (b) arrival with the crab still visible **keeps the goal**
+  (`HuntContinues`) so the chase resumes next Medium tick with no auction
+  gap; (c) Hunt carries **UrgencyClass.Hurry** — hunters run (×2.5), crabs
+  hop 1 junction/s.
+- Kill resolution (RabbitSystem) resolves **before the crab's flee hop** —
+  the old order let the crab jump away in the very tick the hunter closed
+  in. Reach is spear reach, not arm reach: node adjacency (the CanStrike
+  measure, duplicated here because a crab is not an NPC) **or** metric
+  distance <= `RabbitSpearReachHexFraction` (1.0) × HexRadius — one
+  FleeHop moves the crab a single junction, far less than the lunge.
+  Seeded roll, **75 % kill / 25 % miss** (`RabbitKillChance`; 0.5 made the
+  hunt a lottery the ping-pong never got to play). Miss → crab spooked,
+  hunter gets a Hunt cooldown. Kill → carcass (§54), butcher for meat.
+- **Only a deliberate spear hunt kills**: the strike requires Goal=Hunt
+  *and* a carried spear, symmetric with the (retired) bow branch — no
+  killing crabs in passing, and no knife/fist path exists at all.
 
 ### 29F.3 Crafting at the Campfire
 
@@ -5713,42 +6051,78 @@ class AITraceEvent
 
 This allows filtering and tool support later.
 
-### 30.14 Recent History Buffers
+### 30.14 Бортовой самописец — РЕАЛИЗОВАНО
 
-Current state alone is often not enough.
-Each selected NPC should retain small recent-history buffers:
+Текущего состояния мало: вопрос почти всегда звучит как «как она сюда попала».
 
-- last N perception snapshots
-- last N goal selections
-- last N plan changes
-- last N path invalidations
-- last N failures
-- last N social changes
-  A simple ring buffer is enough.
-  This is extremely helpful for diagnosing “how did it end up here?”
+Общее кольцо событий (`SimulationEventBuffer`, 2048 записей) на него не отвечает
+в принципе. Симуляция эмитит около 200 событий в тик, то есть глобальная история
+живёт **примерно одиннадцать тиков** — к моменту, когда странность заметна, всё,
+что её объясняет, вытеснено чужой болтовнёй сотни раз.
 
-### 30.15 Stuck Detection
+`Runtime/Diagnostics/FlightRecorder.cs` держит **своё кольцо на каждого NPC**
+(по умолчанию 64 записи), которое вытесняют только ЕГО СОБСТВЕННЫЕ события. У
+зависшей молчуньи там так и лежат её последние решения перед остановкой.
 
-The system should detect likely stuck cases explicitly.
+- Живёт на `WorldState.FlightRecorder` — обычное nullable-поле, **не
+  сериализуется в сейв и не едет в снапшоте**: это инструмент наблюдения, а не
+  состояние мира. Поэтому ни кодек, ни формат сохранения о нём не знают.
+- Питается одним хуком в `Trace.Emit` — единственной точке, которая видит каждое
+  событие ровно один раз. В сборке игрока поле null, и хук стоит проверки на null.
+- Пишет не всё: набор по умолчанию `FlightRecorder.BehaviorTypes` — решения и
+  отказы. Одно решение эмитит ~55 `GoalScored`, и «писать всё» забило бы кольцо
+  ОДНИМ проходом аукциона. Набор задаётся снаружи, а не зашит в класс.
+- Включён в редакторе и development-сборках, на сервере за `--debug-details`, в
+  `hexsoak` — всегда.
 
-**Examples:**
+Дебаг-панель показывает хвост ВЫБРАННОГО NPC. До этого она читала
+`snapshot.Npcs[0]`, а список отсортирован по возрастанию id — то есть была
+намертво прибита к колонистке с наименьшим номером. В `AbuseTest` разбирали
+чужака (id 101), и панель физически не могла его показать; четыре круга отладки
+§102 прошли на ручном printf'е.
 
-- same step active too long
-- movement distance not changing
-- path repeatedly invalidated
-- same goal repeatedly selected and failed
-- action timing out repeatedly
+### 30.15 Обнаружение застоя — РЕАЛИЗОВАНО
 
-```csharp
-class StuckDiagnostic
-{
-    public bool IsStuck;
-    public string Reason;
-    public int DurationTicks;
-}
-```
+Застой — единственное состояние, которое **нельзя услышать по событиям**, потому
+что застой и есть их отсутствие. В §102 чужак простоял напротив жертвы 2872 тика
+подряд, и симуляция об этом не сказала ничего: у `RunAbuse` четыре голых `return`
+до всякой трассировки, а гейты `DecisionSystem` молчат по построению. Значит
+застой надо ПРОВЕРЯТЬ, а не ждать сообщения.
 
-This can later feed both debug UI and automated test assertions.
+`Runtime/Systems/Colony/StuckDiagnosticSystem.cs`, слой Slow, четыре причины:
+
+| `Reason=` | Что значит | Ручка |
+|---|---|---|
+| `IdleWithGoal` | ⭐ подпись §102: цель есть, взаимодействия нет, никуда не идёт | `StuckIdleTicks` 40 |
+| `StepOverrun` | взаимодействие идёт, давно просрочив СВОЙ `EndTick` | `StuckStepTicks` 600 |
+| `GoallessCrisis` | цели нет вообще, а нужда уже кричит («Goal=None ×362» из §63) | `StuckGoallessTicks` 120 |
+| `PositionFrozen` | «иду», но с места не сдвинулась — подпись петли преследования | `StuckFrozenTicks` 60 |
+
+Три правила, каждое оплачено:
+
+1. **Система ничего не меняет.** Только читает и эмитит; состояние наблюдения
+   живёт внутри неё, а не на NPC. Диагностика, которая лечит, — уже не
+   диагностика, и golden-трасса обязана остаться байт-в-байт той же.
+2. **Перерасход меряется от СОБСТВЕННОГО `EndTick` взаимодействия**, а не общим
+   потолком: честные длительности разнятся на порядки (замах — тики, сон —
+   тысячи), и единый потолок либо проспит первое, либо оболжёт второе.
+3. **Запас живёт в одном месте.** Условие говорит «неправильно», выдержка —
+   «сколько терпеть». Продублированный в обоих, он складывался, и до жалобы
+   проходило вдвое больше, чем написано в ручке.
+
+Без сознания — не застой: спящая и лежащая в коме обязаны быть неподвижны.
+
+Событие пишется в формате `Key=Value` (`Reason=`, `Ticks=`, `Goal=`, `Exec=`,
+`Moving=`, `Step=`, `Junction=`, `Target=`), помечается `ONSET` при начале и
+`STILL` при повторе не чаще `StuckRepeatEmitTicks` (200). Оно диагностическое и
+намеренно НЕ входит в `GameEventTypes` — игроку показывать нечего.
+
+Калибровка на трёх сидах по 12000 тиков: **11 срабатываний**, все разрешились
+сами (ни одного `STILL`). Не молчит и не шумит.
+
+`hexsoak --explain-stuck N` печатает вместе с застоем хвост самописца — что этот
+NPC делал ДО остановки. Это и есть та связка, которой не было в §102: событие
+отвечает на «что», хвост — на «почему».
 
 ### 30.16 Global Metrics
 
@@ -6584,10 +6958,11 @@ garment, cold sim item, or blood that never soaks the cloth).
    **Shoot Item Icons (Re-shoot All)**. Photograph by hand only when the piece
    just does not read off the body.
 
-5. **Paint point maps (§40.8-G).** Run **HexLive → Paint Maps → Regenerate**.
-   It bakes `garment_<meshName>_<vertexCount>` for the default mesh AND every
-   `configs` fit automatically (and `skin_<Actor>` for any new actor prefab in
-   `Resources/HexLive/Actors/`). Check the console:
+5. **Paint point maps (§40.8-G, §40.8-J).** Run **HexLive → Paint Maps →
+   Regenerate**. It bakes `garment_<meshName>_<vertexCount>` for the default
+   mesh AND every `configs` fit automatically (and, for any new actor prefab
+   in `Resources/HexLive/Actors/`, both `skin_<Actor>` and its seam-free
+   companion `skinpos_<Actor>`). Check the console:
    - a **key-collision error** means two different meshes share both name and
      vertex count — rename one mesh in the source asset and re-run;
    - at runtime a garment without its map logs ONE warning and silently skips
@@ -7128,6 +7503,11 @@ SLEEP below is unchanged)*
   - Knobs: `Spec49.SleepBerths` (kill switch — off restores the pre-r3
     "everyone on the exact centre"), `SleepBerthSpacingFactor`,
     `SleepBerthHalfSpan` (1 → a rank of three).
+  - **§113: a berth is also taken by a THING.** The rank knew about bodies
+    only, so a hex whose centre holds a campfire / boulder / bed read as
+    free and the body lay inside it. Since §113 the same solver treats a
+    solid object's footprint as an occupied berth (and turns the rank along
+    another hex axis when a side berth is the blocked one) — see §113.
 
 **The bed must be earned**
 
@@ -8857,9 +9237,14 @@ pass — order chosen to add robustness before difficulty.
   reads it as the red channel over the tan, masked by garment coverage.
 - **Rate & shade:** tan builds only on bare parts under the sun, gated by
   `effectiveUv > 0.5`, which already carries the shade penalty (shaded tiles
-  cut UV ×0.2), so you tan **less in shade**. Rate `0.0009/slow-tick·part`
-  ≈ ~20 game days to max at open-sun exposure (halved from 0.0018 —
-  tanning deliberately slow). Presentation tans THROUGH
+  cut UV ×0.2), so you tan **less in shade**. The pacing contract is per
+  **game day**, not per tick: ~10 sunny days of open sun to a full tan
+  (tanning deliberately slow). The per-slow-tick rates therefore scale with
+  `DayLengthTicks` — when the day went 2400 → 24000 ticks (§19.7B) the sun
+  window gained 10× more ticks and all three sun knobs were cut ×10:
+  `TanRate` (default 0.00009, tuned 0.00003 in CharacterBalance.asset),
+  `SunburnRate` 0.0004, `SunExposureRate` 0.03 (~2-3 burn events/day
+  half-dressed, as before). Lengthen the day again ⇒ scale them again. Presentation tans THROUGH
   red: pale skin first flushes toward a fresh-burn red (`0.79, 0.55, 0.57`
   by TanLevel 0.35 — the retired low-HP flush color, which read exactly
   like "just caught the sun"), then deepens into the full-tan **deep
@@ -8918,6 +9303,279 @@ pass — order chosen to add robustness before difficulty.
   painters cost zero. Verified in a 3-dog fight: wolves at 0.35 HP show
   6 map-placed stamps with `initFailed=false`, legacy topology never
   built, no PaintPointMap warnings.
+- **SHIPPED (40.8-J — бесшовные декали: рисунок продолжается ЧЕРЕЗ шов):**
+  раны и бинты рисовались как **прямоугольник в UV одного слота**, поэтому
+  повязка на бедре обрезалась краем тайла и физически не могла продолжиться
+  на туловище: соседняя кожа — ДРУГАЯ текстура на ДРУГОМ материале (Genesis 3
+  = 8 слотов кожи на 4 текстурах, UDIM). Отношение перевёрнуто: для каждого
+  текселя каждой кожаной текстуры запечена **3D-точка тела**, которую он
+  покрывает (bind-поза, mesh-пространство) + нормаль — `SkinPositionMapSet`
+  (`skinpos_<actor>` рядом с `skin_<actor>`, тем же меню **HexLive ▸ Paint
+  Maps ▸ Regenerate**). Штамп теперь не прямоугольник, а **коробка в
+  пространстве тела**; покраска слота = проход `ProjectedStamp.shader`, где
+  каждый тексель спрашивает «моя точка внутри декали?». Непрерывность через
+  острова, UDIM-тайлы и границы текстур получается по построению.
+  - **Арт, размеры, размещение НЕ менялись.** Те же PNG из
+    `Resources/HexLive/Decals`, те же сидированные броски (t, azimuth), та же
+    ячейка сетки — меняется только СЛЕД штампа. Детерминизм по (npcId, seed)
+    сохранён, `Sync`/провод/сим не тронуты.
+  - Карта позиций: 512² RGBAHalf **linear** (rgb = точка, a = покрытие), карта
+    нормалей 256² RGBA32 — по одной паре на **группу текстур** (слоты с общим
+    `_BaseMap`), так что швы между Face/Ears/Lips закрываются заодно.
+    Дилатация 6 текселей: без неё вдоль каждого острова оставалась бы
+    непрокрашенная волосинка, которую вытаскивает билинейка кожи.
+  - Отсечка тройная: нет покрытия / вне XY декали / вне слоя по глубине
+    (`±0.4×размер`) и по нормали — последние два не дают повязке на тонком
+    предплечье отпечататься зеркально на обратной стороне.
+  - **Скорость.** Проекционный штамп решает по текселю, т.е. в лоб это
+    полноэкранный проход 2048² на каждую декаль на каждый слот (~10 мс за
+    репейнт). Поэтому в ассете лежит грубая сетка 32×32 по UV с 3D-боксом
+    каждой ячейки (`CellGrid`): рантайм спрашивает у неё окно, до которого
+    декаль вообще может дотянуться, и красит только его.
+  - **Какие слоты красить** решает запечённое облако точек поверхности
+    (`SlotSamples`, 1200 на слот): один слот = один RenderTexture ~21 МБ, так
+    что радиус меряется по ДЕТАЛЬНОМУ арту, а не по бледному ореолу ×1.6
+    (обрезанный ореол не видно, обрезанная рана — это ровно тот баг, ради
+    которого всё и делалось).
+  - **Рельефа у проекционных ран нет** (нормаль-арт авторен в тангенте
+    ДЕКАЛИ, а не UV-поверхности — стамп наклонил бы освещение). Объём несёт
+    мокрый глосс, как и решили в v5, когда рельеф флерил на швах.
+  - Мелкие брызги-спеклы (§40.8-H), капли, пот, загар и грязь остаются на
+    старом прямоугольном пути: они мелкие, обрезка на шве не читается, а
+    ~80 штук на тело без батчинга стоили бы дорого. Одежда
+    (`GarmentWearPainter`) и мобы — следующие кандидаты, схема та же.
+  - **Откат безопасен по построению:** путь включается, только если карта
+    точек версии ≥2 И карты позиций совпали по vertexCount. Старый ассет,
+    новый актёр, не запечённые карты — всё это молча возвращает прежнее
+    поведение с прежним предупреждением.
+  - Проверка без Play, две штуки. **HexLive ▸ Paint Maps ▸ Probe Skin Seams**
+    печатает покрытие групп и на скольких ячейках каждой зоны бинт задевает
+    больше одного слота (отчёт ещё и в `Build/skin_seam_probe.txt`: консоль
+    Unity отдаёт наружу только ПЕРВУЮ строку многострочной записи).
+    **HexLive ▸ Paint Maps ▸ Dump Seam Test Decal** рисует настоящую декаль
+    настоящим шейдером по настоящим картам поверх копий кожаных текстур и
+    кладёт PNG в `Build/` — единственный способ увидеть глазами, что половинки
+    легли непрерывно и не вверх ногами.
+  - **Замерено (5 актрис, запечено):** покрытие групп 65-86% (у Jolly пятая
+    группа 12% — маленький доп-материал, так и должно). Бинт задевает >1 слота
+    на бедре/плече в 64-89 ячейках из 128, на голове — во всех 128. Голова
+    маленькая, 14-см повязка честно накрывает лицо+ухо+шею, поэтому **рана на
+    голове теперь держит 3 render-target'а вместо одного** (~22 МБ каждый).
+    Face/Ears/Lips делят ОДНУ исходную текстуру, так что это три копии одного
+    и того же — напрашивается общий RT на группу текстур; не сделано, чтобы не
+    трогать владение таргетами заодно с этой правкой.
+  - Pelvis даёт 0/128 — и это правильно: стык нога↔туловище живёт в ЗОНАХ
+    LegL/LegR (их верхние ячейки якорятся в слоте Torso), а точки Pelvis сидят
+    на животе, далеко от границы тайла.
+  - EXR пишутся с `CompressZIP` — лосслесс, 2.1 МБ → ~0.35 МБ на карту
+    (44 → 6.4 МБ на пять актрис); проверено побайтовым совпадением рендеров
+    до и после сжатия.
+  - **r2 — фризы в собачьей драке (регрессия r1).** «Рисовать в отдельном
+    потоке» в Unity НЕЛЬЗЯ: `RenderTexture`, `Blit`/`DrawTexture` и
+    `GenerateMips` — только главный поток. Убирали не поток, а саму работу:
+    (a) UV-окно штампа считалось сканом 1024 ячеек **на каждый вызов
+    отрисовки**, хотя зависит только от (штамп, слот) — теперь считается один
+    раз при размещении; (b) выбор слотов (~1200 запечённых точек на слот) и
+    окна ушли **в пул потоков** — это чистая математика по read-only массивам,
+    и она приходилась ровно на кадр укуса; штамп просто не рисуется, пока
+    воркер не закончил (перекраска и так коалессирована в 0.25 с, опоздания не
+    видно); (c) **бюджет создания paint-таргетов — 1 за перекраску**: таргет
+    2048² с мипами это ~22 МБ, а его аллокация — синхронный вызов драйвера,
+    и после r1 декаль через шов просит их с ОБЕИХ сторон, т.е. серия укусов
+    могла запросить шесть за кадр. Остальные создаются следующим проходом.
+    ⚠️ В воркере НЕЛЬЗЯ трогать Unity-объекты — даже `== null` на
+    `UnityEngine.Object` читает нативное состояние; там только структуры
+    (`Vector3`/`Matrix4x4`/`Rect`) и запечённые массивы.
+  - **r3 — перестали переделывать уже сделанное.** Перекраска пересобирала
+    КАЖДЫЙ раскрашенный слот при любом изменении состояния: полная переливка
+    базы, все штампы заново, `GenerateMips` на весь таргет — то есть укус в
+    руку перестраивал заодно торс, ноги и лицо, и так четыре раза в секунду.
+    Теперь два гейта: (1) **пер-слотовая сигнатура** — слот, которого
+    изменение не касалось, не трогаем вообще; (2) **аддитивный путь** — если
+    единственное изменение это ПРИХОД новых штампов, они дорисовываются прямо
+    поверх существующего таргета, без переливки базы и без перерисовки
+    предыдущих. Полная пересборка остаётся ответом на всё, что паинт УБИРАЕТ
+    или ослабляет (заживление, мытьё, ступень загара) — она же и страховка:
+    если инкрементальный композит когда-нибудь разойдётся, ближайшее удаление
+    его вылечит. Аддитивный путь ЗАПРЕЩЁН, когда в слоте есть капли (их
+    альбедо-проход МНОЖИТ фон — второй заход затемнил бы дважды) и когда
+    приходит новый спекл (спеклы — нижний слой, дорисовка положила бы его
+    поверх ран). Свежесозданный таргет тоже никогда не аддитивный: на нём ещё
+    нет базы.
+  - Мерить, а не гадать: **HexLive ▸ Skin Paint ▸ Log Repaint Cost** печатает
+    мс на перекраску, сколько таргетов затронуто, сколько из них аддитивно и
+    сколько СОЗДАНО.
+  - **r4 — батч там, где он честно выигрывает.** Подложка (кровяной ореол) и
+    сам рисунок раны **всегда в одном месте** — общий якорь, окна отличаются в
+    1.6 раза, — поэтому они склеены в ОДИН проход: карта позиций и нормалей
+    читается один раз на оба слоя, композит «ореол под артом» собирается в
+    шейдере и отдаётся блендеру одним источником. Окно берётся по ШИРОКОМУ
+    (ореольному) следу, иначе ореол обрезался бы по краю арта. `_UnderFade` 0
+    выключает второй слой без варианта шейдера (бинт/марля идут без ореола).
+  - ⚠️ **Общий батч всех декалей слота НЕ делается — он бы регрессировал.**
+    Батч рисуется по ОБЪЕДИНЕНИЮ окон, и каждый тексель прогоняет проверку
+    всех декалей батча: для разбросанных по тайлу ран объединение это почти
+    весь тайл, и выходит дороже, чем несколько маленьких проходов. Плюс после
+    r3 при укусе дорисовывается только НОВАЯ рана, а не все N, так что
+    выигрыш остался лишь на редких полных пересборках. Если когда-нибудь
+    понадобится — батчить надо КЛАСТЕРАМИ по перекрытию окон (раны одной зоны
+    имеют почти одинаковое окно), с `Texture2DArray` под разные арты, и только
+    после замера, что полные пересборки действительно горячие.
+  - Не сделано и остаётся первым кандидатом, если фризы вернутся: **общий
+    paint-таргет на группу текстур**. Face/Ears/Lips делят одну исходную
+    текстуру, т.е. держат три копии одного и того же и трижды платят за
+    `SkinTintBlit` + `GenerateMips`.
+- **SHIPPED (40.8-L — кровь на ОДЕЖДЕ читается как кровь):** три беды разом,
+  все подтверждены по коду. (1) **Арт был не тот**: кисти крови на ткани — это
+  были `wound_scratch` (коготный разрез) и `blood_splat`, то есть арт РАНЫ;
+  разрез на рубашке читается как дыра, а не как кровь. Теперь ведёт
+  `blood_stain` — та самая «кисточка», которой рисуются пятна урона на коже
+  (§40.8-H r3, картинку выбирал юзер), плюс `blood_splash` и `blood_splat` для
+  разнообразия. (2) **Вариантов было ДВА** (`cellKey & 1`) — стало три
+  (`BloodVariantOf`). (3) **Слишком прозрачно**: кровь делила `StampTint` с
+  общим множителем 0.5, поэтому упиралась в `strength*0.8*0.5 = 0.40`, тогда
+  как грязь рядом получала 0.6 и просто выигрывала — отсюда «вижу обычную
+  грязь вместо капель крови». Своя `BloodTint` с множителем 0.9 даёт 0.72,
+  ощутимо выше грязи. rgb остаётся нейтральным (DrawTexture удваивает его до
+  белого), так что кисть сохраняет собственную красноту.
+  Момент появления не трогали: `bloodSoak` копит `1-heal` по ранам NPC, так что
+  кровь на ткани поднимается сразу при свежем уроне.
+- **SHIPPED (40.8-K — простое сразу, сложное раз в 10 секунд, по одному):**
+  «репейнт не чаще 0.25 с» звучит как 4 раза в секунду, но счёт вёлся **на
+  painter**, а их куда больше, чем колонисток: один на тело, один на КАЖДУЮ
+  надетую вещь, один на моба. Драка вчетвером с собаками держит ~19
+  painter'ов — и **ничего не разводило их по кадрам**: все дёргаются от ОДНОГО
+  тика, окна истекали синхронно, перекраски падали в один кадр. Ощущалась не
+  цена одной перекраски, а девятнадцать сразу.
+  - **`SkinPaintScheduler`** — единственный владелец часов. Курсор шагает к
+    следующему painter'у **не чаще раза в секунду** (`max(1 с,
+    CycleSeconds/count)`), тот пересобирает свой композит целиком. Никаких
+    флагов «что именно изменилось»: чей ход — тот и перерисовывается. Две
+    перекраски физически не могут попасть в один кадр; занятый мир просто
+    дольше обходится. Painter'ы своего `LateUpdate`-пути не имеют — он рисовал
+    бы ВПЕРЕДИ планировщика, ровно тот затор, ради которого всё и затевалось.
+  - **Свежая метка не ждёт очереди.** Укус и наложенная повязка рисуются на
+    СЛЕДУЮЩЕМ кадре «лёгким» путём — обычным прямоугольным штампом поверх уже
+    готового композита (аддитивно: без переливки базы, без перерисовки прошлых
+    штампов). `TryPlaceProjected` для этого заполняет и прямоугольные поля
+    (`Uv`/`UvSizeX/Y`) — это два деления. На ближайшем плановом ходу штамп
+    **апгрейдится до бесшовной проекции** (`Stamp.DrawAsRect` гаснет).
+    Свежих проходов тоже не больше одного за кадр.
+  - **Загар держится отдельно** (`_appliedTone` против живого `_skinTone`):
+    композит стоит снизу вверх — тонированная база, спеклы урона, раны и
+    бинты, — то есть загар в САМОМ НИЗУ и перекрасить его без перерисовки
+    всего сверху нельзя. Поэтому он въезжает в базу только на плановом ходу; до
+    тех пор свежие раны ложатся поверх СТАРОЙ базы и остаются дешёвыми.
+  - ⚠️ **Грабли r2: перенос на соседнюю сабмешь пропал.** Свежая метка ставится
+    прямоугольником на ЯКОРНОМ слоте, а апгрейд до проекции — это ЗАМЕНА
+    пикселей, не добавление. Аддитивный проход находил штамп уже в списке
+    нарисованных на якорном слоте, **пропускал** его, и обрезанный
+    прямоугольник оставался там навсегда: декаль дотягивалась до соседней
+    сабмеши, но переставать быть обрезанной на своей — нет. Читалось ровно как
+    «с ноги на pelvis не переносится». Лечится тем, что апгрейд ВСЕГДА идёт
+    полной пересборкой (`_forceFullRebuild`).
+  - **Плановый ход проверяется РАНЬШЕ свежих меток.** Иначе поток укусов
+    затыкает обход насмерть — а обход это и есть то, что превращает
+    прямоугольник в бесшовную декаль.
+  - **Декаль, реально попавшая на шов, апгрейдится сразу**, не дожидаясь своей
+    очереди (`Stamp.NeedsSeamUpgrade`, ставит воркер по `Slots.Length > 1`):
+    обход при ~19 painter'ах длится ~19 с, и всё это время рана выглядела бы
+    разрезанной. Декали внутри одной сабмеши ждут хода спокойно — там
+    прямоугольник и проекция почти неразличимы.
+  - Ручная таблица «нога→таз→туловище→руки» НЕ нужна: набор задетых сабмешей
+    считается геометрически (`SlotReaches` по запечённым точкам поверхности),
+    что точнее любого списка соседей — он находит ровно те слоты, которых
+    коробка декали действительно касается.
+  - **Спеклы урона (§40.8-H) считаются каждый тик, но материализуются на
+    плановом ходу.** Они НИЖНИЙ слой, поэтому появление одного пятна
+    запрещает аддитивную дорисовку (новое пятно легло бы ПОВЕРХ ран) и тянет
+    полную пересборку; в бою бакет урона зоны дёргается постоянно, так что
+    через свежий путь они давали бы полную пересборку почти на каждый укус.
+    Теперь `ComputeEffectiveZoneDamage` работает как раньше (дёшево, без
+    аллокаций), результат запоминается, а сами штампы приводит в соответствие
+    `ReconcileSpeckles()` на ходу painter'а: добавить появившиеся, убрать
+    зажившие, обновить альфы. ⚠️ Когда урон полностью заживает, `_speckleHash`
+    обязан сброситься в 0 — иначе точно такой же урон позже читается как
+    «ничего не изменилось» и ни одно пятно не вернётся.
+  - Слоёв-поводов («что именно устарело») больше нет — пробовали, вышло
+    сложно и без выигрыша: любая перекраска всё равно пересобирает картинку
+    целиком, потому что загар лежит под всем.
+  - Капель в текстуре нет и не было с v4.3 (`PaintSweatDroplets = false`) —
+    бисер идёт URP-проекторами. Влажность здесь влияет только на базовый
+    уровень глосс-карты, а она существует лишь под ранами.
+  - Одежда (`GarmentWearPainter`) бесшовной проекции НЕ использует и никогда
+    не использовала — только дешёвый `PaintPointMap`. Её цена была
+    исключительно в количестве × частоте, поэтому ей хватает планового хода.
+- **SHIPPED (40.8-H — zone-damage speckles, чисто косметика):** per-zone HP
+  (`BodyParts`, уже в снапшоте — сим/wire не тронуты) рисует на коже
+  растущее поле мелких «кисточных» кровоподтёков ПОМИМО ран: первые
+  метки почти сразу (onset 0.05), возле 0 HP конечность читается
+  почти сплошь красной. r3: арт пятна = **`blood_stain.png`** — тот самый
+  красный сплаттер, которым molly брызгала декалем при уроне (скопирован
+  из molly_copy `—Pngtree—splash red paint blood stain_8483619.png`,
+  материал skinblood.mat / blood.prefab); рисуется НЕИЗМЕНЁННЫМ
+  (нейтральный `StampTint` — своя сочная краснота, r1-затемнение убрано).
+  **r9 — кровь смывается купанием (баг-трекер #9/#10):** урон роняет гигиену
+  через единую развилку `MortalityHelpers.ResolveTrauma` — ручка
+  `SimBalance.HygieneDamageLoss` (3: суммарная треть максимума HP обнуляет
+  гигиену, надо полностью помыться), а поле спеклов умножается на
+  `sqrt(1 − Hygiene)` прямо на входе (`NpcActorView.SetBodyCondition`, до
+  квантования — перекраска едет штатной машинерией). Помылась (гигиена 1) —
+  капли исчезли, раны (отдельный слой стемпов, не `IsSpeckle`) остались;
+  корень вместо линейки, чтобы свежая небольшая рана (гигиена ~0.85) ещё
+  заметно кровила; дрейф гигиены медленно проявляет капли обратно на
+  недолеченных зонах — «рана сочится».
+  **r8 — размещение обходит края островов (баг-трекер #5):** мельче стало
+  лучше, но не вылечило: прямоугольник не пересекает НИКАКОЙ шов, включая
+  внутренний шов острова спины или руки — «в рамках одной конечности». Перевод
+  на проекцию §40.8-J отвергнут по замеру (~130 млн фрагментов на пересборку,
+  вернулись бы фризы §40.8-K). Вместо этого в карту точек запечено
+  `Point.UvEdgeDistance` — расстояние до ближайшего края UV-острова (чемферный
+  distance transform 256² по растеризованной развёртке), и пятну запрещено
+  садиться ближе к краю, чем его собственный радиус: оно обходит на соседнюю
+  ячейку (до 12 проб). Резать нечего, полосу у шва закрывают соседние пятна с
+  обеих сторон, рантайм-стоимость ноль. ⚠️ Шаг пробы обязан быть ВЗАИМНО ПРОСТ
+  с размером сетки: первая версия шагала на `probe * n`, что кратно n и
+  сокращается по модулю — все пробы давали одну ячейку и пробинг молча не
+  работал. Замер на Jana: медиана 0.14 UV, при пороге 0.11 проходят 60% ячеек.
+  **r7 — мельче и больше числом:** при 25-45 см одно пятно было
+  САМОЙ КРУПНОЙ декалью в игре, крупнее бинта, и рисуется оно ПРЯМОУГОЛЬНИКОМ
+  в UV одной сабмеши, то есть через шов пройти не может физически — линия по
+  позвоночнику на окровавленной спине это одно пятно, кончившееся на краю
+  острова. Кровь нерегулярна, поэтому мелкое пятно, обрезанное швом, читается
+  как «брызги тут и кончились», а ладонное — как прямой разрез. Размер
+  0.12-0.20 м, потолки ×4 (Torso 88, Pelvis 60, ноги 52, руки 36, Head 28),
+  UV-кап 0.5→0.22. Плотность крови сохраняется, потому что площадь пятна идёт
+  как КВАДРАТ размера: 0.35→0.16 м это вчетверо меньше площади. Все потолки
+  ниже 128 ячеек сетки зоны, так что взаимно простой шаг обхода (45) по-прежнему
+  даёт каждому пятну свой центр. ⚠️ Перевести пятна на бесшовную проекцию
+  НЕЛЬЗЯ: окно прохода для такой декали ~25% тайла, при таком количестве это
+  100+ млн фрагментов на полную пересборку — вернутся фризы. Альфа 0.45→1; размер и количество ПЕРЕМНОЖАЮТСЯ (урок r5: кривая под
+  3-6-см точки после ×5-размеров заливала торс при 9% урона). r6 —
+  калибровка юзера «без сплошной, это перебор»: потолок Torso 22 …
+  Head 7 (≈0.18 от r4, всего ≤88), кривая почти линейная `q^0.85` —
+  ≈18 ладонных сплаттеров на торсе к 80% урона, к 100% лишь на ~20%
+  сильнее (=22, потолок), малый урон = 1-2 крупных пятна. Сплошной
+  заливки не существует ни при каком уроне. r4: размер ×5 — 25–45 см
+  (свой UV-кап 0.5 вместо капельного 0.12, иначе он душит крупный
+  штамп), обязательный случайный поворот каждого штампа (сид →
+  GL-матрица вокруг центра, у DrawTexture своего поворота нет);
+  пересечения разрешены — уникальны только центры (сетка), при таких
+  размерах штампы густо перекрываются в сплошную красноту задолго до
+  нуля HP. Гладкость между зонами: **neighbor bleed 0.38** —
+  разбитая рука подкрашивает плечо (Head↔Torso↔Pelvis↔конечности), нет
+  жёсткой границы «рука красная / торс белый». Размещение — прямая
+  индексация ячеек запечённой `PaintPointMap`-сетки взаимно-простым
+  шагом (stride 45 по 128 ячейкам): ровное заполнение без дублей, рост
+  урона НЕ двигает уже стоящие пятна, детерминизм per npc/zone. Пятна
+  albedo-only (без normal/gloss — не виниловеют), рисуются ПЕРВЫМИ, так
+  что раны/бинты/капли ложатся поверх; severed-зоны исключены (визуал
+  несёт рана культи). Перф: бакеты урона 0.05 в существующем хэше
+  состояния Sync, репейнт остаётся коалессированным (≤1/0.25 с),
+  **только через запечённую карту** — легаси-путь `ClosestSkinTriangle`
+  для пятен запрещён (вернул бы 40.8-G), актёр без карты просто без
+  пятен. Ключи `dz{zone}#{i}`; лечение уменьшает count, хвостовые ключи
+  убирает штатный stale-свип.
 - **SHIPPED (40.8-F v2 — toon blood splash):** the hit spray prefabs are
   now **Epic Toon FX** blood splats copied (GUID-intact, with their two
   URP Particles/Unlit materials + textures) from the w-empire-ios project
@@ -9578,6 +10236,58 @@ then goes dormant). §40.18's second island reaches 5/6 on this softened
 baseline (only one seed's fire/water soft-gate resists) — close, a focused
 placement pass away, no longer a hard blocker.
 
+**v2 — PRICED PER EDGE, ASYMMETRIC, AND ACTUALLY MINIMISED.** The weight above
+(later raised 12 → 30) still let NPCs sawtooth over ledges: measured on seed
+12345 over 4000 ticks, **38% of all hops changed direction within 10 seconds of
+the previous one** — down-then-up for nothing. Three separate causes, all fixed
+here; measured after: hops 204 → 171 and the sawtooth share **38% → 20%**.
+1. **The price belonged to the CROSSING, not to the seam junction.** A seam
+   junction borders both elevations, so charging for ENTERING one also charged
+   the detour that merely walks ALONG the wall — the very route the weight exists
+   to encourage. Worldgen now bakes the signed elevation change of every directed
+   edge into `Junction.NeighborStepDelta` (a `sbyte[]` parallel to `Neighbors`,
+   ~84 KB for the island), computed by the SAME resolver hop arming uses
+   (`HexPathfinder.ResolveStepDelta` → `TryGetDirectedStepTile`), so the route
+   and the execution cannot disagree about what a jump is. `ClimbSeams` stays —
+   presentation markers, the inspector and `IsClimbSeamWalk` read it. This is
+   step 1 of the plan above, in its "per-neighbour parallel list" form; it also
+   takes the float resolver out of the inner loop, which is where the §57.2
+   pathological seed spends its time. A hand-built graph (unit fixtures) has no
+   baked table, so `StepDelta` falls back to the live resolver — silently reading
+   0 would make every jump free again, i.e. reintroduce the bug.
+2. **Up and down cost the same, but take 8 ticks and 4.** Priced from that:
+   `SeamUpCost = 45`, `SeamDownCost = 25` against `FlatCost = 10`. Do NOT raise
+   them "to be safe" — walking around one tile is ~6.9 edges ≈ 14 ticks, so past
+   ~4.5× she takes detours that are genuinely slower than the jump she avoided.
+   Both numbers are `HopSeconds`/`DownHopSeconds` in different units: retune the
+   timing in §21.21B and these must be re-derived.
+3. **The search had no relaxation.** It closed a neighbour the first time it was
+   reached (`cameFrom.ContainsKey`) and never improved it, which is exact for
+   uniform cost and wrong the moment costs differ: a node first found through an
+   expensive edge kept that price, so the search could return a route more
+   expensive than one its own data supported. Now a cheaper parent replaces the
+   stale frontier entry (`SortedDictionary` + a key map + a closed set); the `seq`
+   tiebreak is unchanged, so equal-cost ties still resolve first-found and the
+   search stays deterministic.
+**Mobs are exempt** (`MobSystem.ChaseStep` passes `weightClimb: false`): a mob
+pays NO time for an elevation step — `MoveDogTo` relocates it logically at once —
+so the weight would price something that never happens, sending wolves around
+ledges the girl simply hops and handing her a free kite along every lip. It also
+unhooks chase routes from future retunes of these prices, which is the class of
+change that historically reshuffled the whole dog dance.
+**Chases are exempt too** (added with §21.21B v16, same reasoning as the mob
+exemption): GroupHunt, Abuse, Prey, Hunt and Defend join Flee in
+`ShouldWeightClimbs`, because a pursuer who pays 4.5× for a ledge loses ground
+every crossing to a quarry who simply hops it — measured as §108's group hunt
+never landing a blow.
+**Not touched, deliberately:** the rest of `ShouldWeightClimbs` (the food/water
+exemptions are load-bearing balance), `IsClimbSeamWalk` (it guards the execution
+layer, and under the edge model it no longer distorts prices — a detour one row
+back from the lip is now honestly flat), and the water prices — a dive really
+costs ~12 ticks against `SwimCost` 40, but the swim ring is a corridor with no
+alternative route, so under-pricing it cannot produce a sawtooth. Deferred, with
+a note in §40.18.
+
 ### 40.18 Islands, swimming & shark — implementation plan (arc)
 The escape endgame (§40.15) and bigger-world (§40.12) share one dependency
 chain: **traversable water → swimming → shark → island-hopping**. No piece
@@ -9598,6 +10308,10 @@ grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
    is absent from land. Ship first as a dormant patroller (no swimmers yet →
    verifiably deaths==baseline, like the null advisor §40.16), then wire the
    bite once swimming exists.
+   **UPDATE (§106): the medium foundation is in.** `MobStats.AttackMediums`
+   (shark = `Water`) + the shared `CombatMedium.CanEngage` gate already drive
+   `SharkSystem.BiteSwimmers` — turning the shark on is a registration in
+   `SimulationSystemRegistry` plus a real combat timeline, not a new rule.
 3. **Second island.** Extend world-gen with a second land mass across a
    Swimmable strait, seeded with fresh loot (a pickaxe/saw already scatter,
    §40.12) and its own resources. Connectivity cache must span both.
@@ -9632,7 +10346,14 @@ grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
    tags its junctions into `WorldState.StraitJunctions`, and `HexPathfinder`
    charges them `StraitCost` (2×) instead of the ring's `SwimCost` (4×), so a
    route will actually take the hop; the wider ring stays 4× (a shark-risked
-   last resort nobody enters). (b) The island holds an EXCLUSIVE resource —
+   last resort nobody enters). **DEFERRED, noted by §40.17 v2:** both water
+   prices are under-derived next to the land ones — a dive really costs ~12
+   ticks (down-hop 4 + the 8-tick treading pause), i.e. ~60 in edge units
+   against the 40 charged. Left alone on purpose: the ring is a corridor with
+   no alternative route, so the price decides only WHETHER she swims, never the
+   shape of the route, and these two numbers are what §40.18's 5/6-green
+   placement was tuned around. Re-derive them together with a placement pass,
+   not on their own. (b) The island holds an EXCLUSIVE resource —
    the ONLY `tool.pickaxe_stone` now sits on the island (the mainland scatter
    was removed), so a tool-seeking NPC must cross for it (a palm rides along
    for food/wood). Measured: 2 of 6 seeds show a real crossing (the island
@@ -9852,11 +10573,19 @@ wind → spawn → warm-up → fade → Jana.
 
 ### 41.5 Wake-up grace (iteration 38)
 Waking from any Sleep (bed / leaf mat / ground) sets
-`Mind.WakeGraceUntilTick = tick + 12` (~3 game-seconds). While in grace the
+`Mind.WakeGraceUntilTick = tick + AiBalance.WakeGraceTicks`. While in grace the
 DecisionSystem does not score goals — the NPC simply STANDS where she slept,
 coming to her senses; no instant errands off the pillow, and the presentation
 GetUp clip has room to play without foot-sliding (exported as
 `NpcSnapshot.IsWaking`).
+
+**r2 (bug #1): the grace is sized by the actual get-up clip, 18 ticks.** The
+old 12 (~3 s) was shorter than the GetUp clip («Situp To Idle», 132 frames @
+30 fps = 4.4 s = 17.6 ticks), so the sim started walking her ~1.4 s before the
+clip finished and her feet slid along the ground. The fallen chain's StandUp
+(«X Bot@Standing Up», 1.67 s) is covered by the same number. The end of a §110
+crying breakdown gets the SAME grace (it stands up with the same GetUp clip);
+being ripped out of lying by a wound / coma / raid deliberately does not.
 
 ## §42 Survival Realism Rebalance (iteration 38)
 The colony's numbers dated from the subsistence-race era; with the player
@@ -10820,19 +11549,29 @@ SimBalance.DressWarmthGainMin` (default **0.05 ≈ +0.5 °C**; +0.1 warmth = +1 
   EquippedArmor` gain check (§29C.4A); undress-for-heat (§31A.5A) is unchanged.
   The rule is warmth-only, per the design call.
 
-**A replaced garment relocates its pockets, then lies on the ground.** Taking a
-worn piece off (dress-over-conflict §31A.5B, or `CraftLeather`) shrinks the pack
-by that garment's slots. The swap now runs in the order that lets the contents
-land correctly: `ResolveWearConflicts` **collects** the displaced piece(s)
-without dropping → the replacement is donned and `EquipmentMath.Recalculate`
-makes the new capacity live → `DropDisplacedGarments` lays each displaced garment
-on the ground, riding down only the pack **overflow** that still doesn't fit
-(lowest importance first, §52.3) inside its `Contents`. Net effect matching the
-design: pocket items that fit **stay in the pack (moved into the new garment)**;
-the true remainder **rides to the ground inside the removed garment**; the
-garment itself always goes to the ground — never kept as dead weight in the pack.
-Deliberate Undress already did this (`DropGarmentWithContents`); the replace path
-had bare-dropped and could leave the pack over capacity.
+**A replaced garment relocates its pockets, then goes into the pack — the
+ground only if there is no pocket** (revised §52.9 r2; it used to always hit the
+ground). Taking a worn piece off (dress-over-conflict §31A.5B, or `CraftLeather`)
+shrinks the pack by that garment's slots. The swap runs in the order that lets
+the contents land correctly: `ResolveWearConflicts` **collects** the displaced
+piece(s) without disposing of them → the replacement is donned and
+`EquipmentMath.Recalculate` makes the new capacity live → `StowDisplacedGarments`
+folds each displaced garment **into the pack** when a slot is free, and only
+otherwise lays it on the ground, riding down the pack **overflow** that still
+doesn't fit (lowest importance first, §52.3) inside its `Contents`. Net effect:
+pocket items that fit **stay in the pack (moved into the new garment)**; the
+displaced garment is **carried, not littered** — swapping one pair of panties for
+another leaves nothing on the sand; the true remainder rides to the ground inside
+whatever is dropped. Deliberate Undress still lays the piece down
+(`DropGarmentWithContents`) — that is an explicit "take this off", not a swap.
+
+Two deliberate non-rules here. The stow never calls `InventoryMath.MakeRoomFor`:
+a swapped-out shirt must not shed food or a knife to ride along. And the run ends
+in `SpillOverflow`, so if the pack was already at the brim the garment simply
+falls back out — "into the pack, else the ground" needs no separate full-pack
+branch. Measured cost of carrying it: over 24 000 ticks a colony swaps a garment
+**once or twice**, so the pack never fills with laundry (0 `PickupBlocked` across
+three seeds).
 
 **Verify** (headless, tuned catalog, 10/10): same/worse/negligible (+0.03) top →
 rejected; coat (+0.28) and armor-over-top layering (+0.25) → accepted; bundled to
@@ -10960,11 +11699,14 @@ piece goes back on, so a false conflict laid clean clothes on the sand — a
 mechanical cause of "вещи лежат брошенными".
 
 **The fix.** `WearSlotCatalog` (engine-free, mirrors each prefab's slots by id)
-exposes ONE occupancy predicate, `SameSpot(a, b)`, used by all three
-displacement sites — `ResolveWearConflicts` (removes the loser),
-`HasWearConflict` (gates re-dressing after a wash) and
-`WarmthGainFromWearing` (§52.7, prices the piece that *would* come off; it had
-drifted out of sync with the other two). `Covers` keeps every one of its
+exposes ONE occupancy predicate, `Occupies(a, b)` — **layer and slot together**,
+the exact rule `BodyBones.Equip` runs — used by all three displacement sites:
+`ResolveWearConflicts` (removes the loser), `HasWearConflict` (gates re-dressing
+after a wash) and `WarmthGainFromWearing` (§52.7, prices the piece that *would*
+come off; it had drifted out of sync with the other two). The layer half used to
+be re-typed at each call site next to a shared `SameSpot`, which is how the
+warmth one drifted; folding it in leaves DATA as the only way the sim and the
+prefab can disagree, and §52.9 r2 below gates that. `Covers` keeps every one of its
 legitimate jobs (armor per bitten part, uncovered-skin/UV, bite damage to
 garments, wound staining) and no longer decides occupancy. A garment with no
 authored slots falls back to the old `Covers` test, so unauthored art keeps its
@@ -10979,9 +11721,9 @@ occupancy and stay.)
 
 **Known data gap.** `Top_11927` authors `Neck + ShoulderL` but **no `Chest`**,
 so under the slot rule it no longer displaces bras/tops and two tops can be worn
-at once (visual clipping). `Boots 20496` authors no slots at all and rides the
-`Covers` fallback. Both are prefab-side fixes; update the catalog row after
-editing a prefab.
+at once (visual clipping). That is a prefab-side fix; update the catalog row after
+editing the prefab. (`Boots 20496`, the other half of this gap, is closed in
+§52.9 r2 below.)
 
 **Verify.** Full-wardrobe sweep: 762 same-layer pairs, `SameSpot` == slot
 overlap on every pair with authored data, 0 discrepancies. Targeted: boots
@@ -10994,6 +11736,83 @@ higher on every seed, and clothing stays on — worn pieces 3 → 7 (seed 42) an
 false conflicts gone the girls dress far more successfully, so there is simply
 more wardrobe activity to replace later. The false strips themselves are gone by
 construction (the sweep above).
+
+### §52.9 r2 The mirror is now GATED — and the three rows it was already wrong about
+
+The mirror was never verified, so it drifted, and the drift is silent in the sim
+and expensive in the view. When the sim thinks two garments are compatible but
+their prefabs claim the same (layer, slot), `BodyBones.Equip` evicts one **the
+instant it lands** — `SyncWorn` then sees "worn in the sim, absent on the body",
+re-stitches ~57 bones, and is evicted again, every tick, forever: measured at
+**100–180 ms SELF per tick**, frames of 300–700 ms, and a leaked material set per
+attempt (Scene Object Count 382 414 → 445 790 in 80 s). The presentation now gives
+up after ONE attempt and warns
+(`[Wear] '<id>' was evicted the instant it was equipped`), so the price is no
+longer the frame — it is **a garment that is simply not worn**.
+
+**Three rows were wrong**, and they account for every clash in the wardrobe:
+
+| Row | Was | Prefab says | Cost |
+|---|---|---|---|
+| `armor.heavy` | sim layer `Outerwear` | layer `Wear` | **22 of 30** clashing pairs — the cuirass fought every top |
+| `clothing.suspenders_nerd` | `ShoulderR/L` | `Chest + Belly` | 11 clashing pairs — the bib fought every top |
+| `Boots 20496` | no slots authored ⇒ `Covers` fallback | now `FootR/FootL` | 7 **false strips** — boots stripped stockings/tights/socks |
+
+Sweep result: **30 clashing pairs → 0**, and the reverse direction (sim strips a
+pair the body would have worn together) **12 → 0**. `armor.heavy` now replaces a
+shirt rather than stacking over one, and still layers under a vest / harness /
+scarf, which really are `Outerwear`; to make it armour-over-shirt instead, move
+the **prefab** to `Outerwear` — never the sim row alone.
+
+**The gate** (`Tests/HexLive.Simulation.Tests/Gates/WearSlotGateTests.cs`, 5
+tests, `dotnet test Tests/HexLive.Simulation.Tests`). It parses the real
+`*.prefab` files off disk — Unity serializes an enum array as a little-endian hex
+string, `slots: 1300000014000000` = `FootR, FootL` — because a mirror can only be
+checked against the original, never against a second copy of itself:
+
+1. **no pair the sim allows together fights for the same (layer, slot)** — THE
+   invariant, the one whose violation cost 100 ms/tick;
+2. no pair the sim strips actually fits together (the §52.9 false-strip class);
+3. every catalog row equals its prefab's slot union, and no garment falls back to
+   `Covers` for want of authored slots;
+4. the sim's `WearLayer` equals the prefab's layer, and a garment's prefabs all
+   sit in one layer;
+5. the layer's **four homes agree** — the `GarmentDefinition` asset (what Unity
+   reads), `simdata.json` (what headless and the server read), the code default,
+   and the asset's own folder (`GarmentCatalogBuilder` finds an asset by
+   `Assets/<Layer>/<slug>.asset`, so an asset in the wrong folder is silently
+   duplicated and its tuning lost on the next Rebuild). This is the
+   `SimDataFreshnessGateTests` trap, which has no garment section.
+
+Direction of repair is always **toward the prefab** — the catalog row and, if the
+layer is wrong, the garment's `WearLayer` in all its homes. Never coarsen a
+prefab's slots to match `Covers`; that mistake already cost a shirt its wrist
+slots.
+
+**Verify.** Gate green on all 5 tests, and each of the three data fixes was
+reverted in turn to prove the gate names it (wrong catalog row → 11 pairs +
+`CatalogMirrorsThePrefabSlots`; wrong `simdata` layer → 22 pairs +
+`EveryHomeOfTheLayerAgrees`; unauthored prefab slots → 7 false strips). Golden
+trace (`Tools/golden_trace.sh HEAD --preset decisions`, 3 seeds × 4 000 ticks):
+**2 of 3 seeds bit-identical**; seed 12345 diverges from one event —
+`underwear.bra_cherry`, displaced by `armor.leather` at tick 1431, is folded into
+the pack (5/11) instead of laid on the sand — and the first *decision* that
+differs is 1 800 ticks later (t3256, one girl keeps `SplitLog` instead of
+switching to `CoolOff`). Soak, 16 seeds × 24 000 ticks: 4 seeds bit-identical (no
+swap happened at all), survivors **34 → 36**, plan-failure rate **2.96% → 2.23%**
+on the diverged seeds, 0 `PickupBlocked`. Stuck NPC-ticks rise (58 685 → 76 332),
+confounded by two seeds going 0 → 2 and 0 → 3 survivors: more living colonists is
+more NPC-ticks to be counted in.
+
+A note on **seed-fragile end-to-end tests**, since this change tripped one:
+`GroupHunt_LandsBlows_OnThePrototypeIsland` asserted a 24 000-tick emergent chain
+on the single seed 313, and any legitimate divergence can make one seed unlucky.
+Measured over 10 seeds, the chain forms on **8/10 before and 8/10 after** — §108
+is healthy; 313 stopped being lucky and 12345 started. The test now tries a short
+list of seeds and passes on the first that reaches a blow, which is what its own
+docstring always claimed to assert ("the island drives them to it", not "seed 313
+does").
+
 
 ## §53 Compassion & mutual aid (iteration 49)
 
@@ -11075,9 +11894,13 @@ traces and reuses the existing relationship-pop over both heads.
 water vessel); Treat/Medicate/Console tend bare-handed. The prop used to be
 purely cosmetic; since **§53.7** the item it stands for is really spent, so what
 she holds is what she gives away. **Only when the ward is lying
-down** (coma/faint/asleep/prone) does the helper kneel into the planting-style
-**CraftWork** clip (`CraftingParam`) beside her — the "tending" motion. Over a
-**standing** ward she just stands and holds the item, as before. The ward's
+down** (coma/faint/asleep/prone/crying) does the helper kneel beside her. **Which
+kneel depends on the aid** (§110): Feed/Hydrate/Treat/Medicate keep the
+planting-style **CraftWork** clip (`CraftingParam`) — hands that really work —
+while **Console** goes to its own **PrayDown → Pray → PrayUp** chain
+(`PrayingParam`): she sinks to her knees and prays over the crying girl, which is
+the whole of what consoling is. Over a **standing** ward she just stands and
+holds the item, as before. The ward's
 posture travels to the view on `NpcSnapshot.AidTargetLyingDown`, computed
 sim-side from `target.IsLyingDown(tick)` (the view has no cross-NPC access).
 
@@ -11591,10 +12414,23 @@ mirror `BuildSiteMath.CampfireStages`:
 | stage | pieces | material | meaning |
 |---|---|---|---|
 | 1 | 9 × `stick_*` | 9 sticks | the bare stick pile — **a working, lightable fire** |
-| 2 | 18 × `stone_*` | 18 stones | the dense stone ring (packed edge to edge) |
-| 3 | 2 × `stick_post_*` | 2 sticks | two forked posts planted either side |
-| 4 | 1 × `stick_bar` | 1 stick | the crossbar laid across the forks |
-| 5 | 2 × `rope_*` | 2 rope | the lashings tying the bar to the posts |
+| 2 | 2 × `stick_post_*` | 2 sticks | two forked posts planted either side |
+| 3 | 1 × `stick_bar` | 1 stick | the crossbar laid across the forks |
+| 4 | 2 × `rope_*` | 2 rope | the lashings tying the bar to the posts |
+| 5 | 18 × `stone_*` | 18 stones | the dense stone ring (packed edge to edge) |
+
+**r3 (§54.17): the spit comes BEFORE the stone ring.** The old order (ring at
+stage 2) plus the stage machine's "only the current stage's shortfall is
+exposed" rule meant cooking waited on the 18-stone ring — which §63.4 records
+as *never finishing* in ~500 seed-days, and staying rare after the delivery
+fixes. So `MeatRoasted` was structurally impossible. Now the spit costs a
+working fire + 3 sticks + 2 rope (days, not weeks), and the ring is what it
+thematically always was: the long-tail fuel-economy upgrade. Bill totals are
+unchanged, `CampfireSpitComplete`/`CampfireRingComplete` test delivered
+*amounts* (stage-order-agnostic), and the renderer lights "the first N pieces
+per material" — so the swap is data-only (`BuildSiteMath.CampfireStages`).
+Old saves re-attribute their delivered pool cleanly (stones simply credit the
+now-last stage). Pinned by `CampfireStageTests`.
 
 The three visual tiers are also **functional tiers** (r2): the stick pile is
 a complete fire, the ring is a fuel saver, the spit is the cooker.
@@ -11602,8 +12438,8 @@ a complete fire, the ring is a fuel saver, the spit is the cooker.
 | functional tier | complete when | what it gives |
 |---|---|---|
 | pile (stage 1) | 9 sticks delivered (site raises) | a real campfire: fuel/light, **full warmth + Cozy comfort**, crafting station |
-| ring (stage 2) | 18 stones delivered | fuel burns at `CampfireRingBurnMultiplier` (0.5) — the same wood lasts **2×** |
-| spit (stages 3-5) | full stick + rope bill delivered | **cooking unlocked** (§54.14A roasting) |
+| spit (stages 2-4) | full stick + rope bill delivered | **cooking unlocked** (§54.14A roasting) |
+| ring (stage 5) | 18 stones delivered | fuel burns at `CampfireRingBurnMultiplier` (0.5) — the same wood lasts **2×** |
 
 Mechanics:
 
@@ -11823,6 +12659,8 @@ Three fixes, all needed:
 3. **`MeatRawSpoilTicks` 1800 → 2600**, so a chunk outlives a 2400-tick mark
    even when the fear is never cleared. Tuned in `ResourceLoopBalance.asset`
    (mirrored to `SimBalance` + `SimData/simdata.json`).
+   *(§54.17 later raised the spoil clocks outright: raw 2600 → **12000**,
+   cooked 4800 → **20000** — see below.)*
 
 **Probe** (`/private/tmp/cookprobe`, A/B on one scene — lit fire with a
 finished spit, wolf carcass in the next hex, two girls with knives, hunger
@@ -11833,6 +12671,108 @@ finished spit, wolf carcass in the next hex, two girls with knives, hunger
 | no mark | butcher t234 → hang → roast → eat, hunger → 0.01 | unchanged |
 | **mark** | butchered t65, **both chunks rot t1872**, hunger 0.55 → 0.78 | butcher t65 → hang t133 → roast t336 → eaten t435, hunger → 0.19 |
 | live wolf on the spot | meat not taken | meat not taken (guard holds) |
+
+### §54.17 Meat feeds the colony (cook score + food preference)
+
+§54.16 fixed the fear-vs-rot collision, yet meat still ended as coconut's
+understudy: the player had **never once** seen meat roast. Three independent
+defects, each sufficient on its own:
+
+1. **The spit was structurally unreachable.** Cooking gates on
+   `CampfireSpitComplete`, but the stage machine demanded the 18-stone ring
+   *before* the spit's sticks and rope — and §63.4 records the ring as never
+   finishing. Fixed by reordering `CampfireStages` (spit stages 2-4, ring
+   last; see §54.14 r3).
+2. **Score inversion: fetching forever, hanging never.** GetFood/Eat score
+   `0.1 + Hunger`; CookMeat scored `0.1 + 0.3 + 0.4·H`, which loses to
+   GetFood on the entire domain where both are available (crossover at
+   H = 0.33, below GetFood's own 0.35 threshold). Raw meat has no Eat
+   interaction, so it never reads as "food in inventory" — a girl carrying a
+   chunk kept fetching more instead of hanging it. Fixed with two knobs:
+   **`CookMeatBase` (0.4) + `CookMeatHungerWeight` (1.0)** — CookMeat now
+   beats GetFood by a fixed 0.3 margin at *every* hunger level whenever
+   cooking is actually possible (raw meat in pack + lit fire + free hook).
+   The cycle: pick up chunk → hang it (~8 ticks) → `cookAvail` drops →
+   GetFood resumes (next chunk, or a coconut while the roast runs). No haul
+   goal was added and `getFoodAvail` is untouched: `FindCampfire` already
+   sees remembered fires, and `campfireFuel > 0` is the anti-churn guard
+   (§35.4a).
+3. **Nutrition was invisible to every food choice.** Eat consumed the FIRST
+   edible item in the pack (insertion order, `FindFirstFood`); GetFood walked
+   to the NEAREST `Food`-tagged object. Cooked meat's edge (−0.9 hunger vs
+   coconut half's −0.675) influenced nothing. Now `FoodMath`
+   (`Runtime/Helpers/FoodMath.cs`) is the single item-nutrition authority:
+   - `BestFoodInInventory` — Eat plans and §53.7 feed-aid donate the most
+     nutritious ready-to-eat item (ties keep insertion order, so meatless
+     packs behave exactly as before);
+   - `ProspectiveNutrition` — GetFood candidates rank by expected hunger
+     payoff with distance as tiebreak (the `preferArmor` idiom): a campfire
+     candidate (valid only while cooked hangs) and raw meat near a usable
+     fire both read as a cooked chunk (0.9); raw meat with no usable fire is
+     a gamble valued at `Spec53.FeedRelief` (0.5) — below an open coconut;
+   - `NutritionOf` moved here from `AidSupply` (which now delegates).
+   The coconut ladder (`BuildCoconutEatPlan`) is untouched as the fallback —
+   it stays the survival backbone.
+
+Supporting changes:
+
+- **Spoil clocks raised** (design decision): `MeatRawSpoilTicks` 2600 →
+  **12000** (5 event cycles — a kill survives long enough to be hauled and
+  cooked), `MeatCookedSpoilTicks` 4800 → **20000** (a roast is a real
+  larder: cook today, the colony eats for days). `ResourceLoopConfig` ranges
+  widened to 24000 to admit them.
+- **Catalog parity:** `food.meat_raw` carries the `Food` tag in
+  `PrototypeContentCatalog` itself, not only via the Unity asset override —
+  a world built from the bare catalog (unit tests, probes) must also pick
+  chunks up. The deliberate *no Eat interaction* rule (§29F.3) stands.
+- **`MeatEaten` trace** (player-visible, whitelisted): emitted when a cooked
+  chunk is eaten from inventory — the finish line of the chain
+  hunt → butcher → hang (`MeatHungOnSpit`) → roast (`MeatRoasted`) → eat.
+  The soak report prints the whole chain in one line
+  (`Butchered/Hung/Roasted/Eaten/Spoiled`).
+
+**r2 — the field soaks said "still zero", and closed two more holes.** With
+everything above in place, five 60000-tick soaks still showed
+`Hung=Roasted=Eaten=0` while `Spoiled = 2×Butchered`. The trace named the
+missing links:
+
+- **Nobody ever picked the chunks up.** `GetFood` is unavailable while ANY
+  food is in the pack — and a coconut always is — so ground meat was
+  unreachable by the only goal that fetches food. Fix: **butchering puts the
+  meat straight into the butcher's pack** (`Scatter=false` on both
+  `butcher.carcass` and `butcher.body` meat drops — hide still scatters).
+  Carried meat does not spoil; it simply waits in the pack until a lit fire
+  is in view and the dominant CookMeat score hangs it. A full pack first
+  bumps a less-important item (`InventoryMath.MakeRoomFor` on non-scatter
+  harvest yields — meat outranks sticks/hides), and only then falls back to
+  the ground drop.
+- **Nobody ever took the roast off the spit.** Same gate from the other
+  side: a girl with a coconut in the pack satisfies Eat from inventory and
+  `GetFood` (which knows how to take from the spit) never runs — the roast
+  hung untouched for 40 000+ ticks. Fix: the Eat plan gained a spit step
+  (`TryBuildSpitTakePlan`, ranked ABOVE the pack): if a perceived, reachable
+  campfire holds cooked meat and nothing in the pack is at least as
+  nutritious, she walks over and takes the chunk (`take.from.spit`); the
+  next Eat pass consumes it. Every obstacle in that branch returns false —
+  never PlanFailed — so the pack coconut stays the guaranteed fallback.
+
+After r2 the chain closes end-to-end in the field: butcher → pack → hang →
+roast → take → `MeatEaten`.
+
+**r2 field verification** (5 × 60000-tick soaks, `TimedMeleeEverywhere=true`):
+seed 42 ran the whole chain — `Butchered=3, Hung=2, Roasted=2, Eaten=1,
+Spoiled=0` — and `Spoiled` collapsed to 0-1 on every seed (was 2×Butchered:
+every chunk rotted). The remaining per-seed variance is NOT the meat chain:
+the other seeds stalled on spit stick #12 (sticks contested by fuel, beds
+and a second hearth) while the colony died to dogs — the §104.7 "включён до
+калибровки DPS" cost. Meat waits in packs either way; when a spit finishes
+and a fire burns, it flows.
+
+**Accepted golden-trace divergence:** the very first differing line is the
+CookMeat score at tick 0 (`Need 0.58 → 1.10` at H = 0.48-equivalent), after
+which trajectories fork wholesale (GoalScored/GoalSelected/PlanStarted) — the
+intended consequence of new scores, new target ranking, new stage order and
+the r2 yield/plan changes. Pinned by `CampfireStageTests` + `FoodMathTests`.
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 
@@ -11929,7 +12869,9 @@ starving hour with an empty island.
 lowest `Health`, with a discount for a **sleeper** (an easy kill is preferred)
 and the nearest breaking ties. A starved predator preys on the frail; when no
 soft target is in reach the goal simply has no victim and **fails** — so the plan
-is *not always solvable*, by design.
+is *not always solvable*, by design. §106: a **swimmer is not a victim** — water
+is reachable (SwimCost), so without the filter the predator would wade in after
+her; with it the goal fails the normal way (cooldown included).
 
 ### §56.3 The kill is a **fight**, not an execution — `PredationSystem`
 
@@ -12217,7 +13159,8 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
 **60.1 Входы (две комы).**
 - **Истощение:** `Energy == 0` наяву (во сне энергия только растёт — спящая не
   «догорает» до комы). Тело выключается там, где стоит.
-- **Кровопотеря:** `Blood ≤ ComaBloodEnterThreshold` (0.05). Это лезвие бритвы
+- **Кровопотеря:** `Blood ≤ ComaBloodEnterThreshold` (0.25 — цифра r2, см. 60.6;
+  в этом абзаце годами стояло старое 0.05). Это лезвие бритвы
   ПЕРЕД смертью: кровь на нуле по-прежнему УБИВАЕТ (spec 40.2 не отменён) —
   кома лишь даёт шанс, если кровотечение удастся пережить.
   Попутно закрыт старый баг: у СЫТОЙ истекающей кровью fed-heal (§45 r5)
@@ -12283,9 +13226,18 @@ npc)` кладёт тело в свободное КОЙКО-МЕСТО этог
 ПАРАЛЛЕЛЬНО и головами в одну сторону; занятые места читаются из фактических
 позиций лежащих (ничего не сериализуется). Подробности и ручки — §29G r3.
 
-**60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся до
-`ComaWakeThreshold` (0.15): Exhaustion — Energy ≥ 0.15, BloodLoss — Blood ≥
-0.15. Пробуждение получает обычный wake-грейс (spec 41.5, 12 тиков) — встаёт,
+**60.2a r3 (§113): место занимает и ВЕЩЬ.** Центр гекса — это ещё и то место,
+где §66 ставит костёр, где лежит валун и стоит кровать; «центр свободен»
+означало «на нём никто не лежит», и вырубившаяся у костра ложилась в костёр.
+Теперь `LieDownCentered` считает занятым и физический габарит вещи, а при нужде
+разворачивает шеренгу по другой оси гекса — гекс костра не запрещён, запрещён
+сам огонь. Подробности, лестница радиусов и ручки — §113.
+
+**60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся обратно.
+⚠️ Пороги ниже — **редакция v1, отменённая r2**: `ComaWakeThreshold` (0.15) в
+коде больше не используется вообще (retired, см. комментарий у поля). Актуальные
+пороги — `ExhaustedSleepWakeEnergy` 0.45 и `ComaBloodWakeThreshold` 0.35, см.
+60.6. Пробуждение получает обычный wake-грейс (spec 41.5, 18 тиков) — встаёт,
 приходит в себя, никакого спринта с «подушки».
 
 **60.4 Модель.** `NPCMind.ComaCause {None, Exhaustion, BloodLoss}` (сейв v6,
@@ -12338,6 +13290,32 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 - Unity-pending: переименовать локализацию чипа Coma («Кома» → «Без
   сознания») в I2Languages, пересохранить CharacterBalanceConfig
   (новое поле exhaustedSleepWakeEnergy), переэкспортировать SimData.
+
+**60.6 r3 (баг-трекер #8): вид комы от истощения — «как смерть», а не сон.**
+Внутренняя машина r2 не тронута (пробуждение выспавшись, боль будит, aid
+работает), но визуально вырубившаяся была неотличима от мирно спящей — та же
+анимированная поза, дыхание. Теперь экспортёр шлёт `IsUnconscious` для ОБЕИХ
+ком (`ComaCause != None`), и вид ведёт обе одним путём с умиранием: падение
+(`FallDown`) → `FallenIdle` — вторая поза сна с остановленной анимацией
+(скорость состояния 0), «как при смерти». Подмена «истощение =
+CurrentInteraction=Sleep» из экспортёра убрана; союз лежачих
+(`HexWorldRenderer.IsLyingDown`) уже нёс `IsUnconscious`, трава и грасс-гейты
+не задеты.
+
+**60.7 Утопление — без сознания в воде это смертельно.** Тело, потерявшее
+сознание (кома обеих причин, обморок §40.13 или умирание §105 — весь
+`IsUnconscious`) на ГЛУБОКОЙ воде (тот же предикат, что у §106: тайл
+`Water && !Walkable`), не лежит там безнаказанно: через
+`SimBalance.DrownDeathTicks` (1000) непрерывных тиков оно захлёбывается и
+умирает. Очнулась раньше — таймер сброшен; больше не в глубокой воде
+(доплыла-очнувшись, вытащили, отлив) — тоже сброшен, без следа. Смерть идёт
+каноническим путём §105 — `Health = 0`, тело подберёт свип `MobSystem`, — с
+событием-причиной `Drowned` в трассе (оно же в whitelist `GameEventTypes` и в
+списке причин `DeathRecord`). Таймер (`NPCMind.DrowningSinceTick`) тикает в
+`NeedsDecaySystem.TickDrowning` (Slow-слой, считает по фактическим тикам) и
+НАМЕРЕННО не сериализуется (как `DyingTickStamp`): после загрузки отсчёт
+начинается заново. Unity-pending: строка истории для `Drowned` в
+`GameHistoryFormatter` + I2-термин.
 
 ## §61 Поэтапный крафт на месте — выкладка, работа, взятие (iteration 61)
 
@@ -12423,6 +13401,10 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 проходима сквозь кольцо (проверено пробой: два коридора — обычный путь идёт
 сквозь волка 41 пересечением, осторожный делает крюк длиннее на 12 развязок с
 0 пересечений и доходит).
+Масштаб не изменился и после §40.17 v2: `FlatCost` по-прежнему 10, так что 80 —
+это те же 8 плоских шагов сверху. Для калибровки полезно держать в голове, что
+теперь это ДОРОЖЕ любого прыжка (вверх 45, вниз 25): осторожная девушка скорее
+перепрыгнет уступ, чем срежет через кольцо волка. Так и задумано.
 
 **62.4 Ручки.** Всё в статике `Spec62` (`SimulationSystems.cs`):
 `ThreatAlertEnabled`, `SpotRadiusTiles` 6, `CueCooldownTicks` 600,
@@ -12544,6 +13526,11 @@ pending.
 Итог соака: кирки крафтятся (2/колония), камни доставляются в кольцо
 (contents 9→10-12 к d20-25); полное кольцо за 25 дней — редкость (плот
 выигрывают раньше), длинная стройка по дизайну.
+
+**r3 (§54.17):** «редкость по дизайну» перестала запирать еду: кольцо
+демотировано в ПОСЛЕДНЮЮ стадию, вертел (палки+верёвка) идёт сразу за
+рабочим костром — жарка больше не ждёт 18 камней. Кольцо остаётся тем же
+длинным хвостом, но теперь ценой откладывается только экономия топлива.
 
 ## §64 Мечта — цель-стремление колонии, строим по плану (iteration 64)
 
@@ -13316,7 +14303,7 @@ hex_music3`, через ~4 с музыка на полной громкости 
 
 | Ручка | Значение | Что делает |
 |---|---|---|
-| `SimBalance.BaseMoveSpeedFactor` | **1.5** | общий темп ходьбы всей колонии |
+| `SimBalance.BaseMoveSpeedFactor` | **1.2** | общий темп ходьбы всей колонии (1.5 оказалось резковато, сбавлено на 20% в тот же день) |
 | `SimBalance.AdrenalineMoveSpeedFactor` | 1.5 → **2.25** | рывок под адреналином (усилен в 1.5 раза) |
 | `Spec57.DefendMoveSpeedFactor` | **2.5** | СПРИНТ НА ПОМОЩЬ, пока цель `Defend` |
 
@@ -13352,11 +14339,11 @@ hex_music3`, через ~4 с музыка на полной громкости 
 в руке она бежит обычным беговым клипом.
 
 Темп проигрывания считается ОТ ВЫБРАННОЙ походки: вид меряет реальную скорость
-тела в единицах шагового клипа (`simCadence`), выбирает по ней `Gait`, а потом
-делит на то, сколько земли покрывает сама эта походка (`SlowRunCadence = 2.0`,
-`RunCadence = 3.4` — доли от шага). В итоге каждый клип играет примерно на
-своей авторской скорости, а ноги совпадают с землёй на любой скорости. Если на
-спринте поедут ступни — крутить надо именно эти два числа.
+тела, выбирает по ней `Gait`, а потом делит на то, сколько земли покрывает сама
+эта походка. В итоге каждый клип играет примерно на своей авторской скорости, а
+ноги совпадают с землёй на любой скорости. Сколько именно земли покрывает
+каждый клип — см. §71.5 (было два числа на весь состав, стало по строке на
+клип).
 
 ### §71.1 Походка — решение сима, а не следствие скорости
 
@@ -13370,16 +14357,30 @@ hex_music3`, через ~4 с музыка на полной громкости 
 
 Причины бежать (не складываются, берётся БОЛЬШАЯ):
 
-| Причина | Множитель |
-|---|---|
-| Защита товарки (`Defend`) | `Spec57.DefendMoveSpeedFactor` 2.5 |
-| Адреналин после укуса | `AdrenalineMoveSpeedFactor` 2.25 |
-| Побег (`Flee`) | `FleeRunSpeedFactor` 2.25 |
-| Умирает с голоду/жажды и идёт к еде/воде | `NeedRunSpeedFactor` 1.6 |
+Причины бежать живут в колонке `Urgency` таблицы `GoalCatalog` (класс
+`UrgencyClass`), кроме адреналина и «умирает с голоду» — те смотрят на тело, а
+не на цель. Не складываются, берётся БОЛЬШАЯ:
 
-Последняя — единственная мирная причина: бег видно регулярно, но каждая
-прогулка не превращается в трусцу, и бегущая фигура по-прежнему читается как
-«что-то случилось».
+| Причина | Класс | Множитель |
+|---|---|---|
+| Защита товарки (`Defend`) | `Hurry` | `Spec57.DefendMoveSpeedFactor` 2.5 |
+| Догоняет жертву (`Abuse`, §89) | `Hurry` | 2.5 |
+| Налёт на лагерь (`Raid`) | `Hurry` | 2.5 |
+| Охота (`Hunt`) | `Hurry` | 2.5 |
+| Охота втроём (`GroupHunt`, §108) | `Hurry` | 2.5 |
+| Адреналин после укуса | — | `AdrenalineMoveSpeedFactor` 2.25 |
+| Побег (`Flee`) | `Flee` | `FleeRunSpeedFactor` 2.25 |
+| Умирает с голоду/жажды и идёт к еде/воде | — | `NeedRunSpeedFactor` 1.6 |
+
+⭐ **Правило «бегущая фигура = что-то случилось» размылось, и это осознано.**
+Список писался на четырёх причинах, из которых мирной была одна. Потом бег
+получили охота (рутинное занятие), групповая охота (сразу трое), налёт и
+гопник — и колония снова читается бегущей. Возвращать их на шаг нельзя: каждая
+из них добавлялась потому, что шагом сцена не складывалась (§89: пока он шёл,
+она успевала отойти). Поэтому ограничение перенесено на ТЕЛО, а не на список
+причин — дыхание §71.2 сделано вдвое расходнее, и длинный забег сам собой
+распадается на «пробежала — отдышалась шагом — снова побежала». Бег стал
+рывком, а не режимом передвижения.
 
 ### §71.2 Дыхание — отдельный резерв под спринт
 
@@ -13393,6 +14394,67 @@ hex_music3`, через ~4 с музыка на полной громкости 
 товарке и тут же пошла садиться отдыхать. **Ни одна строчка слоя решений не
 имеет права читать `Breath`** — он управляет ПОХОДКОЙ, а не целями. Отдых
 происходит на ходу.
+
+**Пересчёт (вместе с §71.5).** Первые числа давали 55 с бега с полного бака и
+40 с шага до перевзвода — длиннее почти любой сцены, так что чередование
+«побежала — выдохлась — пошла» за одну сцену не случалось ни разу. С тех пор
+бег раздали охоте, групповой охоте, налёту и гопнику (§71.1), и колония стала
+читаться бегущей. Ограничение перенесено на тело:
+
+| Ручка | Было | Стало | Что даёт |
+|---|---|---|---|
+| `BreathDrainPerTick` | 0.0045 | **0.011** | полный бак ≈ **23 с** бега |
+| `BreathReArm` | 0.35 | **0.55** | повторный рывок ≈ **12.5 с** |
+| `BreathWalkRecoverPerTick` | 0.0022 | **0.005** | отдышаться шагом ≈ **27.5 с** |
+| `BreathIdleRecoverPerTick` | 0.006 | **0.010** | стоя ≈ 14 с (по-прежнему вдвое быстрее шага) |
+
+Выносливость (§76 `BreathGain`) не тронута: она покупает ДЛИНУ рывка, и разброс
+по девушкам тут желателен.
+
+**Пауза тоже дышит — и не бежит.** Ветки, где она стоит не по своей воле —
+упёрлась в товарку, разворачивается на месте (§71.3, только около-разворот),
+переводит дух после него, вылезает из воды — уходят из `MovementSystem` через
+`continue` МИМО блока походки и дыхания. Это стоило двух ошибок сразу, и обе
+нашлись замером, а не чтением.
+
+*Дыхание не считалось вовсе:* заминка была для него дырой во времени. Теперь
+эти ветки восстанавливают по СТОЯЧЕЙ ставке (`PauseGaitAndBreath`) — она и
+правда стоит.
+
+*Флаг бега зависал.* `IsRunning` оставался с прошлого тика, то есть стоящая на
+месте числилась бегущей. В затяжном случае это врёт часами: проба на сиде 12345
+поймала чужака с целью `Abuse`, который **870 тиков подряд (3.6 минуты)**
+провисел в `Rotating` с поднятым флагом бега. Теперь флаг гасится, и порядок
+внутри функции важен: гасить ПЕРЕД восстановлением, иначе стоячая ставка чинит
+дыхание «на бегу» и рывок на извилистом маршруте не кончается — промежуточная
+версия делала ровно это, и максимум рывка вырос до 108 с вместо 56 с.
+
+⚠️ Сама вечная прокрутка — **отдельная, не закрытая болезнь поворота**: NPC с
+живой целью может простоять в `Rotating` минутами. Походку это больше не врёт,
+но чужак в это время не догоняет никого.
+
+**Что даёт пересчёт, замером** (три сида × 12000 тиков, `IsRunning` по тикам):
+максимум рывка **38 → 29 с**, рывков стало **242 → 281** — длинные забеги
+дробятся на несколько коротких, ровно как задумано. Медиана рывка (4 → 5 с)
+почти не двигается, и это правильно: короткая пробежка по делу кончается
+раньше, чем дыхание, — дыхание режет ДЛИННОЕ, а не всё подряд.
+
+### §71.4 Прибежала — и перешла на шаг
+
+Торможения в системе нет вообще: скорость на последнем шаге ровно та же, что на
+первом, поэтому бегущая упиралась в цель и вставала как вкопанная. Последние
+`SimBalance.ArrivalWalkDistance` (3.0 ед. ≈ 1.15 гекса, около секунды бега) она
+идёт шагом, и приход читается как приход.
+
+⭐ **Погоню это НЕ осаживает.** Если цель — АГЕНТ (`Plan.TargetAgentId`), она
+уходит сама, и «сбавить у цели» означает «никогда не догнать»: ровно на этом
+§89 не начинался — пока гопник шёл прогулочным шагом, жертва успевала отойти.
+Побег (`Flee`) тоже исключён: страх не выдыхается у двери. Прыжок через уступ
+владеет своим окном и не осаживается.
+
+Гейт по остатку пути целочисленный (`≤ 3 джанкшена`) и стоит ПЕРЕД сравнением
+расстояний намеренно: пока до конца далеко, ни одной новой операции с float не
+выполняется — трасса не шевелится там, где поведение не менялось.
 
 ### §71.3 Поворот — это дуга, а не остановка
 
@@ -13416,6 +14478,131 @@ hex_music3`, через ~4 с музыка на полной громкости 
 Между `TurnFreeAngle` и `TurnFreezeAngle` штраф линейно уходит от 1.0 к 0.6.
 Обычный изгиб маршрута теперь проходится на полной скорости, а тормозит она
 только там, где человек и правда затормозил бы — на развороте.
+
+⭐ **Статус движения врал, а на его вранье держался баланс.** `Status = Moving`
+ставила единственная ветка — «шагнула, но не дошла до джанкшена», а шаг НА БЕГУ
+(0.675–0.75 ед. за тик) длиннее звена решётки (0.375): бегунья берёт джанкшен
+каждый тик, в ветку не попадает никогда, и статус залипает на последней записи —
+обычно `Rotating` от разворота в начале пути. Диагностика читала «крутится на
+месте» у той, кто спокойно бежит (на этом уже строился ложный диагноз), снапшот
+вёз то же враньё зрителю. Теперь `Status = Moving` ставится на каждом тике
+трансляции — статус честный.
+
+**Но темп заживления читает НЕ статус, а легаси-латч** `WoundPaceMoving`
+(`MovementState.SetStatus` двигает оба, честная запись — только статус). Штраф
+«на ходу раны затягиваются вдвое медленнее» из-за залипания никогда не касался
+бегунов, и экономика §81 оттюнена на этой случайной льготе: с честным штрафом
+гопник — который живёт на бегу и на побоях — перестаёт перезаживать раны между
+сценами, истекает кровью и умирает (сид 313: Collapsed на 14928, смерть на
+15924, причина «BledOut»), **не дожив ~230 тиков до сговора §108, который
+раньше выигрывал эту гонку** — гейт органической дуги краснел. Симметричная
+льгота («бег не штрафуется») не работает: старая семантика асимметрична — его
+погони залипали на `Rotating` (×1), их шаг залипал на `Moving` (×0.5). Латч
+повторяет старые записи дословно; трасса решений с ним байт-в-байт (меняются
+только STATE-хеши — в них теперь честный статус). Снять латч = осознанный
+баланс-пас §81 (кандидаты: Toughness гопника, клоттинг отдельно от сращивания,
+допуск в гейте §108 «умер от рук колонисток — валидный финал дуги»), разбор —
+`Docs/Followup-71.3-MovementStatus.md`.
+
+Попутно закрыты там же: залипавший `IsRunning` (стоящая в развороте числилась
+бегущей — вид держал беговую походку; замер ловил 870 тиков подряд) и дыхание,
+которое на тиках-паузах не считалось вовсе (см. §71.2 «пауза тоже дышит»).
+
+### §71.5 Ступни на земле: калибровка по КЛИПУ и сглаживание 4 Гц
+
+Жалоба звучала как одна («ходьба рывками, ноги проскальзывают»), а причин
+оказалось две, и лечатся они в разных местах.
+
+**Первая: одна калибровка на весь состав.** В виде жило единственное число —
+`FullWalkBodyHeightsPerSec = 0.76`, «сколько земли покрывает шаговый клип за
+секунду на скорости 1×», плюс две ДОЛИ от него на беговые слоты
+(`SlowRunCadence 2.0`, `RunCadence 3.4`). Но слот шага общий: в него по очереди
+въезжают грустная походка §81.10 (44 кадра против 30 у базовой — шаг заметно
+шире), ходьба с инструментом, мужской комплект §78 и ползание §50. Каждый играл
+так, будто у него стрид базовой ходьбы, и ехал ровно на отношение между ними.
+Плюс сама база: комментарий у константы утверждал «полная скорость = 1.0 ед/с»,
+а колония с §71 ходит 1.2 — шаг постоянно переигрывался на 20%, а у ловкой
+(§76, до ×1.15) подпирал потолок `MaxWalkCadence 1.6`.
+
+Стало: **у каждого клипа своя строка** — `NpcAnimSet.strides`
+(`клип → ростов тела в секунду`). Вид спрашивает стрид у того клипа, который
+РЕАЛЬНО стоит в слоте сейчас. Клипа нет в таблице → берётся дефолт слота, то
+есть в точности прежнее поведение; поэтому переезд ничего не сломал в день
+правки. Числа снимаются в сцене `LocomotionTest` (ниже), а не подбираются в
+уме.
+
+**Вторая: сим шагает 4 Гц, и скорость шагает вместе с ним.** Вид меряет
+скорость дифференцированием уже интерполированного трансформа, то есть читает
+лесенку: плавный поворот стоит `TurnMinSpeedFactor` целый тик, разворот на
+месте пропускает трансляцию совсем, товарка в дверях блокирует шаг. Каждая
+такая ступенька шла прямо в темп проигрывания. Теперь скорость проходит
+low-pass (`SpeedSmoothTau`, постоянная времени в СИМ-секундах — на ускорении
+мира делится, поэтому 4× мир сглаживается вчетверо быстрее по настоящим
+часам), а Idle↔Walk держит паузу `WalkHoldSeconds` (0.3 с): один замерший тик —
+это угол или заминка, а не остановка. **Исключение — разворот на месте:** выше
+`PivotYawSpeed` (90°/с) пауза не действует, потому что в Idle надо попасть
+быстро — клипы поворота на месте входят ТОЛЬКО оттуда.
+
+⭐ **Слот ходьбы теперь решает ОДНА функция** — `NpcActorView.ResolveLocomotionSlots`,
+приоритет: **ползание > грусть > инструмент > своя (мужская/авторская)**. До
+этого четыре системы писали слот напрямую, каждая со своим латчем, и побеждала
+последняя: взяла топор в грустном состоянии — грустная походка пропадала
+НАВСЕГДА (её латч считал себя применённым и больше не срабатывал), а когда
+грусть истекала, она возвращала базовый шаг поверх ходьбы с топором. Резолвер
+читает состояние, считает победителя и трогает слот, только если победитель
+сменился, — такого бага в нём не бывает по построению.
+
+**Сцена `LocomotionTest`** (`Assets/Scenes/LocomotionTest.unity`) — где эти
+числа снимают. Одна колонистка ходит по дорожке с мерной сеткой в одну мировую
+единицу (без сетки проскальзывание не видно вообще), тумблеры бег/топор/грусть,
+слайдер стрида на каждый слот с именем текущего клипа, кнопка сохранения в
+`NpcAnimSet` + `HexTuningConfig`. Ход **сим-достоверный**: поза считается раз в
+0.25 с и тело читает интерполяцию между двумя последними — как
+`HexWorldRenderer.InterpolateMovables`, вместе с заморозкой на развороте, — а
+кнопка-пульс подкидывает заминку на один тик. Тюнить на гладком движении
+значило бы вытюнить ровно ту дёрганость, ради которой сцена и заведена. Масштаб
+тела берётся из `HexWorldRenderer.ActorScale`: стрид меряется в РОСТАХ тела, и
+тело другого размера откалибрует другое число.
+
+Ручки вида переехали из `const` в `HexTuningConfig` (блок «§71.5 Походка»),
+поэтому крутятся в инспекторе и переживают перезапуск.
+
+### §71.6 Бодрый шаг — это ПОЗА, а не ускоренная плёнка
+
+§71.5 поставил ступни на землю, но одну ловушку оставил, и нашлась она на
+сейве, где у всех троих ловкость 10. §76 даёт ловкости ±15% к шагу, так что
+такая девушка идёт 1.38 ед/с против средних 1.2. Ветка «не бежит» держала её на
+клипе шага при любой скорости, и клип честно гнался на **1.38×**: ступни по
+земле попадали (стрид на цикл фиксирован, циклов в секунду больше), а читалось
+как перемотка — мелкая семенящая походка.
+
+Тонкость в том, что на этой скорости не годится НИ ОДИН клип поодиночке: шагу
+нужно 1.38×, трусце — 0.69×. Поэтому берётся то, ради чего дерево блендов и
+существует, — **смесь поз**, и играется на скорости смеси:
+
+| ловкость | скорость | было | стало |
+|---|---|---|---|
+| 0 | 1.02 | 1.02× шага | без изменений (ниже порога) |
+| 5 (средняя) | 1.20 | 1.20× | `Gait` 0.03, темп 1.13× |
+| 10 | 1.38 | **1.38×** | `Gait` 0.14, темп **1.07×** |
+| 13 (натренированная) | 1.49 | 1.48× | `Gait` 0.21, темп 1.04× |
+
+Две ручки: `WalkStretchCadence` (1.15) — до какого перегона шаг остаётся чистым
+шагом, `MaxWalkGait` (0.35) — как далеко идущая вправе уйти в бленд. Потолок
+ниже трусцы (0.5) не случайно: §71.1 требует, чтобы БЕГУЩАЯ фигура читалась как
+ЧП, и это требование к силуэту, а не к параметру — идущая на 0.14 остаётся
+идущей.
+
+Всё, что медленнее порога, не тронуто вовсе: грустная походка (§81.10 режет её
+вдвое), раненые ноги, «едва живая» §105, поворот, мокрая одежда — там прежние
+числа до бита.
+
+⚠️ **Только для безоружного шага.** Слоты 1-2 держат безоружную трусцу, а
+инструмент подменяет один слот 0 (`GearLibrary`), так что подмешать к нему
+четверть беговой позы значило бы уводить руку с топором к «пустой». Ползание
+сюда не доходит вовсе — оно занимает все три слота. Цена: девушка с топором
+по-прежнему идёт на 1.38×; честное лечение — своя строка калибровки для
+вооружённого шага и вооружённые же клипы в слотах 1-2, это контент, а не код.
 ## §72 Враг-человек — фракции, охотник и сплочённый отпор (iteration 72)
 
 **Цель.** На острове появляется мужчина. Он — полноценный выживальщик: те же
@@ -13626,6 +14813,26 @@ indoor-тайлов нет вовсе — то есть девушкам все�
 дома и закрывают округу собой; одиночке закрывать некому. Добавлен
 `Spec72.DogSpawnMinDistanceFromCamp` = 9 — отступ от ЛЮБОЙ стоянки, не от тела.
 
+**72.13 Строить только у себя — гейт «чья стройка» обязан стоять в ОБОИХ
+слоях.** Аукцион давно фильтрует очередь построек по фракции
+(`FindBuildSite` → `IsOurSite`: у именной стройки — союзность владельца, у
+безымянной — чей якорь лагеря ближе, ничья трактуется как своя). Но цель и
+план выбирают объект НЕЗАВИСИМО: план берёт БЛИЖАЙШИЙ подходящий объект из
+восприятия (`IsValidTargetFor`), и туда гейт не доехал — цель выигрывалась на
+своей стройке, а девушка с палками в руках, проходя мимо чужой стоянки,
+относила их туда; чужак симметрично мог достраивать мебель колонии. Закрыто
+тем же `IsOurSite` в целях `Build` и `BuildFurniture`; очки за хижину
+(`buildAvail`) вдобавок гейтятся `Faction.Colony` — `world.Project` один и
+колоний, чужаку не за что их набирать.
+
+Вторая дыра — геометрическая. Якоря стоянок ставятся в ≥8 гексах друг от
+друга, а радиус лагеря (`MaxCampRadiusTiles`) — 6, значит диски МОГУТ
+ПЕРЕСЕКАТЬСЯ, и тайл в полосе пересечения считался «своим» ОБОИМ лагерям.
+`BedSiteSystem` из-за этого мог усыновить чужой очаг (первый Campfire в
+порядке словаря) и обставить его кроватями этого лагеря, а мечта о костре у
+девушек — защёлкнуться от огня чужака. `InCamp` теперь отдаёт спорный тайл
+тому, чей якорь СТРОГО ближе (ничья — своему), зеркально `IsOurSite`.
+
 ## §73 Остров стал больше — границы карты в одном месте (iteration 73)
 
 **Цель.** Остров читался тесным: 285 тайлов, из них суша едва половина, и вся
@@ -13835,8 +15042,8 @@ RNG в симуляции нет вообще. Три правила:
 
 Теперь у каждой два слоя личности поверх нужд:
 
-- **Характеристики** — 6 врождённых чисел, катятся от сида при рождении и
-  фиксированы на всю жизнь. **Кто она есть.**
+- **Характеристики** — 6 чисел, катятся от сида при рождении и дальше
+  ТРЕНИРУЮТСЯ от нагрузки (§76.13). **Кто она есть.**
 - **Навыки** — 8 чисел, растут от практики, без деградации. **Что она умеет.**
 
 **76.1 Шесть характеристик.** Каждая — `float` 0..1 со средним `AttributeMean`
@@ -14008,7 +15215,8 @@ EN+RU, в `I2Languages.asset` (§58: в C# строк нет).
 (`strings … | grep AttributeSet`).
 
 - ролл при разбросе 0.5 даёт девять разных профилей на трёх сидах, бюджет у
-  каждой держится ровно 3.0, у чужака стабильные 9/5/8/8/6/4 на пяти сидах.
+  каждой на нулевом тике ровно 3.0, у чужака стабильные 9/5/8/8/6/4 на пяти сидах;
+- §76.13: все шесть характеристик тренируются и ни одна не идёт вразнос.
 
 **НЕ проверено:** вкладка в живой игре (сборка проходит, глазами не смотрели);
 как выглядят шесть строк и значки перков при длинных русских названиях; и —
@@ -14034,6 +15242,39 @@ EN+RU, в `I2Languages.asset` (§58: в C# строк нет).
 
 ⚠️ **Складывается с `Spec72.RaidStrikeDamageMult` (1.35)** — обе ручки делают его
 злее. Крутить по одной за раз, иначе ре-соак не скажет, которая подействовала.
+
+**76.13 Тело тренируется.** Ролл — стартовая раздача, а не приговор:
+характеристика медленно растёт от того, что её НАГРУЖАЕТ.
+
+| Характеристика | Чем тренируется | Где хук |
+|---|---|---|
+| Сила | тяжёлая работа: рубка, дробление, стройка, разделка | `SkillTrace.Award` |
+| Смекалка | возня: крафт и врачевание | там же |
+| Выносливость | бег до одышки + всё прочее время на ногах | `MovementSystem`, `SkillTrace.Award` |
+| Ловкость | попадания в ближнем бою (работа ног, не мышц) | `SkillTrace.AwardHit` |
+| Стойкость | ПОЛУЧЕННЫЙ урон | `WoundMath.Inflict` |
+| Неприхотливость | голод, жажда, холод глубже порога | `NeedsDecaySystem` |
+
+Именно это держит два слоя раздельными: **тело тренируется, ремесло
+осваивается**. Иначе характеристики и навыки были бы одним числом дважды.
+
+Стойкость врезана в `WoundMath.Inflict` — единственную точку, куда сходятся ВСЕ
+пути урона (волк, акула, налётчик, соседка), и считается по УЖЕ дошедшему до
+плоти урону: хорошо одетая закаляется медленнее, потому что до неё меньше дошло.
+
+**Тормоз — не потолок, а расстояние до него.** Прирост ∝
+`((Ceiling − attr) / Ceiling)²` при `Ceiling = 1.3`: первые очки даются легко,
+последние практически никогда. Отнимать характеристику ничто не может —
+переставшая работать не разучивается быть сильной, её только обгоняют.
+
+**Следствие: бюджет 76.2 становится только СТАРТОВЫМ.** Две девушки, прожившие
+по-разному, приходят к разным суммам — это и есть смысл. Соответственно
+инвариант «Σ = 6 × среднего» проверяется ТОЛЬКО на нулевом тике.
+
+⚠️ Ставки выставлены на глаз по двум сидам на горизонте 8–20k тиков (за 8k
+Выносливость даёт +0.03, остальные +0.001..0.01, разгона нет ни у одной).
+Полноценной лестницы не было; первая версия ставок промахнулась в Стойкости в
+~15 раз, и это видно было только замером.
 
 **76.11 Чего §76 намеренно не делает.**
 - **Не вводит потолок HP** (см. 76.3).
@@ -14186,6 +15427,12 @@ walk, slowRun, run, sit). Пустой слот проваливается в к
 смотрятся, поэтому не тронуты. Темп проигрывания тоже не тронут: `SlowRunCadence`
 (2.0) и `RunCadence` (3.4) — это доли шага, и если на мужских клипах поедут
 ступни, крутить надо ровно их (§71).
+
+*Дополнено §71.5:* ступни на них и поехали — ровно по этой причине. Доли шага
+общие на весь состав, а мужской тейк покрывает за цикл своё расстояние. Теперь
+у каждого клипа мужского комплекта СВОЯ строка в `NpcAnimSet.strides`, и
+крутить надо её, в сцене `LocomotionTest`; общие доли остались дефолтом для
+клипа, у которого строки нет.
 
 **78.5 Мужская посадка — свои координаты (2026-08-02).** Play-проверка из «НЕ
 проверено» ниже состоялась: и на пеньке, и на краю гекса мужчина сидел чуть выше
@@ -14408,19 +15655,22 @@ float-параметр `ActionSpeed` на аниматоре, включённы
   как есть означало бы нарисовать над испуганной чужое лицо. `null` — честное
   «человека тут нет», и вид падает на прежнюю иконку.
 
-`NpcPortraitCache` фотографирует по одному лицу раз в игровой час в `Texture2D`.
-Снимок, а не живой рендер, по трём независимым причинам: лиц нужно много сразу
-(во вкладке отношений их столько, сколько знакомых); снимок переживает смерть —
-тело убрано, а лицо в списке отношений должно остаться; и `Sprite.Create` не
-принимает `RenderTexture`, а пузырь рисует спрайтом.
+`NpcPortraitCache` фотографирует лица в `Texture2D`. Снимок, а не живой рендер,
+по трём независимым причинам: лиц нужно много сразу (во вкладке отношений их
+столько, сколько знакомых); снимок переживает смерть — тело убрано, а лицо в
+списке отношений должно остаться; и `Sprite.Create` не принимает
+`RenderTexture`, а пузырь рисует спрайтом.
 
 Кадрирование взято у `PortraitStage` дословно: камера висит перед лицом по
 СОБСТВЕННЫМ осям лицевого рига, поэтому голова вертится (`LookAtIK` её и вертит),
-а лицо в кадре стоит ровно. Съёмка занимает два кадра — навести и включить, затем
-прочитать; `camera.Render()` в обход порядка URP не вызывается.
+а лицо в кадре стоит ровно. `camera.Render()` в обход порядка URP не вызывается.
+
+⚠️ **Каденция, взгляд и фон переписаны в §107.4:** снимок делается раз в
+игровые СУТКИ в дневном окне, колонистка на время съёмки смотрит В КАМЕРУ и не
+моргает, фон прозрачный. Абзац выше описывает кадрирование, которое не менялось.
 
 Цветной кружок с буквой остаётся фолбэком навсегда, а не на время: снимок
-появляется только через игровой час после первой встречи.
+появляется не раньше ближайшего дневного окна после первой встречи.
 
 Морды зверей остаются иконкой — `MobView` не имеет ни головной кости, ни
 лицевого якоря и живёт на слое `Default`, куда портретная камера не смотрит.
@@ -14521,9 +15771,44 @@ t51596 AbuseDone:    Mark=NPC1 Took=nothing Social=0.35 MarkAffinity=-0.35
 
 **81.10 Анимации сцены и безделья.** Такты играются телом, а не только эмодзи:
 `AbuseThreatened` → отшатнулась, `AbuseCry`/`AbuseGaveUp` → плачет, а после сцены
-она полторы минуты ходит понуро (`sadWalk` подменяет базовый шаг). Отдельного
-сигнала для анимации не заводили: кьюшка уже приходит ровно в нужный момент и
-ровно тому, кого касается.
+она полторы минуты ходит понуро. Одноразовые такты приходят кьюшкой — она уже
+попадает ровно в нужный момент и ровно тому, кого касается.
+
+⭐ **Понурая походка — состояние СИМА, а не таймер вида** (переделано вместе с
+§71.5). Было: кьюшка `AbuseFledHome` заводила в виде таймер на 90 секунд, и он
+подменял клип шага. Два изъяна, оба видны только со стороны.
+
+*Тело шло с прежней скоростью.* Понурый тейк `X Bot@Sad Walk` шире базового
+(44 кадра против 30), а играл он на калибровке базового и на полной скорости
+ходьбы — то есть ровно в те полторы минуты, когда на неё смотрят, у неё ехали
+ноги. Теперь `Spec81.SadWalkMoveFactor` режет скорость **вдвое**, в той же
+цепочке `MovementSystem`, где стоят «едва живая» §105 и мокрая одежда §49:
+состояние тела режет скорость — это приём, а не новая ветка. Клип при этом
+несёт свою строку калибровки (§71.5), так что ступни стоят на земле.
+
+⭐ **Но ТОЛЬКО когда она идёт.** Первая версия резала скорость безусловно, и
+это тут же поймал сценарный гейт §104: жертва не добегала до лагеря и погибала,
+потому что бегство — это `2.25 × 0.5 = 1.125`, то есть уходящая от гопника
+перестаёт уходить. Плата была ни за что: понурый клип живёт в НУЛЕВОМ слоте
+блендера походки, на бегу его не видно вовсе. Множитель применяется рядом с
+`urgency` и только при `!running`.
+
+*И таймер вида врал везде, где вид не совпадает с симом:* у удалённого зрителя
+(кьюшки фильтруются), на перемотке (таймер идёт по настоящим часам) и после
+загрузки сейва (обнулялся молча). Теперь это `NpcMind.SadWalkUntilTick` →
+`NpcSnapshot.IsSadWalk` (wire v9) → `NpcActorView.SetSadWalk`, и переживает
+сохранение (blob v26; старый сейв просто не грустит). Плач остался кьюшкой —
+он одноразовый, ему состояние не нужно.
+
+⭐ **Слою решений читать `SadWalkUntilTick` нельзя** — то же правило, что у
+дыхания §71.2. Грусть меняет ПОХОДКУ, а не цели: иначе побитая перестала бы
+есть и пить, и «след в теле» превратился бы в депрессию с последствиями,
+которой никто не проектировал.
+
+Замер: сцена ставит `Spec81.SadWalkTicks = 0` против 360 на одном бинаре —
+трассы совпадают тик-в-тик до первого бегства с руганью (сиды 12345/424242/7:
+тики 896/844/852) и расходятся после него. Ровно то, что и должно: пока никого
+не побили, ничего не меняется.
 
 Одноразовые сценки — ОДНО состояние `Emote` в аниматоре, а клип в него вид
 заряжает через `AnimatorOverrideController` прямо перед срабатыванием триггера.
@@ -14536,6 +15821,139 @@ t51596 AbuseDone:    Mark=NPC1 Took=nothing Social=0.35 MarkAffinity=-0.35
 решает сим, он обязан решать детерминированно и хранить. Платить полем в снапшоте
 за то, что ничего не меняет, незачем. Бросок делается раз в СЕКУНДУ, а не каждый
 кадр: иначе частота зависела бы от FPS и на быстрой машине плясала бы вдвое чаще.
+
+**81.11 ⭐ Одержимость пробивает льготные дни.** Симптом, проживший дольше всех
+остальных багов абьюза вместе взятых: в реальном мире чужак НЕ АБЬЮЗИЛ НИКОГДА.
+Оба входа в цель — и ставка аукциона, и прерывание `TryStartAbuse` — молчали до
+тика `AbuseGraceDays × DayLengthTicks` = 48 000 (≈3 ч 20 мин реального времени
+на 1×), а Social чужака падал в ноль уже к ~тику 800. Сорок семь тысяч тиков он
+был «одержим», но заперт календарём — и занимался бытом: исследовал остров,
+искал инструменты (быт ему открыт наравне с колонистками, §89.4 гейтит только
+гигиену). Арена §91 симптом скрывала, потому что перематывает грейс сама себе
+(`Tick = 48900`) — «в сцене всё работает» ничего не говорило о мире.
+
+Лечение — грейс стал персональным. `AbuseMath.GraceHolds`: льготные дни держат,
+только пока `Social > AbuseObsessionSocialCeiling` (0.05). На дне общения —
+навязчивая идея, и календарь не спрашивают. Оба входа обязаны звать ЭТОТ
+предикат, а не сравнивать тик сами (два рукописных сравнения уже разъехались
+бы). Порог не строгий ноль: любой будущий эпсилон (квантование сейва, крошка
+Clamp01) молча выключил бы одержимость навсегда. Порог много ниже
+`AbuseSocialFloor` (0.45): «одиноковато» грейс уважает, «на дне» — нет. После
+сцены Social = 0.35 → грейс формально снова в силе, но его съедает кулдаун 900
+(0.35 → 0.05 за ≈800 тиков) — обрыва поведения нет. Supply-ветка `Drive` грейс
+НЕ пробивает никогда: она ненулевая почти всегда (§93) и убила бы льготные дни
+с первого тика. `RaidGraceDays` (5 дней, налёт) не тронут. На новом старте фора
+колонии теперь ~700 тиков (Social 0.30 → 0.05), не двое суток — принято
+осознанно, вместе с дифом golden_trace: Abuse Final у чужака поднимается с 0 до
+~3.55 начиная с «первой одержимости», и дальше каскадом меняются его выборы.
+
+Два стража, чтобы класс бага не переродился:
+
+- **`AbuseBlocked`** — трасса ПРИЧИНЫ, почему он сейчас не абьюзит, раз в 64
+  тика из `TryStartAbuse` (аукцион для этого не годится: пока идёт интеракция,
+  он не переигрывается вовсе — урок §87). Коды: `Grace` (+Social и тиков до
+  конца), `Cooldown`, `Unfit`, `Busy`, `NoDrive`, `NoMark` — последний с
+  раскладом счётчиков `BestMark`, каким фильтром отсеялась каждая кандидатка
+  (`Hostile/Helpless/Asleep/Flee/Sanct/Swim/Claimed`). Диагностика «почему не
+  гнобит» — одна строка `hexsoak --trace-preset abuse` вместо четырёх
+  археологов. Сцена уже идёт (`CurrentGoal == Abuse`) — молчим, это не
+  блокировка.
+- **Гейт `AbuseRealWorldTests`** — прототипный остров (сид симптома 816616098),
+  12 000 тиков: `AbuseTriggered` обязан случиться хотя бы раз. Ассерт только на
+  взятие цели, не на финиш сцены (сон/санктуарий/налёт сделали бы его флаки);
+  при провале печатает хвост последних `AbuseBlocked` — гейт сам объясняет,
+  чем заперт.
+
+**81.12 ⭐ Жертву ищут глазами, а не по ростеру.** До этого `BestMark` перебирал
+весь остров без радиуса и без взгляда (§85 r2 снял радиус, потому что тот резал
+ВЫБОР при всевидящем знании) — и снаружи это читалось как телепатия: он вставал
+с пенька и бежал через полкарты точно к девушке, которую не мог видеть.
+Ирония в том, что инструменты он ищет ЧЕСТНО: с рождения знает, где что живёт
+(SeedHomeKnowledge — весь дикий остров, кроме внутренностей чужого лагеря),
+а глазами видит на 2 гекса. Для людей такой модели не было вовсе.
+
+Теперь (`AbuseHuntBySight`, по умолчанию ВКЛ):
+
+- **Взгляд.** `BestMark` видит только в радиусе `AbuseSightRadiusTiles` = 6 —
+  симметрия с §62: девушка замечает его на `SpotStrangerRadiusTiles` (6),
+  глаза у всех одинаковые. Внутри поля зрения выбор прежний, без порогов.
+- **Поиск.** Никого не видно, а одиночество давит (`Social < AbuseSocialFloor`)
+  — цель всё равно берётся, и план строит prowl §90 к якорю лагеря колонии:
+  он знает, где люди ЖИВУТ, но не где они СЕЙЧАС — ровно как с киркой. Ветка
+  §90, до этого мёртвая при всевидящем выборе, впервые заработала. Гейт по
+  одиночеству, не по Drive: сытость-ветка ненулевая почти всегда (§93) и
+  сделала бы его вечным бродягой у чужого порога.
+- **Увидел по дороге — бросил рысканье.** `TryStartAbuse` каждый medium-тик:
+  цель Abuse без метки + кто-то показался → поход обрывается
+  (`AbuseSpotted`), ближайшее планирование берёт её через `ResolveAbuseMark`.
+- **Передумывает на бегу.** Бежит к выбранной, а по пути ближе прошла другая
+  годная — перевыбор (`AbuseRetarget`), если новая ближе минимум на
+  `AbuseRetargetGainTiles` = 2 гекса. Гистерезис обязателен: без запаса он
+  метался бы между равноудалёнными, не дойдя ни до одной (пинг-понг §29F.2).
+  Заявка со старой снимается — тот же инвариант, что в `AbandonAbuse`. Работает
+  и при выключенной охоте. Сцена уже идёт — поздно передумывать.
+
+Проверено A/B на 4 сидах × 20 000 тиков: первая сцена 729–871 против 764–849
+у всевидящего, сцен 42 против 39 — жертва глазами находится ТАК ЖЕ быстро
+(остров мал, лагерь известен), поведение честное. Цена — ходьба: у чужака +28%
+смен целей (он теперь патрулирует, а не телепортируется знанием), сцены не
+потеряны, провалов планов вдвое меньше (2.5% против 5.1%). В `AbuseBlocked
+NoMark` добавлен счётчик `OutOfSight` — «есть, но он её не видит».
+
+**81.13 ⭐ Проигравший плачет и бежит домой.** Раньше сцена кончалась НИЧЕМ для
+жертвы: `FinishAbuse` не трогал её вообще, ближайший аукцион давал произвольную
+бытовую цель — и она рубила кокос в двух шагах от обидчика. А ранний плач (такт
+2, первые же секунды сцены) выглядел заученным: она ещё не знает, чем кончится.
+
+Теперь развязка честная, в обе стороны:
+
+- **Кто проиграл — решает УРОН.** На входе в сцену обеим сторонам снимается
+  `Mind.SceneStartHealth`; на выходе сравниваются дельты (`SceneDamage`).
+  Дельта, а не счётчик ударов: она видит броню, пощаду §86 и тычки подошедших
+  защитниц. Больше потерял — проиграл; при нуле и равенстве — жертва (её
+  трясли, не наоборот). Кулачный гопник против ножа регулярно проигрывает
+  размен — и тогда плачет и убегает ОН.
+- **Проигравший**: кьюшка `AbuseFledHome` (плач телом + sadWalk + реплика
+  `cry_beaten`, файлов пока нет — фолбэк на банк `cry`) и бегство
+  `MobSystem.TryFleeToCamp` — к якорю СВОЕЙ фракции (жертва — к подругам,
+  чужак — к себе), а не «в ближайший indoor», который во дворе колонии был бы
+  её же хижиной (грабля из `RaidSystem.BreakOff`). Обычный Flee: скорость
+  ×2.25, аукцион закрыт до прибытия. В арене §91 `FactionHomes` пусты — там
+  проигравший плачет на месте (`Fled=False`), это известное ограничение арены.
+- **Отказ избитому не эскалируется.** Ветка DEFIED переводила сцену в налёт
+  безусловно; теперь — только если он НЕ проиграл по урону. Разбитому
+  эскалировать нечем: «цена отказа» не должна быть бесплатным продолжением для
+  того, кто драку уже проиграл.
+- **Ранний плач убран, отшатывание стало решением.** Такт 2 больше не плачет
+  (стресс остаётся). На старте сцены кьюшку получает та, что РЕШИЛА не
+  отвечать (`AnswersBack` = false): `AbuseCowed` → клип Rejected. Решившая
+  драться встаёт в боевую стойку, и клип ей не нужен. `AbuseThreatened` больше
+  не играет Rejected телом (остался жёлтый бабл), `AbuseGaveUp` больше не
+  плачет — слёзы теперь только у проигравшего, в развязке.
+
+Ручка: `AbuseRoutEnabled` (kill-switch). Трейс: `AbuseRouted
+Winner/SelfDmg/WinnerDmg/Fled` + `FleeStarted "To camp"`. Сценные поля Mind
+(включая `SceneStartHealth`) в сейв не пишутся by design — список в шапке
+`WorldSaveSerializer`. Проверено на сиде 816616098: 16 рутов за 20 000 тиков,
+обе стороны бегут в свои лагеря; на арене — рут в обе стороны, `Fled=False`.
+
+**81.16 Сильно раненный не начинает сцену** (баг #3 из трекера §114; номера
+81.14 и 81.15 заняты правками §109). «Сильно ранен» — хоть одна витальная зона
+(голова, грудь, таз — `BodyState.VitalParts`, то же определение, что у смерти
+§105) потеряла больше половины: `Body.VitalHealth()` ниже
+`AbuseWoundedVitalFloor` (0.5). Такому не до сцен — сначала отлежаться.
+
+Гейт стоит ТОЛЬКО на инициации агрессии, в обоих входах в цель (тот же
+инвариант, что у `GraceHolds` §81.11 — два рукописных сравнения разъехались
+бы): ставка аукциона в `DecisionSystem` и латч-цикл `RaidSystem`. Идущую сцену
+и самозащиту он не трогает намеренно: если бьют ЕГО, он дерётся или бежит по
+обычной логике (рут §81.13 и так уводит проигравшего домой), а сцена,
+прерванная на середине из-за пропущенного ответного удара, вернула бы
+churn-петлю §81.14. Налёт §72 отдельного гейта не требует — он уже гейтится
+строже (`RaidSelfWorstPartFloor` 0.7 по ЛЮБОЙ зоне тела, не только витальной).
+
+Причина видна в трассе: `AbuseBlocked Reason=Wounded Vital=… Floor=…` — в том
+же троттлированном ряду причин §81.11.
 
 ## §82 Солнце и злость (iteration 82)
 
@@ -14763,6 +16181,108 @@ vs §84 — см. итог итерации. Попутно починена hea
 пересобрать саму симуляцию, иначе проба молча крутит старый код и «правка не
 работает». Потеряно полчаса на выяснение.
 
+## §85 Цвет глаз — пятая ось внешности (iteration 85)
+
+**Цель.** §74 разложил девушку на пять признаков, и цвет глаз в этот список не
+попал: глаза ехали внутри `SkinSet`, потому что набор материалов актрисы несёт и
+свои `Cornea/Sclera/Irises/Pupils/EyeMoisture`. Следствий два, и оба видны.
+Во-первых, «лицо одной, глаза другой» было невыразимо: взял чужую кожу — взял
+чужие глаза. Во-вторых, на весь остров приходилось ровно ЧЕТЫРЕ радужки, по
+числу импортированных актрис, и три из них — серо-голубые.
+
+Теперь цвет глаз катится своей осью и своей солью, а материалы глаз — ОДИН
+общий набор на всех.
+
+**85.1 Что оказалось уже готово, а что нет.** «Вырезать глаза из общих текстур»
+делать не пришлось: у Genesis3 глаза изначально лежат отдельными материалами и
+отдельной картой 2048² (`ACSabrinaEye2.jpg` и три её ровесницы) — верхняя
+половина карты это пара склер, нижняя пара радужек. Разделены были АССЕТЫ;
+слипшимся был выбор.
+
+Одно исключение сознательное: `EyeSocket` в набор глаз НЕ входит. Он шейдится с
+карты ЛИЦА, то есть принадлежит коже и обязан следовать за цветом кожи, а не за
+радужкой.
+
+**85.2 Восемь цветов из одной карты.** `Tools/make_eye_textures.py` берёт ОДНУ
+базовую карту (Jolly — самые чёткие волокна и самая нейтральная база) и
+перекрашивает только два круга радужки; склера, влажный ободок и сосуды во всех
+восьми — буквально те же пиксели. Отсюда и «общие материалы»: карта одна,
+меняется её радужка.
+
+Перекраска идёт **ЯРКОСТЬ → РАМПА, а не поворот тона**. База — приглушённо
+сине-серая, и поворот тона тащил бы этот остаточный синий в каждый результат:
+зелёный выходил бы бирюзовым. Читаем яркость (весь рисунок волокон живёт именно
+в ней) и гоним через градиент из четырёх стопов, у которого полная власть над
+цветом. Холодная половина палитры намеренно на ступень менее насыщена, чем
+хочется рампе: на полной цветности синий и зелёный читаются как линзы. Тёплой
+половине сдержанность не нужна — карие глаза ДЕЙСТВИТЕЛЬНО такие насыщенные.
+
+Пул: `blue`, `blue_green`, `green`, `grey`, `hazel`, `amber`, `brown`,
+`dark_brown`. Новый цвет = новая строка палитры в скрипте плюс её id в
+`ColonistAppearance.EyeColors` — C# при этом не трогается.
+
+**85.3 Материалы: общее отдельно от цветного.** `Resources/HexLive/Eyes/Common/`
+держит три материала без единой текстуры (`Pupils/Cornea/EyeMoisture`) — они
+физически одни и те же ассеты для всей колонии. `Eyes/<id>/` держит два, что
+несут карту (`Irises/Sclera`). Вид сливает две папки ПО ИМЕНИ материала — тем же
+поиском, что и `ApplySkinSet` (§74.2), поэтому порядок сабмешей опять ни при чём.
+Общий цикл подмены вынесен в `ReplaceBodyMaterials`, чтобы «подменить по имени»
+жило в одном месте, а не в двух.
+
+Материалы скопированы с молливских дословно, кроме текстуры: у всех четырёх
+актрис параметры глаз побайтово одинаковы (metallic 1, smoothness 0.516,
+alpha-clip радужки на очереди 2450) и отличается только карта. Это и делает
+«один набор, меняем текстуру» честным, а не переделкой того, как глаза шейдятся.
+
+**85.3a Металлическая радужка — дефект импорта, а не стиль.** Daz оставил
+`_Metallic: 1` на радужке у всех ЧЕТЫРЁХ актрис (у чужака-мужчины пришло 0 —
+поэтому дефект и не бросался в глаза). В URP metallic 1 значит, что базовая
+карта перестаёт быть альбедо и становится ЦВЕТОМ БЛИКА: радужка рендерится
+цветным хромом, и блеск читается как демонический. Это единственный из пяти
+материалов глаза, кого касается, — склера, зрачок, роговица и влажная плёнка
+и так шли на 0.
+
+Ручка — `IRIS_METALLIC` в `Tools/make_eye_textures.py`, сейчас **0.2**. До нуля
+не опущено намеренно: роговица перед радужкой прозрачная и со `Smoothness 0`,
+собственного блика не даёт, так что сегодня радужка И ЕСТЬ вся зеркальность
+глаза, и на чистом нуле глаз становится матовым. Те же 0.2 проставлены и в
+четырёх исходных `Irises.mat` актрис — они теперь запасной путь (пустой
+`EyeColor`: тестовые сцены, чужак), но четыре хромовые радужки, оставленные
+лежать, вернулись бы позже.
+
+**85.4 Порядок в `Construct` — снова не стилистика.** `ApplyEyeSet` идёт СРАЗУ
+ПОСЛЕ `ApplySkinSet` и до `BuildSkinTintTargets`. После набора кожи — потому что
+тот несёт свои глаза и, отработав вторым, затёр бы выпавшую радужку донорской.
+До построения целей загара — по причине §74.3: фильтр слотов классифицирует по
+ИМЕНИ материала, а `SkinTexturePainter` однократно снимает `body.materials` и
+больше туда не смотрит. Отсюда же требование, чтобы подменный материал СОХРАНЯЛ
+имя (`Irises`, а не `Irises_green`): по этому имени его и находят, и исключают
+из загара.
+
+**85.5 Бросок.** Соль `(74, 7406)` — своя, поэтому четыре старых оси не
+шелохнулись: A/B против `HEAD` даёт побайтово тот же состав тел, кож, причёсок,
+голосов и имён на пяти сидах. Цвет глаз в `LookKey` НЕ входит и повторяется
+свободно — радужка не видна на дистанции игры и читается только в портрете, так
+что две голубоглазые это не баг-репорт, в отличие от двух одинаковых силуэтов.
+Пустое поле, как и везде в §74, значит «глаза с префаба тела»: чужак §72,
+тестовые сцены и сейвы до v24 не тронуты.
+
+**85.6 Провод и сейв.** Снапшот +1 строка (`WireVersion` 6→7), блоб 23 → 24:
+`EyeColor` дописан В КОНЕЦ скалярной череды и читается под своим гейтом
+`version >= 24` — вставка рядом со `SkinSet` переписала бы раскладку, которую
+уже читают сейвы v18-v23. Дельта-кодек не тронут вовсе: он не смотрит на поля, а
+сравнивает байты обычной записи (§83).
+
+**85.7 Что проверено.** Headless-пробой: на 40 бросках выпадают все восемь
+цветов, внутри одной колонии из восьми — минимум три разных; каждый id
+разрешается в реальные `Irises.mat`/`Sclera.mat` с `.meta` и ссылкой ИМЕННО на
+свою карту; имя материала сохранено; круг сейва v24 и круг провода v7 сохраняют
+цвет, включая пустоту у чужака. Гейт `WireCoverageGate` (поле снапшота, забытое
+кодеком) проходит. **НЕ проверено:** глазами в Unity — ни одна из восьми карт ещё
+ни разу не импортировалась, и совпадение UV глаз между четырьмя экспортами
+остаётся тем же ДОПУЩЕНИЕМ, что и в §74.8, только теперь оно нагружено сильнее:
+там наборы менялись целиком, здесь одна карта ложится на все четыре головы.
+
 ## §86 Бой не до смерти, если нет ненависти (iteration 86)
 
 Зверь дерётся насмерть, потому что он ест. Человек — почти никогда: он бьёт,
@@ -14855,6 +16375,15 @@ vs §84 — см. итог итерации. Попутно починена hea
 Остров тесный НАРОЧНО, и на нём есть всё, на что он отвлекался: три пенька, две
 пальмы, кокосы, валуны, юкка, полоса воды. Девушек трое — они ходят друг к другу
 общаться, и подруга рядом с жертвой это вес против него.
+
+⭐ Пеньков при этом долго НЕ БЫЛО: три `Put` спавнили объект по id ИНТЕРАКЦИИ
+`sit.stump` вместо объекта `stump.palm`. `WorldStateFactory.AddObject` id не
+валидирует — объекты создавались молча, Perception их пропускал, рендер не
+рисовал. Арена, написанная ради пенька-соблазна, этот соблазн не воспроизводила,
+и «отвлечения на месте» из 91.6 меряли мир без главного отвлечения. Починено на
+константу `ContentIds.PalmStump`, чтобы строка не могла разойтись с каталогом.
+Урок тот же, что у §81.11: молчаливое создание невалидного — класс багов, а не
+опечатка.
 
 **91.2 Проба зовёт ОБЩИЙ реестр систем.** `SimulationSystemRegistry.RegisterDefaults`
 — тот же, что и игра. Раньше пробы перечисляли системы руками, и это была прямая
@@ -15047,7 +16576,1571 @@ vs §84 — см. итог итерации. Попутно починена hea
 перестал случаться». Добавлен пруд. Тест, в котором нельзя выжить, ничего не
 проверяет.
 
-## §103 Волосы колышутся — всем причёскам, но не одним способом (iteration 103)
+## §104 Бой перестал быть копией самого себя (iteration 104)
+
+Четыре круга отладки §103 («удары есть в модели, анимации не видно») кончились
+находкой одной отсутствующей строки. Это не невезение, а диагноз: доминирующий
+класс багов здесь — КОПИЯ, У КОТОРОЙ ОТСТАЛА ОДНА СТРОКА, а весь харнесс
+кончался на снапшоте и к границе сим↔вид был слеп по построению.
+
+**104.1 Гейт контракта снапшота.** `WireCoverageGate` проверял кодек, но
+штамповал поля ПОСЛЕ экспорта — связка `NPCState → NpcSnapshot` не была покрыта
+ничем, а неверен был именно источник. `SnapshotContractGate` спрашивает обе
+половины: доехали ли боевые сигналы (включая производную `IsSwinging`) и
+ДЕЙСТВИТЕЛЬНО ли они меняются в живой сцене абьюза. Проверяется обратной
+правкой: закомментированный `SwingStartTick` красит гейт за один прогон.
+
+**104.2 Таймлайн замаха — один.** `AnimalCombatSystem.RunCounterStrike` и
+`MeleeSwing` держали его посимвольно, вплоть до соли хеша 777. Теперь ядро одно
+(`MeleeSwing.TryAdvanceSwing` берёт оружие параметром), а применение урона
+осталось вызывающему: человек идёт полным путём тела, собака принимает плоский
+`Health`. Тайминги переехали в `GearStats.StrikeTimings` — это свойство
+СНАРЯЖЕНИЯ, и спрашивать их должен ещё и вид. `SwingTimelineGate` следит, чтобы
+копия не завелась снова.
+
+**104.3 Вид опознавал новый удар двумя способами.** В бою — по смене штампа, в
+одиночном замахе (§96) — по штампу И флагу `IsSwinging`. Второе условие и есть
+тот баг, ради которого штамп заводили. Один `ConsumeSwingStamp` на обе ветки.
+
+**104.4 Длина клипа и окно замаха — два числа, обязанные совпадать.** Не
+совпадали ни у одного оружия: кулак 2.17 с против окна 1.5, копьё 3.27 против
+2.0. Вид подгоняет ТЕМП под окно (`AttackSpeed`, идиом §77.5), а новый замах
+режет предыдущий клип (`canTransitionToSelf`) — раньше невзятый триггер
+оставался взведённым и выстреливал позже фантомным ударом. `ClipWindowGate`
+меряет это headless по `.fbx.meta`.
+
+**104.5 ⭐ ХИТ-МОМЕНТ: кровь, вздрагивание и звук — одним кадром.** Момент удара
+не был отражён ничем. Вздрагивание висело на падении здоровья мимо порога 0.02
+по СРЕДНЕМУ — кулак снимает `landed/7` ≈ 0.015, то есть флинча от кулака не было
+никогда. Брызга висела на появлении новой раны с гейтом 0.4 с. Звука удара по
+человеку не существовало вовсе: `hit_flesh` играл только на укус, отрыв
+конечности, разделку туши и на удар ПО ВОЛКУ, а из человеческого боя слышен был
+один «вжух» — за секунду-полторы ДО удара.
+
+Теперь сим отмечает сам момент (`NPCState.HitStampTick` + `HitWeaponId`), и это
+ШТАМП, а не флаг, по той же причине, что и у замаха: событие живёт один тик, а
+кадр рисует только последний. Штамп ставится и когда урон обнулила пощада (§86):
+удар случился, видно и слышно его быть обязано. Вид на смене штампа даёт брызгу,
+флинч и звук по классу оружия — кулак, клинок, зубы (`hit_punch` / `hit_blade` /
+`wolf_bite`, сгенерированы ElevenLabs, атака выровнена в первые 12 мс файла,
+иначе звук приходит после крови). Порог здоровья остался ФОЛБЭКОМ для урона не
+от удара — падение, акула, огонь: там штампа нет.
+
+Golden-трасса: хеш состояния сдвинулся (два новых поля), ни одно решение и ни
+одно событие не изменились — дифф принят осознанно.
+
+**104.6 Нож в сцене — норма, и это записано.** Открытый вопрос §103 закрыт
+решением: `PickWeapon` остаётся лестницей ненависти §93. Наезд начинается
+рукопашкой, а тесак достают, когда уже ненавидят — симпатия падает с каждой
+сценой насилия, поэтому «кулаком или ножом» это следствие ИСТОРИИ отношений, а
+не броска кубика и не отдельной ручки. Правило переехало в `FightScene`: класс,
+чей докблок обещает «чем бить», должен этим и владеть, а оно лежало у того, кто
+сцену играет. Заодно закрыт сентинел «сцена доиграна»: отсрочка на полмиллиарда
+тиков снималась только штатным концом, и обрыв мимо него оставлял бойца без
+замахов навсегда — теперь слот отпускает один `ReleaseSwingSlot`.
+
+**104.7 ⭐ ВСЕ удары на общем таймлайне — за флагом.** Половина melee-урона шла
+по легаси-модели «за проход»: защитницы против собак (`MobSystem`) и весь §56
+(`PredationSystem`) били раз в средний тик под фазовым гейтом и не ставили ни
+одного видового сигнала — кровь есть, замаха нет. Тот же класс бага, что чинил
+§103, только он там и остался.
+
+Миграция сделана не новым кодом, а РАСШИРЕНИЕМ ОХВАТА того, что уже работает:
+
+- подмога против собаки идёт через `AnimalCombatSystem` (тот же таймлайн, что у
+  жертвы) — правило «одно тело, один замах за проход» держит общий `_struckNpcs`;
+- §56 — это пара «человек против человека», то есть ровно то, что умеет вести
+  `HumanCombatSystem`: хищник и ответившая жертва объявляют сцепку и уходят, а
+  удары наносятся на быстром слое, с окном анимации и хит-штампом.
+
+`SimBalance.TimedMeleeEverywhere`: при выключенном флаге golden-трасса не
+сдвигается ни на строку — откат мгновенный.
+
+**r9: флаг ВКЛЮЧЁН по просьбе автора** — баланс дальше тюнится на видимых
+ударах, калибровка урона за удар по эквиваленту DPS остаётся следующей
+задачей, и до неё колония слабее прежнего (см. таблицу A/B ниже). Код,
+экспорт simdata и это место спеки выровнены на `true`; ключ
+`hexsoak --timed-melee` остаётся для сравнения с легаси.
+
+**История решения: первые A/B-соаки сказали «нет»** (r8, флаг тогда остался
+выключенным). 60 000 тиков, три сида, всё остальное неизменно:
+
+| сид | легаси | таймлайн |
+|---|---|---|
+| 12345 | выжило 3 из 4 | **2 из 4** |
+| 424242 | выжило 4 из 4 | **2 из 4** |
+| 7 | выжило 4 из 4 | **2 из 4** |
+
+Причина не в «таймлайн хуже», а в АРИФМЕТИКЕ, которую миграция сдвинула молча.
+Легаси-защитница била `NpcStrikePerPass × MeleeStrikeBonus` каждый средний тик,
+то есть ровно урон оружия РАЗ В СЕКУНДУ. Таймлайн наносит тот же урон раз в
+`duration − hitDelay + cooldown`: кулаком 1.9 с, ножом 1.24 с. Урон за секунду
+падает в полтора-два раза, собаки живут дольше — и колония платит за это
+жизнями. Ровно то, о чём предупреждал июльский аудит: она и так на грани.
+
+Вывод (остаётся в силе и при включённом флаге): миграция не может быть
+чистым переносом, ей нужна КАЛИБРОВКА урона за удар по эквиваленту DPS и
+повторные A/B — до этого включённый таймлайн сознательно оплачивается
+жизнями колонии. Механизм для калибровки уже стоит: флаг, ключ
+`hexsoak --timed-melee` и метрики, которыми и получена таблица выше.
+
+## §105 На грани смерти: умирание вместо мгновенной смерти (iteration 105)
+
+Смерть перестала быть событием одного тика. Между «должна умереть» и «умерла»
+теперь есть ОКНО: тело падает, лежит и тает — и всё это время его можно спасти.
+
+### 105.1 Что происходит
+
+Четыре исхода, которые раньше убивали немедленно, теперь роняют её в состояние
+«умирает»: кровь вытекла до нуля, грудь пробита в ноль, голод и жажда доели
+тело. Она падает, лежит, ничего не решает и не защищается — и под капотом у неё
+тает ЗАПАС (`NPCMind.DyingReserve`, 1 → 0). Кончился запас — смерть.
+
+**Голова — намеренное исключение.** Разбитая в ноль голова убивает сразу, как и
+до §105. В игре должен остаться хотя бы один мгновенный исход, иначе любая
+смерть превращается в отложенную сцену, и удар в голову перестаёт что-либо
+значить.
+
+### 105.2 Почему запас, а не отрицательный стат
+
+Задумано было «стат уходит в минус». Реализовано как скрытый запас, и это не
+упрощение, а необходимость: `Blood`/`Hunger`/`Thirst` читают больше тридцати
+систем как 0..1, и настоящий минус пришлось бы протаскивать через каждый
+`Clamp01` и каждую формулу, где стат участвует. Запас живёт в одном месте,
+считается по одной формуле и виден игроку — чип `Dying` показывает ровно
+`1 − Reserve`, то есть он и ЕСТЬ полоска умирания.
+
+### 105.3 ⭐ Инвариант: умирающая ЖИВА
+
+Витальные зоны умирающей пиннятся на `Spec105.BodyFloor` (0.02), а не на ноль,
+и `Health` тем самым остаётся строго положительным.
+
+Это несущая конструкция, а не поблажка. «Мертва» в этом проекте — свойство
+структурное (переезд в `Entities.Corpses`, см. `EntityRepository`), но около
+сорока мест читают `Health <= 0f` как «труп»: бой, рейд, хищники, мечты,
+опасности, оценка помощи. Если бы умирающая проходила эту проверку, её
+перестали бы видеть ровно те системы, которые должны над ней склониться — и
+починка свелась бы к сорока правкам, из которых одну забыли бы. Пол решает это
+одним числом: смерть по-прежнему наступает единственным способом — `Health`
+падает в ноль, и свип `MobSystem` уносит тело.
+
+### 105.4 Модель
+
+- `NPCMind.DyingCause` (`None / BloodLoss / TorsoDestroyed / Starvation /
+  Dehydration`) — причина выбирает и длину окна, и характеристику, и ЧЕМ её
+  спасать. `NPCMind.DyingReserve`, `DyingTickStamp` (транзиентный),
+  `ConvalescentUntilTick`.
+- `NPCState.IsDying`; умирание входит В `IsUnconscious`, а не заводит
+  параллельный вопрос — тем самым все три десятка читателей (бой не бьёт
+  беспомощную, перцепция не зовёт её болтать, помощь считает её лежачей)
+  получают верную семантику без единой правки у себя.
+- Вся механика — `Runtime/Helpers/MortalityHelpers.cs`. Сайты урона зовут
+  `ResolveTrauma` и не знают ни про окно, ни про запас, ни про исключение для
+  головы. До §105 этот ответ был размазан по восьми сайтам одинаковой парой
+  строк `if (VitalDestroyed) { Health = 0; трасса; }` — восемь мест, где новое
+  правило забыли бы.
+- Падение обязано идти через `LieDownCentered` (§60.2a). Примитив укладывания
+  вынесен в `MortalityHelpers.AnchorLyingBody` и общий с комой: двух редакций
+  §60.2a быть не должно, иначе одно из тел начнёт свешиваться с кромки гекса.
+
+### 105.5 Часы и характеристики
+
+Окно — тики, по причинам: кровь 900, грудь 1200, жажда 1500, голод 1800.
+Считается по ФАКТИЧЕСКИ прошедшим тикам (штамп), поэтому цифры не зависят от
+слоя, на котором крутится тик.
+
+Растягивают окно характеристики §76: **Стойкость** держит кровь и разбитую
+грудь (та же ось, что заживление и свёртываемость), **Неприхотливость** —
+голод и жажду («она может дольше не есть и не пить»). Форма как у всех
+множителей §76, `1 ± (attr − Mean) × Gain`, с полом в четверть окна: даже самая
+хилая успевает побыть спасаемой.
+
+**Догрызают.** Удар по лежащей срезает запас напрямую
+(`landed × DamageReserveFactor`), а не только точит зоны. Упасть в бою с волком
+— почти приговор, если никто не отгонит; это и задумано.
+
+**Пока над ней работают, запас замирает.** Умереть на последнем тике
+перевязки читалось бы как издевательство, а не как драма.
+
+### 105.6 Спасение — это §53, а не новая механика
+
+Нового `AidKind` НЕ появилось. Умирающая просто получает срочность 1.0 и вид
+помощи по причине: кровь и грудь → `Treat`, голод → `Feed`, жажда → `Hydrate`.
+Весь конвейер §53 (аукцион, поход, заявка `PendingAidFrom`, колени над лежащей,
+расход припасов, поручение за бинтом) работает как есть.
+
+Что добавлено: надбавка `RescueEmergencyBoost` — полный `StarvingBoost`, чтобы
+спасение обгоняло любую работу и любую другую помощь. Гейт §53.5 «сначала
+выживи сама» НЕ ослаблен: помощница в собственном кризисе не идёт, иначе на
+земле окажутся обе.
+
+Заодно формула срочности перестала существовать в двух копиях. Она жила в
+перцепции и в `AssessAidKind` (переоценка по прибытии) — расхождение читалось
+бы не как баг, а как «дошла и передумала». Теперь это `AidAssessment.Assess`,
+одна на обе точки; §105 был ровно тем изменением, при котором одну из копий
+забыли бы.
+
+### 105.7 Выход симметричный
+
+Причина ушла — она встаёт. Кто её убрал, помощница или собственный организм,
+безразлично:
+
+| Причина | Условие выхода |
+|---|---|
+| `BloodLoss` | кровотечение остановлено И `Blood > BloodExitFloor` (0.1) |
+| `VitalCrushed` (грудь ИЛИ таз) | худшая витальная зона `> VitalExitHealth` (0.15) |
+| `Starvation` / `Dehydration` | `Hunger`/`Thirst` ниже `StarveDeathThreshold` |
+
+**⭐ Порог выхода обязан стоять ВЫШЕ порога входа, и вдобавок есть минимальное
+время лёжа.** Первая редакция об это споткнулась ровно так, как и должна была:
+грудь пиннилась в `BodyFloor` на входе, а выход спрашивал «грудь выше
+`BodyFloor`?» — первый же тик регенерации поднимал её на волосок над порогом.
+Замер: она вставала **через ОДИН тик**, тут же получала следующий удар и падала
+снова, и бой читался как мигание «упала-встала-упала».
+
+Одного порога, впрочем, тоже мало: заживление возвращает зоне её `Severity`, и
+на глубокой ране это быстро — с порогом, но без таймера, подъём занимал 161
+тик. Поэтому `MinDyingTicks` (300 ≈ 75 секунд): сколько бы ни говорили пороги,
+раньше этого она не встаёт. Время лёжа выводится из ЗАПАСА, а не из отдельного
+поля — запас тает ровно по прошедшим тикам, так что «сколько вытекло» и есть
+«сколько лежит», и это переживает сохранение, ничего не добавляя в блоб.
+
+Одна перевязка закрывает первые две: `StabilizeBleedingOnAidStart` закрывает
+окно свежей раны, `TreatHeal` поднимает зоны, `TreatBlood` доливает крови.
+Заклоттившаяся сама рана у сытой девушки даёт тот же исход без чужих рук — и
+это не поблажка, а следствие того, что правило одно.
+
+### 105.7a Потолок лечения: руки умеют не всё
+
+Перевязка поднимала зоны безостановочно, и одна девочка, севшая рядом с
+соседкой, вылечивала её до 100% за пару минут — «спасли с того света»
+превращалось в «залечили начисто».
+
+Теперь у лечения есть ПОТОЛОК, и он про умение: `AttributeMath.TreatCap`
+тянется от `Spec53.TreatCapNovice` при нулевом Врачевании до единицы при
+мастерском. Зона выше потолка не трогается вовсе — перевязка не делает хуже,
+она просто ничего не добавляет тому, что уже лучше её умений. Правило одно и то
+же для чужих рук (§53 Treat) и для своих (§68 SelfTreat), иначе «полечить себя
+до сотни» осталось бы лазейкой мимо всего правила.
+
+**Собственное заживление тела потолком НЕ ограничено.** За дни она дойдёт до
+единицы сама; потолок — про то, что умеют руки, а не про то, на что способно
+тело.
+
+⭐ **Число выбрано порогом подъёма, а не на глаз.** Встать можно с груди выше
+`Spec105.VitalExitHealth` (0.15), а Medicine у всех стартует с НУЛЯ — значит
+потолок новичка обязан быть заметно выше 0.15, иначе спасение физически
+недостижимо в начале игры и вся §105 умирает не родившись. Первая мысль была
+про 5%; при ней новичок не смог бы даже поднять умирающую на ноги. 0.35 даёт
+запас: она встаёт и держит ещё три-четыре укуса волка — «залатали, но не
+вылечили».
+
+### 105.7b Перед тем как встать — спросить себя, а надо ли
+
+Она приходила в себя, поднималась на ноги — и тут же ложилась обратно, потому
+что первое, что решал аукцион у вымотанного тела, был сон. Со стороны это
+читается как сбой: встала, постояла, легла.
+
+Теперь очнувшаяся вымотанная (энергия ниже `SleepEnergyThreshold`, то есть
+ровно того порога, по которому аукцион и выбрал бы сон) **не встаёт**: она
+переворачивается и засыпает там же. Спрашивать надо именно тот порог, иначе
+«остаться лежать» и «пойти спать» разъедутся.
+
+Механика для этого уже была целиком — §60 r2 «сон без задних ног»: тот же
+лежачий покой, пробуждение по энергии 0.45, и экспортёр подаёт его виду как
+обычный сон. Вид доигрывает это одним движением — переход `FallenIdle → Sleep`,
+объявленный РАНЬШЕ подъёма (у уснувшей на месте оба условия истинны разом).
+Ручка: `Spec105.StayDownIfSpent`.
+
+### 105.7c Что она делает — строкой состояния
+
+Строка состояния знала три вещи: «идёт», «занята», «отдыхает». Умирающая,
+лежащая без сознания и спящая одинаково попадали в «отдыхает», потому что цель
+у всех троих `None` — панель сообщала «просто существует» ровно тогда, когда
+происходило самое важное.
+
+Теперь состояние ТЕЛА идёт первым и по убыванию тяжести: при смерти → в отключке
+→ без сознания → спит → идёт → занята → без дела. Заодно нашлось, что трёх
+исходных строк (`state.moving/resting/busy`) в `I2Languages` не было вовсе, и
+панель печатала сам ключ.
+
+### 105.8 «Едва живая» — цена спасения
+
+Несколько игровых часов (`ConvalescentTicks` 3600 ≈ 3.5 визуальных часа) после
+подъёма: выносливость восстанавливается втрое медленнее, тратится вдвое
+быстрее, ходит вдвое медленнее. Чип `Convalescent` (🤒).
+
+Множители сидят РОВНО в тех цепочках, где живут §76-е — стамина в
+`NeedsDecaySystem`, скорость в `MovementSystem` рядом с мокрой одеждой
+(«состояние тела режет скорость» — прецедент, а не новая ветка). `npc.MoveSpeed`
+не трогается: оно сериализуется.
+
+### 105.9 Провод, сейв, события
+
+`NpcSnapshot.IsDying` (кодек v6) — вид роняет тело; полоска умирания едет
+чипом в `Effects` и не требует своего поля. Сейв v21 пишет причину, остаток
+запаса и окно штрафа: перезагрузка не должна «лечить» лежащую на грани, ровно
+как когда-то чинила культю (§50). Штамп транзиентен намеренно — сохранённая
+пара «запас + старый штамп» подарила бы ей при загрузке целое окно дрейна одним
+куском.
+
+События: `Collapsed` (наконец-то действительно эмитится — раньше имя годами
+ждало отправителя) и `Rescued`. Промежуточный `Dying` в whitelist НЕ входит: он
+тикает каждый медленный тик и залил бы историю.
+
+### 105.10 Она ПАДАЕТ, а не прилегает
+
+Раньше всякое тело, оказавшееся на земле не по своей воле — кома, обморок, —
+ложилось сонной цепочкой `LieDown → Sleep → GetUp`, и «упала замертво»
+читалось как «прилегла»: тело аккуратно опускалось в позу спящей. Теперь у
+падения своя цепочка `FallDown → FallenIdle → StandUp` на bool `Fallen`.
+
+Чем кончается падение, решает `Laying`:
+
+| Состояние | Fallen | Laying | Итог |
+|---|---|---|---|
+| Умирает (§105), кома по крови (§60) | ✓ | — | `FallenIdle` — лежит безвольно, пока не поднимут |
+| Потеряла сознание (§40.13) | ✓ | ✓ | `Sleep` — рухнула так же, но дальше просто спит |
+| Сон (в том числе крах от истощения) | — | ✓ | `LieDown → Sleep`, как было |
+
+Спящую в кровати кома не роняет клипом: она и так лежит — переход
+`Sleep → FallenIdle` даёт ей просто обмякнуть.
+
+**Беспамятство — это ОДИН КАДР позы сна.** `FallenIdle` играет тот же
+`Sleeping Idle`, что и спящая рядом, но со скоростью состояния 0: тело лежит и
+не шевелится вовсе. Отсюда и разница читается сама — рядом лежат две девушки в
+одной позе, одна дышит, вторая нет. Отдельную «позу комы» заводить нельзя:
+вторая копия того же кадра разошлась бы с первой при первой же замене клипа.
+
+**Поза сна — своя на каждую девушку** (`NpcAnimSet.sleep`, меню
+`HexLive ▸ Actors ▸ Assign Sleep Poses`): четыре тела в одинаковой позе у костра
+читались как копипаста. Вариант берётся от её id и держится всю жизнь — это её
+привычка, а не украшение кадра, поэтому НЕ `Random`: тот дал бы разную позу на
+сервере и у каждого зрителя, и новую после каждой перезагрузки. Поле на провод
+при этом не нужно, id есть у обоих концов (в отличие от позы СМЕРТИ, которую
+сим считает сам: та выпадает один раз в момент падения и обязана пережить
+сохранение). Первым в списке стоит авторский `Sleep` — «вариантов не назначили»
+и «выпал первый вариант» дают один и тот же кадр.
+
+**⭐ Вход в цепочку — явными переходами из каждого состояния, НЕ через
+AnyState.** Первая редакция вешала `AnyState → FallDown` на `Fallen == true`, и
+она падала бесконечно: условие остаётся истинным всё время, пока тело на земле,
+поэтому из `FallenIdle` тот же переход тут же дёргал её обратно в падение.
+AnyState годится для ОДНОГО состояния (`Death`, `Crawl`) и ломается на цепочке
+из трёх — по этой же причине сонная цепочка всегда входила явными переходами.
+
+Второе следствие того же правила: порядок переходов внутри состояния есть
+порядок вычисления, а сонные записаны в контроллере раньше. Поэтому входы в
+`LieDown` и выходы в `GetUp` получили дополнительное `Fallen == false` — иначе
+потерявшая сознание уходила бы в аккуратное «прилегла» вместо падения, а
+спящую, которую накрыла кома, сначала поднимало бы на ноги.
+
+### 105.11 ХП — это худшая витальная зона, и она кольцом вокруг портрета
+
+Полоска здоровья показывала `NPCState.Health`, то есть СРЕДНЕЕ по семи зонам, и
+среднее врало в обе стороны. Разбитая в хлам грудь при целых руках и ногах даёт
+0.75 — «всё неплохо», хотя следующий удар убивает. Обглоданные конечности при
+целом торсе роняют то же число, хотя жизни ничего не грозит.
+
+Теперь панель читает `NpcSnapshot.VitalHealth` = `min(Head, Torso)`. Витальные
+зоны — ровно эти две: их обнуление и есть `VitalDestroyed`, а конечности могут
+дойти до нуля и даже оторваться (§50), не убив. Число отвечает на единственный
+вопрос, который игрок задаёт полоске: **сколько осталось до того, как станет
+поздно**.
+
+Балансу от этого ни жарко ни холодно: `Health` остаётся тем же средним, и все
+пороги симуляции (§53 срочность помощи, §86 пощада, гейты «своего кризиса»)
+по-прежнему смотрят на него. Изменилось ТОЛЬКО то, что видит игрок.
+
+Рисуется кольцом вокруг портрета (`RingMeter`, тот же, что у нужд), а
+горизонтальная полоска снята: два бара про одно и то же спорили бы друг с
+другом, а кольцо всегда рядом с лицом — видно, КОМУ скоро конец, не читая цифр.
+Цвет берётся у `HealthDollStage.StatusColor`, то есть у той же функции, что
+красит куклу §57: два мнения о «насколько всё плохо» разошлись бы. Красная
+приписка «сколько не отрастёт, пока открыты раны» (§40.8B) переехала в число.
+
+### 105.12 Кил-свитч
+
+`Spec105.Enabled = false` восстанавливает доигровое поведение ПОБИТОВО, вплоть
+до текста трассы: ни одна точка входа не отклоняется, смерть снова мгновенная.
+Это выключатель для бисекции соаком — паттерн `Spec53.Enabled` /
+`Spec76.AttributeSpread = 0`.
+
+### 105.14 Притворяется мёртвой
+
+Очнулась — а рядом волк. Вставать невыгодно: собьют снова. Поэтому она **не
+встаёт**: лежит неподвижно и прикидывается трупом, пока враг не потеряет к ней
+интерес и не уйдёт (механика Kenshi). Работает на выходе из всех четырёх
+лежачих состояний — умирание §105, кома §60, обморок §40.13, плач §110.
+
+⭐ **Половина механики живёт на стороне ВРАГА, и без неё притворство было бы
+самоубийством.** В этом мире беспомощных догрызают: `MobSystem` метит
+`IsUnconscious`-цель как лёгкую добычу, `RaidMath.Opportunity` весит
+беспомощность В ПЛЮС, а §105 режет запас смерти с каждого удара по лежащей.
+Поэтому `IsPlayingDead` намеренно **НЕ входит в `IsUnconscious`** (входит
+только в `IsLyingDown`), а четыре вражьи системы получают пару гейтов по форме
+§106: новая агрессия не наводится И уже ведущаяся погоня бросается. Одного
+гейта мало — охотник вечно шагал бы к недосягаемой цели (кольцо §102).
+
+- зверь: `MobSystem.IsNpcInRefugeFrom` (одной строкой покупает и захват, и
+  `DogLostTarget`), плюс зеркало быстрого слоя `AnimalCombatSystem.InMelee`;
+- каннибал §56: `continue` в выборе жертвы (персистентной цели там нет);
+- налётчик §72: исключение в `RaidMath.BestVictim` **до скоринга** плюс
+  `AbandonRaid("PlayDead")` в плане и его runtime-зеркало;
+- абьюзер §81: в тот же Helpless-фильтр `BestMark`;
+- сговор §108 отпускает притворившегося чужака, засчитав уже нанесённые удары.
+
+**Модель.** Транзиентная пара `PlayDeadUntilTick` / `PlayDeadSinceTick` в
+`NPCMind` (в сейв не пишутся: перезагрузка просто поднимет её). Окно
+перевзводится каждый медленный тик, пока враг в радиусе — это гистерезис, без
+него она вскакивала бы и падала на каждом шаге зверя туда-сюда. Истечение
+потребляет `DecisionSystem`, подъём идёт через `EndPlayDead` с обычной грацией
+§41.5. Удар акт не ломает: вскочить под укусами — тот самый death spiral,
+который фича убирает.
+
+**Ручки** (`Spec105`): `PlayDeadEnabled` (кил-свитч), `PlayDeadRadiusTiles` 3,
+`PlayDeadHoldTicks` 240, `PlayDeadMaxTicks` 4800. Потолок обязателен: без него
+волк, поселившийся у лагеря, кладёт её навсегда, и это читается как
+§102-зависание, а не как замысел.
+
+⭐ **Два предохранителя, оба куплены соаком, и оба не косметические.** Первая
+редакция стоила колонии: сид 42, 0 выживших из 4, у всех трупов `Thirst=1,00`
+и `Hunger=1,00` — они лежали от волка в трёх шагах от воды.
+
+- **Вход идемпотентен.** Обморок §40.13 поверх уже притворяющейся приводит в
+  `TryStartPlayDead` второй раз, и перештамповка старта обнуляла отсчёт
+  потолка — предохранитель не наступал НИКОГДА (в трассе: `PlayDeadStarted`
+  каждые ~270 тиков и ни одного `PlayDeadEnded`). Старт ставится только с нуля.
+- **Собственный кризис сильнее волка** (`MortalityHelpers.OwnCrisisOutranksHiding`,
+  одно определение на оба гейта — «не лечь» и «встать досрочно»). У притворства
+  нет сонного метаболизма комы: нужды тают полным ходом, рана течёт, а решений
+  она не принимает. Поэтому голод, жажда и кровопотеря и не дают лечь, и
+  поднимают до срока (`PlayDeadEnded Reason=OwnCrisis`). Порог крови НЕ свой —
+  это `Spec53.SelfTreatBleedBlood`, та самая черта, по которой §53 заставляет
+  её бросить всё и перевязаться: заведи вторую, и «встать, чтобы спастись»
+  разъехалось бы с «чем именно спасаться».
+
+⭐ **Уложить = снести план, а не обнулить цель.** Каждый лежачий путь зовёт
+`PlanInterruption.Abort`: кома §60, слом в плач §110 — и притворство. Обнуления
+одной лишь `CurrentGoal` НЕДОСТАТОЧНО: летящий план переживает укладывание, и
+`MovementSystem` продолжает вести тело по его шагам, пока вид рисует лежачую
+позу. Игрок это видит как «бежит и притворяется мёртвым одновременно» —
+персонаж уезжает с гекса в лежачей анимации (баг #7, абьюзер). Ровно та же
+причина требует и `IsFighting = false`: тело, которое только что обмякло, не
+держит боевую стойку.
+
+**Замер** (24 сида × 60 000 тиков, on против off): 64 выживших против 62,
+застой 0.0251 против 0.0255, churn 22.1 против 23.2. Фича меняет ПОВЕДЕНИЕ, а
+не выживаемость — разброс по сидам (±3) больше самого эффекта, и на пяти сидах
+тот же замер давал обратный знак. Вопрос «не вредит ли» требует двух десятков
+сидов; на пяти на него ответить нельзя.
+
+**Витрина** (§48.6): чип 🫥 `PlayingDead`, строка `state.playdead` в панели
+(ниже обморока — она В СОЗНАНИИ), провод `IsPlayingDead` (WireVersion 11), вид
+держит её цепочкой падения `FallenIdle` и молчащей. Аниматор не тронут:
+притворство — это уже существующее «лежит», просто дольше.
+
+## §106 Вода — убежище (iteration 106)
+
+Пока она плывёт — её не достать. Пловца не бьют с суши, пловец не бьёт сам, и
+всякий план убийства по нырнувшей жертве срывается: хищница §56, налётчик §72
+и абьюзер §81 бросают погоню у кромки, волк отпускает цель сразу, а не после
+stall-таймера. Обратная сторона той же монеты — **среда атаки как данные**:
+акула (§40.18) бьёт ТОЛЬКО пловцов и дремлет против суши, тем же гейтом,
+только инвертированным значением.
+
+Ручка: `Spec106.WaterSanctuaryEnabled` (bool, по умолчанию true; зеркало в
+`OutsiderBalance.asset`). Выключена — вода снова ничего не значит в бою,
+поведение до-§106.
+
+**106.1 Один предикат «плывёт».** Глубокая вода = `Water && !Walkable`
+(§40.18-B); ходибельная мель — брод, не плавание. Определение жило приватом в
+`MovementSystem.IsSwimTile` — теперь оно в `SpatialQueries.IsSwimTile`, и
+движение с боем физически не могут разойтись в том, кто пловец. Меряется по
+ТАЙЛУ (`npc.Tile`), не по джанкшену: береговой узел смешанный, и стоящая на
+его сухом тайле — не пловчиха. Флага состояния на NPC нет намеренно —
+вычисляемый предикат не протухает (и в save/wire ничего не поехало).
+`TileFlags.Swimmable` остаётся мёртвым флагом — НЕ использовать.
+
+**106.2 Среда атаки — данные, не хардкод.** `AttackMedium` (флаговый enum:
+`Land | Water | Amphibious`) + поле `MobStats.AttackMediums`: волк — `Land`,
+акула — `Water`. Хелпер `CombatMedium` отвечает на оба вопроса: `Of` — в какой
+среде боец стоит сейчас, `CanEngage` — достаёт ли атака с такими средами до
+цели там, где та стоит. У людей моб-листа нет — их Land-only объявлен ОДИН раз
+в `CombatMedium.NpcMelee`. `SharkSystem.BiteSwimmers` переведён с рукописного
+`SwimJunctions.Contains` на этот же гейт (заодно перестав считать наживкой
+стоящую на сухом тайле берегового узла); система по-прежнему НЕ
+зарегистрирована — включение акулы потом = регистрация + боевой таймлайн,
+гейт уже готов.
+
+**106.3 Гейт удара — в `CanStrike`, не шестая мерка.** Терренная проверка
+стоит ПЕРВОЙ строкой `InteractionReach.CanStrike` — тот же приём, что
+`CanTouchAcross` у `CheckObjectStart`: мера соседства та же, среда — второй
+замер того же гейта. Одна правка закрывает `HumanCombatSystem` (замах уходит
+в воздух — §104-ядро `MeleeSwing` среду не знает, уже НАЧАТЫЙ замах долетает
+вхолостую: «она отступила»), `RaidSystem`, старт abuse-сцены и `AssessMelee`.
+Симметрия обеих сторон бесплатно: `NpcMelee` требует, чтобы И актор, И цель
+стояли на суше.
+
+**106.4 Клапаны отказа — гейт без них был бы кольцом §102.** Запрет бить без
+запрета хотеть = «иду → не достаю → иду» навечно. Поэтому у каждой погони
+свой явный отказ, рядом с её sanctuary-строкой:
+
+- **Prey (§56):** `NearestPreyVictim` пловчиху не выбирает (план валится
+  штатно: `PlanFailed Goal=Prey NoReachableVictim` + кулдаун 40 тиков — у
+  купальщицы хищница молотит этот отказ раз в ~40 тиков, принято); adjacency-
+  скан `PredationSystem` не сцепляется через кромку.
+- **Raid (§72):** `BestVictim` фильтрует; `ResolveRaidVictim` бросает
+  закоммиченную (`RaidAbandoned Reason=Swimming`, ПОЛНЫЙ кулдаун — нырок
+  стоит ему налёта, как дверь); Unpair-дыра `RaidSystem` закрыта явным
+  `AbandonRaid` — молчаливая расцепка оставляла план жив, и между
+  medium-перестроениями он вёл налётчика в море.
+- **Abuse (§81/§87):** `BestMark` фильтрует, коммит `ResolveAbuseMark`
+  рассыпается, а в исполнении клапан `AbortAbuse("MarkSwimming")` стоит ДО
+  ветки преследования — иначе `Approach` (CanStrike по пловчихе всегда false)
+  отправил бы его догонять ровно в море. Срыв = retry-кулдаун §89, не полный.
+- **Волки (§29C):** `IsNpcInRefugeFrom(mob, npc)` = sanctuary ИЛИ «среда моба
+  не достаёт» — захват и сброс цели идут через него (`DogLostTarget … (in the
+  water)` СРАЗУ, на medium-тике). НЕ слито в `IsNpcInSanctuary`: «indoor»
+  читают Raid/Abuse/Threat со СВОИМИ ручками, у воды своя. Страховка
+  однотикового окна: `AnimalCombatSystem.InMelee` и melee-ветка `MobSystem`
+  повторяют гейт — укус через кромку невозможен даже до сброса цели; подмога
+  и защитницы (`RunAssistStrikes`, `RunDogDefenders`, `RunNpcDefenders`) из
+  воды не сцепляются и не бьют.
+- **ThreatAlert (§62):** пловчиха в skip-списке — из воды не бывает ни
+  attack-first, ни обхода; Defend-план лишь вытащил бы её из убежища на клыки.
+
+**106.5 Осознанные побочки.**
+
+- **Купание §40.6/Bathe = бесплатный щит**, пока акула не включена: цена
+  нырка — гигиена, голая на берегу одежда и время. После включения акулы щит
+  станет СТАВКОЙ — ровно та драматургия, ради которой §40.18 задуман.
+- **Cornered-fight valve (§29C.4A) не обесценен:** «бегство спасает, только
+  если разорвало контакт» — доплыть до swim-тайла под укусами стоит те же
+  тики, что добежать до двери; вода — второй выход из ловушки, не чит.
+- **В flee вода НЕ добавлена** (вне скоупа): `TryStartFlee` по-прежнему ищет
+  только indoor. Девушки не планируют нырок как побег — они лишь получают
+  тишину, если оказались в воде.
+- Новых имён событий нет (переиспользованы `RaidAbandoned` / `AbuseAbandoned`
+  / `PlanFailed` / `DogLostTarget`, причина в `Message`) — whitelist §83 не
+  тронут; порядок систем не менялся; детерминизм: все проверки — чистые
+  функции состояния, ни одного нового броска.
+
+---
+
+## §107 Над головой: собака, которой нет; и фотография вместо кадра (iteration 107)
+
+Четыре жалобы про то, что видно НАД персонажем и в панели, и все четыре —
+об одном: картинка расходилась с тем, что происходит.
+
+**107.1 Собака без собаки.** Над головой всплывала 🐕 и звучало
+`Jevoorka!` («зверюга»), когда никакого зверя рядом не было. Два независимых
+дефекта с одним корнем.
+
+*(а) Чужак-человек кричал волчьей репликой.* `DangerStranger` (§72, увидела
+врага-человека) был замаплен на `fear_wolf` заглушкой — «молчать хуже, чем
+сказать не совсем то». Теперь у него своя группа реплик `fear_stranger`
+(HEXKUFA_LANGUAGE.md C13) и своё слово: **`bezheksa`** «чужак» = Г3-приставка
+`bez-` + `heksa` «свой круг». 15 файлов, все пять голосов.
+
+*(б) Крик о помощи всегда рисовал собаку.* `HelpCry` штампуется одинаково,
+кто бы ни напал: пёс (`MobSystem`), человек-налётчик (`RaidSystem`),
+каннибалка (`PredationSystem`). Вид же читал одну строку таблицы и рисовал
+`Dogs`. Введена конвенция **`Base:threat`** — `"HelpCry:dog"` / `"HelpCry:npc"`,
+`"HelpCryDefended:dog|npc"`, `"HelpCryAssistStarted|Arrived:dog|npc"`,
+`"DangerSpotted:<mobId>"`. Кью-строка едет по проводу как свободная строка
+(`WireIo.WriteString`), в сейвы не попадает и в `Trace.Emit` НЕ добавлена —
+кодек, гейты и golden trace не тронуты.
+
+Заодно починен латентный баг: `HelpCry` ставил `peerId` = САМА ЖЕРТВА, и как
+только её лицо попадало в кэш портретов, крик о помощи всплывал её собственным
+портретом над её же головой. Пир теперь — **атакующий**; у assist-кьюшек пир
+`null` (кьюшка про себя, лицо не нужно).
+
+**107.2 Одна таблица кью вместо двух.** Структурная причина расхождения: кьюшка
+рисуется дважды — картинкой над головой и репликой в бабле, — и это были **два
+рукописных switch'а в разных файлах** (`SpeechCatalog.ForCue` и
+`NpcSpeechBubble.SocialCueSprite`/`SocialCueColor`), несогласованных почти по
+всем строкам. Теперь одна таблица `SpeechCatalog.Cues`: кью → `CueVisual
+{PopIcon, SpeechId, Rank}`. Ключ с суффиксом падает на `"<base>:*"`, потом на
+голый `<base>` — новый мобId рисует осмысленный бабл в день, когда его завели,
+а старые снапшоты играются как раньше.
+
+**107.3 ⭐ Пузырь над головой РОВНО ОДИН, и место в нём разыгрывается по
+старшинству.** Кьюшки летели мимо системы баблов: голая эмодзи без подложки,
+взлёт-затухание 1.25 с, без рейт-лимита — самые частые
+(`TalkRequest`/`TalkIncoming`) читались как строб, а не как речь.
+
+Первая попытка чинила это ВТОРЫМ пузырём — своим, поменьше, сбоку. Это оказалось
+хуже болезни: над головой висели две картинки об одном событии, вплоть до
+буквального дубля — большой жёлтый треугольник в пузыре и маленький жёлтый
+треугольник рядом. Правильный ответ не «дать кьюшке свой пузырь», а **пустить её
+в общую очередь к единственному**:
+
+- всё, что она может показать, идёт через `NpcSpeechDirector` и сортируется
+  `SpeechCatalog.Rank` (`Alarm > Action > Talk > Ambient`). «Хочу пить»
+  (`Ambient`) никогда не перебьёт «рядом чужак» (`Alarm`) — а перебьёт наоборот,
+  даже посреди реплики. Равный ранг не перебивает: начавший договаривает;
+- у кьюшки СО своей репликой ранг берётся из реплики; у молчаливой
+  (`TalkRequest`, `AbuseHurt`) он лежит в `CueVisual.Rank` — иначе ей нечем было
+  бы соревноваться за пузырь;
+- молчаливая кьюшка идёт мимо `Say()` (`ShowSilent`): `Say` обязан ЗВУЧАТЬ —
+  «речь не бывает немой» (§67.10), и ослаблять инвариант ради картинки нельзя.
+  Правила старшинства при этом общие;
+- `GlobalGap` 6 с кьюшек не глотает: он не действует на `Alarm`, а молчаливые
+  идут своим путём. Рейт-лимит — дедуп по `SocialCueTick` в симе.
+
+**Значок тревоги — маленький, в углу, и НИКОГДА не дублирует содержимое.**
+Когда в пузыре лицо чужака, углового треугольника не хватает как раз для «это
+тревога»; когда в пузыре сам треугольник, второго не рисуется вовсе
+(`SetAlarmBadge` сверяется с картинкой содержимого).
+
+Попы отношений «+/−» намеренно оставлены как есть: это не реплика, а индикатор
+результата, как всплывающий урон.
+
+**107.4 Портрет стал фотографией.** Снимки лиц (§80) делались раз в игровой час
+чем придётся: колонистка смотрела на мировую цель (LookAtIK ведёт голову, но
+глаза идут с весом 0.2 и жёстким клэмпом), могла попасть в моргание, а фон был
+непрозрачной тёмной заливкой. Теперь это постановочный кадр:
+
+- **Взгляд в камеру.** `NpcActorView.BeginPortraitGaze(eye)` / `EndPortraitGaze()`
+  перехватывают выбор цели на время съёмки: `eyesWeight 1.0`,
+  `clampWeightEyes 0.2`, `bodyWeight 0`, **`headWeight 0`**.
+  `NpcFaceAnimator.SetEyesHold(true)` глушит моргание на те же кадры.
+- ⭐ **Рамка лица строится по ГЛАЗАМ** (`lEye`/`rEye`), а не по осям кости
+  головы. Оси головы требовали разовой калибровки — `transform.forward` пекли в
+  пространство кости «в позе покоя», — и любой перекос в тот момент (или риг, у
+  которого импорт FBX переставил локальные оси кости) навсегда уезжал в КАЖДЫЙ
+  снимок: лица выходили чуть повёрнутыми. Два глаза задают горизонтальную ось
+  лица однозначно и без калибровки: `forward = across × worldUp`,
+  `up = forward × across`, центр — середина между глаз минус 0.02 м (иначе
+  подбородок срезан, а над макушкой пусто). Калибровка по кости осталась
+  запасным путём для рига без глаз. `EyeLiftMeters` стал нулём: подъём был
+  компенсацией за якорь от кости шеи, а теперь это просто съёмка сверху.
+- ⭐ **Камера ПРИБИТА к лицу и наводится заново КАЖДЫЙ кадр**, включая
+  тот, в котором щёлкает затвор. Первая версия наводила её один раз и
+  ЗАМОРАЖИВАЛА на кадры сходимости взгляда — а голова за это время продолжала
+  жить (шаг, дыхание, доворот от IK), и к моменту съёмки лицо уезжало из кадра:
+  ровно то «фотки кривые, не в центре», ради которого всё и затевалось. Гнаться
+  сама за собой камера не может именно потому, что вес головы нулевой: кость
+  стоит как стояла, ведут только зрачки.
+- **Горизонт по МИРУ, а не по темечку** (`levelUp`): наклон головы иначе
+  заваливает весь кадр, и в круглой аватарке это читается как брак печати.
+- **Не всякая поза — портрет.** `NpcActorView.IsPhotogenic` отклоняет лежащую,
+  плывущую и перевёрнутую (`dot(faceUp, worldUp) > 0.64`); съёмка откладывается.
+  Кадр стоит доли миллисекунды, а кривой снимок висел бы сутки в каждой вкладке
+  отношений.
+- **Фон прозрачный** (`Backdrop` alpha 0 в `NpcPortraitCache` и `PortraitStage`):
+  снимок — вырезка персонажа. Круглая маска ОСТАВЛЕНА — с прозрачным фоном она
+  и даёт «лицо в кружке». Подложку рисует потребитель
+  (`CharacterPanel.PortraitBackdrop`).
+- ⭐ **ВСПЫШКА, а не дневное окно.** Свет даёт точечный источник на самой камере,
+  зажигаемый **только на отрисовку портретной камеры** — через колбэки URP
+  `RenderPipelineManager.begin/endCameraRendering`. Главная камера рисуется в
+  другой момент того же кадра, поэтому в игре вспышки не видно. Свет
+  ЗАПОЛНЯЮЩИЙ (0.42), а не вспышка в упор: он складывается с освещением сцены,
+  и первая версия (1.35) днём выбивала лицо в белое. Задача — вытянуть ночь до
+  читаемого, а не пересветить день.
+- **Первый заход — СРАЗУ**, как только колония появилась в мире (лица нужны с
+  первой секунды), дальше по разу в игровые сутки на каждую: по одному NPC с
+  интервалом 0.35 реальной секунды, `_bakedDay` против повторов. Часа суток в
+  `Sweep` больше нет — его заменила вспышка.
+
+Снимается по-прежнему ЖИВОЙ персонаж на слое Actors — грязь, загар, раны и
+одежда должны быть видны; клон-студия (`HealthDollStage`) для лиц не годится.
+
+Отвергнуто: постоянный свет с маской слоя (вспышка была бы видна главной
+камерой — маска света решает, что он ОСВЕЩАЕТ, а не кто это видит) и осветление
+пикселей после `ReadPixels` (ночью вытягивает шум и полосит).
+
+**107.5 Имена в отношениях — по локали.** `RelationshipSnapshot.OtherName` — это
+латинский ID имени (§74), а не подпись. Панель отношений выводила его сырым, и
+на русской локали список знакомых был на английском, хотя собственное имя
+в шапке — русским. Все семь мест (вкладки, карточка, чипы, буквы-заглушки и
+сортировка) идут через `Loc.NpcName`; сортировка — `CurrentCultureIgnoreCase`,
+иначе русский список упорядочен по латинице. Термины `npc.*.name` (28 штук,
+EN+RU) в `I2Languages.asset` уже были — правка чисто в C#.
+
+**107.6 Осознанные дыры.**
+
+- `call_help` вариант 1 из 3 всё ещё содержит `Jevoorka`, поэтому крик о помощи
+  от человека в трети случаев звучит «зверюга». Лечится группой `call_help_npc`
+  — вне скоупа.
+- `DangerSpotted` для акул не стреляет вовсе: `ThreatAlertSystem` сканирует
+  только `world.Mobs`. Строка `"DangerSpotted:shark"` в таблице заведена
+  заранее и ждёт.
+- Кьюшки абьюза (§81) по-прежнему говорят чужими репликами (`angry_attack` /
+  `cry_corpse`) — своих групп на хекскуфе нет.
+- Попутно найдено сведением таблиц: `WitnessedMurder` рисовал 🦈 (`Sharks`) —
+  та же болезнь «картинка из соседней строки», что и собака на человека.
+  Теперь 💀 (`Death`); реплика осталась `cry_corpse`.
+
+**107.7 Golden trace: расхождение ЕСТЬ и оно осознанное.** `golden_trace.sh
+--preset decisions` на сидах 12345/424242/7 показывает дифф — но ровно и только
+в строках `STATE`: 4, 5 и 9 хешей из 20 на сид. Все прочие строки (2618 / 3192 /
+2791) совпадают байт в байт: ни одно решение, цель, план и событие не сдвинулись.
+Причина в том, что `StateHash` — отпечаток ВСЕГО снапшота через wire-кодек, а
+`SocialCueKind`/`SocialCuePeerId` — поля снапшота; переименование кью и смена
+пира обязаны менять хеш, ничего при этом не меняя в поведении. Различаются
+именно те тики, на которых штампуется кьюшка. Проверять так и надо:
+`diff <(grep -v '|STATE|' base) <(grep -v '|STATE|' head)` должен быть ПУСТ.
+## §108 Групповая охота — сговор против чужака (iteration 108)
+
+Кшиштоф (§72, §81) годами был безнаказан: колонистки умеют только уворачиваться
+(`ThreatAlertSystem`: «NEVER StartFirstStrike») и отбиваться, когда он уже бьёт.
+Проактивной мести в игре не было вовсе. §108 даёт её — но не как решение одной
+храброй, а как **решение кружка**: трое собрались поболтать, разговор свернул на
+него, и если его ненавидят ВСЕ, кто стоит рядом, болтовня становится сговором.
+Они бросают дела и идут бить его вместе, держась друг друга.
+
+Обычно это **взбучка, а не казнь**: набрали счёт ударов — отстали, он приходит в
+себя и ненавидит их сильнее, то есть в следующий раз берётся за нож (§91). Но
+исход не предрешён: та, чья ненависть перевалила за порог §86, пощады не даёт, и
+охота может кончиться его смертью — а он на острове один, и вместе с ним
+кончается вся линия §81. Это принятая цена, см. §108.6.
+
+Новой боевой машинерии НЕТ. Сговор — то же прерывание, что клич §57, первый
+удар §62, налёт §72.9 и абьюз §87 (аукцион для срочного не работает, доказано
+дважды). Сама расправа — «N ударов по одной цели» из `RaidSystem.PullDefenders`:
+каждой ставится `Mind.CombatOpponentNpcId`, и `HumanCombatSystem` даёт каждой
+СВОЙ таймлайн замаха (§104). Трое охотниц — три независимых замаха, а не три
+мгновенных удара в один тик.
+
+**108.1 Свидетельницы — недостающее звено.** Первая версия почти никогда не
+складывала сговор, и порог был ни при чём: сцена абьюза портила отношения ровно
+с ОДНОЙ девушкой, а он фиксируется на удобной жертве. Замер на арене §91: он
+довёл одну до `Affinity=-1.00`, пока две другие сидели на -0.35 и -0.42 —
+единогласию взяться было неоткуда. Теперь `FinishAbuse` роняет симпатию и
+доверие у КАЖДОЙ, кто видел сцену (`GroupHuntWitnessAffinityLoss = 0.18` в
+радиусе `GroupHuntWitnessRadiusTiles = 5`), меньше, чем у жертвы (0.35): видеть
+— не то же, что пережить. Прецедент рядом — §56 роняет симпатию у всех, кто
+видел убийство. Кьюшка `AbuseWitnessed` несёт ЕГО id, так что над свидетельницей
+всплывает его лицо.
+
+**108.2 Тема разговора — человек.** `TalkTopic.Stranger`, дописана в конец enum.
+Вес в розыгрыше = `GroupHuntTopicWeight (1.2) + GroupHuntTopicHateGain (1.5) ×
+ненависть пары`, и он РАВЕН НУЛЮ, пока не собрался кружок: тема не «редкая», её
+просто нет, пока условия не сложились. Это первая тема, у которой есть «о ком»:
+новое поле `NpcExecutionState.CurrentTalkTopicPeerId` → `NpcSnapshot.TalkTopicPeerId`
+→ вид берёт по id уже круглый портрет из `NpcPortraitCache` (§90) и ставит его в
+пузырь ВМЕСТО эмодзи. Лицо старше значка; значок (`angry_topic_grumble`) остаётся
+запасным на тот единственный игровой час, пока снимок ещё не сделан.
+
+**108.3 Сговор — единогласно.** `GroupHuntMath.TryFormPact` при общем розыгрыше
+темы: собралось ≥ `GroupHuntMinGirls (3)` в радиусе `GroupHuntGatherRadiusTiles`,
+у ВСЕХ `Affinity(он) ≤ GroupHuntHateThreshold (-0.5)`, он жив, не в воде (§106),
+не лежит, ни у кого нет кулдауна. Одна несогласная отменяет всё — это решение
+ВСЕХ, а не большинства: иначе она развалила бы группу на первом же
+перепланировании и «идут вместе» стало бы неправдой. Каждой: `PlanInterruption.
+Abort` → `CurrentGoal = GroupHunt` + `GroupHuntTargetNpcId` + `GoalLock` на
+`GroupHuntLockTicks (900)` (замок = весь бюджет охоты), кьюшка `GroupHuntPact` с
+его id (портрет всплывает и над третьей, которая ни с кем не говорила), трейс
+`GroupHuntPactFormed`.
+
+⚠️ Кулдаун проверяется В САМОМ сговоре, а не в аукционе: цель реактивная,
+аукцион её не спрашивает, и кулдаун цели её бы не удержал.
+
+⚠️ Собственного объекта «группа» НЕТ намеренно. Связь держится тем, что у всех
+одна `GroupHuntTargetNpcId`: распад группы тогда ничего не стоит (умерла,
+отстала, увели — просто выбывает из выборки), а сейв и провод не узнают о новой
+сущности вовсе.
+
+**108.4 Держатся вместе — задний шлюз, без лидера.** `BuildGroupHuntPlan`:
+цель = его текущий джанкшен, перечитывается КАЖДУЮ пересборку (отсюда живая
+погоня бесплатно, как у Defend за движущимся зверем). Если моя дистанция строго
+меньше, чем у САМОЙ ОТСТАВШЕЙ минус `GroupHuntSpreadTiles (2)` — стою и жду
+(`Plan.Status = Completed`, ноль шагов; идиома §29C.4B). Сравнение с хвостом
+группы, а не со средним: **хвост не ждёт никого никогда, поэтому взаимное
+ожидание невозможно по построению**, а не по счастливо подобранной ручке. Подход
+— свободный соседний узел с резервированием (`PickApproachJunction`; коммент там
+и ждал «a raiding party»). Скорость — `Hurry`.
+
+⚠️ План движения БЕЗ `Plan.TargetAgentId`: исполнитель отправляет любой план с
+этим полем в `RunTalk`, и охотница подошла бы к чужаку РАЗГОВАРИВАТЬ.
+
+⚠️ `RunMoveOnly` на прибытии обязан НЕ сбрасывать цель (ветка
+`GroupHuntContinues`, как §29F.2 у краба). Без неё охота разваливалась на первом
+же прибытии: он отходит на узел, две «пришли» и теряли цель, третья оставалась
+одна — `PartyCollapsed`, ни одного удара за три сговора подряд.
+
+**108.5 Расправа.** `GroupHuntSystem` (Medium, зарегистрирована МЕЖДУ
+`RaidSystem` и `HumanCombatSystem` — латч `IsFighting` должен быть последним
+словом после того, как `MobSystem` гасит флаг у всех). Каждой в `CanStrike`
+перезащёлкивается `IsFighting` + `CombatOpponentNpcId`. Его сторона: держит бой
+при ≤1 в досягаемости и здоровье ≥ `GroupHuntTargetFleeHealth (0.85)`, иначе
+бежит **в свой лагерь** (`FactionHomes`) — НЕ `MobSystem.TryStartFlee`, тот ищет
+ближайшее ПОМЕЩЕНИЕ, а стоя у них во дворе это их же хижина (те же грабли, что у
+`RaidSystem.BreakOff`). Бежать некуда — дерётся (`GroupHuntTargetCornered`).
+
+⭐ **Цель отбирает и ОН САМ — встречной сценой §81.** Сговор ставит метку охоты
+и цель `GroupHunt`; сцена абьюза, начатая им по дороге, уводит цель у той, кого
+он перехватил, и сметатель протухших меток распускал за это весь сговор. Замер,
+сид 313: сговорились на t6341, он берёт `Abuse` на t6364, хватает идущую к нему
+на t6392 — и охота не доходила до удара НИ РАЗУ. Расходиться в этот момент
+абсурдно: она уже дерётся ровно с тем, ради кого шли. Остаётся в охоте та, чья
+новая занятость — ОН (`CombatOpponentNpcId` или `PendingAbuseFrom` = цель); её
+удары и так засчитываются охоте, потому что `HumanCombatSystem` смотрит на
+метку, а не на цель, — «его бьют трое» продолжается само.
+
+⭐ **Притворился мёртвым (§105.14) — обман работает и на группу:** интерес
+теряют и расходятся, как §72 бросает налёт. Ветка стоит ОТДЕЛЬНО и выше правила
+ниже — именно в этом вся разница: честно лежащего добивают, притворившегося нет.
+Полученную взбучку он себе всё равно оставляет — обманом он спасся от
+продолжения, а не от уже случившегося.
+
+⭐ **Лежит живой — это не конец охоты, а самый её удобный момент.** Закрывает
+расправу только СМЕРТЬ цели; нокдаун закрывает её лишь тогда, когда он их
+собственный (есть удары). Иначе сговор распускал любой чужой нокдаун: на мире
+с §109 (честный ответный бой) и §110 (рыдание) чужак валяется часто, и все три
+сговора сида 313 кончились `SomebodyElseGotHim`, не начавшись — ушли ни с чем
+оттого, что пришли вовремя. Чужую победу по-прежнему себе не пишут: ноль ударов
+значит, что его достал кто-то другой, и расплата за расправу не выдаётся за
+чужую работу.
+
+⭐ **И у охотницы есть право убежать** — `GroupHuntHunterFleeHealth (0.6)` или
+худшая часть ниже `GroupHuntHunterFleeWorstPart (0.35)`, те же числа, что у
+жертвы налёта. Уходит ОДНА, своим решением; охота кончается не по команде, а
+когда в ней осталось меньше `GroupHuntMinRemaining`. Без этого клапана расправа
+шла до последней, и это не теория: он вооружён и сильнее каждой вдвое, так что
+первая же дошедшая тройка легла целиком — сид 42, три головы, разбитые мачете за
+700 тиков, колония 4→1 с одной охоты. Право убежать нужно ОБЕИМ сторонам, иначе
+«пошли втроём» значит «легли втроём».
+
+⚠️ Мерка отступления — **урон, полученный В ЭТОЙ расправе** (снимок здоровья и
+худшей части берётся на сговоре), а не абсолютное здоровье. С абсолютным порогом
+выбывала колонистка со старым рубцом на ноге: `Worst=0,28` при здоровье `0,84` —
+она уходила, не получив ни одного удара, то есть хромая не имела права даже
+подойти, и охота рассыпалась на подходе. Разницу вместо абсолюта считает §81.13 —
+там та же мысль про «кто проиграл».
+
+⚠️ И тогда же вскрылось, что **порядок проверок сам по себе решает исход**. Счёт
+ударов проверяется ПЕРВЫМ, раньше «кто ещё на ногах»: иначе добытая победа
+гасится тем, что случилось после неё — две охотницы отходят зализывать разбитое,
+группа падает ниже минимума, и `PartyCollapsed` пишет провал поверх шести уже
+всаженных ударов. Замер: сид 42 — 6 ударов, сид 313 — 7, при пороге 6, обе
+записаны в провал. Отступление ПОСЛЕ взбучки не отменяет взбучку.
+
+**Клапан был не виден, пока охота не работала.** До §108.12 тройка почти не
+доходила до контакта, и цена отсутствующего отступления не проявлялась ни в
+одном соаке. Починка погони и вскрыла её в тот же вечер — обычный порядок:
+сначала механика начинает случаться, и только потом видно, чего ей стоит.
+
+**108.6 Исход решает лестница ненависти, а не §108.** `Spec108.
+GroupHuntMercyHolds = false`: пол §86 работает как обычно, то есть каждая
+охотница решает за себя — кто дошла до `HatredAffinity (-0.6)`, бьёт насмерть,
+кто не дошла, отобьёт и отстанет. Так у расправы нет заранее известного конца, и
+это сознательный выбор: цена — чужак на острове один, и иногда линия §81
+кончается вместе с ним (замер: 2 охоты из 4 доводили до смерти на четвёртый-пятый
+день). Включить ручку — они бьют строго до «свалился», и он всегда встаёт.
+
+Отсюда же мера «побили»: убивать они не обязаны, а конец охоте нужен, поэтому
+успех считается ударами — `GroupHuntBlowsToRout (6)` по всей группе →
+`GroupHuntDone Reason=Routed`.
+
+⚠️ Условие остановки — ТОЛЬКО счёт, без «и он побежал». С этой добавкой
+загнанный в угол получал всё, что влезало в бюджет: сид 20260803 дал 131 удар
+при пороге 6 — забой, а не взбучка.
+
+⚠️ Свалился, а ударов НОЛЬ — значит его достал кто-то другой (волк, голод, чужая
+драка), и это `GroupHuntFailed Reason=SomebodyElseGotHim`, а не победа: иначе
+расплата за расправу выдавалась бы за чужую работу (поймано на сиде 313).
+
+**108.7 Концовки и расплата.** Удалась → стресс каждой −`GroupHuntStressRelief
+(0.25)`, взаимная симпатия охотниц +`GroupHuntBondAffinity (0.10)` (общее дело
+роднит), его симпатия к каждой −`GroupHuntTargetGrudge (0.30)` — это и есть его
+лестница оружия §91. Провал (истёк бюджет / нырнул / охотниц меньше
+`GroupHuntMinRemaining (2)`) → без расплаты. Оба пути → `GroupHuntCooldownTicks
+(3000)` каждой.
+
+⚠️ Метку охоты сбрасывает в `None` любой, кто перебивает её своим боем — волк
+(`MobSystem`) или он сам (`RaidSystem`), — и оба делают это МОЛЧА. Поэтому в
+`GroupHuntSystem` стоит уборка «метка есть, а цели нет» (`GroupHuntLeft
+Reason=GoalLost`), форма — сметание протухших ассистов из `RaidSystem`. Без неё
+охота растворялась без единого события: за шесть сидов ни одного `GroupHuntDone`
+и ни одного `GroupHuntFailed` при живых сговорах.
+
+**108.8 Карве-ауты у соседей.** `ThreatAlertSystem` не гнёт охотнице маршрут
+вокруг цели (иначе её же дозор водил бы группу кругами). `CombatHelpSystem` не
+перекидывает охотницу в `Defend` (конвой вместо расправы развалил бы группу).
+`HumanCombatSystem` знает третий вид «нападает» — иначе ЕЁ удары шли бы в лог
+как ответные, и расправа читалась бы как самооборона. `WorldSaveSerializer.
+SaveGoal` обнуляет `GroupHunt` при сохранении, как `Defend` и `Abuse`.
+
+§108 — единственное санкционированное исключение из «девушки не начинают
+первыми» (§72.6), и оно платит по обоим счетам: это осознанное коллективное
+решение (сплачивать к нему некого), и последствие принимается — при
+`OutsiderCount > 1` ралли ЕГО стороны против группы будет правильной семантикой
+§57, а не багом.
+
+**108.9 Ручки** (`Spec108`, зеркало в `OutsiderBalance.asset` + `simdata.json`):
+`GroupHuntEnabled` (true — выключено = поведение до-§108 БАЙТ В БАЙТ, проверено:
+прогон с выключенной ручкой совпал с базой по всем метрикам соака),
+`GroupHuntMinGirls` 3, `GroupHuntGatherRadiusTiles` 4, `GroupHuntHateThreshold`
+-0.5, `GroupHuntTopicWeight` 1.2, `GroupHuntTopicHateGain` 1.5,
+`GroupHuntMaxPactDistanceTiles` 40, `GroupHuntLockTicks` 900,
+`GroupHuntSpreadTiles` 2, `GroupHuntTargetFleeHealth` 0.85,
+`GroupHuntMinRemaining` 2, `GroupHuntCooldownTicks` 3000,
+`GroupHuntStressRelief` 0.25, `GroupHuntBondAffinity` 0.10,
+`GroupHuntWitnessAffinityLoss` 0.18, `GroupHuntWitnessRadiusTiles` 5,
+`GroupHuntBlowsToRout` 6, `GroupHuntMercyHolds` false, `GroupHuntTargetGrudge` 0.30,
+`GroupHuntHunterFleeHealth` 0.6, `GroupHuntHunterFleeWorstPart` 0.35.
+
+⚠️ `GroupHuntHateThreshold` (-0.5) держать ВЫШЕ `Spec86.HatredAffinity` (-0.6):
+между ними и живёт разница «пошла бить» и «пошла убивать». Сдвинуть порог
+сговора ниже -0.6 значит, что на охоту выходят только те, кто уже готов добить.
+
+**108.10 Замеры** (прототипный остров, 24000 тиков = 10 дней, шесть сидов).
+`GroupHuntGatherRadiusTiles` = 2 давал НОЛЬ сговоров на всех сидах: так близко
+трое не оказываются нигде, кроме тесной арены §91. На 4 — сговор на пяти сидах
+из шести (на шестом чужака убили в самообороне на пятый день, до того как
+ненависть успела накопиться), 1-2 сговора за 10 дней, охота доходит до ударов и
+кончается `Routed`. Смертельные исходы бывают и это ожидаемо (§108.6).
+Метрики соака против базы: застой 6.0% против 3.1%, но по целям это НЕ охота —
+`StuckDetected Goal=GroupHunt` ровно один за прогон, остальное прежний `Idle`, и
+разница объясняется тем, что колонисток доживает две вместо одной.
+
+**108.11 Что осталось.** Свои реплики на хекскуфе (сейчас тема берёт
+`angry_topic_grumble`, кьюшки — `angry_defend`/`angry_attack`); визуал портрета в
+пузыре в Unity не смотрели (сим-часть доказана трейсами); при `OutsiderCount > 1`
+поведение группы против нескольких чужаков не мерялось.
+
+**108.12 Погоня, а не прогулка к месту сговора.** Сторож устаревшего плана в
+`PlanningSystem.Run` — тот же, что у краба (§29F.2), только цель ходит на своих
+двоих через весь остров. План вёл на клетку, где чужак стоял В МОМЕНТ СГОВОРА
+(обычно у его лагеря), и держался до самого прихода: тройка добегала до пустого
+места, разминувшись с ним по дороге, и разворачивалась только там. Со стороны —
+как будто они его не узнали.
+
+Активный план роняется, как только перестаёт вести К НЕМУ: подход больше не
+соседний с его узлом ИЛИ она уже достала (`InteractionReach.CanStrike` — по
+дистанции удара, а не по соседству узлов, иначе она добегала бы до
+зарезервированной клетки, стоя в шаге от него). Брошенный подход при этом
+отдаётся сразу: тройка вокруг ОДНОГО делит шесть соседних узлов, и держать за
+собой те, что остались у его прежнего места, значит толкать подруг в
+`NoFreeApproachJunction` на срок жизни резерва.
+
+Замер: медиана от сговора до первого контакта **174 → 56 тиков**, максимум
+191 → 67.
+
+**108.13 Ярость расправы не даёт уснуть по пути (баг-трекер #12).** Дорога к
+нему — до `GroupHuntLockTicks` (900) тиков: аукцион заперт (она не может
+выбрать сон сама), `IsFighting` на подходе false (дренаж энергии идёт как
+обычно), а адреналин выдавался только жертвам урона — то есть после прихода,
+когда уже поздно. Взятая на последней энергии охота кончалась «вырубилась по
+дороге» (`FellAsleepExhausted` → `EndHunt GoalLost`, сговор растворялся).
+Теперь `GroupHuntSystem.Run` подпитывает каждой живой охотнице адреналин
+(`GrantAdrenaline "GroupHuntRage"`), когда осталось меньше половины окна, —
+зеркально одержимости самого абьюзера (§81.14 `AbuseObsession`, тот же приём и
+та же причина). Проверено на сиде 1036866042: гранты каждые ~44 тика от сговора
+до развязки, ни одного сна в пути, охота дошла до ударов.
+
+## §109 Свидетельницы вписываются сами, а бьющийся отвечает (iteration 109)
+
+**109.1 ⭐ Вписаться — решение, а не рефлекс.** Friend-guard §57 (29C.4B) тащил
+в драку любую соседку по одному порогу дружбы 0.25 — без оглядки на её шансы и
+состояние. Теперь `RallyFriends` взвешивает: симпатия к жертве (вес 0.45), свои
+шансы против ЭТОГО противника (0.35) — размен `AbuseMath.Force` против человека
+или константа `FriendGuardDogForce` против зверя, — собственное состояние (0.20,
+`min(Health, WorstPart)`), плюс бонус злости на самого обидчика (0.15, идея
+`AnswersBack`). Сумма против порога `FriendGuardDecisionFloor` (0.5) +
+детерминированный бросок **на окно боя** (`HelpCryCooldownTicks`), не на тик:
+`RallyFriends` зовут каждый средний проход, и по-тиковый переброс превратил бы
+любой порог в «рано или поздно да». Жёсткие гейты: `Health ≥
+FriendGuardHealthGate` (0.5), не `IsDying`, руки целы — умирающая и разбитая не
+лезет никогда. Прежний порог дружбы остался нижним фильтром для домашних свар
+(против чужака он снят §72-веткой, но веса решают и там). Работает для ЛЮБОГО
+атакующего: собака, чужак, хищница — источник один. Трассы: `FriendGuard`
+(Score/Roll/Edge), `FriendGuardDeclined` (троттл 64).
+
+**109.2 ⭐ Подруги наконец могут вступиться в сцену абьюза.** Найден и починен
+баг: `RallyFriends` со старта сцены ставил защитнице Defend, но метла ассистов
+RaidSystem требовала у атакующего строго `goal == Raid` — а у обидчика `goal ==
+Abuse` — и сносила ассист на первом же среднем тике. Параллельно `PullDefenders`
+работал только для налёта: даже уцелевшая защитница стояла рядом со сценой, не
+нанося ударов. Теперь метла терпит Raid И Abuse, латч-цикл сцены зовёт
+`RallyFriends` каждый средний проход (свидетельница пятого тика тоже видит
+драку) и тянет вписавшихся в бой тем же `PullDefenders`. Сбежались трое —
+работает старый клапан `AbuseBreakOffDefenders`: сцена рвётся, «девушки отбили».
+
+**109.3 Конец сцены расцепляет ВСЕХ.** `LeaveCombat` после `FightScene.End`
+отпускает каждую, кто был сцеплен с обидчиком (`CombatAssistAttackerNpcId`):
+`ClearAssist` + снятие боя + `ReleaseSwingSlot`. Без этого защитница оставалась
+в вечной драке с уже ушедшим (для `HumanCombatSystem` пара по
+`CombatOpponentNpcId` — это бой) до чужой метлы, которой могло не случиться.
+У зверей «отпустить всех» при смерти собаки уже было (две копии), при её
+бегстве ассист гаснет планом Defend — не трогали.
+
+**109.4 ⭐ Если тебя бьют — бей в ответ.** Сторону ЦЕЛИ не ставил никто:
+защитницы и охотницы §108 сцеплялись с чужаком, а он стоял под тремя ножами
+(или продолжал собирать палки, пока за ним бежали с оружием) и умирал, не вынув
+мачете. `RaidSystem.AnswerBlows` — общая, симметричная метла для всех людей:
+сцеплённый с тобой противник → бросай дела (`PlanInterruption.Abort`), доставай
+лучшее оружие (`ForcedMeleeWeaponId = null`) и отвечай ближайшему; погоня
+(Defend/GroupHunt с тобой как целью) в `AnswerReadyRadiusTiles` (3) → боевая
+стойка заранее. Не трогает: бегущих (клапаны §29C.4A/§108 сами решают, когда
+бегство становится боем), боевые цели с собственной сцепкой, обе стороны идущей
+сцены абьюза («не отвечает» — тоже решение, §100). Порядок: после MobSystem
+(гасит IsFighting у всех), до GroupHuntSystem (решение «квари бежит домой»
+имеет право перекрыть стойку). Следствие, увиденное сразу: чужак стал опасен —
+на сиде 816616098 он в ответной драке убил колонистку; это цена честного боя, и
+она задумана (§108.6 говорил то же про охоту).
+
+**109.5 Ручки** (все в `Spec57` + ThreatBalance.asset + simdata):
+`FriendGuardAffinityWeight/EdgeWeight/ConditionWeight/HatredBonus/DecisionFloor/
+HealthGate/DogForce`, `AnswerBlowsEnabled`, `AnswerReadyRadiusTiles`.
+
+**109.6 ⭐ §81.14: поход «докопаться» не перебивается ничем, кроме нокаута.**
+Три доработки по одному наблюдению («его колбасит: то докопаться, то посидеть,
+а под ударами защитницы он стоял, пока не упал»):
+
+- **Липкая цель.** Взял Abuse — идёт до конца, пока есть тяга: доступность в
+  аукционе держится самим фактом похода (`CurrentGoal == Abuse && Drive > 0`),
+  а не миганием `BestMark`/prowl — жертва, на миг вышедшая из поля зрения
+  §81.12, больше не роняет его в «посидеть» на полпути. Перебивает только
+  нокаут (без сознания решения не принимаются вовсе) и бегство.
+- **Под ударами отвечает, похода не бросая.** `AnswerBlows` для цели Abuse
+  ставит боевую пару (ответные удары через `HumanCombatSystem`), но НЕ трогает
+  план и цель. Первая версия (заморозка+сброс) рвала план каждый средний тик и
+  мигала «пить↔гнобить»; вторая (полное игнорирование) делала его грушей — он
+  стоял под ножами защитниц до нокаута. Сценой по-прежнему правит сцена.
+- **Одержимость = адреналин.** Пока цель Abuse, `GrantAdrenaline("AbuseObsession")`
+  продлевается на каждом среднем тике (когда осталось меньше половины окна) —
+  поход, взятый на последней энергии, не кончается «вырубился в трёх гексах от
+  жертвы». Энергетический пол адреналина уже существовал (§48.6) — просто
+  одержимость стала его законным источником.
+
+Диагноз «зависание, стояли друг напротив друга, его били — он стоял» оказался
+двухслойным: игрок наблюдал сборку ДО чистки призрачных пар (§109.4 — стойка от
+несуществующего боя), а после чистки оставалась дыра «груша» — обе закрыты.
+Проверено соаком: сцены каждые ~1000 тиков (729/1924/3015/4230/5140 на сиде
+816616098), нулевой `StuckDetected` за 20 000 тиков, медиана удержания цели 17.
+
+**109.7 ⭐ §81.15: жертва чувствует приближение, слёзы вернулись.** Два
+наблюдения из игры, оба — хвосты §109:
+
+- **«Рубит кокос, пока на неё бегут».** Дела жертва бросала только в момент
+  старта сцены. Теперь `RaidSystem.BraceMarks`: заявленная метка
+  (`PendingAbuseFrom`) при обидчике ближе `AnswerReadyRadiusTiles` (3) бросает
+  занятие (`MarkBraces` в трассе), встаёт в стойку и разворачивается к нему
+  лицом (`FaceOpponent`, теперь internal). Пары НЕТ намеренно — пара в
+  `HumanCombatSystem` означает замах, а «ждать, что он сделает» — не «ударить
+  первой»; решение отвечать остаётся за сценой (`AnswersBack`). Сцена началась
+  — braces отключаются, правит сцена.
+- **«Слёзы после сцены пропали».** Рут §81.13 жил только в `FinishAbuse`, а
+  после §109 самым частым исходом стал срыв «Outnumbered» — защитницы рвут
+  сцену, и жертва как ни в чём не бывало возвращалась к кокосу. Слёзы «сломались»
+  ровно в день, когда заработали защитницы. Теперь `AbortAbuse` при СОРВАННОЙ
+  идущей сцене (интеракция Abuse была активна) рутит жертву тем же путём:
+  `AbuseFledHome` (плач + sadWalk + реплика) и бегство в лагерь. Не рутится
+  утонувшая в бессознании (`MarkGone`) и уплывшая (`MarkSwimming`) — бежать
+  некому/незачем. Проверено: 10 доигранных сцен = 10 рутов, braces за ~37
+  тиков до сцены (692 → 729).
+
+**109.8 Разбитый выходит из размена, а гейт §108 признаёт раннюю развязку.**
+Два следствия честного боя, вскрытые гейтом `GroupHunt_LandsBlows`:
+
+- **Клапан отхода в AnswerBlows.** «Бей в ответ» без «отступи, когда разбит»
+  было смертным приговором: у налёта есть BreakOff (0.55), у квари охоты —
+  бегство при 0.85, а отвечающий дрался до разбитой головы. Теперь при
+  `Health < RaidFleeHealth` он выходит из размена и бежит домой
+  (`TryFleeToCamp`). Одержимого (цель Abuse) клапан НЕ трогает — его
+  перебивает только нокаут (§81.14), и это буквально сыграло на сиде 313:
+  одержимость с Drive 2.85 повела его на сцену при Ratio 0.67 против
+  вооружённой, та ответила, подоспевшая подруга добила (§86: ненависть
+  ≤ −0.6 снимает пощаду).
+- **Гейт §108 дополнен**: смерть чужака от рук колонистки ДО сговора — не
+  провал охоты, а её более ранний финал. Та же ненависть, что копится к
+  сговору, снимает пощаду в обычной драке — на быстрых сидах правосудие
+  успевает раньше топора толпы. Гейт проходит по любому из двух исходов;
+  чистая механика сговора по-прежнему заперта юнитами GroupHuntTests.
+- **r2 (баг-трекер #13): загнанный в свой лагерь ДЕРЁТСЯ, а не шаркает.**
+  Свой джанкшен занят самим собой, так что стоящему В лагере
+  `TryFleeToCamp` отдавал соседний свободный узел: «бегство» удавалось
+  каждый средний тик, клапан съедал его ход — и разбитого (`Health` ниже
+  0.55 — «не атакует при <50 хп» глазами игрока) били в его же дворе, а он
+  не отвечал ни разу. Guard «дом должен быть ДАЛЬШЕ, чем стоишь»: бегство,
+  не приближающее к якорю, возвращает false, и клапан проваливается в
+  ответный бой — форма §108 `TryFleeHome`, где `refuge.Equals(from)` стоял
+  с самого начала. Заперто `CorneredAnswerTests`. Заодно фильтр целей
+  `AnswerBlows` научился `IsPlayingDead`: клапан ставил лежащему притворщику
+  цель Flee — скольжение лёжа через задний ход (грабли бага #7,
+  PLAYDEAD_SPEC).
+
+---
+
+## §110 Стресс — это слёзы, а не обморок (iteration 110)
+
+**Проблема.** Крах §40.13 был один на три причины: добитая стамина ПЛЮС одно из
+«на краю» — голод ≥ 0.9, кровь < 0.25 или **стресс ≥ 0.95**. Все трое падали
+одинаково: `Fainted`, 80 тиков беспамятства, цепочка падения `FallDown → Sleep`.
+Для голода и крови это верно — тело физически выключается. Для стресса это
+неправда: она не теряет сознание, она **ломается**. И читалось это неверно
+вдвойне — рухнувшую от нервов было не отличить от истёкшей кровью.
+
+**110.1 Развилка.** Ветка стресса ушла из обморока в своё состояние. Условие
+теперь: стамина ≤ 0.01 И `Stress ≥ 0.95`, И она не в коме и не умирает (то
+глубже и вытесняет слёзы). Голод и кровь остались на прежнем `Fainted` — ни
+порог, ни длительность, ни поза у них не изменились.
+
+| | Обморок §40.13 | **Слёзы §110** |
+|---|---|---|
+| Причина | голод ≥ 0.9 или кровь < 0.25 | стресс ≥ 0.95 |
+| Поле | `Mind.FaintedUntilTick` (+80) | `Mind.CryingUntilTick` (+`CryingBreakdownTicks`, 240) |
+| Событие | `Fainted` | `CryingBreakdown` |
+| В сознании? | нет (`IsUnconscious`) | **да** — говорит, её слышно, боль обрывает |
+| Тело | падает: `FallDown → Sleep` | **ложится**: `LieDown → Sleep → GetUp` |
+
+**110.2 Она в сознании — и это главное.** `IsCrying(tick)` намеренно НЕ входит в
+`IsUnconscious`: иначе три десятка читателей (бой, перцепция, речь, помощь)
+молча приняли бы её за выключенное тело и заткнули бы ей рот — а всхлипы и есть
+смысл сцены. В `IsLyingDown` она входит: лежит, разворачивать её к подошедшей
+нельзя, и помощь обязана вставать рядом на колени. Решения на время плача
+выключены (`DecisionSystem`), стамина восстанавливается как при обмороке, а сам
+плач сбрасывает стресс чуть быстрее обычного покоя — выплакаться помогает.
+
+**110.3 Выходы три.** По таймеру (240 тиков); **от боли** — любой урон обнуляет
+`CryingUntilTick` мгновенно (волчий зуб убедительнее любого стресса, тот же
+принцип, что будит истощённую в §60 r2); и **от утешения** — завершённый
+`AidKind.Console` укорачивает плач на `Spec53.ConsoleCryingReliefTicks` (120)
+сверх обычного снятия стресса.
+
+**110.4 Утешение стало отдельным делом.** Пока она плачет, `AidAssessment`
+держит для неё срочность Console на полу 0.55 — иначе помощница разворачивалась
+бы на полпути, едва слёзы сами сбили стресс ниже порога 0.6. Дойдя, она больше
+не изображает крафтовый присед: у Console своя цепочка **PrayDown → Pray →
+PrayUp** (`PrayingParam`) — опустилась на колени, помолилась за неё, встала.
+Остальные виды помощи (накормить, напоить, перевязать) остались на CraftWork:
+там руки и правда работают. И свои слова: `ConsoleOther` больше не берёт общую
+реплику помощи `happy_aid_give`, а говорит `happy_console` («ну не плачь») со
+своим значком 🫂 `Console`.
+
+**110.5 Клип входа в молитву запечён реверсом.** Mixamo дал два такта — «молится»
+и «встаёт с молитвы»; «опускается» не существовало. Отрицательной скорости
+состояния в проекте нет ни одной, и заводить её нельзя: поверх стейта лежит
+глобальный `_animator.speed = _animSpeed * _simSpeed` (пауза, фаст-форвард), и
+реверс под ним ведёт себя непредсказуемо. Канон здесь — **три честных клипа**
+(ровно как `LieDown → Sleep → GetUp`), поэтому вход развёрнут ОДИН раз
+headless-Blender'ом по ключам (зеркалятся и ручки Безье, без пересэмплинга) в
+`X Bot@Praying Down_once.fbx`. Проверено по позам: первый кадр «опускается»
+совпадает с последним кадром «встаёт» до третьего знака.
+
+**110.6 Вход в цепочку — явными переходами, не через AnyState.** Тот же капкан,
+что в §105.10: условие «Praying == true» истинно всю молитву, и AnyState дёргал
+бы её из лупа обратно во вход бесконечно. Из лежачих состояний входа нет —
+молится та, кто пришла на своих ногах.
+
+**110.7 Как это видно.** Поза плача — **вторая поза сна** (`NpcAnimSet.sleep[1]`,
+свернулась на боку), одна на всех и НЕ по id: тут важно узнать состояние, а не
+характер (личная поза сна вернётся, как только плач кончится). Лицо держит
+гримаса плача постоянно (`NpcFaceAnimator.SetCrying`) — не вспышкой на длину
+реплики, иначе оно гасло бы между всхлипами. Чип эффекта `Crying` 😭 вытесняет
+`Stressed`. И каждые ~25 секунд (слой Ambient) — слёзный значок 😭 со всхлипом
+голосом: `cry_breakdown`, новая группа хекскуфы, все пять голосов.
+
+**110.8 Заодно закрыта дыра §81.13.** Реплика `cry_beaten` (сбежала домой в
+слезах после проигранной сцены абьюза) была прописана в `SpeechCatalog` с
+обещанием «фолбэк на банк cry сработает сам» — фолбэка не существует: вторая
+ступень ищет `voice_<char>_cry`, а таких файлов нет ни одного. Полтора года это
+был немой пузырь. Теперь у группы есть секция в §7 и свои файлы.
+
+---
+
+## §111 Обобрать беспомощного врага (iteration 111)
+
+**Проблема.** Между двумя работающими механиками зияла дыра ровно в форме
+человека. §81 отсеивает беспомощную ЕЩЁ ДО скоринга — «она взвесила силы и
+сдалась» требует, чтобы она была в сознании. §28.15F умеет только мёртвых. А
+между ними — живая, но выключенная: в коме, умирающая, в обмороке, с ножом в
+кармане и мачете за поясом. Мимо неё проходили и не наклонялись. Хуже того,
+мачете §79 нельзя скрафтить, и в колонию оно попадало ровно одним путём — с
+трупа чужака, то есть только если его сумели убить.
+
+**111.1 Мотив.** Увидел ВРАЖДЕБНОГО (§72, `FactionRelations.AreHostile`) и
+БЕСПОМОЩНОГО — бросил дела и пошёл обыскивать. Беспомощность здесь — строго
+`NPCState.IsUnconscious`: кома §60, умирание §105, обморок §40.13. Это ровно те
+три состояния, в которых тело точно не ответит.
+
+Симметрия обязательна: не «злодей обирает жертву», а правило мира. Колонистка
+обчищает вырубленного чужака так же, как он — её. Этим и закрыт голод по
+мачете: свалили — разоружили.
+
+Спящие и плачущие §110 под механику НЕ попадают, и это не недосмотр. Обе в
+сознании, обе способны среагировать; тихий грабёж спящей — другая механика,
+кража §40.5. `IsCrying` в `IsUnconscious` не входит по той же причине, по
+которой §110 не пустила её туда изначально.
+
+**111.2 Что берёт.** По одной вещи за такт, из `Inventory.Items` — туда же
+входит и подсумок §52.8 (`HolsterSlotIds` — производный набор id, а не второе
+хранилище, поэтому снимать из кобуры отдельно нечего). Порядок:
+
+1. **оружие** — по убыванию `GearCatalog.MeleePriority`;
+2. **инструменты** — категория `Tool`;
+3. остальное.
+
+Надетое (`WornItems`) НЕ снимает: раздевание тел — это §28.15F, и оно про
+мёртвых. «Хоп-хоп» по карманам и ушёл.
+
+Вода из фляги остаётся на жертве: заряды живут на теле (`BottleCharges`), а не
+на вещи, — сама фляга уезжает как обычный предмет. Асимметрия ровно та же, что
+у лута трупа сегодня; чинить её здесь намеренно не стали.
+
+**111.3 Обезоружить — это отдельная ценность.** Забирается ВСЁ оружие, даже
+заведомо хуже своего: смысл не в приобретении, а в том, что очнувшийся встанет
+безоружным. Поэтому `NextSpoil` не спрашивает `AddsValueOver` — этот вопрос
+задаётся один раз выше, в ставке: у лежащего оружие мощнее моего →
+`LootHelplessWeaponBonus`. Мотив «защита» выражен именно так, а не новой
+потребностью: отдельной нужды «безопасность» в модели нет, и заводить ось ради
+одной цели дороже, чем она стоит.
+
+**111.4 Сцена.** Жертва — не объект мира, поэтому общий путь планирования
+(перебор `Perception.Objects`) не годится, и сцена собрана по образцу §81:
+план move-only с `TargetAgentId`, подход до ударной дистанции
+(`InteractionReach.CanStrike`), дальше такты на месте. Взаимодействие —
+существующий `InteractionType.Loot` (присел), новый глагол не заводился.
+Жертва закрепляется за одним лутером (`PendingLootedBy`), иначе двое садятся
+на одно тело.
+
+**111.5 Аборты.** Очнулась (`IsUnconscious` стало false) — встал и отошёл,
+короткая передышка; дальше с ней разбираются обычные контуры (§72 налёт, §81
+сцена, бегство). Умерла под руками — сцена рвётся, и с этого места её
+подхватывает штатный §28.15F по якорю трупа. Не влезло в рюкзак — конец сцены,
+а не провал плана.
+
+Реакция очнувшейся в v1 отсутствует НАМЕРЕННО: она была без сознания и не
+видела, кто её обобрал. Узнаёт по пустому рюкзаку.
+
+**111.6 Ручки** — `Spec111`: выключатель (выключенная цель ведёт себя как всякая
+недоступная — ставка ноль; в трассе строка `GoalScored` остаётся), базовая ставка (0.85 → 0.95 в сумме:
+выше быта и скорби, ниже аварийных нужд), прибавка за оружие, радиус
+знания (6, как §81), тиков на вещь (10 — вдвое быстрее лута трупа: обмороки
+коротки, и только этот темп успевает снять больше одной вещи), два кулдауна
+и потолок сцены.
+
+**111.7 Как это видно.** В истории колонии — одно событие на СЦЕНУ,
+`StrippedHelpless` (по событию на вещь залило бы ленту). Трассы
+`LootHelplessStarted / Took / Blocked / Aborted / Abandoned` остаются
+внутренними. Поза — штатный крауч `Loot`; свой клип «присел над телом» —
+pending.
+
+## §112 Пальма не заслоняет кадр (iteration 112)
+
+**Проблема.** Камера §20 — орбита вокруг колонистки, и остров засажен пальмами
+на 1:1 размер. Стоит подвести камеру ближе или крутануть орбиту — и объектив
+оказывается ВНУТРИ кроны: половину экрана занимают листья, за которыми не видно
+ни персонажа, ни того, что она делает. Ручного «выключить растительность» тоже
+не было.
+
+**112.1 Правило — срез по ГЛУБИНЕ, а не по лучу.** Точка слежения делит мир
+надвое. Всё, что помечено как ЛИСТВА и стоит БЛИЖЕ к объективу, чем колонистка,
+на этот кадр убирается — независимо от того, попадает оно в луч взгляда или
+нет. Всё, что на её глубине или ДАЛЬШЕ, не трогается никогда: роща, в которую
+она идёт, остаётся рощей.
+
+Глубина считается проекцией на ось взгляда камеры (`Dot(pos - lens, forward)`),
+и берётся она от КОРНЯ вида — от подножия ствола, а не от качающейся кроны.
+Тогда вердикт совпадает с тем, что игрок читает по земле: эта пальма стоит
+перед ней. Порог сдвинут на `_focusClearance` (1 wu) вперёд от неё, чтобы
+пальма, которую она рубит, не исчезла из-под топора.
+
+Второе условие поверх среза: убирается и то, что просто прижато к объективу
+(`_lensClearance`) — крона, укоренённая ЗА ней, всё ещё может свисать в
+объектив. Именно этот случай — камера влезла в крону — и давал экран из
+листьев.
+
+**112.1a Когда персонажа нет.** Срез требует субъекта. В свободном режиме
+камера висит над землёй, пивот лежит на грунте — и «всё, что ближе пивота»
+означало бы при виде сверху весь остров разом. Поэтому без выбранной
+колонистки (`RtsCameraController.HasFramedSubject` = false) правило другое:
+чистится только линия взгляда до пивота (`Bounds.IntersectRay` по мировым
+`bounds` рендереров — коллайдеры и физика не нужны, их у видов нет).
+
+**112.2 Убрать ≠ удалить.** Скрытие — это `ShadowCastingMode.ShadowsOnly`, а не
+выключенный рендерер: тень пальмы остаётся лежать на песке, поэтому земля не
+теряет пятнистый свет и пропадает ровно то, что мешает. Исходный режим каждого
+рендерера запоминается, так что деталь, авторски нарисованная БЕЗ тени,
+возвращается без тени.
+
+Решение пересчитывается каждый кадр — ничего не «выключено насовсем». Отошёл
+на шаг — пальма на месте. Задержка возврата (`_restoreDelay`, 0.15 с) —
+антимерцание: лист, чиркнувший по линии на один кадр, не должен моргать.
+
+**112.3 Что считается листвой.** `FoliageOccluder.IsFoliage`: `tree.*`,
+`resource.palm_crown*`, `plant.yucca`. Камни, костры, кровати и тела НЕ
+прозрачны никогда — растворяющаяся мебель читается как баг рендера, а не как
+любезность.
+
+Листва на глубине самой цели не убирается (`_focusClearance`): пальма, под
+которой она стоит, и та, которую она рубит, остаются на месте.
+
+**112.4 Как подключено.** Ровно двумя нитками, без нового прохода по миру:
+`HexWorldRenderer` при создании вида вешает маркер `FoliageOccluder` (он сам
+регистрируется в статическом списке и снимается с учёта в `OnDestroy`, поэтому
+сваленная §54 пальма уходит из списка сама), а `CameraFoliageCuller` на главной
+камере раз в кадр опрашивает этот список. Порядок исполнения 200 — culler
+считает ПОСЛЕ контроллеров камеры, то есть по той позе, которую кадр и
+нарисует. Выключатель — `CameraFoliageCuller.Enabled`; погашенный вернёт всё на
+следующем кадре.
+
+## §113 Лечь рядом, а не внутрь (iteration 113)
+
+**Проблема.** Мир и тела стоят на одних и тех же гексах, но «куда лечь» знало
+только про тела. §60.2a клал упавшую в геометрический центр гекса, §29G r3
+расширил центр до ШЕРЕНГИ из трёх мест — и оба правила считали центр свободным,
+если на нём никто не лежит. А в центре гекса горит костёр (§66: одна постройка
+на гекс, ровно в середине), лежит валун, стоит кровать. Вырубившаяся у костра
+ложилась В КОСТЁР. Вторая половина той же дыры — трава: сон, кома и обморок
+свой гекс приминали, а рыдающая (§110) лежала в нетронутой траве, потому что
+союз лежачих состояний был выписан от руки во второй раз и разошёлся.
+
+**113.1 Правило.** Гекс с крупной вещью НЕ запрещён для лежания — запрещена
+сама вещь. Место ищется тем же единственным алгоритмом шеренги (§29G r3),
+только занятым считается ещё и то место, куда вещь физически не пускает.
+Костёр стоит в центре ⇒ центральное место занято ⇒ тело ложится сбоку, слева
+или справа, ровно как ложится вторая девушка рядом с первой. Уходить с гекса
+костра нельзя: она вырубилась ЗДЕСЬ.
+
+**113.2 Поворот — часть ответа, а не украшение.** Лежащее тело — прямоугольник
+(≈1.32 × 0.36 wu), и в этом весь смысл: валун сбоку закрывает одну ось гекса и
+оставляет открытой перпендикулярную. Поэтому решатель перебирает не только
+места, но и КУРС: сначала курс шеренги (свой, приснапленный к оси гекса, кратной
+60° — или тот, что задала первая легшая), затем ±60°, ±120°, 180°. Первое
+чистое сочетание «курс + место» и есть ответ. Диск вместо прямоугольника этой
+разницы не увидел бы, и поворот стал бы бессмысленным.
+
+**113.3 Физический радиус ≠ ObstacleRadius.** `ObstacleRadius` — про
+ПРОХОДИМОСТЬ, и у костра это 0.55R угольного кольца (§47), сквозь которое не
+ходят, тогда как сам огонь втрое уже. Мерить лежание им значило бы выгнать тело
+с гекса костра целиком. Поэтому у определения есть отдельный
+`ObjectDefinition.SolidRadius` — габарит САМОЙ вещи. Лестница:
+
+| источник | когда | пример |
+|---|---|---|
+| `SolidRadius` | задан явно | костёр 0.30R, валун 0.25R |
+| `ObstacleRadius` | вещь `Obstacle`, и её радиус честный | кровать 1.39 wu |
+| пол `Spec49.LieSolidRadiusFloorFactor` | вещь `Obstacle` без габарита | пальма, любая новая |
+| 0 (не мешает) | вещь не `Obstacle` | инструмент, кокос, куча волокна |
+
+Пол — это и есть «залёт на будущее»: новая крупная вещь, помеченная `Obstacle`,
+обходится СРАЗУ, ничего для неё дописывать не надо; свой `SolidRadius` нужен
+только там, где габарит и проходимость расходятся. Строящийся сайт меряется по
+тому, ЧЕМ СТАНЕТ (как в `SetObstacleBlocking`): на площадке уже лежат брёвна
+будущей кровати.
+
+**113.4 Где живёт.** `Runtime/Helpers/LyingSpot.cs` — вся геометрия (порядок
+мест, повороты, габарит тела, радиусы вещей). `ExecutionSystem.LieDownCentered`
+остаётся ЕДИНСТВЕННЫМ входом («тело ложится на землю») и только записывает
+решение в NPC, так что все пути — сон на земле (§29G), обморок (§40.13), кома и
+умирание (§60/§105), притворство (§105.14), слёзы (§110) — получают правило
+разом. Трасса `LieDownBerth` теперь несёт `Fit=Clear|Stacked`: `Stacked` = гекс
+забит и легли как до §113 (лучше лечь неудачно, чем не лечь вовсе).
+
+Ручки — `Spec49`: `LieAroundObstacles` (выключатель: ровно поведение §29G r3,
+тело ложится в костёр), `LieBodyLengthFactor` / `LieBodyWidthFactor` (габарит
+тела долями HexRadius), `LieSolidRadiusFloorFactor` (пол из таблицы выше).
+
+**113.5 Трава — тот же список состояний.** «Она сейчас на земле?» — ОДИН
+предикат `HexWorldRenderer.IsLyingDown`, и им же мнётся трава (§20.16). Разбор
+по позам (какой цепочкой ронять тело) остаётся в `SyncActorView`, но союз его
+лежачих веток обязан совпадать с предикатом; ползущая (§50) входит в предикат
+намеренно — она тоже волочится по земле, просто гекс под ней гаснет, а
+пройденный отрастает.
+
+**113.6 Гейт.** `Tests/…/Behavior/LyingSpotTests.cs` — арена, не соак (вопрос
+«дошло ли до дела», а не «сколько раз за восемь дней», CLAUDE.md): пустой гекс
+даёт ровно центр (инвариант §60.2a цел), на гексе костра тело не задевает огонь
+и не уходит с гекса, валун обходится по полу радиуса, выключатель возвращает
+поведение до §113, а две легшие по-прежнему лежат параллельно на разных местах
+(§29G r3 не сломан).
+
+**109.9 Рыдания уступают опасности; последний удар доигрывает (§104 r12).**
+
+- **§110 + §81.15**: рыдающая от стресса лежала и лишь поворачивалась вслед
+  подбегающему обидчику — braces разворачивали тело, но плач держал её на
+  земле. Теперь приближение обидчика ОБРЫВАЕТ рыдания (`CryingUntilTick = 0`
+  в `BraceMarks`, трасса `MarkBraces CutCrying=True`) — она встаёт, берёт
+  оружие и ждёт в стойке. Боль уже обрывала плач (WoundMath); опасность —
+  вторая законная причина. Обход §105.14 «выплакалась → играет мёртвую»
+  сознательный: сброс минует ветку play-dead, потому что стойка и есть её
+  ответ на угрозу.
+- **§104 r12**: приговор сцены наступал В МОМЕНТ попадания последнего удара —
+  а хит ложится в середине клипа. `FightScene.End` тем же тиком гасил пару и
+  `ForcedMeleeWeaponId`: прострелка обрывалась, оружие в руке меняалось на
+  глазах («начал кулаком — закончил ножом, и удара не видно»). Теперь
+  `OnBlowLanded` на последнем ударе штампует `SceneLastBlowRestTick` (полный
+  клип от хита), и такт 4 ждёт его вместе с `IsComplete`; потолок
+  `AbuseBeatVerdictTicks` остаётся страховкой. Сцена стала длиннее на хвост
+  одного клипа (~5 тиков).
+
+## §114 Баг-трекер в игре (iteration 114)
+
+Микро-джира между игроком и агентом, не выходя из Play: кнопка **Bug tracker**
+в левой дебаг-панели открывает окно, где игрок текстом описывает баг и жмёт
+«Отправить». Хранилище — **`BUGS.json` в корне репозитория** — ЕДИНОЕ для
+редактора, билда и агента: билд находит репо по известному пути (переопределить
+можно ключом `-hexlive-bugs <path>`), и только на чужой машине без репо падает
+в `persistentDataPath`-песочницу (её `nextId` начинается с 1001, чтобы id при
+ручном слиянии не пересекались). Источник правды один: игра перечитывает
+файл по mtime раз в ~2 с, так что правка агента снаружи видна без перезапуска.
+
+**114.1 Жизненный цикл.** `created` (СОЗДАН, янтарный) ставит игра при
+отправке → агент в сессии чинит и ставит `fixed` (ИСПРАВЛЕН, зелёный) плюс
+комментарий `author:"claude"` о том, что сделано → игрок либо удаляет запись
+(принято; удаление двухкликовое — «Точно удалить?»), либо жмёт «В доработку»
+и возвращает с комментарием — статус `rework` (ДОРАБОТКА, красный). `rework`
+для агента равен `created`: это очередь «разобрать». Записи удаляет ТОЛЬКО
+игрок; агент статусы двигает, но строк не стирает.
+
+**114.2 Контекст репро — автоматом.** Каждая отправка прикладывает
+`seed=… tick=…` (+ `npc=…`, если кто-то выбран) — строку, которую иначе
+пришлось бы выпрашивать. Показ мелким серым под текстом бага.
+
+**114.3 Сигнал «починено».** Кнопка в дебаг-панели дописывает хвост
+`(N fixed)` — количество записей в статусе `fixed`, т.е. «агент что-то закрыл,
+глянь». Обновляется лениво (раз в 2 с, mtime-чек).
+
+**114.4 Схема файла.** `{ nextId, reports:[{ id, createdUtc, status, text,
+context, comments:[{ whenUtc, author:"user"|"claude", text }] }] }` — читается
+и пишется `JsonUtility`, красиво отформатирован, пригоден для ручной правки.
+Неизвестный статус рендерится серым, а не ломает окно (форвард-совместимость).
+
+**114.5 Код.** `UI/BugReportStore.cs` (модель + файл), `UI/BugReportPanel.cs`
+(окно), кнопка в `DebugControlsPanel`, wiring в `PrototypeRuntimeBootstrap`.
+Дебаг-UI, поэтому вне правила §58 про I2 (как и вся дебаг-панель). Голосовой
+ввод — задумано, пока не сделано.
+
+**109.10 Бегство расцепляет бой — «скользота» первой атаки.** Наблюдение из
+игры: девушка достаёт нож, бьёт — и её тело скользит прочь в атакующей позе,
+не переставая махать; обидчик бежит следом. Причина: конструкторы бегства в
+MobSystem (`TryStartFlee`, `TryFleeToCamp`) гасили `IsFighting`, но НЕ
+расцепляли боевую пару — а живой `CombatOpponentNpcId` это замахи от
+`HumanCombatSystem` при любой позе. План бегства вёз тело, замахи продолжались,
+вид честно рисовал обе половины разом. §108 в своём `TryFleeHome` пару
+расцеплял с рождения — теперь все три конструктора бегства делают одно и то же
+(`CombatOpponentNpcId = null` + `ReleaseSwingSlot`, урок §104 r7). После §109
+пары ставятся куда чаще (ответные бои, защитницы), поэтому дыра, жившая годами,
+стала видна на первой же атаке.
+
+**109.11 ⭐ Стойка пятится, но не уезжает — настоящая «скользота».** Первый фикс
+(§109.10, расцепление бегства) закрыл свой класс, но игрок видел то же самое —
+и проба, читающая ЖИВОЙ СЕЙВ (заголовок HXLV + WorldSaveSerializer.Read, а не
+worldgen с нуля), поймала настоящего виновника: `HoldStandOff` §72.5. Отжим
+стойки двигает Position, а Junction стоит на месте — и предела дрейфа не было.
+Против непрерывно наступающего противника (его подход закрывает зазор каждый
+тик) отжим превращался в караван: она скользит в боевой позе через полкарты,
+«убегая» без единого шага, он бежит следом; Кшиштоф так же скользил прямо
+посреди сцены. Дыра §72.5 жила с рождения — §109-пары (защитницы, ответные
+бои) сделали её видимой на первой же атаке.
+
+Фикс: стойка не отступает дальше `MeleeHoldMaxDriftWorldUnits` (0.75) от
+СВОЕГО узла — упёрлась, значит стоит (за спиной может быть обрыв, которого
+Position-глайд не видит). Замер на сейве: караваны по 8+ тиков исчезли,
+остались штатные шаги назад ≤4 тиков в пределах кольца.
+
+Урок метода: «воспроизвести текущую симуляцию» = прочитать ТЕКУЩИЙ СЕЙВ.
+Worldgen с тем же сидом — другой мир, если сейв не с нулевого тика; проба
+сейва стоила 30 строк и нашла за минуту то, что три чтения кода пропустили.
+
+**109.12 ⭐ Скольжение — это ТЕЛЕПОРТ ПЛЮС СГЛАЖИВАНИЕ, а не бегство.** Три
+круга правок по симуляции («расцепить бегство», «ограничить отжим стойки») не
+убрали симптом, потому что чинили не ту половину. Замер на ЖИВОМ СЕЙВЕ игрока
+показал форму беды: почти все «глайды» — **один тик, 0.37…1.64 wu**, то есть
+не скольжение, а СКАЧОК позиции при `IsMoving=false`, у всех подряд и на любых
+целях (Sit, Aid, LootHelpless, Abuse). Симуляция переставляет тело напрямую в
+доброй дюжине мест — укладка на лежанку §29G (`LieDownBerth`), приземление
+прыжка, доводка до места работы, спасение с непроходимого тайла, отжим стойки
+§72.5 — и это законно. Незаконно другое: **вид интерполирует ЛЮБОЙ скачок**
+(`HexWorldRenderer.InterpolateViews`, `Vector3.Lerp(prev, curr, alpha)` за
+0.25 с), поэтому перестановка рисуется как плавный проезд без единого шага, а
+поверх играет та поза, которую сим объявил, — боевая. Отсюда ровно то, что
+видел игрок: «бьёт, скользит и бьёт, он бежит следом».
+
+Фикс — одно правило в одном месте (`TeleportSnapWorldUnits` = 0.25): НЕ идёт
+(`MovementStatus` не `Moving`/`Arrived`) и прыгнул дальше — значит это
+перестановка, и она мгновенная (`prev := curr`, интерполировать нечего).
+Ходьба и последний шаг сглаживаются как прежде — там шаг настоящий, и
+плавность это и есть походка; мелкий дрейф стойки (≤0.25 wu за тик) тоже
+остаётся плавным, это шаг назад, а не рывок.
+
+**Вторая половина — зависшая пара.** `CombatOpponentNpcId` это вечные замахи
+от `HumanCombatSystem`, а подметалась пара только по ассисту
+(`CombatAssistAttackerNpcId`) и только в конце сцены. Сцепка от «бей в ответ»
+§109.4 ассиста не имеет — противник ушёл, умер или перестал драться, а
+ответившая осталась молотить воздух в боевой позе. Теперь в `AnswerBlows`
+стоит ОДНА метла на все пары: пара живёт, пока живо обоснование — боевая цель
+у неё или у него, идущая сцена, встречная сцепка. Замер на сейве: тиков с
+зависшей парой **0** (были).
+
+Урок метода (третий раз за сессию, теперь записан): **симптом «визуально то же
+самое» после фикса — повод мерить, а не чинить дальше**. Проба по живому сейву
+дала форму («один тик, не идёт») за минуту; три чтения кода до неё дали три
+правдоподобные, но неверные гипотезы. И отдельно: причина может лежать НЕ в
+том слое, где симптом (сим двигал честно — врал вид).
+
+**109.15 ⭐ Команда аниматора в покадровом расчёте — вечный переход.** Симптом:
+тела по очереди проваливаются сквозь землю, «неважно, кулаки или нож, мужской
+или женский». Диагноз пришёл из ПАУЗЫ в редакторе, через мост: двое дерущихся
+одновременно висели в переходе `Attack→Idle` с весом **0.04 и 0.05**. Поймать
+двоих в самом начале перехода длиной 0.12 с невозможно — если переход идёт
+ОДИН раз.
+
+Он шёл каждый кадр. Досрочный выход из позы удара (§109.12, «пошла — значит не
+бьёт») стоял в `SampleMotion`, то есть в покадровом расчёте, а условие «идёт» в
+бою истинно почти всегда: стойку постоянно подталкивает отжим §72.5. `CrossFade`
+перезапускался каждый кадр, вес блендa навсегда застревал у нуля, аниматор не
+покидал `Attack` — и ретаргет НЕДОСМЕШАННОЙ позы ронял таз ниже пола. Кто
+провалится первым, решала чувствительность конкретного аватара, отсюда «по
+очереди» и ложная зацепка на аватар `Jolly`: подмена аватара «лечила» потому,
+что `Animator.Rebind()` выбивал тело из залипшего перехода. Проверка, которая
+это доказала: после Rebind Эльза с ТЕМ ЖЕ «плохим» аватаром встала нормально
+(ступня +0.063 над корнем), а не тронутый Кшиштоф остался в переходе 0.051.
+
+Правило: **команду аниматора нельзя ставить в покадровый расчёт без фронта.**
+Только по ребру («в этом кадре впервые пошла») или переходом по `Speed` в самом
+контроллере. Блок снят; идея «пошла — значит не бьёт» ждёт правильной формы.
+
+**109.16 Ретроспектива: почему это стоило целого дня.**
+
+Что происходило: один и тот же внешний симптом («скользит», «крутится»,
+«проваливается») трижды получал правдоподобный, подтверждённый чтением кода и
+неверный диагноз. Каждый неверный круг стоил игроку сборки билда.
+
+Причины, по убыванию цены:
+
+1. **Чинил по описанию, а не по замеру.** Первые три круга — чтение кода и
+   рассуждение. Момент, когда дело сдвинулось: проба, читающая ЖИВОЙ СЕЙВ
+   игрока и печатающая потиковую раскадровку (позиция, угол, желаемый угол,
+   статус, шаг пути). Она дала форму беды за минуту — «скачок за один тик при
+   `IsMoving=false`», «доворот в никуда и рывок обратно».
+2. **Симптом и причина в разных слоях.** Тело двигал сим — врал вид; позу ломал
+   вид — обвинялся аватар. Пока не смотришь ОБА слоя на одном кадре, любая
+   гипотеза выглядит достаточной.
+3. **Свои же правки не проверялись тем же способом.** Снап телепортов (§109.12)
+   и `CrossFade` были приняты «по логике» и сломали прыжки и позы. Правка вида
+   без единого кадра проверки — это ставка, а не работа.
+4. **Нет гейтов на визуальные инварианты.** «Стоящий внутри своего гекса»,
+   «пара живёт только при обосновании», «переход анимации завершается» — всё
+   это проверяется дешёвыми числами, но не проверялось ничем.
+
+Что делать в следующий раз (порядок обязателен):
+
+- **Сначала замер, потом гипотеза.** Проба по живому сейву (`hexlive_save.dat`,
+  28 байт заголовка → `WorldSaveSerializer.Read`) + потиковая печать. Гипотезы
+  без числа не рассматриваются.
+- **Слой определяется до правки.** Один и тот же кадр смотрится с двух сторон:
+  величины сима (позиция/угол/тайл) и величины вида (трансформ/кости/состояние
+  аниматора). Мост в редактор на паузе даёт вторую половину за один вызов.
+- **Правка вида требует кадра.** Любое изменение рендера/аниматора
+  подтверждается наблюдением в редакторе, а не рассуждением; иначе не
+  коммитить.
+- **Каждый пойманный класс — в гейт.** Метрики этого дня («стоящий вне своего
+  гекса», «смена тайла у стоящего со сменой высоты», «реверсы направления»,
+  «пара без обоснования», «переход, не завершившийся за N кадров») уже
+  написаны — им место в `Tests/HexLive.Simulation.Tests`.
+- **Симптом «стало так же» — повод мерить, а не чинить дальше.** Три круга
+  подряд правил не ту причину именно потому, что после каждого круга я чинил
+  следующую догадку вместо того, чтобы измерить результат предыдущей.
+
+## §115 Волосы колышутся — всем причёскам, но не одним способом (iteration 115)
 
 **Цель.** У девушки 16 причёсок; качались две. Остальные ехали жестяной шапкой.
 
@@ -15056,7 +18149,7 @@ vs §84 — см. итог итерации. Попутно починена hea
 материалы. Значит настройка делается один раз на причёску и достаётся всем её
 цветам даром.
 
-### §103.1 Три класса причёсок, и класс решает всё
+### §115.1 Три класса причёсок, и класс решает всё
 
 Причёски пришли из DAZ разными: смотреть надо не на имя, а на **кости и на то,
 насколько низко свисает меш** (мерка — от собственной кости `head` причёски).
@@ -15067,7 +18160,7 @@ vs §84 — см. итог итерации. Попутно починена hea
 | длинные без костей | Hair07, JelikaHair_32434, JenniferHair, LoonaHair (свес 11-20 см) | добавлена своя цепочка из 3 костей + перескиннивание низа — `HairSwaySetup` |
 | шапки | AdellHair, Bob3Hair, Neu09Hair, TootsieRollHair (свес 5-8 см, кончаются у ушей) | НИЧЕГО, и это решение, а не пропуск: качаться нечему |
 
-### §103.2 Почему бескостным — свои кости, а не MeshCloth
+### §115.2 Почему бескостным — свои кости, а не MeshCloth
 
 Соблазн был взять путь юбки (§69, `GarmentCloth` + `MeshCloth`). Против два
 факта: меши причёсок **33-220 тыс. вершин** (юбка — 29 тыс.), а proxy строится
@@ -15084,7 +18177,7 @@ UV — атлас прядей, где десятки карточек лежа�
 Веса сводятся к **четырём** влияниям и нормируются вручную: Unity скиннит не
 больше четырёх, пятое молча отбросили бы, и вершина поехала бы разбалансированной.
 
-### §103.3 Грабли
+### §115.3 Грабли
 
 - **Перескиннивание переписывает АССЕТ меша** (кости, байндпозы, веса).
   Повторный прогон `HairExtractor` пересобирает меш из FBX и цепочку сносит —
@@ -15098,18 +18191,18 @@ UV — атлас прядей, где десятки карточек лежа�
   `HairSway*` остаются детьми головы причёски. Это то, что нужно, и это же
   причина, по которой цепочку нельзя называть именем телесной кости.
 
-### §103.4 Как проверить
+### §115.4 Как проверить
 
 Сцена `WardrobeTest`, кнопка цикла анимации (сесть → лечь → встать): голова и
 корпус ходят достаточно, чтобы пряди отставали и возвращались. Признак жизни —
 кончики запаздывают за поворотом головы, шапка на макушке при этом неподвижна.
 
-## §104 Гардероб доехал до игры: цвет волос, стартовый набор, статы, кровь (iteration 104)
+## §116 Гардероб доехал до игры: цвет волос, стартовый набор, статы, кровь (iteration 116)
 
 685 вещей и 254 расцветки существовали в проекте, но игра о большей части из
 них не знала. Этот заход — про дорогу от каталога до экрана.
 
-### §104.1 Цвет волос у каждой свой — и его нет в симуляции
+### §116.1 Цвет волос у каждой свой — и его нет в симуляции
 
 Расцветка причёски выводится из **id колонистки**
 (`HairColourApplier.Choose`), а не хранится. Причина: id и так сохраняется и
@@ -15139,7 +18232,7 @@ UV — атлас прядей, где десятки карточек лежа�
 ТОТ ЖЕ `HairColourApplier`, что и игра, и считает подменённые слоты. Ноль
 подменённых = поломка.
 
-### §104.2 Стартовый набор ВЫВОДИТСЯ из гардероба
+### §116.2 Стартовый набор ВЫВОДИТСЯ из гардероба
 
 Списком он был ровно до тех пор, пока вещей было тридцать: `WorldStateFactory`
 перечислял 29 id, и каждая новая партия одежды проходила бы мимо потерпевших
@@ -15152,7 +18245,7 @@ UV — атлас прядей, где десятки карточек лежа�
 клиентом — на разные миры. Замерено: 117 / 118 / 53 вещи в пулах, 70 разных
 вещей на 12 сидах вместо прежних 29 на всех.
 
-### §104.3 Статы: обычным вещам понемногу, броне заметно
+### §116.3 Статы: обычным вещам понемногу, броне заметно
 
 `Tools/wardrobe/garment_stats.py` раздаёт тепло/броню/карманы по классу вещи с
 одним правилом: **никогда не понижать** (`max(текущее, пол класса)`), поэтому
@@ -15168,7 +18261,7 @@ UV — атлас прядей, где десятки карточек лежа�
 Украшения и очки остаются нулевыми намеренно: статы действуют на ПОКРЫТЫХ
 зонах, а кулон не покрывает ничего.
 
-### §104.4 Кровь на одежде требует карту — их не было ни одной
+### §116.4 Кровь на одежде требует карту — их не было ни одной
 
 Грязь и разрывы (§40.10-D) работают на общих листах декалей и UV вещи, то есть
 новой одежде для них не нужно ничего. А вот **зональная кровь ищет
@@ -15181,9 +18274,10 @@ UV — атлас прядей, где десятки карточек лежа�
 именем меша И числом вершин, так что переэкспорт меша делает старую карту
 невидимой.
 
-### §104.5 Локализация
+### §116.5 Локализация
 
 Девять вещей чужака (§72) были единственными в каталоге без терминов: их id —
 сырые имена из DAZ, а `displayName` — транслит («Shtany boitsa»), который игрок
 и видел. Термины добавлены; теперь у всех 685 записей есть имя и описание на
 обоих языках.
+

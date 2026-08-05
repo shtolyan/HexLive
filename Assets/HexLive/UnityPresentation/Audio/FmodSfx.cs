@@ -23,7 +23,14 @@ namespace HexLive.UnityPresentation.Audio
             public const string ChopCoco = "chop_coco";       // нож/удар по кокосу
             public const string MineStone = "mine_stone";     // кирка по камню
             public const string Hammer = "hammer";            // молоток на стройке
-            public const string HitFlesh = "hit_flesh";       // удар по плоти
+            public const string HitFlesh = "hit_flesh";       // удар по плоти (общий)
+            // §104 r5: чем именно попали. Вид выбирает по HitWeaponId снапшота:
+            // пустой id — кулак, клинковое снаряжение — лезвие, зубы зверя
+            // остаются на wolf_bite. Раньше человеческий удар не звучал вовсе —
+            // hit_flesh играл только на укус акулы, отрыв конечности, разделку
+            // туши и на удар девушки ПО ВОЛКУ.
+            public const string HitPunch = "hit_punch";       // кулаком по телу
+            public const string HitBlade = "hit_blade";       // клинком по телу
             public const string BodyFall = "body_fall";       // падение тела
             public const string Swing = "swing";              // вжух замаха
             public const string ChopAccent = "chop_accent";   // финальный треск дерева
@@ -70,6 +77,10 @@ namespace HexLive.UnityPresentation.Audio
             [Sfx.MineStone] = new Def(0.80f, 1.2f, 26f),
             [Sfx.Hammer] = new Def(0.70f, 1.2f, 24f),
             [Sfx.HitFlesh] = new Def(0.85f, 1.2f, 28f),
+            // Рядом с hit_flesh: тот же план, чуть разный характер. Джиттер
+            // высоты — чтобы серия ударов не звучала магнитофонной петлёй.
+            [Sfx.HitPunch] = new Def(0.85f, 1.2f, 28f, 0.07f),
+            [Sfx.HitBlade] = new Def(0.85f, 1.2f, 28f, 0.06f),
             [Sfx.BodyFall] = new Def(0.80f, 1.2f, 24f),
             [Sfx.Swing] = new Def(0.50f, 1.0f, 18f, 0.10f),
             [Sfx.ChopAccent] = new Def(0.90f, 1.5f, 30f),

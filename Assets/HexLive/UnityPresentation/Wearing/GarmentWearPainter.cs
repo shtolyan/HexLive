@@ -18,7 +18,7 @@ namespace HexLive.UnityPresentation.Wearing
     /// the mesh → slot + wrapped UV (always on a UV island).
     /// Everything is event-driven on state buckets — no per-frame work.
     /// </summary>
-    public sealed class GarmentWearPainter : MonoBehaviour
+    public sealed class GarmentWearPainter : MonoBehaviour, IPaintTarget
     {
         private const int MaskSize = 512;
         private const float TearBucket = 0.05f;
@@ -34,6 +34,17 @@ namespace HexLive.UnityPresentation.Wearing
         // The dust brush is pale beige — near-invisible on light cloth. The
         // tint darkens it into readable brown grime (DrawTexture doubles rgb).
         private static Color DirtTint(float alpha) => new(0.33f, 0.26f, 0.19f, alpha * 0.6f);
+
+        // Blood used to share StampTint, whose 0.5 alpha factor capped cloth
+        // blood at 0.8 x 0.5 = 0.4 — fainter than the dirt beside it (0.6) and
+        // brown grime simply won. rgb stays neutral (DrawTexture doubles it to
+        // white) so the brush keeps its own red.
+        private const int BloodBrushCount = 3;
+        private static Color BloodTint(float alpha) => new(0.5f, 0.5f, 0.5f, alpha * 0.9f);
+
+        // Spread the three brushes evenly over the placement cells.
+        private static int BloodVariantOf(int cellKey) =>
+            (int)((uint)cellKey % (uint)BloodBrushCount);
 
         private sealed class Hole
         {
@@ -90,7 +101,13 @@ namespace HexLive.UnityPresentation.Wearing
         // changes mark dirty, LateUpdate composites at most once per interval.
         private bool _repaintDirty;
         private float _lastRepaintTime;
-        private const float RepaintIntervalSeconds = 0.25f;
+        // Spec 40.8-K: a garment painter is CHEAP (dirt/blood/tears through
+        // the plain point map — garments never got the seam-free projection),
+        // but there is one per WORN PIECE, so they are the most numerous
+        // painters in the world. Their cost was never the algorithm, it was
+        // the count times the rate; grime and tears drift far too slowly to
+        // need four looks a second.
+        private const float RepaintIntervalSeconds = 1f;
 
         // Ragged hole stamp (dark core, noisy rim) + shared art, generated once.
         private static Texture2D? _holeStamp;
@@ -308,13 +325,25 @@ namespace HexLive.UnityPresentation.Wearing
 
         private void LateUpdate()
         {
-            if (!_repaintDirty)
-            {
-                enabled = false;
-                return;
-            }
+            // Painting is driven by SkinPaintScheduler (spec 40.8-K), which
+            // registers itself on Awake and exists in dev scenes too. Doing it
+            // here as well would paint AHEAD of the scheduler's frame budget —
+            // exactly the pile-up the budget exists to prevent.
+            enabled = false;
+        }
 
-            if (Time.unscaledTime - _lastRepaintTime < RepaintIntervalSeconds)
+        /// <summary>IPaintTarget: a garment has no cheap "just appeared" path —
+        /// dirt and tears creep, they never pop.</summary>
+        public bool WantsFreshPass => false;
+
+        public void PaintFresh()
+        {
+        }
+
+        /// <summary>IPaintTarget: this garment's scheduled turn.</summary>
+        public void PaintCycle()
+        {
+            if (!_repaintDirty)
             {
                 return;
             }
@@ -581,7 +610,7 @@ namespace HexLive.UnityPresentation.Wearing
                     Uv = uv,
                     Size = Mathf.Lerp(0.12f, 0.2f, strength),
                     Alpha = strength * 0.8f,
-                    Variant = (cellKey & 1)
+                    Variant = BloodVariantOf(cellKey)
                 };
                 _bloodStains.Add(stain);
                 _bloodStainsByCell[cellKey] = stain;
@@ -909,7 +938,7 @@ namespace HexLive.UnityPresentation.Wearing
                         var s = stain.Size;
                         Graphics.DrawTexture(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s),
                             brush, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0,
-                            StampTint(stain.Alpha));
+                            BloodTint(stain.Alpha));
                     }
 
                     // Punch the open holes out of the alpha (sheer garments).
@@ -1015,7 +1044,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static void EnsureArt()
         {
             if (_artLoaded && _texDirt != null && _texTearMask != null && _alphaErase != null &&
-                _texBloodBrushes.Length == 2)
+                _texBloodBrushes.Length == BloodBrushCount)
             {
                 return;
             }
@@ -1023,9 +1052,16 @@ namespace HexLive.UnityPresentation.Wearing
             _artLoaded = true;
             _texDirt = Resources.Load<Texture2D>("HexLive/Decals/dirt_dust");
             _texTearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
+            // Blood on CLOTH is soak-through, not a wound: it must read as the
+            // same red splatter the skin uses for limb damage. The first two
+            // entries used to be wound_scratch (a claw gash) and blood_splat —
+            // gash art on a shirt reads as a tear, not blood. blood_stain is
+            // the brush the damage speckles use (spec 40.8-H r3, the picture
+            // picked by hand), so it leads; the other two give variety.
             _texBloodBrushes = new Texture2D?[]
             {
-                Resources.Load<Texture2D>("HexLive/Decals/wound_scratch"),
+                Resources.Load<Texture2D>("HexLive/Decals/blood_stain"),
+                Resources.Load<Texture2D>("HexLive/Decals/blood_splash"),
                 Resources.Load<Texture2D>("HexLive/Decals/blood_splat")
             };
             var erase = Shader.Find("Hidden/HexLive/AlphaErase");
@@ -1058,8 +1094,12 @@ namespace HexLive.UnityPresentation.Wearing
             _holeStamp.Apply();
         }
 
+        private void Awake() => SkinPaintScheduler.Register(this);
+
         private void OnDestroy()
         {
+            SkinPaintScheduler.Unregister(this);
+
             foreach (var rt in _maskRt)
             {
                 if (rt != null)
@@ -1081,6 +1121,24 @@ namespace HexLive.UnityPresentation.Wearing
             if (_bakedMesh != null)
             {
                 Destroy(_bakedMesh);
+            }
+
+            // `renderer.materials` handed us INSTANCES, and Unity does not free
+            // those with the renderer — they outlive the garment as orphans.
+            // Measured: 1 801 materials (and ~170 MB of their textures) leaked
+            // in 80 s of play. The static stamp materials above are shared and
+            // must NOT be touched here; only this per-instance set.
+            if (_materials != null)
+            {
+                foreach (var material in _materials)
+                {
+                    if (material != null)
+                    {
+                        Destroy(material);
+                    }
+                }
+
+                _materials = null;
             }
         }
     }

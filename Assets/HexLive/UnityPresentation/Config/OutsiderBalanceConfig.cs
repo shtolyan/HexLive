@@ -15,6 +15,9 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(Spec81))]
     [MirrorTarget(typeof(Spec82))]
     [MirrorTarget(typeof(Spec86))]
+    [MirrorTarget(typeof(Spec106))]
+    [MirrorTarget(typeof(Spec108))]
+    [MirrorTarget(typeof(Spec111))]
     public sealed class OutsiderBalanceConfig : ScriptableObject
     {
         [Header("Общее (§72)")]
@@ -118,6 +121,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 3f)] public float meleeHoldDistance = 0.9f;
         [Tooltip("Скорость отступания в стойку, wu/сек (шаг ходьбы ~1.2 — это осознанный шаг назад, не телепорт).")]
         [Range(0.1f, 4f)] public float meleeHoldGlideSpeed = 0.8f;
+        [Tooltip("§109.11: как далеко стойка может отпятиться от своего узла (wu). Без предела отжим против наступающего каравана через полкарты.")]
+        [Range(0.1f, 3f)] public float meleeHoldMaxDriftWorldUnits = 0.75f;
 
         [Header("Оборона колонии")]
         [Tooltip("Против ЧУЖАКА поднимать всю фракцию в радиусе без порога симпатии — в первые дни её ещё нет, а «дать отпор сплочённо» нужно именно тогда.")]
@@ -144,6 +149,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseBaseScore = 0.45f;
         [Tooltip("Сколько дней он не трогает колонию с начала игры.")]
         [Range(0, 12)] public int abuseGraceDays = 2;
+        [Tooltip("§81.11: сытость общением, НА или НИЖЕ которой одержимость пробивает льготные дни. Держать много ниже abuseSocialFloor.")]
+        [Range(0f, 0.45f)] public float abuseObsessionSocialCeiling = 0.05f;
+        [Tooltip("§81.16: худшая витальная зона (голова/грудь/таз) НИЖЕ этого — новую сцену не начинает, сначала зализывает раны. Гейт только на инициации: идущую сцену и самозащиту не трогает.")]
+        [Range(0f, 1f)] public float abuseWoundedVitalFloor = 0.5f;
         [Tooltip("Пауза после сцены.")]
         [Range(0, 4800)] public int abuseCooldownTicks = 900;
         [Tooltip("§87: на сколько цель абьюза запирается от аукциона после прерывания. Без замка ближайший пересчёт вернул бы его к «посидеть».")]
@@ -154,10 +163,16 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 4800)] public int abuseRaidLockoutTicks = 600;
         [Tooltip("Радиус поиска жертвы, тайлы.")]
         [Range(0, 12)] public int abuseScanRadiusTiles = 7;
-        [Tooltip("Сколько подруг рядом с жертвой он ещё терпит.")]
-        [Range(0, 12)] public int abuseMaxMarkAllies = 1;
+        [Tooltip("§81.12: жертву ищет ГЛАЗАМИ (радиус ниже), никого не видно — рыщет к лагерю. Выключено — всевидящий выбор по ростеру.")]
+        public bool abuseHuntBySight = true;
+        [Tooltip("§81.12: на каком радиусе он замечает человека. Симметрия с spotStrangerRadiusTiles.")]
+        [Range(0, 12)] public int abuseSightRadiusTiles = 6;
+        [Tooltip("§81.12: на сколько гексов новая жертва должна быть БЛИЖЕ, чтобы он передумал на бегу. Гистерезис против метания.")]
+        [Range(0, 6)] public int abuseRetargetGainTiles = 2;
         [Tooltip("У порога дома разворачивается, как волк и как налёт.")]
         public bool abuseRespectsSanctuary = true;
+        [Tooltip("§81.13: проигравший сцену (кто потерял больше здоровья; при равенстве — жертва) плачет и убегает в свой лагерь.")]
+        public bool abuseRoutEnabled = true;
         [Tooltip("Во сколько раз он должен быть сильнее, чтобы она сдалась.")]
         [Range(0f, 2f)] public float abuseSubmitRatio = 1.2f;
         [Tooltip("Вклад оружия и рук в оценку силы.")]
@@ -166,24 +181,20 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseForceDefenseWeight = 0.4f;
         [Tooltip("Сколько силы добавляет ей каждая подруга рядом.")]
         [Range(0f, 2f)] public float abuseAllyForceShare = 0.6f;
-        [Tooltip("Длина всей сцены, тиков.")]
-        [Range(0, 4800)] public int abuseDurationTicks = 28;
-        [Tooltip("Такт «она плачет», тиков от начала.")]
-        [Range(0, 4800)] public int abuseBeatCryTicks = 6;
+        [Tooltip("§103: ПОТОЛОК сцены, тиков. Кончается она по числу ударов; это лишь страховка, если удары не ложатся.")]
+        [Range(0, 4800)] public int abuseDurationTicks = 60;
+        [Tooltip("Такт «она плачет», тиков от начала. §103: обязан быть РАНЬШЕ первого тычка, иначе такт не наступает никогда.")]
+        [Range(0, 4800)] public int abuseBeatCryTicks = 2;
         [Tooltip("Такт первого тычка.")]
         [Range(0, 4800)] public int abuseBeatBlowTicks = 4;
-        [Tooltip("Такт второго тычка.")]
-        [Range(0, 4800)] public int abuseBeatBlowSecondTicks = 12;
-        [Tooltip("Такт «сдалась или отказала».")]
-        [Range(0, 4800)] public int abuseBeatVerdictTicks = 20;
-        [Tooltip("Такт «забрал добычу».")]
-        [Range(0, 4800)] public int abuseBeatTakeTicks = 24;
-        [Tooltip("Сколько раз он бьёт для острастки.")]
-        [Range(0, 12)] public int abuseMaxBlows = 2;
+        [Tooltip("§103: ПОТОЛОК приговора. Обычно он наступает раньше — как только легли все назначенные удары.")]
+        [Range(0, 4800)] public int abuseBeatVerdictTicks = 48;
+        [Tooltip("§103: пауза между приговором и тем, как он лезет в её рюкзак.")]
+        [Range(0, 60)] public int abuseTakeDelayTicks = 4;
+        [Tooltip("§103: сколько ударов он наносит. Столько сцена и длится — три в модели, три в анимации.")]
+        [Range(0, 12)] public int abuseMaxBlows = 3;
         [Tooltip("§99: во сколько ДЛИН КЛИПА разводятся удары сцены. Своя скорость оружия для короткой сцены слишком частая — второй замах перебивал первый, и удара было не видно.")]
         [Range(0.5f, 4f)] public float abuseBlowSpacing = 1.2f;
-        [Tooltip("Сила тычка — кулаком, не оружием: труп ему не нужен.")]
-        [Range(0f, 2f)] public float abuseBlowDamageMult = 1f;
         [Tooltip("§91: симпатия, ниже которой он берётся за ОРУЖИЕ. Выше — только рукопашка. Нож достаётся по истории отношений, а не по броску кубика.")]
         [Range(-1f, 1f)] public float abuseWeaponAffinity = -0.5f;
         [Tooltip("§93: насколько глубоко (0..1 от порога до дна) должна зайти ненависть, чтобы он взялся за САМОЕ тяжёлое оружие. Ниже — берёт что полегче.")]
@@ -194,8 +205,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseFightBackBase = 0.9f;
         [Tooltip("§101: сколько храбрости добавляет ЗЛОСТЬ. Та, кого тиранят неделю, огрызается и заведомо проигрывая.")]
         [Range(0f, 2f)] public float abuseFightBackHatred = 0.5f;
-        [Tooltip("Ниже этого здоровья удар не наносится вовсе.")]
-        [Range(0f, 2f)] public float abuseNoBlowHealthFloor = 0.5f;
         [Tooltip("Сколько защитниц рядом заставляют его бросить сцену.")]
         [Range(0, 12)] public int abuseBreakOffDefenders = 3;
         [Tooltip("⭐ Насколько сцена закрывает ЕГО нужду в общении.")]
@@ -210,6 +219,15 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseTrustLoss = 0.25f;
         [Tooltip("Закрыть тихую кражу §40.5 до своих — у чужака теперь есть настоящая сцена.")]
         public bool abuseSupersedesPassiveTheft = true;
+        [Tooltip("§81.10 Сколько тиков после сцены она ходит понуро (360 = 1.5 минуты).")]
+        [Range(0, 2400)] public int sadWalkTicks = 360;
+        [Tooltip("§81.10 Насколько медленнее она в это время ходит. 0.5 = вдвое. " +
+                 "Понурый клип шире базового, и на полной скорости ноги по нему ехали.")]
+        [Range(0.1f, 1f)] public float sadWalkMoveFactor = 0.5f;
+
+        [Header("§106 Вода — убежище")]
+        [Tooltip("Пловца не бьют с суши, пловец не бьёт сам, погоня за нырнувшей бросается (Prey/Raid/Abuse/волки). Выключено — вода снова ничего не значит в бою, поведение до-§106.")]
+        public bool waterSanctuaryEnabled = true;
 
         [Header("§82 Солнце и злость")]
         [Tooltip("Во что превращается краснота в ставке «одеться». 1.0 = полностью обгоревшая хочет прикрыться так же, как продрогшая.")]
@@ -236,5 +254,67 @@ namespace HexLive.UnityPresentation.Config
         [Range(-1f, 1f)] public float hatredAffinity = -0.6f;
         [Tooltip("Распространять пощаду и на чужаков. Выключено — соак разведёт смерти от своих и от чужих.")]
         public bool mercyAppliesToOutsiders = true;
+
+        [Header("§108 Групповая охота — сговор против чужака")]
+        [Tooltip("⭐ Трое собрались, обсудили его и пошли бить. Выключено — тема «чужак» исчезает из разговоров, сговор не заключается.")]
+        public bool groupHuntEnabled = true;
+        [Tooltip("Сколько подруг должно стоять рядом, чтобы разговор мог свернуть на него. Двое — просто разговор; сговор начинается с троих.")]
+        [Range(2, 6)] public int groupHuntMinGirls = 3;
+        [Tooltip("В каком радиусе считаются «собравшиеся». Маленький намеренно: это кружок у костра, а не весь край острова.")]
+        [Range(1, 6)] public int groupHuntGatherRadiusTiles = 4;
+        [Tooltip("Симпатия, ниже которой она готова идти его бить. Одна сцена абьюза даёт -0.35, значит двух хватает. ⚠️ Держать ВЫШЕ порога ненависти §86 (-0.6): между ними и живёт «побить, но не убить».")]
+        [Range(-1f, 0f)] public float groupHuntHateThreshold = -0.5f;
+        [Tooltip("Базовый вес темы «чужак» в розыгрыше разговора (у болтовни ни о чём — 1.00).")]
+        [Range(0f, 4f)] public float groupHuntTopicWeight = 1.2f;
+        [Tooltip("Сколько к весу темы добавляет ненависть: чем сильнее ненавидят, тем чаще о нём и говорят.")]
+        [Range(0f, 4f)] public float groupHuntTopicHateGain = 1.5f;
+        [Tooltip("Дальше этого сговариваться не о чем — идти полострова за местью они не станут.")]
+        [Range(4, 80)] public int groupHuntMaxPactDistanceTiles = 40;
+        [Tooltip("Бюджет охоты в тиках: замок цели. Истёк — охота провалилась, все расходятся.")]
+        [Range(120, 4800)] public int groupHuntLockTicks = 900;
+        [Tooltip("Насколько передняя охотница может оторваться от самой отставшей, прежде чем встанет и подождёт. Это и есть «держатся вместе».")]
+        [Range(0, 8)] public int groupHuntSpreadTiles = 2;
+        [Tooltip("Здоровье, ниже которого он уже не принимает бой и бежит в свой лагерь. Высокое намеренно: трое против одного — это погоня, а не казнь.")]
+        [Range(0f, 1f)] public float groupHuntTargetFleeHealth = 0.85f;
+        [Tooltip("Сколько урона ОХОТНИЦА готова получить В ЭТОЙ расправе, прежде чем выйдет и убежит. Считается разницей с моментом сговора, а не абсолютом: иначе выбывает давно хромающая, не получив ни одного удара.")]
+        [Range(0f, 1f)] public float groupHuntHunterFleeDamage = 0.2f;
+        [Tooltip("То же по худшей части тела: разбитая голова уводит охотницу раньше, чем просядет среднее по телу.")]
+        [Range(0f, 1f)] public float groupHuntHunterFleeWorstDrop = 0.25f;
+        [Tooltip("Меньше этого числа охотниц на ногах — охота разваливается.")]
+        [Range(1, 4)] public int groupHuntMinRemaining = 2;
+        [Tooltip("Передышка после охоты, любой. Без неё они пошли бы на него снова в тот же вечер.")]
+        [Range(0, 12000)] public int groupHuntCooldownTicks = 3000;
+        [Tooltip("Сколько стресса снимает удавшаяся расправа.")]
+        [Range(0f, 1f)] public float groupHuntStressRelief = 0.25f;
+        [Tooltip("Насколько теплеют друг к другу те, кто ходил вместе.")]
+        [Range(0f, 1f)] public float groupHuntBondAffinity = 0.10f;
+        [Tooltip("⭐ Сколько симпатии теряет ТА, КТО ВИДЕЛА сцену (не жертва). Недостающее звено: без него он фиксируется на удобной жертве, её симпатия уходит в -1.00, у двух других остаётся -0.35, и единогласия не бывает никогда.")]
+        [Range(0f, 1f)] public float groupHuntWitnessAffinityLoss = 0.18f;
+        [Tooltip("В каком радиусе сцену «видно». Шире круга сговора: слышно и с соседнего гекса.")]
+        [Range(0, 12)] public int groupHuntWitnessRadiusTiles = 5;
+        [Tooltip("Сколько ударов группы значит «проучили»: когда счёт набран и он оторвался или побежал — расправа удалась. Без этой меры у охоты с пощадой нет успешного конца вовсе.")]
+        [Range(1, 30)] public int groupHuntBlowsToRout = 6;
+        [Tooltip("Держать ли пощаду §86 на время расправы, независимо от ненависти. ВЫКЛЮЧЕНО намеренно: исход решает лестница ненависти — кто дошла до -0.6, добьёт, кто не дошла, отобьёт и отстанет. Включить — бьют строго до «свалился», и он всегда встаёт.")]
+        public bool groupHuntMercyHolds = false;
+        [Tooltip("Насколько он их за это возненавидит. Это его лестница оружия §91: побитый в следующий раз возьмётся за нож.")]
+        [Range(0f, 1f)] public float groupHuntTargetGrudge = 0.30f;
+
+        [Header("Обобрать беспомощного (§111)")]
+        [Tooltip("Выключить — мир идёт байт-в-байт как до §111: лежащего врага никто не обыскивает.")]
+        public bool lootHelplessEnabled = true;
+        [Tooltip("Базовая ставка цели. Складывается в 0.95 — выше скорби и быта, ниже аварийных нужд. Он бросает дела и идёт обыскивать.")]
+        [Range(0f, 2f)] public float lootHelplessBaseScore = 0.85f;
+        [Tooltip("Прибавка, когда у лежащего оружие мощнее его собственного. Это и есть «защита» в мотиве: мачете нельзя скрафтить.")]
+        [Range(0f, 1f)] public float lootHelplessWeaponBonus = 0.30f;
+        [Tooltip("В каком радиусе он замечает лежащего, тайлы. Режется ЗНАНИЕ, а не только дорога — иначе он чует тело через полострова.")]
+        [Range(1, 20)] public int lootHelplessSightRadiusTiles = 6;
+        [Tooltip("Тиков на одну вещь. Вдвое быстрее лута трупа (20): там раздевание, тут «хоп-хоп» по карманам.")]
+        [Range(2, 60)] public int lootHelplessTakeTicks = 10;
+        [Tooltip("Передышка после сыгранной сцены — чтобы он не садился на то же тело снова.")]
+        [Range(0, 6000)] public int lootHelplessCooldownTicks = 600;
+        [Tooltip("Передышка после срыва (очнулась, умерла, не влезло). Короткая: срыв — не попытка.")]
+        [Range(0, 600)] public int lootHelplessRetryTicks = 40;
+        [Tooltip("Потолок сцены — страховка от зависшего такта, а не игровой срок.")]
+        [Range(60, 1200)] public int lootHelplessMaxSceneTicks = 240;
     }
 }

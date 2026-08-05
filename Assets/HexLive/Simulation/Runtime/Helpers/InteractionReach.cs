@@ -7,14 +7,92 @@ using HexLive.Simulation.Agents;
 namespace HexLive.Simulation.Runtime
 {
 
+/// <summary>Единственные два ответа на «достаю ли я до неё» (§102 r4).</summary>
+internal enum MeleeApproach
+{
+    /// <summary>Не достаю — иду.</summary>
+    Approach,
+
+    /// <summary>Достаю — начинаю или продолжаю.</summary>
+    Act,
+}
+
 // Spec §26.3 r3: the ONE table of "how close is close enough" for starting an
 // interaction. The recurring "acts from a whole hex away" family (build /
 // craft / harvest / feed / treat at range) always traces back to some site
 // rolling its own tolerance constant; every start gate must read this class,
 // and every start must be measured through CheckStart so a soak run can count
 // violations ("InteractionTooFar" events) instead of waiting for a screenshot.
+//
+// ⭐ ПЯТЬ МЕР БЛИЗОСТИ, и путать их дорого. Раньше этот комментарий обещал «одну
+// таблицу», а соседство узлов жило в боевом хелпере и в таблицу не входило —
+// ровно из этого зазора и вырос §102. Теперь таблица честная:
+//
+//   мера                      | что значит                        | где
+//   --------------------------|-----------------------------------|-------------
+//   CanStrike                 | СОСЕДСТВО УЗЛОВ: свой узел или     | здесь
+//                             | смежный. Рука дальше не достаёт.   |
+//                             | Плюс СРЕДА (§106): по воде и из    |
+//                             | воды человек не бьёт — это не      |
+//                             | шестая мерка дистанции, а второй   |
+//                             | замер того же гейта, как           |
+//                             | CanTouchAcross у CheckObjectStart. |
+//   Talk / Aid / ForObject    | МЕТРИЧЕСКАЯ дистанция в мировых    | здесь
+//                             | единицах, через CheckStart.        |
+//   CheckObjectStart          | метрика И проходимость границы     | здесь
+//                             | (через обрыв не дотянешься).       |
+//   HexDistance               | ЦЕЛЫЕ тайлы. Прикидка «далеко ли», | HexSpatialMath
+//                             | не гейт старта.                    |
+//   Connectivity.Reachable    | СУЩЕСТВУЕТ ЛИ МАРШРУТ вообще.      | Connectivity
+//                             | Не про близость: сюда не сводится. |
+//
+// Первые три — «достаточно ли близко, чтобы действовать», и жить им положено
+// здесь. Последние две отвечают на ДРУГИЕ вопросы и намеренно оставлены
+// снаружи: свести их сюда значило бы сделать вид, что «в двух тайлах» и «туда
+// есть дорога» — про одно и то же.
 internal static class InteractionReach
 {
+    // §26.6A r5 в ОДНОМ месте: рубильник читается здесь и только здесь, иначе
+    // планировщик и гейт старта смогут прочесть его по-разному, а расхождение
+    // между «куда её послали» и «откуда ей разрешено работать» — это шун-шторм
+    // (цель отвергается на месте, помечается shun, цикл), а не тихая мелочь.
+    // Выключенный рубильник = в точности r4: стена только терраин.
+    // ⭐ §26.6A r5, вторая половина правила: со скольких СВОБОДНЫХ клеток можно
+    // законно поработать с предметом, лежащим на этом узле. Ноль — предмет,
+    // который никто никогда не поднимет.
+    //
+    // Живёт здесь, а не у каждого места выкладки, ровно по той же причине, по
+    // которой здесь живут дистанции: пока «куда положить» и «откуда достать»
+    // считает ОДИН предикат, разойтись им негде. Пока это был first-fit «первый
+    // проходимый узел», мир исправно ронял кокосы вплотную к стволу — а с r5
+    // это уже не «неудобно», а еда, которая сгниёт нетронутой (замер: 12 сидов ×
+    // 10 дней, упало столько же, подобрано 1772 → 1595, сгнило 625 → 651).
+    private static readonly System.Collections.Generic.List<JunctionId> _approachScratch = new();
+
+    public static int CountApproaches(WorldState world, JunctionId at)
+    {
+        // Предмет на земле футпринта не несёт, поэтому owner здесь null не для
+        // краткости: это в точности тот ответ, который потом даст CheckObjectStart.
+        SpatialQueries.CollectStandableAround(
+            world, at, _approachScratch, 96, SpatialQueries.BesideReach(0f), null, RimMode);
+
+        var free = 0;
+        foreach (var rim in _approachScratch)
+        {
+            if (SpatialQueries.IsJunctionFree(world, rim))
+            {
+                free++;
+            }
+        }
+
+        return free;
+    }
+
+    public static SpatialQueries.RimPurpose RimMode =>
+        SimBalance.ReachThroughBodiesBlocked
+            ? SpatialQueries.RimPurpose.Reach
+            : SpatialQueries.RimPurpose.Route;
+
     // Object work (harvest/craft/build/pickup/sit...): the object's physical
     // footprint plus one sub-grid step — see SpatialQueries.BesideReach.
     public static float ForObject(float obstacleRadius) =>
@@ -30,6 +108,55 @@ internal static class InteractionReach
     // half) read as chatting across the camp. The planner reserves the same
     // arm's-length approach as aid; 2*R is drift slack, not a target.
     public static float Talk => HexSpatialMath.HexRadius * 2f;
+
+    // Рука достаёт до СВОЕГО узла и до СМЕЖНОГО — и не дальше. Мера
+    // топологическая, а не метрическая: через обрыв между двумя близкими по
+    // прямой узлами кулаком не дотянешься, а вдоль пологой границы — да.
+    //
+    // Жила в MeleeSwing и потому не считалась «дистанцией взаимодействия».
+    // Именно это и стоило §102: преследование мерило метрикой, старт — вот
+    // этим, и кольцо между мерками молчало обеими.
+    public static bool CanStrike(WorldState world, NPCState actor, NPCState target)
+    {
+        // §106: вода — убежище. Пловец не бьёт, и по пловцу с суши не бьют;
+        // терренный гейт стоит ПЕРЕД меркой соседства, чтобы каждый вызывающий
+        // (HumanCombat, Raid, Abuse, AssessMelee) получил его одинаково. Уже
+        // НАЧАТЫЙ замах при этом долетает по таймеру и уходит в воздух — это
+        // «она отступила», ядро MeleeSwing (§104) среду не знает.
+        if (!CombatMedium.NpcMelee(world, actor, target))
+        {
+            return false;
+        }
+
+        return actor.CurrentJunction is { } aj && target.CurrentJunction is { } bj &&
+            (aj.Equals(bj) ||
+             (world.Junctions.Items.TryGetValue(bj, out var junction) &&
+              junction.Neighbors.Contains(aj)));
+    }
+
+    // ⭐ Правило §102 r4 одной функцией: НЕ ДОСТАЮ → ИДУ; ДОСТАЮ → НАЧИНАЮ.
+    //
+    // Смысл в том, что и «пора догонять», и «можно начинать» отвечает ОДНО
+    // место. Пока это были два условия в разных строках, между ними existовал
+    // зазор, в котором молчали оба: замер на арене — 2951 из 12000 тиков в этом
+    // кольце, самый длинный застой 2872 тика подряд. Теперь «идти» — это
+    // буквально «не действовать», и третьего состояния взяться неоткуда.
+    //
+    // Гистерезис у меры честный и намеренный, как у порогов нужд: ВОЙТИ в сцену
+    // можно только с ударной дистанции (§98 — иначе сцены начинались там, откуда
+    // рука не достаёт), а УДЕРЖИВАТЬ её позволено на разговорной (§89 — за узкую
+    // мерку внутри сцены платили десятками срывов за прогон, стоило жертве
+    // переступить). Разные пороги на вход и на выход — не расхождение мер, если
+    // они названы и живут рядом.
+    public static MeleeApproach AssessMelee(
+        WorldState world, NPCState actor, NPCState target, bool sceneStarted, string what)
+    {
+        var close = sceneStarted
+            ? CheckStart(world, actor, target.Position, Talk, what)
+            : CanStrike(world, actor, target);
+
+        return close ? MeleeApproach.Act : MeleeApproach.Approach;
+    }
 
     // True when the NPC stands close enough to the anchor to begin; otherwise
     // emits the standardized InteractionTooFar trace (the caller aborts with
@@ -83,14 +210,17 @@ internal static class InteractionReach
             return true; // off-grid (mid-hop): distance is all we can honestly measure
         }
 
-        if (SpatialQueries.CanTouchAcross(world, standJunction, anchorJunction.Id, reach))
+        // r5: the object being worked is passed in, so its OWN footprint stays
+        // crossable (fireside rim, bed frame) while a THIRD body in the way — a
+        // palm trunk between her knife and the coconut — is a wall like a cliff.
+        if (SpatialQueries.CanTouchAcross(world, standJunction, anchorJunction.Id, reach, worldObject, RimMode))
         {
             return true;
         }
 
         Trace.Emit(world, npc.Id, "InteractionTooFar",
             $"{what} at {HexSpatialMath.Distance(npc.Position, anchorJunction.WorldPosition):F2}wu " +
-            $"is across an impassable border (cliff/wall) from j{standJunction.Value}");
+            $"is across an impassable border (cliff/wall/obstacle) from j{standJunction.Value}");
         return false;
     }
 }

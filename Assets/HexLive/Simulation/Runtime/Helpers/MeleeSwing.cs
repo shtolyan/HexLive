@@ -11,10 +11,19 @@ using HexLive.Simulation.Social;
 namespace HexLive.Simulation.Runtime
 {
 
-// §72: one human swing, on the §29C.3 v2 timeline — windup → hit → recovery.
-// Lifted from AnimalCombatSystem.RunCounterStrike so a girl swinging at a man
-// feels exactly like a girl swinging at a wolf, and so presentation gets the
-// same AttackAnimUntilTick / SwingStrikeIndex window to play a clip across.
+// ⭐ ЕДИНСТВЕННЫЙ таймлайн замаха (§29C.3 v2): windup → hit → recovery.
+//
+// §104 r2: до этого он существовал ДВАЖДЫ — здесь и в
+// AnimalCombatSystem.RunCounterStrike, посимвольно, включая соль хеша 777.
+// Копия и была тем классом багов, что стоил §103 четырёх кругов: собачья
+// половина ставила SwingStartTick, человеческая эту строку потеряла, и удары
+// человека против человека не рисовались НИКОГДА. Разошедшаяся копия
+// компилируется и проходит тесты — поэтому её больше нет, а SwingTimelineGate
+// следит, чтобы не завелась снова.
+//
+// Кто чем бьёт и как применяется урон — дело ВЫЗЫВАЮЩЕГО: человек идёт полным
+// путём тела (ApplyHumanBlow — броня, рана, отрыв, износ, витали), собака
+// принимает плоский Health, потому что тела у неё нет.
 //
 // WHY this and not §56's per-pass model, which was the obvious thing to reuse:
 // PredationSystem deals PredationStrikePerPass(0.35) x MeleeStrikeBonus every
@@ -37,23 +46,39 @@ internal static class MeleeSwing
     // lands this tick (damage/weaponId then describe it); starts a fresh windup
     // when recovered and the target is in reach.
     internal static bool TryAdvanceSwing(
-        WorldState world, NPCState actor, bool inReach, out float damage, out string weaponId)
+        WorldState world, NPCState actor, bool inReach, out float damage, out string weaponId) =>
+        TryAdvanceSwing(world, actor, inReach, out damage, out weaponId, out _);
+
+    // §103: отдаёт ещё и длину КЛИПА, который только что отыграл. Постановочная
+    // сцена разводит удары по ней, а не по базовой длительности оружия: у
+    // кулака это разные числа (вариант удара против базы), и пауза считалась
+    // не тем, чем меряется замах.
+    internal static bool TryAdvanceSwing(
+        WorldState world, NPCState actor, bool inReach,
+        out float damage, out string weaponId, out float clipSeconds)
+    {
+        weaponId = EffectiveWeapon(actor);
+        return TryAdvanceSwing(world, actor, inReach, weaponId, out damage, out clipSeconds);
+    }
+
+    /// <summary>
+    /// Ядро. Оружие называет вызывающий: человек спрашивает
+    /// <see cref="EffectiveWeapon"/> (знает про назначенное сценой), собачий бой
+    /// берёт лучшее из рюкзака.
+    /// </summary>
+    internal static bool TryAdvanceSwing(
+        WorldState world, NPCState actor, bool inReach, string weaponId,
+        out float damage, out float clipSeconds)
     {
         damage = 0f;
-        // §97: обычно дерутся ЛУЧШИМ, что есть в руках. Но сцена может назначить
-        // оружие сама — наезд начинается рукопашкой, а тесак достают, когда уже
-        // ненавидят (§93). Пустая строка это кулаки, null — «как обычно».
-        weaponId = !actor.Body.CanUseToolsOrWeapons
-            ? string.Empty
-            : actor.Mind.ForcedMeleeWeaponId
-              ?? SimBalance.BestMeleeWeapon(actor.Inventory.Items, actor.Body.IntactHands);
+        clipSeconds = 0f;
 
         var gear = GearCatalog.For(weaponId);
 
         if (actor.StrikeLandsAtTick > 0 && world.Tick >= actor.StrikeLandsAtTick)
         {
             actor.StrikeLandsAtTick = 0;
-            StrikeTimings(gear, actor.SwingStrikeIndex,
+            gear.StrikeTimings(actor.SwingStrikeIndex,
                 out var hitDelay, out var duration, out var cooldown);
             // §76: Agility shortens the recovery between swings — the same
             // weapon, swung back into position sooner. The windup (hitDelay)
@@ -61,6 +86,7 @@ internal static class MeleeSwing
             // speeding them up would desync the view's attack window.
             actor.StrikeReadyAtTick = world.Tick + SecondsToTicks(
                 (duration - hitDelay + cooldown) * AttributeMath.AttackCooldownMult(actor));
+            clipSeconds = duration;
             // Spec 19.3C: hurt arms strike weaker; the weapon owns its damage.
             // §76: StrikeFactor() now also carries her Strength and her Combat.
             damage = GearCatalog.Damage(weaponId) * actor.StrikeFactor();
@@ -77,29 +103,75 @@ internal static class MeleeSwing
                     (int)(MathUtil.Hash01(world.Seed, world.Tick, actor.Id.Value, 777) *
                         gear.StrikeVariants.Length))
                 : -1;
-            StrikeTimings(gear, actor.SwingStrikeIndex, out var hitDelay, out var duration, out _);
+            gear.StrikeTimings(actor.SwingStrikeIndex, out var hitDelay, out var duration, out _);
             actor.StrikeLandsAtTick = world.Tick + SecondsToTicks(hitDelay);
             actor.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
+            // ⭐ §103 r4: ШТАМП НАЧАЛА ЗАМАХА — то, по чему вид узнаёт, что бьют.
+            //
+            // Его здесь НЕ БЫЛО, и это была вся причина «удары есть, анимации
+            // нет». NpcActorView.SetCombat опознаёт новый удар не по флагу
+            // IsSwinging (окно живёт один-два тика и кадр может его проскочить),
+            // а по СМЕНЕ этого штампа. Ставил его только собачий бой
+            // (AnimalCombatSystem), а человек против человека — налёт и вся
+            // сцена абьюза — не ставил никогда. Штамп оставался нулевым или
+            // хранил чужой давний тик, смены не происходило, и вид не играл
+            // ничего: ни замаха, ни удара, при любых таймингах клипа.
+            //
+            // Отсюда же и обманчивость: правки длительностей, числа ударов и
+            // боевого флага честно меняли МОДЕЛЬ и не могли изменить картинку,
+            // потому что картинка ждала другого сигнала.
+            actor.SwingStartTick = world.Tick;
         }
 
         return false;
     }
 
-    private static void StrikeTimings(GearStats gear, int strikeIndex,
-        out float hitDelaySeconds, out float durationSeconds, out float cooldownSeconds)
-    {
-        if (gear.HasStrikeVariants && strikeIndex >= 0 && strikeIndex < gear.StrikeVariants.Length)
-        {
-            var variant = gear.StrikeVariants[strikeIndex];
-            hitDelaySeconds = variant.HitDelaySeconds;
-            durationSeconds = variant.AttackDurationSeconds;
-            cooldownSeconds = variant.CooldownSeconds;
-            return;
-        }
+    /// <summary>
+    /// ⭐ ЧЕМ ОНА БЬЁТ НА САМОМ ДЕЛЕ — одно место на всех.
+    ///
+    /// <para>
+    /// §97: обычно дерутся ЛУЧШИМ, что есть в руках. Но сцена может назначить
+    /// оружие сама — наезд начинается рукопашкой, а тесак достают, когда уже
+    /// ненавидят (§93). Пустая строка это кулаки, null — «как обычно».
+    /// </para>
+    /// <para>
+    /// §103 r5: правило вынесено сюда, потому что вид считал его ПО-СВОЕМУ —
+    /// брал лучшее оружие из рюкзака и не знал про назначенное сценой. Выходило
+    /// «бьёт ножом, а урон как рукой»: он и правда бил кулаком, врала картинка.
+    /// Экспортер снапшота теперь спрашивает здесь же.
+    /// </para>
+    /// </summary>
+    internal static string EffectiveWeapon(NPCState actor) =>
+        !actor.Body.CanUseToolsOrWeapons
+            ? string.Empty
+            : actor.Mind.ForcedMeleeWeaponId
+              ?? SimBalance.BestMeleeWeapon(actor.Inventory.Items, actor.Body.IntactHands);
 
-        hitDelaySeconds = gear.HitDelaySeconds;
-        durationSeconds = gear.AttackDurationSeconds;
-        cooldownSeconds = gear.CooldownSeconds;
+    // Тайминги переехали в GearStats.StrikeTimings: это свойство снаряжения, и
+    // спрашивать их должен ещё и ВИД (иначе он мерит замах базой, пока сим
+    // мерит вариантом). Копия жила здесь и в AnimalCombatSystem.
+
+    /// <summary>
+    /// ⭐ ОТМЕТИТЬ ПОПАДАНИЕ ПО ЧЕЛОВЕКУ — один вызов на удар, кто бы ни бил.
+    ///
+    /// <para>
+    /// Момент удара живёт один тик, и вид рисует только последний тик кадра —
+    /// поэтому это ШТАМП, а не флаг (спек §83.2.3, тот же приём, что спас
+    /// замах в §103). Зовётся и укусом зверя, и человеческим ударом: жертве
+    /// всё равно, чем в неё прилетело, а виду нужен один сигнал.
+    /// </para>
+    /// </summary>
+    /// <summary>Зубы зверя как «оружие» хит-штампа — та же константа, что
+    /// читает вид (<see cref="GearCatalog.Bite"/>).</summary>
+    internal const string BiteWeaponId = GearCatalog.Bite;
+
+    internal static void StampHit(WorldState world, NPCState target, string weaponId,
+        BodyPart part, Float2 from)
+    {
+        target.HitStampTick = world.Tick;
+        target.HitWeaponId = weaponId ?? string.Empty;
+        target.HitPart = part;
+        target.HitFrom = from;
     }
 
     // A man aims high — far more torso and head than a dog's leg-first bite.
@@ -124,6 +196,12 @@ internal static class MeleeSwing
     {
         var part = AmputateSystemHelpers.RedirectFromStump(
             target, PickHumanPart(world, attacker.Id.Value));
+
+        // ⭐ §104 r5: вот сейчас, вот этим, вот сюда. Единственный сигнал, по
+        // которому вид синхронно даёт кровь, отбой тела и звук удара — см.
+        // NPCState.HitStampTick. Ставится ДО пощады и до обнуления урона: удар
+        // случился в любом случае, и видно его быть обязано.
+        StampHit(world, target, weaponId, part, attacker.Position);
         var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only
         var landed = EquipmentMath.Mitigate(world, target, part, damage);
 
@@ -168,12 +246,10 @@ internal static class MeleeSwing
         AmputateSystemHelpers.TrySeverOnBite(world, target, part, landed);
         EquipmentMath.WearCoveringItems(world, target, part, SimBalance.ClothingBiteDurabilityWear);
 
-        if (target.Body.VitalDestroyed(out var vitalPart))
-        {
-            target.Health = 0f;
-            Trace.Emit(world, target.Id, "VitalPartDestroyed",
-                $"{vitalPart} destroyed by NPC{attacker.Id.Value}");
-        }
+        // §105: единая развилка «умерла или ещё умирает». Зовётся на КАЖДЫЙ
+        // удар, а не только на добивающий: по лежащей на грани удар срезает
+        // запас смерти напрямую — её догрызают.
+        MortalityHelpers.ResolveTrauma(world, target, landed, $"NPC{attacker.Id.Value}");
 
         Trace.Emit(world, attacker.Id, traceName,
             $"Target=NPC{target.Id.Value} {part} -{landed:F3} (armor={partArmor:F2}) " +
@@ -192,16 +268,28 @@ internal static class MeleeSwing
             return false;
         }
 
+        // §108: пришли ПОБИТЬ, а не казнить. Сговор набирает ненависть быстро
+        // (жертва -0.35 за сцену, свидетельницы -0.18), так что к моменту
+        // расправы почти каждая уже за порогом §86 — и замеры это подтвердили:
+        // в 2 охотах из 4 чужак умирал на четвёртый-пятый день, а он на острове
+        // один, и вместе с ним кончалась вся линия. Здесь пощада держится, пока
+        // цель — их общая цель охоты: они бьют до «свалился», он приходит в
+        // себя и ненавидит их сильнее (§91 — в следующий раз с ножом).
+        // Выключить ручку — и расправа снова может стать смертельной.
+        if (Spec108.GroupHuntMercyHolds &&
+            attacker.Mind.CurrentGoal == GoalType.GroupHunt &&
+            attacker.Mind.GroupHuntTargetNpcId is { } hunted &&
+            hunted.Equals(target.Id))
+        {
+            return true;
+        }
+
         return attacker.Social.GetOrCreate(target.Id).Affinity > Spec86.HatredAffinity;
     }
 
-    internal static bool InReach(WorldState world, NPCState a, NPCState b)
-    {
-        return a.CurrentJunction is { } aj && b.CurrentJunction is { } bj &&
-            (aj.Equals(bj) ||
-             (world.Junctions.Items.TryGetValue(bj, out var junction) &&
-              junction.Neighbors.Contains(aj)));
-    }
+    // «Достаёт ли рука» переехало в InteractionReach.CanStrike — туда, где
+    // объявлена вся таблица мер близости. Здесь оно было пятой мерой, о которой
+    // таблица не знала, и §102 вырос ровно из этого зазора.
 }
 
 }

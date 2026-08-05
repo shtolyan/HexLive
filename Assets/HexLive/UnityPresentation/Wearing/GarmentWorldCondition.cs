@@ -17,6 +17,11 @@ namespace HexLive.UnityPresentation.Wearing
             public GarmentWearPainter Painter;
             public float[] DrySmoothness;
             public Color[] DryColors;
+
+            // The instances `renderer.materials` handed us, kept so OnDestroy
+            // can free them without asking the renderer again while it is
+            // itself being torn down.
+            public Material[] Materials;
         }
 
         private readonly List<Piece> _pieces = new();
@@ -41,6 +46,7 @@ namespace HexLive.UnityPresentation.Wearing
                 var piece = new Piece
                 {
                     Renderer = renderer,
+                    Materials = materials,
                     DrySmoothness = new float[materials.Length],
                     DryColors = new Color[materials.Length]
                 };
@@ -108,6 +114,32 @@ namespace HexLive.UnityPresentation.Wearing
                     piece.Renderer.SetPropertyBlock(_block, i);
                 }
             }
+        }
+
+        // `renderer.materials` above handed us INSTANCES, and Unity does not
+        // free those with the renderer. A ground garment is created and
+        // destroyed every time one is dropped or picked up — during a fight
+        // that is constant — so without this the orphaned materials (and the
+        // textures they hold) pile up for the whole session.
+        private void OnDestroy()
+        {
+            foreach (var piece in _pieces)
+            {
+                if (piece.Materials == null)
+                {
+                    continue;
+                }
+
+                foreach (var material in piece.Materials)
+                {
+                    if (material != null)
+                    {
+                        Destroy(material);
+                    }
+                }
+            }
+
+            _pieces.Clear();
         }
     }
 }

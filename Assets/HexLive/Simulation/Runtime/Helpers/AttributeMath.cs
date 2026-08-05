@@ -72,6 +72,49 @@ internal static class AttributeMath
         }
     }
 
+    // ---- Training -----------------------------------------------------------
+
+    // §76.13: the body conditions itself. `effort` is the raw amount of the
+    // taxing thing (ticks worked, damage taken, blows landed), already scaled
+    // by its own Spec76 rate at the call site.
+    //
+    // No cap at 1.0 and no cap at the roll band: the roll is a starting hand.
+    // The brake is the distance left to AttributeTrainCeiling, squared — so the
+    // first points come easily and the last ones effectively never arrive. That
+    // shape is also why the sheet shows a bare number and no bar: there is a
+    // ceiling in the maths, but not one the player should read as a finish line.
+    //
+    // Only ever RAISES. Nothing in §76 takes an attribute away — a body that
+    // stops working does not un-learn being strong, it is only out-paced.
+    public static void Train(NPCState npc, AttributeKind kind, float effort)
+    {
+        if (!Spec76.Enabled || !Spec76.AttributeTrainEnabled || effort <= 0f)
+        {
+            return;
+        }
+
+        var ceiling = Spec76.AttributeTrainCeiling;
+        var current = npc.Attributes.Get(kind);
+        if (ceiling <= 0f || current >= ceiling)
+        {
+            return;
+        }
+
+        var headroom = (ceiling - current) / ceiling;
+        var next = current + effort * headroom * headroom;
+        npc.Attributes.Set(kind, System.MathF.Min(ceiling, next));
+    }
+
+    // The attribute a finished job conditions — the same map that decides how
+    // fast she does it, so the thing she is good at is the thing she trains.
+    public static void TrainFromWork(NPCState npc, InteractionType type, GoalType goal, int durationTicks)
+    {
+        if (durationTicks > 0)
+        {
+            Train(npc, WorkAttribute(type, goal), Spec76.AttributeTrainPerWorkTick * durationTicks);
+        }
+    }
+
     // ---- The shape of every multiplier --------------------------------------
 
     // `1 + (attr − Mean) × gain`. At Mean the deviation is 0 and this is
@@ -177,8 +220,48 @@ internal static class AttributeMath
     public static float BleedMult(NPCState npc) =>
         System.MathF.Max(0f, InverseMult(npc, AttributeKind.Toughness, Spec76.BleedGain));
 
+    // §105: насколько дольше ОНА держится на грани. Кровь и разбитая грудь —
+    // это Стойкость (та же ось, что заживление и свёртываемость); голод и
+    // жажда — Неприхотливость, «она может дольше не есть и не пить».
+    // Умножает ОКНО, поэтому больше — лучше, и обе ветки берут прямой Mult.
+    public static float DyingHoldMult(NPCState npc, DyingCause cause)
+    {
+        if (!Spec105.DyingEnabled)
+        {
+            return 1f;
+        }
+
+        var kind = cause switch
+        {
+            DyingCause.Starvation or DyingCause.Dehydration => AttributeKind.Hardiness,
+            _ => AttributeKind.Toughness
+        };
+
+        // Пол на четверти окна: даже самая хилая девушка успевает упасть и
+        // побыть спасаемой, иначе «умирает» вырождается обратно в мгновенную
+        // смерть на нижнем краю разброса.
+        return System.MathF.Max(0.25f, Mult(npc, kind, Spec105.HoldGain));
+    }
+
     // The healer's skill, applied to relief delivered to someone else (or to
     // herself via §68 self-treat).
+    // §105 r3: до какого уровня ЭТИ руки вообще могут довести зону. Новичок
+    // латает до Spec53.TreatCapNovice, мастер — до единицы; между ними прямая.
+    //
+    // Со снятыми навыками потолка нет: он выражает УМЕНИЕ, и без системы
+    // умений ему не на чем стоять — кил-свитч §76 обязан возвращать
+    // до-§105-r3 поведение, а не запирать всех на потолке новичка.
+    public static float TreatCap(NPCState healer)
+    {
+        if (!Spec76.Enabled || !Spec76.SkillsEnabled)
+        {
+            return 1f;
+        }
+
+        var novice = MathUtil.Clamp01(Spec53.TreatCapNovice);
+        return novice + (1f - novice) * Skill(healer, SkillKind.Medicine);
+    }
+
     public static float TreatPowerMult(NPCState npc) =>
         1f + Skill(npc, SkillKind.Medicine) * Spec76.SkillHealGain;
 

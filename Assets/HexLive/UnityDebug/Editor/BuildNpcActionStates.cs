@@ -42,7 +42,17 @@ namespace HexLive.UnityDebug.Editor
             // §29C.3-hit: a standing stagger when damage lands while she stands still.
             AddParam(ac, "HitReact", AnimatorControllerParameterType.Trigger);
             AddParam(ac, "Crawling", AnimatorControllerParameterType.Bool); // §50: lost a leg
+            // §105: тело РУХНУЛО — умирает или лежит без сознания. Свой bool, а
+            // не переиспользованный Laying: сон входит в LieDown из каждого
+            // стоячего состояния своим переходом и уходит в кровать, а падение
+            // приходит откуда угодно, включая бег и драку.
+            AddParam(ac, "Fallen", AnimatorControllerParameterType.Bool);
             AddParam(ac, "Chopping", AnimatorControllerParameterType.Bool); // §axe: swinging an axe at work
+            // §110: УТЕШЕНИЕ — она опускается на колени рядом с рыдающей и
+            // молится за неё. Свой bool, а не переиспользованный Crafting:
+            // утешение перестало быть «ещё одной помощью» и получило свою позу,
+            // а крафтовый присед остался крафту и остальным видам помощи.
+            AddParam(ac, "Praying", AnimatorControllerParameterType.Bool);
             // §gear-craft v2: the staged in-place craft — kneeling over the
             // laid-out ingredients, working the ground (planting-style clip).
             AddParam(ac, "Crafting", AnimatorControllerParameterType.Bool);
@@ -63,6 +73,13 @@ namespace HexLive.UnityDebug.Editor
             // made the window. Same idiom as JumpSpeed (§HexHop). Default 1 =
             // authored pace, so a controller built before this reads identical.
             AddParam(ac, "ActionSpeed", AnimatorControllerParameterType.Float, 1f);
+            // §104 r4: то же для УДАРА, но своим параметром — иначе боевой темп
+            // и рабочий писали бы в одну ячейку по очереди каждый кадр. Клип
+            // замаха обязан уложиться ровно в окно, которое открыл сим: у
+            // кулака Punch A длится 2.17 с против окна 1.5 с, и без подгонки
+            // удар либо обрывается на выходе в Idle, либо доигрывает поверх
+            // следующего замаха.
+            AddParam(ac, "AttackSpeed", AnimatorControllerParameterType.Float, 1f);
 
             var sm = ac.layers[0].stateMachine;
             var idle = Find(sm, "Idle");
@@ -95,6 +112,28 @@ namespace HexLive.UnityDebug.Editor
             // Базовый клип — просто КЛЮЧ для подмены; какой именно, роли не
             // играет, лишь бы он существовал.
             var emote = AddState(sm, "Emote", Clip("X Bot@Salsa Dancing"));
+            // §105: рухнула → лежит → встала. Три состояния на один bool, ровно
+            // как LieDown→Sleep→GetUp у сна, но своей цепочкой: сон уходит в
+            // кровать и держит свою позу, а это падение с любого места.
+            // §110: молитва-утешение — своя цепочка вход→луп→выход, как у сна и
+            // у падения. Клип «встаёт с молитвы» приехал из Mixamo, а «опускается
+            // на молитву» ОТСУТСТВОВАЛ: он запечён реверсом того же клипа
+            // (Tools, headless Blender) в отдельный файл. Отрицательной скорости
+            // состояния в проекте нет ни одной — и не заводим: поверх неё
+            // ложится глобальный _animator.speed (пауза, фаст-форвард), а канон
+            // здесь — три честных клипа.
+            var prayDown = AddState(sm, "PrayDown", Clip("X Bot@Praying Down_once"));
+            var pray = AddState(sm, "Pray", Clip("Praying Idle"));
+            var prayUp = AddState(sm, "PrayUp", Clip("X Bot@Praying Up_once"));
+            var fallDown = AddState(sm, "FallDown", Clip("X Bot@Falling Down_once"));
+            var fallenIdle = AddState(sm, "FallenIdle", Clip("X Bot@Sleeping Idle"));
+            var standUp = AddState(sm, "StandUp", Clip("X Bot@Standing Up_once"));
+            // §105: беспамятство — ОДИН КАДР позы сна, намертво. Скорость 0
+            // означает «оставайся на первом кадре»: тело лежит, но не дышит и
+            // не ворочается — тем и отличается от спящей, которая рядом играет
+            // ТОТ ЖЕ клип живьём. Клип, а не отдельная поза, потому что вторая
+            // копия той же позы разошлась бы с первой при первой же замене.
+            fallenIdle.speed = 0f;
 
             // Loopy activities: enter while the bool is set, return to Idle when cleared.
             Loopy(sm, talk, idle, "Talking");
@@ -113,11 +152,27 @@ namespace HexLive.UnityDebug.Editor
             FitClipToWindow(craft);
 
             // Attack: fired by a trigger, plays once, exits by time.
+            //
+            // §104 r4, два изменения, оба про рассинхрон с симуляцией:
+            //
+            // speedParameter — клип играет ровно столько, сколько окно замаха
+            // в модели (вид считает AttackSpeed из живой длины клипа). Без него
+            // авторская длина и sim-окно были ДВА ЧИСЛА, ОБЯЗАННЫЕ СОВПАДАТЬ, и
+            // не совпадали ни у одного оружия: кулак 2.17 против 1.5, копьё
+            // 3.27 против 2.0.
+            //
+            // canTransitionToSelf — новый замах РЕЖЕТ предыдущий клип. Раньше
+            // повторный триггер посреди удара не брался и оставался взведённым:
+            // он выстреливал сразу после возврата в Idle, давая фантомный удар
+            // без замаха в модели. Триггер ставится ровно раз на замах (по
+            // смене штампа), так что перезапуск здесь — это и есть «начался
+            // следующий удар».
             ClearAny(sm, attack);
             ClearOut(attack);
+            FitClipToWindow(attack, "AttackSpeed");
             var ai = sm.AddAnyStateTransition(attack);
             ai.AddCondition(AnimatorConditionMode.If, 0, "Attack");
-            ai.hasExitTime = false; ai.duration = 0.1f; ai.canTransitionToSelf = false;
+            ai.hasExitTime = false; ai.duration = 0.1f; ai.canTransitionToSelf = true;
             var ao = attack.AddTransition(idle);
             ao.hasExitTime = true; ao.exitTime = 0.9f; ao.duration = 0.15f;
 
@@ -181,6 +236,195 @@ namespace HexLive.UnityDebug.Editor
             co.AddCondition(AnimatorConditionMode.IfNot, 0, "Crawling");
             co.hasExitTime = false; co.duration = 0.2f;
 
+            // §110: PrayDown → Pray → PrayUp. Цепочка из трёх, поэтому вход —
+            // явными переходами из стоячих состояний, а НЕ через AnyState: тот
+            // же капкан, что описан ниже у падения (условие «Praying == true»
+            // остаётся истинным всё время молитвы и дёргало бы её из лупа
+            // обратно во вход). Из лежачих не входим — молится та, кто пришла
+            // на своих ногах.
+            {
+                ClearAny(sm, prayDown);
+                ClearAny(sm, pray);
+                ClearAny(sm, prayUp);
+                ClearInbound(sm, prayDown);
+                ClearInbound(sm, pray);
+                ClearInbound(sm, prayUp);
+                ClearOut(prayDown);
+                ClearOut(pray);
+                ClearOut(prayUp);
+
+                var lyingNames = new[] { "Sleep", "LieDown", "GetUp", "FallDown", "FallenIdle", "StandUp", "Death", "Crawl" };
+                foreach (var cs in sm.states)
+                {
+                    var s = cs.state;
+                    if (s == prayDown || s == pray || s == prayUp ||
+                        System.Array.IndexOf(lyingNames, s.name) >= 0)
+                    {
+                        continue;
+                    }
+
+                    var kneel = s.AddTransition(prayDown);
+                    kneel.AddCondition(AnimatorConditionMode.If, 0, "Praying");
+                    kneel.hasExitTime = false;
+                    kneel.duration = 0.2f;
+                }
+
+                // Опустилась — молится, пока флаг держат.
+                var pd = prayDown.AddTransition(pray);
+                pd.AddCondition(AnimatorConditionMode.If, 0, "Praying");
+                pd.hasExitTime = true; pd.exitTime = 0.95f; pd.duration = 0.25f;
+
+                // Досрочно отпустили (ward встала, помощь прервали) — вставать
+                // прямо со входа, не досматривая, как она опускается.
+                var pdu = prayDown.AddTransition(prayUp);
+                pdu.AddCondition(AnimatorConditionMode.IfNot, 0, "Praying");
+                pdu.hasExitTime = false; pdu.duration = 0.2f;
+
+                var pu = pray.AddTransition(prayUp);
+                pu.AddCondition(AnimatorConditionMode.IfNot, 0, "Praying");
+                pu.hasExitTime = false; pu.duration = 0.25f;
+
+                var ui2 = prayUp.AddTransition(idle);
+                ui2.hasExitTime = true; ui2.exitTime = 0.9f; ui2.duration = 0.25f;
+
+                // §110: пошла — значит молитва кончилась, чем бы её ни подняло
+                // (побежала от волка, план сменился). Без этого клапана тело
+                // ЕДЕТ по земле в позе на коленях: ходьбу ведёт симуляция, а
+                // стейт молитвы её не отпускает. Пауза §53 держит её на месте в
+                // штатном случае; это — страховка на все нештатные. Тот же
+                // приём, что выбивает из Emote (Speed > 0.1).
+                foreach (var prayState in new[] { prayDown, pray, prayUp })
+                {
+                    var bolt = prayState.AddTransition(idle);
+                    bolt.AddCondition(AnimatorConditionMode.Greater, 0.1f, "Speed");
+                    bolt.hasExitTime = false;
+                    bolt.duration = 0.15f;
+                }
+            }
+
+            // §105: FallDown → (FallenIdle | Sleep) → подъём.
+            //
+            // ⭐ Вход НЕ через AnyState, и это главное. Первая редакция вешала
+            // AnyState→FallDown на «Fallen == true» — а условие остаётся
+            // истинным всё время, пока она лежит, поэтому из FallenIdle тот же
+            // переход тут же дёргал её обратно в падение: она падала, падала и
+            // падала, не доходя до лежачего лупа. AnyState годится для
+            // ОДНОГО состояния (Death, Crawl) и ломается на цепочке из трёх.
+            // Сонная цепочка LieDown→Sleep→GetUp по этой же причине входит
+            // явными переходами из каждого стоячего состояния — делаем так же.
+            //
+            // Ветвление после приземления — по Laying:
+            //   Laying == false → FallenIdle: кома и умирание, тело лежит
+            //                     безвольно, пока его не поднимут;
+            //   Laying == true  → Sleep: потеряла сознание — рухнула так же, но
+            //                     дальше просто спит, и встаёт обычным GetUp.
+            var sleep = Find(sm, "Sleep");
+            var lieDown = Find(sm, "LieDown");
+
+            ClearAny(sm, fallDown);
+            ClearAny(sm, fallenIdle);
+            ClearAny(sm, standUp);
+            ClearInbound(sm, fallDown);
+            ClearInbound(sm, fallenIdle);
+            ClearInbound(sm, standUp);
+            ClearOut(fallDown);
+            ClearOut(fallenIdle);
+            ClearOut(standUp);
+
+            // Падение приходит откуда угодно — из бега, из драки, из работы.
+            // Кроме: самой цепочки падения (это и был луп), смерти и тех, кто
+            // УЖЕ на земле — лежащую не роняют второй раз.
+            foreach (var cs in sm.states)
+            {
+                var s = cs.state;
+                if (s == fallDown || s == fallenIdle || s == standUp || s == death ||
+                    s == sleep || s == lieDown || s.name == "GetUp")
+                {
+                    continue;
+                }
+
+                var enter = s.AddTransition(fallDown);
+                enter.AddCondition(AnimatorConditionMode.If, 0, "Fallen");
+                enter.hasExitTime = false;
+                enter.duration = 0.15f;
+            }
+
+            // Уже спящую (в кровати) кома роняет не клипом падения — она и так
+            // лежит; ей достаточно обмякнуть в лежачий луп.
+            foreach (var alreadyDown in new[] { sleep, lieDown })
+            {
+                if (alreadyDown == null)
+                {
+                    continue;
+                }
+
+                var slump = alreadyDown.AddTransition(fallenIdle);
+                slump.AddCondition(AnimatorConditionMode.If, 0, "Fallen");
+                slump.AddCondition(AnimatorConditionMode.IfNot, 0, "Laying");
+                slump.hasExitTime = false;
+                slump.duration = 0.25f;
+            }
+
+            // Сонная цепочка обязана пропускать падение вперёд — и на входе, и
+            // на выходе. Порядок переходов внутри состояния есть порядок
+            // вычисления, а эти записаны в контроллере раньше наших:
+            //
+            //   → LieDown: у потерявшей сознание подняты ОБА флага, и без этого
+            //     она уходила бы в аккуратное «прилегла» вместо падения;
+            //   → GetUp:   он срабатывает на «Laying == false», а ровно это и
+            //     значит «спящую накрыла кома» — она бы ВСТАЛА, чтобы тут же
+            //     рухнуть, вместо того чтобы обмякнуть на месте.
+            var getUp = Find(sm, "GetUp");
+            foreach (var cs in sm.states)
+            {
+                foreach (var t in cs.state.transitions)
+                {
+                    if ((lieDown != null && t.destinationState == lieDown) ||
+                        (getUp != null && t.destinationState == getUp))
+                    {
+                        EnsureCondition(t, AnimatorConditionMode.IfNot, "Fallen");
+                    }
+                }
+            }
+
+            // Падение доиграло — лечь. Обе ветки по времени: это одна
+            // непрерывная сцена, а не два независимых состояния.
+            var fl = fallDown.AddTransition(fallenIdle);
+            fl.AddCondition(AnimatorConditionMode.IfNot, 0, "Laying");
+            fl.hasExitTime = true; fl.exitTime = 0.95f; fl.duration = 0.3f;
+
+            if (sleep != null)
+            {
+                var fs = fallDown.AddTransition(sleep);
+                fs.AddCondition(AnimatorConditionMode.If, 0, "Laying");
+                fs.hasExitTime = true; fs.exitTime = 0.95f; fs.duration = 0.3f;
+            }
+
+            // Досрочный подъём прямо из падения: её подняли, пока клип ещё шёл.
+            var fu = fallDown.AddTransition(standUp);
+            fu.AddCondition(AnimatorConditionMode.IfNot, 0, "Fallen");
+            fu.AddCondition(AnimatorConditionMode.IfNot, 0, "Laying");
+            fu.hasExitTime = false; fu.duration = 0.2f;
+
+            // §105 r5: очнулась вымотанной — не встаёт, а переворачивается и
+            // спит. ОБЪЯВЛЕН РАНЬШЕ подъёма: порядок переходов внутри
+            // состояния есть порядок вычисления, а у уснувшей на месте оба
+            // условия истинны разом (Fallen снят, Laying поднят).
+            if (sleep != null)
+            {
+                var ls = fallenIdle.AddTransition(sleep);
+                ls.AddCondition(AnimatorConditionMode.IfNot, 0, "Fallen");
+                ls.AddCondition(AnimatorConditionMode.If, 0, "Laying");
+                ls.hasExitTime = false; ls.duration = 0.45f;
+            }
+
+            var lu = fallenIdle.AddTransition(standUp);
+            lu.AddCondition(AnimatorConditionMode.IfNot, 0, "Fallen");
+            lu.hasExitTime = false; lu.duration = 0.25f;
+
+            var ui = standUp.AddTransition(idle);
+            ui.hasExitTime = true; ui.exitTime = 0.9f; ui.duration = 0.25f;
+
             EditorUtility.SetDirty(ac);
             AssetDatabase.SaveAssets();
             Debug.Log($"[NpcActionStates] Built. states={sm.states.Length} params={ac.parameters.Length} " +
@@ -219,11 +463,11 @@ namespace HexLive.UnityDebug.Editor
         // brisk. Only states where ONE interaction IS ONE gesture get this:
         // Chop is a REPEATED swing at a tree and must keep looping, and the
         // wardrobe/talk beats have their own timing.
-        static void FitClipToWindow(AnimatorState s)
+        static void FitClipToWindow(AnimatorState s, string parameter = "ActionSpeed")
         {
             if (s == null) return;
             s.speedParameterActive = true;
-            s.speedParameter = "ActionSpeed";
+            s.speedParameter = parameter;
         }
 
         static AnimatorState Find(AnimatorStateMachine sm, string n)
@@ -246,15 +490,28 @@ namespace HexLive.UnityDebug.Editor
         static AnimationClip Clip(string takeName)
         {
             var fbx = AnimDir + takeName + ".fbx";
+            // Точное имя — в приоритете: в одном FBX может лежать несколько
+            // клипов (у «X Bot@Sleeping Idle» есть довёрнутый «… Bed»-вариант
+            // для сонной цепочки, баг #6), а порядок LoadAllAssetsAtPath не
+            // определён. Фолбэк на первый клип — для файлов, где имя клипа
+            // не совпадает с именем файла.
+            AnimationClip first = null;
             foreach (var a in AssetDatabase.LoadAllAssetsAtPath(fbx))
             {
                 if (a is AnimationClip c && !c.name.StartsWith("__preview"))
                 {
-                    return c;
+                    if (c.name == takeName)
+                    {
+                        return c;
+                    }
+                    first = first != null ? first : c;
                 }
             }
-            Debug.LogWarning($"[NpcActionStates] Clip not found: {fbx}");
-            return null;
+            if (first == null)
+            {
+                Debug.LogWarning($"[NpcActionStates] Clip not found: {fbx}");
+            }
+            return first;
         }
 
         static void ClearAny(AnimatorStateMachine sm, AnimatorState dst)
@@ -271,6 +528,33 @@ namespace HexLive.UnityDebug.Editor
             {
                 s.RemoveTransition(t);
             }
+        }
+
+        // §105: снять ВХОДЯЩИЕ переходы из обычных состояний. Нужен, потому что
+        // цепочка падения входит не из AnyState, а явными переходами из каждого
+        // стоячего состояния — без этого повторный запуск меню добавлял бы их
+        // поверх старых, и один и тот же переход копился бы с каждым прогоном.
+        static void ClearInbound(AnimatorStateMachine sm, AnimatorState dst)
+        {
+            foreach (var cs in sm.states)
+            {
+                foreach (var t in new List<AnimatorStateTransition>(cs.state.transitions))
+                {
+                    if (t.destinationState == dst) cs.state.RemoveTransition(t);
+                }
+            }
+        }
+
+        // Идемпотентно: условие добавляется, только если его там ещё нет.
+        static void EnsureCondition(
+            AnimatorStateTransition t, AnimatorConditionMode mode, string parameter)
+        {
+            foreach (var c in t.conditions)
+            {
+                if (c.parameter == parameter && c.mode == mode) return;
+            }
+
+            t.AddCondition(mode, 0, parameter);
         }
 
         // §50: the Crawl state as a 1D blend on "Speed" — Prone Idle at 0 (she

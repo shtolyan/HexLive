@@ -313,6 +313,7 @@ public sealed class BodyBones : MonoBehaviour
         // and the variant would wash back to the wrong colour.
         newWear.ApplyVariant(Garments.GarmentVariants.MaterialsOf(KeyToDefinitionId(key)));
         newWear.Construct(_actorMesh, this, key);
+        SuppressGarmentShadows(newWear);
 
         foreach (var slot in newWear.Slots)
         {
@@ -386,6 +387,27 @@ public sealed class BodyBones : MonoBehaviour
         else
         {
             _hairInstance.Show();
+        }
+    }
+
+    // PERF (profiling, Aug-2026): every worn piece is a SkinnedMeshRenderer, and
+    // a dressed colonist wears several — each one skinned and drawn again in
+    // every shadow cascade it lands in. The BODY still casts, so she keeps her
+    // shadow; what is lost is the cloth's own contribution to that silhouette,
+    // which at play distance reads as a slightly slimmer blob. Flip this to keep
+    // garment shadows if a wide skirt ever needs its outline back.
+    private const bool GarmentsCastShadows = false;
+
+    private static void SuppressGarmentShadows(Wear wear)
+    {
+        if (GarmentsCastShadows)
+        {
+            return;
+        }
+
+        foreach (var renderer in wear.GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
     }
 

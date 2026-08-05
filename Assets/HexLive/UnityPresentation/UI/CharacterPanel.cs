@@ -46,8 +46,10 @@ namespace HexLive.UnityPresentation.UI
         private Label _uvLabel;
         private VisualElement _statusDot;
         private Label _thoughtValue;
-        private VisualElement _healthFill;
-        private VisualElement _healthLockedFill;
+        // §105 r2: кольцо здоровья вокруг портрета. Горизонтальная полоска
+        // (_healthFill/_healthLockedFill) снята — два бара про одно и то же
+        // спорили бы друг с другом, а кольцо ещё и всегда рядом с лицом.
+        private RingMeter _healthRing;
         private Label _healthValue;
         private Label _starvingBadge;
         private VisualElement _needsContainer;
@@ -65,7 +67,8 @@ namespace HexLive.UnityPresentation.UI
         private Label _effectTooltipDesc;
         // Only rebuild the chips when the SET of effects changes, so hovering
         // stays stable across ticks (intensity-only shifts recolour in place).
-        private string _effectSig = null;
+        private readonly List<EffectKind> _effectSigKinds = new();
+        private readonly List<EffectView> _effectParseScratch = new();
 
         // Spec §51: character inventory — a backpack button on the identity
         // column pops a floating window listing worn + carried items; clicking
@@ -126,9 +129,13 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _skillsContainer;
         private VisualElement _perkRow;
         private SheetTab _sheetTab = SheetTab.Needs;
+        // §76: what the sheet tooltip pops above — the whole middle column, so
+        // the card lands in one predictable place instead of chasing the row
+        // and clipping at the panel edge.
+        private VisualElement _sheetTooltipAnchor;
         private readonly List<SheetBinding> _attrBindings = new();
         private readonly List<SheetBinding> _skillBindings = new();
-        private string _perkSig;
+        private readonly List<string> _perkSig = new();
         private Label _relationsTitle;
         private Button _langButton;
 
@@ -171,6 +178,9 @@ namespace HexLive.UnityPresentation.UI
         private static readonly Color Stroke = new(1f, 1f, 1f, 0.10f);
         private static readonly Color StrokeStrong = new(1f, 1f, 1f, 0.13f);
         private static readonly Color Track = new(0.051f, 0.067f, 0.078f);
+        // §80: подложка под прозрачные снимки лиц (тот же тон, что был залит
+        // в саму текстуру, пока фон был непрозрачным).
+        private static readonly Color PortraitBackdrop = new(0.10f, 0.12f, 0.14f);
         private static readonly Color Gold = new(0.941f, 0.706f, 0.361f);
         private static readonly Color GoldDim = new(0.541f, 0.416f, 0.204f);
 
@@ -242,7 +252,6 @@ namespace HexLive.UnityPresentation.UI
             public SheetConfig Config;
             public Label Label;
             public Label Value;
-            public VisualElement Fill;
         }
 
         // §76.1 — the six innate characteristics. Order matches AttributeSet.All
@@ -579,13 +588,24 @@ namespace HexLive.UnityPresentation.UI
             {
                 _boundActorId = npc.Id.Value;
                 BindPortrait(npc.Id.Value);
+                // A different colonist's relations must redraw even if the row
+                // count and numbers happen to line up — the cached signature is
+                // about HER list, so it does not carry over.
+                _relationSig.Clear();
+                _relationSigSelected = int.MinValue;
+                _relationsBuiltEmpty = false;
             }
 
-            var hp = Mathf.Clamp01(npc.Health);
-            _healthFill.style.width = Length.Percent(hp * 100f);
-            // Red right segment: HP that will NOT regen until wounds close.
+            // §105 r2: ХП — это ХУДШАЯ ВИТАЛЬНАЯ ЗОНА (голова/грудь), а не
+            // среднее по семи. Среднее врало в обе стороны: пробитая грудь при
+            // целых руках и ногах читалась как «75%, всё неплохо», хотя
+            // следующий удар убивает. Цвет берётся у той же функции, что красит
+            // куклу §57, — два мнения о «насколько всё плохо» разошлись бы.
+            var hp = Mathf.Clamp01(npc.VitalHealth);
+            _healthRing.Set(hp, HealthDollStage.StatusColor(hp, false));
+            // Красным по-прежнему считается то, что не отрастёт, пока открыты
+            // раны, — теперь это приписка к числу, а не второй бар.
             var locked = Mathf.Clamp01(npc.WoundLockedHp);
-            _healthLockedFill.style.width = Length.Percent(locked * 100f);
             _healthValue.text = locked > 0.005f
                 ? $"{Mathf.RoundToInt(hp * 100f)}% (-{Mathf.RoundToInt(locked * 100f)})"
                 : $"{Mathf.RoundToInt(hp * 100f)}%";
@@ -624,7 +644,40 @@ namespace HexLive.UnityPresentation.UI
         {
             string key;
             Color dot;
-            if (npc.MovementStatus == "Moving")
+            // §105 r5: СОСТОЯНИЕ ТЕЛА идёт первым и по убыванию тяжести.
+            // Раньше строка знала три вещи — «идёт», «занята», «отдыхает» — и
+            // умирающая, лежащая в коме и спящая одинаково попадали в
+            // «отдыхает» (цель у всех троих None). Панель сообщала «просто
+            // существует» ровно тогда, когда происходило самое важное.
+            if (npc.IsDying)
+            {
+                key = "state.dying";
+                dot = Crit;
+            }
+            else if (npc.IsUnconscious)
+            {
+                key = "state.coma";
+                dot = Crit;
+            }
+            else if (npc.IsFainted)
+            {
+                key = "state.fainted";
+                dot = Warn;
+            }
+            // §105.14: она В СОЗНАНИИ и решает сама — поэтому НИЖЕ обморока и
+            // отдельной строкой: игрок должен понимать, что тело на земле
+            // живое и ждёт, пока волк уйдёт, а не отключилось.
+            else if (npc.IsPlayingDead)
+            {
+                key = "state.playdead";
+                dot = Warn;
+            }
+            else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
+            {
+                key = "state.sleeping";
+                dot = Energy;
+            }
+            else if (npc.MovementStatus == "Moving")
             {
                 key = "state.moving";
                 dot = Thirst;
@@ -750,12 +803,18 @@ namespace HexLive.UnityPresentation.UI
                     break;
                 }
 
-                value = Mathf.Clamp01(value);
-                b.Fill.style.width = Length.Percent(value * 100f);
-                // Levels out of ten, not percent: the sheet is an RPG reading
-                // ("she is a 7 at crafting"), the needs grid is a gauge.
-                b.Value.text = $"{Mathf.RoundToInt(value * 10f)}/10";
-                b.Value.style.color = value >= 0.7f ? Gold : TextDim;
+                // A rating out of ten, with NO denominator and no bar: the sheet
+                // is an RPG reading ("she is a 7 at crafting"), and the number
+                // is not capped at the display's ten — it just reads high.
+                // Clamped only at zero; a value above 1.0 shows as 11, 12, …
+                // rather than pretending the scale ended.
+                value = Mathf.Max(0f, value);
+                b.Value.text = Mathf.RoundToInt(value * 10f).ToString();
+                // Same hue always (the row keeps its identity), brightness
+                // carries the magnitude. Deliberately NOT red-for-low: on a
+                // point-buy sheet a low line is a trade-off, not a defect, and
+                // an alarm colour would read as "something is wrong with her".
+                b.Value.style.color = Color.Lerp(TextMute, b.Config.Color, Mathf.Clamp01(value));
             }
         }
 
@@ -766,13 +825,22 @@ namespace HexLive.UnityPresentation.UI
         // elements every tick would be pure churn.
         private void UpdatePerks(NpcSnapshot npc)
         {
-            var signature = string.Join("|", npc.Perks);
-            if (signature == _perkSig)
+            // PERF: was string.Join every tick — a fresh string allocated only to
+            // find out the perk set had not moved. Perks are permanent; compare
+            // the keys directly.
+            var changed = _perkSig.Count != npc.Perks.Count;
+            for (var i = 0; !changed && i < npc.Perks.Count; i++)
+            {
+                changed = _perkSig[i] != npc.Perks[i];
+            }
+
+            if (!changed)
             {
                 return;
             }
 
-            _perkSig = signature;
+            _perkSig.Clear();
+            _perkSig.AddRange(npc.Perks);
             _perkRow.Clear();
             foreach (var key in npc.Perks)
             {
@@ -907,7 +975,11 @@ namespace HexLive.UnityPresentation.UI
         // otherwise only the ring colours refresh.
         private void UpdateEffects(NpcSnapshot npc)
         {
-            var parsed = new List<EffectView>(npc.Effects.Count);
+            // PERF: scratch list reused across ticks; the intensity is parsed off
+            // a span so the "Kind\t0.42" row costs one short string (the kind,
+            // which Enum.TryParse has no span overload for) instead of two.
+            var parsed = _effectParseScratch;
+            parsed.Clear();
             foreach (var raw in npc.Effects)
             {
                 var tab = raw.IndexOf('\t');
@@ -922,7 +994,7 @@ namespace HexLive.UnityPresentation.UI
                 if (tab >= 0)
                 {
                     float.TryParse(
-                        raw.Substring(tab + 1),
+                        raw.AsSpan(tab + 1),
                         System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture,
                         out intensity);
@@ -943,15 +1015,22 @@ namespace HexLive.UnityPresentation.UI
                 return b.Intensity.CompareTo(a.Intensity);
             });
 
-            var sig = string.Empty;
-            for (var i = 0; i < parsed.Count; i++)
+            // PERF: was a string built by += in a loop — quadratic garbage every
+            // tick to answer a yes/no question. The kinds are compared directly.
+            var changed = _effectSigKinds.Count != parsed.Count;
+            for (var i = 0; !changed && i < parsed.Count; i++)
             {
-                sig += (int)parsed[i].Kind + ",";
+                changed = _effectSigKinds[i] != parsed[i].Kind;
             }
 
-            if (sig != _effectSig)
+            if (changed)
             {
-                _effectSig = sig;
+                _effectSigKinds.Clear();
+                for (var i = 0; i < parsed.Count; i++)
+                {
+                    _effectSigKinds.Add(parsed[i].Kind);
+                }
+
                 HideEffectTooltip();
                 _effectsRow.Clear();
                 foreach (var e in parsed)
@@ -1024,11 +1103,17 @@ namespace HexLive.UnityPresentation.UI
                 : new Color(0.949f, 0.769f, 0.753f); // soft red for debuffs
             _effectTooltipDesc.text = Loc.Get(def.DescKey);
 
-            // Always the SAME spot: pinned to the row's left edge and lifted
-            // fully above it (percentage translate is of the tooltip's own
-            // height, so no measuring needed). The row's left sits ~20px from
-            // the screen edge, so the card can never run off-screen.
-            var rb = _effectsRow.worldBound;
+            PopTooltipAbove(_effectsRow);
+        }
+
+        // Always the SAME spot for a given row: pinned to the anchor's left edge
+        // and lifted fully above it (a percentage translate is of the tooltip's
+        // own height, so nothing needs measuring). Anchoring beats following the
+        // cursor here — a card that chases the mouse runs off-screen at the
+        // panel's edges, and these rows sit close to them.
+        private void PopTooltipAbove(VisualElement anchor)
+        {
+            var rb = anchor.worldBound;
             if (!float.IsNaN(rb.x))
             {
                 _effectTooltip.style.left = rb.x;
@@ -1037,6 +1122,23 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _effectTooltip.style.display = DisplayStyle.Flex;
+        }
+
+        // §76: the character-sheet tooltip. Shares the one card with the effect
+        // chips — same look, one place to restyle — but anchors to the sheet
+        // column so the explanation pops next to what you are pointing at.
+        private void ShowSheetTooltip(SheetConfig config, VisualElement anchor)
+        {
+            if (_effectTooltip == null)
+            {
+                return;
+            }
+
+            _effectTooltipIcon.text = "?";
+            _effectTooltipTitle.text = Loc.Get(config.Key);
+            _effectTooltipTitle.style.color = Text;
+            _effectTooltipDesc.text = Loc.Get(config.Key + ".desc");
+            PopTooltipAbove(anchor);
         }
 
         private void HideEffectTooltip()
@@ -2300,10 +2402,16 @@ namespace HexLive.UnityPresentation.UI
 
         private void UpdateRelations(NpcSnapshot npc)
         {
-            _relationsContainer.Clear();
-
             if (npc.RelationshipDetails.Count == 0)
             {
+                if (_relationsBuiltEmpty)
+                {
+                    return;
+                }
+
+                _relationsBuiltEmpty = true;
+                _relationSig.Clear();
+                _relationsContainer.Clear();
                 var none = new Label(Loc.Get("panel.none"));
                 none.style.color = TextMute;
                 none.style.fontSize = 11;
@@ -2311,24 +2419,116 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var relations = new List<RelationshipSnapshot>(npc.RelationshipDetails);
+            var relations = _relationScratch;
+            relations.Clear();
+            relations.AddRange(npc.RelationshipDetails);
             relations.Sort((a, b) =>
             {
                 var byAffinity = Mathf.Abs(b.Affinity).CompareTo(Mathf.Abs(a.Affinity));
                 return byAffinity != 0
                     ? byAffinity
-                    : string.Compare(a.OtherName, b.OtherName, StringComparison.OrdinalIgnoreCase);
+                    : string.Compare(Loc.NpcName(a.OtherName), Loc.NpcName(b.OtherName),
+                        StringComparison.CurrentCultureIgnoreCase);
             });
 
-            var selected = relations.Find(r => r.OtherId == _selectedRelationId);
+            // Plain loop, not List.Find: the predicate would capture `this` for
+            // _selectedRelationId, i.e. a closure allocated on every tick.
+            RelationshipSnapshot selected = null;
+            for (var i = 0; i < relations.Count; i++)
+            {
+                if (relations[i].OtherId == _selectedRelationId)
+                {
+                    selected = relations[i];
+                    break;
+                }
+            }
+
             if (selected == null)
             {
                 selected = relations[0];
                 _selectedRelationId = selected.OtherId;
             }
 
+            // PERF: this subtree — a tab per relation, each with a portrait, plus
+            // the focus card — was torn down and rebuilt EVERY tick, which is
+            // where most of the panel's ~211 KB/tick of garbage and its share of
+            // the UIElements layout+repaint came from. It only ever changes when
+            // a relationship moves or the player picks another tab, so rebuild on
+            // exactly that, the way the effect chips and the inventory list
+            // already do.
+            if (!_relationsBuiltEmpty && RelationsUnchanged(relations))
+            {
+                return;
+            }
+
+            RememberRelations(relations);
+            _relationsBuiltEmpty = false;
+
+            _relationsContainer.Clear();
             _relationsContainer.Add(BuildRelationTabs(relations, selected.OtherId, npc));
             _relationsContainer.Add(BuildRelationFocusCard(selected));
+        }
+
+        // The signature is kept field-wise rather than as a joined string: a
+        // string would allocate every tick just to decide there was nothing to
+        // do. Values are COPIED — the snapshot is reused in place between ticks
+        // (spec 31.17), so holding the RelationshipSnapshot objects themselves
+        // would compare a list against itself and never see a change.
+        private readonly struct RelationSig
+        {
+            public RelationSig(RelationshipSnapshot r)
+            {
+                OtherId = r.OtherId;
+                OtherName = r.OtherName;
+                Trust = r.Trust;
+                Familiarity = r.Familiarity;
+                Affinity = r.Affinity;
+            }
+
+            public readonly int OtherId;
+            public readonly string OtherName;
+            public readonly float Trust;
+            public readonly float Familiarity;
+            public readonly float Affinity;
+
+            public bool Matches(RelationshipSnapshot r) =>
+                OtherId == r.OtherId && OtherName == r.OtherName &&
+                Trust == r.Trust && Familiarity == r.Familiarity && Affinity == r.Affinity;
+        }
+
+        private readonly List<RelationSig> _relationSig = new();
+        private readonly List<RelationshipSnapshot> _relationScratch = new();
+        private int _relationSigSelected = int.MinValue;
+        private bool _relationsBuiltEmpty;
+
+        private bool RelationsUnchanged(List<RelationshipSnapshot> relations)
+        {
+            if (_relationSigSelected != _selectedRelationId ||
+                _relationSig.Count != relations.Count)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < relations.Count; i++)
+            {
+                if (!_relationSig[i].Matches(relations[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void RememberRelations(List<RelationshipSnapshot> relations)
+        {
+            _relationSig.Clear();
+            for (var i = 0; i < relations.Count; i++)
+            {
+                _relationSig.Add(new RelationSig(relations[i]));
+            }
+
+            _relationSigSelected = _selectedRelationId;
         }
 
         private VisualElement BuildRelationTabs(List<RelationshipSnapshot> relations, int selectedId, NpcSnapshot npc)
@@ -2411,7 +2611,7 @@ namespace HexLive.UnityPresentation.UI
             avatar.style.alignItems = Align.Center;
             avatar.style.justifyContent = Justify.Center;
 
-            var initial = new Label(InitialOf(rel.OtherName));
+            var initial = new Label(InitialOf(Loc.NpcName(rel.OtherName)));
             initial.style.color = new Color(0.06f, 0.086f, 0.102f);
             initial.style.unityFontStyleAndWeight = FontStyle.Bold;
             initial.style.fontSize = 13;
@@ -2420,7 +2620,7 @@ namespace HexLive.UnityPresentation.UI
             ApplyRelationFace(avatar, rel.OtherId, initial);
             tab.Add(avatar);
 
-            var name = new Label(rel.OtherName);
+            var name = new Label(Loc.NpcName(rel.OtherName));
             name.style.color = selected ? Text : TextDim;
             name.style.fontSize = selected ? 13 : 12;
             name.style.unityFontStyleAndWeight = selected ? FontStyle.Bold : FontStyle.Normal;
@@ -2488,7 +2688,7 @@ namespace HexLive.UnityPresentation.UI
             portrait.style.alignItems = Align.Center;
             portrait.style.justifyContent = Justify.Center;
 
-            var initial = new Label(InitialOf(rel.OtherName));
+            var initial = new Label(InitialOf(Loc.NpcName(rel.OtherName)));
             initial.style.color = new Color(0.06f, 0.086f, 0.102f);
             initial.style.unityFontStyleAndWeight = FontStyle.Bold;
             initial.style.fontSize = 30;
@@ -2533,7 +2733,7 @@ namespace HexLive.UnityPresentation.UI
             title.style.flexGrow = 1f;
             title.style.minWidth = 0f;
 
-            var name = new Label(rel.OtherName);
+            var name = new Label(Loc.NpcName(rel.OtherName));
             name.style.color = Text;
             name.style.fontSize = 21;
             name.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -2731,7 +2931,7 @@ namespace HexLive.UnityPresentation.UI
             av.style.backgroundColor = AvatarColor(rel.OtherId);
             av.style.alignItems = Align.Center;
             av.style.justifyContent = Justify.Center;
-            var initial = new Label(InitialOf(rel.OtherName));
+            var initial = new Label(InitialOf(Loc.NpcName(rel.OtherName)));
             initial.style.color = new Color(0.06f, 0.086f, 0.102f);
             initial.style.unityFontStyleAndWeight = FontStyle.Bold;
             initial.style.fontSize = 13;
@@ -2743,7 +2943,7 @@ namespace HexLive.UnityPresentation.UI
             mid.style.flexGrow = 1f;
             mid.style.flexShrink = 1f;
             mid.style.marginLeft = 9f;
-            var rn = new Label(rel.OtherName);
+            var rn = new Label(Loc.NpcName(rel.OtherName));
             rn.style.color = Text;
             rn.style.fontSize = 14;
             rn.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -3067,17 +3267,41 @@ namespace HexLive.UnityPresentation.UI
             col.style.paddingRight = 18f;
             col.style.marginRight = 2f;
 
-            // Portrait
+            // Portrait, обведённый КОЛЬЦОМ ЗДОРОВЬЯ (§105 r2).
+            //
+            // Обёртка шире портрета ровно на толщину кольца, и портрет внутри
+            // отцентрован: кольцо рисуется по внешнему радиусу и не наползает
+            // на лицо. Живой бейдж по-прежнему висит в углу обёртки.
+            const float portraitSize = 156f;
+            const float ringPad = 8f;
             var wrap = new VisualElement();
-            wrap.style.width = 156f;
-            wrap.style.height = 156f;
+            wrap.style.width = portraitSize + ringPad * 2f;
+            wrap.style.height = portraitSize + ringPad * 2f;
             wrap.style.flexShrink = 0f;
+            wrap.style.alignItems = Align.Center;
+            wrap.style.justifyContent = Justify.Center;
+
+            _healthRing = new RingMeter(1f, HealthDollStage.StatusColor(1f, false))
+            {
+                // Толще колец нужд: это главный индикатор панели, и читаться
+                // он должен боковым зрением, а не при разглядывании.
+                LineWidth = 7f
+            };
+            _healthRing.style.position = Position.Absolute;
+            _healthRing.style.left = 0f;
+            _healthRing.style.right = 0f;
+            _healthRing.style.top = 0f;
+            _healthRing.style.bottom = 0f;
+            wrap.Add(_healthRing);
+
             _portrait = new VisualElement();
-            _portrait.style.width = 156f;
-            _portrait.style.height = 156f;
-            SetRadius(_portrait, 78f);
+            _portrait.style.width = portraitSize;
+            _portrait.style.height = portraitSize;
+            SetRadius(_portrait, portraitSize * 0.5f);
             _portrait.style.overflow = Overflow.Hidden;
-            SetBorder(_portrait, Gold, 2.5f);
+            // §105 r2: золотой ободок СНЯТ — теперь портрет обводит кольцо
+            // здоровья, и два кольца вокруг одного лица спорили бы за взгляд.
+            // Осталось «кружок камеры внутри кольца», как и задумано.
             _portrait.style.backgroundColor = new Color(0.10f, 0.12f, 0.14f);
             wrap.Add(_portrait);
             wrap.Add(BuildLiveBadge());
@@ -3136,22 +3360,12 @@ namespace HexLive.UnityPresentation.UI
 
             HookHealthClick(hRow);
 
-            // Spec 40.8B: Fallout-style HP bar — green = current health,
-            // red (right-anchored) = HP locked by open wounds; regen can only
-            // fill the gap between them, the red shrinks as wounds close.
-            var hTrack = MakeTrack(5f);
-            _healthFill = MakeFill(new Color(0.36f, 0.72f, 0.33f));
-            hTrack.Add(_healthFill);
-            _healthLockedFill = new VisualElement();
-            _healthLockedFill.style.position = Position.Absolute;
-            _healthLockedFill.style.right = 0f;
-            _healthLockedFill.style.top = 0f;
-            _healthLockedFill.style.bottom = 0f;
-            _healthLockedFill.style.width = Length.Percent(0f);
-            _healthLockedFill.style.backgroundColor = new Color(0.72f, 0.16f, 0.14f);
-            hTrack.Add(_healthLockedFill);
-            info.Add(hTrack);
-            HookHealthClick(hTrack);
+            // §105 r2: горизонтальной полоски здоровья больше нет — её место
+            // занял круг вокруг портрета (см. wrap выше). Два бара про одно и
+            // то же спорили бы друг с другом, а кольцо вдобавок всегда рядом с
+            // лицом: видно, КОМУ скоро конец, не читая цифр.
+            // По портрету тоже кликается кукла §57.
+            HookHealthClick(wrap);
 
             // Status chip + badge in a row
             var statusRow = new VisualElement();
@@ -3310,8 +3524,10 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            // §76: «Природа» — six innate characteristics, three across, plus
-            // the perk badges the extremes earn.
+            // §76: «Природа» — six innate characteristics, plus the perk badges
+            // the extremes earn. Two across: without a bar a row is just
+            // "7 · Неприхотливость", so it wants width for the word rather than
+            // for a track, and three-up clipped the longer Russian names.
             _natureContainer = new VisualElement();
             var attrGrid = new VisualElement();
             attrGrid.style.flexDirection = FlexDirection.Row;
@@ -3319,7 +3535,7 @@ namespace HexLive.UnityPresentation.UI
             _attrBindings.Clear();
             foreach (var row in AttributeRows)
             {
-                attrGrid.Add(BuildSheetCell(row, 33f, _attrBindings));
+                attrGrid.Add(BuildSheetCell(row, 32f, _attrBindings));
             }
 
             _natureContainer.Add(attrGrid);
@@ -3338,11 +3554,12 @@ namespace HexLive.UnityPresentation.UI
             _skillBindings.Clear();
             foreach (var row in SkillRows)
             {
-                _skillsContainer.Add(BuildSheetCell(row, 25f, _skillBindings));
+                _skillsContainer.Add(BuildSheetCell(row, 24f, _skillBindings));
             }
 
             col.Add(_skillsContainer);
 
+            _sheetTooltipAnchor = col;
             SelectSheetTab(SheetTab.Needs);
             return col;
         }
@@ -3388,52 +3605,84 @@ namespace HexLive.UnityPresentation.UI
             _refreshedTick = -1;
         }
 
-        // §76: a sheet row — name, level out of ten, and a bar. Same anatomy as
-        // a need cell minus the icon, so the two pages sit at the same rhythm.
+        // §76: a sheet row — a big number and a name. NO progress bar, on
+        // purpose: a bar draws a ceiling, and these have none. A characteristic
+        // is a rating that can keep climbing, so "7" is the honest reading
+        // while "7/10 filled" would promise a finish line that does not exist.
+        // (That is also why the value carries no denominator.)
+        //
+        // Hovering the cell explains what the line actually does — the numbers
+        // are meaningless to a player who has not read the spec, and a rating
+        // with no bar gives even less of a hint than one with.
         private VisualElement BuildSheetCell(SheetConfig config, float widthPercent,
             List<SheetBinding> bindings)
         {
             var cell = new VisualElement();
+            cell.style.flexDirection = FlexDirection.Row;
+            cell.style.alignItems = Align.Center;
             cell.style.width = Length.Percent(widthPercent);
-            cell.style.paddingRight = 16f;
-            cell.style.marginTop = 9f;
-            cell.style.marginBottom = 9f;
+            cell.style.paddingLeft = 10f;
+            cell.style.paddingRight = 10f;
+            cell.style.paddingTop = 6f;
+            cell.style.paddingBottom = 6f;
+            cell.style.marginRight = 6f;
+            cell.style.marginTop = 4f;
+            cell.style.marginBottom = 4f;
+            SetRadius(cell, 8f);
 
-            var top = new VisualElement();
-            top.style.flexDirection = FlexDirection.Row;
-            top.style.alignItems = Align.Center;
-            top.style.marginBottom = 6f;
+            // The rating, reading as the headline of the row.
+            var value = new Label("—");
+            value.style.color = config.Color;
+            value.style.fontSize = 20;
+            value.style.unityFontStyleAndWeight = FontStyle.Bold;
+            value.style.flexShrink = 0f;
+            value.style.minWidth = 26f;
+            value.style.unityTextAlign = TextAnchor.MiddleRight;
+            value.style.marginRight = 9f;
+            value.pickingMode = PickingMode.Ignore;
+            cell.Add(value);
 
             var label = new Label();
-            label.style.color = Text;
+            label.style.color = TextDim;
             label.style.fontSize = 12;
             label.style.flexGrow = 1f;
             label.style.overflow = Overflow.Hidden;
             label.style.textOverflow = TextOverflow.Ellipsis;
             label.style.whiteSpace = WhiteSpace.NoWrap;
+            label.pickingMode = PickingMode.Ignore;
+            cell.Add(label);
 
-            var value = new Label("—");
-            value.style.color = TextDim;
-            value.style.fontSize = 11;
-            value.style.unityFontStyleAndWeight = FontStyle.Bold;
-            value.style.flexShrink = 0f;
-            value.style.marginLeft = 6f;
+            // The affordance: a faint "?" that says the row can be read. It
+            // brightens with the rest of the cell on hover, so it never nags.
+            var hint = new Label("?");
+            hint.style.color = new Color(1f, 1f, 1f, 0.18f);
+            hint.style.fontSize = 11;
+            hint.style.unityFontStyleAndWeight = FontStyle.Bold;
+            hint.style.flexShrink = 0f;
+            hint.style.marginLeft = 4f;
+            hint.pickingMode = PickingMode.Ignore;
+            cell.Add(hint);
 
-            top.Add(label);
-            top.Add(value);
-            cell.Add(top);
-
-            var track = MakeTrack(9f);
-            var fill = MakeFill(config.Color);
-            track.Add(fill);
-            cell.Add(track);
+            cell.RegisterCallback<MouseEnterEvent>(_ =>
+            {
+                cell.style.backgroundColor = Raised;
+                hint.style.color = Gold;
+                label.style.color = Text;
+                ShowSheetTooltip(config, _sheetTooltipAnchor ?? cell);
+            });
+            cell.RegisterCallback<MouseLeaveEvent>(_ =>
+            {
+                cell.style.backgroundColor = Color.clear;
+                hint.style.color = new Color(1f, 1f, 1f, 0.18f);
+                label.style.color = TextDim;
+                HideEffectTooltip();
+            });
 
             bindings.Add(new SheetBinding
             {
                 Config = config,
                 Label = label,
-                Value = value,
-                Fill = fill
+                Value = value
             });
 
             return cell;
@@ -3629,7 +3878,12 @@ namespace HexLive.UnityPresentation.UI
                 _skillBindings[i].Label.text = Loc.Get(_skillBindings[i].Config.Key);
             }
 
-            _perkSig = null;
+            _perkSig.Clear();
+            // The relation tabs carry localized names (Loc.NpcName), so the
+            // cached signature must not survive a language switch either.
+            _relationSig.Clear();
+            _relationSigSelected = int.MinValue;
+            _relationsBuiltEmpty = false;
             if (_langButton != null)
             {
                 _langButton.text = Loc.Code;
@@ -3812,8 +4066,12 @@ namespace HexLive.UnityPresentation.UI
 
         private sealed class RingMeter : VisualElement
         {
-            private readonly float _value;
-            private readonly Color _color;
+            private float _value;
+            private Color _color;
+
+            // Толщина обводки. Кольца нужд оставляют её по умолчанию; кольцо
+            // здоровья вокруг портрета просит больше.
+            public float LineWidth { get; set; } = 5f;
 
             public RingMeter(float value, Color color)
             {
@@ -3821,6 +4079,24 @@ namespace HexLive.UnityPresentation.UI
                 _color = color;
                 pickingMode = PickingMode.Ignore;
                 generateVisualContent += OnGenerate;
+            }
+
+            // §105 r2: кольцо здоровья живёт весь кадр и меняется каждый тик —
+            // в отличие от колец нужд, которые пересоздаются вместе со строкой.
+            // Перерисовка запрашивается только на РЕАЛЬНОМ изменении: панель
+            // обновляется каждый кадр, и безусловный MarkDirtyRepaint гонял бы
+            // генератор меша впустую.
+            public void Set(float value, Color color)
+            {
+                value = Mathf.Clamp01(value);
+                if (Mathf.Abs(value - _value) < 0.0005f && color == _color)
+                {
+                    return;
+                }
+
+                _value = value;
+                _color = color;
+                MarkDirtyRepaint();
             }
 
             private void OnGenerate(MeshGenerationContext ctx)
@@ -3837,7 +4113,7 @@ namespace HexLive.UnityPresentation.UI
 
                 p.lineCap = LineCap.Round;
                 p.lineJoin = LineJoin.Round;
-                p.lineWidth = 5f;
+                p.lineWidth = LineWidth;
 
                 p.strokeColor = new Color(1f, 1f, 1f, 0.095f);
                 p.BeginPath();
@@ -3860,8 +4136,8 @@ namespace HexLive.UnityPresentation.UI
         }
 
         // §80: лицо вместо кружка с буквой. Кружок остаётся фолбэком, и это не
-        // временная мера: снимок появляется только через игровой час после
-        // первой встречи, а до тех пор буква — единственное, что вообще есть.
+        // временная мера: снимок появляется не раньше ближайшей дневной
+        // фотосессии, а до тех пор буква — единственное, что вообще есть.
         // Мёртвые лица тоже показываются: кэш переживает тело.
         private void ApplyRelationFace(VisualElement avatar, int otherId, Label initial)
         {
@@ -3871,9 +4147,10 @@ namespace HexLive.UnityPresentation.UI
             }
 
             avatar.style.backgroundImage = new StyleBackground(face);
-            // Цвет фона под непрозрачным снимком только пробивался бы по краям
-            // скруглённого кружка, а буква поверх лица нечитаема.
-            avatar.style.backgroundColor = Color.clear;
+            // §80: снимок теперь ПРОЗРАЧНЫЙ (вырезка без фона), поэтому под ним
+            // нужна подложка — иначе лицо висит в дырке. Буква прячется: поверх
+            // лица она нечитаема.
+            avatar.style.backgroundColor = PortraitBackdrop;
             initial.style.display = DisplayStyle.None;
         }
 

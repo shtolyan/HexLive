@@ -45,6 +45,15 @@ public sealed class ObjectDefinition
     // of the anchor (solid furniture); 0 blocks the anchor only.
     public float ObstacleRadius { get; set; }
 
+    // Spec §113: ФИЗИЧЕСКИЙ радиус самой вещи в мировых единицах — то, во что
+    // телу нельзя лечь. Намеренно ОТДЕЛЬНОЕ число от ObstacleRadius: тот про
+    // проходимость и бывает много шире вещи (у костра это 0.55R угольного
+    // кольца, сквозь которое не ходят, а сам огонь втрое меньше), так что
+    // лежание по нему выгнало бы тело с гекса костра целиком. 0 = мерить по
+    // ObstacleRadius (кровати и станции объявляют там свой честный габарит) и,
+    // для Obstacle-вещей без габарита, по полу Spec49.LieSolidRadiusFloorFactor.
+    public float SolidRadius { get; set; }
+
     // Spec 31A.5B: wearable metadata (null = not wearable).
     public WearLayer? Layer { get; set; }
 
@@ -177,6 +186,9 @@ public enum InteractionType
     Process,    // spec §54: split a log into sticks (in the field, needs an axe)
     Butcher,    // spec §54: knife a carcass/corpse into meat + hide
     Build,
+    // §28.15C v3: похороны сняты. Ординал остаётся занят — сейв хранит текущее
+    // взаимодействие числом, и вырезание середины перемаркировало бы все
+    // последующие в каждом существующем сейве.
     Bury,
     Observe,
     Talk,
@@ -205,7 +217,11 @@ public enum InteractionType
     TreatSelf,
     // §81: сцена насилия. Дописано в конец — сейв хранит взаимодействия
     // ординалом.
-    Abuse
+    Abuse,
+    // §28.15F: обобрать тело — снять с покойной ОДНУ вещь. Сначала карманы,
+    // потом одежда; за каждой вещью надо прийти отдельно. Дописано в конец, по
+    // той же причине.
+    Loot
 }
 
 }

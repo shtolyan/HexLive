@@ -188,8 +188,9 @@ public sealed class MobSystem : ISimulationSystem
             {
                 foreach (var npc in world.Entities.Npcs.Values)
                 {
-                    // Sanctuary (spec 29C.4A): indoor NPCs are never targets.
-                    if (IsNpcInSanctuary(world, npc))
+                    // Sanctuary (spec 29C.4A) + water (§106): unreachable-by-
+                    // medium NPCs are never targets.
+                    if (IsNpcInRefugeFrom(world, dog, npc))
                     {
                         continue;
                     }
@@ -214,13 +215,26 @@ public sealed class MobSystem : ISimulationSystem
             }
         }
         else if (HexSpatialMath.HexDistance(dog.Tile, target.Tile) > Stats(dog).AggroRadiusTiles + 3 ||
-                 IsNpcInSanctuary(world, target))
+                 IsNpcInRefugeFrom(world, dog, target))
         {
-            // Lost interest — target got far away or reached sanctuary
-            // (spec 29C.4A: dogs give up at the door).
+            // Lost interest — target got far away or reached refuge: a door
+            // (spec 29C.4A) or the water's edge (§106). The wolf lets go NOW,
+            // not after the chase-stall timer — standing statue at the shore
+            // read as a bug, not as patience.
+            // Причина — в локальную: перенос строки ВНУТРИ дырки интерполяции
+            // компилируется только с C# 11, а headless-проект
+            // (HexLive.Simulation.Standalone) собирается на C# 9 — Unity это
+            // проглатывала, а `dotnet build` падал, то есть гейты и соаки
+            // просто не запускались. Текст трассы не изменился.
+            var lostReason = IsNpcInSanctuary(world, target)
+                ? " (went indoors)"
+                : target.IsPlayingDead(world.Tick)
+                    ? " (playing dead)"
+                    : IsNpcInRefugeFrom(world, dog, target)
+                        ? " (in the water)"
+                        : string.Empty;
             Trace.EmitSystem(world, "DogLostTarget",
-                $"Dog={dog.Id} lost NPC{target.Id.Value}" +
-                $"{(IsNpcInSanctuary(world, target) ? " (went indoors)" : "")}");
+                $"Dog={dog.Id} lost NPC{target.Id.Value}{lostReason}");
             dog.TargetNpc = null;
             dog.Status = Wildlife.MobStatus.Roaming;
             target = null;
@@ -232,11 +246,15 @@ public sealed class MobSystem : ISimulationSystem
             return;
         }
 
-        // In range? Same or adjacent junction = melee.
+        // In range? Same or adjacent junction = melee. §106: and the medium
+        // must match — a wolf on the shore junction is ADJACENT to the swimmer
+        // one junction out, but its teeth stop at the waterline.
         var inMelee = target.CurrentJunction is { } npcJunction &&
             (npcJunction.Equals(dog.Junction) ||
              (world.Junctions.Items.TryGetValue(dog.Junction, out var dogJunction) &&
-              dogJunction.Neighbors.Contains(npcJunction)));
+              dogJunction.Neighbors.Contains(npcJunction))) &&
+            (!Spec106.WaterSanctuaryEnabled ||
+             CombatMedium.CanEngage(world, Stats(dog).AttackMediums, target));
 
         if (!inMelee)
         {
@@ -524,6 +542,20 @@ public sealed class MobSystem : ISimulationSystem
         IsIndoorTile(world, npc.Tile) ||
         (npc.CurrentJunction is { } junction && IsIndoorJunction(world, junction));
 
+    // §106: для зверя вода — вторая форма санктуария (§29C.4A): по способности
+    // моба (AttackMediums) туда не дотянуться зубами, и топтаться статуей у
+    // кромки до stall-таймера — не выжидание, а баг. НЕ слито в IsNpcInSanctuary:
+    // «indoor» читают и Raid/Abuse/Threat со СВОИМИ ручками, у воды — своя.
+    // §105.14: притворяющаяся мёртвой — третья форма того же убежища. Зверь не
+    // наводится на неподвижное тело и БРОСАЕТ уже ведущуюся погоню: обе половины
+    // достаются одной строкой, потому что и захват цели (:193), и ветка
+    // DogLostTarget спрашивают этот предикат.
+    private static bool IsNpcInRefugeFrom(WorldState world, Wildlife.MobState mob, NPCState npc) =>
+        IsNpcInSanctuary(world, npc) ||
+        npc.IsPlayingDead(world.Tick) ||
+        (Spec106.WaterSanctuaryEnabled &&
+         !CombatMedium.CanEngage(world, Stats(mob).AttackMediums, npc));
+
     private static int CountAdjacentDogs(WorldState world, NPCState npc)
     {
         if (npc.CurrentJunction is not { } npcJunction)
@@ -566,7 +598,9 @@ public sealed class MobSystem : ISimulationSystem
             var adjacent = defenderJunction.Equals(dog.Junction) ||
                 (world.Junctions.Items.TryGetValue(dog.Junction, out var dogJunction) &&
                  dogJunction.Neighbors.Contains(defenderJunction));
-            if (!adjacent)
+            if (!adjacent ||
+                // §106: подмога не дерётся из воды — пловчиха не бьёт.
+                (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, defender)))
             {
                 continue;
             }
@@ -586,7 +620,12 @@ public sealed class MobSystem : ISimulationSystem
                 : string.Empty;
             var weaponMult = SimBalance.MeleeStrikeBonus(weaponId);
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
-            var strikeReady = SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
+            // §104 r8: когда удары всех идут по таймлайну, эти наносит
+            // AnimalCombatSystem.RunAssistStrikes — на быстром слое, с окном
+            // анимации и штампом замаха. Здесь остаётся только подход, стойка
+            // и трасса: два источника урона по одной собаке били бы вдвое.
+            var strikeReady = !SimBalance.TimedMeleeEverywhere &&
+                SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
             var strike = strikeReady
                 ? NpcStrikePerPass * defender.StrikeFactor() * weaponMult
                 : 0f;
@@ -600,7 +639,7 @@ public sealed class MobSystem : ISimulationSystem
                 $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)}" +
                 $"{(strikeReady ? string.Empty : " recovering")} Speed={attackSpeed:F1} " +
                 $"DogHealth={System.Math.Max(0f, dog.Health):F2}");
-            SocialCueSignals.Stamp(world, defender, "HelpCryDefended", quarry.Id);
+            SocialCueSignals.Stamp(world, defender, "HelpCryDefended:dog", quarry.Id);
 
             if (dog.Health <= 0f)
             {
@@ -621,7 +660,7 @@ public sealed class MobSystem : ISimulationSystem
     // recoverable after the fight; the spear/bottle/tools/food stay.
     private static readonly string[] _bulkyHandItems =
     {
-        "resource.log", "resource.stick", "resource.stone", "resource.palm_leaf"
+        ContentIds.Log, ContentIds.Stick, ContentIds.Stone, ContentIds.PalmLeaf
     };
 
     internal static void ReadySpearHands(WorldState world, NPCState npc)
@@ -707,6 +746,87 @@ public sealed class MobSystem : ISimulationSystem
 
     // Spec 29C.4A: run for the nearest reachable indoor junction.
     // §56: also used by PredationSystem so a preyed-on victim can bolt.
+    // §81.13: бегство ДОМОЙ, а не в ближайшее укрытие. TryStartFlee ниже ищет
+    // ближайший indoor-узел — для чужака, стоящего во дворе колонии, это ЕЁ
+    // хижина (та самая грабля, что записана в RaidSystem.BreakOff). Разбитый
+    // после сцены бежит к якорю СВОЕЙ фракции: жертва — в лагерь к подругам,
+    // чужак — к себе. Цель та же Flee: скорость ×2.25, аукцион закрыт до
+    // прибытия, кольца угроз игнорируются.
+    internal static bool TryFleeToCamp(WorldState world, NPCState npc, string reason)
+    {
+        if (npc.CurrentJunction is not { } startJunction ||
+            !world.FactionHomes.TryGetValue(npc.Faction, out var camp))
+        {
+            return false;
+        }
+
+        JunctionId? best = null;
+        var bestScore = float.MaxValue;
+        var bestToCamp = int.MaxValue;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id))
+            {
+                continue;
+            }
+
+            // Сначала как можно ближе к якорю, при равенстве — ближе к себе.
+            var toCamp = HexSpatialMath.HexDistance(junction.Tiles[0], camp);
+            var score = toCamp * 1000f +
+                HexSpatialMath.Distance(npc.Position, junction.WorldPosition);
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestToCamp = toCamp;
+                best = junction.Id;
+            }
+        }
+
+        // Баг #13: «дом» должен быть ДАЛЬШЕ, чем стоишь. Свой джанкшен занят
+        // самим собой, так что стоящему В лагере поиск отдавал соседний
+        // свободный узел — «бегство» удавалось каждый средний тик, клапан
+        // §109.8 съедал его ход, и разбитого били в его же дворе, а он шаркал
+        // на месте и не отвечал ни разу. Некуда бежать — не бегство: вернуть
+        // false и пусть вызывающий дерётся (форма §108 TryFleeHome, где
+        // refuge.Equals(from) стоял с самого начала).
+        if (best is not { } refuge ||
+            bestToCamp >= HexSpatialMath.HexDistance(npc.Tile, camp) ||
+            !Connectivity.Reachable(world, startJunction, refuge))
+        {
+            return false;
+        }
+
+        if (npc.Plan.Status == PlanStatus.Active ||
+            npc.Execution.Status == ExecutionStatus.InProgress)
+        {
+            PlanInterruption.Abort(world, npc, reason);
+        }
+
+        npc.IsFighting = false;
+        // §109.9: бегство РАСЦЕПЛЯЕТ бой. Живая пара — это замахи от
+        // HumanCombatSystem: бегущая с парой скользила по земле в атакующей
+        // позе, продолжая бить воздух. §108 в своём TryFleeHome это уже знал.
+        npc.Mind.CombatOpponentNpcId = null;
+        FightScene.ReleaseSwingSlot(npc);
+        npc.Mind.FleeContactSinceTick = 0;
+        npc.Mind.CurrentGoal = GoalType.Flee;
+        npc.Plan.Goal = GoalType.Flee;
+        npc.Plan.TargetJunctionId = refuge;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = refuge
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+
+        Trace.Emit(world, npc.Id, "FleeStarted",
+            $"To camp Junction={refuge.Value} ({reason} Health={npc.Health:F2})");
+        return true;
+    }
+
     internal static bool TryStartFlee(
         WorldState world,
         NPCState npc,
@@ -750,6 +870,10 @@ public sealed class MobSystem : ISimulationSystem
 
         PlanInterruption.Abort(world, npc, $"Fleeing from dogs (attackers={attackers})");
         npc.IsFighting = false;
+        // §109.9: бегство расцепляет бой — см. TryFleeToCamp выше. Здесь та же
+        // дыра давала «скользит от налётчика, не переставая махать ножом».
+        npc.Mind.CombatOpponentNpcId = null;
+        FightScene.ReleaseSwingSlot(npc);
         // Spec 29C.4A: a fresh flee earns a fresh stall grace — clear any pin
         // clock from a prior engagement so the new run is judged on its own.
         npc.Mind.FleeContactSinceTick = 0;
@@ -842,8 +966,15 @@ public sealed class MobSystem : ISimulationSystem
         _mobPathAvoidScratch.Clear();
         AddActorJunctions(world, _mobPathAvoidScratch, dog);
 
+        // §40.17 v2: weightClimb: false — a mob pays NO time for an elevation
+        // step (MoveDogTo relocates it logically at once, the view glides to
+        // catch up), so the climb weight would price something that never
+        // happens: the wolf would loop around ledges the girl simply hops, and
+        // she would kite it along every lip. It also unhooks chase routes from
+        // future retunes of the seam prices, which is the class of change that
+        // historically reshuffled the whole dog dance.
         var path = HexPathfinder.FindPath(world, dog.Junction, targetJunction, _mobPathAvoidScratch,
-            hardAvoid: EnsureMobForbidden(world));
+            weightClimb: false, hardAvoid: EnsureMobForbidden(world));
         if (path.Count < 2)
         {
             return;
@@ -882,14 +1013,14 @@ public sealed class MobSystem : ISimulationSystem
                 // §72: nobody spends the colony's scarce arrows saving the man
                 // who hunts them from a wolf.
                 !FactionRelations.AreAllies(archer, quarry) ||
-                !archer.Inventory.Items.Contains("tool.bow") ||
-                !archer.Inventory.Items.Contains("resource.arrow") ||
+                !archer.Inventory.Items.Contains(ContentIds.Bow) ||
+                !archer.Inventory.Items.Contains(ContentIds.Arrow) ||
                 HexSpatialMath.HexDistance(archer.Tile, dog.Tile) > 3)
             {
                 continue;
             }
 
-            archer.Inventory.Items.Remove("resource.arrow");
+            archer.Inventory.Items.Remove(ContentIds.Arrow);
             var roll = MathUtil.Hash01(world.Seed, world.Tick, dog.Id * 191 + archer.Id.Value, 907);
             if (roll < 0.5f)
             {
@@ -1052,6 +1183,12 @@ public sealed class MobSystem : ISimulationSystem
 
     // Spec 29C.2: death cleanup must be total.
     // §56: also invoked by PredationSystem when a stalked victim is killed.
+    //
+    // §28.15C v3: «total» относится к ПРИТЯЗАНИЯМ, а не к телу. Мёртвая обязана
+    // отпустить всё, что держала в мире (брони, занятые джанкшены, объекты под
+    // ней), иначе живые вечно упираются в призрака. Но сама она никуда не
+    // девается: NPCState целиком переезжает в Entities.Corpses и лежит там до
+    // конца игры — вместе с надетым и карманами.
     internal static void RemoveDeadNpc(WorldState world, EntityId deadId)
     {
         if (world.Entities.Npcs.TryGetValue(deadId, out var dying))
@@ -1153,25 +1290,36 @@ public sealed class MobSystem : ISimulationSystem
 
         dropJunction ??= npc.CurrentJunction;
 
-        foreach (var item in npc.WornItems)
+        // §28.15C v3: вещи НЕ падают на землю — они остаются на теле. Раньше
+        // смерть вываливала весь гардероб и карманы кучей под ноги, и колония
+        // получала обратно всё до нитки бесплатно; теперь за этим надо прийти
+        // (§28.15F Loot), а до тех пор она лежит одетая — такой, какой её
+        // видели живой.
+        //
+        // Тело переезжает в отдельный реестр целиком. Позиция подтягивается к
+        // якорю: труп лежит в ЦЕНТРЕ гекса (§60.2a), а упасть она могла на
+        // ободе — иначе одежда на теле и объект-якорь оказались бы в разных
+        // точках, и обирать её пришлось бы не с той клетки, где она лежит.
+        npc.DeathAnimVariant = (int)(MathUtil.Hash01(world.Seed, world.Tick, deadId.Value, 977) * 1024f);
+        if (dropJunction is { } restJunction &&
+            world.Junctions.Items.TryGetValue(restJunction, out var restNode))
         {
-            ExecutionSystem.DropItemAtFeet(world, npc, item);
+            npc.CurrentJunction = restJunction;
+            npc.Position = restNode.WorldPosition;
         }
 
-        foreach (var item in npc.Inventory.Items)
-        {
-            // §gear-personal: the bottle drops with the rest now — personal
-            // effects are retired; every item lives by the same rules.
-            ExecutionSystem.DropItemAtFeet(world, npc, item);
-        }
+        world.Entities.Corpses[deadId] = npc;
 
         // Spec 28.15C: the body remains; witnesses grieve immediately.
         if (dropJunction is { } corpseJunction)
         {
             var corpse = WorldObjectMutations.SpawnObject(
-                world, "corpse.npc", npc.Fragment, npc.Tile, corpseJunction);
+                world, ContentIds.CorpseNpc, npc.Fragment, npc.Tile, corpseJunction);
             corpse.CurrentUser = deadId; // whose body this is
-            corpse.ResourceAmount = 4800f; // decay timer (2 days)
+            corpse.SpawnTick = world.Tick;
+            // §28.15C v3: таймера гниения здесь БОЛЬШЕ НЕТ. Тело не истлевает и
+            // не хоронится — оно лежит до конца игры. Убрать его может только
+            // нож (§56), и это уже осознанный поступок живого человека.
 
             foreach (var witness in world.Entities.Npcs.Values)
             {
@@ -1212,7 +1360,7 @@ public sealed class MobSystem : ISimulationSystem
         Trace.Emit(world, deadId, "NpcDied",
             $"NPC{deadId.Value} ({npc.DisplayName}) died at Tile={npc.Tile.Q},{npc.Tile.R} " +
             $"Cause=[{deathCause}] " +
-            $"dropping worn=[{string.Join(",", npc.WornItems)}] " +
+            $"keeping worn=[{string.Join(",", npc.WornItems)}] " +
             $"inventory=[{string.Join(",", npc.Inventory.Items)}]");
     }
 
@@ -1262,6 +1410,7 @@ public sealed class MobSystem : ISimulationSystem
     {
         "BledOut" or
         "DogFight" or
+        "Drowned" or
         "Heatstroke" or
         "Hypothermia" or
         "LimbSevered" or

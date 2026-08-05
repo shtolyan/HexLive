@@ -17,7 +17,7 @@ namespace HexLive.UnityPresentation.Rendering
 // maxStamps), with every placement seeded from the mob id + stamp index —
 // idempotent per snapshot, deterministic across save/load (a half-dead wolf
 // reloads with the exact same wound pattern), and no per-hit bookkeeping.
-public sealed class MobWoundPainter : MonoBehaviour
+public sealed class MobWoundPainter : MonoBehaviour, HexLive.UnityPresentation.Wearing.IPaintTarget
 {
     // A wolf dies around 8-10 landed strikes — one stamp per ~12% lost HP
     // keeps a mauled mob visibly shredded without tiling the whole pelt.
@@ -90,7 +90,9 @@ public sealed class MobWoundPainter : MonoBehaviour
     // lands several bites per second — one composite covers them all).
     private bool _repaintDirty;
     private float _lastRepaintTime;
-    private const float RepaintIntervalSeconds = 0.25f;
+    // Spec 40.8-K: same reasoning as the garment painter — one per mob, and
+    // a pelt's wound field does not need four looks a second.
+    private const float RepaintIntervalSeconds = 1f;
 
     public void Configure(int mobEntityId, int maxStamps)
     {
@@ -126,15 +128,24 @@ public sealed class MobWoundPainter : MonoBehaviour
 
     private void LateUpdate()
     {
+        // Driven by SkinPaintScheduler (spec 40.8-K) — painting here too
+        // would bypass its per-frame budget.
+        enabled = false;
+    }
+
+    /// <summary>IPaintTarget: a pelt has no cheap "just appeared" path.</summary>
+    public bool WantsFreshPass => false;
+
+    public void PaintFresh()
+    {
+    }
+
+    /// <summary>IPaintTarget: this mob's scheduled turn.</summary>
+    public void PaintCycle()
+    {
         if (!_repaintDirty)
         {
-            enabled = false;
             return;
-        }
-
-        if (Time.unscaledTime - _lastRepaintTime < RepaintIntervalSeconds)
-        {
-            return; // coalesce: the next eligible frame paints the LATEST state
         }
 
         _repaintDirty = false;
@@ -321,8 +332,13 @@ public sealed class MobWoundPainter : MonoBehaviour
         }
     }
 
+    private void Awake() =>
+        HexLive.UnityPresentation.Wearing.SkinPaintScheduler.Register(this);
+
     private void OnDestroy()
     {
+        HexLive.UnityPresentation.Wearing.SkinPaintScheduler.Unregister(this);
+
         if (_rt != null)
         {
             _rt.Release();

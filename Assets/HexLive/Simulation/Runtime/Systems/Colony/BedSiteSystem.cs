@@ -39,7 +39,7 @@ public sealed class BedSiteSystem : ISimulationSystem
         System.Collections.Generic.List<ObjectId> orphanSites = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId == "build.site" && string.IsNullOrEmpty(obj.BuildProduct))
+            if (obj.DefinitionId == ContentIds.BuildSite && string.IsNullOrEmpty(obj.BuildProduct))
             {
                 (orphanSites ??= new System.Collections.Generic.List<ObjectId>()).Add(obj.Id);
             }
@@ -47,7 +47,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             // §66: the tent is retired (CraftTent is disabled in DecisionSystem)
             // — sweep any lean-to already standing in a loaded world so the camp
             // is rid of it, not just spared new ones.
-            if (obj.DefinitionId == "shelter.tent")
+            if (obj.DefinitionId == ContentIds.Tent)
             {
                 (orphanSites ??= new System.Collections.Generic.List<ObjectId>()).Add(obj.Id);
             }
@@ -146,25 +146,25 @@ public sealed class BedSiteSystem : ISimulationSystem
             // as in-progress here; otherwise the colony can never stake a bed
             // until the fire's stone ring and spit are fully finished (40-day
             // soaks: zero beds, chronic energy pit).
-            if (obj.DefinitionId == "build.site" && BuildSiteMath.IsSite(obj))
+            if (obj.DefinitionId == ContentIds.BuildSite && BuildSiteMath.IsSite(obj))
             {
-                if (obj.BuildProduct is "bed.leaf" or "bed.basic")
+                if (obj.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic)
                 {
                     bedSitesInProgress++;
                     if (obj.Owner is { } siteOwner)
                     {
                         siteOwners.Add(siteOwner);
-                        if (obj.BuildProduct == "bed.basic")
+                        if (obj.BuildProduct == ContentIds.BedBasic)
                         {
                             siteBasicOwners.Add(siteOwner);
                         }
                     }
                 }
-                else if (obj.BuildProduct == "station.drying_rack")
+                else if (obj.BuildProduct == ContentIds.DryingRack)
                 {
                     rackSitesInProgress++;
                 }
-                else if (obj.BuildProduct == "station.water_collector")
+                else if (obj.BuildProduct == ContentIds.WaterCollector)
                 {
                     collectorSitesInProgress++;
                 }
@@ -172,12 +172,12 @@ public sealed class BedSiteSystem : ISimulationSystem
                 continue;
             }
 
-            if (obj.DefinitionId == "station.drying_rack")
+            if (obj.DefinitionId == ContentIds.DryingRack)
             {
                 racks++;
             }
 
-            if (obj.DefinitionId == "station.water_collector")
+            if (obj.DefinitionId == ContentIds.WaterCollector)
             {
                 collectors++;
             }
@@ -190,7 +190,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             if (def.Tags.Contains("Bed"))
             {
                 beds++;
-                if (obj.DefinitionId == "bed.basic")
+                if (obj.DefinitionId == ContentIds.BedBasic)
                 {
                     basicBeds++;
                 }
@@ -198,7 +198,7 @@ public sealed class BedSiteSystem : ISimulationSystem
                 if (obj.Owner is { } bedOwner)
                 {
                     ownedAnyBed.Add(bedOwner);
-                    if (obj.DefinitionId == "bed.basic")
+                    if (obj.DefinitionId == ContentIds.BedBasic)
                     {
                         ownedBasicBed.Add(bedOwner);
                     }
@@ -223,8 +223,8 @@ public sealed class BedSiteSystem : ISimulationSystem
             if (rackSpot is { } rackPlacement)
             {
                 var rackSite = WorldObjectMutations.SpawnObject(
-                    world, "build.site", new FragmentId(1), rackPlacement.Tile, rackPlacement.Junction);
-                rackSite.BuildProduct = "station.drying_rack";
+                    world, ContentIds.BuildSite, new FragmentId(1), rackPlacement.Tile, rackPlacement.Junction);
+                rackSite.BuildProduct = ContentIds.DryingRack;
                 // §66: the rack has no sleeper to warm — it simply faces the
                 // flames, so the hung garments dry turned toward the heat.
                 rackSite.RotationDegrees = rackPlacement.FacingYaw;
@@ -252,9 +252,9 @@ public sealed class BedSiteSystem : ISimulationSystem
             if (collectorSpot is { } collectorPlacement)
             {
                 var collectorSite = WorldObjectMutations.SpawnObject(
-                    world, "build.site", new FragmentId(1),
+                    world, ContentIds.BuildSite, new FragmentId(1),
                     collectorPlacement.Tile, collectorPlacement.Junction);
-                collectorSite.BuildProduct = "station.water_collector";
+                collectorSite.BuildProduct = ContentIds.WaterCollector;
                 collectorSite.RotationDegrees = collectorPlacement.FacingYaw;
                 WorldObjectMutations.SetObstacleBlocking(world, collectorSite, blocked: true);
                 collectorSite.BillSticks = SimBalance.WaterCollectorBillSticks;
@@ -289,7 +289,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             {
                 var claimant = FirstLiving(world, faction,
                     id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id) &&
-                        (ownerlessBed.DefinitionId == "bed.basic" || !WantsPremiumBed(world, id)));
+                        (ownerlessBed.DefinitionId == ContentIds.BedBasic || !WantsPremiumBed(world, id)));
                 if (claimant is not null)
                 {
                     ownerlessBed.Owner = claimant.Id;
@@ -312,16 +312,16 @@ public sealed class BedSiteSystem : ISimulationSystem
             // owner-per-colonist rule (a premium dreamer already owns hers).
             var owner = FirstLiving(world, faction,
                 id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id));
-            var dreamProduct = "bed.leaf";
+            var dreamProduct = ContentIds.BedLeaf;
             if (owner is not null && WantsPremiumBed(world, owner.Id))
             {
-                dreamProduct = "bed.basic";
+                dreamProduct = ContentIds.BedBasic;
             }
             else if (owner is null && SimBalance.BedBasicEnabled)
             {
                 owner = FirstLiving(world, faction,
                     id => !ownedBasicBed.Contains(id) && !siteBasicOwners.Contains(id));
-                dreamProduct = "bed.basic";
+                dreamProduct = ContentIds.BedBasic;
             }
 
             if (owner is null)
@@ -341,9 +341,9 @@ public sealed class BedSiteSystem : ISimulationSystem
         // site (hammer-raised), until each girl has one. Not an upgrade: the
         // leaf mats stay.
         var product = beds < livingGirls
-            ? "bed.leaf"
+            ? ContentIds.BedLeaf
             : SimBalance.BedBasicEnabled && basicBeds < livingGirls
-                ? "bed.basic"
+                ? ContentIds.BedBasic
                 : null;
         if (hearth is null || bedSitesInProgress > 0 || product is null)
         {
@@ -366,7 +366,7 @@ public sealed class BedSiteSystem : ISimulationSystem
         }
 
         var site = WorldObjectMutations.SpawnObject(
-            world, "build.site", new FragmentId(1), placement.Tile, placement.Junction);
+            world, ContentIds.BuildSite, new FragmentId(1), placement.Tile, placement.Junction);
         site.BuildProduct = product;
         site.Owner = owner;
         // §66: a bed is laid SIDE-ON to the hearth — the sleeper warms her flank,
@@ -376,7 +376,7 @@ public sealed class BedSiteSystem : ISimulationSystem
         // §54.9A: the site now knows what it will become — claim the finished
         // bed's physical footprint so nothing else is placed across the frame.
         WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
-        if (product == "bed.leaf")
+        if (product == ContentIds.BedLeaf)
         {
             site.BillLeaves = SimBalance.BedLeafBillLeaves;
             site.BillSticks = SimBalance.BedLeafBillSticks;

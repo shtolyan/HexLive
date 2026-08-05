@@ -23,13 +23,92 @@ public sealed partial class PlanningSystem : ISimulationSystem
         {
             if (npc.Plan.Status == PlanStatus.Active && npc.Plan.Goal == npc.Mind.CurrentGoal)
             {
-                Trace.Emit(world, npc.Id, "PlanSkipped",
-                    $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
-                continue;
+                // Spec 29F.2: охота преследует ЖИВУЮ цель. Обычный скип держал
+                // бы план на узел, где краб стоял при планировании, до самого
+                // прихода — а краб прыгает каждый Medium-тик. Краб сдвинулся →
+                // план падает насквозь в Hunt-блок и перестраивается (как
+                // собачья погоня MobSystem.ChaseStep ре-путит каждый проход).
+                // В полёте (HopTimer > 0) не ретаргетим — подождёт тик (§21.21B:
+                // прыжок не должен пережить свой путь).
+                var huntStale = npc.Mind.CurrentGoal == GoalType.Hunt &&
+                    npc.Movement.HopTimer <= 0f &&
+                    DecisionSystem.NearestVisibleRabbit(npc, world)?.Junction is { } rj &&
+                    !(npc.Plan.TargetJunctionId is { } tj && tj.Equals(rj));
+
+                // ⭐ §108: та же болезнь, что у краба, только заметнее — цель
+                // ходит на своих двоих через весь остров. План вёл на клетку,
+                // где чужак стоял в МОМЕНТ СГОВОРА (обычно у его лагеря), и
+                // держался до самого прихода: тройка добегала до пустого места,
+                // разминувшись с ним по дороге, и только там разворачивалась.
+                // Со стороны это выглядело так, будто они его не узнали.
+                var groupHuntStale = npc.Mind.CurrentGoal == GoalType.GroupHunt &&
+                    npc.Movement.HopTimer <= 0f &&
+                    npc.Mind.GroupHuntTargetNpcId is { } huntedId &&
+                    world.Entities.Npcs.TryGetValue(huntedId, out var hunted) &&
+                    hunted.CurrentJunction is { } huntedJunction &&
+                    // Достала — хватит бежать: добегать до своей клетки, стоя в
+                    // паре шагов от него, и есть то самое «прошла мимо».
+                    (InteractionReach.CanStrike(world, npc, hunted) ||
+                     !(npc.Plan.TargetJunctionId is { } gj &&
+                       (gj.Equals(huntedJunction) ||
+                        IsAdjacentJunction(world, gj, huntedJunction))));
+
+                if (!huntStale && !groupHuntStale)
+                {
+                    Trace.Emit(world, npc.Id, "PlanSkipped",
+                        $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
+                    continue;
+                }
+
+                // Мягкий сброс хода — образец «housemate repath» из
+                // MovementSystem (§21.21B): иначе PathfindingSystem доиграет
+                // старый маршрут до конца и только потом посмотрит на новую
+                // цель. HopTimer уже проверен нулевым, оставшиеся hop-поля
+                // перепишет следующий arm+launch.
+                npc.Movement.JunctionPath.Clear();
+                npc.Movement.PathIndex = 0;
+                npc.Movement.IsMoving = false;
+                npc.Movement.SetStatus(MovementStatus.Waiting);
+                npc.Movement.HopArmed = false;
+                npc.Movement.HopPathIndex = -1;
+
+                // Брошенный подход отдать сразу. У краба это не жало (кролик
+                // один, охотница одна), а тройка вокруг ОДНОГО чужака делит
+                // шесть соседних узлов: держать за собой те, что остались у
+                // его прежнего места, значит отталкивать подруг в
+                // NoFreeApproachJunction — на срок жизни резерва.
+                if (groupHuntStale && npc.Plan.TargetJunctionId is { } droppedApproach)
+                {
+                    SpatialMutations.ReleaseJunctionReservation(world, droppedApproach, npc.Id);
+                }
             }
 
             var prevStatus = npc.Plan.Status;
             var prevGoal = npc.Plan.Goal;
+
+            // ⭐ Взаимодействие живёт ровно столько, сколько план, который его
+            // начал. Сюда мы попадаем ТОЛЬКО когда план перестал быть активным
+            // (или разошёлся с целью), а значит начатое им действие осиротело:
+            // ExecutionSystem его больше не тронет (первая же строка её цикла —
+            // `Plan.Status != Active → continue`), доиграть и закрыться оно не
+            // может, а сброса не было — смена цели чистит через Abort только
+            // когда цель СМЕНИЛАСЬ (§23.17), и та же самая цель проходит мимо.
+            //
+            // Так рождался «поехавший по земле питьевой кокос»: план
+            // ConsumeInventoryItem начал Drink, через два тика пробитый кокос
+            // ушёл из рюкзака (ExecFailed → Plan=Failed), цель осталась Drink,
+            // планировщик построил новый план — пеший, на 158 шагов, — и она
+            // ехала через весь остров с CurrentInteraction=Drink: вид зеркалит
+            // глагол каждый кадр, поэтому клип питья играл поверх ходьбы, а в
+            // руке оставался тот же кокос. Заодно осиротевшее взаимодействие
+            // держало занятость объекта и резервы — Abort отдаёт и их.
+            if (npc.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, npc,
+                    $"Replan over a live {npc.Execution.CurrentInteraction} " +
+                    $"(Goal={npc.Mind.CurrentGoal} PrevStatus={prevStatus})");
+            }
+
             npc.Plan.Steps.Clear();
             npc.Plan.TargetObjectId = null;
             npc.Plan.TargetJunctionId = null;
@@ -44,8 +123,18 @@ public sealed partial class PlanningSystem : ISimulationSystem
             if (npc.Mind.CurrentGoal == GoalType.Eat)
             {
                 // Eating happens in place from inventory (spec 29B.3):
-                // no target object, no junction reservation.
-                var foodDefinitionId = npc.Inventory.FindFirstFood(world.Content);
+                // no target object, no junction reservation. §54.17: the MOST
+                // NUTRITIOUS item, not the first — cooked meat beats the
+                // coconut half that happened to enter the pack earlier.
+                var foodDefinitionId = FoodMath.BestFoodInInventory(world, npc);
+                // §54.17 r2: a roast on a perceived spit outranks the pack —
+                // otherwise "coconut in hand" wins forever and the cooked
+                // meat hangs untouched until it burns through colony turnover.
+                if (TryBuildSpitTakePlan(world, npc, foodDefinitionId))
+                {
+                    continue;
+                }
+
                 if (foodDefinitionId is not null)
                 {
                     npc.Plan.TargetItemDefinitionId = foodDefinitionId;
@@ -211,9 +300,21 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.LootHelpless)
+            {
+                BuildLootHelplessPlan(world, npc);
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Defend)
             {
                 BuildDefendPlan(world, npc);
+                continue;
+            }
+
+            if (npc.Mind.CurrentGoal == GoalType.GroupHunt)
+            {
+                BuildGroupHuntPlan(world, npc);
                 continue;
             }
 
@@ -452,11 +553,23 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // fallback (no hard filter), so a colonist whose bed isn't built yet
             // never ground-sleeps beside an empty bed. Survival is unchanged.
             var preferOwnBed = SpecDream.Enabled && interactionType == InteractionType.Sleep;
+            // §54.17: food targets rank by hunger payoff, distance breaks ties —
+            // the nearest-wins fallback made cooked meat invisible next to a
+            // coconut. Raw meat's prospect depends on whether the colony can
+            // actually roast it, so the fire is checked once, before the loop.
+            var preferFood = npc.Mind.CurrentGoal == GoalType.GetFood;
+            var fireUsable = false;
+            if (preferFood)
+            {
+                var (_, fuel, fire) = DecisionSystem.FindCampfire(npc, world);
+                fireUsable = fire != null && fuel > 0f && FoodMath.SpitHasFreeHook(fire);
+            }
 
             PerceivedObject? selected = null;
             var selectedArmor = 0f;
             var selectedBoiled = false;
             var selectedMine = false;
+            var selectedNutrition = 0f;
             var candidateCount = 0;
             foreach (var perceived in npc.Perception.Objects)
             {
@@ -564,6 +677,17 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         selectedMine = mine;
                     }
                 }
+                else if (preferFood)
+                {
+                    var nutrition = FoodMath.ProspectiveNutrition(world, perceived.DefinitionId, fireUsable);
+                    if (selected is null || nutrition > selectedNutrition + 0.01f ||
+                        (System.Math.Abs(nutrition - selectedNutrition) <= 0.01f &&
+                         perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
+                        selectedNutrition = nutrition;
+                    }
+                }
                 else if (selected is null || perceived.Distance < selected.Distance)
                 {
                     selected = perceived;
@@ -639,7 +763,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 var besideReach = SpatialQueries.BesideReach(
                     world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var besideDef)
                         ? besideDef.ObstacleRadius : 0f);
-                SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, besideReach);
+                SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, besideReach,
+                    worldObject, InteractionReach.RimMode);
                 _rimScratch.Sort((a, b) =>
                 {
                     var da = world.Junctions.Items.TryGetValue(a, out var ja)
@@ -718,9 +843,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
         JunctionId anchorId,
         int durationTicks,
         out JunctionId beside,
-        float maxBesideDist = float.MaxValue)
+        float maxBesideDist = float.MaxValue,
+        // §26.6A r5: the object this rim serves — only ITS footprint may be
+        // crossed on the way to the rim. Null means "cross nothing".
+        WorldObjectState owner = null)
     {
-        SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, maxBesideDist);
+        SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, maxBesideDist, owner,
+            InteractionReach.RimMode);
         if (npc.CurrentJunction is { } current && _rimScratch.Contains(current))
         {
             beside = current;
@@ -921,7 +1050,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     // and hangs there untouched.
     private static bool IsMeatSource(WorldState world, PerceivedObject perceived)
     {
-        if (perceived.DefinitionId is "food.meat_raw" or "food.meat_cooked")
+        if (perceived.DefinitionId is ContentIds.MeatRaw or ContentIds.MeatCooked)
         {
             return true;
         }
@@ -929,12 +1058,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
         return world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) &&
             definition.Tags.Contains("Campfire") &&
             world.Entities.Objects.TryGetValue(perceived.Id, out var fire) &&
-            BuildSiteMath.HangingMeat(fire, "food.meat_cooked") > 0;
+            BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0;
     }
 
     // Spec 23.10: a failed plan puts its goal on cooldown so the NPC does
     // something else instead of hammering the same target.
-    private const int FailureCooldownTicks = 40;
+    // Переехала в AiBalance: тот же срок применяется к завершённому уходу
+    // за собой (RestHygiene), и приватной константой планировщика он быть
+    // перестал — второе место жило голым числом 40.
+    private static int FailureCooldownTicks => AiBalance.FailureCooldownTicks;
 
     internal static void SetGoalCooldown(WorldState world, NPCState npc, GoalType goal)
     {
@@ -961,54 +1093,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
             $"{goal} on cooldown until tick {world.Tick + FailureCooldownTicks}");
     }
 
-    private static InteractionType? GoalToInteraction(GoalType goal)
-    {
-        return goal switch
-        {
-            GoalType.GetFood => InteractionType.PickUp,
-            GoalType.GatherWood => InteractionType.PickUp,
-            GoalType.GatherTools => InteractionType.PickUp,
-            GoalType.GetWater => InteractionType.PickUp, // §55: fetch a coconut to crack open
-            GoalType.StowBottle => InteractionType.PlaceVessel, // §54.15: park the bottle in the collector
-            GoalType.TendFire => InteractionType.Fuel,
-            GoalType.CraftSpear => InteractionType.Craft,
-            GoalType.CookMeat => InteractionType.Craft,
-            GoalType.CraftLeather => InteractionType.Craft,
-            GoalType.CraftAxe => InteractionType.Craft,
-            GoalType.CraftPickaxe => InteractionType.Craft,
-            GoalType.CraftRack => InteractionType.Craft,
-            GoalType.CraftBed => InteractionType.Craft,
-            GoalType.CraftTent => InteractionType.Craft,
-            GoalType.BuildRaft => InteractionType.BuildRaft,
-            GoalType.CraftBow => InteractionType.Craft,
-            GoalType.CraftArrows => InteractionType.Craft,
-            GoalType.DryClothes => InteractionType.Hang,
-            GoalType.GatherStone => InteractionType.PickUp,
-            GoalType.HarvestTree => InteractionType.Harvest,
-            GoalType.MineBoulder => InteractionType.Harvest,
-            GoalType.SplitLog => InteractionType.Process,
-            GoalType.ChopCrown => InteractionType.Process,
-            GoalType.GatherLeaves => InteractionType.PickUp,
-            GoalType.HarvestYucca => InteractionType.Harvest,
-            GoalType.Butcher => InteractionType.Butcher,
-            GoalType.Build => InteractionType.Build,
-            GoalType.BuildFurniture => InteractionType.Build,
-            GoalType.Mourn => InteractionType.Observe,
-            GoalType.WarmUp => InteractionType.Observe,
-            GoalType.HaulToFire => InteractionType.Observe,
-            GoalType.GatherHerb => InteractionType.PickUp,
-            GoalType.CraftBandage => InteractionType.Craft,
-            GoalType.GatherFiber => InteractionType.PickUp,
-            GoalType.CraftRope => InteractionType.Craft,
-            GoalType.CraftCloth => InteractionType.Craft,
-            GoalType.CraftKnife => InteractionType.Craft,
-            GoalType.Bury => InteractionType.Bury,
-            GoalType.Sleep => InteractionType.Sleep,
-            GoalType.Sit => InteractionType.Sit,
-            GoalType.Dress => InteractionType.Dress,
-            _ => null
-        };
-    }
+    // §4-колонка: 41-рукавный switch переехал в GoalCatalog. Знание «какое
+    // взаимодействие исполняет эту цель» — свойство ЦЕЛИ, и жить ему положено
+    // в одной строке таблицы рядом с остальными её свойствами, а не отдельным
+    // списком, про который надо помнить.
+    private static InteractionType? GoalToInteraction(GoalType goal) =>
+        AI.GoalCatalog.InteractionFor(goal);
 
     private static bool IsValidTargetFor(WorldState world, NPCState npc, GoalType goal, PerceivedObject perceived)
     {
@@ -1025,7 +1115,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (definition.Tags.Contains("Campfire"))
                 {
                     return world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
-                        BuildSiteMath.HangingMeat(spitSource, "food.meat_cooked") > 0;
+                        BuildSiteMath.HangingMeat(spitSource, ContentIds.MeatCooked) > 0;
                 }
 
                 return definition.Tags.Contains("Food") &&
@@ -1095,8 +1185,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 return definition.Tags.Contains("Campfire") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var spitFire) &&
                     BuildSiteMath.CampfireSpitComplete(spitFire) &&
-                    BuildSiteMath.HangingMeat(spitFire, "food.meat_raw") +
-                    BuildSiteMath.HangingMeat(spitFire, "food.meat_cooked") <
+                    BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatRaw) +
+                    BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatCooked) <
                     SimBalance.CampfireSpitCapacity;
             case GoalType.CraftRope:
             case GoalType.CraftCloth:
@@ -1137,8 +1227,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     npc.Needs.Hunger >= SimBalance.CannibalizeHungerGate;
             case GoalType.Build:
                 // Spec §52: the hut anchor only — a furniture site is a separate goal.
+                // §72.13: и только СВОЯ — иначе чужак достраивал бы хижину колонии.
                 return definition.Tags.Contains("BuildSite") &&
-                    !definition.Tags.Contains("FurnitureSite");
+                    !definition.Tags.Contains("FurnitureSite") &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var hutAnchor) &&
+                    DecisionSystem.IsOurSite(world, npc, hutAnchor);
             case GoalType.BuildFurniture:
                 // §54.13 r2: only a site this NPC can ADVANCE right now — she
                 // carries a material its CURRENT stage accepts, or it is fully
@@ -1150,15 +1243,28 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // 36-tick Build and looped — an empty ping-pong that starved
                 // every site for whole 10-day soaks (rack 0/4 sticks, seeds
                 // 12345/424242; FOCUS trace t5160-5237).
+                // §72.13: и только СВОЯ стройка. Аукцион уже фильтрует очередь
+                // (FindBuildSite → IsOurSite), но план брал БЛИЖАЙШИЙ валидный
+                // сайт из восприятия — цель выиграна на своём, а материалы
+                // уходили в чужой лагерь, стоило пройти рядом с ним.
                 return definition.Tags.Contains("FurnitureSite") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var fsite) &&
                     BuildSiteMath.IsSite(fsite) &&
+                    DecisionSystem.IsOurSite(world, npc, fsite) &&
                     (DecisionSystem.CarriesSiteMaterial(npc, fsite) ||
                      BuildSiteMath.IsStocked(fsite));
             case GoalType.BuildRaft:
                 return definition.Tags.Contains("Raft");
             case GoalType.Mourn:
-                return definition.Tags.Contains("Corpse") || definition.Tags.Contains("Grave");
+                return definition.Tags.Contains("Corpse");
+            case GoalType.LootCorpse:
+                // §28.15F: ровно то же условие, что считал аукцион — тело, на
+                // котором ещё что-то есть. Пустой труп мимо: иначе цель
+                // выигрывала бы снова и снова, а поход каждый раз кончался бы
+                // ничем (та же петля, что съела колонию на кокосах).
+                return definition.Tags.Contains("Corpse") &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var lootAnchor) &&
+                    CorpseMath.HasSpoils(CorpseMath.BodyOf(world, lootAnchor));
             case GoalType.WarmUp:
                 // Spec 42: only a BURNING fire warms — a cold pit is no target.
                 return definition.Tags.Contains("Campfire") &&
@@ -1167,13 +1273,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.HaulToFire:
                 // Spec §52: the stockpile is the hearth — any campfire, lit or not.
                 return definition.Tags.Contains("Campfire");
-            case GoalType.Bury:
-                return definition.Tags.Contains("Corpse");
             case GoalType.GetWater:
                 // Fetch a whole coconut; Drink will put it on the ground and
                 // open it with a blade before sipping. (The collector draw is
                 // a custom plan branch, not this generic path.)
-                return HasCoconutBlade(npc) && perceived.DefinitionId == "food.coconut";
+                return HasCoconutBlade(npc) && perceived.DefinitionId == ContentIds.Coconut;
             case GoalType.StowBottle:
                 // §54.15: a finished collector whose vessel slot is empty.
                 return perceived.DefinitionId == WaterCollectorMath.CollectorId &&
@@ -1201,7 +1305,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             world.Content.ObjectDefinitions.TryGetValue(collector.DefinitionId, out var def)
                 ? def.ObstacleRadius : 0f);
         if (!TryReserveBesideJunction(world, npc, collector.Junctions[0], 48,
-                out var beside, besideReach))
+                out var beside, besideReach, collector))
         {
             Trace.Emit(world, npc.Id, "PlanFailed",
                 $"Goal={npc.Mind.CurrentGoal} collector {collector.Id.Value}: no free junction beside it");

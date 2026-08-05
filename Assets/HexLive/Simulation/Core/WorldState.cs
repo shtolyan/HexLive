@@ -31,6 +31,18 @@ public sealed class WorldState
 
     public SimulationEventBuffer Events { get; } = new();
 
+    /// <summary>
+    /// Spec §30.14. Отладочный бортовой самописец: последние ~64 события каждого
+    /// NPC. Null в сборке игрока и вообще везде, где его не включили явно.
+    /// <para>
+    /// Намеренно НЕ сохраняется и НЕ едет в снапшоте: это инструмент наблюдения,
+    /// а не состояние мира. Значит ни <c>WorldSaveSerializer</c>, ни
+    /// <c>WorldSnapshotCodec</c> о нём не знают, и гейт покрытия провода его не
+    /// касается.
+    /// </para>
+    /// </summary>
+    public Runtime.FlightRecorder FlightRecorder { get; set; }
+
     public ContentCatalog Content { get; } = new();
 
     // Runtime-spawned objects allocate ids from here; bootstrap ids stay below 1000.
@@ -111,8 +123,10 @@ public sealed class WorldState
 
     // Spec §26.6A r4: the junctions closed by an OBJECT FOOTPRINT (a palm trunk,
     // the fire's ember ring, a bed) — as opposed to TERRAIN (a cliff face, a hut
-    // wall, the open sea). Both read `Junction.Blocked`, but only the first kind
-    // may be reached ACROSS: you work around a trunk, never through a cliff.
+    // wall, the open sea). Both read `Junction.Blocked`, and the ROUTE question
+    // ("is there a way to stand beside it at all") still tells them apart this
+    // way: a body is walked AROUND, a cliff never is. The REACH question is
+    // stricter and per-reacher — see SpatialQueries.IsBarrierFor.
     // DERIVED from every object's BlockedJunctions — rebuilt whenever
     // TopologyVersion moves, exactly like the component caches above.
     public int ObjectBlockBuiltVersion { get; set; }

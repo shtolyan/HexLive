@@ -58,6 +58,35 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, GameObject> _seamMarkers = new();
     private readonly Dictionary<int, GameObject> _objectViews = new();
 
+    // PERF: the per-tick object loop used to re-ask every view for the same
+    // handful of components (campfire, assembly, spit, garment, build pile).
+    // ~5 GetComponent × ~218 objects × 4 Hz, and the MISSES are the expensive
+    // half — Unity builds a null-error message for each one. The components a
+    // view owns are decided once, when the view is built, and never change
+    // afterwards, so they are resolved there and remembered here.
+    private struct ObjectViewParts
+    {
+        public HexLive.UnityPresentation.Environment.CampfireEffect Fire;
+        public HexLive.UnityPresentation.Environment.BedAssembly Assembly;
+        public HexLive.UnityPresentation.Environment.CampfireSpitMeat SpitMeat;
+        public GarmentWorldCondition Garment;
+        public HexLive.UnityPresentation.Environment.BuildSitePile Pile;
+    }
+
+    private readonly Dictionary<int, ObjectViewParts> _objectViewParts = new();
+
+    // PERF: junction id -> world position. Worldgen output, so it is built once
+    // per world instead of every tick (see RenderSnapshot). _junctionMarkersBuilt
+    // remembers which _showJunctionMarkers state the walk was made under, so
+    // flipping the debug toggle at runtime still spawns the spheres.
+    private readonly Dictionary<int, Float2> _junctionPositions = new();
+    private bool _junctionMarkersBuilt;
+
+    // Per-tick scratch for the snapshot-diff despawn — reused instead of
+    // reallocated (this runs 4×/s for the life of the game).
+    private readonly HashSet<int> _liveObjectIdScratch = new();
+    private readonly List<int> _staleObjectKeyScratch = new();
+
     // Spec §54: object keys whose view is a tree, so despawn (a chop) plays a
     // fall animation + leaves a stump instead of a hard cut.
     private readonly HashSet<int> _treeViewKeys = new();
@@ -68,10 +97,27 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private const float WardrobeHandoffFraction = 0.5f;
     private readonly HashSet<int> _wardrobeHiddenObjects = new();
 
-    // Spec 40.13: dead actors stay as physics-ragdoll corpses — keyed by the
-    // corpse.npc OBJECT id (the sim's logic anchor for mourn/bury/decay), so
-    // the body view lives exactly as long as the corpse object does.
-    private readonly Dictionary<int, GameObject> _corpseBodyViews = new();
+    // FOG-OF-WAR EXPERIMENT (visual only, sim untouched): hide object views no
+    // colony NPC has in her object memory, and mobs beyond the spot radius of
+    // every colonist. Object memory does not travel the wire, so this reads
+    // Engine.World directly — a deliberate, experiment-only breach of the
+    // "no Engine in rendering" rule; on a remote/loopback backend Engine is
+    // null and the fog silently stays off.
+    private readonly HashSet<int> _fogKnownObjects = new();
+    private readonly List<TileCoord> _fogColonyTiles = new();
+    private bool _fogActive;
+
+    // Mirrors Spec62.SpotRadiusTiles — how far a sim notices a threat. Kept as
+    // a local constant: presentation must not link sim balance.
+    private const int FogMobSpotRadiusTiles = 6;
+
+    // §28.15C v3: ТЕЛА. Ключ — id самой погибшей, а не объекта-якоря: тело это
+    // она, и живёт оно ровно столько, сколько её NPCState живёт в
+    // Entities.Corpses (то есть до конца игры или до ножа).
+    private readonly Dictionary<int, GameObject> _corpseViews = new();
+    private readonly Dictionary<int, NpcActorView> _corpseActorViews = new();
+    private readonly HashSet<int> _liveCorpseIds = new();
+    private readonly List<int> _staleCorpseKeys = new();
     private readonly Dictionary<int, GameObject> _npcViews = new();
 
     // Spec 31B.5: actor-backed views (Marta/Molly/Jana bodies); primitive
@@ -94,6 +140,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, Pose> _prevAnimalPoses = new();
     private readonly Dictionary<int, Pose> _currAnimalPoses = new();
     private const float ActorSourceHeightMeters = 1.7f;
+
+    /// <summary>§71.5: the scale colonist bodies are rendered at. The locomotion
+    /// tuning scene has to spawn hers at EXACTLY this: a stride is calibrated in
+    /// body heights per second, so a differently-sized body calibrates a
+    /// different number and the game would then slide by the ratio.</summary>
+    public static float ActorScale =>
+        Spatial.SimulationUnityMapper.HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
 
     private Transform? _tilesRoot;
     private Transform? _junctionsRoot;
@@ -269,6 +322,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
+    // §80 r2: можно ли снимать её прямо сейчас. Без актёрского вью (примитивный
+    // вид на дальнем плане) позировать некому — снимок пропускаем.
+    public bool IsNpcPhotogenic(int npcId)
+    {
+        return _actorViews.TryGetValue(npcId, out var actorView) && actorView != null &&
+               actorView.IsPhotogenic;
+    }
+
+    // §80: на время съёмки портрета отдать взгляд камере. Возвращает false,
+    // если тела нет или оно не в состоянии позировать (ragdoll, кома).
+    public bool TryBeginPortraitGaze(int npcId, Vector3 eyeWorldPos)
+    {
+        return _actorViews.TryGetValue(npcId, out var actorView) && actorView != null &&
+               actorView.BeginPortraitGaze(eyeWorldPos);
+    }
+
+    public void EndPortraitGaze(int npcId)
+    {
+        if (_actorViews.TryGetValue(npcId, out var actorView) && actorView != null)
+        {
+            actorView.EndPortraitGaze();
+        }
+    }
+
     private void Update()
     {
         // While offline ticks wind forward, stay dark: winding is pure headless
@@ -311,6 +388,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // is the same wrongness as a colonist doing it.
                 _prevAnimalPoses.Clear();
                 _currAnimalPoses.Clear();
+
+                // The junction lookup is cached for the life of a WORLD (see
+                // RebuildJunctionLookup). This branch is exactly "the world
+                // under us is not the one we cached" — a restore, a reconnect,
+                // a new island — so drop it and let the next line rebuild it.
+                // Without this a same-size island would keep the old positions.
+                _junctionPositions.Clear();
             }
 
             RenderSnapshot(snapshot);
@@ -648,6 +732,33 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return go.transform;
     }
 
+    // One walk of the ~14 000 junctions per WORLD: the position lookup plus the
+    // two marker sets that are keyed off immutable junction data. Called from
+    // RenderSnapshot only when the junction set changed (new world, restore) or
+    // when the debug-marker toggle flipped.
+    private void RebuildJunctionLookup(WorldSnapshot snapshot)
+    {
+        _junctionPositions.Clear();
+        foreach (var junction in snapshot.Junctions)
+        {
+            var key = junction.Id.Value;
+            _junctionPositions[key] = junction.WorldPosition;
+
+            if (_showJunctionMarkers && !_junctionViews.ContainsKey(key))
+            {
+                _junctionViews[key] = CreateJunctionView(junction);
+            }
+
+            // Spec 40.17: climb-seam dots — always shown, once per seam.
+            if (junction.IsClimbSeam && !_seamMarkers.ContainsKey(key))
+            {
+                _seamMarkers[key] = CreateSeamMarker(junction);
+            }
+        }
+
+        _junctionMarkersBuilt = _showJunctionMarkers;
+    }
+
     private void RenderSnapshot(WorldSnapshot snapshot)
     {
         // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
@@ -697,37 +808,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // seam-free wave across every water hex (see EnsureWaterSurface).
         EnsureWaterSurface(snapshot);
 
-        // Build lookup for junction positions
-        var junctionPositions = new Dictionary<int, Float2>();
-        foreach (var junction in snapshot.Junctions)
+        // PERF: a junction's id, WorldPosition and IsClimbSeam are worldgen
+        // output and never move — the exporter refreshes only the mutable flags
+        // (WorldSnapshotExporter.RefreshJunctionFlags). So walking ~14 000 of
+        // them EVERY tick to rebuild the identical lookup cost ~0.9 MB of
+        // garbage per tick for a map only CreateObjectView ever reads. Build it
+        // once per world; _junctionPositions is cleared on a world swap (see
+        // Update's snap branch), which is what forces the rebuild.
+        if (_junctionPositions.Count != snapshot.Junctions.Count ||
+            _junctionMarkersBuilt != _showJunctionMarkers)
         {
-            junctionPositions[junction.Id.Value] = junction.WorldPosition;
-
-            if (_showJunctionMarkers)
-            {
-                var key = junction.Id.Value;
-                if (!_junctionViews.ContainsKey(key))
-                {
-                    _junctionViews[key] = CreateJunctionView(junction);
-                }
-            }
-
-            // Spec 40.17: climb-seam dots — always shown, once per seam.
-            if (junction.IsClimbSeam && !_seamMarkers.ContainsKey(junction.Id.Value))
-            {
-                _seamMarkers[junction.Id.Value] = CreateSeamMarker(junction);
-            }
+            RebuildJunctionLookup(snapshot);
         }
 
         // Snapshot-diff despawn (spec 31.15): destroy views whose object
         // disappeared from the simulation (eaten/picked-up apples).
-        var liveObjectIds = new HashSet<int>();
+        var liveObjectIds = _liveObjectIdScratch;
+        liveObjectIds.Clear();
         foreach (var worldObject in snapshot.Objects)
         {
             liveObjectIds.Add(worldObject.Id.Value);
         }
 
-        var staleObjectKeys = new List<int>();
+        var staleObjectKeys = _staleObjectKeyScratch;
+        staleObjectKeys.Clear();
         foreach (var key in _objectViews.Keys)
         {
             if (!liveObjectIds.Contains(key))
@@ -740,6 +844,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             var view = _objectViews[key];
             _objectViews.Remove(key);
+            _objectViewParts.Remove(key);
             _prevObjectPositions.Remove(key);
             _currObjectPositions.Remove(key);
 
@@ -757,22 +862,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        // Spec 40.13: the ragdolled body follows its corpse object out of the
-        // world (decayed or buried into a grave).
-        var staleCorpseBodies = new List<int>();
-        foreach (var key in _corpseBodyViews.Keys)
-        {
-            if (!liveObjectIds.Contains(key))
-            {
-                staleCorpseBodies.Add(key);
-            }
-        }
-
-        foreach (var key in staleCorpseBodies)
-        {
-            Destroy(_corpseBodyViews[key]);
-            _corpseBodyViews.Remove(key);
-        }
+        // §28.15C v3: тела больше не привязаны к времени жизни объекта-якоря —
+        // они уходят вместе со своей записью в snapshot.Corpses (SyncCorpseViews).
 
         // Items picked up only for the animation beat vanish from the ground,
         // so we never show the same piece both on the floor and in the hand.
@@ -796,6 +887,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _wardrobeHiddenObjects.Add(coconutId);
             }
         }
+
+        RebuildFogState(snapshot);
 
         // §35.5B: map rack junctions and rank the garments hanging at each one
         // (sorted by object id) so every hung garment gets a stable hanger slot.
@@ -843,26 +936,47 @@ public sealed class HexWorldRenderer : MonoBehaviour
         foreach (var worldObject in snapshot.Objects)
         {
             var key = worldObject.Id.Value;
-            // Spec 40.13: an adopted actor body IS the corpse's view — no blob.
-            if (_corpseBodyViews.ContainsKey(key))
-            {
-                continue;
-            }
-
+            // §28.15C v3: у corpse.npc нет своего вида — CreateObjectView отдаёт
+            // за него невидимый якорь. Тело рисует сама погибшая
+            // (SyncCorpseViews), а объект нужен лишь для «подойти и что-то
+            // сделать»: оплакать, обобрать, разделать.
             if (!_objectViews.TryGetValue(key, out var objectView))
             {
-                objectView = CreateObjectView(worldObject, junctionPositions, snapshot.Tick);
+                objectView = CreateObjectView(worldObject, _junctionPositions, snapshot.Tick);
                 _objectViews[key] = objectView;
+                // PERF: resolve the optional per-view components ONCE, here.
+                // Which of them a view owns is fixed by the prefab it was built
+                // from, so the per-tick loop below just reads the record.
+                _objectViewParts[key] = new ObjectViewParts
+                {
+                    Fire = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireEffect>(),
+                    Assembly = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>(),
+                    SpitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>(),
+                    Garment = objectView.GetComponent<GarmentWorldCondition>(),
+                    Pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>(),
+                };
                 // Spec §54: remember trees so felling them animates.
                 if (worldObject.DefinitionId.Contains("tree"))
                 {
                     _treeViewKeys.Add(key);
                 }
+
+                // §112: leaves let the camera through. Marking the view is the
+                // whole hookup — CameraFoliageCuller finds it from the marker.
+                if (HexLive.UnityPresentation.Environment.FoliageOccluder.IsFoliage(worldObject.DefinitionId) &&
+                    objectView.GetComponent<HexLive.UnityPresentation.Environment.FoliageOccluder>() == null)
+                {
+                    objectView.AddComponent<HexLive.UnityPresentation.Environment.FoliageOccluder>();
+                }
             }
+
+            _objectViewParts.TryGetValue(key, out var parts);
 
             // §Wardrobe-anim: hide/show the ground garment as its owner picks it
             // up / drops it (SetActive is idempotent, so this is cheap per frame).
-            var shouldHide = _wardrobeHiddenObjects.Contains(key);
+            // FOG-OF-WAR EXPERIMENT: also hide objects no colonist remembers.
+            var shouldHide = _wardrobeHiddenObjects.Contains(key)
+                || (_fogActive && !_fogKnownObjects.Contains(key));
             if (objectView.activeSelf == shouldHide)
             {
                 objectView.SetActive(!shouldHide);
@@ -871,7 +985,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // Spec 29E.3: the campfire burns only while it has fuel.
             if (worldObject.DefinitionId == "campfire.spot")
             {
-                var fire = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
+                var fire = parts.Fire;
                 if (fire != null)
                 {
                     fire.SetLit(worldObject.ResourceAmount > 0f);
@@ -880,7 +994,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // §54.14: grow the staged pieces (stone ring, spit) as upgrade
                 // materials land; show everything once the bill is closed.
                 // Cheap per frame — Apply only flips pieces whose state changed.
-                var fireAsm = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>();
+                var fireAsm = parts.Assembly;
                 if (fireAsm != null)
                 {
                     if (string.IsNullOrEmpty(worldObject.BuildProduct))
@@ -897,14 +1011,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 // §54.14 (r2): meat hanging on the roasting spit — raw chunks
                 // roasting, cooked ones waiting to be taken.
-                var spitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>();
+                var spitMeat = parts.SpitMeat;
                 if (spitMeat != null)
                 {
                     spitMeat.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked);
                 }
             }
 
-            var garmentCondition = objectView.GetComponent<GarmentWorldCondition>();
+            var garmentCondition = parts.Garment;
             if (garmentCondition != null)
             {
                 garmentCondition.Sync(worldObject.Durability, worldObject.Dirtiness,
@@ -914,7 +1028,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // Spec §54: re-pile a build-site as its delivered materials grow.
             if (!string.IsNullOrEmpty(worldObject.BuildProduct))
             {
-                var pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>();
+                var pile = parts.Pile;
                 if (pile != null)
                 {
                     pile.Refresh(worldObject);
@@ -1024,7 +1138,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         UpdateGrassFlattening(snapshot);
 
-        // §80: раз в игровой час снять одно самое несвежее лицо. В снапшоте
+        // §80/§107.4: фотосессия — сразу на входе в мир, дальше раз в игровые
+        // сутки; свет даёт вспышка, поэтому часа суток тут нет. В снапшоте
         // лежат только живые (мёртвых убирает MobSystem.RemoveDeadNpc), а их
         // снимки остаются в кэше — лицо погибшей во вкладке отношений должно
         // жить дальше, тела-то уже нет.
@@ -1064,48 +1179,43 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var key in staleNpcKeys)
         {
-            // Spec 40.13: death — the actor body stays where she fell as a
-            // physics ragdoll, adopted as her corpse.npc object's view (the
-            // sim already drives grief/mourn/bury around that object). Only
-            // when no matching corpse exists does the view just vanish.
-            var adopted = false;
-            if (_actorViews.TryGetValue(key, out var deadActor) && deadActor != null)
+            // §28.15C v3: она УПАЛА ЗДЕСЬ. Живой вид не уничтожается и не
+            // заменяется — он переезжает в реестр тел как есть, тем же телом,
+            // в той же одежде, с теми же ранами, и падает на месте. Создать
+            // вместо него новый вид значило бы моргнуть телом ровно в тот кадр,
+            // на который смотрит игрок.
+            //
+            // Прежняя версия усыновляла вид ОБЪЕКТУ corpse.npc и ключевалась
+            // его id. Теперь ключ — id самой погибшей: тело это она, а объект
+            // рядом с ней всего лишь якорь для «подойти и что-то сделать».
+            var handedOver = false;
+            if (FindCorpse(snapshot, key) is { } fallen &&
+                _actorViews.TryGetValue(key, out var deadActor) && deadActor != null)
             {
-                foreach (var worldObject in snapshot.Objects)
-                {
-                    if (worldObject.DefinitionId != "corpse.npc" ||
-                        worldObject.OwnerNpcId != key)
-                    {
-                        continue;
-                    }
+                deadActor.SetLedgeSit(false);
+                deadActor.ClearGaze();
+                deadActor.ClearActionTarget();
+                // Spec 40.13 v2: death is a quiet fall, then the pose
+                // freezes (SetDead) — NO ragdoll: the hex tiles carry no
+                // colliders, so physics bodies spun out and fell through.
+                deadActor.SetRagdoll(false);
+                deadActor.SetDead(GroundY(fallen.Tile), fallen.DeathAnimVariant, fresh: true);
 
-                    var corpseId = worldObject.Id.Value;
-                    deadActor.SetLedgeSit(false);
-                    deadActor.ClearGaze();
-                    deadActor.ClearActionTarget();
-                    // Spec 40.13 v2: death is a quiet lie-down, then the pose
-                    // freezes (SetDead) — NO ragdoll: the hex tiles carry no
-                    // colliders, so physics bodies spun out and fell through.
-                    deadActor.SetRagdoll(false);
-                    deadActor.SetDead(GroundY(worldObject.Tile));
+                // Симуляция кладёт тело в ЦЕНТР гекса (§60.2a), а упасть она
+                // могла на ободе — интерполяция живых видов для неё больше не
+                // работает, так что позицию надо поставить здесь и сейчас.
+                // Иначе тело замрёт на ободе, а якорь, к которому подходят
+                // обирать, останется в середине.
+                _npcViews[key].transform.SetPositionAndRotation(
+                    SimulationUnityMapper.ToUnityPosition(fallen.Position, ActorGroundY(fallen.Tile)),
+                    Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(fallen.RotationDegrees), 0f));
 
-                    // The capsule-blob corpse view from this frame's object
-                    // pass is replaced by the real body.
-                    if (_objectViews.TryGetValue(corpseId, out var blob))
-                    {
-                        Destroy(blob);
-                        _objectViews.Remove(corpseId);
-                        _prevObjectPositions.Remove(corpseId);
-                        _currObjectPositions.Remove(corpseId);
-                    }
-
-                    _corpseBodyViews[corpseId] = _npcViews[key];
-                    adopted = true;
-                    break;
-                }
+                _corpseViews[key] = _npcViews[key];
+                _corpseActorViews[key] = deadActor;
+                handedOver = true;
             }
 
-            if (!adopted)
+            if (!handedOver)
             {
                 Destroy(_npcViews[key]);
             }
@@ -1117,6 +1227,93 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _prevNpcPoses.Remove(key);
             _currNpcPoses.Remove(key);
             _npcOnWater.Remove(key);
+        }
+
+        SyncCorpseViews(snapshot);
+    }
+
+    /// <summary>Запись тела в снапшоте по id погибшей, или null.</summary>
+    private static NpcSnapshot FindCorpse(WorldSnapshot snapshot, int npcId)
+    {
+        foreach (var body in snapshot.Corpses)
+        {
+            if (body.Id.Value == npcId)
+            {
+                return body;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// §28.15C v3: ТЕЛА. Лежат до конца игры, поэтому пасс устроен так, чтобы
+    /// стоить почти ничего: поза замерла (аниматор выключен в
+    /// <c>NpcActorView.SetDead</c>), позиция ставится один раз, и каждый кадр
+    /// синхронизируется ровно одно — ГАРДЕРОБ.
+    ///
+    /// <para>
+    /// Гардероб обязателен именно потому, что вещи остались на теле: когда
+    /// живая приходит и снимает с покойной куртку (§28.15F), это должно быть
+    /// ВИДНО. Иначе одежда живёт в двух версиях — в симуляции её уже унесли, а
+    /// на теле она всё ещё надета.
+    /// </para>
+    /// <para>
+    /// Тело, пропавшее из списка, — это разделанная ножом (§56), единственное,
+    /// что убирает труп с острова.
+    /// </para>
+    /// </summary>
+    private void SyncCorpseViews(WorldSnapshot snapshot)
+    {
+        _liveCorpseIds.Clear();
+        foreach (var body in snapshot.Corpses)
+        {
+            var key = body.Id.Value;
+            _liveCorpseIds.Add(key);
+
+            if (!_corpseViews.TryGetValue(key, out var view) || view == null)
+            {
+                // Тело, которого этот зритель не видел падающим: загруженный
+                // сейв или только что подключившийся клиент. Оно обязано
+                // появиться СРАЗУ лежачим — падение уже случилось, и
+                // проигрывать его заново значило бы врать о том, когда.
+                view = CreateNpcView(body);
+                _corpseViews[key] = view;
+                if (_actorViews.TryGetValue(key, out var restored) && restored != null)
+                {
+                    // CreateNpcView регистрирует вид в живом реестре — забрать
+                    // его оттуда, иначе живой пасс станет ходить по трупу.
+                    _actorViews.Remove(key);
+                    _corpseActorViews[key] = restored;
+                    restored.SetRagdoll(false);
+                    restored.SetDead(GroundY(body.Tile), body.DeathAnimVariant, fresh: false);
+                }
+
+                view.transform.SetPositionAndRotation(
+                    SimulationUnityMapper.ToUnityPosition(body.Position, ActorGroundY(body.Tile)),
+                    Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(body.RotationDegrees), 0f));
+            }
+
+            if (_corpseActorViews.TryGetValue(key, out var actor) && actor != null)
+            {
+                actor.SyncWorn(body.WornItems);
+            }
+        }
+
+        _staleCorpseKeys.Clear();
+        foreach (var key in _corpseViews.Keys)
+        {
+            if (!_liveCorpseIds.Contains(key))
+            {
+                _staleCorpseKeys.Add(key);
+            }
+        }
+
+        foreach (var key in _staleCorpseKeys)
+        {
+            Destroy(_corpseViews[key]);
+            _corpseViews.Remove(key);
+            _corpseActorViews.Remove(key);
         }
     }
 
@@ -1147,10 +1344,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §21.21B v4 circle climbing: the sim itself steps her back onto the
         // hex inner circle during the takeoff beat and flies circle-to-circle
         // — the view only needs the exact height delta and the water flag.
+        // §21.21B v15: BOTH ends come from the hop's own tiles. Deriving the
+        // start from npc.Tile made the delta ZERO whenever the frame first saw
+        // the hop after the sim had already committed the landing tile (it does
+        // so mid-window) — the body then stayed at the old level for the rest of
+        // the window and snapped a whole step when the arc was cut: the "she is
+        // either above the ground or suddenly under it" report.
         actorView.SetHopSignal(npc.HopKind,
             npc.HopKind.Length > 0
-                ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.Tile)
+                ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.HopFromTile)
                 : 0f,
+            npc.HopKind.Length > 0 ? ActorGroundY(npc.HopFromTile) : 0f,
             npc.HopKind.Length > 0 && _swimCoords.Contains(npc.HopTargetTile),
             npc.HopStartTick,
             // How much of the hop already happened before this frame saw it —
@@ -1181,7 +1385,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §67.10: the same bubble is now the mouth of every utterance — the
         // director also needs her body (for self-talk) and her current verb
         // (for work beats). Presentation-only: nothing here feeds the sim.
-        actorView.SetTalkTopic(npc.TalkTopic);
+        // §108: тема разговора может быть ЧЕЛОВЕКОМ — тогда в пузыре его
+        // круглое лицо, а не значок. Портрет уже с маской (§90), поэтому
+        // достаточно взять его по id; снимка ещё нет — просим снять вне
+        // очереди и в этот раз показываем значок (та же дорожка, что у кьюшек).
+        Sprite topicFace = null;
+        if (npc.TalkTopicPeerId is { } topicPeerId && _portraitCache != null)
+        {
+            topicFace = _portraitCache.SpriteFor(topicPeerId);
+            if (topicFace == null)
+            {
+                _portraitCache.RequestNow(topicPeerId);
+            }
+        }
+
+        actorView.SetTalkTopic(npc.TalkTopic, topicFace);
         actorView.SetSpeechState(new UI.SpeechCatalog.BodyState
         {
             Hunger = npc.Hunger,
@@ -1194,7 +1412,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             Wounded = npc.Wounds.Count > 0,
             Sick = HasEffect(npc, "Sick"),
             Asleep = npc.CurrentInteraction == "Sleep",
-            Fainted = npc.IsFainted || npc.IsUnconscious
+            // §105: умирающая для речи и мимики — такое же выключенное тело,
+            // как потерявшая сознание: реплик не подаёт, пузырей не рисует.
+            // §105.14: притворяющаяся молчит по своей воле — труп не болтает.
+            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying || npc.IsPlayingDead,
+            // §110: рыдающая, наоборот, ГОВОРИТ — всхлипы и есть смысл сцены.
+            Crying = npc.IsCrying
         });
         actorView.SetSpeechInteraction(npc.CurrentInteraction);
         if (npc.SocialCueTick > 0 && !string.IsNullOrEmpty(npc.SocialCueKind))
@@ -1212,7 +1435,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     peerFace = _portraitCache.SpriteFor(peerId);
                     if (peerFace == null)
                     {
-                        // Первый игровой час: снимка ещё нет. Показываем эмодзи,
+                        // Снимка ещё нет (первая встреча). Показываем эмодзи,
                         // а лицо просим снять вне очереди — ко второму испугу
                         // оно будет.
                         _portraitCache.RequestNow(peerId);
@@ -1238,7 +1461,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Timed melee: IsSwinging spans the sim's attack-animation window.
         actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging, npc.StrikeIndex,
             npc.SwingStartTick);
+        // ⭐ §104 r5: ВОТ СЕЙЧАС по ней попали — кровь, вздрагивание и звук
+        // удара одним кадром, по штампу из симуляции.
+        actorView.SignalHit(npc.HitStampTick, npc.HitWeaponId, npc.HitPart,
+            SimulationUnityMapper.ToUnityPosition(npc.HitFrom, ActorGroundY(npc.Tile)));
         // §29C.3-hit: a health drop staggers her — only while standing still.
+        // Остаётся фолбэком для урона НЕ от удара (падение, акула, огонь): там
+        // хит-штампа нет, а вздрогнуть всё равно надо.
         actorView.SignalHealth(npc.Health);
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in
         // the hand (SetBackWeapon hides it if it's the current hand prop).
@@ -1277,6 +1506,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §71: the gait comes from the SIM, not from measured speed — she walks
         // unless the sim gave her a reason to run.
         actorView.SetRunning(npc.IsRunning);
+        actorView.SetSadWalk(npc.IsSadWalk); // §81.10
         // Spec 40.7/40.8: weather the bare skin — tan browns it, sunburn
         // reddens it. (The old low-HP bruised-red whole-body flush was
         // retired: the painted wound marks carry the injury look on their
@@ -1316,26 +1546,66 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         // Spec 31C.2: sleeping happens lying on the bed's attach point.
-        // Spec 40.13: a fainted body lies limp where it dropped (no bed).
-        // Spec §60: a comatose body lies EXACTLY like a ground sleeper — the
-        // same laying flow pins it to its own junction at the right surface
-        // height (the death clip left feet poking into neighbouring hexes);
-        // waking releases Laying so the usual GetUp plays.
-        if (npc.IsFainted || npc.IsUnconscious)
+        //
+        // §105: ПАДЕНИЕ — своя цепочка клипов. Умирающая (§105), потерявшая
+        // сознание от кровопотери (§60) и сбитая с ног обмороком (§40.13)
+        // теперь ВАЛЯТСЯ: FallDown → FallenIdle → StandUp. Раньше все трое
+        // ложились сонным LieDown, и «упала замертво» читалось как «прилегла»
+        // — тело аккуратно опускалось на землю в позе спящей.
+        //
+        // Сон остался на прежней цепочке: он уходит в кровать, к точке
+        // крепления, и держит свою позу. Крах от истощения (§60 r2) экспортёр
+        // намеренно выдаёт за сон — она и правда просто заснула, где стояла, —
+        // так что он тоже остаётся здесь.
+        // §105.14: притворяется мёртвой — той же цепочкой падения, что и
+        // умирающая. Клип не нужен: FallenIdle и есть застывшее лежачее тело,
+        // притворство — это просто «лежит дольше». Сонную цепочку взять
+        // нельзя: она читалась бы как «прилегла», а вся суть в том, что для
+        // волка она труп.
+        //
+        // §113: ветки ниже — разбор ПО ПОЗАМ; их союз обязан совпадать с
+        // IsLyingDown (там же мнётся трава). Добавил лежачее состояние — добавь
+        // его в оба места, иначе тело ляжет в нетронутую траву.
+        if (npc.IsDying || npc.IsUnconscious || npc.IsPlayingDead)
         {
             // Spec 40.13 v2: collapse lies down with the baked laying clip —
             // ragdoll physics is retired (no tile colliders to land on).
+            // §105: умирает или без сознания от кровопотери — валится и ЛЕЖИТ
+            // безвольно, пока её не поднимут.
             actorView.SetRagdoll(false);
+            actorView.SetCrying(false);
+            actorView.SetFallen(true, sleepAfter: false, GroundY(npc.Tile));
+        }
+        else if (npc.IsFainted)
+        {
+            // §40.13/§105: потеряла сознание — рухнула тем же клипом, но дальше
+            // просто спит: обморок это не кома, и вставать ей обычным GetUp.
+            actorView.SetRagdoll(false);
+            actorView.SetCrying(false);
+            actorView.SetFallen(true, sleepAfter: true, GroundY(npc.Tile));
+        }
+        else if (npc.IsCrying)
+        {
+            // §110: сломалась от стресса — она НЕ падает, а ложится: сонная
+            // цепочка LieDown → Sleep, на земле, где стояла (кровати тут нет —
+            // она не дошла бы). Позу и лицо доводит NpcActorView.SetCrying.
+            actorView.SetRagdoll(false);
+            actorView.SetCrying(true);
             actorView.SetLaying(true, null, GroundY(npc.Tile));
         }
         else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
         {
             actorView.SetRagdoll(false);
+            actorView.SetCrying(false);
             actorView.SetLaying(true, FindBedAttachPoint(snapshot, npc, out var bedSurfaceY), bedSurfaceY);
         }
         else
         {
             actorView.SetRagdoll(false);
+            actorView.SetCrying(false);
+            // Снимает ОБА флага разом (см. ApplyLying): «не лежит» одинаково
+            // верно для обеих цепочек, и оставленный висеть второй bool держал
+            // бы её на земле уже на ногах.
             actorView.SetLaying(false, null);
         }
 
@@ -1458,84 +1728,74 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return HexRadius * FoodRadiusFactor * 1.8f;
     }
 
+    /// <summary>
+    /// ⭐ §104 r10: КУДА ТЯНЕТСЯ РУКА В БОЮ — по НАЗВАННОМУ противнику, а не по
+    /// «ближайшему кому-нибудь».
+    ///
+    /// <para>
+    /// Здесь стояло «ближайшая живая собака на всём острове, иначе ближайший
+    /// дерущийся NPC» — без единого ограничения по расстоянию. Кшиштоф бил
+    /// колонистку кулаком в упор, а тело уезжало к волку за полкарты: IK честно
+    /// тянул руку к цели, которую вид выбрал сам. Симуляция при этом знала
+    /// точный ответ (<c>Mind.CombatOpponentNpcId</c>, у собаки — её
+    /// <c>TargetNpcId</c>), просто её не спрашивали. Шестая копия правила «кто
+    /// мой противник», и та же болезнь, что «бьёт ножом, а урон как рукой».
+    /// </para>
+    /// <para>
+    /// Потолок дистанции остаётся страховкой на случай рассинхрона: цель дальше
+    /// удара — значит цели нет, и рука опускается, а не тянется через остров.
+    /// </para>
+    /// </summary>
     private bool TryGetCombatActionTargetPosition(
         WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
     {
-        if (TryGetNearestDogPosition(snapshot, npc, out point))
+        // Собака, которая дерётся ИМЕННО С НЕЙ.
+        foreach (var dog in snapshot.Mobs)
         {
-            return true;
+            if (dog.Health > 0f && dog.TargetNpcId == npc.Id.Value &&
+                WithinStrikeReach(npc, dog.Position))
+            {
+                point = SimulationUnityMapper.ToUnityPosition(dog.Position, GroundY(dog.Tile));
+                point.y += HexRadius * NpcHeightFactor * 0.6f;
+                return true;
+            }
         }
 
-        if (TryGetNearestFightingNpcPosition(snapshot, npc, out point))
+        // Человек, с которым она в паре — так её назвала симуляция.
+        if (npc.CombatOpponentNpcId >= 0)
         {
-            return true;
+            foreach (var other in snapshot.Npcs)
+            {
+                if (other.Id.Value != npc.CombatOpponentNpcId ||
+                    !WithinStrikeReach(npc, other.Position))
+                {
+                    continue;
+                }
+
+                point = SimulationUnityMapper.ToUnityPosition(
+                    other.Position, ActorGroundY(other.Tile));
+                point.y += HexRadius * NpcHeightFactor * 1.1f;
+                return true;
+            }
         }
 
+        point = default;
         return false;
     }
 
-    private bool TryGetNearestDogPosition(WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
+    // Потолок в МИРОВЫХ ЕДИНИЦАХ симуляции — тех же, в которых лежит
+    // NpcSnapshot.Position. Соседний тайл отстоит на 2.25-2.6 wu
+    // (HexRadius 1.5 × шаг), так что 3.5 накрывает бой в упор и через
+    // границу тайла, но не тянет руку через остров. Это НЕ гейт удара
+    // (он в §26.6A InteractionReach, по соседству узлов) — только страховка
+    // прицела на случай, когда пара в снапшоте разъехалась с картинкой.
+    private const float StrikeReachWorldUnits = 3.5f;
+
+    private static bool WithinStrikeReach(NpcSnapshot npc, Float2 target)
     {
-        var bestSq = float.MaxValue;
-        MobSnapshot? best = null;
-        foreach (var dog in snapshot.Mobs)
-        {
-            if (dog.Health <= 0f)
-            {
-                continue;
-            }
-
-            var dx = dog.Position.X - npc.Position.X;
-            var dy = dog.Position.Y - npc.Position.Y;
-            var sq = dx * dx + dy * dy;
-            if (sq < bestSq)
-            {
-                bestSq = sq;
-                best = dog;
-            }
-        }
-
-        if (best is null)
-        {
-            point = default;
-            return false;
-        }
-
-        point = SimulationUnityMapper.ToUnityPosition(best.Position, GroundY(best.Tile));
-        point.y += HexRadius * NpcHeightFactor * 0.6f;
-        return true;
-    }
-
-    private bool TryGetNearestFightingNpcPosition(WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
-    {
-        NpcSnapshot? best = null;
-        var bestSq = float.MaxValue;
-        foreach (var other in snapshot.Npcs)
-        {
-            if (other.Id.Value == npc.Id.Value || !other.IsFighting)
-            {
-                continue;
-            }
-
-            var dx = other.Position.X - npc.Position.X;
-            var dy = other.Position.Y - npc.Position.Y;
-            var sq = dx * dx + dy * dy;
-            if (sq < bestSq)
-            {
-                bestSq = sq;
-                best = other;
-            }
-        }
-
-        if (best is null)
-        {
-            point = default;
-            return false;
-        }
-
-        point = SimulationUnityMapper.ToUnityPosition(best.Position, ActorGroundY(best.Tile));
-        point.y += HexRadius * NpcHeightFactor * 1.1f;
-        return true;
+        var dx = target.X - npc.Position.X;
+        var dy = target.Y - npc.Position.Y;
+        return dx * dx + dy * dy <= StrikeReachWorldUnits * StrikeReachWorldUnits;
     }
 
     // Spec 33.1: the weapon slung on the back — the carried spear/bow, so it
@@ -1569,10 +1829,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return null;
         }
 
-        // §gear: bow retired — the pick is pure catalog melee now.
-        var best = HexLive.Simulation.Content.GearCatalog.BestMeleeWeapon(
-            npc.InventoryItems, IntactHands(npc));
-        return string.IsNullOrEmpty(best) ? null : best;
+        // §103 r5: ⭐ ЧЕМ ОНА БЬЁТ — спрашиваем СИМУЛЯЦИЮ, а не считаем сами.
+        //
+        // Здесь стоял свой расчёт «лучшее оружие из рюкзака», и он не знал про
+        // оружие, назначенное сценой: наезд §97 начинается РУКОПАШКОЙ, а в руке
+        // на картинке оставался нож. Снаружи это читалось как «бьёт ножом, а
+        // урон как рукой» — он и правда бил кулаком, врала картинка.
+        //
+        // Пустая строка это кулаки (сцена так и говорит), поэтому null здесь
+        // означает ровно одно: бить нечем.
+        // ⚠️ Запасного расчёта здесь БОЛЬШЕ НЕТ, и это принципиально: пустая
+        // строка — не «сим промолчал», а «кулаки». Оставь фолбэк на лучшее
+        // оружие из рюкзака — и он вернёт нож ровно в той сцене, ради которой
+        // всё это чинилось. Вне драки симуляция сама подставляет лучшее, так
+        // что ответ здесь полный всегда.
+        return string.IsNullOrEmpty(npc.MeleeWeaponId) ? null : npc.MeleeWeaponId;
     }
 
     private static int IntactHands(NpcSnapshot npc) =>
@@ -2418,6 +2689,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             garment.transform.localScale = Vector3.one * garmentScale;
             garment.transform.localRotation = Quaternion.Euler(0f, (worldObject.Id.Value * 73) % 360, 0f);
             GroundVisual(garment, lift: 0.01f); // epsilon: thin cloth vs tile z-fight
+            SuppressSmallPropShadows(garment); // flat cloth on the ground — see above
             var garmentPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             garmentRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                 garmentPos, GroundY(worldObject.Tile));
@@ -2502,6 +2774,73 @@ public sealed class HexWorldRenderer : MonoBehaviour
         effect.Construct(HexRadius);
     }
 
+    // FOG-OF-WAR EXPERIMENT: once per rendered tick, gather what the colony
+    // knows. Object knowledge = union of every living colonist's persistent
+    // object memory (perception upserts a sighted object into memory the same
+    // tick, so memory covers "sees right now" too). Colonist tiles feed the
+    // mob spot-radius check. Reading Engine.World here is local-mode only.
+    private void RebuildFogState(WorldSnapshot snapshot)
+    {
+        var engine = UI.DebugControlsPanel.FogOfWar ? _runner?.Engine : null;
+        _fogActive = engine != null;
+        _fogKnownObjects.Clear();
+        _fogColonyTiles.Clear();
+        if (engine == null)
+        {
+            return;
+        }
+
+        // "Selected only": the fog narrows to what the selected NPC herself
+        // knows/sees. With nothing selected it falls back to the colony union,
+        // matching the debug panel's "target: everyone" convention.
+        var selectedId = UI.DebugControlsPanel.FogOfWarSelectedOnly &&
+            Input.NpcSelection.HasSelection
+                ? Input.NpcSelection.SelectedId
+                : -1;
+
+        foreach (var npc in engine.World.Entities.Npcs.Values)
+        {
+            var include = selectedId >= 0
+                ? npc.Id.Value == selectedId
+                : npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+            if (!include)
+            {
+                continue;
+            }
+
+            foreach (var knownId in npc.Memory.KnownObjects.Keys)
+            {
+                _fogKnownObjects.Add(knownId.Value);
+            }
+        }
+
+        // Spot tiles come from the snapshot so the mob check matches what is
+        // actually rendered this tick.
+        foreach (var npc in snapshot.Npcs)
+        {
+            var include = selectedId >= 0
+                ? npc.Id.Value == selectedId
+                : !npc.IsHostileToColony;
+            if (include)
+            {
+                _fogColonyTiles.Add(npc.Tile);
+            }
+        }
+    }
+
+    private bool FogColonySeesTile(TileCoord tile)
+    {
+        foreach (var colonistTile in _fogColonyTiles)
+        {
+            if (HexSpatialMath.HexDistance(colonistTile, tile) <= FogMobSpotRadiusTiles)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // Animal keys share one pose map: dogs get positive ids, crabs negative.
     private void SyncAnimalViews(WorldSnapshot snapshot)
     {
@@ -2514,6 +2853,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 mobView = CreateMobView(dog.MobId, dog.Id);
                 _mobViews[key] = mobView;
+            }
+
+            // FOG-OF-WAR EXPERIMENT: a mob exists for the player only while a
+            // colonist would notice it (the sim's spot-scan radius).
+            var fogHideMob = _fogActive && !FogColonySeesTile(dog.Tile);
+            if (mobView.activeSelf == fogHideMob)
+            {
+                mobView.SetActive(!fogHideMob);
             }
 
             if (mobView.TryGetComponent<MobView>(out var wolfView))
@@ -2551,9 +2898,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             var key = -crab.Id - 1;
             liveKeys.Add(key);
-            if (!_crabViews.TryGetValue(crab.Id, out _))
+            if (!_crabViews.TryGetValue(crab.Id, out var crabView))
             {
-                _crabViews[crab.Id] = CreateMobView(HexLive.Simulation.Content.MobIds.Crab, crab.Id);
+                crabView = CreateMobView(HexLive.Simulation.Content.MobIds.Crab, crab.Id);
+                _crabViews[crab.Id] = crabView;
+            }
+
+            // FOG-OF-WAR EXPERIMENT: same spot-radius rule as the dogs above.
+            var fogHideCrab = _fogActive && !FogColonySeesTile(crab.Tile);
+            if (crabView.activeSelf == fogHideCrab)
+            {
+                crabView.SetActive(!fogHideCrab);
             }
 
             UpdateAnimalPose(key, crab.Position, crab.Tile);
@@ -2733,8 +3088,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // §74: the body is the mesh, but the face, the hair and the
                 // voice are hers alone — the simulation rolled them from the
                 // seed and saved them, so a reload rebuilds the same woman.
+                // §85: and her eyes, on an axis of their own.
                 view.Construct(npc.ActorMesh, npc.Id.Value,
-                    npc.SkinSet, npc.Hairstyle, npc.VoiceBank);
+                    npc.SkinSet, npc.EyeColor, npc.Hairstyle, npc.VoiceBank);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =
@@ -3164,13 +3520,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly HashSet<TileCoord> _hiddenGrassTiles = new();
     private readonly List<TileCoord> _grassToggleScratch = new();
 
+    // §113: ОДИН ответ на «она сейчас на земле?». Разбор ПО ПОЗАМ (какой
+    // цепочкой её ронять) живёт в SyncActorView и остаётся там — здесь союз
+    // всех его лежачих веток. Пока этот союз был переписан от руки во второй
+    // раз, он разошёлся ровно там, где такое расхождение и незаметно: рыдающая
+    // (§110) ложилась на землю, а трава под ней стояла торчком — сон, кома и
+    // обморок траву гасили, слёзы нет.
+    //
+    // Ползущая (§50, обе ноги) сюда входит намеренно: она тоже волочится по
+    // земле, просто ещё и движется — гекс под ней гаснет, пройденный отрастает.
+    internal static bool IsLyingDown(NpcSnapshot npc) =>
+        npc.IsFainted ||          // §40.13 обморок
+        npc.IsUnconscious ||      // §60 кома
+        npc.IsDying ||            // §105 лежащая на грани
+        npc.IsPlayingDead ||      // §105.14 притворяющаяся
+        npc.IsCrying ||           // §110 стресс-крах: лежит и рыдает
+        npc.PostureHint == "Crawl" ||
+        (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress");
+
     private void UpdateGrassFlattening(WorldSnapshot snapshot)
     {
         _lyingTiles.Clear();
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.IsFainted || npc.IsUnconscious || // §60: a coma flattens the grass too
-                (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress"))
+            if (IsLyingDown(npc))
             {
                 _lyingTiles.Add(npc.Tile);
             }
@@ -3295,6 +3668,41 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         GroundVisual(instance);
+        SuppressSmallPropShadows(instance);
+    }
+
+    // PERF (profiling, Aug-2026): the shadow pass was drawing ~2 300 casters a
+    // frame and cost ~3 ms on the render thread. A prop this short throws a
+    // shadow a few pixels wide — nothing you can see at play distance — while
+    // still costing a draw call in every cascade it falls into. Measured by the
+    // fitted bounds rather than by an id list, so a new item classifies itself;
+    // trees, beds, fires and the girls are all far above the line and keep
+    // their shadows.
+    private const float ShadowCastMinHeightFactor = 0.30f;
+
+    private void SuppressSmallPropShadows(GameObject instance)
+    {
+        var renderers = instance.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+        {
+            return;
+        }
+
+        var bounds = renderers[0].bounds;
+        for (var i = 1; i < renderers.Length; i++)
+        {
+            bounds.Encapsulate(renderers[i].bounds);
+        }
+
+        if (bounds.size.y > HexRadius * ShadowCastMinHeightFactor)
+        {
+            return;
+        }
+
+        for (var i = 0; i < renderers.Length; i++)
+        {
+            renderers[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
     }
 
     // A dropped prop's ground pose: a deterministic random yaw so the map doesn't

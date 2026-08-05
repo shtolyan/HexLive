@@ -98,14 +98,26 @@ public static class PlanInterruption
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
         npc.Movement.IsMoving = false;
-        npc.Movement.Status = MovementStatus.Idle;
+        npc.Movement.SetStatus(MovementStatus.Idle);
         npc.Movement.StopReason = reason;
         npc.Movement.ClimbPauseTimer = 0f;
-        npc.Movement.HopTimer = 0f;
         npc.Movement.HopArmed = false;
-        npc.Movement.HopCrossed = false;
         npc.Movement.HopPathIndex = -1;
-        npc.Movement.HopLandingIndex = 0;
+
+        // §21.21B v17: a hop ALREADY IN THE AIR is not interruptible. Killing the
+        // window here left her hanging between two levels — position half-way,
+        // npc.Tile still the takeoff tile — and since the view draws her at the
+        // ground height of npc.Tile, she snapped back onto the ledge she had just
+        // jumped off ("спрыгнула, развернулась — телепнуло наверх") or back onto
+        // the bank after a dive ("прыгнула в воду без плюха, отшвырнуло назад").
+        // The window keeps running (MovementSystem.RunHopWindow is called before
+        // any path check), lands her properly, and the new plan starts from solid
+        // ground. Only the pre-flight commitment is cancelled, above.
+        if (npc.Movement.HopTimer <= 0f)
+        {
+            npc.Movement.HopCrossed = false;
+            npc.Movement.HopLandingIndex = 0;
+        }
 
         Trace.Emit(world, npc.Id, "GoalInterrupted", reason);
     }

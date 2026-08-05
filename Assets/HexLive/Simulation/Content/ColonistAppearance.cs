@@ -33,12 +33,26 @@ public static class ColonistAppearance
     // regenerated Jolly's from Molly's, so even the shader setup matches).
     public static readonly string[] SkinSets = { "Marta", "Molly", "Jana", "Jolly" };
 
+    // §85: iris colour, an axis of its own. It used to ride inside SkinSet —
+    // the eye map is part of the actress's material set — so a girl could not
+    // have one woman's face and another's eyes, and the whole colony drew from
+    // exactly four irises. These ids are folder names under
+    // Resources/HexLive/Eyes/, and the maps behind them are one base eye
+    // texture recoloured (Tools/make_eye_textures.py): the sclera, the wet rim
+    // and the veins are literally the same pixels in all eight, so this pool is
+    // free to grow without anything else in the face shifting.
+    public static readonly string[] EyeColors =
+    {
+        "blue", "blue_green", "green", "grey",
+        "hazel", "amber", "brown", "dark_brown",
+    };
+
     // Hair prefabs (§31B.4B). Any Genesis3 hair fits any actress — it skins to
     // the shared head/neck bones — so this pool is not per-mesh. Kept in sync
     // with Assets/ImportedActors/Hair/<Name>.prefab via the appearance catalog.
     //
     // The COLOUR is not here and not anywhere in the simulation: it is derived
-    // from the colonist's id on the view side (§103.5), because a hairstyle's
+    // from the colonist's id on the view side (§116.1), because a hairstyle's
     // colour folders are art, and the sim would have to carry a copy of the
     // whole list to roll one.
     public static readonly string[] Hairstyles =
@@ -76,14 +90,17 @@ public static class ColonistAppearance
     {
         public readonly string Mesh;
         public readonly string SkinSet;
+        public readonly string EyeColor;
         public readonly string Hairstyle;
         public readonly string VoiceBank;
         public readonly string NameId;
 
-        public Look(string mesh, string skinSet, string hairstyle, string voiceBank, string nameId)
+        public Look(string mesh, string skinSet, string eyeColor, string hairstyle,
+            string voiceBank, string nameId)
         {
             Mesh = mesh;
             SkinSet = skinSet;
+            EyeColor = eyeColor;
             Hairstyle = hairstyle;
             VoiceBank = voiceBank;
             NameId = nameId;
@@ -107,7 +124,9 @@ public static class ColonistAppearance
     //   keep as the FALLBACK when more girls than hairstyles exist. Voice is
     //   NOT part of that key on purpose: a shared voice is heard one line at a
     //   time and reads as a family resemblance, while a shared silhouette is on
-    //   screen permanently.
+    //   screen permanently. §85 puts EYE COLOUR on the same side of that line
+    //   as the voice — an iris is invisible at gameplay distance and only ever
+    //   read in the portrait, so two blue-eyed girls are not a bug report.
     //
     // All resolve by walking FORWARD from the rolled index — deterministic and
     // order-stable, so the same seed lands on the same colony every time.
@@ -120,6 +139,10 @@ public static class ColonistAppearance
         var mesh = Meshes[(int)(MathUtil.Hash01(seed, npcId, 74, 7401) * Meshes.Length)];
         var skin = SkinSets[(int)(MathUtil.Hash01(seed, npcId, 74, 7402) * SkinSets.Length)];
         var voice = VoiceBanks[(int)(MathUtil.Hash01(seed, npcId, 74, 7404) * VoiceBanks.Length)];
+        // §85. Its own salt, so adding the axis does not disturb the four rolls
+        // above — the same seed still lands on the same bodies, hair and names
+        // as before, and only the irises are new.
+        var eyes = EyeColors[(int)(MathUtil.Hash01(seed, npcId, 74, 7406) * EyeColors.Length)];
 
         var hairStart = (int)(MathUtil.Hash01(seed, npcId, 74, 7403) * Hairstyles.Length);
         var hair = Hairstyles[hairStart];
@@ -168,7 +191,7 @@ public static class ColonistAppearance
             }
         }
 
-        return new Look(mesh, skin, hair, voice, name);
+        return new Look(mesh, skin, eyes, hair, voice, name);
     }
 
     /// <summary>

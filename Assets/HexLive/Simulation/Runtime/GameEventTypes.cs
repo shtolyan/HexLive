@@ -88,6 +88,8 @@ public static class GameEventTypes
         "MeatRoasted",
         "MeatHungOnSpit",
         "MeatSpoiled",
+        // §54.17: the meat chain's finish line — someone actually ate a roast.
+        "MeatEaten",
         "FoodShared",
         "FoodStolen",
 
@@ -124,21 +126,37 @@ public static class GameEventTypes
         // lines. "WoundInflicted" reports the moment of injury, "BledOut" the
         // outcome; the ongoing state is visible on the health bar.
         "BledOut",
+        // §60.7: без сознания в глубокой воде дольше DrownDeathTicks — утонула.
+        "Drowned",
         "WoundInflicted",
         "LimbSevered",
         "VitalPartDestroyed",
         "StarvedToDeath",
         "NpcDied",
-        "Buried",
+        // §28.15C v3: "Buried"/"VisitedGrave" сняты вместе с механикой похорон —
+        // их больше никто не эмитит, а имя в этом списке ждало бы события,
+        // которого не бывает (ровно то, что ловит EventWhitelistGate).
         "Butchered",
         "Grieving",
         "Mourned",
-        "VisitedGrave",
+        "Looted",
+        // §111: обыскал лежащего врага. ОДНО событие на сцену, а не на вещь:
+        // по событию на нож один обыск занимал бы всю ленту.
+        "StrippedHelpless",
         // Was "Collapsed", which nothing has ever emitted — the coma path emits these two.
         "FellAsleepExhausted",
         "FaintedBloodLoss",
         "Fainted",
+        // §110: стресс-ветка того же краха — легла и рыдает (в сознании).
+        "CryingBreakdown",
         "WokeUp",
+        // §105: «Collapsed» вернулось в список — но теперь его ДЕЙСТВИТЕЛЬНО
+        // эмитят (MortalityHelpers.EnterDying), и это самое громкое событие,
+        // какое бывает: кто-то упал и умирает. «Rescued» — счастливый конец
+        // той же сцены. Промежуточный "Dying" сюда НЕ входит намеренно: он
+        // тикает каждый медленный тик и залил бы историю.
+        "Collapsed",
+        "Rescued",
 
         // Distress
         "DireStraits",
@@ -165,6 +183,16 @@ public static class GameEventTypes
         "TalkWaitTimeout",
         "InteractionBlocked",
         "InteractionRejected",
+
+        // §108: групповая охота на чужака. Вся дуга видима игроку — сговор,
+        // первое столкновение, его бегство и исход; «кто держит строй» и
+        // «почему сговор не сложился» остаются отладочными.
+        "GroupHuntPactFormed",
+        "GroupHuntEngaged",
+        "GroupHuntStruck",
+        "GroupHuntTargetFled",
+        "GroupHuntDone",
+        "GroupHuntFailed",
 
         // Escape
         "RaftLaunched",

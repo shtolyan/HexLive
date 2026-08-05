@@ -171,7 +171,7 @@ public sealed partial class ExecutionSystem
         // the grass; the get-up clip plays out during the grace.
         if (kind == InteractionType.Sleep)
         {
-            npc.Mind.WakeGraceUntilTick = world.Tick + 12;
+            npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
         }
 
         if (kind == InteractionType.Sit)
@@ -179,7 +179,7 @@ public sealed partial class ExecutionSystem
             npc.Mind.Cooldowns.Add(new GoalCooldown
             {
                 Goal = GoalType.Sit,
-                EndTick = world.Tick + 240
+                EndTick = world.Tick + AiBalance.SitCooldownTicks
             });
         }
 
@@ -697,7 +697,7 @@ public sealed partial class ExecutionSystem
                 GiveOrDrop(world, npc, stashed);
             }
 
-            DropDisplacedGarments(world, npc);
+            StowDisplacedGarments(world, npc);
             reworn++;
         }
 
@@ -761,7 +761,7 @@ public sealed partial class ExecutionSystem
                     world.Content.ObjectDefinitions.TryGetValue(pile.DefinitionId, out var pileDef)
                         ? pileDef.ObstacleRadius : 0f))
             {
-                npc.Memory.Shun(pile.Id, world.Tick + 600);
+                npc.Memory.Shun(pile.Id, world.Tick + AiBalance.ShunTicks);
                 PlanningSystem.SetGoalCooldown(world, npc, GoalType.WashClothes);
                 PlanInterruption.Abort(world, npc, "WashClothes garment not adjacently reachable");
                 npc.Mind.CurrentGoal = GoalType.None;
@@ -981,16 +981,11 @@ public sealed partial class ExecutionSystem
     {
         foreach (var wornId in npc.WornItems)
         {
-            if (!world.Content.ObjectDefinitions.TryGetValue(wornId, out var wornDef) ||
-                wornDef.Layer != newDef.Layer)
-            {
-                continue;
-            }
-
-            // §52.9: same slot-based occupancy as ResolveWearConflicts. This is
-            // what decides whether a freshly-washed piece goes back ON — a false
-            // conflict here silently leaves clean laundry on the sand.
-            if (WearSlotCatalog.SameSpot(newDef, wornDef))
+            // §52.9: the SAME occupancy predicate ResolveWearConflicts uses.
+            // This is what decides whether a freshly-washed piece goes back ON —
+            // a false conflict here silently leaves clean laundry on the sand.
+            if (world.Content.ObjectDefinitions.TryGetValue(wornId, out var wornDef) &&
+                WearSlotCatalog.Occupies(newDef, wornDef))
             {
                 return true;
             }
@@ -1055,7 +1050,7 @@ public sealed partial class ExecutionSystem
         npc.Plan.TargetTile = null;
         npc.Plan.TargetItemDefinitionId = null;
         npc.Mind.CurrentGoal = GoalType.None;
-        npc.Mind.Cooldowns.Add(new GoalCooldown { Goal = goal, EndTick = world.Tick + 40 });
+        npc.Mind.Cooldowns.Add(new GoalCooldown { Goal = goal, EndTick = world.Tick + AiBalance.FailureCooldownTicks });
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
         npc.Execution.TargetObject = null;

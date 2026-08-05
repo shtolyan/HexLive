@@ -44,14 +44,27 @@ public sealed class HumanCombatSystem : ISimulationSystem
             }
 
             // Turn to face — the same courtesy the dog fight pays.
-            FaceOpponent(world, actor, opponent);
+            //
+            // §109.13: ⭐ НО ТОЛЬКО ЕСЛИ СТОИШЬ. Идущего разворачивает
+            // MovementSystem — по следующему узлу пути; этот же доворот целил
+            // в противника, и на каждом быстром тике тело дёргалось между
+            // двумя хотелками: измерено ±22.5° туда-сюда на месте, а на бегу
+            // — «колбасит». Ровно такая же оговорка уже стоит у отжима
+            // стойки ниже (`actor.Movement.IsMoving`), просто до поворота её
+            // не донесли. Пар вне сцен стало много (§109 — ответный бой,
+            // защитницы), и старая дыра вылезла на каждом подходе.
+            if (!actor.Movement.IsMoving)
+            {
+                FaceOpponent(world, actor, opponent);
+            }
 
             // And square up at arm's length — the same spacing the dog fight
             // keeps (AnimalCombatSystem.ClampToHoldDistance).
             HoldStandOff(world, actor, opponent);
 
-            var inReach = MeleeSwing.InReach(world, actor, opponent);
-            if (!MeleeSwing.TryAdvanceSwing(world, actor, inReach, out var damage, out var weaponId))
+            var inReach = InteractionReach.CanStrike(world, actor, opponent);
+            if (!MeleeSwing.TryAdvanceSwing(world, actor, inReach,
+                    out var damage, out var weaponId, out var clipSeconds))
             {
                 continue;
             }
@@ -64,6 +77,13 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // §97: «нападает» — это и налёт, и сцена абьюза. Без второй половины
             // ЕГО удары помечались как ответные (RaidFoughtBack), и по логу было
             // не разобрать, кто кого бьёт.
+            // §108: и третья половина — групповая охота. Тут «нападает» уже
+            // ОНА, и без этой ветки её удары попадали бы в лог как ответные,
+            // то есть расправа читалась бы как самооборона.
+            var hunting = FactionRelations.AreHostile(actor, opponent) &&
+                actor.Mind.CurrentGoal == GoalType.GroupHunt &&
+                actor.Mind.GroupHuntTargetNpcId is { } huntTarget &&
+                huntTarget.Equals(opponent.Id);
             var raiding = FactionRelations.AreHostile(actor, opponent) &&
                 ((actor.Mind.RaidTargetNpcId is { } raidTarget && raidTarget.Equals(opponent.Id)) ||
                  (actor.Mind.AbuseTargetNpcId is { } abuseTarget && abuseTarget.Equals(opponent.Id)));
@@ -76,48 +96,25 @@ public sealed class HumanCombatSystem : ISimulationSystem
                 damage *= Spec72.RaidStrikeDamageMult;
             }
 
-            // §97: удары СЦЕНЫ считаются здесь же — она заканчивается по числу
-            // попаданий, а не по таймеру. «Пара ударов и разошлись» должно
-            // означать ровно пару, сколько бы ни длилось окно.
-            // Сцена абьюза — это ОБЕ стороны: он трясёт, она отбивается. Темп
-            // разводится обоим, иначе её ответы сливаются в мельницу, которую
-            // так же не видно, как раньше не было видно его ударов.
-            var abuserHere = actor.Mind.CurrentGoal == GoalType.Abuse &&
-                actor.Mind.AbuseTargetNpcId is { } abused && abused.Equals(opponent.Id);
-            var defenderHere = opponent.Mind.CurrentGoal == GoalType.Abuse &&
-                opponent.Mind.AbuseTargetNpcId is { } defended && defended.Equals(actor.Id);
+            // §103: постановочная сцена САМА считает свои удары и сама решает,
+            // когда открыть следующий замах — см. AI/FightScene. Здесь стоял
+            // блок, знавший про абьюз поимённо: он различал бьющего и
+            // отбивающуюся, лез в Spec81 за числом ударов и разводил их по
+            // БАЗОВОЙ длительности оружия, тогда как сам замах брался из
+            // варианта удара. Две мерки на одно расстояние — ровно та болезнь,
+            // что дала мёртвую зону §102, только во времени.
+            FightScene.OnBlowLanded(world, actor, clipSeconds);
 
-            if (abuserHere || defenderHere)
+            if (hunting)
             {
-                if (abuserHere)
-                {
-                    actor.Mind.AbuseBlows++;
-                }
-
-                // §99: ⭐ РАЗВЕСТИ УДАРЫ ПО ВРЕМЕНИ КЛИПА. Своя скорость оружия
-                // ставит их слишком часто: кулак машется 1.5 с, а следующий
-                // удар ложился через 0.75 — второй замах перебивал первый на
-                // середине, и со стороны выходило «крови добавилось, а удара не
-                // видел». В обычном бою это теряется среди прочего, а сцена
-                // короткая: в ней каждый удар должен читаться.
-                //
-                // Отодвигаем готовность так, чтобы клип успел доиграть целиком.
-                var clip = GearCatalog.AttackDurationSeconds(weaponId);
-                // §100: своё он уже сказал — дальше стоит и смотрит, а сцена
-                // доигрывает до приговора. Столько ударов, сколько назначено,
-                // и ни одним больше, даже если время ещё есть.
-                var spacing = abuserHere && actor.Mind.AbuseBlows >= Spec81.AbuseMaxBlows
-                    ? Spec81.AbuseDurationTicks
-                    : MeleeSwing.SecondsToTicks(clip * Spec81.AbuseBlowSpacing);
-                var floor = world.Tick + spacing;
-                if (actor.StrikeReadyAtTick < floor)
-                {
-                    actor.StrikeReadyAtTick = floor;
-                }
+                actor.Mind.GroupHuntBlowsLanded++;
+                // Счёт расправы висит на НЁМ: охотница может уйти, побои
+                // остаются (§108.5).
+                opponent.Mind.GroupHuntBlowsTaken++;
             }
 
             MeleeSwing.ApplyHumanBlow(world, actor, opponent, damage, weaponId,
-                raiding ? "RaidStruck" : "RaidFoughtBack");
+                hunting ? "GroupHuntStruck" : raiding ? "RaidStruck" : "RaidFoughtBack");
 
             // Emit the outcome HERE, at the blow that caused it. MobSystem
             // sweeps every 0-health NPC on the next medium pass — before
@@ -179,10 +176,55 @@ public sealed class HumanCombatSystem : ISimulationSystem
         var step = System.MathF.Min(
             Spec72.MeleeHoldGlideSpeed * world.TickDeltaTime,
             (hold - distance) * 0.5f);
-        actor.Position += dir * step;
+        var next = actor.Position + dir * step;
+
+        // §109.11: стойка ПЯТИТСЯ, но не УЕЗЖАЕТ. Junction не двигается вместе
+        // с Position, и отжим без предела дрейфа против непрерывно наступающего
+        // противника превращался в караван через полкарты: она скользит в
+        // боевой позе, «убегая» без единого шага, он бежит следом. Дальше
+        // радиуса от СВОЕГО узла стойка не отступает — упёрлась, значит стоит
+        // (и это честно: за спиной может быть обрыв, которого Position-глайд
+        // не видит).
+        // Гейт ЗАКРЫТЫЙ по умолчанию: нет якоря — не двигаемся. Позитивная
+        // форма («якорь есть И далеко ⇒ стоп») была дырой: CurrentJunction
+        // обнуляют извне, когда под ногами возводят стену (§45 r5), чинит это
+        // PerceptionSystem на СРЕДНЕМ такте, а отжим идёт на быстром — и в
+        // окне между ними предел не действовал вовсе.
+        if (actor.CurrentJunction is not { } ownJunction ||
+            !world.Junctions.Items.TryGetValue(ownJunction, out var anchor) ||
+            HexSpatialMath.Distance(next, anchor.WorldPosition) >
+                Spec72.MeleeHoldMaxDriftWorldUnits)
+        {
+            return;
+        }
+
+        // §109.14: ⭐ ОТЖИМ НЕ ВЫХОДИТ ЗА СВОЙ ГЕКС. Двигается ТОЛЬКО Position,
+        // а npc.Tile остаётся прежним — и высоту пола вид берёт именно от
+        // тайла (ActorGroundY). Отжатый на соседний гекс рисуется на высоте
+        // СТАРОГО: если сосед выше, тело уходит в землю — «боевая стойка по
+        // игреку в землю его вбивает». Держим внутри своего гекса: 0.8×радиуса
+        // заведомо меньше вписанной окружности (0.866×R), так что тайл под
+        // ногами не меняется, а значит и высота честная.
+        // Порог — НЕ фиксированный радиус. По описанной (1.0R) тело всё равно
+        // вылезало за грань в направлениях между вершинами, а по вписанной
+        // (0.866R) отжим запрещался бы законно стоящей НА вершине — узлы
+        // решётки сидят и там. Правило поэтому такое: за вписанную окружность
+        // не выталкиваем, а тому, кто уже стоит дальше, не даём уехать ЕЩЁ
+        // дальше от центра своего гекса.
+        var centre = HexSpatialMath.TileToWorld(actor.Tile);
+        var wasOut = HexSpatialMath.Distance(actor.Position, centre);
+        var willBeOut = HexSpatialMath.Distance(next, centre);
+        if (willBeOut > System.Math.Max(wasOut, HexSpatialMath.HexRadius * 0.866f))
+        {
+            return;
+        }
+
+        actor.Position = next;
     }
 
-    private static void FaceOpponent(WorldState world, NPCState actor, NPCState opponent)
+    // §81.15: internal — жертва, почуявшая приближение, разворачивается тем же
+    // манером, что и боец, только без пары (пара тут означает замах).
+    internal static void FaceOpponent(WorldState world, NPCState actor, NPCState opponent)
     {
         var direction = new Float2(
             opponent.Position.X - actor.Position.X,

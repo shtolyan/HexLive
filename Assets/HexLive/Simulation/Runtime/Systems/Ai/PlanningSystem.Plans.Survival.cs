@@ -15,25 +15,25 @@ public sealed partial class PlanningSystem
 {
     private static bool BuildCoconutDrinkPlan(WorldState world, NPCState npc)
     {
-        if (TryFindInventoryItem(npc, "food.coconut_pierced", requireWater: true, out _))
+        if (TryFindInventoryItem(npc, ContentIds.CoconutPierced, requireWater: true, out _))
         {
             return false;
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut", out var carriedWhole))
+            TryFindInventoryItem(npc, ContentIds.Coconut, out var carriedWhole))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Drink, carriedWhole,
                 InteractionType.Process, InteractionType.PickUp);
         }
 
-        if (TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: true, out var pierced))
+        if (TryFindCoconutObject(npc, world, ContentIds.CoconutPierced, requireWater: true, out var pierced))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Drink, pierced, InteractionType.PickUp);
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
+            TryFindCoconutObject(npc, world, ContentIds.Coconut, requireWater: false, out var whole))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Drink, whole,
                 InteractionType.Process, InteractionType.PickUp);
@@ -42,9 +42,82 @@ public sealed partial class PlanningSystem
         return false;
     }
 
+    // §54.17 r2: a roast hanging on a perceived spit beats whatever is in the
+    // pack — walk over and take it; the NEXT Eat pass consumes it from the
+    // pack (BestFoodInInventory then picks the cooked chunk). Every obstacle
+    // returns false, never PlanFailed: the pack coconut stays the fallback,
+    // and a vanished/contested fire must not cost the meal she already holds.
+    private static bool TryBuildSpitTakePlan(WorldState world, NPCState npc, string? bestInPack)
+    {
+        var packNutrition = bestInPack is null ? 0f : FoodMath.NutritionOf(world, bestInPack);
+        if (packNutrition + 0.01f >= SimBalance.CookedMeatHunger)
+        {
+            return false; // the pack already holds a meal at least as good
+        }
+
+        if (!npc.Inventory.HasSpace)
+        {
+            return false; // take.from.spit lands the chunk in the pack
+        }
+
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (!perceived.IsReachable ||
+                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+                !world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) ||
+                !definition.Tags.Contains("Campfire") ||
+                !world.Entities.Objects.TryGetValue(perceived.Id, out var fire) ||
+                fire.Junctions.Count == 0 ||
+                BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) == 0)
+            {
+                continue;
+            }
+
+            var anchorJunction = fire.Junctions[0];
+            var reach = SpatialQueries.BesideReach(definition.ObstacleRadius);
+            if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, reach, fire))
+            {
+                continue;
+            }
+
+            if (npc.CurrentJunction is not { } current || !current.Equals(targetJunction))
+            {
+                if (!SpatialMutations.TryReserveJunction(world, targetJunction, npc.Id, world.Tick, 48))
+                {
+                    continue;
+                }
+            }
+
+            npc.Plan.TargetObjectId = perceived.Id;
+            npc.Plan.TargetTile = perceived.Tile;
+            npc.Plan.TargetJunctionId = targetJunction;
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.MoveToJunction,
+                TargetJunction = targetJunction,
+                TargetObject = perceived.Id
+            });
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.Interact,
+                TargetObject = perceived.Id,
+                TargetJunction = targetJunction,
+                Interaction = InteractionType.PickUp
+            });
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Plan.Status = PlanStatus.Active;
+            Trace.Emit(world, npc.Id, "PlanBuilt",
+                $"Goal=Eat Target={perceived.DefinitionId} (spit roast) " +
+                $"Tile={perceived.Tile.Q},{perceived.Tile.R} Steps=[MoveToJunction,PickUp]");
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool BuildCoconutEatPlan(WorldState world, NPCState npc)
     {
-        if (TryFindInventoryItem(npc, "food.coconut_open", out _))
+        if (TryFindInventoryItem(npc, ContentIds.CoconutOpen, out _))
         {
             return false;
         }
@@ -55,7 +128,7 @@ public sealed partial class PlanningSystem
         // was about to drink. Order now: drained husks first, then whole nuts;
         // a watered pierced coconut is only eaten when nothing else is left.
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut_pierced", requireWater: false,
+            TryFindInventoryItem(npc, ContentIds.CoconutPierced, requireWater: false,
                 out var carriedDrained, requireDrained: true))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedDrained,
@@ -63,26 +136,26 @@ public sealed partial class PlanningSystem
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut", out var carriedWhole))
+            TryFindInventoryItem(npc, ContentIds.Coconut, out var carriedWhole))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedWhole,
                 InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
         }
 
-        if (TryFindCoconutObject(npc, world, "food.coconut_open", requireWater: false, out var open))
+        if (TryFindCoconutObject(npc, world, ContentIds.CoconutOpen, requireWater: false, out var open))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, open, InteractionType.PickUp);
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
+            TryFindCoconutObject(npc, world, ContentIds.Coconut, requireWater: false, out var whole))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, whole,
                 InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: false,
+            TryFindCoconutObject(npc, world, ContentIds.CoconutPierced, requireWater: false,
                 out var pierced, preferDrained: true))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, pierced,
@@ -90,7 +163,7 @@ public sealed partial class PlanningSystem
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut_pierced", out var carriedWatered))
+            TryFindInventoryItem(npc, ContentIds.CoconutPierced, out var carriedWatered))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedWatered,
                 InteractionType.Process, InteractionType.PickUp);
@@ -159,10 +232,16 @@ public sealed partial class PlanningSystem
         // Cap "beside" to one hop of the coconut's footprint — never pierce/drink
         // it from across a cliff (user's screenshot: nut at a palm base, reached
         // from ~1.7 hex out). A boxed-in nut fails here and the forager retargets.
+        // §26.6A r5: the nut carries NO footprint of its own, so passing it as
+        // the owner is the strictest possible rim — and that is the point. The
+        // palm it fell from is one blocked junction wide and BesideReach spans
+        // two sub-grid steps, so before r5 the far side of the trunk counted as
+        // "beside" and she pierced the nut straight through the tree.
         var coconutReach = SpatialQueries.BesideReach(
             world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var cocoDef)
                 ? cocoDef.ObstacleRadius : 0f);
-        if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, coconutReach))
+        if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, coconutReach,
+                worldObject))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, goal);

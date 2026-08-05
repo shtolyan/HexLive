@@ -108,6 +108,12 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnEnabledChanged(bool enabled)
         {
+            // This panel is the only shipped reader of the mutable junction
+            // flags (blocked / occupied / reserved), and refreshing them costs
+            // ~56 000 hash lookups a tick — so the exporter skips them unless
+            // someone asks. Asking is exactly "the hex inspector is on".
+            HexLive.Simulation.Debug.WorldSnapshotExporter.IncludeJunctionFlags = enabled;
+
             if (!enabled)
             {
                 _root.style.display = DisplayStyle.None;

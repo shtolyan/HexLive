@@ -70,7 +70,29 @@ public static class ColonyQueries
             return true; // no anchor authored — the whole island is "the camp"
         }
 
-        return HexSpatialMath.HexDistance(tile, home) <= Spec72.MaxCampRadiusTiles;
+        var own = HexSpatialMath.HexDistance(tile, home);
+        if (own > Spec72.MaxCampRadiusTiles)
+        {
+            return false;
+        }
+
+        // §72.13: anchors sit ≥ OutsiderCampMinDistanceTiles (8) apart but the radius
+        // is 6, so the two discs can OVERLAP — and a tile in the overlap used
+        // to count as "in camp" for BOTH factions. That let BedSiteSystem
+        // adopt the enemy hearth and stake this camp's beds around it, and let
+        // the girls' campfire dream latch on the outsider's fire. A hostile
+        // camp strictly closer claims the tile; a tie stays ours, mirroring
+        // DecisionSystem.IsOurSite.
+        foreach (var pair in world.FactionHomes)
+        {
+            if (!FactionRelations.AreAllies(faction, pair.Key) &&
+                HexSpatialMath.HexDistance(tile, pair.Value) < own)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // Is there a lit campfire in THIS faction's camp? (tag "Campfire" + burning

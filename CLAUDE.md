@@ -3,6 +3,35 @@
 Survival-colony sim (Unity, URP). The canonical design/behaviour spec is
 **`spec.md`** (repo root) — keep it in sync with code (spec-first).
 
+## ⭐ BUGS.json — the in-game bug tracker (spec §114)
+
+The player files bugs from inside the game (Bug tracker button in the debug
+panel) into **`BUGS.json` at the repo root**. When the user says «разбери
+баги» / «посмотри баг-трекер» (or at the start of any bug-fixing session),
+read it. The contract:
+
+- **Your queue** = every report with `status` `"created"` or `"rework"`.
+  Each report carries a `context` line (`seed=… tick=… npc=…`) captured at
+  submit time — use it to reproduce.
+- After fixing: set `status` to `"fixed"` and **append** a comment
+  `{"whenUtc": "…", "author": "claude", "text": "<что сделано, по-русски>"}`
+  to that report's `comments`. Keep the JSON pretty-printed (it is written by
+  `JsonUtility`, 4-space-style indentation).
+- **Never delete or reorder reports** — deletion is the player's accept
+  gesture, done in-game. Never touch `nextId` except to preserve it.
+- The running game re-reads the file by mtime every ~2 s, so an edit made
+  while Play mode is up appears live; no restart needed.
+- **Builds write to the same repo file** (the store falls back through
+  `-hexlive-bugs <path>` → repo root → `persistentDataPath`). A build made
+  before 2026-08-04, or one running on a machine without the repo, still
+  writes to the sandbox
+  `~/Library/Application Support/DefaultCompany/HexLive/BUGS.json` — **check
+  it too and merge any reports into the repo file** (its ids start at 1001
+  so they never collide), then empty its `reports` back to `[]`.
+
+Code: `UnityPresentation/UI/BugReportStore.cs` (schema + IO),
+`UI/BugReportPanel.cs` (window), button in `DebugControlsPanel`.
+
 ## Generating tool / weapon models (axe, knife, pickaxe, hammer, spear…)
 
 **Follow `TOOL_GENERATION_SPEC.md` exactly.** Every tool must be produced the
@@ -161,10 +190,46 @@ first. Two more traps found the hard way while chasing it:
   at timeline 0 with no errors, which looks exactly like a broken bank. Verify
   suspicions in a FRESH play session, or against the standalone bank probe.
 
-Scripts (`FMODStudio/Scripts/`): `populate_events.js` rebuilds the sfx/ambience
-events (scans `Sfx` **flat**), `sync_voices.js` rebuilds the voice events (scans
-`Sfx/Voices/<char>/` **recursively**, purges stale `voice_*` events + assets
-first). Run them headless — and note the gotcha:
+### ⭐ A NEW VOICE LINE NEEDS NO FMOD WORK AT ALL
+
+**Do not touch FMOD Studio when adding hexkufa lines.** Voices never play
+through Studio events: `FmodSfx.EventPathFor` hard-forces the event path off for
+every id starting with `voice_` (the §67.7 lipsync needs the concrete file and
+playback position, which an event hides) and reads the WAV straight off disk via
+the Core API, discovering it by scanning `Sfx/Voices/**` at load. So the whole
+flow is:
+
+```bash
+# 1. add the group to HEXKUFA_LANGUAGE.md §7 (and any new word to §3)
+python3 _ArtSource/Voice/extract_lines.py               # doc -> hexkufa_lines.json
+python3 _ArtSource/Voice/generate_voices.py --groups <id>   # -> 5 voices x 3 wavs
+```
+
+That is the whole job — the line is audible on the next Play. `--dry-run` plans
+without spending API calls; `STILL CAPPED` in the output means the take hit the
+4.2 s cap and was **cut mid-word** — shorten the line in the doc and re-run with
+`--force`, do not ship it.
+
+### The Studio scripts are a rebuild, not a sync — reach for them rarely
+
+`FMODStudio/Scripts/`: `populate_events.js` rebuilds sfx/ambience events (scans
+`Sfx` **flat**), `sync_voices.js` tops up the voice events (scans
+`Sfx/Voices/<char>/` **recursively**). Three traps, all paid for the hard way:
+
+- **`populate_events.js` deletes events it did not make.** Run order is always
+  `populate_events` → `sync_voices`, never the reverse.
+- **`sync_voices.js` used to purge all 252 voice events and 756 assets on every
+  run** — minutes of work and ~1000 rewritten files in git for nothing. It is
+  incremental now (existing events are kept); full rebuild lives behind the
+  `PURGE_ALL` constant at the top of the script and is only for a schema change
+  (spatialiser, distances, playlist shape).
+- **Paths come from the OPENED PROJECT, never hardcoded.** `sync_voices.js`
+  used to point at `/Volumes/ORICO/HexLive` literally, so running it from a git
+  worktree silently rebuilt the bank from ANOTHER checkout's files: freshly
+  generated lines were missing and the fifth voice (`kshishtof`) had no events
+  at all. It now derives the repo root from `studio.project.filePath`.
+
+Run them headless — and note the gotcha:
 
 ```bash
 script -q /dev/null "/Applications/FMOD Studio.app/Contents/MacOS/fmodstudiocl" \
@@ -174,9 +239,12 @@ script -q /dev/null "/Applications/FMOD Studio.app/Contents/MacOS/fmodstudiocl" 
 ```
 
 `fmodstudiocl` **must** run under a pseudo-tty (`script -q /dev/null …`) —
-without one it dies with the cryptic «The files a, tty do not exist».
-A first build may print transient `FSBank error (7)` lines: delete
-`Build/Desktop/*.bank` and rebuild — a clean build must end with 0 errors.
+without one it dies with the cryptic «The files a, tty do not exist». It also
+writes its own log (`FMODStudio/Scripts/sync_voices.log`) **under the root it
+resolved**, so if a run seems to have done nothing, check whose log you are
+reading before re-running. A first build may print transient `FSBank error (7)`
+lines: delete `Build/Desktop/*.bank` and rebuild — a clean build must end with
+0 errors.
 
 ## Blender through MCP — it must be RUNNING, with a GUI
 
@@ -222,10 +290,108 @@ Telemetry is deliberately off (`BLENDER_MCP_DISABLE_TELEMETRY=true` in the serve
 The `user_prompt` argument every tool asks for feeds that; it is inert while the flag is
 set, so pass anything short.
 
-## Headless simulation probes (no Unity)
+## ⭐ «В игре выглядит плохо» — сначала ЗАМЕР, потом гипотеза
 
-For AI/GOAP/simulation checks, do not start Unity just to run ticks. Build the
-simulation assembly first:
+Урок целого дня отладки (spec §109.16): один симптом («скользит / крутится /
+проваливается») трижды получил правдоподобный, подтверждённый чтением кода и
+НЕВЕРНЫЙ диагноз. Каждый круг стоил игроку сборки билда. Порядок, который
+работает:
+
+1. **Воспроизвести ТЕКУЩИЙ мир — это значит прочитать ТЕКУЩИЙ СЕЙВ**, а не
+   крутить worldgen с тем же сидом (сейв стоит на своём тике, мир уже другой):
+   `~/Library/Application Support/DefaultCompany/HexLive/hexlive_save.dat`,
+   заголовок 28 байт (`HXLV`, version, seed, tick, unixSeconds, speed), дальше
+   `WorldSaveSerializer.Read` поверх `PrototypeWorldDefinitionFactory.Create(seed)`.
+   Дальше — потиковая печать того, на что жалуются: позиция, угол, желаемый
+   угол, статус движения, шаг пути. Форма беды видна за минуту.
+2. **Определить СЛОЙ до правки.** Симптом и причина обычно в разных: тело
+   двигал сим — врал вид; позу ломал вид — обвинялся аватар. Вторая половина
+   кадра берётся через мост в редакторе **на паузе** (`execute_code`):
+   `transform.position`, кости (`GetBoneTransform(Hips/LeftFoot)`),
+   `GetCurrentAnimatorStateInfo`, `IsInTransition`, веса эффекторов IK. Это
+   один вызов и полная картина.
+3. **Правка вида без единого кадра проверки — ставка, а не работа.** Снап
+   позиции и `CrossFade` в этот день были приняты «по логике» и сломали прыжки
+   и позы. Не подтвердил наблюдением — не коммить.
+4. **Команду аниматора нельзя ставить в покадровый расчёт без фронта** —
+   `CrossFade` каждый кадр = вечный переход с весом ~0.04, аниматор не покидает
+   состояние, ретаргет недосмешанной позы роняет тело под пол. Только по ребру
+   или переходом в самом контроллере.
+5. **Симптом «стало так же» — повод мерить, а не чинить дальше.**
+
+Метрики этого дня, которым место в гейтах: «стоящий вне своего гекса», «смена
+тайла у стоящего со сменой высоты», «реверсы направления на NPC-день», «пара
+без обоснования», «телепорт без ходьбы». Диагноз архитектурной причины и план
+рефакторинга — `POSITIONING_REFACTOR.md`.
+
+## Headless checks (no Unity) — gates, soaks, golden traces
+
+**Start here, not with a scratchpad probe.** The harness used to be rewritten from
+scratch every session, and its bugs were reborn with it: wrong checkout, stale
+simdata, a hand-copied system list. It is committed now, in two projects that live
+OUTSIDE `Assets/` (so they may carry `PackageReference`, which the simulation
+assembly may not):
+
+```bash
+dotnet test Tests/HexLive.Simulation.Tests
+```
+
+Seven gates, none of which a human can hold in their head:
+
+| Gate | Catches |
+|---|---|
+| `EventWhitelistGate` | a `GameEventTypes` name nothing emits — comas and cooking were silently missing from history and audio for years |
+| `TraceEmitLint` | an event `Type` composed at runtime (§63's `"ClothesWashed underwear.bra …"`), which makes the type set infinite and ungreppable |
+| `SystemRegistryGate` | a system implemented but never registered (`SharkSystem`), and any reordering — registration order is execution order and is load-bearing |
+| `GoalTypeCoverageGate` | a `GoalType` nobody scores and nobody assigns; dead ordinals are declared, not pretended away |
+| `HardcodedIdLint` | a NEW hardcoded content id in `Runtime/Systems` (ratchet over `known_hardcoded_ids.txt`) |
+| `WireCoverageGate` | a `WorldSnapshot` field the codec forgot — every property is stamped non-default and round-tripped |
+| `BalanceParityGate` | a tuning knob missing from `simdata.json`, i.e. the "the inspector dial silently does nothing" trap |
+
+Soaks and trace recording are one binary (`hexsoak` — both are "step and listen",
+and splitting them would mean a third copy of the harness):
+
+```bash
+dotnet run --project Tests/HexLive.Simulation.Soak -- --seed 12345 --ticks 12000
+```
+
+**When something is stuck, ask it directly:**
+
+```bash
+dotnet run --project Tests/HexLive.Simulation.Soak -- --seed 12345 --ticks 12000 --explain-stuck 5
+```
+
+`StuckDiagnosticSystem` (spec §30.15) watches for the four shapes of "not getting
+anywhere" — `IdleWithGoal` (the §102 signature: goal set, no interaction, not
+moving), `StepOverrun`, `GoallessCrisis`, `PositionFrozen` — and `--explain-stuck`
+prints the flight-recorder tail beside each one, i.e. what that colonist was doing
+BEFORE she froze. Watch the `Reason=`; the per-NPC ring (spec §30.14) is what makes
+the tail survive, since the colony-wide ring only holds ~11 ticks.
+
+`-h` lists the rest. It reports the spec §30.16 metrics: goal churn per NPC-day
+(both raw field changes and "dropped one job for another", which is the number
+§35.4a means), median/mean goal dwell, plan-failure rate, and **stuck NPC-ticks** —
+goal set, no interaction running, not moving, the exact §102 signature that emitted
+nothing at all for 2872 consecutive ticks.
+
+**Before and after any refactor, prove behaviour did not move:**
+
+```bash
+Tools/golden_trace.sh HEAD --preset scores
+```
+
+It builds and runs `<base-ref>` in a throwaway `git worktree` (never `git stash` —
+that touches your working state), records the decision trace on fixed seeds from
+both sides, and diffs them as text. ⭐ **Float operation order IS behaviour**: the
+same sequence is bit-identical, so rewriting `a + b + c` as `a + (b + c)` shows up
+as a diff. That is the point — in a world where every roll is a hash of the seed,
+that reordering changed the game. A diff means "accept it consciously and write it
+into spec.md", never "ignore it". `--preset scores` includes `GoalScored`, i.e. the
+exact float output of every scoring block; `decisions` is the cheap one.
+
+### When the committed tools cannot ask your question
+
+Only then write a throwaway probe. Build the simulation assembly first:
 
 ```bash
 dotnet build HexLive.Simulation.Standalone.csproj
@@ -273,7 +439,14 @@ is roughly every 11 ticks.
 
 This works for focused checks like “without a knife, does a hungry NPC craft a
 tool before planning coconut food/water?” and avoids re-discovering the Unity
-runtime path every session.
+runtime path every session. `Tests/HexLive.Simulation.Soak/Program.cs` already
+does the bootstrap-and-drain dance correctly — copy from there rather than from
+memory.
+
+⚠️ **A soak answers a different question than an arena.** «How many times in eight
+days» is not «why is there none right now» (§102.7): the arena answers in twenty
+seconds, the soak takes half an hour and misses. Measure «did it reach the act»,
+not «was there an opportunity».
 
 **Sim data for headless runs (spec §59.3 — MANDATORY):** the tuned
 ScriptableObject catalogs (mobs, gear, world objects, recipes) are exported to

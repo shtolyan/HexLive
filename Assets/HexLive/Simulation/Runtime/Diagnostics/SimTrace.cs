@@ -33,6 +33,11 @@ internal static class Trace
             Type = type,
             Message = message
         });
+
+        // Единственная точка, которая видит КАЖДОЕ событие ровно один раз —
+        // поэтому самописец висит здесь, а не у потребителей. В сборке игрока
+        // поле null, и это стоит одной проверки (spec §30.14).
+        world.FlightRecorder?.Record(entityId.Value, world.Tick, type, message);
     }
 
     public static void EmitSystem(WorldState world, string type, string message)

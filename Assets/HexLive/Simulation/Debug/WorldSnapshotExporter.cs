@@ -18,6 +18,18 @@ public static class WorldSnapshotExporter
     // while it is visible; everyone else gets the lean snapshot.
     public static bool IncludeDebugDetails { get; set; }
 
+    // PERF (profiling, Aug-2026): the same bargain, one level down. Refreshing
+    // the MUTABLE junction flags costs ~56 000 dictionary/hash lookups over the
+    // ~14 000 junctions, every tick — and NOTHING in the shipped view reads
+    // them. The only consumers are the junction debug markers and the hex
+    // inspector, so they opt in while someone is actually looking; a flip is
+    // picked up on the next tick, which for a debug overlay is instant enough.
+    // IsClimbSeam is deliberately NOT part of this bargain: it is worldgen
+    // output (WorldStateFactory writes ClimbSeams and nothing else ever does),
+    // so the values the first full export copied stay right forever — which
+    // matters, because the §40.17 seam dots are always shown, debug or not.
+    public static bool IncludeJunctionFlags { get; set; }
+
     public static WorldSnapshot Export(WorldState world) => Export(world, null);
 
     // Passing the previous snapshot lets the exporter refresh the tile and
@@ -55,6 +67,7 @@ public static class WorldSnapshotExporter
     {
         snapshot.Objects.Sort(ByObjectId);
         snapshot.Npcs.Sort(ByNpcId);
+        snapshot.Corpses.Sort(ByNpcId);
         snapshot.Mobs.Sort(ByMobId);
         snapshot.Crabs.Sort(ByCrabId);
         snapshot.Sharks.Sort(BySharkId);
@@ -139,6 +152,17 @@ public static class WorldSnapshotExporter
         foreach (var pair in world.Entities.Npcs)
         {
             snapshot.Npcs.Add(ExportNpc(world, pair.Value));
+        }
+
+        // §28.15C v3: тела — той же самой записью. Вид рисует покойную ровно
+        // так, как рисовал живую (её меш, её одежда, её раны), и меняет только
+        // одно: аниматор уходит в Death и там замирает. Отдельная, урезанная
+        // запись для трупа означала бы вторую сборку тела и, значит, второе
+        // место, где одежда может «не доехать».
+        snapshot.Corpses.Clear();
+        foreach (var pair in world.Entities.Corpses)
+        {
+            snapshot.Corpses.Add(ExportNpc(world, pair.Value));
         }
 
         snapshot.DeathRecords.Clear();
@@ -267,6 +291,10 @@ public static class WorldSnapshotExporter
         var junctions = snapshot.Junctions;
         if (junctions.Count == world.Junctions.Items.Count)
         {
+            // See IncludeJunctionFlags: the identity sweep below stays (it is
+            // what detects a world swap, and it is only a struct compare each),
+            // but the four hash lookups per junction are debug-only work.
+            var refreshFlags = IncludeDebugDetails || IncludeJunctionFlags;
             var i = 0;
             var match = true;
             foreach (var pair in world.Junctions.Items)
@@ -279,7 +307,10 @@ public static class WorldSnapshotExporter
                     break;
                 }
 
-                RefreshJunctionFlags(world, junction, cached);
+                if (refreshFlags)
+                {
+                    RefreshJunctionFlags(world, junction, cached);
+                }
             }
 
             if (match)
@@ -641,6 +672,7 @@ public static class WorldSnapshotExporter
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
             SkinSet = npc.SkinSet,
+            EyeColor = npc.EyeColor,
             Hairstyle = npc.Hairstyle,
             VoiceBank = npc.VoiceBank,
             Faction = npc.Faction,
@@ -650,9 +682,16 @@ public static class WorldSnapshotExporter
             RotationDegrees = npc.RotationDegrees,
             Health = npc.Health,
             IsFighting = npc.IsFighting,
+            CombatOpponentNpcId = npc.Mind.CombatOpponentNpcId?.Value ?? -1,
             IsSwinging = world.Tick < npc.AttackAnimUntilTick,
             SwingStartTick = npc.SwingStartTick,
+            // Спрашиваем ТО ЖЕ правило, по которому бьёт симуляция.
+            MeleeWeaponId = Runtime.MeleeSwing.EffectiveWeapon(npc),
             StrikeIndex = npc.SwingStrikeIndex,
+            HitStampTick = npc.HitStampTick,
+            HitWeaponId = npc.HitWeaponId ?? string.Empty,
+            HitPart = npc.HitPart.ToString(),
+            HitFrom = npc.HitFrom,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,
             Energy = npc.Needs.Energy,
@@ -671,29 +710,35 @@ public static class WorldSnapshotExporter
             Sunburn = npc.Needs.Sunburn,
             Bandages = npc.Needs.Bandages,
             Pills = npc.Needs.Pills,
-            // Spec §60 r2: only the blood-loss faint is "unconscious" (limp
-            // pose, Coma chip). An energy crash reads as ordinary SLEEP — see
-            // CurrentInteraction below, so the view plays the sleeping flow.
+            // Spec §60 r3 (баг #8): ЛЮБАЯ кома — «без сознания». Раньше
+            // энергетический крах читался как обычный СОН (r2), и вырубившаяся
+            // мирно дышала в анимированной позе сна — неотличимо от здоровой.
+            // Теперь вид ведёт обе комы одним путём с умиранием: падение и
+            // замороженная поза (FallenIdle, скорость 0) — «как при смерти».
             IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
-            IsUnconscious = npc.Mind.ComaCause == AI.ComaCause.BloodLoss,
+            IsUnconscious = npc.Mind.ComaCause != AI.ComaCause.None,
+            IsDying = npc.IsDying, // §105
+            // §110: лежит и плачет — В СОЗНАНИИ, поэтому отдельный флаг, а не
+            // ветка IsFainted: вид кладёт её как спящую (не роняет) и не
+            // затыкает ей рот, чтобы всхлипы и слёзный смайл шли своим чередом.
+            IsCrying = npc.IsCrying(world.Tick),
+            IsSadWalk = world.Tick < npc.Mind.SadWalkUntilTick, // §81.10
+            IsPlayingDead = npc.IsPlayingDead(world.Tick), // §105.14
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
             CurrentDream = npc.Mind.CurrentDream.ToString(),
             PlanStatus = npc.Plan.Status.ToString(),
             MovementStatus = npc.Movement.Status.ToString(),
-            // §60 r2: an exhausted crash IS a sleep for the whole presentation
-            // stack — the view keys the lying/sleeping flow off
-            // CurrentInteraction=Sleep + InProgress, so export exactly that.
-            ExecutionStatus = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
-                ? AI.ExecutionStatus.InProgress.ToString()
-                : npc.Execution.Status.ToString(),
-            CurrentInteraction = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
-                ? InteractionType.Sleep.ToString()
-                : npc.Execution.CurrentInteraction?.ToString() ?? "-",
+            // §60 r3 (баг #8): подмена «кома от истощения = сон» убрана —
+            // теперь обе комы едут флагом IsUnconscious выше, и вид кладёт
+            // тело замороженным, а не дышащим в позе сна.
+            ExecutionStatus = npc.Execution.Status.ToString(),
+            CurrentInteraction = npc.Execution.CurrentInteraction?.ToString() ?? "-",
             HeldItemId = ResolveHeldItem(world, npc),
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
+            TalkTopicPeerId = npc.Execution.CurrentTalkTopicPeerId?.Value,
             TalkResultTick = npc.Execution.LastTalkResultTick,
             TalkResultDelta = npc.Execution.LastTalkAffinityDelta,
             SocialCueTick = npc.Execution.LastSocialCueTick,
@@ -702,6 +747,7 @@ public static class WorldSnapshotExporter
             TargetTile = npc.Plan.TargetTile,
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,
+            DeathAnimVariant = npc.DeathAnimVariant, // §28.15C v3
             InventoryUsedSlots = npc.Inventory.UsedSlots,
             GoalLockEndTick = npc.Mind.GoalLock is { } goalLock &&
                 goalLock.Goal == npc.Mind.CurrentGoal && goalLock.EndTick > world.Tick
@@ -803,6 +849,7 @@ public static class WorldSnapshotExporter
         }
 
         npcSnapshot.WoundLockedHp = lockedHp / npc.Body.Parts.Count;
+        npcSnapshot.VitalHealth = npc.Body.VitalHealth(); // §105 r2
 
         // Spec §48: derive the active status effects (buffs/debuffs) from this
         // NPC's live state — read-only, so nothing here touches balance. Each
@@ -903,6 +950,7 @@ public static class WorldSnapshotExporter
             : string.Empty;
         npcSnapshot.HopStartTick = npc.Movement.HopStartTick;
         npcSnapshot.HopTargetTile = npc.Movement.HopTargetTile;
+        npcSnapshot.HopFromTile = npc.Movement.HopFromTile;
 
         // Iter 28: sitting at a junction whose tiles step exactly one
         // level = a ledge seat; the view plants the butt on the upper step.

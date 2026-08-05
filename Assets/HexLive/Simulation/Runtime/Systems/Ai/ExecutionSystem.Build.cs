@@ -96,7 +96,7 @@ public sealed partial class ExecutionSystem
         // pile is delivered it becomes a real (cold, lightable) campfire that
         // keeps the open bill and accepts the upgrade stages in place. The
         // bootstrap hearth is born past this point already.
-        if (site.DefinitionId == "build.site" && site.BuildProduct == "campfire.spot" &&
+        if (site.DefinitionId == ContentIds.BuildSite && site.BuildProduct == ContentIds.Campfire &&
             BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks) >= BuildSiteMath.CampfireStage1Sticks)
         {
             var fireJunction = site.Junctions.Count > 0 ? site.Junctions[0] : npc.CurrentJunction;
@@ -105,9 +105,9 @@ public sealed partial class ExecutionSystem
             if (fireJunction is { } fj)
             {
                 var fire = WorldObjectMutations.SpawnObject(
-                    world, "campfire.spot", npc.Fragment, fireTile, fj);
+                    world, ContentIds.Campfire, npc.Fragment, fireTile, fj);
                 fire.ResourceAmount = 0f; // born cold — light it like any fire
-                fire.BuildProduct = "campfire.spot";
+                fire.BuildProduct = ContentIds.Campfire;
                 fire.RotationDegrees = site.RotationDegrees; // §66: the site's facing is the piece's
                 fire.BillSticks = site.BillSticks;
                 fire.BillStones = site.BillStones;
@@ -140,11 +140,15 @@ public sealed partial class ExecutionSystem
             }
         }
 
-        // Spec §54: a campfire is piled from stones, and the leaf mat, the
-        // drying rack (§35.5B) and the water collector (§54.15) are
-        // hand-lashed. Rigid furniture still needs the builder's hammer.
-        var needsHammer = site.BuildProduct is not ("campfire.spot" or "bed.leaf"
-            or "station.drying_rack" or "station.water_collector");
+        // Spec §54: костёр складывают из камней, а циновку, сушилку (§35.5B) и
+        // водосбор (§54.15) вяжут руками. Жёсткая мебель по-прежнему требует
+        // молотка.
+        //
+        // Правило переехало на КОНТЕНТ (тег HandBuilt). Здесь оно было списком
+        // идентификаторов через отрицание, то есть свойство вещи хранилось в
+        // исполнителе: новая постройка молча получала «нужен молоток» и узнать
+        // об этом можно было только по тому, что её никто не строит.
+        var needsHammer = !HasTag(world, site.BuildProduct, Content.ObjectTags.HandBuilt);
         if (BuildSiteMath.IsStocked(site) &&
             (!needsHammer ||
              Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Hammer) ||
@@ -197,9 +201,9 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        for (var i = 0; i < bill.Logs; i++) npc.Inventory.Items.Remove("resource.log");
-        for (var i = 0; i < bill.Stones; i++) npc.Inventory.Items.Remove("resource.stone");
-        for (var i = 0; i < bill.Leaves; i++) npc.Inventory.Items.Remove("resource.palm_leaf");
+        for (var i = 0; i < bill.Logs; i++) npc.Inventory.Items.Remove(ContentIds.Log);
+        for (var i = 0; i < bill.Stones; i++) npc.Inventory.Items.Remove(ContentIds.Stone);
+        for (var i = 0; i < bill.Leaves; i++) npc.Inventory.Items.Remove(ContentIds.PalmLeaf);
 
         if (bill.Kind == "Floor")
         {
@@ -282,14 +286,14 @@ public sealed partial class ExecutionSystem
                 hutTile.Flags |= TileFlags.Indoor;
                 if (hutTile.Junctions.Count > 1)
                 {
-                    WorldObjectMutations.SpawnObject(world, "bed.basic",
+                    WorldObjectMutations.SpawnObject(world, ContentIds.BedBasic,
                         npc.Fragment, project.Tile, hutTile.Junctions[1]);
                 }
             }
 
             foreach (var obj in world.Entities.Objects.Values)
             {
-                if (obj.DefinitionId == "construction.site")
+                if (obj.DefinitionId == ContentIds.ConstructionSite)
                 {
                     WorldObjectMutations.DespawnObject(world, obj.Id);
                     break;
@@ -301,6 +305,16 @@ public sealed partial class ExecutionSystem
                 $"Hut at Tile={project.Tile.Q},{project.Tile.R} — indoor sanctuary with a bed");
         }
     }
+
+    /// <summary>
+    /// Несёт ли определение с таким id указанный тег. Неизвестный id — это
+    /// «нет»: спрашивать про свойство несуществующей вещи бессмысленно, а
+    /// бросать тут значило бы ронять симуляцию из-за опечатки в контенте.
+    /// </summary>
+    private static bool HasTag(WorldState world, string definitionId, string tag) =>
+        !string.IsNullOrEmpty(definitionId) &&
+        world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
+        definition.Tags.Contains(tag);
 }
 
 }

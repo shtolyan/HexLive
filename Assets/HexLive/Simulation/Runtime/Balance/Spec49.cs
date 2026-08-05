@@ -95,6 +95,28 @@ public static class Spec49
     // rim — possibly over water or a cliff.
     public static int SleepBerthHalfSpan = 1;
 
+    // §113 «лечь рядом, а не внутрь». Место в шеренге считается занятым не
+    // только соседкой, но и КРУПНОЙ ВЕЩЬЮ на этом гексе: костёр стоит ровно в
+    // центре, значит центральное место занято и тело ложится сбоку. Если вещь
+    // закрывает и боковые места, шеренга разворачивается по осям гекса.
+    // Выключенное — в точности §29G r3: вещи не видны, тело ложится в костёр.
+    public static bool LieAroundObstacles = true;
+
+    // Габарит лежащего тела, долями HexRadius: длина вдоль курса и ширина
+    // поперёк. 0.88 × 1.5 = 1.32 wu в длину, 0.24 × 1.5 = 0.36 wu в плечах —
+    // те же числа, из которых посчитан шаг шеренги (см. SleepBerthSpacingFactor).
+    // Прямоугольник, а не диск: весь смысл поворота в том, что поперёк вещь
+    // пропускает, а вдоль — нет.
+    public static float LieBodyLengthFactor = 0.88f;
+    public static float LieBodyWidthFactor = 0.24f;
+
+    // Минимальный ФИЗИЧЕСКИЙ радиус вещи, помеченной Obstacle, но не назвавшей
+    // габарита (валун и пальма закрывают только свой узел, ObstacleRadius у них
+    // 0). Долями HexRadius: 0.30 × 1.5 = 0.45 wu. Вещи, у которых габарит есть
+    // (кровать 1.39 wu), меряются своим; у костра ObstacleRadius — это ширина
+    // угольного КОЛЬЦА, поэтому огню задан отдельный SolidRadius (§113).
+    public static float LieSolidRadiusFloorFactor = 0.30f;
+
     // §65: dead-tired → seek a proper fireside sleep BEFORE the body collapses.
     // A body running on empty used to grind on until Energy hit zero and it
     // simply switched off (§60 dead-tired coma) wherever it stood — often at

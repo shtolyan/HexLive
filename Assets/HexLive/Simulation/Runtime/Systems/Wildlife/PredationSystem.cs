@@ -56,7 +56,14 @@ public sealed class PredationSystem : ISimulationSystem
                     // goal and its own resolver; keep the two from bleeding
                     // into each other.
                     !FactionRelations.AreAllies(predator, other) ||
-                    other.CurrentJunction is not { } otherJunction)
+                    other.CurrentJunction is not { } otherJunction ||
+                    // §106: не сцепляться через кромку с купальщицей — иначе до
+                    // ближайшего перестроения плана хищник кусал бы её с берега.
+                    (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, other)) ||
+                    // §105.14: притворяется мёртвой — хищник теряет к ней
+                    // интерес. Персистентной цели тут нет, жертва выбирается
+                    // заново каждый тик, так что «бросить погоню» = этот continue.
+                    other.IsPlayingDead(world.Tick))
                 {
                     continue;
                 }
@@ -72,6 +79,28 @@ public sealed class PredationSystem : ISimulationSystem
 
             if (victim is null)
             {
+                continue;
+            }
+
+            // ⭐ §104 r8: удары ведёт ОБЩИЙ таймлайн замаха.
+            //
+            // Здесь стоял свой урон — 0.35 за КАЖДЫЙ средний тик, то есть
+            // 0.516/с с ножом: полное туловище разрушается за две секунды, и
+            // подмога §57 физически не успевает дойти (шапка MeleeSwing
+            // объясняет, почему §72 не стал это переиспользовать). Плюс он не
+            // ставил ни одного видового сигнала — удары §56 были невидимы.
+            //
+            // Пара «человек против человека» — ровно то, что умеет вести
+            // HumanCombatSystem: сцепка, замах, попадание, полный путь тела.
+            // Достаточно объявить пару и уйти: он ударит на быстром слое, с
+            // окном анимации и хит-штампом.
+            if (SimBalance.TimedMeleeEverywhere)
+            {
+                predator.IsFighting = true;
+                predator.Mind.CombatOpponentNpcId = victim.Id;
+                Trace.Emit(world, predator.Id, "PreyEngaged",
+                    $"Victim={victim.Id.Value} Health={victim.Health:F2}");
+                RunVictimResponse(world, predator, victim);
                 continue;
             }
 
@@ -104,10 +133,8 @@ public sealed class PredationSystem : ISimulationSystem
             victim.Health = victim.Body.Mean();
             DamageReactionSystemHelpers.GrantAdrenaline(world, victim, damage, "PredationStrike");
             WoundMath.Inflict(world, victim, part, damage);
-            if (victim.Body.VitalDestroyed(out _))
-            {
-                victim.Health = 0f;
-            }
+            // §105: единая развилка — она же догрызает уже упавшую жертву.
+            MortalityHelpers.ResolveTrauma(world, victim, damage, $"NPC{predator.Id.Value}");
 
             Trace.Emit(world, predator.Id, "Preyed",
                 $"Victim={victim.Id.Value} {part} -{damage:F3} (armor={partArmor:F2}) " +
@@ -195,10 +222,7 @@ public sealed class PredationSystem : ISimulationSystem
                 predator.Health = predator.Body.Mean();
                 DamageReactionSystemHelpers.GrantAdrenaline(world, predator, defDamage, "PreyCounterStrike");
                 WoundMath.Inflict(world, predator, defPart, defDamage);
-                if (predator.Body.VitalDestroyed(out _))
-                {
-                    predator.Health = 0f;
-                }
+                MortalityHelpers.ResolveTrauma(world, predator, defDamage, $"NPC{victim.Id.Value}"); // §105
             }
 
             Trace.Emit(world, victim.Id, "PreyFoughtBack",
@@ -246,6 +270,61 @@ public sealed class PredationSystem : ISimulationSystem
         return BodyPart.LegR;
     }
 
+    /// <summary>
+    /// §104 r8: ответ жертвы, когда удары ведёт общий таймлайн.
+    ///
+    /// <para>
+    /// Легаси-ветка выше делает то же самое вперемешку с собственным уроном;
+    /// здесь урона нет вовсе — только решения: запомнить опасность, позвать
+    /// подмогу, бежать или сцепиться в ответ. Сами удары нанесёт
+    /// <c>HumanCombatSystem</c> на быстром слое, обеим сторонам сразу.
+    /// </para>
+    /// </summary>
+    private static void RunVictimResponse(WorldState world, NPCState predator, NPCState victim)
+    {
+        MobSystem.RememberDanger(world, victim);
+        CombatHelpSystem.RallyFriends(world, victim, null, predator.Id,
+            $"Attacker=NPC{predator.Id.Value}");
+
+        // §60: из комы не отвечают и не бегут. Подмога уже позвана выше.
+        if (victim.IsUnconscious(world.Tick))
+        {
+            return;
+        }
+
+        var fleeing = victim.Mind.CurrentGoal == GoalType.Flee;
+        if (!fleeing &&
+            (victim.Health < SimBalance.PredationFleeHealth ||
+             MobSystem.WorstPartHealth(victim) < 0.35f))
+        {
+            fleeing = MobSystem.TryStartFlee(world, victim, 1, attackerNpcId: predator.Id);
+        }
+
+        if (fleeing)
+        {
+            // Бегущая не отвечает: пара с её стороны не заводится, и таймлайн
+            // её замахов не ведёт.
+            victim.Mind.CombatOpponentNpcId = null;
+            Trace.Emit(world, victim.Id, "PreyFled",
+                $"From NPC{predator.Id.Value} (Health={victim.Health:F2})");
+        }
+        else
+        {
+            // Стоит и дерётся: бросает дела и отвечает по тому же таймлайну.
+            victim.IsFighting = true;
+            if (victim.Plan.Status == PlanStatus.Active ||
+                victim.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, victim, $"Fighting off NPC{predator.Id.Value}");
+                victim.Mind.CurrentGoal = GoalType.None;
+            }
+
+            victim.Mind.CombatOpponentNpcId = predator.Id;
+        }
+
+        RunNpcDefenders(world, predator, victim);
+    }
+
     private static void RunNpcDefenders(WorldState world, NPCState attacker, NPCState victim)
     {
         if (attacker.CurrentJunction is not { } attackerJunction)
@@ -269,12 +348,31 @@ public sealed class PredationSystem : ISimulationSystem
             var adjacent = defenderJunction.Equals(attackerJunction) ||
                 (world.Junctions.Items.TryGetValue(attackerJunction, out var attackerJ) &&
                  attackerJ.Neighbors.Contains(defenderJunction));
-            if (!adjacent)
+            if (!adjacent ||
+                // §106: через кромку воды подмога не сцепляется — ни мокрая
+                // защитница с сухим нападающим, ни наоборот. Эта adjacency —
+                // копия мимо CanStrike, поэтому гейт повторён здесь.
+                !CombatMedium.NpcMelee(world, defender, attacker))
             {
                 continue;
             }
 
             defender.IsFighting = true;
+
+            // §104 r8: подмога дерётся по общему таймлайну — сцепка объявлена,
+            // удары наносит HumanCombatSystem. Здесь остаётся трасса и
+            // соц-метка: два источника урона по одному нападающему били бы
+            // вдвое, а невидимых ударов не осталось бы всё равно.
+            if (SimBalance.TimedMeleeEverywhere)
+            {
+                defender.Mind.CombatOpponentNpcId = attacker.Id;
+                Trace.Emit(world, defender.Id, "HelpCryDefended",
+                    $"Victim=NPC{victim.Id.Value} Attacker=NPC{attacker.Id.Value} engaged " +
+                    $"AttackerHealth={attacker.Health:F2}");
+                SocialCueSignals.Stamp(world, defender, "HelpCryDefended:npc", victim.Id);
+                continue;
+            }
+
             var weaponId = defender.Body.CanUseToolsOrWeapons
                 ? SimBalance.BestMeleeWeapon(defender.Inventory.Items, defender.Body.IntactHands)
                 : string.Empty;
@@ -293,10 +391,7 @@ public sealed class PredationSystem : ISimulationSystem
                 attacker.Health = attacker.Body.Mean();
                 DamageReactionSystemHelpers.GrantAdrenaline(world, attacker, damage, "HelpCryDefended");
                 WoundMath.Inflict(world, attacker, part, damage);
-                if (attacker.Body.VitalDestroyed(out _))
-                {
-                    attacker.Health = 0f;
-                }
+                MortalityHelpers.ResolveTrauma(world, attacker, damage, $"NPC{defender.Id.Value}"); // §105
             }
 
             Trace.Emit(world, defender.Id, "HelpCryDefended",
@@ -304,7 +399,7 @@ public sealed class PredationSystem : ISimulationSystem
                 $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)}" +
                 $"{(strikeReady ? string.Empty : " recovering")} Speed={attackSpeed:F1} " +
                 $"AttackerHealth={attacker.Health:F2}");
-            SocialCueSignals.Stamp(world, defender, "HelpCryDefended", victim.Id);
+            SocialCueSignals.Stamp(world, defender, "HelpCryDefended:npc", victim.Id);
 
             if (attacker.Health <= 0f)
             {

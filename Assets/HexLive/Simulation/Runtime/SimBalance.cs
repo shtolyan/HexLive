@@ -147,6 +147,10 @@ namespace HexLive.Simulation.Runtime
         public static float ComaWakeThreshold = 0.15f;
         public static float ComaBloodEnterThreshold = 0.25f;
         public static float ComaBloodWakeThreshold = 0.35f;
+        // §60.7: без сознания (кома/обморок/умирание) В ГЛУБОКОЙ ВОДЕ — тонет:
+        // столько тиков непрерывно, и тело умирает, если не очнулась и её не
+        // вытащили на сушу. Считает NeedsDecaySystem.TickDrowning.
+        public static int DrownDeathTicks = 1000;
 
         // ─────────────────────────────────────────────────────────────
         // Food restore (hunger removed when eaten).
@@ -202,11 +206,15 @@ namespace HexLive.Simulation.Runtime
 
         // ─────────────────────────────────────────────────────────────
         // Sun / tan / sunburn (on uncovered parts, in open sun).
+        // Per-slow-tick rates, so they scale with DayLengthTicks: when the day
+        // went 2400 → 24000 ticks, the sun window got 10× more ticks and all
+        // three rates below were cut ×10 to keep the same per-DAY pacing
+        // (~10 sunny days to a full tan, ~2-3 burn events/day half-dressed).
         // ─────────────────────────────────────────────────────────────
-        public static float TanRate = 0.0009f;        // tan gained per (UV−0.5) per uncovered part. DEFAULT ONLY — tune live via CharacterBalance.asset (tanRate); BalanceTuning mirrors it over this at boot.
+        public static float TanRate = 0.00009f;       // tan gained per (UV−0.5) per uncovered part. DEFAULT ONLY — tune live via CharacterBalance.asset (tanRate); BalanceTuning mirrors it over this at boot.
         public static float TanStrength = 1f;          // overall tan DARKNESS (presentation-only): NpcActorView scales the tan tint toward bare skin by this. 1 = full look, lower = paler/less dark. Tune live via CharacterBalance.asset (tanStrength).
-        public static float SunburnRate = 0.004f;     // acute redness gained (faster than tan settles)
-        public static float SunExposureRate = 0.3f;   // exposure meter gained (fills toward a burn event)
+        public static float SunburnRate = 0.0004f;    // acute redness gained (faster than tan settles)
+        public static float SunExposureRate = 0.03f;  // exposure meter gained (fills toward a burn event)
         public static float SunburnBurnDamage = 0.08f; // HP torn off a part by a burn event
         // §82: ниже этого порога солнце ВИТАЛЬНУЮ часть не доламывает.
         // Солнечный удар доводит до беспамятства, но не отрывает голову: без
@@ -219,6 +227,11 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         public static float HygieneWashGain = 0.05f;   // hygiene regained per tick at the waterside
         public static float HygieneDriftLoss = 0.0004f; // hygiene lost per slow tick living (~2500 slow ticks / 2.8 real hours clean→filthy)
+        // Баг #9: кровь пачкает. Гигиена, теряемая на единицу ОБЩЕГО HP,
+        // списанного уроном: 3 ⇒ суммарная треть максимума здоровья обнуляет
+        // гигиену — надо полностью помыться. Через неё же прячутся кровяные
+        // капли на коже (баг #10): помылась — капли исчезли, раны остались.
+        public static float HygieneDamageLoss = 3f;
         public static float ClothingDirtGain = 0.00035f;
         public static float DirtyClothingComfortLoss = 0.002f;
         public static float BatheNeedThreshold = 0.4f;
@@ -258,6 +271,17 @@ namespace HexLive.Simulation.Runtime
         public static float StressUpRate = 0.05f;      // stress/tick in danger/combat/pain/starvation
         public static float StressDownRate = 0.03f;    // stress shed/tick in calm
 
+        // §110: сколько тиков она лежит и рыдает после стресс-краха (ветка
+        // §40.13). Дольше 80-тикового обморока намеренно: это СЦЕНА — подруга
+        // должна успеть дойти и утешить (§53 Console укорачивает плач).
+        public static int CryingBreakdownTicks = 240;
+
+        // §110: сколько стресса снимают сами слёзы за МЕДЛЕННЫЙ тик (поверх
+        // обычной формулы). 0.04 × 15 медленных тиков плача ≈ −0.6: встаёт
+        // заметно спокойнее, но не в ноль — иначе разрядка обесценивает всё,
+        // что довело её до срыва.
+        public static float CryingStressRelief = 0.04f;
+
         // ─────────────────────────────────────────────────────────────
         // Climate swing.
         // ─────────────────────────────────────────────────────────────
@@ -277,6 +301,57 @@ namespace HexLive.Simulation.Runtime
         // Combat — dogs & sharks.
         // ─────────────────────────────────────────────────────────────
         public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per landed hit
+
+        /// <summary>
+        /// ⭐ §104 r8: ВСЕ удары идут по таймлайну замаха, а не по легаси-фазе.
+        ///
+        /// <para>
+        /// Половина melee-урона в игре до сих пор наносится «по проходу»:
+        /// защитницы против собак (MobSystem) и весь §56 (PredationSystem)
+        /// бьют раз в средний тик под фазовым гейтом <see cref="MeleeStrikeReady"/>
+        /// и НЕ ставят ни одного видового сигнала. Кровь есть, замаха нет —
+        /// ровно тот класс бага, что чинил §103, только он там и остался.
+        /// </para>
+        /// <para>
+        /// Включение меняет и каденцию, и летальность: §56 бьёт 0.35/сек, а
+        /// таймлайн — 0.221 раз в 2.74 с. Это ЖЕЛАЕМЫЙ сдвиг (коллективная
+        /// защита становится физически возможной, см. шапку MeleeSwing), но
+        /// собачий баланс на грани. A/B-соаки на 60000 тиков дали 3/4→2/4,
+        /// 4/4→2/4, 4/4→2/4 — арифметика: легаси бил урон оружия РАЗ В СЕКУНДУ,
+        /// таймлайн наносит его раз в 1.24…1.9 с. Включено ПО ПРОСЬБЕ автора,
+        /// чтобы тюнить баланс на видимых ударах; калибровка по DPS — следующая
+        /// задача, и до неё колония слабее прежнего.
+        /// </para>
+        /// </summary>
+        public static bool TimedMeleeEverywhere = true;
+
+        /// <summary>
+        /// §26.6A r5 — «сквозь чужое тело рука не проходит».
+        /// <para>
+        /// Скриншот пользователя: кокос вскрывают ЧЕРЕЗ ствол пальмы. Это была
+        /// не промашка вида, а арифметика: смежность субсетки ровно 0.375 wu
+        /// (замерено на всех 192 920 рёбрах), а <c>BesideReach(0)</c> = 0.80 wu,
+        /// то есть ДВА шага — и ровно один занятый узел помещается между рукой
+        /// и добычей. Ствол пальмы — ровно один занятый узел. r4 при этом
+        /// разрешал ободу проходить сквозь любой футпринт объекта.
+        /// </para>
+        /// <para>
+        /// ⚠️ ЦЕНА ЗАМЕРЕНА, и она не нулевая: 30 сидов × 24000 тиков дали
+        /// 86/120 → 72/120 живых и два полных вайпа там, где их не было
+        /// (хуже на 10 сидах, лучше на 2). Смерти при этом СМЕСТИЛИСЬ В БОЙ
+        /// (VitalPartDestroyed 4→10 на 12 сидах), голодных смертей не прибавилось —
+        /// то есть колония не заперта без еды, а просто теряет часть рабочего
+        /// времени на обход препятствий, а против собак она и так на грани
+        /// (см. TimedMeleeEverywhere выше и заметку про хрупкость к собакам).
+        /// </para>
+        /// <para>
+        /// Поэтому — рубильник, а не свершившийся факт. ВКЛЮЧЁН по просьбе
+        /// автора (визуальная ложь дороже), выключается одной строкой, если
+        /// баланс в живой игре окажется важнее. Компенсировать правильнее
+        /// собачьим уроном, а не возвратом руки сквозь ствол.
+        /// </para>
+        /// </summary>
+        public static bool ReachThroughBodiesBlocked = true;
 
         // §71: the colony's global walking pace, multiplied into the one place
         // distance-per-tick is computed (MovementSystem). The per-NPC
@@ -309,14 +384,27 @@ namespace HexLive.Simulation.Runtime
         public static float FleeRunSpeedFactor = 2.25f;  // running for her life
         public static float NeedRunSpeedFactor = 1.6f;   // hurrying to food/water when desperate
 
+        // §71.4: за сколько до СТАТИЧНОЙ цели бегущая переходит на шаг.
+        // Торможения в системе нет вовсе — скорость на последнем шаге ровно
+        // та же, что на первом, и приход выглядел как удар в стену. 3.0 ≈ 1.15
+        // гекса (гекс поперёк = 2.6 ед.), на беговом темпе это около секунды
+        // шага. Погоня за АГЕНТОМ и побег исключены в MovementSystem.
+        public static float ArrivalWalkDistance = 3.0f;
+
         // §71 BREATH — the sprint reserve (NPCNeeds.Breath). Drained per tick
         // while running, refilled while walking, faster while standing still.
         // Hysteresis on purpose: once spent she must recover to the re-arm line
         // before she may run again, so she cannot flicker between gaits.
-        public static float BreathDrainPerTick = 0.0045f;   // ~55 s of running from full
-        public static float BreathWalkRecoverPerTick = 0.0022f; // ~110 s walking it back
-        public static float BreathIdleRecoverPerTick = 0.006f;  // standing catches it fast
-        public static float BreathReArm = 0.35f;            // must climb back to this to run again
+        // §71.1 (пересчёт): рывок должен КОНЧАТЬСЯ на глазах. Старые числа
+        // давали 55 с бега с полного бака и 40 с шага до перевзвода — то есть
+        // за одну сцену чередование не успевало случиться ни разу, и колония,
+        // которой §89/§107/охота раздали поводы бежать, читалась просто
+        // «бегущей». Теперь полный бак ≈ 23 с, повторный рывок ≈ 12.5 с, а
+        // отдышаться шагом ≈ 27.5 с: бег стал рывком, а не режимом.
+        public static float BreathDrainPerTick = 0.011f;    // ~23 s of running from full
+        public static float BreathWalkRecoverPerTick = 0.005f;  // ~27 s walking back to the re-arm line
+        public static float BreathIdleRecoverPerTick = 0.010f;  // standing catches it twice as fast
+        public static float BreathReArm = 0.55f;            // must climb back to this to run again
 
         public static int AdrenalineTicks = 80;         // fresh damage keeps her too alert to sleep
         public static float AdrenalineEnergyFloor = 0.05f;
@@ -415,8 +503,10 @@ namespace HexLive.Simulation.Runtime
 
         // §54.14: the campfire is a STAGED build like the beds — a stick pile
         // (a working fire from stage 1 on), then upgrades raised in place:
-        // a dense stone ring, then the roasting spit (2 planted forked posts →
-        // crossbar → rope lashings). No hammer at any stage.
+        // the roasting spit (2 planted forked posts → crossbar → rope
+        // lashings), then the dense stone ring (§54.17 r3: the spit moved
+        // ahead of the ring so cooking unlocks in days, not never — the
+        // 18-stone ring is the long tail). No hammer at any stage.
         // §54.12 rule: MUST equal the per-material sums of
         // BuildSiteMath.CampfireStages (which mirror the campfire_final
         // prefab's staged piece groups "1".."5").
@@ -426,13 +516,23 @@ namespace HexLive.Simulation.Runtime
 
         // §54.14 (r2): the stages are FUNCTIONAL, not only visual.
         // Stage 1 (stick pile) = a working fire: warmth, comfort, crafting.
-        // Stage 2 (stone ring) insulates the pit — fuel burns at this fraction
-        // of the normal rate (0.5 = a load of wood lasts twice as long).
+        // The stone ring (last stage since §54.17 r3) insulates the pit — fuel
+        // burns at this fraction of the normal rate (0.5 = a load of wood
+        // lasts twice as long).
         public static float CampfireRingBurnMultiplier = 0.5f;
-        // Stage 3 (the roasting spit) unlocks cooking: raw meat is HUNG on the
+        // The roasting spit unlocks cooking: raw meat is HUNG on the
         // spit and roasts over a lit fire for this long (100 ticks = 1 game
         // hour), then turns into cooked meat that stays hanging until taken.
         public static int MeatRoastDurationTicks = 200;
+        // §54.17: CookMeat's auction curve. Base + weight are chosen so that
+        // whenever cooking is actually possible (raw meat in the pack, a lit
+        // fire with a free hook) it outbids GetFood (= Hunger) by a fixed
+        // margin at EVERY hunger level — the old 0.3 + 0.4·H curve lost to
+        // GetFood on the whole domain where both were available (crossover
+        // 0.33 vs the 0.35 GetFood threshold), so she fetched forever and
+        // never hung the chunk.
+        public static float CookMeatBase = 0.4f;
+        public static float CookMeatHungerWeight = 1.0f;
         // How many chunks hang on the crossbar at once (= the 6 fixed skewer
         // slots the CampfireSpitMeat view lays out along the bar).
         public static int CampfireSpitCapacity = 6;
@@ -571,12 +671,14 @@ namespace HexLive.Simulation.Runtime
 
         // Meat spoilage (ground items): raw rots fast, cooked lasts; cooking is
         // effectively preservation. Ticks from when the item lands on the ground.
-        // §54.16: raw was 1800 — SHORTER than the 2400-tick danger memory that
-        // every kill site carries, so meat dropped by a slain beast was
-        // guaranteed to rot before anyone was allowed to shop there. 2600 keeps
-        // the chunk alive past the mark even when the fear isn't cleared.
-        public static int MeatRawSpoilTicks = 2600;
-        public static int MeatCookedSpoilTicks = 4800;
+        // §54.16 history: raw was 1800 — SHORTER than the 2400-tick danger
+        // memory every kill site carries, so meat was guaranteed to rot before
+        // anyone was allowed to shop there; 2600 outlived the mark. §54.17
+        // raised both by design decision: raw 12000 (5 event cycles) so a kill
+        // survives long enough to be hauled and cooked, cooked 20000 so a
+        // roast is a real larder — cook today, the colony eats for days.
+        public static int MeatRawSpoilTicks = 12000;
+        public static int MeatCookedSpoilTicks = 20000;
 
         // Cannibalism: butchering a housemate's corpse is allowed but costs
         // comfort, and NPCs won't do it unless genuinely starving.

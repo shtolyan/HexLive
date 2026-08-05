@@ -40,7 +40,10 @@ internal static class CombatHelpSystem
         }
 
         victim.Mind.LastHelpCryTick = world.Tick;
-        SocialCueSignals.Stamp(world, victim, "HelpCry", victim.Id);
+        // Суффикс «:кто напал» — вид рисовал собаку на ЛЮБОЙ крик о помощи, в
+        // том числе когда резал человек. Пир — АТАКУЮЩИЙ, а не сама жертва:
+        // прежний victim.Id всплывал её же лицом над её же головой.
+        SocialCueSignals.Stamp(world, victim, dogId.HasValue ? "HelpCry:dog" : "HelpCry:npc", attackerId);
         Trace.Emit(world, victim.Id, "HelpCry",
             $"{attackerLabel} Radius={Spec57.HelpCryRadiusTiles} " +
             $"Health={victim.Health:F2} Attackers={attackers}");
@@ -59,6 +62,7 @@ internal static class CombatHelpSystem
                 // §60: asleep or out cold — the cry does not register at all:
                 // no waking into Defend, no "ignored" cue, not even an emoji.
                 helper.IsUnconscious(world.Tick) ||
+                helper.IsPlayingDead(world.Tick) || // §105.14: лежит и не выдаёт себя
                 helper.Execution.CurrentInteraction == InteractionType.Sleep ||
                 HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.HelpCryRadiusTiles)
             {
@@ -79,6 +83,8 @@ internal static class CombatHelpSystem
                 !helper.IsFighting &&
                 helper.Mind.CurrentGoal != GoalType.Flee &&
                 helper.Mind.CurrentGoal != GoalType.Defend &&
+                helper.Mind.CurrentGoal != GoalType.GroupHunt && // §108: она уже идёт бить
+
                 (dogId.HasValue || attackerId.HasValue);
 
             if (!canHelp || score < Spec57.HelpCryDecisionThreshold || roll > score)
@@ -147,10 +153,15 @@ internal static class CombatHelpSystem
                 helper.Health <= 0f ||
                 helper.Body.IsProne ||
                 helper.IsUnconscious(world.Tick) || // §60: out cold — no rushing anywhere
+                helper.IsPlayingDead(world.Tick) || // §105.14: и притворяющаяся не вскакивает
                 helper.Execution.CurrentInteraction == InteractionType.Sleep || // §60: sleepers ignore cries too
                 helper.IsFighting ||
                 helper.Mind.CurrentGoal == GoalType.Defend ||
                 helper.Mind.CurrentGoal == GoalType.Flee ||
+                // §108: она уже идёт бить его — своей волей и вместе с двумя
+                // подругами. Перекинуть её в Defend значило бы разменять
+                // расправу на конвой и развалить группу на полпути.
+                helper.Mind.CurrentGoal == GoalType.GroupHunt ||
                 !FactionRelations.AreAllies(helper, victim) || // §72: her side only
                 (attackerId is { } aId && helper.Id.Equals(aId)) ||
                 HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.FriendGuardRadiusTiles)
@@ -171,6 +182,58 @@ internal static class CombatHelpSystem
             var relationship = helper.Social.GetOrCreate(victim.Id);
             if (!skipAffinityGate && relationship.Affinity < Spec57.FriendGuardAffinity)
             {
+                continue;
+            }
+
+            // §109: вписаться — РЕШЕНИЕ, а не рефлекс. Раньше порог дружбы
+            // тащил в драку любую соседку независимо от её шансов и состояния.
+            // Теперь она взвешивает: дорога ли ей та, кого бьют; потянет ли
+            // она ЭТОГО противника; и жива ли сама. Умирающая и разбитая не
+            // лезет никогда.
+            if (helper.Health < Spec57.FriendGuardHealthGate ||
+                helper.IsDying ||
+                !helper.Body.CanUseToolsOrWeapons)
+            {
+                continue;
+            }
+
+            // Шансы: размен Force против человека; против зверя — об константу
+            // (у собак нет оружия и брони, их Force не считается).
+            var myForce = AbuseMath.Force(world, helper);
+            var foeForce = attackerId is { } foeId &&
+                world.Entities.Npcs.TryGetValue(foeId, out var foe)
+                    ? AbuseMath.Force(world, foe)
+                    : Spec57.FriendGuardDogForce;
+            var edge = MathUtil.Clamp01(
+                myForce / System.Math.Max(foeForce, 0.0001f));
+
+            var condition = MathUtil.Clamp01(
+                System.Math.Min(helper.Health, MobSystem.WorstPartHealth(helper)));
+            var affinity01 = MathUtil.Clamp01((relationship.Affinity + 1f) * 0.5f);
+            var hatred = attackerId is { } hatedId
+                ? MathUtil.Clamp01(-helper.Social.GetOrCreate(hatedId).Affinity)
+                : 0f;
+
+            var score = affinity01 * Spec57.FriendGuardAffinityWeight +
+                edge * Spec57.FriendGuardEdgeWeight +
+                condition * Spec57.FriendGuardConditionWeight +
+                hatred * Spec57.FriendGuardHatredBonus;
+
+            // Бросок на ОКНО боя, не на тик: RallyFriends зовут каждый средний
+            // проход, и по-тиковый переброс превратил бы любой порог в
+            // «рано или поздно да».
+            var window = world.Tick / System.Math.Max(1, Spec57.HelpCryCooldownTicks);
+            var roll = MathUtil.Hash01(
+                world.Seed, window, victim.Id.Value, helper.Id.Value);
+            if (score < Spec57.FriendGuardDecisionFloor || roll > score)
+            {
+                if (world.Tick % 64 == 0)
+                {
+                    Trace.Emit(world, helper.Id, "FriendGuardDeclined",
+                        $"Victim=NPC{victim.Id.Value} {attackerLabel} " +
+                        $"Score={score:F2} Roll={roll:F2} Edge={edge:F2} " +
+                        $"Cond={condition:F2} Aff={relationship.Affinity:F2}");
+                }
                 continue;
             }
 
@@ -196,6 +259,7 @@ internal static class CombatHelpSystem
             SocialCueSignals.Stamp(world, victim, "HelpCryAnswered", helper.Id);
             Trace.Emit(world, helper.Id, "FriendGuard",
                 $"Victim=NPC{victim.Id.Value} {attackerLabel} " +
+                $"Score={score:F2} Roll={roll:F2} Edge={edge:F2} " +
                 $"Affinity={relationship.Affinity:F2} " +
                 $"Dist={HexSpatialMath.HexDistance(helper.Tile, victim.Tile)}");
         }

@@ -31,18 +31,32 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly List<string> _holsterRemoveScratch = new();
     private readonly HashSet<string> _slotClashWarned = new();
 
+    // §52.9 / PERF: sim items whose visual was evicted the instant it was
+    // equipped — another garment owns the same (layer, slot). Re-stitching a
+    // garment onto the body is Instantiate + ~57 SetParent + a fresh material
+    // set, so retrying that every tick is a permanent frame fire (measured at
+    // ~100 ms/tick, and it leaked the material instances of every discarded
+    // copy). Marked here so the repair in SyncWorn stays a ONE-SHOT; the mark
+    // is dropped only on a real wardrobe change, never on a timer.
+    private readonly HashSet<string> _clashedSimItems = new();
+
     public ActorName ActorMesh => _actorMesh;
 
     private Transform _gazeTarget;
     private float _gazeWeight;
     private float _gazeWeightTarget;
     private Transform _gazeProxy;
+    private bool _portraitGaze; // §80: взгляд отдан камере портрета
     private Transform _bodyRoot;
 
     // Spec 31B.5: animation follows measured view motion, not sim status —
     // feet move exactly when the body visibly moves.
     private static readonly int TurnDirectionParam = Animator.StringToHash("TurnDirection");
     private static readonly int LayingParam = Animator.StringToHash("Laying");
+
+    // §105: вторая лежачая цепочка — FallDown→FallenIdle→StandUp. Сон остался
+    // на Laying (он уходит в кровать), падение живёт здесь.
+    private static readonly int FallenParam = Animator.StringToHash("Fallen");
     private static readonly int WorkingParam = Animator.StringToHash("Working");
     // §axe: axe/pickaxe work (Harvest/Process) plays a real looping swing clip
     // (Standing Melee Attack Horizontal) via the Chop clip-state, replacing the
@@ -51,6 +65,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // §gear-craft v2: the staged in-place craft kneels her into the planting-
     // style work clip (state "CraftWork") instead of the generic crouch.
     private static readonly int CraftingParam = Animator.StringToHash("Crafting");
+    // §110: утешение над рыдающей — своя коленопреклонённая цепочка
+    // (PrayDown → Pray → PrayUp), а не заимствованный крафтовый присед.
+    private static readonly int PrayingParam = Animator.StringToHash("Praying");
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     // Clip-based action states (built by the "HexLive ▸ Build NPC Action States"
     // editor menu). Clips are swapped in via an AnimatorOverrideController.
@@ -73,6 +90,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // hands us. Same idiom as JumpSpeed. Both states read this float; every
     // other state keeps its authored pace.
     private static readonly int ActionSpeedParam = Animator.StringToHash("ActionSpeed");
+    // §104 r4: темп клипа УДАРА — свой параметр, чтобы бой и работа не писали
+    // в одну ячейку по очереди каждый кадр (SetInteraction идёт перед SetCombat).
+    private static readonly int AttackSpeedParam = Animator.StringToHash("AttackSpeed");
     // Base-clip KEYS of the two fitted states, for looking up their live length
     // (the override controller may have swapped in a different take).
     private const string GatherBaseClip = "X Bot@Gathering Objects";
@@ -96,6 +116,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Base-clip take-names each action state plays (the override KEYS).
     private const string TalkBaseClip = "X Bot@Talking";
     private const string AttackBaseClip = "X Bot@Bayonet Stab";
+
     // One full procedural swing = this many _actionPhase units (the Attack
     // case repeats at phase*cycles) — shared with the sim-window pacing in
     // SetCombat so ONE swing spans exactly the weapon's attack duration.
@@ -107,19 +128,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // перед срабатыванием триггера.
     private const string EmoteBaseClip = "X Bot@Salsa Dancing";
 
+    // §105: ключ подмены позы сна — имя КЛИПА, стоящего в состоянии Sleep.
+    private const string SleepBaseClip = "Sleep";
+
     // Безделье: сколько молча простоять, прежде чем начать чудить; какой шанс
     // в секунду; и сколько держать паузу между сценками.
     private const float FidgetIdleWarmup = 6f;
     private const float FidgetChancePerSecond = 0.03f;
     private const float FidgetMinGap = 25f;
-    // Сколько держится грустная походка после сцены абьюза.
-    private const float SadWalkSeconds = 90f;
 
     private float _idleSince;
     private float _lastEmoteTime = -999f;
     private float _lastFidgetRoll;
-    private float _sadWalkUntil;
-    private bool _sadWalkApplied;
     private bool _busyInteraction;
     private bool _combatFighting;
     private static readonly int LimpingParam = Animator.StringToHash("Limping");
@@ -224,6 +244,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // prefabs are shared assets, so four maps serve the whole colony.
     private static readonly Dictionary<string, Dictionary<string, Material>> _skinSets = new();
 
+    // §85: eye colour id → the five eye materials by name. Static for the same
+    // reason — the whole island shares one set of eye assets per colour.
+    private static readonly Dictionary<string, Dictionary<string, Material>> _eyeSets = new();
+
     /// <summary>Spec §50: the owner's current skin tone (tan/sunburn/grime,
     /// no pain flush) — a severed-limb drop bakes it into its material so the
     /// limb matches the body it came off.</summary>
@@ -281,6 +305,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly HashSet<int> _seenWoundSeeds = new();
     private bool _woundVfxPrimed;
     private float _lastSplashTime;
+    // §104 r5: последний отыгранный штамп попадания. -1 = ничего не видели;
+    // как и у замаха, сравнение идёт со ЗНАЧЕНИЕМ, а не с фронтом флага.
+    private int _lastHitStampTick = -1;
+    // Одна брызга на удар: сим дробит попадание на три раны (GashesPerHit), а
+    // на перемотке ударов приходит пачками. Гейт — реального времени, поэтому
+    // он одинаково работает на любой скорости симуляции.
+    private const float SplashGateSeconds = 0.4f;
 
     // Spec 40.8/40.6: skin decal layer (wounds/dirt/sweat on bare zones only).
     private SkinDecals _skinDecals;
@@ -289,6 +320,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly HashSet<string> _uncoveredScratch = new();
     private readonly HashSet<string> _bandagedScratch = new();
     private readonly HashSet<string> _gauzeScratch = new();
+    // Spec 40.8-H: per-zone damage (1-hp) feeding the skin painter's bruise
+    // speckles. When ANY zone is hurt, every non-severed zone rides along so
+    // the painter can bleed colour onto undamaged neighbours.
+    private readonly List<(string zone, float damage01)> _zoneDamageScratch = new();
 
     // Spec §50: zones already hidden by amputation (a limb never comes back, so
     // this only grows). Maps a severed BodyPart zone to the DISTAL bone whose
@@ -336,6 +371,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private AnimationClip ProneClip => _animSet != null ? _animSet.proneIdle : null;
 
     private AnimationClip CrawlClip => _animSet != null ? _animSet.crawl : null;
+
+    // §71.5: what the four locomotion slots are playing RIGHT NOW. The walk
+    // slot has four claimants and the cadence math has to know whose stride it
+    // is matching, so the resolver records every swap it makes. These are the
+    // ONLY writers of the Idle and GaitBlend keys — a direct OverrideClip on
+    // one of them would win the frame and then be silently undone.
+    private readonly AnimationClip[] _activeGait = new AnimationClip[3];
+    private AnimationClip _activeIdle;
+    // Resolver inputs: the mood (§81), the tool in hand, and the bare-handed
+    // fight stance (§104). Legless (§50) is _legless, read directly.
+    private bool _sadWalk;
+    private AnimationClip _armedIdleClip;
+    private AnimationClip _armedWalkClip;
+    private AnimationClip _bareStanceClip;
 
     // A standing action clip becomes the prone idle while legless.
     private AnimationClip Standing(AnimationClip standing) =>
@@ -431,6 +480,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private NpcFaceAnimator _face;
 
     private bool _laying;
+    private bool _crying; // §110: лежит и рыдает (поза + лицо отличаются от сна)
     private Transform _layingAttach;
     // Wake-up ease: while asleep the body is pinned to the bed attach point
     // while the actor root stands on the beside-junction — releasing the pin
@@ -454,22 +504,49 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Feet match the ground: the walk cycle plays at the body's ACTUAL pace,
     // so a hobbling (mauled legs), soaked, or turning character takes slow
     // weighty steps instead of pattering in place at full cadence.
-    // Healthy full speed is 1.0 world units/s ≈ 0.76 body heights/s. This is a
-    // property of the CLIP (how much ground one cycle covers at rate 1.0), so
-    // it must NOT be retuned when the sim's pace changes — the cadence is what
-    // moves.
-    private const float FullWalkBodyHeightsPerSec = 0.76f;
+    // How much ground one cycle covers at playback 1× is a property of the
+    // CLIP, in body heights per second — the base walk covers ≈ 0.76.
+    // §71.5: this is now only the DEFAULT. Every locomotion clip carries its
+    // own figure in NpcAnimSet.strides, because the walk slot is shared: the
+    // sad walk (a 44-frame take against the base's 30), the armed walk, the
+    // male set and the §50 crawl were all played as if they had the base
+    // walk's stride, and each slid by exactly the ratio between them.
+    public static float FullWalkBodyHeightsPerSec = 0.76f;
     // §71: how much ground each GAIT covers, as a multiple of the walk clip's
     // pace. The girl blends walk -> slow run -> run as she speeds up, and each
     // clip then plays at ~1x its authored rate instead of a walk cycle
     // spinning absurdly fast. Mixamo's takes run roughly walk 1 : jog 2 : run
-    // 3.4 — if the feet slide at a sprint, these are the two numbers to tune.
-    private const float SlowRunCadence = 2.0f;
-    private const float RunCadence = 3.4f;
+    // 3.4 — §71.5: defaults for a run clip with no stride row of its own.
+    public static float SlowRunCadence = 2.0f;
+    public static float RunCadence = 3.4f;
     // Playback still trims a little around the blended gait (a hobbling or
     // soaked girl takes slower steps), but never far from the authored rate.
-    private const float MinGaitCadence = 0.35f;
-    private const float MaxGaitCadence = 1.25f;
+    public static float MinGaitCadence = 0.35f;
+    public static float MaxGaitCadence = 1.25f;
+    // §71.6: до какого перегона клипа шага походка остаётся ЧИСТЫМ шагом.
+    // Выше — поза начинает подмешивать трусцу вместо того, чтобы гнать плёнку
+    // (развёрнутый разбор — в SampleMotion). 1.15 выбрано так, чтобы средняя
+    // девушка (1.2 ед/с при базе 1.2 и множителе ловкости 1.0) бленда почти не
+    // касалась, а ловкая (1.38 ед/с) вставала примерно на треть к трусце.
+    public static float WalkStretchCadence = 1.15f;
+    // Насколько далеко ИДУЩАЯ вправе уйти в бленд. Трусца сидит на 0.5, так
+    // что 0.35 — «распустившийся размашистый шаг», а не бег.
+    public static float MaxWalkGait = 0.35f;
+    // §71.5: how hard the measured speed is smoothed before it drives the
+    // cadence, as a time constant in SIM seconds. The sim steps at 4 Hz and so
+    // does its speed — a graded turn costs TurnMinSpeedFactor for a tick, a
+    // planted pivot skips translation outright, a housemate in the doorway
+    // blocks one — so the raw frame-to-frame delta pumps the walk cycle four
+    // times a second. That pumping is the "jerky" half of the complaint; the
+    // feet sliding is the other half, and it is the stride table above.
+    public static float SpeedSmoothTau = 0.15f;
+    // ...and how long a stop must LAST before the body admits it stopped. One
+    // frozen tick (0.25 s) is a corner or a blocked step, not a halt, and
+    // flipping to Idle and back across it reads as a stutter. A planted pivot
+    // IS a halt and must reach Idle promptly or the turn-on-spot states never
+    // fire — that is what the yaw bypass below is for.
+    public static float WalkHoldSeconds = 0.3f;
+    public static float PivotYawSpeed = 90f;
     // §71: the three GaitBlend slots, keyed by CLIP name — these are the
     // AnimatorOverrideController keys. Overriding all three with one clip (the
     // §50 crawl) pins her to a single gait that can never blend into a run.
@@ -496,7 +573,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _running;
     // A brisk walk is allowed to outrun the walk clip a little; a run clip
     // played much above its authored rate just looks frantic.
-    private const float MaxWalkCadence = 1.6f;
+    public static float MaxWalkCadence = 1.6f;
+    // §114 bug #4: hard ceiling on the sim-time cadence (_animSpeed). Nothing
+    // legitimate ever asks a clip for more than ~2× (hex-hop compression peaks
+    // there); the valve exists so a stale/poisoned cadence can never make the
+    // body play "Flash"-fast for the seconds MoveTowards would need to unwind
+    // it after a fast-forward drop.
+    public static float MaxAnimCadenceCeiling = 4f;
+    // §71.5: the measured speed, low-passed (SpeedSmoothTau), and how long she
+    // has read as still — the two pieces of state the de-jitter needs.
+    private float _smoothedSpeed;
+    private float _stillTimer;
 
     /// <summary>§71: the sim says whether she is running — walk is the default,
     /// and running always means a reason (defend, flee, adrenaline, or a body
@@ -540,7 +627,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // level snap at the tile crossing into a jump. No XZ prediction, no
     // velocity extrapolation, no settle phase — those double-computed the XZ
     // the sim already owns and left the residual offset the user saw.
-    private float _jumpStartY;         // root world-Y at arc start (stand level)
+    private float _jumpStartY;         // world-Y the arc starts from (stand level)
     private float _jumpHeightDelta;    // world units, signed (+ = up)
     private float _jumpTakeoffFrac;    // [0..this] = crouch beat (arc flat)
     private float _jumpFlightEndFrac;  // [this..1] = landing beat (arc = 1)
@@ -548,6 +635,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _jumpTimer;
     private float _jumpRetriggerGuard; // swallows the pose-delta echo at hop end
     private bool _jumpUp;
+    // §21.21B v15: the vertical offset the body held on the last frame of the
+    // window. A well-formed arc ends AT the root (offset 0), so this is normally
+    // zero; when it is not — clock drift, a swim lift, a hop cut short — it eases
+    // out over a few frames. Cutting it to zero in one frame is what read as the
+    // body "teleporting" onto the ledge.
+    private float _jumpResidualY;
+    private const float JumpSettleSpeed = 5f; // wu/s ≈ one elevation step per 0.11 s
 
     // §40.18-B: deep-water locomotion — the renderer flags the tile. While
     // swimming the animator runs TreadWater (still) / Swim (moving); the
@@ -583,15 +677,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // heightDeltaWorld is the EXACT signed root-level difference
     // (renderer-computed; water dives include the swim sink depth).
     //
+    // startGroundY is the ground level the hop LEAVES (the takeoff tile's actor
+    // ground Y). Taking it from the live transform instead was wrong on a late
+    // sighting: SetHopSignal runs inside RenderSnapshot, BEFORE this frame's
+    // interpolation, so the root still holds the PREVIOUS tick's Y.
+    //
     // hopStartTick / ageSeconds: the tick the sim opened the hop, and how long
     // ago that was in world time. Keying on the stamp rather than on HopKind's
     // rising edge matters because a frame renders only the last tick it stepped:
     // fast-forward (and any dropped network tick) can swallow the whole "Up",
     // after which she just glides up the ledge with no jump at all. ageSeconds
-    // then shortens the arc to what is LEFT of the window — replaying a
-    // full-length arc for a hop already half over overshoots the landing.
-    public void SetHopSignal(string hopKind, float heightDeltaWorld, bool intoWater = false,
-        int hopStartTick = 0, float ageSeconds = 0f)
+    // then places the arc at the phase the hop is ALREADY at.
+    public void SetHopSignal(string hopKind, float heightDeltaWorld, float startGroundY,
+        bool intoWater = false, int hopStartTick = 0, float ageSeconds = 0f)
     {
         hopKind ??= string.Empty;
 
@@ -613,25 +711,42 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // changes, so the sim window, the arc and the clip scale together.
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
         var fullWindow = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
-        // Observed late (fast-forward / a dropped tick): fly only what is left,
-        // so the arc still lands where the sim already put her. A floor keeps a
-        // very late sighting from degenerating into an instant snap.
-        var window = Mathf.Max(fullWindow * 0.25f, fullWindow - Mathf.Max(0f, ageSeconds));
-        // Same jump for everything — water or land (no special water handling);
-        // only up vs down differs, via the window.
-        StartJumpArc(
-            up,
-            heightDeltaWorld,
-            window,
-            HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop,
-            (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop);
+        var takeoffFrac = HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop;
+        var airborneEndFrac =
+            (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop;
+        // §21.21B v16: on a climb the sim covers the distance over the first
+        // SettleFrac of the airborne beat and stands for the rest, so the arc
+        // must finish there too — otherwise the body would still be rising while
+        // the root already stood on the ledge (the "skating onto the step" the
+        // asymmetric flight exposed). A drop keeps the full beat.
+        var settle = Mathf.Clamp(
+            HexLive.Simulation.Navigation.HexHopTuning.SettleFrac(up), 0.2f, 1f);
+        var flightEndFrac = takeoffFrac + (airborneEndFrac - takeoffFrac) * settle;
+        var age = Mathf.Clamp(ageSeconds, 0f, fullWindow);
+
+        // §21.21B v15: a hop first seen AFTER the flight is over has nothing
+        // left to play — the sim has already put her on the landing tile and the
+        // root has snapped to it. Arcing from here would lift the body back off
+        // the ground for the rest of the window.
+        if (age >= fullWindow * flightEndFrac)
+        {
+            return;
+        }
+
+        // §21.21B v15: the arc keeps the FULL window and starts at the phase the
+        // hop is already at. The old code shortened the window instead while
+        // still measuring the beats against the full HopSeconds — so a late arc
+        // replayed the crouch and only reached the target level at 75% of what
+        // was LEFT, long after the root had snapped up.
+        StartJumpArc(up, heightDeltaWorld, startGroundY, fullWindow,
+            takeoffFrac, flightEndFrac, age);
 
         // §67: нырок в воду — всплеск на посадочной доле дуги.
         if (intoWater && _simSpeed <= 4.01f)
         {
             Audio.SoundManager.Instance?.PlayDelayed(
                 Audio.FmodSfx.Sfx.Splash, transform.position,
-                window * 0.6f / Mathf.Max(0.25f, _simSpeed));
+                Mathf.Max(0f, fullWindow * 0.6f - age) / Mathf.Max(0.25f, _simSpeed));
         }
     }
 
@@ -648,16 +763,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Water dives/climb-outs have no sim hop window — half the hop clock
         // covers the treading pause they play over; no takeoff/landing beats.
+        // No takeoff tile either, so the live root Y is the only base available.
         StartJumpArc(
             heightDeltaWorld > 0f,
             heightDeltaWorld,
+            transform.position.y,
             HexLive.Simulation.Navigation.HexHopTuning.HopSeconds * 0.5f,
-            0f, 1f);
+            0f, 1f, 0f);
     }
 
     private void StartJumpArc(
-        bool up, float heightDelta, float durationSimSeconds,
-        float takeoffFrac, float flightEndFrac)
+        bool up, float heightDelta, float startGroundY, float durationSimSeconds,
+        float takeoffFrac, float flightEndFrac, float startElapsed)
     {
         if (_laying || _dead || _animator == null)
         {
@@ -666,11 +783,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _jumpUp = up;
         _jumpHeightDelta = heightDelta;
-        _jumpStartY = transform.position.y;
+        _jumpStartY = startGroundY;
         _jumpDuration = Mathf.Max(0.05f, durationSimSeconds);
         _jumpTakeoffFrac = Mathf.Clamp01(takeoffFrac);
         _jumpFlightEndFrac = Mathf.Clamp(flightEndFrac, _jumpTakeoffFrac + 0.05f, 1f);
-        _jumpTimer = _jumpDuration;
+        // §21.21B v15: seen late? Keep the window, skip to the phase the sim is
+        // already at — the beat fractions then still measure against the window
+        // they were derived from.
+        var elapsed = Mathf.Clamp(startElapsed, 0f, _jumpDuration * 0.95f);
+        _jumpTimer = _jumpDuration - elapsed;
         // Compress the authored clip to exactly this window: one playthrough ==
         // durationSimSeconds. Speed = clipLength / window (Unity multiplies this
         // by the global animator.speed, so fast-forward stays in sync with the
@@ -681,7 +802,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetFloat(JumpSpeedParam, jumpClipLength / _jumpDuration);
         }
         _animator.ResetTrigger(_jumpUp ? JumpDownParam : JumpUpParam);
-        _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
+        if (elapsed > 0.1f)
+        {
+            // Enter the clip at the same phase as the arc — a triggered
+            // transition would replay the crouch a late hop is long past.
+            _animator.CrossFade(_jumpUp ? "JumpUp" : "JumpDown", 0.05f, 0,
+                elapsed / _jumpDuration);
+        }
+        else
+        {
+            _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
+        }
     }
 
     // Vertical arc height 0..1 over the FLIGHT fraction tf (0 at takeoff-end,
@@ -690,11 +821,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         if (_jumpUp)
         {
-            // Launch fast, fly PAST the ledge height, drop onto it.
-            return tf < 0.5f
-                ? Mathf.SmoothStep(0f, JumpUpOvershoot, Mathf.InverseLerp(0f, 0.5f, tf))
+            // Launch fast, fly PAST the ledge height, drop onto it. §21.21B v16:
+            // the apex is a knob (was a hard 0.5). Earlier apex = "up first,
+            // then over", which is how a step-up actually reads; at 0.5 the rise
+            // and the travel finished together and looked like a slide.
+            var apex = Mathf.Clamp(
+                HexLive.Simulation.Navigation.HexHopTuning.UpApexFrac, 0.1f, 0.9f);
+            return tf < apex
+                ? Mathf.SmoothStep(0f, JumpUpOvershoot, Mathf.InverseLerp(0f, apex, tf))
                 : Mathf.Lerp(JumpUpOvershoot, 1f,
-                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.5f, 1f, tf)));
+                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(apex, 1f, tf)));
         }
 
         // One drop for EVERYTHING (water or land — no special plunge): stay
@@ -730,7 +866,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // body follows it exactly and adds a Y arc that turns the tile-crossing
     // ground snap into a jump. Self-correcting: it reads the live root Y each
     // frame, so a late tile switch just holds the body at arc height until
-    // the snap arrives — no dip, no snap-back, no settle machinery.
+    // the snap arrives — no dip, no snap-back.
+    // §21.21B v15: the arc's BASE (_jumpStartY) is the takeoff tile's ground
+    // level, not the live root — on a late sighting the root has already
+    // snapped to the landing level, and basing the arc on it pinned the body a
+    // whole step off the ground. A tiny settle at window end covers the rest.
     private Vector3 JumpOffsetWorld()
     {
         if (_jumpRetriggerGuard > 0f)
@@ -740,14 +880,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (_jumpTimer <= 0f)
         {
-            return Vector3.zero;
+            // §21.21B v15: window closed. A well-formed arc ended level with the
+            // root, so there is nothing left; anything that IS left (clock drift
+            // between the arc and the sim, a swim lift fading, a hop cut short by
+            // a re-plan) eases out. Dropping it in one frame is exactly what read
+            // as the body teleporting onto the ledge.
+            if (Mathf.Abs(_jumpResidualY) <= 0.001f)
+            {
+                _jumpResidualY = 0f;
+                return Vector3.zero;
+            }
+
+            _jumpResidualY = Mathf.MoveTowards(_jumpResidualY, 0f,
+                Time.deltaTime * Mathf.Max(1f, _simSpeed) * JumpSettleSpeed);
+            return new Vector3(0f, _jumpResidualY, 0f);
         }
 
         _jumpTimer -= Time.deltaTime * _simSpeed;
         if (_jumpTimer <= 0f)
         {
             _jumpRetriggerGuard = 0.5f;
-            return Vector3.zero;
         }
 
         // t over the whole window; map to the FLIGHT fraction tf so the arc
@@ -769,8 +921,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         // Desired body world-Y minus the actual (live) root Y = the offset.
+        // Remembered so the frame AFTER the window can ease out whatever is
+        // left instead of cutting it (see the timer-expired branch above).
         var desiredY = _jumpStartY + _jumpHeightDelta * arc;
-        return new Vector3(0f, desiredY - transform.position.y, 0f);
+        _jumpResidualY = desiredY - transform.position.y;
+        return new Vector3(0f, _jumpResidualY, 0f);
     }
 
     // Face anchor rig for the portrait camera, calibrated once in the prefab's
@@ -778,6 +933,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // HEAD-BONE space, so at runtime they ride the bone through any pose —
     // walking, sitting, lying flat — and the camera stays nailed to the face.
     private Transform _headBone;
+    private Transform _lEye;
+    private Transform _rEye;
     private Vector3 _faceLocalCenter;
     private Vector3 _faceLocalForward;
     private Vector3 _faceLocalUp;
@@ -786,6 +943,43 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public bool TryGetFace(out Vector3 faceCenter, out Vector3 faceForward, out Vector3 faceUp, out float scale)
     {
         scale = _bodyRoot != null ? _bodyRoot.lossyScale.y : transform.lossyScale.y;
+
+        // ⭐ §107.4 r2: рамка лица строится по ГЛАЗАМ, а не по осям кости головы.
+        // Оси головы приходилось калибровать один раз — «в позе покоя» пекли
+        // transform.forward в пространство кости, — и любой перекос в тот
+        // момент (или рига, у которого локальные оси кости переставлены при
+        // импорте FBX) навсегда уезжал в каждый снимок: лицо выходило чуть
+        // повёрнутым. Два глаза задают горизонтальную ось лица однозначно и
+        // без всякой калибровки, поэтому камера встаёт строго анфас.
+        if (_lEye != null && _rEye != null)
+        {
+            var left = _lEye.position;
+            var right = _rEye.position;
+            var across = right - left;
+            if (across.sqrMagnitude > 1e-8f)
+            {
+                across.Normalize();
+
+                // Вертикаль берём МИРОВУЮ — кадр не должен заваливаться вслед
+                // за наклоном головы. Если её всё же положило набок (across
+                // почти вертикален), падаем на ось головы, иначе векторное
+                // произведение вырождается.
+                var upRef = Vector3.up;
+                if (Mathf.Abs(Vector3.Dot(across, upRef)) > 0.9f)
+                {
+                    upRef = _faceCalibrated && _headBone != null
+                        ? _headBone.TransformDirection(_faceLocalUp).normalized
+                        : transform.up;
+                }
+
+                faceForward = Vector3.Cross(across, upRef).normalized;
+                faceUp = Vector3.Cross(faceForward, across).normalized;
+                // Центр кадра чуть НИЖЕ линии глаз: иначе подбородок срезан, а
+                // над макушкой пусто.
+                faceCenter = (left + right) * 0.5f - faceUp * (0.02f * scale);
+                return true;
+            }
+        }
 
         if (_faceCalibrated && _headBone != null)
         {
@@ -799,6 +993,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         faceForward = transform.forward;
         faceUp = Vector3.up;
         return true;
+    }
+
+    // §80 r2: годится ли она сейчас для СНИМКА. Лицевой якорь честно едет за
+    // костью в любой позе, но фотография лёжа, вплавь или вниз головой — это
+    // не портрет, а кадр из падения. Такую съёмку откладываем до следующего
+    // захода, благо кадр стоит доли миллисекунды.
+    public bool IsPhotogenic
+    {
+        get
+        {
+            if (_laying || _swimming || !_faceCalibrated || _headBone == null)
+            {
+                return false;
+            }
+
+            // Голова держится вертикально: наклон до ~50° прощаем (она может
+            // смотреть под ноги), кувырок — нет.
+            var up = _headBone.TransformDirection(_faceLocalUp).normalized;
+            return Vector3.Dot(up, Vector3.up) > 0.64f;
+        }
     }
 
     // Orbit-camera pivot: the visual center of the body in ANY pose — a point
@@ -825,6 +1039,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void CalibrateFaceAnchor()
     {
         _headBone = _bodyBones != null ? _bodyBones.GetBone("head") : null;
+        // Глаза — основная рамка лица (см. TryGetFace); кость головы остаётся
+        // запасной, для рига без глаз и для проверки «стоит ли она вообще».
+        _lEye = _bodyBones != null ? _bodyBones.GetBone("lEye") : null;
+        _rEye = _bodyBones != null ? _bodyBones.GetBone("rEye") : null;
         if (_headBone == null)
         {
             return;
@@ -847,7 +1065,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // which cast a fixed girl on purpose.
     public void Construct(string actorMeshName, int npcId = 0)
     {
-        Construct(actorMeshName, npcId, null, null, null);
+        Construct(actorMeshName, npcId, null, null, null, null);
     }
 
     // §74: a girl is a COMPOSITION. The mesh still decides the body — and with
@@ -855,11 +1073,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // properties of the geometry — but the material set, the hairstyle and the
     // voice bank now come in separately and may belong to someone else.
     //
-    // Every one of the three is optional: null/empty means "the mesh's own",
+    // §85 adds a fourth: the iris. It used to ride inside the skin set, so
+    // "her mother's face with her father's eyes" was unsayable and the whole
+    // island drew from four irises.
+    //
+    // Every one of the four is optional: null/empty means "the mesh's own",
     // i.e. exactly the pre-§74 body, which is what a test scene and a pre-§74
     // save both get.
     public void Construct(string actorMeshName, int npcId,
-        string skinSet, string hairstyle, string voiceBank)
+        string skinSet, string eyeColor, string hairstyle, string voiceBank)
     {
         _npcId = npcId;
         // §67.6: голосовой банк персонажа = его меш-имя (Molly/Jana/…) —
@@ -940,6 +1162,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
         }
 
+        ApplySleepPose();
+
         if (System.Enum.TryParse(actorMeshName, out ActorName parsed) == false)
         {
             Debug.LogWarning($"Unknown actor mesh '{actorMeshName}', defaulting to Marta", this);
@@ -1007,6 +1231,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // after either of them and the girl wears her donor's skin with the
             // previous body's paint targets, which reads as a shader bug.
             ApplySkinSet(skinSet);
+            // §85: and her eyes after it, because the skin set carries an eye
+            // map of its own — applying the eye set first would let the donor's
+            // irises overwrite the rolled ones. Both still land BEFORE
+            // BuildSkinTintTargets for the reason above.
+            ApplyEyeSet(eyeColor);
             BuildSkinTintTargets();
             // NOTE: an experiment swapping the SKIN to the GarmentTear paint
             // shader was reverted — Cull Off + the AlphaTest queue flickered on
@@ -1312,13 +1541,48 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             SyncWoundSplashVfx();
+            // Spec 40.8-H: per-zone damage drives the speckle field. Raw
+            // damage travels — onset/curve/neighbour-bleed live in the
+            // painter (one tuning site). Severed zones are excluded: the
+            // limb is gone, the stump wound carries the visual.
+            _zoneDamageScratch.Clear();
+            var anyZoneDamage = false;
+            foreach (var pair in _zoneHealthScratch)
+            {
+                if (pair.Value < 0.99f && !_severedZones.Contains(pair.Key))
+                {
+                    anyZoneDamage = true;
+                    break;
+                }
+            }
+
+            if (anyZoneDamage)
+            {
+                // Баг #10: капли крови смываются. Урон роняет гигиену (баг #9,
+                // ResolveTrauma), купание возвращает её в 1 — так что чистая
+                // кожа прячет капли, а раны (отдельный слой стемпов, не
+                // IsSpeckle) остаются. Корень, а не линейка: свежая небольшая
+                // рана (гигиена ~0.85) всё ещё заметно кровит, а не тухнет до
+                // 15%. Дрейф гигиены медленно проявляет капли обратно на
+                // недолеченных зонах — «рана сочится».
+                var bloodShow = Mathf.Sqrt(Mathf.Clamp01(1f - hygiene));
+                foreach (var pair in _zoneHealthScratch)
+                {
+                    if (!_severedZones.Contains(pair.Key))
+                    {
+                        _zoneDamageScratch.Add((pair.Key,
+                            Mathf.Clamp01(1f - pair.Value) * bloodShow));
+                    }
+                }
+            }
+
             // The painter needs the current wet-skin gloss: it is the BASE of
             // the painted gloss map, so droplet pixels (0.95) sit on top of
             // the same sheen the rest of the body shows.
             var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, _skinWetness);
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
                 PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint,
-                _gauzeScratch);
+                _gauzeScratch, _zoneDamageScratch);
             // v4.3: the projector RAIN droplets serve rain AND sweat — the
             // unified wetness pool (whichever of rain/sweat is stronger)
             // feeds the rain pass, so a sweating body beads exactly like a
@@ -1500,17 +1764,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // call sites; Sit/Sleep/LieDown keep their own clips.
     private void ApplyLeglessClipOverrides()
     {
-        // §71: ALL THREE gait slots become the crawl — a legless girl has one
-        // speed, and filling every slot means whatever Gait the view computes
-        // she keeps crawling and can never blend into a run.
-        foreach (var gaitKey in GaitClipKeys)
-        {
-            OverrideClip(gaitKey, CrawlClip);
-        }
+        // §71.5: the idle and ALL THREE gait slots are the resolver's — being
+        // legless is simply its top priority, and it fills every gait slot with
+        // the crawl so no Gait the view computes can blend her into a run.
+        ResolveLocomotionSlots();
         // Everything else standing → the prone idle. (The game leaves these base
         // clips in place — no NpcAnimSet action variants — so overriding the base
         // clip name here is what actually swaps them.)
-        OverrideClip(IdleClipKey, ProneClip);
         OverrideClip("crouch", ProneClip);
         OverrideClip("TurnOnSpotRightB", ProneClip);
         OverrideClip("TurnOnSpotLeftA", ProneClip);
@@ -1712,6 +1972,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             _equippedSimItems.Remove(simId);
+            _clashedSimItems.Remove(simId);
+        }
+
+        // A garment coming OFF can free the slot a clashing one lost, so a real
+        // wardrobe change earns everyone exactly one more attempt. Ticking does
+        // not — that is the whole point of the mark.
+        if (_removeScratch.Count > 0)
+        {
+            _clashedSimItems.Clear();
         }
 
         foreach (var simId in wornDefinitionIds)
@@ -1731,6 +2000,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 continue;
             }
 
+            // The repair is a ONE-SHOT (see _clashedSimItems). Equipping a
+            // garment means instantiating the prefab and stitching every one of
+            // its ~57 bones onto the body; when the piece is evicted the instant
+            // it lands, repeating that each tick is a permanent ~100 ms/tick
+            // fire that the console never mentions (the warning below is
+            // once-per-id). The piece then stays MISSING until the data is
+            // fixed — a visible, greppable symptom, which is what we want.
+            if (_clashedSimItems.Contains(simId))
+            {
+                continue;
+            }
+
+            var isNewItem = !_equippedSimItems.ContainsKey(simId);
             var prefabs = ActorWardrobe.GetVisuals(simId);
             for (var i = 0; i < prefabs.Count; i++)
             {
@@ -1751,16 +2033,34 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // mirrors it in `WearSlotCatalog`. So the repair is: bring the SIM
             // table (and, if the layer itself is wrong, the garment's sim
             // WearLayer) into line with the prefab — never coarsen the prefab.
-            if (prefabs.Count > 0 && !_bodyBones.IsEquipped($"{simId}#0") &&
-                _slotClashWarned.Add(simId))
+            // §52.9 r2: reaching this branch at all is now a GATE failure, not a
+            // discovery — WearSlotGateTests proves no such pair exists headless
+            // (`dotnet test Tests/HexLive.Simulation.Tests`). It stays as the
+            // last line of defence for art that never reached the gate.
+            if (prefabs.Count > 0 && !_bodyBones.IsEquipped($"{simId}#0"))
             {
-                Debug.LogWarning(
-                    $"[Wear] '{simId}' was evicted the instant it was equipped, by " +
-                    $"{_bodyBones.DescribeSlotOwners(prefabs[0])} — their visual " +
-                    "(layer, slot) collide while the sim allows both to be worn. " +
-                    "Sync WearSlotCatalog (and the sim WearLayer) TO this prefab — " +
-                    "do not coarsen the prefab's slots to match Covers.",
-                    this);
+                // Do not try again on the next tick — see _clashedSimItems.
+                _clashedSimItems.Add(simId);
+                if (_slotClashWarned.Add(simId))
+                {
+                    Debug.LogWarning(
+                        $"[Wear] '{simId}' was evicted the instant it was equipped, by " +
+                        $"{_bodyBones.DescribeSlotOwners(prefabs[0])} — their visual " +
+                        "(layer, slot) collide while the sim allows both to be worn. " +
+                        "Sync WearSlotCatalog (and the sim WearLayer) TO this prefab — " +
+                        "do not coarsen the prefab's slots to match Covers. " +
+                        "The piece stays OFF the body until that is fixed: re-stitching " +
+                        "it every tick was ~100 ms/tick and leaked a material set each time. " +
+                        "Reproduce and fix it headless: dotnet test Tests/HexLive.Simulation.Tests " +
+                        "(WearSlotGateTests names the exact pair and slot).",
+                        this);
+                }
+            }
+            else if (isNewItem)
+            {
+                // A genuinely new garment landed — the slot map moved, so anyone
+                // previously blocked deserves one more attempt.
+                _clashedSimItems.Clear();
             }
         }
     }
@@ -1886,7 +2186,56 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 31C.2: sleeping snaps the view to the bed's attach point and
     // plays the Laying state; waking releases back to the renderer's flow.
-    public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f)
+    public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f) =>
+        ApplyLying(laying, attachPoint, surfaceY, fallenChain: false, sleepAfterFall: false);
+
+    // §105: тело РУХНУЛО — умирает (окно спасения) или лежит без сознания.
+    //
+    // Вся механика лежания — пиннинг в центр гекса, per-frame bounds против
+    // frustum-culling, закрытые глаза, обнулённая скорость — переиспользуется
+    // ЦЕЛИКОМ: разница ровно одна, какой цепочкой клипов её положили. Сон
+    // уходит в кровать своим LieDown→Sleep→GetUp и держит её позу; падение
+    // приходит откуда угодно, включая бег и драку, и играет
+    // FallDown→FallenIdle→StandUp. Два bool'а взаимно исключаются здесь, в
+    // одном месте, а не в четырёх ветках рендерера.
+    /// <param name="sleepAfter">
+    /// Чем кончается падение. false — лежачий луп: кома и умирание, тело
+    /// безвольно лежит, пока его не поднимут. true — обычный сон: она потеряла
+    /// сознание, рухнула так же, но дальше просто спит и встаёт обычным GetUp.
+    /// </param>
+    public void SetFallen(bool fallen, bool sleepAfter = false, float surfaceY = 0f) =>
+        ApplyLying(fallen, null, surfaceY, fallenChain: true, sleepAfterFall: sleepAfter);
+
+    // §110: сломалась от стресса — лежит и плачет. Ложится она сонной цепочкой
+    // (SetLaying), а этот переключатель добавляет к ней то, чем плач ОТЛИЧАЕТСЯ
+    // от сна: вторая поза сна вместо её личной (свернувшийся клубок читается
+    // как «плачет», а её привычная поза — как «прилегла») и держащаяся гримаса
+    // плача вместо закрытых во сне глаз.
+    public void SetCrying(bool crying)
+    {
+        if (_crying == crying)
+        {
+            return;
+        }
+
+        _crying = crying;
+        if (crying)
+        {
+            ApplyCryingPose();
+        }
+        else
+        {
+            ApplySleepPose(); // вернуть её собственную позу сна
+        }
+
+        if (_face != null)
+        {
+            _face.SetCrying(crying);
+        }
+    }
+
+    private void ApplyLying(
+        bool laying, Transform attachPoint, float surfaceY, bool fallenChain, bool sleepAfterFall)
     {
         if (_laying && !laying && _bodyRoot != null)
         {
@@ -1919,7 +2268,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (_animator != null)
         {
-            _animator.SetBool(LayingParam, laying);
+            // §105: Fallen решает, ПАДАЕТ ли она; Laying — чем это кончится.
+            //
+            // У потерявшей сознание подняты ОБА: она валится клипом падения и
+            // приземляется в сон. Поэтому вход в сонную цепочку в контроллере
+            // дополнительно требует «Fallen == false» — иначе она уходила бы в
+            // аккуратное LieDown вместо падения.
+            _animator.SetBool(LayingParam, laying && (!fallenChain || sleepAfterFall));
+            _animator.SetBool(FallenParam, laying && fallenChain);
         }
 
         if (_face != null)
@@ -2062,13 +2418,37 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _ragdollBodies = bodies.ToArray();
     }
 
-    // Spec 40.13 v2: death — the body lies down (the normal LieDown → Sleep
-    // flow) and then freezes in one pose; a corpse doesn't breathe the sleep
-    // loop. One-way: corpse views are destroyed, never revived.
+    // §28.15C v3: СМЕРТЬ — она падает, и на этом всё.
+    //
+    // Раньше смерть была тихим «лечь спать»: тело уходило в обычный LieDown →
+    // Sleep и там замирало, потому что клипов падения в наборе не лежало вовсе
+    // (`death: []`). Теперь их два (death2/death3), состояние Death в
+    // контроллере не имеет выхода, а клипы импортированы с Loop Time OFF — то
+    // есть падение проигрывается ОДИН раз и держит последний кадр.
+    //
+    // Дальше аниматор ВЫКЛЮЧАЕТСЯ совсем. Не «speed = 0», а enabled = false:
+    // поза остаётся ровно той, на которой кончился клип, и её больше некому
+    // сдвинуть — ни дыханию, ни взгляду, ни фиджетам. Тела копятся до конца
+    // игры, так что выключенный аниматор здесь ещё и единственная плата за то,
+    // что остров помнит своих мёртвых.
     private bool _dead;
+    private float _deathFreezeAt = -1f; // Time.time, когда клип докрутится
+    private static readonly int DeathStateHash = Animator.StringToHash("Death");
 
-    public void SetDead(float surfaceY)
+    /// <param name="variant">Какой из клипов падения — число из СИМУЛЯЦИИ, а
+    /// не Random: иначе одно и то же тело лежало бы по-разному у каждого
+    /// зрителя и после каждой перезагрузки.</param>
+    /// <param name="fresh">Она упала прямо сейчас (проиграть) или лежит с
+    /// прошлой сессии (сразу последний кадр). Второе — это загрузка сейва и
+    /// подключение зрителя к идущему миру: там никто не должен увидеть, как
+    /// давно погибшая падает заново.</param>
+    public void SetDead(float surfaceY, int variant = 0, bool fresh = true)
     {
+        if (_dead)
+        {
+            return; // односторонний переход; повторный вызов ничего не значит
+        }
+
         _dead = true;
         // §50: a corpse never crawls — clear the flag so the Crawl loop yields
         // to the death/laying pose (the Crawl transition also guards on !Dead).
@@ -2077,17 +2457,43 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(CrawlingParam, false);
         }
 
-        // Random death clip (config) that plays once and holds on the last
-        // frame (Death state has no exit; clip must be Loop Time OFF). Falls
-        // back to the frozen laying pose when no death clips are configured.
-        if (_animator != null && _animSet != null && _animSet.death != null && _animSet.death.Length > 0)
+        var clips = _animSet != null ? _animSet.death : null;
+        if (_animator == null || clips == null || clips.Length == 0)
         {
-            OverrideClip(DeathBaseClip, _animSet.death[Random.Range(0, _animSet.death.Length)]);
-            _animator.SetBool(DeadParam, true);
+            // Клипов не назначили — старое поведение: замереть лёжа. Заметно
+            // хуже, но это поза, а не дыра в кадре.
+            SetLaying(true, null, surfaceY);
             return;
         }
 
-        SetLaying(true, null, surfaceY);
+        var clip = clips[((variant % clips.Length) + clips.Length) % clips.Length];
+        OverrideClip(DeathBaseClip, clip);
+        _animator.SetBool(DeadParam, true);
+
+        if (fresh)
+        {
+            // Дать переходу отыграть, а потом заморозить. Длина берётся у
+            // САМОГО клипа: захардкоженная секунда разошлась бы с ним при
+            // первой же замене (ровно эта грабля — §104 r4).
+            _deathFreezeAt = Time.time + clip.length + 0.35f;
+            return;
+        }
+
+        // Загруженное тело: без перехода, сразу конец клипа, и заморозить в
+        // этом же кадре — падения никто не увидит.
+        _animator.Play(DeathStateHash, 0, 1f);
+        _animator.Update(0f);
+        FreezeDeathPose();
+    }
+
+    // Выключить аниматор насовсем. Поза остаётся той, что в костях сейчас.
+    private void FreezeDeathPose()
+    {
+        _deathFreezeAt = -1f;
+        if (_animator != null)
+        {
+            _animator.enabled = false;
+        }
     }
 
     // §29C.3-hit: a standing damage stagger. The renderer feeds every snapshot's
@@ -2106,12 +2512,167 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        if (_dead || _laying || _swimming || _ragdollActive || _wasWalking || _animator == null)
+        // §104 r9: ФОЛБЭК для урона НЕ от удара — падение, акула, огонь: там
+        // хит-штампа нет, и о том, откуда прилетело, сказать нечего. Толкаем
+        // корпус назад от её же взгляда. Настоящий удар сюда не доходит: он
+        // уже отыгран по штампу, со своей зоной и своим направлением.
+        if (_hitRecoilAge < HitRecoilSeconds)
         {
             return;
         }
 
-        _animator.SetTrigger(HitReactParam);
+        var root = _bodyRoot != null ? _bodyRoot : transform;
+        StartHitRecoil("Torso", root.position + root.forward);
+    }
+
+    /// <summary>
+    /// ⭐ §104 r5: ПО НЕЙ ПОПАЛИ ПРЯМО СЕЙЧАС — кровь, вздрагивание и звук
+    /// удара, всё в один кадр.
+    ///
+    /// <para>
+    /// Раньше вид узнавал о попадании двумя косвенными путями, и оба врали.
+    /// Флинч висел на падении здоровья мимо порога 0.02 по СРЕДНЕМУ — а кулак
+    /// снимает <c>landed/7</c> ≈ 0.015, то есть вздрагивания от кулака не было
+    /// никогда. Брызга висела на появлении новой раны с гейтом в 0.4 с
+    /// реального времени, так что часть ударов проходила вовсе без картинки.
+    /// Звука удара по человеку не существовало.
+    /// </para>
+    /// <para>
+    /// Теперь сим отмечает сам момент (<c>HitStampTick</c>), а вид ловит смену
+    /// штампа — тем же приёмом, которым ловит начало замаха, и по той же
+    /// причине: событие живёт один тик, а кадр рисует только последний тик.
+    /// Порог здоровья остаётся ФОЛБЭКОМ для урона не от удара (падение,
+    /// акула, огонь) — там штампа нет.
+    /// </para>
+    /// </summary>
+    public void SignalHit(int hitStampTick, string hitWeaponId, string hitPart,
+        Vector3 hitFrom)
+    {
+        var fresh = hitStampTick > 0 && hitStampTick != _lastHitStampTick;
+        _lastHitStampTick = hitStampTick;
+        if (!fresh)
+        {
+            return;
+        }
+
+        StartHitRecoil(hitPart, hitFrom);
+        SpawnHitBlood(hitPart);
+
+        if (_simSpeed <= 4.01f)
+        {
+            Audio.FmodSfx.Play(ImpactSfxFor(hitWeaponId), transform.position);
+        }
+    }
+
+    /// <summary>Чем ударили — тем и звучит. Пустой id это кулаки.</summary>
+    private static string ImpactSfxFor(string weaponId)
+    {
+        if (string.IsNullOrEmpty(weaponId))
+        {
+            return Audio.FmodSfx.Sfx.HitPunch;
+        }
+
+        if (weaponId == HexLive.Simulation.Content.GearCatalog.Bite)
+        {
+            return Audio.FmodSfx.Sfx.WolfBite;
+        }
+
+        // Клинковое — режет; всё прочее (молоток, кирка, копьё) — тупой удар.
+        return weaponId is HexLive.Simulation.Content.GearCatalog.Knife
+            or HexLive.Simulation.Content.GearCatalog.Machete
+            or HexLive.Simulation.Content.GearCatalog.Axe
+            or HexLive.Simulation.Content.GearCatalog.Saw
+            ? Audio.FmodSfx.Sfx.HitBlade
+            : Audio.FmodSfx.Sfx.HitPunch;
+    }
+
+    // ── §104 r9: ОТБОЙ ТЕЛА ОТ УДАРА ──────────────────────────────────────
+    //
+    // ⭐ Клипа реакции здесь БОЛЬШЕ НЕТ, и это осознанно. Клип — это состояние
+    // аниматора: он спорит с тем, что играет сейчас (шаг, работа, замах),
+    // требует, чтобы она стояла, и всё равно опаздывает на переход. Удар же
+    // должен читаться В ТОТ ЖЕ КАДР и из любой позы.
+    //
+    // Поэтому реакция процедурная: кость ЗОНЫ, в которую попали, толкается
+    // прочь от бьющего поверх любой анимации — как §71 дыхание и §40.9 хромота,
+    // тем же слоем и по тем же правилам (при рагдолле не писать: там кости
+    // принадлежат физике).
+    private string _hitRecoilBone;
+    private Vector3 _hitRecoilDir;      // мировое направление «прочь от удара»
+    private float _hitRecoilAge = 999f; // секунд с момента удара
+    private const float HitRecoilSeconds = 0.34f;
+    // Доля роста актёра: смещение считается от него, потому что актёры
+    // отнормированы (~0.35 от человеческого) и константа в метрах читалась бы
+    // на них как вывих.
+    private const float HitRecoilTorso = 0.055f;
+    private const float HitRecoilHead = 0.075f;
+    private const float HitRecoilLimb = 0.045f;
+
+    private void StartHitRecoil(string hitPart, Vector3 hitFrom)
+    {
+        var zone = string.IsNullOrEmpty(hitPart) ? "Torso" : hitPart;
+        if (_bodyBones == null || !ZoneBoneAnchors.TryGetValue(zone, out var boneName))
+        {
+            return;
+        }
+
+        var bone = _bodyBones.GetBone(boneName);
+        if (bone == null)
+        {
+            return;
+        }
+
+        // Прочь от бьющего: горизонтально, чтобы удар не подбрасывал и не
+        // вдавливал в землю. Если бьют в упор (позиции совпали) — толкаем
+        // назад от её собственного взгляда.
+        var away = bone.position - hitFrom;
+        away.y = 0f;
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            var root = _bodyRoot != null ? _bodyRoot : transform;
+            away = -root.forward;
+        }
+
+        _hitRecoilBone = boneName;
+        _hitRecoilDir = away.normalized;
+        _hitRecoilAge = 0f;
+    }
+
+    /// <summary>
+    /// Толкает задетую кость прочь от удара и отпускает обратно. Зовётся из
+    /// LateUpdate вместе с остальными процедурными позами — то есть ПОСЛЕ
+    /// аниматора, поверх любого клипа и в любом состоянии.
+    /// </summary>
+    private void ApplyHitRecoil()
+    {
+        if (_hitRecoilAge >= HitRecoilSeconds || _hitRecoilBone == null || _bodyBones == null)
+        {
+            return;
+        }
+
+        _hitRecoilAge += Time.deltaTime * Mathf.Max(0.01f, _simSpeed);
+        var u = Mathf.Clamp01(_hitRecoilAge / HitRecoilSeconds);
+
+        var bone = _bodyBones.GetBone(_hitRecoilBone);
+        if (bone == null)
+        {
+            return;
+        }
+
+        // Резкий выброс и медленный возврат: пик на ~пятой части окна. Ровная
+        // синусоида читалась бы как покачивание, а удар — это толчок.
+        var impulse = Mathf.Sin(Mathf.PI * Mathf.Pow(u, 0.38f));
+
+        var root = _bodyRoot != null ? _bodyRoot : transform;
+        var scale = Mathf.Max(0.01f, root.lossyScale.y);
+        var reach = _hitRecoilBone switch
+        {
+            "head" => HitRecoilHead,
+            "abdomenUpper" or "pelvis" => HitRecoilTorso,
+            _ => HitRecoilLimb,
+        };
+
+        bone.position += _hitRecoilDir * (reach * scale * impulse);
     }
 
     // Spec 40.13: collapse (faint) => go limp; wake => animator takes over.
@@ -2194,14 +2755,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             "HydrateOther" => "food.coconut_pierced",
             _ => string.Empty
         };
+        // §110: утешение над ЛЕЖАЩЕЙ — не крафтовый присед, а МОЛИТВА: она
+        // опускается на колени рядом и просит за неё. Остальные виды помощи
+        // (накормить, напоить, перевязать) остались на «садовничьем» приседе —
+        // там руки и правда работают.
+        var praying = aidingOther && aidTargetLying && interaction == "ConsoleOther";
         // The solo craft always kneels; an aid kneels only over a lying ward.
-        var kneelingCraft = crafting || (aidingOther && aidTargetLying);
+        var kneelingCraft = crafting || (aidingOther && aidTargetLying && !praying);
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
         _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
-        var actionKind = (gathering || drinking || kneelingCraft || _wantsTalk)
+        var actionKind = (gathering || drinking || kneelingCraft || praying || _wantsTalk)
             ? ActionKind.None
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
@@ -2221,6 +2787,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(WorkingParam, !_legless && !chopping &&
                 interaction is "Harvest" or "BuildRaft");
             _animator.SetBool(CraftingParam, kneelingCraft);
+            _animator.SetBool(PrayingParam, praying); // §110
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
@@ -2240,7 +2807,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // kneel) — suppress the procedural shoulder pose so it doesn't fight the
         // clip. Eat keeps its own raise-to-mouth — except legless, where the
         // prone idle carries eat/drink.
-        _action = _legless || chopping || kneelingCraft
+        _action = _legless || chopping || kneelingCraft || praying
             ? ActionKind.None
             : actionKind;
         // A solo craft puts both hands to work (tool goes down). An aid keeps
@@ -2390,10 +2957,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private NpcSpeechBubble _speechBubble;
     private UI.NpcSpeechDirector _speech;
 
-    public void SetTalkTopic(string topicName)
+    public void SetTalkTopic(string topicName) => SetTalkTopic(topicName, null);
+
+    /// <summary>§108: тема с ЛИЦОМ — когда разговор про человека, в пузыре его
+    /// круглый портрет вместо значка.</summary>
+    public void SetTalkTopic(string topicName, Sprite subjectFace)
     {
         EnsureSpeechBubble();
-        _speech?.SetConversationTopic(topicName);
+        _speech?.SetConversationTopic(topicName, subjectFace);
     }
 
     // §67.10: her body, for the ambient self-talk layer (hungry/parched/cold…).
@@ -2435,13 +3006,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
-    // §80: portrait — лицо того, о ком кьюшка (страх перед конкретным
+    // §80/§107.5: portrait — лицо того, о ком кьюшка (страх перед конкретным
     // человеком). Голос от него не зависит: реплика привязана к ВИДУ кьюшки.
+    // Своего пузыря у кьюшки больше НЕТ — она встаёт в общую очередь к тому
+    // единственному, что висит над головой, и выигрывает его по рангу.
     public void PopSocialCue(string cueKind, Sprite portrait = null)
     {
         EnsureSpeechBubble();
-        _speechBubble?.PopSocialCue(cueKind, portrait);
-        _speech?.OnCue(cueKind);
+        _speech?.OnCue(cueKind, portrait);
 
         // §81: такты сцены абьюза играются телом, а не только эмодзи. Кьюшка
         // уже приходит ровно в нужный момент и ровно тому, кого касается, —
@@ -2453,14 +3025,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         switch (cueKind)
         {
-            case "AbuseThreatened":
+            // §81.13: отшатывается ТОЛЬКО решившая не сопротивляться — это
+            // кьюшка её решения (сим шлёт AbuseCowed вместо AbuseThreatened,
+            // когда она не отвечает). Решившая драться встаёт в боевую стойку.
+            case "AbuseCowed":
                 PlayEmote(_animSet.rejected);
                 break;
+            // §81.13: плачет ПРОИГРАВШИЙ, в развязке, перед бегством домой.
+            // AbuseCry сим больше не шлёт (ранний плач выглядел заученным),
+            // ветка оставлена на случай старых реплеев.
             case "AbuseCry":
-            case "AbuseGaveUp":
+            case "AbuseFledHome":
                 PlayEmote(_animSet.crying);
-                // Дальше она какое-то время ходит понуро.
-                _sadWalkUntil = Time.time + SadWalkSeconds;
+                // Понурая походка ставится НЕ здесь: с §81.10 это состояние
+                // сима (оно же режет скорость вдвое), приезжает флагом снапшота
+                // в SetSadWalk. Кьюшка отвечает только за одноразовый плач.
                 break;
         }
     }
@@ -2490,8 +3069,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     void UI.ISpeechStage.StopVoiceLine() => Audio.FmodSfx.StopLoop(ref _voiceChannel);
 
-    void UI.ISpeechStage.ShowSpeechIcon(string iconKey, float seconds)
-        => _speechBubble?.ShowIcon(iconKey, seconds);
+    void UI.ISpeechStage.ShowSpeechIcon(string iconKey, float seconds, bool alarm)
+        => _speechBubble?.ShowIcon(iconKey, seconds, alarm);
+
+    void UI.ISpeechStage.ShowSpeechPortrait(Sprite portrait, float seconds, bool alarm)
+        => _speechBubble?.ShowIcon(portrait, seconds, alarm);
 
     void UI.ISpeechStage.HideSpeechIcon() => _speechBubble?.HideIcon();
 
@@ -2568,88 +3150,39 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _idleSince = 0f;
     }
 
-    // §81: грустная походка. Держится минуты после сцены — это не состояние
-    // симуляции, а след в теле, и живёт он там же, где остальная мимика.
-    private void UpdateSadWalk()
+    /// <summary>§81.10: понурая походка после сцены. Приезжает флагом снапшота
+    /// (`NpcSnapshot.IsSadWalk`) — раньше это был таймер внутри вида, и он
+    /// врал во всех трёх случаях, когда вид не совпадает с симом: у удалённого
+    /// зрителя, на перемотке и после загрузки сейва. Сим в это же время режет
+    /// ей скорость вдвое, поэтому широкий понурый шаг совпадает с землёй.
+    /// Тюнинг-сцена §71.5 дёргает этот же вход напрямую.</summary>
+    public void SetSadWalk(bool sad)
     {
-        if (_animSet == null || _animSet.sadWalk == null || _legless)
+        if (sad == _sadWalk)
         {
             return;
         }
 
-        var sad = Time.time < _sadWalkUntil;
-        if (sad == _sadWalkApplied)
-        {
-            return;
-        }
-
-        _sadWalkApplied = sad;
-        if (sad)
-        {
-            OverrideClip(GaitClipKeys[0], _animSet.sadWalk);
-        }
-        else
-        {
-            var baseWalk = BaseLocomotionClip(GaitClipKeys[0]);
-            if (baseWalk != null)
-            {
-                OverrideClip(GaitClipKeys[0], baseWalk);
-            }
-        }
+        _sadWalk = sad;
+        ResolveLocomotionSlots();
     }
 
     private void UpdateArmedStance(string itemId)
     {
-        if (_animSet == null)
-        {
-            return;
-        }
-
         var armed = !string.IsNullOrEmpty(itemId) &&
                     itemId.StartsWith("tool.", System.StringComparison.Ordinal);
 
         // Per-gear SO clips first; NpcAnimSet's shared armed set as fallback.
         var gearIdle = Config.GearLibrary.ArmedIdleFor(itemId);
         var gearWalk = Config.GearLibrary.ArmedWalkFor(itemId);
-        var idleClip = gearIdle != null ? gearIdle : _animSet.armedIdle;
-        var walkClip = gearWalk != null ? gearWalk : _animSet.armedWalk;
 
-        // §78: the restore goes through BaseLocomotionClip, not the controller's
-        // clip table — for a male actor "his" idle/walk IS the base, and handing
-        // back the authored take would undo his gait the moment a tool left his
-        // hand.
-        if (idleClip != null)
-        {
-            if (armed)
-            {
-                OverrideClip(IdleClipKey, Standing(idleClip));
-            }
-            else
-            {
-                var baseIdle = BaseLocomotionClip(IdleClipKey);
-                if (baseIdle != null)
-                {
-                    OverrideClip(IdleClipKey, Standing(baseIdle)); // legless stays prone
-                }
-            }
-        }
-
-        // Walk swap is skipped while legless — the crawl system owns "Walk".
-        if (walkClip != null && !_legless)
-        {
-            if (armed)
-            {
-                OverrideClip(GaitClipKeys[0], walkClip);
-            }
-            else
-            {
-                var baseWalk = BaseLocomotionClip(GaitClipKeys[0]);
-                if (baseWalk != null)
-                {
-                    OverrideClip(GaitClipKeys[0], baseWalk);
-                }
-            }
-        }
+        // §71.5: hand the clips to the resolver instead of writing the slots.
+        // The empty hand needs no restore branch here — dropping the claim IS
+        // the restore, and what it falls back to (his §78 take, the §50 crawl,
+        // the §81 sad walk) is the resolver's business, not this function's.
+        _armedIdleClip = armed ? (gearIdle != null ? gearIdle : _animSet?.armedIdle) : null;
+        _armedWalkClip = armed ? (gearWalk != null ? gearWalk : _animSet?.armedWalk) : null;
+        ResolveLocomotionSlots();
 
         // Work clip (рубка/добыча/стройка): the gear SO can swap the Chop
         // state's clip; restore the base take when the item declares none.
@@ -2683,12 +3216,99 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             ? _animSet.male
             : null;
 
-        SetLocomotionClip(IdleClipKey, set?.idle);
-        SetLocomotionClip(GaitClipKeys[0], set?.walk);
-        SetLocomotionClip(GaitClipKeys[1], set?.slowRun);
-        SetLocomotionClip(GaitClipKeys[2], set?.run);
+        // §71.5: his takes are the resolver's FALLBACK, not a write — the four
+        // blended slots have other claimants (a tool, the mood, a lost leg) and
+        // whoever writes last would win. Clearing the map above is what turns a
+        // re-Constructed female actor back to the authored takes.
+        RememberLocomotionClip(IdleClipKey, set?.idle);
+        RememberLocomotionClip(GaitClipKeys[0], set?.walk);
+        RememberLocomotionClip(GaitClipKeys[1], set?.slowRun);
+        RememberLocomotionClip(GaitClipKeys[2], set?.run);
+        ResolveLocomotionSlots();
+        // Sitting has exactly one claimant, so it is still set straight.
         SetLocomotionClip(SitClipKey, set?.sit);
     }
+
+    // His own take for a slot, kept as the resolver's fallback. No clip = the
+    // slot falls through to the controller's authored one (BaseLocomotionClip).
+    private void RememberLocomotionClip(string baseName, AnimationClip clip)
+    {
+        if (clip != null)
+        {
+            _actorLocomotion[baseName] = clip;
+        }
+    }
+
+    // §71.5: ONE place decides what each locomotion slot plays.
+    //
+    // Four systems claim the walk slot — the §50 crawl, the §81 sad walk, the
+    // armed walk, and the actor's own take (§78) — and each used to write it
+    // directly behind its own latch, so whoever moved last won. Picking up an
+    // axe while sad ate the sad walk for good (its latch still read "applied",
+    // so it never re-asserted), and the sadness timing out handed the slot back
+    // to the base walk with the axe still in hand. A priority chain resolved in
+    // one function cannot have that bug: read the state, pick the winner, and
+    // touch the slot only when the winner actually changed.
+    private void ResolveLocomotionSlots()
+    {
+        if (_animOverride == null)
+        {
+            return;
+        }
+
+        var crawling = _legless && CrawlClip != null;
+
+        // Idle: no legs > fists up (§104 bare-handed) > tool in hand > her own.
+        var idle = _legless && ProneClip != null ? ProneClip
+            : _bareStance && _bareStanceClip != null ? _bareStanceClip
+            : _armedIdleClip != null ? _armedIdleClip
+            : BaseLocomotionClip(IdleClipKey);
+
+        // Walk: crawling beats everything — she has no legs to be sad or armed
+        // with — then the mood, then the tool, then her own take.
+        var walk = crawling ? CrawlClip
+            : _sadWalk && _animSet != null && _animSet.sadWalk != null ? _animSet.sadWalk
+            : _armedWalkClip != null ? _armedWalkClip
+            : BaseLocomotionClip(GaitClipKeys[0]);
+
+        ApplyLocomotionSlot(IdleClipKey, idle, -1);
+        ApplyLocomotionSlot(GaitClipKeys[0], walk, 0);
+        ApplyLocomotionSlot(GaitClipKeys[1],
+            crawling ? CrawlClip : BaseLocomotionClip(GaitClipKeys[1]), 1);
+        ApplyLocomotionSlot(GaitClipKeys[2],
+            crawling ? CrawlClip : BaseLocomotionClip(GaitClipKeys[2]), 2);
+    }
+
+    // One resolved slot. Remembers what is playing there — the §71.5 cadence
+    // math reads it back to find that clip's authored stride.
+    private void ApplyLocomotionSlot(string baseName, AnimationClip clip, int gaitSlot)
+    {
+        if (clip == null || (gaitSlot < 0 ? _activeIdle : _activeGait[gaitSlot]) == clip)
+        {
+            return;
+        }
+
+        OverrideClip(baseName, clip);
+        if (gaitSlot < 0)
+        {
+            _activeIdle = clip;
+        }
+        else
+        {
+            _activeGait[gaitSlot] = clip;
+        }
+    }
+
+    // §71.5: how much ground the clip currently in a gait slot covers at 1×
+    // playback (body heights/sec). No stride row for it — or no anim set at all
+    // — means the slot's old single-constant figure, i.e. the pre-§71.5 result.
+    private float StrideOf(int gaitSlot, float fallback) =>
+        _animSet != null ? _animSet.StrideFor(_activeGait[gaitSlot], fallback) : fallback;
+
+    /// <summary>§71.5: the clip a gait slot is playing — the tuning scene shows the
+    /// name and calibrates that clip's stride.</summary>
+    public AnimationClip ActiveGaitClip(int gaitSlot) =>
+        gaitSlot >= 0 && gaitSlot < _activeGait.Length ? _activeGait[gaitSlot] : null;
 
     // One locomotion slot: remember the actor's clip and play it, or hand the
     // slot back to the controller's authored take when he has none.
@@ -2753,6 +3373,42 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // §NPC-anim: swap the clip a base-clip key plays, via the override controller.
+    // §105: у каждой девушки СВОЯ поза сна. Четыре тела в одинаковой позе у
+    // костра читались как копипаста.
+    //
+    // Вариант берётся от её id и держится всю жизнь — это её привычка, а не
+    // украшение кадра. Поэтому НЕ Random: тот дал бы разную позу на сервере и у
+    // каждого зрителя, и новую после каждой перезагрузки. Поле на провод при
+    // этом не нужно — id есть у обоих концов, и одинаковое число выводится из
+    // него на месте (в отличие от позы СМЕРТИ, которую сим считает сам: та
+    // выпадает один раз в момент падения и обязана пережить сохранение).
+    private void ApplySleepPose()
+    {
+        var poses = _animSet != null ? _animSet.sleep : null;
+        if (poses == null || poses.Length == 0)
+        {
+            return; // вариантов не назначили — у всех авторский клип состояния
+        }
+
+        var clip = poses[((_npcId % poses.Length) + poses.Length) % poses.Length];
+        OverrideClip(SleepBaseClip, clip);
+    }
+
+    // §110: поза плача — ВТОРАЯ поза сна (свернулась на боку), одна на всех.
+    // Она читается как «плачет», в отличие от привычной позы конкретной
+    // девушки, и потому НЕ выводится из id: тут важно узнавание состояния, а
+    // не характер. Если вариантов ещё не назначили — остаётся авторский клип.
+    private void ApplyCryingPose()
+    {
+        var poses = _animSet != null ? _animSet.sleep : null;
+        if (poses == null || poses.Length < 2)
+        {
+            return;
+        }
+
+        OverrideClip(SleepBaseClip, poses[1]);
+    }
+
     private void OverrideClip(string baseName, AnimationClip with)
     {
         if (_animOverride == null || with == null ||
@@ -2916,11 +3572,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Spec 20.16: combat/hunt overrides the idle interaction — the weapon
     // appears in hand and drives a draw (bow) or thrust (spear) motion.
     // Timed melee: the SIM owns the attack cadence. `swinging` is true across
-    // the whole attack-animation window (GearCatalog.AttackDurationSeconds
-    // from the swing start); the clip/procedural swing plays exactly then, the
-    // damage lands mid-window (HitDelaySeconds, sim-side), and between swings
-    // she stands recovering — no more view-local attack timer drifting out of
-    // sync with the actual blows.
+    // the whole attack-animation window — GearStats.StrikeTimings of the PICKED
+    // strike variant, counted from the swing start; the clip/procedural swing
+    // plays exactly then, the damage lands mid-window (HitDelaySeconds,
+    // sim-side), and between swings she stands recovering — no more view-local
+    // attack timer drifting out of sync with the actual blows.
     // strikeIndex: the sim's picked strike variant for THIS swing (fists:
     // punches/kicks — GearConfig.strikes order); -1 = single-timing gear,
     // the view rolls a random clip like before.
@@ -2966,6 +3622,53 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    /// <summary>
+    /// ⭐ НОВЫЙ ЛИ ЭТО УДАР — единственное место, где вид отвечает на вопрос.
+    ///
+    /// <para>
+    /// Опознаётся по СМЕНЕ штампа, а не по флагу <c>IsSwinging</c>: окно живёт
+    /// один-два тика, кадр рисует только последний из шагнутых тиков, и на
+    /// перемотке (или через сеть, потерявшую тик) большинство замахов
+    /// открывалось и закрывалось незамеченными — удар прилетал в неподвижное
+    /// тело. Непроигранный штамп такой пропуск переживает.
+    /// </para>
+    /// <para>
+    /// Штамп УСВАИВАЕТСЯ в любом случае, даже когда играть нечего: сим не
+    /// обнуляет <c>SwingStartTick</c> по окончании боя, и несброшенный кэш
+    /// показал бы старый штамп новым в НАЧАЛЕ следующего боя — фантомный удар
+    /// до первого замаха.
+    /// </para>
+    /// <para>
+    /// §104 r3: правило жило в двух копиях (бой и одиночный замах), и вторая
+    /// уже разошлась — гейтилась на <c>swinging</c> и теряла удар. Копия правила
+    /// о том, как ловить пропуск, сама была пропуском.
+    /// </para>
+    /// </summary>
+    private bool ConsumeSwingStamp(int swingStartTick)
+    {
+        var started = swingStartTick > 0 && swingStartTick != _lastSwingStartTick;
+        _lastSwingStartTick = swingStartTick;
+        return started;
+    }
+
+    /// <summary>
+    /// ⭐ ОКНО ЗАМАХА В СЕКУНДАХ — ровно то, что открыл сим.
+    ///
+    /// <para>
+    /// Спрашивается у ТОГО ЖЕ расчёта (<c>GearStats.StrikeTimings</c>) и с тем
+    /// же вариантом удара. Здесь стояла базовая длительность оружия, а сим
+    /// открывает окно по варианту: у кулака это разные листы, и совпадали они
+    /// только случайно. Две мерки на одно расстояние — та же болезнь, что дала
+    /// мёртвую зону §102, только во времени.
+    /// </para>
+    /// </summary>
+    private static float SwingWindowSeconds(string weaponId, int strikeIndex)
+    {
+        HexLive.Simulation.Content.GearCatalog.For(weaponId ?? string.Empty)
+            .StrikeTimings(strikeIndex, out _, out var clipSeconds, out _);
+        return clipSeconds;
+    }
+
     public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1,
         int swingStartTick = 0)
     {
@@ -2982,27 +3685,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (!fighting)
         {
             // §96: ⭐ ЗАМАХ БЕЗ БОЯ. Раньше здесь стоял безусловный выход, и
-            // весь путь анимации удара висел за боевым флагом. Сцена абьюза
-            // (§81) намеренно НЕ выставляет IsFighting — иначе рвётся вся
-            // машинерия подмоги, — и потому её удары ландили невидимо: урон
-            // есть, рана есть, кровь есть, а замаха нет ни у него, ни у неё.
+            // весь путь анимации удара висел за боевым флагом. Бьющий не всегда
+            // в паре: жертва, которая не отвечает, IsFighting не получает
+            // (FightScene.Latch зажигает её, только если она сама сцепилась), а
+            // до §103 r3 сцена абьюза не зажигала и нападающего. Тогда её удары
+            // ландили невидимо: урон есть, рана есть, кровь есть, а замаха нет.
             //
             // Окно замаха самодостаточно: сим уже сказал «сейчас бьют», и
             // рисовать это не требует боевой пары. Поэтому одиночный удар
             // проигрывается ДО выхода, а всё остальное (стойка, скорость,
             // прицел) по-прежнему только для настоящего боя.
-            if (swinging && swingStartTick != _lastSwingStartTick && _animator != null)
+            //
+            // §104 r3: фронт штампа опознаётся ТЕМ ЖЕ хелпером, что и в бою.
+            // Здесь стояло своё условие с гейтом на `swinging` — то есть ровно
+            // тот баг, который штамп и заводился лечить: окно живёт один-два
+            // тика, кадр его проскакивает, флаг уже опущен, а else тихо
+            // усваивал штамп, и удар терялся навсегда.
+            if (ConsumeSwingStamp(swingStartTick) && _animator != null)
             {
-                _lastSwingStartTick = swingStartTick;
                 PlayLooseSwing(weaponId, strikeIndex);
-            }
-            else
-            {
-                // ADOPT the stamp rather than clearing it. The sim does not
-                // reset SwingStartTick when a fight ends, so clearing here would
-                // make the stale stamp look new at the START of the next fight
-                // and fire a phantom swing before she has thrown one.
-                _lastSwingStartTick = swingStartTick;
             }
 
             _wasFighting = false;
@@ -3019,11 +3720,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        // A swing the sim started that we have not played. In the ordinary
-        // frame-per-tick case this is exactly the old rising edge of `swinging`;
-        // it additionally survives a frame that skipped the whole window.
-        var swingStarted = swingStartTick > 0 && swingStartTick != _lastSwingStartTick;
-        _lastSwingStartTick = swingStartTick;
+        var swingStarted = ConsumeSwingStamp(swingStartTick);
 
         var weaponChanged = _combatWeaponId != weaponId;
         if (!_wasFighting || weaponChanged)
@@ -3041,8 +3738,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var stance = Config.GearLibrary.ArmedIdleFor(string.Empty);
             if (stance != null)
             {
-                OverrideClip(IdleClipKey, Standing(stance));
+                _bareStanceClip = stance;
                 _bareStance = true;
+                ResolveLocomotionSlots();
             }
         }
         else if (!bareHanded && _bareStance)
@@ -3081,6 +3779,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 if (clip != null)
                 {
                     OverrideClip(AttackBaseClip, clip);
+                    // §104 r4: и сразу подогнать ТЕМП под окно, которое открыл
+                    // сим для ИМЕННО ЭТОГО варианта удара — иначе авторская
+                    // длина клипа и окно расходятся (кулак: 2.17 с против 1.5),
+                    // и удар либо обрывается, либо доигрывает поверх
+                    // следующего. Ставится ПОСЛЕ подмены клипа: делим на длину
+                    // того, что реально забиндено (идиом §77.5).
+                    _animator.SetFloat(AttackSpeedParam,
+                        FitClipSpeed(AttackBaseClip, SwingWindowSeconds(weaponId, strikeIndex)));
                     _animator.SetTrigger(AttackParam);
                 }
 
@@ -3110,8 +3816,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 }
             }
 
-            var duration = Mathf.Max(0.25f,
-                HexLive.Simulation.Content.GearCatalog.AttackDurationSeconds(weaponId));
+            var duration = Mathf.Max(0.25f, SwingWindowSeconds(weaponId, strikeIndex));
             _attackSpeed = 1f / (AttackSwingCycles * duration);
         }
         else
@@ -3121,10 +3826,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _wasFighting = true;
-        if (!string.IsNullOrEmpty(weaponId))
-        {
-            SetHandProp(weaponId);
-        }
+        // §104 r3: пустой id — это КУЛАКИ, а не «оружие неизвестно». Условие
+        // стояло на непустой строке, и предмет, вложенный в руку предыдущим
+        // занятием (SetInteraction), оставался в кулаке всю кулачную драку.
+        SetHandProp(string.IsNullOrEmpty(weaponId) ? null : weaponId);
     }
 
     private void SetHandProp(string itemId)
@@ -3585,16 +4290,35 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
         }
 
-        if (splashZone == null || Time.time - _lastSplashTime < 0.4f ||
-            _bodyBones == null || !ZoneBoneAnchors.TryGetValue(splashZone, out var boneName))
+        if (splashZone == null || !SplashAt(splashZone, splashSeed))
         {
             return;
+        }
+
+        // §67/§67.10: свежая рана — вскрик, личный для персонажа (§67.6), с
+        // общим женским фолбэком, и бабл с раной/кровью над головой. Alarm-ранг
+        // перебивает болтовню; гейт 0.4 s от брызг не даёт хора из одного рта.
+        Say("hurt_wound");
+    }
+
+    /// <summary>
+    /// Брызга крови у кости зоны. Общая для двух поводов: НОВАЯ РАНА (её ищет
+    /// SyncWoundSplashVfx по seed'ам) и ХИТ-ШТАМП (§104 r5) — удар мог не
+    /// оставить раны вовсе, попав в броню или в пощаду, но видно его быть
+    /// обязано. Возвращает false, когда спавнить нечего или ещё рано.
+    /// </summary>
+    private bool SplashAt(string zone, int seed)
+    {
+        if (Time.time - _lastSplashTime < SplashGateSeconds || _bodyBones == null ||
+            !ZoneBoneAnchors.TryGetValue(zone, out var boneName))
+        {
+            return false;
         }
 
         var bone = _bodyBones.GetBone(boneName);
         if (bone == null)
         {
-            return;
+            return false;
         }
 
         _lastSplashTime = Time.time;
@@ -3609,12 +4333,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // The pack is authored for a full-size human; our actors are ~0.35
         // scale — the shared spawner scales sizes AND velocities together.
         Rendering.BloodSplashVfx.SpawnHitSplash(
-            bone.position, outward, root.lossyScale.y, splashSeed);
+            bone.position, outward, root.lossyScale.y, seed);
+        return true;
+    }
 
-        // §67/§67.10: свежая рана — вскрик, личный для персонажа (§67.6), с
-        // общим женским фолбэком, и бабл с раной/кровью над головой. Alarm-ранг
-        // перебивает болтовню; гейт 0.4 s от брызг не даёт хора из одного рта.
-        Say("hurt_wound");
+    /// <summary>
+    /// Кровь по хит-штампу. Зона неизвестна — сим шлёт момент, а не место, —
+    /// поэтому берём торс: он у любой раны рядом, а точное место всё равно
+    /// докрасит рана, когда появится.
+    /// </summary>
+    private void SpawnHitBlood(string hitPart)
+    {
+        SplashAt(string.IsNullOrEmpty(hitPart) ? "Torso" : hitPart, _lastHitStampTick);
     }
 
     // Spec 40.7: paint the bare skin from tan (0..1) and acute sunburn (0..1).
@@ -3748,11 +4478,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // the SAME 17 material slot names (Torso/Face/Arms/Legs/Cornea/… — §31B.1a
     // regenerated Jolly's from Molly's precisely so the sets stay parallel), so
     // the swap is a lookup BY NAME and never depends on submesh order.
-    //
-    // sharedMaterials is the right handle: SkinTexturePainter instantiates its
-    // own copies from whatever it finds (`body.materials`), and the tan on
-    // un-painted slots rides a MaterialPropertyBlock — so nothing here leaks
-    // one girl's wounds onto another's shared asset.
     private void ApplySkinSet(string skinSet)
     {
         if (string.IsNullOrEmpty(skinSet) || _bodySkins == null ||
@@ -3761,7 +4486,42 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        var donor = LoadSkinSet(skinSet);
+        ReplaceBodyMaterials(LoadSkinSet(skinSet));
+    }
+
+    // §85: the iris, split out of the skin set above.
+    //
+    // The four actresses ship the same five eye materials with the same five
+    // names and byte-identical parameters, differing only in which 2048² Daz
+    // eye map they point at — so a colour is one shared set of materials with
+    // one recoloured map, and swapping it is the same replace-by-NAME as the
+    // skin set. Two of the five (Irises/Sclera) carry the map and live under
+    // the colour; the other three (Pupils/Cornea/EyeMoisture) have no texture
+    // at all and are literally the same assets for everyone.
+    //
+    // EyeSocket is deliberately NOT in the set: it is shaded from the FACE
+    // texture, so it belongs to the skin and follows her complexion, not her
+    // iris.
+    private void ApplyEyeSet(string eyeColor)
+    {
+        if (string.IsNullOrEmpty(eyeColor) || _bodySkins == null)
+        {
+            return;
+        }
+
+        ReplaceBodyMaterials(LoadEyeSet(eyeColor));
+    }
+
+    // Swap in every material of `donor` whose NAME matches one already on the
+    // body. By name, never by submesh index: the four bodies are separate Daz
+    // exports and nothing promises they ordered their 17 slots alike (§74.2).
+    //
+    // sharedMaterials is the right handle: SkinTexturePainter instantiates its
+    // own copies from whatever it finds (`body.materials`), and the tan on
+    // un-painted slots rides a MaterialPropertyBlock — so nothing here leaks
+    // one girl's wounds onto another's shared asset.
+    private void ReplaceBodyMaterials(Dictionary<string, Material> donor)
+    {
         if (donor == null || donor.Count == 0)
         {
             return;
@@ -3770,7 +4530,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         foreach (var skin in _bodySkins)
         {
             // Hair and garments carry their own materials and their own donor
-            // logic — the skin set is the BODY only.
+            // logic — these sets are the BODY only.
             if (skin == null || skin.GetComponentInParent<Wear>() != null)
             {
                 continue;
@@ -3795,6 +4555,49 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 skin.sharedMaterials = mats;
             }
         }
+    }
+
+    // Eye colour id → the five eye materials by name, merged from the shared
+    // folder and the colour's own (the colour wins, though today they do not
+    // overlap). Built once per colour for the whole run.
+    private static Dictionary<string, Material> LoadEyeSet(string eyeColor)
+    {
+        if (_eyeSets.TryGetValue(eyeColor, out var cached))
+        {
+            return cached;
+        }
+
+        var map = new Dictionary<string, Material>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var mat in Resources.LoadAll<Material>("HexLive/Eyes/Common"))
+        {
+            if (mat != null)
+            {
+                map[mat.name] = mat;
+            }
+        }
+
+        var tinted = Resources.LoadAll<Material>($"HexLive/Eyes/{eyeColor}");
+        if (tinted == null || tinted.Length == 0)
+        {
+            // No iris under that id: keep the body's own eyes rather than fit
+            // her with a shared sclera and someone else's iris colour.
+            Debug.LogWarning($"[§85] eye colour '{eyeColor}' has no materials at " +
+                $"Resources/HexLive/Eyes/{eyeColor} — the body keeps its own eyes.");
+            map.Clear();
+        }
+        else
+        {
+            foreach (var mat in tinted)
+            {
+                if (mat != null)
+                {
+                    map[mat.name] = mat;
+                }
+            }
+        }
+
+        _eyeSets[eyeColor] = map;
+        return map;
     }
 
     // Donor actor prefab → its body materials by name. Loading a prefab is not
@@ -3957,7 +4760,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 _animator.speed = _simSpeed;
             }
 
-            _animSpeed = _animator.speed;
+            // §114 bug #4: _animSpeed is the SIM-TIME cadence — the ×_simSpeed
+            // factor is folded in only at the animator.speed write in the
+            // walking branch. Mirroring animator.speed here (it already
+            // contains the multiplier) poisoned the cadence with the
+            // fast-forward factor: an NPC who stood up after the player
+            // dropped 50×→1× then spent many seconds (MoveTowards at 3/s)
+            // walking the ×50 back down — animations played "Flash"-fast.
+            _animSpeed = _animator.speed > 0f ? 1f : 0f;
             _motionSampleValid = false;
             return;
         }
@@ -3969,6 +4779,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _lastPosition = position;
             _lastYaw = yaw;
             _motionSampleValid = true;
+            _smoothedSpeed = 0f;
+            _stillTimer = 0f;
             return;
         }
 
@@ -3979,12 +4791,52 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _lastPosition = position;
         _lastYaw = yaw;
 
+        // §71.5: low-pass the measured speed before anything reads it. The
+        // position it is differenced from is already interpolated between two
+        // 4 Hz sim poses, so it is a staircase, and every step of that
+        // staircase used to land straight on the walk cycle's playback rate.
+        // Fast-forward divides the time constant out, so a 4× world settles 4×
+        // sooner in wall-clock and the smoothing never lags the world.
+        _smoothedSpeed = Mathf.Lerp(_smoothedSpeed, linearSpeed,
+            1f - Mathf.Exp(-Time.deltaTime * _simSpeed / Mathf.Max(0.01f, SpeedSmoothTau)));
+
         // Hysteresis: harder to START walking than to KEEP walking, so the
         // stop-start junction gait doesn't flicker the walk/idle blend.
         var threshold = _wasWalking ? _moveEpsilon * 0.6f : _moveEpsilon * 1.3f;
-        var walking = linearSpeed > threshold;
+        var moving = linearSpeed > threshold;
+        if (moving)
+        {
+            _stillTimer = 0f;
+        }
+        else
+        {
+            _stillTimer += Time.deltaTime * _simSpeed;
+        }
+
+        // §71.5: ...and hold the walk across a stop too short to be one. A
+        // corner, a blocked step or a tick of turn penalty freezes her for a
+        // single 0.25 s tick, and dropping to Idle and back over it is a visible
+        // stutter. A planted pivot is exempt: it slews the body at hundreds of
+        // degrees a second, and it MUST reach Idle, because the turn-on-spot
+        // states can only be entered from there.
+        var walking = moving ||
+            (_wasWalking && _stillTimer < WalkHoldSeconds &&
+             Mathf.Abs(yawSpeed) <= PivotYawSpeed);
         _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
+
+        // §109.15: ⛔ ЗДЕСЬ СТОЯЛ ДОСРОЧНЫЙ ВЫХОД ИЗ ПОЗЫ УДАРА
+        // (`CrossFade(Idle)` при «пошла»). Он ломал тела: SampleMotion идёт
+        // КАЖДЫЙ КАДР, в бою «идёт» истинно почти всегда (стойку подталкивает
+        // отжим §72.5), и переход стартовал заново каждый кадр — вес блендa
+        // навсегда застревал на 0.04, аниматор не покидал Attack, а ретаргет
+        // недосмешанной позы ронял таз: тело уходило в землю. В паузе это
+        // видно прямо: двое дерущихся одновременно в переходе с весом 0.04 и
+        // 0.05, чего при одном вызове не бывает.
+        //
+        // Урок: команду аниматора нельзя ставить в покадровый расчёт без
+        // фронта. Если возвращать эту идею — только по РЕБРУ («в этом кадре
+        // впервые пошла») либо переходом по Speed в самом контроллере.
 
         // Scale the walk-cycle playback to the measured speed: half the
         // speed = half the cadence. The cadence is judged in SIM time (the
@@ -3998,8 +4850,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // ground-matching would crawl the strokes (deep water is slow by sim).
         if (walking && !_swimming && _bodyRoot != null && _jumpTimer <= 0f)
         {
-            var fullSpeed = 1.7f * _bodyRoot.lossyScale.y * FullWalkBodyHeightsPerSec;
-            var simCadence = linearSpeed / Mathf.Max(0.0001f, fullSpeed * _simSpeed);
+            // §71.5: each slot's ground pace comes from the clip ACTUALLY in it
+            // (the resolver above put it there), so a sad walk, an armed walk, a
+            // male take or the §50 crawl each play at their own authored stride
+            // instead of being forced through the base walk's. A clip with no
+            // row in the table falls back to the old single-constant figures,
+            // which is exactly the behaviour this replaced.
+            var bodyScale = 1.7f * _bodyRoot.lossyScale.y;
+            var walkGround = bodyScale * StrideOf(0, FullWalkBodyHeightsPerSec);
+            var slowGround = bodyScale * StrideOf(1, FullWalkBodyHeightsPerSec * SlowRunCadence);
+            var runGround = bodyScale * StrideOf(2, FullWalkBodyHeightsPerSec * RunCadence);
+            // Judged in SIM time — the fast-forward multiplier is divided out
+            // here and multiplied back into animator.speed below, so a 4× world
+            // steps exactly 4× faster instead of gliding.
+            var speedSim = _smoothedSpeed / Mathf.Max(0.0001f, _simSpeed);
 
             // §71: the SIM owns the gait. Deriving it from measured speed (the
             // first cut) meant any pace above a walk read as a jog, so a colony
@@ -4009,30 +4873,64 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             float gaitGround;
             if (!_running)
             {
-                // Walking: stay on the walk clip however brisk the pace, and
-                // let the cadence carry the speed.
-                targetGait = 0f;
-                gaitGround = 1f;
+                // §71.6: БОДРЫЙ ШАГ РАСПУСКАЕТСЯ В ПОЗУ, А НЕ В ПЕРЕМОТКУ.
+                // Здесь стояло «шаг остаётся шагом, темп доберёт каденс» — и
+                // на среднем теле это честно (1.2 ед/с ≈ 1.2× клипа). Но §76
+                // даёт ловкости ±15%, и у девушки с ловкостью 10 шаг 1.38 ед/с
+                // гнал клип на 1.38× — ступни по земле попадали (стрид на
+                // цикл фиксирован, цикл едет быстрее), а читалось как ускоренная
+                // плёнка: мелкая семенящая походка.
+                //
+                // Ни один клип в одиночку эту скорость не берёт: шагу нужно
+                // 1.38×, трусце — 0.69×. Поэтому берём то, ради чего дерево
+                // блендов и существует, — СМЕСЬ поз, и играем её на скорости
+                // смеси. Порог WalkStretchCadence оставляет обычному шагу его
+                // законный запас (средняя девушка едва трогает бленд), а
+                // потолок MaxWalkGait держит идущую заметно ниже трусцы (0.5):
+                // §71.1 требует, чтобы БЕГУЩАЯ фигура читалась как ЧП, и это
+                // требование к силуэту, а не к параметру.
+                //
+                // ⚠️ Только для БЕЗОРУЖНОГО шага. Слоты 1-2 держат безоружную
+                // трусцу: инструмент подменяет один слот 0 (GearLibrary), и
+                // подмешать к нему четверть беговой позы значило бы уводить
+                // руку с топором к «пустой». Ползание сюда не доходит вовсе —
+                // оно занимает все три слота, — а грустная походка не доходит
+                // по скорости (§81.10 режет её вдвое, это ниже порога).
+                var stretched = walkGround * WalkStretchCadence;
+                var blendEnd = Mathf.Lerp(walkGround, slowGround, MaxWalkGait / 0.5f);
+                if (_armedWalkClip != null || speedSim <= stretched || blendEnd <= stretched)
+                {
+                    targetGait = 0f;
+                    gaitGround = walkGround;
+                }
+                else
+                {
+                    targetGait = Mathf.InverseLerp(stretched, blendEnd, speedSim) * MaxWalkGait;
+                    gaitGround = Mathf.Lerp(walkGround, slowGround, targetGait / 0.5f);
+                }
             }
-            else if (simCadence <= SlowRunCadence)
+            else if (speedSim <= slowGround)
             {
                 targetGait = 0.5f;
-                gaitGround = SlowRunCadence;
+                gaitGround = slowGround;
             }
             else
             {
-                targetGait = 0.5f + Mathf.InverseLerp(SlowRunCadence, RunCadence, simCadence) * 0.5f;
-                gaitGround = Mathf.Lerp(SlowRunCadence, RunCadence, (targetGait - 0.5f) * 2f);
+                targetGait = 0.5f + Mathf.InverseLerp(slowGround, runGround, speedSim) * 0.5f;
+                gaitGround = Mathf.Lerp(slowGround, runGround, (targetGait - 0.5f) * 2f);
             }
 
             // A brisk walk may legitimately outrun the clip's authored pace, so
             // the walk ceiling is looser than the run's (a run clip playing 25%
             // fast already looks frantic).
             var maxCadence = _running ? MaxGaitCadence : MaxWalkCadence;
-            targetAnimSpeed = Mathf.Clamp(simCadence / gaitGround, MinGaitCadence, maxCadence);
+            targetAnimSpeed = Mathf.Clamp(speedSim / Mathf.Max(0.0001f, gaitGround),
+                MinGaitCadence, maxCadence);
         }
 
-        _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed);
+        _animSpeed = Mathf.Min(
+            Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed),
+            MaxAnimCadenceCeiling);
         _animator.speed = _animSpeed * _simSpeed;
 
         // §71: ease into the gait so a sprint starting mid-stride ramps rather
@@ -4048,9 +4946,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var jumpState = _animator.GetCurrentAnimatorStateInfo(0);
             if (jumpState.IsName("JumpUp") || jumpState.IsName("JumpDown"))
             {
-                _animator.speed = jumpState.length * _simSpeed /
-                    Mathf.Max(0.05f, _jumpDuration);
-                _animSpeed = _animator.speed;
+                // §114 bug #4: store the multiplier-FREE cadence and fold
+                // _simSpeed in only at the animator.speed write, same as the
+                // walking branch above. Storing animator.speed (which already
+                // contains ×_simSpeed) left a ×50 cadence behind after a hop
+                // under fast-forward; dropping to 1× then played every clip
+                // "Flash"-fast for the seconds MoveTowards needed to unwind
+                // it — the reported abuser flicker (he hops constantly while
+                // prowling across the island, so a speed change almost always
+                // landed on a poisoned cadence).
+                _animSpeed = jumpState.length / Mathf.Max(0.05f, _jumpDuration);
+                _animator.speed = _animSpeed * _simSpeed;
             }
         }
 
@@ -4158,13 +5064,57 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Gaze: talkers look at each other, walkers glance down the path.
     public void LookAt(Transform target)
     {
+        if (_portraitGaze)
+        {
+            return;
+        }
+
         _gazeTarget = target;
         _gazeWeightTarget = target != null ? 1f : 0f;
     }
 
     public void ClearGaze()
     {
+        // §80: пока идёт съёмка портрета, взгляд принадлежит камере — обычный
+        // выбор цели (собеседник, объект работы, точка пути) её не перебивает.
+        if (_portraitGaze)
+        {
+            return;
+        }
+
         _gazeWeightTarget = 0f;
+    }
+
+    // §80: смотреть В КАМЕРУ на время съёмки портрета. Раньше снимок ловил её
+    // с глазами, уведёнными на мировую цель (eyesWeight 0.2 и жёсткий клэмп),
+    // и на фото она смотрела мимо. Голову ведём слабо НАМЕРЕННО: камера едет по
+    // осям кости головы, и сильный поворот гнался бы сам за собой.
+    public bool BeginPortraitGaze(Vector3 eyeWorldPos)
+    {
+        if (_gazeProxy == null || _lookAtIK == null || !_lookAtIK.enabled)
+        {
+            return false;
+        }
+
+        _portraitGaze = true;
+        _gazeProxy.position = eyeWorldPos;
+        _gazeTarget = _gazeProxy;
+        _gazeWeightTarget = 1f;
+        _gazeWeight = 1f; // без разгона: съёмка длится несколько кадров
+        _face?.SetEyesHold(true);
+        return true;
+    }
+
+    public void EndPortraitGaze()
+    {
+        if (!_portraitGaze)
+        {
+            return;
+        }
+
+        _portraitGaze = false;
+        _gazeWeightTarget = 0f;
+        _face?.SetEyesHold(false);
     }
 
     private void ResetActionTargetIKWeights()
@@ -4231,14 +5181,41 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _hurtReachWeight = 0f;
 
-        var contact = ActionPropContactPoint(_actionTargetPoint, hand);
+        // §104 r11: рука не резиновая. Прицел (3.5 wu в HexWorldRenderer)
+        // решает, ЕСТЬ ли цель; ЭТОТ предел — как далеко тело может за ней
+        // потянуться. Раньше предела не было вовсе, и IK честно дотягивался
+        // до края прицела: красиво, но нечеловечески. Точка дальше предела
+        // прижимается ПО НАПРАВЛЕНИЮ на цель — замах целится туда же, просто
+        // не достаёт, как и положено настоящей руке.
+        // §109.14: прижимать ВЕСЬ вектор, а не только горизонталь. Первая
+        // версия резала XZ и оставляла высоту цели как есть — направление на
+        // цель заваливалось круто ВНИЗ (противник на гекс ниже — обычное
+        // дело), а solver.pullBodyHorizontal тянет за рукой корпус: тело
+        // уходило в землю, стоило встать в стойку. Пропорциональное
+        // сокращение сохраняет НАПРАВЛЕНИЕ удара и просто укорачивает вылет.
+        var targetPoint = _actionTargetPoint;
+        var reach = targetPoint - transform.position;
+        var reachLength = reach.magnitude;
+        if (reachLength > ActionTargetMaxReachWorldUnits)
+        {
+            targetPoint = transform.position +
+                reach * (ActionTargetMaxReachWorldUnits / reachLength);
+        }
+
+        var contact = ActionPropContactPoint(targetPoint, hand);
         solver.IKPositionWeight = 1f;
         solver.pullBodyHorizontal = ActionTargetIkBodyLean;
         effector.target = null;
-        effector.position = _actionTargetPoint - (contact - hand.position);
+        effector.position = targetPoint - (contact - hand.position);
         effector.positionWeight = weight;
         effector.rotationWeight = 0f;
     }
+
+    // §104 r11: потолок вытяжения замаха в мировых единицах (те же, что у
+    // прицела StrikeReachWorldUnits = 3.5 в HexWorldRenderer). 2.45 = минус
+    // ~30% от прежнего фактического предела: бой в упор и по соседнему узлу
+    // не задет, а дотяг через границу тайла заметно прижат к телу.
+    private const float ActionTargetMaxReachWorldUnits = 2.45f;
 
     // §82: «держится за то, что болит» — через Final IK, а не поворотом костей.
     //
@@ -4546,13 +5523,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void LateUpdate()
     {
+        // §28.15C v3: клип падения докрутился — выключить аниматор. Первым
+        // делом в кадре: всё, что ниже, тело уже не касается.
+        if (_deathFreezeAt >= 0f && Time.time >= _deathFreezeAt)
+        {
+            FreezeDeathPose();
+        }
+
         SampleMotion();
         PollActionSounds();
         UpdateTalkTurns();
-        // §81: безделье и грустная походка. Идут ПОСЛЕ SampleMotion, потому что
-        // «стоит на месте» берётся из только что посчитанной скорости.
+        // §81: безделье. Идёт ПОСЛЕ SampleMotion, потому что «стоит на месте»
+        // берётся из только что посчитанной скорости. (Грустная походка сюда
+        // больше не ходит: с §81.10 она приезжает флагом снапшота, а не тикает
+        // тут таймером.)
         UpdateIdleFidget(_busyInteraction || _combatFighting || _wasWalking || _dead || _laying);
-        UpdateSadWalk();
         UpdateHurtReach();
         // §67.10: hands the bubble back to a running conversation once a line
         // fades, and paces the ambient self-talk layer.
@@ -4671,6 +5656,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Layer the current action's arm swing over the animated pose.
             ApplyActionPose();
 
+            // §104 r9: и отбой от удара — поверх всего, в любой позе.
+            ApplyHitRecoil();
+
             // Spec 40.7 / 33: thermal body language — shiver when cold, fan when hot.
             ApplyThermalPose();
 
@@ -4688,6 +5676,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_gazeTarget != null)
         {
             _lookAtIK.solver.target = _gazeTarget;
+            if (_portraitGaze)
+            {
+                // §80 r2: на фото решают ГЛАЗА, и ТОЛЬКО глаза. Голову не ведём
+                // совсем — камера прибита к кости головы, поэтому любой её
+                // доворот утаскивает за собой кадр, и объектив гонится за
+                // лицом, которое сам же и двигает. С нулевым весом головы
+                // обратной связи нет: кость стоит как стояла, камера висит
+                // перед ней, а в объектив смотрят зрачки.
+                _lookAtIK.solver.headWeight = 0f;
+                _lookAtIK.solver.eyesWeight = 1f;
+                _lookAtIK.solver.bodyWeight = 0f;
+                _lookAtIK.solver.clampWeight = 0.5f;
+                _lookAtIK.solver.clampWeightEyes = 0.2f;
+                return;
+            }
+
             _lookAtIK.solver.headWeight = 0.8f;
             _lookAtIK.solver.eyesWeight = 0.2f;
             _lookAtIK.solver.bodyWeight = 0.3f;

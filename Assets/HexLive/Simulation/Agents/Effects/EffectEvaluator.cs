@@ -180,13 +180,30 @@ namespace HexLive.Simulation.Agents.Effects
             // Spec §60 r2: only BLOOD LOSS is unconsciousness (Coma chip) —
             // an energy crash is a dead-tired sleep and wears the Fainted
             // ("utterly spent") chip like the short stamina faint.
-            var comatose = npc.Mind.ComaCause == AI.ComaCause.BloodLoss;
+            // §105: умирание ВЫТЕСНЯЕТ и кому, и обморок — оно глубже обоих, и
+            // два чипа беспамятства подряд ничего игроку не добавят. Сила чипа
+            // = сколько запаса уже вытекло, так что он и есть полоска умирания:
+            // растёт на глазах, пока кто-нибудь не добежит.
+            var dying = npc.IsDying;
+            if (dying)
+            {
+                results.Add(new ActiveEffect(EffectKind.Dying,
+                    Clamp01(1f - npc.Mind.DyingReserve)));
+            }
+
+            // §105: несколько часов после спасения — «едва живая».
+            if (currentTick < npc.Mind.ConvalescentUntilTick)
+            {
+                results.Add(new ActiveEffect(EffectKind.Convalescent, 1f));
+            }
+
+            var comatose = !dying && npc.Mind.ComaCause == AI.ComaCause.BloodLoss;
             if (comatose)
             {
                 results.Add(new ActiveEffect(EffectKind.Coma, 1f));
             }
 
-            var fainted = !comatose &&
+            var fainted = !dying && !comatose &&
                 (npc.Mind.ComaCause == AI.ComaCause.Exhaustion ||
                  currentTick < npc.Mind.FaintedUntilTick);
             if (fainted)
@@ -241,9 +258,24 @@ namespace HexLive.Simulation.Agents.Effects
                 results.Add(new ActiveEffect(EffectKind.Grieving, 1f));
             }
 
-            if (needs.Stress >= StressShow)
+            // §110: пока она лежит и рыдает, чип «плачет» ВЫТЕСНЯЕТ «на нервах»
+            // — два оттенка одного и того же ничего игроку не добавят, а
+            // громче здесь именно слёзы.
+            var crying = npc.IsCrying(currentTick);
+            if (crying)
+            {
+                results.Add(new ActiveEffect(EffectKind.Crying, 1f));
+            }
+            else if (needs.Stress >= StressShow)
             {
                 results.Add(new ActiveEffect(EffectKind.Stressed, needs.Stress));
+            }
+
+            // §105.14: притворяется мёртвой — единственный видимый признак
+            // того, что она жива и всё решает сама, а не лежит в отключке.
+            if (npc.IsPlayingDead(currentTick))
+            {
+                results.Add(new ActiveEffect(EffectKind.PlayingDead, 1f));
             }
 
             if (needs.Social < LonelyShow)

@@ -323,6 +323,11 @@ namespace HexLive.Simulation.Content
     public static class GearCatalog
     {
         public const string Fist = "";                  // bare hands (empty id)
+        // §104 r5: «чем попали» для хит-штампа, когда попали ЗУБЫ. Не id
+        // снаряжения: пустая строка уже занята кулаками, а вид выбирает по
+        // этому полю звук удара. Живёт здесь, чтобы модель и вид читали одну
+        // константу, а не две одинаковые строки в разных сборках.
+        public const string Bite = "bite";
         public const string Knife = "tool.knife";
         public const string Axe = "tool.axe_stone";
         public const string Machete = "tool.machete";
@@ -827,6 +832,39 @@ namespace HexLive.Simulation.Content
 
         public bool HasStrikeVariants => StrikeVariants != null && StrikeVariants.Length > 0;
 
+        /// <summary>
+        /// ⭐ ТАЙМИНГИ ТЕКУЩЕГО ЗАМАХА — один расчёт на всех.
+        ///
+        /// <para>
+        /// Выбранный вариант удара, когда он есть у снаряжения (кулаки), иначе
+        /// плоский лист. Живёт здесь, а не в боевой системе, по двум причинам:
+        /// это свойство СНАРЯЖЕНИЯ, и спрашивать его должен ещё и вид — иначе
+        /// он мерит замах базовой длительностью, пока сим мерит вариантом.
+        /// Ровно эта пара мерок стоила §103 (и, в пространстве, §102).
+        /// </para>
+        /// <para>
+        /// Раньше метод существовал ДВАЖДЫ, посимвольно: в MeleeSwing и в
+        /// AnimalCombatSystem. Копия и есть тот класс багов, из-за которого
+        /// удары человека были невидимы.
+        /// </para>
+        /// </summary>
+        public void StrikeTimings(int strikeIndex,
+            out float hitDelaySeconds, out float durationSeconds, out float cooldownSeconds)
+        {
+            if (HasStrikeVariants && strikeIndex >= 0 && strikeIndex < StrikeVariants.Length)
+            {
+                var variant = StrikeVariants[strikeIndex];
+                hitDelaySeconds = variant.HitDelaySeconds;
+                durationSeconds = variant.AttackDurationSeconds;
+                cooldownSeconds = variant.CooldownSeconds;
+                return;
+            }
+
+            hitDelaySeconds = HitDelaySeconds;
+            durationSeconds = AttackDurationSeconds;
+            cooldownSeconds = CooldownSeconds;
+        }
+
         // ── Tool side ──
         public GearCapability Capabilities = GearCapability.None;
 
@@ -845,8 +883,24 @@ namespace HexLive.Simulation.Content
     /// AttackDurationSeconds → CooldownSeconds of recovery.</summary>
     public sealed class StrikeVariant
     {
-        public float HitDelaySeconds = 0.2f;
-        public float AttackDurationSeconds = 0.4f;
-        public float CooldownSeconds = 0.2f;
+        // ⭐ Значения по умолчанию — ДЛИНА НАСТОЯЩЕГО КЛИПА, а не заглушка.
+        //
+        // Здесь стояло 0.2 / 0.4 / 0.2 с пометкой «placeholder, tuned via the
+        // asset sliders». Оттюнены они не были, а StrikeTimings предпочитает
+        // вариант базовым цифрам оружия — то есть базовые 1.1/1.5/1.5 у кулака
+        // были мертвы, и работали заглушки.
+        //
+        // Цена: при 4 тиках в секунду 0.4 с превращаются в ДВА тика, и ровно
+        // столько вид получает на проигрыш полуторасекундного клипа удара.
+        // Снаружи это выглядит как «начался замах и всё оборвалось» — сцена
+        // абьюза на пять секунд читалась как одна.
+        //
+        // Теперь по умолчанию столько же, сколько у базового кулака: замах
+        // 1.1 с, клип 1.5 с, восстановление 1.5 с. Ассет (fist.asset) вправе
+        // задать своё — но молчание ассета больше не означает «четверть
+        // секунды».
+        public float HitDelaySeconds = 1.1f;
+        public float AttackDurationSeconds = 1.5f;
+        public float CooldownSeconds = 1.5f;
     }
 }

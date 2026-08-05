@@ -107,6 +107,22 @@ namespace HexLive.UnityPresentation.Input
             _runner = runner;
         }
 
+        /// <summary>
+        /// Spec §112: what the rig is framing right now — the followed colonist
+        /// while orbiting, the ground pivot while panning. The foliage culler
+        /// clears the leaves standing between the lens and this point.
+        /// </summary>
+        public Vector3 FocusPoint =>
+            _mode == Mode.Orbit && _hasSmoothedTarget ? _smoothedTarget : _freePivot;
+
+        /// <summary>
+        /// Spec §112: true while the rig is framing a PERSON (orbit mode), i.e.
+        /// while <see cref="FocusPoint"/> is a subject and not just the ground
+        /// under a free-flying camera. The culler needs the difference: only a
+        /// subject gives the depth plane «нельзя стоять ближе неё».
+        /// </summary>
+        public bool HasFramedSubject => _mode == Mode.Orbit && _hasSmoothedTarget;
+
         private void Start()
         {
             _camera = GetComponent<Camera>();

@@ -159,8 +159,13 @@ public sealed partial class ExecutionSystem
             // tells her housemate about it instead of chatting coconuts, so the
             // two bubbles differ and read as a real exchange.
             var topic = PickTalkTopic(world, npc, target);
-            npc.Execution.CurrentTalkTopic = PickSpeakerTopic(world, npc, target, topic);
-            target.Execution.CurrentTalkTopic = PickSpeakerTopic(world, target, npc, topic);
+            if (ApplySharedTopic(world, npc, target, topic))
+            {
+                // §108: разговор о нём кончился сговором — обе уже идут бить,
+                // и «начать разговор» доигрывать нечего.
+                return;
+            }
+
             if (npc.Plan.TargetJunctionId is { } jId)
             {
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
@@ -258,6 +263,8 @@ public sealed partial class ExecutionSystem
             // Spec 28.15E: talk's over — drop the topic so the bubble clears.
             npc.Execution.CurrentTalkTopic = null;
             target.Execution.CurrentTalkTopic = null;
+            npc.Execution.CurrentTalkTopicPeerId = null;
+            target.Execution.CurrentTalkTopicPeerId = null;
 
             if (npc.Plan.TargetJunctionId is { } jId)
             {
@@ -301,6 +308,7 @@ public sealed partial class ExecutionSystem
     {
         // Spec 28.15E: a dropped talk clears its topic so no bubble lingers.
         npc.Execution.CurrentTalkTopic = null;
+        npc.Execution.CurrentTalkTopicPeerId = null;
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Socialize);
         PlanInterruption.Abort(world, npc, reason);
         npc.Mind.CurrentGoal = GoalType.None;
@@ -309,43 +317,17 @@ public sealed partial class ExecutionSystem
     // Spec §53: what a suffering NPC most needs help with right now, and how
     // badly (0..1). Mirrors the perception build so a helper re-checks on
     // arrival — she may have recovered, worsened, or died on the way over.
-    private static AidKind AssessAidKind(NPCState t, int tick, out float severity)
-    {
-        severity = 0f;
-        if (t.Health <= 0f)
-        {
-            return AidKind.None;
-        }
-
-        var treatSev = t.Wounds.Count > 0 || t.Needs.Blood < 0.6f
-            ? System.Math.Max(1f - t.Needs.Blood, 1f - t.Health)
-            : 0f;
-        var medSev = t.Mind.SickUntilTick > tick
-            ? 0.6f
-            : (t.Health < 0.4f && t.Wounds.Count == 0 ? 1f - t.Health : 0f);
-        var hydrateSev = t.Needs.Thirst >= 0.55f ? t.Needs.Thirst : 0f;
-        var feedSev = t.Needs.Hunger >= 0.55f ? t.Needs.Hunger : 0f;
-        var consoleSev = tick < t.Mind.GrievingUntilTick ? 0.5f : 0f;
-        if (t.Needs.Stress > 0.6f)
-        {
-            consoleSev = System.Math.Max(consoleSev, t.Needs.Stress * 0.6f);
-        }
-
-        var kind = AidKind.Treat;
-        severity = treatSev;
-        if (medSev > severity) { severity = medSev; kind = AidKind.Medicate; }
-        if (hydrateSev > severity) { severity = hydrateSev; kind = AidKind.Hydrate; }
-        if (feedSev > severity) { severity = feedSev; kind = AidKind.Feed; }
-        if (consoleSev > severity) { severity = consoleSev; kind = AidKind.Console; }
-        return severity <= 0f ? AidKind.None : kind;
-    }
+    private static AidKind AssessAidKind(NPCState t, int tick, out float severity) =>
+        AidAssessment.Assess(t, tick, out severity);
 
     // Spec §53: apply the help to the TARGET. §53.7: the matching supply has
     // just left the HELPER's own stores (AidSupply.TrySpend), and `spend` says
     // what it was — a meal's own nutrition feeds better than a scrap, a herbal
     // dressing leaves the plantain wrap where a medkit one leaves gauze. Both
     // sides' bond is credited by the caller.
-    private static void ApplyAidRelief(
+    // internal, а не private: §105 r3 потолок лечения проверяется регрессом,
+    // и звать его надо ровно тем же путём, каким ходит игра.
+    internal static void ApplyAidRelief(
         WorldState world, NPCState helper, NPCState target, AidKind kind, in AidSupply.Spend spend)
     {
         switch (kind)
@@ -366,6 +348,8 @@ public sealed partial class ExecutionSystem
                 // worth — the patient's own Toughness is a separate axis and
                 // shows up in her healing rate, not in someone else's hands.
                 var treatHeal = Spec53.TreatHeal * AttributeMath.TreatPowerMult(helper);
+                // §105 r3: выше этого её руки не вытянут — см. Spec53.TreatCapNovice.
+                var treatCap = AttributeMath.TreatCap(helper);
 
                 // Lift every intact wounded part and stop the bleed, and drop a
                 // gauze wrap decal on the treated zones (mirrors self first-aid).
@@ -376,9 +360,13 @@ public sealed partial class ExecutionSystem
                     {
                         continue;
                     }
-                    if (target.Body.Parts[part] < 1f)
+                    // §105 r3: зона выше потолка этих рук не трогается вовсе —
+                    // и НЕ опускается: перевязка не может сделать хуже, она
+                    // просто ничего не добавляет тому, что уже лучше её умений.
+                    if (target.Body.Parts[part] < treatCap)
                     {
-                        target.Body.Parts[part] = MathUtil.Clamp01(target.Body.Parts[part] + treatHeal);
+                        target.Body.Parts[part] = System.Math.Min(
+                            treatCap, target.Body.Parts[part] + treatHeal);
                         // Spec 44 / §53.7: the dressing that was actually spent
                         // decides the decal — a gathered plantain wrap or plain
                         // medkit gauze, one or the other, never both.
@@ -422,11 +410,37 @@ public sealed partial class ExecutionSystem
                     target.Mind.GrievingUntilTick = System.Math.Max(
                         world.Tick, target.Mind.GrievingUntilTick - 600);
                 }
+
+                // §110: утешение укорачивает и сам плач — с подругой рядом
+                // она выплакивается заметно быстрее, чем одна.
+                if (world.Tick < target.Mind.CryingUntilTick)
+                {
+                    target.Mind.CryingUntilTick = System.Math.Max(
+                        world.Tick, target.Mind.CryingUntilTick - Spec53.ConsoleCryingReliefTicks);
+                }
                 // Comforting someone eases the comforter's own tension a touch.
                 helper.Needs.Stress = MathUtil.Clamp01(
                     helper.Needs.Stress - Spec53.ConsoleStressRelief * 0.3f);
+
+                // §110: она утешала СТОЯ НА КОЛЕНЯХ (§53.6 — молитвенная поза
+                // над лежащей), и подняться с колен занимает целый клип. Без
+                // этой паузы решение следующего тика уводит её пешком, и она
+                // уезжает по земле в позе молитвы. Пауза = ровно длина вставания;
+                // грейс §41.5 уже умеет «стой и приходи в себя», так что новый
+                // способ держать тело на месте заводить не нужно.
+                if (target.IsLyingDown(world.Tick))
+                {
+                    helper.Mind.WakeGraceUntilTick = System.Math.Max(
+                        helper.Mind.WakeGraceUntilTick, world.Tick + Spec53.ConsoleStandUpTicks);
+                }
+
                 break;
         }
+
+        // §105: помощь могла вытащить её с грани — проверить ПРЯМО ЗДЕСЬ, а не
+        // ждать следующего Slow-тика: иначе спасённая ещё десяток тиков лежит
+        // «умирающей» уже после того, как её напоили, и вид держит её на земле.
+        MortalityHelpers.TryExitAfterAid(world, target);
     }
 
     // Spec §53: walk-up-and-help execution. Structured like RunTalk (arrive,
@@ -532,7 +546,12 @@ public sealed partial class ExecutionSystem
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
             }
 
-            SocialCueSignals.Stamp(world, npc, "AidStarted", target.Id);
+            // §105 r5: над ПОМОЩНИЦЕЙ всплывает знак того, ЧТО она делает —
+            // крест перевязки, а не еда. Раньше все пять видов помощи давали
+            // одну иконку («Food»), и врач с бинтом читался как подавальщица.
+            // Вид разбирает ключ по двоеточию (тот же приём, что у
+            // DangerSpotted:shark), так что неизвестный вид падает на общий.
+            SocialCueSignals.Stamp(world, npc, $"AidStarted:{kindNow}", target.Id);
             SocialCueSignals.Stamp(world, target, "AidStarted", npc.Id);
             Trace.Emit(world, npc.Id, "AidStarted",
                 $"Kind={kindNow} With NPC{targetId.Value} Severity={severity:F2} " +
@@ -706,10 +725,17 @@ public sealed partial class ExecutionSystem
     {
         TalkTopic.SmallTalk, TalkTopic.Escape, TalkTopic.Sharks, TalkTopic.Dogs,
         TalkTopic.Weather, TalkTopic.Food, TalkTopic.Fire, TalkTopic.Home,
-        TalkTopic.Gossip, TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble
+        TalkTopic.Gossip, TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble,
+        // §108: последняя — тема про ЧЕЛОВЕКА, и единственная, у которой есть
+        // «о ком» (вес нулевой, пока рядом не соберётся кружок).
+        TalkTopic.Stranger
     };
 
-    private static readonly float[] TalkTopicWeights = new float[12];
+    private static readonly float[] TalkTopicWeights = new float[13];
+
+    // §108: буфер собравшихся. Один на систему — исполнитель однопоточный, и
+    // разговор считается по одной паре за раз.
+    private static readonly System.Collections.Generic.List<NPCState> GatheredBuffer = new();
 
     private static TalkTopic PickTalkTopic(WorldState world, NPCState npc, NPCState target)
     {
@@ -743,6 +769,12 @@ public sealed partial class ExecutionSystem
         w[9] = 0.20f + 1.20f * like;                    // Flirt (they warm to each other)
         w[10] = 0.40f + 0.80f * like;                   // Joke
         w[11] = 0.30f + 1.00f * dislike + 0.60f * hunger; // Grumble (dislike / crankiness)
+        // §108: о чужаке говорят только когда есть кружок и есть за что. Вес 0
+        // в остальное время — тема не «редкая», её просто НЕТ, пока условия не
+        // сложились, и попасть в неё случайно невозможно.
+        w[12] = GroupHuntMath.TopicAvailable(world, npc, target, GatheredBuffer, out _, out var hate)
+            ? Spec108.GroupHuntTopicWeight + Spec108.GroupHuntTopicHateGain * hate
+            : 0f;
 
         var total = 0f;
         for (var i = 0; i < w.Length; i++)
@@ -764,6 +796,41 @@ public sealed partial class ExecutionSystem
         }
 
         return TalkTopic.SmallTalk;
+    }
+
+    // §108: раздать обеим собеседницам их темы — и, если общая тема оказалась
+    // «чужак», проверить сговор. Одно место на оба вызова (начало разговора и
+    // каждое обновление), потому что забыть одно из них означало бы «иногда о
+    // нём говорят, а сговориться не могут», и искать это пришлось бы в трассе.
+    //
+    // Возвращает true, если сговор состоялся: тогда разговор оборван и его
+    // состояние трогать больше НЕЛЬЗЯ — участницы уже идут бить.
+    private static bool ApplySharedTopic(
+        WorldState world, NPCState npc, NPCState target, TalkTopic shared)
+    {
+        var stranger = shared == TalkTopic.Stranger
+            ? GroupHuntMath.MostHatedStranger(world, npc, target)
+            : null;
+
+        SetTopic(npc, PickSpeakerTopic(world, npc, target, shared), stranger);
+        SetTopic(target, PickSpeakerTopic(world, target, npc, shared), stranger);
+
+        if (stranger is null)
+        {
+            return false;
+        }
+
+        GroupHuntMath.GatheredGirls(world, npc, GatheredBuffer);
+        return GroupHuntMath.TryFormPact(world, GatheredBuffer, stranger);
+    }
+
+    private static void SetTopic(NPCState npc, TalkTopic topic, NPCState stranger)
+    {
+        npc.Execution.CurrentTalkTopic = topic;
+        // «О ком» есть только у темы про человека — иначе вид нарисовал бы
+        // лицо поверх разговора про погоду.
+        npc.Execution.CurrentTalkTopicPeerId =
+            topic == TalkTopic.Stranger && stranger is not null ? stranger.Id : null;
     }
 
     // §67.10: how often each speaker's subject is re-drawn inside one talk.
@@ -842,8 +909,7 @@ public sealed partial class ExecutionSystem
         }
 
         var shared = PickTalkTopic(world, npc, target);
-        npc.Execution.CurrentTalkTopic = PickSpeakerTopic(world, npc, target, shared);
-        target.Execution.CurrentTalkTopic = PickSpeakerTopic(world, target, npc, shared);
+        ApplySharedTopic(world, npc, target, shared);
     }
 }
 

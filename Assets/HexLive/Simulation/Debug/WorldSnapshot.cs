@@ -53,6 +53,20 @@ public sealed class WorldSnapshot
 
     public List<NpcSnapshot> Npcs { get; } = new();
 
+    /// <summary>
+    /// §28.15C v3: тела погибших — та же запись, что и у живых, потому что тело
+    /// это и есть она: её лицо, её одежда, её раны.
+    ///
+    /// <para>
+    /// ⭐ ОТДЕЛЬНЫЙ список, а не флаг в <see cref="Npcs"/>. «Npcs» читают ростер,
+    /// камера, итоговая сводка и половина панелей, и все они спрашивают одно:
+    /// «кто ещё жив». Подмешать туда трупы значило бы, что каждое из этих мест
+    /// обязано вспомнить про флаг, а забывшее — молча посчитает покойницу
+    /// выжившей. Здесь «живые» так и остаются живыми.
+    /// </para>
+    /// </summary>
+    public List<NpcSnapshot> Corpses { get; } = new();
+
     public List<DeathRecordSnapshot> DeathRecords { get; } = new();
 
     public List<MobSnapshot> Mobs { get; } = new();
@@ -251,6 +265,10 @@ public sealed class NpcSnapshot
     // hair prefab, voice folder. Empty = the mesh's own, i.e. pre-§74 look.
     public string SkinSet { get; set; } = string.Empty;
 
+    // §85: iris colour, its own axis (Resources/HexLive/Eyes/<id>/). Empty =
+    // the eye materials the body prefab shipped with.
+    public string EyeColor { get; set; } = string.Empty;
+
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
@@ -272,6 +290,11 @@ public sealed class NpcSnapshot
 
     public bool IsFighting { get; set; }
 
+    // ⭐ §104 r10: С КЕМ она дерётся (-1 — ни с кем). Вид наводит боевой IK на
+    // ЭТОГО противника. Считать «ближайшего дерущегося» самому он больше не
+    // может: пока правило жило в виде, оно уводило руку к волку за полкарты.
+    public int CombatOpponentNpcId { get; set; } = -1;
+
     // Timed melee: true while this NPC's attack ANIMATION window is running
     // (swing started, clip not finished) — presentation plays the attack clip
     // across exactly this window.
@@ -283,10 +306,34 @@ public sealed class NpcSnapshot
     // 0 = never swung.
     public int SwingStartTick { get; set; }
 
+    // §103 r5: чем она бьёт СЕЙЧАС — с учётом оружия, назначенного сценой.
+    // Вид считал это сам («лучшее из рюкзака») и не знал про назначенное:
+    // сцена абьюза бьёт кулаками, а на картинке был нож. Пустая строка —
+    // кулаки, ровно как в симуляции.
+    public string MeleeWeaponId { get; set; } = string.Empty;
+
     // Which strike variant the current swing uses when the drawn gear has
     // per-strike timings (fists: punches/kicks). The view plays the matching
     // clip from GearConfig.strikes. -1 = single-timing gear (random clip).
     public int StrikeIndex { get; set; } = -1;
+
+    // ⭐ §104 r5: тик, в который по НЕЙ попали (0 — ни разу). Вид ловит смену
+    // штампа и в тот же кадр даёт брызгу крови, флинч и звук удара. До этого
+    // он узнавал о попадании по падению здоровья (порог 0.02 по среднему —
+    // кулак не дотягивал) и по новой ране с гейтом 0.4 с, а звука удара по
+    // человеку не было вовсе.
+    public int HitStampTick { get; set; }
+
+    // Чем попали: "" — кулаки, id снаряжения, "bite" — зубы.
+    public string HitWeaponId { get; set; } = string.Empty;
+
+    // Куда попали — зона тела строкой, той же, что у ран ("Torso", "Head"…):
+    // вид ищет кость одной таблицей и отбивает её назад.
+    public string HitPart { get; set; } = string.Empty;
+
+    // Откуда ударили (мировая позиция бьющего). Направление отбоя вид считает
+    // от кости к этой точке и толкает в противоположную сторону.
+    public Float2 HitFrom { get; set; }
 
     public List<string> BodyParts { get; } = new();
 
@@ -373,6 +420,13 @@ public sealed class NpcSnapshot
     // ground height (water dives land below the surface, not one step down).
     public TileCoord HopTargetTile { get; set; } = TileCoord.Zero;
 
+    // §21.21B v15: the tile the hop took off from. The arc's height delta is
+    // target - from, so a hop first SEEN mid-window still arcs the right way;
+    // deriving it from Tile broke there, because the sim commits Tile to the
+    // landing tile while HopKind is still set (delta 0 = body hangs a step off
+    // the ground, then teleports when the window closes).
+    public TileCoord HopFromTile { get; set; } = TileCoord.Zero;
+
     // §21.21B: the tick the hop started. The view arms the arc on a start it
     // has not played yet (HopKind's rising edge is lost whenever the frame
     // skips the tick that raised it) and, when it observes one late, shortens
@@ -387,6 +441,28 @@ public sealed class NpcSnapshot
     // the body motionless as if dead until IsUnconscious clears, then the
     // get-up plays (the wake grace covers it).
     public bool IsUnconscious { get; set; }
+
+    // Spec §105: она УМИРАЕТ — лежит, и запас смерти тикает. Вид роняет тело
+    // той же цепочкой падения, что и обморок, а полоска умирания едет в
+    // Effects чипом Dying (сила чипа = сколько уже вытекло), поэтому здесь
+    // хватает одного флага.
+    public bool IsDying { get; set; }
+
+    // Spec §110: сломалась от стресса — ЛЕЖИТ И ПЛАЧЕТ, но в сознании. Вид
+    // укладывает её сонной цепочкой (LieDown→Sleep, а не падением), держит
+    // вторую позу сна и лицо «cry», и периодически даёт слёзный смайл со
+    // всхлипом. Отдельный флаг именно потому, что это НЕ беспамятство.
+    public bool IsCrying { get; set; }
+
+    // §81.10: понурая походка после сцены — вид подменяет ей клип шага, а сим
+    // одновременно режет скорость вдвое. Флаг, а не таймер вида: так он
+    // переживает сейв, доезжает до удалённого зрителя и не врёт на перемотке.
+    public bool IsSadWalk { get; set; }
+
+    // §105.14: притворяется мёртвой — очнулась, но не встаёт, пока рядом враг.
+    // Вид держит её упавшей (цепочка падения, без сна): для игрока это тело,
+    // которое лежит подозрительно неподвижно, а панель говорит, что она жива.
+    public bool IsPlayingDead { get; set; }
 
     // Spec §53 r2: while this NPC is aiding a housemate (Feed/Hydrate/Treat/…),
     // is her WARD lying down (coma/faint/asleep/prone)? The kneeling "tending"
@@ -434,6 +510,11 @@ public sealed class NpcSnapshot
     // not talking. The presentation shows the matching emoji in an overhead
     // bubble while the speaker is chatting.
     public string TalkTopic { get; set; } = string.Empty;
+
+    // §108: о КОМ разговор, когда тема — человек (сегодня только Stranger).
+    // Вид берёт по этому id запечённый круглый портрет и ставит его в бабл
+    // вместо эмодзи. Null для всех прочих тем.
+    public int? TalkTopicPeerId { get; set; }
 
     // Spec 28.15E: last talk outcome, for the Sims-style relationship pop over
     // the head. TalkResultTick is when the outcome resolved (the view fires the
@@ -574,7 +655,20 @@ public sealed class NpcSnapshot
     // bar segment — regen can't cross it; it shrinks as wounds close).
     public float WoundLockedHp { get; set; }
 
+    // §105 r2: ХУДШАЯ витальная зона (голова/грудь) — то, что панель рисует
+    // кольцом вокруг портрета. НЕ то же, что Health: среднее по семи зонам
+    // врёт в обе стороны (разбитая грудь при целых конечностях читается как
+    // «0.75, всё неплохо», хотя следующий удар убивает). Считается симом —
+    // «что такое витальная зона» знает BodyState.VitalHealth, и вид не должен
+    // заводить второе мнение.
+    public float VitalHealth { get; set; } = 1f;
+
     public int InventoryCapacity { get; set; }
+
+    // §28.15C v3: каким клипом она упала. Число обязано прийти из симуляции, а
+    // не родиться в кадре: иначе тело лежало бы в разной позе у сервера, у
+    // каждого зрителя и после каждой перезагрузки.
+    public int DeathAnimVariant { get; set; }
 
     public int? GoalLockEndTick { get; set; }
 

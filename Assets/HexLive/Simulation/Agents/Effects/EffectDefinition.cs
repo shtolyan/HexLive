@@ -101,6 +101,16 @@ namespace HexLive.Simulation.Agents.Effects
             // Hygiene
             Add(EffectKind.Filthy, EffectPolarity.Debuff, EffectCategory.Hygiene, "🧟");
 
+            // §105: на грани смерти и сразу после неё
+            Add(EffectKind.Dying, EffectPolarity.Debuff, EffectCategory.Injury, "💀");
+            Add(EffectKind.Convalescent, EffectPolarity.Debuff, EffectCategory.Injury, "🤒");
+
+            // §110: сломалась от стресса — лежит и рыдает.
+            Add(EffectKind.Crying, EffectPolarity.Debuff, EffectCategory.Mind, "😭");
+
+            // §105.14: притворяется мёртвой — лежит и не выдаёт себя.
+            Add(EffectKind.PlayingDead, EffectPolarity.Debuff, EffectCategory.Mind, "🫥");
+
             return map;
         }
     }

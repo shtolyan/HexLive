@@ -52,7 +52,16 @@ ICONS = {
     "FireOut":"\U0001F4A8",   # dashing away (smoke)
     "Faint":  "\U0001F635",   # knocked out
     "Wet":    "\U0001F4A6",   # sweat droplets
+    "Console":"\U0001FAC2",   # §110: people hugging — «ну не плачь»
 }
+
+# Which icons to (re)write. Empty = all of ICONS. A run rewrites the .meta with
+# a FRESH guid, so regenerating all 36 for the sake of one is ~36 pointless
+# diffs; pass the names you actually added:
+#   python3 _ArtSource/UI/gen_bubble_icons.py Console
+import sys
+if len(sys.argv) > 1:
+    ICONS = {k: v for k, v in ICONS.items() if k in sys.argv[1:]}
 
 META = open("Assets/Resources/HexLive/UI/Emoji/Food.png.meta").read()
 font = ImageFont.truetype(FONT, STRIKE)

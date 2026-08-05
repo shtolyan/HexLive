@@ -57,6 +57,14 @@ internal static class WoundMath
 
     public static void Inflict(WorldState world, NPCState npc, BodyPart zone, float damage)
     {
+        // §76.13: Toughness is trained by being hurt, and this is the one place
+        // every damage path in every combat system converges — wolf, shark,
+        // raider, housemate. Keyed on the damage that ACTUALLY landed (post
+        // armor, post grit), so a well-armoured girl toughens up slower: she
+        // took less.
+        AttributeMath.Train(npc, AttributeKind.Toughness,
+            Spec76.AttributeTrainPerDamage * damage);
+
         // §60 r2: pain jolts a DEAD-TIRED sleeper awake — she crashed from
         // exhaustion, she is not brain-dark; a bite must not farm a sleeping
         // body. Blood-loss unconsciousness stays helpless (that body CAN'T
@@ -64,6 +72,14 @@ internal static class WoundMath
         if (npc.Mind.ComaCause == AI.ComaCause.Exhaustion)
         {
             NeedsDecaySystem.WakeFromComa(world, npc, $"Pain ({zone})");
+        }
+
+        // §110: pain cuts the crying short instantly — she is conscious, and a
+        // wolf tooth is a better argument than any stress. She gets back to
+        // her feet on the next decision tick.
+        if (world.Tick < npc.Mind.CryingUntilTick)
+        {
+            npc.Mind.CryingUntilTick = 0;
         }
 
         foreach (var garment in npc.WornItems)

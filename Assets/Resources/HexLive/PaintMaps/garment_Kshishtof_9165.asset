@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Kshishtof
   VertexCount: 9165
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -21,8 +23,10 @@ MonoBehaviour:
   Zones:
   - Zone: Head
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points:
     - Slot: 0
@@ -30,10 +34,16 @@ MonoBehaviour:
       BindPerU: 1.9407749
       BindPerV: 1.6151551
       Valid: 1
+      BindPos: {x: 0.00692076, y: 1.105647, z: -0.09894732}
+      BindNormal: {x: -0.077036425, y: 0.3950094, z: -0.91544145}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points:
     - Slot: 0
@@ -41,6 +51,10 @@ MonoBehaviour:
       BindPerU: 1.6737235
       BindPerV: 1.5546088
       Valid: 1
+      BindPos: {x: -0.054186035, y: 0.5088539, z: 0.011045759}
+      BindNormal: {x: 0.85725564, y: -0.16292788, z: 0.48843342}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points:
     - Slot: 0
@@ -48,3 +62,7 @@ MonoBehaviour:
       BindPerU: 1.668117
       BindPerV: 1.5616459
       Valid: 1
+      BindPos: {x: 0.05593893, y: 0.50968415, z: 0.012472857}
+      BindNormal: {x: -0.84931433, y: -0.17729178, z: 0.49722517}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

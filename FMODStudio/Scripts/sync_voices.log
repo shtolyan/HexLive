@@ -1,10 +1,10 @@
-deleted stale voice events: 24
-deleted stale voice assets: 40
+deleted stale voice events: 252
+deleted stale voice assets: 756
 master bank: Master
-jana: files=189
-jolly: files=189
-marta: files=189
-molly: files=189
+jana: files=378
+jolly: files=378
+marta: files=378
+molly: files=378
 imported files: 756
 events created: 252, failed: 0
 save: true

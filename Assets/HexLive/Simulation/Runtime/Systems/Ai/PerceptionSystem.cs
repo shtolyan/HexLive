@@ -74,7 +74,8 @@ public sealed class PerceptionSystem : ISimulationSystem
                 var distance = HexSpatialMath.Distance(npc.Position, HexSpatialMath.TileToWorld(obj.Tile));
                 var objJunction = obj.Junctions.Count > 0 ? obj.Junctions[0] : (JunctionId?)null;
                 var isReachable = npcJunction.HasValue && objJunction.HasValue &&
-                    Connectivity.ReachableBeside(world, npcJunction.Value, objJunction.Value, npc.Body.CanJump);
+                    Connectivity.ReachableBeside(world, npcJunction.Value, objJunction.Value,
+                        npc.Body.CanJump, obj);
 
                 var perceived = new PerceivedObject
                 {
@@ -145,8 +146,13 @@ public sealed class PerceptionSystem : ISimulationSystem
                     continue;
                 }
 
+                // §26.6A r5: the remembered object usually still exists — hand it
+                // over so its own footprint stays crossable. Gone means its
+                // blocked junctions are gone too, so null is the right answer.
+                world.Entities.Objects.TryGetValue(record.Id, out var liveRemembered);
                 var isReachable = npcJunction.HasValue && record.Junction.HasValue &&
-                    Connectivity.ReachableBeside(world, npcJunction.Value, record.Junction.Value, npc.Body.CanJump);
+                    Connectivity.ReachableBeside(world, npcJunction.Value, record.Junction.Value,
+                        npc.Body.CanJump, liveRemembered);
 
                 var remembered = new PerceivedObject
                 {
@@ -216,42 +222,19 @@ public sealed class PerceptionSystem : ISimulationSystem
                 // single most-urgent HELPABLE kind, so the Aid goal can bid on
                 // and route to the worst-off without re-scanning full state.
                 // Severity is 0..1; a bleed-out clock outranks mere hunger.
+                // §53.3/§105: сама формула живёт в AidAssessment — та же, по
+                // которой помощница переоценивает подопечную по прибытии. Двух
+                // редакций быть не должно: расхождение читается не как баг, а
+                // как «дошла и передумала».
                 var aidKind = AidKind.None;
                 var suffering = 0f;
-                if (isAlly && other.Health > 0f)
+                if (isAlly)
                 {
-                    // Treat — open wounds / blood loss (a bleed-out is on a clock).
-                    var treatSev = other.Wounds.Count > 0 || other.Needs.Blood < 0.6f
-                        ? System.Math.Max(1f - other.Needs.Blood, 1f - other.Health)
-                        : 0f;
-                    // Medicate — actively sick, or gravely weak with nothing to dress.
-                    var medSev = other.Mind.SickUntilTick > world.Tick
-                        ? 0.6f
-                        : (other.Health < 0.4f && other.Wounds.Count == 0 ? 1f - other.Health : 0f);
-                    // Hydrate — parched (thirst kills faster than hunger, so it
-                    // is checked before Feed and wins ties). Without this a
-                    // dehydrating housemate registered NO helpable suffering
-                    // and got fed while dying of thirst (seed 1104049673).
-                    var hydrateSev = other.Needs.Thirst >= 0.55f ? other.Needs.Thirst : 0f;
-                    // Feed — genuinely hungry (not a passing dip).
-                    var feedSev = other.Needs.Hunger >= 0.55f ? other.Needs.Hunger : 0f;
-                    // Console — grieving or breaking under stress (soft, lowest).
-                    var consoleSev = world.Tick < other.Mind.GrievingUntilTick ? 0.5f : 0f;
-                    if (other.Needs.Stress > 0.6f)
-                    {
-                        consoleSev = System.Math.Max(consoleSev, other.Needs.Stress * 0.6f);
-                    }
-
-                    suffering = treatSev;
-                    aidKind = AidKind.Treat;
-                    if (medSev > suffering) { suffering = medSev; aidKind = AidKind.Medicate; }
-                    if (hydrateSev > suffering) { suffering = hydrateSev; aidKind = AidKind.Hydrate; }
-                    if (feedSev > suffering) { suffering = feedSev; aidKind = AidKind.Feed; }
-                    if (consoleSev > suffering) { suffering = consoleSev; aidKind = AidKind.Console; }
-                    if (suffering <= 0f) { aidKind = AidKind.None; }
+                    aidKind = AidAssessment.Assess(other, world.Tick, out suffering);
                 }
                 perceivedAgent.Suffering = suffering;
                 perceivedAgent.AidKind = aidKind;
+                perceivedAgent.IsDying = other.IsDying; // §105
 
                 if (isAlly)
                 {

@@ -69,18 +69,60 @@ public sealed class BodyState
         return sum / Parts.Count;
     }
 
-    public bool VitalDestroyed(out BodyPart part)
+    // §105 r4: ⭐ ЧТО ТАКОЕ ВИТАЛЬНАЯ ЗОНА — одно определение на весь проект.
+    //
+    // Голова, грудь и ТАЗ. Раньше пара «голова + грудь» была вписана руками в
+    // пяти местах (проверка смерти, пол умирающей, два температурных порога,
+    // расчёт полоски), и добавление таза означало вспомнить про каждое —
+    // ровно тот класс ошибок, ради которого §105 собрала восемь сайтов урона в
+    // один ResolveTrauma. Теперь спрашивают ЗДЕСЬ.
+    //
+    // Конечности сюда не входят намеренно: они доходят до нуля и даже
+    // отрываются (§50), не убивая, — калечат, но не кончают.
+    public static readonly BodyPart[] VitalParts =
     {
-        if (Parts[BodyPart.Head] <= 0f)
+        BodyPart.Head, BodyPart.Torso, BodyPart.Pelvis
+    };
+
+    public static bool IsVital(BodyPart part) =>
+        part is BodyPart.Head or BodyPart.Torso or BodyPart.Pelvis;
+
+    // §105 r2: ВИТАЛЬНОЕ здоровье — худшая из зон, потеря которых убивает.
+    //
+    // Отличается от Health (среднее по семи зонам) намеренно, и показывать
+    // игроку надо именно это. Среднее врёт в обе стороны: разбитая в хлам
+    // грудь при целых руках и ногах даёт «здоровье 0.75», то есть «всё
+    // неплохо», хотя следующий удар убивает; а обглоданные конечности при
+    // целом торсе роняют среднее, хотя жизни ничего не грозит. Полоска над
+    // портретом читает ЭТО — «сколько осталось до того, как станет поздно».
+    //
+    // Балансу от этого ни жарко ни холодно: Health остаётся ровно тем же
+    // числом, что и был, и все пороги симуляции по-прежнему смотрят на него.
+    public float VitalHealth()
+    {
+        var worst = 1f;
+        foreach (var part in VitalParts)
         {
-            part = BodyPart.Head;
-            return true;
+            if (Parts[part] < worst)
+            {
+                worst = Parts[part];
+            }
         }
 
-        if (Parts[BodyPart.Torso] <= 0f)
+        return worst;
+    }
+
+    public bool VitalDestroyed(out BodyPart part)
+    {
+        // Порядок — как в VitalParts: голова первой, потому что трасса и §105
+        // разбирают именно её отдельно (голова в ноль убивает мгновенно).
+        foreach (var candidate in VitalParts)
         {
-            part = BodyPart.Torso;
-            return true;
+            if (Parts[candidate] <= 0f)
+            {
+                part = candidate;
+                return true;
+            }
         }
 
         part = BodyPart.Head;
@@ -179,6 +221,12 @@ public sealed class NPCState
     // bootstrap and the outsider all keep working untouched.
     public string SkinSet { get; set; } = string.Empty;
 
+    // §85: iris colour, split out of SkinSet so a face and a pair of eyes are
+    // two choices. Empty means "the eye materials the body prefab shipped with",
+    // which is what keeps the outsider, the test scenes and pre-§85 saves as
+    // they were.
+    public string EyeColor { get; set; } = string.Empty;
+
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
@@ -188,6 +236,17 @@ public sealed class NPCState
     // for a colonist and an outsider. Defaults to Colony so every pre-§72 path
     // and every old save behaves exactly as before.
     public Faction Faction { get; set; } = Faction.Colony;
+
+    // §28.15C v3: КАКИМ клипом она упала. Выбирается симуляцией по хешу сида,
+    // а не видом по Random: иначе одно и то же тело падало бы по-разному у
+    // сервера и у каждого зрителя, и по-новому после каждой перезагрузки —
+    // поза лежащего тела это состояние мира, а не украшение кадра.
+    //
+    // Момента смерти здесь намеренно НЕТ: его уже хранит world.DeathRecords, а
+    // виду он не нужен — «упала прямо сейчас» против «лежит с прошлой сессии»
+    // он различает по тому, был ли у него живой вид этого тела кадром раньше.
+    // Второе поле с тем же смыслом рано или поздно разошлось бы с первым.
+    public int DeathAnimVariant { get; set; }
 
     public FragmentId Fragment { get; set; }
 
@@ -272,6 +331,34 @@ public sealed class NPCState
     // single-timing gear (knife/axe). Not persisted.
     public int SwingStrikeIndex { get; set; } = -1;
 
+    // ⭐ §104 r5: ТИК, В КОТОРЫЙ ПО НЕЙ ПОПАЛИ. Тот же приём, что и
+    // SwingStartTick, и по той же причине: момент удара живёт ОДИН тик, а вид
+    // рисует только последний тик кадра — булев флаг «сейчас попали» был бы
+    // невидим на любой скорости выше 1x.
+    //
+    // Зачем вообще: до этого вид узнавал о попадании косвенно и с опозданием —
+    // по падению здоровья (порог 0.02 по СРЕДНЕМУ, а кулак даёт landed/7 ≈
+    // 0.015, то есть флинча просто не было) и по появлению новой раны с
+    // гейтом в 0.4 с. Звука удара по человеку не было вовсе. Штамп даёт виду
+    // ровно то, что нужно: вот сейчас, вот этим.
+    //
+    // Ставится ДАЖЕ когда урон обнулила пощада (§86): удар случился, кулак
+    // прилетел — видно и слышно это должно быть. Не персистится.
+    public int HitStampTick { get; set; }
+
+    // Чем по ней попали в тот тик: "" — кулаки, id снаряжения, MobBiteWeaponId
+    // — зубы. Вид выбирает по этому звук удара и характер брызги.
+    public string HitWeaponId { get; set; } = string.Empty;
+
+    // ⭐ §104 r9: КУДА попали и ОТКУДА. Вид отбивает эту кость назад — не
+    // клипом реакции, а процедурно, поверх любой анимации, поэтому ему нужны
+    // ровно две вещи: зона тела и позиция бьющего (направление считается от
+    // кости). Зона — та же, что у ран, чтобы кость искалась одной таблицей.
+    public BodyPart HitPart { get; set; } = BodyPart.Torso;
+
+    // Мировая позиция того, кто ударил, на момент удара.
+    public Float2 HitFrom { get; set; }
+
     // Spec 35.4: accumulated sun exposure; burns at 1.0.
     public float SunExposure { get; set; }
 
@@ -312,18 +399,42 @@ public sealed class NPCState
 
     public NPCMind Mind { get; } = new();
 
+    // Spec §105: она УМИРАЕТ — лежит с обнулённым статом, и запас смерти
+    // тикает. Живая (Health держится над нулём полом Spec105.BodyFloor,
+    // именно чтобы её не приняли за труп три десятка проверок `Health <= 0`),
+    // но беспомощная и спасаемая.
+    public bool IsDying => Mind.DyingCause != AI.DyingCause.None;
+
     // Spec §60: out cold — either the short stamina faint (spec 40.13) or a
     // stat-gated coma. One question every consumer asks the same way: can this
     // body act at all right now? Combat/decision/presentation gate on THIS.
+    // §105: умирание входит СЮДА, а не заводит свой параллельный вопрос — тем
+    // самым все три десятка читателей (бой не бьёт беспомощную, перцепция не
+    // зовёт её болтать, помощь считает её лежачей) получают верную семантику
+    // без единой правки на своей стороне.
     public bool IsUnconscious(int tick) =>
-        Mind.ComaCause != AI.ComaCause.None || tick < Mind.FaintedUntilTick;
+        Mind.ComaCause != AI.ComaCause.None || IsDying || tick < Mind.FaintedUntilTick;
+
+    // Spec §110: lying down and crying — the stress arm of the §40.13 collapse.
+    // Deliberately NOT part of IsUnconscious: she is awake (pain interrupts,
+    // cues/speech still show), she just can't act until she cries it out.
+    public bool IsCrying(int tick) => tick < Mind.CryingUntilTick;
+
+    // §105.14: притворяется мёртвой — лежит неподвижно, пока рядом враг.
+    // Она В СОЗНАНИИ, и это НАМЕРЕННО не входит в IsUnconscious: его читатели
+    // (MobSystem helpless, RaidMath.Opportunity, §56/§81) — это и есть
+    // «догрызают беспомощную», а притворство обязано делать ровно обратное:
+    // враг теряет к ней интерес (гейты по форме §106, см. IsNpcInRefugeFrom).
+    public bool IsPlayingDead(int tick) => tick < Mind.PlayDeadUntilTick;
 
     // Spec §53/§60: is this body lying flat on the ground right now — knocked
-    // out (coma/faint), asleep, or legless-prone? A lying ward keeps her
-    // authored pose (helpers/chatters must not spin her to "face" them), and
-    // the aid animation kneels beside her only when she is DOWN.
+    // out (coma/faint), asleep, crying (§110), or legless-prone? A lying ward
+    // keeps her authored pose (helpers/chatters must not spin her to "face"
+    // them), and the aid animation kneels beside her only when she is DOWN.
     public bool IsLyingDown(int tick) =>
         IsUnconscious(tick) ||
+        IsCrying(tick) ||
+        IsPlayingDead(tick) ||
         Execution.CurrentInteraction == InteractionType.Sleep ||
         Body.IsProne;
 

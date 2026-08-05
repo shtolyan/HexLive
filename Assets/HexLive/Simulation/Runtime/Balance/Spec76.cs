@@ -6,8 +6,10 @@ namespace HexLive.Simulation.Runtime
 // §75 a variable roster, but the NUMBERS were the same girl three times over.
 //
 // Two layers:
-//  - ATTRIBUTES (6): innate, rolled from the seed at spawn, fixed for life.
-//  - SKILLS (8): learned by doing, growing with diminishing returns.
+//  - ATTRIBUTES (6): the body. Rolled from the seed at spawn, then CONDITIONED
+//    by whatever taxes them (§76.13) — the roll is a starting hand, not a life
+//    sentence.
+//  - SKILLS (8): the trade. Learned by doing, with diminishing returns.
 //
 // All balance lives here so the headless harness can bisect it and the
 // AttributesBalance config asset can drive it (§59).
@@ -71,6 +73,46 @@ public static class Spec76
     // Carry capacity is an INT (slots), so it is a band and not a curve: above
     // this much Strength she gets one extra slot, and that is the whole story.
     public static float CarrySlotThreshold = 0.85f;
+
+    // ---- Training: the body conditions itself --------------------------------
+    // §76.13. The roll is a STARTING hand, not a life sentence: an attribute
+    // creeps up from the thing that taxes it — Strength from heavy work,
+    // Endurance from running and long days, Toughness from taking a beating,
+    // Hardiness from going without, Wits from fiddly work, Agility from
+    // fighting. That is what keeps the two layers distinct: the body trains,
+    // the trade is learned.
+    //
+    // Consequence to keep in mind: the §76.2 point-buy budget is now only the
+    // STARTING budget. Two colonists who lived differently end up with
+    // different totals, on purpose.
+    public static bool AttributeTrainEnabled = true;
+
+    // The hard ceiling an attribute can train up to, and the shape: gain
+    // ∝ ((Ceiling − attr) / Ceiling)², so progress slows to a crawl near the
+    // top instead of stopping at a wall. 1.3 = "13" on the sheet, which is why
+    // the display carries no denominator.
+    public static float AttributeTrainCeiling = 1.3f;
+
+    // Per tick of completed work (Strength / Wits, whichever the verb taxes).
+    // ~40× slower than the matching skill: a trade is learned in days, a body
+    // is built over a colony's lifetime.
+    public static float AttributeTrainPerWorkTick = 0.00008f;
+
+    // Per landed blow (Agility — footwork, not muscle).
+    public static float AttributeTrainPerHit = 0.0004f;
+
+    // Per unit of damage that actually reached the flesh (Toughness).
+    public static float AttributeTrainPerDamage = 0.004f;
+
+    // Per fast tick spent running with breath draining (Endurance).
+    public static float AttributeTrainPerRunTick = 0.00002f;
+
+    // Per slow tick spent hungry, parched or freezing past the §76.13 gate
+    // (Hardiness). Deprivation is the only teacher this one has.
+    public static float AttributeTrainPerHardshipTick = 0.00005f;
+
+    // How deep into the red a need must be before it counts as hardship.
+    public static float AttributeHardshipGate = 0.7f;
 
     // ---- Skills -------------------------------------------------------------
 

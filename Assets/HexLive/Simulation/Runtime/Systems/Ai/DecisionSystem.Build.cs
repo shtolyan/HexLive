@@ -123,17 +123,17 @@ public sealed partial class DecisionSystem
             // §54.14: only the BARE hearth site (no fire raised yet) gets the
             // cold-start priority. A live campfire mid-upgrade (stone ring /
             // spit outstanding) queues like any other furniture site.
-            if (site.BuildProduct == "campfire.spot" && site.DefinitionId == "build.site")
+            if (site.BuildProduct == ContentIds.Campfire && site.DefinitionId == ContentIds.BuildSite)
             {
                 return site;
             }
 
-            if (site.DefinitionId == "campfire.spot")
+            if (site.DefinitionId == ContentIds.Campfire)
             {
                 hearthUpgrade ??= site;
             }
-            else if (site.DefinitionId == "build.site" &&
-                site.BuildProduct is "bed.leaf" or "bed.basic")
+            else if (site.DefinitionId == ContentIds.BuildSite &&
+                site.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic)
             {
                 if (buildsTheDream)
                 {
@@ -144,8 +144,8 @@ public sealed partial class DecisionSystem
                     furnitureSite ??= site;
                 }
             }
-            else if (site.DefinitionId == "build.site" &&
-                site.BuildProduct is "station.drying_rack" or "station.water_collector")
+            else if (site.DefinitionId == ContentIds.BuildSite &&
+                site.BuildProduct is ContentIds.DryingRack or ContentIds.WaterCollector)
             {
                 furnitureSite ??= site;
             }
@@ -168,7 +168,12 @@ public sealed partial class DecisionSystem
     // общий очаг колонии ничей, поэтому по владельцу одному судить нельзя.
     // Если фракционных домов в мире нет вовсе (старый сейв, тестовый мир) —
     // ограничение не применяется, поведение остаётся прежним.
-    private static bool IsOurSite(WorldState world, NPCState npc, WorldObjectState site)
+    //
+    // Internal (§72.13): планировщик обязан задавать ТОТ ЖЕ вопрос. Аукцион ставит цель
+    // по своей стройке (FindBuildSite), но план брал БЛИЖАЙШИЙ подходящий
+    // объект из восприятия — и девушка с палками в руках, проходя мимо чужой
+    // стоянки, достраивала её (см. IsValidTargetFor: Build/BuildFurniture).
+    internal static bool IsOurSite(WorldState world, NPCState npc, WorldObjectState site)
     {
         if (site.Owner is { } owner)
         {
@@ -203,7 +208,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.BuildProduct is "bed.leaf" or "bed.basic" &&
+            if (obj.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic &&
                 obj.Owner is { } owner && owner.Equals(npc.Id))
             {
                 return true;

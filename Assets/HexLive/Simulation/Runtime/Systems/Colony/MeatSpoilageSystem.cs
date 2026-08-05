@@ -34,11 +34,11 @@ public sealed class MeatSpoilageSystem : ISimulationSystem
             }
 
             int spoilTicks;
-            if (obj.DefinitionId == "food.meat_raw")
+            if (obj.DefinitionId == ContentIds.MeatRaw)
             {
                 spoilTicks = SimBalance.MeatRawSpoilTicks;
             }
-            else if (obj.DefinitionId == "food.meat_cooked")
+            else if (obj.DefinitionId == ContentIds.MeatCooked)
             {
                 spoilTicks = SimBalance.MeatCookedSpoilTicks;
             }

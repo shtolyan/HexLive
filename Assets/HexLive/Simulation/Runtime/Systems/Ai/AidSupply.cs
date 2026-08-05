@@ -106,8 +106,9 @@ internal static class AidSupply
         spend = new Spend(string.Empty, Spec53.FeedRelief, false);
 
         // A ready-to-eat item feeds her by its OWN nutrition — sharing meat is
-        // worth more than sharing a scrap.
-        if (npc.Inventory.FindFirstFood(world.Content) is { } foodId)
+        // worth more than sharing a scrap; §54.17: the BEST item, same rule
+        // the donor would use for herself.
+        if (FoodMath.BestFoodInInventory(world, npc) is { } foodId)
         {
             npc.Inventory.Items.Remove(foodId);
             spend = new Spend(foodId, NutritionOf(world, foodId), false);
@@ -116,15 +117,15 @@ internal static class AidSupply
 
         // Otherwise a coconut out of the pack: an open one is handed over as is,
         // a whole/pierced one she splits with the blade she is carrying.
-        if (npc.Inventory.Items.Remove("food.coconut_open"))
+        if (npc.Inventory.Items.Remove(ContentIds.CoconutOpen))
         {
-            spend = new Spend("food.coconut_open", NutritionOf(world, "food.coconut_open"), false);
+            spend = new Spend(ContentIds.CoconutOpen, NutritionOf(world, ContentIds.CoconutOpen), false);
             return true;
         }
 
         if (DecisionSystem.HasCoconutBlade(npc))
         {
-            foreach (var id in new[] { "food.coconut_pierced", "food.coconut" })
+            foreach (var id in new[] { ContentIds.CoconutPierced, ContentIds.Coconut })
             {
                 if (npc.Inventory.Items.Remove(id))
                 {
@@ -151,25 +152,25 @@ internal static class AidSupply
                 npc.BottleWater = WaterKind.None;
             }
 
-            spend = new Spend("tool.bottle", Spec53.HydrateRelief, false);
+            spend = new Spend(ContentIds.Bottle, Spec53.HydrateRelief, false);
             return true;
         }
 
         // A pierced coconut she carries keeps its water like a canteen.
         foreach (var item in npc.Inventory.Items)
         {
-            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount > 0f)
+            if (item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f)
             {
                 item.ResourceAmount = System.MathF.Max(0f, item.ResourceAmount - 1f);
-                spend = new Spend("food.coconut_pierced", Spec53.HydrateRelief, false);
+                spend = new Spend(ContentIds.CoconutPierced, Spec53.HydrateRelief, false);
                 return true;
             }
         }
 
         // Last: pierce a whole nut for her — the nut is gone either way.
-        if (DecisionSystem.HasCoconutBlade(npc) && npc.Inventory.Items.Remove("food.coconut"))
+        if (DecisionSystem.HasCoconutBlade(npc) && npc.Inventory.Items.Remove(ContentIds.Coconut))
         {
-            spend = new Spend("food.coconut", Spec53.HydrateRelief, false);
+            spend = new Spend(ContentIds.Coconut, Spec53.HydrateRelief, false);
             return true;
         }
 
@@ -193,7 +194,7 @@ internal static class AidSupply
             npc.Needs.HerbalBandages--;
         }
 
-        spend = new Spend(herbal ? "bandage.herbal" : "bandage.medkit", 0f, herbal);
+        spend = new Spend(herbal ? ContentIds.Bandage : ContentIds.Medkit, 0f, herbal);
         return true;
     }
 
@@ -211,30 +212,16 @@ internal static class AidSupply
         {
             npc.Needs.HerbalBandages--;
             npc.Needs.Bandages--;
-            spend = new Spend("bandage.herbal", 0f, true);
+            spend = new Spend(ContentIds.Bandage, 0f, true);
             return true;
         }
 
         return false;
     }
 
-    // The Hunger the food's own Eat interaction removes; the §53 flat value
-    // when the definition declares none.
-    private static float NutritionOf(WorldState world, string definitionId)
-    {
-        if (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition))
-        {
-            foreach (var interaction in definition.Interactions)
-            {
-                if (interaction.Type == InteractionType.Eat && interaction.Effects.HungerDelta < 0f)
-                {
-                    return -interaction.Effects.HungerDelta;
-                }
-            }
-        }
-
-        return Spec53.FeedRelief;
-    }
+    // §54.17: the shared item-nutrition rule lives in FoodMath now.
+    private static float NutritionOf(WorldState world, string definitionId) =>
+        FoodMath.NutritionOf(world, definitionId);
 }
 
 }

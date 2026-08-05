@@ -22,6 +22,9 @@ produce "low-poly" directly.**
   (UnityMeshSimplifier → ~20-30 K tris), (d) a flat URP/Lit material.
 - So the flow is: **flat-shaded IMAGE → high-poly textured GLB → decimate →
   reorient/pivot → prefab.** Never skip straight to a low-poly generator.
+- ⚠️ **Decimation is not the last step — see §3c.** It floors at ~20-30 K because
+  the AI mesh is a disconnected triangle soup, and 20-30 K is 50-250x the rest of
+  the art. Retopologise (or model) after it.
 
 The full step-by-step follows.
 
@@ -123,6 +126,46 @@ Blender -b -P orient_glb.py   -- dec.glb  out.glb <rx ry rz> preview.png [alpha]
   `ObjectFit`. (`tool.bottle` was exactly this trap — its baked 0.349 was tuned
   for a 0.43-tall procedural bottle.)
 
+## 3c. ⭐ Polygon budget — decimation is NOT the last step
+
+`20000/tris` in §3b and the "~20-30 K" in §5 are not a low-poly budget, they are
+**where the decimator gave up**. Measured across the repo:
+
+| | triangles |
+|---|---|
+| handmade Kenney props (`.fbx`) | **28 - 400** |
+| `tool.axe_stone` / `knife` / `pickaxe` / `spear` | 21 310 - 34 830 |
+| `tool.machete` / `tool.saw` (as shipped) | 20 000 each |
+| `rope` / `yucca` | 46 855 / 52 760 |
+
+So every AI tool was **50-250x** the rest of the art, and nobody could push it
+lower because **a trellis-2 mesh cannot be decimated at all**: it is a triangle
+soup — three unshared verts per triangle, ~5 500 disconnected shells, 30 957
+boundary edges — so COLLAPSE shrinks triangles into holes instead of merging
+them. Welding first gets rid of the holes and leaves spikes. That is the real
+reason §5 says it "FLOORS at 30-60 K"; it is not a property of the tool.
+
+**Do not decimate an AI mesh. Replace it.** Two routes, both headless Blender:
+
+- **Volumes** (axe, knife, machete, pickaxe, spear, bottle) —
+  `Tools/retopo_tool_glb.py`: voxel-remesh to a clean manifold, decimate THAT,
+  re-unwrap, and bake the original albedo onto the new UVs, so the look survives.
+  `tool.machete`: 20 000 -> **898 tris**, 3.19 -> 0.36 MB. Choose `voxel` from the
+  thinnest feature you must keep — a few voxels across, or it dissolves.
+- **Thin plates** (the saw blade) — model it. There COLLAPSE floors for a real
+  geometric reason: merging across a shell a few voxels thick would
+  self-intersect, so the result is 27 041 faces at ratio 0.005 **and** at 0.001,
+  and QuadriFlow refuses the mesh whatever you clean up first (it wants one
+  connected manifold; pre-decimating to make it cheap is what breaks that).
+  `Tools/make_saw_lowpoly.py` states the saw as a plate, teeth and a grip:
+  **220 tris, 17 KB.** Take the flat colours from the old model's albedo
+  (k-means over the texture) so the colour does not move.
+
+Either way keep the **bbox and pivot** of the model you replace, or the hand pose
+in `Resources/HexLive/Gear/<x>.asset` moves with it. Re-render the inventory icon
+afterwards (`Tools/render_item_icon.py --install <itemId>`) — it is a render of
+the real mesh, so it is stale the moment the mesh changes.
+
 ## 4. Import to Unity
 
 - `import_model_file(source_path=<fixed glb>, name=<StoneX_AI>, output_folder="Assets/_AiGen")`.
@@ -136,9 +179,12 @@ Blender -b -P orient_glb.py   -- dec.glb  out.glb <rx ry rz> preview.png [alpha]
 - **UnityMeshSimplifier** (OpenUPM `com.whinarn.unitymeshsimplifier`, scoped
   registry `package.openupm.com`). AI image-to-3D output is a triangle-soup with
   poor connectivity → even with all `Preserve*Edges = false` + `EnableSmartLink`
-  it FLOORS at ~30-60K tris (can't reach a few K). That's acceptable for a
-  prototype prop. Run via `execute_code`; `SimplifyMesh` blocks the main thread so
-  the bridge times out but the op completes — verify the saved mesh after.
+  it FLOORS at ~30-60K tris (can't reach a few K). Run via `execute_code`;
+  `SimplifyMesh` blocks the main thread so the bridge times out but the op
+  completes — verify the saved mesh after.
+- ⚠️ **That floor is the source mesh, not the simplifier, and 30-60 K is not
+  shippable** — see §3c for why and for the two routes that actually reach
+  low-poly. This step alone leaves a prop 50-250x heavier than the rest of the art.
 
 ## 6. Orient + pivot — CONVENTIONS (must match `tool.axe_stone`)
 

@@ -82,18 +82,40 @@ public static class HexPathfinder
         return false;
     }
 
+    // §40.17 v2: the signed elevation change of a directed step, resolved from
+    // the tiles the walker actually leaves and enters. This is THE definition of
+    // "this step is a jump" — the hop arming in MovementSystem reads the same
+    // resolver, and worldgen bakes it into Junction.NeighborStepDelta so the
+    // pathfinder never has to run it in its inner loop.
+    public static int ResolveStepDelta(WorldState world, JunctionId fromId, JunctionId toId)
+    {
+        if (!TryGetDirectedStepTile(world, toId, fromId, out var fromTile) ||
+            !TryGetDirectedStepTile(world, fromId, toId, out var toTile))
+        {
+            return 0;
+        }
+
+        return toTile.Elevation - fromTile.Elevation;
+    }
+
+    // The baked value for the step from -> from.Neighbors[neighborIndex], with a
+    // live fallback for graphs built by hand (unit fixtures never run worldgen).
+    // Falling back matters more than speed here: silently reading 0 would make
+    // every jump free again, which is precisely the bug being fixed.
+    public static int StepDelta(WorldState world, Junction from, int neighborIndex, JunctionId toId)
+    {
+        var baked = from.NeighborStepDelta;
+        return baked is not null && neighborIndex < baked.Length
+            ? baked[neighborIndex]
+            : ResolveStepDelta(world, from.Id, toId);
+    }
+
     // Spec §50: does crossing from `fromId` to `toId` need a jump? A survivor
     // who can't jump (a lost leg) must not route across an elevation edge, so
     // that terrain is off-limits to her.
     public static bool RequiresJump(WorldState world, JunctionId fromId, JunctionId toId)
     {
-        if (!TryGetDirectedStepTile(world, toId, fromId, out var fromTile) ||
-            !TryGetDirectedStepTile(world, fromId, toId, out var toTile))
-        {
-            return false;
-        }
-
-        return fromTile.Elevation != toTile.Elevation;
+        return ResolveStepDelta(world, fromId, toId) != 0;
     }
 
     // Spec 24.3 (iteration 24): housemates are soft obstacles — avoid the
@@ -122,16 +144,26 @@ public static class HexPathfinder
         // Spec 40.17: uniform-cost (Dijkstra) search. Frontier ordered by
         // (gScore, seq): the seq term makes every priority unique, so a
         // SortedDictionary is a stable min-priority queue — and, unlike .NET 6's
-        // PriorityQueue, it compiles under Unity's netstandard2.1. ClimbCost now
-        // applies real per-edge weights (seam 1.2x, strait 2x, swim 4x — NOT
-        // uniform), so ordering is genuine cheapest-first, not plain BFS.
+        // PriorityQueue, it compiles under Unity's netstandard2.1. ClimbCost
+        // applies real per-edge weights (climb up 4.5x, down 2.5x, strait 2x,
+        // swim 4x — NOT uniform), so ordering is genuine cheapest-first.
+        // §40.17 v2: with RELAXATION. The old loop closed a neighbour the first
+        // time it was reached (`cameFrom.ContainsKey`) and never improved it, so
+        // with a real cost spread a node first found through an expensive edge
+        // kept that price forever — the search could return a route more
+        // expensive than one it had the data to find. Frontier holds at most one
+        // entry per node: an improvement removes the stale key before adding the
+        // new one, and `closed` keeps a popped node from being reopened.
         const long priorityScale = 100_000_000L;
         var frontier = new SortedDictionary<long, JunctionId>();
+        var frontierKey = new Dictionary<JunctionId, long>();
+        var closed = new HashSet<JunctionId>();
         var cameFrom = new Dictionary<JunctionId, JunctionId?>();
         var gScore = new Dictionary<JunctionId, long>();
         var seq = 0L;
 
         frontier.Add(0L, start);
+        frontierKey[start] = 0L;
         cameFrom[start] = null;
         gScore[start] = 0L;
 
@@ -141,6 +173,8 @@ public static class HexPathfinder
             foreach (var kv in frontier) { head = kv; break; } // lowest priority
             frontier.Remove(head.Key);
             var current = head.Value;
+            frontierKey.Remove(current);
+            closed.Add(current);
             if (current.Equals(goal))
             {
                 break;
@@ -151,9 +185,12 @@ public static class HexPathfinder
                 continue;
             }
 
-            foreach (var neighborId in junction.Neighbors)
+            // Indexed, not foreach: the baked per-edge elevation delta lives in
+            // a list parallel to Neighbors. Same order, same determinism.
+            for (var n = 0; n < junction.Neighbors.Count; n++)
             {
-                if (cameFrom.ContainsKey(neighborId))
+                var neighborId = junction.Neighbors[n];
+                if (closed.Contains(neighborId))
                 {
                     continue;
                 }
@@ -188,23 +225,38 @@ public static class HexPathfinder
                     continue;
                 }
 
+                var stepDelta = StepDelta(world, junction, n, neighborId);
+
                 // Spec §50: a survivor who can't jump can't take an elevation
                 // step (or dive water) — skip the edge entirely, even to the
                 // goal (that spot is genuinely unreachable to her, not a detour).
-                if (!canJump && RequiresJump(world, current, neighborId))
+                if (!canJump && stepDelta != 0)
                 {
                     continue;
                 }
 
-                var cost = gScore[current] + ClimbCost(world, current, neighborId, weightClimb);
+                var cost = gScore[current] +
+                    ClimbCost(world, neighborId, stepDelta, weightClimb);
                 if (danger is not null && danger.Contains(neighborId))
                 {
                     cost += dangerCost;
                 }
 
+                if (gScore.TryGetValue(neighborId, out var known) && cost >= known)
+                {
+                    continue; // no improvement — keep the cheaper parent
+                }
+
                 gScore[neighborId] = cost;
                 cameFrom[neighborId] = current;
-                frontier.Add(cost * priorityScale + seq++, neighborId);
+                var priority = cost * priorityScale + seq++;
+                if (frontierKey.TryGetValue(neighborId, out var stalePriority))
+                {
+                    frontier.Remove(stalePriority);
+                }
+
+                frontierKey[neighborId] = priority;
+                frontier.Add(priority, neighborId);
             }
         }
 
@@ -235,23 +287,33 @@ public static class HexPathfinder
         return path;
     }
 
-    // Spec 40.17: a flat step costs FlatCost; a climb seam costs SeamCost (1.2x),
-    // so a comfortable NPC prefers the flat way. Costs are ×10 so a fractional
-    // multiplier stays integer. The seam weight is LIVE — SHIPPED in commit
-    // "climb weight SHIPPED — food-exempt detour + dog margin" (spec 40.17):
-    // hungry/thirsty NPCs pass weightClimb=false and ignore the seam so food /
-    // water routes stay short; only comfortable NPCs pay the detour.
-    // HISTORICAL (pre-rebalance): an earlier pass found ANY seam weight reshuffled
-    // the deterministic dog-dance — 2x/1.5x collapsed several seeds and even 1.2x
-    // killed seed 777. That predates the food-exemption + dog-margin rebalance and
-    // NO LONGER holds (777 wins d25 in the current soak). Balance is still
-    // knife-edge — re-soak ALL seeds before touching these constants.
+    // Spec 40.17: a flat step costs FlatCost, a crossing costs more, so a
+    // comfortable NPC prefers the flat way. Costs are ×10 so a fractional
+    // multiplier stays integer. The weight is LIVE, and gated: hungry/thirsty
+    // NPCs and anyone fleeing pass weightClimb=false and ignore it, so survival
+    // routes stay short (that exemption is half of what made it shippable — see
+    // §40.17; the other half was the dog margin).
+    // Balance here is knife-edge by construction: every price change reshuffles
+    // the deterministic dog dance, so re-soak ALL seeds before touching these,
+    // and expect which-seed-loses-whom to move even when the totals hold.
     private const long FlatCost = 10L;
-    // 3x, applied when weightClimb. A 1.2x nudge was too weak for short
-    // sawtooth paths: an NPC could still step down-up-down along a ledge while
-    // fetching non-emergency materials because the hop barely cost more than a
-    // flat move.
-    private const long SeamCost = 30L;
+
+    // §40.17 v2: priced from the TIME a hop actually costs, not guessed. At the
+    // shipped HexHopTuning values a flat lattice edge takes ~2 ticks, an up-hop
+    // 8 (HopSeconds 2.0) and a down-hop 4 (DownHopSeconds 1.0), so marginally a
+    // climb up is worth ~3.5 extra flat edges and a drop ~1.5:
+    //     SeamUpCost   = FlatCost * (8 / 2) ≈ 45
+    //     SeamDownCost = FlatCost * (4 / 2) ≈ 25
+    // Do NOT push these higher "to be safe": walking around one tile is ~6.9
+    // edges ≈ 14 ticks, so past ~4.5x she starts taking detours that are slower
+    // in real time than the jump she avoided. Re-derive both if HopSeconds or
+    // DownHopSeconds is retuned (§21.21B) — they are the same number in
+    // different units.
+    // The single earlier value (SeamCost 30, and 12 before that) was symmetric
+    // AND charged per-JUNCTION, i.e. it also taxed the detour that merely walks
+    // along a wall. Both halves are fixed here.
+    private const long SeamUpCost = 45L;
+    private const long SeamDownCost = 25L;
 
     // Spec 40.18: entering the swim ring costs 4x a land step — a slow, risky
     // last resort, so a route only takes to the water when there's no dry way.
@@ -262,7 +324,12 @@ public static class HexPathfinder
     // resource. The wider ring stays SwimCost (4x), a shark-risked last resort.
     private const long StraitCost = 20L;
 
-    private static long ClimbCost(WorldState world, JunctionId from, JunctionId to, bool weightClimb)
+    // stepDelta is the signed elevation change of THIS edge (see StepDelta):
+    // that is what makes the weight a property of the crossing rather than of
+    // the seam junction, so hugging a wall no longer costs what jumping it does.
+    // Water keeps priority over the climb weight, as before — entering the swim
+    // ring is priced as swimming, not double-charged as a drop into it.
+    private static long ClimbCost(WorldState world, JunctionId to, int stepDelta, bool weightClimb)
     {
         if (world.StraitJunctions.Contains(to))
         {
@@ -274,12 +341,12 @@ public static class HexPathfinder
             return SwimCost;
         }
 
-        if (!weightClimb)
+        if (!weightClimb || stepDelta == 0)
         {
             return FlatCost;
         }
 
-        return world.ClimbSeams.Contains(to) ? SeamCost : FlatCost;
+        return stepDelta > 0 ? SeamUpCost : SeamDownCost;
     }
 
     private static bool IsClimbSeamWalk(WorldState world, JunctionId from, JunctionId to)

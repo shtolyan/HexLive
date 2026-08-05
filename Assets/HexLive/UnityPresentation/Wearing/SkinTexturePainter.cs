@@ -28,7 +28,7 @@ namespace HexLive.UnityPresentation.Wearing
     /// on painted slots (un-painted skin still gets the cheap _BaseColor tint).
     /// Clothing occludes it all naturally.
     /// </summary>
-    public sealed class SkinTexturePainter : MonoBehaviour
+    public sealed class SkinTexturePainter : MonoBehaviour, IPaintTarget
     {
         private sealed class Zone
         {
@@ -95,11 +95,64 @@ namespace HexLive.UnityPresentation.Wearing
             public Texture? Effect;
             public Rect CellRect = new(0f, 0f, 1f, 1f);
             public bool IsDroplet;
+            // Spec 40.8-H zone-damage speckle: albedo-only (every other
+            // texture stays null, so the normal/gloss walks skip it) and
+            // drawn FIRST in RepaintSlot — wounds/bandages land on top.
+            public bool IsSpeckle;
+            // r4: seeded random spin (degrees) applied via the GL matrix at
+            // draw time, so the same splatter art never tiles visibly.
+            public float RotationDeg;
+
+            // ---- Spec 40.8-J: seam-free projected stamp ----
+            // A projected stamp is not a UV rectangle at all: it is a box in
+            // BIND (mesh) space, and every texel whose baked body point falls
+            // inside it gets painted — on whatever island, tile or texture
+            // that texel belongs to. That is what lets a hip wrap lie half on
+            // the leg and half on the torso instead of being scissored at the
+            // edge of the Legs tile.
+            public bool IsProjected;
+            // Bind space -> decal space (xy in [-0.5,0.5], z in mesh units).
+            public Matrix4x4 ObjectToDecal;
+            // Same for the 1.6x blood-splash underlay.
+            public Matrix4x4 UnderToDecal;
+            public Vector3 BindPos;
+            public Vector3 DecalNormal;
+            public float Depth;        // half-thickness of the accepted slab
+            // EVERY slot the decal reaches. Painting is per-slot (each slot
+            // owns its render target), so a stamp that crosses a texture
+            // boundary is drawn once per side.
+            public int[]? Slots;
+            // The UV window to sweep on each of those slots — index-aligned
+            // with Slots. Resolved ONCE here: it depends only on the decal and
+            // the baked cell grid, and re-deriving it per draw call cost a
+            // 1024-cell scan every time (three per stamp per slot, four times
+            // a second, during a fight — pure waste).
+            public Rect[]? Windows;
+            public Rect[]? UnderWindows;
+            // Slots/Windows are computed on a worker thread (they are the
+            // heavy part of placing a stamp and they land right on the frame a
+            // hit is taken). Nothing paints until this flips true.
+            public volatile bool GeometryReady;
+            // Spec 40.8-K fresh lane: draw the plain rectangle stamp for now
+            // (Uv/UvSizeX/UvSizeY are filled even on the projected path), and
+            // switch to the seam-free projection on the next scheduled cycle.
+            public bool DrawAsRect;
+            // Set by the worker when the decal reaches more than one submesh.
+            public bool NeedsSeamUpgrade;
         }
 
         // 1024 visibly softened the 4096 Daz skin (the whole slot swaps to the
         // paint target on the first wound) — 2048 keeps the pores readable.
         private const int MaxRenderTextureSize = 2048;
+
+        // PERF (profiling, Aug-2026): texture memory measured 1.08 GB with 73
+        // live render textures, and this class is the source — three targets per
+        // material slot per girl. Only the ALBEDO carries detail a player reads
+        // (tan, grime, the wound art itself), so it keeps the full 2048. The
+        // NORMAL is wound relief — low-frequency bumps under a stamp — and the
+        // GLOSS is a smoothness mask, softer still. Each halving is 4× the
+        // memory, and at these frequencies neither shows the difference.
+        private const int MaxNormalRenderTextureSize = 1024;
         // GUI-neutral: Graphics.DrawTexture doubles the colour, so 0.5 gray
         // renders the stamp unmodified; alpha likewise runs on a 0.5 scale.
         private static Color StampTint(float alpha) => new(0.5f, 0.5f, 0.5f, alpha * 0.5f);
@@ -129,9 +182,10 @@ namespace HexLive.UnityPresentation.Wearing
         // multi-drop patches, so this is ~0.3x of a single drop's span.
         private const float RefractStrength = 0.05f;
         private const float RimBoost = 0.8f;     // additive meniscus highlight
-        // The gloss mask is soft — 1024 is plenty (2048 with mips costs ~21 MB
-        // per slot and buys nothing for a smoothness ramp).
-        private const int GlossRtSize = 1024;
+        // The gloss mask is soft — the same reasoning as the normal target above
+        // (1024 already cost ~5 MB per slot for a smoothness ramp; 512 is still
+        // finer than the ramp itself).
+        private const int GlossRtSize = 512;
 
         // ---- wound volume knobs (spec 40.8-D v5) ----
         // Fresh cuts glisten: absolute smoothness stamped into the wet core
@@ -150,6 +204,96 @@ namespace HexLive.UnityPresentation.Wearing
         // flat v5 wound. ~half of dirt's 0.7 normal blend.
         private const float WoundReliefStrength = 0.35f;
 
+        // ---- Spec 40.8-H zone-damage speckle knobs ----
+        // A zone whose HP is low grows a field of small blood/bruise blots
+        // UNDER the wound art — near 0 HP the limb reads almost fully covered.
+        // First marks appear almost immediately (r2: the v1 onset of 0.15 +
+        // ease-in curve read as "very little blood" — the user's target is
+        // the OLD full-damage density already at ~15% damage, ~5× at full).
+        private const float SpeckleOnsetDamage = 0.05f;
+        // A damaged zone tints its neighbours at this fraction of its own
+        // damage, so a shattered arm bleeds a few blots onto the shoulder
+        // instead of a hard red-arm/white-torso border.
+        private const float SpeckleNeighborBleed = 0.38f;
+        private const float SpeckleAlphaMin = 0.45f;
+        private const float SpeckleAlphaMax = 1f;
+        // World-metre blot size at full 1.7 m rig scale. r4: ×5 over r3 —
+        // each stamp is a full palm-to-forearm-sized splatter; they freely
+        // overlap (centres stay unique via the grid walk, nothing else is
+        // deduplicated), which is what builds the solid gore near zero HP.
+        // r7: SMALLER blots, four times as many. At 25-45 cm a single blot was
+        // the largest decal in the game — bigger than a bandage — and it is
+        // drawn as a RECTANGLE in one submesh's UV, so it physically cannot
+        // cross a seam: the spine line on a bloodied back was one blot ending
+        // at the island edge. Blood is irregular, so a small blot cut at a
+        // seam reads as "the splatter ends there", while a palm-sized one
+        // reads as a straight cut. Coverage is preserved by count, since a
+        // blot's area goes as the SQUARE of its size: 0.35 m -> 0.16 m mean is
+        // a quarter of the area, so the ceilings below are x4.
+        private const float SpeckleWorldSizeMin = 0.12f;
+        private const float SpeckleWorldSizeMax = 0.20f;
+        // Speckles get their own UV cap: the droplet 0.12 face-tile
+        // insurance would strangle these big splatters. 0.5 still keeps a
+        // single stamp from swallowing a whole dense UV tile.
+        // r7: was 0.5 (half a tile) to let the old palm-sized blots through.
+        // The small ones never need that much, and the cap still saves a dense
+        // face tile from a blown-up stamp.
+        private const float SpeckleMaxUvSize = 0.22f;
+        // Grid-cell stride for placement: odd => coprime with the 8×16 = 128
+        // cell PaintPointMap grid, so consecutive indices walk a full cycle
+        // with no duplicate cells and the fill grows evenly with damage.
+        private const int SpeckleCellStride = 45;
+        // How many cells a blot may walk past looking for one far enough from
+        // an island edge. Beyond this the zone is simply too narrow in UV and
+        // the blot is dropped — better a missing blot than a sliced one.
+        private const int SpeckleEdgeProbes = 12;
+        // Step between probes. Must NOT be a multiple of the grid size, or
+        // every probe lands on the same cell (an earlier version used
+        // index + probe*n, which cancels modulo n and probed nothing at all).
+        // 53 is coprime with the 128-cell grid, so the probes walk distinct
+        // cells.
+        private const int SpeckleEdgeProbeStep = 53;
+        // r3: neutral — the stain art (the molly damage-decal splatter) is
+        // already a rich saturated red and "классно смотрится" as-is, so the
+        // stamp draws it unmodified instead of the r1 muted-bruise darkening.
+        private static Color SpeckleTint(float alpha) => StampTint(alpha);
+        // r6: NO solid flood — the r5 ceiling of 120 read as "перебор,
+        // некрасиво". User calibration: the ~18-splatter torso look sits at
+        // 80% damage, and 100% is only ~20% past it (≈22). So the ceiling
+        // IS ~22 and the curve is near-linear: f(q(0.8)) = 18/22 → q^0.85.
+        // Low damage still opens with a lone big blot.
+        private static float SpeckleRamp(float q) => Mathf.Pow(q, 0.85f);
+
+        // r6: ceilings scaled to the no-flood calibration (≈0.18 of r4).
+        // r7 ceilings: x4 of the r6 calibration, to hold the same amount of
+        // red now that each blot covers a quarter of the area. All stay under
+        // the zone grid's 128 cells, so the coprime stride walk still gives
+        // every blot its own centre.
+        private static int MaxSpecklesFor(string zone) => zone switch
+        {
+            "Torso" => 88,
+            "Pelvis" => 60,
+            "LegL" or "LegR" => 52,
+            "ArmL" or "ArmR" => 36,
+            "Head" => 28,
+            _ => 28
+        };
+
+        private static int SpeckleCountFor(string zone, float q) =>
+            q <= 0f ? 0 : Mathf.Max(1, Mathf.RoundToInt(MaxSpecklesFor(zone) * SpeckleRamp(q)));
+
+        // Which zones a zone's damage bleeds onto (both directions listed).
+        private static readonly Dictionary<string, string[]> SpeckleAdjacency = new()
+        {
+            ["Head"] = new[] { "Torso" },
+            ["Torso"] = new[] { "Head", "Pelvis", "ArmL", "ArmR" },
+            ["Pelvis"] = new[] { "Torso", "LegL", "LegR" },
+            ["ArmL"] = new[] { "Torso" },
+            ["ArmR"] = new[] { "Torso" },
+            ["LegL"] = new[] { "Pelvis" },
+            ["LegR"] = new[] { "Pelvis" },
+        };
+
         private static readonly int UnderTexId = Shader.PropertyToID("_UnderTex");
         private static readonly int SlotRectId = Shader.PropertyToID("_SlotRect");
         private static readonly int CellRectId = Shader.PropertyToID("_CellRect");
@@ -162,6 +306,31 @@ namespace HexLive.UnityPresentation.Wearing
         private static readonly int DropGlossId = Shader.PropertyToID("_DropGloss");
         private static readonly int GlossMaxId = Shader.PropertyToID("_GlossMax");
         private static readonly int SkinTintColorId = Shader.PropertyToID("_TintColor");
+        private static readonly int PosMapId = Shader.PropertyToID("_PosMap");
+        private static readonly int NrmMapId = Shader.PropertyToID("_NrmMap");
+        private static readonly int ObjectToDecalId = Shader.PropertyToID("_ObjectToDecal");
+        private static readonly int DecalNormalId = Shader.PropertyToID("_DecalNormal");
+        private static readonly int DepthId = Shader.PropertyToID("_Depth");
+        private static readonly int DepthFeatherId = Shader.PropertyToID("_DepthFeather");
+        private static readonly int UnderToDecalId = Shader.PropertyToID("_UnderToDecal");
+        private static readonly int UnderFadeId = Shader.PropertyToID("_UnderFade");
+        private static readonly int UnderDepthId = Shader.PropertyToID("_UnderDepth");
+        private static readonly int UnderDepthFeatherId = Shader.PropertyToID("_UnderDepthFeather");
+
+        // ---- Spec 40.8-J projected-decal knobs ----
+        // The accepted slab's half-thickness as a fraction of the decal's
+        // longest side. Thin enough that the far side of a limb never gets a
+        // mirrored copy, thick enough to follow the hip's curvature.
+        private const float ProjectedDepthFactor = 0.4f;
+        private const float ProjectedDepthFeather = 0.35f;
+        // Reach margin when deciding which slots a decal touches, on top of
+        // the baked sample spacing — a decal that only clips the corner of a
+        // slot must still claim it, or that sliver goes unpainted. Kept small
+        // on purpose: every slot claimed costs a ~21 MB render target, so the
+        // reach is measured against the DETAILED art, not the faint 1.6x
+        // blood halo around it (a clipped halo is invisible, a clipped wound
+        // is the bug this whole path exists to fix).
+        private const float ProjectedReachMargin = 0.005f;
 
         // Stamp art loads once per session, not once per wound.
         // NOTE: the RVFX pack splatters were tried as underlay variants and
@@ -172,6 +341,10 @@ namespace HexLive.UnityPresentation.Wearing
         private static Texture2D? _texSplash;
         private static Texture2D? _texScratch;
         private static Texture2D? _texSplat;
+        // Spec 40.8-H r3: the zone-damage speckle art — the red splatter the
+        // molly damage decal used (copied back from molly_copy as
+        // blood_stain.png; the user asked for exactly this picture).
+        private static Texture2D? _texStain;
         private static Texture2D? _texBandage;
         private static Texture2D? _texGauze;
         // Matching relief maps (RGB = encoded tangent normal, A = stamp
@@ -219,6 +392,11 @@ namespace HexLive.UnityPresentation.Wearing
         // the albedo and its smoothness into the gloss map (DropletStamp.shader).
         private static Material? _dropletStamp;
         private static bool _dropletShaderWarned;
+        // Spec 40.8-J: paints one decal by asking every texel "which body
+        // point do you cover?" instead of filling a UV rectangle
+        // (ProjectedStamp.shader) — the seam-free path.
+        private static Material? _projectedStamp;
+        private static bool _projectedShaderWarned;
 
         private SkinnedMeshRenderer? _body;
         private BodyBones? _bones;
@@ -226,9 +404,17 @@ namespace HexLive.UnityPresentation.Wearing
         private int _npcId;
         private float _height = 1.7f;
         private HashSet<int> _skinSlots = new();
+        // Stable, compact iteration/capture form of _skinSlots. The renderer
+        // often has 15-20 material slots but only 4-7 skin slots; repainting
+        // never needs to rescan clothing, eyes, lashes, etc.
+        private int[] _paintSlots = System.Array.Empty<int>();
         // Spec 40.8-G: editor-baked placement points — when present, wound/
         // droplet placement is a table lookup and BakeMesh never runs.
         private PaintPointMap? _map;
+        // Spec 40.8-J: per-texel body positions — when present (and the point
+        // map is v2), wounds and wraps paint through the seam-free projected
+        // path instead of a per-slot rectangle.
+        private SkinPositionMapSet? _posMaps;
 
         private Material[]? _materials;      // per-NPC instances
         private Texture?[] _originalAlbedo = System.Array.Empty<Texture?>();
@@ -253,19 +439,109 @@ namespace HexLive.UnityPresentation.Wearing
         // body without being tanned themselves. White = no weathering.
         private Color _skinTone = Color.white;
 
+        // Spec 40.8-K: the tone currently BAKED INTO the paint targets, which
+        // lags _skinTone until the Tone layer comes due.
+        //
+        // The composite is stacked bottom-up — tinted base, then the speckle
+        // field, then wounds and bandages, then droplets — so the tan is the
+        // BOTTOM layer and there is no way to re-tint it without redrawing
+        // everything above. That makes a tan step the single most expensive
+        // trigger in the painter, and it is also the least urgent thing on the
+        // body. Holding it here is what makes the cap mean something: until it
+        // expires, new wounds keep compositing over the OLD base (cheap,
+        // additive), instead of every drifting tan step dragging a full
+        // rebuild along with the first wound that follows it.
+        private Color _appliedTone = Color.white;
+
         private readonly Dictionary<string, Stamp> _stamps = new();
         private readonly Dictionary<string, float> _alpha = new(); // key -> current fade
         private readonly HashSet<string> _desired = new();
         private readonly List<string> _stale = new();
         private int _lastStateHash;
 
-        // Spec 40.8-G repaint coalescing: Sync only marks the composite
-        // dirty; the actual per-slot blit+stamps+mips pass runs at most once
-        // per interval (combat reopens wounds every tick — one repaint
-        // covers the whole burst, always painting the LATEST state).
-        private bool _repaintDirty;
-        private float _lastRepaintTime;
-        private const float RepaintIntervalSeconds = 0.25f;
+        // ---- Spec 40.8-K: a flat cycle, spread out, plus a fresh lane ----
+        //
+        // Every painter is rebuilt on a fixed cycle (SkinPaintScheduler), and
+        // the scheduler spreads the turns so only one rebuild happens at a
+        // time. There is no per-reason bookkeeping: whatever changed, the next
+        // turn redraws the whole composite. The one thing that cannot wait ten
+        // seconds is a mark that JUST appeared — a bite, a dressing — so those
+        // are drawn immediately through the cheap rectangle path and upgraded
+        // to the seam-free one on the next scheduled rebuild.
+        private bool _freshPending;
+        // Zone damage is recomputed every tick but the blots it implies are
+        // only materialised on this painter's scheduled turn.
+        private bool _specklesDirty;
+        // Set for the scheduled turn: the rectangle->projection swap replaces
+        // pixels, so nothing may be carried over from the previous composite.
+        private bool _forceFullRebuild;
+        private int _speckleHash;
+
+        public bool WantsFreshPass =>
+            _materials != null && (_freshPending || HasPendingSeamUpgrade());
+
+        // A decal confined to one submesh looks near enough the same drawn
+        // either way, so it can ride to the scheduled turn. One that actually
+        // STRADDLES a seam is visibly cut until it upgrades, and a sweep can be
+        // ~19 s long — which reads as "the decal does not carry over onto the
+        // next body part", i.e. the whole feature failing.
+        private bool HasPendingSeamUpgrade()
+        {
+            foreach (var stamp in _stamps.Values)
+            {
+                if (stamp.DrawAsRect && stamp.NeedsSeamUpgrade && stamp.GeometryReady)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Draw just what appeared, on top of what is already there —
+        /// no base blit, no earlier stamp redrawn. The exception is a decal
+        /// that turned out to cross a seam: swapping its rectangle for the
+        /// projection REPLACES pixels, so that one forces a full rebuild.</summary>
+        public void PaintFresh()
+        {
+            _freshPending = false;
+            foreach (var stamp in _stamps.Values)
+            {
+                if (stamp.DrawAsRect && stamp.NeedsSeamUpgrade && stamp.GeometryReady)
+                {
+                    stamp.DrawAsRect = false;
+                    _forceFullRebuild = true;
+                }
+            }
+
+            RepaintAll();
+            _forceFullRebuild = false;
+        }
+
+        /// <summary>This painter's scheduled turn: rebuild everything, promote
+        /// the tan into the base, reconcile the damage speckles, and upgrade
+        /// every remaining rectangle to its seam-free form.</summary>
+        public void PaintCycle()
+        {
+            _appliedTone = _skinTone;
+
+            // The rectangle->projection swap REPLACES pixels, so the composite
+            // is rebuilt from the base up. An additive pass would find the
+            // stamp already listed as painted on its anchor slot, skip it, and
+            // leave the clipped rectangle sitting there for good — the decal
+            // would reach the neighbouring submesh but never stop being cut on
+            // its own. That is exactly how leg->pelvis carry-over broke.
+            _forceFullRebuild = true;
+            foreach (var stamp in _stamps.Values)
+            {
+                stamp.DrawAsRect = false;
+            }
+
+            ReconcileSpeckles();
+            _freshPending = false;
+            RepaintAll();
+            _forceFullRebuild = false;
+        }
 
         // ---- raycast working set (lazy: built on the FIRST placement) ----
         // Triangle indices + per-triangle slot never change when a pose is
@@ -281,19 +557,33 @@ namespace HexLive.UnityPresentation.Wearing
         public void Construct(SkinnedMeshRenderer body, IEnumerable<int> skinSlots,
             BodyBones bones, Transform bodyRoot, int npcId, string actorMesh = "")
         {
-            enabled = false; // LateUpdate runs only while a repaint is pending
+            // Painting is driven by SkinPaintScheduler, not by this
+            // component's own Update — see spec 40.8-K.
+            enabled = false;
+            SkinPaintScheduler.Register(this);
             _body = body;
             _bones = bones;
             _bodyRoot = bodyRoot;
             _npcId = npcId;
             _height = 1.7f * bodyRoot.lossyScale.y;
             _skinSlots = new HashSet<int>(skinSlots);
+            _paintSlots = new int[_skinSlots.Count];
+            _skinSlots.CopyTo(_paintSlots);
+            System.Array.Sort(_paintSlots);
             // Spec 40.8-G: baked placement points (falls back to the legacy
             // BakeMesh path — with its combat-frame cost — when missing).
             if (!string.IsNullOrEmpty(actorMesh))
             {
-                _map = PaintPointMap.Load($"skin_{actorMesh}",
-                    body.sharedMesh != null ? body.sharedMesh.vertexCount : 0);
+                var vertexCount = body.sharedMesh != null ? body.sharedMesh.vertexCount : 0;
+                _map = PaintPointMap.Load($"skin_{actorMesh}", vertexCount);
+                // Spec 40.8-J: both halves must be present and current — the
+                // frames live in the point map, the texels in the position
+                // maps. Either one stale and decals stay per-slot (clipped at
+                // UV seams) rather than landing in the wrong place.
+                if (_map != null && _map.HasProjectedFrames)
+                {
+                    _posMaps = SkinPositionMapSet.Load($"skinpos_{actorMesh}", vertexCount);
+                }
             }
 
             _materials = body.materials; // instantiate once, per NPC
@@ -304,6 +594,17 @@ namespace HexLive.UnityPresentation.Wearing
             _slotRtGloss = new RenderTexture?[_materials.Length];
             _glossLive = new bool[_materials.Length];
             _albedoLive = new bool[_materials.Length];
+            _paintedSig = new int[_materials.Length];
+            _paintedKeys = new HashSet<string>[_materials.Length];
+            _paintedAlpha = new Dictionary<string, float>[_materials.Length];
+            _paintedTone = new Color[_materials.Length];
+            _paintedWet = new float[_materials.Length];
+            for (var i = 0; i < _materials.Length; i++)
+            {
+                _paintedKeys[i] = new HashSet<string>();
+                _paintedAlpha[i] = new Dictionary<string, float>();
+            }
+
             for (var i = 0; i < _materials.Length; i++)
             {
                 _originalAlbedo[i] = _materials[i] != null && _materials[i].HasProperty("_BaseMap")
@@ -384,10 +685,13 @@ namespace HexLive.UnityPresentation.Wearing
         /// becomes the gloss map's base so droplets sit ON the wet sheen.
         /// New wounds raycast-place once; heals repaint with lower alpha;
         /// fully healed marks vanish (composite rebuilt from the original).
+        /// zoneDamage (spec 40.8-H): per-zone damage 0..1 (1-hp, severed zones
+        /// excluded upstream) driving the bruise-speckle field.
         /// </summary>
         public void Sync(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
             float sweat01 = 0f, HashSet<string>? uncovered = null, float wetSmoothness = 0.32f,
-            HashSet<string>? gauzed = null)
+            HashSet<string>? gauzed = null,
+            List<(string zone, float damage01)>? zoneDamage = null)
         {
             if (_body == null || _materials == null)
             {
@@ -487,6 +791,80 @@ namespace HexLive.UnityPresentation.Wearing
                 }
             }
 
+            // Spec 40.8-H: zone-damage speckles. Gated on the baked map —
+            // ~100 stamps through the legacy ClosestSkinTriangle fallback
+            // would re-create the 40.8-G combat-frame cost, so a no-map actor
+            // simply gets none. Count/alpha are pure functions of the 0.05-
+            // quantized effective damage, so folding zone+bucket into the
+            // hash covers both; healing shrinks the count and the stale sweep
+            // below removes the tail keys for free. (A damaged zone with no
+            // wound records now flips its slots to the painted RT — in
+            // practice zone damage always coexists with wounds, so this
+            // rarely creates RTs that would not exist anyway.)
+            if (zoneDamage != null && zoneDamage.Count > 0 && _map != null)
+            {
+                // Spec 40.8-K: the speckle field is the SLOW half of the
+                // picture — the gradual reddening of a battered limb, not the
+                // bite you just took. It is also the BOTTOM layer, so adding
+                // one blot forbids drawing additively (a new speckle would
+                // land on top of the wounds instead of under them) and drags a
+                // full rebuild with it. During a fight the zone-damage bucket
+                // moves constantly, so letting speckles into the fresh lane
+                // would mean a full rebuild on almost every bite — exactly the
+                // cost this scheduling exists to avoid.
+                //
+                // So the damage is COMPUTED here every tick (cheap, no
+                // allocation) and merely remembered; the stamps themselves are
+                // reconciled on this painter's scheduled turn.
+                ComputeEffectiveZoneDamage(zoneDamage);
+                var speckleHash = 17;
+                foreach (var pair in _speckleQ)
+                {
+                    speckleHash = speckleHash * 31 + pair.Key.GetHashCode();
+                    speckleHash = speckleHash * 31 + Mathf.RoundToInt(pair.Value * 20f);
+                }
+
+                stateHash = stateHash * 31 + speckleHash;
+                if (speckleHash != _speckleHash)
+                {
+                    _speckleHash = speckleHash;
+                    _specklesDirty = true;
+                }
+
+                // Keep the blots that are already painted alive through the
+                // general stale sweep below — ReconcileSpeckles owns their
+                // lifetime now.
+                foreach (var pair in _stamps)
+                {
+                    if (pair.Value.IsSpeckle)
+                    {
+                        _desired.Add(pair.Key);
+                    }
+                }
+            }
+            else
+            {
+                // Nothing damaged any more. Clear the demand and hand the
+                // leftovers to the reconciler on the next turn — dropping them
+                // here would leave _speckleHash describing a field that no
+                // longer exists, and the same damage returning later would
+                // then look "unchanged" and never re-place a single blot.
+                if (_speckleQ.Count > 0 || _speckleHash != 0)
+                {
+                    _speckleQ.Clear();
+                    _speckleHash = 0;
+                    _specklesDirty = true;
+                }
+
+                foreach (var pair in _stamps)
+                {
+                    if (pair.Value.IsSpeckle)
+                    {
+                        _desired.Add(pair.Key);
+                    }
+                }
+            }
+
             // Drop records that no longer exist (healed / unbandaged).
             _stale.Clear();
             foreach (var key in _stamps.Keys)
@@ -527,7 +905,8 @@ namespace HexLive.UnityPresentation.Wearing
             // repaint — minutes away. IsCreated() flips false on loss, and
             // binding the RT during a repaint re-creates it, so forcing a
             // repaint here fully restores the skin the same frame.
-            if (stateHash == _lastStateHash && !needsPlacement && !AnyPaintRtLost())
+            var targetsLost = AnyPaintRtLost();
+            if (stateHash == _lastStateHash && !needsPlacement && !targetsLost)
             {
                 return; // nothing changed — no repaint
             }
@@ -539,29 +918,12 @@ namespace HexLive.UnityPresentation.Wearing
                 PlaceNewStamps(wounds, bandaged, sweat, uncovered, gauzed);
             }
 
-            // Coalesced: mark dirty, LateUpdate paints at most once per
-            // interval (spec 40.8-G).
-            _repaintDirty = true;
-            enabled = true;
-        }
-
-        private void LateUpdate()
-        {
-            if (!_repaintDirty)
+            // A brand-new mark (or a lost target) must not wait for this
+            // painter's turn in the cycle — the fresh lane draws it next frame.
+            if (needsPlacement || targetsLost)
             {
-                enabled = false;
-                return;
+                _freshPending = true;
             }
-
-            if (Time.unscaledTime - _lastRepaintTime < RepaintIntervalSeconds)
-            {
-                return; // next eligible frame paints the latest state
-            }
-
-            _repaintDirty = false;
-            _lastRepaintTime = Time.unscaledTime;
-            enabled = false;
-            RepaintAll();
         }
 
         // ---- placement: molly's bake-and-raycast, collider-free ----
@@ -623,6 +985,231 @@ namespace HexLive.UnityPresentation.Wearing
                     }
                 }
             }
+
+            // Speckles are NOT placed here — they belong to the scheduled
+            // turn (ReconcileSpeckles), see the note in Sync.
+        }
+
+        // Brings the blot stamps in line with the damage Sync last computed:
+        // adds what appeared, drops what healed away, refreshes the alphas.
+        // Runs on the scheduled turn only, so a fight cannot make it churn.
+        private readonly HashSet<string> _speckleDesired = new();
+
+        private void ReconcileSpeckles()
+        {
+            if (!_specklesDirty || _map == null)
+            {
+                return;
+            }
+
+            _specklesDirty = false;
+            _speckleDesired.Clear();
+
+            foreach (var pair in _speckleQ)
+            {
+                var count = SpeckleCountFor(pair.Key, pair.Value);
+                if (count <= 0)
+                {
+                    continue;
+                }
+
+                var alphaBase = Mathf.Lerp(SpeckleAlphaMin, SpeckleAlphaMax,
+                    SpeckleRamp(pair.Value));
+                for (var i = 0; i < count; i++)
+                {
+                    var key = SpeckleKey(pair.Key, i);
+                    _speckleDesired.Add(key);
+                    // Stable per-blot variance so the field isn't uniform.
+                    _alpha[key] = alphaBase * (0.8f + 0.2f * SpeckleJitter01(pair.Key, i));
+                    if (!_stamps.ContainsKey(key))
+                    {
+                        TryPlaceSpeckle(key, pair.Key, i);
+                    }
+                }
+            }
+
+            _stale.Clear();
+            foreach (var pair in _stamps)
+            {
+                if (pair.Value.IsSpeckle && !_speckleDesired.Contains(pair.Key))
+                {
+                    _stale.Add(pair.Key);
+                }
+            }
+
+            foreach (var key in _stale)
+            {
+                _stamps.Remove(key);
+                _alpha.Remove(key);
+            }
+        }
+
+        // ---- Spec 40.8-H zone-damage speckle helpers ----
+
+        // zone -> own damage / quantized onset-remapped effective damage.
+        private readonly Dictionary<string, float> _speckleOwn = new();
+        private readonly Dictionary<string, float> _speckleQ = new();
+
+        // Speckle keys are hot (up to ~100 per NPC per Sync) — cache the
+        // strings once, shared across all NPCs.
+        private static readonly Dictionary<string, List<string>> SpeckleKeyCache = new();
+
+        private static string SpeckleKey(string zone, int index)
+        {
+            if (!SpeckleKeyCache.TryGetValue(zone, out var list))
+            {
+                list = new List<string>();
+                SpeckleKeyCache[zone] = list;
+            }
+
+            while (list.Count <= index)
+            {
+                list.Add($"dz{zone}#{list.Count}");
+            }
+
+            return list[index];
+        }
+
+        private static float SpeckleJitter01(string zone, int index)
+        {
+            var state = (uint)(zone.GetHashCode() * 31 + index * 977) | 1u;
+            return NextRand(ref state);
+        }
+
+        // eff[z] = max(own, NeighborBleed * max(adjacent own)), then remapped
+        // through the onset so hp above ~0.85 stays clean. Only zones present
+        // in the input participate — severed zones are excluded upstream, so
+        // they neither draw speckles nor donate bleed (the stump wound is the
+        // visual there).
+        private void ComputeEffectiveZoneDamage(List<(string zone, float damage01)> zoneDamage)
+        {
+            _speckleOwn.Clear();
+            _speckleQ.Clear();
+            foreach (var (zone, dmg) in zoneDamage)
+            {
+                _speckleOwn[zone] = Mathf.Clamp01(dmg);
+            }
+
+            foreach (var pair in _speckleOwn)
+            {
+                var eff = pair.Value;
+                if (SpeckleAdjacency.TryGetValue(pair.Key, out var neighbours))
+                {
+                    foreach (var neighbour in neighbours)
+                    {
+                        if (_speckleOwn.TryGetValue(neighbour, out var nd))
+                        {
+                            eff = Mathf.Max(eff, nd * SpeckleNeighborBleed);
+                        }
+                    }
+                }
+
+                var q = Mathf.Clamp01((eff - SpeckleOnsetDamage) / (1f - SpeckleOnsetDamage));
+                if (q <= 0f)
+                {
+                    continue;
+                }
+
+                q = Mathf.Round(q * 20f) / 20f; // 0.05 buckets — repaint per step
+                if (q > 0f)
+                {
+                    _speckleQ[pair.Key] = q;
+                }
+            }
+        }
+
+        // Placement is a straight grid-cell walk, NOT PointAt: PointAt
+        // quantizes (t, azimuth) onto the 8×16 grid, so two dozen "random"
+        // rolls collide into duplicate cells. A coprime stride visits every
+        // cell exactly once per cycle — the fill grows evenly with damage,
+        // and existing speckles never move when the count grows. No probing
+        // on an invalid cell (that would shift cells later indices own).
+        private void TryPlaceSpeckle(string key, string zoneName, int index)
+        {
+            var points = _map!.PointsFor(zoneName);
+            var n = points.Length;
+            if (n == 0)
+            {
+                PlaceTombstone(key, index, isBandage: false);
+                return;
+            }
+
+            var start = (int)((((uint)(_npcId * 40503)) ^ (uint)zoneName.GetHashCode()) % (uint)n);
+            EnsureStampTextures();
+            var state = (uint)(_npcId * 83492791 ^ (zoneName.GetHashCode() * 31 + index)) | 1u;
+            var targetWorld = (SpeckleWorldSizeMin +
+                               NextRand(ref state) * (SpeckleWorldSizeMax - SpeckleWorldSizeMin)) *
+                              (_height / 1.7f);
+
+            // Spec 40.8-H r8: a blot is a plain RECTANGLE in one slot's UV, so
+            // one whose centre sits closer to an island edge than its own
+            // radius gets sliced by the seam — the ugly edge seen on the back
+            // and the arms, INSIDE a single limb. Walk on to the next cell
+            // instead. The walk stays a pure function of (start, index), so
+            // blots still never move when the count grows with damage.
+            var point = default(PaintPointMap.Point);
+            var sizeU = 0f;
+            var sizeV = 0f;
+            var found = false;
+            for (var probe = 0; probe < SpeckleEdgeProbes && !found; probe++)
+            {
+                var candidate = points[
+                    (start + index * SpeckleCellStride + probe * SpeckleEdgeProbeStep) % n];
+                if (!candidate.Valid)
+                {
+                    continue;
+                }
+
+                SizeFromDensity(candidate, targetWorld, out var u, out var v, minUv: 0.004f);
+                u = Mathf.Min(u, SpeckleMaxUvSize);
+                v = Mathf.Min(v, SpeckleMaxUvSize);
+
+                // A pre-r8 map has no edge field (zero) — accept everything
+                // rather than reject everything.
+                var clearance = Mathf.Max(u, v) * 0.5f;
+                if (candidate.UvEdgeDistance <= 0f || candidate.UvEdgeDistance >= clearance)
+                {
+                    point = candidate;
+                    sizeU = u;
+                    sizeV = v;
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                PlaceTombstone(key, index, isBandage: false);
+                return;
+            }
+            _stamps[key] = new Stamp
+            {
+                Key = key,
+                Slot = point.Slot,
+                Uv = point.Uv,
+                Seed = index,
+                UvSizeX = sizeU,
+                UvSizeY = sizeV,
+                Over = SpeckleVariant(ref state),
+                IsSpeckle = true,
+                RotationDeg = NextRand(ref state) * 360f
+            };
+        }
+
+        // r3: every speckle is the SAME art — blood_stain, the red splatter
+        // the molly damage decal sprayed on hit (the user asked for exactly
+        // this picture; the r1 splash/splat/scratch mix read wrong). The
+        // seeded roll only varies nothing today but keeps the signature so
+        // variants can return without touching callers. Fallback chain
+        // covers an un-imported PNG — fewer shapes, never a hole.
+        private static Texture? SpeckleVariant(ref uint state)
+        {
+            _ = NextRand(ref state);
+            if (_texStain != null)
+            {
+                return _texStain;
+            }
+
+            return _texSplash != null ? _texSplash : _texSplat;
         }
 
         // Spec 40.8 v4.1: a PATCH of small shaded water drops per stamp.
@@ -894,6 +1481,15 @@ namespace HexLive.UnityPresentation.Wearing
                 EnsureStampTextures();
                 var mapTarget = (isBandage ? 0.14f : 0.07f + NextRand(ref mapState) * 0.04f)
                                 * (_height / 1.7f);
+
+                // Spec 40.8-J: the seam-free path. Same seeded rolls, same
+                // grid cell, same art — only the FOOTPRINT changes, from a
+                // rectangle in one slot's UV to a box in body space.
+                if (TryPlaceProjected(key, zoneName, seed, isBandage, isGauze, point, mapTarget))
+                {
+                    return;
+                }
+
                 SizeFromDensity(point, mapTarget, out var mapSizeU, out var mapSizeV);
                 var (mover, mgloss, mnormal) = WoundVariant(seed);
                 _stamps[key] = new Stamp
@@ -995,6 +1591,263 @@ namespace HexLive.UnityPresentation.Wearing
             };
         }
 
+        /// <summary>
+        /// Spec 40.8-J: records `key` as a PROJECTED stamp — a decal box in
+        /// bind (mesh) space rather than a rectangle in one slot's UV. Returns
+        /// false when the actor has no baked position maps (or the point sits
+        /// on a slot with no paintable texture), in which case the caller
+        /// keeps the legacy per-slot rect.
+        ///
+        /// The frame is built from the baked surface point: Z = the surface
+        /// normal, Y = the zone's bone axis flattened onto the surface (so the
+        /// art runs ALONG the limb, as the UV-aligned rect used to), X = their
+        /// cross product. Sizes come in world metres and convert to mesh units
+        /// through the map's own bind-pose height, so a body exported at a
+        /// different scale still gets a 14 cm wrap.
+        /// </summary>
+        private bool TryPlaceProjected(string key, string zoneName, int seed, bool isBandage,
+            bool isGauze, in PaintPointMap.Point point, float targetWorld)
+        {
+            if (_posMaps == null || _map == null)
+            {
+                return false;
+            }
+
+            if (point.BindNormal.sqrMagnitude < 1e-8f || _posMaps.GroupOf(point.Slot) < 0)
+            {
+                return false; // pre-v2 cell, or a slot with nothing to paint into
+            }
+
+            var zone = _map.ZoneFor(zoneName);
+            var axis = zone != null ? zone.BindAxisDir : Vector3.up;
+
+            // World metres -> mesh units. _height already carries the actor's
+            // scale, and the mesh is authored at MeshHeight.
+            var meshScale = Mathf.Max(0.0001f, _map.MeshHeight / 1.7f);
+            var size = targetWorld / Mathf.Max(0.0001f, _height / 1.7f) * meshScale;
+
+            var normal = point.BindNormal.normalized;
+            var along = axis - normal * Vector3.Dot(normal, axis);
+            if (along.sqrMagnitude < 1e-6f)
+            {
+                // Bone axis parallel to the normal (the head's stub axis on a
+                // crown texel): any tangent will do.
+                along = Vector3.Cross(normal, Vector3.right);
+                if (along.sqrMagnitude < 1e-6f)
+                {
+                    along = Vector3.Cross(normal, Vector3.forward);
+                }
+            }
+
+            along.Normalize();
+            // LookRotation(forward=normal, up=along): local +Z is the surface
+            // normal, +Y runs along the limb, +X around it.
+            var frame = Matrix4x4.TRS(point.BindPos,
+                Quaternion.LookRotation(normal, along), Vector3.one).inverse;
+            var scale = Matrix4x4.Scale(new Vector3(1f / size, 1f / size, 1f));
+            var underScale = Matrix4x4.Scale(new Vector3(1f / (size * 1.6f), 1f / (size * 1.6f), 1f));
+
+            var depth = size * ProjectedDepthFactor;
+            // Claim-test box = the decal's own box, grown by the sample
+            // spacing (xy is normalized by `size`, z is in mesh units).
+            var slack = _posMaps.SampleSpacing + ProjectedReachMargin;
+            var halfExtents = new Vector3(0.5f + slack / size, 0.5f + slack / size, depth + slack);
+
+            EnsureStampTextures();
+            var (over, gloss, _) = WoundVariant(seed);
+            // Spec 40.8-K: the plain rectangle is filled in too. It costs two
+            // divisions and it is what the fresh lane paints the instant the
+            // bite lands or the dressing goes on — the seam-free projection
+            // needs a worker pass and a scheduled rebuild, and a wound the
+            // player cannot see for ten seconds is not a wound.
+            SizeFromDensity(point, targetWorld, out var rectSizeU, out var rectSizeV);
+            var stamp = new Stamp
+            {
+                Key = key,
+                Slot = point.Slot,
+                Uv = point.Uv,
+                UvSizeX = rectSizeU,
+                UvSizeY = rectSizeV,
+                DrawAsRect = true,
+                Seed = seed,
+                Under = isBandage ? null : _texSplash,
+                Over = isGauze ? _texGauze : (isBandage ? _texBandage : over),
+                OverGloss = isBandage ? null : gloss,
+                // No relief on the projected path: the wound's normal art is
+                // authored in the DECAL's tangent frame, which is not the
+                // surface's UV frame, so stamping it would tilt the lighting.
+                // The wet gloss carries the volume instead (the same call
+                // spec 40.8-D v5 made when relief flared at seams).
+                OverNormal = null,
+                IsBandage = isBandage,
+                IsGauze = isGauze,
+                IsProjected = true,
+                ObjectToDecal = scale * frame,
+                UnderToDecal = underScale * frame,
+                BindPos = point.BindPos,
+                DecalNormal = normal,
+                Depth = depth
+            };
+
+            _stamps[key] = stamp;
+            var underSize = size * 1.6f;
+            var underHalfExtents = new Vector3(
+                0.5f + slack / underSize, 0.5f + slack / underSize,
+                depth * 1.6f + slack);
+            QueueGeometry(stamp, point.Slot, scale * frame, halfExtents,
+                underHalfExtents, hasUnderlay: !isBandage);
+            return true;
+        }
+
+        // ---- placement geometry, off the main thread ----
+        //
+        // Which slots a decal reaches (a scan of ~1200 baked surface samples
+        // per slot) and the UV window on each (a 1024-cell grid scan) is the
+        // expensive half of placing a stamp — and it lands exactly on the
+        // frame a bite connects, which is what made a dog fight stutter. It is
+        // pure struct math over baked, read-only arrays, so it runs on the
+        // thread pool; the stamp simply paints nothing until it is ready
+        // (at most one repaint interval later — the repaint is coalesced to
+        // 0.25 s anyway, so nothing is visibly late).
+        //
+        // NOTHING in here may touch a Unity object: no `== null` on a
+        // UnityEngine.Object (that reads native state), no Resources, no
+        // textures. Vector3/Matrix4x4/Rect are plain structs and are safe.
+        private int _pendingPlacements;
+        private volatile bool _geometryArrived;
+
+        private void QueueGeometry(Stamp stamp, int anchorSlot, Matrix4x4 objectToDecal,
+            Vector3 halfExtents, Vector3 underHalfExtents, bool hasUnderlay)
+        {
+            var maps = _posMaps!;
+            // Immutable after Construct; safe to share with read-only workers
+            // and avoids one array allocation for every wound.
+            var slots = _paintSlots;
+
+            System.Threading.Interlocked.Increment(ref _pendingPlacements);
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    ResolveGeometry(stamp, maps, slots, anchorSlot, objectToDecal,
+                        halfExtents, underHalfExtents, hasUnderlay);
+                }
+                finally
+                {
+                    // Order matters: RAISE THE FLAG FIRST. LateUpdate turns the
+                    // component off once nothing is pending, so decrementing
+                    // first leaves a window where it sees "0 pending, nothing
+                    // arrived", disables itself, and only then the flag is set
+                    // — with no LateUpdate left to read it. The stamp would
+                    // then wait for the next unrelated state change to appear.
+                    _geometryArrived = true;
+                    System.Threading.Interlocked.Decrement(ref _pendingPlacements);
+                }
+            });
+        }
+
+        private static void ResolveGeometry(Stamp stamp, SkinPositionMapSet maps, int[] skinSlots,
+            int anchorSlot, Matrix4x4 objectToDecal, Vector3 halfExtents,
+            Vector3 underHalfExtents, bool hasUnderlay)
+        {
+            var reached = new List<int>(skinSlots.Length) { anchorSlot };
+            foreach (var slot in skinSlots)
+            {
+                if (slot != anchorSlot && maps.GroupOf(slot) >= 0 &&
+                    maps.SlotReaches(slot, objectToDecal, halfExtents))
+                {
+                    reached.Add(slot);
+                }
+            }
+
+            var windows = new Rect[reached.Count];
+            var underWindows = new Rect[reached.Count];
+            // Slots sharing the same source texture also share the same baked
+            // position map and window. Resolve each group once; Genesis actors
+            // commonly have three material slots in one group. The reached set
+            // is tiny (normally 1-3), so a backwards lookup is cheaper than
+            // allocating three group-sized scratch arrays per wound.
+            for (var i = 0; i < reached.Count; i++)
+            {
+                var group = maps.GroupOf(reached[i]);
+                if (group < 0)
+                {
+                    continue;
+                }
+
+                var reused = false;
+                for (var previous = 0; previous < i; previous++)
+                {
+                    if (maps.GroupOf(reached[previous]) != group)
+                    {
+                        continue;
+                    }
+
+                    windows[i] = windows[previous];
+                    underWindows[i] = underWindows[previous];
+                    reused = true;
+                    break;
+                }
+
+                if (reused)
+                {
+                    continue;
+                }
+
+                maps.TryGetUvBounds(group, objectToDecal, halfExtents, out windows[i]);
+                if (hasUnderlay)
+                {
+                    maps.TryGetUvBounds(group, stamp.UnderToDecal, underHalfExtents,
+                        out underWindows[i]);
+                }
+                else
+                {
+                    underWindows[i] = windows[i];
+                }
+            }
+
+            stamp.NeedsSeamUpgrade = reached.Count > 1;
+            stamp.Slots = reached.ToArray();
+            stamp.Windows = windows;
+            stamp.UnderWindows = underWindows;
+            stamp.GeometryReady = true; // volatile: publishes the three above
+        }
+
+        private static bool StampTouchesSlot(Stamp stamp, int slot)
+        {
+            // A projected stamp has no trustworthy touched-slot set until the
+            // worker publishes it. Treating the anchor as touched here used to
+            // allocate an empty 2048² RT and record the stamp as already drawn;
+            // the subsequent additive pass could then skip the real draw.
+            // While the fresh lane owns it, the stamp is a plain rectangle on
+            // its anchor slot — that is where it was drawn and where it must be
+            // accounted for.
+            if (stamp.IsProjected && stamp.DrawAsRect)
+            {
+                return stamp.Slot == slot;
+            }
+
+            if (stamp.IsProjected && !stamp.GeometryReady)
+            {
+                return false;
+            }
+
+            if (stamp.Slots == null)
+            {
+                return stamp.Slot == slot;
+            }
+
+            for (var i = 0; i < stamp.Slots.Length; i++)
+            {
+                if (stamp.Slots[i] == slot)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // A dead stamp record: paints nothing (slot -1 never matches) but
         // stops Sync from re-attempting the same placement every frame.
         private void PlaceTombstone(string key, int seed, bool isBandage, bool isGauze = false)
@@ -1028,11 +1881,25 @@ namespace HexLive.UnityPresentation.Wearing
                 return;
             }
 
+            // Spec 40.8-H: speckles are albedo-only by design — backfilling
+            // them below would grow a 1.6× blood-splash underlay plus wound
+            // gloss/relief after a domain reload.
+            if (stamp.IsSpeckle)
+            {
+                stamp.Over ??= _texStain != null ? _texStain : _texSplash;
+                return;
+            }
+
             stamp.Under ??= _texSplash;
             var (wover, wgloss, wnormal) = WoundVariant(stamp.Seed);
             stamp.Over ??= wover;
             stamp.OverGloss ??= wgloss;
-            stamp.OverNormal ??= wnormal;
+            // Projected wounds carry no relief by design (see
+            // TryPlaceProjected) — backfilling it here would put it back.
+            if (!stamp.IsProjected)
+            {
+                stamp.OverNormal ??= wnormal;
+            }
         }
 
         // Deterministic per-seed wound art: the same seed always resolves to
@@ -1158,7 +2025,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static void ResetStatics()
         {
             _stampTexturesLoaded = false;
-            _texSplash = _texScratch = _texSplat = _texBandage = _texGauze = null;
+            _texSplash = _texScratch = _texSplat = _texBandage = _texGauze = _texStain = null;
             _texSplashN = _texScratchN = _texSplatN = _texSweatN = null;
             _texScratchG = _texSplatG = null;
             _woundOver = System.Array.Empty<Texture2D?>();
@@ -1168,7 +2035,9 @@ namespace HexLive.UnityPresentation.Wearing
             _dropletStamp = null;
             _glossStamp = null;
             _skinTintBlit = null;
+            _projectedStamp = null;
             _dropletShaderWarned = false;
+            _projectedShaderWarned = false;
         }
 
         private static void EnsureStampTextures()
@@ -1177,13 +2046,14 @@ namespace HexLive.UnityPresentation.Wearing
             if (_stampTexturesLoaded && _texScratchN != null && _texSplatN != null &&
                 _texSplashN != null && _texSweatN != null && _dropletStamp != null &&
                 _texScratchG != null && _texSplatG != null && _glossStamp != null &&
-                _skinTintBlit != null)
+                _skinTintBlit != null && _texStain != null && _projectedStamp != null)
             {
                 return;
             }
 
             _stampTexturesLoaded = true;
             _texSplash = Resources.Load<Texture2D>("HexLive/Decals/blood_splash");
+            _texStain = Resources.Load<Texture2D>("HexLive/Decals/blood_stain");
             _texScratch = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch");
             _texSplat = Resources.Load<Texture2D>("HexLive/Decals/blood_splat");
             _texBandage = Resources.Load<Texture2D>("HexLive/Decals/bandage_wrap");
@@ -1221,6 +2091,8 @@ namespace HexLive.UnityPresentation.Wearing
             _glossStamp = glossShader != null ? new Material(glossShader) : null;
             var tintShader = Shader.Find("Hidden/HexLive/SkinTintBlit");
             _skinTintBlit = tintShader != null ? new Material(tintShader) : null;
+            var projectedShader = Shader.Find("Hidden/HexLive/ProjectedStamp");
+            _projectedStamp = projectedShader != null ? new Material(projectedShader) : null;
         }
 
         // ---- painting ----
@@ -1256,12 +2128,183 @@ namespace HexLive.UnityPresentation.Wearing
             return false;
         }
 
+        // Spec 40.8-J: set true (HexLive ▸ Skin Paint ▸ Log Repaint Cost) to
+        // print what a repaint actually costs. Painting is main-thread-only in
+        // Unity, so when it is slow the answer is always "how many targets did
+        // it touch and how many did it have to CREATE" — a 2048² target with
+        // mips is ~22 MB and its allocation is a driver stall.
+        public static bool LogRepaintCost;
+        private static int _rtCreations;
+
+        // How many paint targets one repaint may CREATE. A 2048² target with
+        // mips is ~22 MB and its allocation is a synchronous driver call — the
+        // stall you feel as a freeze. A fresh wound can want three at once
+        // (albedo + normal + gloss), and since 40.8-J a decal that crosses a
+        // seam wants them on both sides, so a bite burst could ask for six in
+        // one frame. Budgeting them spreads the cost over repaints (0.25 s
+        // apart) instead of spiking; the deferred target simply paints on the
+        // next pass, which is a quarter second nobody sees.
+        private const int RtCreationsPerRepaint = 1;
+        private int _rtBudget;
+
+        // ---- what each slot's composite already contains ----
+        //
+        // A repaint used to rebuild EVERY painted slot from scratch on any
+        // state change: full base blit, every stamp again, full GenerateMips.
+        // So a bite on an arm also rebuilt the torso, the legs and the face for
+        // nothing, and during a fight that ran four times a second. Two gates
+        // now sit in front of that work:
+        //   1. a per-slot signature — a slot nothing touched is skipped whole;
+        //   2. an ADDITIVE path — when the only change is new stamps arriving,
+        //      they are drawn straight onto the existing target instead of
+        //      rebuilding it.
+        // A full rebuild is still the answer to anything that REMOVES or dims
+        // paint (healing, washing, a tan step), which is also the safety net:
+        // if the incremental composite ever drifted, the next removal fixes it.
+        private int[] _paintedSig = System.Array.Empty<int>();
+        private HashSet<string>[] _paintedKeys = System.Array.Empty<HashSet<string>>();
+        private Dictionary<string, float>[] _paintedAlpha =
+            System.Array.Empty<Dictionary<string, float>>();
+        private Color[] _paintedTone = System.Array.Empty<Color>();
+        private float[] _paintedWet = System.Array.Empty<float>();
+
+        // Stamps drawn into `slot` this pass — filled by the repaint helpers so
+        // the additive gate knows what is already on the target.
+        private readonly List<string> _drawnThisPass = new();
+        private bool _slotDeferred;
+
+        // Everything that decides what a slot's composite looks like, folded
+        // order-independently (Dictionary order is not stable across removals,
+        // so the stamps combine through xor+sum rather than a running hash).
+        private int SlotSignature(int slot, bool hasAlbedo, bool hasNormal, bool hasGloss,
+            bool hasDroplet)
+        {
+            unchecked
+            {
+                var h = 17;
+                h = h * 31 + SkinToneHash(_appliedTone);
+                h = h * 31 + Mathf.RoundToInt(_wetSmoothness * 100f);
+                h = h * 31 + (hasAlbedo ? 1 : 0) + (hasNormal ? 2 : 0) +
+                    (hasGloss ? 4 : 0) + (hasDroplet ? 8 : 0);
+
+                var mixed = 0;
+                var summed = 0;
+                var count = 0;
+                foreach (var pair in _stamps)
+                {
+                    if (!StampTouchesSlot(pair.Value, slot))
+                    {
+                        continue;
+                    }
+
+                    var alpha = _alpha.TryGetValue(pair.Key, out var a) ? a : 0f;
+                    var one = pair.Key.GetHashCode() * 397 ^
+                              Mathf.RoundToInt(alpha * 100f) * 31 ^
+                              (pair.Value.GeometryReady ? 0x5bf03635 : 0) ^
+                              (pair.Value.DrawAsRect ? 0x27d4eb2d : 0);
+                    mixed ^= one;
+                    summed += one;
+                    count++;
+                }
+
+                h = h * 31 + mixed;
+                h = h * 31 + summed;
+                return h * 31 + count;
+            }
+        }
+
+        // The GPU can drop a render target's contents (display sleep, device
+        // reset — the "grey vinyl" bug); a slot that lost one must repaint even
+        // when nothing about it changed.
+        private bool SlotTargetLost(int slot)
+        {
+            var albedo = _slotRt[slot];
+            var normal = _slotRtNormal[slot];
+            var gloss = _slotRtGloss[slot];
+            return (albedo != null && !albedo.IsCreated()) ||
+                   (normal != null && !normal.IsCreated()) ||
+                   (gloss != null && !gloss.IsCreated());
+        }
+
+        /// <summary>
+        /// True when the only difference from the painted composite is NEW
+        /// stamps, so they can be drawn straight onto the existing target.
+        ///
+        /// Refused whenever paint would have to be taken AWAY (a mark healed,
+        /// dirt washed off, the tan stepped) — a composite cannot be un-drawn.
+        /// Refused for droplets too: their albedo pass MULTIPLIES the
+        /// destination, so a second visit would darken twice, and a wound
+        /// arriving after them would sit on top of water instead of under it.
+        /// And refused when a new SPECKLE shows up, because the speckle field
+        /// is the bottom layer — drawing one now would put it over the wounds.
+        /// </summary>
+        private bool CanDrawAdditively(int slot, bool hasDroplet)
+        {
+            if (_forceFullRebuild || hasDroplet || _paintedKeys[slot].Count == 0 ||
+                _slotRt[slot] == null)
+            {
+                return false;
+            }
+
+            if (SkinToneHash(_paintedTone[slot]) != SkinToneHash(_appliedTone) ||
+                !Mathf.Approximately(_paintedWet[slot], _wetSmoothness))
+            {
+                return false;
+            }
+
+            // Nothing painted may have vanished or changed strength.
+            foreach (var pair in _paintedAlpha[slot])
+            {
+                if (!_stamps.TryGetValue(pair.Key, out var stamp) ||
+                    !StampTouchesSlot(stamp, slot) ||
+                    !_alpha.TryGetValue(pair.Key, out var now) ||
+                    !Mathf.Approximately(now, pair.Value))
+                {
+                    return false;
+                }
+            }
+
+            foreach (var pair in _stamps)
+            {
+                if (pair.Value.IsSpeckle && StampTouchesSlot(pair.Value, slot) &&
+                    !_paintedKeys[slot].Contains(pair.Key))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // False when this repaint could not create the target it needed —
+        // the caller re-arms the dirty flag so the rest lands next pass.
+        private bool TakeRtBudget()
+        {
+            if (_rtBudget <= 0)
+            {
+                // Come back next frame for the rest.
+                _freshPending = true;
+                _slotDeferred = true;
+                return false;
+            }
+
+            _rtBudget--;
+            _rtCreations++;
+            return true;
+        }
+
         private void RepaintAll()
         {
             if (_materials == null)
             {
                 return;
             }
+
+            var watch = LogRepaintCost ? System.Diagnostics.Stopwatch.StartNew() : null;
+            var createdBefore = _rtCreations;
+            var painted = 0;
+            var additivePasses = 0;
+            _rtBudget = RtCreationsPerRepaint;
 
             // Stamps placed while an art asset hadn't imported yet hold null
             // textures — heal them now instead of painting nothing forever.
@@ -1275,15 +2318,23 @@ namespace HexLive.UnityPresentation.Wearing
             // channels: refraction/rim bake into the albedo (the price of the
             // lens look — the slot swaps to the paint target), relief into
             // the normal map, near-1 smoothness into the gloss map.
-            for (var slot = 0; slot < _materials.Length; slot++)
+            foreach (var slot in _paintSlots)
             {
+                if (slot < 0 || slot >= _materials.Length)
+                {
+                    continue;
+                }
+
                 var hasAlbedo = false;
                 var hasNormal = false;
                 var hasDroplet = false;
                 var hasGloss = false;
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.Slot != slot)
+                    // A projected stamp claims EVERY slot it reaches, so a hip
+                    // wrap turns on the paint target of both the leg and the
+                    // torso (spec 40.8-J).
+                    if (!StampTouchesSlot(stamp, slot))
                     {
                         continue;
                     }
@@ -1296,13 +2347,27 @@ namespace HexLive.UnityPresentation.Wearing
                     hasGloss |= droplet || stamp.OverGloss != null;
                 }
 
+                // Gate 1: nothing about this slot moved — its targets already
+                // hold exactly this composite, so touch nothing at all.
+                var signature = SlotSignature(slot, hasAlbedo, hasNormal, hasGloss, hasDroplet);
+                if (signature == _paintedSig[slot] && !SlotTargetLost(slot))
+                {
+                    continue;
+                }
+
+                // Gate 2: can the new stamps just be drawn ON TOP of what is
+                // already there? Only when nothing was removed or dimmed — and
+                // only for layers that stack cleanly (see CanDrawAdditively).
+                var additive = CanDrawAdditively(slot, hasDroplet);
+                _slotDeferred = false;
+
                 // Tell NpcActorView which slots hold painted albedo: it pins
                 // _BaseColor white on those (the tan is baked into the texture
                 // here), and keeps the cheap _BaseColor tan tint everywhere else.
                 _albedoLive[slot] = hasAlbedo;
                 if (hasAlbedo)
                 {
-                    RepaintSlot(slot);
+                    RepaintSlot(slot, additive);
                 }
                 else if (_slotRt[slot] != null)
                 {
@@ -1311,7 +2376,7 @@ namespace HexLive.UnityPresentation.Wearing
 
                 if (hasNormal)
                 {
-                    RepaintSlotNormal(slot);
+                    RepaintSlotNormal(slot, additive);
                 }
                 else if (_slotRtNormal[slot] != null)
                 {
@@ -1326,14 +2391,61 @@ namespace HexLive.UnityPresentation.Wearing
                                      "droplet albedo/gloss muted (normal relief only)");
                 }
 
-                if ((hasDroplet && _dropletStamp != null) || (hasGloss && _glossStamp != null))
+                if ((hasDroplet && _dropletStamp != null) ||
+                    (hasGloss && (_glossStamp != null || _projectedStamp != null)))
                 {
-                    RepaintSlotGloss(slot);
+                    RepaintSlotGloss(slot, additive);
                 }
                 else if (_glossLive[slot])
                 {
                     RestoreSlotGloss(slot);
                 }
+
+                // Record what the target now holds, for the next pass's gates.
+                // A repaint the render-target budget cut short is NOT recorded
+                // — otherwise the signature would say "already painted" and the
+                // deferred half would never arrive.
+                if (!additive)
+                {
+                    _paintedKeys[slot].Clear();
+                    _paintedAlpha[slot].Clear();
+                }
+
+                foreach (var key in _drawnThisPass)
+                {
+                    _paintedKeys[slot].Add(key);
+                    _paintedAlpha[slot][key] = _alpha.TryGetValue(key, out var a) ? a : 0f;
+                }
+
+                _drawnThisPass.Clear();
+                if (_slotDeferred)
+                {
+                    // Half-built: forget what was recorded so the next pass
+                    // rebuilds in full rather than adding onto a bare target.
+                    _paintedKeys[slot].Clear();
+                    _paintedAlpha[slot].Clear();
+                }
+
+                _paintedSig[slot] = _slotDeferred ? 0 : signature;
+                _paintedTone[slot] = _appliedTone;
+                _paintedWet[slot] = _wetSmoothness;
+
+                if (watch != null && (hasAlbedo || hasNormal || hasGloss))
+                {
+                    painted++;
+                    if (additive)
+                    {
+                        additivePasses++;
+                    }
+                }
+            }
+
+            if (watch != null)
+            {
+                Debug.Log($"[SkinPaint] npc{_npcId} repaint {watch.Elapsed.TotalMilliseconds:0.00} ms, " +
+                          $"{painted} targets ({additivePasses} additive), " +
+                          $"{_rtCreations - createdBefore} newly created, " +
+                          $"{_stamps.Count} stamps");
             }
         }
 
@@ -1362,7 +2474,151 @@ namespace HexLive.UnityPresentation.Wearing
             stamp.Uv.x - stamp.UvSizeX * 0.5f, 1f - stamp.Uv.y - stamp.UvSizeY * 0.5f,
             stamp.UvSizeX, stamp.UvSizeY);
 
-        private void RepaintSlot(int slot)
+        // ---- Spec 40.8-J: drawing a projected (seam-free) stamp ----
+
+        private static readonly Rect FullSourceRect = new(0f, 0f, 1f, 1f);
+
+        // True while this slot can run the projected path at all.
+        private bool CanProject(int slot) =>
+            _posMaps != null && _projectedStamp != null &&
+            _posMaps.PositionMapOf(slot) != null && _posMaps.NormalMapOf(slot) != null;
+
+        // The slot-UV window the decal sweeps — resolved once on the worker
+        // thread (see ResolveGeometry) and only looked up here.
+        private static bool TryProjectedWindow(Stamp stamp, int slot, bool underlay,
+            out Rect uvWindow)
+        {
+            uvWindow = default;
+            var slots = stamp.Slots;
+            var windows = underlay ? stamp.UnderWindows : stamp.Windows;
+            if (slots == null || windows == null)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < slots.Length; i++)
+            {
+                if (slots[i] == slot)
+                {
+                    uvWindow = windows[i];
+                    return uvWindow.width > 0f && uvWindow.height > 0f;
+                }
+            }
+
+            return false;
+        }
+
+        private void ConfigureProjectedMaterial(Stamp stamp, int slot, float fade, bool underlay,
+            in Rect uvWindow, Texture? under, float underFade)
+        {
+            var mat = _projectedStamp!;
+            mat.SetTexture(PosMapId, _posMaps!.PositionMapOf(slot));
+            mat.SetTexture(NrmMapId, _posMaps.NormalMapOf(slot));
+            // Quad UV -> slot UV, the DropletStamp convention.
+            mat.SetVector(SlotRectId,
+                new Vector4(uvWindow.x, uvWindow.y, uvWindow.width, uvWindow.height));
+            mat.SetMatrix(ObjectToDecalId, underlay ? stamp.UnderToDecal : stamp.ObjectToDecal);
+            mat.SetVector(DecalNormalId, stamp.DecalNormal);
+            mat.SetFloat(FadeId, fade);
+            // The underlay spreads 1.6x wider, so its slab has to as well or
+            // the halo would be cut short of the art it is haloing.
+            var depth = underlay ? stamp.Depth * 1.6f : stamp.Depth;
+            mat.SetFloat(DepthId, depth);
+            mat.SetFloat(DepthFeatherId, depth * ProjectedDepthFeather);
+
+            // Second layer of the same draw (the blood halo). _UnderFade 0
+            // switches it off without a shader variant.
+            var underDepth = stamp.Depth * 1.6f;
+            mat.SetTexture(UnderTexId, under != null ? under : Texture2D.blackTexture);
+            mat.SetMatrix(UnderToDecalId, stamp.UnderToDecal);
+            mat.SetFloat(UnderFadeId, under != null ? underFade : 0f);
+            mat.SetFloat(UnderDepthId, underDepth);
+            mat.SetFloat(UnderDepthFeatherId, underDepth * ProjectedDepthFeather);
+        }
+
+        // The window in the pixel matrix RepaintSlot installs (y flips).
+        private static Rect TargetRectOf(in Rect uvWindow) => new(
+            uvWindow.x, 1f - uvWindow.y - uvWindow.height, uvWindow.width, uvWindow.height);
+
+        private void DrawProjected(Stamp stamp, Texture art, int slot, float fade, bool underlay,
+            int pass, Texture? under = null, float underFade = 0f)
+        {
+            // With a halo in the same draw the sweep must cover the WIDER of
+            // the two footprints, or the halo would be cut off at the art's
+            // edge.
+            if (!TryProjectedWindow(stamp, slot, underlay || under != null, out var window))
+            {
+                return; // the decal reaches nothing on this texture
+            }
+
+            ConfigureProjectedMaterial(stamp, slot, fade, underlay, window, under, underFade);
+            Graphics.DrawTexture(TargetRectOf(window), art, FullSourceRect,
+                0, 0, 0, 0, Color.white, _projectedStamp, pass);
+        }
+
+        private void DrawProjectedAlbedo(Stamp stamp, int slot, float alpha)
+        {
+            if (!stamp.GeometryReady)
+            {
+                return; // still on the worker; the next repaint picks it up
+            }
+
+            if (!CanProject(slot))
+            {
+                if (!_projectedShaderWarned)
+                {
+                    _projectedShaderWarned = true;
+                    Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: ProjectedStamp shader " +
+                                     "or position map missing — seam-free decal skipped");
+                }
+
+                return;
+            }
+
+            // Same layering as the rect path — the pale blood-splash halo
+            // beneath the detailed art — but composited in ONE pass: they share
+            // an anchor, so they cover the same texels and can share the read
+            // of the position map instead of sweeping it twice.
+            if (stamp.Over != null)
+            {
+                DrawProjected(stamp, stamp.Over, slot, alpha, underlay: false, pass: 0,
+                    under: stamp.Under, underFade: alpha * 0.5f);
+            }
+            else if (stamp.Under != null)
+            {
+                // Halo with no art on top (should not happen, but a bandage
+                // whose PNG has not imported yet would land here).
+                DrawProjected(stamp, stamp.Under, slot, alpha * 0.5f, underlay: true, pass: 0);
+            }
+        }
+
+        private void DrawProjectedGloss(Stamp stamp, int slot, float alpha)
+        {
+            if (!stamp.GeometryReady || stamp.OverGloss == null || !CanProject(slot))
+            {
+                return;
+            }
+
+            _projectedStamp!.SetFloat(GlossMaxId, WoundWetGloss);
+            DrawProjected(stamp, stamp.OverGloss, slot, alpha, underlay: false, pass: 1);
+        }
+
+
+        // Already on this slot's target? Then an additive pass must not draw
+        // it again (a second visit double-darkens a multiply and re-blends an
+        // alpha). Everything drawn is recorded so the next pass knows.
+        private bool SkipAlreadyPainted(int slot, bool additive, string key)
+        {
+            if (additive && _paintedKeys[slot].Contains(key))
+            {
+                return true;
+            }
+
+            _drawnThisPass.Add(key);
+            return false;
+        }
+
+        private void RepaintSlot(int slot, bool additive)
         {
             var source = _originalAlbedo[slot];
             if (source == null || _materials == null)
@@ -1371,8 +2627,16 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             var rt = _slotRt[slot];
+            // A target created this very pass carries no base layer yet, so
+            // there is nothing to add ON TOP of — it must be built in full.
+            additive &= rt != null;
             if (rt == null)
             {
+                if (!TakeRtBudget())
+                {
+                    return; // next repaint creates it — see RtCreationsPerRepaint
+                }
+
                 var w = Mathf.Min(source.width, MaxRenderTextureSize);
                 var h = Mathf.Min(source.height, MaxRenderTextureSize);
                 // Explicit sRGB: the albedo is an sRGB texture — a default
@@ -1404,24 +2668,80 @@ namespace HexLive.UnityPresentation.Wearing
             var previous = RenderTexture.active;
             try
             {
-                if (_skinTintBlit != null)
+                // Additive: the base and every earlier stamp are already on
+                // the target — only the new arrivals are drawn (see
+                // CanDrawAdditively). Rebuilding costs a full-target blit plus
+                // every stamp again, four times a second during a fight.
+                if (!additive)
                 {
-                    _skinTintBlit.SetColor(SkinTintColorId, _skinTone);
-                    Graphics.Blit(source, rt, _skinTintBlit);
-                }
-                else
-                {
-                    Graphics.Blit(source, rt); // shader missing: untinted base
+                    if (_skinTintBlit != null)
+                    {
+                        _skinTintBlit.SetColor(SkinTintColorId, _appliedTone);
+                        Graphics.Blit(source, rt, _skinTintBlit);
+                    }
+                    else
+                    {
+                        Graphics.Blit(source, rt); // shader missing: untinted base
+                    }
                 }
 
                 RenderTexture.active = rt;
                 GL.PushMatrix();
                 GL.LoadPixelMatrix(0f, 1f, 1f, 0f); // (0,0) top-left, UV v flips below
 
+                // Spec 40.8-H: the zone-damage speckle field goes down FIRST —
+                // wounds, bandages and droplets all land on top of the bruised
+                // base. Explicit pass because Dictionary iteration order after
+                // removals is not layering order.
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.Slot != slot || !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
+                    if (!stamp.IsSpeckle || stamp.Slot != slot || stamp.Over == null ||
+                        !_alpha.TryGetValue(stamp.Key, out var speckleAlpha) || speckleAlpha <= 0.01f)
                     {
+                        continue;
+                    }
+
+                    if (SkipAlreadyPainted(slot, additive, stamp.Key))
+                    {
+                        continue;
+                    }
+
+                    var scx = stamp.Uv.x;
+                    var scy = 1f - stamp.Uv.y;
+                    // r4: seeded spin around the stamp centre — a GL matrix
+                    // because Graphics.DrawTexture has no rotation of its
+                    // own. Push/pop per stamp keeps the pixel matrix intact
+                    // for everything painted after.
+                    GL.PushMatrix();
+                    GL.MultMatrix(Matrix4x4.Translate(new Vector3(scx, scy, 0f)) *
+                                  Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, stamp.RotationDeg)) *
+                                  Matrix4x4.Translate(new Vector3(-scx, -scy, 0f)));
+                    Graphics.DrawTexture(new Rect(scx - stamp.UvSizeX * 0.5f, scy - stamp.UvSizeY * 0.5f,
+                            stamp.UvSizeX, stamp.UvSizeY),
+                        stamp.Over, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, SpeckleTint(speckleAlpha));
+                    GL.PopMatrix();
+                }
+
+                foreach (var stamp in _stamps.Values)
+                {
+                    if (stamp.IsSpeckle || !StampTouchesSlot(stamp, slot) ||
+                        !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
+                    {
+                        continue;
+                    }
+
+                    if (SkipAlreadyPainted(slot, additive, stamp.Key))
+                    {
+                        continue;
+                    }
+
+                    // Spec 40.8-J: the seam-free stamp covers the whole target
+                    // and decides per texel, so it cannot be expressed as a
+                    // rect — it gets its own pass. Unless the fresh lane is
+                    // still carrying it, in which case it IS a rect.
+                    if (stamp.IsProjected && !stamp.DrawAsRect)
+                    {
+                        DrawProjectedAlbedo(stamp, slot, alpha);
                         continue;
                     }
 
@@ -1461,6 +2781,11 @@ namespace HexLive.UnityPresentation.Wearing
                             continue;
                         }
 
+                        if (SkipAlreadyPainted(slot, additive, stamp.Key))
+                        {
+                            continue;
+                        }
+
                         ConfigureDropletMaterial(stamp, alpha, slot);
                         var rect = DropletRect(stamp);
                         Graphics.DrawTexture(rect, stamp.Effect, stamp.CellRect,
@@ -1488,20 +2813,27 @@ namespace HexLive.UnityPresentation.Wearing
         // shader keeps overlaps additive-safe). Alpha is ABSOLUTE smoothness
         // and R is metallic 0 — URP Lit multiplies alpha by the _Smoothness
         // scalar, which NpcActorView pins to 1 while this map is live.
-        private void RepaintSlotGloss(int slot)
+        private void RepaintSlotGloss(int slot, bool additive)
         {
-            // Either stamp material serves: droplets need _dropletStamp,
-            // wound wet-gloss needs _glossStamp — per-stamp guards below.
+            // Any stamp material serves: droplets need _dropletStamp, rect
+            // wound gloss _glossStamp, projected wounds _projectedStamp —
+            // per-stamp guards below.
             if (_materials == null || _materials[slot] == null ||
-                (_dropletStamp == null && _glossStamp == null) ||
+                (_dropletStamp == null && _glossStamp == null && _projectedStamp == null) ||
                 !_materials[slot].HasProperty("_MetallicGlossMap"))
             {
                 return;
             }
 
             var rt = _slotRtGloss[slot];
+            additive &= rt != null;
             if (rt == null)
             {
+                if (!TakeRtBudget())
+                {
+                    return;
+                }
+
                 // Linear: the alpha is smoothness DATA, not colour.
                 rt = new RenderTexture(GlossRtSize, GlossRtSize, 0, RenderTextureFormat.ARGB32,
                     RenderTextureReadWrite.Linear)
@@ -1518,15 +2850,30 @@ namespace HexLive.UnityPresentation.Wearing
             try
             {
                 RenderTexture.active = rt;
-                GL.Clear(false, true, new Color(0f, 0f, 0f, _wetSmoothness));
+                if (!additive)
+                {
+                    GL.Clear(false, true, new Color(0f, 0f, 0f, _wetSmoothness));
+                }
+
                 GL.PushMatrix();
                 GL.LoadPixelMatrix(0f, 1f, 1f, 0f);
 
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.Slot != slot ||
+                    if (!StampTouchesSlot(stamp, slot) ||
                         !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
                     {
+                        continue;
+                    }
+
+                    if (SkipAlreadyPainted(slot, additive, stamp.Key))
+                    {
+                        continue;
+                    }
+
+                    if (stamp.IsProjected && !stamp.DrawAsRect)
+                    {
+                        DrawProjectedGloss(stamp, slot, alpha);
                         continue;
                     }
 
@@ -1596,7 +2943,7 @@ namespace HexLive.UnityPresentation.Wearing
         // blood beads up, and healing fades the relief with the color. The
         // RGB encoding (x in R, y in G, A = 1) survives URP's
         // UnpackNormalmapRGorAG (a·r = x when a = 1).
-        private void RepaintSlotNormal(int slot)
+        private void RepaintSlotNormal(int slot, bool additive)
         {
             if (_materials == null || _materials[slot] == null ||
                 !_materials[slot].HasProperty("_BumpMap"))
@@ -1606,10 +2953,20 @@ namespace HexLive.UnityPresentation.Wearing
 
             var source = _originalNormal[slot];
             var rt = _slotRtNormal[slot];
+            additive &= rt != null;
             if (rt == null)
             {
-                var w = source != null ? Mathf.Min(source.width, MaxRenderTextureSize) : 1024;
-                var h = source != null ? Mathf.Min(source.height, MaxRenderTextureSize) : 1024;
+                if (!TakeRtBudget())
+                {
+                    return;
+                }
+
+                var w = source != null
+                    ? Mathf.Min(source.width, MaxNormalRenderTextureSize)
+                    : MaxNormalRenderTextureSize;
+                var h = source != null
+                    ? Mathf.Min(source.height, MaxNormalRenderTextureSize)
+                    : MaxNormalRenderTextureSize;
                 // Linear: normals are vector data, sRGB conversion would bend
                 // them sideways.
                 rt = new RenderTexture(w, h, 0, RenderTextureFormat.ARGB32,
@@ -1626,15 +2983,18 @@ namespace HexLive.UnityPresentation.Wearing
             var previous = RenderTexture.active;
             try
             {
-                if (source != null && _normalDecode != null)
+                if (!additive)
                 {
-                    Graphics.Blit(source, rt, _normalDecode);
-                }
-                else
-                {
-                    // No authored normal: start from a flat surface.
-                    RenderTexture.active = rt;
-                    GL.Clear(false, true, new Color(0.5f, 0.5f, 1f, 1f));
+                    if (source != null && _normalDecode != null)
+                    {
+                        Graphics.Blit(source, rt, _normalDecode);
+                    }
+                    else
+                    {
+                        // No authored normal: start from a flat surface.
+                        RenderTexture.active = rt;
+                        GL.Clear(false, true, new Color(0.5f, 0.5f, 1f, 1f));
+                    }
                 }
 
                 RenderTexture.active = rt;
@@ -1643,7 +3003,15 @@ namespace HexLive.UnityPresentation.Wearing
 
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.Slot != slot || !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
+                    // Projected stamps carry no relief (TryPlaceProjected) —
+                    // the guards below skip them, this keeps the intent plain.
+                    if (stamp.IsProjected || !StampTouchesSlot(stamp, slot) ||
+                        !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
+                    {
+                        continue;
+                    }
+
+                    if (SkipAlreadyPainted(slot, additive, stamp.Key))
                     {
                         continue;
                     }
@@ -1707,6 +3075,8 @@ namespace HexLive.UnityPresentation.Wearing
 
         private void OnDestroy()
         {
+            SkinPaintScheduler.Unregister(this);
+
             foreach (var rt in _slotRt)
             {
                 if (rt != null)
@@ -1737,6 +3107,24 @@ namespace HexLive.UnityPresentation.Wearing
             if (_bakedMesh != null)
             {
                 Destroy(_bakedMesh);
+            }
+
+            // `body.materials` handed us INSTANCES (one per submesh), and Unity
+            // does not free those with the renderer — they outlive the actor as
+            // orphans, dragging their textures along. The stamp materials
+            // (_skinTintBlit, _glossStamp, …) are STATIC and shared: they must
+            // not be destroyed here.
+            if (_materials != null)
+            {
+                foreach (var material in _materials)
+                {
+                    if (material != null)
+                    {
+                        Destroy(material);
+                    }
+                }
+
+                _materials = null;
             }
         }
 

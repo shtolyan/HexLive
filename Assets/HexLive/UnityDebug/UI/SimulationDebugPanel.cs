@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Bootstrap;
+// Полным именем, а не using'ом: пространство зовётся Input, рядом импортирован
+// UnityEngine.InputSystem, и короткое имя рискует стать неоднозначным.
+using NpcSelection = HexLive.UnityPresentation.Input.NpcSelection;
 using HexLive.UnityPresentation.Localization;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -334,11 +337,11 @@ namespace HexLive.UnityDebug.UI
             {
                 SetFallback();
                 UpdateScores(null);
-                UpdateTrace(null);
+                UpdateTrace(null, null);
                 return;
             }
 
-            var npc = snapshot.Npcs[0];
+            var npc = PickNpc(snapshot);
             // §74: DisplayName is a name ID; the player sees the localized term.
             _hudNpcName.text = string.IsNullOrEmpty(npc.DisplayName)
                 ? string.Format("NPC #{0}", npc.Id.Value)
@@ -391,7 +394,32 @@ namespace HexLive.UnityDebug.UI
             _occupiedValue.text = CountOccupied(snapshot).ToString();
 
             UpdateScores(npc);
-            UpdateTrace(snapshot);
+            UpdateTrace(snapshot, npc);
+        }
+
+        /// <summary>
+        /// Кого показывать. Раньше здесь стояло <c>snapshot.Npcs[0]</c>, а список
+        /// отсортирован по возрастанию id — то есть панель была намертво прибита к
+        /// колонистке с наименьшим номером и НЕ МОГЛА показать никого другого.
+        /// Особенно обидно это вышло в AbuseTest: там разбирали чужака (id 101),
+        /// а панель показывала девушку с id 1, и четыре круга отладки прошли на
+        /// ручном printf'е. Выбор уже существовал (<see cref="NpcSelection"/>) —
+        /// его просто никто отсюда не читал.
+        /// </summary>
+        private static NpcSnapshot PickNpc(WorldSnapshot snapshot)
+        {
+            if (NpcSelection.HasSelection)
+            {
+                for (var i = 0; i < snapshot.Npcs.Count; i++)
+                {
+                    if (snapshot.Npcs[i].Id.Value == NpcSelection.SelectedId)
+                    {
+                        return snapshot.Npcs[i];
+                    }
+                }
+            }
+
+            return snapshot.Npcs[0];
         }
 
         private void SetFallback()
@@ -469,32 +497,79 @@ namespace HexLive.UnityDebug.UI
             }
         }
 
-        private void UpdateTrace(WorldSnapshot snapshot)
+        /// <summary>
+        /// Хвост событий ВЫБРАННОГО NPC, а не всей колонии.
+        /// <para>
+        /// Общий список бесполезен ровно тогда, когда он нужен: кольцо держит 2048
+        /// записей при ~200 событиях в тик, то есть около одиннадцати тиков, и
+        /// тридцать последних строк — это доли одного тика чужой болтовни. Поэтому
+        /// сначала спрашиваем бортовой самописец (§30.14): у него на каждого NPC
+        /// СВОЁ кольцо, которое вытесняют только его собственные события, так что
+        /// у зависшей там лежат её последние решения ПЕРЕД тем, как она замерла.
+        /// Самописец живёт в движке, значит доступен в локальной игре; на удалённом
+        /// мире откатываемся на фильтр общего списка по id.
+        /// </para>
+        /// </summary>
+        private void UpdateTrace(WorldSnapshot snapshot, NpcSnapshot npc)
         {
             _traceContainer.Clear();
 
-            if (snapshot == null || snapshot.TraceEvents.Count == 0)
+            var rows = new List<(int Tick, string Type, string Message)>();
+            var source = "colony ring";
+
+            var recorder = _runner != null ? _runner.Engine?.World?.FlightRecorder : null;
+            if (recorder != null && npc != null)
             {
-                _traceContainer.Add(CreateValueLabel("No events yet (buffer empty)"));
+                foreach (var entry in recorder.Tail(npc.Id.Value, 30))
+                {
+                    rows.Add((entry.Tick, entry.Type, entry.Message));
+                }
+
+                source = "flight recorder";
+            }
+
+            if (rows.Count == 0 && snapshot != null)
+            {
+                for (var i = 0; i < snapshot.TraceEvents.Count; i++)
+                {
+                    var trace = snapshot.TraceEvents[i];
+                    if (npc != null && trace.EntityId != npc.Id.Value)
+                    {
+                        continue;
+                    }
+
+                    rows.Add((trace.Tick, trace.Type, trace.Message));
+                }
+
+                if (rows.Count > 30)
+                {
+                    rows.RemoveRange(0, rows.Count - 30);
+                }
+            }
+
+            if (rows.Count == 0)
+            {
+                _traceContainer.Add(CreateValueLabel(
+                    npc == null ? "No events yet" : "Nothing from this one yet"));
                 return;
             }
 
-            // Show event count header
-            var countLabel = new Label(string.Format("Events in buffer: {0}", snapshot.TraceEvents.Count));
+            var countLabel = new Label(string.Format(
+                "Last {0} events of #{1} ({2})",
+                rows.Count, npc != null ? npc.Id.Value : 0, source));
             countLabel.style.color = TextMuted;
             countLabel.style.fontSize = 9;
             countLabel.style.marginBottom = 4f;
             _traceContainer.Add(countLabel);
 
-            var start = Mathf.Max(0, snapshot.TraceEvents.Count - 30);
-            for (var i = start; i < snapshot.TraceEvents.Count; i++)
+            for (var i = 0; i < rows.Count; i++)
             {
-                var trace = snapshot.TraceEvents[i];
+                var trace = rows[i];
 
                 var entry = new VisualElement();
                 entry.style.marginBottom = 3f;
                 entry.style.paddingBottom = 3f;
-                if (i < snapshot.TraceEvents.Count - 1)
+                if (i < rows.Count - 1)
                 {
                     entry.style.borderBottomWidth = 1f;
                     entry.style.borderBottomColor = new Color(0.18f, 0.18f, 0.22f);

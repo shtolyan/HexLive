@@ -169,6 +169,13 @@ public static class PrototypeRuntimeBootstrap
         var debugPanel = debugRoot.AddComponent<DebugControlsPanel>();
         debugPanel.SetRunner(runner);
 
+        // In-game bug tracker window (BUGS.json), opened from the debug panel.
+        var bugRoot = new GameObject("HexLive Bug Reports");
+        bugRoot.AddComponent<UIDocument>();
+        var bugPanel = bugRoot.AddComponent<BugReportPanel>();
+        bugPanel.SetRunner(runner);
+        debugPanel.SetBugReportPanel(bugPanel);
+
         var historyRoot = new GameObject("HexLive Game History");
         historyRoot.AddComponent<UIDocument>();
         var historyPanel = historyRoot.AddComponent<GameHistoryPanel>();
@@ -218,6 +225,13 @@ public static class PrototypeRuntimeBootstrap
         }
 
         rts.SetRunner(runner);
+
+        // §112: palms that stand between the lens and the framed colonist step
+        // out of the shot (shadows stay) until the camera moves off them.
+        if (mainCamera.GetComponent<Rendering.CameraFoliageCuller>() == null)
+        {
+            mainCamera.gameObject.AddComponent<Rendering.CameraFoliageCuller>();
+        }
     }
 }
 

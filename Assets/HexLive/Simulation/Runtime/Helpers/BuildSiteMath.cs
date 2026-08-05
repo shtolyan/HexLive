@@ -81,16 +81,23 @@ internal static class BuildSiteMath
 
     // §54.14: campfire_final prefab groups "1".."5" — the stick pile is a
     // WORKING fire on its own (the site raises into a cold campfire the moment
-    // stage 1 lands, see ApplyFurnitureSite); the ring and the spit are
+    // stage 1 lands, see ApplyFurnitureSite); the spit and the ring are
     // upgrades delivered to the live fire and finished in place.
+    // §54.17 (r3): the SPIT comes before the stone ring. The old order put the
+    // 18-stone ring at stage 2, and since Remaining() only exposes the current
+    // stage's shortfall, cooking waited on a ring that soaks showed almost
+    // never finishes (§63.4: not once in ~500 seed-days) — so MeatRoasted
+    // could not happen at all. Now the spit costs a working fire + 3 sticks +
+    // 2 rope (days, not weeks) and the ring stays the long-tail fuel-economy
+    // upgrade it thematically is.
     public const int CampfireStage1Sticks = 9;
     private static readonly (string Material, int Count)[] CampfireStages =
     {
         (MaterialSticks, CampfireStage1Sticks), // stage 1: the stick pile (usable fire)
-        (MaterialStones, 18), // stage 2: the dense stone ring
-        (MaterialSticks, 2),  // stage 3: the two planted forked posts
-        (MaterialSticks, 1),  // stage 4: the crossbar
-        (MaterialRope, 2)     // stage 5: the lashings
+        (MaterialSticks, 2),  // stage 2: the two planted forked posts
+        (MaterialSticks, 1),  // stage 3: the crossbar
+        (MaterialRope, 2),    // stage 4: the lashings
+        (MaterialStones, 18)  // stage 5: the dense stone ring
     };
 
     // §54.15: water_collector_final prefab groups "1".."5" — the frame is
@@ -186,9 +193,10 @@ internal static class BuildSiteMath
     public static bool CampfireRingComplete(WorldObjectState fire) =>
         fire != null && Delivered(fire, MaterialStones) >= SimBalance.CampfireBillStones;
 
-    // The spit = stages 3-5 (posts, crossbar, lashings) — complete when the
-    // full stick and rope bills are in (stage order guarantees the ring came
-    // first).
+    // The spit = stages 2-4 (posts, crossbar, lashings) — complete when the
+    // full stick and rope bills are in. The stone ring (stage 5, §54.17 r3)
+    // may or may not exist yet; it is a fuel-economy upgrade, not a cooking
+    // prerequisite.
     public static bool CampfireSpitComplete(WorldObjectState fire) =>
         fire != null &&
         Delivered(fire, MaterialSticks) >= SimBalance.CampfireBillSticks &&

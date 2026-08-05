@@ -36,15 +36,23 @@ public static class HexHopTuning
     public static float WindowSeconds(bool up) => up ? HopSeconds : DownHopSeconds;
     public static float DownBeatScale => DownHopSeconds / System.MathF.Max(0.0001f, HopSeconds);
 
-    // Symmetric wall clearance (world units, measured PERPENDICULAR to the
-    // obstacle border): the jump takes off exactly this far on the stand
-    // side of the wall and lands exactly this far on the target side. The
-    // lattice-point positions are only a DIRECTION hint — the takeoff/landing
-    // are placed geometrically, so a boundary point sitting right on the wall
-    // can no longer leave her jumping flush against it.
-    // 0.3 => takeoff 0.3 before the wall, land 0.3 past it, jump length 0.6
-    // (2*EdgePadding) — "just over the edge". Raise for a bigger leap.
+    // §21.21B v14: the jump is ASYMMETRIC, and which end is which flips with
+    // the direction. EdgePadding is the NEAR end (right at the lip),
+    // FarPadding the FAR one; both are measured ALONG the flight from the
+    // border, so every jump is EdgePadding + FarPadding long regardless of
+    // approach angle (v10).
+    //   DOWN: takeoff -EdgePadding (pushes off the very edge), land +FarPadding
+    //   UP:   takeoff -FarPadding (runs up and leaves early), land +EdgePadding
+    // That is how a person actually clears a step, and it fixes both halves of
+    // the old symmetric model: a drop that landed 0.1 past the lip read as
+    // SLIDING off (flight speed 0.44 wu/s against a 1.2 walk), and a climb that
+    // left 0.1 from the wall had no run-up at all. Do NOT confuse this with v7's
+    // rejected asymmetry — that one had takeoff flush ON the wall (0.00), so she
+    // walked into it; the near end stays non-zero here.
+    // The lattice points are only a DIRECTION hint; both ends are placed
+    // geometrically from the tile-centre crossing.
     public static float EdgePadding = 0.3f;
+    public static float FarPadding = 0.65f;
 
     // Dropping DOWN: a little UP pop off the edge before the fall (world
     // units) so the feet clear the lip instead of scraping it. Presentation
@@ -52,11 +60,38 @@ public static class HexHopTuning
     public static float DownHopUp = 0.2f;
 
     // Dropping DOWN: fraction of the FLIGHT she stays LEVEL (no drop) before
-    // gravity kicks in. The flight is symmetric about the wall border, which
-    // she crosses at 0.5 — so holding to ~0.5 means she sails OVER the lip and
-    // only falls once she's above the lower ground, never scraping the edge.
+    // gravity kicks in. Hold until she is PAST the lip or her feet scrape it.
+    // §21.21B v14: the flight is no longer symmetric, so the border is crossed
+    // at EdgePadding / (EdgePadding + FarPadding) of the flight — 0.32 on the
+    // code defaults, 0.13 on the shipped ones. Set this just above that.
     // Presentation only. 0 = fall immediately (old behaviour), 1 = no fall.
-    public static float DownFallStartFrac = 0.5f;
+    public static float DownFallStartFrac = 0.35f;
+
+    // §21.21B v16: on a CLIMB, what fraction of the airborne beat actually
+    // COVERS the distance. The rest of it she is already standing on the ledge.
+    // Why: the sim spread 0.75 wu evenly over the whole beat, so the body
+    // reached the upper level early (the arc overshoots on purpose) and then kept
+    // sliding horizontally for another half second — she read as standing on the
+    // step and skating onto it. Arriving EARLY inside the beat kills that: she
+    // lands, then plants. 1 = the old behaviour (travel to the last instant).
+    // The view ends its arc on the same fraction, so the two clocks still agree
+    // by construction.
+    // UP ONLY, deliberately. A drop lands FarPadding out and never had the
+    // slide, and every tick of movement timing reshuffles the dog dance: applied
+    // to both directions this tipped seed 816616098 — the outsider ended the run
+    // comatose and §81's abuse test went red. Halving the perturbation keeps the
+    // fix where the complaint was.
+    public static float FlightSettleFrac = 0.65f;
+
+    // The fraction for a hop in the given direction: the settle applies to a
+    // climb, a drop keeps the full beat (see above).
+    public static float SettleFrac(bool up) => up ? FlightSettleFrac : 1f;
+
+    // Climbing UP: at what fraction of the covered flight the body is at its
+    // highest (its apex overshoots the target ledge, see JumpUpOvershoot).
+    // Earlier = snappier "up first, then over" read, which is what a real step-up
+    // looks like. Presentation only. 0.5 was the original symmetric arc.
+    public static float UpApexFrac = 0.35f;
 
     // Diving into water: the body SPLASHES this many world units BELOW the
     // swim level at the deepest point of the plunge, then bobs back up to it

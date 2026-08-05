@@ -58,6 +58,7 @@ public static class ItemIcons
 
     private static void Begin(string id, string address, bool fallbackToSlug)
     {
+        ContentQueue.Begin(ContentQueue.Kind.Icon);
         Addressables.LoadResourceLocationsAsync(address).Completed += found =>
         {
             var exists = found.Status == AsyncOperationStatus.Succeeded &&
@@ -71,6 +72,7 @@ public static class ItemIcons
                 var slug = ItemInfo.Slug(id);
                 if (fallbackToSlug && slug != id)
                 {
+                    ContentQueue.End(ContentQueue.Kind.Icon);
                     Begin(id, Address(slug), fallbackToSlug: false);
                     return;
                 }
@@ -78,12 +80,14 @@ public static class ItemIcons
                 // Отрицательный ответ кэшируется наравне с найденным: вещь без
                 // иконки спросят ещё много раз.
                 Cache[id] = null;
+                ContentQueue.End(ContentQueue.Kind.Icon);
                 return;
             }
 
             Addressables.LoadAssetAsync<Sprite>(address).Completed += loaded =>
             {
                 Cache[id] = loaded.Status == AsyncOperationStatus.Succeeded ? loaded.Result : null;
+                ContentQueue.End(ContentQueue.Kind.Icon);
             };
         };
     }

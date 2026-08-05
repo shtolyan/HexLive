@@ -27,12 +27,8 @@ public static class ActorWardrobe
 {
     private static readonly Dictionary<string, List<Wear>> _cache = new();
 
-    /// <summary>
-    /// Сколько прогревов ещё в пути. Экран загрузки ждёт нуля: тело можно
-    /// построить и без одежды, поэтому «вид появился» — ещё не значит «одета».
-    /// Игрок не должен видеть, как вещи доезжают уже в игре.
-    /// </summary>
-    public static int Pending { get; private set; }
+    // Учёт ведёт ContentQueue: экрану загрузки нужен честный прогресс, а не
+    // «ещё не всё».
 
     /// <summary>
     /// Положить арт вещи в кэш, НЕ блокируя вызывающего.
@@ -56,7 +52,7 @@ public static class ActorWardrobe
         var address = HairContent.WearAddress(
             Garments.GarmentVariants.ArtIdOf(simDefinitionId));
 
-        Pending++;
+        Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Wear);
         UnityEngine.AddressableAssets.Addressables.LoadResourceLocationsAsync(address)
             .Completed += found =>
         {
@@ -68,7 +64,7 @@ public static class ActorWardrobe
             if (!exists)
             {
                 _cache[simDefinitionId] = new List<Wear>();
-                Pending--;
+                Garments.ContentQueue.End(Garments.ContentQueue.Kind.Wear);
                 return;
             }
 
@@ -87,7 +83,7 @@ public static class ActorWardrobe
                 }
 
                 _cache[simDefinitionId] = list;
-                Pending--;
+                Garments.ContentQueue.End(Garments.ContentQueue.Kind.Wear);
             };
         };
     }

@@ -17,6 +17,46 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: 'loading.content.wear'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stitching the clothes…'
+      - 'Шьём одежду…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.content.hair'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Doing their hair…'
+      - 'Причёсываем волосы…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.content.colour'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Mixing the hair colour…'
+      - 'Подбираем цвет волос…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.content.icon'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sketching the labels…'
+      - 'Рисуем значки…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.content.done'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dressing the colonists…'
+      - 'Одеваем колонисток…'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.tonnyflash.name'
       TermType: 0
       Description: 

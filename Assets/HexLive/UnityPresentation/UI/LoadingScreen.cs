@@ -31,9 +31,6 @@ namespace HexLive.UnityPresentation.UI
         public static bool IsReplaying { get; private set; }
 
         private const float ReplayBudgetMsPerFrame = 10f;
-        // Потолок ожидания тел: шторка не имеет права висеть вечно.
-        private const float ActorWaitSeconds = 10f;
-
         private const float FadeSeconds = 0.7f;
 
         private SimulationRunnerBehaviour _runner;
@@ -950,9 +947,15 @@ namespace HexLive.UnityPresentation.UI
             StartCoroutine(Run());
         }
 
-        // Ждём, пока рендерер построит тела всем колонисткам. С потолком:
-        // если чья-то одежда не приедет вовсе (вещь без арта — законный
-        // случай), игра всё равно должна начаться, а не висеть на шторке.
+        // Ждём, пока мир будет ГОТОВ ПОКАЗАТЬСЯ: тела построены и очередь
+        // контента пуста. Без таймаута — и это не смелость, а следствие
+        // устройства: каждая начатая задача обязана завершиться, потому что
+        // Addressables завершает операцию всегда, и успехом, и провалом.
+        // Задача, начатая без завершения, — ошибка в загрузчике, и лечить её
+        // страховкой на экране значит прятать её от себя.
+        //
+        // Подпись при этом человеческая: игрок видит «шьём одежду», а не
+        // проценты в пустоту.
         private IEnumerator WaitForActors(
             System.Collections.Generic.List<(int id, string name)> npcs)
         {
@@ -973,27 +976,14 @@ namespace HexLive.UnityPresentation.UI
                 ids.Add(npc.id);
             }
 
-            // Ждём ДВЕ вещи: что тела построены и что фоновые загрузки одежды
-            // закончились. Тело можно собрать и без вещей — тогда шторка уходит,
-            // а одежда доезжает уже на глазах у игрока. Ровно это и было видно.
-            var waited = 0f;
-            while (waited < ActorWaitSeconds &&
-                   (!renderer.ActorsReady(ids) ||
-                    Wearing.ActorWardrobe.Pending > 0 ||
-                    Wearing.HairContent.Pending > 0))
+            while (!renderer.ActorsReady(ids) || !Wearing.Garments.ContentQueue.IsIdle)
             {
-                waited += Time.unscaledDeltaTime;
-                SetProgress(Mathf.Lerp(0.95f, 0.99f, waited / ActorWaitSeconds),
-                    Loc.Get("loading.warmup"));
+                // Прогресс НАСТОЯЩИЙ: сделано из всего, что заказано. Полоска
+                // на этом участке живёт в верхней четверти — терраген и прогрев
+                // панелей уже позади.
+                SetProgress(Mathf.Lerp(0.75f, 0.99f, Wearing.Garments.ContentQueue.Progress),
+                    Loc.Get(Wearing.Garments.ContentQueue.MessageKey));
                 yield return null;
-            }
-
-            if (!renderer.ActorsReady(ids) ||
-                    Wearing.ActorWardrobe.Pending > 0 ||
-                    Wearing.HairContent.Pending > 0)
-            {
-                Debug.LogWarning($"[Загрузка] тела не достроились за {ActorWaitSeconds:F0} с — " +
-                                 "начинаем без ожидания, чтобы не висеть на шторке.");
             }
         }
 

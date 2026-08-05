@@ -29,12 +29,7 @@ public static class HairContent
 {
     private static readonly Dictionary<string, AsyncOperationHandle<GameObject>> Hair = new();
 
-    /// <summary>
-    /// Сколько загрузок причёсок и их цветов ещё в пути. Экран загрузки ждёт
-    /// нуля вместе с одеждой: девушка, у которой тело есть, а причёска ещё
-    /// едет, — это лысая девушка на глазах у игрока.
-    /// </summary>
-    public static int Pending { get; private set; }
+    // Учёт ведёт ContentQueue — там же, где одежда и иконки.
     private static readonly Dictionary<string, AsyncOperationHandle<Material>> Materials = new();
 
     public static string HairAddress(string hair) => $"hair/{hair}";
@@ -66,9 +61,9 @@ public static class HairContent
 
         if (!handle.IsDone)
         {
-            Pending++;
+            Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Hair);
             yield return handle;
-            Pending--;
+            Garments.ContentQueue.End(Garments.ContentQueue.Kind.Hair);
         }
 
         if (handle.Status != AsyncOperationStatus.Succeeded || handle.Result == null)
@@ -108,9 +103,9 @@ public static class HairContent
 
             if (!handle.IsDone)
             {
-                Pending++;
+                Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.HairColour);
                 yield return handle;
-                Pending--;
+                Garments.ContentQueue.End(Garments.ContentQueue.Kind.HairColour);
             }
 
             if (handle.Status == AsyncOperationStatus.Succeeded && handle.Result != null)

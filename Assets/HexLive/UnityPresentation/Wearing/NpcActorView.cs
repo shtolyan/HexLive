@@ -4444,8 +4444,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         var catalog = ActorAppearanceCatalog.Instance;
-        var prefab = catalog != null ? catalog.Find(hairstyle) : null;
-        if (prefab == null)
+        if (catalog == null || !catalog.Has(hairstyle))
         {
             Debug.LogWarning(
                 $"[§74] hairstyle '{hairstyle}' is not in the appearance catalog — " +
@@ -4453,24 +4452,40 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        _bodyBones.SetHair(prefab);
-        ApplyHairColour(hairstyle);
+        StartCoroutine(SpawnHair(hairstyle));
     }
 
-    // §74: свой цвет волос. Правило и подмена живут в HairColourApplier —
-    // там же, откуда их берёт проверяющее меню.
-    private void ApplyHairColour(string hairstyle)
+    // Причёска и её цвет едут ПО АДРЕСУ (Addressables), а значит приезжают не
+    // мгновенно. Пока едет — на голове та причёска, что авторская на префабе: лучше чужая
+    // причёска на кадр, чем лысая голова.
+    //
+    // Цвет ставится ПОСЛЕ SetHair и по живому экземпляру: материал в Unity
+    // общий, и запись в ассет перекрасила бы эту причёску у всех сразу.
+    private System.Collections.IEnumerator SpawnHair(string hairstyle)
     {
-        var live = _bodyBones != null ? _bodyBones.HairInstance : null;
-        if (live == null)
+        Wear prefab = null;
+        yield return HairContent.LoadHair(hairstyle, found => prefab = found);
+
+        if (prefab == null || _bodyBones == null)
         {
-            return;
+            yield break;
         }
 
+        _bodyBones.SetHair(prefab);
+
         var colour = HairColourApplier.Choose(hairstyle, _npcId);
-        if (colour != null)
+        if (colour == null)
         {
-            HairColourApplier.Apply(live.gameObject, colour);
+            yield break;
+        }
+
+        System.Collections.Generic.Dictionary<string, Material> materials = null;
+        yield return HairContent.LoadColour(hairstyle, colour, loaded => materials = loaded);
+
+        var live = _bodyBones != null ? _bodyBones.HairInstance : null;
+        if (live != null && materials != null)
+        {
+            HairColourApplier.Apply(live.gameObject, materials);
         }
     }
 

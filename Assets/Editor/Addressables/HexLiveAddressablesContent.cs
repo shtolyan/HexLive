@@ -191,12 +191,12 @@ public static class HexLiveAddressablesContent
         var catalog = HexLive.UnityPresentation.Wearing.ActorAppearanceCatalog.Instance;
         if (catalog != null)
         {
-            foreach (var hair in catalog.hairstyles)
+            foreach (var hairId in catalog.hairstyles)
             {
-                if (hair == null) continue;
-                if (!addresses.Contains(HairAddress(hair.name)))
+                if (string.IsNullOrEmpty(hairId)) continue;
+                if (!addresses.Contains(HairAddress(hairId)))
                 {
-                    missing.Add(HairAddress(hair.name));
+                    missing.Add(HairAddress(hairId));
                 }
             }
         }

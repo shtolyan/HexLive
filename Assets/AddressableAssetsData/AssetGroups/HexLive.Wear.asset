@@ -1,0 +1,918 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HexLive.Wear
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HexLive.Wear
+  m_GUID: dca1574fbe7a71648a48b334b438054b
+  m_SerializeEntries:
+  - m_GUID: 00cd394d3e59e734a9c6cc895d27fb1d
+    m_Address: wear/clothing.pumps_flair
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 010e7768ffa248341a0ccc49228664cd
+    m_Address: wear/clothing.gloves_fit
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 01877dc576628420bae9e398aa21c5e0
+    m_Address: wear/FCO Knee Straps Male
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0189d7d95f17fd9479a665000850b50f
+    m_Address: wear/underwear.briefs_openback
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 038ba5f579645f44794b539684c92314
+    m_Address: wear/clothing.boots_cindy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 044572a5ee9db754d92b4f12e306fbb8
+    m_Address: wear/clothing.dress_city
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 07196fda49c6e8944aaed8f4a0aa107f
+    m_Address: wear/clothing.top_classic
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 073114d2714cba94ebcc8bf24d4f0f40
+    m_Address: wear/clothing.sneakers_nerd
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 08e118367f738344388c1463c666cd0a
+    m_Address: wear/clothing.greaves_tod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 09111de6b2c4cde4cb2af5e3ab5b6774
+    m_Address: wear/underwear.stockings_spooky
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0a5effadfd86c5d43965c257dc87eae6
+    m_Address: wear/clothing.pendant_amy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0c3e4d4237d94694aa0d79d8f7fcb019
+    m_Address: wear/underwear.briefs_teez
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0d91570dbb20307479f930348efd100a
+    m_Address: wear/clothing.sunglasses_luxury
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0da5e79ec5469f64ebe1fb213712df8a
+    m_Address: wear/clothing.yogapants_tek
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 12f90e43f44ab3342859ba9c41287935
+    m_Address: wear/clothing.sandals_summer4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 13a8ca014c036f342be04cbf63140743
+    m_Address: wear/clothing.boots_charm
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 14344a9bee951c649b7b49a0a8579751
+    m_Address: wear/underwear.thong_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 155859c014e43b4458d454a5b57183b2
+    m_Address: wear/underwear.briefs_luxury
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 196249379468260498f14563847abb34
+    m_Address: wear/underwear.socks_fit
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1e2cb731bb74e5b4eafc190039fb3ff9
+    m_Address: wear/clothing.babydoll_sweety
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1eac8a1360e99d34e888b6a878a6a1c5
+    m_Address: wear/clothing.pants_stars
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2414dfd75e209c94abdebee3701ec7ee
+    m_Address: wear/clothing.glasses_nerd
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 25ce5d40577aa3840acac9a4839bf759
+    m_Address: wear/clothing.sandals_summer1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 261870b8e4542cd49919c6b7360d4bb9
+    m_Address: wear/clothing.skirt_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 28200a3852fcd014395757707ad708b9
+    m_Address: wear/underwear.panty_tod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2bcb9a23f6156d84e9bb4ac96687ee08
+    m_Address: wear/clothing.ankleboots_amy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2d74232f735ee524180116a2f5ba9ae2
+    m_Address: wear/clothing.skirt_amy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2f2ea39270ec1d44697cc6236e0d1b8a
+    m_Address: wear/clothing.bracelet_luxury
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3339bce25021be140a0e5721e0351280
+    m_Address: wear/clothing.leggings_yoga
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 33bf56d3cdfc1f24db6544c6b7ea7c22
+    m_Address: wear/underwear.stockings_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 33dff91be9d47424ebda48644bff6e92
+    m_Address: wear/underwear.bra_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3404e4328dbf7334b848bc6718225565
+    m_Address: wear/clothing.tutu_nerd
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 352c29e3e04d5e741810f4062259686c
+    m_Address: wear/clothing.blouse_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 36ae705d6acad0e4793a0499d3bef339
+    m_Address: wear/clothing.boots_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3850c89328fecb74daac910b7284973f
+    m_Address: wear/clothing.hipbelt_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3c35019621e4edf48a835c3b0125cf83
+    m_Address: wear/underwear.tights_deadly
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3d8e47ff32ea1a24687c2a8f8a08df6d
+    m_Address: wear/clothing.belt_holster
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3f3144d933a395b47a95189502b19483
+    m_Address: wear/underwear.top_luxury
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 40e9a762f22853e4db54e81bf56687db
+    m_Address: wear/clothing.skirt_naughty
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4257528d10b9c46479c8301a595581bf
+    m_Address: wear/clothing.suit_bandaid
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 42c17a77857d96649839252bc14a4d24
+    m_Address: wear/clothing.tshirt_big
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 45b8968cd739bfa4d923e790558c247c
+    m_Address: wear/clothing.top_primal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4670d83a1f3ccc549a0476d6a6ff0837
+    m_Address: wear/clothing.sandals_summer2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 48682d5b1f7e8dd45a868287829abf08
+    m_Address: wear/underwear.bra_lace
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 491a5ba236d7499449996deae11bf12c
+    m_Address: wear/clothing.corset_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 499e96ec126ec634f8168aefc284b73a
+    m_Address: wear/underwear.briefs_sport
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4a40d5fc8a0f06c4496788d99a931e38
+    m_Address: wear/clothing.armguards_fighter
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b3f5b4a00d480d4590ba0ed0b3236b8
+    m_Address: wear/clothing.boots_classic
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4c40a36e2f41a34428fca7caae98c39a
+    m_Address: wear/clothing.shorts_fit
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4d2bfa2b3baee4c4aabc87d6920df36a
+    m_Address: wear/clothing.jackettied_tek
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4eb18f9f36575e044ba30ebaee7bd4c6
+    m_Address: wear/clothing.top_tod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4ec52b45c639e854c8ebfd2dabbd223c
+    m_Address: wear/TonnyFlash
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5048482a509708a4697d766529000241
+    m_Address: wear/clothing.skirt_jane
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 51218c27f9eab77448d73089858d659c
+    m_Address: wear/clothing.pants_biker
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 529bac4c02f6f7b45ac4b2993c3f2aee
+    m_Address: wear/clothing.sweater_flair
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5342c4b91f2cfed438d9a0400ca3edf4
+    m_Address: wear/clothing.top_alloy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 53a0590d61bfbcc4cae0cbdcbf5e2302
+    m_Address: wear/clothing.boots_leather
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 54426aa7e562b38429169c7d16b855e3
+    m_Address: wear/clothing.gloves_lace_tod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5557bcc1ab7547f41a938028ef80229f
+    m_Address: wear/clothing.blouse_nerd
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 56177c2c681196b44b5c7be05b3cfcf2
+    m_Address: wear/clothing.slipons_fads
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 575266b2bc8816d4cb86b3627b9664f8
+    m_Address: wear/underwear.briefs_cindy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 57596b17391a9c645ac474473b5f04f1
+    m_Address: wear/underwear.bra_openback
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 57b4cac06c8947345ab9bc2ab571483d
+    m_Address: wear/clothing.jacket_cindy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5847946dbb66d3249a15df0368c24458
+    m_Address: wear/clothing.skirt_primal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5cd093e8bc51ea94db3ab2b3fb76e1d0
+    m_Address: wear/clothing.tshirt_summer
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5f2428e527a76e8458951b431e2f9ac8
+    m_Address: wear/underwear.sportsbra_tek
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 60a17e19e5d97c24a8ed54fd8f038dc7
+    m_Address: wear/underwear.bikini_top
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 61195b7aebd9afe48b7d5654d2eadd34
+    m_Address: wear/clothing.wrapboots_primal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 61d52364966a71240be78ae34f5f7c84
+    m_Address: wear/clothing.leggings_idol
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6393be7815a3a4341a2436d03ab8ba54
+    m_Address: wear/clothing.shirt_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 64d2163e73c96f946abaedd05014c1df
+    m_Address: wear/underwear.swimsuit_top
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 659dc9e45fa9f9e4eae0a37dfec3e25a
+    m_Address: wear/clothing.tank_jane
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 65c87e29f2d06804a92cb529904ddd5c
+    m_Address: wear/clothing.collar_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 66efd7cfb51e5da4eb2c50ac2c8904cc
+    m_Address: wear/clothing.blouse_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 66fe87327a1d6764d86b57c246f91455
+    m_Address: wear/clothing.headband_primal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 675c0a6432c9efb419a4c17f95a99c5c
+    m_Address: wear/clothing.pants_fighter
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 67e2349aaba764dc797c475cd625ea48
+    m_Address: wear/FCO Belt Male
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 688c41f69eaf72343bde7fad7fccdaef
+    m_Address: wear/clothing.top_fighter
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6ad5cf34db2a914478a6873954c15df0
+    m_Address: wear/clothing.boots_alloy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6c748d45f85824dcdb9e0e9046fc0950
+    m_Address: wear/FCO Gloves Male
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6d925a078158c7848bb40cd13b558cc5
+    m_Address: wear/clothing.shirt_amy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6fd1b24440c97f24abfc0f51064593b4
+    m_Address: wear/clothing.halter_vamp
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 70c99a65bcd05415cabd4839f89cc4d7
+    m_Address: wear/FAO Harness Male
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 73a6342316e84db4e8e6a7a3ecb60abe
+    m_Address: wear/clothing.skirt_alloy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 74747cb5cecded448ae8da3badd08150
+    m_Address: wear/clothing.gloves_biker
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 74abf7901d475834b8e4cc909c034fec
+    m_Address: wear/underwear.briefs_wild
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 758f90e986e70e14eb9e615dfaf2728f
+    m_Address: wear/clothing.pants_ranger
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 75d7bb67edf3bb24d95475994a401d06
+    m_Address: wear/clothing.belt_fighter
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 76e651ad2d1ce1246bd5be839b5352a0
+    m_Address: wear/clothing.jacket_biker
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 77502a312158cb24f8df604752fa4115
+    m_Address: wear/clothing.pants_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 783e3f3322b9d446e9aba39e147a0795
+    m_Address: wear/FCO Boots Male
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7986aa54b8db41249a642252a293d83f
+    m_Address: wear/clothing.belt_stars
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7fd1a76d080a8f14fb2b350e554ccad7
+    m_Address: wear/clothing.dress_primal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 80935a1ef20e96c4e9081778094ad559
+    m_Address: wear/underwear.briefs_sweety
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 821a4b509abd931439b20ebc540be83a
+    m_Address: wear/clothing.jacket_autumn
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 842b6b134680c1545bef9909ec37523e
+    m_Address: wear/clothing.cap_stars
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 85ceebc414c67494dba7c1471aa6b64f
+    m_Address: wear/underwear.bikini_briefs
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 861a0e81cef4d5041a8d7de75babb5b0
+    m_Address: wear/underwear.top_cindy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 864847cfdcc4ae94294daa36f10c0ec7
+    m_Address: wear/clothing.sneakers_sport
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 89f8772a60cc1b5489012e32b764300c
+    m_Address: wear/clothing.gloves_strap_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8c60dc1629d9fbb4da8743b28d6cfa2b
+    m_Address: wear/clothing.tanktop_summer
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8d62b3b0cab1a6844a78dac2a9af8d4e
+    m_Address: wear/clothing.gloves_cindy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8e7f6bcdcefb3364f82d4bcd66c9d68c
+    m_Address: wear/gear.backpack_osiris
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 900aab086dec8e949b269d89c6af04aa
+    m_Address: wear/clothing.sneakers_canvas
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9126a328660696149ba91b759b9e1d29
+    m_Address: wear/clothing.vest_stars
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 96ad7a566b260c940bcf688bf0cf6078
+    m_Address: wear/clothing.top_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 96d31d3dca23ff64dbb14d58aa6c9fbc
+    m_Address: wear/clothing.top_folk
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 97af62569cb7a5a42984bc1fb34020f5
+    m_Address: wear/clothing.sweater_naughty
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9852fa0fc911fe841aad9da5be6aa45e
+    m_Address: wear/clothing.cap_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9d00a213c4be8354cad70652c4dc5fca
+    m_Address: wear/clothing.skirt_flair
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9ddf1a9e46a84524683d9a531e999acc
+    m_Address: wear/clothing.top_stars
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a2161c6544277704993d91c85bba28c9
+    m_Address: wear/clothing.blouse_waist_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a26d6b2ccbd6b7242b6a1617a757a097
+    m_Address: wear/clothing.collar_studded_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a364c92a34cc7ff4ea33a34b2e4435db
+    m_Address: wear/clothing.gloves_deadly
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a3c31abc3719e6048817ef7734a7a7b7
+    m_Address: wear/clothing.belt_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a45e26c8a64e0a2479be95f5b43ee482
+    m_Address: wear/clothing.jeans_skinny
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a696e4f7d3dc14731b5e2a4fb9c9bd51
+    m_Address: wear/FCO Waist Strappy Male
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a6cb6e2eb060cac44923b15d92470a94
+    m_Address: wear/clothing.shorts_classic
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a8a01ced796b63e4496dedd9a062d044
+    m_Address: wear/underwear.briefs_primal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ad3b02b0f11add240832ef4508da7dae
+    m_Address: wear/underwear.briefs_lace
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b277d47c046d0384ba4962309bbdb47b
+    m_Address: wear/underwear.briefs_plain
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b4ee588563483bf42b0aade4494be21f
+    m_Address: wear/clothing.heels_luxury
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5f943c5942691b4ca032a0ad44f95c5
+    m_Address: wear/clothing.necklace_beads
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b79f11704d1418241a799ae1c4b32059
+    m_Address: wear/clothing.armwraps_primal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b8a03affeec2744ae9cc42404d25bd97
+    m_Address: wear/FCO Pants Male
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b9e6883aa7b8b83408ac5f371914e549
+    m_Address: wear/underwear.briefs_strappy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: be0f7a9a8f8f26b44aa4383164df8740
+    m_Address: wear/clothing.shorts_cindy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bf4868102b8908a4f9f3ec0f73f4e90f
+    m_Address: wear/clothing.shorts_summer
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bfb800bbff4d8e043b688aec13471f51
+    m_Address: wear/clothing.sandals_summer3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c1cba11629ccdac4b915ee5456febfff
+    m_Address: wear/clothing.sleeves_idol
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c34901ca1112eab47a4fb309ea201a18
+    m_Address: wear/clothing.dress_night
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4220175b2f371945bf845043a7fa9ba
+    m_Address: wear/underwear.stockings_tod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4f9c0b7863658440974806f73e42972
+    m_Address: wear/clothing.croptop_fit
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c59d4eb8e259d2a43b054abe3f1063e9
+    m_Address: wear/clothing.scarf_classic
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c781d9c54aab379458edf259cfed5adf
+    m_Address: wear/underwear.briefs_vapor
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c7d090ed362e5b243b3a5003e0870b33
+    m_Address: wear/underwear.kneesocks_nerd
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c7d8eab6bb01ba442b9975c889d568a6
+    m_Address: wear/clothing.jacket_ranger
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c8208b0a3698686449c1833758baab03
+    m_Address: wear/clothing.gloves_osiris
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c8b9548c5700b2f49b1d6014afcf9755
+    m_Address: wear/clothing.gloves_classic
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: caee6551dce75304195ccb92dea73d31
+    m_Address: wear/clothing.boots_ranger
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cb5543fb0feee344c90da5271f3c430b
+    m_Address: wear/clothing.thighboots_amy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cb902722869c05c4a8e9378f302d39f8
+    m_Address: wear/clothing.gloves_stars
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cbbb6d17b65077847acb2005ca83dce0
+    m_Address: wear/clothing.collar_fur
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc8797a3573dac24ba3747bc6373a6c1
+    m_Address: wear/clothing.babydoll_tod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc94afcd65c5e8045acd699e3e4eb528
+    m_Address: wear/underwear.stockings_overknee
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d0487f2c1ab574d4cb706e86f506c9ac
+    m_Address: wear/clothing.boots_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d05332552d012934f921d07972f019f3
+    m_Address: wear/clothing.corset_skinny
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d0d5d487518047047bd8291948863a0e
+    m_Address: wear/clothing.shorts_osiris
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d0d6d000a3553b2468c6624e1fe98903
+    m_Address: wear/underwear.briefs_flair
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d103f58e24f76dc4aaa223918319e80f
+    m_Address: wear/clothing.shoes_tod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d1acd01d63e4f3843aeb266daec6b4ae
+    m_Address: wear/clothing.skirt_wild
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d3989839a2e0ef948ae58503f0f56530
+    m_Address: wear/clothing.top_yoga
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d69b47f6c9115d94182835805fffd0dc
+    m_Address: wear/underwear.bra_strappy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d71a6128cda10534e92062f9cea6f6aa
+    m_Address: wear/clothing.cuffs_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d7c3c546e8957af4786a6d6a29c03fe8
+    m_Address: wear/clothing.jacket_tek
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dbcbe74b36eee4e9f93add95dab68b5d
+    m_Address: wear/FCO Legs Straps Male
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dc1c0fab00a22084eb0a36229c575401
+    m_Address: wear/clothing.necklace_osiris
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dcd48c5d6d2d71e4184e8a095ea7fbfb
+    m_Address: wear/gear.beltpouch_ranger
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e30c1e0824cccca4d91b45d3b0d96336
+    m_Address: wear/clothing.cap_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e332c45e0ecdb324eb16b8a689f78ccd
+    m_Address: wear/clothing.vest_ranger
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e3ef9de2ee08fc84d8062f87711377cb
+    m_Address: wear/clothing.boots_osiris
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e6e8d88a5b7f1ac40bc5ca9d4bfb4be3
+    m_Address: wear/clothing.top_osiris
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e6f6288d633064542bcdf6ebd47f2c41
+    m_Address: wear/clothing.bowtie_nerd
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ebd98ffa60ea4b74d9025a5cbd45d2eb
+    m_Address: wear/clothing.belt_cindy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f0f71f186cd123f4d98fcaa69223bebf
+    m_Address: wear/underwear.sportsbra_jmr
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f264d6351672a6c4085a83c30d7d3896
+    m_Address: wear/gear.backpack_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f3558347a3e12c54ebe7e3c2c3f8c59a
+    m_Address: wear/clothing.top_deadly
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f39579901d46b5346895fa9f43b963e5
+    m_Address: wear/underwear.top_vapor
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f52b16a4f7f04a0448265e5c375075c9
+    m_Address: wear/underwear.bra_wild
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f608150f517cd934ca3e7e5f56a33a96
+    m_Address: wear/clothing.gloves_long_anarchy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f6129e1628a0930468ba1d80e244a08d
+    m_Address: wear/clothing.outfit_reiko
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f7846c2df05358f4481308c238ae3261
+    m_Address: wear/clothing.croptop_idol
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fce0adbcd4e734143bbb32246025e33f
+    m_Address: wear/clothing.shorts_vamp
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fd008954849a0054285149694c91efcb
+    m_Address: wear/underwear.swimsuit_briefs
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fd7df0088327b8449a7ba5f7195af6a7
+    m_Address: wear/clothing.shorts_deadly
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fdd99b49328452b4e8479079a1aa9c8d
+    m_Address: wear/clothing.footwear_fighter
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ff3109bcd85ff714099dfe290ff32e1d
+    m_Address: wear/clothing.shorts_riot
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fffa3e9274c93a847beab3f12ac4d060
+    m_Address: wear/clothing.keikogi_fighter
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: bddd39714fa3ad14ab0a44b36284ce65, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 810ae9c10d93b7241a4237fc7ea819b3, type: 2}
+    - {fileID: 11400000, guid: 2b9edb48fe853b34aaa0f4bb969db8d2, type: 2}
+    m_SchemaDisplayOrder:
+    - HexLive.Wear_BundledAssetGroupSchema
+    - HexLive.Wear_ContentUpdateGroupSchema
+  m_IncludeInBuild: 1
+  m_IncludeInBuildMigrated: 1

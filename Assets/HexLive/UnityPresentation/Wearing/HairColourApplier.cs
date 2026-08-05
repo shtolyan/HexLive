@@ -44,24 +44,15 @@ public static class HairColourApplier
     ///
     /// Материалы ОБЩИЕ (sharedMaterials) и подбираются по ИМЕНИ поверхности:
     /// порядок сабмешей у причёски не гарантирован, а имена — те же, под
-    /// которыми материал лежит в папке цвета. Поверхности, которых в папке нет,
-    /// остаются прототипными — так и задумано: пресет красит только то, чего
-    /// касается (резинка у ChunkyHair своего цвета).
+    /// которыми материал лежит в папке цвета. Поверхности, которых в расцветке
+    /// нет, остаются прототипными — так и задумано: пресет красит только то,
+    /// чего касается (резинка у ChunkyHair своего цвета).
     /// </summary>
-    public static int Apply(GameObject hairInstance, ActorAppearanceCatalog.HairColour colour)
+    public static int Apply(GameObject hairInstance, IReadOnlyDictionary<string, Material> bySurface)
     {
-        if (hairInstance == null || colour == null || colour.materials.Count == 0)
+        if (hairInstance == null || bySurface == null || bySurface.Count == 0)
         {
             return 0;
-        }
-
-        var byName = new Dictionary<string, Material>(colour.materials.Count);
-        foreach (var material in colour.materials)
-        {
-            if (material != null)
-            {
-                byName[material.name] = material;
-            }
         }
 
         var swapped = 0;
@@ -77,7 +68,7 @@ public static class HairColourApplier
                 }
 
                 var surface = slots[i].name.Replace(" (Instance)", string.Empty);
-                if (byName.TryGetValue(surface, out var swap) && swap != slots[i])
+                if (bySurface.TryGetValue(surface, out var swap) && swap != slots[i])
                 {
                     slots[i] = swap;
                     touched = true;

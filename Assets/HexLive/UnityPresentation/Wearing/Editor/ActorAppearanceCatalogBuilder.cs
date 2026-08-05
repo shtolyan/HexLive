@@ -65,7 +65,7 @@ namespace HexLive.UnityPresentation.Wearing
                 AssetDatabase.CreateAsset(catalog, CatalogPath);
             }
 
-            catalog.hairstyles = found;
+            catalog.hairstyles = found.ConvertAll(w => w.name);
             catalog.hairColours = CollectColours(found);
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
@@ -89,8 +89,10 @@ namespace HexLive.UnityPresentation.Wearing
         // Расцветки лежат папками рядом с причёской:
         // <hair>/Materials/<Цвет>/<Поверхность>.mat, а прототипные материалы —
         // прямо в <hair>/Materials. Отсюда правило отбора: берём ТОЛЬКО
-        // подпапки, иначе прототип уехал бы в список как ещё один «цвет» и
-        // выпадал бы вторым шансом на самого себя.
+        // подпапки, иначе прототип уехал бы в список как ещё один «цвет».
+        //
+        // Записываются ИМЕНА, а не ссылки: ссылка втянула бы все 1754
+        // материала и их текстуры в билд целиком — ровно то, от чего уходим.
         private static List<ActorAppearanceCatalog.HairColour> CollectColours(List<Wear> hairstyles)
         {
             var result = new List<ActorAppearanceCatalog.HairColour>();
@@ -121,15 +123,12 @@ namespace HexLive.UnityPresentation.Wearing
                             continue;
                         }
 
-                        var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-                        if (material != null)
-                        {
-                            entry.materials.Add(material);
-                        }
+                        entry.surfaces.Add(Path.GetFileNameWithoutExtension(path));
                     }
 
-                    if (entry.materials.Count > 0)
+                    if (entry.surfaces.Count > 0)
                     {
+                        entry.surfaces.Sort(string.CompareOrdinal);
                         result.Add(entry);
                     }
                 }

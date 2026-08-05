@@ -35,6 +35,8 @@ public static class HairContent
     public static string ColourAddress(string hair, string colour, string surface) =>
         $"hair/{hair}/{colour}/{surface}";
 
+    public static string WearAddress(string artId) => $"wear/{artId}";
+
     /// <summary>
     /// Префаб причёски. Корутина, а не async/await: вызывающий — MonoBehaviour,
     /// которому надо просто дождаться и продолжить, а исключения в async void

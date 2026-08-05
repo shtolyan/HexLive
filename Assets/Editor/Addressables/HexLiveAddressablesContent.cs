@@ -35,7 +35,7 @@ public static class HexLiveAddressablesContent
     public const string WearGroup = "HexLive.Wear";
 
     private const string HairRoot = "Assets/ImportedActors/Hair";
-    private const string WearResources = "Assets/Resources/HexLive/Wear";
+    private const string WearRoot = "Assets/HexLiveContent/Wear";
 
     public static string HairAddress(string hair) => $"hair/{hair}";
 
@@ -104,16 +104,16 @@ public static class HexLiveAddressablesContent
     // помеченная зависимость выносится в свой бандл и перестаёт разделяться.
     private static int MarkWear(AddressableAssetSettings settings)
     {
-        if (!Directory.Exists(WearResources))
+        if (!Directory.Exists(WearRoot))
         {
-            Debug.LogWarning($"[Addressables] нет папки {WearResources} — арт вещей не размечен.");
+            Debug.LogWarning($"[Addressables] нет папки {WearRoot} — арт вещей не размечен.");
             return 0;
         }
 
         var group = GetOrCreateGroup(settings, WearGroup);
         var marked = 0;
 
-        foreach (var directory in Directory.GetDirectories(WearResources))
+        foreach (var directory in Directory.GetDirectories(WearRoot))
         {
             var artId = Path.GetFileName(directory);
             foreach (var file in Directory.GetFiles(directory, "*.prefab"))

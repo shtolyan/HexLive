@@ -254,7 +254,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         // plus a skirt), and they must not collide on the equip key.
         var perGroup = new Dictionary<string, int>();
 
-        foreach (var prefab in Resources.LoadAll<GameObject>("HexLive/Wear"))
+        // Арт вещей уехал из Resources в Addressables. Браузер — редакторный,
+        // поэтому берёт префабы прямо с диска: ему нужен весь список сразу,
+        // а не то, что уже собрано в бандлы.
+        foreach (var prefab in LoadWearPrefabsForBrowser())
         {
             var wear = prefab.GetComponent<Wear>();
             if (wear == null)
@@ -2000,6 +2003,27 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
     // Icons are named by ITEM id, which may carry dots ("clothing.belt_cindy");
     // the slug form is the fallback, same rule the inventory panel follows.
+    // Только для браузера: все префабы арта вещей с диска.
+    private static List<GameObject> LoadWearPrefabsForBrowser()
+    {
+        var result = new List<GameObject>();
+#if UNITY_EDITOR
+        foreach (var guid in UnityEditor.AssetDatabase.FindAssets(
+                     "t:Prefab", new[] { "Assets/HexLiveContent/Wear" }))
+        {
+            var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab != null)
+            {
+                result.Add(prefab);
+            }
+        }
+
+        result.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+#endif
+        return result;
+    }
+
     private static Sprite LoadItemIcon(string id)
     {
         if (string.IsNullOrEmpty(id))

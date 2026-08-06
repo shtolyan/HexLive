@@ -23,6 +23,13 @@ public static class HexHopTuning
     public static float TakeoffSeconds = 0.1f;
     public static float LandingSeconds = 0.5f;
 
+    // The imported jump clips keep their foot bones on the floor, but the
+    // skinned sole extends a little below those bones during the last landing
+    // frames. The view uses these two presentation-only values to keep the
+    // actual sole above the target surface through the clip→gait blend.
+    public static float LandingFootClearance = 0.025f;
+    public static float LandingFootGuardSeconds = 0.65f;
+
     // Down-jumps (sprying off a ledge / into water) can run on their OWN,
     // usually faster, window. HopSeconds is the UP window; DownHopSeconds the
     // DOWN one. Default == HopSeconds (so nothing changes until it's dialed).

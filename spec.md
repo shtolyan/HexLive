@@ -1446,6 +1446,21 @@ Crossing to a tile one elevation level up OR down is a deliberate jump whose
 timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
 the sim and the presentation, so the two can never drift apart:
 
+- v21 — LANDING SOLE GUARD. The jump root and the foot/toe bones were already
+  on the correct surface, but an exact `SkinnedMeshRenderer.BakeMesh` trace of
+  all 20,270 body vertices found the deformed bare sole 0.017 wu below the
+  raised hex on the final up-landing frame (1,064 vertices below ground). The
+  same clip→gait blend produced up to 0.015 wu penetration on the first stride,
+  which was the visible one-second floor dip. During the landing beat and one
+  first-stride grace window, the view now measures the two toe contact bones
+  against the arc's target ground and lifts only `_bodyRoot` by the minimum
+  required amount; model position, tile, XZ and the ballistic curve are
+  untouched. The correction catches penetration immediately and releases
+  softly. Water dive/climb legacy arcs do not use it. Two saved live knobs are
+  exposed in the jump lab: `LandingFootClearance` (shipped 0.025 wu) and
+  `LandingFootGuardSeconds` (shipped 0.65 s). The repeated baked-vertex trace
+  measured zero penetration and zero below-ground vertices through the final
+  landing frame and the complete first step.
 - v20 — DIAGONAL TAKEOFF, MEASURED IN THE PLAY-MODE LAB. With the shipped
   `TakeoffSeconds = 0.6`, `RunHopWindow` held `HopFrom` for two complete
   0.25-second model ticks: the vertical arc was visibly rising by phase 0.31,

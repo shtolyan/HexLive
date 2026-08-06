@@ -309,6 +309,8 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         HexHopTuning.DownHopSeconds = _values.DownHopSeconds;
         HexHopTuning.TakeoffSeconds = _values.TakeoffSeconds;
         HexHopTuning.LandingSeconds = _values.LandingSeconds;
+        HexHopTuning.LandingFootClearance = _values.LandingFootClearance;
+        HexHopTuning.LandingFootGuardSeconds = _values.LandingFootGuardSeconds;
         HexHopTuning.EdgePadding = _values.EdgePadding;
         HexHopTuning.FarPadding = _values.FarPadding;
         HexHopTuning.DownHopUp = _values.DownHopUp;
@@ -422,6 +424,8 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         _values.DownHopSeconds = Slider("Прыжок вниз — всё окно", _values.DownHopSeconds, 0.2f, 5f, "с");
         _values.TakeoffSeconds = Slider("Подготовка / толчок", _values.TakeoffSeconds, 0f, 2f, "с");
         _values.LandingSeconds = Slider("Посадка / выправление", _values.LandingSeconds, 0f, 2f, "с");
+        _values.LandingFootClearance = Slider("Клиренс подошвы", _values.LandingFootClearance, 0f, 0.08f, "wu");
+        _values.LandingFootGuardSeconds = Slider("Защита после касания", _values.LandingFootGuardSeconds, 0f, 1.2f, "с");
         var flight = Mathf.Max(0.05f, _values.HopSeconds - _values.TakeoffSeconds - _values.LandingSeconds);
         GUILayout.Label($"Чистый полёт вверх: {flight:0.00} с", _smallStyle);
 
@@ -529,6 +533,8 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         public float DownHopSeconds;
         public float TakeoffSeconds;
         public float LandingSeconds;
+        public float LandingFootClearance;
+        public float LandingFootGuardSeconds;
         public float EdgePadding;
         public float FarPadding;
         public float DownHopUp;
@@ -546,6 +552,8 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
             DownHopSeconds = 1f,
             TakeoffSeconds = 0.1f,
             LandingSeconds = 0.5f,
+            LandingFootClearance = 0.025f,
+            LandingFootGuardSeconds = 0.65f,
             EdgePadding = 0.1f,
             FarPadding = 0.65f,
             DownHopUp = 0f,
@@ -564,6 +572,8 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
                 DownHopSeconds = config.downHopSeconds,
                 TakeoffSeconds = config.hopTakeoffSeconds,
                 LandingSeconds = config.hopLandingSeconds,
+                LandingFootClearance = config.hopLandingFootClearance,
+                LandingFootGuardSeconds = config.hopLandingFootGuardSeconds,
                 EdgePadding = config.hopEdgePadding,
                 FarPadding = config.hopFarPadding,
                 DownHopUp = config.hopDownUp,
@@ -582,6 +592,8 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
             TakeoffSeconds = Mathf.Clamp(TakeoffSeconds, 0f, HopSeconds - 0.05f);
             LandingSeconds = Mathf.Clamp(LandingSeconds, 0f,
                 Mathf.Max(0f, HopSeconds - TakeoffSeconds - 0.05f));
+            LandingFootClearance = Mathf.Clamp(LandingFootClearance, 0f, 0.08f);
+            LandingFootGuardSeconds = Mathf.Clamp(LandingFootGuardSeconds, 0f, 1.2f);
             EdgePadding = Mathf.Clamp(EdgePadding, 0.1f, 1.5f);
             FarPadding = Mathf.Clamp(FarPadding, 0.2f, 1.2f);
             DownHopUp = Mathf.Clamp(DownHopUp, 0f, 0.8f);
@@ -598,6 +610,8 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
             config.downHopSeconds = DownHopSeconds;
             config.hopTakeoffSeconds = TakeoffSeconds;
             config.hopLandingSeconds = LandingSeconds;
+            config.hopLandingFootClearance = LandingFootClearance;
+            config.hopLandingFootGuardSeconds = LandingFootGuardSeconds;
             config.hopEdgePadding = EdgePadding;
             config.hopFarPadding = FarPadding;
             config.hopDownUp = DownHopUp;

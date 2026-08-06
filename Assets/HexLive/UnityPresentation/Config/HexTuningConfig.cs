@@ -30,6 +30,12 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("ПРИЗЕМЛЕНИЕ: сколько в конце клипа занимает посадка ног — тело уже в точке, стоит, сек.")]
         [MirrorField(typeof(HexHopTuning), "LandingSeconds")]
         [Range(0f, 2f)] public float hopLandingSeconds = 0.5f;
+        [Tooltip("КЛИРЕНС СТОПЫ: минимальная высота носка над поверхностью в конце посадки, чтобы меш подошвы не проваливался в пол.")]
+        [MirrorField(typeof(HexHopTuning), "LandingFootClearance")]
+        [Range(0f, 0.08f)] public float hopLandingFootClearance = 0.025f;
+        [Tooltip("Сколько секунд после касания держать защиту подошвы во время blend из jump-клипа в походку.")]
+        [MirrorField(typeof(HexHopTuning), "LandingFootGuardSeconds")]
+        [Range(0f, 1.2f)] public float hopLandingFootGuardSeconds = 0.65f;
 
         [Header("Прыжок — геометрия")]
         [Tooltip("БЛИЖНИЙ конец прыжка — отступ у самой кромки (мировые единицы). СПРЫГИВАНИЕ отталкивается за столько ДО кромки; ЗАПРЫГИВАНИЕ приземляется за столько ПОСЛЕ неё.")]

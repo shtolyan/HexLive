@@ -634,6 +634,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _jumpTimer;
     private float _jumpRetriggerGuard; // swallows the pose-delta echo at hop end
     private bool _jumpUp;
+    private bool _jumpLandingFloorGuardEnabled;
+    private float _jumpLandingFloorLift;
+    private float _jumpLandingGuardTimer;
     // §21.21B v15: the vertical offset the body held on the last frame of the
     // window. A well-formed arc ends AT the root (offset 0), so this is normally
     // zero; when it is not — clock drift, a swim lift, a hop cut short — it eases
@@ -738,7 +741,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // replayed the crouch and only reached the target level at 75% of what
         // was LEFT, long after the root had snapped up.
         StartJumpArc(up, heightDeltaWorld, startGroundY, fullWindow,
-            takeoffFrac, flightEndFrac, age);
+            takeoffFrac, flightEndFrac, age, landingFloorGuard: !intoWater);
 
         // §67: нырок в воду — всплеск на посадочной доле дуги.
         if (intoWater && _simSpeed <= 4.01f)
@@ -768,12 +771,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             heightDeltaWorld,
             transform.position.y,
             HexLive.Simulation.Navigation.HexHopTuning.HopSeconds * 0.5f,
-            0f, 1f, 0f);
+            0f, 1f, 0f, landingFloorGuard: false);
     }
 
     private void StartJumpArc(
         bool up, float heightDelta, float startGroundY, float durationSimSeconds,
-        float takeoffFrac, float flightEndFrac, float startElapsed)
+        float takeoffFrac, float flightEndFrac, float startElapsed,
+        bool landingFloorGuard)
     {
         if (_laying || _dead || _animator == null)
         {
@@ -786,6 +790,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _jumpDuration = Mathf.Max(0.05f, durationSimSeconds);
         _jumpTakeoffFrac = Mathf.Clamp01(takeoffFrac);
         _jumpFlightEndFrac = Mathf.Clamp(flightEndFrac, _jumpTakeoffFrac + 0.05f, 1f);
+        _jumpLandingFloorGuardEnabled = landingFloorGuard;
+        _jumpLandingFloorLift = 0f;
+        _jumpLandingGuardTimer = 0f;
         // §21.21B v15: seen late? Keep the window, skip to the phase the sim is
         // already at — the beat fractions then still measure against the window
         // they were derived from.
@@ -927,6 +934,69 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var desiredY = _jumpStartY + _jumpHeightDelta * arc;
         _jumpResidualY = desiredY - transform.position.y;
         return new Vector3(0f, _jumpResidualY, 0f);
+    }
+
+    // §21.21B v21: the FBX clips' foot/toe bones finish at the right ground Y,
+    // but the skinned bare sole reaches about 0.02 wu below those bones during
+    // the last jump frame and the blend into locomotion. That is the visible
+    // one-second floor dip. Keep the model/root trajectory untouched and lift
+    // only the rendered body by the smallest amount required at the contact
+    // bones. The short grace covers the jump→gait cross-fade; then the lift
+    // eases away instead of popping off.
+    private void ApplyJumpLandingFloorGuard()
+    {
+        if (_bodyRoot == null || _bodyBones == null || !_jumpLandingFloorGuardEnabled)
+        {
+            _jumpLandingFloorLift = 0f;
+            _jumpLandingGuardTimer = 0f;
+            return;
+        }
+
+        var simDelta = Time.deltaTime * Mathf.Max(0.01f, _simSpeed);
+        var landingBeat = _jumpTimer > 0f &&
+            _jumpTimer <= HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds;
+        if (landingBeat)
+        {
+            _jumpLandingGuardTimer = Mathf.Max(0f,
+                HexLive.Simulation.Navigation.HexHopTuning.LandingFootGuardSeconds);
+        }
+        else
+        {
+            _jumpLandingGuardTimer = Mathf.Max(0f, _jumpLandingGuardTimer - simDelta);
+        }
+
+        var guardActive = landingBeat || _jumpLandingGuardTimer > 0f;
+        var targetLift = 0f;
+        if (guardActive)
+        {
+            var lToe = _bodyBones.GetBone("lToe") ?? _bodyBones.GetBone("lFoot");
+            var rToe = _bodyBones.GetBone("rToe") ?? _bodyBones.GetBone("rFoot");
+            if (lToe != null || rToe != null)
+            {
+                var lowestToeY = lToe == null ? rToe.position.y :
+                    rToe == null ? lToe.position.y : Mathf.Min(lToe.position.y, rToe.position.y);
+                // During a down-hop the sim root intentionally remains on the
+                // upper tile until the atomic touchdown tick. The arc target is
+                // therefore the only correct floor during the landing beat.
+                var groundY = landingBeat
+                    ? _jumpStartY + _jumpHeightDelta
+                    : transform.position.y;
+                var clearance = Mathf.Clamp(
+                    HexLive.Simulation.Navigation.HexHopTuning.LandingFootClearance,
+                    0f, 0.08f);
+                targetLift = Mathf.Clamp(groundY + clearance - lowestToeY, 0f, 0.06f);
+            }
+        }
+
+        // Catch penetration immediately; release more softly so the correction
+        // cannot turn into a second, smaller landing pop.
+        _jumpLandingFloorLift = targetLift > _jumpLandingFloorLift
+            ? targetLift
+            : Mathf.MoveTowards(_jumpLandingFloorLift, targetLift, simDelta * 0.15f);
+        if (_jumpLandingFloorLift > 0.0001f)
+        {
+            _bodyRoot.position += Vector3.up * _jumpLandingFloorLift;
+        }
     }
 
     // Face anchor rig for the portrait camera, calibrated once in the prefab's
@@ -5684,6 +5754,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                         _wakeBlend = 0f;
                     }
                 }
+
+                ApplyJumpLandingFloorGuard();
             }
         }
 

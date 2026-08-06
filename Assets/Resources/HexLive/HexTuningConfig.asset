@@ -16,6 +16,8 @@ MonoBehaviour:
   downHopSeconds: 1
   hopTakeoffSeconds: 0.1
   hopLandingSeconds: 0.5
+  hopLandingFootClearance: 0.025
+  hopLandingFootGuardSeconds: 0.65
   hopEdgePadding: 0.1
   hopFarPadding: 0.65
   hopDownUp: 0

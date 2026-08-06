@@ -1446,6 +1446,56 @@ Crossing to a tile one elevation level up OR down is a deliberate jump whose
 timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
 the sim and the presentation, so the two can never drift apart:
 
+- v20 — DIAGONAL TAKEOFF, MEASURED IN THE PLAY-MODE LAB. With the shipped
+  `TakeoffSeconds = 0.6`, `RunHopWindow` held `HopFrom` for two complete
+  0.25-second model ticks: the vertical arc was visibly rising by phase 0.31,
+  while interpolated XZ did not begin until about 0.55 — the reported
+  axis-aligned «up, then forward» jump. `0.25` still held one whole tick and
+  only moved XZ near 0.43. The shipped takeoff is now `0.10`, below one model
+  tick, so the first hop tick already advances the flight and visible XZ begins
+  near phase 0.31 instead of 0.55. `UpApexFrac` is retuned `0.35 → 0.50` so the
+  shorter push-off does not throw the body almost to its apex before that first
+  horizontal interpolation; height now builds across the diagonal. A rejected
+  `TakeoffSeconds = 0` trial moved XZ earliest but had already lifted the body
+  near its apex by phase 0.13, occasionally before the triggered JumpUp state
+  became current. The accepted 0.10/0.50 trace kept JumpUp normalized time
+  within about 0.004 of the model phase at 0.24×. The Resources config, static
+  fallbacks, jump-lab immutable defaults and SwimTest defaults all carry the
+  same values.
+- v19 — ONE ANIMATOR SPEED OWNER. `StartJumpArc` already writes
+  `JumpSpeed = clipLength / hopWindow` into the JumpUp/JumpDown states, while
+  global `Animator.speed` supplies only the simulation speed. The view then
+  incorrectly recomputed global speed every frame from
+  `AnimatorStateInfo.length / hopWindow`; Unity reports that length after both
+  the state multiplier and current global speed, so this was a feedback loop.
+  A 0.08× frame trace measured JumpUp at normalized time 0.71 only 12.5% into
+  the model window, then in Idle by 25% while the model was still held at
+  `HopFrom` for its 0.6 s takeoff beat. JumpDown's reported state length grew
+  from 3.3 to 8.6 s inside one one-second hop. During the complete hop window,
+  including its incoming transition, `_animSpeed` is now neutral 1 and
+  `Animator.speed` is exactly `_simSpeed`; `JumpSpeed` remains the single clip
+  compression. This also resets the cadence cleanly after a hop instead of
+  leaking a feedback-derived value into walking.
+- v18 — PLAY-MODE JUMP LAB. `Assets/Scenes/HexStepJumpTest.unity` is an
+  isolated seven-hex flower: the centre is one elevation step higher and a
+  single real NPC repeatedly travels from each outer hex to its opposite via
+  that centre, exercising jump-up and jump-down from all six approach angles.
+  A separate orange sphere follows raw `npc.Position`/`npc.Tile` only on model
+  ticks while the actor remains the normal interpolated view, so model/view
+  phase drift is visible directly. The on-screen panel drives all dry-step hop
+  timing and geometry at runtime plus a test speed (default 0.24×). Its Save
+  button writes only jump fields to the shared `HexTuningConfig` asset; speed is
+  deliberately test-only. The immutable Restore Default preset is the shipped
+  configuration at creation time: up/down windows 2/1 s, takeoff/landing
+  0.1/0.5 s, near/far padding 0.1/0.65, down pop/fall start 0/0.15, settle/apex
+  0.65/0.50 and up overshoot 1.3. `UpOvershoot` is now a first-class live knob
+  beside `UpApexFrac`: 1 only reaches ledge height, 1–2 arcs above it before
+  settling. The lab explicitly restores `Time.timeScale = 1` on entry: its
+  simulation clock is unscaled while Animator/gait sampling are scaled, so an
+  inherited pause otherwise moves the model under a frozen pose. Its dedicated
+  inspection camera follows the visual body, orbits on RMB and zooms on the
+  wheel using unscaled input/smoothing; framing keeps the actor to the right of
+  the tuning panel. The existing SwimTest and LyingPoseTest scenes are unchanged.
 - v17 — A HOP IS ATOMIC (fixes "спрыгнула, резко развернулась — и её телепает
   наверх, она уже не прыгает", and the same thing at the water: "пошла стирать,
   прыгнула в воду без плюха — отшвырнуло обратно на берег"). One cause behind

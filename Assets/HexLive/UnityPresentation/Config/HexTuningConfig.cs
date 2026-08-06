@@ -26,7 +26,7 @@ namespace HexLive.UnityPresentation.Config
         [Range(0.2f, 5f)] public float downHopSeconds = 2f;
         [Tooltip("ТОЛЧОК: сколько в начале клипа занимает присед/замах — тело стоит, анимация уже играет, сек.")]
         [MirrorField(typeof(HexHopTuning), "TakeoffSeconds")]
-        [Range(0f, 2f)] public float hopTakeoffSeconds = 0.5f;
+        [Range(0f, 2f)] public float hopTakeoffSeconds = 0.1f;
         [Tooltip("ПРИЗЕМЛЕНИЕ: сколько в конце клипа занимает посадка ног — тело уже в точке, стоит, сек.")]
         [MirrorField(typeof(HexHopTuning), "LandingSeconds")]
         [Range(0f, 2f)] public float hopLandingSeconds = 0.5f;
@@ -49,7 +49,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0.2f, 1f)] public float hopFlightSettleFrac = 0.65f;
         [Tooltip("ЗАПРЫГИВАНИЕ: на какой доле полёта тело в самой верхней точке (она чуть выше ступеньки). Меньше = «сначала резко вверх, потом в сторону».")]
         [MirrorField(typeof(HexHopTuning), "UpApexFrac")]
-        [Range(0.1f, 0.9f)] public float hopUpApexFrac = 0.35f;
+        [Range(0.1f, 0.9f)] public float hopUpApexFrac = 0.5f;
+        [Tooltip("ЗАПРЫГИВАНИЕ: высота вершины дуги относительно ступеньки. 1 = только до уровня ступени; больше 1 = перелёт выше с мягкой посадкой.")]
+        [MirrorField(typeof(HexHopTuning), "UpOvershoot")]
+        [Range(1f, 2f)] public float hopUpOvershoot = 1.3f;
         [Tooltip("НЫРОК: на сколько уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
         [Range(0f, 1.5f)] public float divePlungeDepth = 0.35f;
 

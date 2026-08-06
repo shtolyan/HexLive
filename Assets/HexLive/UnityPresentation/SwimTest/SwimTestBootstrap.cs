@@ -77,7 +77,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
 
     [Tooltip("ТОЛЧОК: сколько в начале клипа занимает присед/замах — тело стоит, анимация уже играет, сек.")]
     [Range(0f, 2f)]
-    [SerializeField] private float _hopTakeoffSeconds = 0.5f;
+    [SerializeField] private float _hopTakeoffSeconds = 0.1f;
 
     [Tooltip("ПРИЗЕМЛЕНИЕ: сколько в конце клипа занимает посадка/выправление ног — тело уже в точке, стоит, сек.")]
     [Range(0f, 2f)]
@@ -109,7 +109,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
 
     [Tooltip("ЗАПРЫГИВАНИЕ: на какой доле полёта тело в самой верхней точке. Меньше = «сначала резко вверх, потом в сторону».")]
     [Range(0.1f, 0.9f)]
-    [SerializeField] private float _hopUpApex = 0.35f;
+    [SerializeField] private float _hopUpApex = 0.5f;
 
     [Tooltip("Задержка старта симуляции после запуска сцены (реальные секунды): Unity успевает прогрузиться и отрисоваться, пока мир стоит на паузе.")]
     [Range(0f, 10f)]

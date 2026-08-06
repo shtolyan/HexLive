@@ -617,7 +617,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // arc is the ONLY root-level motion.
     // The up-arc apex rises this fraction ABOVE the target ledge before the
     // body drops onto it (0.3 => ~0.17 wu over a 0.55 step).
-    private const float JumpUpOvershoot = 1.3f;
     // The sim hop-start tick we have already armed an arc for. Replaces the old
     // "HopKind changed" edge — see SetHopSignal. 0 = nothing seen yet.
     private int _lastHopStartTick;
@@ -827,9 +826,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // and the travel finished together and looked like a slide.
             var apex = Mathf.Clamp(
                 HexLive.Simulation.Navigation.HexHopTuning.UpApexFrac, 0.1f, 0.9f);
+            var overshoot = Mathf.Clamp(
+                HexLive.Simulation.Navigation.HexHopTuning.UpOvershoot, 1f, 2f);
             return tf < apex
-                ? Mathf.SmoothStep(0f, JumpUpOvershoot, Mathf.InverseLerp(0f, apex, tf))
-                : Mathf.Lerp(JumpUpOvershoot, 1f,
+                ? Mathf.SmoothStep(0f, overshoot, Mathf.InverseLerp(0f, apex, tf))
+                : Mathf.Lerp(overshoot, 1f,
                     Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(apex, 1f, tf)));
         }
 
@@ -2711,11 +2712,23 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             if (rb != null)
             {
-                rb.isKinematic = !active;
-                if (!active)
+                if (active)
                 {
-                    rb.linearVelocity = Vector3.zero;
-                    rb.angularVelocity = Vector3.zero;
+                    rb.isKinematic = false;
+                }
+                else
+                {
+                    // Unity 6 rejects velocity writes after a body becomes
+                    // kinematic. Stop the live ragdoll first, then hand it
+                    // back to the animator. A body that was already kinematic
+                    // needs no reset and must not receive either write.
+                    if (!rb.isKinematic)
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                        rb.angularVelocity = Vector3.zero;
+                    }
+
+                    rb.isKinematic = true;
                 }
             }
         }
@@ -4969,26 +4982,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _gait = Mathf.MoveTowards(_gait, targetGait, Time.deltaTime * 2.5f * _simSpeed);
         _animator.SetFloat(GaitParam, _gait);
 
-        // §21.21B: while a hex-step jump is flying, compress the jump clip so
-        // its authored length fits the arc window exactly — the same
-        // HexHopTuning number that paces the sim traversal.
+        // §21.21B v19: JumpSpeed already compresses the authored clip to the
+        // hop window (StartJumpArc). The global Animator speed must therefore
+        // contain ONLY the world speed. AnimatorStateInfo.length is evaluated
+        // after the state's JumpSpeed and the current Animator.speed; deriving
+        // a new speed from it fed Animator.speed back into itself every frame.
+        // At 0.08x the measured JumpUp raced to normalizedTime 0.71 by 12.5%
+        // of the hop and exited to Idle before the sim even left HopFrom.
+        // Force this for the whole window, including the trigger transition —
+        // waiting until JumpUp/JumpDown became current left the first frames at
+        // the incoming gait cadence.
         if (_jumpTimer > 0f)
         {
-            var jumpState = _animator.GetCurrentAnimatorStateInfo(0);
-            if (jumpState.IsName("JumpUp") || jumpState.IsName("JumpDown"))
-            {
-                // §114 bug #4: store the multiplier-FREE cadence and fold
-                // _simSpeed in only at the animator.speed write, same as the
-                // walking branch above. Storing animator.speed (which already
-                // contains ×_simSpeed) left a ×50 cadence behind after a hop
-                // under fast-forward; dropping to 1× then played every clip
-                // "Flash"-fast for the seconds MoveTowards needed to unwind
-                // it — the reported abuser flicker (he hops constantly while
-                // prowling across the island, so a speed change almost always
-                // landed on a poisoned cadence).
-                _animSpeed = jumpState.length / Mathf.Max(0.05f, _jumpDuration);
-                _animator.speed = _animSpeed * _simSpeed;
-            }
+            _animSpeed = 1f;
+            _animator.speed = _simSpeed;
         }
 
         // Turning on the spot: meaningful yaw rate while standing.

@@ -20,7 +20,7 @@ public static class HexHopTuning
     // Walking resumes the moment the window closes. Tune Takeoff/Landing to
     // match where the authored clip actually leaves/touches the ground.
     public static float HopSeconds = 2f;
-    public static float TakeoffSeconds = 0.5f;
+    public static float TakeoffSeconds = 0.1f;
     public static float LandingSeconds = 0.5f;
 
     // Down-jumps (sprying off a ledge / into water) can run on their OWN,
@@ -91,7 +91,14 @@ public static class HexHopTuning
     // highest (its apex overshoots the target ledge, see JumpUpOvershoot).
     // Earlier = snappier "up first, then over" read, which is what a real step-up
     // looks like. Presentation only. 0.5 was the original symmetric arc.
-    public static float UpApexFrac = 0.35f;
+    public static float UpApexFrac = 0.5f;
+
+    // Climbing UP: how far above the target ledge the body rises at the apex.
+    // 1 = reaches the ledge and never rises above it; values above 1 make the
+    // landing readable as an arc instead of a diagonal slide. Presentation
+    // only, but kept here beside UpApexFrac so the jump lab can tune the whole
+    // curve from one shared source.
+    public static float UpOvershoot = 1.3f;
 
     // Diving into water: the body SPLASHES this many world units BELOW the
     // swim level at the deepest point of the plunge, then bobs back up to it

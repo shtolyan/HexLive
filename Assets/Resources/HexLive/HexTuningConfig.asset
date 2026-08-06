@@ -14,14 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hopSeconds: 2
   downHopSeconds: 1
-  hopTakeoffSeconds: 0.6
+  hopTakeoffSeconds: 0.1
   hopLandingSeconds: 0.5
   hopEdgePadding: 0.1
   hopFarPadding: 0.65
   hopDownUp: 0
   hopDownFallStartFrac: 0.15
   hopFlightSettleFrac: 0.65
-  hopUpApexFrac: 0.35
+  hopUpApexFrac: 0.5
+  hopUpOvershoot: 1.3
   divePlungeDepth: 0.7
   swimEntryPauseSeconds: 2
   swimSpeedFactor: 0.6

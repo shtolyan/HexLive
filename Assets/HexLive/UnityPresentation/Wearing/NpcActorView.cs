@@ -634,6 +634,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _jumpTimer;
     private float _jumpRetriggerGuard; // swallows the pose-delta echo at hop end
     private bool _jumpUp;
+    // A down-hop's vertical curve follows the ACTUALLY RENDERED XZ crossing,
+    // not its own clock. Snapshot interpolation deliberately trails the latest
+    // sim tick; a clock-only fall can therefore put the feet below the upper
+    // surface while the visible root is still behind the lip.
+    private Vector3 _jumpEdgePointWorld;
+    private Vector3 _jumpFlightDirectionWorld;
+    private bool _jumpSyncDownToVisibleXz;
     private bool _jumpLandingFloorGuardEnabled;
     private float _jumpLandingFloorLift;
     private float _jumpLandingGuardTimer;
@@ -691,7 +698,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // after which she just glides up the ledge with no jump at all. ageSeconds
     // then places the arc at the phase the hop is ALREADY at.
     public void SetHopSignal(string hopKind, float heightDeltaWorld, float startGroundY,
-        bool intoWater = false, int hopStartTick = 0, float ageSeconds = 0f)
+        bool intoWater = false, int hopStartTick = 0, float ageSeconds = 0f,
+        Vector3 edgePointWorld = default, Vector3 flightDirectionWorld = default,
+        float visibleInterpolationLagSeconds = 0f)
     {
         hopKind ??= string.Empty;
 
@@ -713,6 +722,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // changes, so the sim window, the arc and the clip scale together.
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
         var fullWindow = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
+        // The visible root interpolates one snapshot behind the latest model
+        // pose. A drop is synchronized to that visible XZ below, so its clip
+        // must remain alive for the same one-tick latency or it exits while the
+        // body is still approaching the lower landing point.
+        var presentationWindow = up
+            ? fullWindow
+            : fullWindow + Mathf.Max(0f, visibleInterpolationLagSeconds);
         var takeoffFrac = HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop;
         var airborneEndFrac =
             (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop;
@@ -725,6 +741,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             HexLive.Simulation.Navigation.HexHopTuning.SettleFrac(up), 0.2f, 1f);
         var flightEndFrac = takeoffFrac + (airborneEndFrac - takeoffFrac) * settle;
         var age = Mathf.Clamp(ageSeconds, 0f, fullWindow);
+
+        _jumpEdgePointWorld = edgePointWorld;
+        _jumpFlightDirectionWorld = Vector3.ProjectOnPlane(
+            flightDirectionWorld, Vector3.up).normalized;
+        _jumpSyncDownToVisibleXz = !up && _jumpFlightDirectionWorld.sqrMagnitude > 0.5f;
 
         // §21.21B v15: a hop first seen AFTER the flight is over has nothing
         // left to play — the sim has already put her on the landing tile and the
@@ -740,7 +761,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // still measuring the beats against the full HopSeconds — so a late arc
         // replayed the crouch and only reached the target level at 75% of what
         // was LEFT, long after the root had snapped up.
-        StartJumpArc(up, heightDeltaWorld, startGroundY, fullWindow,
+        StartJumpArc(up, heightDeltaWorld, startGroundY, presentationWindow,
             takeoffFrac, flightEndFrac, age, landingFloorGuard: !intoWater);
 
         // §67: нырок в воду — всплеск на посадочной доле дуги.
@@ -793,6 +814,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _jumpLandingFloorGuardEnabled = landingFloorGuard;
         _jumpLandingFloorLift = 0f;
         _jumpLandingGuardTimer = 0f;
+        if (up || !landingFloorGuard)
+        {
+            _jumpSyncDownToVisibleXz = false;
+        }
         // §21.21B v15: seen late? Keep the window, skip to the phase the sim is
         // already at — the beat fractions then still measure against the window
         // they were derived from.
@@ -917,6 +942,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (t <= _jumpTakeoffFrac)
         {
             arc = 0f;
+        }
+        else if (!_jumpUp && _jumpSyncDownToVisibleXz)
+        {
+            // The renderer interpolates the root between 4 Hz snapshots, while
+            // this arc clock advances every frame. Use visible XZ progress for
+            // a DROP so gravity cannot start until the visible body has really
+            // cleared the upper lip. The physical padded segment is the same
+            // one the sim builds in MovementSystem.
+            var along = Vector3.Dot(
+                transform.position - _jumpEdgePointWorld,
+                _jumpFlightDirectionWorld);
+            var horizontalTf = Mathf.InverseLerp(
+                -HexLive.Simulation.Navigation.HexHopTuning.EdgePadding,
+                HexLive.Simulation.Navigation.HexHopTuning.FarPadding,
+                along);
+            arc = JumpVerticalEase(horizontalTf);
         }
         else if (t >= _jumpFlightEndFrac)
         {

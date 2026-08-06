@@ -1446,6 +1446,19 @@ Crossing to a tile one elevation level up OR down is a deliberate jump whose
 timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
 the sim and the presentation, so the two can never drift apart:
 
+- v22 — DOWN-FALL FOLLOWS THE VISIBLE EDGE CROSSING. A 40 ms baked-mesh trace
+  of six down-only routes found that touchdown on the lower hex was sound, but
+  the clock-driven vertical curve led the snapshot-interpolated XZ root by as
+  much as one sim tick. The body therefore descended while its visible root was
+  still behind the upper lip; direction-dependent foot poses penetrated the
+  raised top by 0.081–0.164 wu. Down-hop vertical progress is now evaluated
+  from the rendered root's projection along the same padded edge segment the
+  sim uses (`-EdgePadding .. +FarPadding`). `DownFallStartFrac` consequently
+  means what the lab says: gravity begins only after the visible body crosses
+  the lip. The down presentation window also includes one snapshot tick of
+  interpolation latency, so the jump clip and Y curve remain alive until that
+  rendered XZ reaches the lower landing; simulation timing is unchanged.
+  Up-hops remain clock-driven because their early rise is intentional.
 - v21 — LANDING SOLE GUARD. The jump root and the foot/toe bones were already
   on the correct surface, but an exact `SkinnedMeshRenderer.BakeMesh` trace of
   all 20,270 body vertices found the deformed bare sole 0.017 wu below the

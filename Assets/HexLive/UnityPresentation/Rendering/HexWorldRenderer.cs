@@ -1421,6 +1421,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // so mid-window) — the body then stayed at the old level for the rest of
         // the window and snapped a whole step when the arc was cut: the "she is
         // either above the ground or suddenly under it" report.
+        var hopFromCenter = SimulationUnityMapper.ToUnityTilePosition(npc.HopFromTile);
+        var hopTargetCenter = SimulationUnityMapper.ToUnityTilePosition(npc.HopTargetTile);
+        var hopFlightDirection = Vector3.ProjectOnPlane(
+            hopTargetCenter - hopFromCenter, Vector3.up).normalized;
+        var hopEdgePoint = (hopFromCenter + hopTargetCenter) * 0.5f;
         actorView.SetHopSignal(npc.HopKind,
             npc.HopKind.Length > 0
                 ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.HopFromTile)
@@ -1430,7 +1435,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.HopStartTick,
             // How much of the hop already happened before this frame saw it —
             // fast-forward can step past several ticks between renders.
-            Mathf.Max(0f, (snapshot.Tick - npc.HopStartTick) * snapshot.TickDeltaTime));
+            Mathf.Max(0f, (snapshot.Tick - npc.HopStartTick) * snapshot.TickDeltaTime),
+            hopEdgePoint,
+            hopFlightDirection,
+            snapshot.TickDeltaTime);
         actorView.SyncWorn(npc.WornItems);
         var earlyThermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;

@@ -1545,7 +1545,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (_healthDollStage != null)
             {
-                _healthDollStage.SetTarget(npc.ActorMesh);
+                _healthDollStage.SetTarget(npc.Id.Value, npc.ActorMesh);
                 _healthDollStage.SetZones(npc.BodyParts, npc.SeveredParts, npc.BandagedZones);
                 var tex = _healthDollStage.Texture;
                 if (tex != null)

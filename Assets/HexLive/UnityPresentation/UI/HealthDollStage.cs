@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
+using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
-using UnityEngine.Animations;
-using UnityEngine.Playables;
 
 namespace HexLive.UnityPresentation.UI
 {
@@ -80,6 +79,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _maskResolved;
 
         private string _actorMesh;
+        private int _npcId = -1;
         private GameObject _doll;
         private SkinnedMeshRenderer _dollSkin;
         private Mesh _dollMesh;
@@ -151,15 +151,17 @@ namespace HexLive.UnityPresentation.UI
         }
 
         /// <summary>Build (or reuse) the doll for this actor mesh.</summary>
-        public void SetTarget(string actorMesh)
+        public void SetTarget(int npcId, string actorMesh)
         {
-            if (string.IsNullOrEmpty(actorMesh) || actorMesh == _actorMesh)
+            if (string.IsNullOrEmpty(actorMesh) ||
+                (actorMesh == _actorMesh && npcId == _npcId))
             {
                 return;
             }
 
             _actorMesh = actorMesh;
-            BuildDoll(actorMesh);
+            _npcId = npcId;
+            BuildDoll(npcId, actorMesh);
         }
 
         /// <summary>
@@ -278,7 +280,7 @@ namespace HexLive.UnityPresentation.UI
 
         // ── doll construction ─────────────────────────────────────────────
 
-        private void BuildDoll(string actorMesh)
+        private void BuildDoll(int npcId, string actorMesh)
         {
             if (_doll != null)
             {
@@ -299,115 +301,31 @@ namespace HexLive.UnityPresentation.UI
             _framed = false;
             _zoneSigValid = false; // force a repaint with the next SetZones
 
+            // The pristine Resources prefab is authoritative here. A live
+            // amputated actor already has its distal scale collapsed to
+            // 0.0001, which destroys the original forearm/shin length needed
+            // to place an Addressable prosthetic on the diagnostic clone.
             var prefab = Resources.Load<GameObject>($"HexLive/Actors/{actorMesh}");
-            if (prefab == null)
+            var sourceSkin = prefab != null ? FindPrimarySkin(prefab) : null;
+            var sourceRoot = prefab != null ? prefab.transform : null;
+            if (sourceSkin == null)
             {
-                FailBuild($"actor prefab HexLive/Actors/{actorMesh} not found");
-                return;
+                // Loud fallback for an old/custom actor that has no prefab.
+                // Normal shipped actors never take it.
+                sourceSkin = NpcActorView.FindLiveBodySkin(npcId);
+                sourceRoot = NpcActorView.FindLiveBodyRoot(npcId);
             }
 
-            // Instantiate DEAD: the actor prefab ships live components —
-            // FinalIK solvers, Magica cloth, colliders — that would keep
-            // simulating the doll every frame and slowly drag its bones into
-            // a flat sheet (they have no IK targets/floor down here). The
-            // clone is born under an inactive holder so nothing ever runs
-            // Awake, everything but bones/renderers/Animator is stripped,
-            // and only then the doll wakes up.
-            var holder = new GameObject("DollBuild");
-            holder.SetActive(false);
-            holder.transform.SetParent(transform, false);
-            _doll = Instantiate(prefab, holder.transform);
-            _doll.name = $"Doll_{actorMesh}";
-            _doll.transform.localPosition = Vector3.zero;
-            _doll.transform.localRotation = Quaternion.identity;
-            StripLiveComponents(_doll);
-            _doll.transform.SetParent(transform, false);
-            Destroy(holder);
-
-            // Pose: ONE evaluated frame of the Mixamo "Female Standing Pose"
-            // clip (Resources/HexLive/Poses, humanoid — retargets onto the
-            // figure via its avatar), falling back to the prefab controller's
-            // default Idle if the pose asset is missing. Never swing the
-            // shoulder bones manually — Genesis skinning without its authored
-            // poses candy-wraps the arms. After sampling the Animator dies
-            // and the bones keep the pose.
-            // humanMotion guard: a NON-humanoid import of the pose (seen once —
-            // the FBX imported before the Poses postprocessor compiled, came
-            // out Generic and mangled the figure into a flat sheet) must never
-            // reach the humanoid rig; fall back to the controller idle instead.
-            var poseClip = Resources.Load<AnimationClip>("HexLive/Poses/Female Standing Pose");
-            if (poseClip != null && !poseClip.humanMotion)
+            if (sourceSkin == null || sourceSkin.sharedMesh == null || !sourceSkin.sharedMesh.isReadable)
             {
-                Debug.LogWarning("[HealthDoll] pose clip is not humanoid — reimport " +
-                    "Assets/Resources/HexLive/Poses (delete its .meta); using controller idle.");
-                poseClip = null;
-            }
-
-            foreach (var animator in _doll.GetComponentsInChildren<Animator>(true))
-            {
-                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                if (poseClip != null && animator.avatar != null)
-                {
-                    AnimationPlayableUtilities.PlayClip(animator, poseClip, out var graph);
-                    graph.Evaluate(0f);
-                    graph.Destroy();
-                }
-                else if (animator.runtimeAnimatorController != null)
-                {
-                    animator.Update(0f);
-                }
-
-                animator.enabled = false;
-                Destroy(animator);
-            }
-
-            // The primary Genesis figure (same heuristic as NpcActorView):
-            // prefer a "Genesis"-named skin, tie-break on vertex count.
-            SkinnedMeshRenderer primary = null;
-            var primaryGenesis = false;
-            foreach (var skin in _doll.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-            {
-                if (skin.sharedMesh == null)
-                {
-                    continue;
-                }
-
-                var isGenesis = skin.name.Contains("Genesis") || skin.sharedMesh.name.Contains("Genesis");
-                var better = primary == null ||
-                    (isGenesis && !primaryGenesis) ||
-                    (isGenesis == primaryGenesis &&
-                     skin.sharedMesh.vertexCount > primary.sharedMesh.vertexCount);
-                if (better)
-                {
-                    primary = skin;
-                    primaryGenesis = isGenesis;
-                }
-            }
-
-            if (primary == null || !primary.sharedMesh.isReadable)
-            {
-                // A non-readable body mesh (Molly's re-saved MollyMesh.mesh
-                // shipped with m_IsReadable: 0) used to fail SILENTLY here —
-                // the camera never turned on and the window kept showing the
-                // PREVIOUS character's frozen frame («одна и та же кукла»).
-                FailBuild(primary == null
+                FailBuild(sourceSkin == null
                     ? $"{actorMesh}: no skinned body renderer found"
-                    : $"{actorMesh}: mesh '{primary.sharedMesh.name}' is not Read/Write enabled");
-                Destroy(_doll);
-                _doll = null;
+                    : $"{actorMesh}: mesh '{sourceSkin.sharedMesh.name}' is not Read/Write enabled");
                 return;
             }
 
-            // Only the skin renders — hair cards, eyelash planes etc. are
-            // either separate renderers (disabled here) or non-skin submeshes
-            // (dropped below).
-            foreach (var renderer in _doll.GetComponentsInChildren<Renderer>(true))
-            {
-                renderer.enabled = renderer == primary;
-            }
-
-            _dollSkin = primary;
-            _dollMesh = BuildSkinOnlyMesh(primary, out _vertexZone);
+            _doll = BuildSkeletonOnlyDoll(sourceSkin, sourceRoot, actorMesh, out _dollSkin);
+            _dollMesh = BuildSkinOnlyMesh(sourceSkin, out _vertexZone);
             if (_dollMesh == null)
             {
                 FailBuild($"{actorMesh}: no skin submeshes survived the material filter");
@@ -417,7 +335,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            primary.sharedMesh = _dollMesh;
+            _dollSkin.sharedMesh = _dollMesh;
             var dollMaterial = new Material(Shader.Find("HexLive/HealthDoll")) { name = "HealthDoll" };
             var slots = new Material[_dollMesh.subMeshCount];
             for (var i = 0; i < slots.Length; i++)
@@ -425,11 +343,10 @@ namespace HexLive.UnityPresentation.UI
                 slots[i] = dollMaterial;
             }
 
-            primary.sharedMaterials = slots;
-            primary.updateWhenOffscreen = true; // correct bounds for framing
+            _dollSkin.sharedMaterials = slots;
+            _dollSkin.updateWhenOffscreen = true; // correct bounds for framing
 
             // Spec §50 stump bones, cached with their rest scale so a doll
-            // reused across characters can grow a limb back.
             foreach (var pair in SeveredDistalBone)
             {
                 var bone = FindDeep(_doll.transform, pair.Value);
@@ -446,6 +363,71 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _colorScratch = new Color32[_dollMesh.vertexCount];
+        }
+
+        private static SkinnedMeshRenderer FindPrimarySkin(GameObject root)
+        {
+            SkinnedMeshRenderer best = null;
+            var bestGenesis = false;
+            foreach (var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (skin.sharedMesh == null)
+                {
+                    continue;
+                }
+
+                var genesis = skin.name.Contains("Genesis") || skin.sharedMesh.name.Contains("Genesis");
+                if (best == null || (genesis && !bestGenesis) ||
+                    (genesis == bestGenesis && skin.sharedMesh.vertexCount > best.sharedMesh.vertexCount))
+                {
+                    best = skin;
+                    bestGenesis = genesis;
+                }
+            }
+
+            return best;
+        }
+
+        private GameObject BuildSkeletonOnlyDoll(
+            SkinnedMeshRenderer source, Transform sourceRoot, string actorMesh,
+            out SkinnedMeshRenderer skin)
+        {
+            var map = new Dictionary<Transform, Transform>();
+            var root = CloneTransformTree(sourceRoot != null ? sourceRoot : source.transform,
+                transform, map);
+            root.gameObject.name = $"Doll_{actorMesh}";
+            var rendererTransform = map[source.transform];
+            skin = rendererTransform.gameObject.AddComponent<SkinnedMeshRenderer>();
+            var sourceBones = source.bones;
+            var bones = new Transform[sourceBones.Length];
+            for (var i = 0; i < sourceBones.Length; i++)
+            {
+                map.TryGetValue(sourceBones[i], out bones[i]);
+            }
+
+            skin.bones = bones;
+            skin.rootBone = source.rootBone != null && map.TryGetValue(source.rootBone, out var rootBone)
+                ? rootBone
+                : root;
+            skin.localBounds = source.localBounds;
+            return root.gameObject;
+        }
+
+        private static Transform CloneTransformTree(
+            Transform source, Transform parent, Dictionary<Transform, Transform> map)
+        {
+            var copy = new GameObject(source.name).transform;
+            copy.SetParent(parent, false);
+            copy.localPosition = source.localPosition;
+            copy.localRotation = source.localRotation;
+            copy.localScale = source.localScale;
+            map[source] = copy;
+            for (var i = 0; i < source.childCount; i++)
+            {
+                CloneTransformTree(source.GetChild(i), copy, map);
+            }
+
+            return copy;
         }
 
         // A failed doll build must be LOUD and leave a clean frame — never the

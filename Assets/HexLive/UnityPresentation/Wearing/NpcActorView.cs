@@ -15,6 +15,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 {
     private static readonly int SpeedParam = Animator.StringToHash("Speed");
     private static readonly int HitReactParam = Animator.StringToHash("HitReact");
+    // HealthDollStage reads only the visible body's mesh and transform tree;
+    // it never clones this runtime component or its physics/IK children.
+    private static readonly Dictionary<int, NpcActorView> LiveByNpcId = new();
 
     private BodyBones _bodyBones;
     private Animator _animator;
@@ -41,6 +44,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly HashSet<string> _clashedSimItems = new();
 
     public ActorName ActorMesh => _actorMesh;
+
+    public static SkinnedMeshRenderer FindLiveBodySkin(int npcId)
+    {
+        return LiveByNpcId.TryGetValue(npcId, out var view) && view != null
+            ? view.PrimaryBodySkin
+            : null;
+    }
+
+    public static Transform FindLiveBodyRoot(int npcId)
+    {
+        return LiveByNpcId.TryGetValue(npcId, out var view) && view != null
+            ? view._bodyRoot
+            : null;
+    }
 
     private Transform _gazeTarget;
     private float _gazeWeight;
@@ -1196,6 +1213,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         string skinSet, string eyeColor, string hairstyle, string voiceBank)
     {
         _npcId = npcId;
+        LiveByNpcId[npcId] = this;
         // §67.6: голосовой банк персонажа = его меш-имя (Molly/Jana/…) —
         // файлы voice_<char>_<emotion>_<n> подхватываются по факту наличия.
         // §74: …если сим не выдал ей ЧУЖОЙ банк — тогда играет он.
@@ -1436,6 +1454,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void OnDestroy()
     {
+        if (LiveByNpcId.TryGetValue(_npcId, out var registered) && registered == this)
+        {
+            LiveByNpcId.Remove(_npcId);
+        }
+
         if (_fullBodyIK != null && _fullBodyIK.solver != null)
         {
             _fullBodyIK.solver.OnPreUpdate -= DriveActionTargetIK;

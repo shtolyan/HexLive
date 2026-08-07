@@ -28,7 +28,9 @@
       "slots": [
         "Chest"
       ],
-      "noHide": [],
+      "noHide": [
+        "Pelvis"
+      ],
       "materials": [
         {
           "source": "Base",

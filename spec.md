@@ -12214,7 +12214,9 @@ from scratch (cold start). Two data-driven seams keep it cheap to extend.
   A palm drops **3 logs + 3 palm leaves**; a big tree **4 logs**; a boulder **4
   stones** — all scattered on the ground.
 - **`resource.stick`** — the fuel/craft currency. Fire, axe, pickaxe, spear,
-  arrows, rack, knife all cost sticks.
+  arrows, rack, knife all cost sticks. Its ground visual is the authored
+  `stick_final` trunk piece (not the retired `resource.stick` FBX), fitted by
+  the common `ObjectFit` metric.
 - **`SplitLog`** (`InteractionType.Process`): chop a **ground log** into
   `SimBalance.LogSplitYield` (4) sticks with an axe/saw — the sticks scatter.
   `forest.deadfall` sheds ready sticks (the early bootstrap shortcut).
@@ -12231,6 +12233,14 @@ only, no new mechanic): the leaf motive in `harvestTreeAvail` is suppressed whil
 `ChopCrown`/`GatherLeaves` take over and empty the current tree before another is
 felled. The fuel/wood motive was already blocked by a reachable `Wood` (logs carry
 that tag).
+
+The standing `tree.palm` is not a monolithic replacement mesh. Presentation
+stacks `palm_seg0/1/2` at `ObjectFit.PalmSegmentLength` and attaches a crown
+built by `PalmCrownFactory` from the same fronds/count used by the felled crown.
+Thus the visible trunk and top are literally the resource pieces the tree drops.
+If an imported prefab dependency produces an empty renderer hierarchy in a
+Player, the renderer rejects it and continues to the procedural fallback; an
+empty stone/boulder prefab must never silently consume the object view.
 
 ### §54.3 Cordage & the knife
 - **`plant.fibrous`** sheds `resource.fiber` (herb-bush pattern). Fiber crafts

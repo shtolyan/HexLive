@@ -4,12 +4,10 @@ using UnityEngine;
 namespace HexLive.UnityPresentation.Environment
 {
     /// <summary>
-    /// Spec §54.2: the standing palm is the assembled <c>palm_final</c> prefab
-    /// (Kenney trunk + procedural pinnate frond crown, built in Blender). Only the
-    /// BIG palm exists now — the 2-segment small palm is retired. The prefab is
-    /// authored at its true 1:1 world size in Blender, so it is instantiated AS-IS —
-    /// NO fit-scaling (the whole prefab dropped onto the scene is already correct);
-    /// the caller must NOT run FitObjectPrefab on it either.
+    /// Spec §54.2: the standing palm is assembled at runtime from the three
+    /// authored trunk segments and the same procedural crown used by a felled
+    /// palm. Keeping the pieces separate is intentional: the standing tree must
+    /// visibly consist of the logs and leaves it later drops.
     /// </summary>
     public static class PalmTreeFactory
     {
@@ -17,15 +15,53 @@ namespace HexLive.UnityPresentation.Environment
 
         public static GameObject? Build(string definitionId)
         {
-            var prefab = Resources.Load<GameObject>("HexLive/Objects/palm_final");
-            if (prefab == null)
+            var segments = new GameObject?[3];
+            for (var i = 0; i < segments.Length; i++)
             {
-                return null; // no prefab — let the caller fall back
+                segments[i] = Resources.Load<GameObject>($"HexLive/Objects/palm_seg{i}");
+                if (segments[i] == null)
+                {
+                    return null;
+                }
             }
 
-            var palm = Object.Instantiate(prefab);
+            var palm = new GameObject($"Palm {definitionId}");
+            var segmentHeight = ObjectFit.PalmSegmentLength *
+                HexLive.UnityPresentation.Spatial.SimulationUnityMapper.HexRadius;
+            var top = 0f;
+            for (var i = 0; i < segments.Length; i++)
+            {
+                var segment = Object.Instantiate(segments[i]!, palm.transform);
+                segment.name = $"Trunk {i + 1}";
+                segment.transform.localPosition = Vector3.zero;
+                segment.transform.localRotation = Quaternion.identity;
+
+                if (ObjectFit.WorldBounds(segment, out var before) && before.size.y > 0.0001f)
+                {
+                    segment.transform.localScale *= segmentHeight / before.size.y;
+                    if (ObjectFit.WorldBounds(segment, out var after))
+                    {
+                        segment.transform.localPosition += Vector3.up * (top - after.min.y);
+                    }
+                }
+
+                top += segmentHeight;
+            }
+
+            var crown = PalmCrownFactory.Build(
+                HexLive.UnityPresentation.Spatial.SimulationUnityMapper.HexRadius * 0.85f,
+                HexLive.Simulation.Runtime.SimBalance.BigPalmCrownLeaves);
+            if (crown == null)
+            {
+                Object.Destroy(palm);
+                return null;
+            }
+
+            crown.name = "Crown";
+            crown.transform.SetParent(palm.transform, false);
+            crown.transform.localPosition = Vector3.up * top;
             palm.name = $"Palm {definitionId}";
-            return palm; // 1:1 authored size — no scaling
+            return palm;
         }
     }
 }

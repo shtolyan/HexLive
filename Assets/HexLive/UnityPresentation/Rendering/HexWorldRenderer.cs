@@ -2692,19 +2692,35 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         // Spec 31C.3: real prefabs first (Resources/HexLive/Objects/<id>),
         // primitives as the eternal fallback.
-        var objectPrefab = Resources.Load<GameObject>($"HexLive/Objects/{worldObject.DefinitionId}");
+        // Some authored visuals deliberately have a presentation name which is
+        // different from the simulation id. In particular the loose stick is
+        // the same authored segment used by the composite palm, not the retired
+        // resource.stick FBX. Keep this tiny mapping at the resource boundary.
+        var objectResourceId = worldObject.DefinitionId == "resource.stick"
+            ? "stick_final"
+            : worldObject.DefinitionId;
+        var objectPrefab = Resources.Load<GameObject>($"HexLive/Objects/{objectResourceId}");
         if (objectPrefab != null)
         {
             var prefabRoot = new GameObject($"Object {worldObject.DefinitionId}");
             prefabRoot.transform.SetParent(_objectsRoot, false);
             var instance = Instantiate(objectPrefab, prefabRoot.transform);
-            FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
-                scatter: worldObject.RotationDegrees == 0f);
-            var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
-            prefabRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                anchorPos, GroundY(worldObject.Tile));
-            MaybeAttachCampfire(prefabRoot, worldObject.DefinitionId);
-            return prefabRoot;
+            // A prefab whose imported GLB dependency was stripped still loads as
+            // a non-null empty root in a Player. Do not accept that as a visual:
+            // destroy it and continue to the procedural fallback below. This is
+            // what made stones/boulders disappear without a log error.
+            if (instance.GetComponentInChildren<Renderer>(true) != null)
+            {
+                FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
+                    scatter: worldObject.RotationDegrees == 0f);
+                var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                prefabRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    anchorPos, GroundY(worldObject.Tile));
+                MaybeAttachCampfire(prefabRoot, worldObject.DefinitionId);
+                return prefabRoot;
+            }
+
+            Destroy(prefabRoot);
         }
 
         // §54.15: a tool.bottle sharing a collector's junction is PARKED in the

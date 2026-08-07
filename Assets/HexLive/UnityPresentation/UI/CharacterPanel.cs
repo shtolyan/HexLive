@@ -102,7 +102,6 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _healthWindow;
         private Label _healthTitle;
         private VisualElement _healthDollImage;
-        private VisualElement _healthProtectionList;
         private bool _healthOpen;
         private readonly List<ZoneRowBinding> _zoneRows = new();
 
@@ -1494,17 +1493,6 @@ namespace HexLive.UnityPresentation.UI
 
             body.Add(list);
             _healthWindow.Add(body);
-
-            // §57/#49: the per-zone number answers how much is absorbed; this
-            // separate, compact list answers WHICH worn things are doing it.
-            // Several layers may cover one part, so keep one line per garment
-            // instead of guessing a single "torso armor" item.
-            var protectionTitle = MakeInvSectionHeader(Loc.Get("health.protection"));
-            protectionTitle.style.marginTop = 14f;
-            _healthWindow.Add(protectionTitle);
-
-            _healthProtectionList = new VisualElement();
-            _healthWindow.Add(_healthProtectionList);
             _root.Add(_healthWindow);
         }
 
@@ -1645,106 +1633,6 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            RefreshHealthProtection(npc);
-        }
-
-        private void RefreshHealthProtection(NpcSnapshot npc)
-        {
-            if (_healthProtectionList == null)
-            {
-                return;
-            }
-
-            _healthProtectionList.Clear();
-            var anyProtection = false;
-            foreach (var id in npc.WornItems)
-            {
-                var def = ResolveDef(id);
-                if (def == null || def.Covers.Count == 0)
-                {
-                    continue;
-                }
-
-                var armor = 0f;
-                var warmth = 0f;
-                foreach (var interaction in def.Interactions)
-                {
-                    armor += interaction.Effects.ArmorDelta;
-                    warmth += interaction.Effects.WarmthDelta;
-                }
-
-                // Clothing that merely covers the skin belongs in the backpack;
-                // this section is specifically the equipment currently taking
-                // damage away from a body part.
-                if (armor <= 0.001f)
-                {
-                    continue;
-                }
-
-                anyProtection = true;
-                var info = ResolveItemInfo(id, def);
-                var row = new VisualElement();
-                row.style.flexDirection = FlexDirection.Row;
-                row.style.alignItems = Align.Center;
-                row.style.backgroundColor = Raised;
-                SetBorder(row, new Color(Comfort.r, Comfort.g, Comfort.b, 0.32f), 1f);
-                SetRadius(row, 8f);
-                row.style.paddingLeft = 9f;
-                row.style.paddingRight = 9f;
-                row.style.paddingTop = 6f;
-                row.style.paddingBottom = 6f;
-                row.style.marginBottom = 5f;
-
-                var icon = new Label(info.Emoji);
-                icon.style.fontSize = 16f;
-                icon.style.marginRight = 7f;
-                icon.style.flexShrink = 0f;
-                row.Add(icon);
-
-                var text = new VisualElement();
-                text.style.flexGrow = 1f;
-                var name = new Label(ItemName(def, info));
-                name.style.color = Text;
-                name.style.fontSize = 12.5f;
-                name.style.unityFontStyleAndWeight = FontStyle.Bold;
-                name.style.whiteSpace = WhiteSpace.NoWrap;
-                name.style.overflow = Overflow.Hidden;
-                name.style.textOverflow = TextOverflow.Ellipsis;
-                text.Add(name);
-
-                var covered = new List<string>();
-                foreach (var part in def.Covers)
-                {
-                    covered.Add(Loc.Get("part." + part.ToString().ToLowerInvariant()));
-                }
-
-                var stats = new Label(
-                    $"{string.Join(", ", covered)} · {Loc.Get("inv.armor")} +{Mathf.RoundToInt(armor * 100f)}%" +
-                    (warmth > 0.001f ? $" · +{warmth * 10f:0.#}°C" : string.Empty));
-                stats.style.color = TextDim;
-                stats.style.fontSize = 10.5f;
-                stats.style.whiteSpace = WhiteSpace.NoWrap;
-                stats.style.overflow = Overflow.Hidden;
-                stats.style.textOverflow = TextOverflow.Ellipsis;
-                text.Add(stats);
-                row.Add(text);
-
-                var shield = new Label("🛡");
-                shield.style.fontSize = 14f;
-                shield.style.marginLeft = 8f;
-                shield.style.flexShrink = 0f;
-                row.Add(shield);
-                _healthProtectionList.Add(row);
-            }
-
-            if (!anyProtection)
-            {
-                var empty = new Label(Loc.Get("health.no_protection"));
-                empty.style.color = TextMute;
-                empty.style.fontSize = 12f;
-                empty.style.marginBottom = 3f;
-                _healthProtectionList.Add(empty);
-            }
         }
 
         private void ShowItemList()

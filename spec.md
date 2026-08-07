@@ -13203,6 +13203,10 @@ from the main camera), parked far below the map.
   "Zone=0.35"; hidden while the zone is bare or severed), and a value:
   `🩸n · 🩹 84%` (open wounds count, bandage/gauze mark, zone HP) or
   red "severed"/"ампутирована" (`health.severed`).
+- Надетая одежда не дублируется отдельным списком или сеткой в HP-окне:
+  подробная карточка экипировки остаётся в рюкзаке. В HP-окне виден только
+  компактный синий щит у конкретной части тела — фактический
+  `ArmorForPart`, используемый поглощением урона.
 - The window swallows pointer events like the inventory window (extends the
   `PointerOverUi` guard) and closes on selection change; the doll camera only
   renders while the window is open.

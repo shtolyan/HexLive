@@ -4612,9 +4612,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                           ReferenceEquals(renderer, _skinPainter.Body) &&
                           _skinPainter.SlotHasAlbedoPaint(index);
             renderer.GetPropertyBlock(_skinMpb, index);
-            _skinMpb.SetColor(BaseColorId, painted ? Color.white : tint);
+            // A scheduled painter rebuild updates material slots over several
+            // frames. Until this particular slot has the new tone baked into
+            // its texture, compensate with _BaseColor so painted limbs never
+            // show the previous tan beside an already-updated torso/head.
+            var baseColor = painted
+                ? CompensatePaintedSkinTone(SkinTint, _skinPainter.PaintedSkinTone(index))
+                : tint;
+            _skinMpb.SetColor(BaseColorId, baseColor);
             renderer.SetPropertyBlock(_skinMpb, index);
         }
+    }
+
+    private static Color CompensatePaintedSkinTone(Color desired, Color baked)
+    {
+        const float epsilon = 0.001f;
+        return new Color(
+            desired.r / Mathf.Max(epsilon, baked.r),
+            desired.g / Mathf.Max(epsilon, baked.g),
+            desired.b / Mathf.Max(epsilon, baked.b),
+            1f);
     }
 
     // Classify each body-renderer material slot as skin (tintable) or not.

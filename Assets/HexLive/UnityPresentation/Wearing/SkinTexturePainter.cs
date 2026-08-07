@@ -642,6 +642,13 @@ namespace HexLive.UnityPresentation.Wearing
         public bool SlotHasAlbedoPaint(int slot) =>
             slot >= 0 && slot < _albedoLive.Length && _albedoLive[slot];
 
+        /// <summary>
+        /// Tone currently baked into a live albedo target. It can lag the
+        /// requested tone until this slot receives its scheduled repaint.
+        /// </summary>
+        public Color PaintedSkinTone(int slot) =>
+            slot >= 0 && slot < _paintedTone.Length ? _paintedTone[slot] : _skinTone;
+
         /// <summary>Spec 40.7: the current tan/sunburn/grime skin tone. Baked
         /// into the paint target's BASE layer (UNDER the wound/bandage stamps)
         /// so a bandage or wound on a tanned body keeps its true colour instead

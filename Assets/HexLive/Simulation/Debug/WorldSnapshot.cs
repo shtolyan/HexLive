@@ -528,6 +528,7 @@ public sealed class NpcSnapshot
     public int SocialCueTick { get; set; } = -1;
     public string SocialCueKind { get; set; } = string.Empty;
     public int? SocialCuePeerId { get; set; }
+    public string SocialCueItemId { get; set; } = string.Empty;
 
     // §Wardrobe-anim: the tick window of the current timed interaction, so the
     // view can split dress/undress into their gather + garment-in-hand beats.

@@ -754,6 +754,7 @@ public static class WorldSnapshotExporter
             SocialCueTick = npc.Execution.LastSocialCueTick,
             SocialCueKind = npc.Execution.LastSocialCueKind,
             SocialCuePeerId = npc.Execution.LastSocialCuePeerId?.Value,
+            SocialCueItemId = npc.Execution.LastSocialCueItemId,
             TargetTile = npc.Plan.TargetTile,
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,

@@ -297,6 +297,10 @@ public static class SpeechCatalog
         ["AidStarted"] = new("Food", "happy_aid_give"),
         ["AidCompleted"] = new("Food", "happy_aid_thanks"),
 
+        // ---- §111.12: the concrete item sprite replaces this fallback once
+        // its Addressable finishes loading. Loot itself is silent.
+        ["LootHelplessTook"] = new("Gift", null, Rank.Action),
+
         // ---- разговор ------------------------------------------------------
         ["TalkRequest"] = new("SmallTalk", null, Rank.Talk),
         ["TalkIncoming"] = new("SmallTalk", null, Rank.Talk),

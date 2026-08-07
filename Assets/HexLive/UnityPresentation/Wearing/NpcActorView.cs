@@ -3149,10 +3149,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // человеком). Голос от него не зависит: реплика привязана к ВИДУ кьюшки.
     // Своего пузыря у кьюшки больше НЕТ — она встаёт в общую очередь к тому
     // единственному, что висит над головой, и выигрывает его по рангу.
-    public void PopSocialCue(string cueKind, Sprite portrait = null)
+    public void PopSocialCue(string cueKind, Sprite picture = null)
     {
         EnsureSpeechBubble();
-        _speech?.OnCue(cueKind, portrait);
+        _speech?.OnCue(cueKind, picture);
 
         // §81: такты сцены абьюза играются телом, а не только эмодзи. Кьюшка
         // уже приходит ровно в нужный момент и ровно тому, кого касается, —
@@ -3183,6 +3183,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    public bool TryRefreshSocialCuePicture(string cueKind, Sprite picture)
+    {
+        EnsureSpeechBubble();
+        return _speech != null && _speech.TryRefreshCuePicture(cueKind, picture);
+    }
+
     private void EnsureSpeechBubble()
     {
         // Anchor to the head bone (calibrated in Construct); until it exists the
@@ -3211,8 +3217,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     void UI.ISpeechStage.ShowSpeechIcon(string iconKey, float seconds, bool alarm)
         => _speechBubble?.ShowIcon(iconKey, seconds, alarm);
 
-    void UI.ISpeechStage.ShowSpeechPortrait(Sprite portrait, float seconds, bool alarm)
-        => _speechBubble?.ShowIcon(portrait, seconds, alarm);
+    void UI.ISpeechStage.ShowSpeechImage(Sprite image, float seconds, bool alarm)
+        => _speechBubble?.ShowIcon(image, seconds, alarm);
 
     void UI.ISpeechStage.HideSpeechIcon() => _speechBubble?.HideIcon();
 

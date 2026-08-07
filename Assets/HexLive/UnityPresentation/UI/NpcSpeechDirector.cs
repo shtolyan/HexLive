@@ -21,10 +21,9 @@ public interface ISpeechStage
     // alarm = пометить пузырь маленьким значком тревоги в углу (§107.5).
     void ShowSpeechIcon(string iconKey, float seconds, bool alarm = false);
 
-    // §108: то же место в пузыре, но занятое ЛИЦОМ — когда тема разговора это
-    // человек. Отдельный вызов, а не «iconKey может быть портретом»: ключ
-    // ищется в Resources, а лицо печёт NpcPortraitCache, и общего пути у них нет.
-    void ShowSpeechPortrait(Sprite portrait, float seconds, bool alarm = false);
+    // The same bubble slot occupied by a concrete Sprite: a baked face (§108)
+    // or an Addressable item icon (§111.12). String keys follow another loader.
+    void ShowSpeechImage(Sprite image, float seconds, bool alarm = false);
 
     void HideSpeechIcon();
 
@@ -73,6 +72,8 @@ public sealed class NpcSpeechDirector
 
     private string _conversationLine;
     private string _heldIcon;
+    private string _activeCueKind;
+    private bool _activeCueAlarm;
 
     // §108: лицо того, о ком разговор, и то, что реально висит в пузыре.
     // Держим оба: значок отвечает на «сменилась ли тема», лицо — на «сменился
@@ -158,13 +159,13 @@ public sealed class NpcSpeechDirector
 
         // Молчаливая кьюшка (просьба поговорить, удар в сцене абьюза): голоса у
         // неё нет, но показать её надо — тем же пузырём и той же очередью.
-        ShowSilent(cue, peerFace);
+        ShowSilent(cueKind, cue, peerFace);
     }
 
     // Пузырь без реплики. Отдельный путь от Say(), потому что Say обязан
     // ЗВУЧАТЬ: «речь не бывает немой» — инвариант §67.10, и ослаблять его
     // ради кьюшек нельзя. Правила старшинства при этом общие.
-    private void ShowSilent(SpeechCatalog.CueVisual cue, Sprite peerFace)
+    private void ShowSilent(string cueKind, SpeechCatalog.CueVisual cue, Sprite peerFace)
     {
         if (string.IsNullOrEmpty(cue.PopIcon))
         {
@@ -188,7 +189,7 @@ public sealed class NpcSpeechDirector
         _heldFace = peerFace;
         if (peerFace != null)
         {
-            _stage.ShowSpeechPortrait(peerFace, hold, alarm);
+            _stage.ShowSpeechImage(peerFace, hold, alarm);
         }
         else
         {
@@ -197,6 +198,23 @@ public sealed class NpcSpeechDirector
 
         _activeUntil = now + hold;
         _activeRank = cue.Rank;
+        _activeCueKind = cueKind;
+        _activeCueAlarm = alarm;
+    }
+
+    /// <summary>Replace an async fallback only while this exact silent cue
+    /// still owns the bubble. A newer alarm/conversation makes this a no-op.</summary>
+    public bool TryRefreshCuePicture(string cueKind, Sprite picture)
+    {
+        var now = Time.time;
+        if (picture == null || cueKind != _activeCueKind || now >= _activeUntil)
+        {
+            return false;
+        }
+
+        _heldFace = picture;
+        _stage.ShowSpeechImage(picture, _activeUntil - now, _activeCueAlarm);
+        return true;
     }
 
     /// <summary>The verb she is performing, pushed every snapshot; only the
@@ -276,6 +294,7 @@ public sealed class NpcSpeechDirector
             _stage.StopVoiceLine();
         }
 
+        _activeCueKind = null;
         var length = _stage.PlayVoiceLine(speechId);
         var hold = Mathf.Max(SpeechCatalog.MinBubbleSeconds, length) + SpeechCatalog.BubbleTailSeconds;
         _heldIcon = line.Icon;
@@ -285,7 +304,7 @@ public sealed class NpcSpeechDirector
         _heldFace = subjectFace;
         if (subjectFace != null)
         {
-            _stage.ShowSpeechPortrait(subjectFace, hold, alarm);
+            _stage.ShowSpeechImage(subjectFace, hold, alarm);
         }
         else
         {
@@ -336,6 +355,7 @@ public sealed class NpcSpeechDirector
 
     private void HoldConversationIcon()
     {
+        _activeCueKind = null;
         var icon = SpeechCatalog.Get(_conversationLine).Icon;
         // §108: лицо старше значка. Значок при этом всё равно вычисляется и
         // запоминается — по нему сравнивается «сменилась ли тема», и голос на
@@ -349,7 +369,7 @@ public sealed class NpcSpeechDirector
 
             _heldIcon = icon;
             _heldFace = _conversationFace;
-            _stage.ShowSpeechPortrait(_conversationFace, 0f);
+            _stage.ShowSpeechImage(_conversationFace, 0f);
             return;
         }
 

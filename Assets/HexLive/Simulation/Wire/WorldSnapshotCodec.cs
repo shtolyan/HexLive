@@ -55,7 +55,8 @@ public static class WorldSnapshotCodec
     /// портрета показывает ЕЁ, а не среднее по семи зонам.
     /// v11: §105.14 IsPlayingDead — притворяется мёртвой; вид держит её
     /// упавшей, а панель показывает чип и строку состояния.
-    public const int WireVersion = 11;
+    /// v12: §111.12 item id carried by a social cue bubble.
+    public const int WireVersion = 12;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -562,6 +563,7 @@ public static class WorldSnapshotCodec
         w.Write(n.SocialCueTick);
         WireIo.WriteString(w, n.SocialCueKind);
         WireIo.WriteNullableInt(w, n.SocialCuePeerId);
+        WireIo.WriteString(w, n.SocialCueItemId);
 
         // wardrobe beat
         w.Write(n.ExecutionStartTick);
@@ -741,6 +743,7 @@ public static class WorldSnapshotCodec
         n.SocialCueTick = r.ReadInt32();
         n.SocialCueKind = r.ReadString();
         n.SocialCuePeerId = WireIo.ReadNullableInt(r);
+        n.SocialCueItemId = r.ReadString();
 
         n.ExecutionStartTick = r.ReadInt32();
         n.ExecutionEndTick = r.ReadInt32();

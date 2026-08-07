@@ -44,6 +44,9 @@ public sealed class NPCExecutionState
     public int LastSocialCueTick { get; set; } = -1;
     public string LastSocialCueKind { get; set; } = string.Empty;
     public EntityId? LastSocialCuePeerId { get; set; }
+    // Bug #52: optional item picture carried by the same one-shot cue. Kept
+    // separate from Kind so content ids remain data, not an unbounded event set.
+    public string LastSocialCueItemId { get; set; } = string.Empty;
 
     // §Wardrobe-anim: the garment currently carried IN HAND during the second
     // beat of an undress (doffed off the body but not yet dropped on the floor).

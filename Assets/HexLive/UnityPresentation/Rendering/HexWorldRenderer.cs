@@ -148,6 +148,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // relationship glyph fires exactly once when a fresh outcome arrives.
     private readonly Dictionary<int, int> _lastTalkResultTick = new();
     private readonly Dictionary<int, string> _lastSocialCueKey = new();
+    private readonly Dictionary<int, string> _pendingSocialCueItemKey = new();
 
     // §80: снимки лиц. Ставится бутстрапом; без него всё работает по-старому,
     // на эмодзи, — поэтому все обращения через ?. и без проверок у вызывающих.
@@ -1280,6 +1281,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _actorViews.Remove(key);
             _lastTalkResultTick.Remove(key);
             _lastSocialCueKey.Remove(key);
+            _pendingSocialCueItemKey.Remove(key);
             _prevNpcPoses.Remove(key);
             _currNpcPoses.Remove(key);
             _npcOnWater.Remove(key);
@@ -1501,18 +1503,47 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SetSpeechInteraction(npc.CurrentInteraction);
         if (npc.SocialCueTick > 0 && !string.IsNullOrEmpty(npc.SocialCueKind))
         {
-            var cueKey = $"{npc.SocialCueTick}:{npc.SocialCueKind}:{npc.SocialCuePeerId ?? -1}";
+            var cueKey = $"{npc.SocialCueTick}:{npc.SocialCueKind}:" +
+                $"{npc.SocialCuePeerId ?? -1}:{npc.SocialCueItemId}";
+
+            // Addressable icons are intentionally non-blocking. Keep polling
+            // only while the same cue still owns the bubble; the director
+            // rejects a late result after any newer alarm or conversation.
+            if (_pendingSocialCueItemKey.TryGetValue(npc.Id.Value, out var pendingKey))
+            {
+                if (pendingKey != cueKey || snapshot.Tick - npc.SocialCueTick > 40)
+                {
+                    _pendingSocialCueItemKey.Remove(npc.Id.Value);
+                }
+                else
+                {
+                    var loadedItem = HexLive.UnityPresentation.Wearing.Garments.ItemIcons.Load(
+                        npc.SocialCueItemId);
+                    if (loadedItem != null)
+                    {
+                        actorView.TryRefreshSocialCuePicture(npc.SocialCueKind, loadedItem);
+                        _pendingSocialCueItemKey.Remove(npc.Id.Value);
+                    }
+                }
+            }
+
             if (!_lastSocialCueKey.TryGetValue(npc.Id.Value, out var seenCue) || seenCue != cueKey)
             {
                 _lastSocialCueKey[npc.Id.Value] = cueKey;
+                _pendingSocialCueItemKey.Remove(npc.Id.Value);
                 // §80: peer — тот, О КОМ кьюшка, и его лицо едет в пузырь.
                 // Раньше id молча выбрасывался, и все кьюшки выглядели
                 // одинаково: ⚠️ есть, а кого испугалась — непонятно.
-                Sprite peerFace = null;
-                if (npc.SocialCuePeerId is { } peerId && _portraitCache != null)
+                Sprite cuePicture = null;
+                if (!string.IsNullOrEmpty(npc.SocialCueItemId))
                 {
-                    peerFace = _portraitCache.SpriteFor(peerId);
-                    if (peerFace == null)
+                    cuePicture = HexLive.UnityPresentation.Wearing.Garments.ItemIcons.Load(
+                        npc.SocialCueItemId);
+                }
+                else if (npc.SocialCuePeerId is { } peerId && _portraitCache != null)
+                {
+                    cuePicture = _portraitCache.SpriteFor(peerId);
+                    if (cuePicture == null)
                     {
                         // Снимка ещё нет (первая встреча). Показываем эмодзи,
                         // а лицо просим снять вне очереди — ко второму испугу
@@ -1521,7 +1552,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     }
                 }
 
-                actorView.PopSocialCue(npc.SocialCueKind, peerFace);
+                actorView.PopSocialCue(npc.SocialCueKind, cuePicture);
+                if (!string.IsNullOrEmpty(npc.SocialCueItemId) && cuePicture == null)
+                {
+                    _pendingSocialCueItemKey[npc.Id.Value] = cueKey;
+                }
             }
         }
 
@@ -3239,7 +3274,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =
-                    $"{npc.SocialCueTick}:{npc.SocialCueKind}:{npc.SocialCuePeerId ?? -1}";
+                    $"{npc.SocialCueTick}:{npc.SocialCueKind}:" +
+                    $"{npc.SocialCuePeerId ?? -1}:{npc.SocialCueItemId}";
                 return actorRoot;
             }
         }

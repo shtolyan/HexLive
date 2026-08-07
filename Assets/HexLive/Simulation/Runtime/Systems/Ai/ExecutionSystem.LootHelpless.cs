@@ -161,6 +161,7 @@ public sealed partial class ExecutionSystem
         }
 
         npc.Mind.LootHelplessTakenCount++;
+        SocialCueSignals.StampItem(world, npc, "LootHelplessTook", takenId);
         Trace.Emit(world, npc.Id, "LootHelplessTook",
             $"Mark=NPC{mark.Id.Value} Def={takenId} Left={mark.Inventory.Items.Count}");
 

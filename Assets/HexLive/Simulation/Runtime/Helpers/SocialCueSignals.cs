@@ -32,6 +32,23 @@ internal static class SocialCueSignals
         npc.Execution.LastSocialCueTick = world.Tick;
         npc.Execution.LastSocialCueKind = kind;
         npc.Execution.LastSocialCuePeerId = peerId;
+        npc.Execution.LastSocialCueItemId = string.Empty;
+    }
+
+    // Bug #52: content payload for a silent action bubble. A normal Stamp
+    // clears it above, so a later alarm can never inherit an old loot icon.
+    public static void StampItem(WorldState world, NPCState npc, string kind, string itemId)
+    {
+        if (npc.IsUnconscious(world.Tick) ||
+            npc.Execution.CurrentInteraction == InteractionType.Sleep)
+        {
+            return;
+        }
+
+        npc.Execution.LastSocialCueTick = world.Tick;
+        npc.Execution.LastSocialCueKind = kind;
+        npc.Execution.LastSocialCuePeerId = null;
+        npc.Execution.LastSocialCueItemId = itemId ?? string.Empty;
     }
 }
 

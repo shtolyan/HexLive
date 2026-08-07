@@ -18,12 +18,21 @@ namespace HexLive.UnityPresentation.Environment
         {
             var diameter = hexRadius * 0.42f;       // ~ the palm trunk base
 
-            var logPrefab = Resources.Load<GameObject>("HexLive/Objects/log_final");
+            var logPrefab = WorldPropResources.Load("resource.log");
             GameObject stump;
-            if (logPrefab != null)
+            if (logPrefab != null && ObjectFit.HasRenderableGeometry(logPrefab))
             {
                 stump = Object.Instantiate(logPrefab);
                 stump.name = "Stump";
+                // ScriptedImporter-backed prefab wrappers can be non-null but
+                // empty in Player. Never let such a wrapper suppress fallback.
+                if (!ObjectFit.HasRenderableGeometry(stump))
+                {
+                    Object.Destroy(stump);
+                    stump = BuildFallback(diameter);
+                    RemoveColliders(stump);
+                    return stump;
+                }
                 // log_final lies along local X (length) with a centred pivot; scale
                 // the length axis to a short stub and the girth to the trunk.
                 if (!ObjectFit.WorldBounds(stump, out var nb))
@@ -39,25 +48,33 @@ namespace HexLive.UnityPresentation.Environment
             }
             else
             {
-                stump = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                stump.name = "Stump";
-                stump.transform.localScale = new Vector3(diameter, Height * 0.5f, diameter);
-                var mr = stump.GetComponent<MeshRenderer>();
-                if (mr != null)
-                {
-                    var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                    mat.SetColor("_BaseColor", new Color(0.40f, 0.28f, 0.17f));
-                    mat.SetFloat("_Smoothness", 0.1f);
-                    mr.sharedMaterial = mat;
-                }
+                stump = BuildFallback(diameter);
             }
 
-            foreach (var col in stump.GetComponentsInChildren<Collider>())
-            {
-                Object.Destroy(col);
-            }
-
+            RemoveColliders(stump);
             return stump;
+        }
+
+        private static GameObject BuildFallback(float diameter)
+        {
+            var stump = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            stump.name = "Stump (build-safe fallback)";
+            stump.transform.localScale = new Vector3(diameter, Height * 0.5f, diameter);
+            var mr = stump.GetComponent<MeshRenderer>();
+            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            if (mr != null && shader != null)
+            {
+                var mat = new Material(shader);
+                mat.SetColor("_BaseColor", new Color(0.40f, 0.28f, 0.17f));
+                mat.SetFloat("_Smoothness", 0.1f);
+                mr.sharedMaterial = mat;
+            }
+            return stump;
+        }
+
+        private static void RemoveColliders(GameObject stump)
+        {
+            foreach (var col in stump.GetComponentsInChildren<Collider>()) Object.Destroy(col);
         }
     }
 }

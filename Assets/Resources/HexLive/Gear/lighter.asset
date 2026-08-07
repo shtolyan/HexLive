@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: lighter
   m_EditorClassIdentifier: 
   gearId: tool.lighter
-  prefab: {fileID: 304421549834419957, guid: 2f9c2d0bdd9d8459dabb2dec5cbe4654, type: 3}
+  prefab: {fileID: 0}
   prefabResourcePath:
   usableAsWeapon: 0
   damage: 0.15
@@ -34,4 +34,3 @@ MonoBehaviour:
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
   workClip: {fileID: 0}
-

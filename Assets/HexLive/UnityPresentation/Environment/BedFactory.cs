@@ -46,10 +46,7 @@ namespace HexLive.UnityPresentation.Environment
             definitionId == "bed.basic" || definitionId == "bed.leaf";
 
         // Map a bill resource id to the prefab that renders it (leaf → frond).
-        private static GameObject? Prefab(string material) => Resources.Load<GameObject>(
-            material == "resource.palm_leaf"
-                ? "HexLive/Objects/palm_frond"
-                : $"HexLive/Objects/{material}");
+        private static GameObject? Prefab(string material) => WorldPropResources.Load(material);
 
         // The ordered piece list for a bed. Order = the order pieces are laid down
         // (frame first, then slats, then leaf mattress, then rope) — drives the

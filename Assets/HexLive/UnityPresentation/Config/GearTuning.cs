@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Content;
 using UnityEngine;
+using HexLive.UnityPresentation.Environment;
 
 namespace HexLive.UnityPresentation.Config
 {
@@ -65,6 +66,14 @@ namespace HexLive.UnityPresentation.Config
         /// Resources/HexLive/Objects/&lt;id&gt; convention.</summary>
         public static GameObject LoadPrefab(string gearId)
         {
+            // Authored glTF sources are editor inputs only; Player always loads
+            // their native mirrors through the shared world-prop boundary.
+            var native = WorldPropResources.Load(gearId);
+            if (native != null && WorldPropResources.NativeName(gearId) != gearId)
+            {
+                return native;
+            }
+
             var config = ConfigFor(gearId);
             if (config != null)
             {

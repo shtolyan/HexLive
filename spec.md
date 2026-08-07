@@ -12257,6 +12257,16 @@ non-empty `sharedMesh` (or a SpriteRenderer has a sprite). A surviving empty
 Renderer hierarchy is rejected and the procedural fallback continues; an empty
 palm, stick, stone or boulder must never silently consume the object view.
 
+The same invariant covers every assembled structure and destruction product.
+Campfire, leaf/basic beds and the water collector load native FBX mirrors;
+`BedAssembly` validates their instantiated geometry and retains a staged
+Unity-primitive assembly only as an emergency fallback. The drying rack is a
+native assembly of four approved `resource.stick` pieces plus four native rope
+lashings and is accepted only when all eight renderable pieces exist.
+`StumpFactory` uses the approved native `resource.log` and rejects an empty
+instance. Felled crowns and loose leaves use the exact 160-vertex
+`palm_frond_native` / `LeafGreen` geometry, never an opaque texture card.
+
 ### §54.3 Cordage & the knife
 - **`plant.fibrous`** sheds `resource.fiber` (herb-bush pattern). Fiber crafts
   **`resource.rope`** (3 fiber) and **`resource.cloth`** (4 fiber) at the fire.

@@ -95,7 +95,7 @@ namespace HexLive.UnityPresentation.Environment
         // shows real meat; falls back to the procedural chunk otherwise.
         private static GameObject? LoadMeatPiece(string id)
         {
-            var prefab = Resources.Load<GameObject>($"HexLive/Objects/{id}");
+            var prefab = WorldPropResources.Load(id);
             if (prefab != null)
             {
                 return Object.Instantiate(prefab);

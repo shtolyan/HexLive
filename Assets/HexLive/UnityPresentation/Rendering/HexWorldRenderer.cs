@@ -2730,13 +2730,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // The current rock GLBs are mirrored as native FBXs under Resources.
         // ScriptedImporter mesh sub-assets work in Editor but were absent from
         // Player 0.1.4 even though their prefab wrappers survived the build.
-        var objectResourceId = worldObject.DefinitionId switch
-        {
-            "rock.boulder" => "rock_boulder_native",
-            "resource.stone" => "stone_single_native",
-            _ => worldObject.DefinitionId
-        };
-        var objectPrefab = Resources.Load<GameObject>($"HexLive/Objects/{objectResourceId}");
+        var objectPrefab = HexLive.UnityPresentation.Environment.WorldPropResources.Load(
+            worldObject.DefinitionId);
         if (objectPrefab != null)
         {
             var prefabRoot = new GameObject($"Object {worldObject.DefinitionId}");

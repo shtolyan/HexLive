@@ -2681,6 +2681,22 @@ MonoBehaviour:
       - 'ампутирована'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'health.protection'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Protection equipped'
+      - 'Надетая защита'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.no_protection'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No worn protection'
+      - 'Нет надетой защиты'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'panel.inventory'
       TermType: 0
       Description: 

@@ -32,7 +32,9 @@
         "ThighR",
         "ThighL"
       ],
-      "noHide": [],
+      "noHide": [
+        "Pelvis"
+      ],
       "materials": [
         {
           "source": "fur_plain",

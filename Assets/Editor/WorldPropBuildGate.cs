@@ -80,7 +80,11 @@ namespace HexLive.Editor
             // hierarchy drift that the former dependency-only gate missed.
             foreach (var entry in manifest.entries ?? Array.Empty<Entry>())
             {
-                if (entry.stagedBill != null)
+                // JsonUtility materialises a default nested object even when
+                // stagedBill is absent from JSON. Only a positive bill marks
+                // an object as a staged assembly; otherwise ordinary props
+                // were incorrectly exercised through the bed fallback.
+                if (HasStagedBill(entry.stagedBill))
                     ValidateStagedAssembly(entry, violations);
             }
 
@@ -199,6 +203,10 @@ namespace HexLive.Editor
 
         private static int ActiveRendererCount(GameObject root) =>
             root.GetComponentsInChildren<Renderer>(false).Count(renderer => renderer.enabled);
+
+        private static bool HasStagedBill(StageBill bill) =>
+            bill != null && (bill.logs > 0 || bill.sticks > 0 || bill.rope > 0 ||
+                             bill.leaves > 0 || bill.stones > 0);
 
         private static bool IsGltf(string path) =>
             path.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) ||

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 620" role="img" aria-labelledby="title desc">
+  <title id="title">MovementSmoothnessTest: реальная гекс-сетка</title>
+  <desc id="desc">37 гексов радиуса 3, две поднятые плитки и три непроходимых валуна.</desc>
+  <defs>
+    <polygon id="hex" points="0,-1 0.866,-0.5 0.866,0.5 0,1 -0.866,0.5 -0.866,-0.5"/>
+  </defs>
+  <rect width="760" height="620" fill="#17202b"/>
+  <g transform="translate(325 280) scale(25)">
+    <g fill="#536b58" stroke="#9fb19c" stroke-width="0.055">
+      <use href="#hex" x="-7.79" y="0"/><use href="#hex" x="-6.50" y="2.25"/>
+      <use href="#hex" x="-5.20" y="4.50"/><use href="#hex" x="-3.90" y="6.75"/>
+      <use href="#hex" x="-6.50" y="-2.25"/><use href="#hex" x="-5.20" y="0"/>
+      <use href="#hex" x="-3.90" y="2.25"/><use href="#hex" x="-2.60" y="4.50"/>
+      <use href="#hex" x="-1.30" y="6.75"/><use href="#hex" x="-5.20" y="-4.50"/>
+      <use href="#hex" x="-3.90" y="-2.25"/><use href="#hex" x="-2.60" y="0"/>
+      <use href="#hex" x="0" y="4.50"/><use href="#hex" x="1.30" y="6.75"/>
+      <use href="#hex" x="-3.90" y="-6.75"/><use href="#hex" x="-2.60" y="-4.50"/>
+      <use href="#hex" x="-1.30" y="-2.25"/><use href="#hex" x="0" y="0"/>
+      <use href="#hex" x="2.60" y="4.50"/><use href="#hex" x="3.90" y="6.75"/>
+      <use href="#hex" x="-1.30" y="-6.75"/><use href="#hex" x="0" y="-4.50"/>
+      <use href="#hex" x="1.30" y="-2.25"/><use href="#hex" x="2.60" y="0"/>
+      <use href="#hex" x="3.90" y="2.25"/><use href="#hex" x="5.20" y="4.50"/>
+      <use href="#hex" x="1.30" y="-6.75"/><use href="#hex" x="2.60" y="-4.50"/>
+      <use href="#hex" x="3.90" y="-2.25"/><use href="#hex" x="5.20" y="0"/>
+      <use href="#hex" x="6.50" y="2.25"/><use href="#hex" x="3.90" y="-6.75"/>
+      <use href="#hex" x="5.20" y="-4.50"/><use href="#hex" x="6.50" y="-2.25"/>
+      <use href="#hex" x="7.79" y="0"/>
+    </g>
+    <g fill="#9b7047" stroke="#ffd28a" stroke-width="0.08">
+      <use href="#hex" x="-1.30" y="2.25"/><use href="#hex" x="1.30" y="2.25"/>
+    </g>
+    <g fill="#30343a" stroke="#f1b36a" stroke-width="0.08">
+      <circle cx="-3.90" cy="-2.25" r="0.28"/><circle cx="-1.30" cy="-2.25" r="0.28"/>
+      <circle cx="1.30" cy="-2.25" r="0.28"/>
+    </g>
+    <g fill="none" stroke="#53d5ff" stroke-width="0.1" stroke-dasharray="0.22 0.16">
+      <path d="M-6.2,0 L-2.6,0 L0,0 L3.8,0"/>
+    </g>
+  </g>
+  <g font-family="sans-serif" fill="#eef5ff" font-size="18">
+    <text x="24" y="34" font-size="24" font-weight="bold">MovementSmoothnessTest</text>
+    <text x="24" y="62">37 гексов (радиус 3), HexRadius = 1.5 wu</text>
+    <text x="24" y="92" fill="#ffd28a">Янтарные плитки: elevation 2, шов проверяется как запретный для canJump=false</text>
+    <text x="24" y="120" fill="#f1b36a">Оранжевые точки: rock.boulder, заблокированные junction-слоты</text>
+    <text x="24" y="148" fill="#53d5ff">Голубой пунктир: контрольная линия маршрута/обхода</text>
+    <text x="24" y="590" font-size="15">Правило приёмки: path не содержит blocked junction и запрещённый elevation seam; модель не упирается в стену.</text>
+  </g>
+</svg>

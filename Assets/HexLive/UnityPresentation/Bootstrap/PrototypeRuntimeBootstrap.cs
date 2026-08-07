@@ -88,6 +88,15 @@ public static class PrototypeRuntimeBootstrap
             return;
         }
 
+        // §71.5: both LocomotionTest and MovementSmoothnessTest are driven by
+        // the same self-contained bootstrap. They deliberately have no sim
+        // runner: spawning the main menu/world over their measured lane adds a
+        // second camera, UI and actors and invalidates every frame sample.
+        if (Object.FindAnyObjectByType<LocomotionTest.LocomotionTestBootstrap>() is not null)
+        {
+            return;
+        }
+
         var root = new GameObject("HexLive Prototype");
         var runner = root.AddComponent<SimulationRunnerBehaviour>();
 

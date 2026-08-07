@@ -550,14 +550,28 @@ public sealed class MovementSystem : ISimulationSystem
             // stuttering. Now only a near-reversal plants her; anything gentler
             // she takes at speed, with a penalty that fades out below the
             // deadzone (see ambientAlignment below).
+            var initialFacingError = 0f;
             var facingError = 0f;
-            var alignmentThreshold = SimBalance.TurnFreezeAngle;
             if (npc.Movement.HopTimer <= 0f)
             {
                 npc.Movement.DesiredDirection = direction;
                 npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(direction);
 
                 var prevRotation = npc.RotationDegrees;
+                initialFacingError = MathUtil.Abs(MathUtil.DeltaAngle(
+                    npc.RotationDegrees, npc.Movement.DesiredRotationDegrees));
+
+                // §71.7: decide from the angle REQUESTED at tick start, not the
+                // already-reduced residual after turning. At 216°/s the old
+                // order converted a 120° command into 66° before testing the
+                // 100° pivot threshold, so she translated visibly sideways.
+                if (npc.Movement.PostTurnTimer <= 0f &&
+                    npc.Movement.PostTurnDelay <= 0f &&
+                    LocomotionTurnPolicy.RequiresPlantedPivot(initialFacingError))
+                {
+                    npc.Movement.PostTurnDelay = 1f;
+                }
+
                 npc.RotationDegrees = MathUtil.RotateTowards(
                     npc.RotationDegrees,
                     npc.Movement.DesiredRotationDegrees,
@@ -565,15 +579,24 @@ public sealed class MovementSystem : ISimulationSystem
 
                 facingError = MathUtil.Abs(MathUtil.DeltaAngle(npc.RotationDegrees, npc.Movement.DesiredRotationDegrees));
 
-                if (facingError > alignmentThreshold)
+                // A planted pivot is latched until FULL alignment. Falling
+                // below the threshold is not permission to run: that was the
+                // one-tick sideways slide at the end of every reversal.
+                if (npc.Movement.PostTurnDelay > 0f)
                 {
                     npc.Movement.SetStatus(MovementStatus.Rotating);
-                    npc.Movement.PostTurnTimer = SimBalance.PostTurnPauseSeconds;
+                    if (facingError <= 0.01f)
+                    {
+                        npc.Movement.PostTurnDelay = 0f;
+                        npc.Movement.PostTurnTimer = SimBalance.PostTurnPauseSeconds;
+                    }
+
                     if (SimTrace.Verbose)
                     {
                         Trace.Emit(world, npc.Id, "MovementRotating",
                             $"Rot={prevRotation:F1}->{npc.RotationDegrees:F1} Desired={npc.Movement.DesiredRotationDegrees:F1} " +
-                            $"Error={facingError:F1}>{alignmentThreshold} ToJunction={targetJunctionId.Value} " +
+                            $"Initial={initialFacingError:F1} Residual={facingError:F1} Planted=1 " +
+                            $"ToJunction={targetJunctionId.Value} " +
                             $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
                     }
 
@@ -583,7 +606,8 @@ public sealed class MovementSystem : ISimulationSystem
 
                 if (npc.Movement.PostTurnTimer > 0f)
                 {
-                    npc.Movement.PostTurnTimer -= world.TickDeltaTime;
+                    npc.Movement.PostTurnTimer = System.MathF.Max(
+                        0f, npc.Movement.PostTurnTimer - world.TickDeltaTime);
                     npc.Movement.SetStatus(MovementStatus.Rotating);
                     Trace.Emit(world, npc.Id, "MovementPostTurnPause",
                         $"Timer={npc.Movement.PostTurnTimer:F2}s remaining");
@@ -613,13 +637,8 @@ public sealed class MovementSystem : ISimulationSystem
             // §71: a gentle bend costs nothing; the penalty only ramps in past
             // the deadzone and bottoms out at TurnMinSpeedFactor. Beyond
             // TurnFreezeAngle she never gets here — she planted and pivoted.
-            var alignmentFactor = 1f;
-            if (facingError > SimBalance.TurnFreeAngle)
-            {
-                var over = (facingError - SimBalance.TurnFreeAngle) /
-                    System.MathF.Max(1f, SimBalance.TurnFreezeAngle - SimBalance.TurnFreeAngle);
-                alignmentFactor = 1f - MathUtil.Clamp01(over) * (1f - SimBalance.TurnMinSpeedFactor);
-            }
+            var alignmentFactor = LocomotionTurnPolicy.AlignmentFactor(
+                initialFacingError, facingError);
 
             // Spec 19.3C: mauled legs mean hobbling.
             // §71: BaseMoveSpeedFactor is the global walking-pace knob — the

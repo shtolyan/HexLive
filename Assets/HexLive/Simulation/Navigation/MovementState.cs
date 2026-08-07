@@ -57,9 +57,11 @@ public sealed class MovementState
 
     public string StopReason { get; set; } = string.Empty;
 
-    // Vestigial: only round-trips through the serializer, never used in logic
-    // (the real post-turn pause is npc.PostTurnPause + PostTurnTimer). Kept for
-    // save-format compat; drop with the next serializer version.
+    // Existing persisted latch reused by §71.7. A positive value means a
+    // planted pivot is in progress and translation stays frozen until facing
+    // reaches the requested direction. Keeping it in this already-serialized
+    // field makes saving halfway through a turn deterministic without a save
+    // format bump.
     public float PostTurnDelay { get; set; }
     public float PostTurnTimer { get; set; }
 

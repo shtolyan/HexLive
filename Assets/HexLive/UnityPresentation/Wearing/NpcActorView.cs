@@ -536,6 +536,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // 3.4 — §71.5: defaults for a run clip with no stride row of its own.
     public static float SlowRunCadence = 2.0f;
     public static float RunCadence = 3.4f;
+    // Limp is a dedicated Animator state, not one of the three gait slots.
+    // Its own clip still needs a ground-pace fallback until the laboratory
+    // writes a measured row into NpcAnimSet.strides.
+    public static float LimpBodyHeightsPerSec = 0.76f;
     // Playback still trims a little around the blended gait (a hobbling or
     // soaked girl takes slower steps), but never far from the authored rate.
     public static float MinGaitCadence = 0.35f;
@@ -3478,6 +3482,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public AnimationClip ActiveGaitClip(int gaitSlot) =>
         gaitSlot >= 0 && gaitSlot < _activeGait.Length ? _activeGait[gaitSlot] : null;
 
+    /// <summary>The authored clip used by the dedicated Limp state.</summary>
+    public AnimationClip ActiveLimpClip() =>
+        _clipsByName.TryGetValue("Limp", out var clip) ? clip : null;
+
     // One locomotion slot: remember the actor's clip and play it, or hand the
     // slot back to the controller's authored take when he has none.
     private void SetLocomotionClip(string baseName, AnimationClip clip)
@@ -5003,8 +5011,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // stutter. A planted pivot is exempt: it slews the body at hundreds of
         // degrees a second, and it MUST reach Idle, because the turn-on-spot
         // states can only be entered from there.
+        // A render frame can briefly report a tiny raw delta while the 4 Hz
+        // snapshot interpolation is still carrying visible motion. Once a
+        // walk has started, let the filtered signal bridge that single sample
+        // so the Animator does not fall through Walk -> Idle -> Walk and reset
+        // the step phase. The raw signal still controls the stop timer, and a
+        // real halt therefore becomes Idle after WalkHoldSeconds as before.
+        var filteredWalkContinuation = _wasWalking &&
+            _smoothedSpeed > threshold * 0.65f;
         var walking = moving ||
-            (_wasWalking && _stillTimer < WalkHoldSeconds &&
+            (_wasWalking &&
+             (_stillTimer < WalkHoldSeconds || filteredWalkContinuation) &&
              Mathf.Abs(yawSpeed) <= PivotYawSpeed);
         _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
@@ -5055,7 +5072,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // _running is the sim's decision and speed only picks HOW HARD she
             // runs, plus the playback rate that keeps the feet on the ground.
             float gaitGround;
-            if (!_running)
+            var limpClip = ActiveLimpClip();
+            if (_posture == "Limp" && limpClip != null)
+            {
+                // The Limp state sits outside GaitBlend. Feeding it slot 0's
+                // Walk stride made cadence independent of the authored limp
+                // cycle and especially obvious after leg health slowed the
+                // simulation. It now has the same per-clip calibration path.
+                targetGait = 0f;
+                gaitGround = bodyScale * (_animSet != null
+                    ? _animSet.StrideFor(limpClip, LimpBodyHeightsPerSec)
+                    : LimpBodyHeightsPerSec);
+            }
+            else if (!_running)
             {
                 // §71.6: БОДРЫЙ ШАГ РАСПУСКАЕТСЯ В ПОЗУ, А НЕ В ПЕРЕМОТКУ.
                 // Здесь стояло «шаг остаётся шагом, темп доберёт каденс» — и

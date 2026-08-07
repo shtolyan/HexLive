@@ -85,3 +85,6 @@ Assets/Editor/WearDrops/_active.txt.meta
 # типы задвоятся (CS0101). Удаляются сразу после импорта интеграции.
 *.local.cs
 *.local.cs.meta
+
+# Blender's rolling backup is local recovery state; the authored .blend is tracked via LFS.
+*.blend1

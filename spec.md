@@ -15856,6 +15856,11 @@ YAML-меши `_AiGen/*_oriented.asset` и сравнил с экспортом 
 `HexLive/Objects/<id>` без расширения, так что GLB подхватывается так же, как
 подхватывался бы `.prefab` (прецедент — `tool.pot.fbx`). Иконка —
 `Resources/HexLive/UI/Items/tool.machete.png` (Blender Cycles, ¾, прозрачный фон).
+Native bake мачете включает только одобренный retopo-mesh `lowpoly`: служебные
+`Cube`, `Camera` и `Light` из авторской сцены не входят в Player-ассет. Сам mesh
+сохраняет общий frame инструментов — рукоять вдоль Unity +Y, её основание на
+pivot и рабочая кромка к +Z — поэтому тот же hand pose, что у каменного ножа,
+не компенсирует случайную геометрию или смещённые bounds (баг #63).
 
 **79.5 Что «просто заработало».** Рубящий клип (`ActionFromInteraction` гейтится
 на `ChopWood`), вооружённые idle/ходьба (любой `tool.*`), выбор оружия в драке

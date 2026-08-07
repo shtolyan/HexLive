@@ -117,6 +117,26 @@ def normalize_campfire_stages() -> None:
 def normalize_for_runtime(entry_id: str) -> None:
     if entry_id == "campfire.spot":
         normalize_campfire_stages()
+    elif entry_id == "tool.machete":
+        normalize_machete()
+
+
+def normalize_machete() -> None:
+    """Keep only the approved retopologised blade from the authored scene.
+
+    The GLB also contains the source scene's two-metre Cube, Camera and Light.
+    Unity's ObjectFit measures every renderer, so that stray cube became the
+    machete's bounds: the real 1 m blade was shrunk and offset in the hand.
+    The lowpoly mesh is already authored in the canonical tool frame (+Z in
+    Blender -> +Y in Unity, grip base at zero), therefore no transform is
+    required here; removing the scene furniture preserves its approved pivot.
+    """
+    approved = bpy.data.objects.get("lowpoly")
+    if approved is None or approved.type != "MESH":
+        raise RuntimeError("tool.machete source misses approved lowpoly mesh")
+    for obj in list(bpy.context.scene.objects):
+        if obj != approved:
+            bpy.data.objects.remove(obj, do_unlink=True)
 
 
 def _is_logical_piece(name: str) -> bool:
@@ -162,10 +182,10 @@ def validate_stage_contract(entry: dict, context: str) -> None:
 def bake(entry: dict, source: Path, destination: Path) -> None:
     reset_scene()
     bpy.ops.import_scene.gltf(filepath=str(source))
+    normalize_for_runtime(entry["id"])
     source_meshes, source_vertices, source_min, source_max = mesh_stats()
     if source_meshes == 0 or source_vertices == 0:
         raise RuntimeError(f"{source} imported without mesh data")
-    normalize_for_runtime(entry["id"])
     validate_stage_contract(entry, "source normalization")
 
     destination.parent.mkdir(parents=True, exist_ok=True)

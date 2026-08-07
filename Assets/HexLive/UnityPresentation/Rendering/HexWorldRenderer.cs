@@ -2605,7 +2605,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             capsule.name = "LimbCapsule";
             capsule.transform.SetParent(fbRoot.transform, false);
-            capsule.transform.localScale = new Vector3(0.22f, 0.5f, 0.22f);
+            // Primitive dimensions are authored in Unity metres, while actor
+            // bodies are imported in source centimetres and scaled into the
+            // world. Keep the emergency capsule in the same scale space as
+            // the real sliced limb above; otherwise it is roughly 100x larger
+            // than the person it came from.
+            var fallbackScale = HexRadius * NpcHeightFactor / ActorSourceHeightMeters;
+            capsule.transform.localScale = new Vector3(0.22f, 0.5f, 0.22f) * fallbackScale;
             capsule.transform.localRotation = Quaternion.Euler(80f, (worldObject.Id.Value * 47) % 360, 0f);
             var capMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             capMat.SetColor("_BaseColor", new Color(0.7f, 0.04f, 0.04f));

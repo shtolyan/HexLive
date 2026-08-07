@@ -271,7 +271,7 @@ namespace HexLive.UnityPresentation.Environment
             switch (product)
             {
                 case "campfire.spot":
-                    for (var i = 0; i < 10; i++)
+                    for (var i = 0; i < 9; i++)
                     {
                         var angle = i * 30f;
                         AddPiece(root.transform, $"stick_{i:00}", PrimitiveType.Cylinder,
@@ -288,13 +288,16 @@ namespace HexLive.UnityPresentation.Environment
                                 Mathf.Sin(radians) * 0.46f),
                             new Vector3(0f, i * 37f, 0f), new Color(0.43f, 0.45f, 0.54f));
                     }
-                    // The final two sticks read as the roasting spit once stage 3 is reached.
+                    // Bill contract: 9 hearth sticks + 2 posts + 1 crossbar.
                     AddPiece(root.transform, "stick_spit_post_l", PrimitiveType.Cylinder,
                         new Vector3(0.025f, 0.34f, 0.025f), new Vector3(-0.52f, 0.34f, 0f),
                         new Vector3(0f, 0f, -10f), new Color(0.38f, 0.20f, 0.10f));
                     AddPiece(root.transform, "stick_spit_post_r", PrimitiveType.Cylinder,
                         new Vector3(0.025f, 0.34f, 0.025f), new Vector3(0.52f, 0.34f, 0f),
                         new Vector3(0f, 0f, 10f), new Color(0.38f, 0.20f, 0.10f));
+                    AddPiece(root.transform, "stick_bar", PrimitiveType.Cylinder,
+                        new Vector3(0.025f, 0.75f, 0.025f), new Vector3(0f, 0.67f, 0f),
+                        new Vector3(0f, 0f, 90f), new Color(0.38f, 0.20f, 0.10f));
                     AddPiece(root.transform, "rope_spit_l", PrimitiveType.Sphere,
                         Vector3.one * 0.07f, new Vector3(-0.52f, 0.58f, 0f),
                         Vector3.zero, new Color(0.72f, 0.58f, 0.34f));

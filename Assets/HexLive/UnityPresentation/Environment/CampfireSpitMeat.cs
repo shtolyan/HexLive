@@ -13,19 +13,15 @@ namespace HexLive.UnityPresentation.Environment
     /// </summary>
     public sealed class CampfireSpitMeat : MonoBehaviour
     {
-        // campfire_final crossbar (stick_bar): centre (0, 0.67, 0), 1.5 long in
-        // X, ~0.05 thick; the forked posts flank it at |x| ≥ 0.485 and the rope
-        // lashings sit further out. All in campfire-local units — the prefab is
-        // authored 1:1, so these are world sizes too.
-        // Where a skewered chunk's CENTRE sits: threaded on the bar, riding a
-        // hair high so the rod reads as passing through the lower half
-        // (hand-tuned in the editor — the hanging-below variant read as
-        // floating under the spit).
-        private const float SkewerY = 0.673f;
-        // §54.14 (r4): SIX fixed skewer slots on the clear span between the
-        // forks (outermost meat edge stays inside |x| 0.485). Chunks fill from
-        // the CENTRE outward so a lone piece roasts over the flame, not at a post.
-        private static readonly float[] SlotX = { -0.40f, -0.24f, -0.08f, 0.08f, 0.24f, 0.40f };
+        // §54.14 (r4): SIX fixed skewer slots on the clear middle 53.3% of the
+        // actual logical stick_bar half-span. The old view used absolute
+        // campfire_final coordinates; the native build-safe FBX is allowed to
+        // carry a different root/scale, so those points silently left the spit.
+        // Resolve the bar's rendered bounds instead and keep the same relative
+        // spacing. This also makes the primitive emergency assembly obey the
+        // exact same attachment contract.
+        private static readonly float[] SlotAlongBar =
+            { -0.533333f, -0.32f, -0.106667f, 0.106667f, 0.32f, 0.533333f };
         private static readonly int[] FillOrder = { 2, 3, 1, 4, 0, 5 };
 
         private int _signature = -1;
@@ -73,8 +69,8 @@ namespace HexLive.UnityPresentation.Environment
                 // Fixed slot, centre-out; a chunk beyond the slots (capacity
                 // tuned past 6) doubles up a hair behind the bar. Lying flat,
                 // each slot at its own yaw so the bones fan out along the row.
-                var slot = FillOrder[i % SlotX.Length];
-                var overflow = i >= SlotX.Length ? 0.06f : 0f;
+                var slot = FillOrder[i % SlotAlongBar.Length];
+                var overflow = i >= SlotAlongBar.Length ? 0.06f : 0f;
                 var pose = Quaternion.Euler(0f, 90f + slot * 25f, 0f);
                 piece.transform.rotation = pose;
                 // The prefab pivot is off-centre (shifted toward the bone), so
@@ -85,9 +81,66 @@ namespace HexLive.UnityPresentation.Environment
 
                 piece.transform.SetParent(_meatRoot, false);
                 piece.transform.localRotation = pose;
-                piece.transform.localPosition =
-                    new Vector3(SlotX[slot], SkewerY, overflow) - pivotShift;
+                piece.transform.localPosition = SpitSlot(slot, overflow) - pivotShift;
             }
+        }
+
+        private Vector3 SpitSlot(int slot, float overflow)
+        {
+            var bar = FindLogicalPiece(transform, "stick_bar");
+            if (bar == null || !TryLocalBounds(bar, transform, out var bounds))
+            {
+                // Legacy authored dimensions remain a safe last resort for an
+                // incomplete custom prefab; the build-safe fallback has a real
+                // stick_bar and normally never takes this branch.
+                return new Vector3(SlotAlongBar[slot] * 0.75f, 0.673f, overflow);
+            }
+
+            var alongX = bounds.size.x >= bounds.size.z;
+            var halfSpan = (alongX ? bounds.extents.x : bounds.extents.z);
+            var point = bounds.center;
+            if (alongX) point.x += SlotAlongBar[slot] * halfSpan;
+            else point.z += SlotAlongBar[slot] * halfSpan;
+            // Stack only overflow pieces behind the bar, never along it.
+            if (alongX) point.z += overflow;
+            else point.x += overflow;
+            return point;
+        }
+
+        private static Transform? FindLogicalPiece(Transform root, string name)
+        {
+            foreach (Transform child in root)
+            {
+                if (child.name == name) return child;
+                var nested = FindLogicalPiece(child, name);
+                if (nested != null) return nested;
+            }
+            return null;
+        }
+
+        private static bool TryLocalBounds(Transform piece, Transform root, out Bounds bounds)
+        {
+            bounds = default;
+            var found = false;
+            foreach (var renderer in piece.GetComponentsInChildren<Renderer>(true))
+            {
+                var world = renderer.bounds;
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var worldPoint = world.center + Vector3.Scale(world.extents, new Vector3(
+                        (corner & 1) == 0 ? -1f : 1f,
+                        (corner & 2) == 0 ? -1f : 1f,
+                        (corner & 4) == 0 ? -1f : 1f));
+                    var localPoint = root.InverseTransformPoint(worldPoint);
+                    if (!found)
+                    {
+                        bounds = new Bounds(localPoint, Vector3.zero);
+                        found = true;
+                    }
+                    else bounds.Encapsulate(localPoint);
+                }
+            }
+            return found;
         }
 
         // §54.14 (r3): the hanging chunk uses the SAME modelled prefab as the

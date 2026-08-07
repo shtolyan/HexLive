@@ -226,7 +226,13 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
         }
 
         _routeDelay += Time.unscaledDeltaTime;
-        if (_routeDelay < RoutePauseSeconds || (!_autoTurns && !_autoSpeedSweep))
+        // Auto speed sweep is deliberately subordinate to the turn cycle. If
+        // the player selected a single route (for example the 180° U-turn)
+        // and only the speed checkbox happens to remain on, restarting that
+        // same path at the endpoint makes the actor appear to step backwards,
+        // pivot, then step forwards again. A manual route must finish and stay
+        // finished until the player presses a route button.
+        if (_routeDelay < RoutePauseSeconds || !_autoTurns)
         {
             return;
         }

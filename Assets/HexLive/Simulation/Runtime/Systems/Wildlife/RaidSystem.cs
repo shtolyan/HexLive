@@ -481,8 +481,17 @@ public sealed class RaidSystem : ISimulationSystem
             if (target.Plan.Status == PlanStatus.Active ||
                 target.Execution.Status == ExecutionStatus.InProgress)
             {
-                PlanInterruption.Abort(world, target,
-                    $"Attacked by NPC{nearest.Id.Value}");
+                if (target.Mind.CurrentGoal == GoalType.LootHelpless ||
+                    target.Mind.LootHelplessTargetNpcId is not null ||
+                    target.Execution.CurrentInteraction == InteractionType.Loot)
+                {
+                    ExecutionSystem.AbortLootHelplessForAttack(world, target, nearest.Id);
+                }
+                else
+                {
+                    PlanInterruption.Abort(world, target,
+                        $"Attacked by NPC{nearest.Id.Value}");
+                }
                 target.Mind.CurrentGoal = GoalType.None;
             }
 

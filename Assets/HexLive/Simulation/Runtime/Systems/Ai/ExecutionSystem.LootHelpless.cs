@@ -1,4 +1,5 @@
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
@@ -171,6 +172,9 @@ public sealed partial class ExecutionSystem
 
     private static void FinishLootHelpless(WorldState world, NPCState npc, NPCState mark)
     {
+        HumanCombatPairing.ClearAssistsAgainst(world, npc.Id);
+        HumanCombatPairing.ClearFor(world, npc);
+
         // Одно событие на СЦЕНУ, а не на вещь: по событию на нож лента истории
         // была бы одним обыском на весь экран.
         if (npc.Mind.LootHelplessTakenCount > 0)
@@ -216,8 +220,26 @@ public sealed partial class ExecutionSystem
         npc.Movement.SetStatus(MovementStatus.Idle);
     }
 
-    private static void AbortLootHelpless(WorldState world, NPCState npc, string reason)
+    // Bug #51: an incoming human attack is not an ordinary scene failure. The
+    // search is over, but the combat that interrupted it must remain alive and
+    // the next search attempt gets the full played-scene cooldown.
+    internal static void AbortLootHelplessForAttack(
+        WorldState world, NPCState npc, EntityId attackerId)
     {
+        AbortLootHelpless(world, npc, $"AttackedByNPC{attackerId.Value}",
+            Spec111.LootHelplessCooldownTicks, preserveCombat: true);
+    }
+
+    private static void AbortLootHelpless(
+        WorldState world, NPCState npc, string reason,
+        int cooldownTicks = -1, bool preserveCombat = false)
+    {
+        if (!preserveCombat)
+        {
+            HumanCombatPairing.ClearAssistsAgainst(world, npc.Id);
+            HumanCombatPairing.ClearFor(world, npc);
+        }
+
         // Уносит то, что успел: снятое уже у него в рюкзаке, и «прервали» не
         // значит «верни». Событие истории всё равно заслужено.
         if (npc.Mind.LootHelplessTakenCount > 0 &&
@@ -239,7 +261,7 @@ public sealed partial class ExecutionSystem
         // Abort снимает клеймы, брони шагов и несомую вещь; AbandonLootHelpless —
         // заявку на тело и саму цель.
         PlanInterruption.Abort(world, npc, $"LootHelpless aborted: {reason}");
-        PlanningSystem.AbandonLootHelpless(world, npc, reason);
+        PlanningSystem.AbandonLootHelpless(world, npc, reason, cooldownTicks);
     }
 }
 

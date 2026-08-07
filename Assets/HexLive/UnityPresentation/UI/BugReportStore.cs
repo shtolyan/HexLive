@@ -9,7 +9,7 @@ namespace HexLive.UnityPresentation.UI
     /// The in-game bug tracker's storage: a single BUGS.json in the repo root
     /// (next to Assets/), shared between the game and the agent. The player
     /// files bugs from the BugReportPanel; the agent reads the same file in a
-    /// session, fixes things, flips status to "fixed" and appends a comment.
+    /// session, moves them through the workflow and appends a comment.
     /// The file is the source of truth — the game reloads it whenever its
     /// mtime changes, so an external edit shows up without restarting Play.
     /// In a built player (no repo around) it falls back to persistentDataPath.
@@ -17,6 +17,8 @@ namespace HexLive.UnityPresentation.UI
     public static class BugReportStore
     {
         public const string StatusCreated = "created";
+        public const string StatusInProgress = "in_progress";
+        public const string StatusReadyForTest = "ready_for_test";
         public const string StatusFixed = "fixed";
         public const string StatusRework = "rework";
 
@@ -24,7 +26,7 @@ namespace HexLive.UnityPresentation.UI
         public sealed class Comment
         {
             public string whenUtc;
-            public string author; // "user" | "claude"
+            public string author; // "user" | "codex" | "claude"
             public string text;
         }
 
@@ -36,6 +38,15 @@ namespace HexLive.UnityPresentation.UI
             public string status;
             public string text;
             public string context; // seed/tick/selected NPC at submit time
+            public string assignedAgent;
+            public string agentHandoff;
+            public List<string> fixCommits = new();
+            // Compatibility with reports written before fixCommits existed.
+            public string fixCommit;
+            public string reportedInVersion;
+            public string readyForTestInVersion;
+            public string fixedInVersion;
+            public bool archived;
             public List<Comment> comments = new();
         }
 
@@ -107,7 +118,7 @@ namespace HexLive.UnityPresentation.UI
             var n = 0;
             foreach (var r in _model.reports)
             {
-                if (r.status == status)
+                if (r.status == status && !r.archived)
                 {
                     n++;
                 }
@@ -143,45 +154,203 @@ namespace HexLive.UnityPresentation.UI
 
         public static Report Add(string text, string context)
         {
-            EnsureLoaded();
+            EnsureFreshForMutation();
             var report = new Report
             {
                 id = _model.nextId++,
                 createdUtc = Now(),
                 status = StatusCreated,
                 text = text,
-                context = context
+                context = context,
+                reportedInVersion = Application.version,
+                archived = false
             };
             _model.reports.Add(report);
             Save();
             return report;
         }
 
-        public static void Remove(int id)
+        public static void SetArchived(int id, bool archived)
         {
-            EnsureLoaded();
-            _model.reports.RemoveAll(r => r.id == id);
+            EnsureFreshForMutation();
+            var report = Find(id);
+            if (report == null)
+            {
+                return;
+            }
+
+            // Archive is history for player-confirmed fixes. It must never
+            // hide an actionable report from the agent's queue.
+            if (archived && report.status != StatusFixed)
+            {
+                return;
+            }
+
+            report.archived = archived;
+            Save();
+        }
+
+        public static void AddComment(int id, string text)
+        {
+            var trimmed = text?.Trim();
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                return;
+            }
+
+            EnsureFreshForMutation();
+            var report = Find(id);
+            if (report == null)
+            {
+                return;
+            }
+
+            report.comments ??= new List<Comment>();
+            report.comments.Add(new Comment { whenUtc = Now(), author = "user", text = trimmed });
+            Save();
+        }
+
+        /// <summary>
+        /// Replaces only the player-authored report description. Identity,
+        /// captured repro context and all workflow/history fields stay intact.
+        /// </summary>
+        public static void EditReportText(int id, string text)
+        {
+            var trimmed = text?.Trim();
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                return;
+            }
+
+            EnsureFreshForMutation();
+            var report = Find(id);
+            if (report == null || report.text == trimmed)
+            {
+                return;
+            }
+
+            report.text = trimmed;
+            Save();
+        }
+
+        public static void EditUserComment(int id, int commentIndex, string text)
+        {
+            var trimmed = text?.Trim();
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                return;
+            }
+
+            EnsureFreshForMutation();
+            var report = Find(id);
+            if (report?.comments == null || commentIndex < 0 || commentIndex >= report.comments.Count)
+            {
+                return;
+            }
+
+            var comment = report.comments[commentIndex];
+            if (!string.Equals(comment.author, "user", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            comment.text = trimmed;
+            comment.whenUtc = Now();
             Save();
         }
 
         public static void SendToRework(int id, string comment)
         {
-            EnsureLoaded();
-            foreach (var r in _model.reports)
+            EnsureFreshForMutation();
+            var r = Find(id);
+            if (r != null && r.status == StatusReadyForTest)
             {
-                if (r.id != id)
-                {
-                    continue;
-                }
-
                 r.status = StatusRework;
+                r.archived = false;
+                r.readyForTestInVersion = null;
+                r.fixedInVersion = null;
                 if (!string.IsNullOrWhiteSpace(comment))
                 {
+                    r.comments ??= new List<Comment>();
                     r.comments.Add(new Comment { whenUtc = Now(), author = "user", text = comment.Trim() });
                 }
 
                 Save();
+            }
+        }
+
+        /// <summary>Player confirmation after testing a ready report.</summary>
+        public static void MarkFixed(int id)
+        {
+            EnsureFreshForMutation();
+            var report = Find(id);
+            if (report == null || report.status != StatusReadyForTest)
+            {
                 return;
+            }
+
+            report.status = StatusFixed;
+            report.comments ??= new List<Comment>();
+            report.comments.Add(new Comment
+            {
+                whenUtc = Now(),
+                author = "user",
+                text = "Подтверждено пользователем: исправлено."
+            });
+            Save();
+        }
+
+        /// <summary>
+        /// Snapshot the reports whose completed code is eligible for the next
+        /// build. The build pipeline owns the snapshot so a report completed
+        /// while a build is already running cannot be stamped by that build.
+        /// </summary>
+        public static List<int> CaptureReadyForTestReportIds()
+        {
+            EnsureFreshForMutation();
+            var ids = new List<int>();
+            foreach (var report in _model.reports)
+            {
+                if (!report.archived && report.status == StatusReadyForTest)
+                {
+                    ids.Add(report.id);
+                }
+            }
+
+            return ids;
+        }
+
+        /// <summary>Called only after a successful build for its pre-build snapshot.</summary>
+        public static void StampReadyForTestReports(IReadOnlyList<int> reportIds, string version)
+        {
+            if (reportIds == null || reportIds.Count == 0 || string.IsNullOrWhiteSpace(version))
+            {
+                return;
+            }
+
+            EnsureFreshForMutation();
+            var ids = new HashSet<int>(reportIds);
+            var changed = false;
+            foreach (var report in _model.reports)
+            {
+                if (!ids.Contains(report.id) ||
+                    (report.status != StatusReadyForTest && report.status != StatusFixed))
+                {
+                    continue;
+                }
+
+                if (report.readyForTestInVersion == version)
+                {
+                    continue;
+                }
+
+                report.readyForTestInVersion = version;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                Save();
             }
         }
 
@@ -194,11 +363,13 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            RecoverInterruptedReplace(FilePath);
             if (File.Exists(FilePath))
             {
                 try
                 {
                     _model = JsonUtility.FromJson<FileModel>(File.ReadAllText(FilePath));
+                    NormalizeModel();
                 }
                 catch (Exception e)
                 {
@@ -211,12 +382,141 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _model ??= new FileModel();
+            NormalizeModel();
         }
 
         private static void Save()
         {
-            File.WriteAllText(FilePath, JsonUtility.ToJson(_model, prettyPrint: true) + "\n");
-            _loadedMtimeUtc = File.GetLastWriteTimeUtc(FilePath);
+            var path = FilePath;
+            var directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var tempPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
+            File.WriteAllText(tempPath, JsonUtility.ToJson(_model, prettyPrint: true) + "\n");
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Replace(tempPath, path, null);
+                }
+                else
+                {
+                    File.Move(tempPath, path);
+                }
+            }
+            catch (Exception e) when (e is PlatformNotSupportedException or IOException)
+            {
+                // Unity's API profile has no File.Move(source, destination,
+                // overwrite). Keep a recoverable two-rename fallback for
+                // platforms where File.Replace is unavailable.
+                var backupPath = path + ".replace-backup";
+                if (File.Exists(backupPath))
+                {
+                    File.Delete(backupPath);
+                }
+
+                if (File.Exists(path))
+                {
+                    File.Move(path, backupPath);
+                }
+
+                try
+                {
+                    File.Move(tempPath, path);
+                    if (File.Exists(backupPath))
+                    {
+                        File.Delete(backupPath);
+                    }
+                }
+                catch
+                {
+                    if (!File.Exists(path) && File.Exists(backupPath))
+                    {
+                        File.Move(backupPath, path);
+                    }
+
+                    throw;
+                }
+            }
+            finally
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+
+            _loadedMtimeUtc = File.GetLastWriteTimeUtc(path);
         }
+
+        private static void RecoverInterruptedReplace(string path)
+        {
+            var backupPath = path + ".replace-backup";
+            if (!File.Exists(path) && File.Exists(backupPath))
+            {
+                File.Move(backupPath, path);
+            }
+        }
+
+        private static void EnsureFreshForMutation()
+        {
+            EnsureLoaded();
+            var mtime = File.Exists(FilePath)
+                ? File.GetLastWriteTimeUtc(FilePath)
+                : DateTime.MinValue;
+            if (mtime == _loadedMtimeUtc)
+            {
+                return;
+            }
+
+            _model = null;
+            EnsureLoaded();
+        }
+
+        private static Report Find(int id)
+        {
+            foreach (var report in _model.reports)
+            {
+                if (report.id == id)
+                {
+                    return report;
+                }
+            }
+
+            return null;
+        }
+
+        private static void NormalizeModel()
+        {
+            _model ??= new FileModel();
+            _model.reports ??= new List<Report>();
+            foreach (var report in _model.reports)
+            {
+                report.comments ??= new List<Comment>();
+                report.fixCommits ??= new List<string>();
+                if (!string.IsNullOrEmpty(report.fixCommit) && !report.fixCommits.Contains(report.fixCommit))
+                {
+                    report.fixCommits.Add(report.fixCommit);
+                }
+                if (!IsKnownStatus(report.status))
+                {
+                    report.status = StatusCreated;
+                }
+                if (report.status == StatusRework)
+                {
+                    // Rework is always actionable, even if an older client
+                    // archived the report before returning it.
+                    report.archived = false;
+                }
+            }
+        }
+
+        private static bool IsKnownStatus(string status) =>
+            status == StatusCreated || status == StatusInProgress ||
+            status == StatusReadyForTest || status == StatusRework ||
+            status == StatusFixed;
     }
 }

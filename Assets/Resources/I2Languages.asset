@@ -16585,6 +16585,318 @@ MonoBehaviour:
       - 'Колония'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'bugs.quick.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'REPORT A BUG'
+      - 'СООБЩИТЬ ОБ ОШИБКЕ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.quick.hint'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Describe what happened. Seed, tick and the selected character are attached automatically.'
+      - 'Опиши, что произошло. Seed, tick и выбранный персонаж добавятся автоматически.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.open_manager'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Open manager'
+      - 'Открыть менеджер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.submit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Submit'
+      - 'Отправить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.manager.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'BUG MANAGER'
+      - 'МЕНЕДЖЕР ОШИБОК'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.tab.open'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Open'
+      - 'Открытые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.tab.fixed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fixed'
+      - 'Исправленные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.tab.archive'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Archive'
+      - 'Архив'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.new'
+      TermType: 0
+      Description: 
+      Languages:
+      - '+ New report'
+      - '+ Новый отчёт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.empty'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing here yet.'
+      - 'Здесь пока пусто.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.comment'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Comment'
+      - 'Комментарий'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.rework'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Send to rework'
+      - 'В доработку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.restore'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Restore'
+      - 'Восстановить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.archive'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Archive'
+      - 'В архив'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.author.user'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Me'
+      - 'Я'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.edit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Edit'
+      - 'Изменить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.edit_report'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Edit report text'
+      - 'Изменить текст репорта'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.cancel'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cancel'
+      - 'Отмена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.save'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Save'
+      - 'Сохранить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.add'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Add'
+      - 'Добавить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.return_with_comment'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Return with comment'
+      - 'Вернуть с комментарием'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.status.open'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'OPEN'
+      - 'ОТКРЫТ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.status.created'
+      TermType: 0
+      Description: 
+      Languages:
+      - '🆕 CREATED'
+      - '🆕 СОЗДАН'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.status.in_progress'
+      TermType: 0
+      Description: 
+      Languages:
+      - '🛠 IN PROGRESS'
+      - '🛠 В РАБОТЕ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.status.ready_for_test'
+      TermType: 0
+      Description: 
+      Languages:
+      - '🧪 READY TO TEST'
+      - '🧪 ГОТОВ К ТЕСТИРОВАНИЮ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.status.rework'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'REWORK'
+      - 'ДОРАБОТКА'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.status.fixed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'FIXED'
+      - 'ИСПРАВЛЕН'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.status.fixed_pending'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'FIXED · AWAITS BUILD'
+      - 'ИСПРАВЛЕН · ЖДЁТ СБОРКИ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.filter.all'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'All statuses'
+      - 'Все статусы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.mark_fixed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '✓ Confirm fixed'
+      - '✓ Подтвердить исправление'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.build.included'
+      TermType: 0
+      Description: 
+      Languages:
+      - '🟢 IN THIS BUILD'
+      - '🟢 В ЭТОЙ СБОРКЕ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.build.not_included'
+      TermType: 0
+      Description: 
+      Languages:
+      - '🟠 NOT IN THIS BUILD'
+      - '🟠 НЕ В ЭТОЙ СБОРКЕ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.reported_version'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'reported in v{0}'
+      - 'найдено в v{0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.fixed_version'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'in build v{0}'
+      - 'в сборке v{0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.ready_version'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'ready in build v{0}'
+      - 'готов в сборке v{0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.debug.ready'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Report bug ({0} ready to test)'
+      - 'Сообщить об ошибке ({0} готово к тестированию)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.assigned_agent'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'agent {0}'
+      - 'агент {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.fix_commit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'commit {0}'
+      - 'коммит {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.fix_commits'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'commits: {0}'
+      - 'коммиты: {0}'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

@@ -8,13 +8,15 @@ and debug geometry.
 
 from __future__ import annotations
 
-import bpy
+import importlib
 import json
 import math
-from mathutils import Matrix, Vector
 import os
 import random
 import sys
+
+import bpy
+from mathutils import Matrix, Vector
 
 
 REPO_ROOT = "/Volumes/ORICO/HexLive"
@@ -25,19 +27,20 @@ DEBUG_PATH = os.path.join(OUTPUT_DIR, "hexlive_building_placement_debug.png")
 SEED = 7319
 MAP_RADIUS = 7
 HEX_RADIUS = 1.5
-REQUESTS = ("longhouse_2hex", "bend_3hex", "hut_1hex", "longhouse_2hex", "hut_1hex")
+REQUESTS = ("great_house_7hex", "wing_house_5hex")
 
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from Tools.settlement_placement import (  # noqa: E402
-    GeneratedMap,
-    Placement,
-    as_dict,
-    distance,
-    generate_map,
-    place_settlement,
-)
+from Tools import settlement_placement as placement_module  # noqa: E402
+
+placement_module = importlib.reload(placement_module)
+GeneratedMap = placement_module.GeneratedMap
+Placement = placement_module.Placement
+as_dict = placement_module.as_dict
+distance = placement_module.distance
+generate_map = placement_module.generate_map
+place_settlement = placement_module.place_settlement
 
 
 def material(name, color, roughness=0.9, emission_strength=0.0):
@@ -528,7 +531,14 @@ ground_plane.data.materials.append(STUDIO_GROUND)
 move_to_collection(ground_plane, presentation)
 
 add_text("HL_Settlement_Title", "SETTLEMENT PLACEMENT · SEED 7319", (0.0, -18.1, 0.02), presentation, 0.72)
-add_text("HL_Settlement_Subtitle", "5 HOUSES · FOOTPRINT CLEAR · DOOR PATH TO FIRE", (0.0, -19.0, 0.02), presentation, 0.34)
+total_indoor_hexes = sum(len(placement.footprint) for placement in placements)
+add_text(
+    "HL_Settlement_Subtitle",
+    f"{len(placements)} LARGE HOUSES · {total_indoor_hexes} INDOOR HEXES · DOOR PATH TO FIRE",
+    (0.0, -19.0, 0.02),
+    presentation,
+    0.34,
+)
 
 beauty_data = bpy.data.cameras.new("HL_Settlement_BeautyCamera")
 beauty_data.type = "ORTHO"
@@ -591,7 +601,7 @@ scene.camera = beauty
 debug_collection.hide_render = False
 scene["hexlive_seed"] = SEED
 scene["hexlive_map_radius"] = MAP_RADIUS
-scene["hexlive_algorithm"] = "rings + footprint occupancy + entrance BFS + spread score"
+scene["hexlive_algorithm"] = "large communal footprints + occupancy + entrance BFS + spread score"
 scene["hexlive_placement_json"] = json.dumps(as_dict(generated_map, placements), separators=(",", ":"))
 
 previous_save_versions = bpy.context.preferences.filepaths.save_version

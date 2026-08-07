@@ -73,6 +73,16 @@ HOUSE_CATALOG: dict[str, HouseDefinition] = {
     "hut_1hex": HouseDefinition("hut_1hex", ((0, 0),), 3.2),
     "longhouse_2hex": HouseDefinition("longhouse_2hex", ((0, 0), (1, 0)), 4.0),
     "bend_3hex": HouseDefinition("bend_3hex", ((0, 0), (1, 0), (0, 1)), 4.8),
+    "great_house_7hex": HouseDefinition(
+        "great_house_7hex",
+        ((0, 0), (1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)),
+        4.0,
+    ),
+    "wing_house_5hex": HouseDefinition(
+        "wing_house_5hex",
+        ((0, 0), (1, 0), (2, 0), (0, 1), (1, 1)),
+        4.2,
+    ),
 }
 
 
@@ -376,7 +386,7 @@ def as_dict(generated_map: GeneratedMap, placements: Iterable[Placement]) -> dic
 def main() -> None:
     seed = 7319
     generated_map = generate_map(seed)
-    requests = ("longhouse_2hex", "bend_3hex", "hut_1hex", "longhouse_2hex", "hut_1hex")
+    requests = ("great_house_7hex", "wing_house_5hex")
     placements = place_settlement(generated_map, requests, seed)
     print(json.dumps(as_dict(generated_map, placements), indent=2))
 

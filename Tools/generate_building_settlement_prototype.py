@@ -26,8 +26,8 @@ BEAUTY_PATH = os.path.join(OUTPUT_DIR, "hexlive_building_settlement_preview.png"
 DEBUG_PATH = os.path.join(OUTPUT_DIR, "hexlive_building_placement_debug.png")
 SEED = 7319
 MAP_RADIUS = 7
+POPULATION = 16
 HEX_RADIUS = 1.5
-REQUESTS = ("great_house_7hex", "wing_house_5hex")
 
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
@@ -40,7 +40,8 @@ Placement = placement_module.Placement
 as_dict = placement_module.as_dict
 distance = placement_module.distance
 generate_map = placement_module.generate_map
-place_settlement = placement_module.place_settlement
+generate_settlement = placement_module.generate_settlement
+plan_as_dict = placement_module.plan_as_dict
 
 
 def material(name, color, roughness=0.9, emission_strength=0.0):
@@ -433,7 +434,8 @@ def area_light(name, collection, location, energy, size, color, target=(0.0, 0.0
 
 remove_previous()
 generated_map: GeneratedMap = generate_map(SEED, MAP_RADIUS)
-placements: list[Placement] = place_settlement(generated_map, REQUESTS, SEED)
+generation_plan = generate_settlement(generated_map, POPULATION, SEED)
+placements: list[Placement] = list(generation_plan.placements)
 
 scene = bpy.data.scenes.new("HexBuildingArt_Settlement")
 bpy.context.window.scene = scene
@@ -532,9 +534,14 @@ move_to_collection(ground_plane, presentation)
 
 add_text("HL_Settlement_Title", "SETTLEMENT PLACEMENT · SEED 7319", (0.0, -18.1, 0.02), presentation, 0.72)
 total_indoor_hexes = sum(len(placement.footprint) for placement in placements)
+house_size_label = "+".join(str(len(placement.footprint)) for placement in placements)
+small_hut_label = "SMALL HUT ON" if generation_plan.small_hut_featured else "SMALL HUT OFF"
 add_text(
     "HL_Settlement_Subtitle",
-    f"{len(placements)} LARGE HOUSES · {total_indoor_hexes} INDOOR HEXES · DOOR PATH TO FIRE",
+    (
+        f"POP {POPULATION} · TARGET {generation_plan.desired_indoor_hexes} / "
+        f"BUDGET {generation_plan.indoor_hex_budget} · HOUSES {house_size_label} · {small_hut_label}"
+    ),
     (0.0, -19.0, 0.02),
     presentation,
     0.34,
@@ -601,8 +608,11 @@ scene.camera = beauty
 debug_collection.hide_render = False
 scene["hexlive_seed"] = SEED
 scene["hexlive_map_radius"] = MAP_RADIUS
+scene["hexlive_population"] = POPULATION
 scene["hexlive_algorithm"] = "large communal footprints + occupancy + entrance BFS + spread score"
-scene["hexlive_placement_json"] = json.dumps(as_dict(generated_map, placements), separators=(",", ":"))
+placement_payload = as_dict(generated_map, placements)
+placement_payload["generationPlan"] = plan_as_dict(generation_plan)
+scene["hexlive_placement_json"] = json.dumps(placement_payload, separators=(",", ":"))
 
 previous_save_versions = bpy.context.preferences.filepaths.save_version
 bpy.context.preferences.filepaths.save_version = 0
@@ -611,7 +621,11 @@ bpy.context.preferences.filepaths.save_version = previous_save_versions
 
 print("SETTLEMENT_PLACED", json.dumps({
     "seed": SEED,
+    "population": POPULATION,
     "houses": len(placements),
+    "requests": generation_plan.requests,
+    "desired_indoor_hexes": generation_plan.desired_indoor_hexes,
+    "indoor_hex_budget": generation_plan.indoor_hex_budget,
     "footprints": [placement.footprint for placement in placements],
     "paths": [len(placement.path_to_campfire) for placement in placements],
 }, ensure_ascii=False))

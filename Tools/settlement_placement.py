@@ -9,8 +9,10 @@ entrance path, commit the winning footprint, repeat.
 
 from __future__ import annotations
 
+import argparse
 from collections import deque
 from dataclasses import dataclass
+from itertools import combinations_with_replacement
 import json
 import math
 import random
@@ -66,6 +68,41 @@ class Placement:
     door_cell: Hex
     door_outside: Hex
     path_to_campfire: tuple[Hex, ...]
+    score: float
+
+
+@dataclass(frozen=True)
+class SettlementGenerationConfig:
+    residents_per_sleeping_hex: int = 2
+    density_fraction: float = 0.14
+    small_hut_chance: float = 0.25
+    blueprint_ids: tuple[str, ...] = (
+        "hut_1hex",
+        "longhouse_2hex",
+        "bend_3hex",
+        "wing_house_5hex",
+        "great_house_7hex",
+    )
+
+
+@dataclass(frozen=True)
+class SettlementPlan:
+    population: int
+    sleeping_hexes: int
+    common_hexes: int
+    desired_indoor_hexes: int
+    usable_ground_hexes: int
+    indoor_hex_budget: int
+    max_buildings: int
+    small_hut_roll: float
+    small_hut_featured: bool
+    small_hut_reason: str
+    requests: tuple[str, ...]
+    placements: tuple[Placement, ...]
+    indoor_hexes: int
+    indoor_hex_shortfall: int
+    resident_capacity: int
+    resident_shortfall: int
     score: float
 
 
@@ -330,6 +367,146 @@ def place_settlement(
     return placements
 
 
+def generation_limits(
+    generated_map: GeneratedMap,
+    population: int,
+    config: SettlementGenerationConfig,
+) -> tuple[int, int, int, int, int]:
+    if population <= 0:
+        raise ValueError("population must be positive")
+    if config.residents_per_sleeping_hex <= 0:
+        raise ValueError("residents_per_sleeping_hex must be positive")
+
+    sleeping_hexes = math.ceil(population / config.residents_per_sleeping_hex)
+    common_hexes = 0 if population <= 4 else math.ceil(population / 6)
+    desired_indoor_hexes = sleeping_hexes + common_hexes
+    reserved_center = expanded({generated_map.campfire}, 1)
+    usable = {
+        cell
+        for cell, terrain in generated_map.terrain.items()
+        if terrain == "ground"
+        and cell not in generated_map.blocked_props
+        and cell not in reserved_center
+    }
+    max_buildings = 1 if generated_map.radius <= 5 else 2 if generated_map.radius <= 7 else 3
+    largest_blueprint = max(len(HOUSE_CATALOG[definition_id].offsets) for definition_id in config.blueprint_ids)
+    density_budget = max(1, math.floor(len(usable) * config.density_fraction))
+    indoor_hex_budget = min(density_budget, max_buildings * largest_blueprint)
+    return sleeping_hexes, common_hexes, desired_indoor_hexes, len(usable), indoor_hex_budget
+
+
+def generate_settlement(
+    generated_map: GeneratedMap,
+    population: int,
+    seed: int,
+    config: SettlementGenerationConfig | None = None,
+) -> SettlementPlan:
+    """Choose a deterministic building portfolio, then place it on the island."""
+
+    config = config or SettlementGenerationConfig()
+    if not config.blueprint_ids:
+        raise ValueError("blueprint_ids must not be empty")
+    if not 0.0 < config.density_fraction <= 1.0:
+        raise ValueError("density_fraction must be in (0, 1]")
+    if not 0.0 <= config.small_hut_chance <= 1.0:
+        raise ValueError("small_hut_chance must be in [0, 1]")
+    unknown = [definition_id for definition_id in config.blueprint_ids if definition_id not in HOUSE_CATALOG]
+    if unknown:
+        raise KeyError(f"Unknown settlement blueprints: {unknown}")
+
+    sleeping_hexes, common_hexes, desired_hexes, usable_hexes, budget = generation_limits(
+        generated_map,
+        population,
+        config,
+    )
+    max_buildings = 1 if generated_map.radius <= 5 else 2 if generated_map.radius <= 7 else 3
+    small_hut_roll = random.Random(seed ^ 0x51A11).random()
+    feature_small_hut = small_hut_roll < config.small_hut_chance
+    blueprint_sizes = {
+        definition_id: len(HOUSE_CATALOG[definition_id].offsets)
+        for definition_id in config.blueprint_ids
+    }
+
+    best_key: tuple[float, tuple[str, ...]] | None = None
+    best_requests: tuple[str, ...] | None = None
+    best_placements: tuple[Placement, ...] | None = None
+    best_score = 0.0
+
+    for building_count in range(1, max_buildings + 1):
+        for portfolio in combinations_with_replacement(config.blueprint_ids, building_count):
+            if portfolio.count("hut_1hex") > 1:
+                continue
+            requests = tuple(sorted(portfolio, key=lambda item: (-blueprint_sizes[item], item)))
+            total_hexes = sum(blueprint_sizes[definition_id] for definition_id in requests)
+            if total_hexes > budget:
+                continue
+            try:
+                placements = tuple(place_settlement(generated_map, requests, seed))
+            except RuntimeError:
+                continue
+
+            shortfall = max(0, desired_hexes - total_hexes)
+            excess = max(0, total_hexes - desired_hexes)
+            hut_count = requests.count("hut_1hex")
+            hut_modifier = 0.0
+            if hut_count and desired_hexes > 1:
+                hut_modifier = hut_count * (-1.25 if feature_small_hut else 4.0)
+            duplicate_penalty = (len(requests) - len(set(requests))) * 0.30
+            placement_penalty = sum(placement.score for placement in placements) * 0.02
+            score = (
+                shortfall * 18.0
+                + excess
+                + building_count * 1.40
+                + hut_modifier
+                + duplicate_penalty
+                + placement_penalty
+            )
+            key = (round(score, 6), requests)
+            if best_key is None or key < best_key:
+                best_key = key
+                best_requests = requests
+                best_placements = placements
+                best_score = round(score, 6)
+
+    if best_requests is None or best_placements is None:
+        raise RuntimeError(
+            f"No settlement portfolio fits radius={generated_map.radius}, "
+            f"population={population}, indoorHexBudget={budget}"
+        )
+
+    indoor_hexes = sum(len(placement.footprint) for placement in best_placements)
+    sleeping_capacity_hexes = max(0, indoor_hexes - common_hexes)
+    resident_capacity = sleeping_capacity_hexes * config.residents_per_sleeping_hex
+    small_hut_featured = "hut_1hex" in best_requests
+    if not small_hut_featured:
+        small_hut_reason = "none"
+    elif desired_hexes <= 1:
+        small_hut_reason = "starter_shelter"
+    elif feature_small_hut:
+        small_hut_reason = "seeded_auxiliary"
+    else:
+        small_hut_reason = "spatial_fallback"
+    return SettlementPlan(
+        population=population,
+        sleeping_hexes=sleeping_hexes,
+        common_hexes=common_hexes,
+        desired_indoor_hexes=desired_hexes,
+        usable_ground_hexes=usable_hexes,
+        indoor_hex_budget=budget,
+        max_buildings=max_buildings,
+        small_hut_roll=round(small_hut_roll, 6),
+        small_hut_featured=small_hut_featured,
+        small_hut_reason=small_hut_reason,
+        requests=best_requests,
+        placements=best_placements,
+        indoor_hexes=indoor_hexes,
+        indoor_hex_shortfall=max(0, desired_hexes - indoor_hexes),
+        resident_capacity=resident_capacity,
+        resident_shortfall=max(0, population - resident_capacity),
+        score=best_score,
+    )
+
+
 def validate_placements(generated_map: GeneratedMap, placements: Iterable[Placement]) -> list[str]:
     placements = tuple(placements)
     errors: list[str] = []
@@ -383,12 +560,39 @@ def as_dict(generated_map: GeneratedMap, placements: Iterable[Placement]) -> dic
     }
 
 
+def plan_as_dict(plan: SettlementPlan) -> dict[str, object]:
+    return {
+        "population": plan.population,
+        "sleepingHexes": plan.sleeping_hexes,
+        "commonHexes": plan.common_hexes,
+        "desiredIndoorHexes": plan.desired_indoor_hexes,
+        "usableGroundHexes": plan.usable_ground_hexes,
+        "indoorHexBudget": plan.indoor_hex_budget,
+        "maxBuildings": plan.max_buildings,
+        "smallHutRoll": plan.small_hut_roll,
+        "smallHutFeatured": plan.small_hut_featured,
+        "smallHutReason": plan.small_hut_reason,
+        "requests": plan.requests,
+        "indoorHexes": plan.indoor_hexes,
+        "indoorHexShortfall": plan.indoor_hex_shortfall,
+        "residentCapacity": plan.resident_capacity,
+        "residentShortfall": plan.resident_shortfall,
+        "score": plan.score,
+    }
+
+
 def main() -> None:
-    seed = 7319
-    generated_map = generate_map(seed)
-    requests = ("great_house_7hex", "wing_house_5hex")
-    placements = place_settlement(generated_map, requests, seed)
-    print(json.dumps(as_dict(generated_map, placements), indent=2))
+    parser = argparse.ArgumentParser(description="Generate a deterministic HexLive settlement plan")
+    parser.add_argument("--seed", type=int, default=7319)
+    parser.add_argument("--radius", type=int, default=7)
+    parser.add_argument("--population", type=int, default=16)
+    args = parser.parse_args()
+
+    generated_map = generate_map(args.seed, args.radius)
+    plan = generate_settlement(generated_map, args.population, args.seed)
+    result = as_dict(generated_map, plan.placements)
+    result["generationPlan"] = plan_as_dict(plan)
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

@@ -1138,6 +1138,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             _currNpcPoses[key] = targetPose;
 
+            // Feed locomotion cadence from the simulation's actual horizontal
+            // displacement, not from a render-frame Transform delta. This
+            // includes Agility, wet-clothes drag, leg mobility, carry weight,
+            // turn penalties and every future movement multiplier exactly once.
+            var simGroundSpeed = 0f;
+            if (_prevNpcPoses.TryGetValue(key, out var previousPoseForSpeed) &&
+                snapshot.TickDeltaTime > 0f)
+            {
+                var simDelta = targetPose.Position - previousPoseForSpeed.Position;
+                simDelta.y = 0f;
+                simGroundSpeed = simDelta.magnitude / snapshot.TickDeltaTime;
+            }
+            npcView.SetSimulationGroundSpeed(simGroundSpeed);
+
             SyncActorView(snapshot, npc);
 
             // Spec 40.2-B/C: a bleeding girl drips blood. On land it pools at

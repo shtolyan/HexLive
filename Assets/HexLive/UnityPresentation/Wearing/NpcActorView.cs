@@ -605,6 +605,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // has read as still — the two pieces of state the de-jitter needs.
     private float _smoothedSpeed;
     private float _stillTimer;
+    // The renderer supplies the exact horizontal speed between simulation
+    // snapshots. Using the interpolated Transform alone made cadence depend on
+    // render FPS and alpha; wet drag, Agility, carry and other sim-side
+    // movement multipliers could therefore make the feet drift or overcrank.
+    private float _simGroundSpeed;
+    private bool _simGroundSpeedValid;
 
     /// <summary>§71: the sim says whether she is running — walk is the default,
     /// and running always means a reason (defend, flee, adrenaline, or a body
@@ -619,6 +625,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SetSimSpeed(float multiplier)
     {
         _simSpeed = Mathf.Max(0.01f, multiplier);
+    }
+
+    /// <summary>Feed the ground speed calculated from two simulation poses.
+    /// The Transform remains authoritative for visible interpolation and the
+    /// stop/turn hysteresis, while cadence uses this deterministic sim sample.
+    /// </summary>
+    public void SetSimulationGroundSpeed(float worldUnitsPerSecond)
+    {
+        _simGroundSpeed = Mathf.Max(0f, worldUnitsPerSecond);
+        _simGroundSpeedValid = true;
     }
 
     // Hex-step jump (§21.21B). Timing comes from HexHopTuning — the single
@@ -4989,7 +5005,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // staircase used to land straight on the walk cycle's playback rate.
         // Fast-forward divides the time constant out, so a 4× world settles 4×
         // sooner in wall-clock and the smoothing never lags the world.
-        _smoothedSpeed = Mathf.Lerp(_smoothedSpeed, linearSpeed,
+        var cadenceSpeed = _simGroundSpeedValid ? _simGroundSpeed : linearSpeed;
+        _smoothedSpeed = Mathf.Lerp(_smoothedSpeed, cadenceSpeed,
             1f - Mathf.Exp(-Time.deltaTime * _simSpeed / Mathf.Max(0.01f, SpeedSmoothTau)));
 
         // Hysteresis: harder to START walking than to KEEP walking, so the

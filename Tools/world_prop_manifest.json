@@ -1,25 +1,25 @@
 {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "entries": [
         {"id":"tree.palm","source":"_AiGen/palm_final.glb","native":"palm_final_native.fbx","mode":"native","minRenderers":1,"materialSlots":["WoodBark","LeafGreen"],"alpha":"opaque-geometry"},
         {"id":"resource.palm_leaf","source":"_AiGen/leaf_final.glb","native":"palm_frond_native.fbx","mode":"native","minRenderers":1,"materialSlots":["LeafGreen"],"alpha":"opaque-geometry"},
         {"id":"rock.boulder","source":"_AiGen/rock_boulder.glb","native":"rock_boulder_native.fbx","mode":"native","minRenderers":5,"materialSlots":["StoneMid","StoneLight","StoneDark"],"alpha":"opaque"},
         {"id":"resource.stone","source":"_AiGen/stone_single.glb","native":"stone_single_native.fbx","mode":"native","minRenderers":1,"materialSlots":["StoneMid"],"alpha":"opaque"},
-        {"id":"campfire.spot","source":"_AiGen/campfire_staged.glb","native":"campfire_final_native.fbx","mode":"native","minRenderers":38,"materialSlots":["BarkA","WoodEnd","StoneMid","Rope"],"alpha":"opaque"},
-        {"id":"bed.leaf","source":"_AiGen/bed_leaf.glb","native":"bed_leaf_final_native.fbx","mode":"native","minRenderers":62,"materialSlots":["LeafGreen","Bark","Rope"],"alpha":"opaque-geometry"},
-        {"id":"bed.basic","source":"_AiGen/bed_basic.glb","native":"bed_basic_final_native.fbx","mode":"native","minRenderers":69,"materialSlots":["LeafGreen","Bark","Rope"],"alpha":"opaque-geometry"},
-        {"id":"station.water_collector","source":"_AiGen/water_collector.glb","native":"water_collector_final_native.fbx","mode":"native","minRenderers":32,"materialSlots":["LeafGreen","Bark","Rope","StoneGrey"],"alpha":"opaque-geometry"},
+        {"id":"campfire.spot","source":"_AiGen/campfire_staged.glb","native":"campfire_final_native.fbx","mode":"native","minRenderers":38,"materialSlots":["BarkA","WoodEnd","StoneMid","Rope"],"alpha":"opaque","stagedBill":{"sticks":12,"rope":2,"stones":18}},
+        {"id":"bed.leaf","source":"_AiGen/bed_leaf.glb","native":"bed_leaf_final_native.fbx","mode":"native","minRenderers":62,"materialSlots":["LeafGreen","Bark","Rope"],"alpha":"opaque-geometry","stagedBill":{"sticks":8,"rope":8,"leaves":46}},
+        {"id":"bed.basic","source":"_AiGen/bed_basic.glb","native":"bed_basic_final_native.fbx","mode":"native","minRenderers":69,"materialSlots":["LeafGreen","Bark","Rope"],"alpha":"opaque-geometry","stagedBill":{"logs":4,"sticks":5,"rope":10,"leaves":50}},
+        {"id":"station.water_collector","source":"_AiGen/water_collector.glb","native":"water_collector_final_native.fbx","mode":"native","minRenderers":32,"materialSlots":["LeafGreen","Bark","Rope","StoneGrey"],"alpha":"opaque-geometry","stagedBill":{"sticks":8,"rope":8,"leaves":11,"stones":5}},
         {"id":"resource.hide","source":"_AiGen/meat/Hide_gen.glb","native":"resource_hide_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
         {"id":"food.meat_raw","source":"_AiGen/meat/MeatRaw_gen.glb","native":"food_meat_raw_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
         {"id":"food.meat_cooked","source":"_AiGen/meat/MeatCooked_gen.glb","native":"food_meat_cooked_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
         {"id":"tool.lighter","source":"_AiGen/Lighter_AI.glb","native":"tool_lighter_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
         {"id":"item.bandage","source":"ArtSource/WorldProps/item.bandage.glb","native":"item_bandage_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
-        {"id":"tool.bottle","source":"ArtSource/WorldProps/tool.bottle.glb","native":"tool_bottle_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"blend"},
+        {"id":"tool.bottle","source":"ArtSource/WorldProps/tool.bottle.glb","native":"tool_bottle_native.prefab","baked":"tool_bottle_native_mesh.fbx","mode":"native","minRenderers":1,"materialSlots":["BottleTransparent"],"alpha":"blend"},
         {"id":"tool.machete","source":"ArtSource/WorldProps/tool.machete.glb","native":"tool_machete_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
         {"id":"tool.saw","source":"ArtSource/WorldProps/tool.saw.glb","native":"tool_saw_native.fbx","mode":"native","minRenderers":1,"materialSlots":["saw_steel","saw_wood"],"alpha":"opaque"},
         {"id":"resource.log","source":"Resources/HexLive/Objects/resource.log.fbx","native":"resource.log.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Bark","Sapwood","Heartwood"],"alpha":"opaque"},
         {"id":"resource.stick","source":"Resources/HexLive/Objects/resource.stick.fbx","native":"resource.stick.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Bark","Heartwood"],"alpha":"opaque"},
-        {"id":"station.drying_rack","source":"resource.stick.fbx + rope_lashing.fbx","native":"runtime assembly","mode":"native-assembly","minRenderers":8,"materialSlots":["Bark","Heartwood"],"alpha":"opaque"}
+        {"id":"station.drying_rack","source":"resource.stick.fbx + rope_lashing.fbx","native":"runtime assembly","mode":"native-assembly","minRenderers":8,"materialSlots":["Bark","Heartwood"],"alpha":"opaque","stagedBill":{"sticks":4,"rope":4}}
     ],
     "addressableNativeGroups": [
         {"id":"prosthetic.core","root":"Assets/HexLiveContent/Prosthetics","pattern":"*.fbx","expectedCount":8,"forbidImporterDependencies":[".glb",".gltf"]}

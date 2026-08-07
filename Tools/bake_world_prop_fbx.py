@@ -43,12 +43,130 @@ def mesh_stats() -> tuple[int, int, tuple[float, float, float], tuple[float, flo
     return len(meshes), sum(len(obj.data.vertices) for obj in meshes), minimum, maximum
 
 
-def bake(source: Path, destination: Path) -> None:
+STAGED_BILL_KEYS = ("logs", "sticks", "rope", "leaves", "stones")
+
+
+def _reparent_preserving_world(obj, parent) -> None:
+    matrix_world = obj.matrix_world.copy()
+    obj.parent = parent
+    obj.matrix_world = matrix_world
+
+
+def _new_empty(name: str, parent):
+    obj = bpy.data.objects.new(name, None)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.parent = parent
+    return obj
+
+
+def normalize_campfire_stages() -> None:
+    """Restore the logical resource pieces from the former Unity prefab.
+
+    The source GLB groups render meshes by art role (Sticks/Spit/StoneRing),
+    while BedAssembly and BuildSiteMath consume 9+2+1 sticks, two rope
+    lashings and eighteen individual stones.  The old GLB-backed prefab added
+    those logical wrappers by hand; native FBX baking must reproduce them or
+    the Player sees the whole campfire from the first delivered stick.
+    """
+    roots = [obj for obj in bpy.context.scene.objects if obj.parent is None]
+    if len(roots) != 1:
+        raise RuntimeError(f"campfire source must have one root, got {len(roots)}")
+    root = roots[0]
+    by_name = {obj.name: obj for obj in bpy.context.scene.objects}
+    required_groups = {"Sticks", "Spit", "StoneRing"}
+    missing = required_groups - by_name.keys()
+    if missing:
+        raise RuntimeError(f"campfire source misses groups: {sorted(missing)}")
+
+    stages = {number: _new_empty(str(number), root) for number in range(1, 6)}
+
+    base_sticks = sorted(by_name["Sticks"].children, key=lambda obj: obj.name)
+    if len(base_sticks) != 9 or any(not obj.name.startswith("stick_") for obj in base_sticks):
+        raise RuntimeError("campfire stage 1 must contain exactly 9 stick_* meshes")
+    for obj in base_sticks:
+        _reparent_preserving_world(obj, stages[1])
+
+    def compound(name: str, stage: int, children: tuple[str, ...]) -> None:
+        wrapper = _new_empty(name, stages[stage])
+        for child_name in children:
+            child = by_name.get(child_name)
+            if child is None:
+                raise RuntimeError(f"campfire source misses {child_name}")
+            _reparent_preserving_world(child, wrapper)
+
+    compound("stick_post_a", 2, ("spit_post_L", "spit_fork_L"))
+    compound("stick_post_b", 2, ("spit_post_R", "spit_fork_R"))
+    compound("stick_bar", 3, ("spit_bar",))
+    compound("rope_a", 4, tuple(f"rope_L_loop{i}" for i in range(3)))
+    compound("rope_b", 4, tuple(f"rope_R_loop{i}" for i in range(3)))
+
+    stones = sorted(by_name["StoneRing"].children, key=lambda obj: obj.name)
+    if len(stones) != 18:
+        raise RuntimeError(f"campfire stage 5 must contain 18 stones, got {len(stones)}")
+    for index, obj in enumerate(stones):
+        obj.name = f"stone_{index:02d}"
+        _reparent_preserving_world(obj, stages[5])
+
+    for group_name in required_groups:
+        group = by_name[group_name]
+        if group.children:
+            raise RuntimeError(f"campfire normalization left children under {group_name}")
+        bpy.data.objects.remove(group, do_unlink=True)
+
+
+def normalize_for_runtime(entry_id: str) -> None:
+    if entry_id == "campfire.spot":
+        normalize_campfire_stages()
+
+
+def _is_logical_piece(name: str) -> bool:
+    return any(name.startswith(prefix) for prefix in
+               ("log_", "stick_", "rope_", "leaf_", "stone_"))
+
+
+def _logical_pieces(root) -> list:
+    pieces = []
+    for child in root.children:
+        if _is_logical_piece(child.name):
+            pieces.append(child)
+        else:
+            pieces.extend(_logical_pieces(child))
+    return pieces
+
+
+def validate_stage_contract(entry: dict, context: str) -> None:
+    expected = entry.get("stagedBill")
+    if not expected:
+        return
+
+    stage_groups = [obj for obj in bpy.context.scene.objects if obj.name.isdigit()]
+    search_roots = sorted(stage_groups, key=lambda obj: int(obj.name)) or [
+        obj for obj in bpy.context.scene.objects if obj.parent is None
+    ]
+    pieces = [piece for root in search_roots for piece in _logical_pieces(root)]
+    actual = {key: 0 for key in STAGED_BILL_KEYS}
+    for piece in pieces:
+        name = piece.name
+        if name.startswith("log_"): actual["logs"] += 1
+        elif name.startswith("stick_"): actual["sticks"] += 1
+        elif name.startswith("rope_"): actual["rope"] += 1
+        elif name.startswith("leaf_"): actual["leaves"] += 1
+        elif name.startswith("stone_"): actual["stones"] += 1
+    normalized_expected = {key: int(expected.get(key, 0)) for key in STAGED_BILL_KEYS}
+    if actual != normalized_expected:
+        raise RuntimeError(
+            f"{entry['id']} staged bill mismatch after {context}: "
+            f"expected {normalized_expected}, got {actual}")
+
+
+def bake(entry: dict, source: Path, destination: Path) -> None:
     reset_scene()
     bpy.ops.import_scene.gltf(filepath=str(source))
     source_meshes, source_vertices, source_min, source_max = mesh_stats()
     if source_meshes == 0 or source_vertices == 0:
         raise RuntimeError(f"{source} imported without mesh data")
+    normalize_for_runtime(entry["id"])
+    validate_stage_contract(entry, "source normalization")
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.fbx(
@@ -84,6 +202,7 @@ def bake(source: Path, destination: Path) -> None:
                 f"{destination} changed bounds: {source_min}..{source_max} -> "
                 f"{baked_min}..{baked_max}"
             )
+    validate_stage_contract(entry, "FBX round-trip")
 
     print(
         f"[world-prop-fbx] {source.name} -> {destination.name}: "
@@ -136,7 +255,8 @@ def main() -> None:
     for entry in manifest["entries"]:
         if entry["mode"] != "native" or entry["id"] not in requested:
             continue
-        bake(asset_dir / entry["source"], destination_dir / entry["native"])
+        bake(entry, asset_dir / entry["source"],
+             destination_dir / entry.get("baked", entry["native"]))
 
 
 if __name__ == "__main__":

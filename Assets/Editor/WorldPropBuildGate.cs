@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using HexLive.UnityPresentation.Environment;
 
 namespace HexLive.Editor
 {
@@ -72,6 +73,17 @@ namespace HexLive.Editor
                 }
             }
 
+            // Bug #60: mesh/material presence is not enough for staged props.
+            // Exercise the runtime assembly itself: an empty site must render
+            // nothing, every delivered resource must reveal more geometry, and
+            // the complete bill must reveal every renderer. This catches FBX
+            // hierarchy drift that the former dependency-only gate missed.
+            foreach (var entry in manifest.entries ?? Array.Empty<Entry>())
+            {
+                if (entry.stagedBill != null)
+                    ValidateStagedAssembly(entry, violations);
+            }
+
             foreach (var group in manifest.addressableNativeGroups ?? Array.Empty<NativeGroup>())
             {
                 var files = Directory.Exists(group.root)
@@ -86,15 +98,107 @@ namespace HexLive.Editor
 
             if (violations.Count == 0)
             {
-                Debug.Log("[WorldPropBuildGate] Resources are free of glTF ScriptedImporter dependencies.");
+                Debug.Log("[WorldPropBuildGate] Resources are Player-safe and staged assemblies grow piece by piece.");
                 return;
             }
 
             throw new BuildFailedException(
-                "Resources contain Player-unsafe glTF dependencies. Bake native FBX mirrors with " +
-                "Tools/bake_world_prop_fbx.py and repoint runtime assets:\n" +
+                "World props failed Player-safety or staged-assembly validation. " +
+                "Bake native FBX mirrors with Tools/bake_world_prop_fbx.py and fix the runtime mapping:\n" +
                 string.Join("\n", violations.Select(v => "  - " + v)));
         }
+
+        private static void ValidateStagedAssembly(Entry entry, ISet<string> violations)
+        {
+            var bill = entry.stagedBill;
+            GameObject empty = null;
+            try
+            {
+                empty = BedAssembly.BuildPartial(entry.id, 0, 0, 0, 0, 0);
+                if (empty == null)
+                {
+                    violations.Add($"{entry.id}: runtime staged assembly could not be created");
+                    return;
+                }
+
+                var emptyActive = ActiveRendererCount(empty);
+                if (emptyActive != 0)
+                    violations.Add($"{entry.id}: empty staged assembly renders {emptyActive} piece(s)");
+            }
+            finally
+            {
+                if (empty != null) UnityEngine.Object.DestroyImmediate(empty);
+            }
+
+            ValidateStageChannel(entry.id, "logs", bill.logs,
+                count => BedAssembly.BuildPartial(entry.id, count, 0, 0, 0, 0), violations);
+            ValidateStageChannel(entry.id, "sticks", bill.sticks,
+                count => BedAssembly.BuildPartial(entry.id, 0, count, 0, 0, 0), violations);
+            ValidateStageChannel(entry.id, "rope", bill.rope,
+                count => BedAssembly.BuildPartial(entry.id, 0, 0, count, 0, 0), violations);
+            ValidateStageChannel(entry.id, "leaves", bill.leaves,
+                count => BedAssembly.BuildPartial(entry.id, 0, 0, 0, count, 0), violations);
+            ValidateStageChannel(entry.id, "stones", bill.stones,
+                count => BedAssembly.BuildPartial(entry.id, 0, 0, 0, 0, count), violations);
+
+            GameObject complete = null;
+            try
+            {
+                complete = BedAssembly.BuildPartial(entry.id, bill.logs, bill.sticks,
+                    bill.rope, bill.leaves, bill.stones);
+                if (complete == null)
+                {
+                    violations.Add($"{entry.id}: complete staged assembly could not be created");
+                    return;
+                }
+
+                var active = ActiveRendererCount(complete);
+                var total = complete.GetComponentsInChildren<Renderer>(true).Length;
+                if (active != total || total < entry.minRenderers)
+                    violations.Add($"{entry.id}: complete staged assembly has {active}/{total} active " +
+                                   $"renderers (minimum {entry.minRenderers})");
+            }
+            finally
+            {
+                if (complete != null) UnityEngine.Object.DestroyImmediate(complete);
+            }
+        }
+
+        private static void ValidateStageChannel(
+            string id, string material, int expected,
+            Func<int, GameObject> build, ISet<string> violations)
+        {
+            var previous = 0;
+            for (var delivered = 1; delivered <= expected; delivered++)
+            {
+                GameObject assembly = null;
+                try
+                {
+                    assembly = build(delivered);
+                    if (assembly == null)
+                    {
+                        violations.Add($"{id}: {material} step {delivered} could not be created");
+                        return;
+                    }
+
+                    var current = ActiveRendererCount(assembly);
+                    if (current <= previous)
+                    {
+                        violations.Add($"{id}: delivered {material} {delivered}/{expected} " +
+                                       $"does not reveal a new piece ({previous} -> {current})");
+                        return;
+                    }
+                    previous = current;
+                }
+                finally
+                {
+                    if (assembly != null) UnityEngine.Object.DestroyImmediate(assembly);
+                }
+            }
+        }
+
+        private static int ActiveRendererCount(GameObject root) =>
+            root.GetComponentsInChildren<Renderer>(false).Count(renderer => renderer.enabled);
 
         private static bool IsGltf(string path) =>
             path.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) ||
@@ -113,6 +217,15 @@ namespace HexLive.Editor
             public int minRenderers;
             public string[] materialSlots;
             public string alpha;
+            public StageBill stagedBill;
+        }
+        [Serializable] private sealed class StageBill
+        {
+            public int logs;
+            public int sticks;
+            public int rope;
+            public int leaves;
+            public int stones;
         }
         [Serializable] private sealed class NativeGroup
         {

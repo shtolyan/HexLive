@@ -31,47 +31,74 @@ namespace HexLive.UnityPresentation.Environment
 
             _scanned = true;
 
-            // §54.12: pieces live either directly under the root (old flat
-            // prefabs) or inside numbered STAGE groups ("1".."4") that encode
-            // the build order (BuildSiteMath.BedLeafStages). Walk the groups
-            // in numeric order, each group's pieces name-sorted, so "the
-            // first N pieces of a material" always lights up stage by stage.
+            // §54.12 / bug #60: pieces live either in a flat model or inside
+            // numbered STAGE groups ("1".."5"). Native FBX import may insert
+            // one or more model-root transforms above those nodes, so scanning
+            // only direct children makes every renderer stay active and the
+            // structure appears complete before a single resource is hauled.
+            // Find stages recursively, then find logical pieces recursively
+            // inside each stage. A named piece is a boundary: compound pieces
+            // (a forked post or rope lashing) toggle as one delivered resource.
             var stages = new List<Transform>();
-            var flat = new List<Transform>();
-            foreach (Transform t in transform)
+            CollectStageGroups(transform, stages);
+            if (stages.Count == 0)
             {
-                if (int.TryParse(t.name, out _))
-                {
-                    stages.Add(t);
-                }
-                else
-                {
-                    flat.Add(t); // flat-prefab fallback
-                }
-            }
-
-            flat.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
-            foreach (var piece in flat)
-            {
-                AddPiece(piece);
+                var flat = new List<Transform>();
+                CollectLogicalPieces(transform, flat);
+                AddSorted(flat);
+                return;
             }
 
             stages.Sort((a, b) => int.Parse(a.name).CompareTo(int.Parse(b.name)));
             foreach (var stage in stages)
             {
                 var pieces = new List<Transform>();
-                foreach (Transform t in stage)
-                {
-                    pieces.Add(t);
-                }
-
-                pieces.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
-                foreach (var piece in pieces)
-                {
-                    AddPiece(piece);
-                }
+                CollectLogicalPieces(stage, pieces);
+                AddSorted(pieces);
             }
         }
+
+        private static void CollectStageGroups(Transform root, List<Transform> stages)
+        {
+            foreach (Transform child in root)
+            {
+                if (int.TryParse(child.name, out _))
+                {
+                    stages.Add(child);
+                    continue;
+                }
+
+                CollectStageGroups(child, stages);
+            }
+        }
+
+        private static void CollectLogicalPieces(Transform root, List<Transform> pieces)
+        {
+            foreach (Transform child in root)
+            {
+                if (IsLogicalPiece(child.name))
+                {
+                    pieces.Add(child);
+                    continue;
+                }
+
+                CollectLogicalPieces(child, pieces);
+            }
+        }
+
+        private void AddSorted(List<Transform> pieces)
+        {
+            pieces.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            foreach (var piece in pieces)
+            {
+                AddPiece(piece);
+            }
+        }
+
+        private static bool IsLogicalPiece(string name) =>
+            name.StartsWith("log_") || name.StartsWith("stick_") ||
+            name.StartsWith("rope_") || name.StartsWith("leaf_") ||
+            name.StartsWith("stone_");
 
         private void AddPiece(Transform t)
         {
@@ -150,7 +177,7 @@ namespace HexLive.UnityPresentation.Environment
                     asm = rack.GetComponent<BedAssembly>() ?? rack.AddComponent<BedAssembly>();
                     return rack;
                 }
-                Object.Destroy(rack);
+                DestroyRuntimeObject(rack);
             }
 
             // Never fall back to drying_rack_final: its four nested stands are
@@ -168,7 +195,7 @@ namespace HexLive.UnityPresentation.Environment
                 // wrapper is not proof that its mesh sub-assets were packed.
                 if (!ObjectFit.HasRenderableGeometry(go))
                 {
-                    Object.Destroy(go);
+                    DestroyRuntimeObject(go);
                     go = null;
                 }
             }
@@ -213,7 +240,8 @@ namespace HexLive.UnityPresentation.Environment
             piece.name = name;
             piece.transform.localPosition = position;
             piece.transform.localRotation = rotation;
-            foreach (var collider in piece.GetComponentsInChildren<Collider>()) Object.Destroy(collider);
+            foreach (var collider in piece.GetComponentsInChildren<Collider>())
+                DestroyRuntimeObject(collider);
         }
 
         private static bool HasExpectedDryingRack(GameObject rack)
@@ -339,7 +367,7 @@ namespace HexLive.UnityPresentation.Environment
             piece.transform.localEulerAngles = rotation;
             foreach (var collider in piece.GetComponents<Collider>())
             {
-                Object.Destroy(collider);
+                DestroyRuntimeObject(collider);
             }
             var renderer = piece.GetComponent<Renderer>();
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
@@ -350,6 +378,15 @@ namespace HexLive.UnityPresentation.Environment
                 material.SetFloat("_Smoothness", 0.08f);
                 renderer.sharedMaterial = material;
             }
+        }
+
+        // The Player uses deferred destruction; the editor-side world-prop
+        // gate instantiates the same assemblies outside play mode and must
+        // clean them synchronously without Unity's Destroy-in-edit-mode error.
+        private static void DestroyRuntimeObject(Object value)
+        {
+            if (Application.isPlaying) Object.Destroy(value);
+            else Object.DestroyImmediate(value);
         }
 
         /// A finished bed — every piece visible. Absolute-sized (1:1), so the caller

@@ -16,18 +16,16 @@ namespace HexLive.UnityPresentation
     /// </summary>
     public static class ObjectFit
     {
-        /// Spec §54.2: one palm trunk SEGMENT length, in HexRadius units. A log
-        /// renders this long; a stick is the same length but 4× thinner; the
-        /// PalmTreeFactory stacks N of these for the standing palm — so a dropped
-        /// log matches a trunk segment exactly.
+        /// Spec §54.2: target length for a dropped log or stick, in HexRadius
+        /// units. The approved standing palm is authored independently at 1:1.
         public const float PalmSegmentLength = 0.7f;
 
         /// World-space target for the object's measured dimension.
         public static float TargetWorldSize(string definitionId)
         {
             var r = SimulationUnityMapper.HexRadius;
-            // §54.2: tree.palm is NOT sized here — the palm_final prefab is authored
-            // 1:1 in Blender and instantiated as-is by PalmTreeFactory (no fit).
+            // §54.2: PalmTreeFactory returns before generic fitting; palm_final
+            // keeps its authored 1:1 dimensions.
             if (definitionId.Contains("tree")) return r * 2.2f;
             if (definitionId.Contains("bed")) return r * 0.95f;
             // A meat chunk reads bigger than a coconut half — 1.5× the standard
@@ -78,6 +76,45 @@ namespace HexLive.UnityPresentation
                 definitionId == "construction.site")
                 return Mathf.Max(b.size.x, b.size.z);
             return Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z)); // food / tool / resource / default
+        }
+
+        /// <summary>
+        /// A Renderer component alone does not prove that a prefab can draw.
+        /// Scripted-importer sub-assets may resolve to null in a Player while
+        /// leaving the serialized MeshRenderer hierarchy intact.
+        /// </summary>
+        public static bool HasRenderableGeometry(GameObject go)
+        {
+            var meshFilters = go.GetComponentsInChildren<MeshFilter>(true);
+            for (var i = 0; i < meshFilters.Length; i++)
+            {
+                var mesh = meshFilters[i].sharedMesh;
+                if (mesh != null && mesh.vertexCount > 0)
+                {
+                    return true;
+                }
+            }
+
+            var skinned = go.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            for (var i = 0; i < skinned.Length; i++)
+            {
+                var mesh = skinned[i].sharedMesh;
+                if (mesh != null && mesh.vertexCount > 0)
+                {
+                    return true;
+                }
+            }
+
+            var sprites = go.GetComponentsInChildren<SpriteRenderer>(true);
+            for (var i = 0; i < sprites.Length; i++)
+            {
+                if (sprites[i].sprite != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// Combined world-space bounds of every renderer under <paramref name="go"/>.

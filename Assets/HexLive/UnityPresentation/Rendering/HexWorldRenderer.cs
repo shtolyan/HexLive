@@ -2727,24 +2727,29 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         // Spec 31C.3: real prefabs first (Resources/HexLive/Objects/<id>),
         // primitives as the eternal fallback.
-        // Some authored visuals deliberately have a presentation name which is
-        // different from the simulation id. In particular the loose stick is
-        // the same authored segment used by the composite palm, not the retired
-        // resource.stick FBX. Keep this tiny mapping at the resource boundary.
-        var objectResourceId = worldObject.DefinitionId == "resource.stick"
-            ? "stick_final"
-            : worldObject.DefinitionId;
+        // The current rock GLBs are mirrored as native FBXs under Resources.
+        // ScriptedImporter mesh sub-assets work in Editor but were absent from
+        // Player 0.1.4 even though their prefab wrappers survived the build.
+        var objectResourceId = worldObject.DefinitionId switch
+        {
+            "rock.boulder" => "rock_boulder_native",
+            "resource.stone" => "stone_single_native",
+            _ => worldObject.DefinitionId
+        };
         var objectPrefab = Resources.Load<GameObject>($"HexLive/Objects/{objectResourceId}");
         if (objectPrefab != null)
         {
             var prefabRoot = new GameObject($"Object {worldObject.DefinitionId}");
             prefabRoot.transform.SetParent(_objectsRoot, false);
             var instance = Instantiate(objectPrefab, prefabRoot.transform);
+            // Each native source carries its own authored material contract.
+            // Never replace rock slots with a material from a different backup
+            // mesh — that produced the rainbow-rock failure from bug #55.
             // A prefab whose imported GLB dependency was stripped still loads as
             // a non-null empty root in a Player. Do not accept that as a visual:
             // destroy it and continue to the procedural fallback below. This is
             // what made stones/boulders disappear without a log error.
-            if (instance.GetComponentInChildren<Renderer>(true) != null)
+            if (ObjectFit.HasRenderableGeometry(instance))
             {
                 FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
                     scatter: worldObject.RotationDegrees == 0f);

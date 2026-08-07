@@ -34,6 +34,7 @@ namespace HexLive.UnityPresentation.Environment
             switch (definitionId)
             {
                 case "tool.axe_stone": BuildAxe(root.transform); break;
+                case "tool.machete": BuildMachete(root.transform); break;
                 case "tool.pickaxe_stone": BuildPickaxe(root.transform); break;
                 case "tool.spear": BuildSpear(root.transform); break;
                 case "tool.bow": BuildBow(root.transform); break;
@@ -86,6 +87,24 @@ namespace HexLive.UnityPresentation.Environment
             AddBox(p, new Vector3(0.06f, 1.0f, 0.06f), new Vector3(0f, 0.5f, 0f), Vector3.zero, Wood);
             AddBox(p, new Vector3(0.30f, 0.24f, 0.08f), new Vector3(0.15f, 0.88f, 0f), new Vector3(0f, 0f, -18f), Stone);
             AddBox(p, new Vector3(0.12f, 0.16f, 0.08f), new Vector3(-0.06f, 0.9f, 0f), Vector3.zero, Stone);
+        }
+
+        // Bug #59: shipped machetes are glTF ScriptedImporter assets rather
+        // than ordinary prefabs. Some player builds cannot resolve that main
+        // asset through Resources.Load<GameObject>; unlike the axe/saw, the
+        // machete then had no procedural fallback and simply vanished from the
+        // acting hand. Keep the silhouette unmistakable: brown one-handed grip,
+        // long iron blade and a short widened cutting tip.
+        private static void BuildMachete(Transform p)
+        {
+            AddBox(p, new Vector3(0.075f, 0.42f, 0.065f),
+                new Vector3(0f, 0.21f, 0f), Vector3.zero, DarkWood);
+            AddBox(p, new Vector3(0.055f, 0.06f, 0.15f),
+                new Vector3(0f, 0.43f, 0.015f), Vector3.zero, Metal);
+            AddBox(p, new Vector3(0.075f, 0.78f, 0.035f),
+                new Vector3(0f, 0.82f, 0.035f), new Vector3(0f, 0f, -2f), Metal);
+            AddBox(p, new Vector3(0.12f, 0.20f, 0.035f),
+                new Vector3(0.02f, 1.27f, 0.035f), new Vector3(0f, 0f, -8f), Metal);
         }
 
         private static void BuildPickaxe(Transform p)

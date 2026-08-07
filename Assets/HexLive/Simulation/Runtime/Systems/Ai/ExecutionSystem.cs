@@ -218,6 +218,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // from across the camp). Mirrors RunGroundRestPlan.
                 if (npc.Movement.Status == MovementStatus.Blocked)
                 {
+                    npc.Memory.Shun(worldObject.Id, world.Tick + AiBalance.ShunTicks);
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.Abort(world, npc,
                         $"Target {worldObject.DefinitionId} unreachable (path blocked)");

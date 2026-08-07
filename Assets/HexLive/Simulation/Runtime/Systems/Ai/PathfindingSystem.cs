@@ -308,6 +308,7 @@ public sealed class PathfindingSystem : ISimulationSystem
 
             if (npc.CurrentJunction.HasValue && npc.CurrentJunction.Value.Equals(npc.Plan.TargetJunctionId.Value))
             {
+                npc.Movement.BlockedWaitTicks = 0;
                 if (SimTrace.Verbose)
                 {
                     Trace.Emit(world, npc.Id, "PathAlreadyAtTarget",
@@ -320,9 +321,7 @@ public sealed class PathfindingSystem : ISimulationSystem
             var startJunction = npc.CurrentJunction ?? SpatialQueries.FindNearestJunction(world, npc.Position);
             if (startJunction is null)
             {
-                npc.Movement.SetStatus(MovementStatus.Blocked);
-                npc.Movement.StopReason = "No current junction";
-                Trace.Emit(world, npc.Id, "PathBlocked",
+                HandlePathFailure(world, npc, "PathBlocked",
                     $"No current junction found at Pos={Trace.FormatPos(npc.Position)}");
                 continue;
             }
@@ -348,13 +347,13 @@ public sealed class PathfindingSystem : ISimulationSystem
                 danger, Spec62.DangerStepCost);
             if (path.Count == 0)
             {
-                npc.Movement.SetStatus(MovementStatus.Blocked);
-                npc.Movement.StopReason = "No path";
-                Trace.Emit(world, npc.Id, "PathFailed",
-                    $"No route from Junction={startJunction.Value.Value} to Junction={npc.Plan.TargetJunctionId.Value.Value}");
+                HandlePathFailure(world, npc, "PathFailed",
+                    $"No route from Junction={startJunction.Value.Value} " +
+                    $"to Junction={npc.Plan.TargetJunctionId.Value.Value}");
                 continue;
             }
 
+            npc.Movement.BlockedWaitTicks = 0;
             npc.Movement.JunctionPath.Clear();
             foreach (var step in path)
             {
@@ -384,6 +383,60 @@ public sealed class PathfindingSystem : ISimulationSystem
             Trace.Emit(world, npc.Id, "PathBuilt",
                 $"Length={path.Count} Route=[{pathJunctions}] IsMoving={npc.Movement.IsMoving}");
         }
+    }
+
+    /// <summary>
+    /// Converts repeated empty graph searches into one explicit plan failure.
+    /// The first attempts remain transient because another actor may be sealing
+    /// a one-junction passage. A stable dead end is target-scoped: every goal
+    /// temporarily ignores the same object, rather than WarmUp/CookMeat/TendFire
+    /// taking turns against it.
+    /// </summary>
+    private static void HandlePathFailure(
+        WorldState world, NPCState npc, string traceType, string detail)
+    {
+        var target = npc.Plan.TargetJunctionId;
+        var failureKey = $"No path to junction {target?.Value.ToString() ?? "-"}";
+        var sameTarget = npc.Movement.Status == MovementStatus.Blocked &&
+            npc.Movement.StopReason == failureKey;
+
+        npc.Movement.BlockedWaitTicks = sameTarget
+            ? npc.Movement.BlockedWaitTicks + 1
+            : 1;
+        npc.Movement.IsMoving = false;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.PathIndex = 0;
+        npc.Movement.SetStatus(MovementStatus.Blocked);
+        npc.Movement.StopReason = failureKey;
+
+        Trace.Emit(world, npc.Id, traceType,
+            $"{detail} Attempt={npc.Movement.BlockedWaitTicks}/" +
+            AiBalance.PathFailureRetryAttempts);
+
+        if (npc.Movement.BlockedWaitTicks < AiBalance.PathFailureRetryAttempts)
+        {
+            return;
+        }
+
+        var failedGoal = npc.Plan.Goal != GoalType.None
+            ? npc.Plan.Goal
+            : npc.Mind.CurrentGoal;
+        var failedTargetObject = npc.Plan.TargetObjectId;
+        if (failedTargetObject is { } targetObject)
+        {
+            npc.Memory.Shun(targetObject, world.Tick + AiBalance.ShunTicks);
+        }
+
+        PlanningSystem.SetGoalCooldown(world, npc, failedGoal);
+        Trace.Emit(world, npc.Id, "PlanFailed",
+            $"Goal={failedGoal} PathRetryLimit=" +
+            $"{AiBalance.PathFailureRetryAttempts} TargetJunction=" +
+            $"{target?.Value.ToString() ?? "-"} TargetObject=" +
+            $"{failedTargetObject?.Value.ToString() ?? "-"}");
+        PlanInterruption.Abort(world, npc,
+            $"Path retry limit reached for {failedGoal}");
+        npc.Movement.BlockedWaitTicks = 0;
+        npc.Mind.CurrentGoal = GoalType.None;
     }
 
     private static bool ShouldWeightClimbs(NPCState npc)

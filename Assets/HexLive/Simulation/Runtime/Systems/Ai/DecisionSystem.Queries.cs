@@ -364,6 +364,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Tags.Contains(tag))
             {
@@ -388,6 +389,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 HexSpatialMath.HexDistance(obj.Tile, origin) <= radiusTiles &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Tags.Contains(tag))
@@ -454,6 +456,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 obj.DefinitionId == definitionId)
             {
                 return true;
@@ -562,11 +565,13 @@ public sealed partial class DecisionSystem
         return legacyOk;
     }
 
-    private static bool HasMissingToolReachable(NPCState npc, WorldState world)
+    internal static bool HasMissingToolReachable(NPCState npc, WorldState world)
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id))
+            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
+                npc.Memory.IsShunned(obj.Id, world.Tick) ||
+                !obj.AvailableInteractions.Contains(InteractionType.PickUp))
             {
                 continue;
             }
@@ -607,6 +612,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (!obj.IsReachable ||
+                npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !definition.Tags.Contains("Campfire"))
             {

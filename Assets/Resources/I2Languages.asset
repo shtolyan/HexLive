@@ -2473,6 +2473,14 @@ MonoBehaviour:
       - 'Помогает подруге'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'goal.Rescue'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rescuing a friend'
+      - 'Спасает подругу'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'goal.PlaceSite'
       TermType: 0
       Description:

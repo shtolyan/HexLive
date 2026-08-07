@@ -597,6 +597,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             {
                 if (!perceived.IsReachable ||
                     !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+                    npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                     !perceived.AvailableInteractions.Contains(interactionType.Value))
                 {
                     continue;

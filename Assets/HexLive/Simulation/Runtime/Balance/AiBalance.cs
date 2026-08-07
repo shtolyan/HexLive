@@ -91,6 +91,15 @@ public static class AiBalance
     /// </summary>
     public static int FailureCooldownTicks = 40;
 
+    /// <summary>
+    /// A route may be temporarily sealed by another actor, so one empty search
+    /// is not final. After this many consecutive empty searches for the same
+    /// junction the plan must fail and release its target instead of running a
+    /// full graph search every fast tick forever. This is an invariant-sized
+    /// retry budget, not a balance dial.
+    /// </summary>
+    public const int PathFailureRetryAttempts = 4;
+
     // ── Пороги аукциона, стоявшие одним и тем же числом в разных смыслах ──
     //
     // Литерал 0.35f встречался в DecisionSystem семнадцать раз и означал ПЯТЬ

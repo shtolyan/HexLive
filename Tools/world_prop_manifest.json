@@ -15,7 +15,7 @@
         {"id":"tool.lighter","source":"_AiGen/Lighter_AI.glb","native":"tool_lighter_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
         {"id":"item.bandage","source":"ArtSource/WorldProps/item.bandage.glb","native":"item_bandage_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
         {"id":"tool.bottle","source":"ArtSource/WorldProps/tool.bottle.glb","native":"tool_bottle_native.prefab","baked":"tool_bottle_native_mesh.fbx","mode":"native","minRenderers":1,"materialSlots":["BottleTransparent"],"alpha":"blend"},
-        {"id":"tool.machete","source":"ArtSource/WorldProps/tool.machete.glb","native":"tool_machete_native.fbx","mode":"native","minRenderers":1,"materialSlots":[],"alpha":"opaque"},
+        {"id":"tool.machete","source":"ArtSource/WorldProps/tool.machete.glb","native":"tool_machete_native.fbx","mode":"native","minRenderers":1,"materialSlots":["lowpoly_mat"],"requireTextures":true,"alpha":"opaque"},
         {"id":"tool.saw","source":"ArtSource/WorldProps/tool.saw.glb","native":"tool_saw_native.fbx","mode":"native","minRenderers":1,"materialSlots":["saw_steel","saw_wood"],"alpha":"opaque"},
         {"id":"resource.log","source":"Resources/HexLive/Objects/resource.log.fbx","native":"resource.log.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Bark","Sapwood","Heartwood"],"alpha":"opaque"},
         {"id":"resource.stick","source":"Resources/HexLive/Objects/resource.stick.fbx","native":"resource.stick.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Bark","Heartwood"],"alpha":"opaque"},

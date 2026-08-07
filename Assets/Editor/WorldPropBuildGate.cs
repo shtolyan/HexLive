@@ -71,6 +71,11 @@ namespace HexLive.Editor
                     if ((entry.alpha == "clip" || entry.alpha == "blend") && material.mainTexture == null)
                         violations.Add($"{entry.id}: alpha material {material.name} has no texture");
                 }
+                if (entry.requireTextures && !renderers
+                        .SelectMany(renderer => renderer.sharedMaterials)
+                        .Where(material => material != null)
+                        .Any(material => material.mainTexture != null))
+                    violations.Add($"{entry.id}: native materials have no texture");
             }
 
             // Bug #60: mesh/material presence is not enough for staged props.
@@ -224,6 +229,7 @@ namespace HexLive.Editor
             public string mode;
             public int minRenderers;
             public string[] materialSlots;
+            public bool requireTextures;
             public string alpha;
             public StageBill stagedBill;
         }

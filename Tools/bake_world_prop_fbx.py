@@ -205,8 +205,11 @@ def bake(entry: dict, source: Path, destination: Path) -> None:
         mesh_smooth_type="FACE",
         add_leaf_bones=False,
         bake_anim=False,
-        path_mode="AUTO",
-        embed_textures=False,
+        # Player assets must be self-contained. A glTF source often keeps its
+        # albedo only as a packed image; AUTO writes an empty filesystem path
+        # into FBX and Unity then imports an untextured material (bug #66).
+        path_mode="COPY",
+        embed_textures=True,
     )
 
     # A successful export call is not sufficient: read the FBX back and prove
@@ -216,6 +219,17 @@ def bake(entry: dict, source: Path, destination: Path) -> None:
     baked_meshes, baked_vertices, baked_min, baked_max = mesh_stats()
     if baked_meshes == 0 or baked_vertices == 0:
         raise RuntimeError(f"{destination} round-tripped without mesh data")
+    if entry.get("requireTextures"):
+        textured_materials = [
+            material for material in bpy.data.materials
+            if material.node_tree and any(
+                node.type == "TEX_IMAGE" and node.image is not None and
+                node.image.size[0] > 0 and node.image.size[1] > 0
+                for node in material.node_tree.nodes
+            )
+        ]
+        if not textured_materials:
+            raise RuntimeError(f"{destination} round-tripped without texture data")
     for source_value, baked_value in zip(source_min + source_max, baked_min + baked_max):
         if abs(source_value - baked_value) > 0.0001:
             raise RuntimeError(

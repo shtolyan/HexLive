@@ -463,6 +463,7 @@ public sealed partial class PlanningSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (!obj.IsReachable ||
+                npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 definition.Produce is null)
             {
@@ -530,10 +531,11 @@ public sealed partial class PlanningSystem
 
         if (floraJunction is not { } anchor)
         {
+            npc.Memory.Shun(flora.Id, world.Tick + AiBalance.ShunTicks);
             npc.Plan.Status = PlanStatus.Failed;
-            SetGoalCooldown(world, npc, GoalType.GetFood);
+            SetGoalCooldown(world, npc, forageGoal);
             Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=GetFood Producer={flora.Id.Value} has no junction");
+                $"Goal={forageGoal} Producer={flora.Id.Value} has no junction");
             return;
         }
 
@@ -550,10 +552,11 @@ public sealed partial class PlanningSystem
 
         if (approach is not { } approachJunction)
         {
+            npc.Memory.Shun(flora.Id, world.Tick + AiBalance.ShunTicks);
             npc.Plan.Status = PlanStatus.Failed;
-            SetGoalCooldown(world, npc, GoalType.GetFood);
+            SetGoalCooldown(world, npc, forageGoal);
             Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=GetFood Producer={flora.Id.Value} NoFreeApproachJunction");
+                $"Goal={forageGoal} Producer={flora.Id.Value} NoFreeApproachJunction");
             return;
         }
 

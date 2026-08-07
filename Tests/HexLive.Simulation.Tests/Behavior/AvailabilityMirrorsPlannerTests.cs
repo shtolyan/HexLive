@@ -144,6 +144,22 @@ public sealed class AvailabilityMirrorsPlannerTests
                 "одинаково (шун=" + shun + ").");
         }
     }
+
+    [Test]
+    public void ShunnedWholeCoconutIsNotWorthFetchingForWater()
+    {
+        var (world, npc, id) = WithOneCoconut();
+        npc.Perception.Objects[0].DefinitionId = "food.coconut";
+        world.Entities.Objects[id].DefinitionId = "food.coconut";
+        npc.Memory.Shun(id, world.Tick + AiBalance.ShunTicks);
+
+        Assert.That(
+            DecisionSystem.HasReachableDefinitionWorthCarrying(
+                npc, world, "food.coconut"),
+            Is.False,
+            "GetWater не должен снова выигрывать аукцион на том же кокосе, " +
+            "который уже оказался занятым или недостижимым.");
+    }
 }
 
 }

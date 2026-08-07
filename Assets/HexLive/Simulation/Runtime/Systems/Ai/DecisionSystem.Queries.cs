@@ -300,6 +300,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable &&
+                !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Produce?.ProducedDefinitionId == ContentIds.Coconut)
             {
@@ -468,6 +469,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 obj.DefinitionId == definitionId &&
                 InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId))
             {
@@ -887,6 +889,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable &&
+                !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Produce != null &&
                 (definition.Produce.ProducedDefinitionId != ContentIds.Coconut || hasBlade))

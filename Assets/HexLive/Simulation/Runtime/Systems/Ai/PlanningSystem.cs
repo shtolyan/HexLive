@@ -1307,7 +1307,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // Fetch a whole coconut; Drink will put it on the ground and
                 // open it with a blade before sipping. (The collector draw is
                 // a custom plan branch, not this generic path.)
-                return HasCoconutBlade(npc) && perceived.DefinitionId == ContentIds.Coconut;
+                // A coconut contested/unreachable on arrival is shunned by the
+                // executor. Honour that memory here as well as in Drink's
+                // custom coconut picker, otherwise GetWater immediately picks
+                // the exact same failed object again.
+                return HasCoconutBlade(npc) &&
+                    perceived.DefinitionId == ContentIds.Coconut &&
+                    !npc.Memory.IsShunned(perceived.Id, world.Tick);
             case GoalType.StowBottle:
                 // §54.15: a finished collector whose vessel slot is empty.
                 return perceived.DefinitionId == WaterCollectorMath.CollectorId &&

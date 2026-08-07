@@ -113,8 +113,8 @@ namespace HexLive.UnityPresentation.Wearing
         /// <summary>
         /// Re-derives the decal set from the tick snapshot. wounds: sim wound
         /// records ("Zone|seed|heal01") — ONE decal each, spot from seed, alpha
-        /// fading as it heals; bandaged: zones dressed with a leaf bandage —
-        /// their wound decals are REPLACED by one leaf-wrap decal; uncovered:
+        /// fading as it heals; bandaged: zones dressed with a bandage — their
+        /// wound decals are REPLACED by one white-gauze decal; uncovered:
         /// zones with NO clothing — the only places skin decals may live;
         /// hygiene 1=clean; thermal &gt; 0 = hot.
         /// </summary>
@@ -131,8 +131,8 @@ namespace HexLive.UnityPresentation.Wearing
 
             // Spec 44: a dressed zone shows its wrap decal INSTEAD of its wound
             // marks (the shader-paint experiment was reverted — the projector
-            // reads better on skin). Herbal dressings show the leaf wrap;
-            // pre-made medkit dressings show a plain gauze wrap.
+            // reads better on skin). Both herbal and medkit dressings use the
+            // same white gauze look: supply provenance is not a texture swap.
             if (bandaged != null)
             {
                 foreach (var zone in bandaged)
@@ -318,7 +318,7 @@ namespace HexLive.UnityPresentation.Wearing
                 DecalType.Scratch => 0.095f,
                 DecalType.Blood => 0.075f,
                 DecalType.Sweat => 0.070f, // droplet spray patch
-                DecalType.Bandage => 0.110f, // leaf wrap covers the wound area
+                DecalType.Bandage => 0.110f, // dressing covers the wound area
                 DecalType.Gauze => 0.110f, // gauze wrap covers the wound area
                 _ => 0.110f // dirt (0.150 read too loud on the thighs)
             } * _height * sizeJitter;
@@ -404,10 +404,9 @@ namespace HexLive.UnityPresentation.Wearing
                 // specular cores stay, background fully transparent — reads as
                 // a glistening spray of sweat right on the skin.
                 DecalType.Sweat => Resources.Load<Texture2D>("HexLive/Decals/sweat_drops"),
-                // Spec 44: leaf poultice bound with fiber twine (fal.ai).
-                DecalType.Bandage => Resources.Load<Texture2D>("HexLive/Decals/bandage_wrap"),
-                // Spec 44: plain medkit gauze wrap (procedural fallback until a
-                // gauze_wrap.png is dropped in — the loader then prefers it).
+                // All wound dressings deliberately share one stable white
+                // gauze appearance, including herbal dressings.
+                DecalType.Bandage => Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap"),
                 DecalType.Gauze => Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap"),
                 // fal.ai granular dust on black, luminance-keyed: powder
                 // grains + clumps like the logo's weathered grime — the old
@@ -477,7 +476,7 @@ namespace HexLive.UnityPresentation.Wearing
                         DecalType.Scratch => ScratchPixel(u, v),
                         DecalType.Blood => BloodPixel(u, v),
                         DecalType.Dirt => DirtPixel(u, v),
-                        DecalType.Bandage => BandagePixel(u, v),
+                        DecalType.Bandage => GauzePixel(u, v),
                         DecalType.Gauze => GauzePixel(u, v),
                         _ => SweatPixel(u, v)
                     };
@@ -599,7 +598,8 @@ namespace HexLive.UnityPresentation.Wearing
             return new Color(col.r, col.g, col.b, alpha);
         }
 
-        // Fallback leaf wrap: overlapping green leaf pads + crossed tan twine.
+        // Legacy leaf-wrap fallback retained for old serialized decal data;
+        // new dressings use GauzePixel above.
         private static Color BandagePixel(float u, float v)
         {
             var r = Mathf.Sqrt(u * u + v * v);

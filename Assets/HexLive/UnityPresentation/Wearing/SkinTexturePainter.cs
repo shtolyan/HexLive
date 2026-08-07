@@ -87,8 +87,8 @@ namespace HexLive.UnityPresentation.Wearing
             // smoothness 0..1 before the WoundWetGloss scale).
             public Texture? OverGloss;
             public bool IsBandage;
-            // Spec 44: this wrap is a plain MEDKIT gauze dressing (not a herbal
-            // leaf wrap) — paints the gauze art and backfills from _texGauze.
+            // The simulation tracks the source for medical accounting; the
+            // renderer uses the same gauze artwork for every dressing.
             public bool IsGauze;
             // Spec 40.8 v4 water droplet: the effect stamp (refraction normal
             // + rim + coverage/halo) and the atlas cell both textures use.
@@ -680,8 +680,8 @@ namespace HexLive.UnityPresentation.Wearing
         }
 
         /// <summary>
-        /// wounds: (zone, seed, heal01) records; bandaged: zones under a leaf
-        /// wrap; sweat01 + uncovered drive the painted water droplets (40.8
+        /// wounds: (zone, seed, heal01) records; bandaged: zones under a
+        /// dressing; sweat01 + uncovered drive the painted water droplets (40.8
         /// v4); wetSmoothness is the caller's current wet-skin gloss — it
         /// becomes the gloss map's base so droplets sit ON the wet sheen.
         /// New wounds raycast-place once; heals repaint with lower alpha;
@@ -775,8 +775,9 @@ namespace HexLive.UnityPresentation.Wearing
                 }
             }
 
-            // Spec 44: medkit gauze wraps — same as the leaf wrap but a plain
-            // gauze stamp ("g" keys keep them distinct from the "b" leaf wraps).
+            // The simulation keeps herbal and medkit dressings distinct for
+            // supplies/effects; both deliberately render as the same white
+            // gauze so a visible bandage never turns into a leaf ornament.
             if (gauzed != null)
             {
                 foreach (var zone in gauzed)
@@ -2057,11 +2058,11 @@ namespace HexLive.UnityPresentation.Wearing
             _texStain = Resources.Load<Texture2D>("HexLive/Decals/blood_stain");
             _texScratch = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch");
             _texSplat = Resources.Load<Texture2D>("HexLive/Decals/blood_splat");
-            _texBandage = Resources.Load<Texture2D>("HexLive/Decals/bandage_wrap");
-            // Spec 44: medkit gauze — prefer a gauze_wrap.png if present, else
-            // bake the procedural cloth wrap so the medkit dressing is visible
-            // without any imported asset.
+            // Every dressing uses the same white gauze artwork. The simulation
+            // still records whether the consumed item was herbal or medkit, but
+            // that provenance must not swap a wound's visible material.
             _texGauze = Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap") ?? MakeGauzeTexture();
+            _texBandage = _texGauze;
             _texSplashN = Resources.Load<Texture2D>("HexLive/Decals/blood_splash_n");
             _texScratchN = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch_n");
             _texSplatN = Resources.Load<Texture2D>("HexLive/Decals/blood_splat_n");

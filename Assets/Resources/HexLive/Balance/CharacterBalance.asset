@@ -113,8 +113,8 @@ MonoBehaviour:
   coolOffSettleTicks: 120
   tanRate: 0.00003
   tanStrength: 0.8
-  sunburnRate: 0.0004
-  sunExposureRate: 0.03
+  sunburnRate: 0.0012
+  sunExposureRate: 0.04
   sunburnBurnDamage: 0.08
   sunburnVitalFloor: 0.45
   hygieneWashGain: 0.05

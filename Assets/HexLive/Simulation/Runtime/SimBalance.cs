@@ -213,8 +213,8 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         public static float TanRate = 0.00009f;       // tan gained per (UV−0.5) per uncovered part. DEFAULT ONLY — tune live via CharacterBalance.asset (tanRate); BalanceTuning mirrors it over this at boot.
         public static float TanStrength = 1f;          // overall tan DARKNESS (presentation-only): NpcActorView scales the tan tint toward bare skin by this. 1 = full look, lower = paler/less dark. Tune live via CharacterBalance.asset (tanStrength).
-        public static float SunburnRate = 0.0004f;    // acute redness gained (faster than tan settles)
-        public static float SunExposureRate = 0.03f;  // exposure meter gained (fills toward a burn event)
+        public static float SunburnRate = 0.0012f;    // acute redness reaches a visible peak within one open-sun day
+        public static float SunExposureRate = 0.04f;  // exposure meter gained (fills toward a burn event)
         public static float SunburnBurnDamage = 0.08f; // HP torn off a part by a burn event
         // §82: ниже этого порога солнце ВИТАЛЬНУЮ часть не доламывает.
         // Солнечный удар доводит до беспамятства, но не отрывает голову: без

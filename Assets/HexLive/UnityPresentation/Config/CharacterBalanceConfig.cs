@@ -259,9 +259,9 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Темнота/сила загара на максимуме: 1 = полный загорелый вид, ниже = светлее/менее тёмный (0 = кожа без загара). Крутит цвет, а не скорость.")]
         [Range(0f, 1f)] public float tanStrength = 1f;
         [Tooltip("Скорость покраснения (быстрее загара).")]
-        [Range(0f, 0.02f)] public float sunburnRate = 0.0004f;
+        [Range(0f, 0.02f)] public float sunburnRate = 0.0012f;
         [Tooltip("Скорость набора «экспозиции» до события ожога.")]
-        [Range(0f, 1f)] public float sunExposureRate = 0.03f;
+        [Range(0f, 1f)] public float sunExposureRate = 0.04f;
         [Tooltip("Урон части тела при событии солнечного ожога.")]
         [Range(0f, 0.3f)] public float sunburnBurnDamage = 0.08f;
         [Tooltip("§82: ниже этого порога солнце не доламывает ВИТАЛЬНУЮ часть (голова, торс). Солнечный удар доводит до беспамятства, но не убивает: без порога забронированный целиком человек сгорал за треть дня — у него открыта ровно одна часть, и все удары шли в неё.")]

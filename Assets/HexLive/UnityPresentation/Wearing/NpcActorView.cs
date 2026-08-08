@@ -4592,17 +4592,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         //     up to 0.5 (was 0.35) to fully arrive, so a fresh tan barely reads;
         //   • the full-tan target is much LIGHTER (was 0.40,0.27,0.18 ≈ near
         //     black on skin) so a maxed tan reads "bronzed/weathered", not dark.
-        var tan = Mathf.Clamp01(tanLevel);
-        var redPhase = Mathf.Clamp01(tan / 0.5f);
-        var brownPhase = Mathf.Clamp01((tan - 0.5f) / 0.5f);
-        var tint = Color.Lerp(Color.white, new Color(0.90f, 0.75f, 0.66f), redPhase);
-        tint = Color.Lerp(tint, new Color(0.66f, 0.50f, 0.38f), brownPhase);
-        // Overall tan DARKNESS knob — CharacterBalance.asset (tanStrength) →
-        // SimBalance.TanStrength. Scales the whole tan back toward bare skin, so
-        // темноту можно крутить из конфига без пересборки (1 = как выше, 0 = без
-        // загара). Sunburn/grime ниже идут отдельно, на полную силу.
-        tint = Color.Lerp(Color.white, tint, Mathf.Clamp01(SimBalance.TanStrength));
-        tint = Color.Lerp(tint, new Color(0.95f, 0.50f, 0.42f), Mathf.Clamp01(sunburn) * 0.75f);
+        var tint = SkinWeatheringTone.Compose(tanLevel, sunburn, SimBalance.TanStrength);
         // Spec 40.6: grime — the filthier the skin (low hygiene), the more it
         // muddies toward a dull earthy brown. Applied before the injury flush so
         // wounds still read on a dirty body.

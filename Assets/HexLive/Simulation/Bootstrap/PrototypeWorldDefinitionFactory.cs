@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Bootstrap
@@ -575,6 +576,17 @@ namespace HexLive.Simulation.Bootstrap
             Place("tool.lighter", 1, 1663, 1);
             Place("armor.leather", 1, 1741, 2);
             Place("armor.heavy", 1, 1823, 2);
+
+            // §119 test hook: exactly two arms and two legs, one wooden and one
+            // mechanical of each. Place() removes every chosen dry/free tile,
+            // so all four are distinct and seed-deterministic on NEW maps only.
+            if (HexLive.Simulation.Runtime.Spec119.TestProstheticMapDrops)
+            {
+                Place(ContentIds.WoodenArm, 1, 11901, 2);
+                Place(ContentIds.MechanicalArm, 1, 11902, 2);
+                Place(ContentIds.WoodenLeg, 1, 11903, 2);
+                Place(ContentIds.MechanicalLeg, 1, 11904, 2);
+            }
 
             // Spec 40.18 step 4: the ONLY pickaxe sits on the second island —
             // an island-exclusive tool a GatherTools NPC must cross the strait

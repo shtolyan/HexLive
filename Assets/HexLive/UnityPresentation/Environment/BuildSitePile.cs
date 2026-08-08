@@ -82,7 +82,7 @@ namespace HexLive.UnityPresentation.Environment
         {
             EnsureBed(site.BuildProduct);
             _bedAssembly?.Apply(site.DeliveredLogs, site.DeliveredSticks, site.DeliveredRope,
-                site.DeliveredLeaves, site.DeliveredStones);
+                site.DeliveredLeaves, site.DeliveredStones, site.DeliveredBoards);
         }
 
         private void EnsureBed(string product)
@@ -94,7 +94,7 @@ namespace HexLive.UnityPresentation.Environment
 
             ClearChildren();
             _bedProduct = product;
-            _bedRoot = BedAssembly.BuildPartial(product, 0, 0, 0, 0);
+            _bedRoot = BedAssembly.BuildPartial(product, 0, 0, 0, 0, 0, 0);
             if (_bedRoot == null)
             {
                 return;
@@ -126,6 +126,7 @@ namespace HexLive.UnityPresentation.Environment
                 signature = signature * 31 + site.DeliveredLeaves;
                 signature = signature * 31 + site.DeliveredSticks;
                 signature = signature * 31 + site.DeliveredRope;
+                signature = signature * 31 + site.DeliveredBoards;
                 return signature;
             }
         }

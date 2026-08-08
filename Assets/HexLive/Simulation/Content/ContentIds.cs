@@ -50,6 +50,8 @@ public static class ContentIds
     public const string PalmLeaf = "resource.palm_leaf";
     public const string HerbLeaf = "resource.herb_leaf";
     public const string Arrow = "resource.arrow";
+    public const string Board = "resource.board";
+    public const string MechanicalPart = "resource.mechanical_part";
 
     // ── Инструменты и вещи ───────────────────────────────────────────────
     public const string Knife = "tool.knife";
@@ -61,6 +63,11 @@ public static class ContentIds
 
     public const string Bandage = "bandage.herbal";
     public const string Medkit = "bandage.medkit";
+    public const string Splint = "med.splint";
+    public const string WoodenArm = "prosthetic.arm.wood";
+    public const string WoodenLeg = "prosthetic.leg.wood";
+    public const string MechanicalArm = "prosthetic.arm.mechanical";
+    public const string MechanicalLeg = "prosthetic.leg.mechanical";
 
     public const string Coat = "clothing.coat";
     public const string LeatherPants = "clothing.leather_pants";
@@ -72,6 +79,7 @@ public static class ContentIds
     public const string Tent = "shelter.tent";
     public const string DryingRack = "station.drying_rack";
     public const string WaterCollector = "station.water_collector";
+    public const string Workbench = "station.workbench";
 
     /// <summary>Заявка на мебель: пустое место, куда носят материалы.</summary>
     public const string BuildSite = "build.site";

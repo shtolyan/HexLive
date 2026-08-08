@@ -145,7 +145,7 @@ public sealed partial class DecisionSystem
                 }
             }
             else if (site.DefinitionId == ContentIds.BuildSite &&
-                site.BuildProduct is ContentIds.DryingRack or ContentIds.WaterCollector)
+                site.BuildProduct is ContentIds.DryingRack or ContentIds.WaterCollector or ContentIds.Workbench)
             {
                 furnitureSite ??= site;
             }

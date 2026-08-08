@@ -796,6 +796,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var carriedFiber = CountInventory(npc, ContentIds.Fiber);
         var carriedRope = CountInventory(npc, ContentIds.Rope);
         var carriedCloth = CountInventory(npc, ContentIds.Cloth);
+        var carriedBoards = CountInventory(npc, ContentIds.Board);
+        var woodenBoardsRequired = Spec118.Enabled && Spec118.ProstheticsEnabled
+            ? RequiredWoodenProstheticBoards(world, npc)
+            : 0;
+        var woodenBoardShortfall = System.Math.Max(0, woodenBoardsRequired - carriedBoards);
+        var splintSupplyNeeded = SplintSupplyNeeded(world, npc);
         var hasKnife = Content.GearCatalog.HasCapability(
             npc.Inventory.Items, Content.GearCapability.Cut);
         // The knife is today's only Butcher tool, but the CAPABILITY is the
@@ -860,6 +866,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialSticks);
         var siteNeedsRope = buildSite != null && buildWindow &&
             BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialRope);
+        var siteNeedsBoards = buildSite != null && buildWindow &&
+            BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialBoards);
+        if (siteNeedsBoards)
+        {
+            woodenBoardShortfall = System.Math.Max(woodenBoardShortfall,
+                BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialBoards) - carriedBoards);
+        }
         // §54.10: when a staked bed site is waiting on materials, its gather +
         // deliver chain outranks peacetime leisure (Sit/Socialize/idle) so the
         // mat actually finishes — still peacetime-gated, so hunger/thirst/danger
@@ -1023,6 +1036,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 siteNeedsLogs ||
                 (siteNeedsSticks &&
                  carriedSticks < BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialSticks)) ||
+                (siteNeedsBoards &&
+                 carriedBoards < BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialBoards)) ||
+                (splintSupplyNeeded && carriedSticks < 2) ||
+                (woodenBoardShortfall > 0 &&
+                 HasReachableDefinition(npc, world, ContentIds.Board)) ||
                 raftWoodDemand ||
                 (coconutToolPressure && carriedSticks < knifeStickCost)) &&
             npc.Inventory.HasSpace && gatherWoodTargetReachable;
@@ -1074,7 +1092,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.GatherWood,
             0.2f + 0.3f * npc.Needs.Thirst + coldChain + boilChain +
             (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost + bedStickPull +
-            bedLogPull + nightFireChain,
+            bedLogPull + nightFireChain + (woodenBoardShortfall > 0 ? 0.35f : 0f),
             gatherWoodAvail, coconutEmergencyBoost);
         // Spec 42: cold is the second reason to light the fire — a
         // freezing girl with wood and a lighter prioritizes the flame
@@ -1129,13 +1147,43 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // wound, so a full med pouch of her own must not veto it.
         var herbFetchPossible = herbLeaves < 2 &&
             npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Herb");
-        var bandageCraftPossible = herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage);
+        var bandageCraftPossible =
+            (herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage)) ||
+            CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftBandage);
         var gatherHerbAvail = herbFetchPossible && npc.Needs.Bandages < 2;
         AddGoalScore(npc, world.Tick, GoalType.GatherHerb,
             0.22f + hurtUrgency, gatherHerbAvail);
         var craftBandageAvail = bandageCraftPossible && npc.Needs.Bandages < 2;
         AddGoalScore(npc, world.Tick, GoalType.CraftBandage,
             0.3f + hurtUrgency, craftBandageAvail);
+
+        // §118: medical supplies are ordinary colony crafts. They receive a
+        // quiet preparedness bid only when an allied patient actually needs
+        // that exact support and this NPC already carries the complete bill;
+        // rescue/first aid remains the urgent layer above manufacturing.
+        var craftSplintAvail = Spec118.Enabled && Spec118.SplintsEnabled &&
+            CountInventory(npc, ContentIds.Splint) == 0 &&
+            HasAlliedLimbNeed(world, npc, arms: true, legs: true, severed: false) &&
+            (HasRecipeInputs(npc, GoalType.CraftSplint) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSplint)) &&
+            CraftPlaceOk(GoalType.CraftSplint);
+        AddGoalScore(npc, world.Tick, GoalType.CraftSplint, 0.36f, craftSplintAvail);
+
+        var craftWoodenArmAvail = Spec118.Enabled && Spec118.ProstheticsEnabled &&
+            CountInventory(npc, ContentIds.WoodenArm) == 0 &&
+            HasAlliedLimbNeed(world, npc, arms: true, legs: false, severed: true) &&
+            (HasRecipeInputs(npc, GoalType.CraftWoodenArm) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftWoodenArm)) &&
+            CraftPlaceOk(GoalType.CraftWoodenArm);
+        AddGoalScore(npc, world.Tick, GoalType.CraftWoodenArm, 0.34f, craftWoodenArmAvail);
+
+        var craftWoodenLegAvail = Spec118.Enabled && Spec118.ProstheticsEnabled &&
+            CountInventory(npc, ContentIds.WoodenLeg) == 0 &&
+            HasAlliedLimbNeed(world, npc, arms: false, legs: true, severed: true) &&
+            (HasRecipeInputs(npc, GoalType.CraftWoodenLeg) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftWoodenLeg)) &&
+            CraftPlaceOk(GoalType.CraftWoodenLeg);
+        AddGoalScore(npc, world.Tick, GoalType.CraftWoodenLeg, 0.34f, craftWoodenLegAvail);
 
         // §68: patch YOURSELF up. Until now the only active wound care was
         // Aid(Treat) — someone ELSE walking over — while the hurt girl's own
@@ -1184,24 +1232,30 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // scarce, hunger climbs past 0.55 often and GetFood may find no
         // fruit — hunting must stay available as the real meat/hide source
         // rather than ceding to a starve.
+        var prostheticHideNeeded = woodenBoardsRequired > 0 && hideCount < 1;
         var huntAvail = armed && !hasRawMeat &&
-            npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.8f &&
+            ((npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.8f) ||
+             prostheticHideNeeded) &&
             NearestVisibleRabbit(npc, world) is not null;
-        var craftSpearAvail = ctx.CanUseToolsOrWeapons && !hasSpear && hasWood && CraftPlaceOk(GoalType.CraftSpear);
+        var craftSpearAvail = ctx.CanUseToolsOrWeapons && !hasSpear &&
+            ((hasWood && CraftPlaceOk(GoalType.CraftSpear)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSpear));
         // §54.14 (r2): cooking is the SPIT's job — CookMeat now
         // HANGS a raw chunk on the crossbar of a lit fire; the roast itself
         // runs in FireSystem over ~MeatRoastDurationTicks. No spit (or a
         // full crossbar) = no cooking, whatever else the fire can do.
         var spitHooksFree = campfireObj != null && FoodMath.SpitHasFreeHook(campfireObj);
         var cookAvail = hasRawMeat && campfireSeen && campfireFuel > 0f && spitHooksFree;
-        var craftLeatherAvail = hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather) &&
-            !npc.WornItems.Contains(ContentIds.LeatherPants);
+        var craftLeatherAvail = !npc.WornItems.Contains(ContentIds.LeatherPants) &&
+            ((hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftLeather));
 
         // Inside the peckish window the hunt genuinely outbids GetFood
         // (0.3+0.5h > h for h < 0.6); the availability window above is
         // what protects mealtimes, not the curve.
         AddGoalScore(npc, world.Tick, GoalType.Hunt,
-            0.3f + 0.5f * npc.Needs.Hunger, huntAvail, ctx.EmergencyBoost);
+            0.3f + 0.5f * npc.Needs.Hunger + (prostheticHideNeeded ? 0.25f : 0f),
+            huntAvail, ctx.EmergencyBoost);
         AddGoalScore(npc, world.Tick, GoalType.CraftSpear,
             0.2f + 0.2f * npc.Needs.Hunger, craftSpearAvail);
         // §54.17: when cooking is actually possible, hanging the chunk must
@@ -1293,10 +1347,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (piece is { } pStone && stoneCount < pStone.Stones) ||
                 (siteNeedsStones && stoneCount < siteStoneWant)) &&
             npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Stone");
-        var craftAxeAvail = ctx.CanUseToolsOrWeapons && !hasAxe && !hasSaw && hasWood &&
-            stoneCount >= axeStoneCost && CraftPlaceOk(GoalType.CraftAxe);
-        var craftPickaxeAvail = ctx.CanUseToolsOrWeapons && !hasPickaxe && hasWood &&
-            stoneCount >= pickaxeStoneCost && CraftPlaceOk(GoalType.CraftPickaxe);
+        var craftAxeAvail = ctx.CanUseToolsOrWeapons && !hasAxe && !hasSaw &&
+            ((hasWood && stoneCount >= axeStoneCost && CraftPlaceOk(GoalType.CraftAxe)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftAxe));
+        var craftPickaxeAvail = ctx.CanUseToolsOrWeapons && !hasPickaxe &&
+            ((hasWood && stoneCount >= pickaxeStoneCost && CraftPlaceOk(GoalType.CraftPickaxe)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftPickaxe));
         var canChop = ctx.CanUseToolsOrWeapons && (hasAxe || hasSaw);
         // §47 comfort: a bed per girl, not per colony. bedDeficit drives
         // both the leaf supply (chop a palm when short) and CraftBed.
@@ -1455,10 +1511,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // fire, or a stick-framed craft one split away. Needs a chop tool
         // (deadfall sticks bootstrap the first axe, breaking the chicken-and-
         // egg). Fire-urgent so it can win the auction and keep the hearth fed.
-        var wantsSticks = fuelLow || siteNeedsSticks ||
+        var ordinaryStickDemand = fuelLow || siteNeedsSticks ||
+            (splintSupplyNeeded && carriedSticks < 2) ||
             (campfireSeen && (!hasSpear ||
                 (!hasPickaxe && stoneCount >= 2) ||
                 (hasBow && arrowCount == 0)));
+        var boardSawAvailable = woodenBoardShortfall > 0 &&
+            GearCatalog.HasCapability(npc.Inventory.Items, GearCapability.Saw);
         // §54.10: sticks stack too — split toward the bed's stick bill when a
         // site needs them, not just the 2-stick fuel reserve (§54.12: toward
         // the CURRENT stage's shortfall).
@@ -1468,13 +1527,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §gear-data: the log's own declaration decides the tool (axe OR
         // knife OR whatever the asset lists) — canChop is only the legacy
         // fallback for undeclared content.
-        var splitLogAvail = carriedSticks < stickCap &&
+        var splitLogAvail = ((ordinaryStickDemand && carriedSticks < stickCap) ||
+                             boardSawAvailable) &&
             CanPerformDeclared(world, npc, ContentIds.Log, InteractionType.Process,
                 legacyOk: canChop) &&
             npc.Inventory.HasSpace &&
-            HasReachableWithTag(npc, world, "Log") && wantsSticks;
+            HasReachableWithTag(npc, world, "Log");
         AddGoalScore(npc, world.Tick, GoalType.SplitLog,
-            (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull + dreamPull + nightFireChain,
+            (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull + dreamPull + nightFireChain +
+            (boardSawAvailable ? 0.35f : 0f),
             splitLogAvail);
 
         // Spec §54.2: chop a felled palm CROWN into loose leaves — when leaves
@@ -1505,10 +1566,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // and bed-site lashings; cloth when a sun-shelter is due; the knife is
         // a survival tool (no butchering without it). Gather fiber to feed
         // rope/cloth, then craft at the fire.
-        var ropeTarget = siteNeedsRope && buildSite != null
+        var siteRopeTarget = siteNeedsRope && buildSite != null
             ? BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialRope)
             : 1;
+        var medicalRopeTarget = woodenBoardsRequired > 0 ? 2 : (splintSupplyNeeded ? 1 : 0);
+        var ropeTarget = System.Math.Max(siteRopeTarget, medicalRopeTarget);
         var wantRope = (siteNeedsRope && carriedRope < ropeTarget) ||
+            (medicalRopeTarget > 0 && carriedRope < medicalRopeTarget) ||
             (!hasBow && hideCount >= 1 && carriedRope == 0);
         var wantCloth = bedDeficit && carriedCloth == 0;
         // §54.13: gather fiber for the WHOLE rope shortfall, not one rope's
@@ -1545,14 +1609,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
             FindGroundInputPile(npc, world, ContentIds.Fiber,
                 SimBalance.ClothFiberCost - carriedFiber) is not null;
         var craftRopeAvail = ctx.CanUseToolsOrWeapons && wantRope &&
-            (carriedFiber >= SimBalance.RopeFiberCost || ropeGroundPileOk) &&
-            CraftPlaceOk(GoalType.CraftRope);
+            (((carriedFiber >= SimBalance.RopeFiberCost || ropeGroundPileOk) &&
+              CraftPlaceOk(GoalType.CraftRope)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftRope));
         var craftClothAvail = ctx.CanUseToolsOrWeapons && wantCloth &&
-            (carriedFiber >= SimBalance.ClothFiberCost || clothGroundPileOk) &&
-            CraftPlaceOk(GoalType.CraftCloth);
+            (((carriedFiber >= SimBalance.ClothFiberCost || clothGroundPileOk) &&
+              CraftPlaceOk(GoalType.CraftCloth)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftCloth));
         var craftKnifeAvail = ctx.CanUseToolsOrWeapons && !(hasKnife && hasButcherTool) &&
-            carriedSticks >= knifeStickCost &&
-            stoneCount >= knifeStoneCost && CraftPlaceOk(GoalType.CraftKnife);
+            ((carriedSticks >= knifeStickCost && stoneCount >= knifeStoneCost &&
+              CraftPlaceOk(GoalType.CraftKnife)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftKnife));
         AddGoalScore(npc, world.Tick, GoalType.HarvestYucca, 0.26f + freeHands + bedRopePull, harvestYuccaAvail);
         AddGoalScore(npc, world.Tick, GoalType.GatherFiber, 0.24f + freeHands + bedRopePull + dreamPull, gatherFiberAvail);
         AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull + dreamPull, craftRopeAvail);
@@ -1769,6 +1836,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     BuildSiteMath.MaterialRope => craftRopeAvail || gatherFiberAvail || harvestYuccaAvail,
                     BuildSiteMath.MaterialLeaves => gatherLeavesAvail || chopCrownAvail,
                     BuildSiteMath.MaterialLogs => gatherWoodAvail,
+                    BuildSiteMath.MaterialBoards => gatherWoodAvail || splitLogAvail,
                     _ => false
                 };
                 var bundle = System.Math.Min(
@@ -1783,7 +1851,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §64.9: logs join the delivery pull — the raise half was the only
         // way a log stage could ever be advanced, and it was unweighted.
         var buildFurniturePull =
-            (siteNeedsLeaves || siteNeedsSticks || siteNeedsRope || siteWantsLogs) ? 0.2f : 0f;
+            (siteNeedsLeaves || siteNeedsSticks || siteNeedsRope || siteNeedsBoards || siteWantsLogs)
+                ? 0.2f : 0f;
         // §54.14 (r2): the hearth is built FOR warmth/comfort — a cold girl
         // pushes the stick-pile delivery with the same cold weight that
         // drives the rest of the fire chain (there is no fire to tend yet).
@@ -2393,6 +2462,119 @@ public sealed partial class DecisionSystem : ISimulationSystem
         foreach (var wound in npc.Wounds)
         {
             if (wound.Heal01 < 0.3f && wound.Severity >= 0.05f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasRecipeInputs(NPCState npc, GoalType goal)
+    {
+        if (!RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe))
+        {
+            return false;
+        }
+
+        foreach (var input in recipe.Inputs)
+        {
+            if (CountInventory(npc, input.Id) < input.Count)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Boards are produced while processing logs. Keep the demand derived from
+    /// real, stabilized allied stumps and subtract already-crafted replacements
+    /// so the colony does not fill the island with speculative carpentry.
+    /// </summary>
+    internal static int WoodenProstheticBoardShortfall(WorldState world, NPCState helper)
+    {
+        var required = RequiredWoodenProstheticBoards(world, helper);
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.BuildProduct == ContentIds.Workbench &&
+                DecisionSystem.IsOurSite(world, helper, obj))
+            {
+                required = System.Math.Max(required,
+                    BuildSiteMath.Remaining(obj, BuildSiteMath.MaterialBoards));
+            }
+        }
+        return System.Math.Max(0, required - CountInventory(helper, ContentIds.Board));
+    }
+
+    internal static bool SplintSupplyNeeded(WorldState world, NPCState helper) =>
+        Spec118.Enabled && Spec118.SplintsEnabled &&
+        CountInventory(helper, ContentIds.Splint) == 0 &&
+        HasAlliedLimbNeed(world, helper, arms: true, legs: true, severed: false);
+
+    private static int RequiredWoodenProstheticBoards(WorldState world, NPCState helper)
+    {
+        var armNeeded = HasAlliedLimbNeed(
+            world, helper, arms: true, legs: false, severed: true);
+        var legNeeded = HasAlliedLimbNeed(
+            world, helper, arms: false, legs: true, severed: true);
+        var armReplacementReady = CountInventory(helper, ContentIds.WoodenArm) +
+            CountInventory(helper, ContentIds.MechanicalArm) > 0;
+        var legReplacementReady = CountInventory(helper, ContentIds.WoodenLeg) +
+            CountInventory(helper, ContentIds.MechanicalLeg) > 0;
+
+        return (armNeeded && !armReplacementReady ? 2 : 0) +
+               (legNeeded && !legReplacementReady ? 3 : 0);
+    }
+
+    private static bool HasAlliedLimbNeed(
+        WorldState world, NPCState helper, bool arms, bool legs, bool severed)
+    {
+        foreach (var patient in world.Entities.Npcs.Values)
+        {
+            if (patient.Health <= 0f || !FactionRelations.AreAllies(helper, patient))
+            {
+                continue;
+            }
+
+            foreach (var part in new[]
+                     {
+                         BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
+                     })
+            {
+                var isArm = part is BodyPart.ArmL or BodyPart.ArmR;
+                if ((isArm && !arms) || (!isArm && !legs) ||
+                    patient.Body.IsSevered(part) != severed)
+                {
+                    continue;
+                }
+
+                var condition = patient.Body.Condition(part);
+                if (severed)
+                {
+                    if (condition.Prosthetic == null && !HasOpenUnstabilizedWound(patient, part))
+                    {
+                        return true;
+                    }
+                }
+                else if (condition.SplintSupport <= 0f &&
+                         (condition.CriticalTrauma > 0f || patient.Body.Parts[part] < 0.5f) &&
+                         !HasOpenUnstabilizedWound(patient, part))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasOpenUnstabilizedWound(NPCState patient, BodyPart part)
+    {
+        foreach (var wound in patient.Wounds)
+        {
+            if (wound.Zone == part && wound.Heal01 < 1f && !wound.Stabilized)
             {
                 return true;
             }

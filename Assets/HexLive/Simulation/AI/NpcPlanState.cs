@@ -58,7 +58,12 @@ public enum PlanStepType
     SwimBathe,
     WashClothes,
     RedressAfterBathe, // §40.6: return to the shore pile and re-don the clothes
-    TreatSelf // §68: wind a dressing round your own wounds, in place
+    TreatSelf, // §68: wind a dressing round your own wounds, in place
+    // §116 append-only rescue/medical actions.
+    PickUpPerson,
+    PutPersonInBed,
+    ApplySplint,
+    FitProsthetic
 }
 
 public enum PlanStatus

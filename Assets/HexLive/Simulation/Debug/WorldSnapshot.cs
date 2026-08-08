@@ -238,9 +238,26 @@ public sealed class ObjectSnapshot
 
     public int BillRope { get; set; }
 
+    public int BillBoards { get; set; }
+
     public int DeliveredSticks { get; set; }
 
     public int DeliveredRope { get; set; }
+
+    public int DeliveredBoards { get; set; }
+
+    // §119: an unfinished item exists in the world from the first work cycle.
+    public int CraftWorkRequired { get; set; }
+
+    public int CraftWorkDone { get; set; }
+
+    public int CraftBatchCount { get; set; } = 1;
+
+    public int? CraftStationObjectId { get; set; }
+
+    public bool CraftActive { get; set; }
+
+    public List<string> CraftIngredients { get; } = new();
 
     // §54.14 (r2): meat hanging on the campfire's roasting spit — raw chunks
     // still roasting and cooked ones waiting to be taken (the view hangs them

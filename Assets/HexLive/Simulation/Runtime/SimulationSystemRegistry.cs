@@ -24,7 +24,9 @@ public static class SimulationSystemRegistry
         engine.Register(new MovementSystem());
         engine.Register(new ExecutionSystem());
         engine.Register(new PerceptionSystem());
+        engine.Register(new RescueSystem());
         engine.Register(new DecisionSystem());
+        engine.Register(new ProstheticAidSystem()); // §119: persistent compassion chain
         engine.Register(new PlanningSystem());
         engine.Register(new MobSystem());
         // §72.14: create a due attacker before RaidSystem scans for hunters, so

@@ -10,6 +10,7 @@ namespace HexLive.UnityPresentation.Config
     {
         Anywhere = 0,
         Campfire = 1,
+        Workbench = 2,
     }
 
     /// <summary>
@@ -205,7 +206,12 @@ namespace HexLive.UnityPresentation.Config
             if (inputs.Count > 0)
             {
                 RecipeCatalog.Override(gearId, inputs.ToArray(), craftNeedsLitFire,
-                    craftStation == CraftPlace.Campfire ? "Campfire" : "");
+                    craftStation switch
+                    {
+                        CraftPlace.Campfire => "Campfire",
+                        CraftPlace.Workbench => "Workbench",
+                        _ => ""
+                    });
             }
         }
     }

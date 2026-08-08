@@ -72,6 +72,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         public HexLive.UnityPresentation.Environment.CampfireSpitMeat SpitMeat;
         public GarmentWorldCondition Garment;
         public HexLive.UnityPresentation.Environment.BuildSitePile Pile;
+        public HexLive.UnityPresentation.Environment.CraftProjectVisual CraftProject;
     }
 
     private readonly Dictionary<int, ObjectViewParts> _objectViewParts = new();
@@ -969,6 +970,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // PERF: resolve the optional per-view components ONCE, here.
                 // Which of them a view owns is fixed by the prefab it was built
                 // from, so the per-tick loop below just reads the record.
+                var craftProject = worldObject.CraftWorkRequired > 0
+                    ? objectView.AddComponent<HexLive.UnityPresentation.Environment.CraftProjectVisual>()
+                    : null;
+                craftProject?.Sync(worldObject);
                 _objectViewParts[key] = new ObjectViewParts
                 {
                     Fire = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireEffect>(),
@@ -976,6 +981,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     SpitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>(),
                     Garment = objectView.GetComponent<GarmentWorldCondition>(),
                     Pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>(),
+                    CraftProject = craftProject,
                 };
                 // Spec §54: remember trees so felling them animates.
                 if (worldObject.DefinitionId.Contains("tree"))
@@ -1056,6 +1062,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     pile.Refresh(worldObject);
                 }
             }
+
+            parts.CraftProject?.Sync(worldObject);
 
             // §35.5B: keep a hung garment on its (possibly re-ranked) hanger
             // slot — when a neighbour is dressed off the rack the rest slide
@@ -2685,7 +2693,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // in-progress match. All are authored 1:1, so NO ObjectFit sizing.
         if (HexLive.UnityPresentation.Environment.BedFactory.IsBed(worldObject.DefinitionId) ||
             worldObject.DefinitionId == "station.drying_rack" ||
-            worldObject.DefinitionId == "station.water_collector")
+            worldObject.DefinitionId == "station.water_collector" ||
+            worldObject.DefinitionId == ContentIds.Workbench)
         {
             var bed = HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished(worldObject.DefinitionId);
             if (bed != null)

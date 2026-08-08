@@ -96,6 +96,11 @@ public sealed class GoalCatalogGateTests
             [GoalType.CraftRope] = InteractionType.Craft,
             [GoalType.CraftCloth] = InteractionType.Craft,
             [GoalType.CraftKnife] = InteractionType.Craft,
+            // §118 additions: append-only craft goals deliberately extend the
+            // interaction table that replaced the historical switch.
+            [GoalType.CraftSplint] = InteractionType.Craft,
+            [GoalType.CraftWoodenArm] = InteractionType.Craft,
+            [GoalType.CraftWoodenLeg] = InteractionType.Craft,
             // §28.15C v3: Bury СНЯТА — тело остаётся лежать там, где упало, и
             // хоронить его больше некому. Отсутствие строки здесь и есть
             // утверждение «взаимодействия у цели больше нет».

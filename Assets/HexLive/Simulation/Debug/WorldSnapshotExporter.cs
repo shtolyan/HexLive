@@ -120,7 +120,13 @@ public static class WorldSnapshotExporter
                 BillStones = obj.BillStones,
                 BillLeaves = obj.BillLeaves,
                 BillSticks = obj.BillSticks,
-                BillRope = obj.BillRope
+                BillRope = obj.BillRope,
+                BillBoards = obj.BillBoards,
+                CraftWorkRequired = obj.CraftWorkRequired,
+                CraftWorkDone = obj.CraftWorkDone,
+                CraftBatchCount = obj.CraftBatchCount,
+                CraftStationObjectId = obj.CraftStationObjectId?.Value,
+                CraftActive = obj.IsCraftProject && obj.IsOccupied
             };
 
             var isSite = !string.IsNullOrEmpty(obj.BuildProduct);
@@ -133,10 +139,16 @@ public static class WorldSnapshotExporter
                     case "resource.palm_leaf": if (isSite) exported.DeliveredLeaves++; break;
                     case "resource.stick": if (isSite) exported.DeliveredSticks++; break;
                     case "resource.rope": if (isSite) exported.DeliveredRope++; break;
+                    case ContentIds.Board: if (isSite) exported.DeliveredBoards++; break;
                     // §54.14 (r2): spit meat renders whether or not the
                     // upgrade bill is still open.
                     case "food.meat_raw": exported.RoastingRaw++; break;
                     case "food.meat_cooked": exported.RoastingCooked++; break;
+                }
+
+                if (obj.IsCraftProject)
+                {
+                    exported.CraftIngredients.Add(item.DefinitionId);
                 }
             }
 
@@ -453,6 +465,17 @@ public static class WorldSnapshotExporter
                 return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.saw", "tool.pickaxe_stone");
 
             case InteractionType.Process:
+                var processingLog = npc.Execution.TargetObject is { } processObjectId &&
+                    world.Entities.Objects.TryGetValue(processObjectId, out var processObject) &&
+                    processObject.DefinitionId == ContentIds.Log;
+                if (processingLog &&
+                    HexLive.Simulation.Runtime.DecisionSystem
+                        .WoodenProstheticBoardShortfall(world, npc) > 0 &&
+                    InventoryContains(npc, GearCatalog.Saw))
+                {
+                    return GearCatalog.Saw;
+                }
+
                 if ((npc.Mind.CurrentGoal == GoalType.Drink || npc.Mind.CurrentGoal == GoalType.Eat) &&
                     InventoryContains(npc, "tool.machete"))
                 {

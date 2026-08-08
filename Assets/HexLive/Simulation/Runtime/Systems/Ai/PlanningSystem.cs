@@ -179,15 +179,24 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
             // §gear-craft: the recipe declares NO station — craft right where
             // she stands: a one-step in-place plan, no walk, no target object.
-            if (Content.RecipeCatalog.IsItemOutputGoal(npc.Mind.CurrentGoal) &&
+            if (Content.RecipeCatalog.UsesPersistentProject(npc.Mind.CurrentGoal) &&
                 string.IsNullOrEmpty(Content.RecipeCatalog.StationOf(npc.Mind.CurrentGoal)))
             {
+                var existingProject = CraftProjectMath.FindReachableProject(
+                    world, npc, npc.Mind.CurrentGoal);
+                if (existingProject != null && existingProject.Junctions.Count > 0)
+                {
+                    npc.Plan.TargetTile = existingProject.Tile;
+                    npc.Plan.TargetJunctionId = existingProject.Junctions[0];
+                }
+
                 // §84: a pack SHORT of the bill may still be covered by pieces
                 // already lying nearby (the just-cut yucca's fibers) — walk to
                 // the pile and craft THERE; the craft-start beat takes the
                 // pieces straight off the ground. Only the first short input
                 // picks the walk (fiber recipes have a single input anyway).
-                if (Content.RecipeCatalog.ByGoal.TryGetValue(npc.Mind.CurrentGoal, out var inPlaceRecipe))
+                if (existingProject == null &&
+                    Content.RecipeCatalog.ByGoal.TryGetValue(npc.Mind.CurrentGoal, out var inPlaceRecipe))
                 {
                     foreach (var ing in inPlaceRecipe.Inputs)
                     {
@@ -580,6 +589,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // coconut. Raw meat's prospect depends on whether the colony can
             // actually roast it, so the fire is checked once, before the loop.
             var preferFood = npc.Mind.CurrentGoal == GoalType.GetFood;
+            var preferProstheticBoard = npc.Mind.CurrentGoal == GoalType.GatherWood &&
+                DecisionSystem.WoodenProstheticBoardShortfall(world, npc) > 0;
+            var preferMedicalStick = npc.Mind.CurrentGoal == GoalType.GatherWood &&
+                !preferProstheticBoard && DecisionSystem.SplintSupplyNeeded(world, npc);
             var fireUsable = false;
             if (preferFood)
             {
@@ -592,6 +605,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
             var selectedBoiled = false;
             var selectedMine = false;
             var selectedNutrition = 0f;
+            var selectedProstheticBoard = false;
+            var selectedMedicalStick = false;
             var candidateCount = 0;
             foreach (var perceived in npc.Perception.Objects)
             {
@@ -711,6 +726,30 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         selectedNutrition = nutrition;
                     }
                 }
+                else if (preferProstheticBoard)
+                {
+                    var isBoard = perceived.DefinitionId == ContentIds.Board;
+                    if (selected is null ||
+                        (isBoard && !selectedProstheticBoard) ||
+                        (isBoard == selectedProstheticBoard &&
+                         perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
+                        selectedProstheticBoard = isBoard;
+                    }
+                }
+                else if (preferMedicalStick)
+                {
+                    var isStick = perceived.DefinitionId == ContentIds.Stick;
+                    if (selected is null ||
+                        (isStick && !selectedMedicalStick) ||
+                        (isStick == selectedMedicalStick &&
+                         perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
+                        selectedMedicalStick = isStick;
+                    }
+                }
                 else if (selected is null || perceived.Distance < selected.Distance)
                 {
                     selected = perceived;
@@ -767,6 +806,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // trunk, not inside it. Gathering a ground item (PickUp) also stands
             // BESIDE now: she walks up to the nearest cell next to the item and
             // collects from there instead of stepping onto it.
+            if (interactionType == InteractionType.Craft &&
+                world.Entities.Objects.TryGetValue(selected.Id, out var craftStation) &&
+                craftStation.CraftJunction is { } authoredWorkPoint)
+            {
+                targetJunction = authoredWorkPoint; // §119: always the same side of the bench
+            }
+
             var gatherBeside = interactionType == InteractionType.PickUp;
             var anchorIsWater = targetJunction is { } wetId &&
                 SpatialQueries.IsAllWaterJunction(world, wetId);
@@ -1125,6 +1171,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
     private static bool IsValidTargetFor(WorldState world, NPCState npc, GoalType goal, PerceivedObject perceived)
     {
+        if (world.Entities.Objects.TryGetValue(perceived.Id, out var liveTarget) &&
+            liveTarget.IsCraftProject)
+        {
+            return false; // §119: 0..99% output is visible, never usable/pickable
+        }
+
         if (!world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition))
         {
             return false;
@@ -1223,6 +1275,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.CraftCloth:
             case GoalType.CraftKnife:
             case GoalType.CraftBandage:
+            case GoalType.CraftSplint:
+            case GoalType.CraftWoodenArm:
+            case GoalType.CraftWoodenLeg:
             case GoalType.TendFire:
             case GoalType.CraftSpear:
             case GoalType.CraftLeather:
@@ -1233,7 +1288,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.CraftTent:
             case GoalType.CraftBow:
             case GoalType.CraftArrows:
-                return definition.Tags.Contains("Campfire");
+                var stationTag = RecipeCatalog.StationOf(goal);
+                return !string.IsNullOrEmpty(stationTag) && definition.Tags.Contains(stationTag);
             case GoalType.DryClothes:
                 // §35.5B: only a rack with a free hanger slot (capacity 8).
                 return definition.Tags.Contains("Rack") &&

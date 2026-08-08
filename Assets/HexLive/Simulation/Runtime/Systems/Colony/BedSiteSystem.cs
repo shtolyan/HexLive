@@ -28,6 +28,7 @@ public sealed class BedSiteSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        CraftProjectMath.CancelOrphanedProjects(world);
         // §bed-placement fix: sweep orphaned furniture build-sites. A
         // "build.site" with an EMPTY BuildProduct is degenerate cruft (legacy
         // saves — no current path stakes one without a product). They aren't
@@ -121,6 +122,8 @@ public sealed class BedSiteSystem : ISimulationSystem
         var rackSitesInProgress = 0;
         var collectors = 0; // §54.15: communal water collector
         var collectorSitesInProgress = 0;
+        var workbenches = 0;
+        var workbenchSitesInProgress = 0;
         WorldObjectState hearth = null;
         // §64: per-colonist bed ownership (personal beds). Who already owns a bed
         // (any / a premium one), who has one under construction, and any finished
@@ -168,6 +171,10 @@ public sealed class BedSiteSystem : ISimulationSystem
                 {
                     collectorSitesInProgress++;
                 }
+                else if (obj.BuildProduct == ContentIds.Workbench)
+                {
+                    workbenchSitesInProgress++;
+                }
 
                 continue;
             }
@@ -180,6 +187,11 @@ public sealed class BedSiteSystem : ISimulationSystem
             if (obj.DefinitionId == ContentIds.WaterCollector)
             {
                 collectors++;
+            }
+
+            if (obj.DefinitionId == ContentIds.Workbench)
+            {
+                workbenches++;
             }
 
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
@@ -264,6 +276,31 @@ public sealed class BedSiteSystem : ISimulationSystem
                 RememberSiteForColony(world, faction, collectorSite);
                 Trace.EmitSystem(world, "CollectorSitePlaced",
                     "station.water_collector site staked by the hearth");
+                return;
+            }
+        }
+
+        // §119: a stabilized amputee turns the workbench into a durable colony
+        // objective. It is one staged model (01..05), fed one visible piece per
+        // resource through the existing build-site pipeline.
+        if (hearth is not null && NeedsProstheticWorkbench(world, faction) &&
+            workbenches == 0 && workbenchSitesInProgress == 0)
+        {
+            var workbenchSpot = FindFiresideHex(world, hearth);
+            if (workbenchSpot is { } placement)
+            {
+                var site = WorldObjectMutations.SpawnObject(
+                    world, ContentIds.BuildSite, new FragmentId(1),
+                    placement.Tile, placement.Junction);
+                site.BuildProduct = ContentIds.Workbench;
+                site.RotationDegrees = StructurePlacement.QuantizeHexYaw(placement.FacingYaw);
+                site.BillBoards = Spec119.WorkbenchBillBoards;
+                site.BillSticks = Spec119.WorkbenchBillSticks;
+                site.BillRope = Spec119.WorkbenchBillRope;
+                WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
+                RememberSiteForColony(world, faction, site);
+                Trace.EmitSystem(world, "WorkbenchSitePlaced",
+                    "station.workbench site staked: boards 6, sticks 6, rope 2");
                 return;
             }
         }
@@ -403,6 +440,29 @@ public sealed class BedSiteSystem : ISimulationSystem
     private static bool WantsPremiumBed(WorldState world, EntityId id) =>
         SimBalance.BedBasicEnabled &&
         MathUtil.Hash01(world.Seed, id.Value, 64, 6408) < SpecDream.PremiumBedChance;
+
+    private static bool NeedsProstheticWorkbench(WorldState world, Faction faction)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health <= 0f || !FactionRelations.AreAllies(faction, npc.Faction))
+            {
+                continue;
+            }
+
+            foreach (var part in new[] { BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR })
+            {
+                if (npc.Body.IsSevered(part) &&
+                    !KenshiProstheticMath.HasUnstabilizedWound(npc, part) &&
+                    npc.Body.Condition(part).Prosthetic is null)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     // First living colonist matching a predicate on her id (bed-target picking).
     private static NPCState FirstLiving(

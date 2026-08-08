@@ -44,7 +44,11 @@ public sealed class SystemRegistryGateTests
         "MovementSystem",
         "ExecutionSystem",
         "PerceptionSystem",
+        // §118: rescue claims patients before the ordinary decision auction,
+        // so the same medium pass cannot send the free helper to a chore.
+        "RescueSystem",
         "DecisionSystem",
+        "ProstheticAidSystem",
         "PlanningSystem",
         "MobSystem",
         "RaidWaveSystem",

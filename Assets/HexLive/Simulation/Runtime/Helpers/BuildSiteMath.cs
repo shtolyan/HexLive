@@ -22,12 +22,13 @@ internal static class BuildSiteMath
     public const string MaterialLeaves = "resource.palm_leaf";
     public const string MaterialSticks = "resource.stick"; // spec §54.2: bed rails/slats
     public const string MaterialRope = "resource.rope";    // spec §54.2: bedroll binding
+    public const string MaterialBoards = ContentIds.Board;  // §119: workbench top + diagonal braces
 
     // Every material a furniture site can bill for — iterate this instead of a
     // hardcoded trio so deposit/read-back cover sticks and rope too.
     public static readonly string[] AllMaterials =
     {
-        MaterialLogs, MaterialStones, MaterialLeaves, MaterialSticks, MaterialRope
+        MaterialLogs, MaterialStones, MaterialLeaves, MaterialSticks, MaterialRope, MaterialBoards
     };
 
     public static int Delivered(WorldObjectState site, string materialId)
@@ -113,6 +114,18 @@ internal static class BuildSiteMath
         (MaterialLeaves, 11)  // stage 5: the funnel
     };
 
+    // §119: station.workbench.fbx groups "01".."05". Each logical child is
+    // one delivered resource; Unity reveals those children in this exact order.
+    // The Blender file has no Animator/Action/NLA staging data.
+    private static readonly (string Material, int Count)[] WorkbenchStages =
+    {
+        (MaterialSticks, 4), // 01: four legs
+        (MaterialSticks, 2), // 02: two lower horizontal rails
+        (MaterialBoards, 2), // 03: left/right diagonal braces
+        (MaterialRope, 2),   // 04: paired lashings (one object per rope)
+        (MaterialBoards, 4)  // 05: four tabletop planks
+    };
+
     private static (string Material, int Count)[] StagesFor(WorldObjectState site) => site.BuildProduct switch
     {
         "bed.leaf" => BedLeafStages,
@@ -120,6 +133,7 @@ internal static class BuildSiteMath
         "station.drying_rack" => DryingRackStages,
         "campfire.spot" => CampfireStages,
         "station.water_collector" => WaterCollectorStages,
+        ContentIds.Workbench => WorkbenchStages,
         _ => null
     };
 
@@ -131,6 +145,7 @@ internal static class BuildSiteMath
         MaterialLeaves => System.Math.Max(0, site.BillLeaves - Delivered(site, materialId)),
         MaterialSticks => System.Math.Max(0, site.BillSticks - Delivered(site, materialId)),
         MaterialRope => System.Math.Max(0, site.BillRope - Delivered(site, materialId)),
+        MaterialBoards => System.Math.Max(0, site.BillBoards - Delivered(site, materialId)),
         _ => 0
     };
 
@@ -227,6 +242,7 @@ internal static class BuildSiteMath
         MaterialLeaves => "PalmLeaf",
         MaterialSticks => "Stick",
         MaterialRope => "Rope",
+        MaterialBoards => "Wood",
         _ => null
     };
 }

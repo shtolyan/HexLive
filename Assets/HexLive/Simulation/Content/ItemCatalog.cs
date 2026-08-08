@@ -119,6 +119,12 @@ namespace HexLive.Simulation.Content
             ["resource.palm_leaf"] = "🍃",
             ["resource.herb_leaf"] = "🌿",
             ["item.bandage"] = "🩹",
+            [ContentIds.Splint] = "🩼",
+            [ContentIds.WoodenArm] = "🦾",
+            [ContentIds.WoodenLeg] = "🦿",
+            [ContentIds.MechanicalArm] = "🦾",
+            [ContentIds.MechanicalLeg] = "🦿",
+            [ContentIds.MechanicalPart] = "⚙️",
         };
 
         // Spec §52: how badly the NPC wants to keep this in a full pack. Water

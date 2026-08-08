@@ -309,6 +309,7 @@ namespace HexLive.UnityPresentation.UI
                 AddBillLine(box, "Leaves", obj.DeliveredLeaves, obj.BillLeaves);
                 AddBillLine(box, "Sticks", obj.DeliveredSticks, obj.BillSticks);
                 AddBillLine(box, "Rope", obj.DeliveredRope, obj.BillRope);
+                AddBillLine(box, "Boards", obj.DeliveredBoards, obj.BillBoards);
             }
 
             if (obj.ResourceAmount > 0.001f)
@@ -567,10 +568,12 @@ namespace HexLive.UnityPresentation.UI
         }
 
         private static int Delivered(ObjectSnapshot obj) =>
-            obj.DeliveredLogs + obj.DeliveredStones + obj.DeliveredLeaves + obj.DeliveredSticks + obj.DeliveredRope;
+            obj.DeliveredLogs + obj.DeliveredStones + obj.DeliveredLeaves + obj.DeliveredSticks + obj.DeliveredRope +
+            obj.DeliveredBoards;
 
         private static int Bill(ObjectSnapshot obj) =>
-            obj.BillLogs + obj.BillStones + obj.BillLeaves + obj.BillSticks + obj.BillRope;
+            obj.BillLogs + obj.BillStones + obj.BillLeaves + obj.BillSticks + obj.BillRope +
+            obj.BillBoards;
 
         private static string Yes() => "yes";
         private static string No() => "no";

@@ -287,7 +287,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
-                var interaction = ResolveInteraction(definition, GetPlannedInteractionType(npc.Plan));
+                var interaction = ResolveInteraction(
+                    world, npc, definition, GetPlannedInteractionType(npc.Plan));
                 if (interaction is null)
                 {
                     npc.Plan.Status = PlanStatus.Failed;
@@ -323,9 +324,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     }
 
                     // Spec §54 (R2): ingredients/gate sourced from RecipeCatalog.
-                    // Same arm set as before — CraftBandage stays out (=> false),
-                    // preserving today's behaviour that its craft-start gate never
-                    // passes here.
+                    // In-place recipes (including bandages) use RunCraftInPlace;
+                    // this switch is only the station-backed interaction path.
                     var craftOk = npc.Plan.Goal switch
                     {
                         GoalType.CraftSpear => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
@@ -341,6 +341,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         GoalType.CraftRope => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
                         GoalType.CraftCloth => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
                         GoalType.CraftKnife => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
+                        GoalType.CraftSplint => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
+                        GoalType.CraftWoodenArm => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
+                        GoalType.CraftWoodenLeg => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
                         _ => false
                     };
 
@@ -548,6 +551,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     LyingSpot.AlignBodyToObject(world, npc, worldObject, anchorPosition);
                 }
 
+                if (interaction.Type == InteractionType.Craft &&
+                    RecipeCatalog.UsesPersistentProject(npc.Plan.Goal) &&
+                    !CraftProjectMath.TryBeginCycle(
+                        world, npc, npc.Plan.Goal, worldObject, out _))
+                {
+                    PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                    PlanInterruption.Abort(world, npc,
+                        $"Cannot begin persistent craft project ({npc.Plan.Goal})");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    continue;
+                }
+
                 npc.Execution.Status = ExecutionStatus.InProgress;
                 npc.Execution.CurrentInteraction = interaction.Type;
                 npc.Execution.TargetObject = worldObject.Id;
@@ -562,8 +577,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 var toolSpeedMult = Content.GearCatalog.BestSpeedMultFor(
                     npc.Inventory.Items,
                     Content.GearCatalog.RequiredCapabilities(interaction, definition));
+                var authoredWorkTicks = RecipeCatalog.UsesPersistentProject(npc.Plan.Goal)
+                    ? Spec119.CraftCycleWork
+                    : npc.Plan.Goal == GoalType.CraftSplint
+                        ? Spec118.SplintCraftTicks
+                        : interaction.DurationTicks;
                 var workTicks = AttributeMath.WorkTicks(
-                    npc, Content.GearCatalog.ScaleTicks(interaction.DurationTicks, toolSpeedMult),
+                    npc, Content.GearCatalog.ScaleTicks(authoredWorkTicks, toolSpeedMult),
                     interaction.Type, npc.Plan.Goal);
                 npc.Execution.EndTick = world.Tick + workTicks;
                 worldObject.IsOccupied = true;
@@ -596,6 +616,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             if (npc.Execution.Status == ExecutionStatus.InProgress)
             {
+                if (npc.Execution.CurrentInteraction == InteractionType.Craft &&
+                    RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
+                {
+                    CraftProjectMath.UpdateCycleProgress(world, npc);
+                }
+
                 // Also repair/resynchronise a sleep restored from a save made
                 // before §111.9 r3. The bed pose is an invariant for the whole
                 // interaction, not only a one-shot adjustment at its start.
@@ -644,7 +670,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // style), not in a jump at the end. Each in-progress tick
                     // applies one duration-share; the final share lands at
                     // completion (total = duration shares = the full effect).
-                    var inProgressInteraction = ResolveInteraction(definition, npc.Execution.CurrentInteraction);
+                    var inProgressInteraction = ResolveInteraction(
+                        world, npc, definition, npc.Execution.CurrentInteraction);
                     if (inProgressInteraction is not null && total > 0)
                     {
                         ApplyEffectsScaled(npc, inProgressInteraction.Effects, 1f / total);
@@ -671,7 +698,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
-                var completedInteraction = ResolveInteraction(definition, npc.Execution.CurrentInteraction);
+                var completedInteraction = ResolveInteraction(
+                    world, npc, definition, npc.Execution.CurrentInteraction);
                 if (completedInteraction is null)
                 {
                     npc.Plan.Status = PlanStatus.Failed;
@@ -872,6 +900,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     $"/{SimBalance.CampfireSpitCapacity}");
             }
 
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+        }
+        else if (completedInteraction.Type == InteractionType.Craft &&
+                 RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
+        {
+            CraftProjectMath.CompleteCycle(world, npc, npc.Plan.Goal);
             worldObject.IsOccupied = false;
             worldObject.CurrentUser = null;
         }
@@ -1144,6 +1179,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
+        if (worldObject.IsCraftProject)
+        {
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+            Trace.Emit(world, npc.Id, "PickupBlocked",
+                $"Craft project {worldObject.Id.Value} is only " +
+                $"{worldObject.CraftWorkDone}/{worldObject.CraftWorkRequired} ready");
+            return false;
+        }
+
         // §54.14 (r2): PickUp on the CAMPFIRE takes one cooked chunk
         // off the spit — the fire itself never leaves the ground.
         if (definition.Tags.Contains("Campfire"))
@@ -1330,11 +1375,19 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
         var isCrown = definition.Tags.Contains("PalmCrown");
         var yieldCount = 0;
-        foreach (var d in completedInteraction.Yields) yieldCount += d.Count;
+        var sticks = 0;
+        var boards = 0;
+        foreach (var d in completedInteraction.Yields)
+        {
+            yieldCount += d.Count;
+            if (d.DefinitionId == ContentIds.Stick) sticks += d.Count;
+            if (d.DefinitionId == ContentIds.Board) boards += d.Count;
+        }
         Trace.Emit(world, npc.Id, isCrown ? "CrownChopped" : "LogSplit",
             isCrown
                 ? $"{worldObject.DefinitionId} -> {yieldCount} leaves"
-                : $"{worldObject.DefinitionId} -> {SimBalance.LogSplitYield} sticks");
+                : $"{worldObject.DefinitionId} -> {sticks} sticks" +
+                  (boards > 0 ? $" + {boards} boards" : string.Empty));
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
         }
 
@@ -2065,22 +2118,45 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return null;
     }
 
-    private static InteractionDefinition? ResolveInteraction(ObjectDefinition definition, InteractionType? type)
+    private static InteractionDefinition? ResolveInteraction(
+        WorldState world, NPCState npc, ObjectDefinition definition, InteractionType? type)
     {
         if (type is null)
         {
             return definition.Interactions.Count > 0 ? definition.Interactions[0] : null;
         }
 
+        InteractionDefinition first = null;
+        InteractionDefinition executable = null;
+        var wantsBoards = type == InteractionType.Process &&
+            definition.Id == ContentIds.Log &&
+            DecisionSystem.WoodenProstheticBoardShortfall(world, npc) > 0;
         foreach (var interaction in definition.Interactions)
         {
-            if (interaction.Type == type.Value)
+            if (interaction.Type != type.Value)
+            {
+                continue;
+            }
+
+            first ??= interaction;
+            var canExecute = interaction.RequiredCapabilities.Count == 0 ||
+                DecisionSystem.HasAnyCapability(npc, interaction.RequiredCapabilities);
+            if (!canExecute)
+            {
+                continue;
+            }
+
+            executable ??= interaction;
+            if (wantsBoards && interaction.Yields.Exists(
+                    drop => drop.DefinitionId == ContentIds.Board))
             {
                 return interaction;
             }
         }
 
-        return null;
+        // Returning the first matching action when none is executable keeps
+        // the existing, specific "missing capability" failure message.
+        return executable ?? first;
     }
 }
 

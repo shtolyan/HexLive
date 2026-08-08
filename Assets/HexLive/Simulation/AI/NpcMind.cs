@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HexLive.Simulation.Content;
 
 namespace HexLive.Simulation.AI
 {
@@ -196,6 +197,14 @@ public sealed class NPCMind
     public int AidErrandUntilTick { get; set; }
 
     public float AidErrandBid { get; set; }
+
+    // §119: long-lived promise to replace one ally's concrete missing limb.
+    // Unlike the short §53 aid handshake this survives ordinary replans/save.
+    public HexLive.Simulation.Common.EntityId? ProstheticAidTargetId { get; set; }
+
+    public BodyPart? ProstheticAidPart { get; set; }
+
+    public int ProstheticAidRetryAfterTick { get; set; }
 
     // Reactive combat aid: when a fleeing victim calls for help, responders
     // get a short-lived Defend goal pointed at the attacker.
@@ -494,7 +503,17 @@ public enum GoalType
     LootHelpless,
 
     // §115: прогнать враждебного NPC из своего лагеря. Append-only: сейв хранит ординал.
-    Expel
+    Expel,
+
+    // §116 append-only: rescue/medical intent and craft outputs.
+    Rescue,
+    PickUpPerson,
+    PutInBed,
+    Splint,
+    FitProsthetic,
+    CraftSplint,
+    CraftWoodenArm,
+    CraftWoodenLeg
 }
 
 public sealed class GoalScore

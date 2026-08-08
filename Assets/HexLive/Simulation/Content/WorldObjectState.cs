@@ -84,6 +84,26 @@ public sealed class WorldObjectState
 
     public int BillRope { get; set; }
 
+    // §119: boards are a first-class staged construction resource. The
+    // workbench's six board_* children are revealed from this exact channel.
+    public int BillBoards { get; set; }
+
+    // §119: one immutable work position chosen when a workbench site is staked.
+    // It rides onto the finished station and is the only legal craft approach.
+    public JunctionId? CraftJunction { get; set; }
+
+    // §119: an item craft is the output object itself, present in the world at
+    // zero progress. Ingredients live in Contents until completion/cancellation.
+    public int CraftWorkRequired { get; set; }
+
+    public int CraftWorkDone { get; set; }
+
+    public int CraftBatchCount { get; set; } = 1;
+
+    public ObjectId? CraftStationObjectId { get; set; }
+
+    public bool IsCraftProject => CraftWorkRequired > 0 && CraftWorkDone < CraftWorkRequired;
+
     // Spec §52: a garment is a container. When it is taken off (or torn), the
     // pocket items it carried ride down with it and live here on the ground
     // object — the NPC remembers (via perception) that its bottle is "in those

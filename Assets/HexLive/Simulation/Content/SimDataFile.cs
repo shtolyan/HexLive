@@ -22,7 +22,9 @@ namespace HexLive.Simulation.Content
         // v2: adds the "balance" (SimBalance/Spec*/HexHopTuning statics),
         // "garments" and per-interaction "effects" sections — before v2 the
         // headless harness ran on code-default balance despite §59.3.
-        public const int SchemaVersion = 2;
+        // v3: Kenshi damage profiles on gear and mobs.
+        // v4 (§119): every item recipe exports persistent base work and station.
+        public const int SchemaVersion = 4;
 
         /// <summary>§59.3: the MANDATORY form for probes/soaks — throws when
         /// the export is missing, unparseable or a STALE schema version (a v1
@@ -443,7 +445,7 @@ namespace HexLive.Simulation.Content
 
                     RecipeCatalog.Override(
                         Str(r, "output"), inputs.ToArray(),
-                        B(r, "needsLitFire"), Str(r, "station"));
+                        B(r, "needsLitFire"), Str(r, "station"), I(r, "baseWorkTicks", 0));
                 }
             }
         }
@@ -577,7 +579,14 @@ namespace HexLive.Simulation.Content
 
             sb.Append("\n  ],\n  \"worldObjects\": [\n");
             first = true;
-            foreach (var def in Sorted(WorldObjectLibrary.Registered, d => d.Id))
+            // Export the effective catalog, not just ScriptableObject
+            // overrides. Otherwise a code-default object added since the last
+            // JSON export (splints/prostheses in §118) is absent forever when a
+            // headless process loads the old JSON and immediately re-exports.
+            var effectiveObjects = new Dictionary<string, ObjectDefinition>(
+                PrototypeContentCatalog.CreateDefaults());
+            WorldObjectLibrary.ApplyTo(effectiveObjects);
+            foreach (var def in Sorted(effectiveObjects.Values, d => d.Id))
             {
                 if (!first) sb.Append(",\n");
                 first = false;
@@ -661,7 +670,7 @@ namespace HexLive.Simulation.Content
                 first = false;
                 sb.Append("    {")
                   .Append($"\"output\": {Q(pair.Key)}, \"needsLitFire\": {(r.NeedsLitFire ? "true" : "false")}, ")
-                  .Append($"\"station\": {Q(r.Station)}, \"inputs\": [");
+                  .Append($"\"station\": {Q(r.Station)}, \"baseWorkTicks\": {r.BaseWorkTicks}, \"inputs\": [");
                 for (var i = 0; i < r.Inputs.Count; i++)
                 {
                     if (i > 0) sb.Append(", ");

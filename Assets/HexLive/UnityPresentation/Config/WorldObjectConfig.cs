@@ -142,7 +142,12 @@ namespace HexLive.UnityPresentation.Config
             if (inputs.Count > 0)
             {
                 RecipeCatalog.Override(objectId, inputs.ToArray(), craftNeedsLitFire,
-                    craftStation == CraftPlace.Campfire ? "Campfire" : "");
+                    craftStation switch
+                    {
+                        CraftPlace.Campfire => "Campfire",
+                        CraftPlace.Workbench => "Workbench",
+                        _ => ""
+                    });
             }
         }
 

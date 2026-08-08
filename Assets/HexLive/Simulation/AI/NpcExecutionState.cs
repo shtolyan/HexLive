@@ -73,6 +73,12 @@ public sealed class NPCExecutionState
     // alive at each beat's end gets consumed / taken; an aborted craft simply
     // leaves them lying as ordinary world items.
     public System.Collections.Generic.List<ObjectId> CraftLayout { get; } = new();
+
+    // §119: output object receiving this 24-work-unit cycle. The progress is
+    // owned by the object; this link is only the worker's current handle.
+    public ObjectId? CraftProjectId { get; set; }
+
+    public int CraftCycleStartWork { get; set; }
 }
 
 public enum ExecutionStatus

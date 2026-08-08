@@ -53,7 +53,8 @@ public static class WorldSaveSerializer
     // вдвое), а была таймером вида — и потому обнулялась перезагрузкой молча.
     // v27 (§72.14): число уже высаженных трёхдневных волн. Без него убитая
     // волна возвращалась бы после загрузки, если выводить прогресс из ростера.
-    public const int BlobVersion = 27;
+    // v28 (§119): workbench bills, persistent craft projects and aid pledges.
+    public const int BlobVersion = 28;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -593,6 +594,14 @@ public static class WorldSaveSerializer
         // v13 (§66): the yaw a built piece stands at. Pre-v13 saves read 0 —
         // an old world's furniture keeps facing exactly where it always did.
         w.Write(obj.RotationDegrees);
+
+        // v28 (§119), append-only object extension.
+        w.Write(obj.BillBoards);
+        WriteNullableJunction(w, obj.CraftJunction);
+        w.Write(obj.CraftWorkRequired);
+        w.Write(obj.CraftWorkDone);
+        w.Write(obj.CraftBatchCount);
+        WriteNullableObject(w, obj.CraftStationObjectId);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -643,6 +652,16 @@ public static class WorldSaveSerializer
 
         // v13 (§66): built-piece yaw; absent before v13 ⇒ 0 (old placement).
         obj.RotationDegrees = version >= 13 ? r.ReadSingle() : 0f;
+
+        if (version >= 28)
+        {
+            obj.BillBoards = r.ReadInt32();
+            obj.CraftJunction = ReadNullableJunction(r);
+            obj.CraftWorkRequired = r.ReadInt32();
+            obj.CraftWorkDone = r.ReadInt32();
+            obj.CraftBatchCount = r.ReadInt32();
+            obj.CraftStationObjectId = ReadNullableObject(r);
+        }
 
         return obj;
     }
@@ -984,6 +1003,17 @@ public static class WorldSaveSerializer
 
         w.Write(npc.Inventory.Capacity);
         WriteItemList(w, npc.Inventory.Items);
+
+        // §119 / v28: the compassionate promise and current persistent project.
+        WriteNullableEntity(w, npc.Mind.ProstheticAidTargetId);
+        w.Write(npc.Mind.ProstheticAidPart.HasValue);
+        if (npc.Mind.ProstheticAidPart.HasValue)
+        {
+            w.Write((int)npc.Mind.ProstheticAidPart.Value);
+        }
+        w.Write(npc.Mind.ProstheticAidRetryAfterTick);
+        WriteNullableObject(w, npc.Execution.CraftProjectId);
+        w.Write(npc.Execution.CraftCycleStartWork);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -1365,6 +1395,15 @@ public static class WorldSaveSerializer
 
         npc.Inventory.Capacity = r.ReadInt32();
         ReadItemList(r, npc.Inventory.Items, version);
+
+        if (version >= 28)
+        {
+            npc.Mind.ProstheticAidTargetId = ReadNullableEntity(r);
+            npc.Mind.ProstheticAidPart = r.ReadBoolean() ? (BodyPart)r.ReadInt32() : null;
+            npc.Mind.ProstheticAidRetryAfterTick = r.ReadInt32();
+            npc.Execution.CraftProjectId = ReadNullableObject(r);
+            npc.Execution.CraftCycleStartWork = r.ReadInt32();
+        }
 
         return npc;
     }

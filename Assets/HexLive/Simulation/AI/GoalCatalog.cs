@@ -231,6 +231,15 @@ public static class GoalCatalog
             craftOutputs: new[] { ContentIds.Cloth },
             craftTrace: "CraftedCloth", craftNeedsHands: true);
         Add(GoalType.CraftBandage, InteractionType.Craft);
+        Add(GoalType.CraftSplint, InteractionType.Craft,
+            craftOutputs: new[] { ContentIds.Splint },
+            craftTrace: "CraftedSplint", craftNeedsHands: true);
+        Add(GoalType.CraftWoodenArm, InteractionType.Craft,
+            craftOutputs: new[] { ContentIds.WoodenArm },
+            craftTrace: "CraftedWoodenArm", craftNeedsHands: true);
+        Add(GoalType.CraftWoodenLeg, InteractionType.Craft,
+            craftOutputs: new[] { ContentIds.WoodenLeg },
+            craftTrace: "CraftedWoodenLeg", craftNeedsHands: true);
         Add(GoalType.CraftLeather, InteractionType.Craft);
         Add(GoalType.CookMeat, InteractionType.Craft);
         Add(GoalType.CraftBed, InteractionType.Craft);
@@ -256,6 +265,15 @@ public static class GoalCatalog
             ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
         Add(GoalType.Expel, urgency: UrgencyClass.Hurry,
             ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
+        Add(GoalType.Rescue, urgency: UrgencyClass.Hurry, reactive: true);
+        // These two append-only GoalType ordinals reserve the names used by
+        // the matching plan steps/interactions. Rescue owns the actual goal;
+        // treating the steps as independent reactive goals would advertise
+        // behaviours that no system can ever assign.
+        Add(GoalType.PickUpPerson, dead: true);
+        Add(GoalType.PutInBed, dead: true);
+        Add(GoalType.Splint, urgency: UrgencyClass.Hurry, reactive: true);
+        Add(GoalType.FitProsthetic, urgency: UrgencyClass.Hurry, reactive: true);
 
         // §28.15F: обобрать тело. Взаимодействие снимает ОДНУ вещь, поэтому
         // раздеть покойную целиком — это несколько отдельных походов, а не один

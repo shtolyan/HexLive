@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using HexLive.Simulation.Content;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Environment
@@ -20,6 +21,7 @@ namespace HexLive.UnityPresentation.Environment
         private readonly List<GameObject> _ropes = new();
         private readonly List<GameObject> _leaves = new();
         private readonly List<GameObject> _stones = new(); // §54.14: campfire ring
+        private readonly List<GameObject> _boards = new(); // §119: workbench braces/top
         private bool _scanned;
 
         private void Scan()
@@ -98,7 +100,7 @@ namespace HexLive.UnityPresentation.Environment
         private static bool IsLogicalPiece(string name) =>
             name.StartsWith("log_") || name.StartsWith("stick_") ||
             name.StartsWith("rope_") || name.StartsWith("leaf_") ||
-            name.StartsWith("stone_");
+            name.StartsWith("stone_") || name.StartsWith("board_");
 
         private void AddPiece(Transform t)
         {
@@ -108,17 +110,20 @@ namespace HexLive.UnityPresentation.Environment
             else if (n.StartsWith("rope_")) _ropes.Add(t.gameObject);
             else if (n.StartsWith("leaf_")) _leaves.Add(t.gameObject);
             else if (n.StartsWith("stone_")) _stones.Add(t.gameObject);
+            else if (n.StartsWith("board_")) _boards.Add(t.gameObject);
         }
 
         /// Show the whole bed (every piece on).
         public void ApplyAll()
         {
             Scan();
-            Apply(_logs.Count, _sticks.Count, _ropes.Count, _leaves.Count, _stones.Count);
+            Apply(_logs.Count, _sticks.Count, _ropes.Count, _leaves.Count, _stones.Count,
+                _boards.Count);
         }
 
         /// Show only the delivered pieces: the first N of each material on, rest off.
-        public void Apply(int logs, int sticks, int ropes, int leaves, int stones = 0)
+        public void Apply(int logs, int sticks, int ropes, int leaves, int stones = 0,
+            int boards = 0)
         {
             Scan();
             Toggle(_logs, logs);
@@ -126,6 +131,7 @@ namespace HexLive.UnityPresentation.Environment
             Toggle(_ropes, ropes);
             Toggle(_leaves, leaves);
             Toggle(_stones, stones);
+            Toggle(_boards, boards);
         }
 
         private static void Toggle(List<GameObject> list, int on)
@@ -156,6 +162,7 @@ namespace HexLive.UnityPresentation.Environment
             "station.drying_rack" => "drying_rack_final",
             "campfire.spot" => "campfire_final_native",
             "station.water_collector" => "water_collector_final_native",
+            ContentIds.Workbench => "station.workbench",
             _ => "bed_leaf_final_native"
         };
 
@@ -164,7 +171,7 @@ namespace HexLive.UnityPresentation.Environment
         /// the grow-in-place build-site view.
         public static bool IsAssembled(string product) =>
             product is "bed.leaf" or "bed.basic" or "station.drying_rack"
-                or "campfire.spot" or "station.water_collector";
+                or "campfire.spot" or "station.water_collector" or ContentIds.Workbench;
 
         private static GameObject? Instantiate(string product, out BedAssembly asm)
         {
@@ -317,6 +324,10 @@ namespace HexLive.UnityPresentation.Environment
                         Vector3.zero, new Color(0.25f, 0.53f, 0.23f));
                     break;
 
+                case ContentIds.Workbench:
+                    AddWorkbenchFallback(root.transform);
+                    break;
+
                 default: // leaf/basic beds
                     for (var i = 0; i < 4; i++)
                     {
@@ -357,6 +368,45 @@ namespace HexLive.UnityPresentation.Environment
             AddPiece(root, "rope_lashing_r", PrimitiveType.Sphere,
                 Vector3.one * radius * 2.4f, new Vector3(halfWidth, height, 0f),
                 Vector3.zero, new Color(0.72f, 0.58f, 0.34f));
+        }
+
+        private static void AddWorkbenchFallback(Transform root)
+        {
+            var wood = new Color(0.43f, 0.27f, 0.14f);
+            var board = new Color(0.58f, 0.43f, 0.25f);
+            var x = 0.42f;
+            var z = 0.30f;
+            for (var i = 0; i < 4; i++)
+            {
+                AddPiece(root, $"stick_workbench_{i:00}", PrimitiveType.Cube,
+                    new Vector3(0.055f, 0.39f, 0.055f),
+                    new Vector3(i % 2 == 0 ? -x : x, 0.39f, i < 2 ? -z : z),
+                    Vector3.zero, wood);
+            }
+            AddPiece(root, "stick_workbench_04", PrimitiveType.Cube,
+                new Vector3(0.44f, 0.045f, 0.045f), new Vector3(0f, 0.28f, -z),
+                Vector3.zero, wood);
+            AddPiece(root, "stick_workbench_05", PrimitiveType.Cube,
+                new Vector3(0.44f, 0.045f, 0.045f), new Vector3(0f, 0.28f, z),
+                Vector3.zero, wood);
+            AddPiece(root, "board_workbench_brace_left", PrimitiveType.Cube,
+                new Vector3(0.035f, 0.32f, 0.055f), new Vector3(-x, 0.42f, 0f),
+                new Vector3(42f, 0f, 0f), board);
+            AddPiece(root, "board_workbench_brace_right", PrimitiveType.Cube,
+                new Vector3(0.035f, 0.32f, 0.055f), new Vector3(x, 0.42f, 0f),
+                new Vector3(-42f, 0f, 0f), board);
+            AddPiece(root, "rope_workbench_00", PrimitiveType.Sphere,
+                new Vector3(0.07f, 0.04f, 0.07f), new Vector3(-x, 0.72f, 0f),
+                Vector3.zero, new Color(0.72f, 0.58f, 0.34f));
+            AddPiece(root, "rope_workbench_01", PrimitiveType.Sphere,
+                new Vector3(0.07f, 0.04f, 0.07f), new Vector3(x, 0.72f, 0f),
+                Vector3.zero, new Color(0.72f, 0.58f, 0.34f));
+            for (var i = 0; i < 4; i++)
+            {
+                AddPiece(root, $"board_workbench_{i:00}", PrimitiveType.Cube,
+                    new Vector3(0.49f, 0.025f, 0.09f),
+                    new Vector3(0f, 0.755f, -0.27f + i * 0.18f), Vector3.zero, board);
+            }
         }
 
         private static void AddPiece(Transform root, string name, PrimitiveType type,
@@ -403,10 +453,11 @@ namespace HexLive.UnityPresentation.Environment
 
         /// A build-site in progress — only the delivered pieces of each material.
         public static GameObject? BuildPartial(
-            string product, int logs, int sticks, int ropes, int leaves, int stones = 0)
+            string product, int logs, int sticks, int ropes, int leaves, int stones = 0,
+            int boards = 0)
         {
             var go = Instantiate(product, out var asm);
-            asm?.Apply(logs, sticks, ropes, leaves, stones);
+            asm?.Apply(logs, sticks, ropes, leaves, stones, boards);
             return go;
         }
     }

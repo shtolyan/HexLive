@@ -18,6 +18,7 @@ public static class PlanInterruption
 {
     public static void Abort(WorldState world, NPCState npc, string reason)
     {
+        CraftProjectMath.ReleaseWorker(world, npc);
         ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Plan.TargetObjectId is { } objId &&

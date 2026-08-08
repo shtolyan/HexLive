@@ -53,7 +53,8 @@ public sealed partial class ExecutionSystem
             $"stones {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialStones)}/{site.BillStones} " +
             $"leaves {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLeaves)}/{site.BillLeaves} " +
             $"sticks {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks)}/{site.BillSticks} " +
-            $"rope {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialRope)}/{site.BillRope}");
+            $"rope {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialRope)}/{site.BillRope} " +
+            $"boards {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialBoards)}/{site.BillBoards}");
     }
 
     // §77: the mid-animation handoff, called from the in-progress branch. The
@@ -180,6 +181,11 @@ public sealed partial class ExecutionSystem
                 var raised = WorldObjectMutations.SpawnObject(world, product, npc.Fragment, tile, j);
                 raised.Owner = owner;
                 raised.RotationDegrees = yaw;
+                if (product == ContentIds.Workbench)
+                {
+                    raised.CraftJunction = StructurePlacement.WorkbenchJunction(
+                        world, tile, j, yaw);
+                }
             }
 
             Trace.Emit(world, npc.Id, "FurnitureBuilt",

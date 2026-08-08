@@ -55,8 +55,10 @@ public static class WorldSnapshotCodec
     /// портрета показывает ЕЁ, а не среднее по семи зонам.
     /// v11: §105.14 IsPlayingDead — притворяется мёртвой; вид держит её
     /// упавшей, а панель показывает чип и строку состояния.
-    /// v12: §111.12 item id carried by a social cue bubble.
-    public const int WireVersion = 12;
+    /// v12: §116 typed body conditions, wounds, prosthetics and carry links.
+    /// v13: §32 CompassionTrait + §34 melee stat multipliers for item cards.
+    /// v14: §111.12 item id carried by a social cue bubble.
+    public const int WireVersion = 15;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -249,6 +251,7 @@ public static class WorldSnapshotCodec
         Variant = 1 << 1,
         BuildProduct = 1 << 2,
         Owner = 1 << 3,
+        CraftProject = 1 << 4,
     }
 
     // Definition ids repeat across every object; both ends derive the same table
@@ -293,9 +296,9 @@ public static class WorldSnapshotCodec
     {
         var parts = ObjectParts.None;
         if (o.BillLogs != 0 || o.BillStones != 0 || o.BillLeaves != 0 ||
-            o.BillSticks != 0 || o.BillRope != 0 ||
+            o.BillSticks != 0 || o.BillRope != 0 || o.BillBoards != 0 ||
             o.DeliveredLogs != 0 || o.DeliveredStones != 0 || o.DeliveredLeaves != 0 ||
-            o.DeliveredSticks != 0 || o.DeliveredRope != 0 ||
+            o.DeliveredSticks != 0 || o.DeliveredRope != 0 || o.DeliveredBoards != 0 ||
             o.RoastingRaw != 0 || o.RoastingCooked != 0)
         {
             parts |= ObjectParts.BuildSite;
@@ -314,6 +317,12 @@ public static class WorldSnapshotCodec
         if (o.OwnerNpcId.HasValue)
         {
             parts |= ObjectParts.Owner;
+        }
+
+        if (o.CraftWorkRequired > 0 || o.CraftWorkDone > 0 ||
+            o.CraftStationObjectId.HasValue || o.CraftIngredients.Count > 0)
+        {
+            parts |= ObjectParts.CraftProject;
         }
 
         w.Write((byte)parts);
@@ -344,23 +353,35 @@ public static class WorldSnapshotCodec
             WireIo.WriteString(w, o.BuildProduct);
         }
 
-        if ((parts & ObjectParts.BuildSite) == 0)
+        if ((parts & ObjectParts.BuildSite) != 0)
         {
-            return;
+            w.Write(o.BillLogs);
+            w.Write(o.BillStones);
+            w.Write(o.BillLeaves);
+            w.Write(o.DeliveredLogs);
+            w.Write(o.DeliveredStones);
+            w.Write(o.DeliveredLeaves);
+            w.Write(o.BillSticks);
+            w.Write(o.BillRope);
+            w.Write(o.DeliveredSticks);
+            w.Write(o.DeliveredRope);
+            w.Write(o.RoastingRaw);
+            w.Write(o.RoastingCooked);
+            w.Write(o.BillBoards);
+            w.Write(o.DeliveredBoards);
         }
 
-        w.Write(o.BillLogs);
-        w.Write(o.BillStones);
-        w.Write(o.BillLeaves);
-        w.Write(o.DeliveredLogs);
-        w.Write(o.DeliveredStones);
-        w.Write(o.DeliveredLeaves);
-        w.Write(o.BillSticks);
-        w.Write(o.BillRope);
-        w.Write(o.DeliveredSticks);
-        w.Write(o.DeliveredRope);
-        w.Write(o.RoastingRaw);
-        w.Write(o.RoastingCooked);
+        if ((parts & ObjectParts.CraftProject) != 0)
+        {
+            w.Write(o.CraftWorkRequired);
+            w.Write(o.CraftWorkDone);
+            w.Write(o.CraftBatchCount);
+            w.Write(o.CraftActive);
+            w.Write(o.CraftStationObjectId.HasValue);
+            if (o.CraftStationObjectId.HasValue) w.Write(o.CraftStationObjectId.Value);
+            w.Write(o.CraftIngredients.Count);
+            foreach (var ingredient in o.CraftIngredients) WireIo.WriteString(w, ingredient);
+        }
     }
 
     private static void ReadObjects(BinaryReader r, WorldSnapshot into)
@@ -412,21 +433,46 @@ public static class WorldSnapshotCodec
                 o.DeliveredRope = r.ReadInt32();
                 o.RoastingRaw = r.ReadInt32();
                 o.RoastingCooked = r.ReadInt32();
-                return;
+                o.BillBoards = r.ReadInt32();
+                o.DeliveredBoards = r.ReadInt32();
+            }
+            else
+            {
+                o.BillLogs = 0;
+                o.BillStones = 0;
+                o.BillLeaves = 0;
+                o.DeliveredLogs = 0;
+                o.DeliveredStones = 0;
+                o.DeliveredLeaves = 0;
+                o.BillSticks = 0;
+                o.BillRope = 0;
+                o.DeliveredSticks = 0;
+                o.DeliveredRope = 0;
+                o.RoastingRaw = 0;
+                o.RoastingCooked = 0;
+                o.BillBoards = 0;
+                o.DeliveredBoards = 0;
             }
 
-            o.BillLogs = 0;
-            o.BillStones = 0;
-            o.BillLeaves = 0;
-            o.DeliveredLogs = 0;
-            o.DeliveredStones = 0;
-            o.DeliveredLeaves = 0;
-            o.BillSticks = 0;
-            o.BillRope = 0;
-            o.DeliveredSticks = 0;
-            o.DeliveredRope = 0;
-            o.RoastingRaw = 0;
-            o.RoastingCooked = 0;
+            o.CraftIngredients.Clear();
+            if ((parts & ObjectParts.CraftProject) != 0)
+            {
+                o.CraftWorkRequired = r.ReadInt32();
+                o.CraftWorkDone = r.ReadInt32();
+                o.CraftBatchCount = r.ReadInt32();
+                o.CraftActive = r.ReadBoolean();
+                o.CraftStationObjectId = r.ReadBoolean() ? r.ReadInt32() : (int?)null;
+                var count = r.ReadInt32();
+                for (var i = 0; i < count; i++) o.CraftIngredients.Add(r.ReadString());
+            }
+            else
+            {
+                o.CraftWorkRequired = 0;
+                o.CraftWorkDone = 0;
+                o.CraftBatchCount = 1;
+                o.CraftActive = false;
+                o.CraftStationObjectId = null;
+            }
         }
     }
 

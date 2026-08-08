@@ -16,13 +16,17 @@ public sealed partial class ExecutionSystem
     // Spec §54 (R2): recipe ingredient/gate check, sourced from RecipeCatalog so
     // the ingredient bill lives in one place (the §54 firewood→stick rewire
     // edits the catalog, not this switch). Returns false for any goal with no
-    // catalog entry — preserving the old switch's `_ => false` default (e.g.
-    // CraftBandage, deliberately not routed through the craft-start gate today).
+    // catalog entry — preserving the old switch's `_ => false` default.
     private static bool CraftGateOk(WorldState world, NPCState npc, WorldObjectState worldObject, GoalType goal)
     {
         if (!Content.RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe))
         {
             return false;
+        }
+
+        if (Content.RecipeCatalog.UsesPersistentProject(goal))
+        {
+            return CraftProjectMath.CanBeginCycle(world, npc, goal, worldObject);
         }
 
         foreach (var ing in recipe.Inputs)
@@ -168,6 +172,15 @@ public sealed partial class ExecutionSystem
                 Trace.Emit(world, npc.Id, "CraftedKnife",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
+            case GoalType.CraftSplint:
+                GiveOrDrop(world, npc, ContentIds.Splint);
+                return true;
+            case GoalType.CraftWoodenArm:
+                GiveOrDrop(world, npc, ContentIds.WoodenArm);
+                return true;
+            case GoalType.CraftWoodenLeg:
+                GiveOrDrop(world, npc, ContentIds.WoodenLeg);
+                return true;
             default:
                 return false;
         }
@@ -191,6 +204,11 @@ public sealed partial class ExecutionSystem
     private const int CraftInPlaceDurationTicks = 24;
 
     private const int CraftTakeDurationTicks = 6;
+
+    private static int CraftWorkBaseTicks(GoalType goal) =>
+        Spec118.Enabled && goal == GoalType.CraftSplint
+            ? Spec118.SplintCraftTicks
+            : CraftInPlaceDurationTicks;
 
     // §gear-craft v2: which inventory ITEMS the craft lays on the ground for
     // the take beat. Non-item outputs (the bandage counter, leather worn
@@ -278,6 +296,65 @@ public sealed partial class ExecutionSystem
     }
 
     private static void RunCraftInPlace(WorldState world, NPCState npc)
+    {
+        var goal = npc.Plan.Goal != GoalType.None ? npc.Plan.Goal : npc.Mind.CurrentGoal;
+        if (!RecipeCatalog.UsesPersistentProject(goal) ||
+            !RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe) ||
+            !string.IsNullOrEmpty(recipe.Station))
+        {
+            RunLegacyCraftInPlace(world, npc);
+            return;
+        }
+
+        if (npc.Execution.Status == ExecutionStatus.None &&
+            npc.Plan.TargetJunctionId is { } walkTarget)
+        {
+            if (npc.Movement.IsMoving) return;
+            if (npc.Movement.Status == MovementStatus.Blocked)
+            {
+                PlanningSystem.SetGoalCooldown(world, npc, goal);
+                PlanInterruption.Abort(world, npc,
+                    $"CraftInPlace {goal}: project point unreachable");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+            if (npc.CurrentJunction is not { } at || !at.Equals(walkTarget)) return;
+        }
+
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            if (!CraftProjectMath.TryBeginCycle(world, npc, goal, null, out var project))
+            {
+                PlanningSystem.SetGoalCooldown(world, npc, goal);
+                npc.Plan.Status = PlanStatus.Failed;
+                Trace.Emit(world, npc.Id, "ExecFailed",
+                    $"CraftInPlace {goal}: no resumable project or complete bill");
+                return;
+            }
+
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.Craft;
+            npc.Execution.TargetObject = project.Id;
+            npc.Execution.StartTick = world.Tick;
+            var ticks = AttributeMath.WorkTicks(
+                npc, Spec119.CraftCycleWork, InteractionType.Craft, goal);
+            npc.Execution.EndTick = world.Tick + ticks;
+            Trace.Emit(world, npc.Id, "InteractionStarted",
+                $"CraftInPlace {goal} Project={project.Id.Value} Duration={ticks}ticks");
+            return;
+        }
+
+        if (npc.Execution.Status != ExecutionStatus.InProgress) return;
+        CraftProjectMath.UpdateCycleProgress(world, npc);
+        if (world.Tick < npc.Execution.EndTick) return;
+
+        CraftProjectMath.CompleteCycle(world, npc, goal);
+        SkillTrace.Award(world, npc, InteractionType.Craft,
+            npc.Execution.EndTick - npc.Execution.StartTick);
+        FinishCraftInPlace(world, npc, goal);
+    }
+
+    private static void RunLegacyCraftInPlace(WorldState world, NPCState npc)
     {
         var goal = npc.Plan.Goal != GoalType.None ? npc.Plan.Goal : npc.Mind.CurrentGoal;
         if (!Content.RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe))
@@ -395,7 +472,7 @@ public sealed partial class ExecutionSystem
             // the one duration outside the world-object path that a colonist can
             // actually get better at.
             var craftTicks = AttributeMath.WorkTicks(
-                npc, CraftInPlaceDurationTicks, InteractionType.Craft, goal);
+                npc, CraftWorkBaseTicks(goal), InteractionType.Craft, goal);
             npc.Execution.EndTick = world.Tick + craftTicks;
             FaceCraftLayout(world, npc); // §61: kneel TOWARD the laid-out pieces
             Trace.Emit(world, npc.Id, "InteractionStarted",
@@ -484,7 +561,7 @@ public sealed partial class ExecutionSystem
         // faster at a trade has to slow how fast you keep getting faster, or
         // the two paths reward practice differently for no reason.
         SkillTrace.Award(world, npc, InteractionType.Craft,
-            AttributeMath.WorkTicks(npc, CraftInPlaceDurationTicks, InteractionType.Craft, goal));
+            AttributeMath.WorkTicks(npc, CraftWorkBaseTicks(goal), InteractionType.Craft, goal));
         FinishCraftInPlace(world, npc, goal);
     }
 

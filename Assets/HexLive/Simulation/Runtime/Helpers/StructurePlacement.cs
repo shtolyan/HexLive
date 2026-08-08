@@ -179,6 +179,55 @@ internal static class StructurePlacement
         return Normalize(HexSpatialMath.AngleDegrees(new Float2(dx, dy)));
     }
 
+    // §119: the workbench has an authored work point exactly two interior
+    // sub-grid steps (0.75 wu) in front of its local -Z side. Junction spokes
+    // sit at 30°+60°k (not 0°+60°k), so quantising to those six axes makes the
+    // desired point an exact stable junction instead of merely a nearest one.
+    public static float QuantizeHexYaw(float degrees)
+    {
+        var shifted = Normalize(degrees - 30f);
+        var step = (int)System.Math.Round(shifted / 60f) % 6;
+        return Normalize(30f + step * 60f);
+    }
+
+    public static JunctionId? WorkbenchJunction(
+        WorldState world, TileCoord tile, JunctionId anchorId, float stationYaw)
+    {
+        if (!world.Junctions.Items.TryGetValue(anchorId, out var anchor))
+        {
+            return null;
+        }
+
+        var radians = (stationYaw + 180f) * (System.MathF.PI / 180f);
+        var desired = new Float2(
+            anchor.WorldPosition.X + System.MathF.Cos(radians) * Spec119.WorkbenchStandDistance,
+            anchor.WorldPosition.Y + System.MathF.Sin(radians) * Spec119.WorkbenchStandDistance);
+        JunctionId? best = null;
+        var bestSq = float.MaxValue;
+        for (var dq = -1; dq <= 1; dq++)
+        {
+            for (var dr = -1; dr <= 1; dr++)
+            {
+                var coord = new TileCoord(tile.Q + dq, tile.R + dr);
+                if (!world.Tiles.Items.TryGetValue(coord, out var candidateTile)) continue;
+                foreach (var id in candidateTile.Junctions)
+                {
+                    if (!world.Junctions.Items.TryGetValue(id, out var junction) ||
+                        junction.Blocked || !SpatialQueries.IsJunctionFree(world, id)) continue;
+                    var dx = junction.WorldPosition.X - desired.X;
+                    var dy = junction.WorldPosition.Y - desired.Y;
+                    var sq = dx * dx + dy * dy;
+                    if (sq < bestSq)
+                    {
+                        bestSq = sq;
+                        best = id;
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
     // Wrapped into (0, 360] — NOT [0, 360). Exactly 0 is reserved to mean "no
     // §66 facing was ever assigned" (every object predating §66, every loose
     // item), which is how the presentation tells a placed piece from an old one

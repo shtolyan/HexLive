@@ -43,14 +43,18 @@ public sealed class Recipe
     // asset clears or changes it.
     public string Station { get; }
 
+    // §119: persistent work units required by the world-bound output object.
+    public int BaseWorkTicks { get; }
+
     public Recipe(GoalType goal, RecipeIngredient[] inputs, bool needsLitFire = false,
-        bool requiresNoRack = false, string station = "Campfire")
+        bool requiresNoRack = false, string station = "Campfire", int baseWorkTicks = 24)
     {
         Goal = goal;
         Inputs = inputs;
         NeedsLitFire = needsLitFire;
         RequiresNoRack = requiresNoRack;
         Station = needsLitFire && string.IsNullOrEmpty(station) ? "Campfire" : (station ?? "");
+        BaseWorkTicks = System.Math.Max(1, baseWorkTicks);
     }
 }
 
@@ -81,14 +85,21 @@ public static class RecipeCatalog
         ["resource.cloth"] = GoalType.CraftCloth,
         ["item.bandage"] = GoalType.CraftBandage,
         ["food.meat_cooked"] = GoalType.CookMeat,
-        ["resource.leather"] = GoalType.CraftLeather,
+        // Leather craft actually produces the wearable pants. The old
+        // pseudo-output "resource.leather" had no world definition and only
+        // worked while completion applied the garment as an invisible side
+        // effect; §119 needs the real output object to exist at 0%.
+        [ContentIds.LeatherPants] = GoalType.CraftLeather,
+        [ContentIds.Splint] = GoalType.CraftSplint,
+        [ContentIds.WoodenArm] = GoalType.CraftWoodenArm,
+        [ContentIds.WoodenLeg] = GoalType.CraftWoodenLeg,
     };
 
     /// <summary>Asset-driven recipe for an output item: replaces the default's
     /// inputs/fire flag (RequiresNoRack is preserved). Unknown output ids are
     /// ignored — a craft needs its goal-layer verb to exist.</summary>
     public static void Override(string outputId, RecipeIngredient[] inputs, bool needsLitFire,
-        string station = "Campfire")
+        string station = "Campfire", int baseWorkTicks = 0)
     {
         if (string.IsNullOrEmpty(outputId) || inputs == null ||
             !GoalByOutput.TryGetValue(outputId, out var goal))
@@ -98,12 +109,25 @@ public static class RecipeCatalog
 
         _byGoal ??= Build();
         var noRack = _byGoal.TryGetValue(goal, out var existing) && existing.RequiresNoRack;
-        _byGoal[goal] = new Recipe(goal, inputs, needsLitFire, noRack, station);
+        var work = baseWorkTicks > 0 ? baseWorkTicks : existing?.BaseWorkTicks ?? Spec119.DefaultItemCraftWork;
+        _byGoal[goal] = new Recipe(goal, inputs, needsLitFire, noRack, station, work);
     }
 
     /// <summary>The craft's station tag; "" = craft in place, anywhere.</summary>
     public static string StationOf(GoalType goal) =>
         ByGoal.TryGetValue(goal, out var recipe) ? recipe.Station : "Campfire";
+
+    public static int WorkTicksOf(GoalType goal) =>
+        ByGoal.TryGetValue(goal, out var recipe) ? recipe.BaseWorkTicks : Spec119.DefaultItemCraftWork;
+
+    public static string OutputOf(GoalType goal)
+    {
+        foreach (var pair in GoalByOutput)
+        {
+            if (pair.Value == goal) return pair.Key;
+        }
+        return string.Empty;
+    }
 
     /// <summary>True for crafts whose output is an inventory ITEM (the ones an
     /// asset can re-home/re-price); placed-object crafts (bed/tent/rack) are
@@ -120,6 +144,12 @@ public static class RecipeCatalog
 
         return false;
     }
+
+    /// <summary>Crafts represented by a persistent 0..100% output object.
+    /// Cooking is deliberately excluded: its raw-meat object already lives on
+    /// the spit and FireSystem owns that separate roasting process.</summary>
+    public static bool UsesPersistentProject(GoalType goal) =>
+        goal != GoalType.CookMeat && IsItemOutputGoal(goal);
 
     public static void ResetToDefaults() => _byGoal = Build();
 
@@ -161,8 +191,9 @@ public static class RecipeCatalog
     {
         var d = new Dictionary<GoalType, Recipe>();
 
-        void Add(GoalType goal, RecipeIngredient[] inputs, bool fire = false, bool noRack = false) =>
-            d[goal] = new Recipe(goal, inputs, fire, noRack);
+        void Add(GoalType goal, RecipeIngredient[] inputs, bool fire = false, bool noRack = false,
+            string station = "Campfire", int work = 24) =>
+            d[goal] = new Recipe(goal, inputs, fire, noRack, station, work);
 
         RecipeIngredient I(string id, int count) => new(id, count);
 
@@ -188,6 +219,16 @@ public static class RecipeCatalog
         Add(GoalType.CraftRope, new[] { I("resource.fiber", SimBalance.RopeFiberCost) });
         Add(GoalType.CraftCloth, new[] { I("resource.fiber", SimBalance.ClothFiberCost) });
         Add(GoalType.CraftKnife, new[] { I("resource.stick", SimBalance.KnifeStickCost), I("resource.stone", SimBalance.KnifeStoneCost) });
+        Add(GoalType.CraftSplint, new[] { I(ContentIds.Stick, 2), I(ContentIds.Rope, 1) },
+            station: "");
+        Add(GoalType.CraftWoodenArm, new[]
+        {
+            I(ContentIds.Board, 2), I(ContentIds.Rope, 2), I(ContentIds.Hide, 1)
+        }, station: "Workbench", work: Spec119.WoodenProstheticCraftWork);
+        Add(GoalType.CraftWoodenLeg, new[]
+        {
+            I(ContentIds.Board, 3), I(ContentIds.Rope, 2), I(ContentIds.Hide, 1)
+        }, station: "Workbench", work: Spec119.WoodenProstheticCraftWork);
 
         return d;
     }

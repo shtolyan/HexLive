@@ -451,6 +451,26 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
+            // §119: the first dedicated crafting station. Its exact 0.98×0.76
+            // model is assembled from the numbered FBX hierarchy; this live
+            // object supplies the single fixed work point used by all crafters.
+            [ContentIds.Workbench] = new ObjectDefinition
+            {
+                Id = ContentIds.Workbench,
+                DisplayName = "Workbench",
+                Tags = { "Workbench", "CraftStation", "Furniture", "Obstacle" },
+                ObstacleRadius = Spec119.WorkbenchObstacleRadius,
+                SolidRadius = Spec119.WorkbenchObstacleRadius,
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "craft.workbench",
+                        Type = InteractionType.Craft,
+                        DurationTicks = Spec119.CraftCycleWork
+                    }
+                }
+            },
             // Spec §52: the builder's hammer — a multi-use Tool, like the
             // lighter/pot. Raising any piece at a build-site needs one in hand.
             ["tool.hammer"] = new ObjectDefinition
@@ -1180,10 +1200,67 @@ public static class PrototypeContentCatalog
             }
         };
 
+        // §116: medical supports and limb replacements are ordinary inventory
+        // objects. Side/installation state lives on the patient, not the item.
+        void AddPickupItem(string id, string name, params string[] tags)
+        {
+            var definition = new ObjectDefinition { Id = id, DisplayName = name };
+            foreach (var tag in tags) definition.Tags.Add(tag);
+            definition.Interactions.Add(new InteractionDefinition
+            {
+                Id = $"pickup.{id}",
+                Type = InteractionType.PickUp,
+                DurationTicks = 4
+            });
+            defs[id] = definition;
+        }
+
+        AddPickupItem(ContentIds.Board, "Board", "Wood", "Resource");
+        AddPickupItem(ContentIds.Splint, "Splint", "Medicine", "Splint");
+        AddPickupItem(ContentIds.WoodenArm, "Wooden arm", "Medicine", "Prosthetic");
+        AddPickupItem(ContentIds.WoodenLeg, "Wooden leg", "Medicine", "Prosthetic");
+        AddPickupItem(ContentIds.MechanicalArm, "Mechanical arm", "Medicine", "Prosthetic", "Mechanical");
+        AddPickupItem(ContentIds.MechanicalLeg, "Mechanical leg", "Medicine", "Prosthetic", "Mechanical");
+        AddPickupItem(ContentIds.MechanicalPart, "Mechanical part", "Resource", "Mechanical");
+
         // Spec §42: fold in the whole wearable wardrobe from the shared
         // library (built-in defaults, or the GarmentCatalog asset when the
         // Unity presentation layer applied it at startup).
         GarmentLibrary.AppendDefinitions(defs);
+
+        // CraftLeather has always awarded this legacy id, but no wardrobe
+        // entry authored a matching world definition. §119 makes the output a
+        // physical 0% object, so it must remain pickable/dressable even when a
+        // GarmentCatalog asset does not contain the old survival garment.
+        if (!defs.ContainsKey(ContentIds.LeatherPants))
+        {
+            var leatherPants = new ObjectDefinition
+            {
+                Id = ContentIds.LeatherPants,
+                DisplayName = "Hide Pants",
+                Layer = WearLayer.Wear,
+                InventoryCapacity = 4
+            };
+            leatherPants.Covers.Add(BodyPart.Pelvis);
+            leatherPants.Covers.Add(BodyPart.LegL);
+            leatherPants.Covers.Add(BodyPart.LegR);
+            leatherPants.Tags.Add("Clothing");
+            leatherPants.Tags.Add("Armor");
+            leatherPants.Interactions.Add(new InteractionDefinition
+            {
+                Id = "dress." + ContentIds.LeatherPants,
+                Type = InteractionType.Dress,
+                DurationTicks = 8,
+                Effects = { WarmthDelta = 0.16f, ArmorDelta = 0.08f }
+            });
+            leatherPants.Interactions.Add(new InteractionDefinition
+            {
+                Id = "pickup." + ContentIds.LeatherPants,
+                Type = InteractionType.PickUp,
+                DurationTicks = 4
+            });
+            defs[ContentIds.LeatherPants] = leatherPants;
+        }
         return defs;
     }
 }

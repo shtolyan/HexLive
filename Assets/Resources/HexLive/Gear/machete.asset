@@ -36,6 +36,7 @@ MonoBehaviour:
   handLocalPosition: {x: 0.054, y: -0.033, z: -0.076}
   handLocalEuler: {x: -27.667, y: 97.515, z: 87.548}
   handLocalScale: {x: 1, y: 1, z: 1}
+  preservePrefabRotationInHand: 1
   handHasLeftOverride: 0
   leftHandLocalPosition: {x: 0, y: 0, z: 0}
   leftHandLocalEuler: {x: 0, y: 0, z: 0}

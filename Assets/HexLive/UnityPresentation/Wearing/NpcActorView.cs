@@ -4117,6 +4117,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _handProp.name = $"HandProp {itemId}";
         _handPropRenderers = _handProp.GetComponentsInChildren<Renderer>();
 
+        // Some native mirrors keep the source-mesh axis correction on the
+        // prefab root. Applying the common grip used to overwrite that root
+        // rotation, making a correct ground model turn wrong only in hand.
+        var prefabAxisCorrection = _handProp.transform.localRotation;
+        var keepPrefabAxisCorrection =
+            Config.GearLibrary.ConfigFor(itemId)?.preservePrefabRotationInHand == true;
         // Size: normalize to the SAME world size the ground uses (ObjectFit), so a
         // tool/coconut is identical in hand and on the ground. The gear asset's
         // hand scale is a fine MULTIPLIER on top of this (default 1), not absolute.
@@ -4130,7 +4136,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 itemId, _leftHanded, out var cfgPos, out var cfgRot, out var cfgScale))
         {
             _handProp.transform.localPosition = cfgPos;
-            _handProp.transform.localRotation = cfgRot;
+            _handProp.transform.localRotation = keepPrefabAxisCorrection
+                ? cfgRot * prefabAxisCorrection
+                : cfgRot;
             _handProp.transform.localScale = cfgScale * fit; // config scale = multiplier
             return;
         }
@@ -4362,7 +4370,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             var biggest = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
-            var target = 1.7f * _bodyRoot.lossyScale.y * 0.5f; // weapon-length
+            // Bug #87: this legacy back-only target made the same weapon much
+            // larger than its held/dropped ObjectFit size. The player's visual
+            // correction is exactly one sixth of the old sling length.
+            var target = 1.7f * _bodyRoot.lossyScale.y * (0.5f / 6f);
             if (biggest > 0.0001f)
             {
                 _backProp.transform.localScale *= target / biggest;

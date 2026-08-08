@@ -108,6 +108,8 @@ namespace HexLive.UnityPresentation.Config
         public Vector3 handLocalEuler;
         [Tooltip("Тонкий МНОЖИТЕЛЬ масштаба поверх ObjectFit (ноль = единица).")]
         public Vector3 handLocalScale = Vector3.one;
+        [Tooltip("Сохранить корректирующий поворот корня prefab поверх общей позы хвата. Нужен моделям, чьи оси выровнены wrapper-prefab, а не самим mesh.")]
+        public bool preservePrefabRotationInHand;
         [Tooltip("Отдельный хват для левой руки; выкл = правый зеркалится автоматически.")]
         public bool handHasLeftOverride;
         public Vector3 leftHandLocalPosition;

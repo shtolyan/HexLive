@@ -289,7 +289,9 @@ namespace HexLive.UnityPresentation.AxeChopTest
         private void SpawnAxe()
         {
             if (_hand == null) return;
-            var prefab = Resources.Load<GameObject>($"HexLive/Objects/{toolId}");
+            // Use the same resolver as the game. Some build-safe native mirrors
+            // (notably the machete) do not live at the legacy direct Resources path.
+            var prefab = Config.GearLibrary.LoadPrefab(toolId);
             if (prefab == null)
             {
                 Debug.LogError($"[AxeChopTest] Axe prefab 'HexLive/Objects/{toolId}' not found");
@@ -298,6 +300,7 @@ namespace HexLive.UnityPresentation.AxeChopTest
 
             _axe = Instantiate(prefab, _hand);
             _axe.name = "AxeProp";
+            var prefabAxisCorrection = _axe.transform.localRotation;
             // Same world-size normalization the game uses (ObjectFit), so the
             // preview size == the in-game size. axeLocalScale is the fine MULTIPLIER
             // on top (default 1), matching the gear asset's hand-scale semantics.
@@ -306,7 +309,11 @@ namespace HexLive.UnityPresentation.AxeChopTest
             // transform is the source of truth (drag it in the Scene view / edit
             // its Transform — it holds through the swing; Save reads it back).
             _axe.transform.localPosition = axeLocalPosition;
-            _axe.transform.localRotation = Quaternion.Euler(axeLocalEuler);
+            var gripRotation = Quaternion.Euler(axeLocalEuler);
+            _axe.transform.localRotation =
+                Config.GearLibrary.ConfigFor(toolId)?.preservePrefabRotationInHand == true
+                    ? gripRotation * prefabAxisCorrection
+                    : gripRotation;
             _axe.transform.localScale = axeLocalScale * _fit;
         }
 

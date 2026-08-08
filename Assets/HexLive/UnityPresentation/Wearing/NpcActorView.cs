@@ -4675,6 +4675,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _backProp.name = $"BackProp {itemId}";
 
+        // Native wrapper prefabs may carry the axis conversion on their root
+        // (the machete does). Preserve it after applying the shared slot pose;
+        // otherwise the semantic +Y handle axis is no longer the visible one.
+        var prefabAxisCorrection = _backProp.transform.localRotation;
+
         // Bug #87 rework: back, hand and ground must not invent three physical
         // sizes for the same prefab. ObjectFit measures renderer bounds in world
         // space, so the same factor works here even below a scaled animated bone.
@@ -4684,16 +4689,46 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // of the FINAL fitted render bounds — prefab roots/pivots may live at a
         // grip, blade tip or arbitrary authoring origin and must not move the
         // visible weapon away from the body slot.
-        _backProp.transform.localRotation = Quaternion.Euler(-3.335f, -0.358f, 18.524f);
         _backProp.transform.localPosition = Vector3.zero;
 
         var slotLocal = new Vector3(0.105f, -0.200f, -0.078f);
         var renderers = _backProp.GetComponentsInChildren<Renderer>(true);
+        var slotRotation = Quaternion.Euler(-3.335f, -0.358f, 18.524f);
+        var config = Config.GearLibrary.ConfigFor(itemId);
+        var twoHanded = config != null
+            ? config.twoHanded
+            : GearCatalog.For(itemId).TwoHanded;
         if (renderers.Length == 0)
         {
+            _backProp.transform.localRotation = slotRotation *
+                (twoHanded ? Quaternion.identity : Quaternion.Euler(0f, 0f, 180f)) *
+                prefabAxisCorrection;
             _backProp.transform.localPosition = slotLocal;
             return;
         }
+
+        // The visible working-end direction is geometric: prefab wrappers can
+        // remap the authored +Y axis (machete: FBX +Z -> Unity +Y). The vector
+        // from the grip-root/pivot to the rendered centre survives that axis
+        // correction and points toward the blade/head/tip for every tool made
+        // to the shared pivot convention. Align that vector, not a guessed id
+        // axis, with the up/down direction selected by the canonical hand count.
+        var initialBounds = renderers[0].bounds;
+        for (var i = 1; i < renderers.Length; i++)
+        {
+            initialBounds.Encapsulate(renderers[i].bounds);
+        }
+
+        var workingWorld = initialBounds.center - _backProp.transform.position;
+        var workingLocal = back.InverseTransformDirection(workingWorld);
+        var desiredWorkingLocal = slotRotation *
+            (twoHanded ? Vector3.up : Vector3.down);
+        _backProp.transform.localRotation = workingLocal.sqrMagnitude > 0.000001f
+            ? Quaternion.FromToRotation(workingLocal.normalized, desiredWorkingLocal.normalized) *
+              prefabAxisCorrection
+            : slotRotation *
+              (twoHanded ? Quaternion.identity : Quaternion.Euler(0f, 0f, 180f)) *
+              prefabAxisCorrection;
 
         var combined = renderers[0].bounds;
         for (var i = 1; i < renderers.Length; i++)

@@ -1956,9 +1956,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return dx * dx + dy * dy <= StrikeReachWorldUnits * StrikeReachWorldUnits;
     }
 
-    // Spec 33.1: the weapon slung on the back — the carried spear/bow, so it
-    // is always visibly "equipped" even when idle. SetBackWeapon hides it if
-    // it happens to be in the hand this frame (fighting).
+    // Spec 33.1 / §75A: personal taste chooses the carried melee weapon for
+    // the existing upper-back slot. SetBackWeapon hides it while it is held.
     private static string BackWeaponFor(NpcSnapshot npc)
     {
         if (IsProne(npc))
@@ -1966,7 +1965,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return null;
         }
 
-        return npc.InventoryItems.Contains("tool.spear") ? "tool.spear" : null; // §gear: bow retired
+        return ItemAffinity.FavoriteWeapon(npc.Id.Value, npc.InventoryItems);
     }
 
     // Debug clothes-off mode treats the whole body as bare for skin decals.

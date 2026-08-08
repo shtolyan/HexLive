@@ -128,8 +128,16 @@ internal static class InventoryMath
     {
         ItemInstance worst = null;
         var worstImp = int.MaxValue;
+        var favoriteWeapon = ItemAffinity.FavoriteWeapon(npc.Id.Value, npc.Inventory.Items);
         foreach (var item in npc.Inventory.Items)
         {
+            // §75A: this weapon occupies the personal back slot and must not
+            // become an overflow victim during ordinary inventory management.
+            if (item.DefinitionId == favoriteWeapon)
+            {
+                continue;
+            }
+
             if (InventoryState.IsPersonalEffect(item.DefinitionId))
             {
                 continue;

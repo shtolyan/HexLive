@@ -3138,6 +3138,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // which plays the voice and shows the matching picture in one call.
     private NpcSpeechBubble _speechBubble;
     private UI.NpcSpeechDirector _speech;
+    private NpcWorldProgressBar _worldProgressBar;
+
+    public void SetWorldProgress(float progress, bool visible)
+    {
+        if (_worldProgressBar == null && _headBone != null)
+        {
+            var go = new GameObject("WorldProgressBar");
+            go.transform.SetParent(transform, false);
+            _worldProgressBar = go.AddComponent<NpcWorldProgressBar>();
+            _worldProgressBar.Initialize(_headBone);
+        }
+
+        _worldProgressBar?.SetProgress(progress, visible);
+    }
 
     public void SetTalkTopic(string topicName) => SetTalkTopic(topicName, null);
 

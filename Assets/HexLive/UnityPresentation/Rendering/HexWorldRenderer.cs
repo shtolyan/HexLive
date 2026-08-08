@@ -1470,12 +1470,34 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var earlyWaterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, earlyUncoveredForDecals, npc.Hygiene, earlyThermalForSweat,
             earlyRainWet, earlyWaterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
-            npc.Wounds, npc.BandagedZones, npc.SeveredParts);
+            npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
             npc.InteractionSeconds);
+        // §119/#83: one progress indicator belongs to the working person, not
+        // to the table/project. Its component follows the animated head bone in
+        // LateUpdate, so sitting and lying poses need no renderer-side offsets.
+        var showWorldProgress = false;
+        var worldProgress = 0f;
+        if (npc.ExecutionStatus == "InProgress" && npc.TargetObjectId is { } progressTargetId)
+        {
+            foreach (var progressObject in snapshot.Objects)
+            {
+                if (progressObject.Id.Value != progressTargetId ||
+                    progressObject.CraftWorkRequired <= 0)
+                {
+                    continue;
+                }
+
+                showWorldProgress = progressObject.CraftWorkDone < progressObject.CraftWorkRequired;
+                worldProgress = Mathf.Clamp01(progressObject.CraftWorkDone /
+                    (float)Mathf.Max(1, progressObject.CraftWorkRequired));
+                break;
+            }
+        }
+        actorView.SetWorldProgress(worldProgress, showWorldProgress);
         // Spec §52.8: leg-slung tools — the holster shows a carried axe/knife/
         // hammer on the thigh whenever that tool is not the one in her hand.
         actorView.SyncHolster(npc.HolsteredItems, heldItemId);

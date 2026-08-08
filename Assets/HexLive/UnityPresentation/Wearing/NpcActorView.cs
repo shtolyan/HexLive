@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using RootMotion.FinalIK;
 using UnityEngine;
+using UnityEngine.Playables;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
@@ -1601,7 +1602,24 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             _fullBodyIK.solver.OnPreUpdate -= DriveActionTargetIK;
         }
+
+        if (_carryGraph.IsValid())
+        {
+            _carryGraph.Destroy();
+        }
     }
+
+    /// <summary>§118.4: живой актёр по id NPC — для CarriedPoseFollower.</summary>
+    internal static bool TryGetLive(int npcId, out NpcActorView view)
+    {
+        return LiveByNpcId.TryGetValue(npcId, out view) && view != null;
+    }
+
+    /// <summary>§118.4: аниматор тела — CarriedPoseFollower целится в кости.</summary>
+    internal Animator BodyAnimator => _animator;
+
+    /// <summary>§118.4: рэгдоллом владеет физика — поверх неё не штампуем.</summary>
+    internal bool RagdollActive => _ragdollActive;
 
     // The whole actor hierarchy lives on the "Actors" layer so the portrait
     // camera can render the character (clothes, props, decals — anything that
@@ -4786,30 +4804,117 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
-    /// <summary>§118: procedural fireman's-carry arms over normal walking.</summary>
+    /// <summary>§118: carry arms over normal walking (Carrying.fbx sample).</summary>
     public void SetCarryingPerson(bool carrying) => _carryingPerson = carrying;
+
+    // §118.4: the carrier's arms come straight from the imported Carrying clip
+    // — an avatar-masked layer done by hand. Snapshot the live pose of every
+    // humanoid bone OUTSIDE the two arm chains, let the clip overwrite the
+    // whole body, then put the kept bones (and the root) back. Her own
+    // idle/walk/run/jump keeps the body; only the arms cradle the passenger.
+    // The old ±58°/82° procedural elbows this replaces never matched the
+    // patient's authored pose.
+    private PlayableGraph _carryGraph;
+    private UnityEngine.Animations.AnimationClipPlayable _carryPlayable;
+    private Transform[] _carryKeptBones;
+    private Vector3[] _carryKeptPositions;
+    private Quaternion[] _carryKeptRotations;
 
     private void ApplyCarryPose()
     {
         if (!_carryingPerson || _laying || _swimming || _bodyRoot == null ||
-            _lShldr == null || _rShldr == null)
+            _animator == null || !_animator.isHuman)
         {
             return;
         }
 
-        var right = _bodyRoot.right;
-        // Both elbows rise and fold back to cradle the torso and legs lying
-        // across the shoulder line. The walk animation continues underneath.
-        _lShldr.rotation = Quaternion.AngleAxis(-58f, right) * _lShldr.rotation;
-        _rShldr.rotation = Quaternion.AngleAxis(-58f, right) * _rShldr.rotation;
-        if (_lForearm != null)
+        var clip = CarryPoseVisuals.CarryingClip;
+        if (!CarryPoseVisuals.EnsureGraph(_animator, clip, ref _carryGraph, ref _carryPlayable))
         {
-            _lForearm.rotation = Quaternion.AngleAxis(82f, right) * _lForearm.rotation;
+            return;
         }
-        if (_rForearm != null)
+
+        if (_carryKeptBones == null)
         {
-            _rForearm.rotation = Quaternion.AngleAxis(82f, right) * _rForearm.rotation;
+            BuildCarryKeptBones();
         }
+
+        for (var i = 0; i < _carryKeptBones.Length; i++)
+        {
+            var bone = _carryKeptBones[i];
+            _carryKeptPositions[i] = bone.localPosition;
+            _carryKeptRotations[i] = bone.localRotation;
+        }
+
+        var rootPosition = _animator.transform.position;
+        var rootRotation = _animator.transform.rotation;
+
+        CarryPoseVisuals.EvaluateAt(clip, _carryGraph, _carryPlayable);
+
+        for (var i = 0; i < _carryKeptBones.Length; i++)
+        {
+            var bone = _carryKeptBones[i];
+            bone.localPosition = _carryKeptPositions[i];
+            bone.localRotation = _carryKeptRotations[i];
+        }
+
+        _animator.transform.SetPositionAndRotation(rootPosition, rootRotation);
+    }
+
+    // Everything in the humanoid skeleton EXCEPT the two arm chains. A
+    // humanoid clip only ever writes humanoid bones, so this small set is the
+    // complete list of what has to be restored after the clip stamps the body.
+    private void BuildCarryKeptBones()
+    {
+        var maskedRoots = new[]
+        {
+            FirstMappedBone(HumanBodyBones.LeftShoulder, HumanBodyBones.LeftUpperArm),
+            FirstMappedBone(HumanBodyBones.RightShoulder, HumanBodyBones.RightUpperArm)
+        };
+
+        var kept = new List<Transform>();
+        for (var i = 0; i < (int)HumanBodyBones.LastBone; i++)
+        {
+            var bone = _animator.GetBoneTransform((HumanBodyBones)i);
+            if (bone != null && !IsUnderAnyBone(bone, maskedRoots))
+            {
+                kept.Add(bone);
+            }
+        }
+
+        _carryKeptBones = kept.ToArray();
+        _carryKeptPositions = new Vector3[_carryKeptBones.Length];
+        _carryKeptRotations = new Quaternion[_carryKeptBones.Length];
+    }
+
+    // An unmapped humanoid bone comes back as a null Transform, and Unity's
+    // overloaded == is the only reliable way to test that — ?? would slip a
+    // dead object through.
+    private Transform FirstMappedBone(HumanBodyBones preferred, HumanBodyBones fallback)
+    {
+        var bone = _animator.GetBoneTransform(preferred);
+        return bone != null ? bone : _animator.GetBoneTransform(fallback);
+    }
+
+    private static bool IsUnderAnyBone(Transform bone, Transform[] roots)
+    {
+        foreach (var root in roots)
+        {
+            if (root == null)
+            {
+                continue;
+            }
+
+            for (var walk = bone; walk != null; walk = walk.parent)
+            {
+                if (walk == root)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     // Spec 40.10: erode a worn garment by its durability (1 = pristine, 0 =

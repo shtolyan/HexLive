@@ -1788,6 +1788,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // and the winded panting, both derived sim-side and exported.
         actorView.SetPosture(npc.PostureHint, npc.Winded);
         actorView.SetCarryingPerson(npc.CarriedNpcId is not null);
+        // §118.4: the carried body follows the carrier's HANDS, posed by the
+        // imported BeingCarried clip — bind/unbind the follower off the same
+        // carry link the shoulder-height ride pose already reads.
+        var carriedFollower = actorView.GetComponent<CarriedPoseFollower>();
+        if (npc.CarriedByNpcId is { } carrierNpcId)
+        {
+            if (carriedFollower == null)
+            {
+                carriedFollower = actorView.gameObject.AddComponent<CarriedPoseFollower>();
+            }
+
+            carriedFollower.Bind(carrierNpcId);
+        }
+        else if (carriedFollower != null)
+        {
+            carriedFollower.Unbind();
+        }
         // §71: the gait comes from the SIM, not from measured speed — she walks
         // unless the sim gave her a reason to run.
         actorView.SetRunning(npc.IsRunning);

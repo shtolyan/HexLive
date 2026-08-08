@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="620" viewBox="0 0 840 620">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#66d16f"/>
+    </marker>
+    <style>
+      text { font-family: Inter, Arial, sans-serif; fill: #e8ece9; font-size: 15px; }
+      .minor { fill: #aeb8b2; font-size: 13px; }
+      .dim { stroke: #d7c48c; stroke-width: 2; fill: none; }
+    </style>
+  </defs>
+  <rect width="840" height="620" fill="#202825"/>
+  <text x="28" y="34" font-size="21">Workbench placement — calculated world units</text>
+  <text x="28" y="58" class="minor">Scale: 160 px = 1.00 wu · Hex radius: 1.50 wu · yaw = 30° + 60° × k</text>
+
+  <!-- Pointy-top game hex: center (420,310), R=1.5 wu=240 px. -->
+  <polygon points="420,70 627.846,190 627.846,430 420,550 212.154,430 212.154,190"
+           fill="#2d3934" stroke="#7c9186" stroke-width="3"/>
+
+  <!-- Interior axial junctions. Their vertical pitch is exactly 0.375 wu=60 px. -->
+  <g fill="#72847b" opacity="0.7">
+    <circle cx="420" cy="310" r="5"/><circle cx="420" cy="250" r="4"/>
+    <circle cx="420" cy="190" r="4"/><circle cx="420" cy="370" r="4"/>
+    <circle cx="420" cy="430" r="4"/><circle cx="368.038" cy="280" r="4"/>
+    <circle cx="368.038" cy="340" r="4"/><circle cx="471.962" cy="280" r="4"/>
+    <circle cx="471.962" cy="340" r="4"/>
+  </g>
+
+  <!-- Obstacle r=.62 wu=99.2 px, bench footprint .98x.76 wu=156.8x121.6 px. -->
+  <circle cx="420" cy="310" r="99.2" fill="#c06a4b" opacity="0.16"
+          stroke="#e48863" stroke-width="2" stroke-dasharray="7 6"/>
+  <rect x="359.2" y="231.6" width="121.6" height="156.8" rx="5"
+        fill="#9b7b4d" stroke="#e4c18d" stroke-width="3"/>
+  <line x1="389.6" y1="231.6" x2="389.6" y2="388.4" stroke="#6d4d2f" stroke-width="2"/>
+  <line x1="420" y1="231.6" x2="420" y2="388.4" stroke="#6d4d2f" stroke-width="2"/>
+  <line x1="450.4" y1="231.6" x2="450.4" y2="388.4" stroke="#6d4d2f" stroke-width="2"/>
+
+  <!-- Authored craft point: yaw=270°, local front=yaw+180=90°, exactly axial (0,+2). -->
+  <line x1="420" y1="310" x2="420" y2="190" stroke="#66d16f" stroke-width="4" marker-end="url(#arrow)"/>
+  <circle cx="420" cy="190" r="13" fill="#45a9d9" stroke="#b8e8ff" stroke-width="3"/>
+  <path d="M420 170 v40 M400 190 h40" stroke="#b8e8ff" stroke-width="2"/>
+
+  <!-- Dimension lines. -->
+  <line x1="359.2" y1="414" x2="480.8" y2="414" class="dim"/>
+  <line x1="359.2" y1="407" x2="359.2" y2="421" class="dim"/>
+  <line x1="480.8" y1="407" x2="480.8" y2="421" class="dim"/>
+  <text x="390" y="438">0.76 wu</text>
+  <line x1="510" y1="231.6" x2="510" y2="388.4" class="dim"/>
+  <line x1="503" y1="231.6" x2="517" y2="231.6" class="dim"/>
+  <line x1="503" y1="388.4" x2="517" y2="388.4" class="dim"/>
+  <text x="523" y="315">0.98 wu</text>
+  <text x="523" y="340" fill="#ef9a76">solid r = 0.62 wu</text>
+  <text x="448" y="176" fill="#8edc93">fixed work point</text>
+  <text x="448" y="198" fill="#8edc93">0.75 wu = 2 × 0.375</text>
+
+  <g transform="translate(28,574)">
+    <rect x="0" y="-18" width="14" height="14" fill="#9b7b4d" stroke="#e4c18d"/>
+    <text x="24" y="-6" class="minor">authored footprint 0.98 × 0.76 × 0.78 wu</text>
+    <circle cx="390" cy="-11" r="8" fill="#45a9d9" stroke="#b8e8ff"/>
+    <text x="406" y="-6" class="minor">fixed standing junction, never an animation track</text>
+  </g>
+</svg>

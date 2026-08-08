@@ -172,6 +172,16 @@ namespace HexLive.UnityPresentation.Audio
                 case "Murdered":
                 case "BledOut":
                 case "StarvedToDeath":
+                    // #79: an already prone/immobile character simply remains
+                    // where she is. The lying view is still registered when the
+                    // death event arrives, so suppress both voice and fallback.
+                    if (e.EntityId.HasValue && _renderer != null &&
+                        _renderer.TryGetActorView(e.EntityId.Value, out var dyingView) &&
+                        dyingView.IsLyingStill)
+                    {
+                        break;
+                    }
+
                     // §67.10: предсмертный вскрик — реплика самой умирающей
                     // (свой голос + череп в бабле); нет голоса → общий DeathF.
                     if (!TrySay(e, "hurt_death") && TryNpcPos(e, out var death))

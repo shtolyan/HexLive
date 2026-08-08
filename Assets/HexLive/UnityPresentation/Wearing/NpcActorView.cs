@@ -2589,6 +2589,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _dead;
     private float _deathFreezeAt = -1f; // Time.time, когда клип докрутится
     private static readonly int DeathStateHash = Animator.StringToHash("Death");
+    private static readonly int FallenIdleStateHash = Animator.StringToHash("FallenIdle");
+
+    /// <summary>#79: true when death should be silent and preserve this pose.</summary>
+    public bool IsLyingStill => _laying;
 
     /// <param name="variant">Какой из клипов падения — число из СИМУЛЯЦИИ, а
     /// не Random: иначе одно и то же тело лежало бы по-разному у каждого
@@ -2610,6 +2614,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_animator != null)
         {
             _animator.SetBool(CrawlingParam, false);
+        }
+
+        // #79: the simulation persists a negative variant when this character
+        // died already lying still. A live view freezes the exact current pose;
+        // a restored corpse reconstructs the same id-stable FallenIdle pose and
+        // freezes it immediately. Neither path enters the Death state.
+        if (variant < 0)
+        {
+            if (!_laying)
+            {
+                SetFallen(true, sleepAfter: false, surfaceY: surfaceY);
+                if (_animator != null)
+                {
+                    _animator.Play(FallenIdleStateHash, 0, 0f);
+                    _animator.Update(0f);
+                }
+            }
+
+            FreezeDeathPose();
+            return;
         }
 
         var clips = _animSet != null ? _animSet.death : null;

@@ -1220,6 +1220,11 @@ public sealed class MobSystem : ISimulationSystem
             return;
         }
 
+        // #79: capture this before Abort clears Sleep/other execution state.
+        // A negative persisted variant means the body was already lying still
+        // and must keep that pose instead of replaying a death performance.
+        var preserveLyingDeathPose = npc.IsLyingDown(world.Tick);
+
         PlanInterruption.Abort(world, npc, "Died");
 
         world.Entities.Npcs.Remove(deadId);
@@ -1319,7 +1324,9 @@ public sealed class MobSystem : ISimulationSystem
         // якорю: труп лежит в ЦЕНТРЕ гекса (§60.2a), а упасть она могла на
         // ободе — иначе одежда на теле и объект-якорь оказались бы в разных
         // точках, и обирать её пришлось бы не с той клетки, где она лежит.
-        npc.DeathAnimVariant = (int)(MathUtil.Hash01(world.Seed, world.Tick, deadId.Value, 977) * 1024f);
+        npc.DeathAnimVariant = preserveLyingDeathPose
+            ? -1
+            : (int)(MathUtil.Hash01(world.Seed, world.Tick, deadId.Value, 977) * 1024f);
         if (dropJunction is { } restJunction &&
             world.Junctions.Items.TryGetValue(restJunction, out var restNode))
         {

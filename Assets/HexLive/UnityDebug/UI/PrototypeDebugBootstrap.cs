@@ -25,13 +25,6 @@ public static class PrototypeDebugBootstrap
             panel.SetRunner(runner);
         }
 
-        // Point overlay (separate UIDocument on its own GameObject)
-        var overlayRoot = new GameObject("HexLive Point Overlay");
-        var overlay = overlayRoot.AddComponent<PointOverlayView>();
-        if (runner != null)
-        {
-            overlay.SetRunner(runner);
-        }
     }
 }
 

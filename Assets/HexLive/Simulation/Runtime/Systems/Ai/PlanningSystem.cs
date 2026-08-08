@@ -607,6 +607,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             var selectedNutrition = 0f;
             var selectedProstheticBoard = false;
             var selectedMedicalStick = false;
+            var selectedDressAffinity = -1f;
             var candidateCount = 0;
             foreach (var perceived in npc.Perception.Objects)
             {
@@ -682,12 +683,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (preferArmor)
                 {
                     var armor = DecisionSystem.CandidateArmor(world, perceived, npc.Sex);
+                    var affinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);
                     if (selected is null || armor > selectedArmor + 0.01f ||
                         (System.Math.Abs(armor - selectedArmor) <= 0.01f &&
-                         perceived.Distance < selected.Distance))
+                         (affinity > selectedDressAffinity + 0.0001f ||
+                          (System.Math.Abs(affinity - selectedDressAffinity) <= 0.0001f &&
+                           perceived.Distance < selected.Distance))))
                     {
                         selected = perceived;
                         selectedArmor = armor;
+                        selectedDressAffinity = affinity;
                     }
                 }
                 else if (preferBoiled)
@@ -748,6 +753,17 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     {
                         selected = perceived;
                         selectedMedicalStick = isStick;
+                    }
+                }
+                else if (interactionType == InteractionType.Dress)
+                {
+                    var affinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);
+                    if (selected is null || affinity > selectedDressAffinity + 0.0001f ||
+                        (System.Math.Abs(affinity - selectedDressAffinity) <= 0.0001f &&
+                         perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
+                        selectedDressAffinity = affinity;
                     }
                 }
                 else if (selected is null || perceived.Distance < selected.Distance)

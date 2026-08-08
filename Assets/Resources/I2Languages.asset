@@ -2937,6 +2937,14 @@ MonoBehaviour:
       - 'ID предмета'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'inv.affinity'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Likes'
+      - 'Нравится'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'inv.status'
       TermType: 0
       Description: 

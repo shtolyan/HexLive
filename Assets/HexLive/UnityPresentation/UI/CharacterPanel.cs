@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
+using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
@@ -1945,6 +1946,10 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> dirtiness)
         {
             _invDetailStats.Clear();
+            var affinity = ItemAffinity.For(_boundActorId, info.DefinitionId);
+            _invDetailStats.Add(MakeStatRow(
+                Loc.Get("inv.affinity"), $"{Mathf.RoundToInt(affinity * 100f)}%",
+                Color.Lerp(Warn, Gold, affinity)));
             if (!worn && stacks.TryGetValue(info.DefinitionId, out var stackCount) && stackCount > 1)
             {
                 _invDetailStats.Add(MakeStatRow(

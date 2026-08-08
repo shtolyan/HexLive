@@ -315,7 +315,10 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         if (target.Health <= 0f || target.IsFighting ||
             target.Body.IsProne ||  // §50-prone: lying — never pinned standing
             target.IsUnconscious(world.Tick) || // §60: out cold — can't stand to fight
-            target.Mind.CurrentGoal == GoalType.Flee)
+            target.Mind.CurrentGoal == GoalType.Flee ||
+            // §118: приказ сильнее самозащиты — идущая по приказу не встаёт в
+            // стойку от укуса (правило Кенши). Стоящая без приказа встаёт.
+            ManualControlMath.IsOrderedManual(target))
         {
             return;
         }

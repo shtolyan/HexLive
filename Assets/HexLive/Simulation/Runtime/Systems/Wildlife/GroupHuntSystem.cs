@@ -352,6 +352,14 @@ public sealed class GroupHuntSystem : ISimulationSystem
     // от троих в их же двор было бы не побегом.
     private static bool TryFleeHome(WorldState world, NPCState quarry, int hunters)
     {
+        // §118: ручная не убегает сама — отступление приказывает игрок.
+        // Возврат false отправляет её в ветку «бежать некуда»: она встаёт и
+        // дерётся, что и есть верное поведение для оставленной без приказа.
+        if (ManualControlMath.IsManual(quarry))
+        {
+            return false;
+        }
+
         if (quarry.CurrentJunction is not { } from ||
             !world.FactionHomes.TryGetValue(quarry.Faction, out var camp))
         {

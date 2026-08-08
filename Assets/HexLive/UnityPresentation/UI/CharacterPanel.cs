@@ -76,6 +76,13 @@ namespace HexLive.UnityPresentation.UI
         // one swaps to a detail "item view" (name, category, description, stats).
         private VisualElement _inventoryButton;
         private Label _inventoryButtonLabel;
+
+        // §118: тумблер «ИИ / Ручное» и последний прочитанный из снапшота режим.
+        private VisualElement _controlButton;
+        private Label _controlLabel;
+        private Label _controlGlyph;
+        private Label _orderToast;
+        private bool _manualControlNow;
         private VisualElement _inventoryWindow;
         private Label _inventoryTitle;
         private Label _inventoryCapacity;
@@ -575,6 +582,7 @@ namespace HexLive.UnityPresentation.UI
                 : Loc.NpcName(npc.DisplayName);
             _roleLabel.text = $"{Loc.Get("panel.role")} · #{npc.Id.Value}";
             _thoughtValue.text = Loc.Goal(npc.CurrentGoal);
+            RefreshControlToggle(npc); // §118
 
             // Spec §64: the dream pill — show her aspiration, hide it when she has
             // nothing left to dream of ("None"/empty).
@@ -3444,10 +3452,115 @@ namespace HexLive.UnityPresentation.UI
             info.Add(uvRow);
 
             info.Add(BuildInventoryButton());
+            info.Add(BuildControlToggle());
+
+            // §118: почему приказ не выполнен. Место — прямо под тумблером:
+            // подпись читается там же, где игрок только что кликал.
+            _orderToast = new Label
+            {
+                style =
+                {
+                    color = Warn,
+                    fontSize = 12,
+                    marginTop = 5f,
+                    display = DisplayStyle.None,
+                }
+            };
+            _orderToast.pickingMode = PickingMode.Ignore;
+            info.Add(_orderToast);
 
             col.Add(info);
 
             return col;
+        }
+
+        // §118: «ИИ / Ручное». Состояние всегда читается из снапшота — тумблер
+        // ничего не помнит: авторитет по тому, кто управляет персонажем, — сама
+        // симуляция, и кнопка, помнящая своё, рано или поздно показывала бы
+        // одно, пока колонистка делает другое.
+        private VisualElement BuildControlToggle()
+        {
+            var button = new VisualElement();
+            button.style.flexDirection = FlexDirection.Row;
+            button.style.alignItems = Align.Center;
+            button.style.alignSelf = Align.FlexStart;
+            button.style.marginTop = 6f;
+            button.style.backgroundColor = Raised;
+            SetBorder(button, StrokeStrong, 1f);
+            SetRadius(button, 8f);
+            button.style.paddingLeft = 11f;
+            button.style.paddingRight = 13f;
+            button.style.paddingTop = 6f;
+            button.style.paddingBottom = 6f;
+
+            _controlGlyph = new Label("🧠");
+            _controlGlyph.style.fontSize = 16;
+            _controlGlyph.style.marginRight = 8f;
+            _controlGlyph.pickingMode = PickingMode.Ignore;
+            _controlGlyph.style.unityTextAlign = TextAnchor.MiddleCenter;
+            button.Add(_controlGlyph);
+
+            _controlLabel = new Label(Loc.Get("panel.control.ai"));
+            _controlLabel.style.color = Text;
+            _controlLabel.style.fontSize = 13;
+            _controlLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _controlLabel.pickingMode = PickingMode.Ignore;
+            button.Add(_controlLabel);
+
+            button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
+            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(button, StrokeStrong));
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                ToggleManualControl();
+                evt.StopPropagation();
+            });
+
+            _controlButton = button;
+            return button;
+        }
+
+        private void ToggleManualControl()
+        {
+            if (_runner == null || !_runner.SupportsNpcCommands || !NpcSelection.HasSelection)
+            {
+                return;
+            }
+
+            _runner.EnqueueCommand(new HexLive.Simulation.Runtime.SetManualControlCommand(
+                new HexLive.Simulation.Common.EntityId(NpcSelection.SelectedId), !_manualControlNow));
+        }
+
+        // §118: тумблер прячется целиком, когда приказы отдавать некому —
+        // на удалённом мире колония общая, и увести чужую колонистку нельзя.
+        private void RefreshControlToggle(NpcSnapshot npc)
+        {
+            if (_controlButton == null)
+            {
+                return;
+            }
+
+            var available = _runner != null && _runner.SupportsNpcCommands;
+            _controlButton.style.display = available ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!available)
+            {
+                return;
+            }
+
+            _manualControlNow = npc.IsManualControl;
+            _controlLabel.text = Loc.Get(_manualControlNow ? "panel.control.manual" : "panel.control.ai");
+            _controlLabel.style.color = _manualControlNow ? Gold : Text;
+            _controlGlyph.text = _manualControlNow ? "🎮" : "🧠";
+            SetBorderColor(_controlButton, _manualControlNow ? GoldDim : StrokeStrong);
+
+            if (_orderToast != null)
+            {
+                var fresh = ManualOrderFeedback.IsFresh(npc.Id.Value);
+                _orderToast.style.display = fresh ? DisplayStyle.Flex : DisplayStyle.None;
+                if (fresh)
+                {
+                    _orderToast.text = Loc.Get(ManualOrderFeedback.ReasonKey);
+                }
+            }
         }
 
         // Spec §51: "🎒 Backpack" pill under the identity block. Toggles the

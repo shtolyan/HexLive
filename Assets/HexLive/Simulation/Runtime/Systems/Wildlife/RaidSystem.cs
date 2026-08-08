@@ -314,15 +314,20 @@ public sealed class RaidSystem : ISimulationSystem
 
             var opponentAlive = world.Entities.Npcs.TryGetValue(oppId, out var opp) &&
                 opp.Health > 0f && !opp.IsUnconscious(world.Tick);
+            // §118: PlayerAttack — такое же обоснование пары, как Raid или
+            // Expel. Без него метла распускала бы сцепку ручного бойца КАЖДЫЙ
+            // средний проход, и он бил бы воздух — ровно баг §109.12.
             var mineJustified = npc.Mind.CurrentGoal is GoalType.Raid or GoalType.Abuse
-                    or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey or GoalType.Expel ||
+                    or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey or GoalType.Expel
+                    or GoalType.PlayerAttack ||
                 npc.Execution.CurrentInteraction == InteractionType.Abuse ||
                 npc.Mind.PendingAbuseFrom is not null ||
                 npc.Mind.PendingExpulsionFrom is not null;
             var theirsJustified = opponentAlive &&
                 (opp.Mind.CombatOpponentNpcId is { } back && back.Equals(npc.Id) ||
                  opp.Mind.CurrentGoal is GoalType.Raid or GoalType.Abuse
-                     or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey or GoalType.Expel);
+                     or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey or GoalType.Expel
+                     or GoalType.PlayerAttack);
 
             if (!opponentAlive || (!mineJustified && !theirsJustified))
             {
@@ -354,6 +359,15 @@ public sealed class RaidSystem : ISimulationSystem
                 target.Mind.CurrentGoal == GoalType.Defend ||
                 target.Mind.CurrentGoal == GoalType.GroupHunt ||
                 target.Mind.CurrentGoal == GoalType.Expel ||
+                // §118: свой бой по приказу уже идёт — им правит ManualOrderSystem.
+                target.Mind.CurrentGoal == GoalType.PlayerAttack ||
+                // ⭐ §118 ПРАВИЛО КЕНШИ: у ручной колонистки есть приказ —
+                // значит, она его ВЫПОЛНЯЕТ, а не оборачивается на удары. Ни
+                // пары, ни стойки: идёт и терпит. Это и есть способ вывести
+                // раненую из драки пешком, и он же — единственная причина, по
+                // которой «приказ» отличается от «работы» (работу §109
+                // прерывает, приказ — нет).
+                ManualControlMath.IsOrderedManual(target) ||
                 // Сценой абьюза правит сцена — с обеих сторон: он в такте,
                 // она приняла решение в AnswersBack, и «не отвечает» — тоже
                 // решение.
@@ -391,6 +405,8 @@ public sealed class RaidSystem : ISimulationSystem
                     attacker.Mind.CurrentGoal != GoalType.GroupHunt &&
                     attacker.Mind.CurrentGoal != GoalType.Prey &&
                     attacker.Mind.CurrentGoal != GoalType.Expel &&
+                    // §118: приказ бить — живое обоснование пары, а не призрак.
+                    attacker.Mind.CurrentGoal != GoalType.PlayerAttack &&
                     attacker.Execution.CurrentInteraction != InteractionType.Abuse)
                 {
                     attacker.Mind.CombatOpponentNpcId = null;
@@ -405,7 +421,14 @@ public sealed class RaidSystem : ISimulationSystem
                      aId.Equals(target.Id)) ||
                     (attacker.Mind.CurrentGoal == GoalType.GroupHunt &&
                      attacker.Mind.GroupHuntTargetNpcId is { } hId &&
-                     hId.Equals(target.Id));
+                     hId.Equals(target.Id)) ||
+                    // §118: на него идут ПО ПРИКАЗУ — жертва разворачивается на
+                    // подходе так же, как на Defend и на сговор. Симметрия
+                    // важнее «игрок особенный»: приказ игрока не делает его
+                    // отряд невидимым для тех, на кого он идёт.
+                    (attacker.Mind.CurrentGoal == GoalType.PlayerAttack &&
+                     attacker.Mind.ManualAttackNpcId is { } mId &&
+                     mId.Equals(target.Id));
                 if (!engaged && !pursuing)
                 {
                     continue;
@@ -436,8 +459,13 @@ public sealed class RaidSystem : ISimulationSystem
             // разбитой головы — чужак погибал раньше, чем колония успевала
             // накопить ненависть на сговор §108. Одержимого (цель Abuse)
             // клапан не трогает — его перебивает только нокаут (§81.14).
+            // §118: ручная НИКОГДА не бежит сама. Отступление — решение игрока,
+            // и оно у него есть (приказ идти); подменять его автоматическим
+            // бегством значит отобрать управление ровно в тот момент, ради
+            // которого игрок его и взял.
             if (target.Health < Spec72.RaidFleeHealth &&
                 target.Mind.CurrentGoal != GoalType.Abuse &&
+                !ManualControlMath.IsManual(target) &&
                 MobSystem.TryFleeToCamp(world, target,
                     $"Beaten by NPC{nearest.Id.Value}"))
             {
@@ -681,6 +709,12 @@ public sealed class RaidSystem : ISimulationSystem
                 continue;
             }
 
+            // §118: ручной сцен не затевает — ни драки, ни травли.
+            if (ManualControlMath.IsManual(abuser))
+            {
+                continue;
+            }
+
             if (abuser.IsUnconscious(world.Tick) ||
                 abuser.Body.IsProne ||
                 !abuser.Body.CanUseToolsOrWeapons)
@@ -842,6 +876,12 @@ public sealed class RaidSystem : ISimulationSystem
     // Общий вход в налёт; §115 использует его, если проигравшему некуда бежать.
     internal static void StartRaidOn(WorldState world, NPCState raider, NPCState victim, string why)
     {
+        // §118: ручной сам на охоту не выходит.
+        if (ManualControlMath.IsManual(raider))
+        {
+            return;
+        }
+
         if (raider.Plan.Status == PlanStatus.Active ||
             raider.Execution.Status == ExecutionStatus.InProgress)
         {

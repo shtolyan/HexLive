@@ -148,6 +148,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue; // грация подъёма всё равно гейтит этот тик
             }
 
+            // ⭐ §118: ЕЮ УПРАВЛЯЕТ ИГРОК — аукцион для неё закрыт совсем.
+            // Граница проведена ровно здесь, а не выше и не ниже: всё, что
+            // выше, — ТЕЛО (кома, обморок, слёзы, притворство, спад стресса),
+            // и оно живёт у ручной так же, как у любой другой; всё, что ниже, —
+            // ВЫБОР (страхи, приглашения, ставки целей), и выбор теперь за
+            // игроком. Цели ей ставит ManualCommandExecutor из очереди команд.
+            if (Spec118.ManualControlEnabled && npc.Mind.ManualControl)
+            {
+                continue;
+            }
+
             // Spec 41.5: just woke up — stand where you slept and come to
             // your senses; goals wait out the grace.
             if (world.Tick < npc.Mind.WakeGraceUntilTick)

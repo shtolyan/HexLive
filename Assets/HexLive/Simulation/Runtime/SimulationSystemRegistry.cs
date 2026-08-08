@@ -37,6 +37,13 @@ public static class SimulationSystemRegistry
         // §72: AFTER MobSystem — it clears IsFighting for every NPC each medium
         // pass, so anything that sets the latch has to run later.
         engine.Register(new RaidSystem()); // §72: the outsider's hunt and the colony's answer
+        // §118: AFTER RaidSystem, and for the same latch reason as GroupHunt —
+        // MobSystem clears IsFighting for everyone each medium pass, so the
+        // player's attack order has to re-assert it later than anyone who might
+        // dissolve the pair. After AnswerBlows too: a manual NPC standing idle
+        // answers blows by the ordinary §109 path, and only then does her own
+        // order (if any) get its say.
+        engine.Register(new ManualOrderSystem());
         // §108: AFTER RaidSystem for the same reason it runs after MobSystem —
         // the latch has to be the last word on IsFighting. After the raid, not
         // before: if he is mid-raid when the party arrives, his own scene stays

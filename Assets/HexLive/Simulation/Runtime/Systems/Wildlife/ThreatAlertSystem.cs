@@ -208,6 +208,13 @@ public sealed class ThreatAlertSystem : ISimulationSystem
     // healthy, armed side) settles it.
     private static void StartFirstStrike(WorldState world, NPCState npc, Wildlife.MobState threat)
     {
+        // §118: напасть первой на замеченного зверя — решение, и у ручной его
+        // принимает игрок (он видит собаку раньше и решает, драться или уйти).
+        if (ManualControlMath.IsManual(npc))
+        {
+            return;
+        }
+
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {

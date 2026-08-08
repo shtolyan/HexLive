@@ -53,7 +53,11 @@ public static class WorldSaveSerializer
     // вдвое), а была таймером вида — и потому обнулялась перезагрузкой молча.
     // v27 (§72.14): число уже высаженных трёхдневных волн. Без него убитая
     // волна возвращалась бы после загрузки, если выводить прогресс из ростера.
-    public const int BlobVersion = 27;
+    // v28 (§118): ручное управление. В блоб едет ОДИН флаг — под чьим
+    // управлением персонаж; недоигранный приказ едет сам собой, потому что
+    // план и исполнение сериализуются целиком и после загрузки просто
+    // продолжаются.
+    public const int BlobVersion = 28;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -798,6 +802,10 @@ public static class WorldSaveSerializer
         // §81.10 (v26): и понурая походка тоже — иначе загрузка выпрямляла бы
         // ей спину и возвращала полную скорость на середине минуты после сцены.
         w.Write(mind.SadWalkUntilTick);
+        // §118 (v28): под чьим управлением персонаж. Единственное поле ручного
+        // режима в блобе — цель приказа едет своим ходом (план сериализуется
+        // целиком), а сцепка PlayerAttack складывается в SaveGoal.
+        w.Write(mind.ManualControl);
         w.Write(mind.WakeGraceUntilTick);
         w.Write(mind.AdrenalineUntilTick);
         w.Write(mind.PendingTalkSinceTick);
@@ -1171,6 +1179,8 @@ public static class WorldSaveSerializer
         mind.CryingUntilTick = version >= 25 ? r.ReadInt32() : 0;
         // §81.10: старый сейв просто не грустит.
         mind.SadWalkUntilTick = version >= 26 ? r.ReadInt32() : 0;
+        // §118: в старом сейве ручного режима не было — все под ИИ.
+        mind.ManualControl = version >= 28 && r.ReadBoolean();
 
         mind.WakeGraceUntilTick = r.ReadInt32();
         mind.AdrenalineUntilTick = version >= 9 ? r.ReadInt32() : 0;
@@ -1498,8 +1508,13 @@ public static class WorldSaveSerializer
 
     private static Float2 ReadFloat2(BinaryReader r) => new(r.ReadSingle(), r.ReadSingle());
 
+    // §118: PlayerAttack складывается вместе со сценными целями — сцепка живёт
+    // в полях, которых в блобе нет. А вот PlayerOrder НЕ складывается: план
+    // приказа (шаги, цели, исполнение) сериализуется целиком, поэтому
+    // недошедшая колонистка после загрузки просто идёт дальше.
     private static GoalType SaveGoal(GoalType goal) =>
         goal is GoalType.Defend or GoalType.Abuse or GoalType.GroupHunt or GoalType.Expel
+            or GoalType.PlayerAttack
             ? GoalType.None
             : goal;
 

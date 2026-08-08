@@ -23,6 +23,10 @@ public sealed class SimulationEngine
 
     public IReadOnlyList<ISimulationSystem> Systems => _systems;
 
+    /// <summary>§118: приказы игрока, ждущие ближайшего тика. Кладёт сюда
+    /// только презентация; опустошается в начале <see cref="Step"/>.</summary>
+    public SimulationCommandQueue Commands { get; } = new();
+
     public void Register(ISimulationSystem system) => _systems.Add(system);
 
     public void Step()
@@ -30,6 +34,15 @@ public sealed class SimulationEngine
         if (World.Completed)
         {
             return;
+        }
+
+        // §118: приказы применяются ДО систем этого тика — иначе «иди туда»,
+        // отданное между тиками, ждало бы своего слоя и опаздывало на проход.
+        // Кладёт и опустошает один и тот же главный поток (в Unity — Update,
+        // headless — цикл прогона), поэтому замка здесь нет.
+        while (Commands.TryDequeue(out var command) && command is not null)
+        {
+            ManualCommandExecutor.Apply(World, command);
         }
 
         var isMedium = World.Tick % Settings.MediumInterval == 0;

@@ -54,6 +54,9 @@ public sealed class SystemRegistryGateTests
         "RaidWaveSystem",
         "CampExpulsionSystem",
         "RaidSystem",
+        // §121: приказ игрока — после налёта и его «бей в ответ», по той же
+        // причине: боевую сцепку ставит последний, кто её трогает.
+        "ManualOrderSystem",
         // §108: между налётом и ударами — по той же причине, по какой налёт
         // идёт после MobSystem: сцепку боя ставит последний, кто её трогает.
         "GroupHuntSystem",

@@ -93,6 +93,10 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 
     public bool SupportsClientSave => _backend?.SupportsClientSave ?? false;
 
+    public bool SupportsNpcCommands => _backend?.SupportsNpcCommands ?? false;
+
+    public void EnqueueCommand(ISimulationCommand command) => _backend?.EnqueueCommand(command);
+
     public WorldSnapshot? CreateSnapshot() => _backend?.CreateSnapshot();
 
     public bool TryGetObjectDefinition(string id, out ObjectDefinition? definition)
@@ -289,6 +293,14 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             }
 
             Audio.SoundManager.Instance?.OnSimEvent(e);
+
+            // §121: отказ на приказ игрока — короткая подпись в панели
+            // персонажа. В историю колонии он не идёт нарочно: это ответ на
+            // клик, а не событие в жизни острова.
+            if (e.Type == "ManualOrderRejected" && e.EntityId is { } rejectedNpc)
+            {
+                Input.ManualOrderFeedback.Report(rejectedNpc, e.Message);
+            }
 
             if (!logAllTrace && !(logImportant && isGameHistoryEvent))
             {

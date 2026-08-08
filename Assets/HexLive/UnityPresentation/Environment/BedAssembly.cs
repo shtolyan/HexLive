@@ -205,6 +205,16 @@ namespace HexLive.UnityPresentation.Environment
                     DestroyRuntimeObject(go);
                     go = null;
                 }
+                else
+                {
+                    // Simulation yaw belongs to an identity presentation root.
+                    // Native FBX roots carry Blender's X=-90° import rotation;
+                    // assigning yaw directly to them makes a bed stand upright.
+                    var model = go;
+                    go = new GameObject($"{product} (native assembly)");
+                    model.name = $"{product} model";
+                    model.transform.SetParent(go.transform, false);
+                }
             }
 
             go ??= BuildSafeFallback(product);

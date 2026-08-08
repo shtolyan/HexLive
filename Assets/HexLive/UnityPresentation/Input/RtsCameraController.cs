@@ -105,6 +105,10 @@ namespace HexLive.UnityPresentation.Input
 
         private const float ElevationStep = 0.55f;
 
+        // §121: ручной ввод живёт рядом на той же камере и получает клик
+        // первым. Ссылка ищется лениво — компонент навешивает бутстрап.
+        private SimulationInputAdapter _manualInput;
+
         public void SetRunner(SimulationRunnerBehaviour runner)
         {
             _runner = runner;
@@ -378,7 +382,21 @@ namespace HexLive.UnityPresentation.Input
 
             // Don't pick NPCs behind the character bar or through the menu.
             if (NpcSelection.PointerOverUi || UI.HexInspectorPanel.PointerOverPanel ||
+                UI.ContextMenuPanel.PointerOverPanel ||
                 UI.GameMenu.IsOpen || UI.EndSummaryPanel.IsOpen)
+            {
+                return;
+            }
+
+            // §121: пока выбранной колонисткой управляет игрок, тот же клик
+            // значит другое — идти, открыть меню действий, закрыть открытое.
+            // Съеденный клик до обычной обработки не доходит.
+            if (_manualInput == null)
+            {
+                _manualInput = GetComponent<SimulationInputAdapter>();
+            }
+
+            if (_manualInput != null && _manualInput.TryHandleManualClick(mouse.position.ReadValue()))
             {
                 return;
             }
@@ -663,6 +681,15 @@ namespace HexLive.UnityPresentation.Input
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
+                // §121: Escape сначала закрывает меню действий и только потом
+                // снимает выбор. Иначе игрок, передумав в меню, разом теряет и
+                // меню, и персонажа — а вернуть его надо новым кликом.
+                if (UI.ContextMenuPanel.IsOpen)
+                {
+                    UI.ContextMenuPanel.Close();
+                    return;
+                }
+
                 NpcSelection.Clear();
                 return;
             }

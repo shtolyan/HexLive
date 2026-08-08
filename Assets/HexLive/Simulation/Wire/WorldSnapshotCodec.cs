@@ -706,6 +706,7 @@ public static class WorldSnapshotCodec
 
         w.Write(n.KnownObjectCount);
         WireIo.WriteNullableInt(w, n.GoalLockEndTick);
+        w.Write(n.IsManualControl); // §121
 
         // Debug-panel payload: relationship/memory dumps and goal scores.
         // Off by default for the same reason the exporter gates them.
@@ -932,6 +933,7 @@ public static class WorldSnapshotCodec
 
         n.KnownObjectCount = r.ReadInt32();
         n.GoalLockEndTick = WireIo.ReadNullableInt(r);
+        n.IsManualControl = r.ReadBoolean(); // §121
 
         if (!includeDebugDetails)
         {

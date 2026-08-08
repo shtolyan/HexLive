@@ -525,6 +525,11 @@ public sealed class NpcSnapshot
 
     public string CurrentGoal { get; set; } = string.Empty;
 
+    /// <summary>§121: ею управляет игрок, а не ИИ. Вид читает это из снапшота,
+    /// а не из своего кэша: тумблер живёт в симуляции, и она же авторитет —
+    /// иначе кнопка показывала бы одно, а персонаж делал другое.</summary>
+    public bool IsManualControl { get; set; }
+
     // Spec §64: the colonist's current dream (aspiration) — the DreamType name,
     // localized by presentation into the character-panel dream pill. "None" when
     // she has nothing left to dream of.

@@ -21,6 +21,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            // §121: планами ручной колонистки владеют только приказы —
+            // ManualCommandExecutor строит их сразу при получении команды, а
+            // ManualOrderSystem пересобирает погоню. Планировщику здесь делать
+            // нечего: он бы «вылечил» приказ, подставив ему свою цель.
+            if (Spec121.ManualControlEnabled && npc.Mind.ManualControl)
+            {
+                continue;
+            }
+
             if (npc.Plan.Status == PlanStatus.Active && npc.Plan.Goal == npc.Mind.CurrentGoal)
             {
                 // Spec 29F.2: охота преследует ЖИВУЮ цель. Обычный скип держал
@@ -922,7 +931,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
         }
     }
 
-    private static bool TryReserveBesideJunction(
+    // §121: internal, потому что тем же выбором клетки на ободе пользуется
+    // приказ игрока (ManualCommandExecutor). Развести их значило бы дать
+    // ручной колонистке ДРУГОЙ способ подходить к пальме, чем автоматической.
+    internal static bool TryReserveBesideJunction(
         WorldState world,
         NPCState npc,
         JunctionId anchorId,

@@ -69,6 +69,12 @@ public sealed class LocalEngineBackend : ISimulationBackend
 
     public bool SupportsClientSave => true;
 
+    public bool SupportsNpcCommands => true;
+
+    // §121: очередь опустошается в начале Step, то есть тем же главным потоком,
+    // который сюда кладёт. Замка нет и не нужно.
+    public void EnqueueCommand(ISimulationCommand command) => _engine.Commands.Enqueue(command);
+
     // Spec 31.17: consumers poll every frame; the world serializes once per
     // simulation tick. The cached snapshot is handed back to the exporter for
     // in-place reuse, so consumers must not hold it across ticks (they all

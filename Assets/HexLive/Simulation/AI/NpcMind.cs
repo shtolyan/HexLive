@@ -375,6 +375,22 @@ public sealed class NPCMind
 
     public GoalLock? GoalLock { get; set; }
 
+    // §121: ЕЮ УПРАВЛЯЕТ ИГРОК. Пока флаг стоит, аукцион целей (DecisionSystem)
+    // и планировщик её пропускают целиком: цели приходят только из очереди
+    // команд. Единственное поле ручного режима, которое ПИШЕТСЯ В СЕЙВ (v28) —
+    // остальное сценное, а «под чьим управлением персонаж» переживает выход
+    // из игры так же, как то, во что она одета.
+    public bool ManualControl { get; set; }
+
+    // §121: кого ей приказано бить. Живёт ровно как боевые поля выше — в сейв
+    // НЕ пишется, цель PlayerAttack при сохранении складывается в None
+    // (SaveGoal), так что недоигранной драке взяться неоткуда.
+    public HexLive.Simulation.Common.EntityId? ManualAttackNpcId { get; set; }
+
+    // §121: то же для зверя. Идентификатор моба — int, а не EntityId: мобы
+    // живут в отдельном списке со своей нумерацией (см. MobState.Id).
+    public int? ManualAttackMobId { get; set; }
+
     // §40.6: garments doffed at the shore for a bathe. After washing her body
     // she walks back to RedressShore and puts these EXACT ground pieces back
     // on — the same clothes she took off. Holds the dropped pile's object ids
@@ -513,7 +529,22 @@ public enum GoalType
     FitProsthetic,
     CraftSplint,
     CraftWoodenArm,
-    CraftWoodenLeg
+    CraftWoodenLeg,
+
+    // §121: ПРИКАЗ ИГРОКА — идти в точку или сделать что-то с объектом.
+    // Колонка взаимодействия в каталоге намеренно пуста: конкретный
+    // InteractionType несёт шаг плана, потому что одна и та же цель исполняет
+    // и «подобрать», и «срубить», и «выпить». Реактивная — её ставит
+    // ManualCommandExecutor, аукцион о ней не знает. Append-only: сейв хранит
+    // ординал, и эту цель он хранит по-настоящему (план приказа переживает
+    // сохранение и продолжается после загрузки).
+    PlayerOrder,
+
+    // §121: ПРИКАЗ БИТЬ — отдельной целью, а не флагом на PlayerOrder, потому
+    // что боевые системы рассуждают СПИСКАМИ целей (§109 AnswerBlows, зачистка
+    // призрачных пар, MobSystem). PlayerAttack встаёт в эти списки ровно как
+    // Expel, а PlayerOrder не должен попасть ни в один из них.
+    PlayerAttack
 }
 
 public sealed class GoalScore

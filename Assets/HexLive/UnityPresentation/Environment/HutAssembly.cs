@@ -164,7 +164,12 @@ public sealed class HutAssembly : MonoBehaviour
         {
             if (child.name == stage || child.name == $"BuildStage_{stage}")
             {
-                foreach (Transform piece in child) pieces.Add(piece.gameObject);
+                foreach (Transform piece in child)
+                {
+                    if (piece.name.StartsWith("HL_Door_State_", System.StringComparison.Ordinal))
+                        continue;
+                    pieces.Add(piece.gameObject);
+                }
                 return;
             }
 
@@ -552,7 +557,27 @@ public sealed class HutAssembly : MonoBehaviour
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         }
 
+        PrepareImportedDoor(root);
         AddImportedThreshold(root);
+    }
+
+    private static void PrepareImportedDoor(GameObject root)
+    {
+        Transform? pivot = null;
+        Transform? closed = null;
+        Transform? open = null;
+        foreach (var candidate in root.GetComponentsInChildren<Transform>(true))
+        {
+            if (candidate.name.StartsWith("HL_Door_Pivot", System.StringComparison.Ordinal)) pivot = candidate;
+            else if (candidate.name.StartsWith("HL_Door_State_Closed", System.StringComparison.Ordinal)) closed = candidate;
+            else if (candidate.name.StartsWith("HL_Door_State_Open", System.StringComparison.Ordinal)) open = candidate;
+        }
+
+        if (pivot == null || closed == null || open == null) return;
+        var visual = pivot.GetComponent<HutDoorVisual>() ?? pivot.gameObject.AddComponent<HutDoorVisual>();
+        visual.Configure(closed, open, startOpen: true);
+        closed.gameObject.SetActive(false);
+        open.gameObject.SetActive(false);
     }
 
     private static void AddImportedThreshold(GameObject root)
@@ -595,15 +620,13 @@ public sealed class HutAssembly : MonoBehaviour
         var material = new Material(source) { name = source.name + " (hut URP)" };
         var leaf = source.name.StartsWith("LeafGreen", System.StringComparison.Ordinal) ||
             source.name.StartsWith("HL_Roof_PalmMat_", System.StringComparison.Ordinal);
-        var wood = source.name.StartsWith("Bark", System.StringComparison.Ordinal) ||
-            source.name.StartsWith("Sapwood", System.StringComparison.Ordinal) ||
-            source.name.StartsWith("Heartwood", System.StringComparison.Ordinal);
         // Several Blender boards are deliberately thin open shells. They must
         // remain visible from inside/cutaway and from below the raised floor;
         // otherwise URP back-face culling looks like random missing planks.
-        var doubleSided = leaf || wood;
-        material.doubleSidedGI = doubleSided;
-        if (doubleSided && material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);
+        // Apply this to every hut material, including future names, rather than
+        // relying on a palette-name allow-list that silently misses new art.
+        material.doubleSidedGI = true;
+        if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);
         if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", leaf ? 0.04f : 0.08f);
         if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0f);
         material.enableInstancing = true;
@@ -661,22 +684,25 @@ public sealed class HutAssembly : MonoBehaviour
 
     private static void AddOpenDoor(Transform parent, Vector3 bayCenter, float wallYaw, int seed)
     {
-        var hingeYaw = wallYaw + 68f;
         var wallDirection = Quaternion.Euler(0f, wallYaw, 0f) * Vector3.right;
         var hinge = bayCenter - wallDirection * 0.31f;
-        var openDirection = Quaternion.Euler(0f, hingeYaw, 0f) * Vector3.right;
-        var center = hinge + openDirection * 0.31f + Vector3.up * 0.78f;
+        var pivot = new GameObject("HL_Door_Pivot");
+        pivot.transform.SetParent(parent, false);
+        pivot.transform.localPosition = hinge;
+        var closedRotation = Quaternion.Euler(0f, wallYaw, 0f);
+        var openRotation = Quaternion.Euler(0f, wallYaw + 72f, 0f);
+        pivot.transform.localRotation = openRotation;
         for (var i = 0; i < 3; i++)
         {
-            var localAcross = (i - 1) * 0.205f;
-            AddRoughBoard(parent, $"door_leaf_board_{i}",
-                center + openDirection * localAcross, Quaternion.Euler(0f, hingeYaw, 0f) *
-                    Quaternion.Euler(0f, 0f, 90f),
+            AddRoughBoard(pivot.transform, $"door_leaf_board_{i}",
+                new Vector3(0.105f + i * 0.205f, 0.78f, 0f), Quaternion.Euler(0f, 0f, 90f),
                 1.36f, 0.18f, 0.075f, 500 + seed * 7 + i);
         }
-        AddCraftBeam(parent, "door_leaf_brace",
-            center - openDirection * 0.30f + Vector3.down * 0.45f,
-            center + openDirection * 0.30f + Vector3.up * 0.45f, 0.025f, "Heartwood");
+        AddCraftBeam(pivot.transform, "door_leaf_brace",
+            new Vector3(0.03f, 0.30f, 0f), new Vector3(0.59f, 1.26f, 0f),
+            0.025f, "Heartwood");
+        var visual = pivot.AddComponent<HutDoorVisual>();
+        visual.Configure(hinge, closedRotation, hinge, openRotation, startOpen: true);
     }
 
     private static void AddCraftBeam(Transform parent, string name, Vector3 from,
@@ -798,8 +824,8 @@ public sealed class HutAssembly : MonoBehaviour
         // setters feed shader-space values directly in a Linear project, so
         // convert explicitly; otherwise pale boards and leaves look bleached.
         material.color = authoredSrgb.linear;
-        material.doubleSidedGI = key.StartsWith("Leaf");
-        if (material.HasProperty("_Cull") && key.StartsWith("Leaf")) material.SetFloat("_Cull", 0f);
+        material.doubleSidedGI = true;
+        if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);
         if (key.StartsWith("Leaf") && material.HasProperty("_EmissionColor"))
         {
             // Palm planes turn almost black when their authored normal faces
@@ -896,6 +922,8 @@ public sealed class HutAssembly : MonoBehaviour
         material.color = id == "resource.palm_leaf"
             ? new Color(0.22f, 0.42f, 0.15f)
             : new Color(0.38f, 0.20f, 0.09f);
+        material.doubleSidedGI = true;
+        if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);
         return material;
     }
 

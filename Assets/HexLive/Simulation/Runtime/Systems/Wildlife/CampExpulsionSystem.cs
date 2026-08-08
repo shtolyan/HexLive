@@ -60,6 +60,15 @@ public sealed class CampExpulsionSystem : ISimulationSystem
 
     internal static void BeginChallenge(WorldState world, NPCState owner, NPCState intruder)
     {
+        // §121: сцена выгона — разговор с ролями и таймингом; ручному участнику
+        // она бы отобрала управление на обеих сторонах (хозяин идёт сам,
+        // чужака сцена держит на месте). Есть ручной — сцены нет; выгонять
+        // чужака игрок волен приказом атаки.
+        if (ManualControlMath.IsManual(owner) || ManualControlMath.IsManual(intruder))
+        {
+            return;
+        }
+
         if (owner.Plan.Status == PlanStatus.Active ||
             owner.Execution.Status == ExecutionStatus.InProgress)
         {

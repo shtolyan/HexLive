@@ -1088,6 +1088,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 {
                     objectView.AddComponent<HexLive.UnityPresentation.Environment.FoliageOccluder>();
                 }
+
+                // §121: тот же приём для наведения мышью — маркер несёт номер
+                // объекта, и ввод находит его по статическому списку, а не
+                // поиском по сцене.
+                if (objectView.GetComponent<Views.WorldObjectView>() == null)
+                {
+                    objectView.AddComponent<Views.WorldObjectView>()
+                        .Init(key, worldObject.DefinitionId);
+                }
             }
 
             _objectViewParts.TryGetValue(key, out var parts);

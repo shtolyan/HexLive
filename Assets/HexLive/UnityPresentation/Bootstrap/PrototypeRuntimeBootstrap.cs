@@ -172,6 +172,12 @@ public static class PrototypeRuntimeBootstrap
         var hexPanel = hexPanelRoot.AddComponent<HexInspectorPanel>();
         hexPanel.SetRunner(runner);
 
+        // §121: меню действий ручного режима — открывается кликом по объекту,
+        // человеку или зверю, когда выбранной колонисткой управляет игрок.
+        var contextMenuRoot = new GameObject("HexLive Context Menu");
+        contextMenuRoot.AddComponent<UIDocument>();
+        contextMenuRoot.AddComponent<ContextMenuPanel>();
+
         // Always-visible time controls (pause / play / speed) at the top.
         var speedRoot = new GameObject("HexLive Speed Bar");
         speedRoot.AddComponent<UIDocument>();
@@ -251,6 +257,16 @@ public static class PrototypeRuntimeBootstrap
         }
 
         rts.SetRunner(runner);
+
+        // §121: ручной ввод — на той же камере: он получает левый клик первым
+        // и, если управление в руках игрока, съедает его (идти / меню).
+        var manualInput = mainCamera.GetComponent<Input.SimulationInputAdapter>();
+        if (manualInput == null)
+        {
+            manualInput = mainCamera.gameObject.AddComponent<Input.SimulationInputAdapter>();
+        }
+
+        manualInput.SetRunner(runner);
 
         // §112: palms that stand between the lens and the framed colonist step
         // out of the shot (shadows stay) until the camera moves off them.

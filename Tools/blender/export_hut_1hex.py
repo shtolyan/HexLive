@@ -9,6 +9,7 @@ import json
 import os
 
 import bpy
+import math
 from mathutils import Matrix
 
 
@@ -46,6 +47,55 @@ for index in range(3):
     obj.rotation_mode = "XYZ"
     obj.rotation_euler = (0.0, 0.0, 0.0)
 
+# Window rails were authored in QUATERNION mode. Looking at rotation_euler made
+# them appear to be zeroed, while the real (0.5, 0.5, 0.5, 0.5) quaternion laid
+# them horizontally through the wall. The rail mesh itself is authored along
+# local X; rotate that axis onto Blender Z, which imports as Unity Y. Rails are vertical
+# architectural members, so make that invariant explicit for the whole kit,
+# including future duplicated house modules. This is idempotent.
+for obj in bpy.data.objects:
+    if obj.type != "MESH" or "Window_window_rail" not in obj.name:
+        continue
+    location = obj.matrix_world.translation.copy()
+    obj.rotation_mode = "QUATERNION"
+    obj.rotation_quaternion = (math.cos(math.pi * 0.25), 0.0, math.sin(math.pi * 0.25), 0.0)
+    obj.location = location
+
+# The door is authored as separate boards. Normalize it to one clear artistic
+# open angle around the existing hinge before saving/exporting. Deriving the
+# current angle from the outer-board centres makes reruns idempotent.
+door_prefix = "HL_Bay_00_Door_"
+door_hinge_source = bpy.data.objects.get(door_prefix + "door_transform")
+door_top = bpy.data.objects.get(door_prefix + "board_top")
+door_outer_a = bpy.data.objects.get(door_prefix + "door_board_0")
+door_outer_b = bpy.data.objects.get(door_prefix + "door_board_2")
+door_leaf_names = (
+    door_prefix + "door_board_0",
+    door_prefix + "door_board_1",
+    door_prefix + "door_board_2",
+    door_prefix + "door_brace",
+    door_prefix + "handle",
+)
+if door_hinge_source is None or door_top is None or door_outer_a is None or door_outer_b is None:
+    raise RuntimeError("Incomplete authored hut door")
+
+door_hinge = door_hinge_source.matrix_world.translation.copy()
+wall_angle = door_top.matrix_world.to_euler("XYZ").z
+open_angle = wall_angle + math.radians(72.0)
+leaf_vector = door_outer_b.matrix_world.translation - door_outer_a.matrix_world.translation
+current_angle = math.atan2(leaf_vector.y, leaf_vector.x)
+delta = open_angle - current_angle
+rotate_about_hinge = (
+    Matrix.Translation(door_hinge) @
+    Matrix.Rotation(delta, 4, "Z") @
+    Matrix.Translation(-door_hinge)
+)
+for name in door_leaf_names:
+    obj = bpy.data.objects.get(name)
+    if obj is None:
+        raise RuntimeError("Missing " + name)
+    obj.matrix_world = rotate_about_hinge @ obj.matrix_world
+
 bpy.ops.wm.save_as_mainfile(filepath=bpy.data.filepath)
 
 temp_collection = bpy.data.collections.new("__HL_EXPORT_HUT_1HEX_TEMP")
@@ -55,6 +105,19 @@ for stage_name in ("1", "2", "3"):
     empty = bpy.data.objects.new(f"BuildStage_{stage_name}", None)
     temp_collection.objects.link(empty)
     stage_roots[stage_name] = empty
+
+# Exported semantic transforms: Unity keeps the leaf under DoorPivot and reads
+# the two sibling state markers. No mesh-specific hand rotation is required in
+# presentation code, and Open/Close can interpolate one transform.
+door_pivot = bpy.data.objects.new("HL_Door_Pivot", None)
+door_closed = bpy.data.objects.new("HL_Door_State_Closed", None)
+door_open = bpy.data.objects.new("HL_Door_State_Open", None)
+for empty in (door_pivot, door_closed, door_open):
+    temp_collection.objects.link(empty)
+    empty.parent = stage_roots["2"]
+door_pivot.matrix_world = Matrix.Translation(door_hinge) @ Matrix.Rotation(open_angle, 4, "Z")
+door_closed.matrix_world = Matrix.Translation(door_hinge) @ Matrix.Rotation(wall_angle, 4, "Z")
+door_open.matrix_world = door_pivot.matrix_world.copy()
 
 
 def stage_for(name):
@@ -76,17 +139,21 @@ for source in hut.all_objects:
     duplicate.name = source.name + "__EXPORT"
     # Bake source world transforms into private meshes. Unity receives identity
     # children and never has to reinterpret Blender pivots or unapplied scale.
-    duplicate.data.transform(source.matrix_world)
-    duplicate.matrix_world = Matrix.Identity(4)
+    if source.name in door_leaf_names:
+        duplicate.data.transform(door_pivot.matrix_world.inverted() @ source.matrix_world)
+    else:
+        duplicate.data.transform(source.matrix_world)
     stage_name = stage_for(source.name)
-    duplicate.parent = stage_roots[stage_name]
+    duplicate.parent = door_pivot if source.name in door_leaf_names else stage_roots[stage_name]
+    duplicate.matrix_parent_inverse = Matrix.Identity(4)
+    duplicate.matrix_basis = Matrix.Identity(4)
     temp_collection.objects.link(duplicate)
     exported.append(duplicate)
     stage_counts[stage_name] += 1
 
 for obj in bpy.context.selected_objects:
     obj.select_set(False)
-for obj in [*stage_roots.values(), *exported]:
+for obj in [*stage_roots.values(), door_pivot, door_closed, door_open, *exported]:
     obj.select_set(True)
 bpy.context.view_layer.objects.active = stage_roots["1"]
 
@@ -117,7 +184,7 @@ for duplicate in exported:
     bpy.data.objects.remove(duplicate, do_unlink=True)
     if mesh.users == 0:
         bpy.data.meshes.remove(mesh)
-for empty in stage_roots.values():
+for empty in [door_pivot, door_closed, door_open, *stage_roots.values()]:
     bpy.data.objects.remove(empty, do_unlink=True)
 bpy.data.collections.remove(temp_collection)
 

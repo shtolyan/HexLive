@@ -287,6 +287,15 @@ public static class GoalCatalog
         // обмороки коротки, шагом он не успеет.
         Add(GoalType.LootHelpless, urgency: UrgencyClass.Hurry);
 
+        // §121: приказы игрока. Колонка взаимодействия у PlayerOrder пуста
+        // НАМЕРЕННО — одна цель исполняет и «подобрать», и «срубить», и
+        // «выпить», конкретный тип кладёт в шаг плана ManualCommandExecutor
+        // (как это делает сцена §111). Обе реактивные: аукцион их не считает,
+        // их ставит очередь команд.
+        Add(GoalType.PlayerOrder, reactive: true);
+        Add(GoalType.PlayerAttack, urgency: UrgencyClass.Hurry,
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
+
         // ── Мёртвые ординалы (§52: заявка на мебель стала стадийной) ─────
         Add(GoalType.PlaceSite, dead: true);
         Add(GoalType.DeliverToSite, dead: true);

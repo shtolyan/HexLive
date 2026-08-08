@@ -186,6 +186,16 @@ public static class GroupHuntMath
                 blocked = $"NPC{girl.Id.Value}Unfit";
                 return false;
             }
+
+            // §121: ручную в сговор не зовут — за неё решает игрок. Проверка
+            // стоит в PactHolds, а не в TryFormPact, чтобы сговор не сложился
+            // ВООБЩЕ: иначе двое ушли бы бить чужака, а третья, ручная,
+            // осталась стоять — группа, рассыпавшаяся в момент рождения.
+            if (Runtime.ManualControlMath.IsManual(girl))
+            {
+                blocked = $"NPC{girl.Id.Value}Manual";
+                return false;
+            }
         }
 
         return true;

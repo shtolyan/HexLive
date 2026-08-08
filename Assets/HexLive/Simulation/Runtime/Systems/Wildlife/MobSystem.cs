@@ -382,7 +382,9 @@ public sealed class MobSystem : ISimulationSystem
                             $"Dog={dog.Id} never reached melee in {window} ticks — " +
                             $"dropping the stance (grace {SimBalance.StandoffReleaseGraceTicks})");
                     }
-                    else
+                    // §121: с приказом она не оборачивается и на разгон зверя —
+                    // идёт дальше (правило Кенши). Без приказа — как все.
+                    else if (!ManualControlMath.IsOrderedManual(target))
                     {
                         target.IsFighting = true;
                         if (target.Plan.Status == PlanStatus.Active ||
@@ -461,8 +463,12 @@ public sealed class MobSystem : ISimulationSystem
         // A committed fighter never re-opens the flee assessment (that re-flee
         // was the endless-maul loop); a genuinely new flee only starts for a
         // girl not currently standing her ground.
+        // §121: ручная не убегает от зверя сама — как и от человека (§109.8).
+        // Отступление есть у игрока: приказ идти, который она — по правилу
+        // Кенши — не бросит даже под укусами.
+        var manualTarget = ManualControlMath.IsManual(target);
         var fleeing = target.Mind.CurrentGoal == GoalType.Flee && !committedToFight;
-        if (!fleeing && !helpless && !committedToFight)
+        if (!fleeing && !helpless && !committedToFight && !manualTarget)
         {
             var attackers = CountAdjacentDogs(world, target);
             // §50-prone: a girl on the ground CANNOT stand and trade blows —
@@ -476,7 +482,12 @@ public sealed class MobSystem : ISimulationSystem
 
         // §50-prone: no refuge to crawl to still never means standing up —
         // a prone girl lies where she is (and takes the bites; §50 is HARD).
-        if (!fleeing && !helpless && !target.Body.IsProne)
+        //
+        // ⭐ §121 ПРАВИЛО КЕНШИ, вторая половина: с приказом она НЕ встаёт в
+        // стойку и против зверя — идёт и терпит укусы. Без приказа стоит и
+        // дерётся, как все (ветка ниже отрабатывает как прежде).
+        if (!fleeing && !helpless && !target.Body.IsProne &&
+            !(manualTarget && ManualControlMath.HasActiveOrder(target)))
         {
             var wasFighting = target.IsFighting;
             target.IsFighting = true;

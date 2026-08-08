@@ -2257,6 +2257,22 @@ MonoBehaviour:
       - 'Прогоняет чужака из лагеря'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'goal.PlayerOrder'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Following orders'
+      - 'Выполняет приказ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.PlayerAttack'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Attacking on orders'
+      - 'Атакует по приказу'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'goal.LootHelpless'
       TermType: 0
       Description:
@@ -2767,6 +2783,286 @@ MonoBehaviour:
       Languages:
       - 'Backpack'
       - 'Рюкзак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.control.ai'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'AI'
+      - 'ИИ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.control.manual'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Manual'
+      - 'Ручное'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.control.tooltip'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Who gives the orders: the colonist herself or you'
+      - 'Кто отдаёт приказы: она сама или вы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.attack'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Attack'
+      - 'Атаковать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.select'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Select'
+      - 'Выбрать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.missing_tool'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'no tool for this'
+      - 'нет инструмента'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.target.person'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Person'
+      - 'Человек'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.target.beast'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Beast'
+      - 'Зверь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Build.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Build'
+      - 'Строить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.BuildRaft.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work on the raft'
+      - 'Строить плот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Butcher.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Butcher'
+      - 'Разделать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Craft.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Craft'
+      - 'Смастерить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Dress.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Put on'
+      - 'Надеть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Drink.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Drink'
+      - 'Выпить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Eat.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Eat'
+      - 'Съесть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.FillBottle.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fill the bottle'
+      - 'Набрать во флягу'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Fuel.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Add fuel'
+      - 'Подбросить в огонь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Hang.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hang up to dry'
+      - 'Повесить сушиться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Harvest.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Chop down'
+      - 'Срубить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Loot.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Take a thing'
+      - 'Забрать вещь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Observe.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Look at'
+      - 'Осмотреть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.PickUp.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pick up'
+      - 'Подобрать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.PlaceVessel.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Put the bottle here'
+      - 'Поставить флягу'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Process.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Split open'
+      - 'Вскрыть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Sit.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sit down'
+      - 'Сесть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.Sleep.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleep here'
+      - 'Лечь спать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'interaction.TakeVessel.verb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Take the bottle'
+      - 'Забрать флягу'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.Unreachable'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Can't get there'
+      - 'Туда не добраться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.MissingTool'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No tool for that'
+      - 'Нет нужного инструмента'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.Occupied'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Someone is using it'
+      - 'Этим уже занят другой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.TargetGone'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'It's gone'
+      - 'Цели больше нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoSuchAction'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'She can't do that with it'
+      - 'С этим так нельзя'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.Incapacitated'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'She can't right now'
+      - 'Сейчас она не может'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NotManual'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'She is under AI control'
+      - 'Ею управляет ИИ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoSuchNpc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No such colonist'
+      - 'Такой колонистки нет'
       Flags: 0101
       Languages_Touch: []
     - Term: 'inv.worn'

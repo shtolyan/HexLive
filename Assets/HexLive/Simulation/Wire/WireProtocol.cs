@@ -82,7 +82,8 @@ public enum CommandKind : byte
 public sealed class Handshake
 {
     // 2: §21.21B v15 added HopFromTile to the NPC record.
-    public const int ProtocolVersion = 2;
+    // 3: §121 added IsManualControl to the NPC record.
+    public const int ProtocolVersion = 3;
 
     public int Seed { get; set; }
 

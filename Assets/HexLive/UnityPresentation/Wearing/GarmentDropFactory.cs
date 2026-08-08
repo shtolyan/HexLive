@@ -84,7 +84,11 @@ public static class GarmentDropFactory
             // Recentre: the mesh's bounds centre lands on the piece pivot.
             view.transform.localPosition = -(lieFlat * mesh.bounds.center);
             view.AddComponent<MeshFilter>().sharedMesh = mesh;
-            view.AddComponent<MeshRenderer>().sharedMaterials = source.sharedMaterials;
+            // §31B.4E: a ground/rack item keeps its ITEM id even though it
+            // loads the prototype's art. Use that id here too: otherwise a
+            // variant (for example a coloured T-shirt) renders with the
+            // prototype materials only after it is taken off or washes ashore.
+            view.AddComponent<MeshRenderer>().sharedMaterials = MaterialsForDrop(source, definitionId);
 
             pieces.Add(piece.transform);
             widths.Add(mesh.bounds.size.x);
@@ -125,6 +129,30 @@ public static class GarmentDropFactory
     {
         var id = definitionId.ToLowerInvariant();
         return id.Contains("boot") || id.Contains("shoe");
+    }
+
+    // Same partial-slot replacement contract as Wear.ApplyVariant: a variant
+    // may supply just its cloth material and intentionally retain prototype
+    // buttons, trims, or hardware in the remaining submeshes.
+    private static Material[] MaterialsForDrop(SkinnedMeshRenderer source, string definitionId)
+    {
+        var sourceMaterials = source.sharedMaterials;
+        var variantMaterials = Garments.GarmentVariants.MaterialsOf(definitionId);
+        if (variantMaterials == null || variantMaterials.Length == 0)
+        {
+            return sourceMaterials;
+        }
+
+        var result = (Material[])sourceMaterials.Clone();
+        for (var i = 0; i < result.Length && i < variantMaterials.Length; i++)
+        {
+            if (variantMaterials[i] != null)
+            {
+                result[i] = variantMaterials[i];
+            }
+        }
+
+        return result;
     }
 }
 

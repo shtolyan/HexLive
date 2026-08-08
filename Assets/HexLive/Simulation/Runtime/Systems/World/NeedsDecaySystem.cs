@@ -54,9 +54,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             {
                 ContentIds.BedBasic => Spec49.SleepComfortBedNight,
                 ContentIds.BedLeaf => Spec49.SleepComfortLeafNight,
+                ContentIds.HutBed => Spec49.SleepComfortBedNight,
                 _ => perNight
             };
-            onBed = obj.DefinitionId is ContentIds.BedBasic or ContentIds.BedLeaf;
+            onBed = obj.DefinitionId is ContentIds.BedBasic or ContentIds.BedLeaf or ContentIds.HutBed;
         }
 
         // A worn jacket/coat padding the bare ground beats sleeping on plain
@@ -156,31 +157,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // a body that just switched off holds no stance
 
-        if (cause == ComaCause.Exhaustion &&
-            TryFindSafeExhaustionSleepAnchor(world, npc, out var safeTile, out var safeJunction))
-        {
-            if (npc.CurrentJunction is { } oldJunction && !oldJunction.Equals(safeJunction))
-            {
-                SpatialMutations.FreeJunction(world, oldJunction, npc.Id);
-            }
-
-            if (!safeTile.Equals(npc.Tile))
-            {
-                SpatialMutations.MoveEntityToTile(world, npc.Id, npc.Tile, safeTile);
-                npc.Tile = safeTile;
-            }
-
-            npc.CurrentJunction = safeJunction;
-        }
-
         // §60: lie down like a ground sleeper — always at the EXACT centre of
-        // her own hex, never across a tile rim (a collapse mid-stride used to
-        // lie down wherever the free-junction scan landed, and that scan
-        // excluded the junction she actually stood on, drifting the body off
-        // the edge; the no-free-junction fallback left her un-snapped entirely).
-        // The centre is pinned first and unconditionally; the scan only picks a
-        // free junction to anchor the lying footprint (spec 29G) so housemates
-        // path around the body — it no longer decides position.
+        // the hex where she ACTUALLY collapsed, never across a tile rim and
+        // never on a neighbouring "safe" tile. A body may change tiles only
+        // through the explicit rescue/carry scene (§118.4); collapse itself is
+        // a posture transition, not movement (bugs #53/#54).
         // §105: сам примитив переехал в MortalityHelpers — умирание кладёт тело
         // на землю ровно тем же способом, и двух редакций §60.2a быть не должно.
         MortalityHelpers.AnchorLyingBody(world, npc);
@@ -191,67 +172,6 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             cause == ComaCause.Exhaustion ? "FellAsleepExhausted" : "FaintedBloodLoss",
             $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2} " +
             $"Health={npc.Health:F2}");
-    }
-
-    private static bool TryFindSafeExhaustionSleepAnchor(
-        WorldState world, NPCState npc, out TileCoord tile, out JunctionId junction)
-    {
-        tile = npc.Tile;
-        junction = default;
-
-        var best = float.MaxValue;
-        foreach (var tileState in world.Tiles.Items.Values)
-        {
-            if (!tileState.Flags.HasFlag(TileFlags.Walkable) ||
-                tileState.Flags.HasFlag(TileFlags.Water) ||
-                tileState.Junctions.Count == 0 ||
-                HexSpatialMath.HexDistance(tileState.Coord, npc.Tile) > 2)
-            {
-                continue;
-            }
-
-            if (world.Caches.ObjectsByTile.TryGetValue(tileState.Coord, out var objects) && objects.Count > 0)
-            {
-                continue;
-            }
-
-            var center = HexSpatialMath.TileToWorld(tileState.Coord);
-            JunctionId? centerJunction = null;
-            var centerDist = float.MaxValue;
-            foreach (var junctionId in tileState.Junctions)
-            {
-                if (!world.Junctions.Items.TryGetValue(junctionId, out var candidate) ||
-                    candidate.Blocked ||
-                    (!SpatialQueries.IsJunctionFree(world, junctionId) &&
-                        !junctionId.Equals(npc.CurrentJunction)) ||
-                    !SpatialQueries.LyingBodyClear(world, candidate))
-                {
-                    continue;
-                }
-
-                var d = HexSpatialMath.Distance(candidate.WorldPosition, center);
-                if (d < centerDist)
-                {
-                    centerDist = d;
-                    centerJunction = junctionId;
-                }
-            }
-
-            if (centerJunction is not { } candidateJunction)
-            {
-                continue;
-            }
-
-            var distance = HexSpatialMath.Distance(center, npc.Position);
-            if (distance < best)
-            {
-                best = distance;
-                tile = tileState.Coord;
-                junction = candidateJunction;
-            }
-        }
-
-        return best < float.MaxValue;
     }
 
     // Spec §60: the coma ends the moment the stat that felled the body climbs
@@ -282,6 +202,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     // the junction the body held (mirrors the ground-rest wake path).
     internal static void WakeFromComa(WorldState world, NPCState npc, string cause)
     {
+        if (Spec118.Enabled)
+        {
+            KenshiRescueMath.ReleasePatientBedOnWake(world, npc);
+        }
         npc.Mind.ComaCause = ComaCause.None;
         npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // spec 41.5
 
@@ -348,6 +272,13 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            // Health==0 is a terminal latch. The next Medium MobSystem sweep
+            // transfers the NPC to Corpses; slow recovery must not resurrect it.
+            if (npc.Health <= 0f)
+            {
+                continue;
+            }
+
             var prevHunger = npc.Needs.Hunger;
             var prevEnergy = npc.Needs.Energy;
             var prevComfort = npc.Needs.Comfort;
@@ -368,9 +299,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 world.Tick < npc.Mind.PlayDeadUntilTick &&
                 MortalityHelpers.HostileNearby(world, npc))
             {
-                npc.Mind.PlayDeadUntilTick = System.Math.Min(
-                    world.Tick + Spec105.PlayDeadHoldTicks,
-                    npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks);
+                npc.Mind.PlayDeadUntilTick = Spec118.Enabled
+                    ? world.Tick + Spec105.PlayDeadHoldTicks
+                    : System.Math.Min(
+                        world.Tick + Spec105.PlayDeadHoldTicks,
+                        npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks);
             }
 
             // Spec 31C.7A: a sleeping body burns less — hour-long sleep
@@ -431,6 +364,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     {
                         ContentIds.BedBasic => SimBalance.SleepEnergyBasicBedBonus,
                         ContentIds.BedLeaf => SimBalance.SleepEnergyLeafBedBonus,
+                        ContentIds.HutBed => SimBalance.SleepEnergyBasicBedBonus,
                         _ => 0f
                     };
                 }
@@ -627,17 +561,19 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // the edge (starving or bleeding) drops the NPC unconscious — it
             // lies helpless for ~80 ticks, then rises. Rare by construction,
             // so it barely perturbs the colony.
-            if (world.Tick >= npc.Mind.FaintedUntilTick && npc.Needs.Stamina <= 0.01f &&
+            if (world.Tick >= npc.Mind.FaintedUntilTick &&
+                world.Tick >= npc.Mind.WakeGraceUntilTick &&
+                npc.Mind.ComaCause == ComaCause.None && !npc.IsDying &&
+                npc.Needs.Stamina <= 0.01f &&
                 (npc.Needs.Hunger >= 0.9f || npc.Needs.Blood < 0.25f) &&
                 npc.Health > 0f)
             {
                 npc.Mind.FaintedUntilTick = world.Tick + 80;
                 PlanInterruption.Abort(world, npc, "Collapsed — unconscious");
                 npc.Mind.CurrentGoal = GoalType.None;
-                // Spec 40.13/§60: drop at the tile centre, not wherever the
-                // stride left her — this path never set the lying position
-                // before, so the limp body used to hang off the hex edge.
-                ExecutionSystem.LieDownCentered(world, npc);
+                // §113 r2: choose the nearest sub-grid pose whose whole body is
+                // supported; do not preserve a mid-stride point over an edge.
+                ExecutionSystem.TryLieDownOnGround(world, npc);
                 Trace.Emit(world, npc.Id, "Fainted",
                     $"Stamina={npc.Needs.Stamina:F2} Hunger={npc.Needs.Hunger:F2} Blood={npc.Needs.Blood:F2}");
             }
@@ -659,7 +595,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Mind.CryingUntilTick = world.Tick + SimBalance.CryingBreakdownTicks;
                 PlanInterruption.Abort(world, npc, "Broke down crying");
                 npc.Mind.CurrentGoal = GoalType.None;
-                ExecutionSystem.LieDownCentered(world, npc);
+                ExecutionSystem.TryLieDownOnGround(world, npc);
                 Trace.Emit(world, npc.Id, "CryingBreakdown",
                     $"Stamina={npc.Needs.Stamina:F2} Stress={npc.Needs.Stress:F2}");
             }
@@ -694,6 +630,18 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // §105: обе половины гейта переехали в MortalityHelpers — умирание
             // спрашивает ровно этот вопрос («отпустило ли кровотечение?»), и
             // вторая редакция условия разошлась бы с этой на первой правке.
+            if (Spec118.Enabled && Spec118.MedicalEnabled)
+            {
+                KenshiMedicalMath.Tick(world, npc);
+                if (npc.Health <= 0f)
+                {
+                    // Bug #54: do not continue into starvation/healing after a
+                    // fatal wound-degeneration result in this same slow pass.
+                    continue;
+                }
+            }
+            else
+            {
             var worstPart = MortalityHelpers.WorstBleedPart(npc);
             var freshWound = MortalityHelpers.HasFreshWound(npc);
 
@@ -830,6 +778,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             if (npc.Needs.Blood <= SimBalance.ComaBloodEnterThreshold)
             {
                 EnterComa(world, npc, ComaCause.BloodLoss);
+            }
             }
 
             // Spec 28.15B: post-quarrel embarrassment fades with time.
@@ -1056,8 +1005,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 foreach (var part in AllBodyParts)
                 {
                     if (npc.Body.IsSevered(part)) continue; // §50: severed zones never regen
-                    var ceiling = MathUtil.Clamp01(1f - WoundMath.OpenWoundDamage(npc, part));
-                    if (npc.Body.Parts[part] < ceiling)
+                    var condition = npc.Body.Condition(part);
+                    var heldDamage = WoundMath.OpenWoundDamage(npc, part) +
+                        (Spec118.Enabled ? condition.BluntDamage : 0f);
+                    var ceiling = MathUtil.Clamp01(1f - heldDamage);
+                    if ((!Spec118.Enabled || condition.CriticalTrauma <= 0f) &&
+                        npc.Body.Parts[part] < ceiling)
                     {
                         // §76: a tough body knits faster. The CEILING is
                         // untouched — an open wound still caps what can come
@@ -1083,7 +1036,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // ACTIVITY — sleeping knits flesh twice as fast, marching halves
             // it. Each healed slice returns its share of the zone's HP, so
             // health comes back exactly as the wounds close, wound by wound.
-            if (npc.Wounds.Count > 0)
+            if (!Spec118.Enabled && npc.Wounds.Count > 0)
             {
                 // §60: a coma knits flesh at the sleeping pace too.
                 // §76: Toughness rides on top of the activity pace — the same

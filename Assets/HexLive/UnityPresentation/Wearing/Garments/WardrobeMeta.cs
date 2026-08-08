@@ -20,11 +20,10 @@ namespace HexLive.UnityPresentation.Wearing.Garments
 // иначе правку статов пришлось бы выпускать вместе с игрой.
 public static class WardrobeMeta
 {
-    // Папка контента: в плеере `Application.dataPath` — это <игра>_Data,
-    // значит `..` — каталог самой игры, где и лежит HexLiveContent. То же
-    // выражение стоит в профиле Addressables как путь загрузки.
-    private static string ContentRoot =>
-        Path.Combine(Application.dataPath, "..", "HexLiveContent");
+    // Тот же единый корень, из которого Addressables берёт бандлы. На macOS
+    // он лежит рядом с .app (не внутри пакета), поэтому несколько новых билдов
+    // в одной папке используют один комплект контента.
+    private static string ContentRoot => ExternalContentPath.Root;
 
     /// <summary>Сколько вещей приехало метами — для проверки и лога.</summary>
     public static int LoadedItems { get; private set; }

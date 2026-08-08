@@ -184,6 +184,17 @@ public static class PrototypeRuntimeBootstrap
         var debugPanel = debugRoot.AddComponent<DebugControlsPanel>();
         debugPanel.SetRunner(runner);
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if (UNITY_IOS || UNITY_ANDROID) && !UNITY_EDITOR
+        debugPanel.SetRuntimeConsole(new LunarRuntimeConsoleProvider());
+#elif UNITY_EDITOR || UNITY_STANDALONE_OSX || UNITY_STANDALONE_WIN
+        var consoleRoot = new GameObject("HexLive Runtime Console");
+        consoleRoot.AddComponent<UIDocument>();
+        var runtimeConsole = consoleRoot.AddComponent<DesktopRuntimeConsole>();
+        debugPanel.SetRuntimeConsole(runtimeConsole);
+#endif
+#endif
+
         // In-game bug tracker window (BUGS.json), opened from the debug panel.
         var bugRoot = new GameObject("HexLive Bug Reports");
         bugRoot.AddComponent<UIDocument>();

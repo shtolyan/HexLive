@@ -29,14 +29,9 @@ public static class Spec86
     // срабатывает только на части ровно в нуле).
     public static float MercyPartFloor = 0.05f;
 
-    // Симпатия, ниже которой пощады нет. Отношения идут от -1 до 1, обычная
-    // неприязнь держится около -0.3; -0.6 — это уже несколько сцен насилия
-    // подряд, то есть по-настоящему заработанная ненависть.
-    public static float HatredAffinity = -0.6f;
-
-    // Пощада работает только между ЛЮДЬМИ. Волк добивает, и это правильно.
-    // Отдельный флаг, чтобы соак мог развести две причины смертей.
-    public static bool MercyAppliesToOutsiders = true;
+    // Потенциально смертельный удар разрешён при
+    // Clamp01(-affinity) × (1 - CompassionTrait) >= 0.50.
+    public const float KillIntentThreshold = 0.50f;
 }
 
 }

@@ -55,6 +55,12 @@ namespace HexLive.UnityPresentation.Config
         public bool usableAsWeapon = true;
         [Tooltip("Урон одного попадания (до StrikeFactor бойца и брони цели).")]
         [Range(0f, 1f)] public float damage = 0.1875f;
+        [Tooltip("Профиль cut/blunt задан на этом ассете. Выкл = канонический профиль id из GearCatalog.")]
+        public bool damageProfileAuthored;
+        [Tooltip("Доля режущего урона; тупой = 1 − это значение.")]
+        [Range(0f, 1f)] public float cutFraction;
+        [Tooltip("Множитель мгновенной и продолжающейся кровопотери.")]
+        [Range(0f, 2f)] public float bloodLossMultiplier;
         [Tooltip("Замах: через сколько секунд от старта анимации падает УРОН (плюс хит-реакция и кровь).")]
         [Range(0.1f, 3f)] public float hitDelaySeconds = 1.5f;
         [Tooltip("Полная длительность анимации атаки (удар + доигрыш).")]
@@ -144,10 +150,17 @@ namespace HexLive.UnityPresentation.Config
 
         public GearStats ToStats()
         {
+            var defaults = GearCatalog.Defaults.TryGetValue(gearId ?? string.Empty, out var builtIn)
+                ? builtIn
+                : GearCatalog.For(gearId ?? string.Empty);
             var stats = new GearStats
             {
                 Id = gearId ?? string.Empty,
                 Damage = damage,
+                CutFraction = damageProfileAuthored ? cutFraction : defaults.CutFraction,
+                BloodLossMultiplier = damageProfileAuthored
+                    ? bloodLossMultiplier
+                    : defaults.BloodLossMultiplier,
                 HitDelaySeconds = hitDelaySeconds,
                 AttackDurationSeconds = attackDurationSeconds,
                 CooldownSeconds = cooldownSeconds,

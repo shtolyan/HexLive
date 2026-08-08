@@ -5,10 +5,11 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 
 // ---------------------------------------------------------------------------
-//  Разметка гардероба и волос адресами.
+//  Разметка внешнего контента адресами.
 //
 //  Адрес — это ДОГОВОР между кодом и контентом, поэтому он строится по правилу,
 //  а не назначается руками:
@@ -16,6 +17,7 @@ using UnityEngine;
 //      hair/<Причёска>                      — префаб причёски
 //      hair/<Причёска>/<Цвет>/<Поверхность> — материал расцветки
 //      wear/<artId>                         — префаб арта вещи
+//      prosthetic/<limb>/<tier>/<side>       — модель протеза
 //
 //  Почему материал адресуется поштучно, а не набором: подмена цвета и так идёт
 //  ПО ИМЕНИ ПОВЕРХНОСТИ (порядок сабмешей у причёски не гарантирован), значит
@@ -32,10 +34,28 @@ using UnityEngine;
 public static class HexLiveAddressablesContent
 {
     public const string HairGroup = "HexLive.Hair";
+    public const string IconGroup = "HexLive.Icons";
+    public const string ProstheticGroup = "HexLive.Prosthetics";
     public const string WearGroup = "HexLive.Wear";
+    public const string ProstheticLabel = "prosthetic.core";
 
     private const string HairRoot = "Assets/ImportedActors/Hair";
+    private const string IconRoot = "Assets/HexLiveContent/Icons";
+    private const string ProstheticRoot = "Assets/HexLiveContent/Prosthetics";
+    private const string LegacyProstheticResources = "Assets/Resources/HexLive/Prosthetics";
     private const string WearRoot = "Assets/HexLiveContent/Wear";
+
+    private static readonly string[] ExpectedProstheticAddresses =
+    {
+        "prosthetic/arm/wood/l",
+        "prosthetic/arm/wood/r",
+        "prosthetic/leg/wood/l",
+        "prosthetic/leg/wood/r",
+        "prosthetic/arm/mechanical/l",
+        "prosthetic/arm/mechanical/r",
+        "prosthetic/leg/mechanical/l",
+        "prosthetic/leg/mechanical/r",
+    };
 
     public static string HairAddress(string hair) => $"hair/{hair}";
 
@@ -56,12 +76,164 @@ public static class HexLiveAddressablesContent
 
         var hair = MarkHair(settings);
         var wear = MarkWear(settings);
+        var icons = MarkStandaloneIcons(settings);
+        var prosthetics = MarkProsthetics(settings);
 
         AssetDatabase.SaveAssets();
         Debug.Log($"[Addressables] размечено: причёсок и их расцветок — {hair} адресов, " +
-                  $"арта вещей — {wear} адресов.\n" +
+                  $"арта вещей — {wear} адресов, отдельных иконок — {icons}, " +
+                  $"протезов — {prosthetics}.\n" +
                   "Теперь каталоги должны хранить СТРОКИ вместо ссылок — иначе всё это " +
                   "по-прежнему поедет в билд.");
+    }
+
+    private static int MarkProsthetics(AddressableAssetSettings settings)
+    {
+        if (!Directory.Exists(ProstheticRoot))
+        {
+            Debug.LogError($"[Addressables] нет папки {ProstheticRoot} — протезы не размечены.");
+            return 0;
+        }
+
+        var group = GetOrCreateGroup(settings, ProstheticGroup);
+        var schema = group.GetSchema<BundledAssetGroupSchema>();
+        if (schema != null)
+        {
+            schema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel;
+            EditorUtility.SetDirty(schema);
+        }
+
+        settings.AddLabel(ProstheticLabel, false);
+        var marked = 0;
+        foreach (var file in Directory.GetFiles(ProstheticRoot, "*.fbx"))
+        {
+            var path = file.Replace('\\', '/');
+            if (!TryProstheticAddress(path, out var address))
+            {
+                Debug.LogWarning($"[Addressables] неизвестное имя модели протеза: {path}");
+                continue;
+            }
+
+            ConfigureProstheticImporter(path);
+            if (!Mark(settings, group, path, address))
+            {
+                continue;
+            }
+
+            var entry = settings.FindAssetEntry(AssetDatabase.AssetPathToGUID(path));
+            entry?.SetLabel(ProstheticLabel, true, false, false);
+            marked++;
+        }
+
+        return marked;
+    }
+
+    private static bool TryProstheticAddress(string path, out string address)
+    {
+        var name = Path.GetFileNameWithoutExtension(path);
+        var parts = name.Split('_');
+        if (parts.Length == 4 && parts[0] == "prosthetic" &&
+            parts[1] is "arm" or "leg" &&
+            parts[2] is "wood" or "mechanical" &&
+            parts[3] is "l" or "r")
+        {
+            address = $"prosthetic/{parts[1]}/{parts[2]}/{parts[3]}";
+            return true;
+        }
+
+        address = string.Empty;
+        return false;
+    }
+
+    private static void ConfigureProstheticImporter(string path)
+    {
+        if (AssetImporter.GetAtPath(path) is not ModelImporter importer)
+        {
+            return;
+        }
+
+        var changed = false;
+        if (!Mathf.Approximately(importer.globalScale, 1f))
+        {
+            importer.globalScale = 1f;
+            changed = true;
+        }
+        if (importer.importAnimation)
+        {
+            importer.importAnimation = false;
+            changed = true;
+        }
+        if (!importer.preserveHierarchy)
+        {
+            importer.preserveHierarchy = true;
+            changed = true;
+        }
+        if (importer.isReadable)
+        {
+            importer.isReadable = false;
+            changed = true;
+        }
+        if (!importer.useFileScale)
+        {
+            importer.useFileScale = true;
+            changed = true;
+        }
+        if (importer.animationType != ModelImporterAnimationType.None)
+        {
+            importer.animationType = ModelImporterAnimationType.None;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            importer.SaveAndReimport();
+        }
+    }
+
+    // Wear icons are already packed beside their garment by
+    // HexLivePerItemBundles. Core inventory icons (food, resources and tools)
+    // have no wear prefab and used to remain completely unaddressed after the
+    // Resources move. Put only those otherwise-unowned PNGs into one small
+    // standalone group; do not pull the 600+ garment icons out of their
+    // per-item bundles.
+    private static int MarkStandaloneIcons(AddressableAssetSettings settings)
+    {
+        if (!Directory.Exists(IconRoot))
+        {
+            Debug.LogWarning($"[Addressables] нет папки {IconRoot} — отдельные иконки не размечены.");
+            return 0;
+        }
+
+        var group = GetOrCreateGroup(settings, IconGroup);
+        var marked = 0;
+        foreach (var file in Directory.GetFiles(IconRoot, "*.png"))
+        {
+            var path = file.Replace('\\', '/');
+            var guid = AssetDatabase.AssetPathToGUID(path);
+            if (string.IsNullOrEmpty(guid))
+            {
+                continue;
+            }
+
+            var expected = "icon/" + Path.GetFileNameWithoutExtension(path);
+            var existing = settings.FindAssetEntry(guid);
+            if (existing != null && existing.address == expected)
+            {
+                continue;
+            }
+
+            if (existing != null)
+            {
+                existing.address = expected;
+                marked++;
+            }
+            else if (Mark(settings, group, path, expected))
+            {
+                marked++;
+            }
+        }
+
+        return marked;
     }
 
     private static int MarkHair(AddressableAssetSettings settings)
@@ -175,6 +347,7 @@ public static class HexLiveAddressablesContent
         }
 
         var addresses = new HashSet<string>();
+        var duplicate = false;
         foreach (var group in settings.groups)
         {
             if (group == null) continue;
@@ -182,6 +355,7 @@ public static class HexLiveAddressablesContent
             {
                 if (entry != null && !addresses.Add(entry.address))
                 {
+                    duplicate = true;
                     Debug.LogError($"[Addressables] адрес ДВАЖДЫ: {entry.address}");
                 }
             }
@@ -201,15 +375,97 @@ public static class HexLiveAddressablesContent
             }
         }
 
-        if (missing.Count > 0)
+        if (Directory.Exists(IconRoot))
         {
-            Debug.LogError($"[Addressables] причёски БЕЗ адреса ({missing.Count}): " +
+            foreach (var file in Directory.GetFiles(IconRoot, "*.png"))
+            {
+                var path = file.Replace('\\', '/');
+                var expected = "icon/" + Path.GetFileNameWithoutExtension(path);
+                var entry = settings.FindAssetEntry(AssetDatabase.AssetPathToGUID(path));
+                if (entry == null || entry.address != expected)
+                {
+                    missing.Add(expected);
+                }
+            }
+        }
+
+        var prostheticGroup = settings.FindGroup(ProstheticGroup);
+        if (prostheticGroup == null)
+        {
+            missing.Add(ProstheticGroup);
+        }
+        else
+        {
+            var prostheticFiles = Directory.Exists(ProstheticRoot)
+                ? Directory.GetFiles(ProstheticRoot, "*.fbx")
+                : System.Array.Empty<string>();
+            if (prostheticFiles.Length != ExpectedProstheticAddresses.Length ||
+                prostheticGroup.entries.Count != ExpectedProstheticAddresses.Length)
+            {
+                missing.Add($"{ProstheticGroup} [expected 8 assets, files=" +
+                            $"{prostheticFiles.Length}, entries={prostheticGroup.entries.Count}]");
+            }
+
+            foreach (var expected in ExpectedProstheticAddresses)
+            {
+                var entry = prostheticGroup.entries.FirstOrDefault(candidate =>
+                    candidate != null && candidate.address == expected);
+                if (entry == null || !entry.labels.Contains(ProstheticLabel) ||
+                    !entry.AssetPath.StartsWith(ProstheticRoot + "/"))
+                {
+                    missing.Add(expected);
+                }
+            }
+
+            foreach (var file in prostheticFiles)
+            {
+                var path = file.Replace('\\', '/');
+                if (!TryProstheticAddress(path, out var expected))
+                {
+                    missing.Add(path);
+                    continue;
+                }
+
+                var entry = settings.FindAssetEntry(AssetDatabase.AssetPathToGUID(path));
+                if (entry == null || !prostheticGroup.entries.Contains(entry) ||
+                    entry.address != expected || !entry.labels.Contains(ProstheticLabel))
+                {
+                    missing.Add(expected);
+                }
+
+                if (AssetImporter.GetAtPath(path) is not ModelImporter importer ||
+                    !Mathf.Approximately(importer.globalScale, 1f) || importer.importAnimation ||
+                    importer.animationType != ModelImporterAnimationType.None ||
+                    !importer.preserveHierarchy || importer.isReadable || !importer.useFileScale)
+                {
+                    missing.Add(expected + " [import]");
+                }
+            }
+
+            var schema = prostheticGroup.GetSchema<BundledAssetGroupSchema>();
+            if (schema == null ||
+                schema.BundleMode != BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel ||
+                schema.BuildPath.GetName(settings) != HexLiveAddressablesSetup.BuildPathVariable ||
+                schema.LoadPath.GetName(settings) != HexLiveAddressablesSetup.LoadPathVariable)
+            {
+                missing.Add(ProstheticGroup + " [bundle mode/build/load path]");
+            }
+        }
+
+        if (Directory.Exists(LegacyProstheticResources))
+        {
+            missing.Add(LegacyProstheticResources + " [must be external]");
+        }
+
+        if (missing.Count > 0 || duplicate)
+        {
+            Debug.LogError($"[Addressables] ассеты БЕЗ адреса ({missing.Count}): " +
                            string.Join(", ", missing));
         }
         else
         {
             Debug.Log($"[Addressables] адресов всего {addresses.Count}, дублей нет, " +
-                      "все причёски каталога адресуемы.");
+                      "причёски, иконки и восемь протезов адресуемы.");
         }
     }
 }

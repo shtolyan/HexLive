@@ -1262,7 +1262,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (definition.Tags.Contains("Tool") &&
                     !npc.Inventory.Items.Contains(perceived.DefinitionId) &&
                     Content.GearCatalog.AddsValueOver(
-                        npc.Inventory.Items, perceived.DefinitionId, npc.Body.IntactHands))
+                        npc.Inventory.Items, perceived.DefinitionId, npc.Body.WeaponHands))
                 {
                     return true;
                 }

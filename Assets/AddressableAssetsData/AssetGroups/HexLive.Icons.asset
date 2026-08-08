@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HexLive.Icons
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HexLive.Icons
+  m_GUID: 5d576b947469849328108359565347a8
+  m_SerializeEntries:
+  - m_GUID: 068eaae8108548bfa241593deba5fdfb
+    m_Address: icon/resource.palm_leaf
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 10edec8fafc547f3a5e0a3be644d750b
+    m_Address: icon/tool.pickaxe_stone
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 17f1a688e14d4e5597f7463d9654d864
+    m_Address: icon/tool.saw
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1d6aa9c140724e728989b2ec2c6cee55
+    m_Address: icon/food.meat_cooked
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2da1ca56bc6f42659a98aa2466b14b90
+    m_Address: icon/tool.lighter
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3f47cdac7245456ba54e5f111f4fd7ac
+    m_Address: icon/tool.knife
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4ba2d67ece8042a296893c65815707e6
+    m_Address: icon/tool.machete
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 690d85c3fbcf463bbcecbead8a0ecef5
+    m_Address: icon/resource.herb_leaf
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 69f8662758104833984a27defff11972
+    m_Address: icon/food.meat_raw
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 78965a7d10fe469fb4b9f6b053236234
+    m_Address: icon/food.coconut
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7ac97e01465a4360a1696aad106267f4
+    m_Address: icon/tool.axe_stone
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a6c4b5c3c2cd4e20bf425f698491629d
+    m_Address: icon/resource.log
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5471733e9104362be6052b5cb5b9691
+    m_Address: icon/resource.hide
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bf8db6e59cf848f28b46f1f8155cc185
+    m_Address: icon/clothing.glove_deadly_r
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c279f4e8837e4b22b157f973ac541c24
+    m_Address: icon/food.coconut_open
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ca1aa389247c4507bf6d7377c8df6849
+    m_Address: icon/food.coconut_pierced
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d210fb7b430e43f9a4b55613393dcc30
+    m_Address: icon/clothing.necklace_night
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e650dc09b8044798a7fc73efea0ff248
+    m_Address: icon/resource.stick
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ef93502264ab4aea957f970fe5a4415f
+    m_Address: icon/resource.rope
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f350527f2ee0444e82d9ae4fb4c7a99a
+    m_Address: icon/tool.hammer
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f513f47997e041689825ad6447cdd4c9
+    m_Address: icon/resource.stone
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: bddd39714fa3ad14ab0a44b36284ce65, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: aea9226b9fc904f25b005f13ecdf90d0, type: 2}
+    - {fileID: 11400000, guid: f2a90295e158346ed890b433433007bf, type: 2}
+    m_SchemaDisplayOrder:
+    - HexLive.Icons_BundledAssetGroupSchema
+    - HexLive.Icons_ContentUpdateGroupSchema
+  m_IncludeInBuild: 1
+  m_IncludeInBuildMigrated: 1

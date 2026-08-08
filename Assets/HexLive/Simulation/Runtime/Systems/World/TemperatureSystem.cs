@@ -13,6 +13,11 @@ namespace HexLive.Simulation.Runtime
 
 public sealed class TemperatureSystem : ISimulationSystem
 {
+    // One slow tick is four seconds. Body temperature traverses the signed
+    // scale inertially; active relief is deliberately 2.5x faster.
+    internal const float BodyDriftPerSlowTick = 0.04f;
+    internal const float ActiveReliefPerSlowTick = 0.10f;
+
     public string Name => nameof(TemperatureSystem);
 
     public TickLayer Layer => TickLayer.Slow;
@@ -21,7 +26,15 @@ public sealed class TemperatureSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            // NeedsDecay may have killed this body earlier in the same Slow
+            // layer. Body.Mean below is recovery/damage bookkeeping, not revival.
+            if (npc.Health <= 0f)
+            {
+                continue;
+            }
+
             var prevThermal = npc.Needs.ThermalDiscomfort;
+            var prevBody = npc.Needs.ThermalComfort;
 
             // Spec 29C.4: warmth is no longer a pure good — graded pressure,
             // clothes shift the effective temperature both ways.
@@ -57,20 +70,42 @@ public sealed class TemperatureSystem : ISimulationSystem
             {
                 baseTemp -= System.Math.Min(-Spec49.ShadeCooling, System.Math.Max(0f, baseTemp - SimBalance.HotBandTemp));
             }
+
+            var environmentTarget = SignedFromTemperature(baseTemp);
+            var bodyTarget = environmentTarget;
+            var bodyRate = BodyDriftPerSlowTick;
+            var recoverySource = "environment";
+            if (prevBody < 0f && fireWarmth > 0f)
+            {
+                bodyTarget = 0f;
+                bodyRate = ActiveReliefPerSlowTick;
+                recoverySource = "fire";
+            }
+            else if (prevBody > 0f && isInWater)
+            {
+                bodyTarget = 0f;
+                bodyRate = ActiveReliefPerSlowTick;
+                recoverySource = "water";
+            }
+
+            var signed = MoveBodyTowards(prevBody, bodyTarget, bodyRate);
+            npc.Needs.ThermalComfort = signed;
+            var bodyTemp = TemperatureFromSigned(signed);
+
             // Spec 42: realistic cold — 10°C in underwear (warmth ~0.02) is
             // genuinely cold; pressure bites below 14°C (a merely-cool girl at
             // ~15° doesn't accumulate — no wardrobe-circling), naked at 10°
             // racks up 0.11+/slow tick unless she's warming by the fire.
             float pressure;
-            if (baseTemp < SimBalance.ColdBandTemp)
+            if (bodyTemp < SimBalance.ColdBandTemp)
             {
                 pressure = System.Math.Min(SimBalance.ThermalPressureCap,
-                    (SimBalance.ColdBandTemp - baseTemp) * SimBalance.ColdPressureSlope); // cold
+                    (SimBalance.ColdBandTemp - bodyTemp) * SimBalance.ColdPressureSlope); // cold
             }
-            else if (baseTemp > SimBalance.HotBandTemp)
+            else if (bodyTemp > SimBalance.HotBandTemp)
             {
                 pressure = System.Math.Min(SimBalance.ThermalPressureCap,
-                    (baseTemp - SimBalance.HotBandTemp) * SimBalance.HeatPressureSlope); // overheating
+                    (bodyTemp - SimBalance.HotBandTemp) * SimBalance.HeatPressureSlope); // overheating
             }
             else
             {
@@ -106,27 +141,6 @@ public sealed class TemperatureSystem : ISimulationSystem
 
             npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(npc.Needs.ThermalDiscomfort + pressure);
 
-            // Signed comfort for the UI — fire already folded into baseTemp.
-            var effectiveTemp = baseTemp;
-
-            // Spec 42: signed comfort for the UI — 0 in the ideal [16,22]
-            // band (matches the decision pressure above, so the bar never
-            // shows "fine" while the body is freezing), -1 over a ~12 span.
-            float signed;
-            if (effectiveTemp < 16f)
-            {
-                signed = System.Math.Max(-1f, (effectiveTemp - 16f) / 12f);
-            }
-            else if (effectiveTemp > 22f)
-            {
-                signed = System.Math.Min(1f, (effectiveTemp - 22f) / 12f);
-            }
-            else
-            {
-                signed = 0f;
-            }
-
-            npc.Needs.ThermalComfort = signed;
             var magnitude = System.Math.Abs(signed);
 
             // Spec 29C.10: "the fire burns you if you stand in it" is DEFERRED
@@ -140,7 +154,7 @@ public sealed class TemperatureSystem : ISimulationSystem
                 Trace.Emit(world, npc.Id, "FireBurn", "On the fire tile (no HP hit yet)");
             }
 
-            if (magnitude >= SimBalance.ThermalDamageGate && !isInWater)
+            if (magnitude >= SimBalance.ThermalDamageGate)
             {
                 // §45 r5: 0.02 -> 0.012. A rainy 6° night (rain also douses
                 // the fire 4x) killed a near-naked girl from FULL health in
@@ -192,8 +206,11 @@ public sealed class TemperatureSystem : ISimulationSystem
 
             Trace.Emit(world, npc.Id, "TemperatureUpdate",
                 $"Thermal={prevThermal:F3}->{npc.Needs.ThermalDiscomfort:F3} " +
-                $"Signed={signed:+0.00;-0.00} " +
-                $"EffectiveTemp={effectiveTemp:F1} (Global={world.Environment.GlobalTemperature:F1} " +
+                $"EnvironmentTarget={environmentTarget:+0.00;-0.00} " +
+                $"Body={prevBody:+0.00;-0.00}->{signed:+0.00;-0.00} " +
+                $"Rate={bodyRate:F2} Source={recoverySource} " +
+                $"EffectiveTemp={baseTemp:F1} BodyTemp={bodyTemp:F1} " +
+                $"(Global={world.Environment.GlobalTemperature:F1} " +
                 $"Warmth={npc.EquippedWarmth:F2} Fire={fireWarmth:F1}) Pressure={pressure:+0.00;-0.00}");
 
             // Spec 35.4: sun exposure and sunburn on uncovered parts.
@@ -296,6 +313,35 @@ public sealed class TemperatureSystem : ISimulationSystem
         BodyPart.Head, BodyPart.Torso, BodyPart.Pelvis,
         BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
     };
+
+    internal static float MoveBodyTowards(float body, float target, float rate)
+    {
+        body = System.Math.Max(-1f, System.Math.Min(1f, body));
+        target = System.Math.Max(-1f, System.Math.Min(1f, target));
+        rate = System.Math.Max(0f, rate);
+        if (body < target)
+        {
+            return System.Math.Min(target, body + rate);
+        }
+
+        return body > target ? System.Math.Max(target, body - rate) : body;
+    }
+
+    internal static float SignedFromTemperature(float temperature)
+    {
+        if (temperature < 16f)
+        {
+            return System.Math.Max(-1f, (temperature - 16f) / 12f);
+        }
+
+        return temperature > 22f
+            ? System.Math.Min(1f, (temperature - 22f) / 12f)
+            : 0f;
+    }
+
+    internal static float TemperatureFromSigned(float signed) =>
+        signed < 0f ? 16f + signed * 12f :
+        signed > 0f ? 22f + signed * 12f : 19f;
 
     // Spec 29C.10: warmth radiated by nearby LIT campfires. The fire's OWN hex
     // warms at full ring-1 strength: the ~1.1 wu huddle rim sits INSIDE the

@@ -157,9 +157,14 @@ internal static class AttributeMath
     // Strength (innate) × Combat (learned). Consumed ONLY through
     // NPCState.StrikeFactor() — never call this at a damage site directly, or
     // the next combat system to be written will forget one of the two.
+    public static float MeleeStrengthMult(NPCState npc) =>
+        Mult(npc, AttributeKind.Strength, Spec76.MeleeDamageGain);
+
+    public static float MeleeCombatMult(NPCState npc) =>
+        1f + Skill(npc, SkillKind.Combat) * Spec76.SkillDamageGain;
+
     public static float MeleeDamageMult(NPCState npc) =>
-        Mult(npc, AttributeKind.Strength, Spec76.MeleeDamageGain) *
-        (1f + Skill(npc, SkillKind.Combat) * Spec76.SkillDamageGain);
+        MeleeStrengthMult(npc) * MeleeCombatMult(npc);
 
     // Toughness. There is no max-HP in this game — body parts are hard 1.0 and
     // clamped by Clamp01 in a dozen places — so "more hit points" is modelled

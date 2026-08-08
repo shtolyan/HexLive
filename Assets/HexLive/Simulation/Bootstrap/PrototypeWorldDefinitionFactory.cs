@@ -29,7 +29,8 @@ namespace HexLive.Simulation.Bootstrap
                     TickDeltaTime = 0.25f,
                     MediumTickInterval = 4,
                     SlowTickInterval = 16,
-                    Seed = seed
+                    Seed = seed,
+                    SpawnCompletedTestHut = true
                 },
                 Environment = new EnvironmentBootstrap
                 {
@@ -570,12 +571,10 @@ namespace HexLive.Simulation.Bootstrap
             Place("tool.knife", 1, 1451, 2); // spec §54: one findable knife bootstraps butchering
             Place("tool.hammer", 2, 1489, 1); // spec §54.2: findable hammers raise the bed build-sites
             // Spec §54 cold start: the home conveniences are no longer handed
-            // out — the pot (boiling), lighter (a spark) and armor are findable
+            // out — the pot (boiling) and lighter (a spark) are findable
             // wilderness loot instead, so the wilds still reward exploring.
             Place("tool.pot", 1, 1579, 2);
             Place("tool.lighter", 1, 1663, 1);
-            Place("armor.leather", 1, 1741, 2);
-            Place("armor.heavy", 1, 1823, 2);
 
             // §119 test hook: exactly two arms and two legs, one wooden and one
             // mechanical of each. Place() removes every chosen dry/free tile,

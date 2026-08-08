@@ -141,8 +141,23 @@ frame, so anything applied earlier is gone before it is ever drawn. Nothing
 accumulates — each frame starts from whatever the animation wrote, and the pose
 is re-applied on top.
 
-**Why the lift goes along `transform.up` and not world up:** so it still reads
-when she is knocked over or lying down.
+**Why the lift goes along `transform.up` and not world up:** the standing pose
+follows the actor's own up axis. Sitting, lying, bed and swimming explicitly
+fade the complete heel correction out instead of changing that axis.
+
+### 3.1 Posture weight
+
+`NpcActorView` sends posture changes to `BodyBones` as soon as `Sit`, laying /
+bed, or swimming changes. `heelPoseWeight` is `1` while standing and moves to
+`0` over **0.12 seconds** in those planted-foot postures. The same weight scales
+all five corrections together: left/right foot rotation, left/right toe
+rotation, and pelvis lift. Returning to standing eases the weight back to `1`.
+
+The current reviewed manifests span **0.0026…0.0983 wu** of lift (maximum foot
+pitch is 55°). At weight zero that whole lift is gone, so the authored seat and
+bed contact wins. Do not compensate by changing seat geometry: ledge-seat
+`lift=0.40 wu`, elevation step `0.55 wu`, and seat back offset `0.45 wu` are
+independent spatial constants and remain unchanged.
 
 **Why the active heel is cached** (`RefreshHeel`, called from `Construct` /
 `Equip` / `TakeOff`): `LateUpdate` runs on every dressed body in the colony, so
@@ -161,9 +176,9 @@ simple. If foot IK is ever added, this is the first thing it will break.
    `axis` in the manifest — **do not touch the code**.
 2. **The lift.** Sinks into the floor → too small; floats → too large. Same
    file, same line.
-3. **Poses that plant the foot flat** — sitting, lying, swimming — will look
-   wrong with a heel applied. Not handled yet; if it becomes visible, damp the
-   pose in those states rather than removing it.
+3. **Poses that plant the foot flat** — stump/seat, lying/bed and swimming —
+   must drive `heelPoseWeight` to zero. Verify both rotations and lift; checking
+   only the pelvis can leave toes visibly twisted through the surface.
 
 ## 5. Traps
 

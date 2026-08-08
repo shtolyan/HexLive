@@ -31,9 +31,9 @@ public sealed class FireSystem : ISimulationSystem
                 continue;
             }
 
-            // Spec 42: rain douses the fire — not instantly, but a downpour
-            // eats fuel 4x faster, so a full stack dies in ~40 game minutes.
-            // A dry night by the fire is the warm-up plan; a wet one isn't.
+            // Spec 42 / §120: exposed rain eats fuel 4x faster. A completed
+            // roof blocks that channel completely; an indoor hearth keeps its
+            // coals through a storm.
             var burn = FuelBurnPerSlowTick(world, obj);
 
             obj.ResourceAmount = System.Math.Max(0f, obj.ResourceAmount - burn);
@@ -41,7 +41,7 @@ public sealed class FireSystem : ISimulationSystem
             {
                 Trace.EmitSystem(world, "FireOut",
                     $"{obj.DefinitionId} at Tile={obj.Tile.Q},{obj.Tile.R} burned out" +
-                    (world.Environment.IsRaining ? " (doused by rain)" : ""));
+                    (ShelterMath.RainReaches(world, obj.Tile) ? " (doused by rain)" : ""));
             }
 
             RoastHangingMeat(world, obj);
@@ -54,14 +54,23 @@ public sealed class FireSystem : ISimulationSystem
     internal static float FuelBurnPerSlowTick(
         WorldState world, WorldObjectState fire, bool reserveForRain = false)
     {
-        var burn = BurnPerSlowTick *
-            (reserveForRain || world.Environment.IsRaining ? 4f : 1f);
+        var indoor = ShelterMath.IsIndoor(world, fire.Tile);
+        var rainExposed = !indoor && (reserveForRain || world.Environment.IsRaining);
+        var burn = BurnPerSlowTick * (rainExposed ? 4f : 1f);
         // §54.14 (r2): a finished stone ring (stage 2) banks the coals —
         // fuel burns at half rate, so the same wood keeps the fire twice
         // as long.
         if (BuildSiteMath.CampfireRingComplete(fire))
         {
             burn *= SimBalance.CampfireRingBurnMultiplier;
+        }
+
+        // §120: a protected indoor hearth banks heat against the house floor
+        // and walls. It burns at half the rate of the best outdoor (ringed)
+        // campfire; when both have rings this is 0.25x the bare-fire rate.
+        if (indoor)
+        {
+            burn *= SimBalance.IndoorFireBurnMultiplier;
         }
 
         return burn;

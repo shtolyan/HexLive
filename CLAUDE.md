@@ -30,14 +30,25 @@ panel) into **`BUGS.json` at the repo root**. When the user says «разбер�
 read it. The contract:
 
 - **Your queue** = every report with `status` `"created"` or `"rework"`.
-  Each report carries a `context` line (`seed=… tick=… npc=…`) captured at
-  submit time — use it to reproduce.
-- After fixing: set `status` to `"fixed"` and **append** a comment
-  `{"whenUtc": "…", "author": "claude", "text": "<что сделано, по-русски>"}`
-  to that report's `comments`. Keep the JSON pretty-printed (it is written by
-  `JsonUtility`, 4-space-style indentation).
-- **Never delete or reorder reports** — deletion is the player's accept
-  gesture, done in-game. Never touch `nextId` except to preserve it.
+  Before work begins, immediately set it to `"in_progress"` and append a
+  Russian agent comment. Each report carries a `context` line
+  (`seed=… tick=… npc=…`) captured at submit time — use it to reproduce.
+- After implementation, set `status` to `"ready_for_test"` and **append** a
+  Russian comment describing the work and that it is ready for testing. The
+  player alone decides `ready_for_test → fixed`, `ready_for_test → rework`, or
+  archive; an agent must never confirm a fix or archive it. Keep the JSON
+  pretty-printed (it is written by `JsonUtility`, 4-space-style indentation).
+- Keep `assignedAgent` and a compact Russian `agentHandoff` on the report.
+  Rework retains them and is sent to its still-live owner first; otherwise the
+  replacement agent must resume from the stored handoff and comments. Before a
+  report becomes `ready_for_test`, create an atomic commit
+  `fix(bug-<id>): <summary>` with trailer `Bug: #<id>` and append its full SHA
+  to `fixCommits`. Never replace earlier SHAs; `fixCommit` is legacy-only.
+  Never include unrelated dirty paths in that commit.
+- The lifecycle is `created → in_progress → ready_for_test → fixed`, with
+  `ready_for_test → rework → in_progress` on a failed test. Archive is a
+  history flag for a confirmed fix; **never delete or reorder reports** and
+  never touch `nextId` except to preserve it.
 - The running game re-reads the file by mtime every ~2 s, so an edit made
   while Play mode is up appears live; no restart needed.
 - **Builds write to the same repo file** (the store falls back through
@@ -50,6 +61,56 @@ read it. The contract:
 
 Code: `UnityPresentation/UI/BugReportStore.cs` (schema + IO),
 `UI/BugReportPanel.cs` (window), button in `DebugControlsPanel`.
+Основной текст существующего отчёта игрок может отредактировать из карточки;
+эта операция меняет только `text`, не пересоздаёт отчёт и не затрагивает его
+контекст, workflow, комментарии, версии, коммиты или архивный флаг.
+
+## Versioned player builds
+
+The build agent uses one entry point:
+
+```bash
+python3 Tools/build_release.py
+```
+
+It builds the macOS development player into
+`~/hex-girls/Releases/v<version>/` on the internal disk, next to
+`BUILD_REPORT.md`, `build-manifest.json`, and the Unity log. The report lists
+the Git commits since the last successful scripted build, every dirty path that
+was also compiled, and a start-of-build `BUGS.json` snapshot: reports ready for
+testing in this exact build, late-ready reports that did not make the snapshot,
+and open/in-progress work. `--dry-run` prints the same plan without launching
+Unity or changing the version; `--release` makes a non-development player.
+After publication, `~/hex-girls/HexLive.app` is atomically retargeted to the
+latest versioned Player; older releases and their reports remain untouched.
+
+The script must refuse to run while `Temp/UnityLockfile` exists. Do not remove a
+live lock or launch a second Editor. Addressables are deliberately not rebuilt.
+The release folder links its `HexLiveContent` to the existing shared
+`~/hex-girls/HexLiveContent`. Before signing, the script validates that the
+selected external catalog contains wear, hair, icons, and fitted prostheses,
+installs that full catalog as the Player bootstrap, and reports the exact
+catalog and bundle/meta counts. An icon-only patch catalog must never become a
+Player bootstrap; a pre-prosthetics full catalog is stale for current code and
+must also be refused.
+
+After `BuildPipeline` succeeds, the command-line entry point explicitly runs
+the idempotent version finalizer instead of trusting Unity 6 to rediscover the
+postprocess half of the combined pre/post callback. The Python publisher then
+refuses success while a pending version remains or any start-snapshot bug lacks
+`readyForTestInVersion`. It also performs strict deep signature verification:
+development builds with Unity/FMOD nested-signature drift are re-signed ad-hoc
+and verified again; `--release` never replaces a distribution signature and
+fails publication instead.
+
+`CompileControl` normally keeps both Unity Auto Refresh prefs at zero and holds
+`AssetDatabase.DisallowAutoRefresh()`. Before the separate batchmode process,
+the script backs up `kAutoRefreshMode` and `kAutoRefresh`, temporarily sets both
+to one so Unity must import and compile current sources before `-executeMethod`,
+then restores their exact previous values in `finally`. The backup lives in
+`Library/HexLiveBuildAutoRefreshBackup.json`; a later run restores it first if
+the previous process was interrupted. Never publish a build from stale Editor
+assemblies merely because the interactive Editor normally compiles manually.
 
 ## Generating tool / weapon models (axe, knife, pickaxe, hammer, spear…)
 
@@ -108,6 +169,12 @@ whole garment set came from there.**
 - Unity work goes through the UnityMCP bridge; it drops on domain reload / when the
   editor is unfocused — re-pin the instance and retry. Guard mutations with
   `if (Application.productName != "HexLive") return;` (a second project may share the bridge).
+- **Codex only:** never launch Unity, Unity batchmode, `BuildPipeline`, or a
+  command-line project/assembly build while the user's Unity Editor is open.
+  Do not try to detect-and-proceed, do not start a second editor, and do not
+  build "just to compile-check". Use the already-open editor through UnityMCP
+  and let the user initiate player builds unless they explicitly say the editor
+  is closed and ask Codex to build. This restriction does not apply to Claude.
 - **Never `EditorUtility.DisplayDialog` for a result — log it.** A modal box owns
   Unity's main thread, and the bridge runs on that thread, so an "OK" nobody is
   there to click freezes every command until a human comes back. Menu items on the

@@ -94,6 +94,7 @@ namespace HexLive.UnityPresentation.UI
         private string _invSig;               // rebuild the list only on change
         private string _invSelectedId;        // item shown in the detail view
         private bool _invSelectedWorn;
+        private MeleeStatsSnapshot _meleeStats = new();
 
         // Spec §57: limb-health window — click the HP row to pop a floating
         // window with the rotating body doll (per-zone green→yellow→red mesh)
@@ -140,6 +141,9 @@ namespace HexLive.UnityPresentation.UI
         private readonly List<string> _perkSig = new();
         private Label _relationsTitle;
         private Button _langButton;
+        private Label _diagnosticsLabel;
+        private float _diagnosticsElapsed;
+        private int _diagnosticsFrames;
 
         private readonly List<NeedBinding> _needBindings = new();
         private int _selectedRelationId = -1;
@@ -247,6 +251,7 @@ namespace HexLive.UnityPresentation.UI
             public string Id;    // matches AttributeKind / SkillKind
             public string Key;   // I2 term
             public Color Color;
+            public bool Percent;
         }
 
         private struct SheetBinding
@@ -266,6 +271,7 @@ namespace HexLive.UnityPresentation.UI
             new() { Id = "Toughness", Key = "attr.toughness", Color = Gold },
             new() { Id = "Hardiness", Key = "attr.hardiness", Color = Hunger },
             new() { Id = "Wits", Key = "attr.wits", Color = Social },
+            new() { Id = "CompassionTrait", Key = "trait.compassion", Color = Compassion, Percent = true },
         };
 
         // §76.5 — the eight learned trades, in SkillSet.All order.
@@ -375,6 +381,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void Update()
         {
+            UpdateDiagnostics();
+
             if (_runner == null)
             {
                 _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
@@ -623,6 +631,7 @@ namespace HexLive.UnityPresentation.UI
             UpdateSheet(npc);
             UpdateEffects(npc);
             UpdateRelations(npc);
+            _meleeStats = npc.MeleeStats ?? new MeleeStatsSnapshot();
             RefreshInventory(npc);
             RefreshHealth(npc);
         }
@@ -749,6 +758,9 @@ namespace HexLive.UnityPresentation.UI
             {
                 var b = _needBindings[i];
                 var raw = Mathf.Clamp01(RawNeed(npc, b.Config.Key));
+                var bloodDeficit = b.Config.Key == "need.blood"
+                    ? Mathf.Clamp01(npc.BloodDeficit)
+                    : 0f;
 
                 // Direct (stress): the bar IS the pressure — 100% full and red
                 // when maxed, a sliver of green when calm.
@@ -757,9 +769,22 @@ namespace HexLive.UnityPresentation.UI
                     : b.Config.Pressure ? 1f - raw : raw;
                 var goodness = b.Config.Direct ? 1f - raw : display;
 
+                // §118: after ordinary blood reaches zero the same track
+                // becomes the red negative reserve. The signed label prevents
+                // a 40% deficit from looking like 40% healthy blood.
+                if (bloodDeficit > 0f)
+                {
+                    display = bloodDeficit;
+                    goodness = 0f;
+                }
+
                 b.Fill.style.width = Length.Percent(display * 100f);
-                b.Fill.style.backgroundColor = LevelColor(goodness);
-                b.Pct.text = $"{Mathf.RoundToInt(display * 100f)}%";
+                b.Fill.style.backgroundColor = bloodDeficit > 0f
+                    ? Crit
+                    : LevelColor(goodness);
+                b.Pct.text = bloodDeficit > 0f
+                    ? $"−{Mathf.RoundToInt(bloodDeficit * 100f)}%"
+                    : $"{Mathf.RoundToInt(display * 100f)}%";
 
                 var alarm = goodness < 0.30f;
                 b.Pct.style.color = alarm ? Crit : TextDim;
@@ -811,7 +836,9 @@ namespace HexLive.UnityPresentation.UI
                 // Clamped only at zero; a value above 1.0 shows as 11, 12, …
                 // rather than pretending the scale ended.
                 value = Mathf.Max(0f, value);
-                b.Value.text = Mathf.RoundToInt(value * 10f).ToString();
+                b.Value.text = b.Config.Percent
+                    ? $"{Mathf.RoundToInt(value * 100f)}%"
+                    : Mathf.RoundToInt(value * 10f).ToString();
                 // Same hue always (the row keeps its identity), brightness
                 // carries the magnitude. Deliberately NOT red-for-low: on a
                 // point-buy sheet a low line is a trade-off, not a defect, and
@@ -1493,6 +1520,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             body.Add(list);
+
             _healthWindow.Add(body);
             _root.Add(_healthWindow);
         }
@@ -1535,7 +1563,9 @@ namespace HexLive.UnityPresentation.UI
             if (_healthDollStage != null)
             {
                 _healthDollStage.SetTarget(npc.Id.Value, npc.ActorMesh);
-                _healthDollStage.SetZones(npc.BodyParts, npc.SeveredParts, npc.BandagedZones);
+                _healthDollStage.SetZones(
+                    npc.BodyParts, npc.SeveredParts, npc.BandagedZones,
+                    npc.BodyPartConditions);
                 var tex = _healthDollStage.Texture;
                 if (tex != null)
                 {
@@ -1547,9 +1577,22 @@ namespace HexLive.UnityPresentation.UI
             foreach (var binding in _zoneRows)
             {
                 var hp = 1f;
+                BodyPartConditionSnapshot condition = null;
+                foreach (var typed in npc.BodyPartConditions)
+                {
+                    if (typed.Part.ToString() == binding.Zone)
+                    {
+                        condition = typed;
+                        hp = typed.Health;
+                        break;
+                    }
+                }
+
+                // v11/local fallback while an older snapshot source is still
+                // connected. v12 always takes the typed branch above.
                 foreach (var entry in npc.BodyParts)
                 {
-                    if (entry.StartsWith(binding.Zone) &&
+                    if (condition == null && entry.StartsWith(binding.Zone) &&
                         entry.Length > binding.Zone.Length && entry[binding.Zone.Length] == '=')
                     {
                         float.TryParse(entry[(binding.Zone.Length + 1)..],
@@ -1560,10 +1603,10 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 // Worn-armor absorption for this zone ("Zone=0.35").
-                var armor = 0f;
+                var armor = condition?.Armor ?? 0f;
                 foreach (var entry in npc.PartArmor)
                 {
-                    if (entry.StartsWith(binding.Zone) &&
+                    if (condition == null && entry.StartsWith(binding.Zone) &&
                         entry.Length > binding.Zone.Length && entry[binding.Zone.Length] == '=')
                     {
                         float.TryParse(entry[(binding.Zone.Length + 1)..],
@@ -1573,8 +1616,8 @@ namespace HexLive.UnityPresentation.UI
                     }
                 }
 
-                var severed = npc.SeveredParts.Contains(binding.Zone);
-                var bandaged = false;
+                var severed = condition?.Severed ?? npc.SeveredParts.Contains(binding.Zone);
+                var bandaged = !string.IsNullOrEmpty(condition?.BandageKind);
                 foreach (var entry in npc.BandagedZones)
                 {
                     var bar = entry.IndexOf('|');
@@ -1586,21 +1629,45 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 var openWounds = 0;
-                foreach (var entry in npc.Wounds)
+                var cutDamage = 0f;
+                var bleeding = false;
+                foreach (var wound in npc.OpenWounds)
                 {
-                    // "Zone|Seed|Heal01" — count wounds still visibly open.
-                    var parts = entry.Split('|');
-                    if (parts.Length >= 3 && parts[0] == binding.Zone &&
-                        float.TryParse(parts[2], System.Globalization.NumberStyles.Float,
-                            System.Globalization.CultureInfo.InvariantCulture, out var heal) &&
-                        heal < 0.999f)
+                    if (wound.Part.ToString() != binding.Zone || wound.Heal01 >= 0.999f)
                     {
-                        openWounds++;
+                        continue;
+                    }
+
+                    openWounds++;
+                    cutDamage += wound.Severity * (1f - wound.Heal01);
+                    bleeding |= !wound.Stabilized && wound.Clot01 < 0.999f;
+                }
+
+                if (npc.OpenWounds.Count == 0)
+                {
+                    foreach (var entry in npc.Wounds)
+                    {
+                        // "Zone|Seed|Heal01" legacy fallback.
+                        var parts = entry.Split('|');
+                        if (parts.Length >= 3 && parts[0] == binding.Zone &&
+                            float.TryParse(parts[2], System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out var heal) &&
+                            heal < 0.999f)
+                        {
+                            openWounds++;
+                        }
                     }
                 }
 
                 binding.Name.text = Loc.Get($"zone.{binding.Zone}");
-                binding.Dot.style.backgroundColor = HealthDollStage.StatusColor(hp, severed);
+                var critical = condition?.CriticalTrauma ?? 0f;
+                var prosthetic = condition?.Prosthetic;
+                var prostheticCondition01 = prosthetic != null && prosthetic.MaxCondition > 0f
+                    ? Mathf.Clamp01(prosthetic.Condition / prosthetic.MaxCondition)
+                    : 0f;
+                binding.Dot.style.backgroundColor = prosthetic != null
+                    ? HealthDollStage.StatusColor(prostheticCondition01, false)
+                    : HealthDollStage.StatusColor(hp - critical, severed);
 
                 // 🛡 only when something actually covers the zone; a severed
                 // limb has nothing left to protect.
@@ -1611,26 +1678,63 @@ namespace HexLive.UnityPresentation.UI
                     binding.Armor.text = $"🛡 {Mathf.RoundToInt(armor * 100f)}%";
                 }
 
-                if (severed)
+                if (severed && prosthetic == null)
                 {
                     binding.Value.text = Loc.Get("health.severed");
                     binding.Value.style.color = Crit;
+                    binding.Value.tooltip = Loc.Get("health.severed");
+                }
+                else if (prosthetic != null)
+                {
+                    var currentHp = Mathf.Max(0, Mathf.RoundToInt(prosthetic.Condition * 100f));
+                    var maxHp = Mathf.Max(0, Mathf.RoundToInt(prosthetic.MaxCondition * 100f));
+                    var baseFunction = Mathf.Clamp01(prosthetic.Function);
+                    var effectiveFunction = baseFunction * prostheticCondition01;
+                    binding.Value.text = $"🦾 {currentHp}/{maxHp} HP · " +
+                                         $"{Mathf.RoundToInt(effectiveFunction * 100f)}%";
+                    binding.Value.style.color = prostheticCondition01 < 0.25f ? Crit : TextDim;
+
+                    var def = ResolveDef(prosthetic.DefinitionId);
+                    var info = ResolveItemInfo(prosthetic.DefinitionId, def);
+                    binding.Value.tooltip =
+                        $"{ItemName(def, info)}\n" +
+                        $"{Loc.Get("health.prosthetic_hp")}: {currentHp}/{maxHp} HP " +
+                        $"({Mathf.RoundToInt(prostheticCondition01 * 100f)}%)\n" +
+                        $"{Loc.Get("health.prosthetic_base_function")}: " +
+                        $"{Mathf.RoundToInt(baseFunction * 100f)}%\n" +
+                        $"{Loc.Get("health.prosthetic_effective_function")}: " +
+                        $"{Mathf.RoundToInt(effectiveFunction * 100f)}%\n" +
+                        ItemDesc(def, info);
                 }
                 else
                 {
                     var text = $"{Mathf.RoundToInt(Mathf.Clamp01(hp) * 100f)}%";
+                    if (critical > 0f)
+                    {
+                        text += $" / −{Mathf.RoundToInt(Mathf.Clamp01(critical) * 100f)}%";
+                    }
                     if (bandaged)
                     {
                         text = $"🩹 {text}";
                     }
 
-                    if (openWounds > 0)
+                    if (bleeding)
                     {
-                        text = $"🩸{openWounds} · {text}";
+                        text = $"🩸 {text}";
+                    }
+
+                    if (condition?.SplintSupport > 0f)
+                    {
+                        text += $" · 🩼{Mathf.RoundToInt(condition.SplintSupport * 100f)}";
                     }
 
                     binding.Value.text = text;
-                    binding.Value.style.color = openWounds > 0 || hp < 0.5f ? Text : TextDim;
+                    binding.Value.style.color = critical > 0f ? Crit :
+                        bleeding || hp < 0.5f ? Text : TextDim;
+                    var blunt = condition?.BluntDamage ?? 0f;
+                    binding.Value.tooltip =
+                        $"{Loc.Get("inv.cut")}: {Mathf.RoundToInt(cutDamage * 100f)}% · " +
+                        $"{Loc.Get("inv.blunt")}: {Mathf.RoundToInt(blunt * 100f)}%";
                 }
             }
 
@@ -2040,6 +2144,116 @@ namespace HexLive.UnityPresentation.UI
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
             }
 
+            var gear = GearCatalog.For(info.DefinitionId);
+            if (gear.Id == info.DefinitionId && gear.MeleePriority > 0)
+            {
+                var baseline = CombatStatBreakdown.For(
+                    info.DefinitionId, 1f, 1f, 1f, 1f);
+                var stats = CombatStatBreakdown.For(
+                    info.DefinitionId,
+                    _meleeStats.LimbMultiplier,
+                    _meleeStats.StrengthMultiplier,
+                    _meleeStats.CombatMultiplier,
+                    _meleeStats.AgilityRecoveryMultiplier);
+                var modifiers = $"{Loc.Get("attr.strength")} {SignedPercent(stats.StrengthMultiplier)}, " +
+                    $"{Loc.Get("skill.combat")} {SignedPercent(stats.CombatMultiplier)}, " +
+                    $"{Loc.Get("inv.hands")} {SignedPercent(stats.LimbMultiplier)}";
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.damage"),
+                    $"{stats.BaseDamage:0.###} → {stats.EffectiveDamage:0.###} ({modifiers})",
+                    StatComparisonColor(baseline.EffectiveDamage, stats.EffectiveDamage, 0.001f)));
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.cut"),
+                    $"{stats.BaseCutDamage:0.###} → {stats.EffectiveCutDamage:0.###}",
+                    StatComparisonColor(baseline.EffectiveCutDamage, stats.EffectiveCutDamage, 0.001f)));
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.blunt"),
+                    $"{stats.BaseBluntDamage:0.###} → {stats.EffectiveBluntDamage:0.###}",
+                    StatComparisonColor(baseline.EffectiveBluntDamage, stats.EffectiveBluntDamage, 0.001f)));
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.blood_loss"),
+                    $"{stats.InstantBloodLoss:0.###}",
+                    StatComparisonColor(baseline.InstantBloodLoss, stats.InstantBloodLoss, 0.001f)));
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.cadence"),
+                    $"{stats.AttacksPerMinute:0.#} {Loc.Get("inv.attacks_per_minute")} · " +
+                    $"{stats.CycleSeconds:0.##} {Loc.Get("inv.seconds_cycle")}",
+                    StatComparisonColor(
+                        baseline.CycleSeconds, stats.CycleSeconds, 0.01f,
+                        higherIsBetter: false)));
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.dps"), $"{stats.DamagePerSecond:0.###}",
+                    StatComparisonColor(baseline.DamagePerSecond, stats.DamagePerSecond, 0.001f)));
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.hit_moment"), $"{stats.HitDelaySeconds:0.##} {Loc.Get("inv.seconds")}", TextDim));
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.agility_recovery"),
+                    $"{SignedBonusPercent(1f - stats.AgilityRecoveryMultiplier)} · " +
+                    $"{stats.RecoverySeconds:0.##} {Loc.Get("inv.seconds")}",
+                    StatComparisonColor(
+                        baseline.RecoverySeconds, stats.RecoverySeconds, 0.01f,
+                        higherIsBetter: false)));
+
+                if (stats.TwoHanded)
+                {
+                    _invDetailStats.Add(MakeStatRow(
+                        Loc.Get("inv.grip"), Loc.Get("inv.two_handed"), Gold));
+                }
+
+                if (stats.Capabilities != GearCapability.None)
+                {
+                    _invDetailStats.Add(MakeStatRow(
+                        Loc.Get("inv.tool_profile"), LocalizeCapabilities(stats.Capabilities), TextDim));
+                }
+            }
+
+        }
+
+        private static string SignedPercent(float multiplier) =>
+            SignedBonusPercent(multiplier - 1f);
+
+        private static Color StatComparisonColor(
+            float baseline,
+            float current,
+            float displayedStep,
+            bool higherIsBetter = true)
+        {
+            // A comparison colour must describe the arrow, not the damage type:
+            // green = this bearer improves the weapon, red = degrades it.
+            // Compare exactly what the player can read: rounded-equal values
+            // must never disagree with their colour.
+            var baselineShown = Mathf.Round(baseline / displayedStep);
+            var currentShown = Mathf.Round(current / displayedStep);
+            var delta = currentShown - baselineShown;
+            if (Mathf.Abs(delta) < 0.5f)
+            {
+                return TextDim;
+            }
+
+            var improves = higherIsBetter ? delta > 0f : delta < 0f;
+            return improves ? Good : Crit;
+        }
+
+        private static string SignedBonusPercent(float bonus)
+        {
+            var value = Mathf.RoundToInt(bonus * 100f);
+            return value >= 0 ? $"+{value}%" : $"{value}%";
+        }
+
+        private static string LocalizeCapabilities(GearCapability capabilities)
+        {
+            var names = new List<string>();
+            foreach (GearCapability capability in Enum.GetValues(typeof(GearCapability)))
+            {
+                if (capability == GearCapability.None || (capabilities & capability) == 0)
+                {
+                    continue;
+                }
+
+                names.Add(Loc.Get("gear.capability." + capability.ToString().ToLowerInvariant()));
+            }
+
+            return string.Join(", ", names);
         }
 
         private VisualElement MakeWaterContainerBlock(string id, WaterContainerState state)
@@ -3106,6 +3320,7 @@ namespace HexLive.UnityPresentation.UI
 
             card.Add(BuildCollapseButton());
             BuildLanguageButton();
+            BuildDiagnostics();
             BuildExpandTab();
             BuildEffectTooltip();
             BuildInventoryWindow();
@@ -3135,6 +3350,41 @@ namespace HexLive.UnityPresentation.UI
             _langButton.style.marginLeft = 0f;
             _langButton.style.marginRight = 0f;
             _root.Add(_langButton);
+        }
+
+        private void BuildDiagnostics()
+        {
+            _diagnosticsLabel = new Label();
+            _diagnosticsLabel.style.position = Position.Absolute;
+            _diagnosticsLabel.style.top = 50f;
+            _diagnosticsLabel.style.right = 18f;
+            _diagnosticsLabel.style.color = TextMute;
+            _diagnosticsLabel.style.fontSize = 10f;
+            _diagnosticsLabel.style.unityTextAlign = TextAnchor.UpperRight;
+            _diagnosticsLabel.style.whiteSpace = WhiteSpace.Normal;
+            _diagnosticsLabel.pickingMode = PickingMode.Ignore;
+            _root.Add(_diagnosticsLabel);
+        }
+
+        private void UpdateDiagnostics()
+        {
+            _diagnosticsElapsed += Time.unscaledDeltaTime;
+            _diagnosticsFrames++;
+            if (_diagnosticsLabel == null || _diagnosticsElapsed < 0.5f)
+            {
+                return;
+            }
+
+            var frameSeconds = _diagnosticsElapsed / Mathf.Max(1, _diagnosticsFrames);
+            var fps = Mathf.RoundToInt(1f / Mathf.Max(0.0001f, frameSeconds));
+            var allocatedMb = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong() /
+                (1024L * 1024L);
+            var managedMb = GC.GetTotalMemory(false) / (1024L * 1024L);
+            _diagnosticsLabel.text =
+                $"v{Application.version} · {fps} FPS · {frameSeconds * 1000f:0.0} ms\n" +
+                $"RAM {allocatedMb} MB · GC {managedMb} MB";
+            _diagnosticsElapsed = 0f;
+            _diagnosticsFrames = 0;
         }
 
         // Small chevron-down in the card's top-right corner: hide the bar but
@@ -3952,6 +4202,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 _healthTitle.text = Loc.Get("panel.health");
             }
+
         }
 
         // ── helpers ───────────────────────────────────────────────────────

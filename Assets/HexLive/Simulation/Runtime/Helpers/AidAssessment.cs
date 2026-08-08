@@ -42,9 +42,14 @@ internal static class AidAssessment
         }
 
         // Treat — open wounds / blood loss (a bleed-out is on a clock).
-        var treatSev = target.Wounds.Count > 0 || target.Needs.Blood < 0.6f
-            ? System.Math.Max(1f - target.Needs.Blood, 1f - target.Health)
-            : 0f;
+        var treatSev = Spec118.Enabled
+            ? (MortalityHelpers.IsBleeding(target)
+                ? System.Math.Max(1f - target.Needs.Blood,
+                    DecisionSystem.SelfTreatBurden(target))
+                : 0f)
+            : (target.Wounds.Count > 0 || target.Needs.Blood < 0.6f
+                ? System.Math.Max(1f - target.Needs.Blood, 1f - target.Health)
+                : 0f);
         // Medicate — actively sick, or gravely weak with nothing to dress.
         var medSev = target.Mind.SickUntilTick > tick
             ? 0.6f

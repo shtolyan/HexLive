@@ -11,8 +11,8 @@ using HexLive.Simulation.Social;
 namespace HexLive.Simulation.Runtime
 {
 
-// Spec 35.5: wetting and drying for every item instance in the world —
-// worn, carried, and wearables lying on the ground (incl. the rack).
+// Spec 35.5 / §120: wetting and drying for every item instance in the world —
+// body, worn/carried items, and every loose pickup lying on the ground.
 public sealed class MoistureSystem : ISimulationSystem
 {
     public string Name => nameof(MoistureSystem);
@@ -27,10 +27,10 @@ public sealed class MoistureSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            var indoor = world.Tiles.Items.TryGetValue(npc.Tile, out var tile) &&
-                tile.Flags.HasFlag(TileFlags.Indoor);
+            var indoor = ShelterMath.IsIndoor(world, npc.Tile);
+            world.Tiles.Items.TryGetValue(npc.Tile, out var tile);
             var onWater = tile is not null && tile.Flags.HasFlag(TileFlags.Water);
-            var touchesWater = onWater || world.Environment.IsRaining && !indoor;
+            var touchesWater = onWater || ShelterMath.RainReaches(world, npc.Tile);
             var dryRate = DryBase * DryMultiplier(world, npc.Tile, indoor, rackBoost: false);
 
             // Spec 35.5: the body soaks too — rain/water wet the skin directly,
@@ -71,19 +71,22 @@ public sealed class MoistureSystem : ISimulationSystem
             EquipmentMath.Recalculate(world, npc);
         }
 
-        // Ground wearables: rained on outdoors, dry otherwise; x5 on the rack.
+        // Every loose pickup can get wet on the ground — boards, sticks, food,
+        // tools and clothing all obey the same roof. Structures themselves do
+        // not acquire item wetness. The drying-rack boost still applies only
+        // when a wearable is actually hung there.
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                definition.Layer is null)
+                !IsLoosePickup(definition))
             {
                 continue;
             }
 
-            var indoor = world.Tiles.Items.TryGetValue(obj.Tile, out var tile) &&
-                tile.Flags.HasFlag(TileFlags.Indoor);
+            var indoor = ShelterMath.IsIndoor(world, obj.Tile);
+            world.Tiles.Items.TryGetValue(obj.Tile, out var tile);
             var onWater = tile is not null && tile.Flags.HasFlag(TileFlags.Water);
-            if (onWater || world.Environment.IsRaining && !indoor)
+            if (onWater || ShelterMath.RainReaches(world, obj.Tile))
             {
                 obj.Wetness = 1f;
                 continue;
@@ -93,6 +96,26 @@ public sealed class MoistureSystem : ISimulationSystem
             obj.Wetness = System.MathF.Max(0f,
                 obj.Wetness - DryBase * DryMultiplier(world, obj.Tile, indoor, onRack));
         }
+    }
+
+    private static bool IsLoosePickup(ObjectDefinition definition)
+    {
+        if (definition.Layer is not null ||
+            definition.Tags.Contains(ObjectTags.Resource) ||
+            definition.Tags.Contains(ObjectTags.Food) ||
+            definition.Tags.Contains(ObjectTags.Tool) ||
+            definition.Tags.Contains(ObjectTags.Weapon) ||
+            definition.Tags.Contains(ObjectTags.Medicine))
+        {
+            return true;
+        }
+
+        foreach (var interaction in definition.Interactions)
+        {
+            if (interaction.Type == InteractionType.PickUp) return true;
+        }
+
+        return false;
     }
 
     private static void UpdateItems(

@@ -524,7 +524,7 @@ public sealed partial class ExecutionSystem
         var verb = npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Interaction.HasValue
             ? npc.Plan.Steps[0].Interaction.Value
             : InteractionType.Eat;
-        var interaction = ResolveInteraction(itemDefinition, verb);
+        var interaction = ResolveInteraction(world, npc, itemDefinition, verb);
         if (interaction is null)
         {
             npc.Plan.Status = PlanStatus.Failed;

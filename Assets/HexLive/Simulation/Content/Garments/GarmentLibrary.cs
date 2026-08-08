@@ -452,7 +452,7 @@ namespace HexLive.Simulation.Content
                 new("clothing.sweater_flair", "Knit Sweater", WearLayer.Wear, 0.20f, 0.02f, 0.00f, dress, 2, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.gloves_fit", "Training Gloves", WearLayer.Wear, 0.03f, 0.05f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.croptop_fit", "Crop Top", WearLayer.Wear, 0.06f, 0.01f, 0.00f, dress, 2, BodyPart.Torso),
-                new("clothing.shorts_fit", "Running Shorts", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis),
+                new("clothing.shorts_fit", "Running Shorts", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis),
                 new("clothing.yogapants_tek_yoga_01_black_mesh", "Yoga Pants (Yoga 01 Black Mesh)", WearLayer.Wear, 0.12f, 0.05f, 0.00f, dress, 4, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.yogapants_tek" },
                 new("clothing.yogapants_tek_yoga_02_black", "Yoga Pants (Yoga 02 Black)", WearLayer.Wear, 0.12f, 0.05f, 0.00f, dress, 4, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.yogapants_tek" },
                 new("clothing.yogapants_tek_yoga_03_black_red", "Yoga Pants (Yoga 03 Black Red)", WearLayer.Wear, 0.12f, 0.05f, 0.00f, dress, 4, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.yogapants_tek" },
@@ -490,25 +490,25 @@ namespace HexLive.Simulation.Content
                 new("clothing.croptop_fit_4_batik3", "Crop Top (4 Batik3)", WearLayer.Wear, 0.06f, 0.01f, 0.00f, dress, 2, BodyPart.Torso) { PrototypeId = "clothing.croptop_fit" },
                 new("clothing.croptop_fit_4_batik4", "Crop Top (4 Batik4)", WearLayer.Wear, 0.06f, 0.01f, 0.00f, dress, 2, BodyPart.Torso) { PrototypeId = "clothing.croptop_fit" },
                 new("clothing.croptop_fit_4_batik5", "Crop Top (4 Batik5)", WearLayer.Wear, 0.06f, 0.01f, 0.00f, dress, 2, BodyPart.Torso) { PrototypeId = "clothing.croptop_fit" },
-                new("clothing.shorts_fit_1_blackblue", "Running Shorts (1 BlackBlue)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_1_blacklime", "Running Shorts (1 BlackLime)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_1_blackpink", "Running Shorts (1 BlackPink)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_1_blackwhite", "Running Shorts (1 BlackWhite)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_2_black", "Running Shorts (2 Black)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_3_black", "Running Shorts (3 Black)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_3_blackgreen", "Running Shorts (3 BlackGreen)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_3_blackmagenta", "Running Shorts (3 BlackMagenta)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_3_blackorange", "Running Shorts (3 BlackOrange)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_3_magenta", "Running Shorts (3 Magenta)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_3_orange", "Running Shorts (3 Orange)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_3_turquoise", "Running Shorts (3 Turquoise)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_3_white", "Running Shorts (3 White)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_4_batik1", "Running Shorts (4 Batik1)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_4_batik2", "Running Shorts (4 Batik2)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_4_batik3", "Running Shorts (4 Batik3)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_4_batik4", "Running Shorts (4 Batik4)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_4_batik5", "Running Shorts (4 Batik5)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
-                new("clothing.shorts_fit_4_camouflage", "Running Shorts (4 Camouflage)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_1_blackblue", "Running Shorts (1 BlackBlue)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_1_blacklime", "Running Shorts (1 BlackLime)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_1_blackpink", "Running Shorts (1 BlackPink)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_1_blackwhite", "Running Shorts (1 BlackWhite)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_2_black", "Running Shorts (2 Black)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_3_black", "Running Shorts (3 Black)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_3_blackgreen", "Running Shorts (3 BlackGreen)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_3_blackmagenta", "Running Shorts (3 BlackMagenta)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_3_blackorange", "Running Shorts (3 BlackOrange)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_3_magenta", "Running Shorts (3 Magenta)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_3_orange", "Running Shorts (3 Orange)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_3_turquoise", "Running Shorts (3 Turquoise)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_3_white", "Running Shorts (3 White)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_4_batik1", "Running Shorts (4 Batik1)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_4_batik2", "Running Shorts (4 Batik2)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_4_batik3", "Running Shorts (4 Batik3)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_4_batik4", "Running Shorts (4 Batik4)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_4_batik5", "Running Shorts (4 Batik5)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
+                new("clothing.shorts_fit_4_camouflage", "Running Shorts (4 Camouflage)", WearLayer.Underwear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.shorts_fit" },
                 new("clothing.shorts_summer", "Denim Shorts", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis),
                 new("clothing.tshirt_summer", "T-Shirt", WearLayer.Wear, 0.07f, 0.01f, 0.00f, dress, 2, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.tanktop_summer", "Tank Top", WearLayer.Wear, 0.06f, 0.01f, 0.00f, dress, 2, BodyPart.Torso),
@@ -673,16 +673,6 @@ namespace HexLive.Simulation.Content
                 new("clothing.gloves_classic", "Ring Gloves", WearLayer.Wear, 0.03f, 0.05f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.scarf_classic", "Neck Scarf", WearLayer.Wear, 0.04f, 0.01f, 0.00f, dress, 0, BodyPart.Torso),
 
-                // §52.9 r2: the cuirass is Wear, not Outerwear — its PREFAB says
-                // so (layer 1, Chest+Belly), and the prefab is the authority on
-                // where a garment sits. As Outerwear the sim let it coexist with
-                // every top while the body evicted one of the two on sight: 22 of
-                // the 30 clashing pairs were this one row. It replaces a shirt now
-                // (and still stacks under a vest/harness/scarf, which ARE
-                // Outerwear). To make it armour-over-shirt instead, move the
-                // PREFAB to Outerwear — never this row alone.
-                new("armor.heavy",           "Heavy Armor",      WearLayer.Wear, 0.25f, 0.50f, -0.10f, dress, 6, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
-
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
                 // §52.8 tool holster: GEAR, not clothing — no warmth, no thermal
                 // pull, 0 pockets. Its 3 TYPED weapon slots (HolsterCatalog) are
@@ -711,7 +701,7 @@ namespace HexLive.Simulation.Content
                 new("clothing.wrapboots_primal_3", "Wrapped Boots (3)", WearLayer.Outerwear, 0.14f, 0.10f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.wrapboots_primal" },
                 new("clothing.glasses_nerd", "Round Glasses", WearLayer.Outerwear, 0.00f, 0.00f, 0.00f, dress, 0, BodyPart.Head),
                 new("clothing.sneakers_nerd", "Canvas Sneakers", WearLayer.Outerwear, 0.08f, 0.05f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.jacket_tek", "Training Jacket", WearLayer.Outerwear, 0.28f, 0.06f, 0.00f, dress, 4, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.jacket_tek", "Training Jacket", WearLayer.Wear, 0.28f, 0.06f, 0.00f, dress, 4, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.pumps_flair", "Pumps", WearLayer.Outerwear, 0.04f, 0.02f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.sneakers_nerd_nc_sneakers_pink", "Canvas Sneakers (NC Sneakers Pink)", WearLayer.Outerwear, 0.08f, 0.05f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_nerd" },
                 new("clothing.sneakers_nerd_nc_sneakers_purple", "Canvas Sneakers (NC Sneakers Purple)", WearLayer.Outerwear, 0.08f, 0.05f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_nerd" },

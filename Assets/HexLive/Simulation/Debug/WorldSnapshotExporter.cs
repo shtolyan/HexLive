@@ -714,6 +714,14 @@ public static class WorldSnapshotExporter
             Position = npc.Position,
             RotationDegrees = npc.RotationDegrees,
             Health = npc.Health,
+            CompassionTrait = npc.CompassionTrait,
+            MeleeStats = new MeleeStatsSnapshot
+            {
+                LimbMultiplier = npc.Body.LimbStrikeFactor(),
+                StrengthMultiplier = Runtime.AttributeMath.MeleeStrengthMult(npc),
+                CombatMultiplier = Runtime.AttributeMath.MeleeCombatMult(npc),
+                AgilityRecoveryMultiplier = Runtime.AttributeMath.AttackCooldownMult(npc)
+            },
             IsFighting = npc.IsFighting,
             CombatOpponentNpcId = npc.Mind.CombatOpponentNpcId?.Value ?? -1,
             IsSwinging = world.Tick < npc.AttackAnimUntilTick,
@@ -739,6 +747,10 @@ public static class WorldSnapshotExporter
             Breath = npc.Needs.Breath,            // §71
             Hygiene = npc.Needs.Hygiene,
             Blood = npc.Needs.Blood,
+            BloodDeficit = npc.Body.BloodDeficit,
+            CarriedNpcId = npc.CarriedNpcId?.Value,
+            CarriedByNpcId = npc.CarriedByNpcId?.Value,
+            RescueDestinationObjectId = npc.RescueDestinationObjectId?.Value,
             TanLevel = npc.Needs.TanLevel,
             Sunburn = npc.Needs.Sunburn,
             Bandages = npc.Needs.Bandages,
@@ -879,6 +891,17 @@ public static class WorldSnapshotExporter
         foreach (var wound in npc.Wounds)
         {
             npcSnapshot.Wounds.Add($"{wound.Zone}|{wound.Seed}|{wound.Heal01:0.###}");
+            npcSnapshot.OpenWounds.Add(new WoundSnapshot
+            {
+                Id = wound.Id,
+                Part = wound.Zone,
+                Severity = wound.Severity,
+                Heal01 = wound.Heal01,
+                Clot01 = wound.Clot01,
+                Stabilized = wound.Stabilized,
+                BleedFactor = wound.BleedFactor,
+                Seed = wound.Seed
+            });
             lockedHp += wound.Severity * (1f - wound.Heal01);
         }
 
@@ -916,6 +939,7 @@ public static class WorldSnapshotExporter
         {
             npcSnapshot.Attributes.Add($"{kind}\t{npc.Attributes.Get(kind):0.###}");
         }
+        npcSnapshot.Attributes.Add($"CompassionTrait\t{npc.CompassionTrait:0.###}");
 
         foreach (var kind in Agents.SkillSet.All)
         {
@@ -929,8 +953,35 @@ public static class WorldSnapshotExporter
         foreach (var part in npc.Body.Parts)
         {
             npcSnapshot.BodyParts.Add($"{part.Key}={part.Value:F2}");
-            npcSnapshot.PartArmor.Add(
-                $"{part.Key}={Runtime.EquipmentMath.ArmorForPart(world, npc, part.Key):F2}");
+            var armor = Runtime.EquipmentMath.ArmorForPart(world, npc, part.Key);
+            npcSnapshot.PartArmor.Add($"{part.Key}={armor:F2}");
+            var condition = npc.Body.Condition(part.Key);
+            var conditionSnapshot = new BodyPartConditionSnapshot
+            {
+                Part = part.Key,
+                Health = part.Value,
+                Armor = armor,
+                CriticalTrauma = condition.CriticalTrauma,
+                BluntDamage = condition.BluntDamage,
+                SplintSupport = condition.SplintSupport,
+                HitBias = condition.HitBias,
+                Severed = npc.Body.IsSevered(part.Key),
+                BandageKind = npc.BandagedZones.Contains(part.Key) ? "herbal" :
+                    npc.GauzeZones.Contains(part.Key) ? "gauze" : string.Empty
+            };
+            if (condition.Prosthetic is { } prosthetic)
+            {
+                conditionSnapshot.Prosthetic = new ProstheticSnapshot
+                {
+                    DefinitionId = prosthetic.DefinitionId,
+                    Part = prosthetic.Part,
+                    Condition = prosthetic.Condition,
+                    MaxCondition = prosthetic.MaxCondition,
+                    Function = prosthetic.Function,
+                    Mechanical = prosthetic.Mechanical
+                };
+            }
+            npcSnapshot.BodyPartConditions.Add(conditionSnapshot);
             if (part.Value < worstPartValue)
             {
                 worstPartValue = part.Value;
@@ -972,14 +1023,17 @@ public static class WorldSnapshotExporter
         // head clutch > upright. A LOST leg (one or both, §50) forces Crawl —
         // the real crawl clip + 1/3 speed; two merely-mauled legs also crawl.
         float Part(BodyPart p) => npc.Body.Parts.TryGetValue(p, out var v) ? v : 1f;
-        var legL = Part(BodyPart.LegL);
-        var legR = Part(BodyPart.LegR);
-        var legLost = npc.Body.IsSevered(BodyPart.LegL) || npc.Body.IsSevered(BodyPart.LegR);
+        var legL = npc.Body.LimbFunction(BodyPart.LegL);
+        var legR = npc.Body.LimbFunction(BodyPart.LegR);
+        var legLImpaired = legL < 0.4f ||
+            npc.Body.Condition(BodyPart.LegL).Prosthetic?.Function < 0.999f;
+        var legRImpaired = legR < 0.4f ||
+            npc.Body.Condition(BodyPart.LegR).Prosthetic?.Function < 0.999f;
         npcSnapshot.PostureHint =
             npcSnapshot.IsUnconscious ? "Faint" // §60: comatose lies limp too
             : npcSnapshot.IsFainted ? "Faint"
-            : legLost || (legL < 0.4f && legR < 0.4f) ? "Crawl"
-            : legL < 0.4f || legR < 0.4f ? "Limp"
+            : npc.Body.IsProne || (legL < 0.4f && legR < 0.4f) ? "Crawl"
+            : legLImpaired || legRImpaired ? "Limp"
             : Part(BodyPart.ArmL) < 0.4f || Part(BodyPart.ArmR) < 0.4f ? "ArmHang"
             : Part(BodyPart.Head) < 0.4f ? "HeadClutch"
             : "Upright";

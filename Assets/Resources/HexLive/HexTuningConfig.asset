@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a15d79677c5e405ebeafda9d818010f, type: 3}
   m_Name: HexTuningConfig
   m_EditorClassIdentifier: 
-  hopSeconds: 2
-  downHopSeconds: 1
+  hopSeconds: 1.6968912
+  downHopSeconds: 0.5772021
   hopTakeoffSeconds: 0.1
-  hopLandingSeconds: 0.5
+  hopLandingSeconds: 0.2823834
   hopLandingFootClearance: 0.025
   hopLandingFootGuardSeconds: 0.65
   hopEdgePadding: 0.1
@@ -30,6 +30,19 @@ MonoBehaviour:
   swimSpeedFactor: 0.6
   ledgeSeatLift: -0.344
   ledgeSeatBack: 0.2
+  maleSeatForward: 0.08
+  maleSeatDown: 0.06
+  walkBodyHeightsPerSec: 0.76
+  slowRunCadence: 2
+  runCadence: 3.4
+  minGaitCadence: 0.35
+  maxGaitCadence: 1.25
+  maxWalkCadence: 1.6
+  walkStretchCadence: 1.15
+  maxWalkGait: 0.35
+  speedSmoothTau: 0.15
+  walkHoldSeconds: 0.3
+  pivotYawSpeed: 90
   waterShoreLevel: 1
   waterSurfaceDrop: 0.1
   sinkDepth: 0.6

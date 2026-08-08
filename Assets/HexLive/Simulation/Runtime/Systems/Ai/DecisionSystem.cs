@@ -70,6 +70,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // §116: rescue is assigned by RescueSystem and owns both hands and
+            // the route until the patient is safely down. The ordinary auction
+            // must not replace it with a chore on the next medium pass.
+            if (npc.IsCarryingPerson || npc.Mind.CurrentGoal is GoalType.Rescue or
+                    GoalType.Splint or GoalType.FitProsthetic)
+            {
+                continue;
+            }
+
             // §105.14: окно обморока вышло — прежде чем встать, спросить себя,
             // а надо ли (враг рядом → притвориться мёртвой). Поле потребляем в
             // ноль, чтобы поймать край РОВНО ОДИН РАЗ: без этого протухший, но
@@ -83,7 +92,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             if (Spec105.PlayDeadEnabled && npc.Mind.FaintedUntilTick != 0)
             {
                 npc.Mind.FaintedUntilTick = 0;
-                MortalityHelpers.TryStartPlayDead(world, npc);
+                // Bug #54: without wake grace, NeedsDecaySystem could re-arm
+                // the same faint later in this very tick while the collapse
+                // thresholds were still true.
+                npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
+                MortalityHelpers.TryStartPlayDead(world, npc); // hiding clears grace
             }
 
             // Spec §110: crying her heart out — conscious, but no decisions
@@ -130,8 +143,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // рана) — определение одно на оба гейта, см. OwnCrisisOutranksHiding.
             // Латчи обновлены выше по циклу (UpdateStarving/UpdateDehydrated),
             // так что читаются свежими.
-            if (world.Tick < npc.Mind.PlayDeadUntilTick &&
-                !MortalityHelpers.OwnCrisisOutranksHiding(npc))
+            var dangerousRiseReason = "OwnCrisis";
+            var dangerousRise = Spec118.Enabled
+                ? MortalityHelpers.ShouldDangerouslyRise(
+                    world, npc, out dangerousRiseReason)
+                : MortalityHelpers.OwnCrisisOutranksHiding(npc);
+            if (world.Tick < npc.Mind.PlayDeadUntilTick && !dangerousRise)
             {
                 npc.Needs.Stamina = MathUtil.Clamp01(npc.Needs.Stamina + 0.02f);
                 continue;
@@ -139,9 +156,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             if (npc.Mind.PlayDeadSinceTick != 0)
             {
-                var reason = MortalityHelpers.OwnCrisisOutranksHiding(npc)
-                    ? "OwnCrisis"
-                    : world.Tick >= npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks
+                var reason = dangerousRise
+                    ? dangerousRiseReason
+                    : !Spec118.Enabled &&
+                      world.Tick >= npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks
                         ? "CapReached"
                         : "CoastClear";
                 MortalityHelpers.EndPlayDead(world, npc, reason);
@@ -301,7 +319,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (!world.Entities.Npcs.TryGetValue(aidFromId, out var aider) ||
                  aider.Plan.TargetAgentId is not { } aiderTarget ||
                  !aiderTarget.Equals(npc.Id) ||
-                 aider.Mind.CurrentGoal != GoalType.Aid))
+                 aider.Mind.CurrentGoal is not (GoalType.Aid or GoalType.Rescue or
+                     GoalType.Splint or GoalType.FitProsthetic)))
             {
                 npc.Mind.PendingAidFrom = null;
             }
@@ -893,7 +912,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var siteIsBed = buildSite?.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic;
         // §35.5B: the rack is lashed sticks like the leaf mat — no hammer.
         var siteWaivesHammer = siteIsHearth ||
-            buildSite?.BuildProduct is ContentIds.BedLeaf or ContentIds.DryingRack;
+            buildSite?.BuildProduct is ContentIds.BedLeaf or ContentIds.DryingRack or ContentIds.Hut1Hex;
         // §54.13: this is only the RAISE half. The deliver half is decided
         // next to the BuildFurniture score, where the gather flags exist —
         // staged sites take bundles, not single pieces (see below).
@@ -1221,7 +1240,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Spec §52: the spear is two-handed — wielding it needs both hands,
         // so a one-armed survivor (§50) can't spear-hunt. The bow is likewise
         // two-handed. Lose an arm and hunting is off the table.
-        var canWield2Handed = ctx.CanUseToolsOrWeapons && npc.Body.IntactHands >= 2;
+        var canWield2Handed = ctx.CanUseToolsOrWeapons && npc.Body.CanUseTwoHanded;
         var armed = (hasSpear || (hasBow && arrowCount > 0)) && canWield2Handed;
         // A carried coconut does not block the hunt — meat is also hide,
         // and hide is pants and a bow; the old any-food gate left the

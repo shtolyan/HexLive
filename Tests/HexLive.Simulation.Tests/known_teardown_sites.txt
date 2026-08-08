@@ -28,3 +28,8 @@ Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#2
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#2
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#3
+Assets/HexLive/Simulation/Runtime/Helpers/KenshiRescueMath.cs	#1
+Assets/HexLive/Simulation/Runtime/Helpers/KenshiRescueMath.cs	#2
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Prosthetics.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Rescue.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Rescue.cs	#2

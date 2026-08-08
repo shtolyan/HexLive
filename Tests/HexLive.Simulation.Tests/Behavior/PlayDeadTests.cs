@@ -32,8 +32,21 @@ namespace HexLive.Simulation.Tests.Behavior
 /// секунд, соак ловит другое — «залегла навсегда».
 /// </para>
 /// </summary>
+[NonParallelizable]
 public sealed class PlayDeadTests
 {
+    private bool _kenshiWasEnabled;
+
+    [SetUp]
+    public void UseLegacySection105PlayDeadRules()
+    {
+        _kenshiWasEnabled = Spec118.Enabled;
+        Spec118.Enabled = false;
+    }
+
+    [TearDown]
+    public void RestoreKenshiRules() => Spec118.Enabled = _kenshiWasEnabled;
+
     // Волк вплотную к ней, уже ведущий погоню: и «не наводиться на новую», и
     // «бросить ведущуюся» проверяются на одном звере.
     private static HexLive.Simulation.Wildlife.MobState SpawnWolfOn(
@@ -66,7 +79,7 @@ public sealed class PlayDeadTests
     private static void KnockOut(WorldState world, NPCState girl, int ticks = 4)
     {
         girl.Mind.FaintedUntilTick = world.Tick + ticks;
-        ExecutionSystem.LieDownCentered(world, girl);
+        ExecutionSystem.TryLieDownOnGround(world, girl);
     }
 
     // Бодрая: иначе ветка усталости (StayDownIfSpent) уложит её спать раньше,

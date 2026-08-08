@@ -133,6 +133,73 @@ public sealed class LootHelplessTests
     }
 
     [Test]
+    public void TakingItem_StampsItsDefinitionForTheSingleSpeechBubble()
+    {
+        var (engine, outsider, colonist) = Adjacent();
+        var world = engine.World;
+        KnockOut(world, colonist);
+        SilenceAlliedWitnesses(world, colonist);
+        colonist.Inventory.Items.Clear();
+        colonist.Inventory.Items.Add(new ItemInstance("tool.hammer"));
+
+        var (seen, tail) = StepUntil(engine, "LootHelplessTook", 600);
+
+        Assert.That(seen, Is.True, "No loot beat reached. Trace:\n  " + string.Join("\n  ", tail));
+        Assert.Multiple(() =>
+        {
+            Assert.That(outsider.Execution.LastSocialCueKind, Is.EqualTo("LootHelplessTook"));
+            Assert.That(outsider.Execution.LastSocialCueItemId, Is.EqualTo("tool.hammer"));
+            Assert.That(outsider.Execution.LastSocialCuePeerId, Is.Null);
+            var snapshot = HexLive.Simulation.Debug.WorldSnapshotExporter.Export(world)
+                .Npcs.Single(n => n.Id.Equals(outsider.Id));
+            Assert.That(snapshot.SocialCueItemId, Is.EqualTo("tool.hammer"));
+        });
+
+        SocialCueSignals.Stamp(world, outsider, "TalkRequest", colonist.Id);
+        Assert.That(outsider.Execution.LastSocialCueItemId, Is.Empty,
+            "A normal cue must not inherit the previous loot picture.");
+    }
+
+    [Test]
+    public void AttackInterruption_CleansLootButKeepsFightAndUsesFullCooldown()
+    {
+        var (engine, outsider, victim) = Adjacent();
+        var world = engine.World;
+        world.Tick = 100;
+        var defender = world.Entities.Npcs.Values.First(n =>
+            n.Faction == Faction.Colony && !n.Id.Equals(victim.Id));
+
+        outsider.Mind.CurrentGoal = GoalType.LootHelpless;
+        outsider.Mind.LootHelplessTargetNpcId = victim.Id;
+        outsider.Mind.LootHelplessTakenCount = 1;
+        outsider.Plan.Status = PlanStatus.Active;
+        outsider.Plan.TargetAgentId = victim.Id;
+        outsider.Execution.Status = ExecutionStatus.InProgress;
+        outsider.Execution.CurrentInteraction = InteractionType.Loot;
+        victim.Mind.PendingLootedBy = outsider.Id;
+
+        defender.Mind.CurrentGoal = GoalType.Defend;
+        defender.Mind.CombatOpponentNpcId = outsider.Id;
+        defender.IsFighting = true;
+        outsider.Mind.CombatOpponentNpcId = defender.Id;
+        outsider.IsFighting = true;
+
+        ExecutionSystem.AbortLootHelplessForAttack(world, outsider, defender.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(victim.Mind.PendingLootedBy, Is.Null);
+            Assert.That(outsider.Mind.LootHelplessTargetNpcId, Is.Null);
+            Assert.That(outsider.Execution.Status, Is.EqualTo(ExecutionStatus.None));
+            Assert.That(outsider.Mind.LootHelplessCooldownUntilTick,
+                Is.EqualTo(world.Tick + Spec111.LootHelplessCooldownTicks));
+            Assert.That(outsider.Mind.CombatOpponentNpcId, Is.EqualTo(defender.Id));
+            Assert.That(defender.Mind.CombatOpponentNpcId, Is.EqualTo(outsider.Id));
+            Assert.That(defender.Mind.CurrentGoal, Is.EqualTo(GoalType.Defend));
+        });
+    }
+
+    [Test]
     public void Colonist_StripsUnconsciousOutsider_MacheteReachesTheColony()
     {
         // ⭐ Главный сюжет фичи. Мачете §79 не крафтится, и до §111 попадало в
@@ -274,6 +341,54 @@ public sealed class LootHelplessTests
             "Свидетель должен бить обыскивающего, а не саму жертву.");
         Assert.That(far.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Defend),
             "Союзница за пределом радиуса не должна видеть сцену.");
+    }
+
+    [Test]
+    public void MultipleLootWitnesses_EngageOneAttacker_AndAttackerRepliesToNearest()
+    {
+        var (engine, outsider, victim) = Adjacent();
+        var world = engine.World;
+        var defenders = world.Entities.Npcs.Values
+            .Where(n => n.Faction == Faction.Colony && !n.Id.Equals(victim.Id))
+            .Take(2)
+            .ToArray();
+        Assert.That(defenders.Length, Is.EqualTo(2));
+
+        defenders[0].Position = outsider.Position + new Float2(0.1f, 0f);
+        defenders[1].Position = outsider.Position + new Float2(0.3f, 0f);
+        defenders[0].Mind.CombatAssistAttackerNpcId = outsider.Id;
+        defenders[1].Mind.CombatAssistAttackerNpcId = outsider.Id;
+
+        HumanCombatPairing.EngageAssist(world, defenders[1], outsider);
+        HumanCombatPairing.EngageAssist(world, defenders[0], outsider);
+
+        Assert.That(defenders[0].Mind.CombatOpponentNpcId, Is.EqualTo(outsider.Id));
+        Assert.That(defenders[1].Mind.CombatOpponentNpcId, Is.EqualTo(outsider.Id),
+            "Несколько свидетелей должны иметь право бить одну цель.");
+        Assert.That(outsider.Mind.CombatOpponentNpcId, Is.EqualTo(defenders[0].Id),
+            "Ответная цель должна быть ближайшим живым противником.");
+    }
+
+    [Test]
+    public void EndingLoot_ClearsAssistPairsAndSwingSlotsSymmetrically()
+    {
+        var (engine, outsider, victim) = Adjacent();
+        var world = engine.World;
+        var defender = world.Entities.Npcs.Values
+            .First(n => n.Faction == Faction.Colony && !n.Id.Equals(victim.Id));
+        defender.Mind.CombatAssistAttackerNpcId = outsider.Id;
+        defender.Mind.CurrentGoal = GoalType.Defend;
+        defender.StrikeLandsAtTick = world.Tick + 10;
+        outsider.StrikeLandsAtTick = world.Tick + 10;
+        HumanCombatPairing.EngageAssist(world, defender, outsider);
+
+        HumanCombatPairing.ClearAssistsAgainst(world, outsider.Id);
+
+        Assert.That(defender.Mind.CombatAssistAttackerNpcId, Is.Null);
+        Assert.That(defender.Mind.CombatOpponentNpcId, Is.Null);
+        Assert.That(outsider.Mind.CombatOpponentNpcId, Is.Null);
+        Assert.That(defender.StrikeLandsAtTick, Is.Zero);
+        Assert.That(outsider.StrikeLandsAtTick, Is.Zero);
     }
 }
 

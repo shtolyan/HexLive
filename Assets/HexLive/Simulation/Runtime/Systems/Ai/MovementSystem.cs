@@ -284,6 +284,7 @@ public sealed class MovementSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        KenshiRescueMath.SyncAll(world);
         foreach (var npc in world.Entities.Npcs.Values)
         {
             // §21.21B v17: a hop in the air outranks EVERYTHING below, including
@@ -332,6 +333,23 @@ public sealed class MovementSystem : ISimulationSystem
                 Trace.Emit(world, npc.Id, "MovementInvalidJunction",
                     $"Junction={targetJunctionId.Value} not found in world");
                 continue;
+            }
+
+            // §116: a carrier never jumps or swims. Flat land can still be
+            // routed normally; a route that attempts to enter deep water is a
+            // failed rescue path and releases the patient safely on this side.
+            if (npc.IsCarryingPerson)
+            {
+                var previousJunctionId = targetIndex > 0
+                    ? npc.Movement.JunctionPath[targetIndex - 1]
+                    : npc.CurrentJunction ?? targetJunctionId;
+                if (HexPathfinder.TryGetDirectedStepTile(
+                        world, previousJunctionId, targetJunctionId, out var carryStepTile) &&
+                    SpatialQueries.IsSwimTile(carryStepTile))
+                {
+                    KenshiRescueMath.DropSafely(world, npc, "carrier cannot swim");
+                    continue;
+                }
             }
 
             // Spec 24.3: someone is standing on my next step — wait like a
@@ -662,6 +680,17 @@ public sealed class MovementSystem : ISimulationSystem
                 convalescentMove *
                 alignmentFactor * world.TickDeltaTime;
 
+            if (npc.IsCarryingPerson)
+            {
+                var carryFactor = MathUtil.Clamp(
+                    Spec118.CarrySpeedMin +
+                    Spec118.CarrySpeedStrengthGain * MathUtil.Clamp01(npc.Attributes.Strength),
+                    Spec118.CarrySpeedMin, Spec118.CarrySpeedMax);
+                movementPerTick *= carryFactor;
+                AttributeMath.Train(npc, AttributeKind.Strength,
+                    Spec76.AttributeTrainPerRunTick * 2f);
+            }
+
             // §71: GAIT IS A DECISION. She walks unless there is a reason to
             // run, so a running figure always means something happened — the
             // old "faster than a walk therefore jogging" rule had the whole
@@ -745,6 +774,11 @@ public sealed class MovementSystem : ISimulationSystem
             // recovers ON THE MOVE and never bids for a rest goal — nothing in
             // the decision layer reads Breath.
             var wantsRun = urgency > 1.001f;
+            if (npc.IsCarryingPerson)
+            {
+                urgency = 1f;
+                wantsRun = false;
+            }
             if (wantsRun && npc.Needs.Breath <= 0f)
             {
                 npc.Mind.BreathSpent = true;

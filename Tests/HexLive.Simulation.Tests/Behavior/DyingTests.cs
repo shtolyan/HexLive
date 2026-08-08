@@ -30,8 +30,24 @@ namespace HexLive.Simulation.Tests.Behavior
 /// после входа в окно будет выглядеть как обычная мгновенная смерть.
 /// </para>
 /// </summary>
+[NonParallelizable]
 public sealed class DyingTests
 {
+    private bool _kenshiWasEnabled;
+
+    [SetUp]
+    public void UseLegacySection105Model()
+    {
+        // This fixture is the executable contract for the superseded §105
+        // timer model. §118 has its own focused fixture; keeping the two kill
+        // switches separate makes both migration paths testable.
+        _kenshiWasEnabled = Spec118.Enabled;
+        Spec118.Enabled = false;
+    }
+
+    [TearDown]
+    public void RestoreKenshiModel() => Spec118.Enabled = _kenshiWasEnabled;
+
     // Довести до кровопотери: свежая глубокая рана + пустая кровь.
     //
     // Аптечку ОБЯЗАТЕЛЬНО обнулить: колонистка стартует с четырьмя бинтами, и

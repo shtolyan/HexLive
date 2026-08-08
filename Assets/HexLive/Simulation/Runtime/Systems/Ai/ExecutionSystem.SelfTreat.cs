@@ -35,8 +35,10 @@ public sealed partial class ExecutionSystem
             npc.Execution.TargetObject = null;
             npc.Execution.StartTick = world.Tick;
             // §76: a practised hand winds a dressing faster (Wits + Medicine).
-            var treatTicks = AttributeMath.WorkTicks(
-                npc, Spec53.SelfTreatDuration, InteractionType.TreatSelf, npc.Plan.Goal);
+            var treatTicks = Spec118.Enabled
+                ? WoundMath.BandageTicks(npc)
+                : AttributeMath.WorkTicks(
+                    npc, Spec53.SelfTreatDuration, InteractionType.TreatSelf, npc.Plan.Goal);
             npc.Execution.EndTick = world.Tick + treatTicks;
             Trace.Emit(world, npc.Id, "InteractionStarted",
                 $"TreatSelf Duration={treatTicks}ticks " +
@@ -61,6 +63,17 @@ public sealed partial class ExecutionSystem
             npc.Needs.HerbalBandages--;
         }
 
+        if (Spec118.Enabled)
+        {
+            var stabilized = WoundMath.StabilizeMostDangerous(npc, herbal, out var wound);
+            Trace.Emit(world, npc.Id, "Bandaged",
+                stabilized
+                    ? $"Stabilized {wound.Zone} wound #{wound.Id} " +
+                      $"({(herbal ? "herbal" : "gauze")}); no instant HP/Blood"
+                    : "No open wound remained when the dressing completed");
+        }
+        else
+        {
         // §76: a practised hand gets more out of the same dressing. Computed
         // once so the zone HP and the wound clotting below cannot disagree.
         var selfTreatHeal = Spec53.SelfTreatHeal * AttributeMath.TreatPowerMult(npc);
@@ -113,6 +126,7 @@ public sealed partial class ExecutionSystem
         Trace.Emit(world, npc.Id, "Bandaged",
             $"Dressed her own wounds ({(herbal ? "herbal" : "gauze")}, zones={dressed}) " +
             $"Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} Left={npc.Needs.Bandages}");
+        }
 
         npc.Plan.Status = PlanStatus.Completed;
         npc.Plan.Steps.Clear();

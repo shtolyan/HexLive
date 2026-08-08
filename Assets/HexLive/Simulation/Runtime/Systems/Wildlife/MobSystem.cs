@@ -495,7 +495,7 @@ public sealed class MobSystem : ISimulationSystem
             if (!wasFighting && target.Body.CanUseToolsOrWeapons &&
                 target.Body.IntactHands >= 2 &&
                 Content.GearCatalog.For(SimBalance.BestMeleeWeapon(
-                    target.Inventory.Items, target.Body.IntactHands)).TwoHanded)
+                    target.Inventory.Items, target.Body.WeaponHands)).TwoHanded)
             {
                 ReadySpearHands(world, target);
             }
@@ -503,16 +503,18 @@ public sealed class MobSystem : ISimulationSystem
     }
 
     // Spec 19.3C: dogs bite low — legs most, head rarely.
-    internal static BodyPart PickAttackPart(WorldState world, int dogId)
+    internal static BodyPart PickAttackPart(WorldState world, int dogId, NPCState target)
     {
+        BodyDamageResolver.DecayAllHitBias(world, target);
         var roll = MathUtil.Hash01(world.Seed, world.Tick, dogId, 555);
-        if (roll < 0.30f) return BodyPart.LegL;
-        if (roll < 0.60f) return BodyPart.LegR;
-        if (roll < 0.725f) return BodyPart.ArmL;
-        if (roll < 0.85f) return BodyPart.ArmR;
-        if (roll < 0.95f) return BodyPart.Torso;
-        if (roll < 0.98f) return BodyPart.Pelvis;
-        return BodyPart.Head;
+        return MeleeSwing.PickWeighted(target, roll,
+            (BodyPart.LegL, 0.30f),
+            (BodyPart.LegR, 0.30f),
+            (BodyPart.ArmL, 0.125f),
+            (BodyPart.ArmR, 0.125f),
+            (BodyPart.Torso, 0.10f),
+            (BodyPart.Pelvis, 0.03f),
+            (BodyPart.Head, 0.02f));
     }
 
     // Spec 29C.4A: stamp the square-up window and return how long it has run.
@@ -629,13 +631,13 @@ public sealed class MobSystem : ISimulationSystem
             if (!wasFighting && defender.Body.CanUseToolsOrWeapons &&
                 defender.Body.IntactHands >= 2 &&
                 Content.GearCatalog.For(SimBalance.BestMeleeWeapon(
-                    defender.Inventory.Items, defender.Body.IntactHands)).TwoHanded)
+                    defender.Inventory.Items, defender.Body.WeaponHands)).TwoHanded)
             {
                 ReadySpearHands(world, defender);
             }
 
             var weaponId = defender.Body.CanUseToolsOrWeapons
-                ? SimBalance.BestMeleeWeapon(defender.Inventory.Items, defender.Body.IntactHands)
+                ? SimBalance.BestMeleeWeapon(defender.Inventory.Items, defender.Body.WeaponHands)
                 : string.Empty;
             var weaponMult = SimBalance.MeleeStrikeBonus(weaponId);
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
@@ -1282,17 +1284,14 @@ public sealed class MobSystem : ISimulationSystem
             }
         }
 
-        // §60.2a lying-body invariant: the corpse rests at the tile CENTRE like
-        // every other body on the ground (coma/faint/sleep) — anchor it to the
-        // centre-most junction of the death tile, NOT the rim junction the NPC
-        // happened to die on (npc.CurrentJunction), which left corpses hanging
-        // off the hex edge. The corpse object renders at Junctions[0], so the
-        // anchor junction IS its visible position.
+        // §60.2a r4 / §113 r2: death inherits the already validated lying pose.
+        // The corpse object's junction is only an interaction/render anchor, so
+        // choose the node nearest that pose instead of teleporting back to centre
+        // (which could put the body into a fire or across a cliff).
         JunctionId? dropJunction = null;
         if (world.Tiles.Items.TryGetValue(npc.Tile, out var deathTile) &&
             deathTile.Junctions.Count > 0)
         {
-            var deathCentre = HexSpatialMath.TileToWorld(npc.Tile);
             var bestDist = float.MaxValue;
             foreach (var jId in deathTile.Junctions)
             {
@@ -1301,7 +1300,7 @@ public sealed class MobSystem : ISimulationSystem
                     continue;
                 }
 
-                var d = HexSpatialMath.Distance(j.WorldPosition, deathCentre);
+                var d = HexSpatialMath.Distance(j.WorldPosition, npc.Position);
                 if (d < bestDist)
                 {
                     bestDist = d;
@@ -1320,18 +1319,14 @@ public sealed class MobSystem : ISimulationSystem
         // (§28.15F Loot), а до тех пор она лежит одетая — такой, какой её
         // видели живой.
         //
-        // Тело переезжает в отдельный реестр целиком. Позиция подтягивается к
-        // якорю: труп лежит в ЦЕНТРЕ гекса (§60.2a), а упасть она могла на
-        // ободе — иначе одежда на теле и объект-якорь оказались бы в разных
-        // точках, и обирать её пришлось бы не с той клетки, где она лежит.
+        // Тело переезжает в отдельный реестр целиком. Его безопасная позиция и
+        // курс НЕ пересчитываются: якорь выбран по ним, а не наоборот.
         npc.DeathAnimVariant = preserveLyingDeathPose
             ? -1
             : (int)(MathUtil.Hash01(world.Seed, world.Tick, deadId.Value, 977) * 1024f);
-        if (dropJunction is { } restJunction &&
-            world.Junctions.Items.TryGetValue(restJunction, out var restNode))
+        if (dropJunction is { } restJunction)
         {
             npc.CurrentJunction = restJunction;
-            npc.Position = restNode.WorldPosition;
         }
 
         world.Entities.Corpses[deadId] = npc;

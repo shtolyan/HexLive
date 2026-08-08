@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
 
@@ -86,6 +88,9 @@ namespace HexLive.UnityPresentation.UI
         private int[] _vertexZone;
         private Color32[] _colorScratch;
         private readonly Dictionary<string, (Transform bone, Vector3 scale)> _distalBones = new();
+        private readonly Dictionary<BodyPart, ProstheticVisual> _prosthetics = new();
+        private readonly HashSet<BodyPart> _wantedProsthetics = new();
+        private readonly List<BodyPart> _prostheticRemoveScratch = new();
 
         private bool _framed;
         private Vector3 _focus;
@@ -172,7 +177,8 @@ namespace HexLive.UnityPresentation.UI
         public void SetZones(
             IReadOnlyList<string> bodyParts,
             IReadOnlyList<string> severedParts,
-            IReadOnlyList<string> bandagedZones)
+            IReadOnlyList<string> bandagedZones,
+            IReadOnlyList<BodyPartConditionSnapshot> conditions = null)
         {
             if (_dollMesh == null || _vertexZone == null)
             {
@@ -187,6 +193,22 @@ namespace HexLive.UnityPresentation.UI
             sig = HashEntries(sig, severedParts);
             sig = sig * 31 + 13;
             sig = HashEntries(sig, bandagedZones);
+            if (conditions != null)
+            {
+                foreach (var condition in conditions)
+                {
+                    sig = sig * 31 + (int)condition.Part;
+                    sig = sig * 31 + condition.Health.GetHashCode();
+                    sig = sig * 31 + condition.CriticalTrauma.GetHashCode();
+                    sig = sig * 31 + condition.Severed.GetHashCode();
+                    var prosthetic = condition.Prosthetic;
+                    sig = sig * 31 + (prosthetic?.DefinitionId?.GetHashCode() ?? 0);
+                    sig = sig * 31 + (prosthetic?.Condition.GetHashCode() ?? 0);
+                    sig = sig * 31 + (prosthetic?.MaxCondition.GetHashCode() ?? 0);
+                    sig = sig * 31 + (prosthetic?.Function.GetHashCode() ?? 0);
+                    sig = sig * 31 + (prosthetic?.Mechanical.GetHashCode() ?? 0);
+                }
+            }
             if (_zoneSigValid && sig == _zoneSig)
             {
                 return;
@@ -222,6 +244,25 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
+            // v12's typed condition is authoritative and continues the normal
+            // bar below zero: 0 HP / 0.4 critical trauma is painted as -0.4,
+            // i.e. the fully red negative reserve requested by §118.
+            if (conditions != null)
+            {
+                foreach (var condition in conditions)
+                {
+                    var zone = ZoneIndex(condition.Part.ToString());
+                    if (zone < 0)
+                    {
+                        continue;
+                    }
+
+                    _zoneHp[zone] = condition.Health - condition.CriticalTrauma;
+                    _zoneSevered[zone] = condition.Severed;
+                    _zoneBandaged[zone] = !string.IsNullOrEmpty(condition.BandageKind);
+                }
+            }
+
             if (severedParts != null)
             {
                 foreach (var entry in severedParts)
@@ -247,6 +288,7 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
+            SyncProsthetics(conditions);
             RepaintDoll();
         }
 
@@ -282,6 +324,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void BuildDoll(int npcId, string actorMesh)
         {
+            ClearProsthetics();
             if (_doll != null)
             {
                 Destroy(_doll);
@@ -336,7 +379,27 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _dollSkin.sharedMesh = _dollMesh;
-            var dollMaterial = new Material(Shader.Find("HexLive/HealthDoll")) { name = "HealthDoll" };
+            // A Resources material is a hard build-time reference to the
+            // custom shader. Shader.Find alone lets player-build stripping
+            // remove HexLive/HealthDoll, leaving a valid RenderTexture that
+            // contains only its grey clear colour.
+            var materialTemplate = Resources.Load<Material>("HexLive/UI/HealthDoll");
+            var dollShader = materialTemplate != null
+                ? materialTemplate.shader
+                : Shader.Find("HexLive/HealthDoll");
+            if (dollShader == null)
+            {
+                FailBuild($"{actorMesh}: shader HexLive/HealthDoll is absent from the player build");
+                Destroy(_doll);
+                _doll = null;
+                _dollSkin = null;
+                return;
+            }
+
+            var dollMaterial = materialTemplate != null
+                ? new Material(materialTemplate)
+                : new Material(dollShader);
+            dollMaterial.name = "HealthDoll";
             var slots = new Material[_dollMesh.subMeshCount];
             for (var i = 0; i < slots.Length; i++)
             {
@@ -363,6 +426,100 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _colorScratch = new Color32[_dollMesh.vertexCount];
+            Debug.Log($"[HealthDoll] built actor={actorMesh} npc={npcId} " +
+                $"mesh={_dollMesh.name} verts={_dollMesh.vertexCount} " +
+                $"shader={dollShader.name} layer={_doll.layer}");
+        }
+
+        private void SyncProsthetics(IReadOnlyList<BodyPartConditionSnapshot> conditions)
+        {
+            _wantedProsthetics.Clear();
+            if (_doll != null && conditions != null)
+            {
+                foreach (var condition in conditions)
+                {
+                    if (condition?.Prosthetic == null || !condition.Severed ||
+                        !ProstheticVisual.TryBoneNames(condition.Part, out var startName, out var endName))
+                    {
+                        continue;
+                    }
+
+                    _wantedProsthetics.Add(condition.Part);
+                    if (_prosthetics.TryGetValue(condition.Part, out var existing) &&
+                        existing.Matches(condition.Prosthetic))
+                    {
+                        existing.Update(condition);
+                        continue;
+                    }
+
+                    if (existing != null)
+                    {
+                        existing.Destroy();
+                        _prosthetics.Remove(condition.Part);
+                    }
+
+                    var start = FindDeep(_doll.transform, startName);
+                    var end = FindDeep(_doll.transform, endName);
+                    if (start == null || end == null ||
+                        !_distalBones.TryGetValue(condition.Part.ToString(), out var distal))
+                    {
+                        Debug.LogWarning($"[HealthDoll] missing prosthetic bones for {condition.Part}.");
+                        continue;
+                    }
+
+                    var layer = LayerMask.NameToLayer("Portrait");
+                    var visual = ProstheticVisual.Create(
+                        _doll.transform,
+                        start,
+                        end,
+                        condition,
+                        distal.scale,
+                        createGrip: false,
+                        targetLayer: layer,
+                        modelLoaded: InvalidateFrame);
+                    if (visual != null)
+                    {
+                        _prosthetics[condition.Part] = visual;
+                        _framed = false;
+                    }
+                }
+            }
+
+            _prostheticRemoveScratch.Clear();
+            foreach (var pair in _prosthetics)
+            {
+                if (!_wantedProsthetics.Contains(pair.Key))
+                {
+                    _prostheticRemoveScratch.Add(pair.Key);
+                }
+            }
+
+            foreach (var part in _prostheticRemoveScratch)
+            {
+                _prosthetics[part].Destroy();
+                _prosthetics.Remove(part);
+                _framed = false;
+            }
+        }
+
+        private void InvalidateFrame()
+        {
+            if (this != null)
+            {
+                _framed = false;
+            }
+        }
+
+        private void ClearProsthetics()
+        {
+            foreach (var visual in _prosthetics.Values)
+            {
+                visual.Destroy();
+            }
+
+            _prosthetics.Clear();
+            _wantedProsthetics.Clear();
+            _prostheticRemoveScratch.Clear();
         }
 
         private static SkinnedMeshRenderer FindPrimarySkin(GameObject root)
@@ -688,9 +845,14 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
+            foreach (var visual in _prosthetics.Values)
+            {
+                visual.UpdatePose();
+            }
+
             // Frame on the first frame with live skinned bounds: camera in
             // front of the figure, whole body + margin in view.
-            var bounds = _dollSkin.bounds;
+            var bounds = CombinedBounds();
             if (!_framed && bounds.extents.y > 0.01f)
             {
                 _focus = bounds.center;
@@ -706,8 +868,34 @@ namespace HexLive.UnityPresentation.UI
             _camera.enabled = _framed;
         }
 
+        private Bounds CombinedBounds()
+        {
+            var bounds = _dollSkin.bounds;
+            if (_doll == null)
+            {
+                return bounds;
+            }
+
+            foreach (var renderer in _doll.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer == null || !renderer.enabled || renderer == _dollSkin)
+                {
+                    continue;
+                }
+
+                var candidate = renderer.bounds;
+                if (candidate.extents.sqrMagnitude > 0.000001f)
+                {
+                    bounds.Encapsulate(candidate);
+                }
+            }
+
+            return bounds;
+        }
+
         private void OnDestroy()
         {
+            ClearProsthetics();
             if (_camera != null)
             {
                 _camera.targetTexture = null;

@@ -55,28 +55,83 @@ internal static class WoundMath
         return held;
     }
 
-    public static void Inflict(WorldState world, NPCState npc, BodyPart zone, float damage)
+    public static float OpenCutDamage(NPCState npc, BodyPart zone)
     {
-        // §76.13: Toughness is trained by being hurt, and this is the one place
-        // every damage path in every combat system converges — wolf, shark,
-        // raider, housemate. Keyed on the damage that ACTUALLY landed (post
-        // armor, post grit), so a well-armoured girl toughens up slower: she
-        // took less.
+        var open = 0f;
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Zone == zone)
+            {
+                open += wound.Severity * (1f - wound.Heal01);
+            }
+        }
+
+        return open;
+    }
+
+    public static int BandageTicks(NPCState healer)
+    {
+        var medicine = Spec76.Enabled && Spec76.SkillsEnabled
+            ? MathUtil.Clamp01(healer.Skills.Medicine)
+            : 0f;
+        return System.Math.Max(1, (int)System.Math.Round(
+            Spec118.BandageTicksNovice +
+            (Spec118.BandageTicksExpert - Spec118.BandageTicksNovice) * medicine));
+    }
+
+    public static bool StabilizeMostDangerous(
+        NPCState npc, bool herbal, out WoundState stabilized)
+    {
+        stabilized = null;
+        var danger = 0f;
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Stabilized || wound.Heal01 >= 1f)
+            {
+                continue;
+            }
+
+            var score = wound.Severity * (1f - wound.Heal01) *
+                wound.BleedFactor * (1f - wound.Clot01);
+            if (stabilized == null || score > danger)
+            {
+                stabilized = wound;
+                danger = score;
+            }
+        }
+
+        if (stabilized == null)
+        {
+            return false;
+        }
+
+        stabilized.Stabilized = true;
+        stabilized.Clot01 = 1f;
+        if (herbal)
+        {
+            npc.BandagedZones.Add(stabilized.Zone);
+            npc.GauzeZones.Remove(stabilized.Zone);
+        }
+        else
+        {
+            npc.GauzeZones.Add(stabilized.Zone);
+            npc.BandagedZones.Remove(stabilized.Zone);
+        }
+
+        return true;
+    }
+
+    public static void RegisterLandedHit(
+        WorldState world, NPCState npc, BodyPart zone, float damage)
+    {
         AttributeMath.Train(npc, AttributeKind.Toughness,
             Spec76.AttributeTrainPerDamage * damage);
 
-        // §60 r2: pain jolts a DEAD-TIRED sleeper awake — she crashed from
-        // exhaustion, she is not brain-dark; a bite must not farm a sleeping
-        // body. Blood-loss unconsciousness stays helpless (that body CAN'T
-        // wake, that's the point).
         if (npc.Mind.ComaCause == AI.ComaCause.Exhaustion)
         {
             NeedsDecaySystem.WakeFromComa(world, npc, $"Pain ({zone})");
         }
 
-        // §110: pain cuts the crying short instantly — she is conscious, and a
-        // wolf tooth is a better argument than any stress. She gets back to
-        // her feet on the next decision tick.
         if (world.Tick < npc.Mind.CryingUntilTick)
         {
             npc.Mind.CryingUntilTick = 0;
@@ -87,21 +142,43 @@ internal static class WoundMath
             if (world.Content.ObjectDefinitions.TryGetValue(garment.DefinitionId, out var definition) &&
                 definition.Covers.Contains(zone))
             {
-                var bloodContamination = damage * 1.5f;
-                garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness + bloodContamination);
-                garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness + bloodContamination);
+                var contamination = damage * 1.5f;
+                garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness + contamination);
+                garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness + contamination);
             }
-        }
-
-        var pieces = damage < MinSplittableDamage ? 1 : GashesPerHit;
-        var share = damage / pieces;
-        for (var i = 0; i < pieces; i++)
-        {
-            InflictOne(world, npc, zone, share);
         }
     }
 
-    private static void InflictOne(WorldState world, NPCState npc, BodyPart zone, float damage)
+    public static void Inflict(WorldState world, NPCState npc, BodyPart zone, float damage)
+    {
+        RegisterLandedHit(world, npc, zone, damage);
+        InflictCut(world, npc, zone, damage, 1f);
+    }
+
+    public static void InflictCut(
+        WorldState world, NPCState npc, BodyPart zone, float damage, float bleedFactor)
+    {
+        if (damage <= 0f)
+        {
+            return;
+        }
+
+        // §118 wounds are medical records: one landed cutting event is one
+        // wound that one dressing can stabilize. The older visual-only model
+        // split a bite into three independent records, which accidentally made
+        // a single hit consume three bandages once records gained clot state.
+        var pieces = Spec118.Enabled
+            ? 1
+            : damage < MinSplittableDamage ? 1 : GashesPerHit;
+        var share = damage / pieces;
+        for (var i = 0; i < pieces; i++)
+        {
+            InflictOne(world, npc, zone, share, bleedFactor);
+        }
+    }
+
+    private static void InflictOne(
+        WorldState world, NPCState npc, BodyPart zone, float damage, float bleedFactor)
     {
         // At the cap the next bite never EVICTS (dropping a record would
         // strand its hostage HP forever — the zone could stick at 0). It
@@ -125,6 +202,9 @@ internal static class WoundMath
                 // Deepen: the combined hostage = what it still held + new hit.
                 reuse.Severity = reuse.Severity * (1f - reuse.Heal01) + damage;
                 reuse.Heal01 = 0f;
+                reuse.Clot01 = 0f;
+                reuse.Stabilized = false;
+                reuse.BleedFactor = bleedFactor;
             }
             else
             {
@@ -147,6 +227,9 @@ internal static class WoundMath
                 reuse.Zone = zone;
                 reuse.Severity = damage;
                 reuse.Heal01 = 0f;
+                reuse.Clot01 = 0f;
+                reuse.Stabilized = false;
+                reuse.BleedFactor = bleedFactor;
                 reuse.Id = npc.NextWoundId++;
                 reuse.Seed = (int)(MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 911 + npc.NextWoundId) * int.MaxValue);
             }
@@ -162,6 +245,9 @@ internal static class WoundMath
             Zone = zone,
             Severity = damage,
             Heal01 = 0f,
+            Clot01 = 0f,
+            Stabilized = false,
+            BleedFactor = bleedFactor,
             // Deterministic per (seed, tick, npc, wound#): the decal's spot and
             // look replay identically after a save-restore (spec 41.2 replays
             // the same seed to the same tick).

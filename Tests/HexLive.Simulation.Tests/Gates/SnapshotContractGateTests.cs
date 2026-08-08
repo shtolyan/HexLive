@@ -65,6 +65,7 @@ public sealed class SnapshotContractGateTests
         npc.Mind.ForcedMeleeWeaponId = ContentIds.Knife;
         npc.HitStampTick = 4247;
         npc.HitWeaponId = "bite";
+        npc.CompassionTrait = 0.17f;
 
         var open = Find(WorldSnapshotExporter.Export(world), npc.Id.Value);
 
@@ -88,6 +89,16 @@ public sealed class SnapshotContractGateTests
         Assert.That(open.HitWeaponId, Is.EqualTo("bite"),
             "Чем попали — не доехало: звук удара выбирается по этому полю " +
             "(кулак, клинок, зубы).");
+        Assert.That(open.CompassionTrait, Is.EqualTo(0.17f).Within(0.0001f),
+            "Постоянное сострадание не доехало — карточка показывает запас заботы вместо черты.");
+        Assert.That(open.MeleeStats.LimbMultiplier,
+            Is.EqualTo(npc.Body.LimbStrikeFactor()).Within(0.0001f));
+        Assert.That(open.MeleeStats.StrengthMultiplier,
+            Is.EqualTo(AttributeMath.MeleeStrengthMult(npc)).Within(0.0001f));
+        Assert.That(open.MeleeStats.CombatMultiplier,
+            Is.EqualTo(AttributeMath.MeleeCombatMult(npc)).Within(0.0001f));
+        Assert.That(open.MeleeStats.AgilityRecoveryMultiplier,
+            Is.EqualTo(AttributeMath.AttackCooldownMult(npc)).Within(0.0001f));
 
         // Окно закрылось — флаг обязан погаснуть, иначе процедурный замах
         // вида зависнет навсегда.

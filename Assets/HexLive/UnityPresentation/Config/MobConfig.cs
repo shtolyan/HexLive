@@ -73,6 +73,10 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Урон одной атаки — укус, клевок, удар лапой (до брони цели).")]
         [FormerlySerializedAs("biteDamage")]
         [Range(0f, 0.5f)] public float attackDamage = 0.09f;
+        [Tooltip("Профиль cut/blunt задан на этом ассете. Выкл = профиль MobCatalog.")]
+        public bool damageProfileAuthored;
+        [Range(0f, 1f)] public float cutFraction;
+        [Range(0f, 2f)] public float bloodLossMultiplier;
         [Tooltip("Замах атаки, сек — урон падает в конце (начатая атака всегда попадает).")]
         [Range(0.05f, 2f)] public float attackWindupSeconds = 0.1f;
         [Tooltip("Перезарядка между атаками, сек (считается ОТ момента удара).")]
@@ -100,11 +104,20 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Сколько мобов в ночном налёте.")]
         [Range(0, 8)] public int raidPackSize = 0;
 
-        public MobStats ToStats() => new()
+        public MobStats ToStats()
         {
+            var defaults = MobCatalog.Defaults.TryGetValue(MobId, out var builtIn)
+                ? builtIn
+                : MobStats.NeutralDefault(MobId);
+            return new MobStats
+            {
             Id = MobId,
             MaxHealth = maxHealth,
             AttackDamage = attackDamage,
+            CutFraction = damageProfileAuthored ? cutFraction : defaults.CutFraction,
+            BloodLossMultiplier = damageProfileAuthored
+                ? bloodLossMultiplier
+                : defaults.BloodLossMultiplier,
             AttackWindupSeconds = attackWindupSeconds,
             AttackCooldownSeconds = attackCooldownSeconds,
             AggroRadiusTiles = aggroRadiusTiles,
@@ -116,7 +129,8 @@ namespace HexLive.UnityPresentation.Config
             AttackMediums = attackMediums,
             RaidChancePerDay = raidChancePerDay,
             RaidPackSize = raidPackSize,
-        };
+            };
+        }
 
         // Bake the current catalog defaults back onto this asset (editor helper).
         public void PullFromDefaults()
@@ -129,6 +143,9 @@ namespace HexLive.UnityPresentation.Config
 
             maxHealth = s.MaxHealth;
             attackDamage = s.AttackDamage;
+            cutFraction = s.CutFraction;
+            bloodLossMultiplier = s.BloodLossMultiplier;
+            damageProfileAuthored = true;
             attackWindupSeconds = s.AttackWindupSeconds;
             attackCooldownSeconds = s.AttackCooldownSeconds;
             aggroRadiusTiles = s.AggroRadiusTiles;

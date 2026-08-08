@@ -26,6 +26,7 @@ public sealed class HandBuiltTagTests
     private static readonly string[] HistoricalHandBuilt =
     {
         "bed.leaf",
+        "building.hut_1hex",
         "campfire.spot",
         "station.drying_rack",
         "station.water_collector",

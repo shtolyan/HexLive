@@ -27,35 +27,76 @@ public sealed class BodyState
     // which heals back). Only arms/legs can be severed — never Head/Torso/Pelvis.
     public System.Collections.Generic.HashSet<BodyPart> Severed { get; } = new();
 
+    // §116: extra condition that cannot live in the legacy 0..1 Parts map.
+    // The map is eagerly populated so save/snapshot code has a stable seven-row
+    // shape and old callers can continue reading Parts unchanged.
+    public System.Collections.Generic.Dictionary<BodyPart, BodyPartCondition> Conditions { get; } = new()
+    {
+        [BodyPart.Head] = new(),
+        [BodyPart.Torso] = new(),
+        [BodyPart.Pelvis] = new(),
+        [BodyPart.ArmL] = new(),
+        [BodyPart.ArmR] = new(),
+        [BodyPart.LegL] = new(),
+        [BodyPart.LegR] = new()
+    };
+
+    public float BloodDeficit { get; set; }
+
+    public BodyPartCondition Condition(BodyPart part) => Conditions[part];
+
     public bool IsSevered(BodyPart part) => Severed.Contains(part);
 
     public bool AnySevered => Severed.Count > 0;
 
     // Spec §50: jumping needs both legs. A survivor missing either leg can't
     // hop an elevation step (or dive water) — that terrain becomes off-limits.
-    public bool CanJump => !IsSevered(BodyPart.LegL) && !IsSevered(BodyPart.LegR);
+    public bool CanJump => LimbFunction(BodyPart.LegL) >= 0.75f &&
+                           LimbFunction(BodyPart.LegR) >= 0.75f;
 
-    public bool HasNoLegs => IsSevered(BodyPart.LegL) && IsSevered(BodyPart.LegR);
+    public bool HasNoLegs => LimbFunction(BodyPart.LegL) <= 0f &&
+                             LimbFunction(BodyPart.LegR) <= 0f;
 
     // §50-prone: «лежит». A lost leg (EITHER one) puts her on the ground — she
     // crawls, she cannot stand. More prone states may join later (fainted,
     // pinned…); gate on THIS, not on leg counts. Lying means: no tools, no
     // weapons, no standing fight (the old gate checked BOTH legs, so a
     // one-legged crawler stood up and boxed wolves — the bug).
-    public bool IsProne => IsSevered(BodyPart.LegL) || IsSevered(BodyPart.LegR);
+    public bool IsProne => LimbFunction(BodyPart.LegL) <= 0f ||
+                           LimbFunction(BodyPart.LegR) <= 0f;
 
     public bool CanUseToolsOrWeapons => !IsProne;
 
     // Spec §52: how many hands can still hold things — one inventory slot each,
     // and the pair a two-handed weapon needs. Lose an arm, lose a hand slot.
     public int IntactHands =>
-        (IsSevered(BodyPart.ArmL) ? 0 : 1) + (IsSevered(BodyPart.ArmR) ? 0 : 1);
+        (LimbFunction(BodyPart.ArmL) >= 0.20f ? 1 : 0) +
+        (LimbFunction(BodyPart.ArmR) >= 0.20f ? 1 : 0);
+
+    public bool CanUseTwoHanded => LimbFunction(BodyPart.ArmL) >= 0.75f &&
+                                   LimbFunction(BodyPart.ArmR) >= 0.75f;
+
+    // Existing weapon selection accepts only a hand count. One means
+    // one-handed weapons still work while the two-handed candidate is filtered.
+    public int WeaponHands => CanUseTwoHanded ? IntactHands : System.Math.Min(1, IntactHands);
 
     // Sever a limb: mark it gone and pin its HP to 0. Idempotent.
     public void Sever(BodyPart part)
     {
         Severed.Add(part);
         Parts[part] = 0f;
+        Conditions[part].SplintSupport = 0f;
+    }
+
+    public float LimbFunction(BodyPart part)
+    {
+        var condition = Conditions[part];
+        if (IsSevered(part))
+        {
+            return condition.Prosthetic?.EffectiveFunction ?? 0f;
+        }
+
+        return System.Math.Max(Parts[part], condition.SplintSupport);
     }
 
     public float Mean()
@@ -136,12 +177,17 @@ public sealed class BodyState
     // animation, regardless of how the other leg is doing.
     public float MobilityFactor()
     {
-        if (IsSevered(BodyPart.LegL) || IsSevered(BodyPart.LegR))
+        if (IsProne)
         {
             return HexLive.Simulation.Runtime.Spec50.CrawlSpeedFactor;
         }
 
-        return 0.4f + 0.6f * (Parts[BodyPart.LegL] + Parts[BodyPart.LegR]) * 0.5f;
+        if (IsSevered(BodyPart.LegL) || IsSevered(BodyPart.LegR))
+        {
+            return System.Math.Min(LimbFunction(BodyPart.LegL), LimbFunction(BodyPart.LegR));
+        }
+
+        return 0.4f + 0.6f * (LimbFunction(BodyPart.LegL) + LimbFunction(BodyPart.LegR)) * 0.5f;
     }
 
     // §76: renamed from StrikeFactor(). This is ONLY the limb half of the melee
@@ -154,8 +200,14 @@ public sealed class BodyState
     // broken for anyone who reaches past NPCState in future.
     public float LimbStrikeFactor()
     {
-        var baseFactor = 0.4f + 0.6f * (Parts[BodyPart.ArmL] + Parts[BodyPart.ArmR]) * 0.5f;
-        return baseFactor * SeveredArmMult();
+        var left = LimbFunction(BodyPart.ArmL);
+        var right = LimbFunction(BodyPart.ArmR);
+        if (left <= 0f && right <= 0f)
+        {
+            return 0f;
+        }
+
+        return (left + right) * 0.5f;
     }
 
     // 1.0 with both arms; the §50 severed multiplier for one gone, its square
@@ -174,6 +226,45 @@ public sealed class BodyState
     }
 }
 
+public sealed class BodyPartCondition
+{
+    // Portion of missing legacy HP caused by blunt trauma. It heals without a
+    // dressing; cut damage is represented by WoundState records.
+    public float BluntDamage { get; set; }
+
+    // Normalized negative depth after Parts reached zero: 0 == 0 HP, 1 ==
+    // -100% in Kenshi terms.
+    public float CriticalTrauma { get; set; }
+
+    public float SplintSupport { get; set; }
+
+    public float HitBias { get; set; } = 1f;
+
+    public int HitBiasChangedTick { get; set; }
+
+    public ProstheticState Prosthetic { get; set; }
+}
+
+public sealed class ProstheticState
+{
+    public string DefinitionId { get; set; } = string.Empty;
+
+    public BodyPart Part { get; set; }
+
+    // Remaining device HP, not a 0..1 fraction. Max comes from its definition.
+    public float Condition { get; set; }
+
+    public float MaxCondition { get; set; }
+
+    public float Function { get; set; }
+
+    public bool Mechanical { get; set; }
+
+    public float EffectiveFunction => MaxCondition <= 0f
+        ? 0f
+        : Function * System.Math.Max(0f, System.Math.Min(1f, Condition / MaxCondition));
+}
+
 // Spec 40.8B: one landed bite/hit = one wound record. The zone-health model
 // (BodyState) keeps driving HP/posture/balance exactly as before; wounds are
 // the parallel VISUAL truth — where the skin is broken, how it looks and how
@@ -190,6 +281,13 @@ public sealed class WoundState
     // 0 = fresh and vivid, 1 = fully closed (record removed) — the decal
     // fades with this.
     public float Heal01 { get; set; }
+
+    // §116: clotting/stabilisation are separate from closing the injury.
+    public float Clot01 { get; set; }
+
+    public bool Stabilized { get; set; }
+
+    public float BleedFactor { get; set; } = 1f;
 
     public int Seed { get; set; }
 }
@@ -295,6 +393,18 @@ public sealed class NPCState
 
     public int NextWoundId { get; set; } = 1;
 
+    // §116: authoritative two-way rescue link. Carrier owns CarriedNpcId;
+    // patient owns CarriedByNpcId. Load and runtime validation clear half-links.
+    public EntityId? CarriedNpcId { get; set; }
+
+    public EntityId? CarriedByNpcId { get; set; }
+
+    public ObjectId? RescueDestinationObjectId { get; set; }
+
+    public bool IsCarryingPerson => CarriedNpcId is not null;
+
+    public bool IsBeingCarried => CarriedByNpcId is not null;
+
     public float EquippedArmor { get; set; }
 
     // Spec 29C.3: set while a dog is engaging this NPC; combat is reactive.
@@ -330,6 +440,16 @@ public sealed class NPCState
     // mirrored to the snapshot so the view plays the MATCHING clip. -1 =
     // single-timing gear (knife/axe). Not persisted.
     public int SwingStrikeIndex { get; set; } = -1;
+
+    // §30: a human picks the body part and mercy decision at wind-up start.
+    // Persisted so saving between wind-up and impact cannot reroll the target.
+    public EntityId? PendingHumanStrikeTargetId { get; set; }
+
+    public BodyPart PendingHumanStrikePart { get; set; } = BodyPart.Torso;
+
+    public bool PendingHumanStrikeKillAuthorized { get; set; }
+
+    public float PendingHumanStrikeKillIntent { get; set; }
 
     // ⭐ §104 r5: ТИК, В КОТОРЫЙ ПО НЕЙ ПОПАЛИ. Тот же приём, что и
     // SwingStartTick, и по той же причине: момент удара живёт ОДИН тик, а вид

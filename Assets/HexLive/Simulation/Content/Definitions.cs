@@ -221,7 +221,12 @@ public enum InteractionType
     // §28.15F: обобрать тело — снять с покойной ОДНУ вещь. Сначала карманы,
     // потом одежда; за каждой вещью надо прийти отдельно. Дописано в конец, по
     // той же причине.
-    Loot
+    Loot,
+    // §116 append-only medical/rescue verbs.
+    PickUpPerson,
+    PutInBed,
+    Splint,
+    FitProsthetic
 }
 
 }

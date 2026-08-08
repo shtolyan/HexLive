@@ -186,6 +186,10 @@ public sealed partial class ExecutionSystem
                     raised.CraftJunction = StructurePlacement.WorkbenchJunction(
                         world, tile, j, yaw);
                 }
+                else if (product == ContentIds.Hut1Hex)
+                {
+                    Bootstrap.BuildingBootstrap.CompleteHut(world, raised);
+                }
             }
 
             Trace.Emit(world, npc.Id, "FurnitureBuilt",

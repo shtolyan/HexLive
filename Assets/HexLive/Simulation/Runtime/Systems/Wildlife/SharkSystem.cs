@@ -111,27 +111,10 @@ public sealed class SharkSystem : ISimulationSystem
 
             // §50: the shark goes for the right leg, but never bites a stump.
             var bitPart = AmputateSystemHelpers.RedirectFromStump(npc, BodyPart.LegR);
-            // §76: Toughness only, deliberately NOT EquipmentMath.Mitigate. This
-            // system has never applied armor — you are in the water, and the
-            // garments that would absorb are soaked or ashore — and turning that
-            // on would be a balance change wearing a feature's clothes. Grit
-            // still counts, and it is hoisted into one local because the raw
-            // figure used to be re-read four times: HP, adrenaline, the wound
-            // decal and the §50 sever check must agree on what actually landed.
-            var sharkBite = Content.MobCatalog.For(Content.MobIds.Shark).AttackDamage *
-                AttributeMath.IncomingDamageMult(npc);
-            npc.Body.Parts[bitPart] = System.Math.Max(0f, npc.Body.Parts[bitPart] - sharkBite);
-            npc.Health = npc.Body.Mean();
-            DamageReactionSystemHelpers.GrantAdrenaline(world, npc, sharkBite, "SharkBite");
-            npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - 0.15f);
-            WoundMath.Inflict(world, npc, bitPart, sharkBite);
-            // Spec §50: a shark's 0.2 bite clears the big-blow threshold — if it
-            // takes the leg to 0, it comes off.
-            AmputateSystemHelpers.TrySeverOnBite(world, npc, bitPart, sharkBite);
-            // §105: единая развилка «умерла или ещё умирает» — акула кусает в
-            // ногу, но добивает уже лежащую на грани так же, как всякий другой
-            // урон, и второго ответа на этот вопрос в проекте быть не должно.
-            MortalityHelpers.ResolveTrauma(world, npc, sharkBite, $"Shark={shark.Id}");
+            MeleeSwing.StampHit(world, npc, MeleeSwing.BiteWeaponId, bitPart, shark.Position);
+            BodyDamageResolver.Apply(world, npc, bitPart,
+                Content.MobCatalog.For(Content.MobIds.Shark).AttackDamage,
+                DamageProfile.ForMob(Content.MobIds.Shark), $"Shark={shark.Id}");
             Trace.Emit(world, npc.Id, "SharkBite", $"NPC{npc.Id.Value} bitten by shark {shark.Id}");
             break;
         }

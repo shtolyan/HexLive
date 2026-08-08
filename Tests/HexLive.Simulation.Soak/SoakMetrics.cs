@@ -48,7 +48,10 @@ public sealed class SoakMetrics
     public int TicksRun;
     public int NpcsAtStart;
     public int NpcsAtEnd;
+    public bool Completed;
     public double Seconds;
+    private readonly Dictionary<string, int> _deathCauses =
+        new Dictionary<string, int>(StringComparer.Ordinal);
 
     /// <summary>
     /// Делитель для «в день». По умолчанию игровой цикл событий (2400 тиков) —
@@ -109,6 +112,23 @@ public sealed class SoakMetrics
         return count;
     }
 
+    public void Finish(WorldState world)
+    {
+        Completed = world.Completed;
+        _deathCauses.Clear();
+        foreach (var death in world.DeathRecords)
+        {
+            var cause = string.IsNullOrEmpty(death.Cause) ? "Unknown" : death.Cause;
+            var detail = cause.IndexOf(':');
+            if (detail > 0)
+            {
+                cause = cause.Substring(0, detail);
+            }
+            _deathCauses.TryGetValue(cause, out var count);
+            _deathCauses[cause] = count + 1;
+        }
+    }
+
     public int TotalEvents => _eventCounts.Values.Sum();
 
     public int GoalChanges => _tracks.Values.Sum(t => t.Changes);
@@ -167,6 +187,7 @@ public sealed class SoakMetrics
         text.AppendLine("сид " + Seed + ", тиков " + TicksRun +
                         " (" + (TicksRun / Math.Max(Seconds, 0.001)).ToString("F0", invariant) + " тик/с)");
         text.AppendLine("  NPC                 " + NpcsAtStart + " → " + NpcsAtEnd);
+        text.AppendLine("  плот                " + (Completed ? "запущен" : "не запущен"));
         text.AppendLine("  цель менялась       " + GoalChanges +
                         "  (" + ChangesPerNpcDay.ToString("F1", invariant) +
                         " на NPC-день, день = " + DayTicks + " тиков)");
@@ -204,11 +225,15 @@ public sealed class SoakMetrics
     public string ToJson()
     {
         var invariant = CultureInfo.InvariantCulture;
+        var deaths = string.Join(",", _deathCauses
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => "\"" + Escape(pair.Key) + "\":" + pair.Value));
         return "{" +
                "\"seed\":" + Seed +
                ",\"ticks\":" + TicksRun +
                ",\"npcsAtStart\":" + NpcsAtStart +
                ",\"npcsAtEnd\":" + NpcsAtEnd +
+               ",\"completed\":" + (Completed ? "true" : "false") +
                ",\"dayTicks\":" + DayTicks +
                ",\"goalChanges\":" + GoalChanges +
                ",\"changesPerNpcDay\":" + ChangesPerNpcDay.ToString("F4", invariant) +
@@ -227,8 +252,13 @@ public sealed class SoakMetrics
                ",\"meatRoasted\":" + EventCount("MeatRoasted") +
                ",\"meatEaten\":" + EventCount("MeatEaten") +
                ",\"meatSpoiled\":" + EventCount("MeatSpoiled") +
+               ",\"deathCauses\":{" + deaths + "}" +
                "}";
     }
+
+    private static string Escape(string value) => value
+        .Replace("\\", "\\\\")
+        .Replace("\"", "\\\"");
 }
 
 }

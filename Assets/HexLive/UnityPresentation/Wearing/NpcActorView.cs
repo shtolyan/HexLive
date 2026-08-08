@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using RootMotion.FinalIK;
 using UnityEngine;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.UI;
 
@@ -15,8 +17,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 {
     private static readonly int SpeedParam = Animator.StringToHash("Speed");
     private static readonly int HitReactParam = Animator.StringToHash("HitReact");
-    // HealthDollStage reads only the visible body's mesh and transform tree;
-    // it never clones this runtime component or its physics/IK children.
+    // The health doll must clone the body that is actually rendering in the
+    // world. Some actor prefabs are skeleton-only shells and receive their
+    // body renderer through the runtime composition path, so reloading the
+    // prefab makes the doll blank even though the NPC is visible.
     private static readonly Dictionary<int, NpcActorView> LiveByNpcId = new();
 
     private BodyBones _bodyBones;
@@ -26,6 +30,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private ActorName _actorMesh;
     private readonly Dictionary<string, int> _equippedSimItems = new();
     private readonly List<string> _removeScratch = new();
+    private int _pendingHairLoads;
 
     // Spec §52.8: leg-slung tool props parked in the worn holster's tool.*
     // anchors (tool id → the instantiated model). Filled by SyncHolster.
@@ -45,6 +50,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     public ActorName ActorMesh => _actorMesh;
 
+    public static GameObject FindLiveRoot(int npcId)
+    {
+        return LiveByNpcId.TryGetValue(npcId, out var view) && view != null
+            ? view.gameObject
+            : null;
+    }
+
     public static SkinnedMeshRenderer FindLiveBodySkin(int npcId)
     {
         return LiveByNpcId.TryGetValue(npcId, out var view) && view != null
@@ -57,6 +69,87 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         return LiveByNpcId.TryGetValue(npcId, out var view) && view != null
             ? view._bodyRoot
             : null;
+    }
+
+    // Player picking must follow the rendered, animated body rather than a
+    // single simulation point at the feet. Renderer.bounds is updated by Unity
+    // for skinned meshes, clothing, hair and held props; intersecting the click
+    // ray against those bounds costs work only on an actual click and avoids
+    // baking animated meshes or maintaining physics colliders every frame.
+    private readonly List<Renderer> _clickRendererScratch = new();
+
+    public bool TryRaycastVisibleGeometry(Ray ray, float maxDistance, out float distance)
+    {
+        distance = maxDistance;
+        _clickRendererScratch.Clear();
+        GetComponentsInChildren<Renderer>(true, _clickRendererScratch);
+
+        var hit = false;
+        for (var i = 0; i < _clickRendererScratch.Count; i++)
+        {
+            var renderer = _clickRendererScratch[i];
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            var bounds = renderer.bounds;
+            if (bounds.size.sqrMagnitude < 0.000001f ||
+                !bounds.IntersectRay(ray, out var candidate) ||
+                candidate < 0f || candidate >= distance)
+            {
+                continue;
+            }
+
+            distance = candidate;
+            hit = true;
+        }
+
+        _clickRendererScratch.Clear();
+        return hit;
+    }
+
+    /// <summary>
+    /// True only when the presentation the player will actually see is ready:
+    /// the asynchronous hairstyle has finished and every currently worn sim
+    /// item has been resolved by SyncWorn (applied, conclusively art-less, or
+    /// rejected once by the existing slot-conflict guard).
+    /// Merely having an NpcActorView is not enough — that was the startup race
+    /// which exposed a naked bind-pose body behind the loading curtain.
+    /// </summary>
+    public bool IsPresentationReady(
+        IReadOnlyList<string> wornDefinitionIds,
+        IReadOnlyList<string> severedParts,
+        IReadOnlyList<BodyPartConditionSnapshot> partConditions)
+    {
+        if (_pendingHairLoads > 0 || _bodyBones == null)
+        {
+            return false;
+        }
+
+        // A paused startup world may not produce another render tick. Ensure
+        // starting prostheses are requested here, then keep the curtain up
+        // until their Addressables callbacks have completed. Failures count
+        // as complete and remain visible as explicit loader errors.
+        ApplySeveredLimbs(severedParts);
+        SyncProstheticVisuals(partConditions);
+        foreach (var visual in _prostheticVisuals.Values)
+        {
+            if (!visual.IsReady)
+            {
+                return false;
+            }
+        }
+
+        foreach (var simId in wornDefinitionIds)
+        {
+            if (!_equippedSimItems.ContainsKey(simId))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private Transform _gazeTarget;
@@ -145,8 +238,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // перед срабатыванием триггера.
     private const string EmoteBaseClip = "X Bot@Salsa Dancing";
 
-    // §105: ключ подмены позы сна — имя КЛИПА, стоящего в состоянии Sleep.
+    // §105 / bug #41: оба лежачих idle-слота обязаны получать ОДИН и тот же
+    // выбранный по NPC клип. Иначе сон совпадает с модельным футпринтом, а
+    // FallenIdle остаётся на другом авторском Sleeping Idle.
+    // Это ключи исходных клипов AnimatorOverrideController, не имена states.
     private const string SleepBaseClip = "Sleep";
+    private const string FallenIdleBaseClip = "X Bot@Sleeping Idle";
 
     // Безделье: сколько молча простоять, прежде чем начать чудить; какой шанс
     // в секунду; и сколько держать паузу между сценками.
@@ -220,6 +317,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // (stamina spent). Drive procedural body language layered on the animation.
     private string _posture = "Upright";
     private bool _winded;
+    private bool _carryingPerson;
     private float _posturePhase;
 
     // Spec 40.7: skin weathering — tan browns the skin, sunburn reddens it. The
@@ -347,6 +445,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // sub-tree we collapse — a below-elbow/below-knee cut that leaves a bloody
     // stub rather than deforming the shoulder/hip (and the cloth riding them).
     private readonly HashSet<string> _severedZones = new();
+
+    // Spec §118: fitted devices are view-side objects driven by the still-
+    // animated organic bones, but parented outside the collapsed limb subtree.
+    private readonly Dictionary<BodyPart, ProstheticVisual> _prostheticVisuals = new();
+    private readonly HashSet<BodyPart> _prostheticZones = new();
+    private readonly List<BodyPart> _prostheticRemoveScratch = new();
+    private readonly Dictionary<BodyPart, Vector3> _severedBoneOriginalScale = new();
 
     private static readonly Dictionary<string, string> SeveredDistalBone = new()
     {
@@ -722,6 +827,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _swimming = swimming;
+        SyncHeelPoseTarget();
         if (_animator != null)
         {
             _animator.SetBool(SwimmingParam, swimming);
@@ -1085,6 +1191,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             _bodyRoot.position += Vector3.up * _jumpLandingFloorLift;
         }
+
     }
 
     // Face anchor rig for the portrait camera, calibrated once in the prefab's
@@ -1336,6 +1443,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_bodyBones != null)
         {
             _bodyBones.Construct(_actorMesh);
+            SyncHeelPoseTarget();
             // BodyBones.Construct wipes its worn-visual state; the worn-item
             // cache must reset with it or a pooled/reused actor (or any
             // re-Construct) starts thinking garments are equipped that no
@@ -1565,17 +1673,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         IReadOnlyList<string> wornDirtiness = null,
         IReadOnlyList<string> wornBloodiness = null,
         IReadOnlyList<string> wounds = null, IReadOnlyList<string> bandagedZones = null,
-        IReadOnlyList<string> severedParts = null)
+        IReadOnlyList<string> severedParts = null,
+        IReadOnlyList<BodyPartConditionSnapshot> partConditions = null)
     {
-        if (_skinDecals == null)
-        {
-            return;
-        }
-
         // Spec §50: hide any limb that has been severed. The deep stump wound
         // the sim filed on the zone paints itself onto the remaining stub via
         // the normal wound path below — no special stump art needed.
         ApplySeveredLimbs(severedParts);
+        SyncProstheticVisuals(partConditions);
+        RefreshLeglessPresentation();
+
+        if (_skinDecals == null)
+        {
+            return;
+        }
 
         _zoneHealthScratch.Clear();
         foreach (var entry in bodyParts)
@@ -1898,18 +2009,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 SpawnSeverFountain(zone);
             }
 
-            // Spec §50: a lost LEG means she can't stand — swap the fixed
-            // standing/turn/crouch/idle clips for prone, and walk for crawl,
-            // once (the dynamic action clips are gated in Standing()).
-            if ((zone == "LegL" || zone == "LegR") && !_legless)
-            {
-                _legless = true;
-                ApplyLeglessClipOverrides();
-            }
-
             var bone = _bodyBones.GetBone(boneName);
             if (bone != null)
             {
+                if (System.Enum.TryParse(zone, out BodyPart part) &&
+                    !_severedBoneOriginalScale.ContainsKey(part))
+                {
+                    _severedBoneOriginalScale[part] = bone.localScale;
+                }
+
                 // Not exactly zero — a degenerate scale can NaN the skinning;
                 // a tiny non-zero collapses the sub-tree below visible size.
                 bone.localScale = new Vector3(1e-4f, 1e-4f, 1e-4f);
@@ -1917,9 +2025,149 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _severVfxPrimed = true;
+    }
+
+    private void SyncProstheticVisuals(IReadOnlyList<BodyPartConditionSnapshot> conditions)
+    {
+        _prostheticZones.Clear();
+        var armAttachmentChanged = false;
+
+        if (conditions != null)
+        {
+            foreach (var condition in conditions)
+            {
+                if (condition?.Prosthetic == null ||
+                    condition.Part is not (BodyPart.ArmL or BodyPart.ArmR or BodyPart.LegL or BodyPart.LegR))
+                {
+                    continue;
+                }
+
+                _prostheticZones.Add(condition.Part);
+                if (_prostheticVisuals.TryGetValue(condition.Part, out var existing) &&
+                    existing.Matches(condition.Prosthetic))
+                {
+                    existing.Update(condition);
+                    continue;
+                }
+
+                if (existing != null)
+                {
+                    existing.Destroy();
+                    _prostheticVisuals.Remove(condition.Part);
+                }
+
+                var visual = ProstheticVisual.Create(
+                    _bodyRoot != null ? _bodyRoot : transform,
+                    _bodyBones,
+                    condition,
+                    _severedBoneOriginalScale.TryGetValue(condition.Part, out var originalScale)
+                        ? originalScale
+                        : Vector3.one);
+                if (visual != null)
+                {
+                    _prostheticVisuals[condition.Part] = visual;
+                }
+
+                armAttachmentChanged |= condition.Part is BodyPart.ArmL or BodyPart.ArmR;
+            }
+        }
+
+        _prostheticRemoveScratch.Clear();
+        foreach (var pair in _prostheticVisuals)
+        {
+            if (!_prostheticZones.Contains(pair.Key))
+            {
+                _prostheticRemoveScratch.Add(pair.Key);
+            }
+        }
+
+        foreach (var part in _prostheticRemoveScratch)
+        {
+            if (_prostheticVisuals.TryGetValue(part, out var visual))
+            {
+                visual.Destroy();
+            }
+
+            _prostheticVisuals.Remove(part);
+            armAttachmentChanged |= part is BodyPart.ArmL or BodyPart.ArmR;
+        }
+
+        if (armAttachmentChanged && !string.IsNullOrEmpty(_currentPropId))
+        {
+            var held = _currentPropId;
+            _currentPropId = null;
+            SetHandProp(held);
+        }
+    }
+
+    private void UpdateProstheticPoses()
+    {
+        foreach (var visual in _prostheticVisuals.Values)
+        {
+            visual.UpdatePose();
+        }
+    }
+
+    private Transform ActingHandPropAnchor()
+    {
+        var part = _leftHanded ? BodyPart.ArmL : BodyPart.ArmR;
+        if (_prostheticVisuals.TryGetValue(part, out var prosthetic) && prosthetic.Grip != null)
+        {
+            return prosthetic.Grip;
+        }
+
+        return _bodyBones?.GetBone(_leftHanded ? "lHand" : "rHand");
+    }
+
+    private void RefreshLeglessPresentation()
+    {
+        var missingLeg =
+            (_severedZones.Contains("LegL") && !_prostheticZones.Contains(BodyPart.LegL)) ||
+            (_severedZones.Contains("LegR") && !_prostheticZones.Contains(BodyPart.LegR));
+        if (_legless == missingLeg)
+        {
+            return;
+        }
+
+        _legless = missingLeg;
         if (_legless)
         {
             ApplyLeglessClipOverrides();
+        }
+        else
+        {
+            RestoreLeglessClipOverrides();
+            ResolveLocomotionSlots();
+        }
+
+        // A repaired leg allows work/weapons again; a newly bare stump removes
+        // them immediately. Re-run the normal prop gate in either direction.
+        if (!string.IsNullOrEmpty(_currentPropId))
+        {
+            var held = _currentPropId;
+            _currentPropId = null;
+            SetHandProp(held);
+        }
+    }
+
+    private void RestoreLeglessClipOverrides()
+    {
+        var clips = new[]
+        {
+            "crouch",
+            "TurnOnSpotRightB",
+            "TurnOnSpotLeftA",
+            "X Bot@Gathering Objects",
+            "X Bot@Talking",
+            "X Bot@Dressing",
+            "X Bot@Drinking"
+        };
+        foreach (var baseName in clips)
+        {
+            if (_clipsByName.TryGetValue(baseName, out var authored))
+            {
+                OverrideClip(baseName, authored);
+            }
         }
     }
 
@@ -2416,6 +2664,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _laying = laying;
+        SyncHeelPoseTarget();
         _layingAttach = attachPoint;
         _layingSurfaceY = surfaceY;
         // Spec 31C.8: lying poses stretch outside the authored skin bounds and
@@ -2598,6 +2847,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // что остров помнит своих мёртвых.
     private bool _dead;
     private float _deathFreezeAt = -1f; // Time.time, когда клип докрутится
+    private float _deathSurfaceY;
     private static readonly int DeathStateHash = Animator.StringToHash("Death");
     private static readonly int FallenIdleStateHash = Animator.StringToHash("FallenIdle");
 
@@ -2619,6 +2869,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _dead = true;
+        _deathSurfaceY = surfaceY;
         // §50: a corpse never crawls — clear the flag so the Crawl loop yields
         // to the death/laying pose (the Crawl transition also guards on !Dead).
         if (_animator != null)
@@ -2683,6 +2934,40 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             _animator.enabled = false;
         }
+    }
+
+    // Клип смерти авторский, а земля — свойство мира. У одних наборов костей
+    // последний кадр уже лежит на нуле, у других содержит небольшой baked Y
+    // offset: без этой привязки такой труп после падения «улетает» или висит
+    // над склоном. Берём фактический нижний край скина, поэтому правило верно
+    // для любой одежды, позы и высоты тайла.
+    private void PlantDeadBodyOnSurface()
+    {
+        if (!_dead || _bodyRoot == null)
+        {
+            return;
+        }
+
+        var lowestY = float.PositiveInfinity;
+        if (_bodySkins != null)
+        {
+            foreach (var skin in _bodySkins)
+            {
+                if (skin != null && skin.enabled && skin.gameObject.activeInHierarchy)
+                {
+                    lowestY = Mathf.Min(lowestY, skin.bounds.min.y);
+                }
+            }
+        }
+
+        if (float.IsPositiveInfinity(lowestY))
+        {
+            _bodyRoot.position = new Vector3(
+                _bodyRoot.position.x, _deathSurfaceY, _bodyRoot.position.z);
+            return;
+        }
+
+        _bodyRoot.position += Vector3.up * (_deathSurfaceY - lowestY);
     }
 
     // §29C.3-hit: a standing damage stagger. The renderer feeds every snapshot's
@@ -2970,6 +3255,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             (aidingOther && aidTargetLying && !praying);
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
         _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
+        SyncHeelPoseTarget();
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
@@ -3121,7 +3407,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        var hand = _bodyBones.GetBone(_leftHanded ? "lHand" : "rHand");
+        var hand = ActingHandPropAnchor();
         if (hand == null)
         {
             return;
@@ -3632,6 +3918,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         var clip = poses[((_npcId % poses.Length) + poses.Length) % poses.Length];
         OverrideClip(SleepBaseClip, clip);
+        OverrideClip(FallenIdleBaseClip, clip);
     }
 
     // §110: поза плача — ВТОРАЯ поза сна (свернулась на боку), одна на всех.
@@ -4099,7 +4386,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        var hand = _bodyBones.GetBone(_leftHanded ? "lHand" : "rHand");
+        var hand = ActingHandPropAnchor();
         if (hand == null)
         {
             return;
@@ -4479,6 +4766,32 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    /// <summary>§118: procedural fireman's-carry arms over normal walking.</summary>
+    public void SetCarryingPerson(bool carrying) => _carryingPerson = carrying;
+
+    private void ApplyCarryPose()
+    {
+        if (!_carryingPerson || _laying || _swimming || _bodyRoot == null ||
+            _lShldr == null || _rShldr == null)
+        {
+            return;
+        }
+
+        var right = _bodyRoot.right;
+        // Both elbows rise and fold back to cradle the torso and legs lying
+        // across the shoulder line. The walk animation continues underneath.
+        _lShldr.rotation = Quaternion.AngleAxis(-58f, right) * _lShldr.rotation;
+        _rShldr.rotation = Quaternion.AngleAxis(-58f, right) * _rShldr.rotation;
+        if (_lForearm != null)
+        {
+            _lForearm.rotation = Quaternion.AngleAxis(82f, right) * _lForearm.rotation;
+        }
+        if (_rForearm != null)
+        {
+            _rForearm.rotation = Quaternion.AngleAxis(82f, right) * _rForearm.rotation;
+        }
+    }
+
     // Spec 40.10: erode a worn garment by its durability (1 = pristine, 0 =
     // rags). The renderer feeds this per worn item from the snapshot's
     // WornDurability; low durability tears the garment (alpha-clip cutoff).
@@ -4696,6 +5009,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
+        // Register readiness BEFORE starting the coroutine. StartCoroutine runs
+        // immediately until its first yield, so doing this inside SpawnHair
+        // leaves a small but real frame-order hole for the loading screen.
+        _pendingHairLoads++;
         StartCoroutine(SpawnHair(hairstyle));
     }
 
@@ -4712,6 +5029,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (prefab == null || _bodyBones == null)
         {
+            _pendingHairLoads--;
             yield break;
         }
 
@@ -4720,6 +5038,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var colour = HairColourApplier.Choose(hairstyle, _npcId);
         if (colour == null)
         {
+            _pendingHairLoads--;
             yield break;
         }
 
@@ -4731,6 +5050,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             HairColourApplier.Apply(live.gameObject, materials);
         }
+
+        _pendingHairLoads--;
     }
 
     // §74: wear another actress's face. All four girls are Genesis3Female with
@@ -5801,6 +6122,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    private void SyncHeelPoseTarget()
+    {
+        // Feed posture as soon as its state changes, before BodyBones applies
+        // the post-Animator heel correction. Beds are covered by _laying.
+        _bodyBones?.SetHeelPoseSuppressed(_sitting || _laying || _swimming);
+    }
+
     private void LateUpdate()
     {
         // §28.15C v3: клип падения докрутился — выключить аниматор. Первым
@@ -5937,6 +6265,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             // Layer the current action's arm swing over the animated pose.
             ApplyActionPose();
+            ApplyCarryPose();
 
             // §104 r9: и отбой от удара — поверх всего, в любой позе.
             ApplyHitRecoil();
@@ -5947,6 +6276,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Spec 40.9 / 40.1: injury posture + winded breathing.
             ApplyPosturePose();
         }
+
+        // Animator, procedural actions and ragdoll all write bones. The fitted
+        // device follows only after those writers have produced the final pose.
+        UpdateProstheticPoses();
+
+        // После Animator и всех позовых слоёв: именно теперь bounds описывают
+        // кадр, который игрок увидит. Так труп остаётся на земле и во время
+        // падения, и после выключения Animator.
+        PlantDeadBodyOnSurface();
 
         if (_lookAtIK == null)
         {

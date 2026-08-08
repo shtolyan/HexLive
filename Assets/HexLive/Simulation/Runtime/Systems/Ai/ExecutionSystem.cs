@@ -128,7 +128,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             if (npc.Plan.TargetAgentId is not null &&
                 npc.Mind.CurrentGoal != GoalType.Raid)
             {
-                if (npc.Mind.CurrentGoal == GoalType.Aid)
+                if (npc.Mind.CurrentGoal == GoalType.Rescue)
+                {
+                    RunRescue(world, npc);
+                }
+                else if (npc.Mind.CurrentGoal is GoalType.Splint or GoalType.FitProsthetic)
+                {
+                    RunLimbCare(world, npc);
+                }
+                else if (npc.Mind.CurrentGoal == GoalType.Aid)
                 {
                     RunAid(world, npc);
                 }
@@ -1949,42 +1957,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return false;
     }
 
-    // Spec §60/§29G/§40.13 — THE single place that decides where a body on the
-    // ground comes to rest. Every collapse / faint / ground-sleep path calls
-    // this, so the invariant holds everywhere at once: a lying body ALWAYS lies
-    // on its own tile's centre ROW (r3 — the exact geometric centre when the hex
-    // is hers alone), never a rim junction and never the raw mid-stride spot
-    // it dropped on. The position is pinned unconditionally and DECOUPLED from
-    // junction occupancy on purpose: the per-site "nearest FREE junction" scans
-    // that used to place the body EXCLUDED the very junction it stood on
-    // (IsJunctionFree counts self-occupancy — and the lying footprint it just
-    // claimed — as taken), so they could never return the centre and always
-    // drifted the body sideways / off the tile edge. Footprint and occupancy
-    // bookkeeping stay the caller's job; this owns only the resting position.
-    //
-    // §29G r3 «спальные места»: the centre is a ROW of berths, not a point.
-    // Two bodies that end up on the same hex used to land on the exact same
-    // spot at whatever yaw the walk left them with — one girl inside another,
-    // both askew. Now the tile holds a small rank of parallel berths: the
-    // first sleeper sets the heading (her own facing, snapped to a hex axis so
-    // she lies straight along the hex, never across a corner) and takes the
-    // middle; every later body copies that heading EXACTLY and takes the next
-    // free berth beside her — right, then left. Three girls read as three
-    // housemates bedded down side by side instead of one blurred pile.
-    //
-    // §113: и то же самое место обходит КРУПНЫЕ ВЕЩИ — костёр, валун, кровать.
-    // Геометрия (порядок мест, повороты по осям гекса, габарит тела) целиком
-    // живёт в LyingSpot; здесь остаётся только «записать решение в тело», чтобы
-    // у вопроса «где лежит упавшая» по-прежнему был ровно один ответчик.
-    internal static void LieDownCentered(WorldState world, NPCState npc)
+    // §60/§29G/§40.13/§113 r2: one entry for every ground-lying state. It no
+    // longer promises the centre: LyingSpot chooses among all 37 interior nodes
+    // by full-body support/collision geometry. Beds use AlignBodyToObject instead.
+    internal static bool TryLieDownOnGround(WorldState world, NPCState npc)
     {
-        if (!Spec49.SleepBerths)
+        if (!LyingSpot.TrySolve(world, npc, out var placement))
         {
-            npc.Position = HexSpatialMath.TileToWorld(npc.Tile);
-            return;
+            Trace.Emit(world, npc.Id, "LieDownSpot",
+                $"Tile={npc.Tile.Q},{npc.Tile.R} Fit=NoSpace");
+            return false;
         }
 
-        var placement = LyingSpot.Solve(world, npc);
         var radians = placement.Heading * (System.MathF.PI / 180f);
         var forward = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
 
@@ -1992,25 +1976,27 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         npc.RotationDegrees = placement.Heading;
         npc.Movement.DesiredRotationDegrees = placement.Heading;
         npc.Movement.DesiredDirection = forward;
+        ClaimLyingFootprint(world, npc);
 
-        Trace.Emit(world, npc.Id, "LieDownBerth",
-            $"Tile={npc.Tile.Q},{npc.Tile.R} Slot={placement.Slot} " +
-            $"Heading={placement.Heading:F0} Fit={(placement.Clear ? "Clear" : "Stacked")}");
+        Trace.Emit(world, npc.Id, "LieDownSpot",
+            $"Tile={npc.Tile.Q},{npc.Tile.R} Node={placement.NodeSlot} " +
+            $"Heading={placement.Heading:F0} Fit=Clear");
+        return true;
     }
 
-    // Spec 29G: the lying body covers junctions within half a hex radius.
-    internal static void ClaimLyingFootprint(WorldState world, NPCState npc, JunctionId center)
+    // §29G r4 / §113 r2: path avoidance follows the same oriented rectangle as
+    // collision, including the supported part protruding onto a level neighbour.
+    internal static void ClaimLyingFootprint(WorldState world, NPCState npc)
     {
         npc.ClaimedJunctions.Clear();
-        if (!world.Junctions.Items.TryGetValue(center, out var origin))
+        var padding = HexSpatialMath.HexRadius / HexPointLayout.BoundaryRadius * 0.5f;
+        for (var i = -1; i < HexDirection.All.Length; i++)
         {
-            return;
-        }
-
-        var radius = HexSpatialMath.HexRadius * 0.5f;
-        var radiusSq = radius * radius;
-        foreach (var coord in origin.Tiles)
-        {
+            var coord = i < 0
+                ? npc.Tile
+                : new TileCoord(
+                    npc.Tile.Q + HexDirection.All[i].DQ,
+                    npc.Tile.R + HexDirection.All[i].DR);
             if (!world.Tiles.Items.TryGetValue(coord, out var tile))
             {
                 continue;
@@ -2023,9 +2009,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
-                var dx = junction.WorldPosition.X - origin.WorldPosition.X;
-                var dy = junction.WorldPosition.Y - origin.WorldPosition.Y;
-                if (dx * dx + dy * dy <= radiusSq)
+                if (LyingSpot.ContainsBodyPoint(npc, junction.WorldPosition, padding) &&
+                    !npc.ClaimedJunctions.Contains(junctionId))
                 {
                     npc.ClaimedJunctions.Add(junctionId);
                 }

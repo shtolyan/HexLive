@@ -589,7 +589,7 @@ public sealed partial class DecisionSystem
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Tags.Contains("Tool") &&
                 Content.GearCatalog.AddsValueOver(
-                    npc.Inventory.Items, obj.DefinitionId, npc.Body.IntactHands))
+                    npc.Inventory.Items, obj.DefinitionId, npc.Body.WeaponHands))
             {
                 return true;
             }
@@ -750,6 +750,26 @@ public sealed partial class DecisionSystem
     // Severed zones are skipped: a stump cannot be bandaged (§50).
     internal static float SelfTreatBurden(NPCState npc)
     {
+        if (Spec118.Enabled)
+        {
+            if (!MortalityHelpers.IsBleeding(npc))
+            {
+                return 0f;
+            }
+
+            var open = 0f;
+            foreach (var wound in npc.Wounds)
+            {
+                if (!wound.Stabilized)
+                {
+                    open += wound.Severity * (1f - wound.Heal01) *
+                        wound.BleedFactor * (1f - wound.Clot01);
+                }
+            }
+
+            return MathUtil.Clamp01(System.Math.Max(open, 1f - npc.Needs.Blood));
+        }
+
         var worstPart = 1f;
         foreach (var pair in npc.Body.Parts)
         {

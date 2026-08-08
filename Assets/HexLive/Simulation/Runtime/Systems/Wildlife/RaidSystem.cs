@@ -892,7 +892,7 @@ public sealed class RaidSystem : ISimulationSystem
     private static string WeaponLabel(NPCState npc)
     {
         var id = npc.Body.CanUseToolsOrWeapons
-            ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands)
+            ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.WeaponHands)
             : string.Empty;
         return string.IsNullOrEmpty(id) ? "fists" : id;
     }

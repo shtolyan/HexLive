@@ -85,6 +85,10 @@ public sealed class WorldStateFactory
                 }
             }
         }
+        if (bootstrap.Simulation.SpawnCompletedTestHut)
+        {
+            BuildingBootstrap.SpawnCompletedTestHut(world, Faction.Colony);
+        }
         // §54.2: beds are woven at the campfire (CraftBed tiers) — the §52 bed
         // build-site is retired, so it's no longer seeded here.
         SeedHomeKnowledge(world);

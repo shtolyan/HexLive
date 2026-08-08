@@ -99,15 +99,17 @@ public sealed partial class ExecutionSystem
 
                 if (kind == InteractionType.Sleep)
                 {
-                    ClaimLyingFootprint(world, npc, spot);
-                    // §29G: the sleeping body lies at the hex CENTRE, not the
-                    // reserved rim junction the planner picked — "nearest FREE
-                    // junction to centre" sits well off-centre once a footprint
-                    // covers the middle, so the sleeper used to hang over the
-                    // tile edge. One invariant, shared with the collapse paths —
-                    // and since §29G r3 it also lays her in a free BERTH beside
-                    // whoever is already sleeping on this hex, at the same angle.
-                    LieDownCentered(world, npc);
+                    // §113 r2: voluntary sleep honours the same full-body support
+                    // solver as collapse. Unlike an involuntary fall, it can
+                    // refuse to start when this tile has no safe footprint.
+                    if (!TryLieDownOnGround(world, npc))
+                    {
+                        SpatialMutations.FreeJunction(world, spot, npc.Id);
+                        SpatialMutations.ReleaseJunctionReservation(world, spot, npc.Id);
+                        PlanInterruption.Abort(world, npc, "No safe ground-lying footprint");
+                        npc.Mind.CurrentGoal = GoalType.None;
+                        return;
+                    }
                 }
             }
 

@@ -365,7 +365,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // сцена ещё не дошла до End — тогда девушка вдруг лупила бы волка
         // назначенными кулаками. Против зверя — лучшее, что в руках.
         var weaponId = npc.Body.CanUseToolsOrWeapons
-            ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands)
+            ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.WeaponHands)
             : string.Empty;
 
         // §104 r2: таймлайн замаха тут БОЛЬШЕ НЕ ЖИВЁТ — он один на всех, в
@@ -394,31 +394,20 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // Spec 19.3C: the bite lands on a specific part; only garments
         // covering that part absorb it. §50: never a severed limb.
         var bitPart = AmputateSystemHelpers.RedirectFromStump(target,
-            MobSystem.PickAttackPart(world, dog.Id));
+            MobSystem.PickAttackPart(world, dog.Id, target));
 
         // §104 r5: жертве всё равно, чем в неё прилетело — виду нужен ОДИН
         // сигнал «сейчас попали», и укус даёт его тем же штампом, что удар.
         MeleeSwing.StampHit(world, target, MeleeSwing.BiteWeaponId, bitPart, dog.Position);
         var partArmor = EquipmentMath.ArmorForPart(world, target, bitPart); // trace only
-        var damage = EquipmentMath.Mitigate(world, target, bitPart, Stats(dog).AttackDamage);
-        target.Body.Parts[bitPart] = System.Math.Max(0f, target.Body.Parts[bitPart] - damage);
-        target.Health = target.Body.Mean();
-        DamageReactionSystemHelpers.GrantAdrenaline(world, target, damage, "DogBite");
-        // Spec 40.8B: the landed bite leaves a wound record (drives the decal;
-        // heals & fades on its own clock). Starvation/heat never create these.
-        WoundMath.Inflict(world, target, bitPart, damage);
-
-        // Spec §50: a bite that finishes off a mauled limb may tear it away.
-        AmputateSystemHelpers.TrySeverOnBite(world, target, bitPart, damage);
+        var result = BodyDamageResolver.Apply(world, target, bitPart,
+            Stats(dog).AttackDamage, DamageProfile.ForMob(dog.MobId), $"Dog={dog.Id}");
+        var damage = result.Landed;
 
         // Spec 35.6: the cloth gets chewed either way — every garment
         // covering the bitten part loses durability; rags fall apart.
         EquipmentMath.WearCoveringItems(world, target, bitPart,
             SimBalance.ClothingBiteDurabilityWear);
-
-        // §105: единая развилка. Укус по уже лежащей на грани срезает запас
-        // смерти — зверь догрызает упавшую, и это ускоряет её конец.
-        MortalityHelpers.ResolveTrauma(world, target, damage, $"Dog={dog.Id}");
 
         Trace.Emit(world, target.Id, "DogFight",
             $"Dog={dog.Id} bit: {bitPart} -{damage:F3} (PartArmor={partArmor:F2}) " +

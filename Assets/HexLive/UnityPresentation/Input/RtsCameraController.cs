@@ -15,9 +15,11 @@ namespace HexLive.UnityPresentation.Input
     /// the pivot is attached to changes:
     ///   • Free: the pivot is a loose point magnetised to the hex ground;
     ///     WASD/arrows slide it, right-drag rotates, scroll zooms.
-    ///   • Orbit: click an NPC and the pivot rides their body; Escape releases
-    ///     it where they stood — the angle, distance and framing stay put
-    ///     instead of snapping back to a top-down view.
+    ///   • Orbit: click an NPC and the pivot follows their body exactly;
+    ///     smoothing delays the catch-up but never changes its target. Escape
+    ///     releases it where it settled — the angle,
+    ///     distance and framing stay put instead of snapping back to a top-down
+    ///     view.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class RtsCameraController : MonoBehaviour
@@ -51,8 +53,8 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _orbitMinPitch = 5f;
         [SerializeField] private float _orbitMaxPitch = 80f;
         [SerializeField] private float _orbitYaw = 0f;
-        [SerializeField] private float _orbitPositionSmooth = 0.14f;
-        [SerializeField] private float _orbitRotationSmooth = 0.06f;
+        [SerializeField] private float _orbitPositionSmooth = 0.18f;
+        [SerializeField] private float _orbitRotationSmooth = 0.08f;
         [SerializeField] private float _pickRadiusPixels = 70f;
 
         [Header("Hex picking")]
@@ -61,8 +63,8 @@ namespace HexLive.UnityPresentation.Input
         [Tooltip("Orbit pivot height above the NPC's feet, as a fraction of the hex radius (neck ≈ 0.62).")]
         [SerializeField] private float _orbitNeckFactor = 0.62f;
 
-        [Tooltip("How smoothly the pivot follows the NPC. Bigger = softer/laggier follow.")]
-        [SerializeField] private float _orbitTargetSmooth = 0.1f;
+        [Tooltip("How smoothly the pivot catches up with the NPC. The NPC itself is always the target.")]
+        [SerializeField] private float _orbitTargetSmooth = 0.18f;
 
         private enum Mode
         {
@@ -90,6 +92,7 @@ namespace HexLive.UnityPresentation.Input
         private Vector3 _smoothedTarget;
         private Vector3 _targetVelocity;
         private bool _hasSmoothedTarget;
+        private readonly List<int> _orbitRoster = new();
 
         private Camera _camera;
         private HexWorldRenderer _worldRenderer;
@@ -156,7 +159,14 @@ namespace HexLive.UnityPresentation.Input
         {
             if (npcId >= 0)
             {
-                EnterOrbit(npcId);
+                if (_mode == Mode.Orbit)
+                {
+                    SwitchOrbitTarget(npcId);
+                }
+                else
+                {
+                    EnterOrbit(npcId);
+                }
             }
             else if (_mode == Mode.Orbit)
             {
@@ -358,7 +368,7 @@ namespace HexLive.UnityPresentation.Input
         // Left-click first tries an NPC, then falls back to the map hex under
         // the cursor. Hex hit testing uses the sim snapshot rather than view
         // colliders so invisible anchors and changed elevation still inspect.
-        private void TryHandleLeftClick()
+        private void TryHandleLeftClick(WorldSnapshot snapshot = null)
         {
             var mouse = Mouse.current;
             if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
@@ -373,20 +383,20 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            if (TryPickNpc(mouse.position.ReadValue()))
+            if (TryPickNpc(mouse.position.ReadValue(), snapshot))
             {
                 HexSelection.Clear();
                 return;
             }
 
-            if (HexSelection.Enabled && TryPickHex(mouse.position.ReadValue(), out var coord))
+            if (HexSelection.Enabled && TryPickHex(mouse.position.ReadValue(), out var coord, snapshot))
             {
                 HexSelection.Select(coord);
             }
         }
 
         // Left-click on an NPC -> enter orbit mode.
-        private bool TryPickNpc(Vector2 mousePos)
+        private bool TryPickNpc(Vector2 mousePos, WorldSnapshot currentSnapshot = null)
         {
             if (_camera == null)
             {
@@ -394,12 +404,52 @@ namespace HexLive.UnityPresentation.Input
                 if (_camera == null) return false;
             }
 
-            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            var snapshot = currentSnapshot ??
+                (_runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null);
             if (snapshot == null || snapshot.Npcs.Count == 0)
             {
                 return false;
             }
 
+            // Pick the animated visual geometry first. The old screen-space
+            // radius was centred on the feet, so a click on a head, arm or a
+            // prone body failed as soon as the camera angle changed. Bounds are
+            // derived from the live renderers and tested only on a click — no
+            // permanent mesh colliders or per-frame skinned-mesh baking.
+            if (_worldRenderer == null)
+            {
+                _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
+            }
+
+            if (_worldRenderer != null)
+            {
+                var ray = _camera.ScreenPointToRay(mousePos);
+                var nearestViewDistance = float.PositiveInfinity;
+                var viewHitId = -1;
+
+                for (var i = 0; i < snapshot.Npcs.Count; i++)
+                {
+                    var npc = snapshot.Npcs[i];
+                    if (!_worldRenderer.TryGetActorView(npc.Id.Value, out var view) ||
+                        !view.TryRaycastVisibleGeometry(ray, nearestViewDistance, out var hitDistance))
+                    {
+                        continue;
+                    }
+
+                    nearestViewDistance = hitDistance;
+                    viewHitId = npc.Id.Value;
+                }
+
+                if (viewHitId >= 0)
+                {
+                    NpcSelection.Select(viewHitId);
+                    return true;
+                }
+            }
+
+            // A just-spawned actor may not have completed its visual setup yet,
+            // and prototype scenes still use primitive NPC views. Preserve the
+            // point-radius fallback for those cases only.
             var bestId = -1;
             var bestDist = _pickRadiusPixels;
 
@@ -430,7 +480,10 @@ namespace HexLive.UnityPresentation.Input
             return false;
         }
 
-        private bool TryPickHex(Vector2 mousePos, out HexLive.Simulation.Common.TileCoord coord)
+        private bool TryPickHex(
+            Vector2 mousePos,
+            out HexLive.Simulation.Common.TileCoord coord,
+            WorldSnapshot currentSnapshot = null)
         {
             coord = default;
 
@@ -440,7 +493,8 @@ namespace HexLive.UnityPresentation.Input
                 if (_camera == null) return false;
             }
 
-            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            var snapshot = currentSnapshot ??
+                (_runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null);
             if (snapshot == null || snapshot.Tiles.Count == 0)
             {
                 return false;
@@ -506,6 +560,91 @@ namespace HexLive.UnityPresentation.Input
             _hasSmoothedTarget = false; // snap the pivot to the new NPC on entry
         }
 
+        // Switching an already-followed character is not a second orbit entry:
+        // framing survives and only smoothing velocities are reset. The next
+        // snapshot target is accepted immediately by UpdateOrbit.
+        private void SwitchOrbitTarget(int npcId)
+        {
+            if (_orbitTargetId == npcId)
+            {
+                return;
+            }
+
+            _orbitTargetId = npcId;
+            _targetVelocity = Vector3.zero;
+            _velocity = Vector3.zero;
+            _yawVelocity = 0f;
+            _pitchVelocity = 0f;
+            _hasSmoothedTarget = false;
+        }
+
+        private void SwitchOrbitTarget(WorldSnapshot snapshot, int npcId)
+        {
+            SwitchOrbitTarget(npcId);
+            if (!TryGetOrbitTarget(snapshot, npcId, out var target))
+            {
+                return;
+            }
+
+            _smoothedTarget = target;
+            _hasSmoothedTarget = true;
+            // Preserve yaw, pitch and distance, but make both pivot and rig use
+            // the selected NPC in this same LateUpdate frame.
+            _smoothedYaw = _currentYaw;
+            _smoothedPitch = _currentPitch;
+        }
+
+        /// <summary>
+        /// Place the rig on the selected NPC immediately. The opening world is
+        /// intentionally paused, so SmoothDamp (scaled delta time) cannot move
+        /// the camera before the loading curtain fades.
+        /// </summary>
+        public bool SnapToSelectedTarget()
+        {
+            if (!NpcSelection.HasSelection)
+            {
+                return false;
+            }
+
+            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            if (snapshot == null ||
+                !TryGetOrbitTarget(snapshot, NpcSelection.SelectedId, out var target))
+            {
+                return false;
+            }
+
+            if (_mode != Mode.Orbit || _orbitTargetId != NpcSelection.SelectedId)
+            {
+                EnterOrbit(NpcSelection.SelectedId);
+            }
+
+            _camera ??= GetComponent<Camera>();
+            _smoothedTarget = target;
+            _targetVelocity = Vector3.zero;
+            _hasSmoothedTarget = true;
+            _smoothedYaw = _currentYaw;
+            _smoothedPitch = _currentPitch;
+            _yawVelocity = 0f;
+            _pitchVelocity = 0f;
+            _velocity = Vector3.zero;
+
+            var rotation = Quaternion.Euler(_smoothedPitch, _smoothedYaw, 0f);
+            var uiLift = 0f;
+            var coverage = NpcSelection.BottomUiCoverage;
+            if (_camera != null && coverage > 0.001f)
+            {
+                var frustumHeight = 2f * _currentDistance *
+                    Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                uiLift = frustumHeight * coverage * 0.5f;
+            }
+
+            transform.SetPositionAndRotation(
+                target - rotation * Vector3.forward * _currentDistance -
+                rotation * Vector3.up * uiLift,
+                rotation);
+            return true;
+        }
+
         private void ExitOrbit()
         {
             _mode = Mode.Free;
@@ -540,7 +679,7 @@ namespace HexLive.UnityPresentation.Input
 
             // Re-pick: clicking another NPC while orbiting switches focus to it
             // (left click is free here — rotation uses the right button).
-            TryHandleLeftClick();
+            TryHandleLeftClick(snapshot);
 
             if (!TryGetOrbitTarget(snapshot, _orbitTargetId, out var rawTarget))
             {
@@ -586,11 +725,18 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            var count = snapshot.Npcs.Count;
+            _orbitRoster.Clear();
+            for (var i = 0; i < snapshot.Npcs.Count; i++)
+            {
+                _orbitRoster.Add(snapshot.Npcs[i].Id.Value);
+            }
+
+            _orbitRoster.Sort();
+            var count = _orbitRoster.Count;
             var index = 0;
             for (var i = 0; i < count; i++)
             {
-                if (snapshot.Npcs[i].Id.Value == _orbitTargetId)
+                if (_orbitRoster[i] == _orbitTargetId)
                 {
                     index = i;
                     break;
@@ -598,7 +744,9 @@ namespace HexLive.UnityPresentation.Input
             }
 
             var next = ((index + dir) % count + count) % count;
-            NpcSelection.Select(snapshot.Npcs[next].Id.Value);
+            var nextId = _orbitRoster[next];
+            SwitchOrbitTarget(snapshot, nextId);
+            NpcSelection.Select(nextId);
         }
 
         private void HandleOrbitInput()

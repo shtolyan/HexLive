@@ -81,9 +81,9 @@ public static class WearPrefabs
 
     private static Dictionary<string, Entry> _byId;
 
-    /// <summary>Папка арта: <c>Assets/Resources/HexLive/Wear/&lt;id&gt;/*.prefab</c>.</summary>
+    /// <summary>Папка арта, из которой Addressables собирает внешний каталог.</summary>
     public static string Root =>
-        Path.Combine(RepoPaths.Root, "Assets", "Resources", "HexLive", "Wear");
+        Path.Combine(RepoPaths.Root, "Assets", "HexLiveContent", "Wear");
 
     /// <summary>id вещи → её префабы. Читается один раз на прогон.</summary>
     public static IReadOnlyDictionary<string, Entry> ById => _byId ??= Scan();
@@ -156,6 +156,18 @@ public static class WearPrefabs
             if (entry.Prefabs.Count > 0)
             {
                 result[Path.GetFileName(dir)] = entry;
+            }
+        }
+
+        // Variants carry materials only and intentionally reuse the prototype
+        // prefab. Mirror the same PrototypeId indirection used by the player.
+        foreach (var garment in GarmentLibrary.Active)
+        {
+            if (!result.ContainsKey(garment.Id) &&
+                !string.IsNullOrEmpty(garment.PrototypeId) &&
+                result.TryGetValue(garment.PrototypeId, out var prototype))
+            {
+                result[garment.Id] = prototype;
             }
         }
 

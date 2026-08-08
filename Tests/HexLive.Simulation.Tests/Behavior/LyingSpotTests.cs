@@ -10,152 +10,125 @@ using NUnit.Framework;
 namespace HexLive.Simulation.Tests.Behavior
 {
 
-/// <summary>
-/// §113 «лечь рядом, а не внутрь». Гекс с костром/валуном не запрещён для
-/// лежания — запрещена сама вещь: тело ищет свободное место той же шеренги
-/// (§29G r3) и при нужде разворачивается по осям гекса.
-///
-/// <para>
-/// Арена, а не соак, ровно по причине из CLAUDE.md: вопрос здесь «дошло ли до
-/// дела вообще» (легла ли она мимо огня), а не «сколько раз за восемь дней».
-/// </para>
-/// </summary>
+/// <summary>§113 r2: full-body ground placement on the 37-node sub-grid.</summary>
 public sealed class LyingSpotTests
 {
     private static NPCState Girl(WorldState world) => world.Entities.Npcs.Values.First();
 
-    // Вещь ровно в центре её гекса — так их и ставит §66 (одна постройка на
-    // гекс, в середине).
-    private static WorldObjectState SpawnAtCentre(WorldState world, NPCState girl, string definitionId)
+    private static void MoveOtherNpcsAway(WorldState world, NPCState girl)
+    {
+        foreach (var other in world.Entities.Npcs.Values.Where(n => !n.Id.Equals(girl.Id)))
+        {
+            other.Tile = new TileCoord(girl.Tile.Q + 4, girl.Tile.R);
+        }
+    }
+
+    private static WorldObjectState SpawnAtCentre(
+        WorldState world, NPCState girl, string definitionId)
     {
         var centre = StructurePlacement.CenterJunction(world, girl.Tile);
-        Assert.That(centre, Is.Not.Null, "У гекса должен быть центральный узел.");
+        Assert.That(centre, Is.Not.Null);
         return WorldObjectMutations.SpawnObject(
             world, definitionId, girl.Fragment, girl.Tile, centre.Value);
     }
 
-    private static float DistanceToBody(WorldObjectState thing, WorldState world, NPCState girl)
+    private static float ClearanceFromObject(
+        WorldObjectState thing, WorldState world, NPCState girl)
     {
         Assert.That(LyingSpot.TryAnchor(world, thing, out var anchor), Is.True);
+        var radius = LyingSpot.SolidRadius(world, thing);
         var d = anchor - girl.Position;
         var radians = girl.RotationDegrees * (System.MathF.PI / 180f);
         var forward = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
         var lateral = new Float2(-forward.Y, forward.X);
-
-        // Зазор от вещи до ПРЯМОУГОЛЬНИКА тела (та же метрика, что у решателя):
-        // сколько ещё осталось до ближайшего борта. Отрицательное = задела.
-        var along = System.MathF.Abs(d.X * forward.X + d.Y * forward.Y) - LyingSpot.BodyHalfLength;
-        var side = System.MathF.Abs(d.X * lateral.X + d.Y * lateral.Y) - LyingSpot.BodyHalfWidth;
-        return System.MathF.Max(along, side);
+        var outsideAlong = System.MathF.Max(
+            System.MathF.Abs(d.X * forward.X + d.Y * forward.Y) -
+            LyingSpot.BodyHalfLength, 0f);
+        var outsideSide = System.MathF.Max(
+            System.MathF.Abs(d.X * lateral.X + d.Y * lateral.Y) -
+            LyingSpot.BodyHalfWidth, 0f);
+        return System.MathF.Sqrt(outsideAlong * outsideAlong + outsideSide * outsideSide) - radius;
     }
 
-    /// <summary>Пустой гекс — ровно геометрический центр, как до §113.</summary>
     [Test]
-    public void EmptyHex_SheStillLiesOnTheExactCentre()
+    public void EmptyHex_UsesTheNearestInteriorGridNode()
     {
         var world = TestWorld.CreateWorld();
         var girl = Girl(world);
-        foreach (var other in world.Entities.Npcs.Values.Where(n => !n.Id.Equals(girl.Id)).ToList())
-        {
-            other.Tile = new TileCoord(girl.Tile.Q + 4, girl.Tile.R); // не мешать шеренгой
-        }
+        MoveOtherNpcsAway(world, girl);
+        var before = girl.Position;
 
-        ExecutionSystem.LieDownCentered(world, girl);
+        Assert.That(ExecutionSystem.TryLieDownOnGround(world, girl), Is.True);
 
-        var centre = HexSpatialMath.TileToWorld(girl.Tile);
-        Assert.That(HexSpatialMath.Distance(girl.Position, centre), Is.LessThan(0.001f),
-            "Одинокое тело на пустом гексе ложится в центр — инвариант §60.2a.");
+        var nearest = HexPointLayout.GetInteriorTemplates()
+            .Select(t => HexSpatialMath.TileToWorld(girl.Tile) + t.Offset)
+            .Min(p => HexSpatialMath.Distance(p, before));
+        Assert.That(HexSpatialMath.Distance(girl.Position, before),
+            Is.EqualTo(nearest).Within(0.001f));
+        Assert.That(world.Events.Items.Any(e =>
+            e.Type == "LieDownSpot" && e.Message.Contains("Fit=Clear")), Is.True);
     }
 
-    /// <summary>
-    /// ⭐ Ядро §113: она вырубилась НА гексе костра — и лежит рядом с огнём,
-    /// на том же гексе, а не в нём.
-    /// </summary>
     [Test]
-    public void Campfire_SheLiesBesideTheFire_NotInIt()
+    public void Campfire_NoPartOfTheBodyEntersTheFire()
     {
         var world = TestWorld.CreateWorld();
         var girl = Girl(world);
-        foreach (var other in world.Entities.Npcs.Values.Where(n => !n.Id.Equals(girl.Id)).ToList())
-        {
-            other.Tile = new TileCoord(girl.Tile.Q + 4, girl.Tile.R);
-        }
-
-        var fire = SpawnAtCentre(world, girl, "campfire.spot");
+        MoveOtherNpcsAway(world, girl);
+        var fire = SpawnAtCentre(world, girl, ContentIds.Campfire);
         var tile = girl.Tile;
 
-        ExecutionSystem.LieDownCentered(world, girl);
+        Assert.That(ExecutionSystem.TryLieDownOnGround(world, girl), Is.True);
 
-        Assert.That(girl.Tile, Is.EqualTo(tile),
-            "Гекс костра не запрещён — с него не уходят.");
-        Assert.That(DistanceToBody(fire, world, girl), Is.GreaterThan(0f),
-            "⭐ Тело не задевает огонь: место в центре занято костром, легла сбоку.");
-        Assert.That(HexSpatialMath.Distance(girl.Position, HexSpatialMath.TileToWorld(tile)),
-            Is.LessThan(HexSpatialMath.HexRadius),
-            "…но всё ещё внутри своего гекса, а не за кромкой.");
-        Assert.That(world.Events.Items.Any(e => e.Type == "LieDownBerth" && e.Message.Contains("Fit=Clear")),
-            Is.True, "Решатель обязан отчитаться, что место найдено чистым.");
+        Assert.That(girl.Tile, Is.EqualTo(tile), "Choosing a pose is not movement to another tile.");
+        Assert.That(ClearanceFromObject(fire, world, girl), Is.GreaterThanOrEqualTo(-0.001f));
     }
 
-    /// <summary>Валун — та же логика: не обходим гекс, обходим глыбу.</summary>
     [Test]
-    public void Boulder_SheLiesBesideIt()
+    public void Boulder_NoPartOfTheBodyEntersItsSolidRadius()
     {
         var world = TestWorld.CreateWorld();
         var girl = Girl(world);
-        foreach (var other in world.Entities.Npcs.Values.Where(n => !n.Id.Equals(girl.Id)).ToList())
-        {
-            other.Tile = new TileCoord(girl.Tile.Q + 4, girl.Tile.R);
-        }
-
+        MoveOtherNpcsAway(world, girl);
         var boulder = SpawnAtCentre(world, girl, "rock.boulder");
 
-        ExecutionSystem.LieDownCentered(world, girl);
-
-        Assert.That(DistanceToBody(boulder, world, girl), Is.GreaterThan(0f),
-            "Валун объявлен Obstacle без габарита — работает пол LieSolidRadiusFloorFactor.");
+        Assert.That(ExecutionSystem.TryLieDownOnGround(world, girl), Is.True);
+        Assert.That(ClearanceFromObject(boulder, world, girl), Is.GreaterThanOrEqualTo(-0.001f));
     }
 
-    /// <summary>
-    /// Выключатель возвращает поведение до §113 — тело ложится в костёр.
-    /// Ручка существует ровно ради такого сравнения (и ради бисекта соаком).
-    /// </summary>
     [Test]
-    public void KillSwitchOff_SheLiesStraightIntoTheFire()
+    public void CliffEdge_MovesTheBodyToAWhollySupportedNode()
     {
         var world = TestWorld.CreateWorld();
         var girl = Girl(world);
-        foreach (var other in world.Entities.Npcs.Values.Where(n => !n.Id.Equals(girl.Id)).ToList())
-        {
-            other.Tile = new TileCoord(girl.Tile.Q + 4, girl.Tile.R);
-        }
+        MoveOtherNpcsAway(world, girl);
+        var eastCoord = new TileCoord(girl.Tile.Q + 1, girl.Tile.R);
+        Assert.That(world.Tiles.Items.TryGetValue(eastCoord, out var east), Is.True);
+        east.Elevation = world.Tiles.Items[girl.Tile].Elevation - 2;
 
-        var fire = SpawnAtCentre(world, girl, "campfire.spot");
-        var was = Spec49.LieAroundObstacles;
-        try
-        {
-            Spec49.LieAroundObstacles = false;
-            ExecutionSystem.LieDownCentered(world, girl);
-        }
-        finally
-        {
-            Spec49.LieAroundObstacles = was;
-        }
+        var eastMost = HexPointLayout.GetInteriorTemplates()
+            .OrderByDescending(t => t.Offset.X)
+            .ThenBy(t => t.Slot)
+            .First();
+        girl.Position = HexSpatialMath.TileToWorld(girl.Tile) + eastMost.Offset;
+        girl.RotationDegrees = 0f;
+        var unsafeX = girl.Position.X;
 
-        Assert.That(DistanceToBody(fire, world, girl), Is.LessThanOrEqualTo(0f),
-            "С выключенной ручкой центр снова «свободен» — ровно поведение §29G r3.");
+        Assert.That(ExecutionSystem.TryLieDownOnGround(world, girl), Is.True);
+        var radians = girl.RotationDegrees * (System.MathF.PI / 180f);
+        var forward = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
+        var lateral = new Float2(-forward.Y, forward.X);
+        Assert.That(LyingSpot.BodyClear(
+            world, girl, girl.Tile, girl.Position, forward, lateral), Is.True,
+            "The selected pose must keep the whole body on level support; a rim node is " +
+            "valid when the solver turns the body parallel to the cliff.");
     }
 
-    /// <summary>
-    /// §29G r3 не сломан: две легли на один гекс — параллельно, на разных
-    /// местах, а не одна в другой.
-    /// </summary>
     [Test]
-    public void TwoBodies_StillLieParallelInSeparateBerths()
+    public void TwoBodies_AreSeparatedWithoutSharedHeadingOrBerthSlots()
     {
         var world = TestWorld.CreateWorld();
         var all = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).ToList();
-        Assert.That(all.Count, Is.GreaterThanOrEqualTo(2));
         var first = all[0];
         var second = all[1];
         foreach (var other in all.Skip(2))
@@ -164,17 +137,35 @@ public sealed class LyingSpotTests
         }
 
         second.Tile = first.Tile;
-        first.Mind.FaintedUntilTick = world.Tick + 100;  // лежит — значит держит место
+        first.Mind.FaintedUntilTick = world.Tick + 100;
         second.Mind.FaintedUntilTick = world.Tick + 100;
+        Assert.That(ExecutionSystem.TryLieDownOnGround(world, first), Is.True);
+        Assert.That(ExecutionSystem.TryLieDownOnGround(world, second), Is.True);
 
-        ExecutionSystem.LieDownCentered(world, first);
-        ExecutionSystem.LieDownCentered(world, second);
+        var radians = second.RotationDegrees * (System.MathF.PI / 180f);
+        var forward = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
+        var lateral = new Float2(-forward.Y, forward.X);
+        Assert.That(LyingSpot.BodyClear(
+            world, second, second.Tile, second.Position, forward, lateral), Is.True);
+        Assert.That(HexSpatialMath.Distance(first.Position, second.Position), Is.GreaterThan(0.1f));
+    }
 
-        Assert.That(second.RotationDegrees, Is.EqualTo(first.RotationDegrees).Within(0.01f),
-            "Курс у шеренги общий — задаёт первая легшая.");
-        Assert.That(HexSpatialMath.Distance(first.Position, second.Position),
-            Is.GreaterThan(LyingSpot.BerthSpacing * 0.9f),
-            "Вторая легла НА СОСЕДНЕЕ место, а не в первую.");
+    [Test]
+    public void FullyBlockedHex_ReturnsNoSpaceInsteadOfStacking()
+    {
+        var world = TestWorld.CreateWorld();
+        var girl = Girl(world);
+        MoveOtherNpcsAway(world, girl);
+        var before = girl.Position;
+        foreach (var junctionId in world.Tiles.Items[girl.Tile].Junctions)
+        {
+            world.Junctions.Items[junctionId].Blocked = true;
+        }
+
+        Assert.That(ExecutionSystem.TryLieDownOnGround(world, girl), Is.False);
+        Assert.That(girl.Position, Is.EqualTo(before));
+        Assert.That(world.Events.Items.Any(e =>
+            e.Type == "LieDownSpot" && e.Message.Contains("Fit=NoSpace")), Is.True);
     }
 }
 

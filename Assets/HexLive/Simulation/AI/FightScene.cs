@@ -61,6 +61,9 @@ public static class FightScene
         }
 
         npc.StrikeLandsAtTick = 0;
+        npc.PendingHumanStrikeTargetId = null;
+        npc.PendingHumanStrikeKillAuthorized = false;
+        npc.PendingHumanStrikeKillIntent = 0f;
 
         // Порог различает сентинел (~5·10⁸) и легальный кулдаун оружия
         // (десятки тиков): настоящую готовность мы не трогаем.
@@ -68,6 +71,34 @@ public static class FightScene
         {
             npc.StrikeReadyAtTick = 0;
         }
+    }
+
+    /// <summary>
+    /// Restore an in-flight human swing from a save without giving persistence
+    /// a second implementation of the slot. The stored body part and mercy
+    /// decision must stay paired with the exact timeline that selected them.
+    /// </summary>
+    public static void RestoreSwingSlot(
+        NPCState npc,
+        int landsAtTick,
+        int readyAtTick,
+        int animationUntilTick,
+        int startTick,
+        int strikeIndex,
+        EntityId? targetId,
+        Content.BodyPart part,
+        bool killAuthorized,
+        float killIntent)
+    {
+        npc.StrikeLandsAtTick = landsAtTick;
+        npc.StrikeReadyAtTick = readyAtTick;
+        npc.AttackAnimUntilTick = animationUntilTick;
+        npc.SwingStartTick = startTick;
+        npc.SwingStrikeIndex = strikeIndex;
+        npc.PendingHumanStrikeTargetId = targetId;
+        npc.PendingHumanStrikePart = part;
+        npc.PendingHumanStrikeKillAuthorized = killAuthorized;
+        npc.PendingHumanStrikeKillIntent = killIntent;
     }
 
     /// <summary>
@@ -170,7 +201,7 @@ public static class FightScene
         }
 
         var best = Runtime.SimBalance.BestMeleeWeapon(
-            abuser.Inventory.Items, abuser.Body.IntactHands);
+            abuser.Inventory.Items, abuser.Body.WeaponHands);
         if (string.IsNullOrEmpty(best))
         {
             return Content.GearCatalog.Fist;

@@ -196,6 +196,49 @@ public sealed class AmputationTestBootstrap : MonoBehaviour
         }
     }
 
+    private void FitProsthetic(BodyPart part, bool mechanical)
+    {
+        var world = _runner?.Engine?.World;
+        var girl = Girl();
+        if (world == null || girl == null ||
+            part is not (BodyPart.ArmL or BodyPart.ArmR or BodyPart.LegL or BodyPart.LegR))
+        {
+            return;
+        }
+
+        if (!girl.Body.IsSevered(part))
+        {
+            AmputateSystemHelpers.Sever(world, girl, part);
+        }
+
+        var arm = part is BodyPart.ArmL or BodyPart.ArmR;
+        var maxCondition = mechanical
+            ? Spec118.MechanicalProstheticDurability
+            : Spec118.WoodenProstheticDurability;
+        girl.Body.Condition(part).Prosthetic = new ProstheticState
+        {
+            DefinitionId = mechanical
+                ? arm ? ContentIds.MechanicalArm : ContentIds.MechanicalLeg
+                : arm ? ContentIds.WoodenArm : ContentIds.WoodenLeg,
+            Part = part,
+            Condition = maxCondition,
+            MaxCondition = maxCondition,
+            Function = mechanical
+                ? arm ? Spec118.MechanicalArmFunction : Spec118.MechanicalLegFunction
+                : arm ? Spec118.WoodenArmFunction : Spec118.WoodenLegFunction,
+            Mechanical = mechanical
+        };
+    }
+
+    private void BreakProsthetic(BodyPart part)
+    {
+        var girl = Girl();
+        if (girl != null)
+        {
+            girl.Body.Condition(part).Prosthetic = null;
+        }
+    }
+
     private void SendUpForFood()
     {
         var girl = Girl();
@@ -210,7 +253,7 @@ public sealed class AmputationTestBootstrap : MonoBehaviour
     private void OnGUI()
     {
         var girl = Girl();
-        GUILayout.BeginArea(new Rect(12f, 12f, 340f, 620f), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(12f, 12f, 360f, 820f), GUI.skin.box);
 
         GUILayout.Label("<b>ТЕСТ АМПУТАЦИИ</b> — R: перезапуск сцены");
         if (girl != null)
@@ -237,6 +280,30 @@ public sealed class AmputationTestBootstrap : MonoBehaviour
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Лев. нога")) Bite(BodyPart.LegL);
         if (GUILayout.Button("Прав. нога")) Bite(BodyPart.LegR);
+        GUILayout.EndHorizontal();
+
+        GUILayout.Space(10f);
+        GUILayout.Label("— ПОСТАВИТЬ ПРОТЕЗ (сразу отсекает часть) —");
+        GUILayout.Label("дерево:");
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("рука L")) FitProsthetic(BodyPart.ArmL, false);
+        if (GUILayout.Button("рука R")) FitProsthetic(BodyPart.ArmR, false);
+        if (GUILayout.Button("нога L")) FitProsthetic(BodyPart.LegL, false);
+        if (GUILayout.Button("нога R")) FitProsthetic(BodyPart.LegR, false);
+        GUILayout.EndHorizontal();
+        GUILayout.Label("механика:");
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("рука L")) FitProsthetic(BodyPart.ArmL, true);
+        if (GUILayout.Button("рука R")) FitProsthetic(BodyPart.ArmR, true);
+        if (GUILayout.Button("нога L")) FitProsthetic(BodyPart.LegL, true);
+        if (GUILayout.Button("нога R")) FitProsthetic(BodyPart.LegR, true);
+        GUILayout.EndHorizontal();
+        GUILayout.Label("сломать/снять:");
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("рука L")) BreakProsthetic(BodyPart.ArmL);
+        if (GUILayout.Button("рука R")) BreakProsthetic(BodyPart.ArmR);
+        if (GUILayout.Button("нога L")) BreakProsthetic(BodyPart.LegL);
+        if (GUILayout.Button("нога R")) BreakProsthetic(BodyPart.LegR);
         GUILayout.EndHorizontal();
 
         GUILayout.Space(10f);
@@ -303,7 +370,17 @@ public sealed class AmputationTestBootstrap : MonoBehaviour
         {
             if (girl.Body.IsSevered(part))
             {
-                GUILayout.Label($"{PartName(part)}  <color=#ff5a5a>ОТРУБЛЕНА</color>");
+                var prosthetic = girl.Body.Condition(part).Prosthetic;
+                if (prosthetic != null)
+                {
+                    GUILayout.Label($"{PartName(part)}  <color=#7ed0ff>" +
+                                    $"{(prosthetic.Mechanical ? "МЕХ" : "ДЕРЕВО")} " +
+                                    $"{prosthetic.Condition:0.00}/{prosthetic.MaxCondition:0.00}</color>");
+                }
+                else
+                {
+                    GUILayout.Label($"{PartName(part)}  <color=#ff5a5a>ОТРУБЛЕНА</color>");
+                }
                 continue;
             }
 
@@ -335,7 +412,7 @@ public sealed class AmputationTestBootstrap : MonoBehaviour
             $"Голод {girl.Needs.Hunger:0.00}  Жажда {girl.Needs.Thirst:0.00}");
         GUILayout.Label(
             $"Энергия {girl.Needs.Energy:0.00}  Стамина {girl.Needs.Stamina:0.00}");
-        GUILayout.Label($"Поза (по ногам): {(girl.Body.IsSevered(BodyPart.LegL) || girl.Body.IsSevered(BodyPart.LegR) ? "ПОЛЗЁТ" : "стоит")}");
+        GUILayout.Label($"Поза (по ногам): {(girl.Body.IsProne ? "ПОЛЗЁТ" : "стоит")}");
 
         GUILayout.EndArea();
     }

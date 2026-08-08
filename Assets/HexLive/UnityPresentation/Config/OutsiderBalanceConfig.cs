@@ -260,10 +260,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float mercyHealthFloor = 0.55f;
         [Tooltip("Пощадный удар не опускает ЧАСТЬ под ударом ниже этого: голова/торс не уничтожаются (мгновенная смерть), конечность не отрывается. Средний порог выше сам по себе этого не гарантирует — урон копится в одной части.")]
         [Range(0f, 0.5f)] public float mercyPartFloor = 0.05f;
-        [Tooltip("Симпатия, ниже которой пощады нет. -0.6 — это уже несколько сцен насилия подряд, заработанная ненависть.")]
-        [Range(-1f, 1f)] public float hatredAffinity = -0.6f;
-        [Tooltip("Распространять пощаду и на чужаков. Выключено — соак разведёт смерти от своих и от чужих.")]
-        public bool mercyAppliesToOutsiders = true;
 
         [Header("§108 Групповая охота — сговор против чужака")]
         [Tooltip("⭐ Трое собрались, обсудили его и пошли бить. Выключено — тема «чужак» исчезает из разговоров, сговор не заключается.")]
@@ -304,8 +300,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 12)] public int groupHuntWitnessRadiusTiles = 5;
         [Tooltip("Сколько ударов группы значит «проучили»: когда счёт набран и он оторвался или побежал — расправа удалась. Без этой меры у охоты с пощадой нет успешного конца вовсе.")]
         [Range(1, 30)] public int groupHuntBlowsToRout = 6;
-        [Tooltip("Держать ли пощаду §86 на время расправы, независимо от ненависти. ВЫКЛЮЧЕНО намеренно: исход решает лестница ненависти — кто дошла до -0.6, добьёт, кто не дошла, отобьёт и отстанет. Включить — бьют строго до «свалился», и он всегда встаёт.")]
-        public bool groupHuntMercyHolds = false;
         [Tooltip("Насколько он их за это возненавидит. Это его лестница оружия §91: побитый в следующий раз возьмётся за нож.")]
         [Range(0f, 1f)] public float groupHuntTargetGrudge = 0.30f;
 
@@ -316,6 +310,12 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float lootHelplessBaseScore = 0.85f;
         [Tooltip("Прибавка, когда у лежащего оружие мощнее его собственного. Это и есть «защита» в мотиве: мачете нельзя скрафтить.")]
         [Range(0f, 1f)] public float lootHelplessWeaponBonus = 0.30f;
+        [Tooltip("После карманов — базовый шанс стянуть одну случайную надетую вещь.")]
+        [Range(0f, 1f)] public float lootHelplessGarmentBaseChance = 0.15f;
+        [Tooltip("Добавка к шансу раздевания от полного стресса лутера.")]
+        [Range(0f, 1f)] public float lootHelplessGarmentStressBonus = 0.20f;
+        [Tooltip("Добавка к шансу раздевания от личной ненависти к лежащему.")]
+        [Range(0f, 1f)] public float lootHelplessGarmentHateBonus = 0.35f;
         [Tooltip("В каком радиусе он замечает лежащего, тайлы. Режется ЗНАНИЕ, а не только дорога — иначе он чует тело через полострова.")]
         [Range(1, 20)] public int lootHelplessSightRadiusTiles = 6;
         [Tooltip("Тиков на одну вещь. Вдвое быстрее лута трупа (20): там раздевание, тут «хоп-хоп» по карманам.")]

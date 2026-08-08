@@ -520,6 +520,9 @@ namespace HexLive.Simulation.Runtime
         // burns at this fraction of the normal rate (0.5 = a load of wood
         // lasts twice as long).
         public static float CampfireRingBurnMultiplier = 0.5f;
+        // §120: roofed hearth ×0.5 again. A finished indoor stone ring burns
+        // at 0.25x bare-fire rate — exactly half the best outdoor fire.
+        public static float IndoorFireBurnMultiplier = 0.5f;
         // The roasting spit unlocks cooking: raw meat is HUNG on the
         // spit and roasts over a lit fire for this long (100 ticks = 1 game
         // hour), then turns into cooked meat that stays hanging until taken.

@@ -69,6 +69,8 @@ namespace HexLive.Simulation.Content
                     Id = MobIds.Dog,
                     MaxHealth = 1.8f,             // doubled from 0.9 so the fight is readable
                     AttackDamage = 0.09f,           // per landed bite (timed, not per-tick)
+                    CutFraction = 0.90f,
+                    BloodLossMultiplier = 1.20f,
                     AttackWindupSeconds = 0.5f,   // bite charge-up; once started it always lands
                     AttackCooldownSeconds = 0.8f, // anim tail + recovery before the next bite
                     AggroRadiusTiles = 2,
@@ -88,6 +90,8 @@ namespace HexLive.Simulation.Content
                     Id = MobIds.Shark,
                     MaxHealth = 1.0f,
                     AttackDamage = 0.2f,            // bite to the leg (also a sever trigger)
+                    CutFraction = 1.00f,
+                    BloodLossMultiplier = 1.40f,
                     AttackWindupSeconds = 0.1f,
                     AttackCooldownSeconds = 0.8f,
                     AggroRadiusTiles = 2,
@@ -140,6 +144,8 @@ namespace HexLive.Simulation.Content
         // Combat.
         public float MaxHealth = 1.0f;
         public float AttackDamage = 0.09f;
+        public float CutFraction = 0.90f;
+        public float BloodLossMultiplier = 1.20f;
         public float AttackWindupSeconds = 0.1f;
         public float AttackCooldownSeconds = 0.8f;
 

@@ -126,6 +126,35 @@ internal static class BuildSiteMath
         (MaterialBoards, 4)  // 05: four tabletop planks
     };
 
+    private sealed class MaterialStage
+    {
+        public readonly (string Material, int Count)[] Requirements;
+
+        public MaterialStage(params (string Material, int Count)[] requirements)
+        {
+            Requirements = requirements;
+        }
+    }
+
+    // Architectural stages may require several resources in parallel. This is
+    // intentionally separate from the single-material furniture sequence: old
+    // beds/stations retain their exact delivery order, while a hut can accept
+    // both kinds of wood needed by one visible construction stage.
+    private static readonly MaterialStage[] Hut1HexStages =
+    {
+        new(
+            (MaterialSticks, BuildingRules.FrameSticks),
+            (MaterialBoards, BuildingRules.FrameBoards)),
+        new(
+            (MaterialSticks, BuildingRules.EnclosureSticks),
+            (MaterialBoards, BuildingRules.EnclosureBoards),
+            (MaterialRope, BuildingRules.EnclosureRope)),
+        new((MaterialLeaves, BuildingRules.RoofLeaves))
+    };
+
+    private static MaterialStage[] GroupedStagesFor(WorldObjectState site) =>
+        site.BuildProduct == ContentIds.Hut1Hex ? Hut1HexStages : null;
+
     private static (string Material, int Count)[] StagesFor(WorldObjectState site) => site.BuildProduct switch
     {
         "bed.leaf" => BedLeafStages,
@@ -154,6 +183,12 @@ internal static class BuildSiteMath
     // (unstaged sites: campfire, hut pieces).
     public static int Remaining(WorldObjectState site, string materialId)
     {
+        var groupedStages = GroupedStagesFor(site);
+        if (groupedStages is not null)
+        {
+            return RemainingInGroupedStages(site, materialId, groupedStages);
+        }
+
         var stages = StagesFor(site);
         if (stages is null)
         {
@@ -180,6 +215,49 @@ internal static class BuildSiteMath
         }
 
         return 0; // every stage complete
+    }
+
+    private static int RemainingInGroupedStages(
+        WorldObjectState site, string materialId, MaterialStage[] stages)
+    {
+        System.Span<int> pool = stackalloc int[AllMaterials.Length];
+        for (var i = 0; i < AllMaterials.Length; i++)
+        {
+            pool[i] = Delivered(site, AllMaterials[i]);
+        }
+
+        foreach (var stage in stages)
+        {
+            var complete = true;
+            foreach (var (material, count) in stage.Requirements)
+            {
+                var index = System.Array.IndexOf(AllMaterials, material);
+                if (System.Math.Min(count, pool[index]) < count)
+                {
+                    complete = false;
+                }
+            }
+
+            if (!complete)
+            {
+                foreach (var (material, count) in stage.Requirements)
+                {
+                    if (material != materialId) continue;
+                    var index = System.Array.IndexOf(AllMaterials, material);
+                    return System.Math.Max(0, count - pool[index]);
+                }
+
+                return 0;
+            }
+
+            foreach (var (material, count) in stage.Requirements)
+            {
+                var index = System.Array.IndexOf(AllMaterials, material);
+                pool[index] -= count;
+            }
+        }
+
+        return 0;
     }
 
     public static bool Needs(WorldObjectState site, string materialId) =>

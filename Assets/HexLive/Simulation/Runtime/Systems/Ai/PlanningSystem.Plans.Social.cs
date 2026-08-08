@@ -362,6 +362,7 @@ public sealed partial class PlanningSystem
         TileCoord attackerTile = npc.Tile;
         var label = string.Empty;
         var dogEngaged = false;
+        NPCState humanAttacker = null;
 
         if (npc.Mind.CombatAssistDogId is { } dogId)
         {
@@ -379,8 +380,10 @@ public sealed partial class PlanningSystem
         }
         else if (npc.Mind.CombatAssistAttackerNpcId is { } attackerId &&
                  world.Entities.Npcs.TryGetValue(attackerId, out var attacker) &&
-                 attacker.Health > 0f)
+                 attacker.Health > 0f && !attacker.IsUnconscious(world.Tick) &&
+                 !attacker.Body.IsProne)
         {
+            humanAttacker = attacker;
             attackerJunction = attacker.CurrentJunction;
             attackerTile = attacker.Tile;
             label = $"Attacker=NPC{attacker.Id.Value}";
@@ -389,18 +392,26 @@ public sealed partial class PlanningSystem
         if (attackerJunction is not { } target)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            npc.Mind.CurrentGoal = GoalType.None;
-            npc.Mind.CombatAssistDogId = null;
-            npc.Mind.CombatAssistAttackerNpcId = null;
-            npc.Mind.AssistHoldSinceTick = 0;
+            HumanCombatPairing.ClearFor(world, npc);
+            CombatHelpSystem.ClearAssist(npc);
             Trace.Emit(world, npc.Id, "HelpCryAssistLost", "Attacker vanished before defender arrived");
             return;
         }
 
-        // §29C.4B: is she already at the attacker's junction or a neighbour of
-        // it — i.e. close enough that RunDogDefenders / PredationSystem would
-        // land her strikes the moment an exchange actually runs?
-        var onStation = npc.CurrentJunction is { } current &&
+        if (humanAttacker != null && !CombatMedium.NpcMelee(world, npc, humanAttacker))
+        {
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.Defend);
+            HumanCombatPairing.ClearFor(world, npc);
+            CombatHelpSystem.ClearAssist(npc);
+            npc.Plan.Status = PlanStatus.Failed;
+            Trace.Emit(world, npc.Id, "HelpCryAssistLost",
+                $"{label} combat medium changed — standing down");
+            return;
+        }
+
+        // Dogs still use their own exchange. Human assists use the common
+        // Approach/Act contract below: adjacency alone ignored combat medium.
+        var dogOnStation = humanAttacker == null && npc.CurrentJunction is { } current &&
             (current.Equals(target) ||
              (world.Junctions.Items.TryGetValue(target, out var targetJ) &&
               targetJ.Neighbors.Contains(current)));
@@ -417,11 +428,15 @@ public sealed partial class PlanningSystem
         var lockExpired = npc.Mind.GoalLock is not { } assistLock ||
             assistLock.Goal != GoalType.Defend ||
             world.Tick >= assistLock.EndTick;
-        var engaged = onStation &&
-            (npc.Mind.CombatAssistDogId is null || dogEngaged);
+        var humanCanAct = humanAttacker != null &&
+            InteractionReach.AssessMelee(
+                world, npc, humanAttacker, sceneStarted: false,
+                $"Defend NPC{humanAttacker.Id.Value}") == MeleeApproach.Act;
+        var engaged = humanCanAct || (dogOnStation && dogEngaged);
         if (lockExpired && !engaged)
         {
             PlanningSystem.SetGoalCooldown(world, npc, GoalType.Defend);
+            HumanCombatPairing.ClearFor(world, npc);
             CombatHelpSystem.ClearAssist(npc);
             npc.Plan.Status = PlanStatus.Failed;
             Trace.Emit(world, npc.Id, "HelpCryAssistExpired",
@@ -429,13 +444,23 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        // §29C.4B on-station hold: she is where the fight needs her; the old
+        if (humanCanAct)
+        {
+            npc.Plan.Status = PlanStatus.Completed;
+            npc.Mind.AssistHoldSinceTick = 0;
+            HumanCombatPairing.EngageAssist(world, npc, humanAttacker);
+            Trace.Emit(world, npc.Id, "HelpCryAssistEngaged",
+                $"{label} Reach=Act Reply=NPC{humanAttacker.Mind.CombatOpponentNpcId?.Value ?? -1}");
+            return;
+        }
+
+        // §29C.4B dog on-station hold: she is where the fight needs her; the old
         // code still built a 1-step move plan TO HER OWN JUNCTION, which
         // completed instantly and re-planned every pass (Started→Arrived 17
         // times in 68 ticks, seed 521091321 day 30). Strikes never came from
         // the plan — RunDogDefenders/PredationSystem read only the goal and
         // adjacency — so the right plan here is NO plan: stand and wait.
-        if (onStation)
+        if (dogOnStation)
         {
             npc.Plan.Status = PlanStatus.Completed;
             if (npc.Mind.AssistHoldSinceTick == 0)
@@ -463,10 +488,8 @@ public sealed partial class PlanningSystem
         if (approach is not { } approachJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            PlanningSystem.SetGoalCooldown(world, npc, GoalType.Defend);
-            npc.Mind.CurrentGoal = GoalType.None;
             Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=Defend {label} NoFreeApproachJunction");
+                $"Goal=Defend {label} Reach=Approach NoFreeApproachJunction — will replan");
             return;
         }
 

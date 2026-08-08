@@ -80,6 +80,8 @@ public static class ContentIds
     public const string DryingRack = "station.drying_rack";
     public const string WaterCollector = "station.water_collector";
     public const string Workbench = "station.workbench";
+    public const string Hut1Hex = "building.hut_1hex";
+    public const string HutBed = "building.hut_bed";
 
     /// <summary>Заявка на мебель: пустое место, куда носят материалы.</summary>
     public const string BuildSite = "build.site";

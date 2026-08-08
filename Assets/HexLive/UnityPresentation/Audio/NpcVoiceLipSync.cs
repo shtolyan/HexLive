@@ -53,12 +53,22 @@ namespace HexLive.UnityPresentation.Audio
                 return;
             }
 
-            _analyzer = gameObject.AddComponent<uLipSync.uLipSync>();
+            // AddComponent on an ACTIVE object invokes uLipSync.OnEnable
+            // immediately. OnEnable allocates its buffers and asks for
+            // AudioSettings.outputSampleRate before the next line can install
+            // our external PCM rate; with Unity audio disabled that emits a
+            // warning once per actor. Configure on an inactive child first,
+            // then activate it only after overrideSampleRate is valid.
+            var analyzerHost = new GameObject("VoiceLipSyncAnalyzer");
+            analyzerHost.SetActive(false);
+            analyzerHost.transform.SetParent(transform, false);
+
+            _analyzer = analyzerHost.AddComponent<uLipSync.uLipSync>();
             _analyzer.profile = profile;
             _analyzer.overrideSampleRate = SampleRate; // Unity audio off → свой такт
             _analyzer.outputSoundGain = 1f;
 
-            var blend = gameObject.AddComponent<uLipSync.uLipSyncBlendShape>();
+            var blend = analyzerHost.AddComponent<uLipSync.uLipSyncBlendShape>();
             blend.skinnedMeshRenderer = face;
             blend.usePhonemeBlend = true;
             blend.smoothness = 0.06f;
@@ -97,7 +107,12 @@ namespace HexLive.UnityPresentation.Audio
             {
                 Debug.LogWarning($"[NpcVoiceLipSync] {face.name}: no viseme blendshapes matched");
                 enabled = false;
+                Destroy(analyzerHost);
+                _analyzer = null;
+                return;
             }
+
+            analyzerHost.SetActive(true);
         }
 
         /// <summary>Реплика пошла — начинаем кормить анализатор её PCM.</summary>

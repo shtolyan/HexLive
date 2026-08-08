@@ -624,6 +624,8 @@ namespace HexLive.Simulation.Content
                 {
                     Id = Fist,
                     Damage = 0.15f,
+                    CutFraction = 0f,
+                    BloodLossMultiplier = 0f,
                     HitDelaySeconds = 1.1f,       // ~75% of the 1.5 s jab
                     AttackDurationSeconds = 1.5f,
                     CooldownSeconds = 1.5f,
@@ -645,6 +647,8 @@ namespace HexLive.Simulation.Content
                 {
                     Id = Knife,
                     Damage = 0.1875f,             // 0.15 × 1.25
+                    CutFraction = 0.90f,
+                    BloodLossMultiplier = 1.10f,
                     HitDelaySeconds = 1.5f,       // замах 1.5 s → hit → 0.5 s follow-through
                     AttackDurationSeconds = 2.0f,
                     CooldownSeconds = 1.0f,
@@ -660,6 +664,8 @@ namespace HexLive.Simulation.Content
                 {
                     Id = Axe,
                     Damage = 0.28125f,            // 0.15 × 1.875 (1.5× knife)
+                    CutFraction = 0.70f,
+                    BloodLossMultiplier = 0.90f,
                     HitDelaySeconds = 1.65f,      // heavier windup
                     AttackDurationSeconds = 2.2f,
                     CooldownSeconds = 0.8f,
@@ -678,6 +684,8 @@ namespace HexLive.Simulation.Content
                     // замах, та же длина взмаха, та же перезарядка — разница
                     // целиком в железе, а не в темпе.
                     Damage = 0.5625f,             // 2 × axe
+                    CutFraction = 0.85f,
+                    BloodLossMultiplier = 1.20f,
                     HitDelaySeconds = 1.65f,
                     AttackDurationSeconds = 2.2f,
                     CooldownSeconds = 0.8f,
@@ -695,6 +703,8 @@ namespace HexLive.Simulation.Content
                 {
                     Id = Spear,
                     Damage = 0.375f,              // 0.15 × 2.5 (2× knife), two-handed
+                    CutFraction = 0.80f,
+                    BloodLossMultiplier = 1.10f,
                     HitDelaySeconds = 1.5f,
                     AttackDurationSeconds = 2.0f,
                     CooldownSeconds = 1.0f,
@@ -706,6 +716,8 @@ namespace HexLive.Simulation.Content
                 {
                     Id = Pickaxe,
                     Damage = 0.24f,
+                    CutFraction = 0.45f,
+                    BloodLossMultiplier = 0.60f,
                     HitDelaySeconds = 1.65f,
                     AttackDurationSeconds = 2.2f,
                     CooldownSeconds = 0.8f,
@@ -717,6 +729,8 @@ namespace HexLive.Simulation.Content
                 {
                     Id = Hammer,
                     Damage = 0.2f,
+                    CutFraction = 0.10f,
+                    BloodLossMultiplier = 0.20f,
                     HitDelaySeconds = 1.3f,
                     AttackDurationSeconds = 1.8f,
                     CooldownSeconds = 1.2f,
@@ -728,6 +742,8 @@ namespace HexLive.Simulation.Content
                 {
                     Id = Saw,
                     Damage = 0.21f,               // toothed edge — between hammer and pickaxe
+                    CutFraction = 0.75f,
+                    BloodLossMultiplier = 1.30f,
                     HitDelaySeconds = 1.3f,
                     AttackDurationSeconds = 1.8f,
                     CooldownSeconds = 1.2f,
@@ -802,6 +818,12 @@ namespace HexLive.Simulation.Content
         // ── Weapon side ──
         // Per-hit damage before the striker's StrikeFactor and target armor.
         public float Damage = 0.15f;
+
+        // §116: consequence profile of the landed damage. Blunt is the
+        // remainder. Total Damage/timings remain the weapon's established tune.
+        public float CutFraction;
+
+        public float BloodLossMultiplier;
 
         // Замах: when the damage (and blood/flinch) lands inside the attack
         // animation. Once the swing started, the hit always lands.

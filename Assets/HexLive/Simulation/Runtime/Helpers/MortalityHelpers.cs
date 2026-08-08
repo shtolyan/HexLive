@@ -59,6 +59,17 @@ internal static class MortalityHelpers
     {
         foreach (var wound in npc.Wounds)
         {
+            if (Spec118.Enabled)
+            {
+                if (!wound.Stabilized && wound.Clot01 < 1f && wound.Heal01 < 1f &&
+                    wound.Severity >= 0.001f)
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
             if (wound.Heal01 < 0.3f && wound.Severity >= 0.05f)
             {
                 return true;
@@ -73,7 +84,62 @@ internal static class MortalityHelpers
     // вопрос, чтобы понять, отпустило ли кровопотерю, и две редакции одного
     // условия разошлись бы на первой же правке.
     internal static bool IsBleeding(NPCState npc) =>
+        Spec118.Enabled ? HasFreshWound(npc) :
         WorstBleedPart(npc) < 0.4f && HasFreshWound(npc);
+
+    private static bool IsDepthCause(DyingCause cause) =>
+        cause is DyingCause.BloodLoss or DyingCause.VitalCrushed;
+
+    private static float WorstCriticalTrauma(NPCState npc)
+    {
+        var worst = 0f;
+        foreach (var part in BodyState.VitalParts)
+        {
+            worst = System.Math.Max(worst, npc.Body.Condition(part).CriticalTrauma);
+        }
+
+        return worst;
+    }
+
+    private static float CombatDepth(NPCState npc) =>
+        System.Math.Max(npc.Body.BloodDeficit, WorstCriticalTrauma(npc));
+
+    private static DyingCause DominantCombatCause(NPCState npc)
+    {
+        var blood = npc.Body.BloodDeficit;
+        var vital = WorstCriticalTrauma(npc);
+        if (blood > vital)
+        {
+            return DyingCause.BloodLoss;
+        }
+
+        if (vital > blood)
+        {
+            return DyingCause.VitalCrushed;
+        }
+
+        return npc.Body.VitalDestroyed(out _)
+            ? DyingCause.VitalCrushed
+            : DyingCause.BloodLoss;
+    }
+
+    private static bool VitalWakeReady(NPCState npc)
+    {
+        foreach (var part in BodyState.VitalParts)
+        {
+            if (npc.Body.Parts[part] <= Spec118.VitalWakeHealth)
+            {
+                return false;
+            }
+        }
+
+        return WorstCriticalTrauma(npc) < BodyDamageResolver.ComaThreshold(npc);
+    }
+
+    private static bool KenshiRecovered(NPCState npc) =>
+        VitalWakeReady(npc) &&
+        npc.Needs.Blood > Spec118.BloodWakeHealth &&
+        npc.Body.BloodDeficit <= 0f;
 
     // ---- Вход ---------------------------------------------------------------
 
@@ -94,14 +160,12 @@ internal static class MortalityHelpers
         npc.Health = npc.Body.Mean();
     }
 
-    // Spec §60.2a: тело на земле лежит в ЦЕНТРЕ своего гекса, а свободный
-    // джанкшн ищется только чтобы застолбить лежачий след (§29G) — соседки
-    // обходят тело. Общий примитив для комы (§60) и умирания (§105): две
-    // редакции этого сканирования разъехались бы, и одно из тел начало бы
-    // свешиваться с кромки гекса.
+    // §60.2a r4: the visible pose comes from the full-body sub-grid solver.
+    // A junction below remains only an occupancy anchor; the oriented pathing
+    // footprint was already claimed around the actual pose by the shared entry.
     internal static void AnchorLyingBody(WorldState world, NPCState npc)
     {
-        ExecutionSystem.LieDownCentered(world, npc);
+        ExecutionSystem.TryLieDownOnGround(world, npc);
 
         var center = npc.Position;
         JunctionId? spot = null;
@@ -130,37 +194,45 @@ internal static class MortalityHelpers
         {
             npc.CurrentJunction = lieSpot;
             SpatialMutations.OccupyJunction(world, lieSpot, npc.Id);
-            ExecutionSystem.ClaimLyingFootprint(world, npc, lieSpot);
-        }
-        else if (npc.CurrentJunction is { } here)
-        {
-            // Тесный гекс — свободного джанкшна нет; застолбить там, где лежит.
-            ExecutionSystem.ClaimLyingFootprint(world, npc, here);
         }
     }
 
     // §105: тело падает и начинает умирать. Идемпотентно.
     internal static void EnterDying(WorldState world, NPCState npc, DyingCause cause)
     {
-        if (!Spec105.DyingEnabled || cause == DyingCause.None || npc.IsDying)
+        if (!Spec105.DyingEnabled || cause == DyingCause.None ||
+            npc.Health <= 0f || npc.IsDying)
         {
             return;
         }
 
         npc.Mind.DyingCause = cause;
-        npc.Mind.DyingReserve = 1f;
+        npc.Mind.DyingReserve = Spec118.Enabled && IsDepthCause(cause)
+            ? MathUtil.Clamp01(1f - CombatDepth(npc))
+            : 1f;
         npc.Mind.DyingTickStamp = world.Tick;
 
         // Умирание глубже комы и заменяет её: иначе пробуждение по крови
         // (§60, порог 0.35) вытащило бы её из окна мимо всей этой механики.
         npc.Mind.ComaCause = ComaCause.None;
-        npc.Mind.FaintedUntilTick = 0;
+        npc.Mind.FaintedUntilTick = Spec118.Enabled && cause == DyingCause.VitalCrushed
+            ? System.Math.Max(npc.Mind.FaintedUntilTick, world.Tick + Spec118.VitalKnockoutTicks)
+            : 0;
         npc.Mind.CryingUntilTick = 0; // §110: слёзы тоже вытесняются
         // §105.14: и притворство — умирание глубже; ExitDying переспросит.
         npc.Mind.PlayDeadUntilTick = 0;
         npc.Mind.PlayDeadSinceTick = 0;
 
-        PinVitals(npc);
+        if (Spec118.Enabled && IsDepthCause(cause))
+        {
+            // The seven familiar bars remain honest (zero stays zero). Health
+            // alone keeps the downed patient distinct from a swept corpse.
+            npc.Health = System.Math.Max(npc.Body.Mean(), Spec105.BodyFloor);
+        }
+        else
+        {
+            PinVitals(npc);
+        }
         PlanInterruption.Abort(world, npc, "Collapsed — dying");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // тело, которое только что выключилось, не держит стойку
@@ -187,6 +259,7 @@ internal static class MortalityHelpers
     private static bool Recovered(NPCState npc, DyingCause cause) => cause switch
     {
         DyingCause.BloodLoss =>
+            Spec118.Enabled ? KenshiRecovered(npc) :
             !IsBleeding(npc) && npc.Needs.Blood > Spec105.BloodExitFloor,
         // ⭐ ВЫШЕ порога падения, а не «выше пола». Пол — это то, во что её
         // запиннило падение; спрашивать про него значит спрашивать «поднялась
@@ -196,6 +269,7 @@ internal static class MortalityHelpers
         // грудью, вставать с разбитым тазом и целой грудью нельзя ровно так
         // же, как наоборот.
         DyingCause.VitalCrushed =>
+            Spec118.Enabled ? KenshiRecovered(npc) :
             npc.Body.VitalHealth() > Spec105.VitalExitHealth,
         DyingCause.Starvation =>
             npc.Needs.Hunger < SimBalance.StarveDeathThreshold,
@@ -214,8 +288,10 @@ internal static class MortalityHelpers
         AttributeMath.DyingHoldMult(npc, cause);
 
     // Можно ли уже вставать: и показатель вернулся, и она отлежала минимум.
-    private static bool CanStandUp(NPCState npc, DyingCause cause) =>
-        TicksLain(npc, cause) >= Spec105.MinDyingTicks && Recovered(npc, cause);
+    private static bool CanStandUp(WorldState world, NPCState npc, DyingCause cause) =>
+        Spec118.Enabled && IsDepthCause(cause)
+            ? world.Tick >= npc.Mind.FaintedUntilTick && Recovered(npc, cause)
+            : TicksLain(npc, cause) >= Spec105.MinDyingTicks && Recovered(npc, cause);
 
     // Над ней прямо сейчас работают НАД ТЕМ, ЧТО ЕЁ УБИВАЕТ. Запас на это время
     // замирает — доиграть перевязку помощница успевает всегда.
@@ -254,7 +330,33 @@ internal static class MortalityHelpers
         }
 
         var cause = npc.Mind.DyingCause;
-        if (CanStandUp(npc, cause))
+        if (Spec118.Enabled && IsDepthCause(cause))
+        {
+            var depth = MathUtil.Clamp01(CombatDepth(npc));
+            npc.Mind.DyingCause = DominantCombatCause(npc);
+            npc.Mind.DyingReserve = 1f - depth;
+            npc.Mind.DyingTickStamp = world.Tick;
+            npc.Health = System.Math.Max(npc.Body.Mean(), Spec105.BodyFloor);
+
+            if (depth >= 1f)
+            {
+                Die(world, npc, npc.Mind.DyingCause);
+            }
+            else if (CanStandUp(world, npc, npc.Mind.DyingCause))
+            {
+                ExitDying(world, npc, "Recovered");
+            }
+            else
+            {
+                Trace.Emit(world, npc.Id, "Dying",
+                    $"Cause={npc.Mind.DyingCause} Depth={depth:F3} " +
+                    $"ComaThreshold={BodyDamageResolver.ComaThreshold(npc):F3}");
+            }
+
+            return;
+        }
+
+        if (CanStandUp(world, npc, cause))
         {
             ExitDying(world, npc, "Recovered");
             return;
@@ -308,6 +410,11 @@ internal static class MortalityHelpers
     // подберёт тело только следующим Medium-проходом.
     private static void Die(WorldState world, NPCState npc, DyingCause cause, string source = null)
     {
+        if (npc.Health <= 0f)
+        {
+            return;
+        }
+
         var eventType = cause switch
         {
             DyingCause.BloodLoss => "BledOut",
@@ -336,6 +443,10 @@ internal static class MortalityHelpers
         }
 
         var cause = npc.Mind.DyingCause;
+        if (Spec118.Enabled)
+        {
+            KenshiRescueMath.ReleasePatientBedOnWake(world, npc);
+        }
         npc.Mind.DyingCause = DyingCause.None;
         npc.Mind.DyingReserve = 0f;
         npc.Mind.DyingTickStamp = 0;
@@ -432,9 +543,11 @@ internal static class MortalityHelpers
             npc.Mind.PlayDeadSinceTick = world.Tick;
         }
 
-        npc.Mind.PlayDeadUntilTick = System.Math.Min(
-            world.Tick + Spec105.PlayDeadHoldTicks,
-            npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks);
+        npc.Mind.PlayDeadUntilTick = Spec118.Enabled
+            ? world.Tick + Spec105.PlayDeadHoldTicks
+            : System.Math.Min(
+                world.Tick + Spec105.PlayDeadHoldTicks,
+                npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks);
         // Путь пробуждения только что выдал грацию подъёма (§41.5) и отпустил
         // лежачий след — но вставать она передумала: грацию снять, след занять
         // обратно (её выдаст EndPlayDead, когда она действительно поднимется).
@@ -479,12 +592,127 @@ internal static class MortalityHelpers
     internal static bool OwnCrisisOutranksHiding(NPCState npc) =>
         npc.Mind.IsStarving ||
         npc.Mind.IsDehydrated ||
-        npc.Needs.Blood < Spec53.SelfTreatBleedBlood;
+        npc.Needs.Blood < Spec53.SelfTreatBleedBlood ||
+        npc.Body.BloodDeficit > 0f ||
+        HasDangerousOpenWound(npc);
+
+    // §118: a hidden survivor may also expose herself for an ally who is
+    // dying unclaimed, but only when the local side has at least even odds.
+    // The estimate is deliberately small and deterministic: living bodies are
+    // the force, current Health is their readiness, and mobs contribute their
+    // configured attack damage. It is a decision heuristic, not combat math.
+    internal static bool ShouldDangerouslyRise(
+        WorldState world, NPCState npc, out string reason)
+    {
+        reason = string.Empty;
+        if (!Spec118.Enabled || !HostileNearby(world, npc))
+        {
+            return false;
+        }
+
+        if (OwnCrisisOutranksHiding(npc))
+        {
+            reason = "OwnCrisis";
+            return true;
+        }
+
+        var allyNeedsHelp = false;
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
+                !FactionRelations.AreAllies(npc, other) || !other.IsDying ||
+                other.IsBeingCarried || other.Mind.PendingAidFrom is not null)
+            {
+                continue;
+            }
+
+            if (HexSpatialMath.HexDistance(other.Tile, npc.Tile) <=
+                Spec118.RescueThreatRadiusTiles)
+            {
+                allyNeedsHelp = true;
+                break;
+            }
+        }
+
+        if (!allyNeedsHelp || LocalFightOdds(world, npc) < Spec118.RescueFightOdds)
+        {
+            return false;
+        }
+
+        reason = "AllyDying";
+        return true;
+    }
+
+    private static bool HasDangerousOpenWound(NPCState npc)
+    {
+        foreach (var wound in npc.Wounds)
+        {
+            if (!wound.Stabilized && wound.Heal01 < 1f &&
+                wound.Severity * (1f - wound.Heal01) > Spec118.DegenerationCutThreshold)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static float LocalFightOdds(WorldState world, NPCState npc)
+    {
+        var allied = 0f;
+        var hostile = 0f;
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Health <= 0f || other.IsUnconscious(world.Tick) ||
+                HexSpatialMath.HexDistance(other.Tile, npc.Tile) >
+                Spec118.RescueThreatRadiusTiles)
+            {
+                continue;
+            }
+
+            var power = System.Math.Max(0.05f, other.Health) *
+                AttributeMath.MeleeDamageMult(other);
+            if (FactionRelations.AreAllies(npc, other))
+            {
+                allied += power;
+            }
+            else
+            {
+                hostile += power;
+            }
+        }
+
+        foreach (var mob in world.Mobs)
+        {
+            if (mob.Health <= 0f || HexSpatialMath.HexDistance(mob.Tile, npc.Tile) >
+                Spec118.RescueThreatRadiusTiles)
+            {
+                continue;
+            }
+
+            var stats = MobCatalog.For(mob.MobId);
+            hostile += System.Math.Max(0.05f, mob.Health) *
+                System.Math.Max(0.1f, stats.AttackDamage * 10f);
+        }
+
+        var total = allied + hostile;
+        return total <= 0f ? 1f : allied / total;
+    }
 
     // §105.14: враг ушёл (или вышел потолок) — теперь можно вставать. Зеркало
     // выхода из комы: грация подъёма и отпущенный лежачий след.
     internal static void EndPlayDead(WorldState world, NPCState npc, string reason)
     {
+        var dangerous = Spec118.Enabled && HostileNearby(world, npc) &&
+            (reason == "OwnCrisis" || reason == "AllyDying");
+        if (dangerous)
+        {
+            AttributeMath.Train(npc, AttributeKind.Toughness,
+                Spec118.DangerousRiseToughnessTraining);
+            Trace.Emit(world, npc.Id, "DangerousRise",
+                $"Reason={reason} Toughness={npc.Attributes.Toughness:F3}");
+        }
+
         npc.Mind.PlayDeadUntilTick = 0;
         npc.Mind.PlayDeadSinceTick = 0;
         npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // §41.5
@@ -544,7 +772,7 @@ internal static class MortalityHelpers
     // лежит «умирающей» уже после того, как её напоили).
     internal static void TryExitAfterAid(WorldState world, NPCState npc)
     {
-        if (npc.IsDying && CanStandUp(npc, npc.Mind.DyingCause))
+        if (npc.IsDying && CanStandUp(world, npc, npc.Mind.DyingCause))
         {
             ExitDying(world, npc, "Aided");
         }
@@ -579,6 +807,51 @@ internal static class MortalityHelpers
             {
                 npc.Health = 0f;
                 Trace.Emit(world, npc.Id, "VitalPartDestroyed", $"{vital} destroyed by {source}");
+            }
+
+            return;
+        }
+
+        if (Spec118.Enabled)
+        {
+            var critical = WorstCriticalTrauma(npc);
+            if (npc.Body.BloodDeficit >= 1f || critical >= 1f)
+            {
+                var cause = DominantCombatCause(npc);
+                Die(world, npc, cause, source);
+                return;
+            }
+
+            var vitalZero = npc.Body.VitalDestroyed(out var criticalPart);
+            var bloodCrisis = npc.Needs.Blood <= 0f || npc.Body.BloodDeficit > 0f;
+            if (vitalZero || bloodCrisis)
+            {
+                var cause = vitalZero ? DyingCause.VitalCrushed : DyingCause.BloodLoss;
+                if (vitalZero)
+                {
+                    npc.Mind.FaintedUntilTick = System.Math.Max(
+                        npc.Mind.FaintedUntilTick, world.Tick + Spec118.VitalKnockoutTicks);
+                    Trace.Emit(world, npc.Id, "VitalKnockout",
+                        $"{criticalPart} reached zero after {source}; trauma={critical:F3}");
+                }
+
+                if (npc.IsDying && !IsDepthCause(npc.Mind.DyingCause))
+                {
+                    npc.Mind.DyingCause = DyingCause.None;
+                }
+
+                if (!npc.IsDying)
+                {
+                    EnterDying(world, npc, cause);
+                }
+                else
+                {
+                    npc.Mind.DyingCause = DominantCombatCause(npc);
+                    npc.Mind.DyingReserve = 1f - MathUtil.Clamp01(CombatDepth(npc));
+                    npc.Health = System.Math.Max(npc.Body.Mean(), Spec105.BodyFloor);
+                }
+
+                return;
             }
 
             return;

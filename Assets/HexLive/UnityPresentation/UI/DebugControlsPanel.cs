@@ -4,6 +4,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
+using HexLive.UnityPresentation.Localization;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -35,6 +36,9 @@ namespace HexLive.UnityPresentation.UI
 
         [SerializeField] private SimulationRunnerBehaviour _runner;
         [SerializeField] private BugReportPanel _bugReportPanel;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private IRuntimeConsole _runtimeConsole;
+#endif
 
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.94f);
         private static readonly Color Raised = new(0.133f, 0.165f, 0.192f);
@@ -61,6 +65,10 @@ namespace HexLive.UnityPresentation.UI
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
 
         public void SetBugReportPanel(BugReportPanel panel) => _bugReportPanel = panel;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        internal void SetRuntimeConsole(IRuntimeConsole runtimeConsole) => _runtimeConsole = runtimeConsole;
+#endif
 
         private void Awake()
         {
@@ -96,15 +104,16 @@ namespace HexLive.UnityPresentation.UI
                     : "target: everyone";
             }
 
-            // A "(N fixed)" tail on the bug-tracker button is how the player
-            // learns the agent closed something — refresh it lazily, the count
-            // only moves when BUGS.json does.
+            // A ready-to-test count signals that the player has something to
+            // verify; the agent never confirms a fix on the player's behalf.
             if (_bugLabel != null && Time.unscaledTime >= _nextBugLabelRefresh)
             {
                 _nextBugLabelRefresh = Time.unscaledTime + 2f;
                 BugReportStore.CheckExternalChange();
-                var fixedCount = BugReportStore.CountWithStatus(BugReportStore.StatusFixed);
-                _bugLabel.text = fixedCount > 0 ? $"Bug tracker ({fixedCount} fixed)" : "Bug tracker";
+                var readyCount = BugReportStore.CountWithStatus(BugReportStore.StatusReadyForTest);
+                _bugLabel.text = readyCount > 0
+                    ? string.Format(Loc.Get("bugs.debug.ready"), readyCount)
+                    : "Report bug";
             }
         }
 
@@ -190,10 +199,18 @@ namespace HexLive.UnityPresentation.UI
             _fogSelectedLabel = (Label)_fogSelectedButton[0];
             box.Add(_fogSelectedButton);
 
-            var bugButton = MakeButton("Bug tracker", new Color(0.28f, 0.38f, 0.55f),
-                () => _bugReportPanel?.Toggle());
+            var bugButton = MakeButton("Report bug", new Color(0.28f, 0.38f, 0.55f),
+                () => _bugReportPanel?.ToggleQuick());
             _bugLabel = (Label)bugButton[0];
             box.Add(bugButton);
+
+            box.Add(MakeButton("Bug manager", Raised,
+                () => _bugReportPanel?.ToggleManager()));
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            box.Add(MakeButton(Loc.Get("console.debug_button"), Raised,
+                () => _runtimeConsole?.Toggle()));
+#endif
 
             BuildExpandTab(root);
             ApplyCollapsed(); // hidden by default

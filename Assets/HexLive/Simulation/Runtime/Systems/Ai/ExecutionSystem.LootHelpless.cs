@@ -122,7 +122,7 @@ public sealed partial class ExecutionSystem
 
             Trace.Emit(world, npc.Id, "LootHelplessStarted",
                 $"Mark=NPC{mark.Id.Value} Items={mark.Inventory.Items.Count} " +
-                $"Weapon={GearCatalog.BestMeleeWeapon(mark.Inventory.Items, mark.Body.IntactHands)} " +
+                $"Weapon={GearCatalog.BestMeleeWeapon(mark.Inventory.Items, mark.Body.WeaponHands)} " +
                 $"Witnesses={witnesses}");
             return;
         }
@@ -182,7 +182,7 @@ public sealed partial class ExecutionSystem
         {
             Trace.Emit(world, npc.Id, "StrippedHelpless",
                 $"Mark=NPC{mark.Id.Value} Count={npc.Mind.LootHelplessTakenCount} " +
-                $"Weapon={GearCatalog.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands)}");
+                $"Weapon={GearCatalog.BestMeleeWeapon(npc.Inventory.Items, npc.Body.WeaponHands)}");
         }
 
         if (npc.Plan.TargetJunctionId is { } jId)
@@ -248,7 +248,7 @@ public sealed partial class ExecutionSystem
         {
             Trace.Emit(world, npc.Id, "StrippedHelpless",
                 $"Mark=NPC{tookFromId.Value} Count={npc.Mind.LootHelplessTakenCount} " +
-                $"Weapon={GearCatalog.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands)}");
+                $"Weapon={GearCatalog.BestMeleeWeapon(npc.Inventory.Items, npc.Body.WeaponHands)}");
         }
 
         if (npc.Plan.TargetJunctionId is { } jId)

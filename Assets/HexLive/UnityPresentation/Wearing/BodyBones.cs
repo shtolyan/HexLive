@@ -146,6 +146,16 @@ public sealed class BodyBones : MonoBehaviour
     // rather than scanned every frame — LateUpdate runs on every dressed body
     // in the colony, so it must stay a field read.
     private HeelPose _heel;
+    private float _heelPoseWeight = 1f;
+    private float _heelPoseTarget = 1f;
+    private const float HeelPoseTransitionSeconds = 0.12f;
+
+    public float HeelPoseWeight => _heelPoseWeight;
+
+    public void SetHeelPoseSuppressed(bool suppressed)
+    {
+        _heelPoseTarget = suppressed ? 0f : 1f;
+    }
 
     private void RefreshHeel()
     {
@@ -166,24 +176,29 @@ public sealed class BodyBones : MonoBehaviour
     // Nothing accumulates — each frame starts from what the animation wrote.
     private void LateUpdate()
     {
+        _heelPoseWeight = Mathf.MoveTowards(
+            _heelPoseWeight,
+            _heelPoseTarget,
+            Time.unscaledDeltaTime / HeelPoseTransitionSeconds);
+
         if (_heel.Any == false)
         {
             return;
         }
 
         var axis = _heel.Axis;
-        Pitch(GetBone("lFoot"), axis, _heel.footDegrees);
-        Pitch(GetBone("rFoot"), axis, _heel.footDegrees);
-        Pitch(GetBone("lToe"), axis, _heel.toeDegrees);
-        Pitch(GetBone("rToe"), axis, _heel.toeDegrees);
+        Pitch(GetBone("lFoot"), axis, _heel.footDegrees * _heelPoseWeight);
+        Pitch(GetBone("rFoot"), axis, _heel.footDegrees * _heelPoseWeight);
+        Pitch(GetBone("lToe"), axis, _heel.toeDegrees * _heelPoseWeight);
+        Pitch(GetBone("rToe"), axis, _heel.toeDegrees * _heelPoseWeight);
 
         // Standing on the ball of the foot instead of the sole makes her taller;
         // without the lift she sinks into the ground by exactly the heel height.
-        // Along the BODY's up, not the world's, so it still reads when she is
-        // knocked over or lying down.
+        // Along the BODY's up, not the world's; seated/lying/swimming postures
+        // fade this entire correction to zero through heelPoseWeight.
         if (hip != null && Mathf.Abs(_heel.lift) > 0.0001f)
         {
-            hip.position += transform.up * _heel.lift;
+            hip.position += transform.up * (_heel.lift * _heelPoseWeight);
         }
     }
 

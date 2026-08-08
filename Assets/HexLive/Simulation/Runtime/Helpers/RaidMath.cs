@@ -40,7 +40,7 @@ public static class RaidMath
             return false;
         }
 
-        var weaponId = SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands);
+        var weaponId = SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.WeaponHands);
         return GearCatalog.For(weaponId).MeleePriority > 0;
     }
 

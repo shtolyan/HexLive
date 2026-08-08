@@ -448,7 +448,32 @@ namespace HexLive.UnityPresentation.Environment
         {
             var go = Instantiate(product, out var asm);
             asm?.ApplyAll();
+            EnsureSleepPoint(go, product);
             return go;
+        }
+
+        private static void EnsureSleepPoint(GameObject? root, string product)
+        {
+            if (root == null || product is not (ContentIds.BedBasic or ContentIds.BedLeaf))
+            {
+                return;
+            }
+
+            foreach (var child in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == "point") return;
+            }
+
+            // Native FBX files deliberately contain only renderable construction
+            // pieces. Add the same authored sleep marker the former prefab-based
+            // beds used, so sleeping height never falls back to renderer bounds.
+            // The FBX root carries Blender's X=-90° axis conversion, therefore
+            // world-up must be converted into that root's local space.
+            var point = new GameObject("point");
+            point.transform.SetParent(root.transform, false);
+            var height = product == ContentIds.BedBasic ? 0.54f : 0.0615f;
+            point.transform.localPosition = root.transform.InverseTransformVector(
+                Vector3.up * height);
         }
 
         /// A build-site in progress — only the delivered pieces of each material.

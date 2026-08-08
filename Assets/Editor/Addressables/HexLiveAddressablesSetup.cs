@@ -16,10 +16,11 @@ using UnityEngine;
 //  Как устроено. Две переменные профиля:
 //    * HexLiveContent.BuildPath — куда Addressables КЛАДЁТ собранный контент
 //      (внутри проекта, в Build/, не в Assets — иначе Unity его импортирует);
-//    * HexLiveContent.LoadPath  — откуда игра его БЕРЁТ: папка рядом с exe.
-//      В плеере `Application.dataPath` — это <игра>_Data, значит `..` —
-//      каталог самой игры. В редакторе то же выражение указывает в корень
-//      проекта, что удобно: положил туда контент и проверил как в билде.
+//    * HexLiveContent.LoadPath  — каталоговый (legacy) адрес контента. На
+//      Windows/Linux `Application.dataPath/..` уже означает папку рядом с exe;
+//      на macOS это попало бы внутрь .app, поэтому рантайм
+//      ExternalContentPath переписывает его на общую HexLiveContent рядом с
+//      .app. Старые каталоги и бандлы благодаря этому не пересобираются.
 //
 //  ⭐ В РЕДАКТОРЕ бандлы не нужны вовсе. Режим воспроизведения ставится в
 //  «Use Asset Database»: игра берёт ассеты напрямую из проекта, правка видна
@@ -37,7 +38,9 @@ public static class HexLiveAddressablesSetup
     // должен, иначе они же поедут и в билд — ровно то, от чего уходим.
     public const string BuildPathValue = "Build/AddressableContent/[BuildTarget]";
 
-    // Рядом с игрой. Имя папки — то же, что кладём в дистрибутив.
+    // Каталоговый адрес. На macOS ExternalContentPath переносит его из .app в
+    // общую папку рядом с приложением; строку сохраняем ради совместимости с
+    // уже собранным каталогом.
     public const string ContentFolderName = "HexLiveContent";
     public const string LoadPathValue =
         "{UnityEngine.Application.dataPath}/../" + ContentFolderName + "/[BuildTarget]";
@@ -66,6 +69,13 @@ public static class HexLiveAddressablesSetup
         settings.BuildRemoteCatalog = true;
         settings.RemoteCatalogBuildPath.SetVariableByName(settings, BuildPathVariable);
         settings.RemoteCatalogLoadPath.SetVariableByName(settings, LoadPathVariable);
+
+        // Player Build must only package the executable. Value 0 means
+        // "use the global Editor preference" (which defaults to ON), not OFF;
+        // keep this explicit so a normal build never spends tens of minutes
+        // rebuilding the external wardrobe bundles.
+        settings.BuildAddressablesWithPlayerBuild =
+            AddressableAssetSettings.PlayerBuildOption.DoNotBuildWithPlayer;
 
         foreach (var group in settings.groups)
         {

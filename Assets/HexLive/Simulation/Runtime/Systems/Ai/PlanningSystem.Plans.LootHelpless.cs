@@ -117,7 +117,8 @@ public sealed partial class PlanningSystem
 
     // Снять заявку ОБЯЗАТЕЛЬНО во ВСЕХ выходах: забытая метка делает тело
     // «занятым навсегда», и больше его не тронет никто (урок §81).
-    internal static void AbandonLootHelpless(WorldState world, NPCState npc, string reason)
+    internal static void AbandonLootHelpless(
+        WorldState world, NPCState npc, string reason, int cooldownTicks = -1)
     {
         if (npc.Mind.LootHelplessTargetNpcId is { } markId &&
             world.Entities.Npcs.TryGetValue(markId, out var mark) &&
@@ -130,7 +131,8 @@ public sealed partial class PlanningSystem
         npc.Mind.LootHelplessTakenCount = 0;
         // §89: срыв — не попытка. Полный кулдаун вешает только сыгранная сцена,
         // здесь короткая передышка, чтобы он не молотил планами каждый тик.
-        npc.Mind.LootHelplessCooldownUntilTick = world.Tick + Spec111.LootHelplessRetryTicks;
+        npc.Mind.LootHelplessCooldownUntilTick = world.Tick +
+            (cooldownTicks >= 0 ? cooldownTicks : Spec111.LootHelplessRetryTicks);
         if (npc.Mind.CurrentGoal == GoalType.LootHelpless)
         {
             npc.Mind.CurrentGoal = GoalType.None;

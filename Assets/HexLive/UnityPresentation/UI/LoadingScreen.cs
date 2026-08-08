@@ -56,7 +56,19 @@ namespace HexLive.UnityPresentation.UI
         // the player watches days roll by, not raw ticks.
         private Label _timeReadout;
 
-        private void OnEnable() => IsActive = true;
+        private void OnEnable()
+        {
+            IsActive = true;
+
+            // Unity's timeScale survives Enter Play Mode when domain reload is
+            // disabled, and can also be stranded at zero by an in-play script
+            // reload while the Escape menu is open. The simulation uses its
+            // own unscaled clock, so that stale zero produces the exact split
+            // the player sees: roots move, scaled-time Animators stay frozen.
+            // Loading owns the whole display now; no gameplay menu pause needs
+            // preserving across this boundary.
+            Time.timeScale = 1f;
+        }
 
         private void OnDestroy()
         {
@@ -800,6 +812,12 @@ namespace HexLive.UnityPresentation.UI
             NpcSelection.Clear();
             NpcSelection.Select(FindOpeningTarget(npcs));
 
+            // Let the character bar finish one layout pass, then place the
+            // camera synchronously. The world is paused, so its ordinary
+            // SmoothDamp path cannot reach the selected NPC before fade-out.
+            yield return null;
+            FindFirstObjectByType<RtsCameraController>()?.SnapToSelectedTarget();
+
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;
 
@@ -818,6 +836,10 @@ namespace HexLive.UnityPresentation.UI
 
             if (!_runner.IsCompleted)
             {
+                // Explicit hand-off invariant: model clock and Unity's visual
+                // clock both leave loading alive. Escape -> Continue used to
+                // repair a stale zero here accidentally.
+                Time.timeScale = 1f;
                 _runner.Resume();
             }
 
@@ -896,6 +918,13 @@ namespace HexLive.UnityPresentation.UI
                 yield return null;
             }
 
+            yield return WaitForActors(npcs);
+
+            NpcSelection.Clear();
+            NpcSelection.Select(FindOpeningTarget(npcs));
+            yield return null;
+            FindFirstObjectByType<RtsCameraController>()?.SnapToSelectedTarget();
+
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;
 
@@ -911,11 +940,9 @@ namespace HexLive.UnityPresentation.UI
                 yield return null;
             }
 
-            NpcSelection.Clear();
-            // §74: the remote branch kept calling the deleted name-based lookup
-            // long after the local one moved to FindOpeningTarget — the rename
-            // was applied to one of the two copies of this ending.
-            NpcSelection.Select(FindOpeningTarget(npcs));
+            // The server owns simulation pause, but the local presentation
+            // still owns Unity's Animator clock.
+            Time.timeScale = 1f;
 
             // No Resume(), no autosave: the server owns both.
             Destroy(gameObject);
@@ -976,7 +1003,12 @@ namespace HexLive.UnityPresentation.UI
                 ids.Add(npc.id);
             }
 
-            while (!renderer.ActorsReady(ids) || !Wearing.Garments.ContentQueue.IsIdle)
+            // Queue first is load-bearing short-circuiting. ActorsReady applies
+            // the now-cached wardrobe to a paused actor; calling it while an
+            // Addressables prewarm is still running could fall through to the
+            // synchronous GetVisuals path from inside this coroutine — the
+            // exact WaitForCompletion deadlock fixed in 105199ce.
+            while (!Wearing.Garments.ContentQueue.IsIdle || !renderer.ActorsReady(ids))
             {
                 // Прогресс НАСТОЯЩИЙ: сделано из всего, что заказано. Полоска
                 // на этом участке живёт в верхней четверти — терраген и прогрев

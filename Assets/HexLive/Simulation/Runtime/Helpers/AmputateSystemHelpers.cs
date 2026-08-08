@@ -26,7 +26,7 @@ public static class AmputateSystemHelpers
     // otherwise the torso/pelvis the stump hangs from.
     public static BodyPart RedirectFromStump(NPCState npc, BodyPart part)
     {
-        if (!npc.Body.IsSevered(part))
+        if (!npc.Body.IsSevered(part) || npc.Body.Condition(part).Prosthetic != null)
         {
             return part;
         }
@@ -67,6 +67,37 @@ public static class AmputateSystemHelpers
         }
     }
 
+    public static void TrySeverCritical(
+        WorldState world, NPCState npc, BodyPart part, float cutDamage, string source)
+    {
+        if (!Spec118.Enabled || !CanSever(part) || npc.Body.IsSevered(part) ||
+            cutDamage <= 0f)
+        {
+            return;
+        }
+
+        var condition = npc.Body.Condition(part);
+        if (condition.CriticalTrauma < 1f)
+        {
+            return;
+        }
+
+        if (condition.SplintSupport > 0f)
+        {
+            var credit = condition.SplintSupport * Spec118.SplintSeverCredit;
+            condition.CriticalTrauma = System.Math.Max(0f, 1f - credit);
+            condition.SplintSupport = 0f;
+            Trace.Emit(world, npc.Id, "SplintSavedLimb", $"{part} credit={credit:F3}");
+            return;
+        }
+
+        if (condition.CriticalTrauma >= 1f)
+        {
+            Sever(world, npc, part);
+            Trace.Emit(world, npc.Id, "CriticalAmputation", $"{part} source={source}");
+        }
+    }
+
     // §50 dev/test entry: land ONE bite on a part exactly like a dog/shark —
     // dock the zone's HP, bleed a little, file the wound decal, then run the
     // sever-on-bite check. Used by the AmputationTest scene's damage buttons so
@@ -78,17 +109,8 @@ public static class AmputateSystemHelpers
             return;
         }
 
-        npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - damage);
-        npc.Health = npc.Body.Mean();
-        DamageReactionSystemHelpers.GrantAdrenaline(world, npc, damage, "DebugBite");
-        npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - damage * 0.5f);
-        WoundMath.Inflict(world, npc, part, damage);
-
-        // §105: как в симуляции — голова в ноль убивает сразу, грудь роняет в
-        // умирание, по уже лежащей удар срезает запас. Limbs may tear off.
-        MortalityHelpers.ResolveTrauma(world, npc, damage, "debug");
-
-        TrySeverOnBite(world, npc, part, damage);
+        BodyDamageResolver.ApplyLanded(world, npc, part, damage,
+            new DamageProfile(0.90f, 1.20f), "debug");
     }
 
     // Take the limb off for good: pin the zone to 0 (never regenerates), dump
@@ -104,7 +126,9 @@ public static class AmputateSystemHelpers
 
         npc.Body.Sever(part);
         npc.Health = npc.Body.Mean();
-        npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - Spec50.LimbSeverBloodLoss);
+        BodyDamageResolver.DrainBlood(npc, Spec118.Enabled
+            ? Spec118.StumpBloodLoss
+            : Spec50.LimbSeverBloodLoss);
 
         // Spec §52: a lost arm is a lost hand slot — the pack shrinks. Anything
         // that no longer fits spills to the ground (handled by SpillOverflow).
@@ -116,7 +140,9 @@ public static class AmputateSystemHelpers
 
         // The stump bleeds: a deep fresh wound §44 clotting keeps open a while,
         // driving the ongoing Blood drain through the low-part bleed path.
-        WoundMath.Inflict(world, npc, part, Spec50.LimbSeverWoundSeverity);
+        WoundMath.InflictCut(world, npc, part,
+            Spec118.Enabled ? Spec118.StumpWoundSeverity : Spec50.LimbSeverWoundSeverity,
+            1.4f);
 
         // Drop the limb at her feet as a decaying world object (mirrors corpse).
         var dropJunction = npc.CurrentJunction;

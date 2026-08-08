@@ -1,4 +1,5 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
@@ -116,9 +117,10 @@ public static class LootHelplessMath
     }
 
     /// <summary>
-    /// Осталось ли что снять. Только карманы: подсумок §52.8 живёт в том же
-    /// списке (<c>HolsterSlotIds</c> — производный набор id, а не второе
-    /// хранилище), а надетое не трогаем — раздевание тел это §28.15F.
+    /// Осталось ли гарантированное основание для начала сцены. Подсумок §52.8
+    /// живёт в том же списке (<c>HolsterSlotIds</c> — производный набор id, а
+    /// не второе хранилище). Одежда сама по себе не начинает сцену: её можно
+    /// снять только как один вероятностный финал уже начавшегося обыска.
     /// </summary>
     public static bool HasLoot(NPCState victim) =>
         victim is not null && victim.Inventory.Items.Count > 0;
@@ -188,20 +190,68 @@ public static class LootHelplessMath
     {
         takenId = null;
         var index = NextSpoilIndex(world, victim);
-        if (index < 0)
+        if (index >= 0)
+        {
+            var spoil = victim.Inventory.Items[index];
+            if (!InventoryMath.MakeRoomFor(world, looter, spoil.DefinitionId))
+            {
+                return false;
+            }
+
+            victim.Inventory.Items.RemoveAt(index);
+            looter.Inventory.Items.Add(spoil);
+            takenId = spoil.DefinitionId;
+            return true;
+        }
+
+        if (!TryPickWornSpoil(world, looter, victim, out var garment))
         {
             return false;
         }
 
-        var spoil = victim.Inventory.Items[index];
-        if (!InventoryMath.MakeRoomFor(world, looter, spoil.DefinitionId))
+        if (!InventoryMath.MakeRoomFor(world, looter, garment.DefinitionId))
         {
             return false;
         }
 
-        victim.Inventory.Items.RemoveAt(index);
-        looter.Inventory.Items.Add(spoil);
-        takenId = spoil.DefinitionId;
+        victim.WornItems.Remove(garment);
+        // Одежда задаёт защиту и ёмкость карманов жертвы. Потеря куртки может
+        // вытолкнуть лишние вещи на землю, поэтому порядок обязателен: сперва
+        // снять, затем пересчитать и штатно пролить переполнение.
+        EquipmentMath.Recalculate(world, victim);
+        InventoryMath.SpillOverflow(world, victim);
+        looter.Inventory.Items.Add(garment);
+        takenId = garment.DefinitionId;
+        return true;
+    }
+
+    private static bool TryPickWornSpoil(
+        WorldState world, NPCState looter, NPCState victim, out ItemInstance garment)
+    {
+        garment = null;
+        if (victim.WornItems.Count == 0)
+        {
+            return false;
+        }
+
+        var affinity = looter.Social.GetOrCreate(victim.Id).Affinity;
+        var hate = MathUtil.Clamp01(-affinity);
+        var chance = MathUtil.Clamp01(
+            Spec111.LootHelplessGarmentBaseChance +
+            MathUtil.Clamp01(looter.Needs.Stress) * Spec111.LootHelplessGarmentStressBonus +
+            hate * Spec111.LootHelplessGarmentHateBonus);
+        var roll = MathUtil.Hash01(world.Seed, world.Tick, looter.Id.Value,
+            victim.Id.Value ^ 11147);
+        if (roll >= chance)
+        {
+            return false;
+        }
+
+        var pick = (int)(MathUtil.Hash01(world.Seed, world.Tick, looter.Id.Value,
+            victim.Id.Value ^ 11148) * victim.WornItems.Count);
+        garment = victim.WornItems[pick >= victim.WornItems.Count
+            ? victim.WornItems.Count - 1
+            : pick];
         return true;
     }
 
@@ -221,7 +271,7 @@ public static class LootHelplessMath
         {
             if (GearCatalog.For(item.DefinitionId).MeleePriority > 0 &&
                 GearCatalog.AddsValueOver(looter.Inventory.Items, item.DefinitionId,
-                    looter.Body.IntactHands))
+                    looter.Body.WeaponHands))
             {
                 return true;
             }

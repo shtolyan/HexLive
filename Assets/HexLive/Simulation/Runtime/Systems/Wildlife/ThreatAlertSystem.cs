@@ -198,7 +198,7 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             return false;
         }
 
-        var weaponId = SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands);
+        var weaponId = SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.WeaponHands);
         return Content.GearCatalog.For(weaponId).MeleePriority > 0;
     }
 
@@ -229,7 +229,7 @@ public sealed class ThreatAlertSystem : ISimulationSystem
         // §52: both hands on the spear before the charge, not at first blood.
         if (npc.Body.IntactHands >= 2 &&
             Content.GearCatalog.For(SimBalance.BestMeleeWeapon(
-                npc.Inventory.Items, npc.Body.IntactHands)).TwoHanded)
+                npc.Inventory.Items, npc.Body.WeaponHands)).TwoHanded)
         {
             MobSystem.ReadySpearHands(world, npc);
         }

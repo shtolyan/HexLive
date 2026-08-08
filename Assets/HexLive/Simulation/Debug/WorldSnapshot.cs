@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 
 namespace HexLive.Simulation.Debug
 {
@@ -305,6 +306,12 @@ public sealed class NpcSnapshot
 
     public float Health { get; set; }
 
+    // Weapon cards need the stable personality and the four independent
+    // multipliers rather than reverse-engineering them from a displayed total.
+    public float CompassionTrait { get; set; }
+
+    public MeleeStatsSnapshot MeleeStats { get; set; } = new();
+
     public bool IsFighting { get; set; }
 
     // ⭐ §104 r10: С КЕМ она дерётся (-1 — ни с кем). Вид наводит боевой IK на
@@ -370,6 +377,18 @@ public sealed class NpcSnapshot
 
     // Spec 44: zones dressed with a herbal bandage — leaf-wrap decal.
     public List<string> BandagedZones { get; } = new();
+
+    // §116/v12: typed body data. Legacy strings remain for old presentation
+    // consumers during the migration, but new UI and wire code use these.
+    public List<BodyPartConditionSnapshot> BodyPartConditions { get; } = new();
+
+    public float BloodDeficit { get; set; }
+
+    public int? CarriedNpcId { get; set; }
+
+    public int? CarriedByNpcId { get; set; }
+
+    public int? RescueDestinationObjectId { get; set; }
 
     public float Hunger { get; set; }
 
@@ -653,6 +672,8 @@ public sealed class NpcSnapshot
     // whose exact spot/look derive from seed and whose alpha fades with heal.
     public List<string> Wounds { get; } = new();
 
+    public List<WoundSnapshot> OpenWounds { get; } = new();
+
     // Spec §48: active effects, "Kind\tintensity[\tdetailKey]" each — derived
     // read-only by EffectEvaluator. The optional localized detail explains the
     // concrete reason for coma/fainting/crying/dying in the hover tooltip.
@@ -703,6 +724,70 @@ public sealed class NpcSnapshot
     public List<JunctionId> Path { get; } = new();
 
     public List<GoalScoreSnapshot> GoalScores { get; } = new();
+}
+
+public sealed class BodyPartConditionSnapshot
+{
+    public BodyPart Part { get; set; }
+    public float Health { get; set; }
+    public float Armor { get; set; }
+    public float CriticalTrauma { get; set; }
+    public float BluntDamage { get; set; }
+    public float SplintSupport { get; set; }
+    public float HitBias { get; set; } = 1f;
+    public bool Severed { get; set; }
+    public string BandageKind { get; set; } = string.Empty;
+    public ProstheticSnapshot Prosthetic { get; set; }
+}
+
+public sealed class MeleeStatsSnapshot : System.IEquatable<MeleeStatsSnapshot>
+{
+    public float LimbMultiplier { get; set; } = 1f;
+    public float StrengthMultiplier { get; set; } = 1f;
+    public float CombatMultiplier { get; set; } = 1f;
+    public float AgilityRecoveryMultiplier { get; set; } = 1f;
+
+    public bool Equals(MeleeStatsSnapshot other) =>
+        other is not null &&
+        LimbMultiplier.Equals(other.LimbMultiplier) &&
+        StrengthMultiplier.Equals(other.StrengthMultiplier) &&
+        CombatMultiplier.Equals(other.CombatMultiplier) &&
+        AgilityRecoveryMultiplier.Equals(other.AgilityRecoveryMultiplier);
+
+    public override bool Equals(object obj) => Equals(obj as MeleeStatsSnapshot);
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            var hash = LimbMultiplier.GetHashCode();
+            hash = (hash * 397) ^ StrengthMultiplier.GetHashCode();
+            hash = (hash * 397) ^ CombatMultiplier.GetHashCode();
+            return (hash * 397) ^ AgilityRecoveryMultiplier.GetHashCode();
+        }
+    }
+}
+
+public sealed class ProstheticSnapshot
+{
+    public string DefinitionId { get; set; } = string.Empty;
+    public BodyPart Part { get; set; }
+    public float Condition { get; set; }
+    public float MaxCondition { get; set; }
+    public float Function { get; set; }
+    public bool Mechanical { get; set; }
+}
+
+public sealed class WoundSnapshot
+{
+    public int Id { get; set; }
+    public BodyPart Part { get; set; }
+    public float Severity { get; set; }
+    public float Heal01 { get; set; }
+    public float Clot01 { get; set; }
+    public bool Stabilized { get; set; }
+    public float BleedFactor { get; set; }
+    public int Seed { get; set; }
 }
 
 public sealed class RelationshipSnapshot

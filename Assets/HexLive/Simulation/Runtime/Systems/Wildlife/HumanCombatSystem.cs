@@ -33,13 +33,28 @@ public sealed class HumanCombatSystem : ISimulationSystem
 
         foreach (var actor in world.Entities.Npcs.Values)
         {
-            if (actor.Mind.CombatOpponentNpcId is not { } opponentId ||
-                actor.Health <= 0f ||
-                actor.IsUnconscious(world.Tick) ||
-                actor.Body.IsProne ||
-                !world.Entities.Npcs.TryGetValue(opponentId, out var opponent) ||
-                opponent.Health <= 0f)
+            if (actor.Mind.CombatOpponentNpcId is not { } opponentId)
             {
+                continue;
+            }
+
+            if (actor.Health <= 0f || actor.IsUnconscious(world.Tick) || actor.Body.IsProne ||
+                !world.Entities.Npcs.TryGetValue(opponentId, out var opponent) ||
+                opponent.Health <= 0f || opponent.IsUnconscious(world.Tick) || opponent.Body.IsProne)
+            {
+                HumanCombatPairing.ClearFor(world, actor);
+                CombatHelpSystem.ClearAssist(actor);
+                continue;
+            }
+
+            // Water ends an existing human pair instead of leaving a swing
+            // slot and assist lock alive on opposite sides of the shoreline.
+            if (!CombatMedium.NpcMelee(world, actor, opponent) &&
+                (CombatMedium.IsNpcSwimming(world, actor) ||
+                 CombatMedium.IsNpcSwimming(world, opponent)))
+            {
+                HumanCombatPairing.ClearFor(world, actor);
+                CombatHelpSystem.ClearAssist(actor);
                 continue;
             }
 
@@ -62,24 +77,6 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // keeps (AnimalCombatSystem.ClampToHoldDistance).
             HoldStandOff(world, actor, opponent);
 
-            var inReach = InteractionReach.CanStrike(world, actor, opponent);
-            if (!MeleeSwing.TryAdvanceSwing(world, actor, inReach,
-                    out var damage, out var weaponId, out var clipSeconds))
-            {
-                continue;
-            }
-
-            if (!inReach || damage <= 0f)
-            {
-                continue; // the swing resolved into thin air — she stepped away
-            }
-
-            // §97: «нападает» — это и налёт, и сцена абьюза. Без второй половины
-            // ЕГО удары помечались как ответные (RaidFoughtBack), и по логу было
-            // не разобрать, кто кого бьёт.
-            // §108: и третья половина — групповая охота. Тут «нападает» уже
-            // ОНА, и без этой ветки её удары попадали бы в лог как ответные,
-            // то есть расправа читалась бы как самооборона.
             var hunting = FactionRelations.AreHostile(actor, opponent) &&
                 actor.Mind.CurrentGoal == GoalType.GroupHunt &&
                 actor.Mind.GroupHuntTargetNpcId is { } huntTarget &&
@@ -91,15 +88,33 @@ public sealed class HumanCombatSystem : ISimulationSystem
                 actor.Mind.CurrentGoal == GoalType.Expel &&
                 actor.Mind.ExpulsionTargetNpcId is { } expelTarget &&
                 expelTarget.Equals(opponent.Id);
-            // Множитель налёта — только настоящему налёту. У сцены абьюза свой
-            // регулятор: чем она бьёт (лестница ненависти) и сколько ударов.
-            if (raiding && actor.Mind.CurrentGoal == GoalType.Raid)
+            var damageMultiplier = raiding && actor.Mind.CurrentGoal == GoalType.Raid
+                ? Spec72.RaidStrikeDamageMult
+                : 1f;
+
+            var inReach = InteractionReach.CanStrike(world, actor, opponent);
+            if (!MeleeSwing.TryAdvanceHumanSwing(world, actor, opponent, inReach,
+                    damageMultiplier, out var damage, out var weaponId, out var clipSeconds))
             {
-                // The one dial that softens the raider without touching the gear
-                // sheets the girls swing too.
-                damage *= Spec72.RaidStrikeDamageMult;
+                continue;
             }
 
+            if (!inReach || damage <= 0f)
+            {
+                // The selected part/intent belongs to this resolved wind-up.
+                // Never let a miss leak that decision into the next swing.
+                actor.PendingHumanStrikeTargetId = null;
+                actor.PendingHumanStrikeKillAuthorized = false;
+                actor.PendingHumanStrikeKillIntent = 0f;
+                continue; // the swing resolved into thin air — she stepped away
+            }
+
+            // §97: «нападает» — это и налёт, и сцена абьюза. Без второй половины
+            // ЕГО удары помечались как ответные (RaidFoughtBack), и по логу было
+            // не разобрать, кто кого бьёт.
+            // §108: и третья половина — групповая охота. Тут «нападает» уже
+            // ОНА, и без этой ветки её удары попадали бы в лог как ответные,
+            // то есть расправа читалась бы как самооборона.
             // §103: постановочная сцена САМА считает свои удары и сама решает,
             // когда открыть следующий замах — см. AI/FightScene. Здесь стоял
             // блок, знавший про абьюз поимённо: он различал бьющего и
@@ -132,7 +147,8 @@ public sealed class HumanCombatSystem : ISimulationSystem
                     $"NPC{opponent.Id.Value} ({opponent.DisplayName}) killed by " +
                     $"NPC{actor.Id.Value} ({actor.DisplayName}) at " +
                     $"Tile={opponent.Tile.Q},{opponent.Tile.R}");
-                actor.Mind.CombatOpponentNpcId = null;
+                HumanCombatPairing.ClearFor(world, opponent);
+                CombatHelpSystem.ClearAssist(opponent);
             }
         }
     }

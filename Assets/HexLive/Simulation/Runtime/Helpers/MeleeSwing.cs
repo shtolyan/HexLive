@@ -42,6 +42,15 @@ internal static class MeleeSwing
     internal static int SecondsToTicks(float seconds) =>
         System.Math.Max(1, (int)System.Math.Round(seconds * TicksPerSecond));
 
+    internal static void Cancel(NPCState actor)
+    {
+        actor.StrikeLandsAtTick = 0;
+        actor.AttackAnimUntilTick = 0;
+        actor.SwingStartTick = 0;
+        actor.SwingStrikeIndex = -1;
+        actor.PendingHumanStrikeTargetId = null;
+    }
+
     // Advance this actor's swing by one FAST tick. Returns true when a blow
     // lands this tick (damage/weaponId then describe it); starts a fresh windup
     // when recovered and the target is in reach.
@@ -68,28 +77,53 @@ internal static class MeleeSwing
     /// </summary>
     internal static bool TryAdvanceSwing(
         WorldState world, NPCState actor, bool inReach, string weaponId,
+        out float damage, out float clipSeconds) =>
+        TryAdvanceSwingCore(
+            world, actor, inReach, weaponId, null, 1f, out damage, out clipSeconds);
+
+    internal static bool TryAdvanceHumanSwing(
+        WorldState world, NPCState actor, NPCState target, bool inReach,
+        float damageMultiplier, out float damage, out string weaponId, out float clipSeconds)
+    {
+        weaponId = EffectiveWeapon(actor);
+        return TryAdvanceSwingCore(
+            world, actor, inReach, weaponId, target, damageMultiplier,
+            out damage, out clipSeconds);
+    }
+
+    private static bool TryAdvanceSwingCore(
+        WorldState world, NPCState actor, bool inReach, string weaponId,
+        NPCState humanTarget, float damageMultiplier,
         out float damage, out float clipSeconds)
     {
         damage = 0f;
         clipSeconds = 0f;
+
+        // §116: both hands and the torso are committed to the patient. Cancel
+        // a wind-up left over from the instant before pickup as well.
+        if (actor.IsCarryingPerson)
+        {
+            actor.StrikeLandsAtTick = 0;
+            actor.AttackAnimUntilTick = 0;
+            return false;
+        }
 
         var gear = GearCatalog.For(weaponId);
 
         if (actor.StrikeLandsAtTick > 0 && world.Tick >= actor.StrikeLandsAtTick)
         {
             actor.StrikeLandsAtTick = 0;
-            gear.StrikeTimings(actor.SwingStrikeIndex,
-                out var hitDelay, out var duration, out var cooldown);
+            var stats = CombatStatBreakdown.For(actor, weaponId, actor.SwingStrikeIndex);
             // §76: Agility shortens the recovery between swings — the same
             // weapon, swung back into position sooner. The windup (hitDelay)
             // and the animation length are left alone: those are the CLIP, and
             // speeding them up would desync the view's attack window.
             actor.StrikeReadyAtTick = world.Tick + SecondsToTicks(
-                (duration - hitDelay + cooldown) * AttributeMath.AttackCooldownMult(actor));
-            clipSeconds = duration;
+                stats.RecoverySeconds);
+            clipSeconds = stats.AttackDurationSeconds;
             // Spec 19.3C: hurt arms strike weaker; the weapon owns its damage.
             // §76: StrikeFactor() now also carries her Strength and her Combat.
-            damage = GearCatalog.Damage(weaponId) * actor.StrikeFactor();
+            damage = stats.EffectiveDamage * damageMultiplier;
             // §76: a landed blow is the only way Combat is practised. Awarded on
             // the HIT, not on the swing — swinging at air teaches nothing.
             SkillTrace.AwardHit(world, actor);
@@ -103,9 +137,19 @@ internal static class MeleeSwing
                     (int)(MathUtil.Hash01(world.Seed, world.Tick, actor.Id.Value, 777) *
                         gear.StrikeVariants.Length))
                 : -1;
-            gear.StrikeTimings(actor.SwingStrikeIndex, out var hitDelay, out var duration, out _);
-            actor.StrikeLandsAtTick = world.Tick + SecondsToTicks(hitDelay);
-            actor.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
+            var stats = CombatStatBreakdown.For(actor, weaponId, actor.SwingStrikeIndex);
+            if (humanTarget != null)
+            {
+                var decision = HumanStrikeDecision.Choose(
+                    world, actor, humanTarget,
+                    stats.EffectiveDamage * damageMultiplier, weaponId);
+                actor.PendingHumanStrikeTargetId = humanTarget.Id;
+                actor.PendingHumanStrikePart = decision.Part;
+                actor.PendingHumanStrikeKillAuthorized = decision.KillAuthorized;
+                actor.PendingHumanStrikeKillIntent = decision.KillIntent;
+            }
+            actor.StrikeLandsAtTick = world.Tick + SecondsToTicks(stats.HitDelaySeconds);
+            actor.AttackAnimUntilTick = world.Tick + SecondsToTicks(stats.AttackDurationSeconds);
             // ⭐ §103 r4: ШТАМП НАЧАЛА ЗАМАХА — то, по чему вид узнаёт, что бьют.
             //
             // Его здесь НЕ БЫЛО, и это была вся причина «удары есть, анимации
@@ -145,7 +189,7 @@ internal static class MeleeSwing
         !actor.Body.CanUseToolsOrWeapons
             ? string.Empty
             : actor.Mind.ForcedMeleeWeaponId
-              ?? SimBalance.BestMeleeWeapon(actor.Inventory.Items, actor.Body.IntactHands);
+              ?? SimBalance.BestMeleeWeapon(actor.Inventory.Items, actor.Body.WeaponHands);
 
     /// <summary>
     /// Что сейчас должно быть вынуто из кобуры. Одна производная функция для
@@ -198,16 +242,41 @@ internal static class MeleeSwing
     }
 
     // A man aims high — far more torso and head than a dog's leg-first bite.
-    internal static BodyPart PickHumanPart(WorldState world, int actorId)
+    internal static BodyPart PickHumanPart(WorldState world, int actorId, NPCState target)
     {
+        BodyDamageResolver.DecayAllHitBias(world, target);
         var roll = MathUtil.Hash01(world.Seed, world.Tick, actorId, 703);
-        if (roll < 0.45f) return BodyPart.Torso;
-        if (roll < 0.65f) return BodyPart.Head;
-        if (roll < 0.75f) return BodyPart.Pelvis;
-        if (roll < 0.83f) return BodyPart.ArmR;
-        if (roll < 0.90f) return BodyPart.ArmL;
-        if (roll < 0.95f) return BodyPart.LegR;
-        return BodyPart.LegL;
+        return PickWeighted(target, roll,
+            (BodyPart.Torso, 0.45f),
+            (BodyPart.Head, 0.20f),
+            (BodyPart.Pelvis, 0.10f),
+            (BodyPart.ArmR, 0.08f),
+            (BodyPart.ArmL, 0.07f),
+            (BodyPart.LegR, 0.05f),
+            (BodyPart.LegL, 0.05f));
+    }
+
+    internal static BodyPart PickWeighted(
+        NPCState target, float roll,
+        params (BodyPart Part, float Weight)[] weights)
+    {
+        var total = 0f;
+        foreach (var entry in weights)
+        {
+            total += entry.Weight * target.Body.Condition(entry.Part).HitBias;
+        }
+
+        var cursor = MathUtil.Clamp01(roll) * total;
+        foreach (var entry in weights)
+        {
+            cursor -= entry.Weight * target.Body.Condition(entry.Part).HitBias;
+            if (cursor <= 0f)
+            {
+                return entry.Part;
+            }
+        }
+
+        return weights[^1].Part;
     }
 
     // Land a struck blow on a person, through the full established body
@@ -217,8 +286,20 @@ internal static class MeleeSwing
         WorldState world, NPCState attacker, NPCState target,
         float damage, string weaponId, string traceName)
     {
-        var part = AmputateSystemHelpers.RedirectFromStump(
-            target, PickHumanPart(world, attacker.Id.Value));
+        var hasPendingDecision = attacker.PendingHumanStrikeTargetId is { } pendingTarget &&
+            pendingTarget.Equals(target.Id);
+        var fallback = hasPendingDecision
+            ? default
+            : HumanStrikeDecision.Choose(world, attacker, target, damage, weaponId);
+        var part = hasPendingDecision
+            ? AmputateSystemHelpers.RedirectFromStump(target, attacker.PendingHumanStrikePart)
+            : fallback.Part;
+        var killAuthorized = hasPendingDecision
+            ? attacker.PendingHumanStrikeKillAuthorized
+            : fallback.KillAuthorized;
+        var killIntent = hasPendingDecision
+            ? attacker.PendingHumanStrikeKillIntent
+            : fallback.KillIntent;
 
         // ⭐ §104 r5: вот сейчас, вот этим, вот сюда. Единственный сигнал, по
         // которому вид синхронно даёт кровь, отбой тела и звук удара — см.
@@ -228,86 +309,27 @@ internal static class MeleeSwing
         var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only
         var landed = EquipmentMath.Mitigate(world, target, part, damage);
 
-        // §86: пощада. Человек не добивает того, кого не ненавидит: бьёт, пока
-        // тот не сдался, и уходит. До конца доводят только заработанную
-        // ненависть — симпатия падает с каждой сценой насилия (§81), так что
-        // «добьют или нет» становится следствием ИСТОРИИ отношений, а не
-        // отдельной ручки.
-        //
-        // Порог, а не запрет: удар всё равно наносится, рана пишется, кровь
-        // идёт — просто здоровье не проваливается ниже порога. Проигравший
-        // остаётся лежать битым, а не мёртвым.
-        if (Spec86.MercyEnabled && Merciful(world, attacker, target))
+        // Recheck fatality at impact with the SAME selected part. Another
+        // fighter may have wounded the target during this wind-up.
+        var fatalAtImpact = HumanStrikeDecision.IsPotentiallyFatal(target, part, landed);
+        if (!killAuthorized && fatalAtImpact)
         {
-            var floorHp = Spec86.MercyHealthFloor;
-            if (target.Health <= floorHp)
-            {
-                landed = 0f;
-            }
-            else
-            {
-                // Не дать этому удару перепрыгнуть порог.
-                var room = (target.Health - floorHp) * target.Body.Parts.Count;
-                landed = System.Math.Min(landed, room);
-            }
-
-            // Пощада работает и ПО ЧАСТЯМ, не только по среднему. room выше
-            // конвертирует запас СРЕДНЕГО в урон одной части — это до ×7 её
-            // максимума, поэтому серия ударов в одну голову уничтожала Head
-            // (VitalDestroyed → мгновенная смерть) задолго до порога пощады.
-            // Часть под ударом не опускается ниже MercyPartFloor — ни
-            // мгновенная смерть, ни отрыв конечности (TrySeverOnBite требует
-            // ровно 0) при пощаде невозможны.
-            landed = System.Math.Min(landed,
-                System.Math.Max(0f, target.Body.Parts[part] - Spec86.MercyPartFloor));
+            landed = HumanStrikeDecision.CapNonLethal(target, part, landed);
         }
 
-        target.Body.Parts[part] = System.Math.Max(0f, target.Body.Parts[part] - landed);
-        target.Health = target.Body.Mean();
-        DamageReactionSystemHelpers.GrantAdrenaline(world, target, landed, traceName);
-        WoundMath.Inflict(world, target, part, landed);
-        AmputateSystemHelpers.TrySeverOnBite(world, target, part, landed);
+        var result = BodyDamageResolver.ApplyLanded(world, target, part, landed,
+            DamageProfile.ForGear(weaponId), $"NPC{attacker.Id.Value}");
+        landed = result.Landed;
+        attacker.PendingHumanStrikeTargetId = null;
+        attacker.PendingHumanStrikeKillAuthorized = false;
+        attacker.PendingHumanStrikeKillIntent = 0f;
         EquipmentMath.WearCoveringItems(world, target, part, SimBalance.ClothingBiteDurabilityWear);
-
-        // §105: единая развилка «умерла или ещё умирает». Зовётся на КАЖДЫЙ
-        // удар, а не только на добивающий: по лежащей на грани удар срезает
-        // запас смерти напрямую — её догрызают.
-        MortalityHelpers.ResolveTrauma(world, target, landed, $"NPC{attacker.Id.Value}");
 
         Trace.Emit(world, attacker.Id, traceName,
             $"Target=NPC{target.Id.Value} {part} -{landed:F3} (armor={partArmor:F2}) " +
             $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)} " +
+            $"KillIntent={killIntent:F2} Fatal={fatalAtImpact} Authorized={killAuthorized} " +
             $"TargetHealth={target.Health:F2}");
-    }
-
-    // §86: щадит ли этот бьющий эту цель. Ненависть — заработанная: симпатия
-    // ниже HatredAffinity значит несколько сцен насилия за спиной, а не
-    // случайную ссору.
-    private static bool Merciful(WorldState world, NPCState attacker, NPCState target)
-    {
-        if (!Spec86.MercyAppliesToOutsiders &&
-            FactionRelations.AreHostile(attacker.Faction, target.Faction))
-        {
-            return false;
-        }
-
-        // §108: пришли ПОБИТЬ, а не казнить. Сговор набирает ненависть быстро
-        // (жертва -0.35 за сцену, свидетельницы -0.18), так что к моменту
-        // расправы почти каждая уже за порогом §86 — и замеры это подтвердили:
-        // в 2 охотах из 4 чужак умирал на четвёртый-пятый день, а он на острове
-        // один, и вместе с ним кончалась вся линия. Здесь пощада держится, пока
-        // цель — их общая цель охоты: они бьют до «свалился», он приходит в
-        // себя и ненавидит их сильнее (§91 — в следующий раз с ножом).
-        // Выключить ручку — и расправа снова может стать смертельной.
-        if (Spec108.GroupHuntMercyHolds &&
-            attacker.Mind.CurrentGoal == GoalType.GroupHunt &&
-            attacker.Mind.GroupHuntTargetNpcId is { } hunted &&
-            hunted.Equals(target.Id))
-        {
-            return true;
-        }
-
-        return attacker.Social.GetOrCreate(target.Id).Affinity > Spec86.HatredAffinity;
     }
 
     // «Достаёт ли рука» переехало в InteractionReach.CanStrike — туда, где

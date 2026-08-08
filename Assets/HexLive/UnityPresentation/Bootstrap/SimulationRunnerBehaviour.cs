@@ -188,7 +188,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 
     private void LateUpdate()
     {
-        if (_backend is null || !_backend.IsPaused || AutosaveEnabled)
+        if (_backend is null || !_backend.IsPaused || AutosaveEnabled || AutosaveSuppressed)
         {
             return;
         }
@@ -408,11 +408,46 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // purpose: a hand-kept id list here would drift the moment someone adds
         // a prefab (8.3 MB / 64 assets, so there is nothing to ration).
         _objectPrefabPin = Resources.LoadAll<GameObject>("HexLive/Objects");
-        // Dropped clothing is the other lazy path (ActorWardrobe reads
-        // Resources/HexLive/Wear/<id> per item). Warmed per KNOWN id rather than
-        // by folder: LoadAll over all of Wear/ would pull in garments this world
-        // never spawns, and the wear TEXTURES are the memory-heavy half.
-        foreach (var id in world.Content.ObjectDefinitions.Keys)
+        // Addressable clothing is the other lazy path. Warm ONLY what the
+        // opening scene can render: garments currently worn by a living/dead
+        // actor and objects actually lying in this world. The old loop used
+        // ObjectDefinitions.Keys, i.e. the entire catalog — 195 bundles / about
+        // 2.5 GB — so the curtain honestly waited for the whole wardrobe even
+        // though the four visible girls had been ready for a long time.
+        // Future drops stay lazy, which is the point of moving them out of
+        // Resources in the first place.
+        var openingWear = new HashSet<string>();
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            foreach (var item in npc.WornItems)
+            {
+                openingWear.Add(item.DefinitionId);
+            }
+        }
+
+        foreach (var corpse in world.Entities.Corpses.Values)
+        {
+            foreach (var item in corpse.WornItems)
+            {
+                openingWear.Add(item.DefinitionId);
+            }
+        }
+
+        var garmentIds = new HashSet<string>();
+        foreach (var garment in GarmentLibrary.Active)
+        {
+            garmentIds.Add(garment.Id);
+        }
+
+        foreach (var worldObject in world.Entities.Objects.Values)
+        {
+            if (garmentIds.Contains(worldObject.DefinitionId))
+            {
+                openingWear.Add(worldObject.DefinitionId);
+            }
+        }
+
+        foreach (var id in openingWear)
         {
             Wearing.GarmentDropFactory.Prewarm(id);
         }

@@ -197,6 +197,16 @@ public sealed class WireCoverageGateTests
                 continue;
             }
 
+            // Nested record properties (MeleeStats, and future typed payloads)
+            // are transported field-by-field just like list elements. Reference
+            // equality would report a false failure even when every scalar made
+            // the trip, so recurse into the record instead.
+            if (a != null && b != null && !a.GetType().IsValueType && !IsLeaf(a.GetType()))
+            {
+                Compare(here, a, b, into);
+                continue;
+            }
+
             if (!Equals(a, b))
             {
                 into.Add(here + ": " + Describe(a) + " → " + Describe(b));

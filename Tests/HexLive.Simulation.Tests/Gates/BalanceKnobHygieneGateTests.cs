@@ -50,6 +50,9 @@ public sealed class BalanceKnobHygieneGateTests
     private static readonly Regex StaticField = new Regex(
         @"public\s+static\s+(?:int|float|bool)\s+(\w+)\s*=\s*([^;]+);", RegexOptions.Compiled);
 
+    private static readonly Regex StaticDeclaration = new Regex(
+        @"public\s+static\s+(?:int|float|bool)\s+(\w+)\s*=", RegexOptions.Compiled);
+
     /// <summary>
     /// ⭐ РАТЧЕТ мёртвых ручек: объявлены, экспортируются, крутятся в
     /// инспекторе — и не читает их никто. Все пережили схемы, которые их
@@ -168,6 +171,63 @@ public sealed class BalanceKnobHygieneGateTests
     }
 
     [Test]
+    public void EveryBalanceConfigFieldResolvesToExactlyOneDeclaredTarget()
+    {
+        var configDir = Path.Combine(RepoPaths.Root, "Assets", "HexLive",
+            "UnityPresentation", "Config");
+        var statics = StaticDeclarations();
+        var broken = new List<string>();
+        var checkedFields = 0;
+
+        foreach (var file in Directory.EnumerateFiles(configDir, "*BalanceConfig.cs")
+                     .OrderBy(p => p, StringComparer.Ordinal))
+        {
+            var text = File.ReadAllText(file);
+            var targets = Regex.Matches(text, @"\[MirrorTarget\(typeof\((\w+)\)\)\]")
+                .Select(m => m.Groups[1].Value)
+                .ToHashSet(StringComparer.Ordinal);
+
+            foreach (Match field in ConfigField.Matches(text))
+            {
+                var previousFieldEnd = text.LastIndexOf(';', field.Index);
+                var attributesStart = previousFieldEnd < 0 ? 0 : previousFieldEnd + 1;
+                var attributes = text.Substring(attributesStart, field.Index - attributesStart);
+                if (attributes.Contains("[MirrorIgnore]", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var fieldName = field.Groups[1].Value;
+                var explicitMap = Regex.Match(attributes,
+                    @"\[MirrorField\(typeof\((\w+)\),\s*""(\w+)""\)\]");
+                var staticName = explicitMap.Success
+                    ? explicitMap.Groups[2].Value
+                    : char.ToUpperInvariant(fieldName[0]) + fieldName.Substring(1);
+                var allowedTargets = explicitMap.Success
+                    ? new HashSet<string>(new[] { explicitMap.Groups[1].Value }, StringComparer.Ordinal)
+                    : targets;
+
+                var matches = statics.TryGetValue(staticName, out var declarations)
+                    ? declarations.Where(allowedTargets.Contains).ToList()
+                    : new List<string>();
+                checkedFields++;
+                if (matches.Count != 1)
+                {
+                    broken.Add($"{Path.GetFileName(file)}.{fieldName} -> " +
+                               $"{string.Join("/", allowedTargets)}.{staticName}: " +
+                               $"найдено объявлений {matches.Count}");
+                }
+            }
+        }
+
+        Assert.That(checkedFields, Is.GreaterThan(50),
+            "Проверено подозрительно мало полей balance-конфигов.");
+        Assert.That(broken, Is.Empty,
+            "SimConfigMirror упадёт при загрузке этих полей:\n  " +
+            string.Join("\n  ", broken));
+    }
+
+    [Test]
     public void EveryBalanceKnobHasAReader()
     {
         var statics = StaticInitializers();
@@ -258,6 +318,34 @@ public sealed class BalanceKnobHygieneGateTests
                 }
 
                 list.Add(new Declared(owner, value));
+            }
+        }
+
+        return found;
+    }
+
+    private static Dictionary<string, List<string>> StaticDeclarations()
+    {
+        var found = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        foreach (var file in SourceScan.SimulationFiles())
+        {
+            var relative = SourceScan.Relative(file);
+            if (!relative.Contains("/Balance/", StringComparison.Ordinal) &&
+                !relative.EndsWith("SimBalance.cs", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var owner = Path.GetFileNameWithoutExtension(file);
+            foreach (Match match in StaticDeclaration.Matches(File.ReadAllText(file)))
+            {
+                if (!found.TryGetValue(match.Groups[1].Value, out var owners))
+                {
+                    found[match.Groups[1].Value] = owners = new List<string>();
+                }
+
+                owners.Add(owner);
             }
         }
 

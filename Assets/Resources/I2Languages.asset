@@ -49,6 +49,14 @@ MonoBehaviour:
       - 'Рисуем значки…'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'loading.content.prosthetic'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fitting the prostheses…'
+      - 'Подгоняем протезы…'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'loading.content.done'
       TermType: 0
       Description: 
@@ -335,6 +343,22 @@ MonoBehaviour:
       Languages:
       - 'Wits'
       - 'Смекалка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.compassion'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Compassion'
+      - 'Сострадание'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.compassion.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A permanent personality trait. It influences mercy and willingness to help.'
+      - 'Постоянная черта характера. Влияет на пощаду и готовность помогать.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'skill.combat'
@@ -749,8 +773,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Compassion'
-      - 'Сострадание'
+      - 'Care reserve'
+      - 'Запас заботы'
       Flags: 0101
       Languages_Touch: []
     - Term: 'panel.effects'
@@ -2477,8 +2501,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - 'Rescuing a friend'
-      - 'Спасает подругу'
+      - '🩹 Helping an injured friend'
+      - '🩹 Помогает раненой'
       Flags: 0101
       Languages_Touch: []
     - Term: 'goal.PlaceSite'
@@ -2689,6 +2713,30 @@ MonoBehaviour:
       - 'ампутирована'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'health.prosthetic_hp'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Prosthetic HP'
+      - 'HP протеза'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.prosthetic_base_function'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Base function'
+      - 'Базовая функция'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.prosthetic_effective_function'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Current function'
+      - 'Текущая функция'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'health.protection'
       TermType: 0
       Description: 
@@ -2823,6 +2871,214 @@ MonoBehaviour:
       Languages:
       - 'Stack'
       - 'Стек'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.damage'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Damage'
+      - 'Урон'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.cut'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut'
+      - 'Режущий'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.blunt'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blunt'
+      - 'Тупой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.blood_loss'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blood loss / hit'
+      - 'Потеря крови / удар'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.dps'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'DPS'
+      - 'Урон/с'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.hands'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'hands'
+      - 'руки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.cadence'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cadence'
+      - 'Темп'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.attacks_per_minute'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'attacks/min'
+      - 'уд/мин'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.seconds_cycle'
+      TermType: 0
+      Description: 
+      Languages:
+      - 's cycle'
+      - 'с цикл'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.seconds'
+      TermType: 0
+      Description: 
+      Languages:
+      - 's'
+      - 'с'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.hit_moment'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hit moment'
+      - 'Момент попадания'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.agility_recovery'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Agility recovery'
+      - 'Восстановление от ловкости'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.grip'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grip'
+      - 'Хват'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.two_handed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two-handed'
+      - 'Двуручное'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.tool_profile'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tool profile'
+      - 'Профиль инструмента'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.cut'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'cutting'
+      - 'резка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.butcher'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'butchering'
+      - 'разделка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.chopwood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'wood chopping'
+      - 'рубка дерева'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.mine'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'mining'
+      - 'добыча камня'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.hammer'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'building'
+      - 'строительство'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.ignite'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'ignition'
+      - 'розжиг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.boil'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'boiling'
+      - 'кипячение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.saw'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'sawing'
+      - 'пиление'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.sew'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'sewing'
+      - 'шитьё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.carrywater'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'water carrying'
+      - 'перенос воды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'gear.capability.dressing'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'dressing wounds'
+      - 'перевязка'
       Flags: 0101
       Languages_Touch: []
     - Term: 'inv.clothing_hp'
@@ -16887,6 +17143,222 @@ MonoBehaviour:
       Languages:
       - 'Report bug ({0} ready to test)'
       - 'Сообщить об ошибке ({0} готово к тестированию)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Runtime console'
+      - 'Консоль выполнения'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.copy'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Copy'
+      - 'Копировать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.clear'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Clear'
+      - 'Очистить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.close'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Close'
+      - 'Закрыть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.log'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Log'
+      - 'Лог'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.warning'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Warning'
+      - 'Предупреждение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.error'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Error'
+      - 'Ошибка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.collapse.on'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Collapse: on'
+      - 'Схлопывание: вкл.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.collapse.off'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Collapse: off'
+      - 'Схлопывание: выкл.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.search.hint'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Search messages and stack traces'
+      - 'Поиск по сообщениям и стекам'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.search'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Search'
+      - 'Поиск'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.stack'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stack trace'
+      - 'Стек вызовов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'console.debug_button'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Runtime console  `'
+      - 'Консоль выполнения  `'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_board.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Board'
+      - 'Доска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_board.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A sawn board used for beds and wooden prostheses.'
+      - 'Распиленная доска для кроватей и деревянных протезов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.med_splint.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Splint'
+      - 'Шина'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.med_splint.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Supports a stabilized injured arm or leg without healing it.'
+      - 'Поддерживает перевязанную повреждённую руку или ногу, но не лечит её.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.prosthetic_arm_wood.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wooden arm'
+      - 'Деревянная рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.prosthetic_arm_wood.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A crude 45% replacement arm. Cannot support two-handed weapons.'
+      - 'Грубый протез руки с функцией 45%. Не позволяет использовать двуручное оружие.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.prosthetic_leg_wood.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wooden leg'
+      - 'Деревянная нога'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.prosthetic_leg_wood.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A crude 60% replacement leg. It cannot jump.'
+      - 'Грубый протез ноги с функцией 60%. С ним нельзя прыгать.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.prosthetic_arm_mechanical.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Mechanical arm'
+      - 'Механическая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.prosthetic_arm_mechanical.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A rare 80% replacement arm recovered from late outsiders.'
+      - 'Редкий протез руки с функцией 80%, добываемый у поздних чужаков.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.prosthetic_leg_mechanical.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Mechanical leg'
+      - 'Механическая нога'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.prosthetic_leg_mechanical.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A rare 80% replacement leg recovered from late outsiders.'
+      - 'Редкий протез ноги с функцией 80%, добываемый у поздних чужаков.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_mechanical_part.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Mechanical part'
+      - 'Механическая деталь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_mechanical_part.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A rare component used to repair a mechanical prosthesis.'
+      - 'Редкая деталь для ремонта механического протеза.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'bugs.assigned_agent'

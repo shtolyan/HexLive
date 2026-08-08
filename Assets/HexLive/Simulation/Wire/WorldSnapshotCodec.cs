@@ -1,5 +1,6 @@
 using System.IO;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 
 namespace HexLive.Simulation.Wire
@@ -533,6 +534,11 @@ public static class WorldSnapshotCodec
 
         // combat
         w.Write(n.Health);
+        w.Write(n.CompassionTrait);
+        w.Write(n.MeleeStats.LimbMultiplier);
+        w.Write(n.MeleeStats.StrengthMultiplier);
+        w.Write(n.MeleeStats.CombatMultiplier);
+        w.Write(n.MeleeStats.AgilityRecoveryMultiplier);
         w.Write(n.IsFighting);
         w.Write(n.CombatOpponentNpcId);
         w.Write(n.IsSwinging);
@@ -656,6 +662,48 @@ public static class WorldSnapshotCodec
         w.Write(n.WoundLockedHp);
         w.Write(n.VitalHealth); // §105 r2
 
+        // §116/v12: typed conditions, wounds, prosthetics and carry links.
+        w.Write(n.BloodDeficit);
+        WireIo.WriteNullableInt(w, n.CarriedNpcId);
+        WireIo.WriteNullableInt(w, n.CarriedByNpcId);
+        WireIo.WriteNullableInt(w, n.RescueDestinationObjectId);
+        w.Write(n.BodyPartConditions.Count);
+        foreach (var part in n.BodyPartConditions)
+        {
+            w.Write((byte)part.Part);
+            w.Write(part.Health);
+            w.Write(part.Armor);
+            w.Write(part.CriticalTrauma);
+            w.Write(part.BluntDamage);
+            w.Write(part.SplintSupport);
+            w.Write(part.HitBias);
+            w.Write(part.Severed);
+            WireIo.WriteString(w, part.BandageKind);
+            w.Write(part.Prosthetic != null);
+            if (part.Prosthetic is { } prosthetic)
+            {
+                WireIo.WriteString(w, prosthetic.DefinitionId);
+                w.Write((byte)prosthetic.Part);
+                w.Write(prosthetic.Condition);
+                w.Write(prosthetic.MaxCondition);
+                w.Write(prosthetic.Function);
+                w.Write(prosthetic.Mechanical);
+            }
+        }
+
+        w.Write(n.OpenWounds.Count);
+        foreach (var wound in n.OpenWounds)
+        {
+            w.Write(wound.Id);
+            w.Write((byte)wound.Part);
+            w.Write(wound.Severity);
+            w.Write(wound.Heal01);
+            w.Write(wound.Clot01);
+            w.Write(wound.Stabilized);
+            w.Write(wound.BleedFactor);
+            w.Write(wound.Seed);
+        }
+
         w.Write(n.KnownObjectCount);
         WireIo.WriteNullableInt(w, n.GoalLockEndTick);
 
@@ -718,6 +766,12 @@ public static class WorldSnapshotCodec
         n.RotationDegrees = r.ReadSingle();
 
         n.Health = r.ReadSingle();
+        n.CompassionTrait = r.ReadSingle();
+        n.MeleeStats ??= new MeleeStatsSnapshot();
+        n.MeleeStats.LimbMultiplier = r.ReadSingle();
+        n.MeleeStats.StrengthMultiplier = r.ReadSingle();
+        n.MeleeStats.CombatMultiplier = r.ReadSingle();
+        n.MeleeStats.AgilityRecoveryMultiplier = r.ReadSingle();
         n.IsFighting = r.ReadBoolean();
         n.CombatOpponentNpcId = r.ReadInt32();
         n.IsSwinging = r.ReadBoolean();
@@ -829,6 +883,52 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.Perks);
         n.WoundLockedHp = r.ReadSingle();
         n.VitalHealth = r.ReadSingle(); // §105 r2
+
+        n.BloodDeficit = r.ReadSingle();
+        n.CarriedNpcId = WireIo.ReadNullableInt(r);
+        n.CarriedByNpcId = WireIo.ReadNullableInt(r);
+        n.RescueDestinationObjectId = WireIo.ReadNullableInt(r);
+        var bodyConditionCount = r.ReadInt32();
+        WireIo.Resize(n.BodyPartConditions, bodyConditionCount);
+        for (var i = 0; i < bodyConditionCount; i++)
+        {
+            var part = n.BodyPartConditions[i];
+            part.Part = (BodyPart)r.ReadByte();
+            part.Health = r.ReadSingle();
+            part.Armor = r.ReadSingle();
+            part.CriticalTrauma = r.ReadSingle();
+            part.BluntDamage = r.ReadSingle();
+            part.SplintSupport = r.ReadSingle();
+            part.HitBias = r.ReadSingle();
+            part.Severed = r.ReadBoolean();
+            part.BandageKind = r.ReadString();
+            part.Prosthetic = r.ReadBoolean()
+                ? new ProstheticSnapshot
+                {
+                    DefinitionId = r.ReadString(),
+                    Part = (BodyPart)r.ReadByte(),
+                    Condition = r.ReadSingle(),
+                    MaxCondition = r.ReadSingle(),
+                    Function = r.ReadSingle(),
+                    Mechanical = r.ReadBoolean()
+                }
+                : null;
+        }
+
+        var openWoundCount = r.ReadInt32();
+        WireIo.Resize(n.OpenWounds, openWoundCount);
+        for (var i = 0; i < openWoundCount; i++)
+        {
+            var wound = n.OpenWounds[i];
+            wound.Id = r.ReadInt32();
+            wound.Part = (BodyPart)r.ReadByte();
+            wound.Severity = r.ReadSingle();
+            wound.Heal01 = r.ReadSingle();
+            wound.Clot01 = r.ReadSingle();
+            wound.Stabilized = r.ReadBoolean();
+            wound.BleedFactor = r.ReadSingle();
+            wound.Seed = r.ReadInt32();
+        }
 
         n.KnownObjectCount = r.ReadInt32();
         n.GoalLockEndTick = WireIo.ReadNullableInt(r);

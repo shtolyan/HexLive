@@ -7,6 +7,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Social;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Wildlife;
@@ -53,11 +54,20 @@ public static class WorldSaveSerializer
     // вдвое), а была таймером вида — и потому обнулялась перезагрузкой молча.
     // v27 (§72.14): число уже высаженных трёхдневных волн. Без него убитая
     // волна возвращалась бы после загрузки, если выводить прогресс из ростера.
-    // v28 (§119): workbench bills, persistent craft projects and aid pledges.
-    public const int BlobVersion = 28;
+    // v28 (§116): критическая глубина, типы ран, шины, протезы и взаимные
+    // ссылки переноски. Расширение добавлено в хвост NPC-записи.
+    // v29 (§30): незавершённый человеческий замах и выбранная часть тела.
+    // v30 (§119): workbench bills, persistent craft projects and aid pledges.
+    public const int BlobVersion = 30;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
+
+    private static readonly BodyPart[] BodyPartOrder =
+    {
+        BodyPart.Head, BodyPart.Torso, BodyPart.Pelvis,
+        BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
+    };
 
     public static void Write(WorldState world, BinaryWriter w)
     {
@@ -391,6 +401,8 @@ public static class WorldSaveSerializer
             }
         }
 
+        RepairCarryLinks(world);
+
         world.Mobs.Clear();
         var dogCount = r.ReadInt32();
         for (var i = 0; i < dogCount; i++)
@@ -520,7 +532,7 @@ public static class WorldSaveSerializer
         var retired = new List<ObjectId>();
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId == "water.pond")
+            if (obj.DefinitionId is "water.pond" or "armor.leather" or "armor.heavy")
             {
                 retired.Add(obj.Id);
             }
@@ -530,7 +542,32 @@ public static class WorldSaveSerializer
         {
             WorldObjectMutations.DespawnObject(world, id);
         }
+
+        MigrateRetiredGarments(world, world.Entities.Npcs.Values);
+        MigrateRetiredGarments(world, world.Entities.Corpses.Values);
     }
+
+    // These armor ids never had shipping art or localization. Strip them from
+    // old saves as well as new content, otherwise a saved wearer remains an
+    // invisible, overpowered ghost item after the catalog has retired it.
+    private static void MigrateRetiredGarments(
+        WorldState world,
+        IEnumerable<NPCState> npcs)
+    {
+        foreach (var npc in npcs)
+        {
+            npc.WornItems.RemoveAll(IsRetiredGarment);
+            npc.Inventory.Items.RemoveAll(IsRetiredGarment);
+            npc.Mind.RedressGarments.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
+            EquipmentMath.Recalculate(world, npc);
+        }
+    }
+
+    private static bool IsRetiredGarment(ItemInstance item) =>
+        item.DefinitionId is "armor.leather" or "armor.heavy";
+
+    private static bool IsRetiredGarment(string definitionId) =>
+        definitionId is "armor.leather" or "armor.heavy";
 
     private static void WriteDeathRecord(BinaryWriter w, DeathRecord death)
     {
@@ -595,7 +632,7 @@ public static class WorldSaveSerializer
         // an old world's furniture keeps facing exactly where it always did.
         w.Write(obj.RotationDegrees);
 
-        // v28 (§119), append-only object extension.
+        // v30 (§119), append-only object extension.
         w.Write(obj.BillBoards);
         WriteNullableJunction(w, obj.CraftJunction);
         w.Write(obj.CraftWorkRequired);
@@ -653,7 +690,7 @@ public static class WorldSaveSerializer
         // v13 (§66): built-piece yaw; absent before v13 ⇒ 0 (old placement).
         obj.RotationDegrees = version >= 13 ? r.ReadSingle() : 0f;
 
-        if (version >= 28)
+        if (version >= 30)
         {
             obj.BillBoards = r.ReadInt32();
             obj.CraftJunction = ReadNullableJunction(r);
@@ -1004,7 +1041,61 @@ public static class WorldSaveSerializer
         w.Write(npc.Inventory.Capacity);
         WriteItemList(w, npc.Inventory.Items);
 
-        // §119 / v28: the compassionate promise and current persistent project.
+        // §116 / v28 append-only extension.
+        w.Write(npc.Body.BloodDeficit);
+        w.Write(BodyPartOrder.Length);
+        foreach (var part in BodyPartOrder)
+        {
+            var condition = npc.Body.Condition(part);
+            w.Write((int)part);
+            w.Write(condition.BluntDamage);
+            w.Write(condition.CriticalTrauma);
+            w.Write(condition.SplintSupport);
+            w.Write(condition.HitBias);
+            w.Write(condition.HitBiasChangedTick);
+            w.Write(condition.Prosthetic != null);
+            if (condition.Prosthetic is { } prosthetic)
+            {
+                w.Write(prosthetic.DefinitionId ?? string.Empty);
+                w.Write((int)prosthetic.Part);
+                w.Write(prosthetic.Condition);
+                w.Write(prosthetic.MaxCondition);
+                w.Write(prosthetic.Function);
+                w.Write(prosthetic.Mechanical);
+            }
+        }
+
+        w.Write(npc.Wounds.Count);
+        foreach (var wound in npc.Wounds)
+        {
+            w.Write(wound.Id);
+            w.Write(wound.Clot01);
+            w.Write(wound.Stabilized);
+            w.Write(wound.BleedFactor);
+        }
+
+        WriteNullableEntity(w, npc.CarriedNpcId);
+        WriteNullableEntity(w, npc.CarriedByNpcId);
+        WriteNullableObject(w, npc.RescueDestinationObjectId);
+
+        // §30 / v29: save/load during wind-up preserves the exact decision.
+        w.Write(npc.StrikeLandsAtTick);
+        w.Write(npc.StrikeReadyAtTick);
+        w.Write(npc.AttackAnimUntilTick);
+        w.Write(npc.SwingStartTick);
+        w.Write(npc.SwingStrikeIndex);
+        WriteNullableEntity(w, npc.PendingHumanStrikeTargetId);
+        w.Write((int)npc.PendingHumanStrikePart);
+        w.Write(npc.PendingHumanStrikeKillAuthorized);
+        w.Write(npc.PendingHumanStrikeKillIntent);
+        WriteNullableEntity(w, npc.Mind.CombatOpponentNpcId);
+        w.Write(npc.Mind.ForcedMeleeWeaponId != null);
+        if (npc.Mind.ForcedMeleeWeaponId != null)
+        {
+            w.Write(npc.Mind.ForcedMeleeWeaponId);
+        }
+
+        // §119 / v30: the compassionate promise and current persistent project.
         WriteNullableEntity(w, npc.Mind.ProstheticAidTargetId);
         w.Write(npc.Mind.ProstheticAidPart.HasValue);
         if (npc.Mind.ProstheticAidPart.HasValue)
@@ -1398,14 +1489,171 @@ public static class WorldSaveSerializer
 
         if (version >= 28)
         {
-            npc.Mind.ProstheticAidTargetId = ReadNullableEntity(r);
-            npc.Mind.ProstheticAidPart = r.ReadBoolean() ? (BodyPart)r.ReadInt32() : null;
-            npc.Mind.ProstheticAidRetryAfterTick = r.ReadInt32();
-            npc.Execution.CraftProjectId = ReadNullableObject(r);
-            npc.Execution.CraftCycleStartWork = r.ReadInt32();
+            npc.Body.BloodDeficit = r.ReadSingle();
+            var conditionCount = r.ReadInt32();
+            for (var i = 0; i < conditionCount; i++)
+            {
+                var part = (BodyPart)r.ReadInt32();
+                var condition = npc.Body.Condition(part);
+                condition.BluntDamage = r.ReadSingle();
+                condition.CriticalTrauma = r.ReadSingle();
+                condition.SplintSupport = r.ReadSingle();
+                condition.HitBias = r.ReadSingle();
+                condition.HitBiasChangedTick = r.ReadInt32();
+                if (r.ReadBoolean())
+                {
+                    condition.Prosthetic = new ProstheticState
+                    {
+                        DefinitionId = r.ReadString(),
+                        Part = (BodyPart)r.ReadInt32(),
+                        Condition = r.ReadSingle(),
+                        MaxCondition = r.ReadSingle(),
+                        Function = r.ReadSingle(),
+                        Mechanical = r.ReadBoolean()
+                    };
+                }
+            }
+
+            var woundExtensionCount = r.ReadInt32();
+            for (var i = 0; i < woundExtensionCount; i++)
+            {
+                var id = r.ReadInt32();
+                var clot = r.ReadSingle();
+                var stabilized = r.ReadBoolean();
+                var bleedFactor = r.ReadSingle();
+                var wound = npc.Wounds.Find(candidate => candidate.Id == id);
+                if (wound != null)
+                {
+                    wound.Clot01 = clot;
+                    wound.Stabilized = stabilized;
+                    wound.BleedFactor = bleedFactor;
+                }
+            }
+
+            npc.CarriedNpcId = ReadNullableEntity(r);
+            npc.CarriedByNpcId = ReadNullableEntity(r);
+            npc.RescueDestinationObjectId = ReadNullableObject(r);
+
+            if (version >= 29)
+            {
+                var strikeLandsAtTick = r.ReadInt32();
+                var strikeReadyAtTick = r.ReadInt32();
+                var attackAnimUntilTick = r.ReadInt32();
+                var swingStartTick = r.ReadInt32();
+                var swingStrikeIndex = r.ReadInt32();
+                var pendingStrikeTarget = ReadNullableEntity(r);
+                var pendingStrikePart = (BodyPart)r.ReadInt32();
+                var pendingStrikeKillAuthorized = r.ReadBoolean();
+                var pendingStrikeKillIntent = r.ReadSingle();
+                FightScene.RestoreSwingSlot(
+                    npc,
+                    strikeLandsAtTick,
+                    strikeReadyAtTick,
+                    attackAnimUntilTick,
+                    swingStartTick,
+                    swingStrikeIndex,
+                    pendingStrikeTarget,
+                    pendingStrikePart,
+                    pendingStrikeKillAuthorized,
+                    pendingStrikeKillIntent);
+                npc.Mind.CombatOpponentNpcId = ReadNullableEntity(r);
+                npc.Mind.ForcedMeleeWeaponId = r.ReadBoolean() ? r.ReadString() : null;
+            }
+
+            if (version >= 30)
+            {
+                npc.Mind.ProstheticAidTargetId = ReadNullableEntity(r);
+                npc.Mind.ProstheticAidPart = r.ReadBoolean() ? (BodyPart)r.ReadInt32() : null;
+                npc.Mind.ProstheticAidRetryAfterTick = r.ReadInt32();
+                npc.Execution.CraftProjectId = ReadNullableObject(r);
+                npc.Execution.CraftCycleStartWork = r.ReadInt32();
+            }
+        }
+        else
+        {
+            MigrateKenshiState(npc);
         }
 
         return npc;
+    }
+
+    private static void MigrateKenshiState(NPCState npc)
+    {
+        foreach (var wound in npc.Wounds)
+        {
+            wound.BleedFactor = 1f;
+            wound.Stabilized = npc.BandagedZones.Contains(wound.Zone) ||
+                npc.GauzeZones.Contains(wound.Zone);
+            wound.Clot01 = wound.Stabilized ? 1f : 0f;
+        }
+
+        var depth = MathUtil.Clamp01(1f - npc.Mind.DyingReserve);
+        if (npc.Mind.DyingCause == DyingCause.BloodLoss)
+        {
+            npc.Body.BloodDeficit = depth;
+        }
+        else if (npc.Mind.DyingCause == DyingCause.VitalCrushed)
+        {
+            var worstPart = BodyPart.Head;
+            var worstHealth = float.MaxValue;
+            foreach (var part in BodyState.VitalParts)
+            {
+                if (npc.Body.Parts[part] < worstHealth)
+                {
+                    worstHealth = npc.Body.Parts[part];
+                    worstPart = part;
+                }
+            }
+
+            npc.Body.Condition(worstPart).CriticalTrauma = depth;
+        }
+    }
+
+    private static void RepairCarryLinks(WorldState world)
+    {
+        var safeDrops = new HashSet<EntityId>();
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.CarriedNpcId is { } carriedId)
+            {
+                world.Entities.Npcs.TryGetValue(carriedId, out var patient);
+                if (carriedId.Equals(npc.Id) ||
+                    patient == null ||
+                    patient.CarriedByNpcId is not { } carrierId || !carrierId.Equals(npc.Id))
+                {
+                    if (patient != null)
+                    {
+                        safeDrops.Add(patient.Id);
+                    }
+                    npc.CarriedNpcId = null;
+                    npc.RescueDestinationObjectId = null;
+                }
+            }
+
+            if (npc.CarriedByNpcId is { } carrierId2)
+            {
+                if (carrierId2.Equals(npc.Id) ||
+                    !world.Entities.Npcs.TryGetValue(carrierId2, out var carrier) ||
+                    carrier.CarriedNpcId is not { } patientId || !patientId.Equals(npc.Id))
+                {
+                    npc.CarriedByNpcId = null;
+                    safeDrops.Add(npc.Id);
+                }
+            }
+        }
+
+        // A half-link from a corrupt/interrupted save must not leave a patient
+        // with no junction forever. Re-anchor only bodies that should be lying;
+        // a healthy standing NPC with an unrelated stale id keeps her pose.
+        foreach (var id in safeDrops)
+        {
+            if (world.Entities.Npcs.TryGetValue(id, out var patient) &&
+                patient.Health > 0f && patient.CurrentJunction is null &&
+                (patient.IsUnconscious(world.Tick) || patient.IsDying || patient.Body.IsProne))
+            {
+                HexLive.Simulation.Runtime.MortalityHelpers.AnchorLyingBody(world, patient);
+            }
+        }
     }
 
     private static void WriteJunctionFlagSet(
@@ -1538,7 +1786,9 @@ public static class WorldSaveSerializer
     private static Float2 ReadFloat2(BinaryReader r) => new(r.ReadSingle(), r.ReadSingle());
 
     private static GoalType SaveGoal(GoalType goal) =>
-        goal is GoalType.Defend or GoalType.Abuse or GoalType.GroupHunt or GoalType.Expel
+        goal is GoalType.Defend or GoalType.Abuse or GoalType.GroupHunt or GoalType.Expel or
+            GoalType.Rescue or GoalType.PickUpPerson or GoalType.PutInBed or
+            GoalType.Splint or GoalType.FitProsthetic
             ? GoalType.None
             : goal;
 

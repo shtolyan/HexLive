@@ -114,7 +114,7 @@ public static class AbuseMath
     public static float Force(WorldState world, NPCState npc)
     {
         var weapon = npc.Body.CanUseToolsOrWeapons
-            ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands)
+            ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.WeaponHands)
             : string.Empty;
 
         var offense = SimBalance.MeleeStrikeBonus(weapon) * npc.StrikeFactor();

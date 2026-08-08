@@ -1,5 +1,6 @@
 #nullable enable
 using UnityEngine;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 
 namespace HexLive.UnityPresentation.Environment
@@ -18,6 +19,8 @@ namespace HexLive.UnityPresentation.Environment
         private string _bedProduct = string.Empty;
         private GameObject? _bedRoot;
         private BedAssembly? _bedAssembly;
+        private GameObject? _hutRoot;
+        private HutAssembly? _hutAssembly;
 
         // Cheap per-frame check: only rebuild when the delivered mix changed.
         public void Refresh(ObjectSnapshot site)
@@ -31,6 +34,12 @@ namespace HexLive.UnityPresentation.Environment
         public void Rebuild(ObjectSnapshot site)
         {
             _signature = Signature(site);
+
+            if (site.BuildProduct == ContentIds.Hut1Hex)
+            {
+                RefreshHut(site);
+                return;
+            }
 
             // Spec §54.2/§35.5B: a BED or RACK site is the SAME assembled prefab
             // as the finished piece with only its delivered pieces toggled on —
@@ -104,6 +113,21 @@ namespace HexLive.UnityPresentation.Environment
             _bedAssembly = _bedRoot.GetComponent<BedAssembly>();
         }
 
+        private void RefreshHut(ObjectSnapshot site)
+        {
+            if (_hutRoot == null)
+            {
+                ClearChildren();
+                _hutRoot = HutAssembly.BuildPartial(site);
+                _hutRoot.transform.SetParent(transform, false);
+                _hutAssembly = _hutRoot.GetComponent<HutAssembly>();
+            }
+            else
+            {
+                _hutAssembly?.Apply(site);
+            }
+        }
+
         private void ClearChildren()
         {
             for (var i = transform.childCount - 1; i >= 0; i--)
@@ -114,6 +138,8 @@ namespace HexLive.UnityPresentation.Environment
             _bedProduct = string.Empty;
             _bedRoot = null;
             _bedAssembly = null;
+            _hutRoot = null;
+            _hutAssembly = null;
         }
 
         private static int Signature(ObjectSnapshot site)

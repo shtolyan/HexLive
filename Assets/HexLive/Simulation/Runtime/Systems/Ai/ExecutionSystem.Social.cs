@@ -344,6 +344,12 @@ public sealed partial class ExecutionSystem
 
             case AidKind.Treat:
             {
+                if (Spec118.Enabled)
+                {
+                    WoundMath.StabilizeMostDangerous(target, spend.Herbal, out _);
+                    break;
+                }
+
                 // §76: the HELPER's Medicine decides how much the dressing is
                 // worth — the patient's own Toughness is a separate axis and
                 // shows up in her healing rate, not in someone else's hands.
@@ -545,7 +551,10 @@ public sealed partial class ExecutionSystem
             };
             npc.Execution.TargetObject = null;
             npc.Execution.StartTick = world.Tick;
-            npc.Execution.EndTick = world.Tick + Spec53.AidDuration;
+            var aidDuration = Spec118.Enabled && kindNow == AidKind.Treat
+                ? WoundMath.BandageTicks(npc)
+                : Spec53.AidDuration;
+            npc.Execution.EndTick = world.Tick + aidDuration;
             if (npc.Plan.TargetJunctionId is { } jId)
             {
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
@@ -560,9 +569,9 @@ public sealed partial class ExecutionSystem
             SocialCueSignals.Stamp(world, target, "AidStarted", npc.Id);
             Trace.Emit(world, npc.Id, "AidStarted",
                 $"Kind={kindNow} With NPC{targetId.Value} Severity={severity:F2} " +
-                $"Duration={Spec53.AidDuration}ticks " +
+                $"Duration={aidDuration}ticks " +
                 $"Dist={HexSpatialMath.Distance(npc.Position, target.Position):F2}");
-            if (kindNow == AidKind.Treat)
+            if (kindNow == AidKind.Treat && !Spec118.Enabled)
             {
                 StabilizeBleedingOnAidStart(world, npc, target);
             }
@@ -643,7 +652,8 @@ public sealed partial class ExecutionSystem
             // the grieving teaches company, handing over food teaches neither.
             // Read the interaction, not the AidKind — the skill map is keyed on
             // verbs and must stay keyed on verbs.
-            SkillTrace.Award(world, npc, aidInteraction, Spec53.AidDuration);
+            SkillTrace.Award(world, npc, aidInteraction,
+                System.Math.Max(1, npc.Execution.EndTick - npc.Execution.StartTick));
 
             npc.Execution.Status = ExecutionStatus.Completed;
             npc.Execution.LastCompletedTick = world.Tick;
@@ -691,6 +701,11 @@ public sealed partial class ExecutionSystem
 
     private static void StabilizeBleedingOnAidStart(WorldState world, NPCState helper, NPCState target)
     {
+        if (Spec118.Enabled)
+        {
+            return;
+        }
+
         var stabilized = false;
         foreach (var wound in target.Wounds)
         {

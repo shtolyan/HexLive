@@ -24,7 +24,6 @@ public static class Spec119
 
     public static int WoodenProstheticCraftWork = 12000;
 
-    public static int AidRetryCooldownTicks = 96;
 }
 
 }

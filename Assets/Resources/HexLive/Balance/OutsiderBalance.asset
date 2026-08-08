@@ -81,6 +81,5 @@ MonoBehaviour:
   groupHuntTargetGrudge: 0.3
   groupHuntWitnessAffinityLoss: 0.18
   groupHuntWitnessRadiusTiles: 5
-  groupHuntMercyHolds: 0
   groupHuntBlowsToRout: 6
   abuseWoundedVitalFloor: 0.5

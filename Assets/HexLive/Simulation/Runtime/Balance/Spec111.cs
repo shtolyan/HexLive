@@ -45,6 +45,15 @@ public static class Spec111
     // единственное, что успевает снять с жертвы больше одной вещи.
     public static int LootHelplessTakeTicks = 10;
 
+    // §111.2 r2 / bug #47: после карманов лутер МОЖЕТ стянуть одну случайную
+    // надетую вещь. Это не подбор подходящей одежды: предмет забирается и при
+    // нулевой личной пользе, чтобы оставить противника без брони. Высокий
+    // стресс и личная неприязнь к жертве повышают вероятность, но не делают
+    // раздевание гарантированным.
+    public static float LootHelplessGarmentBaseChance = 0.15f;
+    public static float LootHelplessGarmentStressBonus = 0.20f;
+    public static float LootHelplessGarmentHateBonus = 0.35f;
+
     // Передышка после СЫГРАННОЙ сцены — чтобы он не садился на то же тело
     // сразу, как только у неё заведётся вторая вещь.
     public static int LootHelplessCooldownTicks = 600;

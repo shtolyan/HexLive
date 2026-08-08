@@ -151,8 +151,9 @@ MonoBehaviour:
   _actor: Jana
   _speed: 0.3
   _laneLength: 7
-  _fixedCamera: 1
+  _fixedCamera: 0
   _autoSpeedSweep: 1
+  _startInOrbit: 1
   _startAtLaneEdge: 1
 --- !u!4 &1857050102
 Transform:

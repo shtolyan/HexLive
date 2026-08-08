@@ -88,3 +88,11 @@ Assets/Editor/WearDrops/_active.txt.meta
 
 # Blender's rolling backup is local recovery state; the authored .blend is tracked via LFS.
 *.blend1
+
+# Python bytecode cache from Tools/*.py (build_release, wardrobe, icon render…).
+__pycache__/
+*.pyc
+# Mono/Unity crash dumps land at the repo root; they are local diagnostics.
+/mono_crash.*.json
+# .meta files Unity generates next to ignored Blender backups.
+*.blend1.meta

@@ -16,6 +16,7 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(Spec85))]
     [MirrorTarget(typeof(Spec94))]
     [MirrorTarget(typeof(Spec105))]
+    [MirrorTarget(typeof(Spec118))]
     [MirrorTarget(typeof(AiBalance))]
     public sealed class CharacterBalanceConfig : ScriptableObject
     {
@@ -435,5 +436,60 @@ namespace HexLive.UnityPresentation.Config
         [Range(1f, 5f)] public float convalescentStaminaDrainFactor = 2f;
         [Tooltip("Во сколько раз медленнее она ходит, пока действует штраф.")]
         [Range(0.1f, 1f)] public float convalescentMoveFactor = 0.5f;
+
+        [Header("§118 Kenshi-core: травмы, медицина, спасение")]
+        public bool enabled = true;
+        public bool damageTypesEnabled = true;
+        public bool medicalEnabled = true;
+        public bool rescueEnabled = true;
+        public bool splintsEnabled = true;
+        public bool prostheticsEnabled = true;
+        [Range(0f, 1f)] public float instantBloodLossFactor = 0.20f;
+        [Range(0f, 0.1f)] public float steadyBleedPerSlowTick = 0.012f;
+        [Range(0f, 0.05f)] public float clotPerSlowTickLowToughness = 0.004f;
+        [Range(0f, 0.05f)] public float clotPerSlowTickHighToughness = 0.008f;
+        [Range(0f, 1f)] public float degenerationCutThreshold = 0.20f;
+        [Range(0.01f, 1f)] public float degenerationStep = 0.10f;
+        [Range(0f, 0.05f)] public float degenerationPerStep = 0.0015f;
+        [Range(0f, 0.1f)] public float bluntRecoveryPerSlowTick = 0.010f;
+        [Range(0f, 0.1f)] public float cutRecoveryPerSlowTick = 0.0033f;
+        [Range(1f, 16f)] public float groundRestHealMultiplier = 2f;
+        [Range(1f, 16f)] public float leafBedHealMultiplier = 4f;
+        [Range(1f, 16f)] public float basicBedHealMultiplier = 8f;
+        [Range(0f, 1f)] public float leafBedDegenerationMultiplier = 0.5f;
+        [Range(0f, 1f)] public float basicBedDegenerationMultiplier = 0f;
+        [Range(1, 1200)] public int vitalKnockoutTicks = 80;
+        [Range(0f, 0.5f)] public float vitalWakeHealth = 0.05f;
+        [Range(0f, 0.5f)] public float bloodWakeHealth = 0.10f;
+        [Range(0f, 1f)] public float comaThresholdMin = 0.10f;
+        [Range(0f, 1f)] public float comaThresholdToughnessGain = 0.75f;
+        [Range(0f, 1f)] public float stumpBloodLoss = 0.35f;
+        [Range(0f, 1f)] public float stumpWoundSeverity = 0.35f;
+        [Range(1f, 8f)] public float hitBiasMax = 3f;
+        [Range(0f, 4f)] public float hitBiasGain = 1f;
+        [Range(1, 4800)] public int hitBiasDecayTicks = 480;
+        [Range(1, 400)] public int bandageTicksNovice = 80;
+        [Range(1, 400)] public int bandageTicksExpert = 30;
+        [Range(0f, 0.1f)] public float dangerousRiseToughnessTraining = 0.002f;
+        [Range(1, 400)] public int splintCraftTicks = 40;
+        [Range(0f, 1f)] public float splintSupportNovice = 0.20f;
+        [Range(0f, 1f)] public float splintSupportExpert = 0.50f;
+        [Range(0f, 1f)] public float splintSeverCredit = 0.25f;
+        [Range(0f, 1f)] public float carrySpeedMin = 0.35f;
+        [Range(0f, 1f)] public float carrySpeedStrengthGain = 0.45f;
+        [Range(0f, 1f)] public float carrySpeedMax = 0.80f;
+        [Range(1, 10)] public int rescueThreatRadiusTiles = 3;
+        [Range(0f, 1f)] public float rescueFightOdds = 0.50f;
+        [Range(0f, 1f)] public float woodenArmFunction = 0.45f;
+        [Range(0f, 1f)] public float woodenLegFunction = 0.60f;
+        [Range(0f, 1f)] public float mechanicalArmFunction = 0.80f;
+        [Range(0f, 1f)] public float mechanicalLegFunction = 0.80f;
+        [Range(0f, 2f)] public float woodenProstheticDurability = 0.60f;
+        [Range(0f, 2f)] public float mechanicalProstheticDurability = 1.20f;
+        [Range(1, 800)] public int woodenProstheticInstallTicks = 120;
+        [Range(1, 800)] public int mechanicalProstheticInstallTicks = 160;
+        [Range(0f, 1f)] public float mechanicalProstheticDropChance = 0.12f;
+        [Range(0f, 1f)] public float mechanicalPartsDropChance = 0.25f;
+        [Range(1, 20)] public int mechanicalLootMinWave = 3;
     }
 }

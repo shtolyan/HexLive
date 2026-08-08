@@ -937,7 +937,15 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Process,
                         RequiredCapabilities = { GearCapability.ChopWood },
                         DurationTicks = SimBalance.LogSplitDurationTicks,
-                        Yields = { new HarvestDrop { DefinitionId = "resource.stick", Count = SimBalance.LogSplitYield, Scatter = true } }
+                        Yields =
+                        {
+                            new HarvestDrop
+                            {
+                                DefinitionId = "resource.stick",
+                                Count = SimBalance.LogSplitYield,
+                                Scatter = true
+                            }
+                        }
                     }
                 }
             },
@@ -1222,6 +1230,32 @@ public static class PrototypeContentCatalog
         AddPickupItem(ContentIds.MechanicalArm, "Mechanical arm", "Medicine", "Prosthetic", "Mechanical");
         AddPickupItem(ContentIds.MechanicalLeg, "Mechanical leg", "Medicine", "Prosthetic", "Mechanical");
         AddPickupItem(ContentIds.MechanicalPart, "Mechanical part", "Resource", "Mechanical");
+
+        // Architectural buildings own a whole hex footprint. Their integrated
+        // sleeping spots are real Sleep targets but deliberately do not claim
+        // the furniture obstacle radius: two compact cots fit inside one hut.
+        defs[ContentIds.Hut1Hex] = new ObjectDefinition
+        {
+            Id = ContentIds.Hut1Hex,
+            DisplayName = "Palm hut",
+            Tags = { "Building", ObjectTags.Shelter, ObjectTags.Shade, ObjectTags.HandBuilt }
+        };
+        defs[ContentIds.HutBed] = new ObjectDefinition
+        {
+            Id = ContentIds.HutBed,
+            DisplayName = "Hut cot",
+            Tags = { ObjectTags.Bed, "Furniture", "IntegratedFurniture" },
+            Interactions =
+            {
+                new InteractionDefinition
+                {
+                    Id = "sleep.hut_bed",
+                    Type = InteractionType.Sleep,
+                    DurationTicks = 100,
+                    Effects = { EnergyDelta = SimBalance.BedEnergy }
+                }
+            }
+        };
 
         // Spec §42: fold in the whole wearable wardrobe from the shared
         // library (built-in defaults, or the GarmentCatalog asset when the

@@ -225,6 +225,10 @@ namespace HexLive.Simulation.Content
                         MaxHealth = F(m, "maxHealth", 1f),
                         // "biteDamage" is the legacy pre-rename key.
                         AttackDamage = F(m, "attackDamage", F(m, "biteDamage", 0.09f)),
+                        CutFraction = F(m, "cutFraction",
+                            MobCatalog.For(Str(m, "id")).CutFraction),
+                        BloodLossMultiplier = F(m, "bloodLossMultiplier",
+                            MobCatalog.For(Str(m, "id")).BloodLossMultiplier),
                         AttackWindupSeconds = F(m, "attackWindupSeconds", 0.1f),
                         AttackCooldownSeconds = F(m, "attackCooldownSeconds", 0.8f),
                         AggroRadiusTiles = I(m, "aggroRadiusTiles", 2),
@@ -262,6 +266,10 @@ namespace HexLive.Simulation.Content
                     {
                         Id = Str(g, "id"),
                         Damage = F(g, "damage", 0.15f),
+                        CutFraction = F(g, "cutFraction",
+                            GearCatalog.For(Str(g, "id")).CutFraction),
+                        BloodLossMultiplier = F(g, "bloodLossMultiplier",
+                            GearCatalog.For(Str(g, "id")).BloodLossMultiplier),
                         HitDelaySeconds = F(g, "hitDelaySeconds", 1.5f),
                         AttackDurationSeconds = F(g, "attackDurationSeconds", 2f),
                         CooldownSeconds = F(g, "cooldownSeconds", 1f),
@@ -498,6 +506,7 @@ namespace HexLive.Simulation.Content
                 first = false;
                 sb.Append("    {")
                   .Append($"\"id\": {Q(m.Id)}, \"maxHealth\": {N(m.MaxHealth)}, \"attackDamage\": {N(m.AttackDamage)}, ")
+                  .Append($"\"cutFraction\": {N(m.CutFraction)}, \"bloodLossMultiplier\": {N(m.BloodLossMultiplier)}, ")
                   .Append($"\"attackWindupSeconds\": {N(m.AttackWindupSeconds)}, \"attackCooldownSeconds\": {N(m.AttackCooldownSeconds)}, ")
                   .Append($"\"aggroRadiusTiles\": {m.AggroRadiusTiles}, \"roamChance\": {N(m.RoamChance)}, ")
                   .Append($"\"chaseStepsPerTick\": {m.ChaseStepsPerTick}, \"glideSegmentSeconds\": {N(m.GlideSegmentSeconds)}, ")
@@ -541,7 +550,8 @@ namespace HexLive.Simulation.Content
                 }
 
                 sb.Append("    {")
-                  .Append($"\"id\": {Q(g.Id)}, \"damage\": {N(g.Damage)}, \"hitDelaySeconds\": {N(g.HitDelaySeconds)}, ")
+                  .Append($"\"id\": {Q(g.Id)}, \"damage\": {N(g.Damage)}, \"cutFraction\": {N(g.CutFraction)}, ")
+                  .Append($"\"bloodLossMultiplier\": {N(g.BloodLossMultiplier)}, \"hitDelaySeconds\": {N(g.HitDelaySeconds)}, ")
                   .Append($"\"attackDurationSeconds\": {N(g.AttackDurationSeconds)}, \"cooldownSeconds\": {N(g.CooldownSeconds)}, ")
                   .Append($"\"attackSpeed\": {N(g.AttackSpeed)}, \"meleePriority\": {g.MeleePriority}, ")
                   .Append($"\"twoHanded\": {(g.TwoHanded ? "true" : "false")}, \"harvestSpeedMult\": {N(g.HarvestSpeedMult)}, ")

@@ -1793,7 +1793,9 @@ the sim and the presentation, so the two can never drift apart:
 - windup regression fix: the saved `HexTuningConfig` asset had drifted to
   Takeoff 0.25 / Landing 1.0 — the whole flight packed into the front of the
   window, so the crouch beat was invisible and she seemed to launch
-  instantly. Asset restored to Takeoff 0.6 / Landing 0.5. Also the JumpUp
+  instantly. Asset restored to Takeoff 0.6 / Landing 0.5 at that revision;
+  v20 later replaces the measured takeoff with 0.10 while retaining Landing
+  0.5. Also the JumpUp
   (65f) and JumpDown (50f) clips are different lengths, but the view cached
   ONE shared clip length for the `JumpSpeed` compression — one direction
   always played at the wrong speed, drifting the clip's crouch/plant off the
@@ -4522,6 +4524,13 @@ A housemate's death must not pass unnoticed.
 `speed = 0`). После двух суток вид актёра уничтожается вместе с записью в `snapshot.Corpses`,
 и дальшнейшая цена останков — один `SpriteRenderer` и один `WorldObjectState` независимо от числа вещей.
 
+**Опора трупа (bug #45).** `NpcActorView` после Animator и всех позовых слоёв
+измеряет нижнюю границу фактических `SkinnedMeshRenderer` и сдвигает корень тела
+ровно на высоту поверхности его тайла. Значит baked вертикальный offset любого
+авторского death-клипа не может оставить тело висеть или унести его вверх: и
+падение, и замороженный последний кадр остаются на земле. Если скин временно
+недоступен, fallback пиннит сам корень к той же высоте.
+
 **Learning of death:**
 
 - **Witnessing** — any living NPC within 6 tiles at the moment of death
@@ -6455,11 +6464,25 @@ void OnClickGoTo(TileCoord tile)
 Camera and selection are purely presentation concerns.
 
 - selecting NPC does not change simulation
-- camera follows snapshot data as an exact target with a **soft arrival**: the
-  selected NPC is the orbit pivot target every frame, while `SmoothDamp`
-  delays only the camera rig's catch-up in unscaled time. The target itself is
-  never smoothed or replaced with the edge of a slack zone, so walking and
-  pausing converge to zero framing error without accumulating an offset.
+- camera follows snapshot data as an exact target with a **soft arrival**, not
+  a dead-zone frame: the selected NPC is the orbit pivot target every frame,
+  while `SmoothDamp` only delays the camera's catch-up in unscaled time. The
+  smoothing must never replace the target with the edge of a slack zone — that
+  leaves a persistent offset after every walk segment and visibly loses the
+  character's centre. Pose and animation motion remain visually softened by
+  interpolation, but converge to zero framing error.
+- Click selection first ray-tests the current bounds of every active renderer
+  under each fully constructed NPC (skinned body, worn clothes, hair and held
+  props) and selects the nearest hit. Thus any visible part of a standing,
+  sitting or prone NPC works from every camera angle. This geometry check runs
+  only on a left click; it neither bakes skinned meshes nor maintains permanent
+  physics colliders. The former small screen-radius around the feet remains
+  only as a loading/prototype fallback before an actor view exists.
+- while orbiting, `←` / `→` moves to the previous / next NPC by stable id.
+  The switch reuses the snapshot already captured for that frame, accepts the
+  new target in the same `LateUpdate`, and preserves orbit framing. It must not
+  take a second world snapshot or restart the orbit on a key press: selection
+  remains immediate even while the simulation has many actors.
 
 **Optional:**
 
@@ -6949,8 +6972,6 @@ prefabs, all equipped/removed together as the visual of that sim item.
 | underwear.cloth | Panty_31415 + Bra_20266 |
 | clothing.leather_pants | SkinnyJeans_24487 |
 | clothing.coat | Jacket_7653 |
-| armor.leather | DdlSlc_Top |
-| armor.heavy | jacket_8867 |
 | clothing.top_tropic | TopTropic (tank top, fal.ai tropical print) |
 | clothing.top_tiedye | TopTiedye (tank top, fal.ai tie-dye print) |
 | underwear.panty_leo | PantyLeo (panty, fal.ai leopard print) |
@@ -7193,6 +7214,17 @@ longer be found by walking down from it. Tuned live per girl in the
 **WardrobeTest** hair panel (scale ±0.01, height ±0.005 m) and saved into the
 hair prefab. Strands weighted to neck/chest bones are stitched elsewhere and
 stay put, so these are fit nudges, not a general transform.
+
+### 31B.4C Heeled-shoe foot pose
+
+A heeled shoe carries its DAZ foot/toe rotations and the standing body lift in
+`HeelPose`; `BodyBones` applies them after the Animator every `LateUpdate`.
+The lift is a **standing-only** ground correction: it is eased to zero over
+0.12 seconds while the actor sits (including a stump), lies or sleeps on a bed,
+or swims, then restored on returning upright. Otherwise the standing heel lift
+would be added on top of an authored seated or lying animation and make the
+whole body visibly levitate. `NpcActorView` updates that posture target whenever
+the interaction, lying state, swim state, or reconstructed body changes.
 
 ### 31B.4D Assemblies — a product that arrives as a KIT, not a garment
 
@@ -7590,43 +7622,18 @@ SLEEP below is unchanged)*
   duration — housemates path around a sleeper (the same avoidance that
   respects standing NPCs). Claims release on completion, interruption, or
   death.
-- **29G r3 — a hex sleeps a RANK, not one body («спальные места»).** The
-  centre is a row of BERTHS. Bodies still reach one hex together (a faint,
-  a dead-tired collapse, a re-planned spot after a junction reservation
-  lapsed, an outsider bedding down among the girls) and used to land on the
-  exact same point at two unrelated yaws — one girl inside another, both
-  askew. Now `LieDownCentered` lays her out as a rank:
-  - **One heading for the whole hex.** The first body down owns it (lowest
-    EntityId, so a save-replay rebuilds the identical rank); every later
-    body copies it EXACTLY, so the sleepers are parallel and point the same
-    way. An empty hex takes the newcomer's own facing **snapped to the
-    nearest hex axis** (a multiple of 60°) — a body lying along a
-    flat-to-flat axis fits the hex; one lying across a corner does not.
-  - **Berths fill centre-out**: 0, +1, -1 — the second sleeper lies beside
-    the first, the third on her other side. Spacing is
-    `Spec49.SleepBerthSpacingFactor` x hex radius (0.5 → 0.75 wu, two
-    sub-grid steps) along the axis PERPENDICULAR to the heading, i.e. the
-    hex's corner-to-corner axis. Three is the whole rank on purpose: the
-    hex tapers to a point along that axis, so at 0.75 out the chord is
-    still the full 2.598 wu (a 1.32-long body fits easily) but at 1.5 out
-    it is the vertex. A FOURTH body takes the middle berth again (stacked,
-    the pre-r3 behaviour) rather than a berth half over the rim — possibly
-    over water or off a cliff.
-  - **No slot is stored.** Occupied berths are read back from where the
-    neighbours actually lie (their offset projected onto the shared lateral
-    axis), so nothing new is serialized and a body that wakes and leaves
-    frees its berth by walking away.
-  - A "neighbour" is any body lying on the same hex — ground sleeper,
-    dead-tired sleeper, fainted, comatose or prone (`IsLyingDown`). Corpses
-    are objects, not NPCs, and keep the §60.2a central-junction anchor.
-  - Knobs: `Spec49.SleepBerths` (kill switch — off restores the pre-r3
-    "everyone on the exact centre"), `SleepBerthSpacingFactor`,
-    `SleepBerthHalfSpan` (1 → a rank of three).
-  - **§113: a berth is also taken by a THING.** The rank knew about bodies
-    only, so a hex whose centre holds a campfire / boulder / bed read as
-    free and the body lay inside it. Since §113 the same solver treats a
-    solid object's footprint as an occupied berth (and turns the rank along
-    another hex axis when a side berth is the blocked one) — see §113.
+- **29G r4 — земля не знает про «одну/двух/трёх спящих».** Старый ряд из
+  трёх койко-мест 0/+1/−1 отменён §113 r2. `TryLieDownOnGround` перебирает все
+  **37 внутренних узлов** `HexPointLayout` (радиус под-сетки 3, шаг 0.375 wu),
+  начиная с ближайшего к фактической позиции тела, и для каждого — шесть
+  курсов гекса, начиная с ближайшего к текущему взгляду. Первый полностью
+  допустимый прямоугольник тела и есть поза. Число уже лежащих людей нигде не
+  ветвит алгоритм: они просто ещё несколько физических прямоугольников.
+  Решение не переносит тело на соседний гекс; соседний тайл участвует только
+  как опора под выступившей частью тела. Если ни одна из 222 комбинаций не
+  допустима, добровольный сон не начинается, а вынужденное падение остаётся в
+  фактической точке и пишет `Fit=NoSpace` — решатель не выдумывает движение в
+  костёр или за обрыв.
 
 **The bed must be earned**
 
@@ -7701,17 +7708,20 @@ The temperature axis becomes a **signed "chocolate" scale** for the UI, and
 weather gains real stakes.
 
 - `NPCNeeds.ThermalComfort` in [-1, +1]: **0 = ideal**, negative = too cold
-  (snowflake, left), positive = too hot (sun, right). Computed each slow
-  tick from the effective temperature: 0 inside the ideal [12,20] band,
-  scaling to ±1 over ~15 degrees beyond it. This is the instantaneous
-  reading the UI shows.
+  (snowflake, left), positive = too hot (sun, right). Это сохранённая
+  **температура тела**, а не мгновенная погода. Эффективная температура среды
+  даёт целевое состояние: тело движется к нему на 0.04 шкалы за slow tick
+  (slow tick = 4 с). Огонь для замёрзшего и вода для перегретого двигают тело
+  к нулю на 0.10 за slow tick; после ухода снова действует обычная инерция к
+  окружению. UI, решения, накопление дискомфорта и HP-урон читают тело.
 - The old unsigned `ThermalDiscomfort` (0..1) stays as the accumulating
   NEED the decision layer scores (Dress when cold, CoolOff/Undress when
   hot — direction still comes from the effective temperature). Its pressure
   now tracks the discomfort magnitude.
 - **HP at the extremes**: while |ThermalComfort| >= 0.85 (un-fled freezing
-  or heatstroke, and not standing in water) every body part loses 0.02 per
-  slow tick — `Hypothermia` / `Heatstroke` traces; a destroyed vital ends
+  or heatstroke) every body part loses 0.012 per slow tick — water can cool an
+  overheated body quickly, but does not erase its stored state instantly.
+  `Hypothermia` / `Heatstroke` traces; a destroyed vital ends
   it. Weather can now kill the unprepared. (Dormant in the current mild
   climate — a safety net for genuine cold snaps / heat waves.)
 - **The campfire is a STRONG heat source**: a LIT campfire radiates warmth
@@ -7723,7 +7733,8 @@ weather gains real stakes.
   temperature and clamped to the comfy-band top (never overheats — a dressed
   body caps sooner). The magnitude is deliberately enough that a near-naked
   body in the fire ring reaches the comfy band even on the coldest rainy
-  night (floor ~3°): standing by ANY lit fire reads comfortable **instantly**,
+  night (floor ~3°): standing by ANY lit fire warms the body at the active
+  0.10/tick rate rather than teleporting the reading to comfort,
   and the per-tick warmth is **identical at every build stage** (the stick
   pile at stage 1 warms exactly like the finished ring — the only stage
   difference is fuel longevity: the stone ring halves burn, 75→150 slow ticks
@@ -10177,7 +10188,7 @@ pass — order chosen to add robustness before difficulty.
   `GarmentWearPainter` seeded stain UVs from `GetInstanceID()`, every fresh
   instance drew a **completely new dirt pattern**. Pause froze it because
   `HexWorldRenderer` only syncs on a new `snapshot.Tick`. Two rifts existed:
-  `armor.heavy` (sim Outerwear, prefab Wear) collided with **every** top,
+the retired `armor.heavy` row (sim Outerwear, prefab Wear) collided with **every** top,
   and `Shirt G3F_31977` claimed `WristL/R` that the sim never gives it,
   colliding with gloves/sleeves. Fixes: prefab layer/slots corrected;
   **placement is now seeded from the garment's IDENTITY** (its equip key on
@@ -10591,7 +10602,11 @@ is scaled by the same actor factor the girls wear it at (`HexRadius *
 NpcHeightFactor * 2.4 / 1.7`), gets a deterministic scatter yaw from the
 object id, and is grounded with a 1 cm epsilon against tile z-fighting.
 TUNING KNOBS: `FlattenFactor`, `PieceGapFactor` (gap between side-by-side
-pieces, 0.2 of the widest).
+pieces, 0.2 of the widest). A drop or rack item resolves the same variant
+material array as a worn item: it loads the prototype mesh through `ArtId`,
+then replaces the non-null material slots supplied by its item id. Thus a
+coloured variant retains its colour after being taken off, washed ashore, or
+hung to dry; unspecified slots keep the prototype material.
 
 ### Implementation order (living)
 Robustness first, spectacle second: 40.1 Stamina → 40.2 Blood →
@@ -10613,14 +10628,41 @@ overlay (UIDocument, top sorting order) drives phases:
    then wind forward by `offlineTicks` (§41.3), chunked ~10 ms per frame
    so the progress bar animates.
 3. **Island** — let `HexWorldRenderer` build all views (terrain mesh,
-   actors, wardrobe) behind the overlay for a few frames.
+   actors, wardrobe) behind the overlay for a few frames. Addressables prewarm
+   is scoped to content visible in that opening world (currently worn garments,
+   corpse garments, and present world objects), never the entire wardrobe
+   catalog; future content remains lazy.
 4. **Warm-up** — select each NPC once (builds the character panel UI,
    portrait camera + its RenderTexture, shader variants) so the FIRST real
    click has no hitch — this was the "заход в персонажа" lag: the whole
    panel tree + portrait pipeline built lazily on first selection.
-5. Fade out, unpause, autosave timer starts. Camera: `NpcSelection.Select`
-   (Jana) — the RTS camera's selection handler enters orbit on her, so the
-   game opens looking at Jana with her panel up.
+5. The curtain stays opaque until each opening actor has more than a body
+   GameObject: all Addressables work is complete, every current `WornItem` has
+   passed the wardrobe synchronisation attempt (including the established
+   art-less/slot-conflict terminal cases), the selected hairstyle/colour is
+   applied, and the first roster NPC is selected. Because the world is still
+   paused, the RTS camera is placed on that NPC immediately (not through
+   scaled-time `SmoothDamp`). The loading boundary also guarantees
+   `Time.timeScale = 1`: the simulation clock is unscaled and otherwise a stale
+   Escape-menu pause can move roots while freezing every Animator, which
+   appears as foot sliding. Only then fade out, unpause, and start the autosave
+   timer.
+External Addressables content has one distribution-level home:
+`<build folder>/HexLiveContent/<BuildTarget>`. Windows/Linux reach it one level
+above `<name>_Data`; macOS reaches it two levels above `<name>.app/Contents`.
+Building the Player never rebuilds Addressables: the project setting is the
+explicit `DoNotBuildWithPlayer` enum value (not `PreferencesValue`, whose
+global Editor preference defaults to building). Content is rebuilt only via
+`HexLive ▸ Addressables ▸ Собрать контент` when its source assets change.
+Для точечного ремонта уже установленной macOS-папки команда
+`HexLive ▸ Addressables ▸ Собрать и установить только недостающие иконки`
+собирает только группу `HexLive.Icons`, добавляет её локации в существующий
+catalog без замены хэшей wear/hair и устанавливает один icon bundle вместе с
+обновлёнными `catalog.bin/.hash`. Полную пачку гардероба эта команда не строит
+и не копирует.
+The macOS runtime rewrites legacy catalog internal ids that pointed inside the
+`.app`, so existing bundle/catalog output remains reusable without rebuilding
+or copying it into every new application package.
 Background art: `Resources/HexLive/UI/loading_island` (fal.ai-generated,
 the three girls at sunset on the low-poly island, 1920×1080). Game logo
 `Resources/HexLive/UI/logo` ("HEX ISLAND SURVIVE", alpha-cut) overlays the
@@ -10827,36 +10869,30 @@ align the rendered light to the same path (visual shadows == sim shade).
   Craft `CraftBandage` at the campfire: 2 leaves -> +1 bandage (available
   when hurt or stock < 2). Bandage use now REMEMBERS the dressed zones
   (`NPCState.BandagedZones`, cleared when the zone heals past 0.7) and the
-  snapshot exports them — presentation spawns a leaf-wrap decal on the
+  snapshot exports them — presentation spawns a white-gauze dressing on the
   bandaged spot.
-  - **Medkit vs herbal (the leaf wrap only means gathered plantain):** the
+  - **Medkit vs herbal (supply provenance only):** the
     starting bandages (spec 40.3) are a pre-made medkit, NOT gathered
     leaves. `NPCNeeds.HerbalBandages` tracks how many of the pouch's bandages
-    were crafted from gathered plantain; `CraftBandage` bumps it. On a
-    dressing the MEDKIT bandages are spent first and leave NO leaf-wrap decal
-    (the wound is patched but the plantain visual never appears for a bandage
-    she didn't gather); the leaf-wrap (`BandagedZones`) is stamped ONLY when a
-    herbal bandage is the one consumed — so the plantain wrap on screen always
-    corresponds to leaves she actually went out and picked. Persisted in the
-    save blob (BlobVersion 2).
+    were crafted from gathered plantain; `CraftBandage` bumps it. Medkit
+    bandages are spent first. The kind remains in the save/snapshot for the
+    medical economy, but both kinds render as the same white gauze: a dressing
+    must never appear to change into a flower or leaf ornament mid-life.
+    Persisted in the save blob (BlobVersion 2).
   - **Starting pouch (§44 r2, doubled):** `Bandages = 4` of which
     `HerbalBandages = 2` — the med pouch holds twice the first aid it used to
     (2 medkit + 2 herbal she brought with her), so a mauling survivor gets
-    four dressings instead of two. The medkit-first order is unchanged, so
-    the first two dressings are gauze and the THIRD is the leaf wrap: the
-    plantain visual now actually reaches the screen inside one life instead
-    of needing three maulings plus a gather-and-craft run in between (the
-    old 2/0 pouch is why the leaf wrap was never seen in play). The
+    four dressings instead of two. The medkit-first order is unchanged; the
+    kind affects the medical inventory, not the visible material. The
     `Bandages < 2` gate on `GatherHerb`/`CraftBandage` is unchanged — the
     re-stock cap stays at 2, the pouch just starts above it.
 - **Presentation (shipped)**: `herb.bush` renders as a procedural low-poly
   medicinal shrub (`LowPolyToolFactory` — splayed stems, leaf blades, pale
   bloom tips so it reads special among the greenery); `resource.herb_leaf`
-  as a single leaf. The **bandage decal** (`SkinDecals`, DecalType.Bandage)
-  uses a fal.ai leaf-poultice texture (`Resources/HexLive/Decals/
-  bandage_wrap.png` — green leaves bound with fiber twine; procedural
-  crossed-band fallback). A bandaged zone REPLACES its wound decals with
-  one wrap decal (same deterministic zone placement, salt 271); when the
+  as a single leaf. Every **bandage decal** (`SkinDecals` / `SkinTexturePainter`)
+  uses the same plain white gauze texture, regardless of whether the supply
+  was herbal or medkit. A bandaged zone REPLACES its wound decals with one
+  gauze decal (same deterministic zone placement, salt 271); when the
   sim clears the zone from `BandagedZones` the wrap disappears and any
   still-open wounds show again.
 - **Water**: ThirstRate 0.020 -> 0.017 (thirst was permanently red and
@@ -11947,15 +11983,14 @@ longer the frame — it is **a garment that is simply not worn**.
 
 | Row | Was | Prefab says | Cost |
 |---|---|---|---|
-| `armor.heavy` | sim layer `Outerwear` | layer `Wear` | **22 of 30** clashing pairs — the cuirass fought every top |
+| retired `armor.heavy` | sim layer `Outerwear` | layer `Wear` | **22 of 30** clashing pairs — the cuirass fought every top |
 | `clothing.suspenders_nerd` | `ShoulderR/L` | `Chest + Belly` | 11 clashing pairs — the bib fought every top |
 | `Boots 20496` | no slots authored ⇒ `Covers` fallback | now `FootR/FootL` | 7 **false strips** — boots stripped stockings/tights/socks |
 
 Sweep result: **30 clashing pairs → 0**, and the reverse direction (sim strips a
-pair the body would have worn together) **12 → 0**. `armor.heavy` now replaces a
-shirt rather than stacking over one, and still layers under a vest / harness /
-scarf, which really are `Outerwear`; to make it armour-over-shirt instead, move
-the **prefab** to `Outerwear` — never the sim row alone.
+pair the body would have worn together) **12 → 0**. The invalid armor rows were
+later retired entirely: they have no shipping visual or localization, are absent
+from new worlds and raids, and are stripped from old saves on load.
 
 **The gate** (`Tests/HexLive.Simulation.Tests/Gates/WearSlotGateTests.cs`, 5
 tests, `dotnet test Tests/HexLive.Simulation.Tests`). It parses the real
@@ -11988,7 +12023,7 @@ reverted in turn to prove the gate names it (wrong catalog row → 11 pairs +
 `EveryHomeOfTheLayerAgrees`; unauthored prefab slots → 7 false strips). Golden
 trace (`Tools/golden_trace.sh HEAD --preset decisions`, 3 seeds × 4 000 ticks):
 **2 of 3 seeds bit-identical**; seed 12345 diverges from one event —
-`underwear.bra_cherry`, displaced by `armor.leather` at tick 1431, is folded into
+`underwear.bra_cherry`, displaced by the since-retired `armor.leather` at tick 1431, is folded into
 the pack (5/11) instead of laid on the sand — and the first *decision* that
 differs is 1 800 ticks later (t3256, one girl keeps `SplitLog` instead of
 switching to `CoolOff`). Soak, 16 seeds × 24 000 ticks: 4 seeds bit-identical (no
@@ -12022,7 +12057,8 @@ the headless harness can bisect it and it can be soaked without tipping a seed
 
 ### §53.1 The need & the trait — сострадание
 Two coupled quantities. **`NPCNeeds.Compassion`** (0..1, 1 = at peace) is the UI
-bar, mirroring the Social convention (high = good). **`NPCState.CompassionTrait`**
+bar **Care reserve / Запас заботы**, mirroring the Social convention (high =
+good). **`NPCState.CompassionTrait`**
 (0..1) is the personality weight, seeded once at spawn in `[TraitMin, TraitMax]`
 (deterministic on the world seed + npc id) and fixed for life. The trait scales
 both how fast the need drains and the strength of the aid drive — so one girl
@@ -12078,9 +12114,12 @@ fighting, or fleeing. Her own `StarvingBoost` (1.0) still outranks aid — a gir
 dying of hunger looks after herself first.
 
 ### §53.6 Presentation / UI
-A **Compassion** bar (rose, ❤ glyph) joins the CharacterPanel need rows (RU
-«Сострадание»), fed by `NpcSnapshot.Compassion`. Aid emits `AidStarted` / `Aided`
-traces and reuses the existing relationship-pop over both heads.
+A **Care reserve / Запас заботы** bar (rose, ❤ glyph) joins the CharacterPanel
+need rows, fed by `NpcSnapshot.Compassion`. Постоянная черта отдельно показана
+в разделе характера как **Compassion / Сострадание**, через
+`NpcSnapshot.CompassionTrait`; у чужаков это их реально сгенерированные 0–25%,
+а не полный ресурс нужды. Aid emits `AidStarted` / `Aided` traces and reuses the
+existing relationship-pop over both heads.
 
 **The tending pose (r2).** The helper always shows a **mediator prop** in hand:
 **Feed → `food.coconut`**, **Hydrate → the pierced `food.coconut_pierced`** (the
@@ -12235,6 +12274,8 @@ from scratch (cold start). Two data-driven seams keep it cheap to extend.
   `Heartwood` material family defines the wood style used by world props.
 - **`SplitLog`** (`InteractionType.Process`): chop a **ground log** into
   `SimBalance.LogSplitYield` (4) sticks with an axe/saw — the sticks scatter.
+  Отдельное действие `saw.log` пилой даёт 2 доски; при включённом §118 ИИ
+  выбирает его вместо щепления на палки только под реальную потребность в протезе.
   `forest.deadfall` sheds ready sticks (the early bootstrap shortcut).
 
 ### §54.2a One tree at a time (don't mow the grove)
@@ -12741,8 +12782,12 @@ Mechanics:
    full bar (or a missing spit) makes `CookMeat` unavailable and no other lit
    fire will do (`TargetMatchesGoal`). The view (`CampfireSpitMeat`) threads
    each chunk onto one of SIX fixed skewer slots along the crossbar — chunk
-   centred ON the bar like a skewered kebab (height hand-tuned), filled
-   centre-out so a lone chunk roasts over the flame — at the same physical
+   centred ON the bar like a skewered kebab, filled centre-out so a lone chunk
+   roasts over the flame. Slot coordinates are derived from the rendered bounds
+   of the logical `stick_bar`, not from prefab-root constants, so native FBX and
+   primitive build-safe assemblies retain the same six attachment positions.
+   The emergency assembly follows the 12-stick bill exactly: 9 hearth sticks,
+   2 spit posts and 1 crossbar. Meat remains at the same physical
    size the chunk has on the ground / in the hand (shared `ObjectFit` table —
    meat renders 1.5× the standard food size).
 2. **Roast.** While the fire is LIT, `FireSystem` advances each hanging raw
@@ -13173,9 +13218,9 @@ zone lists (`BodyParts` "Zone=0.87", `SeveredParts`, `BandagedZones`
 into a 384×512 RenderTexture on the hidden **Portrait** layer (already culled
 from the main camera), parked far below the map.
 
-- **Built from the same actor prefab** the world spawns
-  (`Resources/HexLive/Actors/<ActorMesh>`), **static** — no idle spin, and
-  the clone is a DEAD mannequin: it is instantiated under an inactive holder
+- **Built from the selected NPC's live actor hierarchy** (falling back to
+  `Resources/HexLive/Actors/<ActorMesh>` only when the actor is unavailable),
+  **static** — no idle spin, and the clone is a DEAD mannequin: it is instantiated under an inactive holder
   and every live component (FinalIK solvers, Magica cloth, colliders,
   physics — everything but bones/renderers/Animator) is stripped BEFORE the
   first Awake. Left alive, those solvers kept simulating the doll with no IK
@@ -13187,7 +13232,11 @@ from the main camera), parked far below the map.
   the Animator is destroyed and the bones keep the pose. Never swing the
   shoulder bones manually out of the T-pose: Genesis skinning without its
   authored poses candy-wraps the shoulders («руки-крюки»). Front view,
-  camera framed once from the skinned bounds.
+  camera framed once from the skinned bounds. This is not just a cache win:
+  a Resources actor prefab may be a skeleton shell while runtime composition
+  has supplied the visible `SkinnedMeshRenderer`; cloning the live hierarchy
+  keeps the health doll available for that character instead of rendering an
+  empty backdrop.
 - **Zone mesh without hand-authored masks**: the skin mesh is cloned and every
   vertex is classified by its **dominant skinning bone** walked up the Genesis3
   hierarchy to the zone roots (`neckLower`→Head, `abdomenUpper`→Torso,
@@ -13207,7 +13256,10 @@ from the main camera), parked far below the map.
   studio light + rim, no scene lighting): HP 1→0 ramps green→yellow→red
   (panel palette), a **bandaged** zone lightens 30 % toward white, a **severed**
   zone paints dark and its distal bone collapses (`lForearmBend`/`lShin` etc. —
-  §50 parity with the live body). Repaints only when the zone signature changes.
+  §50 parity with the live body). `Resources/HexLive/UI/HealthDoll.mat` is the
+  build-time reference that keeps this runtime-created material's shader from
+  being stripped from a player build; a missing shader is a loud build failure,
+  never a silent grey viewport. Repaints only when the zone signature changes.
 
 ### §57.2 The window (CharacterPanel)
 
@@ -13431,46 +13483,20 @@ covered explicitly; a raw enum name in this card is a localization defect.
 Смерть в коме возможна: голод/жажда, холод/жара, добитые жизненно важные зоны,
 кровь до нуля.
 
-**60.2a Позиционирование — инвариант «тело всегда в центре своего гекса».**
-Любое тело на земле — кома обеих причин, обморок §40.13, сон на земле §29G И
-ТРУП (§28.15C) — лежит ТОЧНО в геометрическом центре своего гекса, не на кромке
-и не там, где застал коллапс/смерть на середине шага. Для ЖИВОГО тела это
-единый примитив `ExecutionSystem.LieDownCentered(npc)` = `npc.Position =
-HexSpatialMath.TileToWorld(npc.Tile)`, вызываемый из всех путей укладки. Позиция
-ставится безусловно и ОТВЯЗАНА от занятости джанкшнов: исторический баг «тело
-свисает с края» возникал оттого, что каждый путь сам искал «ближайший СВОБОДНЫЙ
-джанкшн к центру», а `IsJunctionFree` считает занятым тот джанкшн, на котором
-тело само стоит (и footprint, который оно только что застолбило), — поэтому скан
-структурно НЕ МОГ вернуть центр и всегда уносил тело вбок; обморок же вообще не
-задавал позицию. Скан свободного джанкшна теперь выбирает лишь ЯКОРЬ лежачего
-footprint (§29G, чтобы соседи обходили тело), но не видимую позицию. ТРУП — это
-не NPC (сущность удаляется в `MobSystem.RemoveDeadNpc`), а объект `corpse.npc`,
-который рендерится по `Junctions[0]`; поэтому его якорят на ЦЕНТРАЛЬНЫЙ джанкшн
-гибельного гекса (ближайший к `TileToWorld(tile)`), а не на `npc.CurrentJunction`
-(кромку, где NPC умер). Все смерти (голод, холод, кровь, собаки §29C, хищники
-§56) идут через один `RemoveDeadNpc`, так что центрируются все трупы разом.
-Правило: у ЛЮБОГО нового пути «тело падает на землю» — звать `LieDownCentered`
-(живое) или якорить на центральный джанкшн (труп), а НЕ выводить позицию из
-`IsJunctionFree`/`CurrentJunction`.
+**60.2a r4 Позиционирование — инвариант «весь прямоугольник тела имеет
+опору».** Любое ЖИВОЕ тело на земле — сон, обморок, кома, умирание,
+притворство и плач — проходит через один `ExecutionSystem.TryLieDownOnGround` и
+решатель §113 r2. Центр больше не является особым местом. Поза выбирается на
+одном из 37 внутренних узлов текущего гекса; прямоугольник 1.32 × 0.36 wu
+должен целиком попадать на существующие проходимые тайлы **той же высоты**, не
+пересекать твёрдую вещь и другой лежащий прямоугольник. Поэтому допустима
+голова над соседним ровным гексом, но недопустима голова над водой/обрывом или
+ноги внутри костра. `Tile` не меняется: это выбор локальной позы, не ходьба.
 
-**60.2a r2 (§29G r3, «спальные места»): центр — это РЯД, а не точка.** Инвариант
-выше остаётся в силе для ОДИНОКОГО тела: одна лежащая на гексе = ровно
-геометрический центр. Но два тела на одном гексе (обморок рядом со спящей,
-сорвавшаяся резервация джанкшна, чужак §72) ложились в одну и ту же точку под
-двумя разными углами — одна В другой, обе криво. Теперь `LieDownCentered(world,
-npc)` кладёт тело в свободное КОЙКО-МЕСТО этого гекса: общий на весь гекс угол
-(задаёт первая легшая, у пустого гекса — её собственный курс, приснапленный к оси
-гекса, кратной 60°) и место 0 / +1 / −1 в поперечнике с шагом
-`Spec49.SleepBerthSpacingFactor × HexRadius` (0.75 wu). Соседки лежат
-ПАРАЛЛЕЛЬНО и головами в одну сторону; занятые места читаются из фактических
-позиций лежащих (ничего не сериализуется). Подробности и ручки — §29G r3.
-
-**60.2a r3 (§113): место занимает и ВЕЩЬ.** Центр гекса — это ещё и то место,
-где §66 ставит костёр, где лежит валун и стоит кровать; «центр свободен»
-означало «на нём никто не лежит», и вырубившаяся у костра ложилась в костёр.
-Теперь `LieDownCentered` считает занятым и физический габарит вещи, а при нужде
-разворачивает шеренгу по другой оси гекса — гекс костра не запрещён, запрещён
-сам огонь. Подробности, лестница радиусов и ручки — §113.
+Труп наследует уже найденную позу умершего. `MobSystem.RemoveDeadNpc` выбирает
+якорь `corpse.npc`, ближайший к `npc.Position`, а не возвращает тело в центр:
+смерть не должна второй раз решать геометрию и телепортировать безопасно
+лежавшее тело в огонь. Подробности и точные проверки — §113 r2.
 
 **60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся обратно.
 ⚠️ Пороги ниже — **редакция v1, отменённая r2**: `ComaWakeThreshold` (0.15) в
@@ -13540,6 +13566,31 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 CurrentInteraction=Sleep» из экспортёра убрана; союз лежачих
 (`HexWorldRenderer.IsLyingDown`) уже нёс `IsUnconscious`, трава и грасс-гейты
 не задеты.
+
+**60.6 r4 (баги #53/#54): падение не является перемещением, а подъём — новым
+падением.** Вход в кому/обморок/умирание оставляет `Tile` тем, на котором тело
+выключилось. `TryLieDownOnGround` вправе выбрать только локальное место
+§60.2a r2 внутри ЭТОГО гекса; поиск «безопасного места» не переносит лежащую
+на соседний гекс. Перенос тела — отдельная сцена спасения §118.4.
+
+Истёкший `FaintedUntilTick` потребляется один раз и выдаёт тот же
+`WakeGraceUntilTick`, что сон и плач. Пока действует wake-grace, новая ветка
+обморока не взводится; кома и умирание также не могут поверх себя открыть
+обычный обморок. Поэтому один эпизод имеет монотонную последовательность
+`Active → Fainted/Dying → Waking → Active` (либо `→ Dead`), а не цикл
+`Fainted ↔ Waking` при неизменных статах.
+
+**60.6 r5 (баг #54, фактическая трасса seed 19348559).** История NPC101
+показала не цикл обычного обморока, а последовательность
+`VitalPartDestroyed(wound degeneration)` →
+`VitalPartDestroyed(medical progression)` → `Collapsed(Starvation)` каждые
+16–32 тика. `Die` ставил `Health=0`, после чего оставшаяся половина того же
+`KenshiMedicalMath.Tick` пересчитывала `Health=Body.Mean()` и оживляла тело до
+свипа `MobSystem`; голод тут же открывал новое умирание. Ноль здоровья теперь
+терминален до свипа: медицинская прогрессия прерывается сразу после смертельной
+дегенерации, `NeedsDecaySystem` больше не выполняет оставшиеся ветки для этого
+NPC, а следующий `TemperatureSystem` пропускает тело с `Health<=0`. Один исход
+имеет один death-event и монотонно доходит до `Entities.Corpses`.
 
 **60.7 Утопление — без сознания в воде это смертельно.** Тело, потерявшее
 сознание (кома обеих причин, обморок §40.13 или умирание §105 — весь
@@ -14183,7 +14234,12 @@ molly_copy, демо-ассеты вырезаны) с одним патчем: 
 44.1k, парсер ищет data-чанк), часами служит позиция FMOD-канала
 (`channel.getPosition`), и каждый кадр скармливает анализатору ровно то окно,
 которое канал только что проиграл (`OnDataReceived`, кап 200 мс после
-фризов). Дальше сток: `uLipSyncBlendShape` → Daz-виземы
+фризов). Анализатор создаётся на неактивном дочернем объекте: сначала ему
+назначаются профиль и `overrideSampleRate=44100`, и только потом объект
+активируется. Это обязательно — `AddComponent` на активном объекте немедленно
+вызывает `OnEnable`, который иначе успевает обратиться к выключенному
+`AudioSettings` и пишет предупреждение на каждого актёра. Дальше сток:
+`uLipSyncBlendShape` → Daz-виземы
 `…eCTRLv{AA,IY,UW,EE,OW,M,F,S,SH,T,ER,L,K,TH}` (профиль MFCC —
 `Resources/HexLive/Audio/VoiceLipSyncProfile`, калибровка из molly_copy;
 маппинг ищет блендшейпы ПО СУФФИКСУ, чтобы новое Daz-поколение с другим
@@ -15170,6 +15226,10 @@ indoor-тайлов нет вовсе — то есть девушкам все�
 облик выбирается детерминированно из §74 (тело, кожа, глаза, волосы, голос и
 уникальное имя), одежда — один из двух совместимых защищённых комплектов, без
 пляжного случайного старта. Мужчины получают штатный тактический комплект.
+Перед экипированием каждая вещь комплекта сверяется с `World.Content`: отсутствующий
+или не-`Clothing` id не создаётся у NPC, а записывается в `RaidWaveArmorSkipped`.
+Так частично обновлённый каталог не производит неотрисовываемые «Unknown item»;
+исправный комплект и его баланс при этом не меняются.
 
 Сила новых прибывших растёт по номеру волны: оружие идёт ступенями каменный топор → копьё
 → мачете, затем мачете остаётся потолком, а врождённые Strength/Endurance/
@@ -15932,6 +15992,10 @@ Native prefab дополнительно приводит поперечные �
 основания рукояти, затем локальный roll +90° переносит широкую плоскость клинка
 из Z в −X, а толщину — в Z. Поэтому общий knife hand pose действительно даёт
 одинаковое направление лезвия, а не только одинаковые числа transform (баг #84).
+Если glTF `ScriptedImporter` не отдаёт основной `GameObject` через
+`Resources.Load` в конкретной сборке Player, рука и наземный объект используют
+процедурный low-poly силуэт мачете; предмет не может стать невидимым из-за
+формата импортированного ассета (баг #59).
 
 **79.5 Что «просто заработало».** Рубящий клип (`ActionFromInteraction` гейтится
 на `ChopWood`), вооружённые idle/ходьба (любой `tool.*`), выбор оружия в драке
@@ -16677,17 +16741,24 @@ alpha-clip радужки на очереди 2450) и отличается то
 Симпатия к тирану падает с каждой сценой насилия (§81), так что «добьют или
 нет» — следствие ИСТОРИИ отношений, а не отдельная ручка.
 
-**86.1 Порог, а не запрет.** Пощадный удар всё равно наносится: рана пишется,
-кровь идёт, одежда рвётся — просто здоровье не проваливается ниже
-`MercyHealthFloor` (0.55, «оставить чуть больше половины и уйти довольным»).
-Пощады нет, когда симпатия бьющего к цели ниже `HatredAffinity` (−0.6 — это
-несколько сцен насилия подряд, заработанная ненависть, обычная неприязнь
-держится около −0.3). `MercyAppliesToOutsiders` распространяет пощаду на
-чужаков (выключить — соак разведёт смерти от своих и от чужих). Живёт всё в
-одном месте — `MeleeSwing.ApplyHumanBlow`, через который идёт КАЖДЫЙ
-человеческий удар (§72 рейд, §81 тычки, защитницы).
+**86.1 Решение принимается перед потенциально смертельным замахом.** В начале
+замаха `HumanStrikeDecision` один раз выбирает и сохраняет часть тела, считает
+урон оружия с силой, навыком боя, состоянием рук и бронёй цели и спрашивает,
+может ли именно этот удар убить. Летален удар, который уничтожает голову,
+переводит грудь/таз через смертельную границу либо исчерпывает dying reserve
+у уже лежащей цели. Намерение непрерывное, без старого бинарного порога:
+`hatred = Clamp01(-affinity)`,
+`killIntent = hatred × (1 − CompassionTrait)`. Убийство разрешено при
+`killIntent >= 0.50`. Правило одинаково для своих, чужаков, рейда, защитниц и
+групповой охоты; `HatredAffinity`, `MercyAppliesToOutsiders` и безусловной
+групповой пощады больше нет.
 
-**86.2 ⭐ Пощада клэмпится ДВАЖДЫ: по среднему и по части под ударом.** Первый
+**86.2 ⭐ Отказ не отменяет видимый удар.** Пощадный удар всё равно доигрывает
+клип, штампует попадание, пишет допустимую рану и изнашивает одежду, но урон
+ограничивается существующими полами среднего здоровья, выбранной части и
+dying reserve. На попадании летальность пересчитывается повторно по ТОЙ ЖЕ
+сохранённой части: параллельный удар другой охотницы не превращает пощадный
+замах в смертельный. Базовые два клэмпа по среднему и части сохраняются. Первый
 клэмп меряет только среднее по телу: запас `(Health − floor) × 7 частей`
 позволяет ОДНОЙ части впитать до ×7 её максимума. Серия ударов в голову
 (`PickHumanPart` кладёт туда 20%) уничтожала Head задолго до того, как среднее
@@ -16697,7 +16768,7 @@ alpha-clip радужки на очереди 2450) и отличается то
 часть под ударом не опускается ниже `MercyPartFloor` (0.05) — невозможна ни
 мгновенная смерть (Head/Torso в ноль), ни отрыв конечности
 (`TrySeverOnBite` срабатывает только на части ровно в нуле), ни смерть от
-кровопотери культи. Ненависть снимает оба клэмпа разом.
+кровопотери культи. Разрешённое `killIntent` снимает эти ограничения.
 
 ## §89 Гопник: он ищет, догоняет и не отпускает (iteration 89)
 
@@ -17083,6 +17154,14 @@ Golden-трасса: хеш состояния сдвинулся (два нов
 
 ## §105 На грани смерти: умирание вместо мгновенной смерти (iteration 105)
 
+> **Актуализация §118.** Для боевой травмы фиксированный `DyingReserve` больше
+> не является таймером смерти: его совместимое значение выводится из
+> `max(BloodDeficit, CriticalTrauma жизненных зон)`. Ноль головы, груди или таза
+> роняет минимум на 80 тиков, но сам по себе не убивает. Таймеры этого раздела
+> остаются только для голода и обезвоживания. Лечение боевых травм, условия
+> пробуждения и спасение задаёт §118; правила притворства мёртвой §105.14
+> сохраняются и расширяются там же.
+
 Смерть перестала быть событием одного тика. Между «должна умереть» и «умерла»
 теперь есть ОКНО: тело падает, лежит и тает — и всё это время его можно спасти.
 
@@ -17136,7 +17215,7 @@ Golden-трасса: хеш состояния сдвинулся (два нов
   головы. До §105 этот ответ был размазан по восьми сайтам одинаковой парой
   строк `if (VitalDestroyed) { Health = 0; трасса; }` — восемь мест, где новое
   правило забыли бы.
-- Падение обязано идти через `LieDownCentered` (§60.2a). Примитив укладывания
+- Падение обязано идти через `TryLieDownOnGround` (§60.2a). Примитив укладывания
   вынесен в `MortalityHelpers.AnchorLyingBody` и общий с комой: двух редакций
   §60.2a быть не должно, иначе одно из тел начнёт свешиваться с кромки гекса.
 
@@ -17318,6 +17397,14 @@ Golden-трасса: хеш состояния сдвинулся (два нов
 сим считает сам: та выпадает один раз в момент падения и обязана пережить
 сохранение). Первым в списке стоит авторский `Sleep` — «вариантов не назначили»
 и «выпал первый вариант» дают один и тот же кадр.
+
+**Падение берёт ту же позу, что и сон (bug #41).** `Sleep` и `FallenIdle` —
+разные состояния контроллера, но их клиповые ключи подменяются ОДНИМ
+детерминированным вариантом из `NpcAnimSet.sleep` по id NPC. Поэтому центр,
+ось «голова → ноги» и длина отображаемого тела совпадают с тем же модельным
+футпринтом `LyingSpot`, который уже проверен для сна; `FallenIdle` отличается
+только нулевой скоростью состояния. Нельзя оставлять ему авторский запасной
+`Sleeping Idle`: для второй позы это была бы скрытая вторая геометрия тела.
 
 **⭐ Вход в цепочку — явными переходами из каждого состояния, НЕ через
 AnyState.** Первая редакция вешала `AnyState → FallDown` на `Fallen == true`, и
@@ -17833,13 +17920,11 @@ Abort` → `CurrentGoal = GroupHunt` + `GroupHuntTargetNpcId` + `GoalLock` на
 одном соаке. Починка погони и вскрыла её в тот же вечер — обычный порядок:
 сначала механика начинает случаться, и только потом видно, чего ей стоит.
 
-**108.6 Исход решает лестница ненависти, а не §108.** `Spec108.
-GroupHuntMercyHolds = false`: пол §86 работает как обычно, то есть каждая
-охотница решает за себя — кто дошла до `HatredAffinity (-0.6)`, бьёт насмерть,
-кто не дошла, отобьёт и отстанет. Так у расправы нет заранее известного конца, и
-это сознательный выбор: цена — чужак на острове один, и иногда линия §81
-кончается вместе с ним (замер: 2 охоты из 4 доводили до смерти на четвёртый-пятый
-день). Включить ручку — они бьют строго до «свалился», и он всегда встаёт.
+**108.6 Исход решают отношения и сострадание, а не §108.** Групповая охота не
+имеет отдельного выключателя пощады: каждый человеческий замах проходит общий
+§86. Каждая охотница считает собственный `killIntent` из своей симпатии и
+`CompassionTrait`; поэтому у расправы нет заранее известного конца. Цена
+сознательная: чужак на острове один, и иногда линия §81 кончается вместе с ним.
 
 Отсюда же мера «побили»: убивать они не обязаны, а конец охоте нужен, поэтому
 успех считается ударами — `GroupHuntBlowsToRout (6)` по всей группе →
@@ -17890,12 +17975,13 @@ SaveGoal` обнуляет `GroupHunt` при сохранении, как `Defe
 `GroupHuntMinRemaining` 2, `GroupHuntCooldownTicks` 3000,
 `GroupHuntStressRelief` 0.25, `GroupHuntBondAffinity` 0.10,
 `GroupHuntWitnessAffinityLoss` 0.18, `GroupHuntWitnessRadiusTiles` 5,
-`GroupHuntBlowsToRout` 6, `GroupHuntMercyHolds` false, `GroupHuntTargetGrudge` 0.30,
+`GroupHuntBlowsToRout` 6, `GroupHuntTargetGrudge` 0.30,
 `GroupHuntHunterFleeHealth` 0.6, `GroupHuntHunterFleeWorstPart` 0.35.
 
-⚠️ `GroupHuntHateThreshold` (-0.5) держать ВЫШЕ `Spec86.HatredAffinity` (-0.6):
-между ними и живёт разница «пошла бить» и «пошла убивать». Сдвинуть порог
-сговора ниже -0.6 значит, что на охоту выходят только те, кто уже готов добить.
+`GroupHuntHateThreshold` (-0.5) решает только, готова ли она выйти на охоту.
+Летальность каждого отдельного удара независимо решает §86 по непрерывному
+`killIntent = Clamp01(-affinity) × (1 − CompassionTrait)`; отдельного порога
+или флага пощады для групповой охоты больше нет.
 
 **108.10 Замеры** (прототипный остров, 24000 тиков = 10 дней, шесть сидов).
 `GroupHuntGatherRadiusTiles` = 2 давал НОЛЬ сговоров на всех сидах: так близко
@@ -18185,8 +18271,16 @@ headless-Blender'ом по ключам (зеркалятся и ручки Бе
 2. **инструменты** — категория `Tool`;
 3. остальное.
 
-Надетое (`WornItems`) НЕ снимает: раздевание тел — это §28.15F, и оно про
-мёртвых. «Хоп-хоп» по карманам и ушёл.
+Когда карманы уже пусты, обыск может закончиться обычным образом либо один раз
+стянуть **случайную надетую вещь** (`WornItems`). Это не переодевание и не
+проверка совместимости: лутер уносит и неподходящую ему одежду, если бросок
+прошёл, — мотивом может быть лишить врага брони. Шанс начинается с 15%, растёт
+до +20 п.п. от собственного стресса и до +35 п.п. от личной неприязни к
+жертве; он всегда детерминирован от seed/tick/id для реплея. После этой одной
+вещи сцена завершается. Снятие сразу пересчитывает тепло, броню и карманы
+жертвы; вещи, которые больше не вмещаются без снятого предмета, штатно падают
+у её ног. Одна надетая вещь сама по себе не запускает поход на обыск: шанс —
+добавка к уже начатому обыску карманов, а не гарантированное раздевание.
 
 Вода из фляги остаётся на жертве: заряды живут на теле (`BottleCharges`), а не
 на вещи, — сама фляга уезжает как обычный предмет. Асимметрия ровно та же, что
@@ -18267,6 +18361,33 @@ headless-Blender'ом по ключам (зеркалятся и ручки Бе
 `−Forward`, помощница смотрит по `Rotation + 180°`. Все пять видов помощи и
 обыск читают только этот ответ из `LyingSpot`, без таблиц на отдельные глаголы.
 
+**111.10 Свидетель подходит и вступает в двусторонний бой.** Для человеческой
+защитницы соседство узлов больше не означает «пришла»: общий контракт
+`InteractionReach.AssessMelee` возвращает `Approach` либо `Act` и включает
+среду боя. В `Approach` она перестраивает путь; в `Act` получает пару с
+лутером. Несколько свидетельниц могут одновременно бить одну цель, а лутер
+отвечает ближайшему живому противнику. Завершение/срыв обыска, потеря цели,
+вода, нокаут и истечение assist-lock симметрично очищают assist, обе стороны
+пары и swing slots; человеческий `HelpCryAssistHolding` не используется.
+Граница §111.1 не меняется: спящих по-прежнему нельзя обыскивать.
+
+**111.11 Нападение окончательно срывает попытку обыска (баги #36, #51).** Если
+лутера атаковали во время подхода или самого `Loot`, обыск не ставится на
+паузу: снимаются заявка `PendingLootedBy`, цель, план, станция и счётчик сцены,
+а уже взятые вещи остаются у лутера и дают обычное `StrippedHelpless`.
+Начавшийся человеческий бой при этом НЕ очищается вместе со сценой. На новую
+попытку ставится полный `LootHelplessCooldownTicks` (600), а не короткий retry
+40: сначала закончить непосредственную угрозу, затем заново принять решение.
+Так сцена не чередуется по кругу `обыск → защита → обыск → защита`.
+
+**111.12 Картинка каждой добытой вещи (баг #52).** Каждый успешный
+`LootHelplessTook` штампует лутеру молчаливую action-кьюшку с отдельным
+`itemId`. Она проходит по существующему единственному speech-bubble pipeline;
+в пузыре рисуется `icon/<itemId>`, а до асинхронной загрузки или при отсутствии
+иконки — `Gift`. Обычная social cue обязана очищать `itemId`, чтобы старая вещь
+не протекла в следующую тревогу. Поздняя иконка заменяет fallback только пока
+на экране всё ещё эта же кьюшка и не может перезаписать более свежую реплику.
+
 Сон на объекте раньше нарушал тот же инвариант ещё сильнее: вид пинил тело к
 центру и повороту маркера кровати, тогда как `NPCState.Position/Rotation` оставались
 на свободном узле подхода с углом последнего шага. Помощь честно целилась в это
@@ -18334,31 +18455,38 @@ occupancy-бронью. Это же чинит загруженный посре
 нарисует. Выключатель — `CameraFoliageCuller.Enabled`; погашенный вернёт всё на
 следующем кадре.
 
-## §113 Лечь рядом, а не внутрь (iteration 113)
+## §113 Геометрия тела на под-сетке (iteration 113, r2)
 
-**Проблема.** Мир и тела стоят на одних и тех же гексах, но «куда лечь» знало
-только про тела. §60.2a клал упавшую в геометрический центр гекса, §29G r3
-расширил центр до ШЕРЕНГИ из трёх мест — и оба правила считали центр свободным,
-если на нём никто не лежит. А в центре гекса горит костёр (§66: одна постройка
-на гекс, ровно в середине), лежит валун, стоит кровать. Вырубившаяся у костра
-ложилась В КОСТЁР. Вторая половина той же дыры — трава: сон, кома и обморок
-свой гекс приминали, а рыдающая (§110) лежала в нетронутой траве, потому что
-союз лежачих состояний был выписан от руки во второй раз и разошёлся.
+**Проблема.** Первая редакция знала про физический габарит вещи, но всё ещё
+искала только три условных места шеренги: центр, справа, слева. Она не отвечала
+на главный вопрос — лежит ли **весь** человек на опоре. Поэтому ноги можно было
+увести в костёр, голову — за край высотного тайла, а четвёртое тело намеренно
+сложить стопкой в центре.
 
-**113.1 Правило.** Гекс с крупной вещью НЕ запрещён для лежания — запрещена
-сама вещь. Место ищется тем же единственным алгоритмом шеренги (§29G r3),
-только занятым считается ещё и то место, куда вещь физически не пускает.
-Костёр стоит в центре ⇒ центральное место занято ⇒ тело ложится сбоку, слева
-или справа, ровно как ложится вторая девушка рядом с первой. Уходить с гекса
-костра нельзя: она вырубилась ЗДЕСЬ.
+**113.1 Кандидаты — настоящая сетка, не количество людей.** В каждом гексе уже
+есть `HexPointLayout`: 37 внутренних узлов радиуса 3 и 24 граничных узла
+радиуса 4. Решатель использует только 37 внутренних; расстояние между соседями
+0.375 wu (`HexRadius=1.5 / BoundaryRadius=4`). Узлы сортируются по расстоянию
+от фактической позиции падающего, затем по стабильному `template.Slot`.
+Никаких веток «если лежит один/два/три» нет. Для каждого узла перебираются
+курсы `base, +60, -60, +120, -120, 180`, где base — текущий курс, округлённый
+к оси гекса. Это максимум 37 × 6 = 222 детерминированные проверки.
 
-**113.2 Поворот — часть ответа, а не украшение.** Лежащее тело — прямоугольник
-(≈1.32 × 0.36 wu), и в этом весь смысл: валун сбоку закрывает одну ось гекса и
-оставляет открытой перпендикулярную. Поэтому решатель перебирает не только
-места, но и КУРС: сначала курс шеренги (свой, приснапленный к оси гекса, кратной
-60° — или тот, что задала первая легшая), затем ±60°, ±120°, 180°. Первое
-чистое сочетание «курс + место» и есть ответ. Диск вместо прямоугольника этой
-разницы не увидел бы, и поворот стал бы бессмысленным.
+**113.2 Полный футпринт.** Тело — ориентированный прямоугольник
+1.32 × 0.36 wu. Допустима только комбинация, для которой одновременно:
+
+1. каждый гекс, имеющий пересечение ненулевой площади с прямоугольником,
+   существует, проходим и имеет ту же `Elevation`, что текущий гекс;
+2. прямоугольник не пересекает диск ни одной твёрдой вещи на своём или одном
+   из шести соседних гексов;
+3. прямоугольник не пересекает ориентированный прямоугольник другого лежащего
+   живого тела или трупа.
+
+Пересечение прямоугольника с гексом и прямоугольника с прямоугольником
+считается SAT-проекциями, вещь проверяется точным circle-vs-OBB. Поэтому
+проверяются не только центр/голова/ноги отдельными точками: безопасна вся
+площадь тела. Ровный соседний тайл может поддержать голову; более низкий,
+непроходимый или отсутствующий означает обрыв и запрещает позу.
 
 **113.3 Физический радиус ≠ ObstacleRadius.** `ObstacleRadius` — про
 ПРОХОДИМОСТЬ, и у костра это 0.55R угольного кольца (§47), сквозь которое не
@@ -18379,17 +18507,18 @@ occupancy-бронью. Это же чинит загруженный посре
 тому, ЧЕМ СТАНЕТ (как в `SetObstacleBlocking`): на площадке уже лежат брёвна
 будущей кровати.
 
-**113.4 Где живёт.** `Runtime/Helpers/LyingSpot.cs` — вся геометрия (порядок
-мест, повороты, габарит тела, радиусы вещей). `ExecutionSystem.LieDownCentered`
-остаётся ЕДИНСТВЕННЫМ входом («тело ложится на землю») и только записывает
-решение в NPC, так что все пути — сон на земле (§29G), обморок (§40.13), кома и
-умирание (§60/§105), притворство (§105.14), слёзы (§110) — получают правило
-разом. Трасса `LieDownBerth` теперь несёт `Fit=Clear|Stacked`: `Stacked` = гекс
-забит и легли как до §113 (лучше лечь неудачно, чем не лечь вовсе).
+**113.4 Где живёт.** `Runtime/Helpers/LyingSpot.cs` владеет кандидатами,
+поворотами, опорой, пересечениями и радиусами. `ExecutionSystem.TryLieDownOnGround`
+остаётся единственным входом для сна на земле (§29G), обморока (§40.13), комы и
+умирания (§60/§105), притворства (§105.14), слёз (§110). Кровати не проходят
+этот решатель: их авторская attach-поза уже является обещанием опоры.
 
-Ручки — `Spec49`: `LieAroundObstacles` (выключатель: ровно поведение §29G r3,
-тело ложится в костёр), `LieBodyLengthFactor` / `LieBodyWidthFactor` (габарит
-тела долями HexRadius), `LieSolidRadiusFloorFactor` (пол из таблицы выше).
+Трасса `LieDownSpot` несёт `Node`, `Heading`, `Fit=Clear`; отсутствие решения —
+`Fit=NoSpace`. Старые `SleepBerths`, `SleepBerthSpacingFactor`,
+`SleepBerthHalfSpan` и `LieAroundObstacles` больше не управляют поведением:
+небезопасную геометрию нельзя включить обратно тюнингом. Остались только
+физические размеры `LieBodyLengthFactor`, `LieBodyWidthFactor` и пол радиуса
+безымянной твёрдой вещи `LieSolidRadiusFloorFactor`.
 
 **113.5 Трава — тот же список состояний.** «Она сейчас на земле?» — ОДИН
 предикат `HexWorldRenderer.IsLyingDown`, и им же мнётся трава (§20.16). Разбор
@@ -18398,12 +18527,13 @@ occupancy-бронью. Это же чинит загруженный посре
 намеренно — она тоже волочится по земле, просто гекс под ней гаснет, а
 пройденный отрастает.
 
-**113.6 Гейт.** `Tests/…/Behavior/LyingSpotTests.cs` — арена, не соак (вопрос
-«дошло ли до дела», а не «сколько раз за восемь дней», CLAUDE.md): пустой гекс
-даёт ровно центр (инвариант §60.2a цел), на гексе костра тело не задевает огонь
-и не уходит с гекса, валун обходится по полу радиуса, выключатель возвращает
-поведение до §113, а две легшие по-прежнему лежат параллельно на разных местах
-(§29G r3 не сломан).
+**113.6 Гейт.** `Tests/…/Behavior/LyingSpotTests.cs` — арена, не соак: ближайший
+безопасный узел выигрывает на пустом ровном поле; костёр не пересекается ни с
+какой частью тела; у края высот прямоугольник не заходит на низкий тайл; два
+тела разводятся точным OBB-vs-OBB независимо от их курса; полностью забитый
+гекс возвращает `NoSpace`, а не стопку. Отдельный гейт смерти воспроизводит
+§60.6 r5: после fatal degeneration медицинская прогрессия и голод не имеют
+права вернуть `Health>0` до свипа.
 
 **113.7 Визуальный гейт позы сна (bug #23).**
 `Assets/Scenes/LyingPoseTest.unity` поднимает настоящую одно-NPC симуляцию на
@@ -18474,19 +18604,95 @@ occupancy-бронью. Это же чинит загруженный посре
 `seed=… tick=…` (+ `npc=…`, если кто-то выбран) — строку, которую иначе
 пришлось бы выпрашивать. Показ мелким серым под текстом бага.
 
-**114.3 Сигнал «починено».** Кнопка в дебаг-панели дописывает хвост
-`(N fixed)` — количество записей в статусе `fixed`, т.е. «агент что-то закрыл,
-глянь». Обновляется лениво (раз в 2 с, mtime-чек).
+**114.3 Сигнал «готово к тесту».** Кнопка в дебаг-панели дописывает хвост
+`(N ready to test)` — количество неархивных `ready_for_test`, то есть агент
+закончил работу, но ещё ничего не подтвердил за игрока. Обновляется лениво
+(раз в 2 с, mtime-чек).
 
-**114.4 Схема файла.** `{ nextId, reports:[{ id, createdUtc, status, text,
-context, comments:[{ whenUtc, author:"user"|"claude", text }] }] }` — читается
-и пишется `JsonUtility`, красиво отформатирован, пригоден для ручной правки.
-Неизвестный статус рендерится серым, а не ломает окно (форвард-совместимость).
+**114.4 Схема и конкурентная запись.** Старые отчёты остаются валидны;
+необязательные поля — `reportedInVersion`, `readyForTestInVersion`,
+`fixedInVersion`, `assignedAgent`, `agentHandoff`, `fixCommits`, `fixCommit`,
+`archived`, а
+автор комментария — `user|codex|claude`. Перед мутацией store повторно читает
+файл, если mtime изменился, и пишет pretty JSON атомарной заменой временного
+файла. Порядок отчётов и `nextId` не переписываются служебной логикой.
 
-**114.5 Код.** `UI/BugReportStore.cs` (модель + файл), `UI/BugReportPanel.cs`
-(окно), кнопка в `DebugControlsPanel`, wiring в `PrototypeRuntimeBootstrap`.
-Дебаг-UI, поэтому вне правила §58 про I2 (как и вся дебаг-панель). Голосовой
-ввод — задумано, пока не сделано.
+**114.4a Возобновление агента и коммит фикса.** При взятии баг получает
+стабильное имя потока в `assignedAgent` и русский `agentHandoff`: диагноз,
+файлы, контекст репро и оставшийся риск. `rework` эти поля не стирает.
+Оркестратор сначала будит живой поток-владельца; если сессия завершилась,
+замена читает handoff и всю историю комментариев. Перед `ready_for_test` код
+фиксируется отдельным коммитом `fix(bug-<id>): …` с трейлером `Bug: #<id>`.
+Полный SHA каждого такого коммита дописывается в `fixCommits` и весь список
+виден в карточке; `fixCommit` оставлен только для старых отчётов. В коммит попадают
+только файлы этого бага; пересечение с чужими незакоммиченными правками требует
+решения игрока, а не смешивания работ.
+
+**114.5 Версии сборок — именно срез сборки.** Pre-build резервирует следующую
+patch-версию `0.1.N` в `Library/HexLivePendingBuildVersion.txt` и сохраняет
+отдельный снимок id всех `ready_for_test` на момент старта. Неудачная сборка
+оставляет версию для повтора, а следующий pre-build обновляет снимок из
+актуального кода. Только успешный post-build синхронизирует platform build
+numbers, ставит `readyForTestInVersion` строго id из стартового снимка и
+удаляет pending-файлы. В карточке `ready_for_test`/`fixed` отдельная плашка
+показывает **🟢 В этой сборке** при версии `≤ Application.version`, иначе
+**🟠 Не в этой сборке**. Поэтому фикс, законченный во время уже идущей сборки,
+не выдаётся за попавший в неё.
+
+**114.6 Код и локализация.** `UI/BugReportStore.cs` (модель + атомарный файл),
+`UI/BugReportPanel.cs` (два окна), `HexLiveBuildVersioning.cs` (двухфазная
+версия). Новые пользовательские строки живут в I2 на RU/EN.
+
+**114.7 Диагностика и runtime console.** CharacterPanel дважды в секунду
+обновляет компактные две строки `version · FPS · frame time` и
+`allocated RAM · managed GC`; FPS считается аккумулятором без покадровых
+обращений к snapshot, диску и профайлеру. В Editor/Development Build общий
+`IRuntimeConsole` выбирает официальный Lunar native backend на iOS/Android и
+UI Toolkit backend на macOS/Windows. Desktop хранит 2048 записей, принимает
+threaded logs в очередь и забирает не более 100 за кадр; есть фильтры,
+поиск, collapse, stack trace, copy и clear. Открытие — debug-кнопка и обратная
+кавычка на desktop, двухпальцевый свайп Lunar на mobile. В release runtime UI
+и адаптеры не компилируются.
+
+**114.8 Сборка агента и отчёт.** Единственная команда агента для macOS Player —
+`python3 Tools/build_release.py`. Она использует двухфазную версию §114.5,
+публикует успешную сборку на внутренний диск в
+`~/hex-girls/Releases/v<version>/` и кладёт рядом сам
+`HexLive.app`, `BUILD_REPORT.md`, машинный `build-manifest.json` и полный лог
+Unity. Скрипт атомарно переключает `~/hex-girls/HexLive.app` на последний
+успешный Player, не перезаписывая каталоги и отчёты предыдущих версий. Отчёт
+фиксирует HEAD/ветку, коммиты после последней успешной сборки и все
+незакоммиченные пути, которые тоже попали в Player. Раздел баг-трекера
+строится из двух срезов: все неархивные `ready_for_test` на старте — **готовы к
+тесту в этой сборке**; ставшие ready уже во время сборки — **не вошли**;
+`created/rework/in_progress` показываются как ещё не готовые. Это тот же
+стартовый барьер, которым post-build ставит `readyForTestInVersion`, поэтому
+отчёт и зелёная плашка в игре не могут разойтись. Неудачная сборка остаётся в
+staging с логом, не публикуется и не сдвигает зарезервированную версию.
+Скрипт не запускает второй Unity при живом `Temp/UnityLockfile`; `--dry-run`
+вообще не пишет файлы. Внешние Addressables не пересобираются и подключаются
+из уже существующего `~/hex-girls/HexLiveContent` как `HexLiveContent` рядом с
+Player. До подписи скрипт выбирает только полный каталог, содержащий `wear/`,
+`hair/`, icons и `prosthetic/`, кладёт его в Player как bootstrap и записывает
+в отчёт точный catalog/hash и число bundle/meta-файлов. Точечный icon-only
+каталог и старый полный каталог без протезов bootstrap-ом Player быть не могут.
+Обычный Editor держит Auto Compile выключенным сразу двумя prefs
+(`kAutoRefreshMode=0`, `kAutoRefresh=0`) и нативным
+`AssetDatabase.DisallowAutoRefresh`, поэтому сборка не доверяет старым DLL из
+`Library/ScriptAssemblies`: перед batchmode она сохраняет оба prefs, временно
+ставит `1`, а в `finally` возвращает точные исходные значения. Аварийная копия
+в `Library/HexLiveBuildAutoRefreshBackup.json` восстанавливается в начале
+следующего запуска, если предыдущий процесс был оборван. Так отключённая ручная
+автокомпиляция не может незаметно отправить в Player старый код и при этом
+остаётся выключенной после сборки.
+CLI не полагается на обнаружение Unity 6 второй половины одного combined
+pre/post callback: после успешного `BuildPipeline` он явно вызывает
+идемпотентный finalizer, а Python запрещает публикацию, пока pending-файл не
+исчез и каждый id стартового bug-среза не получил `readyForTestInVersion`.
+Перед публикацией выполняется strict deep codesign verify. Development-сборка
+при дрейфе вложенной подписи FMOD пересоздаёт локальную ad-hoc подпись и
+проверяет её повторно; `--release` чужую distribution-подпись не заменяет и
+завершается ошибкой.
 
 **109.10 Бегство расцепляет бой — «скользота» первой атаки.** Наблюдение из
 игры: девушка достаёт нож, бьёт — и её тело скользит прочь в атакующей позе,
@@ -18526,7 +18732,7 @@ Worldgen с тем же сидом — другой мир, если сейв н
 показал форму беды: почти все «глайды» — **один тик, 0.37…1.64 wu**, то есть
 не скольжение, а СКАЧОК позиции при `IsMoving=false`, у всех подряд и на любых
 целях (Sit, Aid, LootHelpless, Abuse). Симуляция переставляет тело напрямую в
-доброй дюжине мест — укладка на лежанку §29G (`LieDownBerth`), приземление
+доброй дюжине мест — укладка на землю §29G (`LieDownSpot`), приземление
 прыжка, доводка до места работы, спасение с непроходимого тайла, отжим стойки
 §72.5 — и это законно. Незаконно другое: **вид интерполирует ЛЮБОЙ скачок**
 (`HexWorldRenderer.InterpolateViews`, `Vector3.Lerp(prev, curr, alpha)` за
@@ -18782,6 +18988,196 @@ UV — атлас прядей, где десятки карточек лежа�
 
 Недоигранный выгон не сериализуется: `GoalType.Expel` и его сценные поля при сохранении сбрасываются.
 
+## §118 Kenshi-core: травмы, спасение и протезы (iteration 118)
+
+Номер 118 выбран потому, что запрошенные 115 и 116 уже заняты волосами и
+гардеробом. Механика включена общей ручкой и независимыми подручками урона,
+медицины, спасения, шин и протезов; штатная конфигурация включает всё.
+
+### §118.1 Единый путь урона
+
+Все удары человека, собаки, акулы и debug-команд проходят через один
+`BodyDamageResolver`: зона → броня → Toughness → cut/blunt → кровь → рана →
+критическая глубина → ампутация/смерть. Старые `Parts` и `Blood` остаются
+шкалами 0…1. Отрицательная глубина хранится отдельно как
+`CriticalTrauma[part]` и `BloodDeficit`, тоже 0…1.
+
+После прежней брони и Toughness общий Damage не меняется, а делится так:
+
+| Источник | Cut | Blood multiplier |
+|---|---:|---:|
+| кулаки | 0% | 0.0 |
+| нож | 90% | 1.1 |
+| топор | 70% | 0.9 |
+| мачете | 85% | 1.2 |
+| копьё | 80% | 1.1 |
+| кирка | 45% | 0.6 |
+| молот | 10% | 0.2 |
+| пила | 75% | 1.3 |
+| укус собаки | 90% | 1.2 |
+| акула | 100% | 1.4 |
+
+Cut создаёт `WoundState`; мгновенная кровь:
+`cut × BloodMultiplier × 0.20`. Blunt не открывает рану и не кровоточит.
+Попадание прибавляет зоне вес +1 до ×3; раз в 480 тиков вес уменьшается на 1.
+
+### §118.2 Рана, кровь и отдых
+
+У раны есть `Clot01`, `Stabilized`, `BleedFactor`. За slow tick:
+
+`bleed = openCut × BloodMultiplier × (1-Clot01) × 0.012 × lerp(1.3,0.7,Toughness)`
+
+`Clot01 += lerp(0.004,0.008,Toughness)`. Перевязка занимает 80…30 тиков по
+Medicine, стабилизирует самую опасную рану и ставит clot=1, но не возвращает
+HP или кровь мгновенно. Неперевязанный openCut выше 0.20 углубляет зону:
+
+`max(0,(openCut-0.20)/0.10) × 0.0015 × lerp(1.7,0.03,Toughness)`.
+
+Blunt восстанавливается на 0.010, стабилизированный cut — на 0.0033 за slow
+tick. Сначала погашается CriticalTrauma, затем обычная шкала. Открытый cut не
+заживает. Множители восстановления: бодрствование ×1, земля ×2, `bed.leaf` ×4,
+`bed.basic` ×8. Земля не тормозит ухудшение, leaf-bed даёт ×0.5, basic-bed ×0.
+
+### §118.3 Нокаут, recovery coma, смерть и отсечение
+
+Ноль головы, груди или таза даёт не меньше 80 тиков нокаута. Пробуждение
+возможно, когда каждая жизненная часть выше 0.05, кровь выше 0.10,
+BloodDeficit погашен, а худшая критическая травма ниже
+`0.10 + 0.75 × Toughness`. Смерть — только при CriticalTrauma=1 жизненной зоны
+или BloodDeficit=1. Голод и обезвоживание продолжают пользоваться окнами §105.
+
+Рука/нога отсекается только cut-уроном или ухудшением cut-раны при достижении
+CriticalTrauma=1. Обрубок получает перевязываемую рану 0.35 и теряет 0.35
+крови. Шина один раз даёт зачёт `0.25 × support` против отсечения.
+
+### §118.4 Притворство и спасение
+
+Автоматическое притворство §105.14 сохраняется. При угрозе в трёх тайлах NPC
+лежит, пока собственный кризис не требует лечения. Опасный подъём ради
+союзника допускается при локальных шансах не ниже 50% и один раз за эпизод
+тренирует Toughness на 0.002. Сильное кровотечение остаётся заметным животным.
+
+Спасают только союзника; врага можно лишь обыскать. В безопасности сначала
+останавливают опасное кровотечение, затем несут бессознательного к ближайшей
+свободной безопасной кровати. При враге, глубокой воде или смертельной
+температуре сначала эвакуируют. Без кровати используют свободное место возле
+зажжённого костра. В пути продолжаются кровь и нужды.
+
+Связь переноски двусторонняя (`CarriedNpcId`/`CarriedByNpcId`) и проверяется
+при загрузке и каждый тик. Переносчик не дерётся, не работает, не прыгает и не
+плывёт; скорость равна `clamp(0.35 + 0.45 × Strength, 0.35, 0.80)`, движение
+тренирует Strength вдвое быстрее бега. Смерть/падение переносчика, битая ссылка
+или потеря маршрута безопасно кладёт пациента на ближайшее свободное место.
+
+### §118.5 Шины и протезы
+
+`med.splint`: 2 палки + 1 верёвка, 40 тиков у костра. После перевязки шина на
+целой руке/ноге даёт функциональное здоровье
+`lerp(0.20,0.50,Medicine)`, не меняя настоящее HP.
+
+`resource.board` получается по 2 штуки действием `saw.log` над лежащим бревном.
+Это замыкает производственную цепочку рецептов; доски не заготавливаются впрок
+без стабилизированного обрубка у союзника.
+
+| Протез | Рецепт/источник | Функция | Прочность |
+|---|---|---:|---:|
+| деревянная рука | 2 доски, 2 верёвки, 1 кожа | 45% | 0.60 |
+| деревянная нога | 3 доски, 2 верёвки, 1 кожа | 60% | 0.60 |
+| механическая рука | поздние чужаки | 80% | 1.20 |
+| механическая нога | поздние чужаки | 80% | 1.20 |
+
+С третьей волны есть 12% на один механический протез (не больше одного на
+волну) и 25% на механическую деталь. Деревянная рука запрещает двуручное,
+деревянная нога — прыжок; механические разрешают их с функцией 0.8. Удар по
+протезу портит только его condition. Сломанный снимается, возвращая обрубок.
+
+Стабилизированный обрубок устанавливает союзный медик: дерево — 120 тиков на
+любой кровати, механика — 160 на `bed.basic`. Ремонт дерева требует доску и
+верёвку, механики — механическую деталь. Протез всегда хуже органической части.
+
+**Вид на персонаже.** Поставленный протез — отдельная low-poly модель, а не
+перчатка поверх оставшейся руки/ноги. Органическая часть по-прежнему скрывается
+сжатием distal-цепочки §50.5; модель устройства живёт снаружи этой сжатой
+иерархии и каждый `LateUpdate` восстанавливает виртуальную анимированную линию
+`forearm→hand` или `shin→foot` из локальных костей. Поэтому она точно занимает
+место отсутствующей части и следует обычным walk/work/combat-клипам, не
+возвращая органическую геометрию. Для руки есть отдельный виртуальный `Grip` в
+позе скрытой кисти: оружие, инструменты и свёрнутая одежда крепятся к нему и не
+сжимаются вместе с культёй.
+
+Восемь зеркальных FBX (`arm/leg × wood/mechanical × L/R`) лежат во внешнем
+контенте `Assets/HexLiveContent/Prosthetics`; Blender-источник и воспроизводимый генератор —
+`Assets/ArtSource/Prosthetics/hexlive_prosthetics.blend` и
+`Tools/make_prosthetic_models.py`. Конвенция ассета: сустав в `(0,0,0)`, конец
+кости кисти/стопы в `(0,1,0)`, продольная ось `+Y`; сама примитивная кисть и
+ступня продолжаются за `end`, как органическая геометрия за запястьем и
+голеностопом. Каждый FBX несёт custom-property landmarks `root`, `joint`,
+`end`, `grip`, хотя runtime по-прежнему создаёт собственный несжимаемый Grip.
+
+Пропорции сняты с `Marta.new.fbx`: `ForearmBend→Hand = 0.263512 м`,
+`Shin→Foot = 0.435129 м`, полная кисть ≈0.1825 м, стопа ≈0.2396 м. Поэтому
+равномерный runtime-scale задаёт длину кости, а ширина чашки и вылет кисти/
+ступни уже совпадают с телом. В Blender-файле есть отдельная сцена
+`ProstheticFit`: полупрозрачная Марта и переключаемые коллекции
+`PROSTHETIC_FIT_WOOD`/`PROSTHETIC_FIT_MECHANICAL`, посаженные по фактическим
+pose-точкам, не по несовпадающему с skin rest-положению.
+
+Дерево рисуется как грубо
+вытесанные восьмигранные рейки, кожаная чашка и верёвочные обмотки; механика —
+две тёмные металлические направляющие, медный поршень и крупные шарниры. Это
+flat-shaded модульная геометрия без текстур. Износ темнит дерево, а металл
+уводит в ржавый оттенок; при condition=0 модель исчезает вместе со сломанным
+`ProstheticState`. FBX-материалы на экземпляре переводятся в URP/Lit, поэтому
+не дают розовый built-in Standard в основном рендер-пайплайне.
+
+Модели не входят в Player через `Resources`. Группа `HexLive.Prosthetics`
+пакует все восемь адресов `prosthetic/<arm|leg>/<wood|mechanical>/<l|r>` под
+общей меткой `prosthetic.core` в один внешний bundle. `ProstheticContent`
+загружает и кэширует его через Addressables; незавершённый запрос входит в
+общую `ContentQueue`, а устаревший callback после снятия/замены устройства не
+может воскресить старую модель. Стартовая завеса ждёт завершения модели
+стартового NPC; явная ошибка загрузки завершает ожидание, оставляя рабочий
+игровой эффект и независимый `Grip`, но без скрытого `Resources`-fallback.
+Полный Player-каталог обязан содержать
+`wear/`, `hair/`, icons и `prosthetic/`.
+
+### §118.6 Данные, UI и совместимость
+
+`GearConfig/GearStats/MobStats` содержат `CutFraction` и
+`BloodLossMultiplier`. Сейв v28 хранит условия семи частей, раны, протезы и
+carry-ссылки; wire v12 передаёт их типизированными массивами, v13 добавляет
+боевые множители карточки, v14 — `SocialCueItemId`; SimData schema v3
+содержит профили урона и все ручки. Миграция v27 считает старые раны cut,
+повязанные зоны — стабилизированными, а `BloodLoss/VitalCrushed` переводит в
+глубину `1-DyingReserve`; голод и жажда не меняются.
+
+Кукла здоровья показывает положительную шкалу, красную глубину до −100%,
+cut/blunt, bleed/clot, повязку и шину. Для отсечённой зоны с устройством она
+рисует ту же Addressable-модель протеза: дерево темнеет, металл ржавеет, а
+строка зоны показывает `current/max HP` (0.60 = 60 HP, 1.20 = 120 HP) и
+текущую функцию `Function × Condition / MaxCondition`. Карточка оружия
+показывает общий Damage, cut/blunt, потерю крови, цикл, DPS и итог конкретного
+носителя с учётом Combat, Strength, рук и протезов. Цвет числового сравнения
+имеет один смысл для всех этих строк: зелёный — носитель улучшает базовое
+значение оружия, красный — ухудшает, серый — не меняет. Для длительности и
+recovery шкала обратная: меньше секунд считается улучшением. Тип урона сам по
+себе цвет не задаёт. Все строки локализуются I2.
+
+Append-only значения: цели `Rescue`, `PickUpPerson`, `PutInBed`, `Splint`,
+`FitProsthetic`; шаги и взаимодействия с теми же смыслами. Ординалы старых enum
+не меняются. В карточке персонажа `Rescue` локализуется как
+`🩹 Helping an injured friend` / `🩹 Помогает раненой`, а не выводится сырое
+имя enum. Значок перевязки обозначает всю медицинскую эвакуацию: сначала
+остановить доступное кровотечение, затем перенести раненую в безопасное место.
+
+### §118.7 Приёмка
+
+Обязательны unit-тесты формул и состояний, AI-сценарии спасения/переноса,
+round-trip v28/v12/SimData, PlayMode-проверки куклы, карточки, позы и скрытия
+органической конечности. Баланс — две непересекающиеся группы 24×40 дней;
+в каждой 6–9 побед запуском плота с выжившими, одна причина смерти не выше 60%.
+Коэффициенты после этого меняются только через balance/config/SimData.
+
 ## §119 Верстак, незавершённый предмет и протез для подруги (iteration 119)
 
 ### §119.1 Доска и простой верстак
@@ -18836,6 +19232,12 @@ Action, NLA и отдельные снимки стадий не использ�
 незавершённый результат и выкладывает все вложенные ингредиенты рядом без
 потерь и дублирования. Обычное временное прерывание отменой не считается.
 Готовый предмет остаётся на земле или столешнице до штатного взятия.
+Работник, который довёл предмет до 100%, не завершает план между этими
+событиями: он выполняет короткий такт `PickUp` именно для этого выходного
+объекта и только затем закрывает цель. Если взять результат невозможно
+(например, рюкзак заполнен), готовый предмет остаётся обычным достижимым
+инструментом в мире и подавляет повторный заказ того же ножа до подбора —
+готовая продукция не превращается в бесконечную очередь одинакового крафта.
 
 Общий жизненный цикл применяется ко всем предметным рецептам на земле и у
 станций. Готовка, строительство и производственные обновления построек
@@ -18917,3 +19319,186 @@ round-trip save/wire/SimData; четыре разные seed-стабильны�
 без повторного спавна; полный compassion-маршрут от отсутствующего верстака до
 установки; PlayMode-кадры столешницы, позы и капсулы; soak без дубликатов,
 `IdleWithGoal` и `ExecFailed`-чёрна.
+
+## §120 Первая жилая хижина на архитектурной сетке (iteration 120)
+
+### §120.1 Три стадии и последняя листовая крыша
+
+`building.hut_1hex` — первый архитектурный объект, владеющий целым гексом. Он
+не возрождает старый `world.Project` §35.3 и является явным исключением из
+мебельного правила §66: здание занимает footprint гекса, а интегрированная
+мебель может стоять на разных внутренних junction этого же footprint.
+
+Обычный `build.site` строит хижину ровно в три видимые стадии. Стадия принимает
+все свои материалы параллельно, но следующая не принимает ничего, пока текущая
+не закрыта:
+
+1. пол и двенадцать парных стоек — 28 палок и 6 досок;
+2. три ряда стеновых панелей, дверь, два окна и деревянные стропила — ещё
+   6 палок, 25 досок и 4 верёвки;
+3. листовое покрытие — 12 связок пальмовых листьев.
+
+Итоговый счёт сохраняет утверждённую смету: 34 палки, 31 доска, 12 листовых
+связок и 4 верёвки. Одна листовая связка является ресурсной единицей, а не
+одним визуальным листом: экспортная третья стадия содержит 48 полноразмерных
+пальмовых frond в смещённых венцах и 6 плетёных скатов, а доставленные связки
+пропорционально раскрывают эти 54 художественные детали. `Indoor` и готовый объект
+появляются только после третьей стадии; деревянный каркас крыши относится ко
+второй, но ни один лист до неё не показывается.
+
+### §120.2 Стены, дверь, два места сна и домашний очаг
+
+После завершения все boundary-junction гекса блокируются стенами, кроме трёх
+ближайших к середине дверного ребра. Эти три узла остаются проходимыми и получают
+`Door`; два крайних узла ребра остаются стеной. Таким образом стена действует как
+уступ с обеих сторон: NPC не может встать на её краевой узел, но мебель вправе
+занимать архитектурный край, а взаимодействие с ней планируется с ближайшего
+свободного внутреннего узла. Открытость двери не снимает `Indoor`. Выбор края и
+поворот здания направляют дверь к очагу.
+
+Внутри создаются два разных `building.hut_bed` на внутренних узлах
+`X=-0.75` и `X=+0.75 wu` по обе стороны продольной оси. Это настоящие объекты с тегом `Bed` и действием
+`Sleep`, поэтому обычные память, планирование, занятость, энергия, комфорт и
+спасение раненой работают без особого сценария. Их obstacle-radius равен нулю:
+визуально компактные циновки помещаются вдвоём, а стены, а не мебель, задают
+топологию комнаты.
+
+Их представление создаётся тем же производственным
+`BedAssembly.BuildFinished("bed.basic")`, что и обычная построенная мебель, и
+загружает `Resources/HexLive/Objects/bed_basic_final_native.fbx`; отдельной
+самодельной геометрии хижины нет. Архитектурный вариант равномерно масштабирует
+эту сборку до `64%`: измеренный габарит становится примерно
+`0.766 × 0.403 × 1.407 wu`. Длинная ось каждой кровати идёт вдоль локального
+`Z` здания, а внешний край остаётся примерно в `0.16 wu` от стены. Нативный FBX
+содержит только 69 видимых строительных деталей, поэтому `BedAssembly` добавляет
+штатный дочерний маркер `point` на мировой вертикали авторской высоты `0.54 wu`
+до масштаба (с учётом FBX-конверсии оси `X=-90°`),
+(`0.346 wu` в хижине); поза сна берёт его вместо верхней грани renderer.
+
+У задней стенки создаётся один интегрированный `campfire.spot` с вариантом
+`hut-hearth`. Он наследует обычные действия топлива, обогрева, готовки и ИИ,
+сразу имеет готовые вертел и плотное каменное кольцо, но начинает холодным с
+нулевым топливом. Это компактная домашняя версия: она блокирует только свой
+опорный junction, поэтому проход от двери к обеим кроватям остаётся открытым.
+Визуально это низкий приподнятый очаг диаметром `0.70 wu`: десять камней,
+угольная чаша, две короткие головни и собственный компактный вертел высотой
+`0.42 wu`. Он не использует масштабированную модель уличного костра; размер
+частиц пламени равен `42%` уличного, а симуляционные тепло, готовка и расход
+топлива остаются штатными. От своего навигационного junction художественная
+сборка вместе с центром пламени сдвинута к задней стене на `0.20 wu`: внешний
+край каменного кольца сохраняет около `0.10 wu` зазора до стены, а блокировка
+сетки не меняется.
+
+### §120.3 Временный тестовый спавн и отрисовка
+
+Прототипный остров включает `SpawnCompletedTestHut`: один готовый дом выбирается
+seed-детерминированно на первом доступном кольце 1–2 вокруг очага, на сухом
+свободном гексе той же высоты минимум с тремя сухими соседями. Остальные
+bootstrap-миры сохраняют значение `false`. Спавн нужен, чтобы сразу наблюдать,
+как колонистки живут, работают и спят; штатная функция `CreateHutSite` создаёт
+тот же трёхстадийный счёт для будущего автономного выбора проекта.
+
+Отдельная dev-сцена `HutTest` поднимает тот же производственный
+`SpawnCompletedTestHut`, а не декоративную копию: один законченный
+`building.hut_1hex`, ровно два настоящих `building.hut_bed`, один горящий
+домашний `campfire.spot` и две уставшие колонистки. Мир теста не сохраняется.
+Принудительный дождь переключается клавишей `R`; выбран NPC #1, поэтому после
+её входа в Indoor-гекс сцена одновременно проверяет cutaway, сон, тепло и
+защиту от намокания. При первом одновременном `Sleep` обеих колонисток тест
+автоматически ставит симуляцию на паузу, сохраняя настоящие AI-цели и позы для
+осмотра; `Space` продолжает обычную симуляцию. Стартовая задержка использует
+`unscaledDeltaTime`, поэтому начальная пауза runner не замораживает сам запуск;
+кадр автоматической фиксации сна не обрабатывает тот же `Space` повторно.
+Фиксация происходит только после `2.5 s` непрерывного одновременного
+`Sleep/InProgress`: анимации `LieDown → Sleep` успевают уложить тела, и тест не
+замораживает девушек стоящими в первый simulation-кадр действия.
+Камера теста — производственный
+`RtsCameraController`, привязанный к выбранному NPC: она следует за девушкой,
+вращается правой кнопкой, масштабируется колесом и использует штатный
+`CameraFoliageCuller`; упрощённая тестовая orbit-камера не применяется. При
+каждом старте тест сначала очищает переживший Play Mode статический selection,
+заново выбирает NPC №1 и вызывает `SnapToSelectedTarget`, поэтому камера всегда
+реально входит в Orbit, а не остаётся в свободном режиме из-за отсутствующего
+события `SelectionChanged`.
+Общий watchdog «загрузчик исчез на паузе» не снимает паузу у dev-сцен с
+`AutosaveSuppressed`: у них нет Loading Screen по замыслу, а пауза является
+частью тестового сценария, а не оборванной загрузкой.
+
+Unity сначала загружает `building.hut_1hex.fbx`, выборочно экспортированный из
+коллекции `HL_BUILDING_HUT_1HEX` утверждённого Blender-kit скриптом
+`Tools/blender/export_hut_1hex.py`. Экспорт исключает settlement, служебный гекс,
+камеры и свет, исправляет ориентацию подбалок, запекает трансформы 160 render-mesh
+и сохраняет явные узлы `BuildStage_1/2/3` с 57/49/54 деталями. FBX-импорт уже
+переносит хранимый Blender linear Base Color в представление Unity, поэтому
+`HutAssembly` сохраняет импортный цвет без повторного `.linear`-преобразования;
+техническая URP-адаптация меняет только metallic/smoothness, instancing и
+двусторонний culling. `LeafGreen*`, `HL_Roof_PalmMat_*`, `Bark*`, `Sapwood*`
+и `Heartwood*` рендерятся с обеих сторон: тонкие открытые доски пола и стен не
+исчезают при взгляде из cutaway или снизу.
+Перед дверью импортная сборка получает отдельную пороговую доску
+`0.78 × 0.20 wu` на высоте пола. Шесть основных досок по-прежнему заполняют
+сам гекс; порог закрывает только визуальный шов портала и относится к первой
+стадии.
+Если Player не упаковал его, build-safe сборка не размножает pickup-модели
+`resource.board`, `resource.stick` и `resource.palm_leaf` напрямую, а создаёт
+контролируемые художественные производные тех же ресурсов: парные столбы,
+широкие неровные панели и компактные листовые связки. Геометрия сохраняет
+`R=1.5 wu`; каждая пара пролётов лежит на одном из шести прямых рёбер гекса,
+стена имеет три доски по высоте. Крыша состоит из закрытого шестискатного
+плетёного подслоя и 48 слегка различающихся пальмовых frond в смещённых венцах;
+ни один лист не выходит за контролируемый габарит крыши. И готовое здание, и
+стройплощадка используют один `HutAssembly`; площадка лишь включает его детали
+по доставленным материалам, а пустой участок остаётся невидимым.
+
+Если выбранный живой NPC стоит на `Indoor`-тайле готовой `building.hut_1hex`,
+эта хижина переходит в визуальный cutaway: все renderers третьей стадии крыши,
+а также её стропила и верхняя связка из второй стадии скрываются; из шести
+наружных граней скрываются две ближайшие смежные грани — четыре стеновых
+пролёта вместе со всеми пятью узловыми столбами на их общем контуре. Пара
+выбирается в локальных координатах здания по максимальному dot между
+направлением `центр → камера` и биссектрисой пары соседних граней. Гистерезис
+`+0.08 dot` не позволяет парам стен мигать на границе секторов. Проверка идёт
+каждый render-frame, поэтому вращение orbit-камеры переключает стену, не ожидая
+следующего simulation tick. Снятие выбора, выход NPC из хижины или выбор NPC в
+другом здании немедленно возвращают крышу и все стены. Cutaway меняет только
+режим отрисовки: скрытые детали получают `ShadowCastingMode.ShadowsOnly`, а
+видимые — `On`. Поэтому крыша, стены и столбы исчезают из camera pass, но
+продолжают давать полную тень; стадии строительства, `Indoor`, навигация и
+сохранение не меняются.
+
+Приёмка: три стадийных resource-gate, листья только после древесины; один
+готовый дом, ровно две разные кровати и один холодный домашний очаг;
+`HasFloor + Indoor`; три незаблокированных дверных junction и закрытый
+остальной периметр; отсутствие регрессии стадий костра и верстака; Unity
+PlayMode-кадр масштаба, плотности крыши и сна внутри.
+
+### §120.4 Микроклимат, дождь и расход топлива
+
+`TileFlags.Indoor` является единственным контрактом завершённой защиты: флаг
+устанавливается только после пола, закрытого внешнего контура и последнего
+листового слоя крыши. Пока идёт любая из трёх стадий, дождь достигает гекса как
+обычно. После завершения крыша полностью отсекает дождь независимо от открытой
+двери.
+
+В защищённом гексе дождь не увеличивает `BodyWetness`, мокроту надетой одежды,
+переносимых вещей и любых свободно лежащих pickup-материалов, еды, инструментов
+или оружия. Вода под ногами остаётся отдельным прямым контактом и продолжает
+мочить. Уже промокшие вещи сохнут по обычным правилам; горящий очаг сохраняет
+существующий множитель сушки возле костра.
+
+Помещение добавляет `+4 °C` к эффективной температуре. Горящий очаг даёт
+обычное сильное тепло костра (`+18 °C` на своём и соседнем гексе, `+11 °C` на
+втором кольце), но нагрев ограничивается верхом комфортной полосы, поэтому он
+может отогреть жильцов всю холодную ночь, не создавая перегрев сам по себе.
+
+Дождевой множитель расхода `×4` действует только на открытый костёр. Под
+готовой крышей дождь не влияет на огонь, а домашний очаг получает отдельный
+множитель `×0.5` поверх каменного кольца `×0.5`. Поэтому готовый домашний очаг
+расходует `0.25` базовой нормы — ровно вдвое меньше топлива, чем лучший
+полностью обложенный камнями уличный костёр.
+
+Обязательная проверка: один и тот же дождевой тик мочит тело, одежду,
+переносимую доску и доску снаружи, но не их эквиваленты в завершённой хижине;
+домашний очаг одинаково расходует топливо в сухую погоду и ливень; его расход
+ровно вдвое меньше готового уличного кольца; дверь и обе кровати остаются
+достижимы после установки очага.

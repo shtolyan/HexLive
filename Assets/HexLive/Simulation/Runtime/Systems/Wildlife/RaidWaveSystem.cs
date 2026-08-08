@@ -24,19 +24,19 @@ public sealed class RaidWaveSystem : ISimulationSystem
         "FCO Knee Straps Male", "FCO Waist Strappy Male",
     };
 
-    // Both sets are slot-compatible and protective on every practical zone.
-    // The seeded wave parity varies the look without ever rolling beachwear.
+    // Both sets are slot-compatible. The seeded wave parity varies the look
+    // without ever rolling beachwear.
     private static readonly string[][] FemaleArmor =
     {
         new[]
         {
-            "underwear.panty_basic", "armor.leather", "armor.heavy",
+            "underwear.panty_basic",
             "clothing.gloves_classic", "clothing.boots_cammy",
             "clothing.headdress_jaguar",
         },
         new[]
         {
-            "underwear.panty_flair", "armor.leather", "armor.heavy",
+            "underwear.panty_flair",
             "clothing.gloves_stars", "clothing.boots_classic",
             "clothing.cap_stars",
         },
@@ -128,11 +128,30 @@ public sealed class RaidWaveSystem : ISimulationSystem
         npc.Inventory.Items.Add(new ItemInstance(GearCatalog.Bottle));
         npc.Inventory.Items.Add(new ItemInstance(WeaponForWave(wave)));
 
-        var armor = female ? FemaleArmor[wave % FemaleArmor.Length] : MaleArmor;
-        foreach (var piece in armor)
+        // §116: one deterministic late-wave loot roll. A runtime wave has one
+        // raider today, so this also enforces the promised maximum of one
+        // complete mechanical limb per wave without a second global latch.
+        if (Spec118.Enabled && Spec118.ProstheticsEnabled &&
+            wave >= Spec118.MechanicalLootMinWave)
         {
-            npc.WornItems.Add(piece);
+            if (MathUtil.Hash01(world.Seed, wave, 116, 1201) <
+                Spec118.MechanicalProstheticDropChance)
+            {
+                var prosthetic = MathUtil.Hash01(world.Seed, wave, 116, 1202) < 0.5f
+                    ? ContentIds.MechanicalArm
+                    : ContentIds.MechanicalLeg;
+                npc.Inventory.Items.Add(new ItemInstance(prosthetic));
+            }
+
+            if (MathUtil.Hash01(world.Seed, wave, 116, 2501) <
+                Spec118.MechanicalPartsDropChance)
+            {
+                npc.Inventory.Items.Add(new ItemInstance(ContentIds.MechanicalPart));
+            }
         }
+
+        var armor = female ? FemaleArmor[wave % FemaleArmor.Length] : MaleArmor;
+        EquipKnownArmor(world, npc, armor);
         if (female)
         {
             RaidSpawnWardrobe.EquipFemale(world, npc);
@@ -147,6 +166,33 @@ public sealed class RaidWaveSystem : ISimulationSystem
             $"Weapon={WeaponForWave(wave)} Armor={npc.EquippedArmor:F2} " +
             $"Strength={npc.Attributes.Strength:F2} Tile={tile.Q},{tile.R}");
         return true;
+    }
+
+    // A raid is authored from a fixed kit, but its content table may be
+    // supplied by an older remote build or a partially updated external
+    // wardrobe. Never put an id the current world cannot describe into an NPC:
+    // it becomes an "unknown item" in the inspector and cannot be rendered or
+    // looted consistently. The valid pieces keep their ordinary sim inventory
+    // path; a bad content entry is visible in the trace and is retried only by
+    // fixing the content, never by creating a ghost item.
+    private static void EquipKnownArmor(
+        WorldState world,
+        NPCState npc,
+        IEnumerable<string> armor)
+    {
+        foreach (var piece in armor)
+        {
+            if (string.IsNullOrEmpty(piece) ||
+                !world.Content.ObjectDefinitions.TryGetValue(piece, out var definition) ||
+                !definition.Tags.Contains("Clothing"))
+            {
+                Trace.Emit(world, npc.Id, "RaidWaveArmorSkipped",
+                    $"Item={piece ?? "<null>"} missing-or-not-clothing");
+                continue;
+            }
+
+            npc.WornItems.Add(piece);
+        }
     }
 
     private static void ApplyWaveAttributes(NPCState npc, int wave)

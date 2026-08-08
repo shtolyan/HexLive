@@ -35,6 +35,7 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
     [SerializeField] private float _speed = 1.2f;
     [SerializeField] private bool _fixedCamera = true;
     [SerializeField] private bool _autoSpeedSweep;
+    [SerializeField] private bool _startInOrbit = true;
 
     private SimulationRunnerBehaviour _runner;
     private HexWorldRenderer _renderer;
@@ -46,6 +47,7 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
     private bool _limping;
     private bool _running;
     private bool _autoTurns = true;
+    private bool _orbitRequested;
     private bool _started;
     private float _startDelay;
     private float _routeDelay;
@@ -98,6 +100,7 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
         BuildObstacleVisuals();
         PrepareNpc();
         StartRoute(_turnIndex);
+        _orbitRequested = !_fixedCamera && _startInOrbit;
     }
 
     private void OnDestroy()
@@ -203,6 +206,15 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
 
     private void Update()
     {
+        // Wait until the camera's Start() has established its initial rig
+        // state; selecting during Awake would be overwritten by the start
+        // pitch and leave the orbit almost top-down.
+        if (_orbitRequested)
+        {
+            _orbitRequested = false;
+            Input.NpcSelection.Select(NpcId);
+        }
+
         ApplyLiveControls();
         UpdateTelemetry();
 
@@ -763,14 +775,25 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
 
     private void BuildCamera()
     {
-        var cameraObject = new GameObject("MovementSmoothness Fixed Camera") { tag = "MainCamera" };
+        var cameraObject = new GameObject(
+            _fixedCamera ? "MovementSmoothness Fixed Camera" : "MovementSmoothness Orbit Camera")
+        {
+            tag = "MainCamera"
+        };
         var camera = cameraObject.AddComponent<Camera>();
         camera.fieldOfView = 42f;
         camera.nearClipPlane = 0.05f;
         camera.farClipPlane = 150f;
         cameraObject.AddComponent<AudioListener>();
-        cameraObject.transform.position = new Vector3(10.8f, 12.5f, -10.8f);
-        cameraObject.transform.LookAt(new Vector3(0f, 0.45f, 0f));
+        if (_fixedCamera)
+        {
+            cameraObject.transform.position = new Vector3(10.8f, 12.5f, -10.8f);
+            cameraObject.transform.LookAt(new Vector3(0f, 0.45f, 0f));
+            return;
+        }
+
+        var orbit = cameraObject.AddComponent<Input.RtsCameraController>();
+        orbit.SetRunner(_runner);
     }
 
     private void BuildModelMarker()

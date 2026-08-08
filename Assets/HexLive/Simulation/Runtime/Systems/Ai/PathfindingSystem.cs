@@ -343,7 +343,8 @@ public sealed class PathfindingSystem : ISimulationSystem
             // §72: …and around a hostile person, on the same soft terms.
             var danger = RouteAvoidRing(world, npc);
             var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value,
-                OtherActorJunctions(world, npc), preferFlat, npc.Body.CanJump,
+                OtherActorJunctions(world, npc), preferFlat,
+                npc.Body.CanJump && !npc.IsCarryingPerson,
                 danger, Spec62.DangerStepCost);
             if (path.Count == 0)
             {

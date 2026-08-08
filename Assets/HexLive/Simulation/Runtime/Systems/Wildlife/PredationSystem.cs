@@ -107,7 +107,7 @@ public sealed class PredationSystem : ISimulationSystem
             // A starved attacker is weak (StrikeFactor); weapons bite deeper
             // while heavy weapons strike less often.
             var weaponId = predator.Body.CanUseToolsOrWeapons
-                ? SimBalance.BestMeleeWeapon(predator.Inventory.Items, predator.Body.IntactHands)
+                ? SimBalance.BestMeleeWeapon(predator.Inventory.Items, predator.Body.WeaponHands)
                 : string.Empty;
             var weaponMult = SimBalance.MeleeStrikeBonus(weaponId);
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
@@ -125,16 +125,12 @@ public sealed class PredationSystem : ISimulationSystem
             // destroyed vital is instant death. This mirrors the established
             // damage flow so the kill is detectable in the same tick.
             var part = AmputateSystemHelpers.RedirectFromStump(victim,
-                PickKillPart(world, predator.Id.Value));
+                PickKillPart(world, predator.Id.Value, victim));
             var partArmor = EquipmentMath.ArmorForPart(world, victim, part); // trace only
-            var damage = EquipmentMath.Mitigate(world, victim, part,
-                SimBalance.PredationStrikePerPass * predator.StrikeFactor() * weaponMult);
-            victim.Body.Parts[part] = System.Math.Max(0f, victim.Body.Parts[part] - damage);
-            victim.Health = victim.Body.Mean();
-            DamageReactionSystemHelpers.GrantAdrenaline(world, victim, damage, "PredationStrike");
-            WoundMath.Inflict(world, victim, part, damage);
-            // §105: единая развилка — она же догрызает уже упавшую жертву.
-            MortalityHelpers.ResolveTrauma(world, victim, damage, $"NPC{predator.Id.Value}");
+            MeleeSwing.StampHit(world, victim, weaponId, part, predator.Position);
+            var damage = BodyDamageResolver.Apply(world, victim, part,
+                SimBalance.PredationStrikePerPass * predator.StrikeFactor() * weaponMult,
+                DamageProfile.ForGear(weaponId), $"NPC{predator.Id.Value}").Landed;
 
             Trace.Emit(world, predator.Id, "Preyed",
                 $"Victim={victim.Id.Value} {part} -{damage:F3} (armor={partArmor:F2}) " +
@@ -201,7 +197,7 @@ public sealed class PredationSystem : ISimulationSystem
             }
 
             var defWeaponId = victim.Body.CanUseToolsOrWeapons
-                ? SimBalance.BestMeleeWeapon(victim.Inventory.Items, victim.Body.IntactHands)
+                ? SimBalance.BestMeleeWeapon(victim.Inventory.Items, victim.Body.WeaponHands)
                 : string.Empty;
             var defWeapon = SimBalance.MeleeStrikeBonus(defWeaponId);
             var defAttackSpeed = SimBalance.MeleeAttackSpeed(defWeaponId);
@@ -210,19 +206,16 @@ public sealed class PredationSystem : ISimulationSystem
             // The counter-blow uses the same NPC strike-back value that fends off
             // dogs, scaled by the defender's own StrikeFactor()/weapon and the
             // attacker's armor.
-            var defPart = PickKillPart(world, victim.Id.Value + 7919);
+            var defPart = AmputateSystemHelpers.RedirectFromStump(predator,
+                PickKillPart(world, victim.Id.Value + 7919, predator));
             var defArmor = EquipmentMath.ArmorForPart(world, predator, defPart); // trace only
-            var defDamage = defStrikeReady
-                ? EquipmentMath.Mitigate(world, predator, defPart,
-                    SimBalance.NpcStrikePerPass * victim.StrikeFactor() * defWeapon)
-                : 0f;
-            if (defDamage > 0f)
+            var defDamage = 0f;
+            if (defStrikeReady)
             {
-                predator.Body.Parts[defPart] = System.Math.Max(0f, predator.Body.Parts[defPart] - defDamage);
-                predator.Health = predator.Body.Mean();
-                DamageReactionSystemHelpers.GrantAdrenaline(world, predator, defDamage, "PreyCounterStrike");
-                WoundMath.Inflict(world, predator, defPart, defDamage);
-                MortalityHelpers.ResolveTrauma(world, predator, defDamage, $"NPC{victim.Id.Value}"); // §105
+                MeleeSwing.StampHit(world, predator, defWeaponId, defPart, victim.Position);
+                defDamage = BodyDamageResolver.Apply(world, predator, defPart,
+                    SimBalance.NpcStrikePerPass * victim.StrikeFactor() * defWeapon,
+                    DamageProfile.ForGear(defWeaponId), $"NPC{victim.Id.Value}").Landed;
             }
 
             Trace.Emit(world, victim.Id, "PreyFoughtBack",
@@ -260,14 +253,16 @@ public sealed class PredationSystem : ISimulationSystem
 
     // Lethal intent: aim for the vitals far more than a dog's leg-first bite, so
     // the kill actually comes rather than merely maiming.
-    private static BodyPart PickKillPart(WorldState world, int predatorId)
+    private static BodyPart PickKillPart(WorldState world, int predatorId, NPCState target)
     {
+        BodyDamageResolver.DecayAllHitBias(world, target);
         var roll = MathUtil.Hash01(world.Seed, world.Tick, predatorId, 561);
-        if (roll < 0.55f) return BodyPart.Torso;
-        if (roll < 0.80f) return BodyPart.Head;
-        if (roll < 0.90f) return BodyPart.Pelvis;
-        if (roll < 0.95f) return BodyPart.ArmR;
-        return BodyPart.LegR;
+        return MeleeSwing.PickWeighted(target, roll,
+            (BodyPart.Torso, 0.55f),
+            (BodyPart.Head, 0.25f),
+            (BodyPart.Pelvis, 0.10f),
+            (BodyPart.ArmR, 0.05f),
+            (BodyPart.LegR, 0.05f));
     }
 
     /// <summary>
@@ -374,24 +369,21 @@ public sealed class PredationSystem : ISimulationSystem
             }
 
             var weaponId = defender.Body.CanUseToolsOrWeapons
-                ? SimBalance.BestMeleeWeapon(defender.Inventory.Items, defender.Body.IntactHands)
+                ? SimBalance.BestMeleeWeapon(defender.Inventory.Items, defender.Body.WeaponHands)
                 : string.Empty;
             var weaponMult = SimBalance.MeleeStrikeBonus(weaponId);
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
             var strikeReady = SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
-            var part = PickKillPart(world, defender.Id.Value + 271);
+            var part = AmputateSystemHelpers.RedirectFromStump(attacker,
+                PickKillPart(world, defender.Id.Value + 271, attacker));
             var armor = EquipmentMath.ArmorForPart(world, attacker, part); // trace only
-            var damage = strikeReady
-                ? EquipmentMath.Mitigate(world, attacker, part,
-                    SimBalance.NpcStrikePerPass * defender.StrikeFactor() * weaponMult)
-                : 0f;
-            if (damage > 0f)
+            var damage = 0f;
+            if (strikeReady)
             {
-                attacker.Body.Parts[part] = System.Math.Max(0f, attacker.Body.Parts[part] - damage);
-                attacker.Health = attacker.Body.Mean();
-                DamageReactionSystemHelpers.GrantAdrenaline(world, attacker, damage, "HelpCryDefended");
-                WoundMath.Inflict(world, attacker, part, damage);
-                MortalityHelpers.ResolveTrauma(world, attacker, damage, $"NPC{defender.Id.Value}"); // §105
+                MeleeSwing.StampHit(world, attacker, weaponId, part, defender.Position);
+                damage = BodyDamageResolver.Apply(world, attacker, part,
+                    SimBalance.NpcStrikePerPass * defender.StrikeFactor() * weaponMult,
+                    DamageProfile.ForGear(weaponId), $"NPC{defender.Id.Value}").Landed;
             }
 
             Trace.Emit(world, defender.Id, "HelpCryDefended",

@@ -27,10 +27,18 @@ public static class ContentQueue
         Hair,
         HairColour,
         Icon,
+        Prosthetic,
     }
 
     private static readonly Dictionary<Kind, int> Started = new();
     private static readonly Dictionary<Kind, int> Finished = new();
+
+    // Enter Play Mode can be configured without a domain reload. In that mode
+    // the dictionaries survive the previous run and make a fresh loading
+    // screen observe work that belongs to an already destroyed world.
+    [UnityEngine.RuntimeInitializeOnLoadMethod(
+        UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Reset();
 
     /// <summary>Всё загружено — очередь пуста.</summary>
     public static bool IsIdle
@@ -125,6 +133,7 @@ public static class ContentQueue
         Kind.Hair => "loading.content.hair",
         Kind.HairColour => "loading.content.colour",
         Kind.Icon => "loading.content.icon",
+        Kind.Prosthetic => "loading.content.prosthetic",
         _ => "loading.content.done",
     };
 }

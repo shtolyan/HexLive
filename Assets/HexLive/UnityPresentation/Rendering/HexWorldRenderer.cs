@@ -74,9 +74,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
         public GarmentWorldCondition Garment;
         public HexLive.UnityPresentation.Environment.BuildSitePile Pile;
         public HexLive.UnityPresentation.Environment.CraftProjectVisual CraftProject;
+        public HexLive.UnityPresentation.Environment.HutAssembly Hut;
     }
 
     private readonly Dictionary<int, ObjectViewParts> _objectViewParts = new();
+
+    private readonly struct HutCutawayView
+    {
+        public readonly TileCoord Tile;
+        public readonly HexLive.UnityPresentation.Environment.HutAssembly Assembly;
+
+        public HutCutawayView(
+            TileCoord tile, HexLive.UnityPresentation.Environment.HutAssembly assembly)
+        {
+            Tile = tile;
+            Assembly = assembly;
+        }
+    }
+
+    private readonly List<HutCutawayView> _hutCutawayViews = new();
+    private Camera? _cutawayCamera;
 
     // PERF: junction id -> world position. Worldgen output, so it is built once
     // per world instead of every tick (see RenderSnapshot). _junctionMarkersBuilt
@@ -135,9 +152,46 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// </summary>
     public bool ActorsReady(IEnumerable<int> ids)
     {
+        var snapshot = _lastSnapshot ?? (_runner != null && _runner.IsReady
+            ? _runner.CreateSnapshot()
+            : null);
+        if (snapshot == null)
+        {
+            return false;
+        }
+
         foreach (var id in ids)
         {
             if (!_actorViews.TryGetValue(id, out var view) || view == null)
+            {
+                return false;
+            }
+
+            NpcSnapshot npc = null;
+            for (var i = 0; i < snapshot.Npcs.Count; i++)
+            {
+                if (snapshot.Npcs[i].Id.Value == id)
+                {
+                    npc = snapshot.Npcs[i];
+                    break;
+                }
+            }
+
+            if (npc == null)
+            {
+                return false;
+            }
+
+            // A paused world does not produce another snapshot tick. Content
+            // can therefore finish after the one RenderSnapshot call which
+            // created the actor. Re-apply the cheap idempotent wardrobe sync
+            // here so readiness means "stitched onto the body", not merely
+            // "the AssetBundle callback ran".
+            view.SyncWorn(npc.WornItems);
+            if (!view.IsPresentationReady(
+                    npc.WornItems,
+                    npc.SeveredParts,
+                    npc.BodyPartConditions))
             {
                 return false;
             }
@@ -195,6 +249,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // than as consecutive states to interpolate between. A few ticks is ordinary
     // fast-forward; a dozen means the world moved on without us.
     private const int PoseSnapTicks = 12;
+
+    // §109.12 / bug #53: a non-walking simulation relocation is a teleport,
+    // not a quarter-second glide in the currently active body pose.
+    private const float TeleportSnapWorldUnits = 0.25f;
 
     private readonly Dictionary<int, Pose> _prevNpcPoses = new();
     private readonly Dictionary<int, Pose> _currNpcPoses = new();
@@ -431,6 +489,37 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // swell always matches what WaterWave.Height gives the swimmer.
         WaterWave.PushToShader();
         InterpolateMovables(_runner.TickAlpha);
+        UpdateHutCutaways(snapshot);
+    }
+
+    private void UpdateHutCutaways(WorldSnapshot snapshot)
+    {
+        if (_hutCutawayViews.Count == 0) return;
+
+        _cutawayCamera ??= Camera.main;
+        var hasInteriorSelection = false;
+        var selectedTile = TileCoord.Zero;
+        if (Input.NpcSelection.HasSelection)
+        {
+            var selectedId = Input.NpcSelection.SelectedId;
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Id.Value != selectedId) continue;
+                selectedTile = npc.Tile;
+                hasInteriorSelection = _indoorCoords.Contains(selectedTile);
+                break;
+            }
+        }
+
+        var cameraPosition = _cutawayCamera != null
+            ? _cutawayCamera.transform.position
+            : Vector3.zero;
+        foreach (var hut in _hutCutawayViews)
+        {
+            var reveal = hasInteriorSelection && hut.Tile.Equals(selectedTile) &&
+                _cutawayCamera != null;
+            hut.Assembly.SetInteriorCutaway(reveal, cameraPosition);
+        }
     }
 
     // Spec 40.2-B: ground blood stains manager (lazy — lives under the
@@ -849,6 +938,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // disappeared from the simulation (eaten/picked-up apples).
         var liveObjectIds = _liveObjectIdScratch;
         liveObjectIds.Clear();
+        _hutCutawayViews.Clear();
         foreach (var worldObject in snapshot.Objects)
         {
             liveObjectIds.Add(worldObject.Id.Value);
@@ -983,6 +1073,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     Garment = objectView.GetComponent<GarmentWorldCondition>(),
                     Pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>(),
                     CraftProject = craftProject,
+                    Hut = objectView.GetComponent<HexLive.UnityPresentation.Environment.HutAssembly>(),
                 };
                 // Spec §54: remember trees so felling them animates.
                 if (worldObject.DefinitionId.Contains("tree"))
@@ -1000,6 +1091,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             _objectViewParts.TryGetValue(key, out var parts);
+
+            if (worldObject.DefinitionId == ContentIds.Hut1Hex && parts.Hut != null)
+            {
+                _hutCutawayViews.Add(new HutCutawayView(worldObject.Tile, parts.Hut));
+            }
 
             // §Wardrobe-anim: hide/show the ground garment as its owner picks it
             // up / drops it (SetActive is idempotent, so this is cheap per frame).
@@ -1119,22 +1215,34 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // swimmer bobs with the exact surface under her, not a snapshot.
             _npcOnWater[key] = _waterCoords.Contains(npc.Tile);
             var targetRot = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(npc.RotationDegrees), 0f);
-            var targetPose = TryGetStumpSeatPose(snapshot, npc, targetRot, out var stumpSeatPose)
-                ? stumpSeatPose
-                : new Pose(
-                    SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)),
-                    targetRot);
+            var targetPose = TryGetCarriedPose(snapshot, npc, targetRot, out var carriedPose)
+                ? carriedPose
+                : TryGetStumpSeatPose(snapshot, npc, targetRot, out var stumpSeatPose)
+                    ? stumpSeatPose
+                    : new Pose(
+                        SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)),
+                        targetRot);
             var targetPos = targetPose.Position;
 
-            if (_currNpcPoses.TryGetValue(key, out var oldPose))
+            var hadPreviousPose = _currNpcPoses.TryGetValue(key, out var oldPose);
+            if (hadPreviousPose)
             {
-                _prevNpcPoses[key] = oldPose;
+                // A carried patient does not own a MovementStatus of her own,
+                // but her carrier is still moving her continuously. Keep that
+                // legitimate transport interpolated; only uncarried idle pose
+                // jumps are simulation teleports/collapse snaps.
+                var locomoting = npc.MovementStatus is "Moving" or "Arrived" ||
+                    npc.CarriedByNpcId is not null;
+                _prevNpcPoses[key] = !locomoting &&
+                    Vector3.Distance(oldPose.Position, targetPose.Position) > TeleportSnapWorldUnits
+                        ? targetPose
+                        : oldPose;
 
                 // §45: stepping onto a tile one level up/down is a visible
                 // hop, not a glide — the actor plays JumpUp/JumpDown and its
                 // own Y-offset curve carries the body to the exact new level.
                 var stepDy = targetPos.y - oldPose.Position.y;
-                if (Mathf.Abs(stepDy) > ElevationStep * 0.5f &&
+                if (locomoting && Mathf.Abs(stepDy) > ElevationStep * 0.5f &&
                     _actorViews.TryGetValue(key, out var jumper) && jumper != null)
                 {
                     jumper.TriggerHexStepJump(stepDy);
@@ -1163,8 +1271,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     previousPoseForSpeed.Rotation.eulerAngles.y,
                     targetPose.Rotation.eulerAngles.y) / snapshot.TickDeltaTime;
             }
-            npcView.SetSimulationGroundSpeed(simGroundSpeed);
-            npcView.SetSimulationYawSpeed(simYawSpeed);
+            if (_actorViews.TryGetValue(key, out var speedActor) && speedActor != null)
+            {
+                speedActor.SetSimulationGroundSpeed(simGroundSpeed);
+                speedActor.SetSimulationYawSpeed(simYawSpeed);
+            }
 
             SyncActorView(snapshot, npc);
 
@@ -1667,6 +1778,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 40.9 / 40.1: injury posture (limp/crawl/arm-hang/head-clutch)
         // and the winded panting, both derived sim-side and exported.
         actorView.SetPosture(npc.PostureHint, npc.Winded);
+        actorView.SetCarryingPerson(npc.CarriedNpcId is not null);
         // §71: the gait comes from the SIM, not from measured speed — she walks
         // unless the sim gave her a reason to run.
         actorView.SetRunning(npc.IsRunning);
@@ -1690,7 +1802,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var waterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat,
             rainWet, waterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
-            npc.Wounds, npc.BandagedZones, npc.SeveredParts);
+            npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
         actorView.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
         // Portrait isolation: keep the whole actor hierarchy (incl. garments,
         // props and decals spawned this tick) on the Actors layer.
@@ -1813,6 +1925,42 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         actorView.ClearGaze();
+    }
+
+    // §118: the simulation pins the patient's XZ and yaw to the carrier. The
+    // presentation adds only the shoulder height: the existing fallen pose is
+    // already a limp horizontal body, so it rides across the walking carrier
+    // without an external animation asset.
+    private bool TryGetCarriedPose(
+        WorldSnapshot snapshot, NpcSnapshot patient, Quaternion patientRotation,
+        out Pose pose)
+    {
+        pose = default;
+        if (patient.CarriedByNpcId is not { } carrierId)
+        {
+            return false;
+        }
+
+        NpcSnapshot carrier = null;
+        foreach (var candidate in snapshot.Npcs)
+        {
+            if (candidate.Id.Value == carrierId)
+            {
+                carrier = candidate;
+                break;
+            }
+        }
+
+        if (carrier == null || carrier.CarriedNpcId != patient.Id.Value)
+        {
+            return false;
+        }
+
+        var position = SimulationUnityMapper.ToUnityPosition(
+            carrier.Position, ActorGroundY(carrier.Tile));
+        position.y += HexRadius * NpcHeightFactor * 1.55f;
+        pose = new Pose(position, patientRotation);
+        return true;
     }
 
     private bool IsGroundCoconutHandInteraction(WorldSnapshot snapshot, NpcSnapshot npc)
@@ -2009,13 +2157,33 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return string.IsNullOrEmpty(npc.MeleeWeaponId) ? null : npc.MeleeWeaponId;
     }
 
-    private static int IntactHands(NpcSnapshot npc) =>
-        (npc.SeveredParts.Contains("ArmL") ? 0 : 1) +
-        (npc.SeveredParts.Contains("ArmR") ? 0 : 1);
-
-    // §50-prone («лежит»): ANY lost leg — lying can't hold tools or weapons.
+    // §50/§118: a bare stump is prone, a fitted non-broken leg is functional.
+    // The typed snapshot is the presentation-side equivalent of
+    // BodyState.LimbFunction; never infer this from SeveredParts alone.
     private static bool IsProne(NpcSnapshot npc) =>
-        npc.SeveredParts.Contains("LegL") || npc.SeveredParts.Contains("LegR");
+        IsBareStump(npc, BodyPart.LegL, "LegL") ||
+        IsBareStump(npc, BodyPart.LegR, "LegR");
+
+    private static bool IsBareStump(NpcSnapshot npc, BodyPart part, string legacyName)
+    {
+        if (!npc.SeveredParts.Contains(legacyName))
+        {
+            return false;
+        }
+
+        foreach (var condition in npc.BodyPartConditions)
+        {
+            if (condition.Part != part || condition.Prosthetic == null)
+            {
+                continue;
+            }
+
+            var device = condition.Prosthetic;
+            return device.MaxCondition <= 0f || device.Condition <= 0f || device.Function <= 0f;
+        }
+
+        return true;
+    }
 
     private static bool IsToolOrWeapon(string itemId) =>
         !string.IsNullOrEmpty(itemId) &&
@@ -2563,19 +2731,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // and light attach here so a mid-upgrade fire still burns.
         if (worldObject.DefinitionId == "campfire.spot")
         {
-            var fireGo = string.IsNullOrEmpty(worldObject.BuildProduct)
-                ? HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished("campfire.spot")
-                : HexLive.UnityPresentation.Environment.BedAssembly.BuildPartial(
-                    "campfire.spot", worldObject.DeliveredLogs, worldObject.DeliveredSticks,
-                    worldObject.DeliveredRope, worldObject.DeliveredLeaves, worldObject.DeliveredStones);
+            var isHutHearth = worldObject.Variant == BuildingRules.HutHearthVariant;
+            var fireGo = isHutHearth
+                ? HexLive.UnityPresentation.Environment.HutFurnitureFactory.BuildHearth()
+                : string.IsNullOrEmpty(worldObject.BuildProduct)
+                    ? HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished("campfire.spot")
+                    : HexLive.UnityPresentation.Environment.BedAssembly.BuildPartial(
+                        "campfire.spot", worldObject.DeliveredLogs, worldObject.DeliveredSticks,
+                        worldObject.DeliveredRope, worldObject.DeliveredLeaves, worldObject.DeliveredStones);
             if (fireGo != null)
             {
                 fireGo.transform.SetParent(_objectsRoot, false);
                 var fireAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 fireGo.transform.position = SimulationUnityMapper.ToUnityPosition(
                     fireAnchor, GroundY(worldObject.Tile));
-                var fireEffect = fireGo.AddComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
-                fireEffect.Construct(HexRadius);
+                var fireEffectHost = isHutHearth
+                    ? fireGo.transform.Find("fire_point")?.gameObject ?? fireGo
+                    : fireGo;
+                var fireEffect = fireEffectHost.AddComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
+                fireEffect.Construct(isHutHearth ? HexRadius * 0.42f : HexRadius);
                 // §54.14 (r2): the spit-meat view rides on the same root; the
                 // per-frame sync feeds it the hanging raw/cooked counts.
                 var spitView = fireGo.AddComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>();
@@ -2719,11 +2893,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // the same prefab a build-site grows piece by piece, so finished and
         // in-progress match. All are authored 1:1, so NO ObjectFit sizing.
         if (HexLive.UnityPresentation.Environment.BedFactory.IsBed(worldObject.DefinitionId) ||
+            worldObject.DefinitionId == ContentIds.HutBed ||
             worldObject.DefinitionId == "station.drying_rack" ||
             worldObject.DefinitionId == "station.water_collector" ||
             worldObject.DefinitionId == ContentIds.Workbench)
         {
-            var bed = HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished(worldObject.DefinitionId);
+            var isHutCot = worldObject.DefinitionId == ContentIds.HutBed;
+            var bed = isHutCot
+                ? HexLive.UnityPresentation.Environment.HutFurnitureFactory.BuildBed()
+                : HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished(worldObject.DefinitionId);
             if (bed != null)
             {
                 bed.transform.SetParent(_objectsRoot, false);
@@ -2732,6 +2910,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     bedAnchor, GroundY(worldObject.Tile));
                 return bed;
             }
+        }
+
+
+        if (worldObject.DefinitionId == ContentIds.Hut1Hex)
+        {
+            var hut = HexLive.UnityPresentation.Environment.HutAssembly.BuildFinished();
+            hut.transform.SetParent(_objectsRoot, false);
+            var hutAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            hut.transform.position = SimulationUnityMapper.ToUnityPosition(
+                hutAnchor, GroundY(worldObject.Tile));
+            return hut;
         }
 
         // Spec §54/29C.3: a slain mob's carcass is its own model in the

@@ -235,7 +235,9 @@ public sealed partial class PlanningSystem
 
     // A FREE junction beside her, reserved so two hunters (later: a raiding
     // party) cannot claim the same square.
-    private static JunctionId? PickApproachJunction(WorldState world, NPCState npc, JunctionId target)
+    // §118: internal — погоня по приказу игрока встаёт рядом с целью тем же
+    // способом, что налёт и групповая охота.
+    internal static JunctionId? PickApproachJunction(WorldState world, NPCState npc, JunctionId target)
     {
         foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, target))
         {

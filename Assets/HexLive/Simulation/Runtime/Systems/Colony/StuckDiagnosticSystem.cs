@@ -59,6 +59,14 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            // §118: ручная колонистка стоит без цели, пока игрок не прикажет —
+            // это не «застряла», а ровно то, что он велел. Сторож её пропускает,
+            // иначе каждый простой между приказами шёл бы в отчёт как баг.
+            if (Runtime.Spec118.ManualControlEnabled && npc.Mind.ManualControl)
+            {
+                continue;
+            }
+
             Examine(world, npc);
         }
 

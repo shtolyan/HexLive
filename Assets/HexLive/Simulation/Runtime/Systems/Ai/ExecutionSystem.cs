@@ -1542,6 +1542,23 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return;
         }
 
+        // §118: ТЕ ЖЕ ГРАБЛИ, третий раз (краб §29F.2, сговор §108, выгон
+        // §115). Подход к цели приказа — тоже move-only план, и сброс в None
+        // здесь гасил приказ атаки на первом же прибытии: она доходила до
+        // соседней клетки, теряла цель и вставала столбом, хотя противник
+        // стоял в шаге. Приказ кончает ManualOrderSystem — когда противник
+        // мёртв, лежит или исчез, а не когда доигран один подход.
+        if (npc.Mind.CurrentGoal == GoalType.PlayerAttack &&
+            (npc.Mind.ManualAttackNpcId is not null || npc.Mind.ManualAttackMobId is not null))
+        {
+            Trace.Emit(world, npc.Id, "ManualAttackContinues",
+                "Arrived — the player's attack order owns the goal");
+            return;
+        }
+
+        // §118: приказ ИДТИ, наоборот, здесь и заканчивается — «дошла» и есть
+        // его исполнение. Цель гасится общим путём ниже, а ManualOrderSystem
+        // на следующем среднем проходе только подтвердит, что приказ доигран.
         npc.Mind.CurrentGoal = GoalType.None;
         Trace.Emit(world, npc.Id, "CycleReset",
             "Goal->None Plan->Completed (move-only plan arrived)");

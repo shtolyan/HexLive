@@ -38,6 +38,11 @@ internal static class CombatHelpSystem
                 helper.IsFighting ||
                 helper.Mind.CurrentGoal == GoalType.Flee ||
                 helper.Mind.CurrentGoal == GoalType.GroupHunt ||
+                // §118: ручную никто не срывает с места. Вписаться за подругу —
+                // РЕШЕНИЕ, а решения за неё принимает игрок; он и увидел сцену
+                // раньше её. Ответить на удары по себе она всё равно ответит —
+                // это §109, и оно ниже уровня решений.
+                ManualControlMath.IsManual(helper) ||
                 !FactionRelations.AreAllies(helper, victim) ||
                 HexSpatialMath.HexDistance(helper.Tile, victim.Tile) >
                     Spec111.LootWitnessRadiusTiles)
@@ -129,6 +134,8 @@ internal static class CombatHelpSystem
                 helper.IsUnconscious(world.Tick) ||
                 helper.IsPlayingDead(world.Tick) || // §105.14: лежит и не выдаёт себя
                 helper.Execution.CurrentInteraction == InteractionType.Sleep ||
+                // §118: крик о помощи ручную не поднимает — см. выше.
+                ManualControlMath.IsManual(helper) ||
                 HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.HelpCryRadiusTiles)
             {
                 continue;
@@ -257,6 +264,8 @@ internal static class CombatHelpSystem
             // лезет никогда.
             if (helper.Health < Spec57.FriendGuardHealthGate ||
                 helper.IsDying ||
+                // §118: и здесь решает игрок, а не порог дружбы.
+                ManualControlMath.IsManual(helper) ||
                 !helper.Body.CanUseToolsOrWeapons)
             {
                 continue;

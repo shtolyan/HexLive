@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 

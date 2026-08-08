@@ -7649,8 +7649,11 @@ Zero-simulation, presentation-only (renders live; verify in the editor):
   carried spear/bow mounts on the upper-spine bone (Genesis3 `chestUpper`
   with fallbacks), slung diagonally, hidden while it's in the hand
   (fighting). The renderer feeds it `BackWeaponFor(npc)` from the carried
-  weapon. First step toward weapons-as-equipment (§33 slot system, sim
-  part pending).
+  weapon. Back, hand and ground all normalize the same prefab through
+  `ObjectFit`; there is no back-only scale. A regular `tool.*` therefore has
+  the same measured maximum dimension in all three contexts:
+  `0.216 × HexRadius = 0.324 wu` (the spear keeps its shared 0.9 rule).
+  First step toward weapons-as-equipment (§33 slot system, sim part pending).
 - **33.2 Cartoon rain** (`HexWorldRenderer.UpdateRain`): a world-space
   droplet `ParticleSystem` (stretched billboards, ~900/s) plays over the
   island whenever `snapshot.IsRaining`, stops when it clears.

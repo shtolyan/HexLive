@@ -4370,25 +4370,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _backProp.name = $"BackProp {itemId}";
 
-        var renderers = _backProp.GetComponentsInChildren<Renderer>();
-        if (renderers.Length > 0)
-        {
-            var bounds = renderers[0].bounds;
-            for (var i = 1; i < renderers.Length; i++)
-            {
-                bounds.Encapsulate(renderers[i].bounds);
-            }
-
-            var biggest = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
-            // Bug #87: this legacy back-only target made the same weapon much
-            // larger than its held/dropped ObjectFit size. The player's visual
-            // correction is exactly one sixth of the old sling length.
-            var target = 1.7f * _bodyRoot.lossyScale.y * (0.5f / 6f);
-            if (biggest > 0.0001f)
-            {
-                _backProp.transform.localScale *= target / biggest;
-            }
-        }
+        // Bug #87 rework: back, hand and ground must not invent three physical
+        // sizes for the same prefab. ObjectFit measures renderer bounds in world
+        // space, so the same factor works here even below a scaled animated bone.
+        _backProp.transform.localScale *= ObjectFit.FitScaleFactor(_backProp, itemId);
 
         // Sit it behind the shoulders, slung on a diagonal (hand-tuned offset).
         _backProp.transform.localPosition = new Vector3(0.105f, -0.413f, -0.078f);

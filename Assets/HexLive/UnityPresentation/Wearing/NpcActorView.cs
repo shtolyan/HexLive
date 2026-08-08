@@ -4662,9 +4662,29 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // space, so the same factor works here even below a scaled animated bone.
         _backProp.transform.localScale *= ObjectFit.FitScaleFactor(_backProp, itemId);
 
-        // Sit it behind the shoulders, slung on a diagonal (hand-tuned offset).
-        _backProp.transform.localPosition = new Vector3(0.105f, -0.413f, -0.078f);
+        // One shared slot for every weapon. Rotate first, then align the centre
+        // of the FINAL fitted render bounds — prefab roots/pivots may live at a
+        // grip, blade tip or arbitrary authoring origin and must not move the
+        // visible weapon away from the body slot.
         _backProp.transform.localRotation = Quaternion.Euler(-3.335f, -0.358f, 18.524f);
+        _backProp.transform.localPosition = Vector3.zero;
+
+        var slotLocal = new Vector3(0.105f, -0.200f, -0.078f);
+        var renderers = _backProp.GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length == 0)
+        {
+            _backProp.transform.localPosition = slotLocal;
+            return;
+        }
+
+        var combined = renderers[0].bounds;
+        for (var i = 1; i < renderers.Length; i++)
+        {
+            combined.Encapsulate(renderers[i].bounds);
+        }
+
+        var boundsCentreLocal = back.InverseTransformPoint(combined.center);
+        _backProp.transform.localPosition = slotLocal - boundsCentreLocal;
     }
 
     // Spec 40.7: how hot/cold the NPC feels (-1..+1); the renderer feeds it.

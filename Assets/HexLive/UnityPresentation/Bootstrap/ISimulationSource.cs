@@ -162,6 +162,23 @@ public interface ISimulationSource
     /// <c>WorldState</c> has nothing to hand the save serializer.
     /// </summary>
     bool SupportsClientSave { get; }
+
+    /// <summary>
+    /// §118: можно ли отдавать приказы конкретному NPC. Ложь на удалённом
+    /// мире — там колония общая, и один зритель не вправе увести чужую
+    /// колонистку; вид просто прячет тумблер.
+    /// </summary>
+    bool SupportsNpcCommands { get; }
+
+    /// <summary>
+    /// §118: единственная дорога от интерфейса к симуляции. Приказ кладётся в
+    /// очередь и применяется в начале ближайшего тика — вид сам мир НЕ трогает.
+    /// <para>
+    /// Шов держится и без сети нарочно: когда приказы поедут по проводу, здесь
+    /// появится ещё один кадр, и ни одна кнопка об этом не узнает.
+    /// </para>
+    /// </summary>
+    void EnqueueCommand(ISimulationCommand command);
 }
 
 /// <summary>

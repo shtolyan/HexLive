@@ -73,6 +73,16 @@ public sealed class LoopbackBackend : ISimulationBackend
 
     public bool SupportsClientSave => false;
 
+    // §118: и приказы тоже. Режим существует, чтобы РЕПЕТИРОВАТЬ жизнь без
+    // своего мира, — значит и здесь тумблер ручного управления обязан быть
+    // спрятан, как на настоящем удалённом подключении.
+    public bool SupportsNpcCommands => false;
+
+    public void EnqueueCommand(ISimulationCommand command)
+    {
+        // Ничего: SupportsNpcCommands ложь, звать сюда никто не должен.
+    }
+
     public WorldSnapshot CreateSnapshot()
     {
         var source = _inner.CreateSnapshot();

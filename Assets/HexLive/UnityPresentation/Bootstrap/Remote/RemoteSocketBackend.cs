@@ -121,6 +121,17 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     public bool SupportsClientSave => false;
 
+    // §118 v1: приказы по проводу не ездят. Колония на сервере общая, и
+    // право увести чужую колонистку — вопрос прав оператора, а не ещё одного
+    // кадра в протоколе; когда он решится, кадр появится ЗДЕСЬ, и ни одна
+    // кнопка интерфейса об этом не узнает.
+    public bool SupportsNpcCommands => false;
+
+    public void EnqueueCommand(ISimulationCommand command)
+    {
+        // Ничего: SupportsNpcCommands ложь, вид прячет тумблер.
+    }
+
     public SimulationLink Link
     {
         get

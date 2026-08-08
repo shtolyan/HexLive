@@ -6450,7 +6450,11 @@ void OnClickGoTo(TileCoord tile)
 Camera and selection are purely presentation concerns.
 
 - selecting NPC does not change simulation
-- camera follows snapshot data
+- camera follows snapshot data as an exact target with a **soft arrival**: the
+  selected NPC is the orbit pivot target every frame, while `SmoothDamp`
+  delays only the camera rig's catch-up in unscaled time. The target itself is
+  never smoothed or replaced with the edge of a slack zone, so walking and
+  pausing converge to zero framing error without accumulating an offset.
 
 **Optional:**
 

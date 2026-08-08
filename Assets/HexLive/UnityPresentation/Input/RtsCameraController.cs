@@ -259,9 +259,11 @@ namespace HexLive.UnityPresentation.Input
         private void ApplyRig(Vector3 pivot, float positionSmooth)
         {
             _smoothedYaw = Mathf.SmoothDampAngle(
-                _smoothedYaw, _currentYaw, ref _yawVelocity, _orbitRotationSmooth);
+                _smoothedYaw, _currentYaw, ref _yawVelocity, _orbitRotationSmooth,
+                Mathf.Infinity, Time.unscaledDeltaTime);
             _smoothedPitch = Mathf.SmoothDampAngle(
-                _smoothedPitch, _currentPitch, ref _pitchVelocity, _orbitRotationSmooth);
+                _smoothedPitch, _currentPitch, ref _pitchVelocity, _orbitRotationSmooth,
+                Mathf.Infinity, Time.unscaledDeltaTime);
 
             var rotation = Quaternion.Euler(_smoothedPitch, _smoothedYaw, 0f);
 
@@ -284,7 +286,8 @@ namespace HexLive.UnityPresentation.Input
                 - rotation * Vector3.up * uiLift;
 
             transform.position = Vector3.SmoothDamp(
-                transform.position, desiredPosition, ref _velocity, positionSmooth);
+                transform.position, desiredPosition, ref _velocity, positionSmooth,
+                Mathf.Infinity, Time.unscaledDeltaTime);
             transform.rotation = rotation;
         }
 
@@ -546,19 +549,12 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            // Follow the pivot smoothly so the NPC's slightly stepped motion
-            // doesn't jerk the camera.
-            if (!_hasSmoothedTarget)
-            {
-                _smoothedTarget = rawTarget;
-                _targetVelocity = Vector3.zero;
-                _hasSmoothedTarget = true;
-            }
-            else
-            {
-                _smoothedTarget = Vector3.SmoothDamp(
-                    _smoothedTarget, rawTarget, ref _targetVelocity, _orbitTargetSmooth);
-            }
+            // The NPC itself is the exact target every frame. Only ApplyRig
+            // smooths the camera's catch-up; smoothing this pivot as well would
+            // introduce a second lag and leave the subject visibly off-centre.
+            _smoothedTarget = rawTarget;
+            _targetVelocity = Vector3.zero;
+            _hasSmoothedTarget = true;
 
             HandleOrbitInput();
 

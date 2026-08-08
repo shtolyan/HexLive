@@ -151,11 +151,19 @@ internal static class CraftProjectMath
     {
         if (npc.Execution.CraftProjectId is not { } projectId ||
             !world.Entities.Objects.TryGetValue(projectId, out var project) ||
-            !project.IsCraftProject)
+            project.CraftWorkRequired <= 0 ||
+            project.DefinitionId != RecipeCatalog.OutputOf(goal) ||
+            !project.IsOccupied ||
+            project.CurrentUser != npc.Id)
         {
             npc.Execution.CraftProjectId = null;
             return false;
         }
+
+        // UpdateCycleProgress runs before this method and is allowed to expose
+        // the final visual frame as exactly 100%. At that point IsCraftProject
+        // is deliberately false, but this NPC still owns the active cycle and
+        // must run the completion adapter (notably CraftBandage's counters).
 
         project.CraftWorkDone = System.Math.Min(project.CraftWorkRequired,
             System.Math.Max(project.CraftWorkDone,

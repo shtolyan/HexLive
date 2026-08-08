@@ -192,6 +192,37 @@ public sealed class WorkbenchCraftingTests
     }
 
     [Test]
+    public void BandageCycle_FinalVisualTick_StillRunsCompletionAdapter()
+    {
+        var world = TestWorld.CreateWorld(119088);
+        var crafter = world.Entities.Npcs.Values.First();
+        crafter.CurrentJunction ??= world.Tiles.Items[crafter.Tile].Junctions[0];
+        var bandagesBefore = crafter.Needs.Bandages;
+        var herbalBefore = crafter.Needs.HerbalBandages;
+
+        Add(crafter, ContentIds.HerbLeaf, 2);
+        Assert.That(CraftProjectMath.TryBeginCycle(
+            world, crafter, GoalType.CraftBandage, null, out var project), Is.True);
+
+        crafter.Execution.StartTick = world.Tick;
+        crafter.Execution.EndTick = world.Tick + Spec119.CraftCycleWork;
+        world.Tick = crafter.Execution.EndTick;
+        CraftProjectMath.UpdateCycleProgress(world, crafter);
+
+        Assert.That(project.IsCraftProject, Is.False,
+            "The progress renderer exposes exactly 100% before completion runs.");
+        Assert.That(CraftProjectMath.CompleteCycle(
+            world, crafter, GoalType.CraftBandage), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(project.Id), Is.False);
+            Assert.That(crafter.Needs.Bandages, Is.EqualTo(bandagesBefore + 1));
+            Assert.That(crafter.Needs.HerbalBandages, Is.EqualTo(herbalBefore + 1));
+            Assert.That(crafter.Execution.CraftProjectId, Is.Null);
+        });
+    }
+
+    [Test]
     public void CancellingAStationProject_SpillsEveryPaidIngredient()
     {
         var world = TestWorld.CreateWorld(119063);

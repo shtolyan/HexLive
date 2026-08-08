@@ -15896,10 +15896,12 @@ Native bake мачете включает только одобренный reto
 сохраняет общий frame инструментов — рукоять вдоль Unity +Y, её основание на
 pivot и рабочая кромка к +Z — поэтому тот же hand pose, что у каменного ножа,
 не компенсирует случайную геометрию или смещённые bounds (баг #63).
-Native FBX мачете встраивает исходную 1024×1024 albedo внутрь файла. Manifest
-помечает этот Player-ассет `requireTextures`, а pre-build gate требует и слот
-`lowpoly_mat`, и непустую `mainTexture`; конвертация, оставившая лишь белый
-материал или пустой путь к packed GLB image, не может попасть в билд (баг #66).
+Native FBX мачете служит только mesh-носителем: исходная 1024×1024 albedo
+извлечена в отдельную PNG, назначена явному `MacheteTextured` URP/Lit material,
+а runtime загружает prefab с этой Unity dependency. Manifest помечает Player-
+ассет `requireTextures`, а pre-build gate требует и слот `MacheteTextured`, и
+непустую `mainTexture`; embedded media, которое пережило Blender round-trip,
+но не связалось с материалом Unity, не может считаться исправлением (баг #66).
 
 **79.5 Что «просто заработало».** Рубящий клип (`ActionFromInteraction` гейтится
 на `ChopWood`), вооружённые idle/ходьба (любой `tool.*`), выбор оружия в драке

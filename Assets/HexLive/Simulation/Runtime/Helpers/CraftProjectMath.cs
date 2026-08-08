@@ -43,6 +43,35 @@ internal static class CraftProjectMath
         return FindReachableProject(world, npc, goal) is not null;
     }
 
+    // Bug #86: a 100% project is deliberately no longer IsCraftProject, but it
+    // is still the result which satisfied the craft demand. Without this seam
+    // CraftKnife saw only the crafter's pack, outbid GatherTools, and paid for
+    // another knife while the previous one was lying at her feet.
+    internal static bool HasReachableCompletedOutput(
+        WorldState world, NPCState npc, GoalType goal)
+    {
+        var output = RecipeCatalog.OutputOf(goal);
+        if (string.IsNullOrEmpty(output)) return false;
+
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (!perceived.IsReachable || perceived.DefinitionId != output ||
+                !world.Entities.Objects.TryGetValue(perceived.Id, out var candidate) ||
+                !candidate.Fragment.Equals(npc.Fragment) || candidate.IsOccupied)
+            {
+                continue;
+            }
+
+            if (candidate.CraftWorkRequired > 0 &&
+                candidate.CraftWorkDone >= candidate.CraftWorkRequired)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static WorldObjectState FindReachableProject(
         WorldState world, NPCState npc, GoalType goal)
     {

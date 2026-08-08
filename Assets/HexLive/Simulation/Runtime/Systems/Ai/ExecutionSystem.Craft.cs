@@ -321,6 +321,36 @@ public sealed partial class ExecutionSystem
             if (npc.CurrentJunction is not { } at || !at.Equals(walkTarget)) return;
         }
 
+        // Bug #86: finishing a persistent project used to end the plan at
+        // 100%, dropping ownership of the result. Keep the same worker in an
+        // explicit take beat, mirroring the legacy ground-craft lifecycle.
+        if (npc.Execution.Status == ExecutionStatus.InProgress &&
+            npc.Execution.CurrentInteraction == InteractionType.PickUp &&
+            npc.Execution.CraftLayout.Count > 0)
+        {
+            if (world.Tick < npc.Execution.EndTick) return;
+
+            foreach (var craftedId in npc.Execution.CraftLayout)
+            {
+                if (!world.Entities.Objects.TryGetValue(craftedId, out var crafted)) continue;
+                GiveOrDrop(world, npc, new ItemInstance(crafted.DefinitionId)
+                {
+                    Wetness = crafted.Wetness,
+                    Durability = crafted.Durability,
+                    ResourceAmount = crafted.ResourceAmount,
+                    Dirtiness = crafted.Dirtiness,
+                    Bloodiness = crafted.Bloodiness
+                });
+                WorldObjectMutations.DespawnObject(world, craftedId);
+            }
+
+            npc.Execution.CraftLayout.Clear();
+            Trace.Emit(world, npc.Id, CraftedTraceName(goal),
+                $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+            FinishCraftInPlace(world, npc, goal);
+            return;
+        }
+
         if (npc.Execution.Status == ExecutionStatus.None)
         {
             if (!CraftProjectMath.TryBeginCycle(world, npc, goal, null, out var project))
@@ -348,9 +378,28 @@ public sealed partial class ExecutionSystem
         CraftProjectMath.UpdateCycleProgress(world, npc);
         if (world.Tick < npc.Execution.EndTick) return;
 
+        var completedProjectId = npc.Execution.CraftProjectId;
         CraftProjectMath.CompleteCycle(world, npc, goal);
         SkillTrace.Award(world, npc, InteractionType.Craft,
             npc.Execution.EndTick - npc.Execution.StartTick);
+
+        if (goal != GoalType.CraftBandage && completedProjectId is { } resultId &&
+            world.Entities.Objects.TryGetValue(resultId, out var result) &&
+            !result.IsCraftProject)
+        {
+            npc.Execution.CraftLayout.Clear();
+            npc.Execution.CraftLayout.Add(resultId);
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.PickUp;
+            npc.Execution.TargetObject = resultId;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + CraftTakeDurationTicks;
+            FaceCraftLayout(world, npc);
+            Trace.Emit(world, npc.Id, "CraftOutputReady",
+                $"{goal} Project={resultId.Value}; take in {CraftTakeDurationTicks}ticks");
+            return;
+        }
+
         FinishCraftInPlace(world, npc, goal);
     }
 

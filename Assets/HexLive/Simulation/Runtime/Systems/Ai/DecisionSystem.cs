@@ -1616,7 +1616,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             (((carriedFiber >= SimBalance.ClothFiberCost || clothGroundPileOk) &&
               CraftPlaceOk(GoalType.CraftCloth)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftCloth));
-        var craftKnifeAvail = ctx.CanUseToolsOrWeapons && !(hasKnife && hasButcherTool) &&
+        var finishedKnifeReachable = CraftProjectMath.HasReachableCompletedOutput(
+            world, npc, GoalType.CraftKnife);
+        var craftKnifeAvail = ctx.CanUseToolsOrWeapons &&
+            !(hasKnife && hasButcherTool) && !finishedKnifeReachable &&
             ((carriedSticks >= knifeStickCost && stoneCount >= knifeStoneCost &&
               CraftPlaceOk(GoalType.CraftKnife)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftKnife));

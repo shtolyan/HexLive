@@ -3897,7 +3897,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // scatter must not fight it (the root already carries the staked rotation).
         if (scatter)
         {
-            instance.transform.localRotation = GroundScatterRotation(definitionId, idValue);
+            instance.transform.localRotation = GroundScatterRotation(
+                definitionId,
+                idValue,
+                instance.transform.localRotation);
         }
 
         GroundVisual(instance);
@@ -3941,7 +3944,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // A dropped prop's ground pose: a deterministic random yaw so the map doesn't
     // read as a rigid grid, and — for items authored standing — a tip onto the
     // side so they lie flat like something dropped, not stuck upright in the soil.
-    private static Quaternion GroundScatterRotation(string definitionId, int idValue)
+    private static Quaternion GroundScatterRotation(
+        string definitionId,
+        int idValue,
+        Quaternion authoredRotation)
     {
         // Deterministic per-object yaw in [0,360): stable across every view
         // rebuild, unlike UnityEngine.Random which would pop on each refresh.
@@ -3953,6 +3959,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // Authored handle-+Y (TOOL_GENERATION_SPEC); 90° about X tips that long
             // axis onto the ground, then the yaw scatters which way it points.
             return Quaternion.Euler(90f, yaw, 0f);
+        }
+
+        // The approved palm frond FBX carries the Blender-to-Unity correction
+        // on its imported root (currently X ~= 270 degrees). Replacing that
+        // rotation with yaw stood dropped leaves on edge and made their pose
+        // depend on whichever source/fallback happened to load. Preserve the
+        // exact imported pose and scatter only around world up.
+        if (definitionId == "resource.palm_leaf")
+        {
+            return Quaternion.Euler(0f, yaw, 0f) * authoredRotation;
         }
 
         return Quaternion.Euler(0f, yaw, 0f);

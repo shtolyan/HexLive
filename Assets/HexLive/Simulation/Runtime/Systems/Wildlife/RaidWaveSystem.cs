@@ -133,6 +133,10 @@ public sealed class RaidWaveSystem : ISimulationSystem
         {
             npc.WornItems.Add(piece);
         }
+        if (female)
+        {
+            RaidSpawnWardrobe.EquipFemale(world, npc);
+        }
 
         world.Entities.Npcs[id] = npc;
         AddToSpatialIndexes(world, npc);

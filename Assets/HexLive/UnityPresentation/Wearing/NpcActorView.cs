@@ -611,6 +611,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // movement multipliers could therefore make the feet drift or overcrank.
     private float _simGroundSpeed;
     private bool _simGroundSpeedValid;
+    private float _simYawSpeed;
+    private bool _simYawSpeedValid;
 
     /// <summary>§71: the sim says whether she is running — walk is the default,
     /// and running always means a reason (defend, flee, adrenaline, or a body
@@ -635,6 +637,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         _simGroundSpeed = Mathf.Max(0f, worldUnitsPerSecond);
         _simGroundSpeedValid = true;
+    }
+
+    /// <summary>Feed the signed yaw rate between simulation poses. Turning
+    /// decisions must not depend on render interpolation either.</summary>
+    public void SetSimulationYawSpeed(float degreesPerSecond)
+    {
+        _simYawSpeed = degreesPerSecond;
+        _simYawSpeedValid = true;
     }
 
     // Hex-step jump (§21.21B). Timing comes from HexHopTuning — the single
@@ -5066,9 +5076,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             1f - Mathf.Exp(-Time.deltaTime * _simSpeed / Mathf.Max(0.01f, SpeedSmoothTau)));
 
         // Hysteresis: harder to START walking than to KEEP walking, so the
-        // stop-start junction gait doesn't flicker the walk/idle blend.
+        // stop-start junction gait doesn't flicker the walk/idle blend. The
+        // signal is the simulation pose delta when available; using the
+        // interpolated Transform here made production frames at a tick
+        // boundary look like Walk→Idle→Walk even while the sim was stopped.
+        var motionSpeed = _simGroundSpeedValid ? _simGroundSpeed : linearSpeed;
+        var motionYawSpeed = _simYawSpeedValid ? _simYawSpeed : yawSpeed;
         var threshold = _wasWalking ? _moveEpsilon * 0.6f : _moveEpsilon * 1.3f;
-        var moving = linearSpeed > threshold;
+        var moving = motionSpeed > threshold;
         if (moving)
         {
             _stillTimer = 0f;
@@ -5095,7 +5110,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var walking = moving ||
             (_wasWalking &&
              (_stillTimer < WalkHoldSeconds || filteredWalkContinuation) &&
-             Mathf.Abs(yawSpeed) <= PivotYawSpeed);
+             Mathf.Abs(motionYawSpeed) <= PivotYawSpeed);
         _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
 
@@ -5242,9 +5257,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Turning on the spot: meaningful yaw rate while standing.
         var turn = 0f;
-        if (!walking && Mathf.Abs(yawSpeed) > 25f)
+        if (!walking && Mathf.Abs(motionYawSpeed) > 25f)
         {
-            turn = Mathf.Sign(yawSpeed);
+            turn = Mathf.Sign(motionYawSpeed);
         }
 
         _animator.SetFloat(TurnDirectionParam, turn, 0.05f, Time.deltaTime);

@@ -1152,14 +1152,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // includes Agility, wet-clothes drag, leg mobility, carry weight,
             // turn penalties and every future movement multiplier exactly once.
             var simGroundSpeed = 0f;
+            var simYawSpeed = 0f;
             if (_prevNpcPoses.TryGetValue(key, out var previousPoseForSpeed) &&
                 snapshot.TickDeltaTime > 0f)
             {
                 var simDelta = targetPose.Position - previousPoseForSpeed.Position;
                 simDelta.y = 0f;
                 simGroundSpeed = simDelta.magnitude / snapshot.TickDeltaTime;
+                simYawSpeed = Mathf.DeltaAngle(
+                    previousPoseForSpeed.Rotation.eulerAngles.y,
+                    targetPose.Rotation.eulerAngles.y) / snapshot.TickDeltaTime;
             }
             npcView.SetSimulationGroundSpeed(simGroundSpeed);
+            npcView.SetSimulationYawSpeed(simYawSpeed);
 
             SyncActorView(snapshot, npc);
 

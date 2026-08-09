@@ -4691,7 +4691,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // visible weapon away from the body slot.
         _backProp.transform.localPosition = Vector3.zero;
 
-        var slotLocal = new Vector3(0.105f, -0.200f, -0.078f);
+        // Shared placement tune from BackWeaponPlacementTest. This is an
+        // additive chestUpper-local offset, so every back-mounted tool uses
+        // the same corrected slot while ObjectFit still owns scale.
+        var slotLocal = new Vector3(0.105f, -0.200f, -0.078f) +
+            new Vector3(-0.09f, 0.15f, -0.03f);
         var renderers = _backProp.GetComponentsInChildren<Renderer>(true);
         var slotRotation = Quaternion.Euler(-3.335f, -0.358f, 18.524f);
         var config = Config.GearLibrary.ConfigFor(itemId);

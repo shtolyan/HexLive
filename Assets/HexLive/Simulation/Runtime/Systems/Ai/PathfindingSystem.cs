@@ -215,7 +215,7 @@ public sealed class PathfindingSystem : ISimulationSystem
     // Unioned into one set so HexPathfinder keeps its single-set signature.
     private static readonly System.Collections.Generic.HashSet<JunctionId> _combinedRing = new();
 
-    private static System.Collections.Generic.HashSet<JunctionId> RouteAvoidRing(
+    internal static System.Collections.Generic.HashSet<JunctionId> RouteAvoidRing(
         WorldState world, NPCState npc)
     {
         var mobs = AvoidsThreatRings(npc) ? DangerRing(world) : null;
@@ -350,9 +350,11 @@ public sealed class PathfindingSystem : ISimulationSystem
             // so their routes bend around a spotted wolf instead of past it.
             // §72: …and around a hostile person, on the same soft terms.
             var danger = RouteAvoidRing(world, npc);
+            var canJump = npc.Body.CanJump &&
+                (!npc.IsCarryingPerson || npc.Plan.Goal == GoalType.Rescue);
             var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value,
                 OtherActorJunctions(world, npc), preferFlat,
-                npc.Body.CanJump && !npc.IsCarryingPerson,
+                canJump,
                 danger, Spec62.DangerStepCost);
             if (path.Count == 0)
             {

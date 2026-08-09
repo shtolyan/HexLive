@@ -13,6 +13,10 @@ namespace HexLive.Simulation.Runtime
 /// <summary>§116 shared rescue predicates, reservations and carry invariants.</summary>
 internal static class KenshiRescueMath
 {
+    // Headless regression probe: a normal destination selection must perform
+    // one weighted graph search, not one search per rim/interior junction.
+    internal static int DestinationPathSearchesLastCall { get; private set; }
+
     internal static bool NeedsRescue(WorldState world, NPCState patient) =>
         patient.Health > 0f &&
         !patient.IsBeingCarried &&
@@ -109,52 +113,68 @@ internal static class KenshiRescueMath
     internal static bool TryFindDestination(
         WorldState world, NPCState helper, NPCState patient,
         out WorldObjectState destination, out JunctionId approach,
-        out TileCoord destinationTile)
+        out TileCoord destinationTile, out List<JunctionId> route)
     {
         destination = null;
         approach = default;
         destinationTile = default;
+        route = new List<JunctionId>();
+        DestinationPathSearchesLastCall = 0;
         if (helper.CurrentJunction is not { } from)
         {
             return false;
         }
 
         var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, helper);
-        var bestPriority = int.MaxValue;
-        var bestScore = float.MaxValue;
+        var beds = new List<WorldObjectState>();
         foreach (var candidate in world.Entities.Objects.Values)
         {
             var priority = BedPriority(world, helper, patient, candidate);
-            if (!IsBed(candidate) ||
-                priority == int.MaxValue ||
+            if (priority == int.MaxValue ||
                 (candidate.IsOccupied && candidate.CurrentUser != patient.Id) ||
-                !DestinationSafe(world, patient, candidate.Tile) ||
-                !TryObjectApproach(
-                    world, helper, candidate, from, occupiedByActor, out var stand))
+                !DestinationSafe(world, patient, candidate.Tile))
             {
                 continue;
             }
 
-            var score = HexSpatialMath.HexDistance(helper.Tile, candidate.Tile);
-            if (priority < bestPriority ||
-                (priority == bestPriority && score < bestScore) ||
-                (priority == bestPriority &&
-                 System.MathF.Abs(score - bestScore) <= 0.001f &&
-                 (destination is null || candidate.Id.Value < destination.Id.Value)))
+            beds.Add(candidate);
+        }
+
+        beds.Sort((a, b) =>
+        {
+            var byPriority = BedPriority(world, helper, patient, a)
+                .CompareTo(BedPriority(world, helper, patient, b));
+            if (byPriority != 0)
             {
-                bestPriority = priority;
-                bestScore = score;
-                destination = candidate;
-                approach = stand;
-                destinationTile = candidate.Tile;
+                return byPriority;
             }
+
+            var byDistance = HexSpatialMath.HexDistance(helper.Tile, a.Tile)
+                .CompareTo(HexSpatialMath.HexDistance(helper.Tile, b.Tile));
+            return byDistance != 0 ? byDistance : a.Id.Value.CompareTo(b.Id.Value);
+        });
+
+        foreach (var candidate in beds)
+        {
+            if (!TryObjectApproach(
+                    world, helper, patient, candidate, from, occupiedByActor,
+                    out var stand, out var candidateRoute))
+            {
+                continue;
+            }
+
+            destination = candidate;
+            approach = stand;
+            destinationTile = candidate.Tile;
+            route = candidateRoute;
+            break;
         }
 
         if (destination is null)
         {
             if (!TryGroundDestination(
                     world, helper, patient, from, occupiedByActor,
-                    out destination, out approach, out destinationTile))
+                    out destination, out approach, out destinationTile, out route))
             {
                 return false;
             }
@@ -163,6 +183,7 @@ internal static class KenshiRescueMath
         if (!SpatialMutations.TryReserveJunction(world, approach, helper.Id, world.Tick, 240))
         {
             destination = null;
+            route.Clear();
             return false;
         }
 
@@ -176,10 +197,13 @@ internal static class KenshiRescueMath
     }
 
     private static bool TryObjectApproach(
-        WorldState world, NPCState helper, WorldObjectState target, JunctionId from,
-        HashSet<JunctionId> occupiedByActor, out JunctionId approach)
+        WorldState world, NPCState helper, NPCState patient,
+        WorldObjectState target, JunctionId from,
+        HashSet<JunctionId> occupiedByActor, out JunctionId approach,
+        out List<JunctionId> route)
     {
         approach = default;
+        route = new List<JunctionId>();
         if (target.Junctions.Count == 0)
         {
             return false;
@@ -195,27 +219,38 @@ internal static class KenshiRescueMath
             SpatialQueries.BesideReach(obstacleRadius), target,
             SpatialQueries.RimPurpose.Route);
 
-        var best = float.MaxValue;
+        candidates.Sort((a, b) =>
+        {
+            var aDistance = world.Junctions.Items.TryGetValue(a, out var aJunction)
+                ? HexSpatialMath.Distance(helper.Position, aJunction.WorldPosition)
+                : float.MaxValue;
+            var bDistance = world.Junctions.Items.TryGetValue(b, out var bJunction)
+                ? HexSpatialMath.Distance(helper.Position, bJunction.WorldPosition)
+                : float.MaxValue;
+            var byDistance = aDistance.CompareTo(bDistance);
+            return byDistance != 0 ? byDistance : a.Value.CompareTo(b.Value);
+        });
+
         foreach (var candidate in candidates)
         {
             if (!SpatialQueries.IsJunctionFree(world, candidate) ||
-                !world.Junctions.Items.TryGetValue(candidate, out var junction) ||
-                HexPathfinder.FindPath(
-                    world, from, candidate, occupiedByActor,
-                    weightClimb: true, canJump: false).Count == 0)
+                !world.Junctions.Items.ContainsKey(candidate) ||
+                !Connectivity.Reachable(world, from, candidate, helper.Body.CanJump))
             {
                 continue;
             }
 
-            var distance = HexSpatialMath.Distance(helper.Position, junction.WorldPosition);
-            if (distance < best)
+            if (TryBuildCarryRoute(
+                    world, helper, patient, from, candidate, occupiedByActor,
+                    out var candidateRoute))
             {
-                best = distance;
                 approach = candidate;
+                route = candidateRoute;
+                return true;
             }
         }
 
-        return best < float.MaxValue;
+        return false;
     }
 
     private static int BedPriority(
@@ -244,11 +279,13 @@ internal static class KenshiRescueMath
     private static bool TryGroundDestination(
         WorldState world, NPCState helper, NPCState patient, JunctionId from,
         HashSet<JunctionId> occupiedByActor, out WorldObjectState destination,
-        out JunctionId approach, out TileCoord destinationTile)
+        out JunctionId approach, out TileCoord destinationTile,
+        out List<JunctionId> route)
     {
         destination = null;
         approach = default;
         destinationTile = default;
+        route = new List<JunctionId>();
 
         WorldObjectState hearth = null;
         foreach (var candidate in world.Entities.Objects.Values)
@@ -339,19 +376,84 @@ internal static class KenshiRescueMath
                     world.Junctions.Items.TryGetValue(candidate, out var junction) &&
                     !junction.Blocked &&
                     !SpatialQueries.IsAllWaterJunction(world, candidate) &&
-                    HexPathfinder.FindPath(
-                        world, from, candidate, occupiedByActor,
-                        weightClimb: true, canJump: false).Count > 0)
+                    Connectivity.Reachable(world, from, candidate, helper.Body.CanJump) &&
+                    TryBuildCarryRoute(
+                        world, helper, patient, from, candidate, occupiedByActor,
+                        out var candidateRoute))
                 {
                     destination = hearth;
                     approach = candidate;
                     destinationTile = tile.Coord;
+                    route = candidateRoute;
                     return true;
                 }
             }
         }
 
         return false;
+    }
+
+    private static bool TryBuildCarryRoute(
+        WorldState world, NPCState helper, NPCState patient, JunctionId from,
+        JunctionId approach, HashSet<JunctionId> occupiedByActor,
+        out List<JunctionId> route)
+    {
+        DestinationPathSearchesLastCall++;
+        route = HexPathfinder.FindPath(
+            world, from, approach, occupiedByActor,
+            weightClimb: true, canJump: helper.Body.CanJump,
+            danger: PathfindingSystem.RouteAvoidRing(world, helper),
+            dangerCost: Spec62.DangerStepCost);
+        if (route.Count == 0 || !RouteSupportsCarryTransfers(world, helper, patient, route))
+        {
+            route.Clear();
+            return false;
+        }
+
+        return true;
+    }
+
+    // The path itself is cheap to execute only if every directed step agrees
+    // with the carry transaction: never swim, and every elevation crossing has
+    // a full-body landing spot on the far side before the carrier takes off.
+    private static bool RouteSupportsCarryTransfers(
+        WorldState world, NPCState helper, NPCState patient, List<JunctionId> route)
+    {
+        if (!world.Tiles.Items.TryGetValue(helper.Tile, out var standTile))
+        {
+            return false;
+        }
+
+        for (var i = 1; i < route.Count; i++)
+        {
+            if (!world.Junctions.Items.TryGetValue(route[i], out var junction))
+            {
+                return false;
+            }
+
+            // §21.21B v24: the last boundary node is an arrival on the current
+            // side when that side owns the node; it is not a crossing.
+            if (i == route.Count - 1 && junction.Tiles.Contains(standTile.Coord))
+            {
+                continue;
+            }
+
+            if (!HexPathfinder.TryGetDirectedStepTile(world, route[i - 1], route[i], out var nextTile) ||
+                SpatialQueries.IsSwimTile(nextTile))
+            {
+                return false;
+            }
+
+            if (nextTile.Elevation != standTile.Elevation &&
+                !LyingSpot.CanSolveOnTile(world, patient, nextTile.Coord))
+            {
+                return false;
+            }
+
+            standTile = nextTile;
+        }
+
+        return true;
     }
 
     private static bool DestinationSafe(WorldState world, NPCState patient, TileCoord tile)
@@ -389,7 +491,7 @@ internal static class KenshiRescueMath
     internal static void BeginCarry(
         WorldState world, NPCState carrier, NPCState patient,
         WorldObjectState destination, JunctionId destinationJunction,
-        TileCoord destinationTile)
+        TileCoord destinationTile, List<JunctionId> route)
     {
         carrier.Mind.InterruptedRescuePatientId = null;
         ExecutionSystem.ReleaseClaims(world, patient);
@@ -422,19 +524,39 @@ internal static class KenshiRescueMath
         carrier.Plan.CurrentStepIndex = 0;
         carrier.Plan.Status = PlanStatus.Active;
         carrier.Movement.JunctionPath.Clear();
-        carrier.Movement.IsMoving = false;
-        carrier.Movement.SetStatus(MovementStatus.Idle);
+        foreach (var junction in route)
+        {
+            carrier.Movement.JunctionPath.Add(junction);
+        }
+
+        carrier.Movement.PathIndex = route.Count > 1 ? 1 : route.Count;
+        carrier.Movement.BlockedWaitTicks = 0;
+        carrier.Movement.HopArmed = false;
+        carrier.Movement.HopPathIndex = -1;
+        carrier.Movement.IsMoving = route.Count > 1;
+        carrier.Movement.SetStatus(
+            carrier.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived);
 
         SyncPatient(world, carrier, patient);
         Trace.Emit(world, carrier.Id, "PersonPickedUp",
             destination is null
-                ? $"NPC{patient.Id.Value} -> ground@{destinationTile.Q},{destinationTile.R}"
+                ? $"NPC{patient.Id.Value} -> ground@{destinationTile.Q},{destinationTile.R} " +
+                  $"Route={route.Count} Searches={DestinationPathSearchesLastCall}"
                 : $"NPC{patient.Id.Value} -> {destination.DefinitionId}#{destination.Id.Value} " +
-                  $"at {destinationTile.Q},{destinationTile.R}");
+                  $"at {destinationTile.Q},{destinationTile.R} Route={route.Count} " +
+                  $"Searches={DestinationPathSearchesLastCall}");
     }
 
     internal static void SyncAll(WorldState world)
     {
+        // A staged patient waits on the far side only for the atomic hop
+        // window. The first grounded tick reattaches that same patient before
+        // ordinary walking can consume another route step.
+        foreach (var carrier in world.Entities.Npcs.Values)
+        {
+            TryResumeCarryAfterHop(world, carrier);
+        }
+
         foreach (var carrier in world.Entities.Npcs.Values)
         {
             if (carrier.CarriedNpcId is not { } patientId)
@@ -454,6 +576,82 @@ internal static class KenshiRescueMath
 
             SyncPatient(world, carrier, patient);
         }
+    }
+
+    internal static bool TryStagePatientForHop(
+        WorldState world, NPCState carrier, TileCoord landingTile, Float2 landingPosition)
+    {
+        if (carrier.CarriedNpcId is not { } patientId ||
+            !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
+            patient.CarriedByNpcId != carrier.Id ||
+            carrier.Plan.Status != PlanStatus.Active ||
+            carrier.Plan.Goal != GoalType.Rescue ||
+            carrier.Plan.TargetAgentId != patient.Id ||
+            !world.Tiles.Items.TryGetValue(landingTile, out var landingTileState) ||
+            SpatialQueries.IsSwimTile(landingTileState) ||
+            !LyingSpot.CanSolveOnTile(world, patient, landingTile))
+        {
+            return false;
+        }
+
+        SyncPatient(world, carrier, patient);
+        patient.CarriedByNpcId = null;
+        carrier.CarriedNpcId = null;
+        carrier.Mind.InterruptedRescuePatientId = patient.Id;
+        patient.Mind.PendingAidFrom = carrier.Id;
+        patient.Mind.PendingAidSinceTick = world.Tick;
+
+        var previousTile = patient.Tile;
+        if (previousTile != landingTile)
+        {
+            patient.Tile = landingTile;
+            SpatialMutations.MoveEntityToTile(world, patient.Id, previousTile, landingTile);
+        }
+
+        patient.Position = landingPosition;
+        patient.CurrentJunction = null;
+        MortalityHelpers.AnchorLyingBody(world, patient);
+        Trace.Emit(world, carrier.Id, "RescuePatientStagedForHop",
+            $"NPC{patient.Id.Value} Tile={landingTile.Q},{landingTile.R} " +
+            $"Destination={carrier.RescueDestinationObjectId?.Value ?? 0}");
+        return true;
+    }
+
+    internal static bool TryResumeCarryAfterHop(WorldState world, NPCState carrier)
+    {
+        if (carrier.CarriedNpcId is not null ||
+            carrier.Mind.InterruptedRescuePatientId is not { } patientId ||
+            carrier.Movement.HopTimer > 0f ||
+            carrier.Plan.Status != PlanStatus.Active ||
+            carrier.Plan.Goal != GoalType.Rescue ||
+            carrier.Plan.TargetAgentId != patientId ||
+            carrier.Health <= 0f || carrier.IsUnconscious(world.Tick) ||
+            carrier.Body.IsProne || carrier.IsFighting ||
+            !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
+            patient.CarriedByNpcId is not null || patient.Health <= 0f ||
+            patient.Tile != carrier.Tile ||
+            HexSpatialMath.Distance(patient.Position, carrier.Position) > HexSpatialMath.HexRadius)
+        {
+            return false;
+        }
+
+        ExecutionSystem.ReleaseClaims(world, patient);
+        if (patient.CurrentJunction is { } lying)
+        {
+            SpatialMutations.FreeJunction(world, lying, patient.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, lying, patient.Id);
+        }
+
+        patient.CurrentJunction = null;
+        patient.CarriedByNpcId = carrier.Id;
+        carrier.CarriedNpcId = patient.Id;
+        carrier.Mind.InterruptedRescuePatientId = null;
+        patient.Mind.PendingAidFrom = carrier.Id;
+        SyncPatient(world, carrier, patient);
+        Trace.Emit(world, carrier.Id, "RescuePatientRepickedAfterHop",
+            $"NPC{patient.Id.Value} Step={carrier.Movement.PathIndex}/" +
+            $"{carrier.Movement.JunctionPath.Count}");
+        return true;
     }
 
     private static void SyncPatient(WorldState world, NPCState carrier, NPCState patient)
@@ -532,6 +730,19 @@ internal static class KenshiRescueMath
     {
         if (carrier.CarriedNpcId is not { } patientId)
         {
+            // During a rescue hop the patient is already lying safely on the
+            // landing side, but the destination reservation still belongs to
+            // the active plan. An interruption must release it just like an
+            // interruption one tick earlier while the patient was in hand.
+            var stagedPatientId = carrier.Mind.InterruptedRescuePatientId ??
+                (carrier.Plan.Goal == GoalType.Rescue ? carrier.Plan.TargetAgentId : null);
+            if (stagedPatientId is { } stagedId)
+            {
+                world.Entities.Npcs.TryGetValue(stagedId, out var stagedPatient);
+                ReleaseDestination(world, carrier, stagedPatient);
+                carrier.RescueDestinationObjectId = null;
+            }
+
             return null;
         }
 

@@ -121,7 +121,7 @@ public sealed partial class ExecutionSystem
 
         if (!KenshiRescueMath.TryFindDestination(
                 world, helper, patient, out var destination, out var destinationJunction,
-                out var destinationTile))
+                out var destinationTile, out var route))
         {
             PlanningSystem.SetGoalCooldown(world, helper, GoalType.Rescue);
             PlanInterruption.Abort(world, helper, "no safe bed or camp ground route");
@@ -132,7 +132,7 @@ public sealed partial class ExecutionSystem
 
         helper.Execution.CurrentInteraction = InteractionType.PickUpPerson;
         KenshiRescueMath.BeginCarry(
-            world, helper, patient, destination, destinationJunction, destinationTile);
+            world, helper, patient, destination, destinationJunction, destinationTile, route);
         helper.Execution.CurrentInteraction = null;
     }
 }

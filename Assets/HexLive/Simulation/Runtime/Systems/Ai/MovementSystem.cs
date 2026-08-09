@@ -849,6 +849,20 @@ public sealed class MovementSystem : ISimulationSystem
                     continue;
                 }
 
+                // §118.4: the route may cross a ledge, the occupied hands may
+                // not. Put the patient on a proven full-body spot on the
+                // landing side immediately before takeoff; SyncAll re-picks
+                // the same patient on the first grounded tick and preserves
+                // this path and final rescue destination across the transfer.
+                if (npc.IsCarryingPerson &&
+                    !KenshiRescueMath.TryStagePatientForHop(
+                        world, npc, npc.Movement.HopTargetTile, npc.Movement.HopTo))
+                {
+                    KenshiRescueMath.DropSafely(
+                        world, npc, "no safe full-body landing for rescue hop");
+                    continue;
+                }
+
                 npc.Movement.HopArmed = false;
                 npc.Movement.HopPathIndex = npc.Movement.PathIndex;
                 npc.Movement.HopCrossed = false;

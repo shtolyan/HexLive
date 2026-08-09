@@ -89,10 +89,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float sitComfortThreshold = 0.6f;
         [Tooltip("Голод/жажда, ВЫШЕ которых уже не рассиживается (дела важнее).")]
         [Range(0f, 1f)] public float sitNeedGate = 0.6f;
-        [Tooltip("Голод, будящий спящую (просыпается поесть).")]
-        [Range(0f, 1f)] public float sleepInterruptHunger = 0.6f;
-        [Tooltip("Жажда, будящая спящую (просыпается попить).")]
-        [Range(0f, 1f)] public float sleepInterruptThirst = 0.6f;
+        [Tooltip("Голод, будящий спящую (просыпается поесть). 0.7 = шкала еды в UI упала ниже 30%.")]
+        [Range(0f, 1f)] public float sleepInterruptHunger = 0.7f;
+        [Tooltip("Жажда, будящая спящую (просыпается попить). 0.7 = шкала воды в UI упала ниже 30%.")]
+        [Range(0f, 1f)] public float sleepInterruptThirst = 0.7f;
         [Tooltip("Холодовой дискомфорт, выше которого одевается.")]
         [Range(0f, 1f)] public float dressThermalThreshold = 0.45f;
         [Tooltip("Одевается только когда эффективная температура НИЖЕ этой (°C).")]

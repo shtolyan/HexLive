@@ -673,7 +673,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // flipping to Idle and back across it reads as a stutter. A planted pivot
     // IS a halt and must reach Idle promptly or the turn-on-spot states never
     // fire — that is what the yaw bypass below is for.
+    // §71.8: the hold is split by the SIM'S OWN INTENT. Measured over 8 000
+    // ticks on three seeds, a walking colonist stalls for TWO OR THREE ticks
+    // mid-route several times a minute (a queue at an occupied junction, a
+    // re-plan hiccup) — a single 0.3 s hold covers exactly one tick, so every
+    // such stall flapped Walk→Idle→Walk. While the sim still reports the
+    // journey ON (MovementStatus == Moving, which the §71.3 latch keeps true
+    // through blocked-step queues) the walk is held MidJourneyWalkHoldSeconds —
+    // long enough to bridge a 3-tick stall. Once the sim says the journey is
+    // OVER, only the short WalkHoldSeconds applies, so an arrival no longer
+    // ends with half a second of marching on the spot.
     public static float WalkHoldSeconds = 0.3f;
+    public static float MidJourneyWalkHoldSeconds = 0.8f;
     public static float PivotYawSpeed = 90f;
     // §71: the three GaitBlend slots, keyed by CLIP name — these are the
     // AnimatorOverrideController keys. Overriding all three with one clip (the
@@ -752,6 +763,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         _simYawSpeed = degreesPerSecond;
         _simYawSpeedValid = true;
+    }
+
+    // §71.8: is the sim still WALKING HER SOMEWHERE right now? Fed per sync
+    // from the snapshot's MovementStatus. Selects which walk-hold applies to a
+    // zero-speed tick: a stall on an active journey is bridged (she WILL
+    // resume), a stop with the journey over is admitted quickly.
+    private bool _simMidJourney;
+
+    public void SetSimulationMovementIntent(bool midJourney)
+    {
+        _simMidJourney = midJourney;
     }
 
     // Hex-step jump (§21.21B). Timing comes from HexHopTuning — the single
@@ -1401,8 +1423,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (System.Enum.TryParse(actorMeshName, out ActorName parsed) == false)
         {
-            Debug.LogWarning($"Unknown actor mesh '{actorMeshName}', defaulting to Marta", this);
-            parsed = ActorName.Marta;
+            Debug.LogError($"Unknown actor mesh '{actorMeshName}'. Actor construction aborted: " +
+                           "substituting another actor body is forbidden by the FBX contract.", this);
+            enabled = false;
+            return;
         }
 
         _actorMesh = parsed;
@@ -2086,14 +2110,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
-    private void UpdateProstheticPoses()
-    {
-        foreach (var visual in _prostheticVisuals.Values)
-        {
-            visual.UpdatePose();
-        }
-    }
-
     private Transform ActingHandPropAnchor()
     {
         if (!_hasUsableHand)
@@ -2264,57 +2280,44 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         Destroy(vfx, 4f); // let the last particles fall and fade
     }
 
-    // Spec §50: the body skin a severed-limb drop bakes from — the skinned
-    // renderer with the most bones (the actual body, not eyes/lashes/brows).
-    public SkinnedMeshRenderer PrimaryBodySkin
+    // Spec §50: all consumers resolve the same complete FBX body. There are
+    // no actor-name, renderer-name or vertex-count fallbacks.
+    public SkinnedMeshRenderer PrimaryBodySkin => ActorBodyResolver.ResolveOrNull(this);
+
+    // The severed-limb pose baker clones only this transform hierarchy (bones
+    // and their current local pose), never the live actor GameObject with its
+    // scripts. Keeping the source here makes the bake follow the exact same
+    // body root as animation, lying offsets and the one shared FBX flow.
+    internal Transform SeveredLimbPoseRoot => _bodyRoot != null ? _bodyRoot : transform;
+
+    // ApplySeveredLimbs remembers the authored scale before collapsing the
+    // distal chain. A temporary pose clone restores that scale long enough to
+    // bake the limb in the post-fall pose; the rendered actor stays collapsed.
+    internal bool TryGetSeveredLimbOriginalScale(string zone, out Vector3 scale)
     {
-        get
+        scale = Vector3.one;
+        if (!System.Enum.TryParse(zone, out BodyPart part) ||
+            !SeveredDistalBone.TryGetValue(zone, out var boneName))
         {
-            if (_bodySkins == null)
-            {
-                return null;
-            }
-
-            // The Daz FIGURE body is the "Genesis…" skinned mesh — the only one
-            // whose geometry covers arms and legs. The actor also carries hair
-            // (far MORE verts, so vertex-count picks it wrong), eyes/eyelashes
-            // (same bone count, so bone-count picks them wrong) and clothing —
-            // so match the body by name.
-            foreach (var skin in _bodySkins)
-            {
-                if (skin != null && skin.sharedMesh != null && skin.bones != null &&
-                    skin.name.IndexOf("Genesis", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return skin;
-                }
-            }
-
-            // Fallback: the most-detailed readable skin that isn't hair/lashes.
-            SkinnedMeshRenderer best = null;
-            var bestVerts = -1;
-            foreach (var skin in _bodySkins)
-            {
-                if (skin == null || skin.sharedMesh == null || skin.bones == null ||
-                    !skin.sharedMesh.isReadable)
-                {
-                    continue;
-                }
-
-                var n = skin.name.ToLowerInvariant();
-                if (n.Contains("hair") || n.Contains("eyelash") || n.Contains("brow") || n.Contains("eye"))
-                {
-                    continue;
-                }
-
-                if (skin.sharedMesh.vertexCount > bestVerts)
-                {
-                    bestVerts = skin.sharedMesh.vertexCount;
-                    best = skin;
-                }
-            }
-
-            return best;
+            return false;
         }
+
+        if (_severedBoneOriginalScale.TryGetValue(part, out scale))
+        {
+            return true;
+        }
+
+        // This also supports a capture made before the first collapse write.
+        // Refuse an already-collapsed scale without a remembered original: a
+        // nearly-zero clone would bake another invisible limb.
+        var bone = _bodyBones?.GetBone(boneName);
+        if (bone == null || bone.localScale.sqrMagnitude < 0.001f)
+        {
+            return false;
+        }
+
+        scale = bone.localScale;
+        return true;
     }
 
     // World-space gaze point (talk partner's head, a spot down the path).
@@ -5566,12 +5569,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // walk has started, let the filtered signal bridge that single sample
         // so the Animator does not fall through Walk -> Idle -> Walk and reset
         // the step phase. The raw signal still controls the stop timer, and a
-        // real halt therefore becomes Idle after WalkHoldSeconds as before.
-        var filteredWalkContinuation = _wasWalking &&
+        // real halt therefore becomes Idle after the hold as before.
+        // §71.8: the hold length follows the sim's intent (see the knob). A
+        // test scene that never feeds the intent behaves like mid-journey —
+        // without the sim's word, the flicker-safe side is to bridge. The
+        // filtered continuation is gated the same way: its exponential tail
+        // (~0.47 s from walking speed) was what made every ARRIVAL end with
+        // marching on the spot, so it only bridges while the journey is on.
+        var midJourney = !_simGroundSpeedValid || _simMidJourney;
+        var holdSeconds = midJourney ? MidJourneyWalkHoldSeconds : WalkHoldSeconds;
+        var filteredWalkContinuation = _wasWalking && midJourney &&
             _smoothedSpeed > threshold * 0.65f;
         var walking = moving ||
             (_wasWalking &&
-             (_stillTimer < WalkHoldSeconds || filteredWalkContinuation) &&
+             (_stillTimer < holdSeconds || filteredWalkContinuation) &&
              Mathf.Abs(motionYawSpeed) <= PivotYawSpeed);
         _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
@@ -6435,7 +6446,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Animator, procedural actions and ragdoll all write bones. The fitted
         // device follows only after those writers have produced the final pose.
-        UpdateProstheticPoses();
 
         // После Animator и всех позовых слоёв: именно теперь bounds описывают
         // кадр, который игрок увидит. Так труп остаётся на земле и во время

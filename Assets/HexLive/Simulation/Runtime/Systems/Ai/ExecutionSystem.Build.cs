@@ -24,7 +24,7 @@ public sealed partial class ExecutionSystem
     // Move every material the site still wants out of her hands into its pile.
     // Returns how many items changed hands, so the caller can stay silent on a
     // no-op (the completion pass runs after the §77 handoff already delivered).
-    private static int DepositAtFurnitureSite(NPCState npc, WorldObjectState site)
+    private static int DepositAtFurnitureSite(WorldState world, NPCState npc, WorldObjectState site)
     {
         var moved = 0;
         foreach (var mat in BuildSiteMath.AllMaterials)
@@ -45,6 +45,13 @@ public sealed partial class ExecutionSystem
                 }
                 moved++;
             }
+        }
+
+        if (site.BuildProduct == ContentIds.Hut1Hex &&
+            BuildingRules.FloorComplete(site) &&
+            world.Tiles.Items.TryGetValue(site.Tile, out var floorTile))
+        {
+            floorTile.Flags |= TileFlags.HasFloor;
         }
 
         return moved;
@@ -72,7 +79,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (DepositAtFurnitureSite(npc, site) > 0)
+        if (DepositAtFurnitureSite(world, npc, site) > 0)
         {
             npc.Execution.BuildDeposited = true;
             EmitSiteDelivered(world, npc, site);
@@ -93,7 +100,7 @@ public sealed partial class ExecutionSystem
         // mid-deposit — one SiteDelivered per visit either way.
         if (!stockedBefore && !npc.Execution.BuildDeposited)
         {
-            DepositAtFurnitureSite(npc, site);
+            DepositAtFurnitureSite(world, npc, site);
             EmitSiteDelivered(world, npc, site);
         }
 

@@ -335,10 +335,9 @@ public sealed class WolfFightTestBootstrap : MonoBehaviour
         var stageRoot = new GameObject("HexLive Portrait Stage");
         var portraitStage = stageRoot.AddComponent<UI.PortraitStage>();
 
-        // Spec §57: limb-health doll stage — the wolf fight is where limbs
-        // actually get mauled, so the health window works here too.
-        var dollRoot = new GameObject("HexLive Health Doll Stage");
-        var healthDollStage = dollRoot.AddComponent<UI.HealthDollStage>();
+        // Spec §51/§57: the same staged clone serves inventory and health.
+        var dollRoot = new GameObject("HexLive Character Doll Stage");
+        var characterDollStage = dollRoot.AddComponent<UI.CharacterDollStage>();
 
         var panelRoot = new GameObject("HexLive Character Panel");
         var document = panelRoot.AddComponent<UIDocument>();
@@ -346,7 +345,7 @@ public sealed class WolfFightTestBootstrap : MonoBehaviour
         var panel = panelRoot.AddComponent<UI.CharacterPanel>();
         panel.SetRunner(_runner);
         panel.SetPortraitStage(portraitStage);
-        panel.SetHealthDollStage(healthDollStage);
+        panel.SetCharacterDollStage(characterDollStage);
 
         var girl = Girl();
         if (girl != null)

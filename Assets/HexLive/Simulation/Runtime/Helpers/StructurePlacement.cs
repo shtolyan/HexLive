@@ -179,15 +179,23 @@ internal static class StructurePlacement
         return Normalize(HexSpatialMath.AngleDegrees(new Float2(dx, dy)));
     }
 
-    // §119: the workbench has an authored work point exactly two interior
-    // sub-grid steps (0.75 wu) in front of its local -Z side. Junction spokes
-    // sit at 30°+60°k (not 0°+60°k), so quantising to those six axes makes the
-    // desired point an exact stable junction instead of merely a nearest one.
+    // Legacy name retained for callers/saves, but furniture now shares the
+    // pointy-top hex's six actual symmetries. Intermediate 30-degree poses make
+    // beds and other long furniture cut across walls instead of sitting along
+    // one of them.
     public static float QuantizeHexYaw(float degrees)
     {
-        var shifted = Normalize(degrees - 30f);
-        var step = (int)System.Math.Round(shifted / 60f) % 6;
-        return Normalize(30f + step * 60f);
+        return QuantizeHexSymmetryYaw(degrees);
+    }
+
+    // Architectural pointy-top footprints map back onto the tile only at the
+    // six rotational symmetries 0°+60°k. Architecture and wall-aligned
+    // furniture deliberately share this contract.
+    public static float QuantizeHexSymmetryYaw(float degrees)
+    {
+        var normalized = Normalize(degrees);
+        var step = (int)System.Math.Floor((normalized + 30f) / 60f) % 6;
+        return Normalize(step * 60f);
     }
 
     public static JunctionId? WorkbenchJunction(

@@ -913,6 +913,8 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
         GUILayout.Label("Сглаживание вьюхи");
         NpcActorView.SpeedSmoothTau = Slider("SpeedSmoothTau", NpcActorView.SpeedSmoothTau, 0f, 0.6f);
         NpcActorView.WalkHoldSeconds = Slider("WalkHoldSeconds", NpcActorView.WalkHoldSeconds, 0f, 1f);
+        NpcActorView.MidJourneyWalkHoldSeconds = Slider("MidJourneyWalkHold",
+            NpcActorView.MidJourneyWalkHoldSeconds, 0f, 2f);
         NpcActorView.PivotYawSpeed = Slider("PivotYawSpeed", NpcActorView.PivotYawSpeed, 20f, 400f);
         var vSync = QualitySettings.vSyncCount > 0;
         var requestedVSync = GUILayout.Toggle(vSync, " VSync 1 (только этот Play Mode)");

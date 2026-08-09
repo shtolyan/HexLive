@@ -4,20 +4,17 @@ using UnityEngine;
 namespace HexLive.UnityPresentation.Wearing
 {
 
-// Spec §50: a severed limb lies in the world as the REAL limb geometry, carved
-// out of its former owner's body mesh. We slice the owner's shared (bind-pose)
-// mesh — NOT a runtime bake — so the collapse-to-nothing we do on the living
-// body (which hides the limb there) never touches the dropped copy. Triangles
-// whose vertices are skinned to the distal bone chain (forearm+hand / shin+
-// foot) become a standalone MeshFilter, recentred on its own bounds so the
-// drop sits on its anchor. Needs a Read/Write-enabled mesh; when that's
-// unavailable (or the owner is gone) the caller falls back to a primitive.
+// Spec §50: a severed limb is carved from its owner's one canonical FBX body.
+// Fresh drops use a lightweight pose clone: copy only the already-evaluated
+// transform hierarchy, restore the distal scale on that invisible clone, bake
+// the skinned mesh, slice the matching bone-weight region, then destroy the
+// clone before the next render. The live actor is never restored, re-dressed or
+// otherwise mutated. Restored/late drops use the same owner's readable FBX in a
+// reference pose at their persisted junction.
 public static class SeveredLimbFactory
 {
-    private const string MartaActorResource = "HexLive/Actors/Marta";
-
     // Which bone sub-tree each severed zone carved off. Matches NpcActorView's
-    // SeveredDistalBone so the dropped mesh is exactly what vanished on the body.
+    // collapsed chain so the dropped mesh is exactly what vanished on the body.
     private static readonly Dictionary<string, string> ZoneDistalBone = new()
     {
         ["ArmL"] = "lForearmBend",
@@ -26,74 +23,123 @@ public static class SeveredLimbFactory
         ["LegR"] = "rShin"
     };
 
-    // Build the limb mesh object for `variant` (a BodyPart name) from `owner`.
-    // Returns null when the owner/mesh can't provide it — caller uses a prop.
-    public static GameObject Build(NpcActorView owner, string variant)
+    // Used for a restored object or when a current pose cannot safely be
+    // captured. The caller anchors and grounds this reference-pose visual.
+    public static GameObject BuildReference(NpcActorView owner, string variant)
     {
-        if (string.IsNullOrEmpty(variant) ||
-            !ZoneDistalBone.TryGetValue(variant, out var distalBoneName))
+        if (!TryResolveSource(owner, variant, out var skin, out var distalBoneName))
         {
             return null;
         }
 
-        // Spec §50 + 40.7: the drop keeps its owner's skin tone at sever time
-        // (tan/sunburn/grime baked into the flesh material below).
-        var skinTint = owner != null ? owner.SkinTint : Color.white;
-
-        // Molly's limbs always carve from Marta's readable Genesis mesh (her
-        // own re-saved mesh sliced wrong). Marta is ALSO the donor when the
-        // owner view is gone (e.g. the drop outlives/precedes the actor view)
-        // or its skin can't provide geometry — a real limb must never degrade
-        // to the capsule fallback just because the owner wasn't found.
-        if (owner == null || owner.ActorMesh == ActorName.Molly)
+        var source = skin.sharedMesh;
+        if (!TryBuildLimbMask(source, skin.bones, distalBoneName, out var vertexInLimb))
         {
-            var martaLimb = BuildFromMartaLimb(variant, distalBoneName, skinTint);
-            if (martaLimb != null)
-            {
-                return martaLimb;
-            }
+            return null;
         }
 
-        var ownLimb = owner != null
-            ? BuildFromSkin(owner.PrimaryBodySkin, variant, distalBoneName, skinTint)
+        var limbMesh = SliceMesh(source, source, vertexInLimb);
+        return limbMesh != null
+            ? BuildVisual(limbMesh, variant, owner.SkinTint, recenter: true)
             : null;
-        return ownLimb != null ? ownLimb : BuildFromMartaLimb(variant, distalBoneName, skinTint);
     }
 
-    private static GameObject BuildFromMartaLimb(string variant, string distalBoneName, Color skinTint)
+    // Captures the owner's final animated/procedural pose. The returned object
+    // is already in world space and overlays the limb's former location; its
+    // caller reparents it with worldPositionStays=true so it remains there.
+    public static GameObject BuildFromCurrentPose(NpcActorView owner, string variant)
     {
-        var marta = Resources.Load<GameObject>(MartaActorResource);
-        if (marta == null)
+        if (!TryResolveSource(owner, variant, out var skin, out var distalBoneName) ||
+            !owner.TryGetSeveredLimbOriginalScale(variant, out var originalScale))
         {
             return null;
         }
 
-        return BuildFromSkin(FindPrimaryBodySkin(marta), variant, distalBoneName, skinTint);
-    }
-
-    private static GameObject BuildFromSkin(
-        SkinnedMeshRenderer skin, string variant, string distalBoneName, Color skinTint)
-    {
-        var mesh = skin != null ? skin.sharedMesh : null;
-        if (mesh == null || !mesh.isReadable)
+        var source = skin.sharedMesh;
+        if (!TryBuildLimbMask(source, skin.bones, distalBoneName, out var vertexInLimb))
         {
-            return null; // no Read/Write access — caller falls back
+            return null;
         }
 
-        var bones = skin.bones;
+        GameObject poseClone = null;
+        Mesh posedMesh = null;
+        try
+        {
+            if (!TryClonePoseHierarchy(owner.SeveredLimbPoseRoot, skin,
+                    distalBoneName, originalScale, out poseClone, out var clonedSkin))
+            {
+                return null;
+            }
+
+            posedMesh = new Mesh { name = $"{source.name}_{variant}_posed" };
+            clonedSkin.BakeMesh(posedMesh, false);
+            if (posedMesh.vertexCount != source.vertexCount)
+            {
+                return null;
+            }
+
+            var limbMesh = SliceMesh(source, posedMesh, vertexInLimb);
+            if (limbMesh == null)
+            {
+                return null;
+            }
+
+            var visual = BuildVisual(limbMesh, variant, owner.SkinTint, recenter: false);
+            // BakeMesh(false) returns renderer-local geometry. Reusing the
+            // source renderer's world TRS puts every sliced vertex precisely
+            // where that skin vertex was in the evaluated body pose.
+            visual.transform.SetPositionAndRotation(
+                skin.transform.position, skin.transform.rotation);
+            visual.transform.localScale = skin.transform.lossyScale;
+            return visual;
+        }
+        finally
+        {
+            // The pose clone never survives into another rendered frame. In
+            // play mode Destroy is processed before the next render; edit-mode
+            // callers (gates/tools) need immediate cleanup.
+            DestroyTransient(posedMesh);
+            DestroyTransient(poseClone);
+        }
+    }
+
+    private static bool TryResolveSource(
+        NpcActorView owner,
+        string variant,
+        out SkinnedMeshRenderer skin,
+        out string distalBoneName)
+    {
+        skin = null;
+        distalBoneName = string.Empty;
+        if (owner == null || string.IsNullOrEmpty(variant) ||
+            !ZoneDistalBone.TryGetValue(variant, out distalBoneName))
+        {
+            return false;
+        }
+
+        skin = owner.PrimaryBodySkin;
+        return skin != null && skin.sharedMesh != null && skin.sharedMesh.isReadable;
+    }
+
+    private static bool TryBuildLimbMask(
+        Mesh mesh,
+        Transform[] bones,
+        string distalBoneName,
+        out bool[] vertexInLimb)
+    {
+        vertexInLimb = null;
         var distalRoot = FindBone(bones, distalBoneName);
         if (distalRoot == null)
         {
-            return null;
+            return false;
         }
 
-        // Bone indices in the distal sub-tree (the cut bone and its children).
         var inLimb = new bool[bones.Length];
         var any = false;
         for (var i = 0; i < bones.Length; i++)
         {
-            var b = bones[i];
-            if (b != null && (b == distalRoot || b.IsChildOf(distalRoot)))
+            var bone = bones[i];
+            if (bone != null && (bone == distalRoot || bone.IsChildOf(distalRoot)))
             {
                 inLimb[i] = true;
                 any = true;
@@ -102,148 +148,233 @@ public static class SeveredLimbFactory
 
         if (!any)
         {
-            return null;
+            return false;
         }
 
-        // A vertex belongs to the limb if its dominant bone weight is a limb
-        // bone. Keep triangles all of whose vertices are limb vertices.
-        //
-        // Modern skin-weight API, for the reason HealthDollStage already
-        // documents: the legacy mesh.boneWeights getter comes back EMPTY unless
-        // the mesh carries exactly four influences per vertex. Welded garments
-        // (spec §31B.4D) store ONE, so the old call sliced nothing off them and
-        // the cloth on a severed arm silently stayed whole. GetAllBoneWeights
-        // sorts influences most-significant first, so the dominant bone is the
-        // first entry of each run.
+        // A vertex belongs to the limb if its dominant influence belongs to
+        // the distal sub-tree. GetAllBoneWeights also handles one-influence
+        // welded FBX meshes; legacy mesh.boneWeights silently returned empty.
         var bonesPerVertex = mesh.GetBonesPerVertex();
         var allWeights = mesh.GetAllBoneWeights();
-        if (bonesPerVertex.Length != mesh.vertexCount)
+        try
         {
-            return null;   // unskinned mesh — nothing to slice by
-        }
-
-        var vertexInLimb = new bool[mesh.vertexCount];
-        var cursor = 0;
-        for (var v = 0; v < vertexInLimb.Length; v++)
-        {
-            int count = bonesPerVertex[v];
-            if (count > 0)
+            if (bonesPerVertex.Length != mesh.vertexCount)
             {
-                var bone = allWeights[cursor].boneIndex;
-                vertexInLimb[v] = bone >= 0 && bone < inLimb.Length && inLimb[bone];
+                return false;
             }
 
-            cursor += count;
-        }
+            vertexInLimb = new bool[mesh.vertexCount];
+            var cursor = 0;
+            for (var vertex = 0; vertex < vertexInLimb.Length; vertex++)
+            {
+                var count = (int)bonesPerVertex[vertex];
+                if (cursor + count > allWeights.Length)
+                {
+                    vertexInLimb = null;
+                    return false;
+                }
 
-        var limbMesh = SliceMesh(mesh, vertexInLimb);
-        if (limbMesh == null)
+                if (count > 0)
+                {
+                    var bone = allWeights[cursor].boneIndex;
+                    vertexInLimb[vertex] = bone >= 0 && bone < inLimb.Length && inLimb[bone];
+                }
+
+                cursor += count;
+            }
+
+            return true;
+        }
+        finally
         {
-            return null;
+            if (bonesPerVertex.IsCreated)
+            {
+                bonesPerVertex.Dispose();
+            }
+
+            if (allWeights.IsCreated)
+            {
+                allWeights.Dispose();
+            }
+        }
+    }
+
+    // Copies transforms only. Instantiating owner.gameObject would awaken a
+    // second NpcActorView, speech stage, wardrobe loaders and VFX; this clone
+    // has no gameplay/presentation behaviours and exists solely for BakeMesh.
+    private static bool TryClonePoseHierarchy(
+        Transform sourceRoot,
+        SkinnedMeshRenderer sourceSkin,
+        string distalBoneName,
+        Vector3 originalScale,
+        out GameObject poseClone,
+        out SkinnedMeshRenderer clonedSkin)
+    {
+        poseClone = null;
+        clonedSkin = null;
+        if (sourceRoot == null || sourceSkin == null)
+        {
+            return false;
         }
 
-        // Render the sliced mesh in bind pose through a plain MeshFilter,
-        // recentred on its own bounds (the source origin sits at the feet).
+        var map = new Dictionary<Transform, Transform>();
+        poseClone = new GameObject("SeveredLimb PoseClone")
+        {
+            hideFlags = HideFlags.HideAndDontSave
+        };
+        var cloneRoot = poseClone.transform;
+        cloneRoot.SetPositionAndRotation(sourceRoot.position, sourceRoot.rotation);
+        cloneRoot.localScale = sourceRoot.lossyScale;
+        map[sourceRoot] = cloneRoot;
+        CloneChildren(sourceRoot, cloneRoot, map);
+
+        if (!map.TryGetValue(sourceSkin.transform, out var clonedSkinTransform))
+        {
+            return false;
+        }
+
+        var sourceBones = sourceSkin.bones;
+        var clonedBones = new Transform[sourceBones.Length];
+        for (var i = 0; i < sourceBones.Length; i++)
+        {
+            if (sourceBones[i] == null || !map.TryGetValue(sourceBones[i], out clonedBones[i]))
+            {
+                return false;
+            }
+        }
+
+        var sourceDistal = FindBone(sourceBones, distalBoneName);
+        if (sourceDistal == null || !map.TryGetValue(sourceDistal, out var clonedDistal))
+        {
+            return false;
+        }
+
+        clonedDistal.localScale = originalScale;
+        clonedSkin = clonedSkinTransform.gameObject.AddComponent<SkinnedMeshRenderer>();
+        clonedSkin.sharedMesh = sourceSkin.sharedMesh;
+        clonedSkin.bones = clonedBones;
+        clonedSkin.rootBone = sourceSkin.rootBone != null &&
+                              map.TryGetValue(sourceSkin.rootBone, out var clonedRootBone)
+            ? clonedRootBone
+            : null;
+        clonedSkin.localBounds = sourceSkin.localBounds;
+        clonedSkin.quality = sourceSkin.quality;
+        clonedSkin.updateWhenOffscreen = true;
+
+        for (var shape = 0; shape < sourceSkin.sharedMesh.blendShapeCount; shape++)
+        {
+            clonedSkin.SetBlendShapeWeight(shape, sourceSkin.GetBlendShapeWeight(shape));
+        }
+
+        // It is a calculation object, never a second visible character. Keep
+        // the transform hierarchy active so BakeMesh observes it on every
+        // Unity version; the only renderer is disabled and the whole clone is
+        // destroyed before another camera render.
+        clonedSkin.enabled = false;
+        return true;
+    }
+
+    private static void CloneChildren(
+        Transform source,
+        Transform clone,
+        Dictionary<Transform, Transform> map)
+    {
+        for (var i = 0; i < source.childCount; i++)
+        {
+            var sourceChild = source.GetChild(i);
+            var cloneChildObject = new GameObject(sourceChild.name)
+            {
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            var cloneChild = cloneChildObject.transform;
+            cloneChild.SetParent(clone, false);
+            cloneChild.localPosition = sourceChild.localPosition;
+            cloneChild.localRotation = sourceChild.localRotation;
+            cloneChild.localScale = sourceChild.localScale;
+            map[sourceChild] = cloneChild;
+            CloneChildren(sourceChild, cloneChild, map);
+        }
+    }
+
+    private static GameObject BuildVisual(
+        Mesh limbMesh,
+        string variant,
+        Color skinTint,
+        bool recenter)
+    {
         var root = new GameObject($"SeveredLimb {variant}");
         var view = new GameObject("Mesh");
         view.transform.SetParent(root.transform, false);
-        view.transform.localPosition = -limbMesh.bounds.center;
+        view.transform.localPosition = recenter ? -limbMesh.bounds.center : Vector3.zero;
         view.AddComponent<MeshFilter>().sharedMesh = limbMesh;
-        // A solid OPAQUE skin-tone material — NOT the actor's submesh-0 material,
-        // which on a Genesis figure can be a transparent lashes/eyes material
-        // (that rendered the limb near-invisible). A plain flesh colour reads as
-        // a limb reliably; the stump end is an open ring (the raw cut). The
-        // owner's skin tint multiplies it — the same math the body shader does
-        // (texture × _BaseColor) — so a tanned body drops a tanned limb.
-        var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        mat.SetColor("_BaseColor", new Color(0.80f, 0.60f, 0.52f) * skinTint);
-        mat.SetFloat("_Smoothness", 0.2f);
-        view.AddComponent<MeshRenderer>().sharedMaterial = mat;
+
+        // Use a solid opaque skin-tone material. Actor submesh 0 is not a safe
+        // skin contract (on Genesis it can be lashes/eyes and near-transparent).
+        var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        material.SetColor("_BaseColor", new Color(0.80f, 0.60f, 0.52f) * skinTint);
+        material.SetFloat("_Smoothness", 0.2f);
+        view.AddComponent<MeshRenderer>().sharedMaterial = material;
         return root;
     }
 
-    private static SkinnedMeshRenderer FindPrimaryBodySkin(GameObject actorRoot)
+    // Topology/weights come from the readable FBX. Geometry can be either that
+    // reference mesh or a BakeMesh result with the same vertex ordering.
+    private static Mesh SliceMesh(Mesh topology, Mesh geometry, bool[] vertexInLimb)
     {
-        var skins = actorRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-        foreach (var skin in skins)
+        var sourceVertices = geometry.vertices;
+        var sourceNormals = geometry.normals;
+        var sourceUv = topology.uv;
+        if (sourceVertices.Length != topology.vertexCount)
         {
-            if (skin != null && skin.sharedMesh != null && skin.bones != null &&
-                skin.name.IndexOf("Genesis", System.StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return skin;
-            }
+            return null;
         }
 
-        SkinnedMeshRenderer best = null;
-        var bestVerts = -1;
-        foreach (var skin in skins)
-        {
-            if (skin == null || skin.sharedMesh == null || skin.bones == null ||
-                !skin.sharedMesh.isReadable)
-            {
-                continue;
-            }
-
-            var n = skin.name.ToLowerInvariant();
-            if (n.Contains("hair") || n.Contains("eyelash") || n.Contains("brow") || n.Contains("eye"))
-            {
-                continue;
-            }
-
-            if (skin.sharedMesh.vertexCount > bestVerts)
-            {
-                bestVerts = skin.sharedMesh.vertexCount;
-                best = skin;
-            }
-        }
-
-        return best;
-    }
-
-    // Build a new mesh from the triangles fully inside the limb-vertex set,
-    // compacting to only the referenced vertices.
-    private static Mesh SliceMesh(Mesh source, bool[] vertexInLimb)
-    {
-        var srcVerts = source.vertices;
-        var srcNormals = source.normals;
-        var srcUv = source.uv;
-        var remap = new int[srcVerts.Length];
+        var remap = new int[sourceVertices.Length];
         for (var i = 0; i < remap.Length; i++)
         {
             remap[i] = -1;
         }
 
-        var newVerts = new List<Vector3>();
+        var newVertices = new List<Vector3>();
         var newNormals = new List<Vector3>();
         var newUv = new List<Vector2>();
-        var newTris = new List<int>();
-        var hasNormals = srcNormals != null && srcNormals.Length == srcVerts.Length;
-        var hasUv = srcUv != null && srcUv.Length == srcVerts.Length;
+        var newTriangles = new List<int>();
+        var hasNormals = sourceNormals != null && sourceNormals.Length == sourceVertices.Length;
+        var hasUv = sourceUv != null && sourceUv.Length == sourceVertices.Length;
 
-        for (var sm = 0; sm < source.subMeshCount; sm++)
+        for (var subMesh = 0; subMesh < topology.subMeshCount; subMesh++)
         {
-            var tris = source.GetTriangles(sm);
-            for (var t = 0; t < tris.Length; t += 3)
+            var triangles = topology.GetTriangles(subMesh);
+            for (var triangle = 0; triangle < triangles.Length; triangle += 3)
             {
-                int a = tris[t], b = tris[t + 1], c = tris[t + 2];
+                var a = triangles[triangle];
+                var b = triangles[triangle + 1];
+                var c = triangles[triangle + 2];
                 if (!vertexInLimb[a] || !vertexInLimb[b] || !vertexInLimb[c])
                 {
                     continue;
                 }
 
-                newTris.Add(Emit(a, remap, newVerts, newNormals, newUv, srcVerts, srcNormals, srcUv, hasNormals, hasUv));
-                newTris.Add(Emit(b, remap, newVerts, newNormals, newUv, srcVerts, srcNormals, srcUv, hasNormals, hasUv));
-                newTris.Add(Emit(c, remap, newVerts, newNormals, newUv, srcVerts, srcNormals, srcUv, hasNormals, hasUv));
+                newTriangles.Add(Emit(a, remap, newVertices, newNormals, newUv,
+                    sourceVertices, sourceNormals, sourceUv, hasNormals, hasUv));
+                newTriangles.Add(Emit(b, remap, newVertices, newNormals, newUv,
+                    sourceVertices, sourceNormals, sourceUv, hasNormals, hasUv));
+                newTriangles.Add(Emit(c, remap, newVertices, newNormals, newUv,
+                    sourceVertices, sourceNormals, sourceUv, hasNormals, hasUv));
             }
         }
 
-        if (newTris.Count == 0)
+        if (newTriangles.Count == 0)
         {
             return null;
         }
 
-        var mesh = new Mesh { name = $"{source.name}_limb" };
-        mesh.SetVertices(newVerts);
+        var mesh = new Mesh
+        {
+            name = $"{topology.name}_limb",
+            indexFormat = topology.indexFormat
+        };
+        mesh.SetVertices(newVertices);
         if (hasNormals)
         {
             mesh.SetNormals(newNormals);
@@ -254,7 +385,7 @@ public static class SeveredLimbFactory
             mesh.SetUVs(0, newUv);
         }
 
-        mesh.SetTriangles(newTris, 0);
+        mesh.SetTriangles(newTriangles, 0);
         if (!hasNormals)
         {
             mesh.RecalculateNormals();
@@ -264,42 +395,67 @@ public static class SeveredLimbFactory
         return mesh;
     }
 
-    private static int Emit(int src, int[] remap, List<Vector3> verts, List<Vector3> normals,
-        List<Vector2> uv, Vector3[] srcVerts, Vector3[] srcNormals, Vector2[] srcUv,
-        bool hasNormals, bool hasUv)
+    private static int Emit(
+        int source,
+        int[] remap,
+        List<Vector3> vertices,
+        List<Vector3> normals,
+        List<Vector2> uv,
+        Vector3[] sourceVertices,
+        Vector3[] sourceNormals,
+        Vector2[] sourceUv,
+        bool hasNormals,
+        bool hasUv)
     {
-        if (remap[src] >= 0)
+        if (remap[source] >= 0)
         {
-            return remap[src];
+            return remap[source];
         }
 
-        var idx = verts.Count;
-        remap[src] = idx;
-        verts.Add(srcVerts[src]);
+        var index = vertices.Count;
+        remap[source] = index;
+        vertices.Add(sourceVertices[source]);
         if (hasNormals)
         {
-            normals.Add(srcNormals[src]);
+            normals.Add(sourceNormals[source]);
         }
 
         if (hasUv)
         {
-            uv.Add(srcUv[src]);
+            uv.Add(sourceUv[source]);
         }
 
-        return idx;
+        return index;
     }
 
     private static Transform FindBone(Transform[] bones, string name)
     {
-        foreach (var b in bones)
+        foreach (var bone in bones)
         {
-            if (b != null && b.name == name)
+            if (bone != null && bone.name == name)
             {
-                return b;
+                return bone;
             }
         }
 
         return null;
+    }
+
+    private static void DestroyTransient(Object value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Object.Destroy(value);
+        }
+        else
+        {
+            Object.DestroyImmediate(value);
+        }
     }
 }
 

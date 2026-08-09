@@ -47,8 +47,8 @@ namespace HexLive.Simulation.Runtime
         public static float SleepEnergyThreshold = 0.45f;    // sleep available below this energy (or after dark)
         public static float SitComfortThreshold = 0.6f;      // sit available below this comfort
         public static float SitNeedGate = 0.6f;              // ...but never on an empty stomach / dry throat above this
-        public static float SleepInterruptHunger = 0.6f;     // wake a sleeper once hunger crosses this
-        public static float SleepInterruptThirst = 0.6f;     // wake a sleeper once thirst crosses this
+        public static float SleepInterruptHunger = 0.7f;     // wake a sleeper once hunger crosses this (= food bar below 30%)
+        public static float SleepInterruptThirst = 0.7f;     // wake a sleeper once thirst crosses this (= water bar below 30%)
         public static float DressThermalThreshold = 0.45f;   // dress once cold discomfort crosses this (§52: was 0.35 — less fussy)
         public static float DressColdTemp = 14f;             // ...and only when effective temp is below this
         public static float DressWarmthCeiling = 0.5f;       // ...and not already bundled past this warmth

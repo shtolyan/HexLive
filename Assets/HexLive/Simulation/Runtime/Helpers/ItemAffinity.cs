@@ -28,6 +28,10 @@ public static class ItemAffinity
         }
     }
 
+    // §75A: любимое оружие — сначала СТАТЫ, потом вкус. MeleePriority уже
+    // ранжирует железо по реальной силе (мачете 35 > копьё 30 > топор 20 >
+    // нож 10), так что между мачете и ножом всегда мачете; симпатия решает
+    // только между двумя экземплярами одного класса.
     public static string FavoriteWeapon(int npcId, IReadOnlyList<ItemInstance> items)
     {
         string favorite = null;
@@ -35,21 +39,7 @@ public static class ItemAffinity
         var bestPriority = -1;
         foreach (var item in items)
         {
-            var gear = GearCatalog.For(item.DefinitionId);
-            if (gear.MeleePriority <= 0)
-            {
-                continue;
-            }
-
-            var affinity = For(npcId, item.DefinitionId);
-            if (affinity > bestAffinity ||
-                (System.MathF.Abs(affinity - bestAffinity) < 0.0001f &&
-                 gear.MeleePriority > bestPriority))
-            {
-                favorite = item.DefinitionId;
-                bestAffinity = affinity;
-                bestPriority = gear.MeleePriority;
-            }
+            ConsiderFavorite(npcId, item.DefinitionId, ref favorite, ref bestAffinity, ref bestPriority);
         }
 
         return favorite;
@@ -62,24 +52,29 @@ public static class ItemAffinity
         var bestPriority = -1;
         foreach (var definitionId in definitionIds)
         {
-            var gear = GearCatalog.For(definitionId);
-            if (gear.MeleePriority <= 0)
-            {
-                continue;
-            }
-
-            var affinity = For(npcId, definitionId);
-            if (affinity > bestAffinity ||
-                (System.MathF.Abs(affinity - bestAffinity) < 0.0001f &&
-                 gear.MeleePriority > bestPriority))
-            {
-                favorite = definitionId;
-                bestAffinity = affinity;
-                bestPriority = gear.MeleePriority;
-            }
+            ConsiderFavorite(npcId, definitionId, ref favorite, ref bestAffinity, ref bestPriority);
         }
 
         return favorite;
+    }
+
+    private static void ConsiderFavorite(int npcId, string definitionId,
+        ref string favorite, ref float bestAffinity, ref int bestPriority)
+    {
+        var gear = GearCatalog.For(definitionId);
+        if (gear.MeleePriority <= 0)
+        {
+            return;
+        }
+
+        var affinity = For(npcId, definitionId);
+        if (gear.MeleePriority > bestPriority ||
+            (gear.MeleePriority == bestPriority && affinity > bestAffinity))
+        {
+            favorite = definitionId;
+            bestAffinity = affinity;
+            bestPriority = gear.MeleePriority;
+        }
     }
 }
 

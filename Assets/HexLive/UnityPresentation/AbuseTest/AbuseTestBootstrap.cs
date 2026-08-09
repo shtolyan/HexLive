@@ -214,8 +214,8 @@ namespace HexLive.UnityPresentation.AbuseTest
             var stageRoot = new GameObject("HexLive Portrait Stage");
             var portraitStage = stageRoot.AddComponent<UI.PortraitStage>();
 
-            var dollRoot = new GameObject("HexLive Health Doll Stage");
-            var healthDollStage = dollRoot.AddComponent<UI.HealthDollStage>();
+            var dollRoot = new GameObject("HexLive Character Doll Stage");
+            var characterDollStage = dollRoot.AddComponent<UI.CharacterDollStage>();
 
             var cacheRoot = new GameObject("HexLive Portrait Cache");
             var portraitCache = cacheRoot.AddComponent<UI.NpcPortraitCache>();
@@ -231,7 +231,7 @@ namespace HexLive.UnityPresentation.AbuseTest
             var panel = panelRoot.AddComponent<UI.CharacterPanel>();
             panel.SetRunner(_runner);
             panel.SetPortraitStage(portraitStage);
-            panel.SetHealthDollStage(healthDollStage);
+            panel.SetCharacterDollStage(characterDollStage);
             panel.SetPortraitCache(portraitCache);
 
             // §98: та же панель времени, что на боевой карте — пауза, play,

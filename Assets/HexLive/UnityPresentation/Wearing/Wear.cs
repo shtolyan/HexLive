@@ -39,6 +39,13 @@ public sealed class Wear : MonoBehaviour
 
     public IReadOnlyList<VisualWearSlot> Slots => slots;
 
+    /// <summary>
+    /// Simulation item represented by this fitted visual. Runtime-only: the
+    /// inventory preview uses it to map a renderer under the mouse back to the
+    /// clothing card without maintaining another equipment store.
+    /// </summary>
+    public string DefinitionId { get; private set; } = string.Empty;
+
     private SkinnedMeshRenderer _meshRenderer;
 
     /// <summary>
@@ -83,6 +90,7 @@ public sealed class Wear : MonoBehaviour
 
     public void Construct(ActorName actorMesh, BodyBones bodyBones, string equipKey = null)
     {
+        DefinitionId = DefinitionIdFromEquipKey(equipKey);
         // Spec 40.10-D: the wear painter seeds its stains from this — the piece's
         // slot on THIS body, which survives the garment being taken off and put
         // back on. Seeding from the fresh instance re-rolled the whole dirt
@@ -145,6 +153,17 @@ public sealed class Wear : MonoBehaviour
         {
             cloth.Build(bodyBones, _meshRenderer);
         }
+    }
+
+    private static string DefinitionIdFromEquipKey(string equipKey)
+    {
+        if (string.IsNullOrEmpty(equipKey))
+        {
+            return string.Empty;
+        }
+
+        var hash = equipKey.IndexOf('#');
+        return hash > 0 ? equipKey.Substring(0, hash) : equipKey;
     }
 
     // Spec §31B.4B: seat a hairstyle on THIS girl's head.

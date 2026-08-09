@@ -788,8 +788,27 @@ public static class WorldSaveSerializer
             if (obj.BuildProduct == ContentIds.Hut1Hex) BuildingRules.SyncHutElements(obj);
         }
 
+        // Rotation is a placement contract, not decorative save data. Repair
+        // legacy arbitrary/30-degree poses on every save version, including
+        // current v32 files that already carry architecture elements.
+        if (obj.BuildProduct == ContentIds.Hut1Hex || obj.DefinitionId == ContentIds.Hut1Hex)
+        {
+            obj.RotationDegrees = StructurePlacement.QuantizeHexSymmetryYaw(obj.RotationDegrees);
+        }
+        else if (UsesHexFurnitureYaw(obj.DefinitionId) ||
+                 UsesHexFurnitureYaw(obj.BuildProduct))
+        {
+            obj.RotationDegrees = StructurePlacement.QuantizeHexYaw(obj.RotationDegrees);
+        }
+
         return obj;
     }
+
+    private static bool UsesHexFurnitureYaw(string definitionId) =>
+        definitionId == ContentIds.BedBasic ||
+        definitionId == ContentIds.Workbench ||
+        definitionId == ContentIds.DryingRack ||
+        definitionId == ContentIds.WaterCollector;
 
     private static void WriteNpc(BinaryWriter w, NPCState npc)
     {

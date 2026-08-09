@@ -617,6 +617,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             var selectedProstheticBoard = false;
             var selectedMedicalStick = false;
             var selectedDressAffinity = -1f;
+            var selectedDressQuality = -1f;
             var candidateCount = 0;
             foreach (var perceived in npc.Perception.Objects)
             {
@@ -766,12 +767,21 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
                 else if (interactionType == InteractionType.Dress)
                 {
+                    // §75A: статы вещи первичны — реальный прирост тепла плюс
+                    // броня; симпатия решает только между равноценными,
+                    // расстояние последним.
+                    var quality =
+                        EquipmentMath.WarmthGainFromWearing(world, npc, perceived.DefinitionId) +
+                        DecisionSystem.CandidateArmor(world, perceived, npc.Sex);
                     var affinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);
-                    if (selected is null || affinity > selectedDressAffinity + 0.0001f ||
-                        (System.Math.Abs(affinity - selectedDressAffinity) <= 0.0001f &&
-                         perceived.Distance < selected.Distance))
+                    if (selected is null || quality > selectedDressQuality + 0.01f ||
+                        (System.Math.Abs(quality - selectedDressQuality) <= 0.01f &&
+                         (affinity > selectedDressAffinity + 0.0001f ||
+                          (System.Math.Abs(affinity - selectedDressAffinity) <= 0.0001f &&
+                           perceived.Distance < selected.Distance))))
                     {
                         selected = perceived;
+                        selectedDressQuality = quality;
                         selectedDressAffinity = affinity;
                     }
                 }

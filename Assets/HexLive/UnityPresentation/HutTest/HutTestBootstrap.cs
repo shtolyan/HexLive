@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -23,6 +24,7 @@ public sealed class HutTestBootstrap : MonoBehaviour
 {
     [SerializeField, Range(0f, 10f)] private float _startDelaySeconds = 2f;
     [SerializeField] private bool _forceRain = true;
+    [SerializeField] private bool _runSimulationAutomatically;
     // Test invariant, not scene-authored state: existing serialized scenes
     // otherwise deserialize a newly-added bool as false on some Unity versions.
     private const bool PauseWhenBothSleeping = true;
@@ -37,6 +39,11 @@ public sealed class HutTestBootstrap : MonoBehaviour
     private void Awake()
     {
         Application.runInBackground = true;
+        // Simulation pause belongs to SimulationClock. GameMenu can leave the
+        // process-wide Unity scale at zero across a Play Mode restart, which
+        // freezes Animator/camera even though this fixture intentionally keeps
+        // only the simulation ticks paused for pose inspection.
+        Time.timeScale = 1f;
 
         var camera = Camera.main;
         var cameraObject = camera != null
@@ -70,12 +77,73 @@ public sealed class HutTestBootstrap : MonoBehaviour
         }
 
         PrepareFinishedHouse();
+        PrepareStandingAndSleepingAcceptancePose();
         PushIsolationOverrides();
         // Static selection survives play-mode restarts. Force a real change
         // event so a newly-created production camera always enters Orbit.
         Input.NpcSelection.Clear();
         Input.NpcSelection.Select(1);
         rtsCamera.SnapToSelectedTarget();
+
+        // Default visual acceptance state is deterministic and paused: Marta
+        // stands on the real hut floor while Molly is attached to the real bed
+        // through the exact production Sleep snapshot path. Space still lets
+        // the tester release the fixture into the live simulation.
+        if (!_runSimulationAutomatically) _started = true;
+    }
+
+    private void PrepareStandingAndSleepingAcceptancePose()
+    {
+        var world = _runner?.Engine?.World;
+        if (world == null) return;
+
+        WorldObjectState? hut = null;
+        var beds = new List<WorldObjectState>();
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == ContentIds.Hut1Hex) hut = obj;
+            else if (obj.DefinitionId == ContentIds.BedBasic &&
+                     obj.Variant == ContentIds.HutBedVariant)
+                beds.Add(obj);
+        }
+
+        if (hut == null || beds.Count < 2) return;
+        beds.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
+        if (hut.Junctions.Count == 0) return;
+        var standingJunction = hut.Junctions[0];
+        if (
+            !world.Junctions.Items.TryGetValue(standingJunction, out var center)) return;
+
+        if (world.Entities.Npcs.TryGetValue(
+                new HexLive.Simulation.Common.EntityId(1), out var standing))
+        {
+            standing.Tile = hut.Tile;
+            standing.CurrentJunction = standingJunction;
+            standing.Position = center.WorldPosition;
+            standing.RotationDegrees = hut.RotationDegrees + 180f;
+            standing.Needs.Energy = 1f;
+            standing.Execution.CurrentInteraction = null;
+            standing.Execution.Status = ExecutionStatus.None;
+            standing.Execution.TargetObject = null;
+        }
+
+        var sleepBed = beds[1];
+        if (world.Entities.Npcs.TryGetValue(
+                new HexLive.Simulation.Common.EntityId(2), out var sleeping) &&
+            sleepBed.Junctions.Count > 0 &&
+            world.Junctions.Items.TryGetValue(sleepBed.Junctions[0], out var bedAnchor))
+        {
+            sleeping.Tile = hut.Tile;
+            sleeping.CurrentJunction = sleepBed.Junctions[0];
+            sleeping.Position = bedAnchor.WorldPosition;
+            sleeping.RotationDegrees = sleepBed.RotationDegrees;
+            sleeping.Needs.Energy = 0.05f;
+            sleeping.Execution.CurrentInteraction = InteractionType.Sleep;
+            sleeping.Execution.Status = ExecutionStatus.InProgress;
+            sleeping.Execution.TargetObject = sleepBed.Id;
+            sleeping.Execution.StartTick = world.Tick;
+            sleeping.Execution.EndTick = world.Tick + 600;
+        }
     }
 
     private void PrepareFinishedHouse()
@@ -196,15 +264,17 @@ public sealed class HutTestBootstrap : MonoBehaviour
             tile.Flags.HasFlag(TileFlags.Indoor);
         GUI.Box(new Rect(12f, 10f, 670f, 112f), string.Empty);
         GUI.Label(new Rect(24f, 18f, 640f, 22f),
-            "HUT TEST — настоящий дом, 2 кровати, домашний очаг, Indoor и cutaway");
+            "HUT TEST — Marta стоит на полу, Molly лежит на production bed.basic");
         GUI.Label(new Rect(24f, 42f, 640f, 22f),
             $"hut={hutFound} tile={hutTile} indoor={indoor} beds={beds}/2 hearthFuel={hearthFuel:0.0} rain={world.Environment.IsRaining}");
         GUI.Label(new Rect(24f, 66f, 640f, 22f),
             "Штатная камера: ПКМ орбита · колесо зум · R дождь · 1/2/3 скорость · Space пауза");
         GUI.Label(new Rect(24f, 90f, 640f, 22f),
-            _sleepingPairCaptured
-                ? "Обе позы сна уложились: тест на паузе. Space — продолжить."
-                : "NPC #1 выбран: cutaway включится после её входа; обе уснут — сцена остановится.");
+            !_runSimulationAutomatically && _runner.IsPaused
+                ? "Acceptance-поза на паузе: Space — отпустить обеих в живую симуляцию."
+                : _sleepingPairCaptured
+                    ? "Обе позы сна уложились: тест на паузе. Space — продолжить."
+                    : "NPC #1 выбран; production camera/cutaway активны.");
     }
 
     private static WorldBootstrapDefinition BuildWorldDefinition()

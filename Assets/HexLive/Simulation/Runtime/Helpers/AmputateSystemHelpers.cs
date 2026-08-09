@@ -158,6 +158,12 @@ public static class AmputateSystemHelpers
                 world, "body.limb_severed", npc.Fragment, npc.Tile, junction);
             limb.CurrentUser = npc.Id;          // whose limb (which actor mesh to bake)
             limb.Variant = part.ToString();     // which limb — the renderer bakes this chain
+            // Persist the body's facing at the cut. Presentation uses this
+            // with the junction anchor to reconstruct the former limb pose;
+            // random per-object yaw made a foot point differently after load.
+            // Zero is WorldObjectState's legacy "unset" sentinel, so store
+            // an actual 0° facing as the equivalent 360° value.
+            limb.RotationDegrees = NormalizeObjectFacing(npc.RotationDegrees);
             limb.ResourceAmount = Spec50.SeveredLimbDecayTicks;
         }
 
@@ -171,6 +177,17 @@ public static class AmputateSystemHelpers
 
         Trace.Emit(world, npc.Id, "LimbSevered",
             $"{part} severed (Blood={npc.Needs.Blood:F2} Health={npc.Health:F2})");
+    }
+
+    private static float NormalizeObjectFacing(float degrees)
+    {
+        var wrapped = degrees % 360f;
+        if (wrapped < 0f)
+        {
+            wrapped += 360f;
+        }
+
+        return wrapped <= 0f ? 360f : wrapped;
     }
 }
 

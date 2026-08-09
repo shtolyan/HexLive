@@ -649,6 +649,14 @@ MonoBehaviour:
       - 'Здоровье'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'health.doll_unavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Health overlay unavailable — showing the character normally'
+      - 'Зональная подсветка недоступна — показан обычный персонаж'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'panel.role'
       TermType: 0
       Description: 
@@ -3183,6 +3191,14 @@ MonoBehaviour:
       Languages:
       - 'Backpack'
       - 'Рюкзак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.capacity_hands'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hands'
+      - 'Руки'
       Flags: 0101
       Languages_Touch: []
     - Term: 'inv.typed_slot'

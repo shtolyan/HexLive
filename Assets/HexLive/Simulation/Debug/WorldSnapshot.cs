@@ -151,6 +151,8 @@ public sealed class TileSnapshot
 
     public bool Indoor { get; set; }
 
+    public bool HasFloor { get; set; }
+
     public bool Water { get; set; }
 
     public int Elevation { get; set; }

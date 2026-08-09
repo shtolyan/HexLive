@@ -152,10 +152,9 @@ public static class PrototypeRuntimeBootstrap
             worldRenderer.SetPortraitCache(portraitCache);
         }
 
-        // Spec §57: the limb-health body doll — its own staged clone + camera
-        // on the hidden Portrait layer, far outside the world.
-        var dollRoot = new GameObject("HexLive Health Doll Stage");
-        var healthDollStage = dollRoot.AddComponent<HealthDollStage>();
+        // Spec §51/§57: inventory and HP share one already-composed actor clone.
+        var dollRoot = new GameObject("HexLive Character Doll Stage");
+        var characterDollStage = dollRoot.AddComponent<CharacterDollStage>();
 
         var panelRoot = new GameObject("HexLive Character Panel");
         var document = panelRoot.AddComponent<UIDocument>();
@@ -164,7 +163,7 @@ public static class PrototypeRuntimeBootstrap
         var panel = panelRoot.AddComponent<CharacterPanel>();
         panel.SetRunner(runner);
         panel.SetPortraitStage(portraitStage);
-        panel.SetHealthDollStage(healthDollStage);
+        panel.SetCharacterDollStage(characterDollStage);
         panel.SetPortraitCache(portraitCache);
 
         var hexPanelRoot = new GameObject("HexLive Hex Inspector");

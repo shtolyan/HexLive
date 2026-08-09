@@ -17,6 +17,11 @@ namespace HexLive.Simulation.Bootstrap
 /// </summary>
 public static class BuildingBootstrap
 {
+    // The exported pointy-top kit's Bay_00 sits on the lower-right edge.
+    // Its outward normal is local -60°, i.e. building yaw +300° once the
+    // complete footprint uses identity-preserving X/Y -> X/Z rotation.
+    internal const float AuthoredDoorOutwardYaw = 300f;
+
     public static WorldObjectState SpawnCompletedTestHut(WorldState world, Faction faction)
     {
         var home = ColonyQueries.Home(world, faction) ?? new TileCoord(0, 4);
@@ -54,13 +59,15 @@ public static class BuildingBootstrap
         }
 
         var homePosition = HexSpatialMath.TileToWorld(home);
-        // The authored pointy-top kit has its door bay normal at local +30°.
+        // The authored pointy-top kit has its door bay outward normal at
+        // building yaw +300°.
         // Keep the hex itself on one of its six 60° symmetries and choose the
         // symmetry whose door normal is closest to camp. Arbitrary yaw rotates
         // walls off the tile edges; treating local forward as the door normal
         // seals the neighbouring edge instead of the visible doorway.
         var desiredDoorYaw = StructurePlacement.FacingYaw(center.WorldPosition, homePosition);
-        var yaw = StructurePlacement.QuantizeHexYaw(desiredDoorYaw - 30f);
+        var yaw = StructurePlacement.QuantizeHexSymmetryYaw(
+            desiredDoorYaw - AuthoredDoorOutwardYaw);
         var hut = WorldObjectMutations.SpawnObject(
             world, ContentIds.Hut1Hex, center.Fragment, hutTile, anchorId);
         hut.RotationDegrees = yaw;
@@ -83,7 +90,8 @@ public static class BuildingBootstrap
         site.BillBoards = BuildingRules.TotalBoards;
         site.BillRope = BuildingRules.TotalRope;
         site.BillLeaves = BuildingRules.TotalLeaves;
-        site.RotationDegrees = StructurePlacement.QuantizeHexYaw(facingYaw - 30f);
+        site.RotationDegrees = StructurePlacement.QuantizeHexSymmetryYaw(
+            facingYaw - AuthoredDoorOutwardYaw);
         BuildingRules.EnsureHutElements(site);
         return site;
     }
@@ -101,7 +109,12 @@ public static class BuildingBootstrap
             return;
         }
 
-        var doorEdge = authoredDoorEdge ?? DoorEdgeForYaw(hut.RotationDegrees + 30f);
+        // Save/load and debug callers may supply legacy free yaw. Normalise at
+        // the architectural boundary before deriving a portal edge or furniture.
+        hut.RotationDegrees = StructurePlacement.QuantizeHexSymmetryYaw(hut.RotationDegrees);
+
+        var doorEdge = authoredDoorEdge ?? DoorEdgeForYaw(
+            hut.RotationDegrees + AuthoredDoorOutwardYaw);
         BuildingRules.EnsureHutElements(hut, completed: true);
         hut.Variant = $"door:{doorEdge}";
         tile.Flags |= TileFlags.HasFloor | TileFlags.Indoor;
@@ -208,7 +221,7 @@ public static class BuildingBootstrap
         var cot = WorldObjectMutations.SpawnObject(
             world, ContentIds.BedBasic, hut.Fragment, hut.Tile, junctionId);
         cot.Variant = ContentIds.HutBedVariant;
-        cot.RotationDegrees = hut.RotationDegrees;
+        cot.RotationDegrees = StructurePlacement.QuantizeHexYaw(hut.RotationDegrees);
         // Architecture owns the room topology. Integrated beds reserve their
         // furniture footprint but must not seal the one-hex interior corridor.
         WorldObjectMutations.SetObstacleBlocking(world, cot, blocked: false);

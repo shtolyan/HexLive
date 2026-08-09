@@ -14,6 +14,11 @@ namespace HexLive.UnityPresentation.Environment
 /// </summary>
 public sealed class HutAssembly : MonoBehaviour
 {
+    // Native and imported one-hex kits share this authored floor plane:
+    // boards are centred at local Y=0.08 with 0.09 thickness, hence their
+    // walkable top is 0.125 wu above the terrain anchor. Actors and integrated
+    // furniture use the same value in HexWorldRenderer.
+    public const float FloorSurfaceLift = 0.125f;
     private const string PrefabPath = "HexLive/Objects/building.hut_1hex";
     private static readonly Dictionary<Material, Material> DoubleSidedLeafMaterials = new();
     private static readonly Dictionary<Material, Material> ImportedMaterialVariants = new();

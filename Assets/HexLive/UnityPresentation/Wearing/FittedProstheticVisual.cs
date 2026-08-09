@@ -14,15 +14,8 @@ namespace HexLive.UnityPresentation.Wearing
 /// </summary>
 internal sealed class ProstheticVisual
 {
-    private const float ReferenceLength = 1f;
-    private const float MinimumLength = 0.01f;
-
-    private readonly Transform _host;
-    private readonly Transform _startBone;
-    private readonly Transform _endBone;
-    private readonly Transform[] _endPath;
-    private readonly Vector3 _startBoneOriginalLocalScale;
     private readonly GameObject _visualRoot;
+    private readonly FittedProstheticPoseFollower _poseFollower;
     private readonly List<MaterialTint> _materials = new();
     private readonly int _targetLayer;
     private readonly Action _modelLoaded;
@@ -48,12 +41,8 @@ internal sealed class ProstheticVisual
         BodyPart part,
         string definitionId,
         bool mechanical,
-        Transform host,
-        Transform startBone,
-        Transform endBone,
-        Transform[] endPath,
-        Vector3 startBoneOriginalLocalScale,
         GameObject visualRoot,
+        FittedProstheticPoseFollower poseFollower,
         Transform grip,
         int targetLayer,
         Action modelLoaded)
@@ -61,12 +50,8 @@ internal sealed class ProstheticVisual
         Part = part;
         DefinitionId = definitionId ?? string.Empty;
         Mechanical = mechanical;
-        _host = host;
-        _startBone = startBone;
-        _endBone = endBone;
-        _endPath = endPath;
-        _startBoneOriginalLocalScale = startBoneOriginalLocalScale;
         _visualRoot = visualRoot;
+        _poseFollower = poseFollower;
         Grip = grip;
         _targetLayer = targetLayer;
         _modelLoaded = modelLoaded;
@@ -161,16 +146,22 @@ internal sealed class ProstheticVisual
             grip.SetParent(host, false);
         }
 
-        var visual = new ProstheticVisual(
-            condition.Part,
-            prosthetic.DefinitionId,
-            prosthetic.Mechanical,
+        var follower = wrapper.AddComponent<FittedProstheticPoseFollower>();
+        follower.Configure(
             host,
             start,
             end,
             endPath,
             startBoneOriginalLocalScale,
+            wrapper.transform,
+            grip);
+
+        var visual = new ProstheticVisual(
+            condition.Part,
+            prosthetic.DefinitionId,
+            prosthetic.Mechanical,
             wrapper,
+            follower,
             grip,
             targetLayer,
             modelLoaded);
@@ -255,43 +246,7 @@ internal sealed class ProstheticVisual
 
     public void UpdatePose()
     {
-        if (_visualRoot == null || _startBone == null || _endBone == null)
-        {
-            return;
-        }
-
-        var endMatrix = VirtualEndMatrix();
-        var virtualEnd = endMatrix.MultiplyPoint3x4(Vector3.zero);
-        var direction = virtualEnd - _startBone.position;
-        var length = direction.magnitude;
-        if (length < MinimumLength)
-        {
-            _visualRoot.SetActive(false);
-            return;
-        }
-
-        if (!_visualRoot.activeSelf)
-        {
-            _visualRoot.SetActive(true);
-        }
-
-        var up = direction / length;
-        var forward = Vector3.ProjectOnPlane(_host.forward, up);
-        if (forward.sqrMagnitude < 0.0001f)
-        {
-            forward = Vector3.ProjectOnPlane(_host.right, up);
-        }
-
-        _visualRoot.transform.SetPositionAndRotation(
-            _startBone.position,
-            Quaternion.LookRotation(forward.normalized, up));
-        SetWorldScale(_visualRoot.transform, Vector3.one * (length / ReferenceLength));
-
-        if (Grip != null)
-        {
-            Grip.SetPositionAndRotation(virtualEnd, _endBone.rotation);
-            SetWorldScale(Grip, MatrixScale(endMatrix));
-        }
+        _poseFollower?.RefreshNow();
     }
 
     public void Destroy()
@@ -356,37 +311,6 @@ internal sealed class ProstheticVisual
         return true;
     }
 
-    /// <summary>
-    /// Reconstructs the hand/foot endpoint as if the severed distal bone had
-    /// kept its authored scale. ApplySeveredLimbs collapses that bone so the
-    /// organic skinned mesh disappears; reading endBone.position directly
-    /// would therefore make the fitted device about 0.0001 of its real size.
-    /// Local animation rotations remain valid, so replaying the short chain
-    /// produces the animated, uncollapsed endpoint without restoring the limb.
-    /// </summary>
-    private Matrix4x4 VirtualEndMatrix()
-    {
-        var startLocal = Matrix4x4.TRS(
-            _startBone.localPosition,
-            _startBone.localRotation,
-            _startBoneOriginalLocalScale);
-        var matrix = _startBone.parent != null
-            ? _startBone.parent.localToWorldMatrix * startLocal
-            : startLocal;
-
-        foreach (var bone in _endPath)
-        {
-            matrix *= Matrix4x4.TRS(bone.localPosition, bone.localRotation, bone.localScale);
-        }
-
-        return matrix;
-    }
-
-    private static Vector3 MatrixScale(Matrix4x4 matrix) => new(
-        matrix.GetColumn(0).magnitude,
-        matrix.GetColumn(1).magnitude,
-        matrix.GetColumn(2).magnitude);
-
     private static Color WoodenConditionColor(Color original, float condition01)
     {
         var worn = new Color(
@@ -426,18 +350,6 @@ internal sealed class ProstheticVisual
             material.SetColor("_BaseColor", color);
         }
     }
-
-    private static void SetWorldScale(Transform target, Vector3 wanted)
-    {
-        var parentScale = target.parent != null ? target.parent.lossyScale : Vector3.one;
-        target.localScale = new Vector3(
-            SafeDivide(wanted.x, parentScale.x),
-            SafeDivide(wanted.y, parentScale.y),
-            SafeDivide(wanted.z, parentScale.z));
-    }
-
-    private static float SafeDivide(float value, float divisor) =>
-        Mathf.Abs(divisor) > 0.00001f ? value / divisor : value;
 
     private static void SetLayerDeep(Transform root, int layer)
     {

@@ -207,13 +207,12 @@ public sealed partial class ExecutionSystem
             "Goal->None Plan->Completed Execution->Cleared (ground rest done)");
     }
 
-    // Spec §49: should a finished sleep block re-arm in place (keep lying)
-    // rather than stand and re-plan? Yes while she is still tired (nearly full
-    // energy at night, or genuinely spent by day) AND no real need has crossed
-    // its action threshold — the same thresholds at which Eat/Drink/Dress
-    // become attractive, so she wakes exactly when there is something to do.
-    private static float SleepWakeEnergyDay => SimBalance.SleepEnergyThreshold;
-
+    // Spec §49/§65.2: should a finished sleep block re-arm in place (keep
+    // lying) rather than stand and re-plan? Yes until the energy bar is FULL
+    // (day and night alike — one long sleep, not a series of naps) AND no real
+    // need has crossed its action threshold — the same thresholds at which
+    // Eat/Drink become attractive, so she wakes exactly when there is
+    // something to do.
     private static float SleepInterruptHunger => SimBalance.SleepInterruptHunger;
 
     private static float SleepInterruptThirst => SimBalance.SleepInterruptThirst;
@@ -287,7 +286,12 @@ public sealed partial class ExecutionSystem
             return false;
         }
 
-        return npc.Needs.Energy < SleepWakeEnergyDay;
+        // §65.2 r2: a day sleep runs to the SAME full-energy line as the night
+        // latch — she sleeps to the last, until the bar is full, and only a
+        // real need (the interrupt ceilings above) or danger wakes her early.
+        // Waking at the old day line (SleepEnergyThreshold) put her back on
+        // her feet still tired, which read as "они постоянно не выспавшиеся".
+        return npc.Needs.Energy < Spec49.NightSleepWakeEnergy;
     }
 
     // §49-parity: the DECISION layer reads this too — going to sleep while an
@@ -311,7 +315,7 @@ public sealed partial class ExecutionSystem
         // wake ceiling climbs from the normal line to the starving/dehydrated
         // line as she tires. She only bids sleep OVER eating when truly spent
         // (Energy < DeadTiredEnergy); once asleep she sleeps THROUGH to rested
-        // (Energy < the day wake line) so there is no nap→eat→nap flutter. The
+        // (the full-energy line, §65.2 r2) so there is no nap→eat→nap flutter. The
         // cap is the starving line, NOT unbounded: a spent body must still WAKE
         // to eat/drink before hunger/thirst can kill it — a soak with the cap
         // removed let a besieged girl sleep her needs to 1.0 and die (seed 42

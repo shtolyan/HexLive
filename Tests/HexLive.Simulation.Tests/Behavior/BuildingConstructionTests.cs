@@ -37,6 +37,7 @@ public sealed class BuildingConstructionTests
         var bed = world.Entities.Objects.Values.First(obj => obj.DefinitionId == ContentIds.BedBasic);
         bed.DefinitionId = legacyId;
         bed.Variant = string.Empty;
+        bed.RotationDegrees = 31f;
 
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
@@ -54,6 +55,7 @@ public sealed class BuildingConstructionTests
         var migrated = loaded.Entities.Objects[bed.Id];
         Assert.That(migrated.DefinitionId, Is.EqualTo(ContentIds.BedBasic));
         Assert.That(migrated.Variant, Is.EqualTo(expectedVariant));
+        Assert.That(migrated.RotationDegrees, Is.EqualTo(60f).Within(0.001f));
     }
 
     [Test]
@@ -108,6 +110,27 @@ public sealed class BuildingConstructionTests
         Assert.That(elements, Has.Count.EqualTo(30));
         Assert.That(elements.All(element => element.Complete), Is.True);
         Assert.That(elements.Count(element => element.Kind == BuildingElementKind.Roof), Is.EqualTo(6));
+    }
+
+    [Test]
+    public void FloorCompletesBeforeWallsAndRoof()
+    {
+        var site = NewHutSite();
+        BuildingRules.EnsureHutElements(site);
+        Assert.That(BuildingRules.FloorComplete(site), Is.False);
+
+        foreach (var element in site.ArchitectureElements
+                     .Where(element => element.DefinitionId == "architecture.floor.board"))
+        {
+            element.DeliveredBoards = element.RequiredBoards;
+            element.WorkDone = element.WorkRequired;
+        }
+
+        Assert.That(BuildingRules.FloorComplete(site), Is.True);
+        Assert.That(site.ArchitectureElements
+            .Where(element => element.DefinitionId == "architecture.roof.palm")
+            .All(element => !element.Complete), Is.True,
+            "Трава должна исчезнуть после настила, не дожидаясь крыши.");
     }
 
     [Test]
@@ -167,7 +190,7 @@ public sealed class BuildingConstructionTests
         Assert.That(huts, Has.Length.EqualTo(1));
 
         var hut = huts[0];
-        var symmetry = (hut.RotationDegrees - 30f) % 60f;
+        var symmetry = hut.RotationDegrees % 60f;
         if (symmetry < 0f) symmetry += 60f;
         Assert.That(symmetry, Is.EqualTo(0f).Within(0.001f),
             "Архитектурный pointy-top гекс допускает только шесть поворотов; произвольный yaw снимает стены с рёбер.");
@@ -223,6 +246,28 @@ public sealed class BuildingConstructionTests
             Is.True);
         Assert.That(boundary.All(junction => junction.Door || junction.Blocked), Is.True);
 
+        // The exported Bay_00 outward normal is building yaw +300°. The three
+        // simulation portal junctions must occupy that SAME visible edge and
+        // that edge must be the one facing the colony home.
+        var visibleDoorRadians = (hut.RotationDegrees + 300f) * MathF.PI / 180f;
+        var visibleDoorOutward = new Float2(
+            MathF.Cos(visibleDoorRadians), MathF.Sin(visibleDoorRadians));
+        var doorJunctions = boundary.Where(junction => junction.Door).ToArray();
+        var doorCenter = new Float2(
+            doorJunctions.Average(junction => junction.WorldPosition.X),
+            doorJunctions.Average(junction => junction.WorldPosition.Y));
+        var portalDelta = doorCenter - center;
+        var portalLength = MathF.Sqrt(portalDelta.X * portalDelta.X + portalDelta.Y * portalDelta.Y);
+        Assert.That((portalDelta.X * visibleDoorOutward.X + portalDelta.Y * visibleDoorOutward.Y) /
+                    portalLength, Is.GreaterThan(0.95f),
+            "Portal-edge должен совпадать с видимым Bay_00, а не с противоположной гранью.");
+
+        var homeDelta = HexSpatialMath.TileToWorld(world.FactionHomes[Faction.Colony]) - center;
+        var homeLength = MathF.Sqrt(homeDelta.X * homeDelta.X + homeDelta.Y * homeDelta.Y);
+        Assert.That((homeDelta.X * visibleDoorOutward.X + homeDelta.Y * visibleDoorOutward.Y) /
+                    homeLength, Is.GreaterThan(0.85f),
+            "Наружная сторона видимой двери должна смотреть к лагерю.");
+
         foreach (var cot in cots)
         {
             var definition = world.Content.ObjectDefinitions[cot.DefinitionId];
@@ -235,6 +280,23 @@ public sealed class BuildingConstructionTests
             Assert.That(HexPathfinder.FindPath(world, start.Value, cot.Junctions[0]), Is.Not.Empty,
                 "Кровать видна, но путь через дверной портал до неё закрыт.");
         }
+    }
+
+    [TestCase(0f, 0f)]
+    [TestCase(29f, 0f)]
+    [TestCase(31f, 60f)]
+    [TestCase(89f, 60f)]
+    [TestCase(91f, 120f)]
+    [TestCase(181f, 180f)]
+    [TestCase(329f, 300f)]
+    [TestCase(331f, 0f)]
+    public void HutYawSnapsToPointyTopHexSymmetries(float requested, float expected)
+    {
+        Assert.That(StructurePlacement.QuantizeHexSymmetryYaw(requested),
+            Is.EqualTo(expected).Within(0.001f));
+        Assert.That(StructurePlacement.QuantizeHexYaw(requested),
+            Is.EqualTo(expected).Within(0.001f),
+            "Мебель должна использовать те же шесть поворотов, что и гекс.");
     }
 
     [Test]

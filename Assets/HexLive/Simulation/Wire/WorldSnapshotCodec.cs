@@ -61,7 +61,9 @@ public static class WorldSnapshotCodec
     /// v14: §111.12 item id carried by a social cue bubble.
     /// v16: §120 independently persisted architecture elements.
     /// v17: §51/§52 typed inventory containers and §75A favorite-weapon projection.
-    public const int WireVersion = 17;
+    /// v18: §120 floor state rides keyframes and deltas so presentation can
+    /// remove terrain grass as soon as the architectural floor is complete.
+    public const int WireVersion = 18;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -200,16 +202,38 @@ public static class WorldSnapshotCodec
     /// instead of assuming it.
     /// </para>
     /// </summary>
-    private static void WriteTiles(WorldSnapshot snapshot, BinaryWriter w)
+    internal static void WriteTiles(WorldSnapshot snapshot, BinaryWriter w)
     {
-        // Placeholder for the changed set. Nothing computes tile changes yet
-        // because nothing can produce them; when something can, this is where it
-        // goes, and the reader below already handles a non-empty set.
-        w.Write((ushort)0);
+        var changed = 0;
+        foreach (var tile in snapshot.Tiles)
+        {
+            if (tile.HasFloor || tile.Indoor) changed++;
+        }
+
+        w.Write((ushort)changed);
+        foreach (var tile in snapshot.Tiles)
+        {
+            if (!tile.HasFloor && !tile.Indoor) continue;
+            WireIo.WriteTile(w, tile.Coord);
+            w.Write(tile.Elevation);
+            w.Write((byte)((tile.Walkable ? 1 : 0) |
+                           (tile.Blocked ? 2 : 0) |
+                           (tile.Indoor ? 4 : 0) |
+                           (tile.Water ? 8 : 0) |
+                           (tile.HasFloor ? 16 : 0)));
+        }
     }
 
-    private static void ReadTiles(BinaryReader r, WorldSnapshot into)
+    internal static void ReadTiles(BinaryReader r, WorldSnapshot into)
     {
+        // Both keyframes and deltas carry the complete (normally tiny) set of
+        // runtime-mutated tiles. Clear the previous mirror before applying it.
+        foreach (var tile in into.Tiles)
+        {
+            tile.HasFloor = false;
+            tile.Indoor = false;
+        }
+
         var changed = r.ReadUInt16();
         for (var i = 0; i < changed; i++)
         {
@@ -232,6 +256,7 @@ public static class WorldSnapshotCodec
                 t.Blocked = (flags & 2) != 0;
                 t.Indoor = (flags & 4) != 0;
                 t.Water = (flags & 8) != 0;
+                t.HasFloor = (flags & 16) != 0;
                 break;
             }
         }

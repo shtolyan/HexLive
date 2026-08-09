@@ -188,6 +188,20 @@ public static class BuildingRules
         return supports >= RequiredSupportsForRoof(SupportCount);
     }
 
+    public static bool FloorComplete(WorldObjectState owner)
+    {
+        EnsureHutElements(owner);
+        var found = false;
+        foreach (var element in owner.ArchitectureElements)
+        {
+            if (element.DefinitionId != "architecture.floor.board") continue;
+            found = true;
+            if (!element.Complete) return false;
+        }
+
+        return found;
+    }
+
     public static bool AssignDeliveredMaterial(WorldObjectState owner, string materialId)
     {
         EnsureHutElements(owner);

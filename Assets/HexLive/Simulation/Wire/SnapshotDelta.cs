@@ -122,6 +122,11 @@ public sealed class SnapshotDeltaEncoder
             _header = header;
         }
 
+        // Architectural floors are few, but their tile state is mutable. Send
+        // the complete runtime tile set so grass/indoor presentation changes on
+        // the exact construction tick and can also be cleared after a restore.
+        WorldSnapshotCodec.WriteTiles(snapshot, w);
+
         WriteSection(w, snapshot.Objects, _objects,
             (o) => o.Id.Value, (sw, o) => WorldSnapshotCodec.WriteObjectRecord(sw, o));
 

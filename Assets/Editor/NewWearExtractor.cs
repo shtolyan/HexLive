@@ -1688,7 +1688,7 @@ public static class NewWearExtractor
     /// modern API stores exactly what is there.
     ///
     /// The catch is that the LEGACY `mesh.boneWeights` GETTER then comes back
-    /// empty, which is the trap `HealthDollStage` already documents (it painted
+    /// empty, which is the trap `CharacterDollStage` already documents (it painted
     /// the whole doll one colour). Anything reading weights off a garment has
     /// to use GetAllBoneWeights — see the matching fix in SeveredLimbFactory.
     /// </remarks>

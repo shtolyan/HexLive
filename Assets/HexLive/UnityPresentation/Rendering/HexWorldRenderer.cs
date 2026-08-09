@@ -29,6 +29,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private const float NpcRadiusFactor = 17f / 75f;
     private const float NpcHeightFactor = 11f / 30f;
+    // At 4 Hz this gives a fresh sever three seconds to reach a viewer even
+    // across remote/delta batching. Distance is checked too, so an old limb
+    // never follows an owner who has already crawled away.
+    private const int FreshLimbPoseWindowTicks = 12;
 
     private const float BedWidthFactor = 7f / 25f;
     private const float BedHeightFactor = 2f / 25f;
@@ -1188,8 +1192,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // keep the identity rotation they have always had.
             if (worldObject.RotationDegrees != 0f)
             {
+                var architectureFootprint =
+                    worldObject.DefinitionId == ContentIds.Hut1Hex ||
+                    worldObject.BuildProduct == ContentIds.Hut1Hex;
                 var builtRot = Quaternion.Euler(
-                    0f, SimulationUnityMapper.ToUnityYawDegrees(worldObject.RotationDegrees), 0f);
+                    0f, architectureFootprint
+                        ? SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees)
+                        : SimulationUnityMapper.ToUnityYawDegrees(worldObject.RotationDegrees),
+                    0f);
                 if (objectView.transform.rotation != builtRot)
                 {
                     objectView.transform.rotation = builtRot;
@@ -1284,6 +1294,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 speedActor.SetSimulationGroundSpeed(simGroundSpeed);
                 speedActor.SetSimulationYawSpeed(simYawSpeed);
+                // §71.8: "Moving" stays true through blocked-step queues (the
+                // §71.3 latch), which is exactly the stall the long walk-hold
+                // must bridge; Arrived/Idle mean the journey is over and the
+                // walk should be admitted finished promptly.
+                speedActor.SetSimulationMovementIntent(npc.MovementStatus == "Moving");
             }
 
             SyncActorView(snapshot, npc);
@@ -2493,6 +2508,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return SimulationUnityMapper.TileHeight + elevation * ElevationStep;
     }
 
+    private float ObjectGroundY(ObjectSnapshot worldObject)
+    {
+        var y = GroundY(worldObject.Tile);
+        if ((worldObject.DefinitionId == ContentIds.BedBasic &&
+             worldObject.Variant == ContentIds.HutBedVariant) ||
+            (worldObject.DefinitionId == ContentIds.Campfire &&
+             worldObject.Variant == BuildingRules.HutHearthVariant))
+        {
+            y += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
+        }
+
+        return y;
+    }
+
     // §40.18-B: where an ACTOR's root sits on a tile. On land that is the
     // ground; in deep water she hangs SinkDepth below the water surface; in
     // walkable shallows (the river) she wades WadeDepth under it — knee-deep,
@@ -2501,7 +2530,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         if (!_waterCoords.Contains(coord))
         {
-            return GroundY(coord);
+            return GroundY(coord) + (_indoorCoords.Contains(coord)
+                ? HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift
+                : 0f);
         }
 
         // Water tiles render their surface at the shore level minus the
@@ -2773,7 +2804,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 fireGo.transform.SetParent(_objectsRoot, false);
                 var fireAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 fireGo.transform.position = SimulationUnityMapper.ToUnityPosition(
-                    fireAnchor, GroundY(worldObject.Tile));
+                    fireAnchor, ObjectGroundY(worldObject));
                 var fireEffectHost = isHutHearth
                     ? fireGo.transform.Find("fire_point")?.gameObject ?? fireGo
                     : fireGo;
@@ -2803,63 +2834,46 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return siteRoot;
         }
 
-        // Spec §50: a severed limb — the real limb geometry carved from its
-        // former owner's body mesh (falls through to a primitive when the
-        // owner/mesh can't provide it, e.g. a non-readable import).
+        // Spec §50: a severed limb. A fresh object waits until the owner's
+        // fallen/prone pose has been evaluated, bakes the readable FBX on a
+        // bone-only pose clone, and stays exactly where that limb was. The
+        // persisted junction remains the interaction/root anchor. Restored
+        // objects use a reference-pose slice at that anchor.
         if (worldObject.DefinitionId == "body.limb_severed")
         {
             NpcActorView owner = null;
             if (worldObject.OwnerNpcId is { } ownerId)
             {
-                _actorViews.TryGetValue(ownerId, out owner);
+                if (!_actorViews.TryGetValue(ownerId, out owner))
+                {
+                    _corpseActorViews.TryGetValue(ownerId, out owner);
+                }
             }
 
             var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             var worldPos = SimulationUnityMapper.ToUnityPosition(anchorPos, GroundY(worldObject.Tile));
+            var limbRoot = new GameObject(
+                $"Object {worldObject.DefinitionId} {worldObject.Variant}");
+            limbRoot.transform.SetParent(_objectsRoot, false);
+            limbRoot.transform.SetPositionAndRotation(
+                worldPos,
+                worldObject.RotationDegrees != 0f
+                    ? Quaternion.Euler(0f,
+                        SimulationUnityMapper.ToUnityYawDegrees(worldObject.RotationDegrees), 0f)
+                    : Quaternion.identity);
 
-            var limb = HexLive.UnityPresentation.Wearing.SeveredLimbFactory.Build(
-                owner, worldObject.Variant);
-            if (limb != null)
-            {
-                var limbRoot = new GameObject($"Object {worldObject.DefinitionId} {worldObject.Variant}");
-                limbRoot.transform.SetParent(_objectsRoot, false);
-                limb.transform.SetParent(limbRoot.transform, false);
-                var limbScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
-                limb.transform.localScale = Vector3.one * limbScale;
-                limb.transform.localRotation = Quaternion.Euler(
-                    90f, (worldObject.Id.Value * 47) % 360, 0f); // lie on its side, scattered yaw
-                GroundVisual(limb, lift: 0.05f);
-                limbRoot.transform.position = worldPos;
-                Debug.Log($"[§50 limb] REAL MESH '{worldObject.Variant}' obj#{worldObject.Id.Value} " +
-                    $"at {worldPos} (owner {worldObject.OwnerNpcId})");
-                return limbRoot;
-            }
-
-            // Fallback (the actor mesh isn't Read/Write, or the owner is gone):
-            // a clearly visible blood-red limb-sized capsule, so the dropped
-            // limb is NEVER invisible on scene — findable by name "…(fallback)".
-            var fbRoot = new GameObject($"Object {worldObject.DefinitionId} {worldObject.Variant} (fallback)");
-            fbRoot.transform.SetParent(_objectsRoot, false);
-            var capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            capsule.name = "LimbCapsule";
-            capsule.transform.SetParent(fbRoot.transform, false);
-            // Primitive dimensions are authored in Unity metres, while actor
-            // bodies are imported in source centimetres and scaled into the
-            // world. Keep the emergency capsule in the same scale space as
-            // the real sliced limb above; otherwise it is roughly 100x larger
-            // than the person it came from.
-            var fallbackScale = HexRadius * NpcHeightFactor / ActorSourceHeightMeters;
-            capsule.transform.localScale = new Vector3(0.22f, 0.5f, 0.22f) * fallbackScale;
-            capsule.transform.localRotation = Quaternion.Euler(80f, (worldObject.Id.Value * 47) % 360, 0f);
-            var capMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            capMat.SetColor("_BaseColor", new Color(0.7f, 0.04f, 0.04f));
-            capMat.SetFloat("_Smoothness", 0.15f);
-            capsule.GetComponent<MeshRenderer>().sharedMaterial = capMat;
-            GroundVisual(capsule, lift: 0.12f); // lifted so it's not buried under her feet
-            fbRoot.transform.position = worldPos;
-            Debug.Log($"[§50 limb] FALLBACK capsule '{worldObject.Variant}' obj#{worldObject.Id.Value} " +
-                $"at {worldPos} (owner {worldObject.OwnerNpcId}) — enable Read/Write on the actor mesh for real geometry");
-            return fbRoot;
+            var age = snapshotTick - worldObject.SpawnTick;
+            var fresh = age >= 0 && age <= FreshLimbPoseWindowTicks;
+            limbRoot.AddComponent<SeveredLimbDropView>().Construct(
+                owner,
+                worldObject.OwnerNpcId,
+                worldObject.Variant,
+                worldObject.Id.Value,
+                captureCurrentPose: fresh,
+                referenceScale: HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters,
+                fallbackScale: HexRadius * NpcHeightFactor / ActorSourceHeightMeters,
+                maxCaptureDistance: HexRadius * 1.5f);
+            return limbRoot;
         }
 
         // Spec §54.2: a palm is ASSEMBLED from N trunk-segment logs + a crown, so
@@ -2936,7 +2950,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 bed.transform.SetParent(_objectsRoot, false);
                 var bedAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 bed.transform.position = SimulationUnityMapper.ToUnityPosition(
-                    bedAnchor, GroundY(worldObject.Tile));
+                    bedAnchor, ObjectGroundY(worldObject));
                 return bed;
             }
         }
@@ -3630,11 +3644,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     pos += right * (side *
                         HexLive.UnityPresentation.Environment.HutFurnitureFactory.BedWallSnugOffset);
                 }
-                return SimulationUnityMapper.ToUnityPosition(pos, GroundY(worldObject.Tile));
+                return SimulationUnityMapper.ToUnityPosition(pos, ObjectGroundY(worldObject));
             }
         }
 
-        return SimulationUnityMapper.ToUnityTilePosition(worldObject.Tile, GroundY(worldObject.Tile));
+        return SimulationUnityMapper.ToUnityTilePosition(worldObject.Tile, ObjectGroundY(worldObject));
     }
 
     private static Float2 GetObjectAnchorFromJunctions(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
@@ -3983,6 +3997,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // O(lying bodies) per tick — only the affected tiles ever toggle.
     private readonly Dictionary<TileCoord, GameObject> _grassByTile = new();
     private readonly HashSet<TileCoord> _lyingTiles = new();
+    private readonly HashSet<TileCoord> _floorTiles = new();
     private readonly HashSet<TileCoord> _hiddenGrassTiles = new();
     private readonly List<TileCoord> _grassToggleScratch = new();
 
@@ -4007,6 +4022,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private void UpdateGrassFlattening(WorldSnapshot snapshot)
     {
         _lyingTiles.Clear();
+        _floorTiles.Clear();
+        foreach (var tile in snapshot.Tiles)
+        {
+            if (tile.HasFloor)
+            {
+                _floorTiles.Add(tile.Coord);
+            }
+        }
+
         foreach (var npc in snapshot.Npcs)
         {
             if (IsLyingDown(npc))
@@ -4028,7 +4052,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _grassToggleScratch.Clear();
         foreach (var coord in _hiddenGrassTiles)
         {
-            if (!_lyingTiles.Contains(coord))
+            if (!_lyingTiles.Contains(coord) && !_floorTiles.Contains(coord))
             {
                 _grassToggleScratch.Add(coord);
             }
@@ -4045,6 +4069,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         // Flatten under the newly lying.
         foreach (var coord in _lyingTiles)
+        {
+            if (!_hiddenGrassTiles.Contains(coord) &&
+                _grassByTile.TryGetValue(coord, out var grass) && grass != null)
+            {
+                grass.SetActive(false);
+                _hiddenGrassTiles.Add(coord);
+            }
+        }
+
+        // A completed architectural floor permanently covers the terrain tuft.
+        // This deliberately shares the same renderer toggle as flattening: no
+        // hidden duplicate mesh remains poking through the floor, and the sleep
+        // path cannot re-grow it when a character gets up.
+        foreach (var coord in _floorTiles)
         {
             if (!_hiddenGrassTiles.Contains(coord) &&
                 _grassByTile.TryGetValue(coord, out var grass) && grass != null)

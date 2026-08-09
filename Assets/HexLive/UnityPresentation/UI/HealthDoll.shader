@@ -4,7 +4,7 @@ Shader "HexLive/HealthDoll"
     // re-rendered on the hidden Portrait layer with every vertex tinted by the
     // HP of the body zone that owns it (StarCraft wireframe style — green →
     // yellow → red, dark stump when severed). All colour arrives as per-vertex
-    // Color32 written by HealthDollStage; the shader only shades it with a
+    // Color32 written by CharacterDollStage; the shader only shades it with a
     // fixed studio light + a rim so the figure reads as a 3D hologram, never
     // touching scene lights (the stage sits far outside the world).
     Properties

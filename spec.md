@@ -945,6 +945,11 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   (§60), dying (§105), playing dead (§105.14), **crying (§110)** and crawling
   (§50), plus every `corpse.npc` object. Hand-writing that union a second
   time is exactly how the crying body ended up lying in unbent grass.
+  **Built floor:** as soon as a tile receives `TileFlags.HasFloor`, its whole
+  grass clump is disabled and cannot re-grow after a lying character stands up.
+  This happens before walls/roof/`Indoor`: the completed floor itself covers
+  the terrain. The flag is transported in both snapshot keyframes and deltas,
+  so local and remote presentation switch on the same simulation tick.
 - Water renders sunken below its tile top. The sea/water tops use the imported
   **Definitive Stylized Water URP** material
   (`Resources/HexLive/Water/StylizedWaterDefinitive.mat`, from the user's
@@ -6934,16 +6939,27 @@ rows here are the pools it draws from.
 
 | Donor | Body mesh | Materials | Hair as authored | Voice bank |
 |---|---|---|---|---|
-| Marta | `Daz3D/Martanaked` | `Daz3D/Martanaked/Genesis3Female/` | LowPonytail | `marta` |
-| Molly | `MollyMesh.mesh` (385 MB standalone) | `Actors/Molly/Materials/` | ShilohHair | `molly` |
-| Jana | `Daz3D/Jana` | `Daz3D/Jana/Genesis3Female/` | JelikaHair_32434 | `jana` |
-| Jolly | `Actors/Jolly/Jolly.mesh` + `Jolly.asset` avatar | `Actors/Jolly/Materials/` | OnyxHair (red) | `jolly` |
+| Marta | `Actors/Marta/Marta.new.fbx` | `Actors/Marta/Materials/` | LowPonytail | `marta` |
+| Molly | `Actors/Molly/Molly.new.fbx` | `Actors/Molly/Materials/` | ShilohHair | `molly` |
+| Jana | `Actors/Jana/Jana.new.fbx` | `Actors/Jana/Materials/` | JelikaHair_32434 | `jana` |
+| Jolly | `Actors/Jolly/Jolly.new.fbx` | `Actors/Jolly/Materials/` | OnyxHair (red) | `jolly` |
 
 `ActorMesh` — **not `DisplayName`** — must parse to an `ActorName` (31B.3);
-`NpcActorView.Construct` falls back to Marta's body otherwise. The two used to
+an unknown value is a loud construction error and never substitutes another
+actor's body. The two used to
 be the same string on every NPC, which is why this line read the other way
 round for four iterations. Since §74 they are different things entirely:
 `ActorMesh` is the body, `DisplayName` is a name id.
+
+**Единый FBX-контракт.** Каждый actor prefab разрешает ровно один основной
+`SkinnedMeshRenderer`, привязанный к полному скелету тела. Один
+`ActorBodyResolver` используется живым `NpcActorView`, общей UI-куклой,
+отрезанными конечностями и build-gate. Имена актёров/renderer-ов, слово
+`Genesis`, количество вершин и донор другого персонажа не участвуют в выборе.
+Основной mesh обязан происходить из `.fbx` и иметь `Read/Write`; общий importer
+и build-gate проверяют это для всех prefab-ов без перечня особых имён. Старые
+standalone mesh/avatar ассеты пока остаются на диске как архив, но runtime и
+actor prefab-ы на них не ссылаются.
 
 **31B.1a Jolly (fourth colonist).** Imported from molly_copy the same way as
 the first three, with three deltas worth recording:
@@ -11557,9 +11573,13 @@ with rest and food. Health/mobility math still sees the true 0.
 ### §50.4 The limb in the world
 `Sever` spawns a `body.limb_severed` object at her feet (mirrors the corpse):
 `CurrentUser` = whose limb (which actor mesh), `Variant` = which `BodyPart`,
-`ResourceAmount` = `SeveredLimbDecayTicks` (4800 ≈ 2 days). It's tagged `Decays`,
-so the generalised `CorpseSystem` rots it away on the body clock — but without a
-corpse's mourn/bury interactions. Snapshot carries `ObjectSnapshot.Variant` and
+`RotationDegrees` = the owner's facing at the cut (stored in `(0, 360]`, because
+zero is the legacy object-facing sentinel), `ResourceAmount` =
+`SeveredLimbDecayTicks` (4800 ≈ 2 days). Its persisted junction is the gameplay
+and interaction anchor; the posed visual may sit offset from that anchor at the
+actual former bone location. It's tagged `Decays`, so the generalised
+`CorpseSystem` rots it away on the body clock — but without a corpse's
+mourn/bury interactions. Snapshot carries `ObjectSnapshot.Variant` and
 `NpcSnapshot.SeveredParts`.
 
 ### §50.5 Presentation
@@ -11570,21 +11590,40 @@ a below-elbow/below-knee cut that leaves a stub (and drops the sleeve/trouser
 riding those bones) without deforming the shoulder/hip. The stump bleeds via the
 normal §40.8-D wound paint on the remaining stub (the sim already filed the deep
 wound there) — no special stump art (the "prosthetic-hole" look stays rejected,
-§40.8-D). A **lost leg** forces `PostureHint = Crawl`, which drives a new
-`Crawling` animator bool → a dedicated `Crawl` state playing the imported
-`Zombie Crawl` clip (AnyState loop, cleared on death; built by
-`BuildNpcActionStates`). Crawl and Limp are now distinct animator states, never
-both at once; the old procedural Crawl shoulder-pose is gone. While legless,
-every standing base clip (Idle/crouch/turn-on-spot) and standing verb —
+§40.8-D). A **lost leg** forces `PostureHint = Crawl`; presentation derives
+`_legless` from the severed/prosthetic state and makes it the highest-priority
+locomotion override: Idle becomes `NpcAnimSet.proneIdle`, and all three gait
+slots become the imported `Zombie Crawl` clip. The legacy AnyState `Crawl`
+state is not entered (`Crawling` stays false), so it cannot hijack sitting,
+sleeping or drinking. Crawl and Limp remain mutually exclusive, and the old
+procedural Crawl shoulder-pose is gone. While legless, every other standing
+base clip (crouch/turn-on-spot) and standing verb —
 Gather/Talk/Dress, and **Eat/Drink** (raise-to-mouth suppressed, `X Bot@Drinking`
 overridden) — swaps to the prone idle `NpcAnimSet.proneIdle`: the `LayingBelly`
 clip (belly-down laying loop ported from the molly project, time-stretched 10×
 to match its 0.1-speed Laying state); Sit/Sleep/LieDown keep their own clips.
-The dropped limb is
-the **real geometry**: `SeveredLimbFactory` slices the owner's shared bind-pose
-mesh by bone-weight to the distal chain (independent of the runtime collapse)
-into a plain `MeshFilter`; when the mesh isn't Read/Write it falls back to a
-primitive.
+The dropped limb is the **real posed geometry**. A fresh drop is deliberately
+one render beat behind the body: `SeveredLimbDropView` waits through
+`WaitForEndOfFrame`, after snapshot condition, Animator and
+`NpcActorView.LateUpdate` have put the owner into the fallen/prone pose. It then
+copies only the current transform hierarchy into an invisible bone-only
+pose-clone (never `Instantiate(owner.gameObject)`), restores the remembered
+authored scale of the collapsed distal chain on that clone, runs `BakeMesh`, and
+slices the baked vertices by the FBX bone weights. The resulting plain
+`MeshFilter` keeps the source renderer's world TRS, so it remains exactly where
+the limb was on the posed body; the clone and intermediate baked mesh are
+destroyed in the same coroutine step, before another rendered frame. The live
+NPC is never restored, re-dressed or mutated by the capture.
+
+Pose capture is admitted for an object at most 12 ticks old while its owner is
+still within `1.5 × HexRadius = 2.25 wu` of the persisted junction. This covers
+normal, fast-forward and remote-frame delay without letting an old drop follow
+an owner who already crawled away. A restored/late object is rebuilt from the
+same owner's reference FBX at its saved junction and saved facing. Every path
+resolves the source through the common `ActorBodyResolver`; substituting Marta,
+Molly or any other actor is forbidden. If the owner/FBX is gone or the mesh
+violates the Read/Write contract, the ordinary correctly-sized fallback prop is
+shown instead of a borrowed limb.
 
 Краска культи следует обычному `WoundState.Heal01`: свежий след остаётся ярким,
 после полного естественного свёртывания либо перевязки постепенно бледнеет и
@@ -11645,20 +11684,30 @@ hand-authored string is absent. Real icons can replace the emoji per id later.
 
 ### §51.2 The window (CharacterPanel)
 Окно адаптивно вписывает утверждённый макет примерно в `940×620` проектных
-единиц и сохраняет три зоны: слева отдельные контейнеры одежды, в центре
-масштабируемая кукла с единственным основным телесным якорем каждой вещи, справа
-переноска/рюкзак и типизированная кобура. Левая и правая руки — две отдельные
-одноячеечные панели под куклой; они не входят в панель рюкзака. Одежда с нулевой
-вместимостью остаётся кликабельной компактной меткой у своего якоря. Активный
-рабочий предмет показывается у руки куклы, а его настоящая ячейка помечается
-`В РАБОТЕ`.
+единиц и делится строго пополам. Левая половина содержит все вещи и группы в
+порядке: переноска/рюкзак на всю ширину; контейнеры одежды по `WornItems` по две
+карточки в ряд; кобура; компактные метки одежды без вместимости; диагностический
+`Overflow`. Правая половина целиком занята большим полноростовым preview общей
+`CharacterDollStage`. Она клонирует уже собранное живое тело мирового NPC вместе
+с одеждой, волосами, оружием и протезами, не меняя мирового актёра. Клон стоит в
+`Idle`, смотрит в камеру, освещён тёплым key-light и холодным rim-light; drag
+левой кнопкой вращает его вокруг вертикали. Схема, подписи вокруг тела и линии
+не рисуются. Наведение на видимый mesh одежды подсвечивает её группу слева и
+открывает карточку. Активный рабочий предмет остаётся в своей настоящей ячейке,
+помеченной `В РАБОТЕ`.
+
+В окне, его группах и карточке нет `ScrollView`, `Scroller`, страниц или
+колёсной прокрутки. После размещения окна единый размер ячейки выбирается
+ступенчато `48 → 42 → 36 → 30 → 28`; вместе с ним компактно уменьшаются отступы,
+gap и вторичные подписи. Контейнеры, пустые слоты и нижние строки никогда не
+скрываются и не обрезаются намеренно. Штатный инвентарь должен помещаться на
+42–48, меньшие ступени — защита для расширенных тестовых данных.
 
 Ячейки используют штатные `ItemIcons`, локализованные имена и цвета панели.
 Карточка предмета существует в одном экземпляре: прежние
-`BuildInventoryDetail` / `ShowItemDetail` / `BuildItemStats` переиспользуются,
-но карточка теперь является поповером поверх основного окна. Нажатая ячейка
-остаётся видимой; поповер открывается напротив неё на более свободной стороне,
-ограничивается границами окна и закрывается крестиком. Исчезновение предмета,
+`BuildInventoryDetail` / `ShowItemDetail` / `BuildItemStats` переиспользуются с исходной вёрсткой карточки один в один.
+Клик для открытия не нужен: hover над занятой ячейкой, заголовком одежды или её мешем на preview открывает
+поповер рядом с точкой наведения. Короткая задержка даёт перевести мышь на саму карточку; уход курсора, исчезновение предмета,
 смена выбранного NPC или закрытие инвентаря закрывает карточку. Bounds всего
 окна по-прежнему входят в `NpcSelection.PointerOverUi`.
 
@@ -11682,8 +11731,9 @@ Inventory.Capacity = min(IntactHands, HandSlots)
 - **Hands** — `BodyState.IntactHands` считает руки с `LimbFunction >= 0.20`, а
   не просто вычитает записи `Severed`. Naked, that gives two самостоятельные
   функциональные ячейки (1/0 после ампутации), включая восстановленную
-  протезом руку и исключая изношенный ниже порога протез. Пара по-прежнему
-  нужна двуручному оружию (§52.5).
+  протезом руку и исключая изношенный ниже порога протез. В snapshot руки остаются типизированными
+  `HandLeft`/`HandRight`, но UI дорисовывает их последними ячейками в той же панели переноски/полевого
+  рюкзака, а не в отдельных панелях. Пара по-прежнему нужна двуручному оружию (§52.5).
 - **Переноска без одежды** — при наличии хотя бы одной рабочей руки тело даёт
   `BaseCarrySlots` (2), а Сила выше §76-порога добавляет ещё одну ячейку. Это
   отдельная панель «Переноска», а не невидимые карманы рук; полностью безрукий
@@ -11699,7 +11749,7 @@ Inventory.Capacity = min(IntactHands, HandSlots)
 - **Рюкзак** — любая надетая вещь слоя `Bags` не создаёт конкурирующую вторую
   сетку: её `InventoryCapacity` прибавляется к той же панели переноски. Без
   рюкзака заголовок — «Переноска»; с ним — локализованное имя вещи и строка
-  разбивки `база + Сила + рюкзак`. Руки от этого не меняются.
+  разбивки `база + Сила + рюкзак + руки`. Руки от рюкзака логически не меняются — UI лишь объединяет их в одной панели.
 - `InventoryState.IsPersonalEffect` сейчас возвращает false: бутылка и оружие
   занимают обычные либо типизированные ячейки, скрытой личной вместимости нет.
 
@@ -11730,6 +11780,12 @@ Inventory.Capacity = min(IntactHands, HandSlots)
 ячейки. Старые `InventoryItems` и строки состояния временно остаются для
 существующей карточки. Save-формат не меняется; snapshot wire v17 перевозит
 производную раскладку.
+
+UI не создаёт отдельные панели рук: `HandLeft`/`HandRight` остаются
+типизированными контейнерами wire-контракта, но их существующие ячейки
+добавляются последними в сетку `Carry`. При нулевой базовой переноске и хотя бы
+одной функциональной руке создаётся только визуальная группа «Переноска» для
+hand-slot. Отсутствующая/нефункциональная рука удаляет лишь свою ячейку.
 
 ### §52.2 Garments are containers
 
@@ -13360,54 +13416,35 @@ readout list. Pure presentation: everything reads the existing `NpcSnapshot`
 zone lists (`BodyParts` "Zone=0.87", `SeveredParts`, `BandagedZones`
 "Zone"/"Zone|g", `Wounds` "Zone|Seed|Heal01"); the sim is untouched.
 
-### §57.1 The doll (`HealthDollStage`)
+### §57.1 Общая кукла (`CharacterDollStage`)
 
-`UI/HealthDollStage.cs` — a `PortraitStage`-style stage: its own camera renders
-into a 384×512 RenderTexture on the hidden **Portrait** layer (already culled
-from the main camera), parked far below the map.
+Инвентарь и HP используют один `UI/CharacterDollStage`: одна камера снимает
+один клон уже собранной живой иерархии выбранного NPC на скрытом слое
+**Portrait**. Клон включает одежду, волосы, глаза, оружие и fitted-протезы,
+ставится в `Idle`, смотрит в камеру и сохраняется при переключении окон.
+`Hidden → Inventory → Health` не вызывает `Instantiate`; пересборка допустима
+только при смене NPC или фактическом изменении визуальной иерархии источника.
+Мировой NPC никогда не перемещается и не получает материалы куклы.
 
-- **Built from the selected NPC's live actor hierarchy** (falling back to
-  `Resources/HexLive/Actors/<ActorMesh>` only when the actor is unavailable),
-  **static** — no idle spin, and the clone is a DEAD mannequin: it is instantiated under an inactive holder
-  and every live component (FinalIK solvers, Magica cloth, colliders,
-  physics — everything but bones/renderers/Animator) is stripped BEFORE the
-  first Awake. Left alive, those solvers kept simulating the doll with no IK
-  targets/floor and slowly dragged it into a flat sheet. Pose: ONE evaluated
-  frame of the Mixamo "Female Standing Pose" clip
-  (`Resources/HexLive/Poses/`, humanoid — the AnimLibrary postprocessor also
-  watches this folder; a non-humanoid import is rejected at runtime via
-  `clip.humanMotion` with fallback to the controller's Idle frame 0), then
-  the Animator is destroyed and the bones keep the pose. Never swing the
-  shoulder bones manually out of the T-pose: Genesis skinning without its
-  authored poses candy-wraps the shoulders («руки-крюки»). Front view,
-  camera framed once from the skinned bounds. This is not just a cache win:
-  a Resources actor prefab may be a skeleton shell while runtime composition
-  has supplied the visible `SkinnedMeshRenderer`; cloning the live hierarchy
-  keeps the health doll available for that character instead of rendering an
-  empty backdrop.
-- **Zone mesh without hand-authored masks**: the skin mesh is cloned and every
-  vertex is classified by its **dominant skinning bone** walked up the Genesis3
-  hierarchy to the zone roots (`neckLower`→Head, `abdomenUpper`→Torso,
-  `hip/pelvis/abdomenLower`→Pelvis, `l/rShldrBend`→Arms, `l/rThighBend`→Legs) —
-  the same segments `SkinTexturePainter` targets. Non-skin submeshes
-  (eyes/lashes/mouth/nails, the `NpcActorView` hint list) are dropped; other
-  renderers (hair) disabled.
-- **A new actor's body mesh MUST be Read/Write enabled.** Cloning, submesh
-  filtering and the per-vertex zone classification all read the mesh on the
-  CPU, so a non-readable body makes the build bail with a console warning and
-  the window shows an empty backdrop. A DAZ FBX always imports with
-  `isReadable: 0` (§31B.4B hits the same trap), which is exactly why the §72
-  outsider Kshishtof had no doll while the girls did — his `Kshishtof.fbx`
-  came in non-readable, Marta's and Jana's did not. Flip the importer flag
-  when adding an actor, not the code.
-- **Colour** is per-vertex `Color32` shaded by `UI/HealthDoll.shader` (fixed
-  studio light + rim, no scene lighting): HP 1→0 ramps green→yellow→red
-  (panel palette), a **bandaged** zone lightens 30 % toward white, a **severed**
-  zone paints dark and its distal bone collapses (`lForearmBend`/`lShin` etc. —
-  §50 parity with the live body). `Resources/HexLive/UI/HealthDoll.mat` is the
-  build-time reference that keeps this runtime-created material's shader from
-  being stripped from a player build; a missing shader is a loud build failure,
-  never a silent grey viewport. Repaints only when the zone signature changes.
+- На одном клонированном скелете два body renderer-а. Обычный renderer работает
+  в `Inventory`; дополнительный зональный renderer использует тот же FBX mesh,
+  bones и bounds в `Health`. Смена режима лишь переключает `enabled`, не
+  переодевает клона и не переставляет материалы.
+- Зоны vertex-ов вычисляются по dominant bone и общим корням частей тела.
+  Health-материал назначается только skin-submesh-ам; глаза, рот и прочие
+  не-кожные слоты сохраняют обычные материалы. Отдельные renderer-ы одежды,
+  волос и протезов тоже остаются обычными и видимыми.
+- HP 1→0 идёт green→yellow→red; bandage осветляет зону на 30 %, severed красит
+  её тёмной. Сжатие distal-костей выполняется в `LateUpdate` после Animator.
+  `FittedProstheticPoseFollower` клонируется вместе с иерархией и следует уже
+  клонированным костям — отдельная сборка протеза для HP запрещена.
+- Основное тело разрешается только общим `ActorBodyResolver`; его FBX обязан
+  иметь `Read/Write`, что обеспечивает единый importer/build-gate §31B. Если
+  зональный mesh/шейдер всё же недоступен, viewport показывает обычного
+  персонажа и локализованное явное сообщение, а не пустой серый кадр.
+- `Resources/HexLive/UI/HealthDoll.mat` остаётся build-time ссылкой на
+  `HexLive/HealthDoll`; vertex colors обновляются только при изменении подписи
+  зон. Поворот куклы общий для обоих режимов.
 
 ### §57.2 The window (CharacterPanel)
 
@@ -14164,7 +14201,7 @@ int). На `WorldState`: `DreamQueue` (сеется лениво из `SpecDream
 `DeadTiredSleepBoost` (0.30): тело бросает дело и планирует наземный сон, а
 `BuildGroundSleepPlan` и так якорит место к костру (в холод — ближе к огню,
 §49 SmartSleepSpot). Вымотанное тело ТЕРПИТ умеренный голод/жажду — потолок
-пробуждения поднимается с 0.6 до линии голода 0.85 — поэтому «слегка голодная и
+пробуждения поднимается с 0.7 до линии голода 0.85 — поэтому «слегка голодная и
 уставшая» ложится нормально, а не грызёт себя до нуля и не падает на месте. НО не
 выше линии голода: спящая всё равно ПРОСЫПАЕТСЯ поесть/попить прежде, чем нужда её
 убьёт (соак без этого потолка дал смерть — осаждённая проспала нужды до 1.0,
@@ -14174,8 +14211,12 @@ seed 42). Достижимая еда всё равно перебивает с�
 
 **65.2 Пробуждение — без дёрганья.** `HasSleepInterrupt` общий для «начать спать»
 и «продолжать спать», поэтому оба конца согласованы (петли лечь-встать нет). Стартом
-командует низкий порог (0.15), а уже уснувшая терпит до дневной линии пробуждения
-(0.45): это ОДИН длинный сон до отдохнувшего состояния, а не серия дрёмов.
+командует низкий порог (0.15), а уже уснувшая (r2) спит ДО ПОЛНОЙ энергии — днём и
+ночью один и тот же предел `NightSleepWakeEnergy` (0.999): это ОДИН длинный сон до
+отдохнувшего состояния, а не серия дрёмов. Раньше будят только настоящая нужда —
+голод/жажда за потолком `SleepInterruptHunger/Thirst` (0.7 = шкала еды/воды в UI
+упала ниже 30%) — или опасность. Потолки нарочно НИЖЕ линии голода (0.85), чтобы
+спящая всегда просыпалась поесть/попить раньше, чем нужда станет смертельной.
 
 **65.3 Диагноз: настоящая причина коллапсов — НЕ лень и НЕ голод, а ОПАСНОСТЬ.**
 Headless-соак замерил, ПОЧЕМУ падают. Коллапсов много (~0.86 на NPC в день), но 0
@@ -15132,6 +15173,39 @@ frame-time/GC trace, не deep profiling capture.
 сюда не доходит вовсе — оно занимает все три слота. Цена: девушка с топором
 по-прежнему идёт на 1.38×; честное лечение — своя строка калибровки для
 вооружённого шага и вооружённые же клипы в слотах 1-2, это контент, а не код.
+
+### §71.8 Гонка Idle↔Walk: держалка шага читает намерение сима
+
+Жалоба «персонажи часто дёргаются Idle↔Walk». Замер (headless-модель
+`SampleMotion` поверх потиковых поз реального сима, три сида + сейв игрока,
+8 000 тиков): идущая колонистка останавливается 5-12 раз на минуту ходьбы, и
+десятки раз за полчаса замирает на **2-3 тика (0.5-0.75 с) посреди маршрута** —
+очередь у занятого джанкшена (`BlockedWaitTicks`, статус залипает на `Moving`),
+заминка перепланирования между ногами пути. Одна держалка `WalkHoldSeconds`
+(0.3 с) покрывала ровно один тик, поэтому каждая такая заминка хлопала
+Walk→Idle→Walk. Вторая половина той же гонки — противоход: экспоненциальный
+хвост фильтра (`SpeedSmoothTau`) держал Walk ещё ~0.47 с после того, как тело
+уже стояло, то есть **каждое прибытие заканчивалось маршем на месте**.
+
+Лечение: вид больше не гадает по одной кинематике — рендерер кормит
+`NpcActorView.SetSimulationMovementIntent(MovementStatus == "Moving")` рядом с
+сим-скоростью, и держалка раздваивается:
+
+- **в пути** (`Moving`, включая блок-очередь — латч §71.3 честно держит статус)
+  — `MidJourneyWalkHoldSeconds` (0.8 с): мостит заминку до 3 тиков, каденс на
+  ней сам затухает к `MinGaitCadence`;
+- **маршрут окончен** (`Arrived`/`Idle`/`Waiting`) — короткий `WalkHoldSeconds`
+  (0.3 с), и фильтр-продление отключено: прибытие отсекается без хвоста
+  (замер: средний марш на месте перед Idle 0.35 → 0.27 с).
+
+Разворот на месте (`PivotYawSpeed`) исключён из обеих держалок, как и был.
+Сцена без фида намерения (LocomotionTest и прочие стенды) ведёт себя как «в
+пути» — без слова сима безопасная сторона это мостить. Обе ручки в
+`HexTuningConfig` + слайдеры LocomotionTest. Прыжки в замере — большинство
+коротких вспышек, но их маскируют Jump-состояния §21.21B; паузы решений
+(2-3 тика `Idle` между целями) остаются честной заминкой — это churn слоя
+решений (§35.4a), а не вида.
+
 ## §72 Враг-человек — фракции, охотник и сплочённый отпор (iteration 72)
 
 **Цель.** На острове появляется мужчина. Он — полноценный выживальщик: те же
@@ -15550,9 +15624,8 @@ RNG в симуляции нет вообще. Три правила:
 мира уникальны; видимый облик уникален на 15 сидах; каждый выпавший id
 разрешается в реальный ассет на диске; чужак не тронут; круг сейва v18 сохраняет
 композицию. **НЕ проверено в игре:**
-совпадение UV между донорскими наборами материалов на кастомных экспортах
-(`MollyMesh.mesh`, `Jolly.mesh` — все четыре Genesis3Female, но это допущение, а
-не измерение), и посадка причёсок: `WearConfig` протюнен только у `AdellHair` и
+совпадение UV между наборами материалов на единообразных actor FBX-экспортах
+(это допущение, а не измерение), и посадка причёсок: `WearConfig` протюнен только у `AdellHair` и
 `Bob3Hair`, остальные 14 идут на дефолтах (scale 1, offset 0) и часть комбинаций
 сядет криво. Тюнится живьём в `WardrobeTest` (§31B.4B-fit) — это доводка, не баг.
 
@@ -15563,10 +15636,14 @@ RNG в симуляции нет вообще. Три правила:
 не требует миграции сохранений; одинаковые экземпляры одного типа нравятся
 одинаково. В карточке предмета значение показано игроку в процентах.
 
-При выборе одежды сначала действуют прежние обязательные правила: совместимость
-с полом, реальный прирост тепла, а при угрозе — прирост брони. Симпатия служит
-вторичным критерием среди равноценных допустимых вариантов, расстояние —
-последним. Для оружия предмет с максимальной симпатией считается любимым.
+Симпатия всегда вторична к статам предмета. При выборе одежды сначала действуют
+обязательные правила (совместимость с полом, реальный прирост тепла, а при
+угрозе — прирост брони), затем кандидаты ранжируются по качеству — сумме
+прироста тепла и брони: чем вещь теплее и бронированнее, тем она желаннее.
+Симпатия решает только между равноценными допустимыми вариантами, расстояние —
+последним. Для оружия любимым считается предмет с максимальным `MeleePriority`
+(мачете 35 > копьё 30 > топор 20 > нож 10 — между мачете и ножом всегда
+мачете); симпатия выбирает лишь между экземплярами одного класса.
 
 Любимое оружие остаётся в своей настоящей ячейке одежды, переноски, руки или
 кобуры и учитывается в `Inventory.UsedSlots` по обычным правилам. Верхняя часть
@@ -17605,7 +17682,7 @@ AnyState годится для ОДНОГО состояния (`Death`, `Crawl`
 Рисуется кольцом вокруг портрета (`RingMeter`, тот же, что у нужд), а
 горизонтальная полоска снята: два бара про одно и то же спорили бы друг с
 другом, а кольцо всегда рядом с лицом — видно, КОМУ скоро конец, не читая цифр.
-Цвет берётся у `HealthDollStage.StatusColor`, то есть у той же функции, что
+Цвет берётся у `CharacterDollStage.StatusColor`, то есть у той же функции, что
 красит куклу §57: два мнения о «насколько всё плохо» разошлись бы. Красная
 приписка «сколько не отрастёт, пока открыты раны» (§40.8B) переехала в число.
 
@@ -17897,7 +17974,8 @@ stall-таймера. Обратная сторона той же монеты �
   `Sweep` больше нет — его заменила вспышка.
 
 Снимается по-прежнему ЖИВОЙ персонаж на слое Actors — грязь, загар, раны и
-одежда должны быть видны; клон-студия (`HealthDollStage`) для лиц не годится.
+одежда должны быть видны; общая UI-студия (`CharacterDollStage`) для кэша лиц
+не используется.
 
 Отвергнуто: постоянный свет с маской слоя (вспышка была бы видна главной
 камерой — маска света решает, что он ОСВЕЩАЕТ, а не кто это видит) и осветление
@@ -19601,10 +19679,16 @@ constructor-elements; это контракт будущего ручного и
 Геометрический контракт один для симуляции, Blender и схем: pointy-top hex с
 вершинами `(0, ±1.5)` и `(±1.299, ±0.75)`; junction строится непосредственно
 через `HexPointLayout.ToLocalOffset`, без дополнительного поворота на 90°.
-Авторский `Bay_00_Door` имеет нормаль `local forward + 30°`, поэтому ориентация
-здания квантуется к шести симметриям `30° + 60°k`, а portal-edge вычисляется по
-`RotationDegrees + 30°`. Произвольный yaw запрещён: он снял бы стены с рёбер
-тайла. В нулевой авторской позе дверной bay занимает верхнюю половину
+Авторский `Bay_00_Door` стоит на нижне-правом ребре: его наружная нормаль равна
+`RotationDegrees + 300°`. Целый архитектурный footprint уже авторится в плоскости
+Blender X/Y, совпадающей с simulation X/Y и Unity X/Z, поэтому его Unity yaw равен
+`-RotationDegrees`; обычный forward-конвертер `90° - RotationDegrees` к зданию
+не применяется. Поэтому ориентация
+самого здания квантуется к шести симметриям pointy-top контура `0° + 60°k`, а portal-edge вычисляется по
+`RotationDegrees + 300°`. Произвольный yaw запрещён: он снял бы стены с рёбер
+тайла. Стеновая мебель использует те же шесть поворотов `0° + 60°k`: кровать,
+стойка, коллектор и верстак не получают промежуточного yaw и могут быть уложены
+вдоль любой из шести стен. В нулевой авторской позе дверной bay занимает верхнюю половину
 северо-западного ребра, pivot лежит у верхней вершины.
 
 Внутри создаются два экземпляра единственного типа кровати `bed.basic` на внутренних узлах
@@ -19613,6 +19697,12 @@ constructor-elements; это контракт будущего ручного и
 спасение раненой работают без особого сценария. Их obstacle-radius равен нулю:
 визуально компактные циновки помещаются вдвоём, а стены, а не мебель, задают
 топологию комнаты.
+
+Готовый настил имеет единую walkable-плоскость `terrain Y + 0.125 wu`. Корни
+стоящих NPC и встроенной мебели (`bed.basic`, домашний очаг) поднимаются на эту
+плоскость; сама архитектура остаётся привязана к terrain Y. Точка сна наследует
+тот же подъём от кровати, поэтому лежащая поза продолжает использовать штатный
+`FindBedAttachPoint → NpcActorView.SetLaying`, без отдельного сценового offset.
 
 Их представление создаётся тем же производственным
 `BedAssembly.BuildFinished("bed.basic")`, что и обычная построенная мебель, и

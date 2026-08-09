@@ -41,8 +41,8 @@ MonoBehaviour:
   sleepEnergyThreshold: 0.203
   sitComfortThreshold: 0.29
   sitNeedGate: 0.29
-  sleepInterruptHunger: 0.212
-  sleepInterruptThirst: 0.212
+  sleepInterruptHunger: 0.7
+  sleepInterruptThirst: 0.7
   dressThermalThreshold: 0.45
   dressColdTemp: 14
   dressWarmthCeiling: 0.5
@@ -85,7 +85,7 @@ MonoBehaviour:
   sleepEnergyFireBonus: 0.005
   sleepEnergyLeafBedBonus: 0.006
   sleepEnergyBasicBedBonus: 0.01
-  exhaustedSleepWakeEnergy: 0.249
+  exhaustedSleepWakeEnergy: 0.45
   comaWakeThreshold: 0.15
   comaBloodEnterThreshold: 0.25
   comaBloodWakeThreshold: 0.35

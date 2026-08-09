@@ -201,6 +201,21 @@ public sealed class InventoryLayoutTests
             e.Type == "InventoryMadeRoom" && e.Message.Contains(ContentIds.PickaxeStone)), Is.True);
     }
 
+    // §75A: статы первичны — любимое оружие выбирает MeleePriority, а не вкус.
+    // Мачете (35) обязано побеждать нож (10) у ЛЮБОГО персонажа, каким бы ни
+    // был его хеш симпатии; вкус решает только между экземплярами одного класса.
+    [Test]
+    public void FavoriteWeapon_StatsBeatTaste_MacheteAlwaysOverKnife()
+    {
+        var pack = new[] { GearCatalog.Knife, GearCatalog.Machete };
+        var reversed = new[] { GearCatalog.Machete, GearCatalog.Knife };
+        for (var npcId = 1; npcId <= 200; npcId++)
+        {
+            Assert.That(ItemAffinity.FavoriteWeapon(npcId, pack), Is.EqualTo(GearCatalog.Machete));
+            Assert.That(ItemAffinity.FavoriteWeapon(npcId, reversed), Is.EqualTo(GearCatalog.Machete));
+        }
+    }
+
     [Test]
     public void MissingTool_DoesNotReplaceSoleFavoriteWeapon()
     {

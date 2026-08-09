@@ -298,6 +298,7 @@ public static class WorldSnapshotExporter
                 cached.Walkable = tile.Flags.HasFlag(TileFlags.Walkable);
                 cached.Blocked = tile.Flags.HasFlag(TileFlags.Blocked);
                 cached.Indoor = tile.Flags.HasFlag(TileFlags.Indoor);
+                cached.HasFloor = tile.Flags.HasFlag(TileFlags.HasFloor);
                 cached.Water = tile.Flags.HasFlag(TileFlags.Water);
                 cached.Elevation = tile.Elevation;
             }
@@ -318,6 +319,7 @@ public static class WorldSnapshotExporter
                 Walkable = tile.Flags.HasFlag(TileFlags.Walkable),
                 Blocked = tile.Flags.HasFlag(TileFlags.Blocked),
                 Indoor = tile.Flags.HasFlag(TileFlags.Indoor),
+                HasFloor = tile.Flags.HasFlag(TileFlags.HasFloor),
                 Water = tile.Flags.HasFlag(TileFlags.Water),
                 Elevation = tile.Elevation
             });

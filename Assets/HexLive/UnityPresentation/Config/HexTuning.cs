@@ -56,6 +56,7 @@ namespace HexLive.UnityPresentation.Config
             NpcActorView.MaxWalkGait = c.maxWalkGait;
             NpcActorView.SpeedSmoothTau = c.speedSmoothTau;
             NpcActorView.WalkHoldSeconds = c.walkHoldSeconds;
+            NpcActorView.MidJourneyWalkHoldSeconds = c.midJourneyWalkHoldSeconds;
             NpcActorView.PivotYawSpeed = c.pivotYawSpeed;
 
             WaterWave.Amplitude = c.waveAmplitude;
@@ -94,6 +95,7 @@ namespace HexLive.UnityPresentation.Config
             c.maxWalkGait = NpcActorView.MaxWalkGait;
             c.speedSmoothTau = NpcActorView.SpeedSmoothTau;
             c.walkHoldSeconds = NpcActorView.WalkHoldSeconds;
+            c.midJourneyWalkHoldSeconds = NpcActorView.MidJourneyWalkHoldSeconds;
             c.pivotYawSpeed = NpcActorView.PivotYawSpeed;
 
             c.waveAmplitude = WaterWave.Amplitude;

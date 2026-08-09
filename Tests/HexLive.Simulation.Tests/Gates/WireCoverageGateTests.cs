@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Wire;
 using NUnit.Framework;
@@ -67,6 +68,45 @@ public sealed class WireCoverageGateTests
             "Свойство не пережило кодирование — значит WorldSnapshotCodec о нём не " +
             "знает. Добавь его в Write/Read (и помни: в дельтах промах живёт до " +
             "следующего ключевого кадра):\n  " + string.Join("\n  ", differences));
+    }
+
+    [Test]
+    public void FloorFlagSurvivesDeltaAndCanBeCleared()
+    {
+        var coord = new TileCoord(2, -1);
+        var sent = new WorldSnapshot { Tick = 10 };
+        sent.Tiles.Add(new TileSnapshot
+        {
+            Coord = coord,
+            Walkable = true,
+            Elevation = 2,
+            HasFloor = true
+        });
+        var mirror = new WorldSnapshot();
+        mirror.Tiles.Add(new TileSnapshot
+        {
+            Coord = coord,
+            Walkable = true,
+            Elevation = 2
+        });
+
+        var encoder = new SnapshotDeltaEncoder();
+        ApplyDelta(encoder.Encode(sent, includeDebugDetails: false), mirror, mirrorTick: -1);
+        Assert.That(mirror.Tiles[0].HasFloor, Is.True,
+            "Готовый пол должен выключить траву и на удалённом представлении.");
+
+        sent.Tick++;
+        sent.Tiles[0].HasFloor = false;
+        ApplyDelta(encoder.Encode(sent, includeDebugDetails: false), mirror, mirrorTick: 10);
+        Assert.That(mirror.Tiles[0].HasFloor, Is.False,
+            "Полный runtime-набор тайлов должен уметь очистить старый флаг зеркала.");
+    }
+
+    private static void ApplyDelta(byte[] bytes, WorldSnapshot mirror, int mirrorTick)
+    {
+        using var stream = new MemoryStream(bytes);
+        using var reader = new BinaryReader(stream);
+        SnapshotDeltaReader.Apply(reader, mirror, mirrorTick);
     }
 
     private static WorldSnapshot RoundTrip(WorldSnapshot snapshot)

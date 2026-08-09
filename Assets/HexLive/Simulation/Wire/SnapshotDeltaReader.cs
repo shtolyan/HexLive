@@ -52,6 +52,8 @@ public static class SnapshotDeltaReader
             WorldSnapshotCodec.ReadHeaderRecord(reader, into);
         }
 
+        WorldSnapshotCodec.ReadTiles(r, into);
+
         ApplySection(r, into.Objects, o => o.Id.Value,
             (reader, o) => WorldSnapshotCodec.ReadObjectRecord(reader, o));
 

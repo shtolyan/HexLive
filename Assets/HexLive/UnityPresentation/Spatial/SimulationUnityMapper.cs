@@ -46,5 +46,16 @@ namespace HexLive.UnityPresentation.Spatial
         {
             return 90f - simAngleDegrees;
         }
+
+        /// <summary>
+        /// Rotates geometry already authored directly in the simulation X/Y
+        /// footprint plane (Blender X/Y -> Unity X/Z). Unlike a character or
+        /// furniture forward vector, a complete hex has no +Z-facing offset:
+        /// simulation 0° must remain the prefab's identity pose.
+        /// </summary>
+        public static float ToUnityFootprintYawDegrees(float simAngleDegrees)
+        {
+            return -simAngleDegrees;
+        }
     }
 }

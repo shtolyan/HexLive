@@ -223,7 +223,8 @@ public sealed class BedSiteSystem : ISimulationSystem
                 rackSite.BuildProduct = ContentIds.DryingRack;
                 // §66: the rack has no sleeper to warm — it simply faces the
                 // flames, so the hung garments dry turned toward the heat.
-                rackSite.RotationDegrees = rackPlacement.FacingYaw;
+                rackSite.RotationDegrees =
+                    StructurePlacement.QuantizeHexYaw(rackPlacement.FacingYaw);
                 WorldObjectMutations.SetObstacleBlocking(world, rackSite, blocked: true);
                 rackSite.BillSticks = SimBalance.RackBillSticks;
                 rackSite.BillRope = SimBalance.RackBillRope;
@@ -251,7 +252,8 @@ public sealed class BedSiteSystem : ISimulationSystem
                     world, ContentIds.BuildSite, new FragmentId(1),
                     collectorPlacement.Tile, collectorPlacement.Junction);
                 collectorSite.BuildProduct = ContentIds.WaterCollector;
-                collectorSite.RotationDegrees = collectorPlacement.FacingYaw;
+                collectorSite.RotationDegrees =
+                    StructurePlacement.QuantizeHexYaw(collectorPlacement.FacingYaw);
                 WorldObjectMutations.SetObstacleBlocking(world, collectorSite, blocked: true);
                 collectorSite.BillSticks = SimBalance.WaterCollectorBillSticks;
                 collectorSite.BillStones = SimBalance.WaterCollectorBillStones;
@@ -367,7 +369,7 @@ public sealed class BedSiteSystem : ISimulationSystem
         // §66: a bed is laid SIDE-ON to the hearth — the sleeper warms her flank,
         // never her head or her feet. The yaw rides onto the raised bed, and the
         // body pinned to the bed's sleep point turns with it.
-        site.RotationDegrees = placement.SideOnYaw;
+        site.RotationDegrees = StructurePlacement.QuantizeHexYaw(placement.SideOnYaw);
         // §54.9A: the site now knows what it will become — claim the finished
         // bed's physical footprint so nothing else is placed across the frame.
         WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);

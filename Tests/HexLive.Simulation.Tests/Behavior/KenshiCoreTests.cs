@@ -6,6 +6,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
@@ -904,6 +905,53 @@ public sealed class KenshiCoreTests
             Assert.That(carrier.Mind.InterruptedRescuePatientId, Is.Null,
                 "Only a temporary combat interruption promises an automatic return.");
             Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+        });
+    }
+
+    [Test]
+    public void TransientCarryPathFailure_WaitsForRetryBudgetBeforeDroppingPatient()
+    {
+        var world = TestWorld.CreateWorld();
+        var pair = world.Entities.Npcs.Values
+            .Where(n => n.Faction == Faction.Colony).Take(2).ToList();
+        var carrier = pair[0];
+        var patient = pair[1];
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Plan.Status = PlanStatus.Completed;
+            npc.Execution.Status = ExecutionStatus.None;
+        }
+
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        patient.CurrentJunction = null;
+        carrier.CarriedNpcId = patient.Id;
+        patient.CarriedByNpcId = carrier.Id;
+        carrier.Mind.CurrentGoal = GoalType.Rescue;
+        carrier.Plan.Goal = GoalType.Rescue;
+        carrier.Plan.Status = PlanStatus.Active;
+        carrier.Plan.TargetAgentId = patient.Id;
+        carrier.Plan.TargetJunctionId = carrier.CurrentJunction;
+        carrier.Movement.SetStatus(MovementStatus.Blocked);
+        carrier.Movement.BlockedWaitTicks = 1;
+
+        KenshiRescueMath.SyncAll(world);
+        new ExecutionSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.CarriedNpcId, Is.EqualTo(patient.Id),
+                "Attempt 1/4 is transient; the patient must stay in the carrier's arms.");
+            Assert.That(patient.CarriedByNpcId, Is.EqualTo(carrier.Id));
+            Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Active));
+        });
+
+        PlanInterruption.Abort(world, carrier, "path retry limit reached");
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.CarriedNpcId, Is.Null);
+            Assert.That(patient.CarriedByNpcId, Is.Null);
+            Assert.That(patient.CurrentJunction, Is.Not.Null,
+                "The terminal route failure still puts the patient down safely.");
         });
     }
 

@@ -294,7 +294,7 @@ internal static class KenshiRescueMath
                 patient.CarriedByNpcId != carrier.Id || carrier.Health <= 0f ||
                 carrier.IsUnconscious(world.Tick) || carrier.Body.IsProne ||
                 patient.Health <= 0f ||
-                carrier.Movement.Status is MovementStatus.Blocked or MovementStatus.Invalid)
+                carrier.Movement.Status == MovementStatus.Invalid)
             {
                 DropSafely(world, carrier, "carry link/path/carrier invalid");
                 continue;

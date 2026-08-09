@@ -28,7 +28,12 @@ public sealed partial class ExecutionSystem
 
             if (helper.Movement.Status == MovementStatus.Blocked)
             {
-                KenshiRescueMath.DropSafely(world, helper, "destination route blocked");
+                // PathfindingSystem owns a four-attempt transient retry budget.
+                // Its first miss sets Blocked, but that is not yet a lost route:
+                // dropping here turned rescue into pick-up/drop every tick and
+                // prevented attempts 2..4 from ever happening. On the terminal
+                // miss PathfindingSystem calls PlanInterruption.Abort, whose
+                // carry teardown safely puts the patient down.
                 return;
             }
 

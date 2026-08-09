@@ -120,17 +120,19 @@ public sealed partial class ExecutionSystem
         }
 
         if (!KenshiRescueMath.TryFindDestination(
-                world, helper, patient, out var destination, out var destinationJunction))
+                world, helper, patient, out var destination, out var destinationJunction,
+                out var destinationTile))
         {
             PlanningSystem.SetGoalCooldown(world, helper, GoalType.Rescue);
-            PlanInterruption.Abort(world, helper, "no safe bed or lit-fire berth");
+            PlanInterruption.Abort(world, helper, "no safe bed or camp ground route");
             helper.Mind.CurrentGoal = GoalType.None;
             patient.Mind.PendingAidFrom = null;
             return;
         }
 
         helper.Execution.CurrentInteraction = InteractionType.PickUpPerson;
-        KenshiRescueMath.BeginCarry(world, helper, patient, destination, destinationJunction);
+        KenshiRescueMath.BeginCarry(
+            world, helper, patient, destination, destinationJunction, destinationTile);
         helper.Execution.CurrentInteraction = null;
     }
 }

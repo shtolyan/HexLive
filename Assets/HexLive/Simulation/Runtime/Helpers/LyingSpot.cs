@@ -109,14 +109,32 @@ internal static class LyingSpot
     /// </summary>
     internal static bool TrySolve(WorldState world, NPCState npc, out Placement placement)
     {
+        return TrySolveOnTile(
+            world, npc, npc.Tile, npc.Position, npc.RotationDegrees, out placement);
+    }
+
+    /// <summary>
+    /// Non-mutating preflight used before rescue pickup: proves that the
+    /// patient's full body can be placed somewhere on the destination tile.
+    /// </summary>
+    internal static bool CanSolveOnTile(WorldState world, NPCState npc, TileCoord tile)
+    {
+        return TrySolveOnTile(
+            world, npc, tile, HexSpatialMath.TileToWorld(tile), npc.RotationDegrees, out _);
+    }
+
+    private static bool TrySolveOnTile(
+        WorldState world, NPCState npc, TileCoord tileCoord,
+        Float2 preferredPosition, float preferredHeading, out Placement placement)
+    {
         placement = default;
-        if (!world.Tiles.Items.TryGetValue(npc.Tile, out var tile) ||
+        if (!world.Tiles.Items.TryGetValue(tileCoord, out var tile) ||
             !SupportsBody(tile, tile.Elevation))
         {
             return false;
         }
 
-        var center = HexSpatialMath.TileToWorld(npc.Tile);
+        var center = HexSpatialMath.TileToWorld(tileCoord);
         var candidates = new List<Candidate>(1 + 3 * HexPointLayout.InteriorRadius *
             (HexPointLayout.InteriorRadius + 1));
         foreach (var template in HexPointLayout.GetInteriorTemplates())
@@ -127,7 +145,7 @@ internal static class LyingSpot
                 continue;
             }
 
-            var delta = position - npc.Position;
+            var delta = position - preferredPosition;
             candidates.Add(new Candidate(position, node.Id, template.Slot,
                 delta.X * delta.X + delta.Y * delta.Y));
         }
@@ -138,7 +156,7 @@ internal static class LyingSpot
             return byDistance != 0 ? byDistance : a.NodeSlot.CompareTo(b.NodeSlot);
         });
 
-        var baseHeading = SnapToHexAxis(npc.RotationDegrees);
+        var baseHeading = SnapToHexAxis(preferredHeading);
         foreach (var candidate in candidates)
         {
             foreach (var offset in HeadingOffsets)
@@ -146,7 +164,7 @@ internal static class LyingSpot
                 var heading = Wrap360(baseHeading + offset);
                 var forward = Forward(heading);
                 var lateral = Lateral(forward);
-                if (!BodyClear(world, npc, npc.Tile, candidate.Position, forward, lateral))
+                if (!BodyClear(world, npc, tileCoord, candidate.Position, forward, lateral))
                 {
                     continue;
                 }

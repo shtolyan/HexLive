@@ -127,12 +127,13 @@ public static class Program
         var stopwatch = Stopwatch.StartNew();
 
         var explained = 0;
+        var explainedLoops = 0;
 
         for (var i = 0; i < options.Ticks && !world.Completed; i++)
         {
             engine.Step();
             watermark = Drain(world, watermark, metrics, trace, options.TraceTypes,
-                options, ref explained);
+                options, ref explained, ref explainedLoops);
             metrics.SampleTick(world);
 
             if (options.CombatFrames)
@@ -167,7 +168,8 @@ public static class Program
     /// дало бы дубликаты в счётчиках.
     /// </summary>
     private static long Drain(WorldState world, long watermark, SoakMetrics metrics,
-        StreamWriter trace, HashSet<string> traceTypes, SoakOptions options, ref int explained)
+        StreamWriter trace, HashSet<string> traceTypes, SoakOptions options,
+        ref int explained, ref int explainedLoops)
     {
         var items = world.Events.Items;
         var lowest = world.Events.LowestSeq;
@@ -195,7 +197,18 @@ public static class Program
                 simulationEvent.Message.Contains("ONSET", StringComparison.Ordinal))
             {
                 explained++;
-                ExplainStuck(world, simulationEvent);
+                ExplainWithTail(world, simulationEvent, "застой");
+            }
+
+            // §122: петля разбирается тем же хвостом и по своему счётчику.
+            // Общий счётчик означал бы, что шумный застой съедает бюджет петель
+            // и наоборот — а это разные болезни, и смотрят их порознь.
+            if (explainedLoops < options.ExplainLoops && !options.Quiet &&
+                simulationEvent.Type == "LoopDetected" &&
+                simulationEvent.Message.Contains("ONSET", StringComparison.Ordinal))
+            {
+                explainedLoops++;
+                ExplainWithTail(world, simulationEvent, "петля");
             }
 
             if (trace == null || traceTypes == null || !traceTypes.Contains(simulationEvent.Type))
@@ -223,10 +236,10 @@ public static class Program
     /// поэтому там так и лежат последние решения перед остановкой.
     /// </para>
     /// </summary>
-    private static void ExplainStuck(WorldState world, SimulationEvent stuck)
+    private static void ExplainWithTail(WorldState world, SimulationEvent stuck, string label)
     {
         Console.WriteLine();
-        Console.WriteLine("  ── застой: тик " + stuck.Tick + ", NPC " +
+        Console.WriteLine("  ── " + label + ": тик " + stuck.Tick + ", NPC " +
                           (stuck.EntityId?.ToString() ?? "-"));
         Console.WriteLine("     " + stuck.Message);
 

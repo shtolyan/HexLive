@@ -43,6 +43,21 @@ public sealed class WorldState
     /// </summary>
     public Runtime.FlightRecorder FlightRecorder { get; set; }
 
+    /// <summary>
+    /// Spec §122. Реестр намерений: что каждая NPC хотела и чем это КОНЧИЛОСЬ —
+    /// единственное место, где в симуляции записан ПРОГРЕСС.
+    /// <para>
+    /// В отличие от самописца выше он НЕ nullable и включён всегда: его кормит
+    /// сравнение трёх полей за тик, а не поток событий, и петля обязана
+    /// обнаруживаться в релизной сборке игрока, а не только в редакторе.
+    /// </para>
+    /// <para>
+    /// Так же НЕ сохраняется и НЕ едет в снапшоте: инструмент наблюдения, а не
+    /// состояние мира. После загрузки отсчёт начинается заново — безобидно.
+    /// </para>
+    /// </summary>
+    public Runtime.IntentLedger IntentLedger { get; } = new();
+
     public ContentCatalog Content { get; } = new();
 
     // Runtime-spawned objects allocate ids from here; bootstrap ids stay below 1000.

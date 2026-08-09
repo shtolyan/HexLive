@@ -35,6 +35,67 @@ public sealed class GoalCatalogGateTests
             string.Join("\n  ", missing));
     }
 
+    /// <summary>
+    /// ⭐ Spec §122. Реактивную цель ставит система, минуя аукцион, и она обычно
+    /// держит СЦЕНУ. Автовыход из петли обязан обходить такие цели стороной:
+    /// §81.14/§109.6 прямо говорят, что поход «докопаться» перебивается только
+    /// нокаутом, а первая версия с заморозкой и сбросом мигала «пить↔гнобить» —
+    /// это баг #90.
+    /// <para>
+    /// Гейт существует потому, что <c>Loop</c> — необязательный параметр строки:
+    /// новая реактивная цель, добавленная без него, молча получила бы
+    /// <c>Normal</c> и однажды была бы разорвана лестницей «по числам». Здесь
+    /// это падает сразу. Ровно этой проверки не хватало <c>Memory.Shun</c>,
+    /// который опционален и который забыли в GetWater (баг #67).
+    /// </para>
+    /// </summary>
+    [Test]
+    public void ReactiveGoalsAreStickyForLoops()
+    {
+        var wrong = GoalCatalog.All
+            .Where(d => d != null && d.IsReactive && !d.IsDead && d.Loop != LoopPolicy.Sticky)
+            .Select(d => d.Goal + " => " + d.Loop)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.That(wrong, Is.Empty,
+            "Реактивная цель без LoopPolicy.Sticky: сторож петель однажды " +
+            "разорвёт её сцену посередине. Либо поставь loop: LoopPolicy.Sticky, " +
+            "либо объясни здесь, почему эту цель прерывать МОЖНО:\n  " +
+            string.Join("\n  ", wrong));
+    }
+
+    /// <summary>
+    /// §122: не считается вовсе только то, ЧЕМ петлю разрывают. Если Ambient
+    /// расползётся на обычные цели, сторож ослепнет ровно там, где смотрит.
+    /// </summary>
+    [Test]
+    public void OnlyDoingNothingIsAmbient()
+    {
+        var allowed = new HashSet<GoalType> { GoalType.None, GoalType.Idle, GoalType.Explore };
+
+        var unexpected = GoalCatalog.All
+            .Where(d => d != null && d.Loop == LoopPolicy.Ambient &&
+                        !d.IsDead && !allowed.Contains(d.Goal))
+            .Select(d => d.Goal.ToString())
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.That(unexpected, Is.Empty,
+            "Цель объявлена Ambient, то есть сторож петель её не видит вовсе. " +
+            "Так можно только с бездельем и мёртвыми ординалами:\n  " +
+            string.Join("\n  ", unexpected));
+
+        var blind = allowed
+            .Where(goal => GoalCatalog.LoopFor(goal) != LoopPolicy.Ambient)
+            .Select(goal => goal.ToString())
+            .ToList();
+
+        Assert.That(blind, Is.Empty,
+            "Безделье снова считается попыткой — тогда каждая пауза в работе " +
+            "колонии пойдёт в отчёт как петля: " + string.Join(", ", blind));
+    }
+
     [Test]
     public void DescriptorsAreNotDuplicated()
     {

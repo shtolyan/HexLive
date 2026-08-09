@@ -26,6 +26,13 @@ public sealed class SoakOptions
     /// </summary>
     public int ExplainStuck = 3;
 
+    /// <summary>
+    /// §122. Сколько первых ПЕТЕЛЬ разобрать вслух. Отдельно от застоя, потому
+    /// что это разные болезни: застой — «не двигается», петля — «двигается и не
+    /// продвигается», и в одном прогоне их может быть по-разному много.
+    /// </summary>
+    public int ExplainLoops = 3;
+
     /// <summary>Какой мир строить: прототипный остров или арена абьюза (§91).</summary>
     public string Arena = "prototype";
 
@@ -50,7 +57,15 @@ public sealed class SoakOptions
             ["execution"] = new[]
             {
                 "GoalSelected", "PlanStarted", "PlanFailed", "PlanAborted",
-                "ExecFailed", "GoalInterrupted", "StuckDetected"
+                "ExecFailed", "GoalInterrupted", "StuckDetected", "LoopDetected"
+            },
+            // §122: круг и то, из чего он состоит. PlanStarted/PlanFailed рядом
+            // не для полноты — по ним видно, что попытки И ПРАВДА повторялись,
+            // а LoopDetected не приснился сторожу.
+            ["loops"] = new[]
+            {
+                "LoopDetected", "StuckDetected", "GoalSelected",
+                "PlanStarted", "PlanFailed", "GoalCooldownSet"
             },
             // §81.11: жизнь чужака одной строкой на событие. AbuseBlocked —
             // ПРИЧИНА, почему он сейчас НЕ абьюзит (раз в 64 тика), остальное —
@@ -141,6 +156,9 @@ public sealed class SoakOptions
                     case "--explain-stuck":
                         options.ExplainStuck = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--explain-loops":
+                        options.ExplainLoops = int.Parse(Next(arg), CultureInfo.InvariantCulture);
+                        break;
                     case "--arena":
                         options.Arena = Next(arg);
                         break;
@@ -191,7 +209,7 @@ public sealed class SoakOptions
   --metrics-json PATH     выгрузить метрики в JSON
 
   --trace-out PATH        писать трассу (эталон для golden_trace.sh)
-  --trace-preset NAME     decisions | scores | execution | abuse | grouphunt
+  --trace-preset NAME     decisions | scores | execution | loops | abuse | grouphunt
                           (по умолчанию decisions)
   --trace-types A,B,C     свой список типов вместо пресета
   --state-hash-every N    добавлять в трассу хэш полного кадра раз в N тиков
@@ -200,6 +218,8 @@ public sealed class SoakOptions
   --combat-frames         по-тиковая раскадровка боя: замах/попадание/готовность
   --explain-stuck N       разобрать первые N застоев: печатает хвост событий
                           зависшего NPC (по умолчанию 3, 0 — выключить)
+  --explain-loops N       §122: то же для ПЕТЕЛЬ — «двигается и не продвигается»
+                          (по умолчанию 3, 0 — выключить)
   --quiet                 без человекочитаемого вывода
 
 Несколько сидов и --trace-out: файл на сид, суффикс .seed<N>.";

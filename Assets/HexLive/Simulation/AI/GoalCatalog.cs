@@ -5,6 +5,44 @@ using HexLive.Simulation.Content;
 namespace HexLive.Simulation.AI
 {
 
+/// <summary>
+/// Spec §122: что <c>LoopDiagnosticSystem</c> позволено сделать с этой целью,
+/// когда она закрутилась в петлю.
+/// <para>
+/// ⭐ Колонка существует ровно потому, что общего правила тут быть НЕ МОЖЕТ.
+/// §81.14/§109.6: поход «докопаться» липкий НАМЕРЕННО и перебивается только
+/// нокаутом — первая версия («заморозка + сброс») рвала план каждый средний тик
+/// и мигала «пить↔гнобить», это и есть баг #90. Генерик-сторож, увидев «Abuse
+/// бралась сорок раз и ни разу не завершилась» и начав её глушить, восстановил
+/// бы §81.14 в тот же день.
+/// </para>
+/// <para>
+/// Исключения поэтому живут ЗДЕСЬ, данными под гейтом, а не разбросанными
+/// спецкейсами в сторожe. Ровно этого не хватало <c>Memory.Shun</c>: он
+/// опционален, его ставят в 7 местах и проверяют в 18, и баг #67 был буквально
+/// «GetWater забыл проверить shun».
+/// </para>
+/// </summary>
+public enum LoopPolicy
+{
+    /// <summary>Обычная цель: детект и вся лестница выхода.</summary>
+    Normal,
+
+    /// <summary>
+    /// Сцену рвать нельзя — только доклад. Реактивные цели ставит система, минуя
+    /// аукцион, поэтому глушить их кулдауном бессмысленно вдвойне: следующий тик
+    /// поставит цель заново, а сцена окажется разорванной посередине.
+    /// </summary>
+    Sticky,
+
+    /// <summary>
+    /// Не считается вовсе. <c>None</c>/<c>Idle</c>/<c>Explore</c> — это и есть
+    /// то, ЧЕМ петлю разрывают; считать их попытками значит мерить лекарство
+    /// вместе с болезнью. Мёртвые ординалы сюда же — их никто не выбирает.
+    /// </summary>
+    Ambient,
+}
+
 /// <summary>Как быстро NPC движется К этой цели.</summary>
 public enum UrgencyClass
 {
@@ -63,6 +101,12 @@ public sealed class GoalDescriptor
 
     /// <summary>Ставится системой напрямую, минуя аукцион (§62, §72, §81).</summary>
     public bool IsReactive { get; set; }
+
+    /// <summary>§122: что сторожу петель позволено сделать с этой целью.
+    /// Согласованность с <see cref="IsReactive"/> проверяет гейт каталога —
+    /// новая реактивная цель без <c>Sticky</c> роняет тест, а не тихо получает
+    /// автовыход, который порвёт её сцену.</summary>
+    public LoopPolicy Loop { get; set; } = LoopPolicy.Normal;
 
     /// <summary>Ординал занят, смысла нет. Удалить нельзя — сейв хранит цели
     /// числом, вырезание середины перемаркировало бы каждую цель в каждом
@@ -126,6 +170,10 @@ public static class GoalCatalog
 
     public static bool CraftNeedsHands(GoalType goal) => For(goal)?.CraftNeedsHands ?? false;
 
+    /// <summary>§122. Неизвестная цель считается <see cref="LoopPolicy.Ambient"/>:
+    /// про то, чего нет в таблице, сторож не вправе делать выводов.</summary>
+    public static LoopPolicy LoopFor(GoalType goal) => For(goal)?.Loop ?? LoopPolicy.Ambient;
+
     static GoalCatalog()
     {
         var rows = new List<GoalDescriptor>();
@@ -134,7 +182,7 @@ public static class GoalCatalog
             UrgencyClass urgency = UrgencyClass.Stroll,
             bool ignoresHostileRings = false, bool reactive = false, bool dead = false,
             string[] craftOutputs = null, string craftTrace = null, bool craftNeedsHands = false,
-            bool readiesMeleeWeapon = false)
+            bool readiesMeleeWeapon = false, LoopPolicy loop = LoopPolicy.Normal)
         {
             rows.Add(new GoalDescriptor
             {
@@ -148,13 +196,17 @@ public static class GoalCatalog
                 CraftGroundOutputs = craftOutputs,
                 CraftTraceName = craftTrace,
                 CraftNeedsHands = craftNeedsHands,
+                // Мёртвый ординал никто не выбирает — считать его попытками
+                // нечего. Явный loop: у мёртвых строк поэтому не пишется.
+                Loop = dead ? LoopPolicy.Ambient : loop,
             });
         }
 
         // ── Ничего не делает ─────────────────────────────────────────────
-        Add(GoalType.None);
-        Add(GoalType.Idle);
-        Add(GoalType.Explore);
+        // §122: ЭТИМ петлю разрывают, поэтому они и не считаются.
+        Add(GoalType.None, loop: LoopPolicy.Ambient);
+        Add(GoalType.Idle, loop: LoopPolicy.Ambient);
+        Add(GoalType.Explore, loop: LoopPolicy.Ambient);
 
         // ── Еда и питьё ──────────────────────────────────────────────────
         Add(GoalType.Eat);
@@ -252,28 +304,40 @@ public static class GoalCatalog
         Add(GoalType.Hunt, urgency: UrgencyClass.Hurry, readiesMeleeWeapon: true);
         Add(GoalType.Prey, readiesMeleeWeapon: true);
         Add(GoalType.Flee, urgency: UrgencyClass.Flee,
-            ignoresHostileRings: true, reactive: true);
+            ignoresHostileRings: true, reactive: true, loop: LoopPolicy.Sticky);
         Add(GoalType.Defend, urgency: UrgencyClass.Hurry,
-            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true,
+            loop: LoopPolicy.Sticky);
         Add(GoalType.Raid, urgency: UrgencyClass.Hurry,
-            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
-        Add(GoalType.Abuse, urgency: UrgencyClass.Hurry, reactive: true);
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true,
+            loop: LoopPolicy.Sticky);
+        // §81.14/§109.6: ⭐ ЛИПКАЯ НАМЕРЕННО. Взял Abuse — идёт до конца, пока
+        // есть тяга; перебивает только нокаут и бегство. Автовыход §122 сюда не
+        // допускается ни при каких числах: первая версия «заморозка + сброс»
+        // рвала план каждый средний тик и мигала «пить↔гнобить» — это баг #90.
+        Add(GoalType.Abuse, urgency: UrgencyClass.Hurry, reactive: true,
+            loop: LoopPolicy.Sticky);
         // §108: сговор раздаёт её сразу троим, минуя аукцион. Кольца чужака
         // игнорирует по той же причине, что и налёт: обходить того, к кому
         // идёшь, — бессмыслица.
         Add(GoalType.GroupHunt, urgency: UrgencyClass.Hurry,
-            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true,
+            loop: LoopPolicy.Sticky);
         Add(GoalType.Expel, urgency: UrgencyClass.Hurry,
-            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
-        Add(GoalType.Rescue, urgency: UrgencyClass.Hurry, reactive: true);
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true,
+            loop: LoopPolicy.Sticky);
+        Add(GoalType.Rescue, urgency: UrgencyClass.Hurry, reactive: true,
+            loop: LoopPolicy.Sticky);
         // These two append-only GoalType ordinals reserve the names used by
         // the matching plan steps/interactions. Rescue owns the actual goal;
         // treating the steps as independent reactive goals would advertise
         // behaviours that no system can ever assign.
         Add(GoalType.PickUpPerson, dead: true);
         Add(GoalType.PutInBed, dead: true);
-        Add(GoalType.Splint, urgency: UrgencyClass.Hurry, reactive: true);
-        Add(GoalType.FitProsthetic, urgency: UrgencyClass.Hurry, reactive: true);
+        Add(GoalType.Splint, urgency: UrgencyClass.Hurry, reactive: true,
+            loop: LoopPolicy.Sticky);
+        Add(GoalType.FitProsthetic, urgency: UrgencyClass.Hurry, reactive: true,
+            loop: LoopPolicy.Sticky);
 
         // §28.15F: обобрать тело. Взаимодействие снимает ОДНУ вещь, поэтому
         // раздеть покойную целиком — это несколько отдельных походов, а не один
@@ -292,9 +356,13 @@ public static class GoalCatalog
         // «выпить», конкретный тип кладёт в шаг плана ManualCommandExecutor
         // (как это делает сцена §111). Обе реактивные: аукцион их не считает,
         // их ставит очередь команд.
-        Add(GoalType.PlayerOrder, reactive: true);
+        // §122: приказ игрока — не петля, даже если он повторяется. Игрок
+        // вправе гонять колонистку туда-сюда сколько хочет, и «вытаскивать» её
+        // из этого значит спорить с игроком.
+        Add(GoalType.PlayerOrder, reactive: true, loop: LoopPolicy.Sticky);
         Add(GoalType.PlayerAttack, urgency: UrgencyClass.Hurry,
-            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true,
+            loop: LoopPolicy.Sticky);
 
         // ── Мёртвые ординалы (§52: заявка на мебель стала стадийной) ─────
         Add(GoalType.PlaceSite, dead: true);

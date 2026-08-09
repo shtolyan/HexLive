@@ -79,6 +79,9 @@ public sealed class SystemRegistryGateTests
         "WaterCollectorSystem",
         "HazardSystem",
         "StuckDiagnosticSystem",
+        // §122: сторож петель. Стоит после §30.15 намеренно — оба только
+        // наблюдают, и наблюдателю мешать нельзя никому.
+        "LoopDiagnosticSystem",
     };
 
     [Test]

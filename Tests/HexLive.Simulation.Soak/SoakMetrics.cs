@@ -44,6 +44,11 @@ public sealed class SoakMetrics
     private readonly Dictionary<int, NpcTrack> _tracks = new Dictionary<int, NpcTrack>();
     private readonly Dictionary<string, int> _eventCounts = new Dictionary<string, int>(StringComparer.Ordinal);
 
+    /// <summary>§122: сколько РАЗНЫХ петель началось у каждого NPC. Именно
+    /// поимённо: одна петля одного NPC в одном сиде тонет в колониальном
+    /// среднем, и ровно поэтому churn её не показывал.</summary>
+    private readonly Dictionary<int, int> _loopOnsets = new Dictionary<int, int>();
+
     public int Seed;
     public int TicksRun;
     public int NpcsAtStart;
@@ -104,6 +109,19 @@ public sealed class SoakMetrics
     {
         _eventCounts.TryGetValue(simulationEvent.Type, out var count);
         _eventCounts[simulationEvent.Type] = count + 1;
+
+        // §122. Петли считаются ПО СОБЫТИЮ, а не по состоянию, и это не
+        // нарушение правила из шапки: разбор уже сделал сторож, тип события и
+        // есть факт «здесь начался круг», а раскладка по NPC берётся из
+        // EntityId — поля события, а не из Message. Парсить текст по-прежнему
+        // нельзя, и здесь этого не происходит.
+        if (simulationEvent.Type == "LoopDetected" &&
+            simulationEvent.EntityId is { } looper &&
+            simulationEvent.Message.EndsWith("ONSET", StringComparison.Ordinal))
+        {
+            _loopOnsets.TryGetValue(looper, out var loops);
+            _loopOnsets[looper] = loops + 1;
+        }
     }
 
     public int EventCount(string type)
@@ -141,6 +159,13 @@ public sealed class SoakMetrics
     public int MeaningfulSwitches => _tracks.Values.Sum(t => t.MeaningfulSwitches);
 
     public int StuckTicks => _tracks.Values.Sum(t => t.StuckTicks);
+
+    /// <summary>§122: всего начатых петель за прогон.</summary>
+    public int LoopOnsets => _loopOnsets.Values.Sum();
+
+    /// <summary>Сколько NPC хоть раз закрутились. Один NPC с десятью петлями и
+    /// десять NPC с одной — совсем разные диагнозы.</summary>
+    public int LoopingNpcs => _loopOnsets.Count;
 
     private double NpcDays => _tracks.Count * (TicksRun / (double)DayTicks);
 
@@ -202,6 +227,8 @@ public sealed class SoakMetrics
         text.AppendLine("  застой              " + StuckTicks + " NPC-тиков" +
                         "  (" + (StuckShare * 100).ToString("F1", invariant) +
                         "% — цель есть, дела нет, не идёт)");
+        text.AppendLine("  ПЕТЛИ               " + LoopOnsets + " начатых у " +
+                        LoopingNpcs + " NPC" + WorstLoopers());
         text.AppendLine("  событий             " + TotalEvents);
         // §54.17: вся мясная цепочка одной строкой — охота до тарелки. Ноль в
         // MeatRoasted/MeatEaten при ненулевом Butchered = цепь порвана.
@@ -246,6 +273,8 @@ public sealed class SoakMetrics
                ",\"planFailureRate\":" + PlanFailureRate.ToString("F4", invariant) +
                ",\"stuckNpcTicks\":" + StuckTicks +
                ",\"stuckShare\":" + StuckShare.ToString("F4", invariant) +
+               ",\"loopOnsets\":" + LoopOnsets +
+               ",\"loopingNpcs\":" + LoopingNpcs +
                ",\"totalEvents\":" + TotalEvents +
                ",\"butchered\":" + EventCount("Butchered") +
                ",\"meatHung\":" + EventCount("MeatHungOnSpit") +
@@ -254,6 +283,23 @@ public sealed class SoakMetrics
                ",\"meatSpoiled\":" + EventCount("MeatSpoiled") +
                ",\"deathCauses\":{" + deaths + "}" +
                "}";
+    }
+
+    /// <summary>Кто крутился больше всех — чтобы из отчёта сразу был виден
+    /// номер NPC для `--seed … --explain-loops`, а не только итог.</summary>
+    private string WorstLoopers()
+    {
+        if (_loopOnsets.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var worst = _loopOnsets
+            .OrderByDescending(pair => pair.Value)
+            .ThenBy(pair => pair.Key)
+            .Take(3)
+            .Select(pair => "NPC" + pair.Key + "=" + pair.Value);
+        return "  (" + string.Join(", ", worst) + ")";
     }
 
     private static string Escape(string value) => value

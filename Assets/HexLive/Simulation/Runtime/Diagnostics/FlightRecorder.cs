@@ -96,6 +96,10 @@ public sealed class FlightRecorder
         "PathBlocked",
         "PathFailed",
         "StuckDetected",
+        // §122: петля — это то, что объясняет ПРЕДЫДУЩИЕ записи хвоста, а не
+        // ещё одна строка шума. Без неё читающий хвост видит десять PlanFailed
+        // подряд и должен сам догадаться, что это один и тот же круг.
+        "LoopDetected",
     };
 
     public FlightRecorder(int capacityPerNpc = 64) => _capacity = capacityPerNpc;

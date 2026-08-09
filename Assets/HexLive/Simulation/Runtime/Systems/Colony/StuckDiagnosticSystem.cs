@@ -65,7 +65,7 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
             // §121: ручная колонистка стоит без цели, пока игрок не прикажет —
             // это не «застряла», а ровно то, что он велел. Сторож её пропускает,
             // иначе каждый простой между приказами шёл бы в отчёт как баг.
-            if (Runtime.Spec121.ManualControlEnabled && npc.Mind.ManualControl)
+            if (WatchdogExclusions.IsPlayerDriven(npc))
             {
                 continue;
             }
@@ -96,9 +96,8 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
         // Без сознания — не застой, а сюжет. Спящая и в коме обязаны лежать
         // неподвижно, и жаловаться на это значит утопить настоящие находки.
         // §110: рыдающая лежит неподвижно ровно так же, как спящая.
-        if (npc.IsUnconscious(world.Tick) || npc.IsCrying(world.Tick) ||
-            npc.IsPlayingDead(world.Tick) || npc.Health <= 0f ||
-            IsIntentionalHold(world, npc))
+        if (WatchdogExclusions.IsAuthoredStillness(world, npc) ||
+            WatchdogExclusions.IsIntentionalHold(world, npc))
         {
             _watch.Remove(id);
             return;
@@ -279,45 +278,10 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
         watch.PlanStepIndex != npc.Plan.CurrentStepIndex ||
         watch.TargetJunction != npc.Plan.TargetJunctionId;
 
-    private static bool IsIntentionalHold(WorldState world, NPCState npc)
-    {
-        // Reactive combat owns the body without an auction goal. Its own
-        // contact/standoff valves diagnose failure; Goal=None here is not an
-        // auction crisis and must not be double-reported as one.
-        if (npc.IsFighting)
-        {
-            return true;
-        }
+    // §122: правило «стоит по сюжету» переехало в WatchdogExclusions — сторожей
+    // стало два, и одинаковое условие в двух файлах правилось бы в одном.
 
-        if (npc.Mind.PendingTalkFrom is { } talkerId &&
-            world.Entities.Npcs.TryGetValue(talkerId, out var talker) &&
-            talker.Plan.TargetAgentId == npc.Id)
-        {
-            return true;
-        }
-
-        if (npc.Mind.PendingAidFrom is { } helperId &&
-            world.Entities.Npcs.TryGetValue(helperId, out var helper) &&
-            helper.Plan.TargetAgentId == npc.Id &&
-            helper.Mind.CurrentGoal is GoalType.Aid or GoalType.Rescue or
-                GoalType.Splint or GoalType.FitProsthetic)
-        {
-            return true;
-        }
-
-        if (npc.Mind.PendingAbuseFrom is { } abuserId &&
-            world.Entities.Npcs.TryGetValue(abuserId, out var abuser) &&
-            (abuser.Execution.CurrentInteraction == InteractionType.Abuse ||
-             HexSpatialMath.HexDistance(npc.Tile, abuser.Tile) <=
-                Spec57.AnswerReadyRadiusTiles))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool InCrisis(NPCState npc) =>
+    internal static bool InCrisis(NPCState npc) =>
         npc.Needs.Hunger >= SimBalance.StarvingEnterThreshold ||
         npc.Needs.Thirst >= SimBalance.StarvingEnterThreshold ||
         npc.Needs.Energy <= 1f - SimBalance.StarvingEnterThreshold;

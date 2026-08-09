@@ -77,6 +77,13 @@ public static class SimulationSystemRegistry
         // finally settled, rather than half-way through someone else's pass.
         engine.Register(new StuckDiagnosticSystem());
 
+        // §122: сторож ПЕТЕЛЬ, а не застоя. Стоит после §30.15 и тоже в фазе 1
+        // ничего не меняет — но слой у него Fast, а не Slow, и это не описка:
+        // Slow идёт раз в 16 тиков, а цель успевает быть выбранной и брошенной
+        // за четыре, так что реестр намерений пропускал бы завершения — то
+        // единственное, на чём держится отличие работы от петли.
+        engine.Register(new LoopDiagnosticSystem());
+
         // NOT registered, on purpose-of-record rather than by decision: SharkSystem.
         // It is implemented (Systems/Wildlife/SharkSystem.cs, TickLayer.Medium) and
         // world.Sharks IS persisted by WorldSaveSerializer, so sharks are spawned and

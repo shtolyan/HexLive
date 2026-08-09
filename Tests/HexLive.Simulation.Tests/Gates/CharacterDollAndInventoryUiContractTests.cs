@@ -89,6 +89,26 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
+    public void DollCameraUsesAuthoredBoundsInsteadOfTheSourcesEvaluatedPose()
+    {
+        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var frameStart = stage.IndexOf("private void FrameClone()", StringComparison.Ordinal);
+        var signatureStart = stage.IndexOf(
+            "private int SourceVisualSignature", frameStart, StringComparison.Ordinal);
+        var framing = stage[frameStart..signatureStart];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(framing, Does.Contain("TryGetStableWorldBounds(renderer"));
+            Assert.That(framing, Does.Contain("renderer.localBounds"));
+            Assert.That(framing, Does.Contain("renderer.localToWorldMatrix"));
+            Assert.That(framing, Does.Not.Match(@"bounds\s*=\s*renderer\.bounds"));
+            Assert.That(framing, Does.Not.Contain("Encapsulate(renderer.bounds)"),
+                "The evaluated source pose makes sitting and lying dolls change camera scale.");
+        });
+    }
+
+    [Test]
     public void ActorBodyFlowHasNoNamedDonorOrLegacySelectionFallback()
     {
         var resolver = File.ReadAllText(Presentation("Wearing", "ActorBodyResolver.cs"));

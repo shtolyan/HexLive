@@ -729,14 +729,23 @@ namespace HexLive.UnityPresentation.UI
             foreach (var renderer in _rendererScratch)
             {
                 if (renderer == null || !renderer.enabled) continue;
+                // Renderer.bounds is the last EVALUATED skinned pose. A clone
+                // made while its source is sitting or lying can retain that
+                // short/wide AABB until Unity renders it once, even though we
+                // have already rebound the clone to Idle above. Framing from it
+                // made the portrait zoom and jump with the source pose.
+                // localBounds is the authored renderer envelope; transform its
+                // corners ourselves so camera framing is deterministic before
+                // the first render and still includes clothes, hair and props.
+                if (!TryGetStableWorldBounds(renderer, out var rendererBounds)) continue;
                 if (!hasBounds)
                 {
-                    bounds = renderer.bounds;
+                    bounds = rendererBounds;
                     hasBounds = true;
                 }
                 else
                 {
-                    bounds.Encapsulate(renderer.bounds);
+                    bounds.Encapsulate(rendererBounds);
                 }
             }
 
@@ -760,6 +769,36 @@ namespace HexLive.UnityPresentation.UI
             _keyLight.transform.rotation = Quaternion.LookRotation(
                 focus - _keyLight.transform.position, Vector3.up);
             _rimLight.transform.position = focus + new Vector3(2.2f, 1.6f, -1.7f);
+        }
+
+        private static bool TryGetStableWorldBounds(Renderer renderer, out Bounds worldBounds)
+        {
+            worldBounds = default;
+            var local = renderer.localBounds;
+            var min = local.min;
+            var max = local.max;
+            if (local.size.sqrMagnitude <= 0.00000001f ||
+                !float.IsFinite(min.x) || !float.IsFinite(min.y) || !float.IsFinite(min.z) ||
+                !float.IsFinite(max.x) || !float.IsFinite(max.y) || !float.IsFinite(max.z))
+            {
+                return false;
+            }
+
+            var matrix = renderer.localToWorldMatrix;
+            var first = matrix.MultiplyPoint3x4(min);
+            worldBounds = new Bounds(first, Vector3.zero);
+            for (var x = 0; x < 2; x++)
+            for (var y = 0; y < 2; y++)
+            for (var z = 0; z < 2; z++)
+            {
+                var corner = new Vector3(
+                    x == 0 ? min.x : max.x,
+                    y == 0 ? min.y : max.y,
+                    z == 0 ? min.z : max.z);
+                worldBounds.Encapsulate(matrix.MultiplyPoint3x4(corner));
+            }
+
+            return true;
         }
 
         private int SourceVisualSignature(Transform source)

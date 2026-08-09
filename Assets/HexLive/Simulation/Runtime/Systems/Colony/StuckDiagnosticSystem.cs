@@ -3,6 +3,7 @@ using HexLive.Simulation.Core;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
@@ -48,8 +49,10 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
 
         // Для PositionFrozen: где стояла, когда начали смотреть.
         public Float2 Anchor;
+        public float RotationDegrees;
+        public int MovementPathIndex;
         public int PlanStepIndex;
-        public int PlanStepSinceTick;
+        public JunctionId? TargetJunction;
     }
 
     private readonly Dictionary<int, Watch> _watch = new Dictionary<int, Watch>();
@@ -93,7 +96,9 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
         // Без сознания — не застой, а сюжет. Спящая и в коме обязаны лежать
         // неподвижно, и жаловаться на это значит утопить настоящие находки.
         // §110: рыдающая лежит неподвижно ровно так же, как спящая.
-        if (npc.IsUnconscious(world.Tick) || npc.IsCrying(world.Tick) || npc.Health <= 0f)
+        if (npc.IsUnconscious(world.Tick) || npc.IsCrying(world.Tick) ||
+            npc.IsPlayingDead(world.Tick) || npc.Health <= 0f ||
+            IsIntentionalHold(world, npc))
         {
             _watch.Remove(id);
             return;
@@ -108,16 +113,19 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
 
         if (!_watch.TryGetValue(id, out var watch) || watch.Reason != reason)
         {
-            // Новое подозрение: засекаем время, пока молчим.
-            _watch[id] = new Watch
-            {
-                Reason = reason,
-                SinceTick = world.Tick,
-                LastEmitTick = 0,
-                Anchor = npc.Position,
-                PlanStepIndex = npc.Plan.CurrentStepIndex,
-                PlanStepSinceTick = world.Tick,
-            };
+            StartWatch(world, npc, reason);
+            return;
+        }
+
+        // «Идёт» — не обещание двигать координату КАЖДЫЙ тик. Она может
+        // доворачиваться на месте, сменить ногу плана или продвинуть индекс
+        // длинного пути. Всё это наблюдаемый прогресс, поэтому окно неподвижности
+        // начинается заново. Раньше сторож помнил только Anchor: несколько
+        // честных маршрутов подряд возле одной точки складывались в одно окно и
+        // давали ложный PositionFrozen.
+        if (reason == ReasonFrozen && MadeMovementProgress(watch, npc))
+        {
+            StartWatch(world, npc, reason);
             return;
         }
 
@@ -171,6 +179,14 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
             // Ничего не хочет, пока нужда кричит: аукцион не рождает НИЧЕГО.
             // Это тот самый «Goal=None ×362 циклов» из §63.
             return InCrisis(npc) ? ReasonGoalless : null;
+        }
+
+        // Idle is the authored decision to stand still. A completed Idle plan
+        // has exactly the same mechanical shape as a dead plan (no execution,
+        // no movement), but it is the fallback doing its job, not a hang.
+        if (goal == GoalType.Idle)
+        {
+            return null;
         }
 
         // Перерасход меряется от СОБСТВЕННОГО конца взаимодействия, а не общим
@@ -239,6 +255,66 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
         var dy = to.Y - from.Y;
         var limit = HexSpatialMath.HexRadius * 0.25f;
         return dx * dx + dy * dy > limit * limit;
+    }
+
+    private void StartWatch(WorldState world, NPCState npc, string reason)
+    {
+        _watch[npc.Id.Value] = new Watch
+        {
+            Reason = reason,
+            SinceTick = world.Tick,
+            LastEmitTick = 0,
+            Anchor = npc.Position,
+            RotationDegrees = npc.RotationDegrees,
+            MovementPathIndex = npc.Movement.PathIndex,
+            PlanStepIndex = npc.Plan.CurrentStepIndex,
+            TargetJunction = npc.Plan.TargetJunctionId,
+        };
+    }
+
+    private static bool MadeMovementProgress(Watch watch, NPCState npc) =>
+        Moved(watch.Anchor, npc.Position) ||
+        MathUtil.Abs(MathUtil.DeltaAngle(watch.RotationDegrees, npc.RotationDegrees)) > 0.5f ||
+        watch.MovementPathIndex != npc.Movement.PathIndex ||
+        watch.PlanStepIndex != npc.Plan.CurrentStepIndex ||
+        watch.TargetJunction != npc.Plan.TargetJunctionId;
+
+    private static bool IsIntentionalHold(WorldState world, NPCState npc)
+    {
+        // Reactive combat owns the body without an auction goal. Its own
+        // contact/standoff valves diagnose failure; Goal=None here is not an
+        // auction crisis and must not be double-reported as one.
+        if (npc.IsFighting)
+        {
+            return true;
+        }
+
+        if (npc.Mind.PendingTalkFrom is { } talkerId &&
+            world.Entities.Npcs.TryGetValue(talkerId, out var talker) &&
+            talker.Plan.TargetAgentId == npc.Id)
+        {
+            return true;
+        }
+
+        if (npc.Mind.PendingAidFrom is { } helperId &&
+            world.Entities.Npcs.TryGetValue(helperId, out var helper) &&
+            helper.Plan.TargetAgentId == npc.Id &&
+            helper.Mind.CurrentGoal is GoalType.Aid or GoalType.Rescue or
+                GoalType.Splint or GoalType.FitProsthetic)
+        {
+            return true;
+        }
+
+        if (npc.Mind.PendingAbuseFrom is { } abuserId &&
+            world.Entities.Npcs.TryGetValue(abuserId, out var abuser) &&
+            (abuser.Execution.CurrentInteraction == InteractionType.Abuse ||
+             HexSpatialMath.HexDistance(npc.Tile, abuser.Tile) <=
+                Spec57.AnswerReadyRadiusTiles))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool InCrisis(NPCState npc) =>

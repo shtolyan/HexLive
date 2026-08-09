@@ -1,7 +1,9 @@
 using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -74,6 +76,26 @@ public sealed class StuckDiagnosticTests
     }
 
     [Test]
+    public void CompletedIdleIsNotAStall()
+    {
+        var (engine, npc) = Arena();
+        npc.Mind.CurrentGoal = GoalType.Idle;
+        npc.Plan.Goal = GoalType.Idle;
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Movement.IsMoving = false;
+
+        for (var i = 0; i < AiBalance.StuckIdleTicks * 2; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(StuckEvents(engine.World, "IdleWithGoal"), Is.Zero,
+            "Idle deliberately means standing still; it must not pollute the " +
+            "stuck signal.");
+    }
+
+    [Test]
     public void UnconsciousIsNotStuck()
     {
         var (engine, npc) = Arena();
@@ -134,6 +156,108 @@ public sealed class StuckDiagnosticTests
         Assert.That(StuckEvents(engine.World, "StepOverrun"), Is.GreaterThan(0),
             "Взаимодействие давно просрочило собственный EndTick и всё ещё идёт — " +
             "это ошибка, и она обязана быть слышна.");
+    }
+
+    [Test]
+    public void TurningAndPathProgressDoNotCountAsPositionFrozen()
+    {
+        var (engine, npc) = Arena();
+        npc.Mind.CurrentGoal = GoalType.GatherWood;
+        npc.Plan.Goal = GoalType.GatherWood;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetJunctionId = new HexLive.Simulation.Common.JunctionId(700001);
+        npc.Movement.IsMoving = true;
+        npc.Movement.SetStatus(MovementStatus.Rotating);
+
+        for (var i = 0; i < AiBalance.StuckFrozenTicks * 3; i++)
+        {
+            npc.RotationDegrees += 1f;
+            if (i % 32 == 0)
+            {
+                npc.Movement.PathIndex++;
+            }
+            engine.Step();
+        }
+
+        Assert.That(StuckEvents(engine.World, "PositionFrozen"), Is.Zero,
+            "A planted turn and advancing path index are movement progress, " +
+            "even while the world position has not changed yet.");
+    }
+
+    [Test]
+    public void ValidAidWaitIsNotAGoallessCrisis()
+    {
+        var (engine, patient) = Arena();
+        var helper = engine.World.Entities.Npcs.Values.First(n => n.Id != patient.Id);
+        patient.Needs.Hunger = 1f;
+        patient.Mind.CurrentGoal = GoalType.None;
+        patient.Mind.PendingAidFrom = helper.Id;
+        helper.Mind.CurrentGoal = GoalType.Aid;
+        helper.Plan.TargetAgentId = patient.Id;
+
+        for (var i = 0; i < AiBalance.StuckGoallessTicks * 2; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(StuckEvents(engine.World, "GoallessCrisis"), Is.Zero,
+            "The patient deliberately holds still for an active helper; this is " +
+            "not an auction failure.");
+    }
+
+    [Test]
+    public void PlayingDeadIsNotAGoallessCrisis()
+    {
+        var (engine, npc) = Arena();
+        npc.Needs.Hunger = 1f;
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Mind.PlayDeadSinceTick = engine.World.Tick + 1;
+        npc.Mind.PlayDeadUntilTick = engine.World.Tick + AiBalance.StuckGoallessTicks * 4;
+
+        for (var i = 0; i < AiBalance.StuckGoallessTicks * 2; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(StuckEvents(engine.World, "GoallessCrisis"), Is.Zero,
+            "Feigning death is an authored stationary state, not a missing goal.");
+    }
+
+    [Test]
+    public void ActiveAbuseRoleIsNotAGoallessCrisis()
+    {
+        var (engine, mark) = Arena();
+        var abuser = engine.World.Entities.Npcs.Values.First(n => n.Id != mark.Id);
+        mark.Needs.Hunger = 1f;
+        mark.Mind.CurrentGoal = GoalType.None;
+        mark.Mind.PendingAbuseFrom = abuser.Id;
+        abuser.Execution.CurrentInteraction = InteractionType.Abuse;
+
+        for (var i = 0; i < AiBalance.StuckGoallessTicks * 2; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(StuckEvents(engine.World, "GoallessCrisis"), Is.Zero,
+            "The mark's choice is owned by the active abuse scene; the lack of an " +
+            "auction goal during that scene is intentional.");
+    }
+
+    [Test]
+    public void ReactiveCombatIsNotAGoallessCrisis()
+    {
+        var (engine, npc) = Arena();
+        npc.Needs.Hunger = 1f;
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.IsFighting = true;
+
+        for (var i = 0; i < AiBalance.StuckGoallessTicks * 2; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(StuckEvents(engine.World, "GoallessCrisis"), Is.Zero,
+            "Reactive combat deliberately owns the body outside the utility auction.");
     }
 
     /// <summary>

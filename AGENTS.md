@@ -4,6 +4,31 @@ The canonical project guide is `CLAUDE.md`; follow it for architecture,
 tooling, verification, and content-pipeline rules. The canonical behaviour
 spec is `spec.md` and must stay in sync with code.
 
+## Unity MCP single-owner lease (mandatory)
+
+`BUGS.json` is also the source of truth for the one allowed Unity MCP user.
+Before **any** Unity MCP tool/resource call (including discovery, read-only
+inspection, console reads, screenshots, tests, or mutations), atomically acquire
+the top-level `unityMcpLease` with:
+
+```bash
+python3 Tools/unity_mcp_lease.py acquire --agent <stable-agent-task-name> --task "<short purpose>"
+```
+
+- A successful command records `status:"busy"`, `ownerAgent`, `task`, and UTC
+  timestamps. Only that exact owner may then call Unity MCP. Re-run `heartbeat`
+  during long work and `release --agent <name>` immediately after the last MCP
+  call (including post-timeout polling), on failure, or before waiting for the
+  player.
+- If acquisition reports another owner, **do not make even a probe MCP call and
+  do not edit/release/steal the lease**. Read the owner and task from `BUGS.json`,
+  contact that agent through the orchestrator, and wait for `status:"free"`.
+  An abandoned lease is cleared only by its owner or on explicit player direction.
+- Check with `python3 Tools/unity_mcp_lease.py status`. Direct hand-editing is
+  not an acquisition: the CLI's lock makes the free→busy transition atomic when
+  agents race. Ordinary filesystem/code work that never calls Unity MCP needs no
+  lease.
+
 ## BUGS.json — the in-game bug tracker (spec §114)
 
 At the start of every bug-fixing session, and whenever the user asks to inspect

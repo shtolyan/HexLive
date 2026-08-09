@@ -65,6 +65,30 @@ Code: `UnityPresentation/UI/BugReportStore.cs` (schema + IO),
 эта операция меняет только `text`, не пересоздаёт отчёт и не затрагивает его
 контекст, workflow, комментарии, версии, коммиты или архивный флаг.
 
+### ⭐ Unity MCP: single-owner lease in BUGS.json
+
+Only one agent may use Unity MCP at a time. Before **any** Unity MCP call —
+including instance discovery, resource reads, console inspection, screenshots,
+tests and read-only probes — acquire the top-level `unityMcpLease` atomically:
+
+```bash
+python3 Tools/unity_mcp_lease.py acquire --agent <stable-agent-task-name> --task "<short purpose>"
+```
+
+Success writes `status:"busy"`, `ownerAgent`, `task`, `acquiredUtc` and
+`heartbeatUtc` into `BUGS.json`; only that owner may call the bridge. Refresh a
+long operation with `heartbeat --agent <name>` and run `release --agent <name>`
+immediately after the final call, after failure, or before waiting for the user.
+An MCP command that timed out may still be running, so keep ownership through
+the required artefact polling and release only when that polling is finished.
+
+If another owner is busy, do not make a discovery/probe call, do not hand-edit,
+release, or steal the lease. Use `status`, contact `ownerAgent` through the
+orchestrator, and wait for `free`; only the owner or explicit player direction
+may clear an abandoned lease. Direct JSON editing is not acquisition — the CLI
+serializes competing free→busy transitions with a file lock. Work that never
+calls Unity MCP does not take the lease.
+
 ## Versioned player builds
 
 The build agent uses one entry point:

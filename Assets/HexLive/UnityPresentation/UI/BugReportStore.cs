@@ -21,6 +21,8 @@ namespace HexLive.UnityPresentation.UI
         public const string StatusReadyForTest = "ready_for_test";
         public const string StatusFixed = "fixed";
         public const string StatusRework = "rework";
+        public const string UnityMcpStatusFree = "free";
+        public const string UnityMcpStatusBusy = "busy";
 
         [Serializable]
         public sealed class Comment
@@ -51,9 +53,20 @@ namespace HexLive.UnityPresentation.UI
         }
 
         [Serializable]
+        public sealed class UnityMcpLease
+        {
+            public string status = UnityMcpStatusFree;
+            public string ownerAgent = "";
+            public string task = "";
+            public string acquiredUtc = "";
+            public string heartbeatUtc = "";
+        }
+
+        [Serializable]
         private sealed class FileModel
         {
             public int nextId = 1;
+            public UnityMcpLease unityMcpLease = new();
             public List<Report> reports = new();
         }
 
@@ -394,6 +407,13 @@ namespace HexLive.UnityPresentation.UI
                 Directory.CreateDirectory(directory);
             }
 
+            // Agents serialize Unity MCP ownership through a stable sibling
+            // lock file. Take the same byte-range lock and merge the newest
+            // lease before replacing BUGS.json, otherwise an in-game report
+            // submitted during MCP work could silently erase its owner.
+            using var unityMcpLock = AcquireUnityMcpLeaseLock(path);
+            MergeExternalUnityMcpLease(path);
+
             var tempPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
             File.WriteAllText(tempPath, JsonUtility.ToJson(_model, prettyPrint: true) + "\n");
             try
@@ -452,6 +472,63 @@ namespace HexLive.UnityPresentation.UI
             _loadedMtimeUtc = File.GetLastWriteTimeUtc(path);
         }
 
+        private static FileStream AcquireUnityMcpLeaseLock(string bugsPath)
+        {
+            var stream = new FileStream(
+                bugsPath + ".unity-mcp.lock",
+                FileMode.OpenOrCreate,
+                FileAccess.ReadWrite,
+                FileShare.ReadWrite);
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            try
+            {
+                while (true)
+                {
+                    try
+                    {
+                        stream.Lock(0, 1);
+                        return stream;
+                    }
+                    catch (IOException) when (DateTime.UtcNow < deadline)
+                    {
+                        // The CLI holds this only around one read/replace.
+                        // Briefly yield rather than fail the player's report.
+                        System.Threading.Thread.Sleep(10);
+                    }
+                }
+            }
+            catch
+            {
+                stream.Dispose();
+                throw;
+            }
+        }
+
+        private static void MergeExternalUnityMcpLease(string bugsPath)
+        {
+            if (!File.Exists(bugsPath))
+            {
+                return;
+            }
+
+            try
+            {
+                var disk = JsonUtility.FromJson<FileModel>(File.ReadAllText(bugsPath));
+                if (disk?.unityMcpLease != null)
+                {
+                    _model.unityMcpLease = disk.unityMcpLease;
+                    NormalizeUnityMcpLease();
+                }
+            }
+            catch (Exception e)
+            {
+                // Preserve the already loaded model and let the ordinary save
+                // path keep its existing behavior; the parse error is still
+                // visible and must not fabricate a new owner.
+                Debug.LogWarning($"Could not merge Unity MCP lease: {e.Message}");
+            }
+        }
+
         private static void RecoverInterruptedReplace(string path)
         {
             var backupPath = path + ".replace-backup";
@@ -492,6 +569,7 @@ namespace HexLive.UnityPresentation.UI
         private static void NormalizeModel()
         {
             _model ??= new FileModel();
+            NormalizeUnityMcpLease();
             _model.reports ??= new List<Report>();
             foreach (var report in _model.reports)
             {
@@ -512,6 +590,26 @@ namespace HexLive.UnityPresentation.UI
                     report.archived = false;
                 }
             }
+        }
+
+        private static void NormalizeUnityMcpLease()
+        {
+            _model.unityMcpLease ??= new UnityMcpLease();
+            var lease = _model.unityMcpLease;
+            if (lease.status == UnityMcpStatusBusy &&
+                !string.IsNullOrWhiteSpace(lease.ownerAgent))
+            {
+                lease.task ??= "";
+                lease.acquiredUtc ??= "";
+                lease.heartbeatUtc ??= "";
+                return;
+            }
+
+            lease.status = UnityMcpStatusFree;
+            lease.ownerAgent = "";
+            lease.task = "";
+            lease.acquiredUtc = "";
+            lease.heartbeatUtc = "";
         }
 
         private static bool IsKnownStatus(string status) =>

@@ -94,5 +94,8 @@ __pycache__/
 *.pyc
 # Mono/Unity crash dumps land at the repo root; they are local diagnostics.
 /mono_crash.*.json
+# Stable advisory lock for the BUGS.json Unity MCP lease; the owner/state
+# itself is tracked inside BUGS.json, this empty coordination file is not.
+/BUGS.json.unity-mcp.lock
 # .meta files Unity generates next to ignored Blender backups.
 *.blend1.meta

@@ -2,6 +2,7 @@
 using System.IO;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
+using UnityEditor.AddressableAssets.Build.DataBuilders;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
@@ -45,6 +46,32 @@ public static class HexLiveAddressablesSetup
     public const string LoadPathValue =
         "{UnityEngine.Application.dataPath}/../" + ContentFolderName + "/[BuildTarget]";
 
+    // ProjectConfigData stores this choice in Library, outside version control.
+    // A developer can therefore switch to "Use Existing Build" once and keep
+    // seeing an obsolete garment bundle even though the prefab on disk is
+    // already fixed. The project contract above is stronger than that local
+    // preference: Editor play mode always reads the AssetDatabase.
+    [InitializeOnLoadMethod]
+    private static void EnforceAssetDatabasePlayMode()
+    {
+        EditorApplication.delayCall += () =>
+        {
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+            {
+                return;
+            }
+
+            var fastMode = settings.DataBuilders.FindIndex(builder => builder is BuildScriptFastMode);
+            if (fastMode >= 0 && settings.ActivePlayModeDataBuilderIndex != fastMode)
+            {
+                settings.ActivePlayModeDataBuilderIndex = fastMode;
+                Debug.LogWarning("[Addressables] Editor Play Mode возвращён в Use Asset Database: " +
+                                 "старые внешние бандлы не должны подменять актуальные префабы.");
+            }
+        };
+    }
+
     [MenuItem("HexLive/Addressables/Настроить проект")]
     public static void Configure()
     {
@@ -76,6 +103,12 @@ public static class HexLiveAddressablesSetup
         // rebuilding the external wardrobe bundles.
         settings.BuildAddressablesWithPlayerBuild =
             AddressableAssetSettings.PlayerBuildOption.DoNotBuildWithPlayer;
+
+        var fastMode = settings.DataBuilders.FindIndex(builder => builder is BuildScriptFastMode);
+        if (fastMode >= 0)
+        {
+            settings.ActivePlayModeDataBuilderIndex = fastMode;
+        }
 
         foreach (var group in settings.groups)
         {

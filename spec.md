@@ -7124,6 +7124,10 @@ garment, cold sim item, or blood that never soaks the cloth).
    SkinnedMeshRenderer child. On the `Wear` component fill: `layer`
    (Underwear/Wear/Outerwear), `slots` (the `VisualWearSlot`s it occupies),
    `noHideUnderwearSlots` when it should not hide underwear beneath.
+   Headwear also owns an explicit source rule in its drop manifest:
+   `hairMode: "hide"` hides the hairstyle and `hairMode: "show"` keeps it.
+   A generated prefab is not the source of truth for this choice: clean
+   extraction and external-content rebuilds must reproduce the manifest rule.
    - Default `sharedMesh` = one of the fits. Every OTHER actress's fit goes
      into the `configs` list: one row per `ActorName` with that actress's
      `mesh` + `scale`. Fit scale is tuned live in the **WardrobeTest** scene

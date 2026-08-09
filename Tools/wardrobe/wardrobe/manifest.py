@@ -166,6 +166,10 @@ def propose(fbx_path: Path, drop: str, texture_report: dict,
             "simId": f"clothing.{name.lower()}",
             "layer": "Wear",
             "slots": slots,
+            # Headwear normally hides hair, but the decision belongs to the
+            # source manifest. Reviewers can change this to "show" for caps,
+            # headbands and other pieces that leave the hairstyle visible.
+            **({"hairMode": "hide"} if "Head" in slots else {}),
             "noHide": [],
             "materials": materials,
             # Evidence for the reviewer: the slot list above is inferred from

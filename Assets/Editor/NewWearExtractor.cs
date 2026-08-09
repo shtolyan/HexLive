@@ -130,6 +130,9 @@ public static class NewWearExtractor
         public VisualWearLayer Layer;
         public VisualWearSlot[] Slots;
         public VisualWearSlot[] NoHide = { };
+        // null = legacy drop: preserve the hand-tuned prefab value. New drops
+        // author the policy explicitly so a clean extraction is deterministic.
+        public bool? HidesHair;
         public MatSpec[] Materials;
         // Colourways over this same geometry — see DropGarment.variants.
         public VariantSpec[] Variants = { };
@@ -185,7 +188,7 @@ public static class NewWearExtractor
 
     [System.Serializable] private sealed class DropGarment
     {
-        public string sourceKey, folder, name, simId, layer;
+        public string sourceKey, folder, name, simId, layer, hairMode;
         // An accessory can arrive as an ASSEMBLY rather than one mesh: the
         // Jaguar Headdress exports as 29 (a rigid helmet plus 28 feathers and
         // cords). Listing them here merges them into the one skinned mesh the
@@ -317,6 +320,7 @@ public static class NewWearExtractor
                 Layer = ParseEnum(g.layer, VisualWearLayer.Wear, file),
                 Slots = ParseSlots(g.slots, file),
                 NoHide = ParseSlots(g.noHide, file),
+                HidesHair = ParseHairMode(g.hairMode, file),
                 Materials = (g.materials ?? new DropMaterial[0]).Select(m => new MatSpec
                 {
                     Source = m.source,
@@ -2063,14 +2067,35 @@ public static class NewWearExtractor
             tunedWear != null ? tunedWear.NoHideUnderwearSlots.ToArray() : g.NoHide);
         so.FindProperty("layer").enumValueIndex = (int)g.Layer;
         so.FindProperty("gender").enumValueIndex = (int)VisualGender.Female;
-        // Всё, что садится на голову, по умолчанию прячет причёску: шапка — это
-        // оболочка вокруг черепа, а причёска отдельный меш поверх него, и без
-        // этого волосы прорастают сквозь тулью. Правится галочкой в тестовой
-        // сцене — есть шляпы, из-под которых волосы должны торчать.
-        so.FindProperty("hidesHair").boolValue = tunedWear != null
-            ? tunedWear.HidesHair
-            : g.Slots != null && g.Slots.Contains(VisualWearSlot.Head);
+        // Явное правило манифеста сильнее сохранённой ручной настройки. Для
+        // старых поставок сохраняем галочку префаба; при чистом первом импорте
+        // головной слот по-прежнему безопасно прячет волосы по умолчанию.
+        so.FindProperty("hidesHair").boolValue = g.HidesHair
+            ?? (tunedWear != null
+                ? tunedWear.HidesHair
+                : g.Slots != null && g.Slots.Contains(VisualWearSlot.Head));
         so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static bool? ParseHairMode(string value, string file)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        if (string.Equals(value, "hide", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(value, "show", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        Debug.LogError($"[NewWear] {Path.GetFileName(file)}: hairMode должен быть 'hide' или 'show', получено '{value}'");
+        return null;
     }
 
     // Read the fit tuned into the prefab we are about to overwrite. Empty on a

@@ -324,6 +324,7 @@
       "slots": [
         "Head"
       ],
+      "hairMode": "show",
       "noHide": [],
       "materials": [
         {

@@ -13000,6 +13000,11 @@ Mechanics:
    2 spit posts and 1 crossbar. Meat remains at the same physical
    size the chunk has on the ground / in the hand (shared `ObjectFit` table —
    meat renders 1.5× the standard food size).
+   Availability resolves **one concrete cooking fire** which is simultaneously
+   perceived, reachable, unoccupied, lit, spit-complete and has a free hook
+   (bug #93). Availability and planning use that same contract: properties from
+   different fires are never combined, and an incomplete new hearth encountered
+   first cannot hide another usable spit.
 2. **Roast.** While the fire is LIT, `FireSystem` advances each hanging raw
    chunk's progress (rides on the `ItemInstance.ResourceAmount`, in ticks); at
    `SimBalance.MeatRoastDurationTicks` (200 = 2 game hours) the chunk becomes

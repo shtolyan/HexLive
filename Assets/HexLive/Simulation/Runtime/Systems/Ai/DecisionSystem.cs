@@ -1290,8 +1290,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // HANGS a raw chunk on the crossbar of a lit fire; the roast itself
         // runs in FireSystem over ~MeatRoastDurationTicks. No spit (or a
         // full crossbar) = no cooking, whatever else the fire can do.
-        var spitHooksFree = campfireObj != null && FoodMath.SpitHasFreeHook(campfireObj);
-        var cookAvail = hasRawMeat && campfireSeen && campfireFuel > 0f && spitHooksFree;
+        var cookingFire = FindCookingFire(npc, world);
+        var cookAvail = hasRawMeat && cookingFire != null;
         var craftLeatherAvail = !npc.WornItems.Contains(ContentIds.LeatherPants) &&
             ((hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftLeather));

@@ -1305,6 +1305,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // with a free hook — any other lit fire won't do.
                 return definition.Tags.Contains("Campfire") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var spitFire) &&
+                    spitFire.ResourceAmount > 0f &&
                     BuildSiteMath.CampfireSpitComplete(spitFire) &&
                     BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatRaw) +
                     BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatCooked) <

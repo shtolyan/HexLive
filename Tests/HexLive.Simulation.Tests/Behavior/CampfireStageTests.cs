@@ -1,5 +1,8 @@
+using System.Linq;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -113,6 +116,47 @@ public sealed class CampfireStageTests
         Deliver(site, BuildSiteMath.MaterialRope, 2);
         Assert.That(BuildSiteMath.IsStocked(site), Is.True);
     }
+
+    [Test]
+    public void CookingFireSelectionSkipsAnIncompleteFireSeenFirst()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        var junctions = world.Junctions.Items.Values
+            .Where(j => !j.Blocked && j.Tiles.Count > 0)
+            .Take(2)
+            .ToArray();
+        var incomplete = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Campfire, npc.Fragment, junctions[0].Tiles[0], junctions[0].Id);
+        incomplete.ResourceAmount = 500f;
+        var usable = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Campfire, npc.Fragment, junctions[1].Tiles[0], junctions[1].Id);
+        usable.ResourceAmount = 500f;
+        Deliver(usable, BuildSiteMath.MaterialSticks, SimBalance.CampfireBillSticks);
+        Deliver(usable, BuildSiteMath.MaterialRope, SimBalance.CampfireBillRope);
+
+        npc.Perception.Objects.Clear();
+        npc.Perception.Objects.Add(SeenFire(incomplete)); // dictionary/order trap from #93
+        npc.Perception.Objects.Add(SeenFire(usable));
+
+        Assert.That(DecisionSystem.FindCookingFire(npc, world), Is.SameAs(usable),
+            "Первый увиденный новый/недостроенный очаг не должен скрывать " +
+            "другой доступный горящий костёр с готовым вертелом.");
+
+        usable.ResourceAmount = 0f;
+        Assert.That(DecisionSystem.FindCookingFire(npc, world), Is.Null,
+            "Холодный вертел нельзя заимствовать у горящего костра без вертела.");
+    }
+
+    private static PerceivedObject SeenFire(WorldObjectState fire) => new()
+    {
+        Id = fire.Id,
+        DefinitionId = fire.DefinitionId,
+        Tile = fire.Tile,
+        IsReachable = true,
+        IsOccupied = false,
+        Distance = 1f,
+    };
 }
 
 }

@@ -644,6 +644,34 @@ public sealed partial class DecisionSystem
         return (false, 0f, null);
     }
 
+    // Bug #93: cooking needs ONE concrete fire which satisfies the whole
+    // contract. Reusing FindCampfire mixed properties from whichever perceived
+    // fire happened to be first: an incomplete/cold new hearth could suppress
+    // CookMeat even when a lit free spit was also visible (or availability
+    // could be borrowed from one fire while the planner selected another).
+    internal static WorldObjectState FindCookingFire(NPCState npc, WorldState world)
+    {
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (!perceived.IsReachable ||
+                !ObjectUsableBy(perceived, npc.Id) ||
+                npc.Memory.IsShunned(perceived.Id, world.Tick) ||
+                !world.Content.ObjectDefinitions.TryGetValue(
+                    perceived.DefinitionId, out var definition) ||
+                !definition.Tags.Contains("Campfire") ||
+                !world.Entities.Objects.TryGetValue(perceived.Id, out var fire) ||
+                fire.ResourceAmount <= 0f ||
+                !FoodMath.SpitHasFreeHook(fire))
+            {
+                continue;
+            }
+
+            return fire;
+        }
+
+        return null;
+    }
+
     // Does the NPC carry at least one material this site still needs?
     // §54.12: a perceived object she could actually sit ON (stump/chair/bed).
     private static bool HasPerceivedSeat(NPCState npc)

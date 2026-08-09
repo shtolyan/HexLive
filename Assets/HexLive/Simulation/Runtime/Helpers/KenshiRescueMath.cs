@@ -21,10 +21,34 @@ internal static class KenshiRescueMath
         patient.Health > 0f &&
         !patient.IsBeingCarried &&
         (patient.IsDying || patient.Mind.ComaCause != ComaCause.None) &&
-        !(patient.Execution.CurrentInteraction == InteractionType.Sleep &&
-          patient.Execution.TargetObject is { } bedId &&
-          world.Entities.Objects.TryGetValue(bedId, out var bed) &&
-          IsBed(bed));
+        !IsRecoveryResting(world, patient);
+
+    // §118.4: putting a critical patient down is the completion of one
+    // evacuation, not a fresh rescue request on the next Medium tick. The
+    // patient's own plan is already over, so this sleep is deliberately owned
+    // by the recovery state until ExitDying/WakeFromComa clears it.
+    internal static bool IsRecoveryResting(WorldState world, NPCState patient)
+    {
+        if (patient.Health <= 0f || patient.IsBeingCarried ||
+            (!patient.IsDying && patient.Mind.ComaCause == ComaCause.None) ||
+            patient.Execution.Status != ExecutionStatus.InProgress ||
+            patient.Execution.CurrentInteraction != InteractionType.Sleep)
+        {
+            return false;
+        }
+
+        if (patient.Execution.TargetObject is { } bedId)
+        {
+            return world.Entities.Objects.TryGetValue(bedId, out var bed) &&
+                IsBed(bed) && bed.IsOccupied && bed.CurrentUser == patient.Id;
+        }
+
+        // Ground was validated immediately before the carrier committed to the
+        // route. Keep that result stable for this recovery episode: a looter
+        // walking across the threat-radius edge must become a combat problem,
+        // not restart the pick-up/put-down transport carousel.
+        return true;
+    }
 
     internal static bool HasOpenBleeding(NPCState patient)
     {
@@ -120,6 +144,7 @@ internal static class KenshiRescueMath
         destinationTile = default;
         route = new List<JunctionId>();
         DestinationPathSearchesLastCall = 0;
+        ReconcileBedOccupancy(world);
         if (helper.CurrentJunction is not { } from)
         {
             return false;
@@ -398,6 +423,30 @@ internal static class KenshiRescueMath
         JunctionId approach, HashSet<JunctionId> occupiedByActor,
         out List<JunctionId> route)
     {
+        // The current save often puts a valid ground-rest point on the same
+        // hex, one lattice edge away. Sending that two-node move through the
+        // island-wide weighted Dijkstra caused the visible 200-350 ms freeze
+        // before every pickup. A direct graph edge has no alternate route to
+        // compare: validate its carry semantics locally and execute it.
+        route = new List<JunctionId> { from };
+        if (from == approach)
+        {
+            return RouteSupportsCarryTransfers(world, helper, patient, route);
+        }
+
+        // The pathfinder deliberately permits its GOAL even when the broad
+        // lying-body avoid set touches it; TryFindApproach/ground selection
+        // already proved the concrete junction free. Match that rule here.
+        if (world.Junctions.Items.TryGetValue(from, out var start) &&
+            start.Neighbors.Contains(approach))
+        {
+            route.Add(approach);
+            if (RouteSupportsCarryTransfers(world, helper, patient, route))
+            {
+                return true;
+            }
+        }
+
         DestinationPathSearchesLastCall++;
         route = HexPathfinder.FindPath(
             world, from, approach, occupiedByActor,
@@ -494,6 +543,7 @@ internal static class KenshiRescueMath
         TileCoord destinationTile, List<JunctionId> route)
     {
         carrier.Mind.InterruptedRescuePatientId = null;
+        ReleasePatientBedOnWake(world, patient);
         ExecutionSystem.ReleaseClaims(world, patient);
         if (patient.CurrentJunction is { } lying)
         {
@@ -549,6 +599,21 @@ internal static class KenshiRescueMath
 
     internal static void SyncAll(WorldState world)
     {
+        // A normal rescue claim is already coherent. Only a loaded/interrupting
+        // carry whose plan ownership vanished needs the object-wide repair on
+        // a Fast tick; ordinary selection also repairs immediately above.
+        foreach (var carrier in world.Entities.Npcs.Values)
+        {
+            if (carrier.CarriedNpcId is not null &&
+                (carrier.Plan.Status != PlanStatus.Active ||
+                 carrier.Plan.Goal != GoalType.Rescue ||
+                 carrier.Mind.CurrentGoal != GoalType.Rescue))
+            {
+                ReconcileBedOccupancy(world);
+                break;
+            }
+        }
+
         // A staged patient waits on the far side only for the atomic hop
         // window. The first grounded tick reattaches that same patient before
         // ordinary walking can consume another route step.
@@ -696,6 +761,11 @@ internal static class KenshiRescueMath
         else
         {
             MortalityHelpers.AnchorLyingBody(world, patient);
+            patient.Execution.Status = ExecutionStatus.InProgress;
+            patient.Execution.CurrentInteraction = InteractionType.Sleep;
+            patient.Execution.TargetObject = null;
+            patient.Execution.StartTick = world.Tick;
+            patient.Execution.EndTick = int.MaxValue;
         }
 
         CompleteCarrier(world, carrier);
@@ -740,6 +810,10 @@ internal static class KenshiRescueMath
             {
                 world.Entities.Npcs.TryGetValue(stagedId, out var stagedPatient);
                 ReleaseDestination(world, carrier, stagedPatient);
+                if (stagedPatient?.Mind.PendingAidFrom == carrier.Id)
+                {
+                    stagedPatient.Mind.PendingAidFrom = null;
+                }
                 carrier.RescueDestinationObjectId = null;
             }
 
@@ -813,14 +887,14 @@ internal static class KenshiRescueMath
 
     internal static void ReleasePatientBedOnWake(WorldState world, NPCState patient)
     {
-        if (patient.Execution.CurrentInteraction != InteractionType.Sleep ||
-            patient.Execution.TargetObject is not { } bedId ||
-            !world.Entities.Objects.TryGetValue(bedId, out var bed) || !IsBed(bed))
+        if (patient.Execution.CurrentInteraction != InteractionType.Sleep)
         {
             return;
         }
 
-        if (bed.CurrentUser == patient.Id)
+        if (patient.Execution.TargetObject is { } bedId &&
+            world.Entities.Objects.TryGetValue(bedId, out var bed) && IsBed(bed) &&
+            bed.CurrentUser == patient.Id)
         {
             bed.IsOccupied = false;
             bed.CurrentUser = null;
@@ -832,6 +906,64 @@ internal static class KenshiRescueMath
         patient.Execution.StartTick = 0;
         patient.Execution.EndTick = 0;
         patient.CurrentJunction = SpatialQueries.FindNearestJunction(world, patient.Position);
+    }
+
+    // Saves can contain an object claim after its sleeper was picked up or its
+    // plan was interrupted. Such a claim must not force every later rescue to
+    // the ground. The only live bed users are an actual sleeper, or the exact
+    // patient currently being carried to that bed.
+    private static void ReconcileBedOccupancy(WorldState world)
+    {
+        foreach (var bed in world.Entities.Objects.Values)
+        {
+            if (!IsBed(bed) || (!bed.IsOccupied && bed.CurrentUser is null))
+            {
+                continue;
+            }
+
+            var live = false;
+            if (bed.CurrentUser is { } userId &&
+                world.Entities.Npcs.TryGetValue(userId, out var user))
+            {
+                live = !user.IsBeingCarried &&
+                    user.Execution.Status == ExecutionStatus.InProgress &&
+                    user.Execution.CurrentInteraction == InteractionType.Sleep &&
+                    user.Execution.TargetObject == bed.Id;
+
+                if (!live && user.CarriedByNpcId is { } carrierId &&
+                    world.Entities.Npcs.TryGetValue(carrierId, out var carrier))
+                {
+                    live = carrier.CarriedNpcId == user.Id &&
+                        carrier.RescueDestinationObjectId == bed.Id;
+                }
+
+                if (!live)
+                {
+                    foreach (var candidateCarrier in world.Entities.Npcs.Values)
+                    {
+                        if (candidateCarrier.Plan.Status == PlanStatus.Active &&
+                            candidateCarrier.Plan.Goal == GoalType.Rescue &&
+                            candidateCarrier.Plan.TargetAgentId == user.Id &&
+                            candidateCarrier.RescueDestinationObjectId == bed.Id &&
+                            (candidateCarrier.CarriedNpcId == user.Id ||
+                             candidateCarrier.Mind.InterruptedRescuePatientId == user.Id))
+                        {
+                            live = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (live)
+            {
+                bed.IsOccupied = true;
+                continue;
+            }
+
+            bed.IsOccupied = false;
+            bed.CurrentUser = null;
+        }
     }
 }
 

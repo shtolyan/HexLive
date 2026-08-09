@@ -95,6 +95,69 @@ public sealed class ManualControlTests
     }
 
     [Test]
+    public void ManualNpcIsNeverAssignedReactiveRescueOrProstheticWork()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var helper = Colonist(world);
+        TakeControl(engine, helper);
+        var patient = world.Entities.Npcs.Values.First(n =>
+            n.Id != helper.Id && FactionRelations.AreAllies(helper, n));
+
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Plan.Status = npc.Id == helper.Id ? PlanStatus.Completed : PlanStatus.Active;
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Mind.CurrentGoal = GoalType.None;
+            npc.Mind.PendingAidFrom = null;
+        }
+
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        patient.Health = System.Math.Max(0.2f, patient.Body.Mean());
+        helper.Mind.ProstheticAidTargetId = patient.Id;
+        helper.Mind.ProstheticAidPart = BodyPart.ArmL;
+
+        new RescueSystem().Run(world);
+        new ProstheticAidSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+                "Reactive aid bypassed Manual mode and assigned autonomous work.");
+            Assert.That(helper.Plan.Status, Is.Not.EqualTo(PlanStatus.Active));
+            Assert.That(patient.Mind.PendingAidFrom, Is.Not.EqualTo(helper.Id));
+        });
+    }
+
+    [Test]
+    public void TakingManualControlCancelsAnApproachingRescueClaim()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var helper = Colonist(world);
+        var patient = world.Entities.Npcs.Values.First(n =>
+            n.Id != helper.Id && FactionRelations.AreAllies(helper, n));
+
+        helper.Mind.CurrentGoal = GoalType.Rescue;
+        helper.Plan.Goal = GoalType.Rescue;
+        helper.Plan.Status = PlanStatus.Active;
+        helper.Plan.TargetAgentId = patient.Id;
+        patient.Mind.PendingAidFrom = helper.Id;
+
+        engine.Commands.Enqueue(new SetManualControlCommand(helper.Id, true));
+        engine.Step();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.Mind.ManualControl, Is.True);
+            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(helper.Plan.Status, Is.Not.EqualTo(PlanStatus.Active));
+            Assert.That(patient.Mind.PendingAidFrom, Is.Null,
+                "A cancelled automatic approach must not reserve the patient forever.");
+        });
+    }
+
+    [Test]
     public void ReleasingControlBringsTheAuctionBack()
     {
         var engine = TestWorld.CreateEngine();

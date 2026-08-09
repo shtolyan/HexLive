@@ -1,7 +1,9 @@
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -22,7 +24,8 @@ public sealed class RescueSystem : ISimulationSystem
 
         foreach (var helper in world.Entities.Npcs.Values)
         {
-            if (helper.Health <= 0f || helper.IsUnconscious(world.Tick) ||
+            if (ManualControlMath.IsManual(helper) ||
+                helper.Health <= 0f || helper.IsUnconscious(world.Tick) ||
                 helper.Body.IsProne || helper.IsBeingCarried ||
                 helper.IsCarryingPerson || helper.IsFighting ||
                 helper.Mind.PendingAbuseFrom is not null ||
@@ -133,11 +136,42 @@ public sealed class RescueSystem : ISimulationSystem
         });
         helper.Plan.CurrentStepIndex = 0;
         helper.Plan.Status = PlanStatus.Active;
+        TryPrearmLocalApproach(world, helper, approach);
         patient.Mind.PendingAidFrom = helper.Id;
         patient.Mind.PendingAidSinceTick = world.Tick;
         Trace.Emit(world, helper.Id, resumed ? "RescueResumed" : "RescueAssigned",
             $"NPC{patient.Id.Value} Distance={distance} Approach={approach.Value}");
         return true;
+    }
+
+    // The patient approach is commonly the immediately adjacent lattice node.
+    // Pre-arm that exact graph edge so the next Fast tick does not invoke an
+    // island-wide weighted search merely to take one local step.
+    private static void TryPrearmLocalApproach(
+        WorldState world, NPCState helper, JunctionId approach)
+    {
+        if (helper.CurrentJunction is not { } from ||
+            !world.Junctions.Items.TryGetValue(from, out var start) ||
+            (from != approach && !start.Neighbors.Contains(approach)))
+        {
+            return;
+        }
+
+        helper.Movement.JunctionPath.Clear();
+        helper.Movement.JunctionPath.Add(from);
+        if (from != approach)
+        {
+            helper.Movement.JunctionPath.Add(approach);
+        }
+
+        helper.Movement.PathIndex = 1;
+        helper.Movement.BlockedWaitTicks = 0;
+        helper.Movement.HopArmed = false;
+        helper.Movement.HopPathIndex = -1;
+        helper.Movement.IsMoving = from != approach;
+        helper.Movement.SetStatus(
+            helper.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived);
+        helper.Movement.StopReason = string.Empty;
     }
 
     private static bool IsClaimedByOtherActiveHelper(

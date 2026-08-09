@@ -30,9 +30,15 @@ public sealed class RescueDestinationTests
 
         helperBed.IsOccupied = true;
         helperBed.CurrentUser = helper.Id;
+        helper.Execution.Status = ExecutionStatus.InProgress;
+        helper.Execution.CurrentInteraction = InteractionType.Sleep;
+        helper.Execution.TargetObject = helperBed.Id;
         var shared = SpawnUsableBed(world, helper, patient, sites, owner: null);
         helperBed.IsOccupied = false;
         helperBed.CurrentUser = null;
+        helper.Execution.Status = ExecutionStatus.None;
+        helper.Execution.CurrentInteraction = null;
+        helper.Execution.TargetObject = null;
 
         var found = KenshiRescueMath.TryFindDestination(
             world, helper, patient, out var destination, out _, out _, out var route);
@@ -118,6 +124,153 @@ public sealed class RescueDestinationTests
             world, helper, patient, destination, approach, destinationTile, route));
         Assert.That(helper.RescueDestinationObjectId, Is.Null);
         Assert.That(helper.CarriedNpcId, Is.EqualTo(patient.Id));
+    }
+
+    [Test]
+    public void GroundDelivery_BecomesRecoveryRestInsteadOfAnotherRescue_Bug91()
+    {
+        var world = TestWorld.CreateWorld(251173145);
+        var (helper, patient) = RescuePair(world);
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        RemoveObjects(world, obj => KenshiRescueMath.IsBed(obj));
+
+        Assert.That(KenshiRescueMath.TryFindDestination(
+            world, helper, patient, out var destination, out var approach,
+            out var destinationTile, out var route), Is.True);
+        KenshiRescueMath.BeginCarry(
+            world, helper, patient, destination, approach, destinationTile, route);
+        Relocate(world, helper, destinationTile, approach);
+        KenshiRescueMath.SyncAll(world);
+
+        KenshiRescueMath.PutDownAtDestination(world, helper, patient);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Execution.Status, Is.EqualTo(ExecutionStatus.InProgress));
+            Assert.That(patient.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep));
+            Assert.That(patient.Execution.TargetObject, Is.Null);
+            Assert.That(KenshiRescueMath.IsRecoveryResting(world, patient), Is.True);
+            Assert.That(KenshiRescueMath.NeedsRescue(world, patient), Is.False,
+                "Safe camp ground must complete the evacuation instead of reopening it every Medium tick.");
+        });
+
+        // Exact save failure: a looter crossed the threat-radius edge after
+        // delivery and caused two more complete carries. The route was already
+        // validated; later danger is handled by combat, not transport churn.
+        helper.Faction = Faction.Outsiders;
+        helper.Tile = patient.Tile;
+        helper.Position = patient.Position;
+
+        new PlanningSystem().Run(world);
+        new RescueSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep),
+                "The orphan-interaction guard must not wake recovery sleep.");
+            Assert.That(world.Entities.Npcs.Values.Any(npc =>
+                npc.Mind.CurrentGoal == GoalType.Rescue &&
+                npc.Plan.TargetAgentId == patient.Id), Is.False,
+                "The same safely delivered patient was auctioned again.");
+        });
+    }
+
+    [Test]
+    public void BedDelivery_SurvivesPatientsCompletedPlan_Bug91()
+    {
+        var world = TestWorld.CreateWorld(251173145);
+        var (helper, patient) = RescuePair(world);
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        RemoveObjects(world, KenshiRescueMath.IsBed);
+        var bed = SpawnUsableBed(
+            world, helper, patient, ReachableBuildSites(world, helper, patient), patient.Id);
+
+        Assert.That(KenshiRescueMath.TryFindDestination(
+            world, helper, patient, out var destination, out var approach,
+            out var destinationTile, out var route), Is.True);
+        Assert.That(destination, Is.SameAs(bed));
+        KenshiRescueMath.BeginCarry(
+            world, helper, patient, destination, approach, destinationTile, route);
+        Relocate(world, helper, destinationTile, approach);
+        KenshiRescueMath.SyncAll(world);
+        KenshiRescueMath.PutDownAtDestination(world, helper, patient);
+
+        patient.Plan.Status = PlanStatus.Completed;
+        patient.Plan.Goal = GoalType.None;
+        patient.Mind.CurrentGoal = GoalType.None;
+        new PlanningSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep),
+                "A completed personal plan must not tear down rescue-owned sleep.");
+            Assert.That(bed.IsOccupied, Is.True);
+            Assert.That(bed.CurrentUser, Is.EqualTo(patient.Id));
+            Assert.That(KenshiRescueMath.NeedsRescue(world, patient), Is.False);
+        });
+    }
+
+    [Test]
+    public void SyncAll_ClearsCrossStaleBedClaimsFromSave_Bug91()
+    {
+        var world = TestWorld.CreateWorld(251173145);
+        var (carrier, patient) = RescuePair(world);
+        var beds = world.Entities.Objects.Values.Where(KenshiRescueMath.IsBed).Take(2).ToList();
+        Assert.That(beds, Has.Count.EqualTo(2), "Fixture needs the two colony beds from the save scenario.");
+
+        carrier.CarriedNpcId = patient.Id;
+        patient.CarriedByNpcId = carrier.Id;
+        patient.CurrentJunction = null;
+        carrier.Mind.CurrentGoal = GoalType.None;
+        carrier.Plan.Goal = GoalType.None;
+        carrier.Plan.Status = PlanStatus.Active;
+        carrier.Plan.TargetAgentId = patient.Id;
+        carrier.RescueDestinationObjectId = null; // the real destination is ground
+        beds[0].IsOccupied = true;
+        beds[0].CurrentUser = patient.Id;
+        beds[1].IsOccupied = true;
+        beds[1].CurrentUser = carrier.Id;
+
+        KenshiRescueMath.SyncAll(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(beds[0].IsOccupied, Is.False);
+            Assert.That(beds[0].CurrentUser, Is.Null);
+            Assert.That(beds[1].IsOccupied, Is.False);
+            Assert.That(beds[1].CurrentUser, Is.Null);
+        });
+    }
+
+    [Test]
+    public void RescueAuction_PrearmsAdjacentPatientApproach_Bug91()
+    {
+        var world = TestWorld.CreateWorld(251173145);
+        var (helper, patient) = RescuePair(world);
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Plan.Status = npc.Id == helper.Id ? PlanStatus.Completed : PlanStatus.Active;
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Mind.CurrentGoal = GoalType.None;
+            npc.Mind.PendingAidFrom = null;
+        }
+
+        patient.Plan.Status = PlanStatus.Completed;
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        patient.Health = System.Math.Max(0.2f, patient.Body.Mean());
+        Relocate(world, patient, helper.Tile, helper.CurrentJunction!.Value);
+
+        new RescueSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.Rescue));
+            Assert.That(helper.Movement.JunctionPath, Has.Count.EqualTo(2));
+            Assert.That(helper.Movement.JunctionPath[0], Is.EqualTo(helper.CurrentJunction));
+            Assert.That(helper.Movement.JunctionPath[1], Is.EqualTo(helper.Plan.TargetJunctionId));
+            Assert.That(helper.Movement.IsMoving, Is.True,
+                "An adjacent patient approach must already be armed before PathfindingSystem runs.");
+        });
     }
 
     [Test]

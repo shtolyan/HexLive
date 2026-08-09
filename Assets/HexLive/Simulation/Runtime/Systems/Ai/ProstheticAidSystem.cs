@@ -25,6 +25,11 @@ public sealed class ProstheticAidSystem : ISimulationSystem
 
         foreach (var helper in world.Entities.Npcs.Values)
         {
+            if (ManualControlMath.IsManual(helper))
+            {
+                continue;
+            }
+
             ValidatePledge(world, helper);
             if (!helper.Mind.ProstheticAidTargetId.HasValue)
             {

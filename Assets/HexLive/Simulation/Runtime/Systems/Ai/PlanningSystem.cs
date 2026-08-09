@@ -30,6 +30,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            // §118.4: RescueSystem installs recovery sleep after the carrier's
+            // plan completes. It intentionally has no active plan of the
+            // patient's own; treating it as an orphan woke her, released the
+            // bed, and immediately auctioned the same rescue again.
+            if (KenshiRescueMath.IsRecoveryResting(world, npc))
+            {
+                continue;
+            }
+
             if (npc.Plan.Status == PlanStatus.Active && npc.Plan.Goal == npc.Mind.CurrentGoal)
             {
                 // Spec 29F.2: охота преследует ЖИВУЮ цель. Обычный скип держал

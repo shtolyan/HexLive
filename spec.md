@@ -12190,7 +12190,12 @@ the bleed + drops a gauze wrap, Medicate lifts Health and clears the sickness
 window, Console eases Stress and shortens mourning. The aid itself only starts
 within `2×HexRadius` (3.0 wu) of the ward — the walk aims at an arm's-length
 spot 0.9×R beside her, the range is just wander tolerance (was 4×R, which read
-as feeding from across the camp); a blocked approach aborts and replans. **Both** relationships rise by
+as feeding from across the camp); a blocked approach aborts and replans.
+«Свободный» подход проверяет не только interaction occupancy, но и живые
+`CurrentJunction` остальных персонажей/мобов. Гонка всё ещё может занять точку
+после построения плана, поэтому и `Aid`, и `Rescue` ждут стоящую там подругу не
+дольше 40 тиков, затем снимают claim, ставят cooldown и выбирают новый подход,
+а не перестраивают путь к той же занятой точке каждые 41 тик. **Both** relationships rise by
 `AidRelationshipGain` (larger than a chat's 0.05) across Affinity/Familiarity/
 Trust, and the Sims-style "+/-" pop floats over both heads.
 

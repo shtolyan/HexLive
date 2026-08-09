@@ -461,6 +461,19 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // MovementSystem waits 40 ticks for a housemate standing on the
+        // reserved approach, then clears the path for a re-route. Re-routing to
+        // the unchanged occupied target created an endless 41-tick loop. Abort
+        // on the last polite-wait tick so planning can choose another arm's-
+        // length point (and the claim on the patient is released immediately).
+        if (npc.Execution.Status == ExecutionStatus.None &&
+            npc.Movement.IsMoving && npc.Movement.BlockedWaitTicks >= 40)
+        {
+            AbortAid(world, npc,
+                $"Aid approach occupied too long (Junction={npc.Plan.TargetJunctionId?.Value.ToString() ?? "-"})");
+            return;
+        }
+
         if (npc.Movement.IsMoving)
         {
             return;

@@ -82,10 +82,12 @@ internal static class KenshiRescueMath
             return false;
         }
 
+        var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, helper);
         var best = float.MaxValue;
         foreach (var candidate in SpatialQueries.GetPassableNeighbors(world, target))
         {
-            if (!SpatialQueries.IsJunctionFree(world, candidate) ||
+            if (occupiedByActor.Contains(candidate) ||
+                !SpatialQueries.IsJunctionFree(world, candidate) ||
                 !world.Junctions.Items.TryGetValue(candidate, out var junction))
             {
                 continue;

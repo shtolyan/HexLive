@@ -197,6 +197,11 @@ public sealed partial class PlanningSystem
     private static JunctionId? TryReserveArmsLengthApproach(
         WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction)
     {
+        // IsJunctionFree covers explicit interaction occupancy, not the live
+        // CurrentJunction of a walking/standing actor. Aid needs both: otherwise
+        // it reserves a point already held by a third person and MovementSystem
+        // politely re-paths to that exact same point forever.
+        var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
         if (partner is not null)
         {
             // §111.9: a lying ward has an absolute care/search station at her
@@ -211,6 +216,7 @@ public sealed partial class PlanningSystem
                 world.Junctions.Items.TryGetValue(armsLength, out var armsJct) &&
                 HexSpatialMath.Distance(armsJct.WorldPosition, partner.Position) <=
                     InteractionReach.Aid &&
+                !occupiedByActor.Contains(armsLength) &&
                 SpatialQueries.IsJunctionFree(world, armsLength) &&
                 SpatialMutations.TryReserveJunction(world, armsLength, npc.Id, world.Tick, 48))
             {
@@ -232,7 +238,8 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
-            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
+            if (!occupiedByActor.Contains(neighbor) &&
+                SpatialQueries.IsJunctionFree(world, neighbor) &&
                 SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
             {
                 return neighbor;

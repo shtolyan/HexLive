@@ -19,6 +19,18 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        if (!helper.IsCarryingPerson &&
+            helper.Execution.Status == ExecutionStatus.None &&
+            helper.Movement.IsMoving && helper.Movement.BlockedWaitTicks >= 40)
+        {
+            PlanningSystem.SetGoalCooldown(world, helper, GoalType.Rescue);
+            PlanInterruption.Abort(world, helper,
+                $"patient approach occupied too long (Junction={helper.Plan.TargetJunctionId?.Value.ToString() ?? "-"})");
+            helper.Mind.CurrentGoal = GoalType.None;
+            patient.Mind.PendingAidFrom = null;
+            return;
+        }
+
         if (helper.IsCarryingPerson)
         {
             if (helper.Movement.IsMoving)

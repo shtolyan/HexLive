@@ -1190,7 +1190,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // stock gate — an aid errand brews a dressing for someone else's
         // wound, so a full med pouch of her own must not veto it.
         var herbFetchPossible = herbLeaves < 2 &&
-            npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Herb");
+            InventoryMath.CanMakeRoomFor(world, npc, ContentIds.HerbLeaf) &&
+            HasReachableWithTag(npc, world, "Herb");
         var bandageCraftPossible =
             (herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage)) ||
             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftBandage);
@@ -1283,7 +1284,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             ((npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.8f) ||
              prostheticHideNeeded) &&
             NearestVisibleRabbit(npc, world) is not null;
+        var finishedSpearReachable = CraftProjectMath.HasReachableCompletedOutput(
+            world, npc, GoalType.CraftSpear);
         var craftSpearAvail = ctx.CanUseToolsOrWeapons && !hasSpear &&
+            !finishedSpearReachable &&
             ((hasWood && CraftPlaceOk(GoalType.CraftSpear)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSpear));
         // §54.14 (r2): cooking is the SPIT's job — CookMeat now
@@ -1393,10 +1397,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (piece is { } pStone && stoneCount < pStone.Stones) ||
                 (siteNeedsStones && stoneCount < siteStoneWant)) &&
             npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Stone");
+        var finishedAxeReachable = CraftProjectMath.HasReachableCompletedOutput(
+            world, npc, GoalType.CraftAxe);
+        var finishedPickaxeReachable = CraftProjectMath.HasReachableCompletedOutput(
+            world, npc, GoalType.CraftPickaxe);
         var craftAxeAvail = ctx.CanUseToolsOrWeapons && !hasAxe && !hasSaw &&
+            !finishedAxeReachable &&
             ((hasWood && stoneCount >= axeStoneCost && CraftPlaceOk(GoalType.CraftAxe)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftAxe));
         var craftPickaxeAvail = ctx.CanUseToolsOrWeapons && !hasPickaxe &&
+            !finishedPickaxeReachable &&
             ((hasWood && stoneCount >= pickaxeStoneCost && CraftPlaceOk(GoalType.CraftPickaxe)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftPickaxe));
         var canChop = ctx.CanUseToolsOrWeapons && (hasAxe || hasSaw);

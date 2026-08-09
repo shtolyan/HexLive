@@ -247,6 +247,37 @@ public sealed class WorkbenchCraftingTests
     }
 
     [Test]
+    public void OrdinaryReachableGroundToolSuppressesCraftingAnotherCopy()
+    {
+        var world = TestWorld.CreateWorld(119065);
+        var crafter = world.Entities.Npcs.Values.First();
+        var anchor = crafter.CurrentJunction ?? world.Tiles.Items[crafter.Tile].Junctions[0];
+        var output = RecipeCatalog.OutputOf(GoalType.CraftAxe);
+        var axe = WorldObjectMutations.SpawnObject(
+            world, output, crafter.Fragment, crafter.Tile, anchor);
+        crafter.Perception.Objects.Clear();
+        crafter.Perception.Objects.Add(new PerceivedObject
+        {
+            Id = axe.Id,
+            DefinitionId = output,
+            Tile = axe.Tile,
+            IsReachable = true,
+            IsOccupied = false,
+            Distance = 0f
+        });
+
+        Assert.That(CraftProjectMath.HasReachableCompletedOutput(
+                world, crafter, GoalType.CraftAxe), Is.True,
+            "A ready axe on the ground must route through GatherTools instead " +
+            "of paying for a new CraftAxe project.");
+
+        axe.IsOccupied = true;
+        Assert.That(CraftProjectMath.HasReachableCompletedOutput(
+                world, crafter, GoalType.CraftAxe), Is.False,
+            "A tool currently used by somebody else must not block future crafting.");
+    }
+
+    [Test]
     public void NewMap_SpawnsExactlyTwoArmsAndTwoLegs_OnDistinctDryTiles()
     {
         var world = TestWorld.CreateWorld(119064);

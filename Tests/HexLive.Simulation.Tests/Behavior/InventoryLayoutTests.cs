@@ -201,6 +201,21 @@ public sealed class InventoryLayoutTests
             e.Type == "InventoryMadeRoom" && e.Message.Contains(ContentIds.PickaxeStone)), Is.True);
     }
 
+    [Test]
+    public void SecondHerbLeafFitsTheExistingStackWhenEverySlotIsOccupied()
+    {
+        var (world, npc) = CleanNpc();
+        npc.Inventory.Capacity = 2;
+        npc.Inventory.Items.Add(ContentIds.HerbLeaf);
+        npc.Inventory.Items.Add(ContentIds.Knife);
+
+        Assert.That(npc.Inventory.HasSpace, Is.False,
+            "Regression setup requires both pocket slots to be occupied.");
+        Assert.That(InventoryMath.CanMakeRoomFor(world, npc, ContentIds.HerbLeaf), Is.True,
+            "The second medicine leaf belongs in the existing resource stack, " +
+            "so GatherHerb must not wait for an empty slot.");
+    }
+
     // §75A: статы первичны — любимое оружие выбирает MeleePriority, а не вкус.
     // Мачете (35) обязано побеждать нож (10) у ЛЮБОГО персонажа, каким бы ни
     // был его хеш симпатии; вкус решает только между экземплярами одного класса.

@@ -56,14 +56,21 @@ internal static class CraftProjectMath
         foreach (var perceived in npc.Perception.Objects)
         {
             if (!perceived.IsReachable || perceived.DefinitionId != output ||
+                npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var candidate) ||
-                !candidate.Fragment.Equals(npc.Fragment) || candidate.IsOccupied)
+                !candidate.Fragment.Equals(npc.Fragment) || candidate.IsOccupied ||
+                !InventoryMath.CanMakeRoomFor(world, npc, output))
             {
                 continue;
             }
 
-            if (candidate.CraftWorkRequired > 0 &&
-                candidate.CraftWorkDone >= candidate.CraftWorkRequired)
+            // A normal ground tool has no craft counters at all; a persistent
+            // project carries them and is usable only at 100%. Both are a
+            // finished output which must be picked up before another copy is
+            // manufactured (bug #92 generalises the knife-only #86 fix).
+            if (!candidate.IsCraftProject &&
+                (candidate.CraftWorkRequired <= 0 ||
+                 candidate.CraftWorkDone >= candidate.CraftWorkRequired))
             {
                 return true;
             }

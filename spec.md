@@ -12685,6 +12685,13 @@ pieces. Three changes free the time without touching the fragile survival needs
   Slots are **not** expanded — `Items` stays a flat instance list, so every
   Add/Remove/Contains/Count path is unchanged; only `UsedSlots` groups stacks. A
   whole bed's leaves now ride in one slot, so hauling is a trip or two, not a dozen.
+  A partially filled stack counts as room for that same resource even when every
+  pocket slot is occupied (bug #92): in particular one carried herb leaf must not
+  prevent gathering the second leaf required by `CraftBandage`.
+- **Ready tools beat duplicate crafts.** Before starting axe, pickaxe, spear or
+  knife production, the same exact output is searched among reachable ordinary
+  ground items and completed persistent projects. If it can be picked up, the
+  craft goal is unavailable and `GatherTools` owns the trip (bug #92).
 - **Gather to the bill.** When a bed site needs material the per-trip cap rises
   from 3 to the full bill (`wantsLeaves` → 16, `splitLog` stick cap → 4, rope target
   → remaining rope bill), so a stacked bundle actually fills before delivery.

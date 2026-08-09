@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -47,6 +49,46 @@ public sealed class AbuseRealWorldTests
 
     [TearDown]
     public void RestoreGroupHunt() => Spec108.GroupHuntEnabled = _wasGroupHuntEnabled;
+
+    [Test]
+    public void ProwlArrivalKeepsAbuseIntentBetweenMoveOnlyLegs()
+    {
+        var world = TestWorld.CreateWorld(251173145);
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction != Faction.Colony);
+        var here = world.Tiles.Items[npc.Tile].Junctions.First();
+        npc.CurrentJunction = here;
+
+        // Exact seam behind bug #90: a prowl leg is a plain move-only plan.
+        // Arriving completes the leg, but the obsession still owns the next
+        // decision and must not expose one auction in which Drink can win.
+        npc.Needs.Social = 0f;
+        npc.Mind.CurrentGoal = GoalType.Abuse;
+        npc.Plan.Goal = GoalType.Abuse;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetAgentId = null;
+        npc.Plan.TargetJunctionId = here;
+        npc.Plan.TargetTile = npc.Tile;
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = here
+        });
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Movement.IsMoving = false;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.SetStatus(MovementStatus.Arrived);
+
+        new ExecutionSystem().Run(world);
+
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Abuse),
+            "Прибытие в точку поиска не должно открывать Drink между участками Abuse.");
+        Assert.That(world.Events.Items.Any(e =>
+            e.EntityId == npc.Id.Value && e.Type == "AbuseProwlContinues"), Is.True);
+    }
 
     // §118 Kenshi-core переписал путь урона: чужак теперь ходит по острову
     // раненым (Reason=Wounded, Vital ниже Floor), и одержимость пробивается

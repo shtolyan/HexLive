@@ -1588,6 +1588,19 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return;
         }
 
+        // §109.6 / bug #90: an Abuse prowl is a chain of move-only search
+        // legs, not a finished intention. Clearing the goal on every arrival
+        // opened one ordinary auction between legs: Drink won it, then Abuse
+        // immediately won back, producing a deterministic 20-tick loop.
+        // Planning owns the end of the search (NoMark / no next prowl point);
+        // arrival owns only this leg while the drive still exists.
+        if (npc.Mind.CurrentGoal == GoalType.Abuse && AbuseMath.Drive(npc) > 0f)
+        {
+            Trace.Emit(world, npc.Id, "AbuseProwlContinues",
+                "Arrived at search point — keep the Abuse intent for the next leg");
+            return;
+        }
+
         // §108: та же беда, что у §29F.2 краба, только цель бежит осмысленно.
         // Сброс в None здесь ронял охоту на первом же прибытии: он отходит на
         // узел, две подруги «пришли» и тут же теряли цель, а третья оставалась

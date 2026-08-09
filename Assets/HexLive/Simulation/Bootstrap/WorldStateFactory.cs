@@ -32,6 +32,10 @@ public sealed class WorldStateFactory
         // Per-object assets (WorldObjectConfig → WorldObjectLibrary): merge
         // asset-declared actions/tags over the defaults, add new object types.
         WorldObjectLibrary.ApplyTo(world.Content.ObjectDefinitions);
+        // One canonical bed. Unity config overrides from an older editor session
+        // may still register the retired ids; they are save-input aliases only.
+        world.Content.ObjectDefinitions.Remove(ContentIds.BedLeaf);
+        world.Content.ObjectDefinitions.Remove(ContentIds.HutBed);
 
         world.Environment.GlobalTemperature = bootstrap.Environment.GlobalTemperature;
 

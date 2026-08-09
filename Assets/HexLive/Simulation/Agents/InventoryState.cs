@@ -52,9 +52,10 @@ public sealed class InventoryState
 {
     public List<ItemInstance> Items { get; } = new();
 
-    // Spec §52: no longer a fixed number — the pack is 2 hand slots plus the
-    // pockets of every worn garment, recomputed by EquipmentMath.Recalculate.
-    // Defaulted so any host that never dresses an NPC still carries a little.
+    // Spec §52: no longer a fixed number — functional hands + the body's Carry
+    // allowance + the capacity of worn garments/backpacks, recomputed by
+    // EquipmentMath.Recalculate. InventoryLayoutBuilder only visualizes this
+    // number; it does not own or persist capacity.
     public int Capacity { get; set; } = 2;
 
     // Spec §52: personal effects hang on the body (a belt / strap), not in a

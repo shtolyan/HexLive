@@ -88,6 +88,11 @@ public sealed class WorldObjectState
     // workbench's six board_* children are revealed from this exact channel.
     public int BillBoards { get; set; }
 
+    // §120 constructor layer. These are addressable/persistent building pieces,
+    // not furniture WorldObjects; furniture and architecture therefore keep
+    // independent occupancy/intersection rules on the same tile.
+    public List<ArchitectureElementState> ArchitectureElements { get; } = new();
+
     // §119: one immutable work position chosen when a workbench site is staked.
     // It rides onto the finished station and is the only legal craft approach.
     public JunctionId? CraftJunction { get; set; }

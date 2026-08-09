@@ -42,13 +42,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Сколько тиков после последнего замерзания доступно трение-разжигание (ручное сверло).")]
         [Range(0, 1200)] public int frictionLightGraceTicks = 400;
 
-        [Header("Кровати — биллы (§54.2; = суммам BuildSiteMath.BedLeafStages)")]
-        [Tooltip("bed.leaf: листья.")]
-        [Range(1, 100)] public int bedLeafBillLeaves = 46;
-        [Tooltip("bed.leaf: палки-рёбра.")]
-        [Range(1, 30)] public int bedLeafBillSticks = 8;
-        [Tooltip("bed.leaf: верёвки-обвязки.")]
-        [Range(0, 30)] public int bedLeafBillRope = 8;
+        [Header("Единственная кровать — билл (§54.2)")]
         [Tooltip("bed.basic: брёвна боковых направляющих.")]
         [Range(1, 12)] public int bedBasicBillLogs = 4;
         [Tooltip("bed.basic: палки-поперечины.")]
@@ -57,8 +51,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 30)] public int bedBasicBillRope = 10;
         [Tooltip("bed.basic: листья матраса.")]
         [Range(1, 100)] public int bedBasicBillLeaves = 50;
-        [Tooltip("§54.12: включить второй тир кроватей (премиум-лежанки после листовых ковриков).")]
-        public bool bedBasicEnabled = true;
 
         [Header("Сушилка (§35.5B; = суммам BuildSiteMath.DryingRackStages)")]
         [Tooltip("Палки: 2 стойки + 2 рейки.")]

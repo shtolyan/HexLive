@@ -152,6 +152,32 @@ public static class WorldSnapshotExporter
                 }
             }
 
+            foreach (var element in obj.ArchitectureElements)
+            {
+                exported.ArchitectureElements.Add(new ArchitectureElementSnapshot
+                {
+                    ElementId = element.ElementId,
+                    DefinitionId = element.DefinitionId,
+                    SlotKey = element.SlotKey,
+                    SlotIndex = element.SlotIndex,
+                    Layer = (int)element.Layer,
+                    LocalX = element.LocalX,
+                    LocalZ = element.LocalZ,
+                    LocalYaw = element.LocalYaw,
+                    RequiredSticks = element.RequiredSticks,
+                    RequiredBoards = element.RequiredBoards,
+                    RequiredRope = element.RequiredRope,
+                    RequiredLeaves = element.RequiredLeaves,
+                    DeliveredSticks = element.DeliveredSticks,
+                    DeliveredBoards = element.DeliveredBoards,
+                    DeliveredRope = element.DeliveredRope,
+                    DeliveredLeaves = element.DeliveredLeaves,
+                    Buildable = element.Buildable,
+                    WorkRequired = element.WorkRequired,
+                    WorkDone = element.WorkDone
+                });
+            }
+
             foreach (var junctionId in obj.Junctions)
             {
                 exported.Junctions.Add(junctionId);
@@ -802,6 +828,35 @@ public static class WorldSnapshotExporter
                     : null
         };
 
+        var inventoryLayout = HexLive.Simulation.Runtime.InventoryLayoutBuilder.Build(world, npc);
+        npcSnapshot.FavoriteWeaponId = inventoryLayout.FavoriteWeaponId;
+        foreach (var sourceContainer in inventoryLayout.Containers)
+        {
+            var targetContainer = new InventoryContainerSnapshot
+            {
+                Id = sourceContainer.Id,
+                Kind = sourceContainer.Kind,
+                OwnerItemDefinitionId = sourceContainer.OwnerItemDefinitionId,
+                BodyAnchor = sourceContainer.BodyAnchor,
+                Capacity = sourceContainer.Capacity,
+                BaseCapacity = sourceContainer.BaseCapacity,
+                StrengthBonus = sourceContainer.StrengthBonus,
+                BackpackCapacity = sourceContainer.BackpackCapacity
+            };
+            foreach (var sourceSlot in sourceContainer.Slots)
+            {
+                targetContainer.Slots.Add(new InventorySlotSnapshot
+                {
+                    Index = sourceSlot.Index,
+                    ItemDefinitionId = sourceSlot.ItemDefinitionId,
+                    StackCount = sourceSlot.StackCount,
+                    AcceptedItemDefinitionId = sourceSlot.AcceptedItemDefinitionId
+                });
+            }
+
+            npcSnapshot.InventoryContainers.Add(targetContainer);
+        }
+
         // Spec 35.4: per-NPC effective UV — same formula as TemperatureSystem
         // (indoor/water block it entirely, shade cuts the index to 20%).
         var uvIndoor = world.Tiles.Items.TryGetValue(npc.Tile, out var uvTile) &&
@@ -891,7 +946,11 @@ public static class WorldSnapshotExporter
         var lockedHp = 0f;
         foreach (var wound in npc.Wounds)
         {
-            npcSnapshot.Wounds.Add($"{wound.Zone}|{wound.Seed}|{wound.Heal01:0.###}");
+            // Legacy presentation strings carry a VISUAL age. Clotting dries
+            // the mark and ends pain/wet-gloss cues without lying to typed
+            // medical consumers: OpenWounds below keeps authoritative Heal01.
+            var visualHeal = HexLive.Simulation.Runtime.WoundMath.VisualHeal01(wound);
+            npcSnapshot.Wounds.Add($"{wound.Zone}|{wound.Seed}|{visualHeal:0.###}");
             npcSnapshot.OpenWounds.Add(new WoundSnapshot
             {
                 Id = wound.Id,
@@ -922,7 +981,7 @@ public static class WorldSnapshotExporter
         var restingInBed = npc.Execution.CurrentInteraction == Content.InteractionType.Sleep &&
             npc.Execution.TargetObject is { } bedId &&
             world.Entities.Objects.TryGetValue(bedId, out var bedObj) &&
-            bedObj.DefinitionId is "bed.basic" or "bed.leaf";
+            bedObj.DefinitionId == ContentIds.BedBasic;
         EffectEvaluator.Collect(npc, world.Tick, npcSnapshot.EffectiveUv, nearLitFire, restingInBed, effects);
         foreach (var effect in effects)
         {

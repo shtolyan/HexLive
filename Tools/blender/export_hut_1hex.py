@@ -47,20 +47,6 @@ for index in range(3):
     obj.rotation_mode = "XYZ"
     obj.rotation_euler = (0.0, 0.0, 0.0)
 
-# Window rails were authored in QUATERNION mode. Looking at rotation_euler made
-# them appear to be zeroed, while the real (0.5, 0.5, 0.5, 0.5) quaternion laid
-# them horizontally through the wall. The rail mesh itself is authored along
-# local X; rotate that axis onto Blender Z, which imports as Unity Y. Rails are vertical
-# architectural members, so make that invariant explicit for the whole kit,
-# including future duplicated house modules. This is idempotent.
-for obj in bpy.data.objects:
-    if obj.type != "MESH" or "Window_window_rail" not in obj.name:
-        continue
-    location = obj.matrix_world.translation.copy()
-    obj.rotation_mode = "QUATERNION"
-    obj.rotation_quaternion = (math.cos(math.pi * 0.25), 0.0, math.sin(math.pi * 0.25), 0.0)
-    obj.location = location
-
 # The door is authored as separate boards. Normalize it to one clear artistic
 # open angle around the existing hinge before saving/exporting. Deriving the
 # current angle from the outer-board centres makes reruns idempotent.
@@ -81,7 +67,7 @@ if door_hinge_source is None or door_top is None or door_outer_a is None or door
 
 door_hinge = door_hinge_source.matrix_world.translation.copy()
 wall_angle = door_top.matrix_world.to_euler("XYZ").z
-open_angle = wall_angle + math.radians(72.0)
+open_angle = wall_angle - math.radians(72.0)
 leaf_vector = door_outer_b.matrix_world.translation - door_outer_a.matrix_world.translation
 current_angle = math.atan2(leaf_vector.y, leaf_vector.x)
 delta = open_angle - current_angle
@@ -133,6 +119,10 @@ stage_counts = {"1": 0, "2": 0, "3": 0}
 for source in hut.all_objects:
     if source.type != "MESH" or source.name == "HL_Hex_R1.5_Exact":
         continue
+    # These two old window rails have corrupt quaternion/position data and are
+    # not part of the approved window silhouette. Do not ship loose splinters.
+    if "Window_window_rail" in source.name:
+        continue
     duplicate = source.copy()
     duplicate.data = source.data.copy()
     duplicate.animation_data_clear()
@@ -143,6 +133,12 @@ for source in hut.all_objects:
         duplicate.data.transform(door_pivot.matrix_world.inverted() @ source.matrix_world)
     else:
         duplicate.data.transform(source.matrix_world)
+    # Lift the window opening without moving the whole wall cube: raising the
+    # sill by 0.24 wu keeps the view line above bed height and leaves the top
+    # board/eave alignment untouched. This is applied to the private export
+    # mesh, so rerunning the exporter cannot accumulate the offset.
+    if "Window_board_sill" in source.name:
+        duplicate.data.transform(Matrix.Translation((0.0, 0.0, 0.24)))
     stage_name = stage_for(source.name)
     duplicate.parent = door_pivot if source.name in door_leaf_names else stage_roots[stage_name]
     duplicate.matrix_parent_inverse = Matrix.Identity(4)

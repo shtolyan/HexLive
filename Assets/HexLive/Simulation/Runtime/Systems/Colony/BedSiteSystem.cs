@@ -12,10 +12,10 @@ namespace HexLive.Simulation.Runtime
 {
 
 // Spec §54.2: beds are raised at a PROGRESSIVE build-site — hauled leaf/stick
-// pieces accrete into the mat (rendered growing via BedFactory), then a hammer
+// pieces accrete into the bed (rendered growing via BedAssembly), then a hammer
 // finishes it. This system is the site PLACER: once the colony has a lit hearth
 // but fewer beds than living girls, and no bed is currently under construction,
-// it stakes ONE bed.leaf site by the fire. One at a time, so a build reads as a
+// it stakes ONE bed.basic site by the fire. One at a time, so a build reads as a
 // clear "this bed, now" project; the finished bed bumps the count and the next
 // site follows. Placement is a colony intent (like the bootstrap campfire site)
 // — deliberately OUTSIDE the per-NPC auction so the fragile survival balance is
@@ -116,7 +116,6 @@ public sealed class BedSiteSystem : ISimulationSystem
 
         // Count finished beds + beds already under construction; find the hearth.
         var beds = 0;
-        var basicBeds = 0;
         var bedSitesInProgress = 0;
         var racks = 0;
         var rackSitesInProgress = 0;
@@ -130,9 +129,7 @@ public sealed class BedSiteSystem : ISimulationSystem
         // bed left ownerless (a reclaimed bed, or the hut's free bed.basic) that a
         // bedless colonist can simply claim instead of building anew.
         var ownedAnyBed = new System.Collections.Generic.HashSet<EntityId>();
-        var ownedBasicBed = new System.Collections.Generic.HashSet<EntityId>();
         var siteOwners = new System.Collections.Generic.HashSet<EntityId>();
-        var siteBasicOwners = new System.Collections.Generic.HashSet<EntityId>();
         WorldObjectState ownerlessBed = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
@@ -151,16 +148,12 @@ public sealed class BedSiteSystem : ISimulationSystem
             // soaks: zero beds, chronic energy pit).
             if (obj.DefinitionId == ContentIds.BuildSite && BuildSiteMath.IsSite(obj))
             {
-                if (obj.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic)
+                if (obj.BuildProduct == ContentIds.BedBasic)
                 {
                     bedSitesInProgress++;
                     if (obj.Owner is { } siteOwner)
                     {
                         siteOwners.Add(siteOwner);
-                        if (obj.BuildProduct == ContentIds.BedBasic)
-                        {
-                            siteBasicOwners.Add(siteOwner);
-                        }
                     }
                 }
                 else if (obj.BuildProduct == ContentIds.DryingRack)
@@ -202,18 +195,9 @@ public sealed class BedSiteSystem : ISimulationSystem
             if (def.Tags.Contains("Bed"))
             {
                 beds++;
-                if (obj.DefinitionId == ContentIds.BedBasic)
-                {
-                    basicBeds++;
-                }
-
                 if (obj.Owner is { } bedOwner)
                 {
                     ownedAnyBed.Add(bedOwner);
-                    if (obj.DefinitionId == ContentIds.BedBasic)
-                    {
-                        ownedBasicBed.Add(bedOwner);
-                    }
                 }
                 else if (ownerlessBed is null)
                 {
@@ -319,14 +303,11 @@ public sealed class BedSiteSystem : ISimulationSystem
 
             // Reuse before rebuild: hand any ownerless finished bed (a reclaimed
             // one, or the hut's free bed.basic) to a colonist who has none.
-            // §64.8: a girl whose dream is the premium bedroll passes on a free
-            // leaf mat — claiming it would close her bed dream with the wrong
-            // bed. A free bed.basic suits everyone.
+            // Any ownerless canonical bed can satisfy the next owner's dream.
             if (ownerlessBed is not null)
             {
                 var claimant = FirstLiving(world, faction,
-                    id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id) &&
-                        (ownerlessBed.DefinitionId == ContentIds.BedBasic || !WantsPremiumBed(world, id)));
+                    id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id));
                 if (claimant is not null)
                 {
                     ownerlessBed.Owner = claimant.Id;
@@ -341,47 +322,24 @@ public sealed class BedSiteSystem : ISimulationSystem
                 return;
             }
 
-            // First tier: a leaf mat for anyone with no bed at all — unless her
-            // dream is the premium bedroll (§64.8, PremiumBedChance): then her
-            // first and only bed is staked as bed.basic and the leaf tier is
-            // skipped. Second tier (§54.12): once everyone owns a bed, premium
-            // bedrolls (bed.basic) for those without one — same
-            // owner-per-colonist rule (a premium dreamer already owns hers).
+            // One canonical bed per colonist. Future quality changes upgrade
+            // this same owned object instead of replacing it with another type.
             var owner = FirstLiving(world, faction,
                 id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id));
-            var dreamProduct = ContentIds.BedLeaf;
-            if (owner is not null && WantsPremiumBed(world, owner.Id))
-            {
-                dreamProduct = ContentIds.BedBasic;
-            }
-            else if (owner is null && SimBalance.BedBasicEnabled)
-            {
-                owner = FirstLiving(world, faction,
-                    id => !ownedBasicBed.Contains(id) && !siteBasicOwners.Contains(id));
-                dreamProduct = ContentIds.BedBasic;
-            }
 
             if (owner is null)
             {
                 return; // everyone has their own bed — the dream is fulfilled
             }
 
-            StakeBed(world, faction, hearth, dreamProduct, owner.Id);
+            StakeBed(world, faction, hearth, ContentIds.BedBasic, owner.Id);
             return;
         }
 
         // --- Pre-§64 baseline (SpecDream disabled): aggregate count path.
         // Fire first (a lit hearth, not the cold pit-site). One bed at a time.
-        // Cap at one bed per living girl. §54.12: once every girl sleeps on
-        // SOMETHING, the colony moves to the second bed tier — premium
-        // bedrolls (bed.basic), each built FROM SCRATCH at its own fireside
-        // site (hammer-raised), until each girl has one. Not an upgrade: the
-        // leaf mats stay.
-        var product = beds < livingGirls
-            ? ContentIds.BedLeaf
-            : SimBalance.BedBasicEnabled && basicBeds < livingGirls
-                ? ContentIds.BedBasic
-                : null;
+        // Cap at one canonical bed per living colonist.
+        var product = beds < livingGirls ? ContentIds.BedBasic : null;
         if (hearth is null || bedSitesInProgress > 0 || product is null)
         {
             return;
@@ -413,33 +371,16 @@ public sealed class BedSiteSystem : ISimulationSystem
         // §54.9A: the site now knows what it will become — claim the finished
         // bed's physical footprint so nothing else is placed across the frame.
         WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
-        if (product == ContentIds.BedLeaf)
-        {
-            site.BillLeaves = SimBalance.BedLeafBillLeaves;
-            site.BillSticks = SimBalance.BedLeafBillSticks;
-            site.BillRope = SimBalance.BedLeafBillRope;
-        }
-        else
-        {
-            site.BillLogs = SimBalance.BedBasicBillLogs;
-            site.BillSticks = SimBalance.BedBasicBillSticks;
-            site.BillRope = SimBalance.BedBasicBillRope;
-            site.BillLeaves = SimBalance.BedBasicBillLeaves;
-        }
+        site.BillLogs = SimBalance.BedBasicBillLogs;
+        site.BillSticks = SimBalance.BedBasicBillSticks;
+        site.BillRope = SimBalance.BedBasicBillRope;
+        site.BillLeaves = SimBalance.BedBasicBillLeaves;
 
         RememberSiteForColony(world, faction, site);
         Trace.EmitSystem(world, "BedSitePlaced",
             $"{product} site staked by the hearth" +
             (owner is { } o ? $" for colonist {o.Value}" : string.Empty));
     }
-
-    // §64.8: does this girl dream of the PREMIUM bedroll instead of the plain
-    // leaf mat? A stable per-girl-per-world trait: Hash01 over (seed, id) makes
-    // the wish deterministic across ticks and reloads without touching saves.
-    // Gated on BedBasicEnabled so disabling the premium tier falls back to leaf.
-    private static bool WantsPremiumBed(WorldState world, EntityId id) =>
-        SimBalance.BedBasicEnabled &&
-        MathUtil.Hash01(world.Seed, id.Value, 64, 6408) < SpecDream.PremiumBedChance;
 
     private static bool NeedsProstheticWorkbench(WorldState world, Faction faction)
     {

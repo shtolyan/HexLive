@@ -53,11 +53,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             perNight = obj.DefinitionId switch
             {
                 ContentIds.BedBasic => Spec49.SleepComfortBedNight,
-                ContentIds.BedLeaf => Spec49.SleepComfortLeafNight,
-                ContentIds.HutBed => Spec49.SleepComfortBedNight,
                 _ => perNight
             };
-            onBed = obj.DefinitionId is ContentIds.BedBasic or ContentIds.BedLeaf or ContentIds.HutBed;
+            onBed = obj.DefinitionId == ContentIds.BedBasic;
         }
 
         // A worn jacket/coat padding the bare ground beats sleeping on plain
@@ -363,8 +361,6 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     wake += bedObj.DefinitionId switch
                     {
                         ContentIds.BedBasic => SimBalance.SleepEnergyBasicBedBonus,
-                        ContentIds.BedLeaf => SimBalance.SleepEnergyLeafBedBonus,
-                        ContentIds.HutBed => SimBalance.SleepEnergyBasicBedBonus,
                         _ => 0f
                     };
                 }

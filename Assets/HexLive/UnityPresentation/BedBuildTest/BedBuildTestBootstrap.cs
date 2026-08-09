@@ -253,8 +253,8 @@ public sealed class BedBuildTestBootstrap : MonoBehaviour
             }
         }
 
-        // 96 palm leaves — both mattress stages (46 leaf mat + 50 bedroll).
-        var leafCount = SimBalance.BedLeafBillLeaves + SimBalance.BedBasicBillLeaves;
+        // One complete canonical bed plus a small test margin.
+        var leafCount = SimBalance.BedBasicBillLeaves + 4;
         for (var i = 0; i < leafCount; i++)
         {
             var (q, r) = leafTiles[i % leafTiles.Count];
@@ -264,7 +264,7 @@ public sealed class BedBuildTestBootstrap : MonoBehaviour
         // 17 sticks — the leaf mat's frame+slats (4+4), the bedroll's slats (5)
         // and a +4 margin: normal camp life nibbles sticks too (the drying rack
         // costs 2, a spear 1) and an exact count deadlocks the last stage.
-        var stickCount = SimBalance.BedLeafBillSticks + SimBalance.BedBasicBillSticks + 4;
+        var stickCount = SimBalance.BedBasicBillSticks + 4;
         for (var i = 0; i < stickCount; i++)
         {
             var (q, r) = otherTiles[(i * 5) % otherTiles.Count];
@@ -274,7 +274,7 @@ public sealed class BedBuildTestBootstrap : MonoBehaviour
         // 18 fiber — the two rope lashings (8 + 10), twisted at the fire
         // (RopeFiberCost = 1). Loose READY rope is never picked up: no gather
         // goal targets the Rope tag, only the fiber→craft chain.
-        var fiberCount = SimBalance.BedLeafBillRope + SimBalance.BedBasicBillRope;
+        var fiberCount = SimBalance.BedBasicBillRope + 2;
         for (var i = 0; i < fiberCount; i++)
         {
             var (q, r) = otherTiles[(i * 5 + 2) % otherTiles.Count];
@@ -313,7 +313,7 @@ public sealed class BedBuildTestBootstrap : MonoBehaviour
     private void OnGUI()
     {
         GUI.Label(new Rect(12f, 8f, 1300f, 22f),
-            "BED BUILD TEST §54.12 — лежанка (2×4 палки → 8 верёвок → 46 листьев), затем апгрейд: премиум (4 бревна → 5 палок → 10 верёвок → 50 листьев, молоток). " +
+            "BED BUILD TEST — единая кровать (4 бревна → 5 палок → 10 верёвок → 50 листьев). " +
             "1/2/3 — скорость, пробел — пауза, ПКМ — орбита, F — прилипнуть к NPC");
 
         var world = _runner != null ? _runner.Engine?.World : null;
@@ -325,7 +325,7 @@ public sealed class BedBuildTestBootstrap : MonoBehaviour
         var y = 32f;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.BuildProduct is "bed.leaf" or "bed.basic")
+            if (obj.BuildProduct == ContentIds.BedBasic)
             {
                 int leaves = 0, sticks = 0, ropes = 0, logs = 0;
                 foreach (var item in obj.Contents)
@@ -339,20 +339,14 @@ public sealed class BedBuildTestBootstrap : MonoBehaviour
                     }
                 }
 
-                var kind = obj.BuildProduct == "bed.leaf" ? "лежанки" : "ПРЕМИУМ кровати";
                 var logsPart = obj.BillLogs > 0 ? $"брёвна {logs}/{obj.BillLogs}, " : string.Empty;
                 GUI.Label(new Rect(12f, y, 1000f, 22f),
-                    $"Сайт {kind}: {logsPart}палки {sticks}/{obj.BillSticks}, верёвка {ropes}/{obj.BillRope}, листья {leaves}/{obj.BillLeaves}");
+                    $"Сайт кровати: {logsPart}палки {sticks}/{obj.BillSticks}, верёвка {ropes}/{obj.BillRope}, листья {leaves}/{obj.BillLeaves}");
                 y += 22f;
             }
-            else if (obj.DefinitionId == "bed.leaf")
+            else if (obj.DefinitionId == ContentIds.BedBasic)
             {
-                GUI.Label(new Rect(12f, y, 900f, 22f), "ЛЕЖАНКА ГОТОВА ✔");
-                y += 22f;
-            }
-            else if (obj.DefinitionId == "bed.basic")
-            {
-                GUI.Label(new Rect(12f, y, 900f, 22f), "ПРЕМИУМ КРОВАТЬ ГОТОВА ✔");
+                GUI.Label(new Rect(12f, y, 900f, 22f), "КРОВАТЬ ГОТОВА ✔");
                 y += 22f;
             }
         }

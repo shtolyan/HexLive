@@ -62,7 +62,6 @@ namespace HexLive.UnityPresentation.Environment
                     break;
                 case "food.meat_raw": BuildMeat(root.transform, MeatRaw); break;
                 case "food.meat_cooked": BuildMeat(root.transform, MeatCooked); break;
-                case "bed.leaf": BuildLeafMat(root.transform); break;
                 case "shelter.tent": BuildTent(root.transform); break;
                 case "vessel.raft": BuildRaft(root.transform); break;
                 case "herb.bush": BuildHerbBush(root.transform); break;

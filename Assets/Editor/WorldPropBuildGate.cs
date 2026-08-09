@@ -142,13 +142,16 @@ namespace HexLive.Editor
             ValidateStageChannel(entry.id, "logs", bill.logs,
                 count => BedAssembly.BuildPartial(entry.id, count, 0, 0, 0, 0), violations);
             ValidateStageChannel(entry.id, "sticks", bill.sticks,
-                count => BedAssembly.BuildPartial(entry.id, 0, count, 0, 0, 0), violations);
+                count => BedAssembly.BuildPartial(entry.id, bill.logs, count, 0, 0, 0), violations);
             ValidateStageChannel(entry.id, "rope", bill.rope,
-                count => BedAssembly.BuildPartial(entry.id, 0, 0, count, 0, 0), violations);
+                count => BedAssembly.BuildPartial(
+                    entry.id, bill.logs, bill.sticks, count, 0, 0), violations);
             ValidateStageChannel(entry.id, "leaves", bill.leaves,
-                count => BedAssembly.BuildPartial(entry.id, 0, 0, 0, count, 0), violations);
+                count => BedAssembly.BuildPartial(
+                    entry.id, bill.logs, bill.sticks, bill.rope, count, 0), violations);
             ValidateStageChannel(entry.id, "stones", bill.stones,
-                count => BedAssembly.BuildPartial(entry.id, 0, 0, 0, 0, count), violations);
+                count => BedAssembly.BuildPartial(
+                    entry.id, bill.logs, bill.sticks, bill.rope, bill.leaves, count), violations);
 
             GameObject complete = null;
             try
@@ -178,6 +181,25 @@ namespace HexLive.Editor
             Func<int, GameObject> build, ISet<string> violations)
         {
             var previous = 0;
+            GameObject baseline = null;
+            try
+            {
+                baseline = build(0);
+                if (baseline == null)
+                {
+                    violations.Add($"{id}: {material} baseline could not be created");
+                    return;
+                }
+
+                // A sequential stage starts on top of the fully completed
+                // prerequisite stages. Compare against that prefix, not zero.
+                previous = ActiveRendererCount(baseline);
+            }
+            finally
+            {
+                if (baseline != null) UnityEngine.Object.DestroyImmediate(baseline);
+            }
+
             for (var delivered = 1; delivered <= expected; delivered++)
             {
                 GameObject assembly = null;

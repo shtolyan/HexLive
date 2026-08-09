@@ -1068,31 +1068,6 @@ public static class PrototypeContentCatalog
                 DisplayName = "Tent",
                 Tags = { "Shade", "Shelter" }
             },
-            // Spec 40.14 / §54.9: the tier-1 sleeping mat. Since §54.9 it is a
-            // framed bed (log rails + slats), not a flat mat — §54.9A makes it
-            // an obstacle claiming its PHYSICAL footprint (bed_leaf_final
-            // measures 1.47×2.36 wu → half-diagonal 1.39) so nothing else is
-            // ever placed across the frame.
-            ["bed.leaf"] = new ObjectDefinition
-            {
-                Id = "bed.leaf",
-                DisplayName = "Leaf mat",
-                ObstacleRadius = 1.39f,
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "sleep.leaf",
-                        Type = InteractionType.Sleep,
-                        DurationTicks = 100,
-                        // Spec §49: comfort moved to the unified sleep formula.
-                        Effects = { EnergyDelta = SimBalance.LeafBedEnergy } // spec 42
-                    }
-                },
-                // §54.9: HandBuilt — циновку вяжут руками из палок, верёвок и
-                // листьев, молоток для неё не нужен.
-                Tags = { "Bed", "Obstacle", ObjectTags.HandBuilt }
-            },
             // Spec 31A.5B: everyone starts in "underwear.cloth" — that garment,
             // the coat, the armors and the imported wardrobe now all live in
             // GarmentLibrary (see AppendDefinitions at the end of this method).
@@ -1239,22 +1214,6 @@ public static class PrototypeContentCatalog
             Id = ContentIds.Hut1Hex,
             DisplayName = "Palm hut",
             Tags = { "Building", ObjectTags.Shelter, ObjectTags.Shade, ObjectTags.HandBuilt }
-        };
-        defs[ContentIds.HutBed] = new ObjectDefinition
-        {
-            Id = ContentIds.HutBed,
-            DisplayName = "Hut cot",
-            Tags = { ObjectTags.Bed, "Furniture", "IntegratedFurniture" },
-            Interactions =
-            {
-                new InteractionDefinition
-                {
-                    Id = "sleep.hut_bed",
-                    Type = InteractionType.Sleep,
-                    DurationTicks = 100,
-                    Effects = { EnergyDelta = SimBalance.BedEnergy }
-                }
-            }
         };
 
         // Spec §42: fold in the whole wearable wardrobe from the shared

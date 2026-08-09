@@ -234,6 +234,7 @@ public sealed partial class DecisionSystem
     // sitting NEXT to coconuts because the blanket prone-gate blocked this).
     // Fighting and heavy tool work stay forbidden while lying.
     internal static bool HasCoconutBlade(NPCState npc) =>
+        npc.Body.HasUsableHand &&
         Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Cut);
 
     internal static bool HasCoconutOpportunity(NPCState npc, WorldState world)
@@ -532,6 +533,11 @@ public sealed partial class DecisionSystem
     internal static bool HasAnyCapability(
         NPCState npc, System.Collections.Generic.List<Content.GearCapability> capabilities)
     {
+        if (!npc.Body.HasUsableHand)
+        {
+            return false;
+        }
+
         foreach (var capability in capabilities)
         {
             if (Content.GearCatalog.HasCapability(npc.Inventory.Items, capability))
@@ -551,6 +557,16 @@ public sealed partial class DecisionSystem
     {
         if (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var def))
         {
+            if (type == InteractionType.Process)
+            {
+                var isLightCoconutWork = def.Tags.Contains("Coconut");
+                if (!npc.Body.HasUsableHand ||
+                    (!isLightCoconutWork && !npc.Body.CanUseToolsOrWeapons))
+                {
+                    return false;
+                }
+            }
+
             foreach (var interaction in def.Interactions)
             {
                 if (interaction.Type == type)
@@ -744,30 +760,22 @@ public sealed partial class DecisionSystem
         return need;
     }
 
-    // §68: how badly she needs a dressing, 0..1. Three readings, worst wins:
-    // mean health (many shallow bites — the case the old passive gate missed),
-    // the worst intact zone (one deep wound), and blood lost (bleeding out).
-    // Severed zones are skipped: a stump cannot be bandaged (§50).
+    // §68/§118: how badly she needs a dressing, 0..1. Active blood loss is the
+    // emergency half; the full unstabilized cut burden remains after clotting
+    // so dry open wounds on intact parts still receive quiet aftercare. A
+    // clotted stump scars naturally and is excluded by WoundMath.
     internal static float SelfTreatBurden(NPCState npc)
     {
         if (Spec118.Enabled)
         {
-            if (!MortalityHelpers.IsBleeding(npc))
+            if (!WoundMath.NeedsAftercare(npc))
             {
                 return 0f;
             }
 
-            var open = 0f;
-            foreach (var wound in npc.Wounds)
-            {
-                if (!wound.Stabilized)
-                {
-                    open += wound.Severity * (1f - wound.Heal01) *
-                        wound.BleedFactor * (1f - wound.Clot01);
-                }
-            }
-
-            return MathUtil.Clamp01(System.Math.Max(open, 1f - npc.Needs.Blood));
+            return MathUtil.Clamp01(System.Math.Max(
+                WoundMath.UnstabilizedCutBurden(npc),
+                1f - npc.Needs.Blood));
         }
 
         var worstPart = 1f;

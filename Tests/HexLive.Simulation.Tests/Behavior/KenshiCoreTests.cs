@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -163,6 +164,196 @@ public sealed class KenshiCoreTests
             Assert.That(patient.Needs.Blood, Is.EqualTo(1f - expectedLoss).Within(0.0001f));
             Assert.That(patient.Wounds.Single().Clot01,
                 Is.EqualTo(Spec118.ClotPerSlowTickLowToughness).Within(0.0001f));
+        });
+    }
+
+    [Test]
+    public void ClottedIntactCut_RemainsAftercareAndExportsAsDryNotHealed()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Needs.Blood = 1f;
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1181,
+            Zone = BodyPart.LegL,
+            Severity = 0.08f,
+            Heal01 = 0f,
+            Clot01 = 1f,
+            Stabilized = false,
+            BleedFactor = 1.2f,
+            Seed = 1181
+        });
+
+        var kind = AidAssessment.Assess(patient, world.Tick, out var severity);
+        var snapshot = WorldSnapshotExporter.Export(world).Npcs
+            .Single(entry => entry.Id == patient.Id);
+        var visualHeal = float.Parse(snapshot.Wounds.Single().Split('|')[2],
+            System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(MortalityHelpers.IsBleeding(patient), Is.False);
+            Assert.That(WoundMath.NeedsAftercare(patient), Is.True);
+            Assert.That(DecisionSystem.SelfTreatBurden(patient), Is.GreaterThan(0f));
+            Assert.That(kind, Is.EqualTo(AidKind.Treat),
+                "An ally must still be able to finish care after natural clotting.");
+            Assert.That(severity, Is.GreaterThanOrEqualTo(Spec53.SelfTreatBurdenThreshold));
+            Assert.That(snapshot.OpenWounds.Single().Heal01, Is.Zero,
+                "Dry presentation must not fake authoritative medical healing.");
+            Assert.That(visualHeal, Is.EqualTo(WoundMath.ClottedVisualHealFloor)
+                .Within(0.001f));
+        });
+    }
+
+    [Test]
+    public void ClottedStump_IsInjuredButNotReportedAsActivelyBleeding()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Needs.Blood = 1f;
+        patient.Body.Sever(BodyPart.ArmR);
+        var wound = new WoundState
+        {
+            Id = 1182,
+            Zone = BodyPart.ArmR,
+            Severity = Spec118.StumpWoundSeverity,
+            Heal01 = 0f,
+            Clot01 = 1f,
+            Stabilized = false,
+            BleedFactor = 1.4f
+        };
+        patient.Wounds.Add(wound);
+        var effects = new System.Collections.Generic.List<ActiveEffect>();
+
+        EffectEvaluator.Collect(patient, world.Tick, 0f, false, false, effects);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(effects.Any(effect => effect.Kind == EffectKind.Bleeding), Is.False,
+                "A dry stump must not keep a red bleeding status forever.");
+            Assert.That(effects.Any(effect => effect.Kind == EffectKind.Injured), Is.True,
+                "The remaining injury must still be visible as an injury.");
+        });
+
+        wound.Clot01 = 0.5f;
+        effects.Clear();
+        EffectEvaluator.Collect(patient, world.Tick, 0f, false, false, effects);
+        Assert.That(effects.Any(effect => effect.Kind == EffectKind.Bleeding), Is.True,
+            "The status must return while the stump is actually losing blood.");
+    }
+
+    [Test]
+    public void LowBloodWithoutTreatableWound_DoesNotSpendAnotherBandage()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Needs.Blood = 0.4f;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(WoundMath.NeedsAftercare(patient), Is.False);
+            Assert.That(DecisionSystem.SelfTreatBurden(patient), Is.Zero);
+            Assert.That(AidAssessment.Assess(patient, world.Tick, out _),
+                Is.Not.EqualTo(AidKind.Treat));
+        });
+    }
+
+    [Test]
+    public void Bandage_PrefersActiveBleedBeforeDeeperClottedCut()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1, Zone = BodyPart.LegL, Severity = 0.8f,
+            Heal01 = 0f, Clot01 = 1f, Stabilized = false, BleedFactor = 1.2f
+        });
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 2, Zone = BodyPart.ArmL, Severity = 0.08f,
+            Heal01 = 0f, Clot01 = 0.5f, Stabilized = false, BleedFactor = 1.2f
+        });
+
+        Assert.That(WoundMath.StabilizeMostDangerous(
+            patient, herbal: false, out var stabilized), Is.True);
+        Assert.That(stabilized.Id, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void Bandage_ChoosesDeepestWhenAllOpenCutsAreClotted()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1, Zone = BodyPart.ArmL, Severity = 0.05f,
+            Heal01 = 0f, Clot01 = 1f, Stabilized = false, BleedFactor = 1.2f
+        });
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 2, Zone = BodyPart.LegL, Severity = 0.30f,
+            Heal01 = 0f, Clot01 = 1f, Stabilized = false, BleedFactor = 1.2f
+        });
+
+        Assert.That(WoundMath.StabilizeMostDangerous(
+            patient, herbal: true, out var stabilized), Is.True);
+        Assert.That(stabilized.Id, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void ClottedStumpWound_ClosesGraduallyWithoutRestoringTheLimb()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Attributes.Toughness = 0f;
+        patient.Body.Sever(BodyPart.ArmR);
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 50,
+            Zone = BodyPart.ArmR,
+            Severity = Spec118.StumpWoundSeverity,
+            Heal01 = 0f,
+            Clot01 = 0.999f,
+            Stabilized = false,
+            BleedFactor = 1.4f,
+            Seed = 5050
+        });
+
+        KenshiMedicalMath.Tick(world, patient);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Wounds, Has.Count.EqualTo(1));
+            Assert.That(patient.Wounds[0].Clot01, Is.EqualTo(1f));
+            Assert.That(patient.Wounds[0].Heal01, Is.GreaterThan(0f).And.LessThan(1f),
+                "A clotted stump mark must fade over time instead of disappearing at once.");
+            Assert.That(patient.Wounds[0].Stabilized, Is.False,
+                "Natural scar closure must not pretend that a dressing was applied.");
+            Assert.That(WoundMath.NeedsAftercare(patient), Is.False,
+                "A dry stump scars by itself and must not consume another bandage.");
+            Assert.That(patient.Body.Parts[BodyPart.ArmR], Is.Zero);
+            Assert.That(patient.Body.IsSevered(BodyPart.ArmR), Is.True);
+        });
+
+        for (var i = 0; i < 200 && patient.Wounds.Count > 0; i++)
+        {
+            KenshiMedicalMath.Tick(world, patient);
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Wounds, Is.Empty,
+                "The healed record must be removed so its texture stamp is rebuilt away.");
+            Assert.That(patient.Body.Parts[BodyPart.ArmR], Is.Zero,
+                "Closing the stump wound must never regenerate a severed arm.");
+            Assert.That(patient.Body.IsSevered(BodyPart.ArmR), Is.True);
         });
     }
 

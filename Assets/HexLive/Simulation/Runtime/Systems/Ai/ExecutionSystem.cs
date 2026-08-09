@@ -426,6 +426,24 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     }
                 }
 
+                // Process always needs a functional hand. Coconut work is the
+                // light exception that remains possible while prone; every
+                // other Process action is heavy work and also needs standing.
+                if (interaction.Type == InteractionType.Process)
+                {
+                    var isLightCoconutWork = definition.Tags.Contains("Coconut");
+                    if (!npc.Body.HasUsableHand ||
+                        (!isLightCoconutWork && !npc.Body.CanUseToolsOrWeapons))
+                    {
+                        PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                        PlanInterruption.Abort(world, npc,
+                            $"Cannot process {worldObject.DefinitionId} " +
+                            (npc.Body.HasUsableHand ? "(cannot stand)" : "(no usable hand)"));
+                        npc.Mind.CurrentGoal = GoalType.None;
+                        continue;
+                    }
+                }
+
                 // §gear: the DATA-DRIVEN skill gate, ANY-OF. The interaction
                 // lists the capabilities it accepts — a log splits under an
                 // axe (ChopWood) OR a knife (Cut); one generic check, no
@@ -449,21 +467,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     interaction.RequiredCapabilities.Count == 0)
                 {
                     var isCoconut = definition.Tags.Contains("Coconut");
-                    // §50-prone: coconuts are light hand-work — allowed lying.
-                    // Heavy processing (log splitting) still needs standing.
-                    if (!isCoconut && !npc.Body.CanUseToolsOrWeapons)
-                    {
-                        PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
-                            $"Cannot process {worldObject.DefinitionId} (no legs)");
-                        npc.Mind.CurrentGoal = GoalType.None;
-                        continue;
-                    }
-
                     var hasChopTool = Content.GearCatalog.HasCapability(
                         npc.Inventory.Items, Content.GearCapability.ChopWood);
-                    var hasCoconutBlade = Content.GearCatalog.HasCapability(
-                        npc.Inventory.Items, Content.GearCapability.Cut);
+                    var hasCoconutBlade = DecisionSystem.HasCoconutBlade(npc);
                     if (isCoconut ? !hasCoconutBlade : !hasChopTool)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
@@ -489,8 +495,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // (Legacy path — declared interactions use the any-of gate.)
                 if (interaction.Type == InteractionType.Butcher &&
                     interaction.RequiredCapabilities.Count == 0 &&
-                    !Content.GearCatalog.HasCapability(
-                        npc.Inventory.Items, Content.GearCapability.Butcher))
+                    (!npc.Body.CanUseToolsOrWeapons ||
+                     !Content.GearCatalog.HasCapability(
+                         npc.Inventory.Items, Content.GearCapability.Butcher)))
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.Abort(world, npc,
@@ -941,7 +948,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         // + 2 stick rails — consumed via the catalog). The
                         // premium bedroll is built at a progressive build-site,
                         // not here.
-                        PlaceCraftedFurniture(world, npc, worldObject, ContentIds.BedLeaf);
+                        PlaceCraftedFurniture(world, npc, worldObject, ContentIds.BedBasic);
                         Trace.Emit(world, npc.Id, "BedCrafted", "A leaf sleeping-mat");
                         break;
                     case GoalType.CraftTent:

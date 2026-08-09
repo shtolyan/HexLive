@@ -108,6 +108,35 @@ public sealed class SnapshotContractGateTests
             "Окно анимации истекло, а IsSwinging всё ещё поднят.");
     }
 
+    [Test]
+    public void ExporterCarriesDerivedInventoryContainersWithoutCreatingASecondStore()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Inventory.Items.Clear();
+        npc.WornItems.Clear();
+        npc.Inventory.Items.Add("tool.knife");
+        npc.Inventory.Items.Add("resource.stick");
+        npc.Inventory.Items.Add("resource.stick");
+        EquipmentMath.RecalculateCapacity(world, npc);
+
+        var exported = Find(WorldSnapshotExporter.Export(world), npc.Id.Value);
+        var regular = exported.InventoryContainers.Where(c =>
+            c.Kind is InventoryContainerKind.HandLeft or
+                InventoryContainerKind.HandRight or
+                InventoryContainerKind.Carry or
+                InventoryContainerKind.Garment).ToArray();
+
+        Assert.That(regular.Sum(c => c.Capacity), Is.EqualTo(exported.InventoryCapacity));
+        Assert.That(regular.SelectMany(c => c.Slots).Count(s => s.StackCount > 0),
+            Is.EqualTo(exported.InventoryUsedSlots));
+        Assert.That(regular.SelectMany(c => c.Slots)
+            .Single(s => s.ItemDefinitionId == "resource.stick").StackCount, Is.EqualTo(2));
+        Assert.That(exported.FavoriteWeaponId, Is.EqualTo("tool.knife"));
+        Assert.That(exported.InventoryItems, Does.Contain("tool.knife"),
+            "Legacy item fields stay until the existing detail card has fully migrated.");
+    }
+
     /// <summary>
     /// ⭐ СЦЕНАРНЫЙ инвариант: в живом бою сигналы ДЕЙСТВИТЕЛЬНО меняются.
     ///

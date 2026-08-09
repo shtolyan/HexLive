@@ -425,19 +425,13 @@ public sealed class AmputationTestBootstrap : MonoBehaviour
         return "[" + new string('#', n) + new string('.', 10 - n) + "]";
     }
 
-    // Mirrors the sim's bleed condition: a fresh wound on a badly-hurt part is
-    // what actually drains Blood each tick.
+    // Mirrors §118's typed bleed condition used by KenshiMedicalMath.
     private static bool IsBleeding(NPCState girl)
     {
         foreach (var wound in girl.Wounds)
         {
-            if (wound.Heal01 >= 0.3f)
-            {
-                continue;
-            }
-
-            var hp = girl.Body.Parts.TryGetValue(wound.Zone, out var v) ? v : 1f;
-            if (hp < 0.4f)
+            if (!wound.Stabilized && wound.Clot01 < 1f &&
+                wound.Heal01 < 1f && wound.Severity >= 0.001f)
             {
                 return true;
             }

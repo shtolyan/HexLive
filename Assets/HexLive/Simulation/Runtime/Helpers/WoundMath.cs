@@ -18,6 +18,11 @@ namespace HexLive.Simulation.Runtime
 // drain HP without ever creating a wound (no phantom decals while starving).
 internal static class WoundMath
 {
+    // Presentation-only age for a fully clotted but still unhealed cut. It
+    // stays visible as a dry mark while losing the wet/fresh reaction cues;
+    // authoritative Heal01 remains unchanged until real recovery advances it.
+    internal const float ClottedVisualHealFloor = 0.65f;
+
     // Full close in 300 slow ticks (= 4800 ticks = 20 real minutes) at
     // neutral pace; sleeping doubles it, marching halves it.
     public static float HealPerSlowTick => SimBalance.HealPerSlowTick;
@@ -69,6 +74,45 @@ internal static class WoundMath
         return open;
     }
 
+    public static bool NeedsAftercare(NPCState npc)
+    {
+        foreach (var wound in npc.Wounds)
+        {
+            // A clotted stump scars naturally (§118), so spending a dressing
+            // on it after the bleeding window has closed would be wasteful.
+            var naturallyClosingStump = npc.Body.IsSevered(wound.Zone) &&
+                wound.Clot01 >= 1f;
+            if (!wound.Stabilized && !naturallyClosingStump &&
+                wound.Heal01 < 1f && wound.Severity > 0f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static float UnstabilizedCutBurden(NPCState npc)
+    {
+        var burden = 0f;
+        foreach (var wound in npc.Wounds)
+        {
+            var naturallyClosingStump = npc.Body.IsSevered(wound.Zone) &&
+                wound.Clot01 >= 1f;
+            if (!wound.Stabilized && !naturallyClosingStump && wound.Heal01 < 1f)
+            {
+                burden += wound.Severity * (1f - wound.Heal01) * wound.BleedFactor;
+            }
+        }
+
+        return MathUtil.Clamp01(burden);
+    }
+
+    internal static float VisualHeal01(WoundState wound) =>
+        MathUtil.Clamp01(System.Math.Max(
+            wound.Heal01,
+            wound.Clot01 * ClottedVisualHealFloor));
+
     public static int BandageTicks(NPCState healer)
     {
         var medicine = Spec76.Enabled && Spec76.SkillsEnabled
@@ -84,6 +128,7 @@ internal static class WoundMath
     {
         stabilized = null;
         var danger = 0f;
+        var choseActiveBleed = false;
         foreach (var wound in npc.Wounds)
         {
             if (wound.Stabilized || wound.Heal01 >= 1f)
@@ -91,12 +136,19 @@ internal static class WoundMath
                 continue;
             }
 
-            var score = wound.Severity * (1f - wound.Heal01) *
-                wound.BleedFactor * (1f - wound.Clot01);
-            if (stabilized == null || score > danger)
+            // Active hemorrhage always wins. If every wound is already dry,
+            // choose the deepest remaining cut instead of the first list item
+            // (the old (1-clot) score made every clotted wound tie at zero).
+            var openDanger = wound.Severity * (1f - wound.Heal01) * wound.BleedFactor;
+            var activeBleed = wound.Clot01 < 1f;
+            var score = activeBleed ? openDanger * (1f - wound.Clot01) : openDanger;
+            if (stabilized == null ||
+                (activeBleed && !choseActiveBleed) ||
+                (activeBleed == choseActiveBleed && score > danger))
             {
                 stabilized = wound;
                 danger = score;
+                choseActiveBleed = activeBleed;
             }
         }
 

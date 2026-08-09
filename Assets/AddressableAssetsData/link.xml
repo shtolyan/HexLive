@@ -1,0 +1,65 @@
+<linker>
+  <assembly fullname="HexLive.UnityPresentation, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+    <type fullname="HexLive.UnityPresentation.Wearing.Wear" preserve="all" />
+    <type fullname="HexLive.UnityPresentation.Wearing.HeelPose" preserve="nothing" serialized="true" />
+    <type fullname="HexLive.UnityPresentation.Wearing.WearConfig" preserve="nothing" serialized="true" />
+  </assembly>
+  <assembly fullname="MagicaClothV2, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+    <type fullname="MagicaCloth2.MagicaCloth" preserve="all" />
+    <type fullname="MagicaCloth2.AngleConstraint/LimitSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.AngleConstraint/RestorationSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.CheckSliderSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.ClothDebugSettings" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.ClothInitSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.ClothSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.ClothSerializeData2" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.ColliderCollisionConstraint/SerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.CullingSettings" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.CurveSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.CustomSkinningSettings" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.DistanceConstraint/SerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.GizmoSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.InertiaConstraint/SerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.MotionConstraint/SerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.NormalAlignmentSettings" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.PreBuildSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.ReductionSettings" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.ResultCode" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.SelectionData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.SelfCollisionConstraint/SerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.SpringConstraint/SerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.TetherConstraint/SerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.TransformData/UniqueSerializationData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.TransformRecordSerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.TriangleBendingConstraint/SerializeData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.UniquePreBuildData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.VirtualMesh/UniqueSerializationData" preserve="nothing" serialized="true" />
+    <type fullname="MagicaCloth2.WindSettings" preserve="nothing" serialized="true" />
+  </assembly>
+  <assembly fullname="Unity.Addressables, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" preserve="all">
+    <type fullname="UnityEngine.AddressableAssets.Addressables" preserve="all" />
+  </assembly>
+  <assembly fullname="Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" preserve="all">
+    <type fullname="UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider" preserve="all" />
+    <type fullname="UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider" preserve="all" />
+    <type fullname="UnityEngine.ResourceManagement.ResourceProviders.IAssetBundleResource" preserve="all" />
+    <type fullname="UnityEngine.ResourceManagement.ResourceProviders.InstanceProvider" preserve="all" />
+    <type fullname="UnityEngine.ResourceManagement.ResourceProviders.SceneProvider" preserve="all" />
+  </assembly>
+  <assembly fullname="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+    <type fullname="UnityEngine.GameObject" preserve="all" />
+    <type fullname="UnityEngine.Material" preserve="all" />
+    <type fullname="UnityEngine.Mesh" preserve="all" />
+    <type fullname="UnityEngine.MeshFilter" preserve="all" />
+    <type fullname="UnityEngine.MeshRenderer" preserve="all" />
+    <type fullname="UnityEngine.Object" preserve="all" />
+    <type fullname="UnityEngine.Shader" preserve="all" />
+    <type fullname="UnityEngine.SkinnedMeshRenderer" preserve="all" />
+    <type fullname="UnityEngine.Sprite" preserve="all" />
+    <type fullname="UnityEngine.Texture2D" preserve="all" />
+    <type fullname="UnityEngine.Transform" preserve="all" />
+  </assembly>
+  <assembly fullname="Unity.Mathematics">
+    <type fullname="Unity.Mathematics.float3" preserve="nothing" serialized="true" />
+  </assembly>
+</linker>

@@ -920,10 +920,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // BuildFurniture fires when I can advance the site: bring a material
         // it still needs, or raise it once stocked — with a hammer, except a
         // §54 campfire (piled from stones) and the leaf mat (hand-lashed).
-        var siteIsBed = buildSite?.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic;
+        var siteIsBed = buildSite?.BuildProduct == ContentIds.BedBasic;
         // §35.5B: the rack is lashed sticks like the leaf mat — no hammer.
         var siteWaivesHammer = siteIsHearth ||
-            buildSite?.BuildProduct is ContentIds.BedLeaf or ContentIds.DryingRack or ContentIds.Hut1Hex;
+            buildSite?.BuildProduct is ContentIds.BedBasic or ContentIds.DryingRack or ContentIds.Hut1Hex;
         // §54.13: this is only the RAISE half. The deliver half is decided
         // next to the BuildFurniture score, where the gather flags exist —
         // staged sites take bundles, not single pieces (see below).
@@ -1226,9 +1226,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var treatBurdenGate = npc.Needs.Bandages > 1
             ? Spec53.SelfTreatBurdenThreshold
             : Spec53.SelfTreatLastBandageBurden;
+        var quietAftercare = Spec118.Enabled &&
+            !MortalityHelpers.IsBleeding(npc) && WoundMath.NeedsAftercare(npc);
         var treatWoundsAvail = Spec53.SelfTreatEnabled &&
             npc.Needs.Bandages > 0 &&
-            woundBurden >= treatBurdenGate &&
+            (woundBurden >= treatBurdenGate || quietAftercare) &&
             npc.Body.CanUseToolsOrWeapons && // a hand is needed to wind it
             !npc.IsFighting;                 // not mid-bite: fight or flee first
         // Deliberately NOT gated on remembered danger: that is the §65 trap
@@ -2476,6 +2478,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         if (npc.Needs.Blood >= 0.45f)
         {
             return false;
+        }
+
+        if (Spec118.Enabled)
+        {
+            return MortalityHelpers.IsBleeding(npc);
         }
 
         var worstPart = 1f;

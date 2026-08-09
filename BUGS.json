@@ -1,5 +1,5 @@
 {
-    "nextId": 88,
+    "nextId": 89,
     "reports": [
         {
             "id": 21,
@@ -127,7 +127,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -149,7 +149,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -176,7 +176,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -198,7 +198,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -264,7 +264,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -291,7 +291,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -328,7 +328,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -355,7 +355,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -384,7 +384,7 @@
             ],
             "fixCommit": "883fec091aae424e40c1fbe546184dfc3f784d6c",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -411,7 +411,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -438,7 +438,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -487,7 +487,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -514,7 +514,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -546,7 +546,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -573,7 +573,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -664,7 +664,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -693,7 +693,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -747,7 +747,7 @@
             ],
             "fixCommit": "6886e3f78466f8d6c059c0bef4a1a54aaa2cc43d",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -796,7 +796,7 @@
             ],
             "fixCommit": "8d827881ee88dba0e9a94a05e952fb1bc9b6db22",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -830,7 +830,7 @@
             ],
             "fixCommit": "883fec091aae424e40c1fbe546184dfc3f784d6c",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -913,7 +913,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1109,7 +1109,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1235,7 +1235,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1270,7 +1270,7 @@
             ],
             "fixCommit": "830b5524d340e607cd87e3f56964a83101e4e5d8",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1309,7 +1309,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1328,18 +1328,18 @@
         {
             "id": 64,
             "createdUtc": "2026-08-07 19:30 UTC",
-    "status": "ready_for_test",
+            "status": "ready_for_test",
             "text": "Баг 58 воспроизводится, если персонаж мокрый, холодно ему, и тогда анимация идет несинхронно. То есть, видимо, тут какой-то бонус как-то влияет именно от холода. Может еще других бонусов плохо влияет. Это нужно разобраться с этим. Нет, я думаю, здесь не холод. Причина, тут причина может быть ловкость, либо другие какие-то параметры, которые мы не учли при синхронизации, которую ты делал. Агент, изучи, как он сфиксировал этот баг, как делал ей. Посмотри, что он мог не учесть.",
             "context": "seed=120186138 tick=19389 npc=1",
             "assignedAgent": "/root",
-    "agentHandoff": "Rework готов: в production Main для NPC #1 Mira moving/stop/turn Animator-сигналы переведены на горизонтальную скорость и yaw между симуляционными снапшотами; render Transform оставлен только для визуальной интерполяции. Изменены NpcActorView.cs и HexWorldRenderer.cs. Риск: Unity после фикса не перезапускался по просьбе игрока, нужна ручная проверка Main около tick=24071–24079.",
+            "agentHandoff": "Rework готов: в production Main для NPC #1 Mira moving/stop/turn Animator-сигналы переведены на горизонтальную скорость и yaw между симуляционными снапшотами; render Transform оставлен только для визуальной интерполяции. Изменены NpcActorView.cs и HexWorldRenderer.cs. Риск: Unity после фикса не перезапускался по просьбе игрока, нужна ручная проверка Main около tick=24071–24079.",
             "fixCommits": [
-        "6e4c070293920fa6d56615af37c6a70a1e8407b2",
-        "8cbb4a0906ec97b227be85ee74ec69aeacb7cc64"
+                "6e4c070293920fa6d56615af37c6a70a1e8407b2",
+                "8cbb4a0906ec97b227be85ee74ec69aeacb7cc64"
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1353,16 +1353,16 @@
                     "author": "codex",
                     "text": "Готово к тесту: исправлен баг рассинхронизации каденса. Скорость для Animator вычисляется по горизонтальному смещению между симуляционными снапшотами, включая холод, мокрую одежду, ловкость и прочие множители; визуальная интерполяция и гистерезис остановки сохранены. Коммит 6e4c070293920fa6d56615af37c6a70a1e8407b2, воспроизведение seed=120186138 tick=19389 npc=1 ждёт проверки игроком."
                 },
-        {
-            "whenUtc": "2026-08-09 00:00 UTC",
-            "author": "codex",
-            "text": "Rework взят в работу после production-проверки: у Миры (NPC #1) симуляционная позиция стоит, но Animator ещё получает Walk из интерполированного render delta и затем цепочку Turn/Idle. Исправляю источник moving/stop-сигнала на симуляционную скорость; probe был временным и снят после сбора tick=24071–24079."
-        },
-        {
-            "whenUtc": "2026-08-09 00:00 UTC",
-            "author": "codex",
-            "text": "Готово к ручной проверке: moving/stop/turn Animator-сигналы теперь берутся из горизонтальной скорости и yaw между симуляционными снапшотами; render Transform больше не переключает Walk/Idle на границах тиков. Unity после фикса не перезапускал по просьбе игрока. Коммит 8cbb4a0906ec97b227be85ee74ec69aeacb7cc64."
-        }
+                {
+                    "whenUtc": "2026-08-09 00:00 UTC",
+                    "author": "codex",
+                    "text": "Rework взят в работу после production-проверки: у Миры (NPC #1) симуляционная позиция стоит, но Animator ещё получает Walk из интерполированного render delta и затем цепочку Turn/Idle. Исправляю источник moving/stop-сигнала на симуляционную скорость; probe был временным и снят после сбора tick=24071–24079."
+                },
+                {
+                    "whenUtc": "2026-08-09 00:00 UTC",
+                    "author": "codex",
+                    "text": "Готово к ручной проверке: moving/stop/turn Animator-сигналы теперь берутся из горизонтальной скорости и yaw между симуляционными снапшотами; render Transform больше не переключает Walk/Idle на границах тиков. Unity после фикса не перезапускал по просьбе игрока. Коммит 8cbb4a0906ec97b227be85ee74ec69aeacb7cc64."
+                }
             ]
         },
         {
@@ -1378,7 +1378,7 @@
             ],
             "fixCommit": "2aedcbd261f4b782e4a72cebe378e6660dfa7699",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1408,7 +1408,7 @@
             ],
             "fixCommit": "a07c9237683f20210234acd760ec05c2e72526fb",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1447,7 +1447,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1489,7 +1489,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1513,7 +1513,7 @@
             ],
             "fixCommit": "e9d7908f7c8b84d64c24521f032dadca78a9c150",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1552,7 +1552,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1581,7 +1581,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1610,7 +1610,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1644,7 +1644,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1667,14 +1667,17 @@
             "text": "Есть проблема, что девушки постоянно оставляют где-то свои инструменты и ножи. Пускай они используют для любимых важных предметов определённые слоты для оружия. Вот как копьё — есть слот, да? Вот нужно такое же слот ещё для ножа где-нибудь на ноге поставить. Соответственно, для других, то есть расставить слоты, чтобы туда можно было класть ещё разные инструменты — одноручные, слоты для наручных инструментов. Для этого придётся, видимо, либо в Unity, либо в Blender найти эти точки, где наши инструменты нормально смотрелись бы. К примеру, нож прикольно, если на шее будет висеть. Типа как цепочка такая на шее висит, но цепочку ладно не рисую — просто где-нибудь размести так хорошо, чтобы он был на шее ближе к солнечному сплетению. Потом один можно слот где-нибудь на спине — ещё можно, чтобы носили мачету, например. Мачета на спине — она типа большая. То есть надо какие-то средние, большие, супербольшие. Т.е. ножи можно на шее, а на спине тогда, соответственно, копья или мачете. Хотя стоп, ладно, давай. Это я так рассуждаю вслух, последний что скажу — не истина. Всё-таки давай тогда один слот на спине, где копьё, пока что не будем усложнять. В этот один слот, где копьё, туда же будем ставить и любимое оружие, которое больше всего нравится. И, соответственно, в этом слоте держать и никогда не снимать. Это такой дополнительный суперслот.",
             "context": "seed=120186138 tick=39033 npc=3",
             "assignedAgent": "/root/fix_59_machete",
-            "agentHandoff": "Готово после compile rework: HexWorldRenderer импортирует HexLive.Simulation.Runtime и видит ItemAffinity. Поведение любимого оружия остаётся в 565a20bc600fcf75d3988b0d5513e59161139bb4, compile-fix 6ab1a3f6. Контекст: seed=120186138 tick=39033 npc=3. Повторный compile выполняет оркестратор.",
+            "agentHandoff": "Готово: направление back-slot берётся из GearConfig.twoHanded с fallback GearCatalog; фактическая рабочая ось определяется от pivot к renderer bounds после intrinsic prefab correction. Knife/machete проверены вниз (Y=-0.947), spear вверх (Y=+0.947), dot к цели 1.0000. Bounds-centering, slotLocal и ObjectFit сохранены. Коммит 702bb53e483d85f1a620c726c369e5cbe6c65340. Unity compile clean; Play/tests/build не запускались. Контекст seed=120186138 tick=39033 npc=3.",
             "fixCommits": [
                 "565a20bc600fcf75d3988b0d5513e59161139bb4",
-                "6ab1a3f6e3a60132dd965812f7f8d23c450556b0"
+                "6ab1a3f6e3a60132dd965812f7f8d23c450556b0",
+                "2fef725da3cb836f222959a7f8eb127ba6f474f5",
+                "702bb53e483d85f1a620c726c369e5cbe6c65340",
+                "7f437823fb60873e108dc1b66e9ab670c51e77f0"
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1702,6 +1705,31 @@
                     "whenUtc": "2026-08-08 12:12 UTC",
                     "author": "codex",
                     "text": "Compile rework исправлен минимальным import HexLive.Simulation.Runtime в HexWorldRenderer. Follow-up commit 6ab1a3f6e3a60132dd965812f7f8d23c450556b0. Снова готово к тестированию; повторный compile выполняет оркестратор."
+                },
+                {
+                    "whenUtc": "2026-08-08 23:16 UTC",
+                    "author": "codex",
+                    "text": "Вернул #74 в работу по проверке игрока. Любимое оружие сейчас привязано к chestUpper корнем prefab, поэтому точка оказывается у конца клинка. Доработка: центрировать по фактическим renderer bounds после поворота/масштаба и поднять общий back-slot выше, без отдельных офсетов для ножа/мачете."
+                },
+                {
+                    "whenUtc": "2026-08-08 23:30 UTC",
+                    "author": "codex",
+                    "text": "Общий спинной слот поднят выше, а оружие после ObjectFit и финального поворота центрируется по совокупным Renderer.bounds вместо prefab root. Это единое правило для копья, мачете и других оружий без индивидуальных офсетов. Коммит 2fef725da3cb836f222959a7f8eb127ba6f474f5. Unity импортировал скрипт без ошибок; готово к визуальной проверке игроком."
+                },
+                {
+                    "whenUtc": "2026-08-08 23:31 UTC",
+                    "author": "codex",
+                    "text": "Снова вернул #74 в работу: одноручное носимое оружие обязано смотреть лезвием/рабочим концом вниз, двуручное — вверх, как копьё. Классификацию берём из канонического twoHanded, сохраняя уже исправленные центр bounds, высоту и общий ObjectFit."
+                },
+                {
+                    "whenUtc": "2026-08-08 23:40 UTC",
+                    "author": "codex",
+                    "text": "Ориентация back-slot теперь определяется каноническим twoHanded и фактической осью от pivot к геометрии после wrapper correction. В Unity временными экземплярами проверено: knife и machete направлены вниз (Y=-0.947), spear вверх (Y=+0.947), совпадение с целевой осью dot=1.0000. Коммит 702bb53e483d85f1a620c726c369e5cbe6c65340. Готово к визуальной проверке игроком; тесты и сборка не запускались."
+                },
+                {
+                    "whenUtc": "2026-08-09 00:22 UTC",
+                    "author": "claude",
+                    "text": "Вшит подобранный игроком в BackWeaponPlacementTest офсет спинного слота: позиция (-0.09, 0.15, -0.03) аддитивно к каноническому слоту chestUpper, поворот и масштаб без добавок. Коммит 7f437823fb60873e108dc1b66e9ab670c51e77f0. Статус ready_for_test не менялся — проверка за игроком."
                 }
             ]
         },
@@ -1718,7 +1746,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1753,7 +1781,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1797,7 +1825,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1826,7 +1854,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1865,7 +1893,7 @@
             ],
             "fixCommit": "996c9868f304cc0bd297286b039e7fc8afbcc7b6",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1899,7 +1927,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1933,7 +1961,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1967,7 +1995,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2001,7 +2029,7 @@
             ],
             "fixCommit": "6e863bfb1c395389921c17604bbd9b04ff6f164c",
             "reportedInVersion": "0.1.8",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2035,7 +2063,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.8",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2091,7 +2119,7 @@
             ],
             "fixCommit": "999151fada701b91949d06a9e201a7e39b4b6196",
             "reportedInVersion": "0.1.8",
-            "readyForTestInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2126,7 +2154,7 @@
             ],
             "fixCommit": "02088ae75684f1e5d18df5f8f2811036459e97c0",
             "reportedInVersion": "0.1.10",
-            "readyForTestInVersion": "",
+            "readyForTestInVersion": "0.1.13",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2149,6 +2177,40 @@
                     "whenUtc": "2026-08-08 18:12 UTC",
                     "author": "codex",
                     "text": "Готово к тестированию: отдельный back-only масштаб и ручное деление на шесть удалены, оружие на спине теперь проходит через тот же ObjectFit, что в руке и в мире. В живой сцене Unity MCP два ножа на спине дали 0.325–0.326 wu, два ножа в мире 0.328–0.329 wu; разница меньше 1% и объясняется поворотом world AABB. Ошибок и предупреждений нет. Коммит 78d21fe71781e2c03c7d658f68d64087a128e242."
+                }
+            ]
+        },
+        {
+            "id": 88,
+            "createdUtc": "2026-08-08 21:39 UTC",
+            "status": "ready_for_test",
+            "text": "Эта NPC так и не решила вопрос со своим здоровьем. У нее на шести остановилась ТАСС, и ТАСС она так и ничего не похитела, и на шести так и было очень долго. Что здесь можно сделать? Что-то у меня прерывается план собрать лекарства и зашить себя. Вот это у нее не получилось",
+            "context": "seed=197304645 tick=54690 npc=1001",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 7cdb57b89c448ef36c8a1393a99900437a394686. CompleteCycle теперь принимает собственный активный проект, уже доведённый UpdateCycleProgress до ровно 100%, но строго проверяет project id, результат рецепта, IsOccupied и CurrentUser. Поэтому CraftBandage запускает completion-adapter, начисляет оба медицинских счётчика и удаляет временный объект; чужой готовый предмет завершить нельзя. Добавлен регрессионный тест перехода 24/24 → Bandages+1/HerbalBandages+1. Тест не запускался, пока пользователь играет в открытом Unity Editor; проверить seed=197304645 около t47249–t54690, npc=1001.",
+            "fixCommits": [
+                "7cdb57b89c448ef36c8a1393a99900437a394686"
+            ],
+            "fixCommit": "7cdb57b89c448ef36c8a1393a99900437a394686",
+            "reportedInVersion": "0.1.10",
+            "readyForTestInVersion": "0.1.13",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-08 21:42 UTC",
+                    "author": "codex",
+                    "text": "Взял баг №88 в работу. Воспроизвожу seed=197304645 около tick=54690 для NPC 1001 и разберу, почему прерывается цепочка добычи лекарства и самолечения, а показатель надолго остаётся на 6."
+                },
+                {
+                    "whenUtc": "2026-08-08 21:57 UTC",
+                    "author": "codex",
+                    "text": "Причина найдена детерминированным прогоном seed=197304645. NPC 1001 действительно доходит до цепочки GatherHerb → CraftBandage, но финализация ломается: UpdateCycleProgress раньше CompleteCycle ставит проекту 24/24, IsCraftProject становится false, и CompleteCycle выходит до выдачи бинта. В результате TreatWounds остаётся недоступен (Final=0 при Need=1.350 и Emg=0.600), кровотечение продолжается, затем NPC умирает на t53812. Исправление пока не вносил; статус оставлен in_progress для реализации после подтверждения объёма."
+                },
+                {
+                    "whenUtc": "2026-08-08 22:04 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. Финализатор теперь не отвергает собственный активный CraftBandage-проект только потому, что визуальный прогресс уже стал 24/24: он проверяет id, рецепт и текущего работника, затем начисляет Bandages и HerbalBandages и убирает проект. Добавлен регрессионный сценарий точного финального тика. Коммит 7cdb57b89c448ef36c8a1393a99900437a394686. Тест не запускал, чтобы не прерывать текущую игру в открытом Unity Editor."
                 }
             ]
         }

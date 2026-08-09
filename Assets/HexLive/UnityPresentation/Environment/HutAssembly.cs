@@ -8,7 +8,7 @@ namespace HexLive.UnityPresentation.Environment
 {
 
 /// <summary>
-/// Three-stage one-hex hut. It prefers the prefab distilled from the approved
+/// Modular one-hex hut. It prefers the prefab distilled from the approved
 /// Blender kit; the native assembly is a Player-safe artistic derivative of
 /// the board/stick/frond resources with the exact 1.5-wu hex dimensions.
 /// </summary>
@@ -22,6 +22,7 @@ public sealed class HutAssembly : MonoBehaviour
     private readonly List<GameObject> _frame = new();
     private readonly List<GameObject> _enclosure = new();
     private readonly List<GameObject> _roof = new();
+    private readonly Dictionary<string, List<GameObject>> _buildElements = new();
     private readonly List<Renderer> _cutawayRoof = new();
     private readonly List<Renderer>[] _cutawayWalls =
     {
@@ -53,24 +54,63 @@ public sealed class HutAssembly : MonoBehaviour
         return root;
     }
 
+    public static GameObject BuildFinished(ObjectSnapshot building)
+    {
+        var root = BuildRoot();
+        var assembly = root.GetComponent<HutAssembly>() ?? root.AddComponent<HutAssembly>();
+        if (building.ArchitectureElements.Count > 0) assembly.ApplyElements(building.ArchitectureElements);
+        else assembly.ApplyAll();
+        return root;
+    }
+
     public static GameObject BuildPartial(ObjectSnapshot site)
     {
         var root = BuildRoot();
         var assembly = root.GetComponent<HutAssembly>() ?? root.AddComponent<HutAssembly>();
-        assembly.Apply(site.DeliveredSticks, site.DeliveredBoards,
-            site.DeliveredRope, site.DeliveredLeaves);
+        assembly.Apply(site);
         return root;
     }
 
-    public void Apply(ObjectSnapshot site) => Apply(
-        site.DeliveredSticks, site.DeliveredBoards, site.DeliveredRope, site.DeliveredLeaves);
+    public void Apply(ObjectSnapshot site)
+    {
+        if (site.ArchitectureElements.Count > 0)
+        {
+            ApplyElements(site.ArchitectureElements);
+            return;
+        }
+        Apply(site.Id.Value, site.DeliveredSticks, site.DeliveredBoards,
+            site.DeliveredRope, site.DeliveredLeaves);
+    }
 
-    public void Apply(int sticks, int boards, int rope, int leaves)
+    private void ApplyElements(IReadOnlyList<ArchitectureElementSnapshot> elements)
     {
         Scan();
-        ToggleFraction(_frame, BuildingRules.FrameProgress(sticks, boards));
-        ToggleFraction(_enclosure, BuildingRules.EnclosureProgress(sticks, boards, rope));
-        ToggleFraction(_roof, BuildingRules.RoofProgress(sticks, boards, rope, leaves));
+        foreach (var piece in _frame) piece.SetActive(false);
+        foreach (var piece in _enclosure) piece.SetActive(false);
+        foreach (var piece in _roof) piece.SetActive(false);
+        foreach (var element in elements)
+        {
+            if (_buildElements.TryGetValue(element.SlotKey, out var pieces))
+            {
+                ToggleFraction(pieces, element.Buildable ? element.Progress : 0f);
+            }
+        }
+    }
+
+    public void Apply(int siteSeed, int sticks, int boards, int rope, int leaves)
+    {
+        Scan();
+        foreach (var piece in _frame) piece.SetActive(false);
+        foreach (var piece in _enclosure) piece.SetActive(false);
+        foreach (var piece in _roof) piece.SetActive(false);
+        foreach (var element in BuildingRules.ResolveHutElements(
+                     siteSeed, sticks, boards, rope, leaves))
+        {
+            if (_buildElements.TryGetValue(element.Key, out var pieces))
+            {
+                ToggleFraction(pieces, element.Progress);
+            }
+        }
     }
 
     public void ApplyAll()
@@ -156,7 +196,82 @@ public sealed class HutAssembly : MonoBehaviour
         CollectStage(transform, "1", _frame);
         CollectStage(transform, "2", _enclosure);
         CollectStage(transform, "3", _roof);
+        IndexBuildElements(_frame);
+        IndexBuildElements(_enclosure);
+        IndexBuildElements(_roof);
     }
+
+    private void IndexBuildElements(List<GameObject> pieces)
+    {
+        foreach (var piece in pieces)
+        {
+            var key = ElementKeyFor(piece.name);
+            if (key == null) continue;
+            if (!_buildElements.TryGetValue(key, out var group))
+            {
+                group = new List<GameObject>();
+                _buildElements[key] = group;
+            }
+
+            group.Add(piece);
+        }
+    }
+
+    private static string? ElementKeyFor(string name)
+    {
+        var numbers = NumbersIn(name);
+        if (name.Contains("Floor_board") || name.Contains("floor_board"))
+            return ElementKey(BuildingElementKind.Floor, NumberAt(numbers, 0));
+        if (name.Contains("Floor_underbeam") || name.Contains("floor_underbeam"))
+            return ElementKey(BuildingElementKind.Floor, NumberAt(numbers, 0) * 2);
+        if (name.Contains("Post_") || name.Contains("frame_post_"))
+            return ElementKey(BuildingElementKind.Support, NumberAt(numbers, 0) / 2);
+        if (name.Contains("Roof_rafter_") || name.Contains("roof_frame_rafter_"))
+            return ElementKey(BuildingElementKind.Support, NumberAt(numbers, 0));
+        if (name.Contains("Roof_apex_lashing"))
+            return ElementKey(BuildingElementKind.Support, 0);
+        if (name.StartsWith("HL_Door_Pivot", System.StringComparison.Ordinal) ||
+            name.Contains("door_leaf_") || name.Contains("door_lintel_"))
+            return ElementKey(BuildingElementKind.Door, 0);
+        if (name.Contains("Bay_") || name.Contains("wall_bay_"))
+        {
+            var bay = NumberAt(numbers, 0);
+            var kind = bay == 0 ? BuildingElementKind.Door :
+                bay == 3 || bay == 9 ? BuildingElementKind.Window : BuildingElementKind.Wall;
+            return ElementKey(kind, bay);
+        }
+        if (name.Contains("Roof_woven_mat_") || name.Contains("roof_woven_mat_"))
+            return ElementKey(BuildingElementKind.Roof, NumberAt(numbers, 0));
+        if (name.Contains("Roof_palm_leaf_under_"))
+            return ElementKey(BuildingElementKind.Roof, NumberAt(numbers, 1));
+        if (name.Contains("Roof_palm_leaf_") || name.Contains("roof_bundle_"))
+            return ElementKey(BuildingElementKind.Roof, NumberAt(numbers, 0) % BuildingRules.RoofElementCount);
+        return null;
+    }
+
+    private static string ElementKey(BuildingElementKind kind, int index) =>
+        $"{kind.ToString().ToLowerInvariant()}.{Mathf.Clamp(index, 0, 11)}";
+
+    private static List<int> NumbersIn(string name)
+    {
+        var result = new List<int>();
+        for (var i = 0; i < name.Length; i++)
+        {
+            if (!char.IsDigit(name[i])) continue;
+            var value = 0;
+            while (i < name.Length && char.IsDigit(name[i]))
+            {
+                value = value * 10 + name[i] - '0';
+                i++;
+            }
+            result.Add(value);
+            i--;
+        }
+        return result;
+    }
+
+    private static int NumberAt(List<int> numbers, int index) =>
+        index >= 0 && index < numbers.Count ? numbers[index] : 0;
 
     private static void CollectStage(Transform root, string stage, List<GameObject> pieces)
     {
@@ -430,7 +545,7 @@ public sealed class HutAssembly : MonoBehaviour
         }
         for (var node = 0; node < 12; node++)
         {
-            var angle = -90f + node * 30f;
+            var angle = 90f + node * 30f;
             var radians = angle * Mathf.Deg2Rad;
             // Alternating corner/mid-edge nodes are what makes this a true
             // R=1.5 hex rather than a twelve-sided ring. Midpoints sit at the
@@ -456,8 +571,8 @@ public sealed class HutAssembly : MonoBehaviour
         // their ends could never meet. Here each pair shares one edge tangent.
         for (var edge = 0; edge < 6; edge++)
         {
-            var a0 = (-90f + edge * 60f) * Mathf.Deg2Rad;
-            var a1 = (-90f + (edge + 1) * 60f) * Mathf.Deg2Rad;
+            var a0 = (90f + edge * 60f) * Mathf.Deg2Rad;
+            var a1 = (90f + (edge + 1) * 60f) * Mathf.Deg2Rad;
             var corner0 = new Vector3(Mathf.Cos(a0) * 1.5f, 0f, Mathf.Sin(a0) * 1.5f);
             var corner1 = new Vector3(Mathf.Cos(a1) * 1.5f, 0f, Mathf.Sin(a1) * 1.5f);
             var edgeVector = corner1 - corner0;
@@ -466,7 +581,7 @@ public sealed class HutAssembly : MonoBehaviour
             {
                 var bay = edge * 2 + half;
                 var center = Vector3.Lerp(corner0, corner1, half == 0 ? 0.25f : 0.75f);
-                if (bay == 5)
+                if (bay == 0)
                 {
                     AddRoughBoard(enclosure, $"door_lintel_{bay:00}",
                         center + Vector3.up * 1.82f, Quaternion.Euler(0f, yaw, 0f),
@@ -558,7 +673,6 @@ public sealed class HutAssembly : MonoBehaviour
         }
 
         PrepareImportedDoor(root);
-        AddImportedThreshold(root);
     }
 
     private static void PrepareImportedDoor(GameObject root)
@@ -578,31 +692,6 @@ public sealed class HutAssembly : MonoBehaviour
         visual.Configure(closed, open, startOpen: true);
         closed.gameObject.SetActive(false);
         open.gameObject.SetActive(false);
-    }
-
-    private static void AddImportedThreshold(GameObject root)
-    {
-        if (root.transform.Find("BuildStage_1/HL_Floor_threshold") != null) return;
-        var stage = FindStage(root.transform, "1");
-        if (stage == null) return;
-
-        // The six hex-floor boards end at the portal line. This separate
-        // sacrificial board bridges the visible seam at the doorway and reads
-        // as an intentional threshold instead of a missing front floor piece.
-        var threshold = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        threshold.name = "HL_Floor_threshold";
-        threshold.transform.SetParent(stage, false);
-        threshold.transform.localPosition = new Vector3(0f, 0.075f, 1.34f);
-        threshold.transform.localScale = new Vector3(0.78f, 0.07f, 0.20f);
-        var sourceRenderer = root.GetComponentInChildren<Renderer>(true);
-        var renderer = threshold.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            renderer.sharedMaterial = sourceRenderer != null && sourceRenderer.sharedMaterial != null
-                ? ImportedMaterial(sourceRenderer.sharedMaterial)
-                : NativeMaterial("Sapwood");
-        }
-        DestroyRuntime(threshold.GetComponent<Collider>());
     }
 
     private static Material ImportedMaterial(Material? source)
@@ -690,7 +779,7 @@ public sealed class HutAssembly : MonoBehaviour
         pivot.transform.SetParent(parent, false);
         pivot.transform.localPosition = hinge;
         var closedRotation = Quaternion.Euler(0f, wallYaw, 0f);
-        var openRotation = Quaternion.Euler(0f, wallYaw + 72f, 0f);
+        var openRotation = Quaternion.Euler(0f, wallYaw - 72f, 0f);
         pivot.transform.localRotation = openRotation;
         for (var i = 0; i < 3; i++)
         {

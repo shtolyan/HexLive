@@ -67,7 +67,7 @@ internal static class KenshiMedicalMath
             }
 
             TickBluntRecovery(npc, part, healMultiplier);
-            TickStabilizedCutRecovery(world, npc, part, healMultiplier);
+            TickCutRecovery(world, npc, part, healMultiplier);
         }
 
         if (npc.Needs.Hunger < SimBalance.HealHungerGate &&
@@ -130,14 +130,24 @@ internal static class KenshiMedicalMath
         BodyDamageResolver.RestorePart(npc, part, amount);
     }
 
-    private static void TickStabilizedCutRecovery(
+    private static void TickCutRecovery(
         WorldState world, NPCState npc, BodyPart part, float restMultiplier)
     {
+        // A severed zone can never recover HP, but its remaining wounds still
+        // have to close. Once an untreated stump has clotted naturally it is
+        // no longer considered bleeding, so AI will not spend a dressing on
+        // it; without this path Heal01 (and therefore the wound paint) stayed
+        // at zero forever. Stabilised wounds close as before, while a bare
+        // stump starts scarring only after clotting reaches one.
+        var severed = npc.Body.IsSevered(part);
         var budget = Spec118.CutRecoveryPerSlowTick * restMultiplier;
         for (var i = npc.Wounds.Count - 1; i >= 0 && budget > 0f; i--)
         {
             var wound = npc.Wounds[i];
-            if (wound.Zone != part || !wound.Stabilized || wound.Heal01 >= 1f)
+            var naturallyClosingStump = severed && wound.Clot01 >= 1f;
+            if (wound.Zone != part ||
+                (!wound.Stabilized && !naturallyClosingStump) ||
+                wound.Heal01 >= 1f)
             {
                 continue;
             }
@@ -145,7 +155,10 @@ internal static class KenshiMedicalMath
             var open = wound.Severity * (1f - wound.Heal01);
             var amount = System.Math.Min(open, budget);
             wound.Heal01 = MathUtil.Clamp01(wound.Heal01 + amount / wound.Severity);
-            BodyDamageResolver.RestorePart(npc, part, amount);
+            if (!severed)
+            {
+                BodyDamageResolver.RestorePart(npc, part, amount);
+            }
             budget -= amount;
 
             if (wound.Heal01 >= 1f)
@@ -182,12 +195,7 @@ internal static class KenshiMedicalMath
             return;
         }
 
-        if (bed.DefinitionId == ContentIds.BedLeaf)
-        {
-            heal = Spec118.LeafBedHealMultiplier;
-            degeneration = Spec118.LeafBedDegenerationMultiplier;
-        }
-        else if (bed.DefinitionId == ContentIds.BedBasic)
+        if (bed.DefinitionId == ContentIds.BedBasic)
         {
             heal = Spec118.BasicBedHealMultiplier;
             degeneration = Spec118.BasicBedDegenerationMultiplier;

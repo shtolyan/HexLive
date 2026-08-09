@@ -302,6 +302,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private string _currentPropId;
     // Right-handed by default; flipped at runtime via SetHandedness.
     private bool _leftHanded;
+    private bool _hasUsableHand = true;
     private GameObject _handProp;
     private Renderer[] _handPropRenderers = new Renderer[0];
 
@@ -1699,6 +1700,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // the normal wound path below — no special stump art needed.
         ApplySeveredLimbs(severedParts);
         SyncProstheticVisuals(partConditions);
+        SyncHandedness(partConditions);
         RefreshLeglessPresentation();
 
         if (_skinDecals == null)
@@ -2128,6 +2130,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private Transform ActingHandPropAnchor()
     {
+        if (!_hasUsableHand)
+        {
+            return null;
+        }
+
         var part = _leftHanded ? BodyPart.ArmL : BodyPart.ArmR;
         if (_prostheticVisuals.TryGetValue(part, out var prosthetic) && prosthetic.Grip != null)
         {
@@ -3226,11 +3233,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // Spec 31C.6: interaction poses — crouch while gathering/working, sit
-    // on Sit, and hold the relevant item in the right hand.
+    // on Sit, and hold the relevant item in the currently functional hand.
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
         float interactionSeconds = 0f)
     {
-        if (_legless && IsToolOrWeapon(heldItemId))
+        if ((_legless || !_hasUsableHand) && IsToolOrWeapon(heldItemId))
         {
             heldItemId = string.Empty;
         }
@@ -3282,7 +3289,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
         // clip instead of the crouch Working pose + procedural shoulder swing.
-        var chopping = actionKind == ActionKind.Chop && !_legless;
+        var chopping = actionKind == ActionKind.Chop && !_legless && _hasUsableHand;
         // §67: рубящий звук выбирает инструмент — кирка о камень, нож о
         // кокос, топор о ствол (PollActionSounds бьёт его в такт клипу).
         _chopSfxId = !chopping ? string.Empty
@@ -3294,7 +3301,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             _animator.SetBool(GatheringParam, gathering);
             _animator.SetBool(DrinkingParam, drinking);
-            _animator.SetBool(WorkingParam, !_legless && !chopping &&
+            _animator.SetBool(WorkingParam, !_legless && _hasUsableHand && !chopping &&
                 interaction is "Harvest" or "BuildRaft");
             _animator.SetBool(CraftingParam, kneelingCraft);
             _animator.SetBool(PrayingParam, praying); // §110
@@ -3327,7 +3334,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // kneel) — suppress the procedural shoulder pose so it doesn't fight the
         // clip. Eat keeps its own raise-to-mouth — except legless, where the
         // prone idle carries eat/drink.
-        _action = _legless || chopping || kneelingCraft || praying
+        _action = _legless || !_hasUsableHand || chopping || kneelingCraft || praying
             ? ActionKind.None
             : actionKind;
         // A solo craft puts both hands to work (tool goes down). An aid keeps
@@ -3407,6 +3414,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // so a wardrobe action and a held tool never clobber each other.
     private void SetHandGarment(string garmentId)
     {
+        if (!_hasUsableHand)
+        {
+            garmentId = null;
+        }
+
         if (_handGarmentId == garmentId)
         {
             return;
@@ -4220,7 +4232,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         // §81: дерущаяся не пляшет.
         _combatFighting = fighting;
-        if (_legless)  // §50-prone: lying — no weapons, no fight pose
+        if (_legless || !_hasUsableHand)  // prone/armless: no weapon or fight pose
         {
             fighting = false;
             _combatFighting = false;
@@ -4247,7 +4259,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // тот баг, который штамп и заводился лечить: окно живёт один-два
             // тика, кадр его проскакивает, флаг уже опущен, а else тихо
             // усваивал штамп, и удар терялся навсегда.
-            if (ConsumeSwingStamp(swingStartTick) && _animator != null)
+            var looseSwingStarted = ConsumeSwingStamp(swingStartTick);
+            if (looseSwingStarted && _hasUsableHand && !_legless && _animator != null)
             {
                 PlayLooseSwing(weaponId, strikeIndex);
             }
@@ -4380,7 +4393,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void SetHandProp(string itemId)
     {
-        if (_legless && IsToolOrWeapon(itemId))
+        if ((_legless || !_hasUsableHand) && IsToolOrWeapon(itemId))
         {
             itemId = null;
         }
@@ -4503,18 +4516,27 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _handProp.transform.localRotation = Quaternion.identity;
     }
 
+    private void SyncHandedness(IReadOnlyList<BodyPartConditionSnapshot> partConditions)
+    {
+        var hasUsableHand = BodyPartFunctionSnapshotMath.TryGetActingHand(
+            partConditions, out var actingHand);
+        SetHandedness(actingHand == BodyPart.ArmL, hasUsableHand);
+    }
+
     // Spec 40.x: switch the acting hand at runtime — props, the one-handed
     // action CLIPS (via the Animator's MirrorAction bool → Humanoid mirror) and
-    // the procedural action arm all follow. Called by the sim when handedness
-    // changes (a lefty, or an NPC who lost the right hand). Right-handed default.
-    public void SetHandedness(bool leftHanded)
+    // the procedural action arm all follow. Right is preferred while usable;
+    // left takes over when right is lost/broken. No usable hand suppresses
+    // held props and one-handed actions until a functional prosthesis appears.
+    public void SetHandedness(bool leftHanded, bool hasUsableHand = true)
     {
-        if (_leftHanded == leftHanded)
+        if (_leftHanded == leftHanded && _hasUsableHand == hasUsableHand)
         {
             return;
         }
 
         _leftHanded = leftHanded;
+        _hasUsableHand = hasUsableHand;
 
         if (_animator != null)
         {
@@ -4526,6 +4548,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var held = _currentPropId;
         _currentPropId = null;
         SetHandProp(held);
+
+        var heldGarment = _handGarmentId;
+        _handGarmentId = null;
+        SetHandGarment(heldGarment);
     }
 
     // Attach-point authoring: if the model carries a direct child transform
@@ -5929,7 +5955,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         otherEffector.positionWeight = 0f;
         otherEffector.rotationWeight = 0f;
 
-        var weight = _actionTargetActive && !_ragdollActive && !_laying && !_swimming && hand != null
+        var weight = _hasUsableHand && _actionTargetActive && !_ragdollActive &&
+            !_laying && !_swimming && hand != null
             ? CurrentActionTargetIKWeight()
             : 0f;
         if (weight <= 0.001f)
@@ -6212,7 +6239,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var actShldr = _leftHanded ? _lShldr : _rShldr;
         var actForearm = _leftHanded ? _lForearm : _rForearm;
 
-        if (_action == ActionKind.None || _laying || _swimming || actShldr == null || _bodyRoot == null)
+        if (!_hasUsableHand || _action == ActionKind.None || _laying || _swimming ||
+            actShldr == null || _bodyRoot == null)
         {
             _actionPhase = 0f;
             return;

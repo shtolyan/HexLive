@@ -236,7 +236,7 @@ internal static class KenshiRescueMath
     }
 
     internal static bool IsBed(WorldObjectState worldObject) =>
-        worldObject.DefinitionId is ContentIds.BedLeaf or ContentIds.BedBasic or ContentIds.HutBed;
+        ContentIds.IsBed(worldObject.DefinitionId);
 
     internal static void BeginCarry(
         WorldState world, NPCState carrier, NPCState patient,

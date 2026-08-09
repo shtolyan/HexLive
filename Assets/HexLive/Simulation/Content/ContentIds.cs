@@ -74,7 +74,9 @@ public static class ContentIds
 
     // ── Постройки и станции ──────────────────────────────────────────────
     public const string Campfire = "campfire.spot";
+    /// <summary>The only active bed definition. Future improvements upgrade this object.</summary>
     public const string BedBasic = "bed.basic";
+    // Read-only save aliases. Never spawn or register these as active content.
     public const string BedLeaf = "bed.leaf";
     public const string Tent = "shelter.tent";
     public const string DryingRack = "station.drying_rack";
@@ -82,6 +84,14 @@ public static class ContentIds
     public const string Workbench = "station.workbench";
     public const string Hut1Hex = "building.hut_1hex";
     public const string HutBed = "building.hut_bed";
+
+    public const string HutBedVariant = "hut.integrated_bed";
+
+    public static bool IsBed(string definitionId) =>
+        definitionId is BedBasic or BedLeaf or HutBed;
+
+    public static string Canonicalize(string definitionId) =>
+        definitionId is BedLeaf or HutBed ? BedBasic : definitionId;
 
     /// <summary>Заявка на мебель: пустое место, куда носят материалы.</summary>
     public const string BuildSite = "build.site";

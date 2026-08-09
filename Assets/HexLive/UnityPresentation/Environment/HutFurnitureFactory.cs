@@ -12,7 +12,12 @@ namespace HexLive.UnityPresentation.Environment
 /// </summary>
 public static class HutFurnitureFactory
 {
-    private const float IntegratedBedScale = 0.64f;
+    // The simulation anchor is the nearest safe interior junction at local
+    // X=±0.6495. Move only the furniture/pose outward: 0.6495 + 0.246 =
+    // 0.8955, and the measured 0.766-wu cot leaves a 0.0205-wu seam to the
+    // vertical wall at apothem 1.299. Interaction still starts from the safe
+    // junction; furniture itself may occupy the architecture-edge space.
+    public const float BedWallSnugOffset = 0.246f;
     private const string HutPrefabPath = "HexLive/Objects/building.hut_1hex";
     private static readonly Vector3 HearthVisualOffset = new(0f, 0f, -0.20f);
     private static readonly Dictionary<string, Material> Materials = new();
@@ -27,7 +32,6 @@ public static class HutFurnitureFactory
         var bed = BedAssembly.BuildFinished(ContentIds.BedBasic);
         if (bed == null) return null;
         bed.name = "Integrated bed.basic (native)";
-        bed.transform.localScale = Vector3.one * IntegratedBedScale;
         return bed;
     }
 

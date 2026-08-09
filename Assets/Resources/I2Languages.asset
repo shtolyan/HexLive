@@ -3105,6 +3105,118 @@ MonoBehaviour:
       - 'слотов'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'inv.garment_containers'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing pockets'
+      - 'Карманы одежды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.carry_and_holster'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Carry & holster'
+      - 'Переноска и кобура'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.carry'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Carry'
+      - 'Переноска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.hand_left'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left hand'
+      - 'Левая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.hand_right'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right hand'
+      - 'Правая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.holster'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Holster'
+      - 'Кобура'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.overflow'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Overflow (diagnostic)'
+      - 'Избыток (диагностика)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.capacity_base'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Base'
+      - 'База'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.capacity_strength'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Strength'
+      - 'Сила'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.capacity_backpack'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Backpack'
+      - 'Рюкзак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.typed_slot'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dedicated slot'
+      - 'Типизированный слот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.in_use'
+      TermType: 0
+      Description:
+      Languages:
+      - 'IN USE'
+      - 'В РАБОТЕ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.in_hand'
+      TermType: 0
+      Description:
+      Languages:
+      - 'In hand'
+      - 'В руке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.favorite_weapon'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Favourite weapon'
+      - 'Любимое оружие'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'inv.covers'
       TermType: 0
       Description: 

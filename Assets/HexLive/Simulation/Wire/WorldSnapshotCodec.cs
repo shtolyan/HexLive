@@ -59,7 +59,9 @@ public static class WorldSnapshotCodec
     /// v12: §116 typed body conditions, wounds, prosthetics and carry links.
     /// v13: §32 CompassionTrait + §34 melee stat multipliers for item cards.
     /// v14: §111.12 item id carried by a social cue bubble.
-    public const int WireVersion = 15;
+    /// v16: §120 independently persisted architecture elements.
+    /// v17: §51/§52 typed inventory containers and §75A favorite-weapon projection.
+    public const int WireVersion = 17;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -253,6 +255,7 @@ public static class WorldSnapshotCodec
         BuildProduct = 1 << 2,
         Owner = 1 << 3,
         CraftProject = 1 << 4,
+        Architecture = 1 << 5,
     }
 
     // Definition ids repeat across every object; both ends derive the same table
@@ -325,6 +328,7 @@ public static class WorldSnapshotCodec
         {
             parts |= ObjectParts.CraftProject;
         }
+        if (o.ArchitectureElements.Count > 0) parts |= ObjectParts.Architecture;
 
         w.Write((byte)parts);
         w.Write(o.Id.Value);
@@ -370,6 +374,33 @@ public static class WorldSnapshotCodec
             w.Write(o.RoastingCooked);
             w.Write(o.BillBoards);
             w.Write(o.DeliveredBoards);
+        }
+
+        if ((parts & ObjectParts.Architecture) != 0)
+        {
+            w.Write(o.ArchitectureElements.Count);
+            foreach (var element in o.ArchitectureElements)
+            {
+                w.Write(element.ElementId);
+                WireIo.WriteString(w, element.DefinitionId);
+                WireIo.WriteString(w, element.SlotKey);
+                w.Write(element.SlotIndex);
+                w.Write(element.Layer);
+                w.Write(element.LocalX);
+                w.Write(element.LocalZ);
+                w.Write(element.LocalYaw);
+                w.Write(element.RequiredSticks);
+                w.Write(element.RequiredBoards);
+                w.Write(element.RequiredRope);
+                w.Write(element.RequiredLeaves);
+                w.Write(element.DeliveredSticks);
+                w.Write(element.DeliveredBoards);
+                w.Write(element.DeliveredRope);
+                w.Write(element.DeliveredLeaves);
+                w.Write(element.Buildable);
+                w.Write(element.WorkRequired);
+                w.Write(element.WorkDone);
+            }
         }
 
         if ((parts & ObjectParts.CraftProject) != 0)
@@ -453,6 +484,37 @@ public static class WorldSnapshotCodec
                 o.RoastingCooked = 0;
                 o.BillBoards = 0;
                 o.DeliveredBoards = 0;
+            }
+
+            o.ArchitectureElements.Clear();
+            if ((parts & ObjectParts.Architecture) != 0)
+            {
+                var architectureCount = r.ReadInt32();
+                for (var i = 0; i < architectureCount; i++)
+                {
+                    o.ArchitectureElements.Add(new ArchitectureElementSnapshot
+                    {
+                        ElementId = r.ReadInt32(),
+                        DefinitionId = r.ReadString(),
+                        SlotKey = r.ReadString(),
+                        SlotIndex = r.ReadInt32(),
+                        Layer = r.ReadInt32(),
+                        LocalX = r.ReadSingle(),
+                        LocalZ = r.ReadSingle(),
+                        LocalYaw = r.ReadSingle(),
+                        RequiredSticks = r.ReadInt32(),
+                        RequiredBoards = r.ReadInt32(),
+                        RequiredRope = r.ReadInt32(),
+                        RequiredLeaves = r.ReadInt32(),
+                        DeliveredSticks = r.ReadInt32(),
+                        DeliveredBoards = r.ReadInt32(),
+                        DeliveredRope = r.ReadInt32(),
+                        DeliveredLeaves = r.ReadInt32(),
+                        Buildable = r.ReadBoolean(),
+                        WorkRequired = r.ReadInt32(),
+                        WorkDone = r.ReadInt32()
+                    });
+                }
             }
 
             o.CraftIngredients.Clear();
@@ -640,6 +702,27 @@ public static class WorldSnapshotCodec
         WireIo.WriteStrings(w, n.InventoryBloodiness);
         WireIo.WriteStrings(w, n.InventoryWater);
         w.Write(n.InventoryCapacity);
+        WireIo.WriteString(w, n.FavoriteWeaponId);
+        w.Write(n.InventoryContainers.Count);
+        foreach (var container in n.InventoryContainers)
+        {
+            WireIo.WriteString(w, container.Id);
+            w.Write((byte)container.Kind);
+            WireIo.WriteString(w, container.OwnerItemDefinitionId);
+            w.Write((byte)container.BodyAnchor);
+            w.Write(container.Capacity);
+            w.Write(container.BaseCapacity);
+            w.Write(container.StrengthBonus);
+            w.Write(container.BackpackCapacity);
+            w.Write(container.Slots.Count);
+            foreach (var slot in container.Slots)
+            {
+                w.Write(slot.Index);
+                WireIo.WriteString(w, slot.ItemDefinitionId);
+                w.Write(slot.StackCount);
+                WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
+            }
+        }
 
         // §28.15C v3: каким клипом она упала.
         w.Write(n.DeathAnimVariant);
@@ -867,6 +950,31 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.InventoryBloodiness);
         WireIo.ReadStrings(r, n.InventoryWater);
         n.InventoryCapacity = r.ReadInt32();
+        n.FavoriteWeaponId = r.ReadString();
+        var inventoryContainerCount = r.ReadInt32();
+        WireIo.Resize(n.InventoryContainers, inventoryContainerCount);
+        for (var i = 0; i < inventoryContainerCount; i++)
+        {
+            var container = n.InventoryContainers[i];
+            container.Id = r.ReadString();
+            container.Kind = (HexLive.Simulation.Runtime.InventoryContainerKind)r.ReadByte();
+            container.OwnerItemDefinitionId = r.ReadString();
+            container.BodyAnchor = (HexLive.Simulation.Runtime.InventoryBodyAnchor)r.ReadByte();
+            container.Capacity = r.ReadInt32();
+            container.BaseCapacity = r.ReadInt32();
+            container.StrengthBonus = r.ReadInt32();
+            container.BackpackCapacity = r.ReadInt32();
+            var inventorySlotCount = r.ReadInt32();
+            WireIo.Resize(container.Slots, inventorySlotCount);
+            for (var j = 0; j < inventorySlotCount; j++)
+            {
+                var slot = container.Slots[j];
+                slot.Index = r.ReadInt32();
+                slot.ItemDefinitionId = r.ReadString();
+                slot.StackCount = r.ReadInt32();
+                slot.AcceptedItemDefinitionId = r.ReadString();
+            }
+        }
 
         n.DeathAnimVariant = r.ReadInt32();
 

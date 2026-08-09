@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Runtime;
 
 namespace HexLive.Simulation.Agents.Effects
 {
@@ -7,15 +8,13 @@ namespace HexLive.Simulation.Agents.Effects
     // of status effects she is under right now. It only ever READS — every
     // threshold here decides which ICON shows, never what the simulation does,
     // so the tuned balance in SimulationSystems is untouched. The thresholds
-    // mirror the points where the sim's own logic already bites (bleeding when
-    // a fresh wound sits on a part below 0.4, HP-draining heat/cold at |0.85|,
+    // mirror the points where the sim's own logic already bites (bleeding uses
+    // the shared medical predicate, HP-draining heat/cold starts at |0.85|,
     // the starving/dehydrated hysteresis flags, the winded floor at 0.15) so
     // an icon appears exactly when the underlying consequence kicks in.
     public static class EffectEvaluator
     {
         // Classification cut-points (UI only — NOT simulation tuning).
-        private const float FreshWound = 0.3f;      // Heal01 below this = still open
-        private const float HurtPart = 0.4f;        // part HP that starts bleeding
         private const float InjuredPart = 0.6f;     // a part this low reads as "injured"
         private const float LegHobble = 0.6f;       // leg HP that reads as "hobbled"
         private const float ThermalDanger = 0.85f;  // |ThermalComfort| that drains HP
@@ -57,29 +56,10 @@ namespace HexLive.Simulation.Agents.Effects
             var needs = npc.Needs;
 
             // ── Injury / blood ────────────────────────────────────────────
-            // Bleeding takes precedence over the milder "injured": a fresh
-            // wound on a mauled part is what actually drains Blood in the sim.
-            var bleeding = false;
-            var maxWoundSeverity = 0f;
-            foreach (var wound in npc.Wounds)
-            {
-                if (wound.Heal01 >= FreshWound)
-                {
-                    continue;
-                }
-
-                var partHp = npc.Body.Parts.TryGetValue(wound.Zone, out var hp) ? hp : 1f;
-                if (partHp < HurtPart)
-                {
-                    bleeding = true;
-                }
-
-                var sev = wound.Severity * (1f - wound.Heal01);
-                if (sev > maxWoundSeverity)
-                {
-                    maxWoundSeverity = sev;
-                }
-            }
+            // Use the simulation's single bleeding predicate. Checking only
+            // "fresh mark + low part HP" mislabelled a fully clotted stump as
+            // actively bleeding forever, even while Blood stayed at 100%.
+            var bleeding = MortalityHelpers.IsBleeding(npc);
 
             if (bleeding)
             {

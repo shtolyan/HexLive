@@ -63,7 +63,8 @@ public static class WorldSaveSerializer
     // план и исполнение сериализуются целиком и после загрузки просто
     // продолжаются. (Ветка §121 приехала со своим v28 — номер занят §116,
     // поэтому поле переехало в хвост под v31.)
-    public const int BlobVersion = 31;
+    // v32 (§120 constructor): persistent per-building architecture elements.
+    public const int BlobVersion = 32;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -537,6 +538,25 @@ public static class WorldSaveSerializer
         var retired = new List<ObjectId>();
         foreach (var obj in world.Entities.Objects.Values)
         {
+            if (obj.DefinitionId == ContentIds.HutBed)
+            {
+                obj.DefinitionId = ContentIds.BedBasic;
+                obj.Variant = ContentIds.HutBedVariant;
+            }
+            else if (obj.DefinitionId == ContentIds.BedLeaf)
+            {
+                obj.DefinitionId = ContentIds.BedBasic;
+            }
+
+            if (obj.BuildProduct is ContentIds.BedLeaf or ContentIds.HutBed)
+            {
+                obj.BuildProduct = ContentIds.BedBasic;
+                obj.BillLogs = System.Math.Max(obj.BillLogs, SimBalance.BedBasicBillLogs);
+                obj.BillSticks = System.Math.Max(obj.BillSticks, SimBalance.BedBasicBillSticks);
+                obj.BillRope = System.Math.Max(obj.BillRope, SimBalance.BedBasicBillRope);
+                obj.BillLeaves = System.Math.Max(obj.BillLeaves, SimBalance.BedBasicBillLeaves);
+            }
+
             if (obj.DefinitionId is "water.pond" or "armor.leather" or "armor.heavy")
             {
                 retired.Add(obj.Id);
@@ -547,6 +567,10 @@ public static class WorldSaveSerializer
         {
             WorldObjectMutations.DespawnObject(world, id);
         }
+
+        // Migration is spatial too: both legacy hut cots could retain one
+        // anchor and render collapsed after becoming bed.basic.
+        HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairIntegratedCotAnchors(world);
 
         MigrateRetiredGarments(world, world.Entities.Npcs.Values);
         MigrateRetiredGarments(world, world.Entities.Corpses.Values);
@@ -644,6 +668,30 @@ public static class WorldSaveSerializer
         w.Write(obj.CraftWorkDone);
         w.Write(obj.CraftBatchCount);
         WriteNullableObject(w, obj.CraftStationObjectId);
+
+        w.Write(obj.ArchitectureElements.Count);
+        foreach (var element in obj.ArchitectureElements)
+        {
+            w.Write(element.ElementId);
+            w.Write(element.DefinitionId);
+            w.Write(element.SlotKey);
+            w.Write(element.SlotIndex);
+            w.Write((int)element.Layer);
+            w.Write(element.LocalX);
+            w.Write(element.LocalZ);
+            w.Write(element.LocalYaw);
+            w.Write(element.RequiredSticks);
+            w.Write(element.RequiredBoards);
+            w.Write(element.RequiredRope);
+            w.Write(element.RequiredLeaves);
+            w.Write(element.DeliveredSticks);
+            w.Write(element.DeliveredBoards);
+            w.Write(element.DeliveredRope);
+            w.Write(element.DeliveredLeaves);
+            w.Write(element.Buildable);
+            w.Write(element.WorkRequired);
+            w.Write(element.WorkDone);
+        }
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -703,6 +751,41 @@ public static class WorldSaveSerializer
             obj.CraftWorkDone = r.ReadInt32();
             obj.CraftBatchCount = r.ReadInt32();
             obj.CraftStationObjectId = ReadNullableObject(r);
+        }
+
+        if (version >= 32)
+        {
+            var architectureCount = r.ReadInt32();
+            for (var i = 0; i < architectureCount; i++)
+            {
+                obj.ArchitectureElements.Add(new ArchitectureElementState
+                {
+                    ElementId = r.ReadInt32(),
+                    DefinitionId = r.ReadString(),
+                    SlotKey = r.ReadString(),
+                    SlotIndex = r.ReadInt32(),
+                    Layer = (PlacementLayer)r.ReadInt32(),
+                    LocalX = r.ReadSingle(),
+                    LocalZ = r.ReadSingle(),
+                    LocalYaw = r.ReadSingle(),
+                    RequiredSticks = r.ReadInt32(),
+                    RequiredBoards = r.ReadInt32(),
+                    RequiredRope = r.ReadInt32(),
+                    RequiredLeaves = r.ReadInt32(),
+                    DeliveredSticks = r.ReadInt32(),
+                    DeliveredBoards = r.ReadInt32(),
+                    DeliveredRope = r.ReadInt32(),
+                    DeliveredLeaves = r.ReadInt32(),
+                    Buildable = r.ReadBoolean(),
+                    WorkRequired = r.ReadInt32(),
+                    WorkDone = r.ReadInt32()
+                });
+            }
+        }
+        else if (obj.BuildProduct == ContentIds.Hut1Hex || obj.DefinitionId == ContentIds.Hut1Hex)
+        {
+            BuildingRules.EnsureHutElements(obj, completed: obj.DefinitionId == ContentIds.Hut1Hex);
+            if (obj.BuildProduct == ContentIds.Hut1Hex) BuildingRules.SyncHutElements(obj);
         }
 
         return obj;

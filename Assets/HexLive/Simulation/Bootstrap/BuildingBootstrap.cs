@@ -54,7 +54,13 @@ public static class BuildingBootstrap
         }
 
         var homePosition = HexSpatialMath.TileToWorld(home);
-        var yaw = StructurePlacement.FacingYaw(center.WorldPosition, homePosition);
+        // The authored pointy-top kit has its door bay normal at local +30°.
+        // Keep the hex itself on one of its six 60° symmetries and choose the
+        // symmetry whose door normal is closest to camp. Arbitrary yaw rotates
+        // walls off the tile edges; treating local forward as the door normal
+        // seals the neighbouring edge instead of the visible doorway.
+        var desiredDoorYaw = StructurePlacement.FacingYaw(center.WorldPosition, homePosition);
+        var yaw = StructurePlacement.QuantizeHexYaw(desiredDoorYaw - 30f);
         var hut = WorldObjectMutations.SpawnObject(
             world, ContentIds.Hut1Hex, center.Fragment, hutTile, anchorId);
         hut.RotationDegrees = yaw;
@@ -62,7 +68,7 @@ public static class BuildingBootstrap
         return hut;
     }
 
-    /// <summary>Creates an ordinary three-stage site for tests and future NPC staking.</summary>
+    /// <summary>Creates an ordinary modular site for tests and future NPC staking.</summary>
     public static WorldObjectState CreateHutSite(WorldState world, TileCoord tile, float facingYaw)
     {
         if (!CanPlaceHut(world, tile) || StructurePlacement.CenterJunction(world, tile) is not { } anchor)
@@ -77,7 +83,8 @@ public static class BuildingBootstrap
         site.BillBoards = BuildingRules.TotalBoards;
         site.BillRope = BuildingRules.TotalRope;
         site.BillLeaves = BuildingRules.TotalLeaves;
-        site.RotationDegrees = facingYaw;
+        site.RotationDegrees = StructurePlacement.QuantizeHexYaw(facingYaw - 30f);
+        BuildingRules.EnsureHutElements(site);
         return site;
     }
 
@@ -94,12 +101,14 @@ public static class BuildingBootstrap
             return;
         }
 
-        var doorEdge = authoredDoorEdge ?? DoorEdgeForYaw(hut.RotationDegrees);
+        var doorEdge = authoredDoorEdge ?? DoorEdgeForYaw(hut.RotationDegrees + 30f);
+        BuildingRules.EnsureHutElements(hut, completed: true);
         hut.Variant = $"door:{doorEdge}";
         tile.Flags |= TileFlags.HasFloor | TileFlags.Indoor;
         SealPerimeter(world, hut, doorEdge);
         SpawnCot(world, hut, -0.75f);
         SpawnCot(world, hut, 0.75f);
+        RepairIntegratedCotAnchors(world);
         SpawnHearth(world, hut);
     }
 
@@ -197,8 +206,12 @@ public static class BuildingBootstrap
         if (CotCount(world, hut.Tile) >= 2) return;
         if (FindCotJunction(world, hut, localX) is not { } junctionId) return;
         var cot = WorldObjectMutations.SpawnObject(
-            world, ContentIds.HutBed, hut.Fragment, hut.Tile, junctionId);
+            world, ContentIds.BedBasic, hut.Fragment, hut.Tile, junctionId);
+        cot.Variant = ContentIds.HutBedVariant;
         cot.RotationDegrees = hut.RotationDegrees;
+        // Architecture owns the room topology. Integrated beds reserve their
+        // furniture footprint but must not seal the one-hex interior corridor.
+        WorldObjectMutations.SetObstacleBlocking(world, cot, blocked: false);
     }
 
     private static JunctionId? FindCotJunction(WorldState world, WorldObjectState hut, float localX)
@@ -239,7 +252,8 @@ public static class BuildingBootstrap
         foreach (var id in objects)
         {
             if (world.Entities.Objects.TryGetValue(id, out var obj) &&
-                obj.DefinitionId == ContentIds.HutBed && obj.Junctions.Contains(junction))
+                obj.DefinitionId == ContentIds.BedBasic &&
+                obj.Variant == ContentIds.HutBedVariant && obj.Junctions.Contains(junction))
             {
                 return true;
             }
@@ -255,13 +269,87 @@ public static class BuildingBootstrap
         foreach (var id in objects)
         {
             if (world.Entities.Objects.TryGetValue(id, out var obj) &&
-                obj.DefinitionId == ContentIds.HutBed)
+                obj.DefinitionId == ContentIds.BedBasic &&
+                obj.Variant == ContentIds.HutBedVariant)
             {
                 count++;
             }
         }
 
         return count;
+    }
+
+    /// <summary>
+    /// Old saves may contain both former <c>building.hut_bed</c> objects on the
+    /// same junction. Re-seat every integrated pair on the two authored wall
+    /// sides while keeping ids, ownership and interaction state intact.
+    /// </summary>
+    public static void RepairIntegratedCotAnchors(WorldState world)
+    {
+        foreach (var hut in world.Entities.Objects.Values)
+        {
+            if (hut.DefinitionId != ContentIds.Hut1Hex ||
+                !world.Caches.ObjectsByTile.TryGetValue(hut.Tile, out var objectIds))
+            {
+                continue;
+            }
+
+            var cots = new List<WorldObjectState>();
+            foreach (var id in objectIds)
+            {
+                if (world.Entities.Objects.TryGetValue(id, out var obj) &&
+                    obj.DefinitionId == ContentIds.BedBasic &&
+                    obj.Variant == ContentIds.HutBedVariant)
+                {
+                    WorldObjectMutations.SetObstacleBlocking(world, obj, blocked: false);
+                    cots.Add(obj);
+                }
+            }
+
+            if (cots.Count == 0) continue;
+            cots.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
+            var used = new HashSet<JunctionId>();
+            for (var i = 0; i < cots.Count && i < 2; i++)
+            {
+                var localX = i == 0 ? -0.75f : 0.75f;
+                if (FindCotRepairJunction(world, hut, localX, used) is not { } anchor) continue;
+                cots[i].Junctions.Clear();
+                cots[i].Junctions.Add(anchor);
+                used.Add(anchor);
+            }
+        }
+    }
+
+    private static JunctionId? FindCotRepairJunction(
+        WorldState world, WorldObjectState hut, float localX, HashSet<JunctionId> used)
+    {
+        var center = HexSpatialMath.TileToWorld(hut.Tile);
+        var radians = hut.RotationDegrees * MathF.PI / 180f;
+        var right = new Float2(MathF.Sin(radians), -MathF.Cos(radians));
+        var desired = center + right * localX;
+        JunctionId? best = null;
+        var bestSq = float.MaxValue;
+        foreach (var junctionId in world.Tiles.Items[hut.Tile].Junctions)
+        {
+            if (used.Contains(junctionId) ||
+                !world.Junctions.Items.TryGetValue(junctionId, out var candidate) ||
+                candidate.Tiles.Count != 1 || candidate.Blocked)
+            {
+                continue;
+            }
+
+            var fromCenter = candidate.WorldPosition - center;
+            if (fromCenter.X * fromCenter.X + fromCenter.Y * fromCenter.Y > 0.9f * 0.9f) continue;
+            var delta = candidate.WorldPosition - desired;
+            var sq = delta.X * delta.X + delta.Y * delta.Y;
+            if (sq < bestSq)
+            {
+                bestSq = sq;
+                best = junctionId;
+            }
+        }
+
+        return best;
     }
 
     private static void SpawnHearth(WorldState world, WorldObjectState hut)

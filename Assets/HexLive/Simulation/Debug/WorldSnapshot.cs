@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Runtime;
 
 namespace HexLive.Simulation.Debug
 {
@@ -247,6 +248,8 @@ public sealed class ObjectSnapshot
 
     public int DeliveredBoards { get; set; }
 
+    public List<ArchitectureElementSnapshot> ArchitectureElements { get; } = new();
+
     // §119: an unfinished item exists in the world from the first work cycle.
     public int CraftWorkRequired { get; set; }
 
@@ -268,6 +271,40 @@ public sealed class ObjectSnapshot
     public int RoastingCooked { get; set; }
 
     public List<JunctionId> Junctions { get; } = new();
+}
+
+public sealed class InventorySlotSnapshot
+{
+    public int Index { get; set; }
+
+    public string ItemDefinitionId { get; set; } = string.Empty;
+
+    public int StackCount { get; set; }
+
+    // Empty for ordinary cells; a typed holster cell carries the one exact id
+    // it accepts even while the cell itself is empty.
+    public string AcceptedItemDefinitionId { get; set; } = string.Empty;
+}
+
+public sealed class InventoryContainerSnapshot
+{
+    public string Id { get; set; } = string.Empty;
+
+    public InventoryContainerKind Kind { get; set; }
+
+    public string OwnerItemDefinitionId { get; set; } = string.Empty;
+
+    public InventoryBodyAnchor BodyAnchor { get; set; }
+
+    public int Capacity { get; set; }
+
+    public int BaseCapacity { get; set; }
+
+    public int StrengthBonus { get; set; }
+
+    public int BackpackCapacity { get; set; }
+
+    public List<InventorySlotSnapshot> Slots { get; } = new();
 }
 
 public sealed class NpcSnapshot
@@ -631,6 +668,15 @@ public sealed class NpcSnapshot
     public bool IsStarving { get; set; }
 
     public List<string> InventoryItems { get; } = new();
+
+    // §51/§52: typed, derived layout for the inventory window. InventoryItems
+    // stays temporarily for the existing item card and old presentation paths;
+    // neither list is an authoritative store (InventoryState.Items is).
+    public List<InventoryContainerSnapshot> InventoryContainers { get; } = new();
+
+    // §75A: the doll may draw this on the back, but it remains in whichever
+    // real InventoryContainerSnapshot slot owns it and grants no capacity.
+    public string FavoriteWeaponId { get; set; } = string.Empty;
 
     public int InventoryUsedSlots { get; set; }
 

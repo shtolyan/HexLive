@@ -46,7 +46,10 @@ internal static class AidAssessment
             ? (MortalityHelpers.IsBleeding(target)
                 ? System.Math.Max(1f - target.Needs.Blood,
                     DecisionSystem.SelfTreatBurden(target))
-                : 0f)
+                : WoundMath.NeedsAftercare(target)
+                    ? System.Math.Max(Spec53.SelfTreatBurdenThreshold,
+                        DecisionSystem.SelfTreatBurden(target))
+                    : 0f)
             : (target.Wounds.Count > 0 || target.Needs.Blood < 0.6f
                 ? System.Math.Max(1f - target.Needs.Blood, 1f - target.Health)
                 : 0f);

@@ -180,7 +180,8 @@ public sealed class HutTestBootstrap : MonoBehaviour
                 hutTile = obj.Tile;
                 hutFound = true;
             }
-            else if (obj.DefinitionId == ContentIds.HutBed)
+            else if (obj.DefinitionId == ContentIds.BedBasic &&
+                     obj.Variant == ContentIds.HutBedVariant)
             {
                 beds++;
             }

@@ -133,7 +133,7 @@ public sealed partial class DecisionSystem
                 hearthUpgrade ??= site;
             }
             else if (site.DefinitionId == ContentIds.BuildSite &&
-                site.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic)
+                site.BuildProduct == ContentIds.BedBasic)
             {
                 if (buildsTheDream)
                 {
@@ -208,7 +208,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic &&
+            if (obj.BuildProduct == ContentIds.BedBasic &&
                 obj.Owner is { } owner && owner.Equals(npc.Id))
             {
                 return true;

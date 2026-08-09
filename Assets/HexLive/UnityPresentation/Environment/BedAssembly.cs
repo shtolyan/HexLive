@@ -8,7 +8,7 @@ namespace HexLive.UnityPresentation.Environment
     /// <summary>
     /// Spec §54.2: toggle-assembles a bed from the assembled prefab's OWN piece
     /// children (<c>log_*</c> / <c>stick_*</c> / <c>rope_*</c> / <c>leaf_*</c>).
-    /// The SAME prefab (bed_leaf_final / bed_basic_final, authored in Blender at
+    /// The canonical bed_basic_final prefab, authored in Blender at
     /// 1:1) renders BOTH the finished bed (all pieces on) and the progressive
     /// build-site (the first N pieces of each material on, per delivered count) —
     /// so the mat visibly grows into exactly the finished piece as resources are
@@ -134,6 +134,26 @@ namespace HexLive.UnityPresentation.Environment
             Toggle(_boards, boards);
         }
 
+        /// <summary>
+        /// The canonical bed is erected as a frame, not as four independent
+        /// resource piles. Delivered later materials stay hidden until the
+        /// piece below them is complete: logs → slats → lashings → leaves.
+        /// </summary>
+        public void ApplyBedStages(int logs, int sticks, int ropes, int leaves)
+        {
+            Scan();
+            var frameReady = logs >= _logs.Count;
+            var slatsReady = frameReady && sticks >= _sticks.Count;
+            var lashingsReady = slatsReady && ropes >= _ropes.Count;
+
+            Toggle(_logs, logs);
+            Toggle(_sticks, frameReady ? sticks : 0);
+            Toggle(_ropes, slatsReady ? ropes : 0);
+            Toggle(_leaves, lashingsReady ? leaves : 0);
+            Toggle(_stones, 0);
+            Toggle(_boards, 0);
+        }
+
         private static void Toggle(List<GameObject> list, int on)
         {
             for (var i = 0; i < list.Count; i++)
@@ -163,14 +183,14 @@ namespace HexLive.UnityPresentation.Environment
             "campfire.spot" => "campfire_final_native",
             "station.water_collector" => "water_collector_final_native",
             ContentIds.Workbench => "station.workbench",
-            _ => "bed_leaf_final_native"
+            _ => product
         };
 
         /// §35.5B/§54.14: every product rendered by a staged assembled prefab —
         /// the beds, the drying rack, the campfire and the water collector share
         /// the grow-in-place build-site view.
         public static bool IsAssembled(string product) =>
-            product is "bed.leaf" or "bed.basic" or "station.drying_rack"
+            product is "bed.basic" or "station.drying_rack"
                 or "campfire.spot" or "station.water_collector" or ContentIds.Workbench;
 
         private static GameObject? Instantiate(string product, out BedAssembly asm)
@@ -464,7 +484,7 @@ namespace HexLive.UnityPresentation.Environment
 
         private static void EnsureSleepPoint(GameObject? root, string product)
         {
-            if (root == null || product is not (ContentIds.BedBasic or ContentIds.BedLeaf))
+            if (root == null || product != ContentIds.BedBasic)
             {
                 return;
             }
@@ -481,9 +501,8 @@ namespace HexLive.UnityPresentation.Environment
             // world-up must be converted into that root's local space.
             var point = new GameObject("point");
             point.transform.SetParent(root.transform, false);
-            var height = product == ContentIds.BedBasic ? 0.54f : 0.0615f;
             point.transform.localPosition = root.transform.InverseTransformVector(
-                Vector3.up * height);
+                Vector3.up * 0.24f);
         }
 
         /// A build-site in progress — only the delivered pieces of each material.
@@ -492,7 +511,14 @@ namespace HexLive.UnityPresentation.Environment
             int boards = 0)
         {
             var go = Instantiate(product, out var asm);
-            asm?.Apply(logs, sticks, ropes, leaves, stones, boards);
+            if (product == ContentIds.BedBasic)
+            {
+                asm?.ApplyBedStages(logs, sticks, ropes, leaves);
+            }
+            else
+            {
+                asm?.Apply(logs, sticks, ropes, leaves, stones, boards);
+            }
             return go;
         }
     }

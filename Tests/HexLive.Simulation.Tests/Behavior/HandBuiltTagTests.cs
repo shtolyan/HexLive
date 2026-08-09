@@ -25,7 +25,6 @@ public sealed class HandBuiltTagTests
     /// <summary>Ровно то, что перечислял старый список в коде.</summary>
     private static readonly string[] HistoricalHandBuilt =
     {
-        "bed.leaf",
         "building.hut_1hex",
         "campfire.spot",
         "station.drying_rack",

@@ -131,8 +131,9 @@ internal static class InventoryMath
         var favoriteWeapon = ItemAffinity.FavoriteWeapon(npc.Id.Value, npc.Inventory.Items);
         foreach (var item in npc.Inventory.Items)
         {
-            // §75A: this weapon occupies the personal back slot and must not
-            // become an overflow victim during ordinary inventory management.
+            // §75A: the back mount is visual only — this item still consumes
+            // its real ordinary/holster cell. Personal preference nevertheless
+            // protects it from being the ordinary overflow victim.
             if (item.DefinitionId == favoriteWeapon)
             {
                 continue;

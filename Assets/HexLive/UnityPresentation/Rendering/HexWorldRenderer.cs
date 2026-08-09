@@ -2918,13 +2918,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // collector are the assembled prefab with every piece toggled on —
         // the same prefab a build-site grows piece by piece, so finished and
         // in-progress match. All are authored 1:1, so NO ObjectFit sizing.
-        if (HexLive.UnityPresentation.Environment.BedFactory.IsBed(worldObject.DefinitionId) ||
-            worldObject.DefinitionId == ContentIds.HutBed ||
+        if (worldObject.DefinitionId == ContentIds.BedBasic ||
             worldObject.DefinitionId == "station.drying_rack" ||
             worldObject.DefinitionId == "station.water_collector" ||
             worldObject.DefinitionId == ContentIds.Workbench)
         {
-            var isHutCot = worldObject.DefinitionId == ContentIds.HutBed;
+            var isHutCot = worldObject.DefinitionId == ContentIds.BedBasic &&
+                worldObject.Variant == ContentIds.HutBedVariant;
             var bed = isHutCot
                 ? HexLive.UnityPresentation.Environment.HutFurnitureFactory.BuildBed()
                 : HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished(worldObject.DefinitionId);
@@ -2941,7 +2941,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         if (worldObject.DefinitionId == ContentIds.Hut1Hex)
         {
-            var hut = HexLive.UnityPresentation.Environment.HutAssembly.BuildFinished();
+            var hut = HexLive.UnityPresentation.Environment.HutAssembly.BuildFinished(worldObject);
             hut.transform.SetParent(_objectsRoot, false);
             var hutAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             hut.transform.position = SimulationUnityMapper.ToUnityPosition(
@@ -3616,6 +3616,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (_junctionAnchorById.TryGetValue(worldObject.Junctions[0].Value, out var pos))
             {
+                if (worldObject.DefinitionId == ContentIds.BedBasic &&
+                    worldObject.Variant == ContentIds.HutBedVariant)
+                {
+                    var center = HexSpatialMath.TileToWorld(worldObject.Tile);
+                    var radians = worldObject.RotationDegrees * Mathf.Deg2Rad;
+                    var right = new Float2(Mathf.Sin(radians), -Mathf.Cos(radians));
+                    var fromCenter = pos - center;
+                    var side = fromCenter.X * right.X + fromCenter.Y * right.Y < 0f ? -1f : 1f;
+                    pos += right * (side *
+                        HexLive.UnityPresentation.Environment.HutFurnitureFactory.BedWallSnugOffset);
+                }
                 return SimulationUnityMapper.ToUnityPosition(pos, GroundY(worldObject.Tile));
             }
         }

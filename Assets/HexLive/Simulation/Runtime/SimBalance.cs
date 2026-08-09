@@ -561,28 +561,12 @@ namespace HexLive.Simulation.Runtime
         // reveals one piece and the finished bed is whole. Re-count the prefab
         // children (bed_leaf_final / bed_basic_final) to retune.
         //
-        // bed.leaf (early survival mat): a leaf bundle, stick ribs and a couple
-        // of rope lashings. The assembled prefab has more visual pieces, but the
-        // sim bill is grouped into buildable bundles; counting every blade/lashing
-        // turned the first bed into a multi-day project that missed the survival
-        // window entirely.
-        // §54.12: MUST equal the per-material sums of BuildSiteMath.BedLeafStages
-        // (which mirror the bed_leaf_final prefab's staged piece groups "1".."4").
-        public static int BedLeafBillLeaves = 46;
-        public static int BedLeafBillSticks = 8;
-        public static int BedLeafBillRope = 8;
-
-        // bed.basic (premium bedroll, bed_basic_final): 4 log side-rails (two per
+        // The only bed (bed.basic): 4 log side-rails (two per
         // side) + stick cross-slats + rope lashings + a full leaf mattress.
         public static int BedBasicBillLogs = 4;
         public static int BedBasicBillSticks = 5;
         public static int BedBasicBillRope = 10;
         public static int BedBasicBillLeaves = 50;
-        // §54.12: the SECOND bed tier. Once every girl has a leaf mat, the
-        // colony starts building premium bedrolls (bed.basic) from scratch —
-        // each at its OWN fireside site, one at a time, until every girl has
-        // one. NOT an upgrade: the leaf mats stay untouched.
-        public static bool BedBasicEnabled = true;
 
         // §35.5B: the drying rack is a staged fireside build-site like the beds
         // (two planted uprights → two rails → four lashings), not an atomic

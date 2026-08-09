@@ -1,10 +1,13 @@
+using System;
 using System.Linq;
+using System.IO;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
@@ -15,51 +18,144 @@ namespace HexLive.Simulation.Tests.Behavior
 public sealed class BuildingConstructionTests
 {
     [Test]
-    public void HutBuildsInThreeGroupedStagesWithLeavesLast()
+    public void CatalogPublishesExactlyOneBedType()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var beds = world.Content.ObjectDefinitions.Values
+            .Where(definition => definition.Tags.Contains(ObjectTags.Bed))
+            .Select(definition => definition.Id)
+            .ToArray();
+
+        Assert.That(beds, Is.EqualTo(new[] { ContentIds.BedBasic }));
+    }
+
+    [TestCase(ContentIds.BedLeaf, "")]
+    [TestCase(ContentIds.HutBed, ContentIds.HutBedVariant)]
+    public void LegacyBedIdsLoadAsTheCanonicalBed(string legacyId, string expectedVariant)
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var bed = world.Entities.Objects.Values.First(obj => obj.DefinitionId == ContentIds.BedBasic);
+        bed.DefinitionId = legacyId;
+        bed.Variant = string.Empty;
+
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        stream.Position = 0;
+        var loaded = TestWorld.CreateWorld(12345);
+        using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(loaded, reader);
+        }
+
+        var migrated = loaded.Entities.Objects[bed.Id];
+        Assert.That(migrated.DefinitionId, Is.EqualTo(ContentIds.BedBasic));
+        Assert.That(migrated.Variant, Is.EqualTo(expectedVariant));
+    }
+
+    [Test]
+    public void HutBuildsAsIndependentModulesAndRoofUnlocksAtHalfSupports()
     {
         var site = NewHutSite();
+        BuildingRules.EnsureHutElements(site);
+
+        Assert.That(site.ArchitectureElements, Has.Count.EqualTo(30));
+        Assert.That(site.ArchitectureElements.Select(element => element.ElementId).Distinct().Count(),
+            Is.EqualTo(30));
+        Assert.That(site.ArchitectureElements.Select(element => element.SlotKey).Distinct().Count(),
+            Is.EqualTo(30));
+        Assert.That(site.ArchitectureElements.All(element =>
+            element.Layer == PlacementLayer.Architecture), Is.True);
 
         Assert.That(BuildSiteMath.Remaining(site, BuildSiteMath.MaterialSticks),
-            Is.EqualTo(BuildingRules.FrameSticks));
+            Is.EqualTo(BuildingRules.TotalSticks));
         Assert.That(BuildSiteMath.Remaining(site, BuildSiteMath.MaterialBoards),
-            Is.EqualTo(BuildingRules.FrameBoards));
+            Is.EqualTo(BuildingRules.TotalBoards));
         Assert.That(BuildSiteMath.Needs(site, BuildSiteMath.MaterialLeaves), Is.False);
-        Assert.That(BuildSiteMath.Needs(site, BuildSiteMath.MaterialRope), Is.False);
-
-        Deliver(site, ContentIds.Stick, BuildingRules.FrameSticks);
-        Deliver(site, ContentIds.Board, BuildingRules.FrameBoards);
-        Assert.That(BuildingRules.CompletedStages(
-            BuildSiteMath.Delivered(site, ContentIds.Stick),
-            BuildSiteMath.Delivered(site, ContentIds.Board),
-            BuildSiteMath.Delivered(site, ContentIds.Rope),
-            BuildSiteMath.Delivered(site, ContentIds.PalmLeaf)), Is.EqualTo(1));
-        Assert.That(BuildSiteMath.Remaining(site, BuildSiteMath.MaterialSticks),
-            Is.EqualTo(BuildingRules.EnclosureSticks));
-        Assert.That(BuildSiteMath.Remaining(site, BuildSiteMath.MaterialBoards),
-            Is.EqualTo(BuildingRules.EnclosureBoards));
         Assert.That(BuildSiteMath.Remaining(site, BuildSiteMath.MaterialRope),
-            Is.EqualTo(BuildingRules.EnclosureRope));
-        Assert.That(BuildSiteMath.Needs(site, BuildSiteMath.MaterialLeaves), Is.False,
-            "Листья не должны приниматься, пока не закрыты стены и стропила.");
+            Is.EqualTo(BuildingRules.TotalRope));
 
-        Deliver(site, ContentIds.Stick, BuildingRules.EnclosureSticks);
-        Deliver(site, ContentIds.Board, BuildingRules.EnclosureBoards);
-        Deliver(site, ContentIds.Rope, BuildingRules.EnclosureRope);
+        var previousSupports = 0;
+        while (!BuildingRules.RoofUnlocked(site.Id.Value,
+                   BuildSiteMath.Delivered(site, ContentIds.Stick), 0, 0))
+        {
+            Deliver(site, ContentIds.Stick, 1);
+            var supports = BuildingRules.CompletedSupports(site.Id.Value,
+                BuildSiteMath.Delivered(site, ContentIds.Stick), 0, 0);
+            Assert.That(supports, Is.GreaterThanOrEqualTo(previousSupports));
+            previousSupports = supports;
+            if (supports < BuildingRules.RequiredSupportsForRoof(BuildingRules.SupportCount))
+                Assert.That(BuildSiteMath.Needs(site, BuildSiteMath.MaterialLeaves), Is.False);
+        }
+
+        Assert.That(previousSupports, Is.EqualTo(3));
         Assert.That(BuildSiteMath.Remaining(site, BuildSiteMath.MaterialLeaves),
             Is.EqualTo(BuildingRules.RoofLeaves));
-        Assert.That(BuildingRules.CompletedStages(
-            BuildSiteMath.Delivered(site, ContentIds.Stick),
-            BuildSiteMath.Delivered(site, ContentIds.Board),
-            BuildSiteMath.Delivered(site, ContentIds.Rope),
-            BuildSiteMath.Delivered(site, ContentIds.PalmLeaf)), Is.EqualTo(2));
 
+        Deliver(site, ContentIds.Stick,
+            BuildingRules.TotalSticks - BuildSiteMath.Delivered(site, ContentIds.Stick));
+        Deliver(site, ContentIds.Board, BuildingRules.TotalBoards);
+        Deliver(site, ContentIds.Rope, BuildingRules.TotalRope);
         Deliver(site, ContentIds.PalmLeaf, BuildingRules.RoofLeaves);
         Assert.That(BuildSiteMath.IsStocked(site), Is.True);
-        Assert.That(BuildingRules.CompletedStages(
-            BuildSiteMath.Delivered(site, ContentIds.Stick),
-            BuildSiteMath.Delivered(site, ContentIds.Board),
-            BuildSiteMath.Delivered(site, ContentIds.Rope),
-            BuildSiteMath.Delivered(site, ContentIds.PalmLeaf)), Is.EqualTo(3));
+
+        var elements = BuildingRules.ResolveHutElements(site.Id.Value,
+            BuildingRules.TotalSticks, BuildingRules.TotalBoards,
+            BuildingRules.TotalRope, BuildingRules.TotalLeaves);
+        Assert.That(elements, Has.Count.EqualTo(30));
+        Assert.That(elements.All(element => element.Complete), Is.True);
+        Assert.That(elements.Count(element => element.Kind == BuildingElementKind.Roof), Is.EqualTo(6));
+    }
+
+    [Test]
+    public void ArchitectureUsesItsOwnPlacementLayerAndRejectsOnlyDuplicateSlots()
+    {
+        var site = NewHutSite();
+        BuildingRules.EnsureHutElements(site);
+        var existing = site.ArchitectureElements[0];
+        var duplicate = existing.Clone();
+        duplicate.ElementId = 999;
+
+        Assert.That(ArchitecturePlacementRules.CanPlace(site, duplicate), Is.False);
+        Assert.That(ArchitecturePlacementRules.ConflictsWithFurniture(existing), Is.False,
+            "Кровать и архитектура могут занимать один гекс: их overlap-правила независимы.");
+
+        duplicate.SlotKey = "custom.slot";
+        Assert.That(ArchitecturePlacementRules.CanPlace(site, duplicate), Is.True);
+    }
+
+    [Test]
+    public void ArchitectureElementsSurviveSaveLoadAsIndependentState()
+    {
+        const int seed = 12345;
+        var world = TestWorld.CreateWorld(seed);
+        var hut = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        Assert.That(hut.ArchitectureElements, Has.Count.EqualTo(30));
+        var element = hut.ArchitectureElements[7];
+        element.DeliveredBoards = 0;
+        element.WorkDone = 0;
+        element.LocalYaw += 7f;
+
+        using var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSaveSerializer.Write(world, writer);
+
+        blob.Position = 0;
+        var loaded = TestWorld.CreateWorld(seed);
+        using (var reader = new BinaryReader(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSaveSerializer.Read(loaded, reader);
+
+        var loadedHut = loaded.Entities.Objects[hut.Id];
+        Assert.That(loadedHut.ArchitectureElements, Has.Count.EqualTo(30));
+        var loadedElement = loadedHut.ArchitectureElements.Single(e => e.ElementId == element.ElementId);
+        Assert.That(loadedElement.SlotKey, Is.EqualTo(element.SlotKey));
+        Assert.That(loadedElement.Layer, Is.EqualTo(PlacementLayer.Architecture));
+        Assert.That(loadedElement.DeliveredBoards, Is.Zero);
+        Assert.That(loadedElement.WorkDone, Is.Zero);
+        Assert.That(loadedElement.LocalYaw, Is.EqualTo(element.LocalYaw).Within(0.001f));
     }
 
     [Test]
@@ -71,11 +167,36 @@ public sealed class BuildingConstructionTests
         Assert.That(huts, Has.Length.EqualTo(1));
 
         var hut = huts[0];
+        var symmetry = (hut.RotationDegrees - 30f) % 60f;
+        if (symmetry < 0f) symmetry += 60f;
+        Assert.That(symmetry, Is.EqualTo(0f).Within(0.001f),
+            "Архитектурный pointy-top гекс допускает только шесть поворотов; произвольный yaw снимает стены с рёбер.");
         var cots = world.Entities.Objects.Values
-            .Where(obj => obj.DefinitionId == ContentIds.HutBed && obj.Tile.Equals(hut.Tile))
+            .Where(obj => obj.DefinitionId == ContentIds.BedBasic &&
+                obj.Variant == ContentIds.HutBedVariant && obj.Tile.Equals(hut.Tile))
             .ToArray();
         Assert.That(cots, Has.Length.EqualTo(2));
         Assert.That(cots.Select(c => c.Junctions[0]).Distinct().Count(), Is.EqualTo(2));
+
+        // Current-save migration must recover even when both legacy cot ids
+        // were serialized on the same junction.
+        var collapsed = cots[0].Junctions[0];
+        cots[1].Junctions.Clear();
+        cots[1].Junctions.Add(collapsed);
+        BuildingBootstrap.RepairIntegratedCotAnchors(world);
+        Assert.That(cots.Select(c => c.Junctions[0]).Distinct().Count(), Is.EqualTo(2));
+
+        var center = HexSpatialMath.TileToWorld(hut.Tile);
+        var radians = hut.RotationDegrees * MathF.PI / 180f;
+        var right = new Float2(MathF.Sin(radians), -MathF.Cos(radians));
+        var sides = cots.Select(cot =>
+        {
+            var position = world.Junctions.Items[cot.Junctions[0]].WorldPosition;
+            var delta = position - center;
+            return delta.X * right.X + delta.Y * right.Y;
+        }).OrderBy(value => value).ToArray();
+        Assert.That(sides[0], Is.LessThan(0f));
+        Assert.That(sides[1], Is.GreaterThan(0f));
 
         var hearths = world.Entities.Objects.Values
             .Where(obj => obj.DefinitionId == ContentIds.Campfire &&

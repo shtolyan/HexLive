@@ -45,24 +45,7 @@ internal static class BuildSiteMath
         return n;
     }
 
-    // §54.12: ordered build STAGES — a site demands (and accepts) materials one
-    // construction stage at a time, not the whole bill at once. The bed's
-    // stages mirror the staged piece groups of its assembled prefab
-    // (bed_leaf_final children "1".."4"): frame sticks → slat sticks → rope
-    // lashing → leaf mattress. Every consumer (gather goals, hauls, deposits,
-    // rope crafting) keys off Needs/Remaining, which only expose the CURRENT
-    // stage's shortfall — so the build visibly proceeds stage by stage.
-    // KEEP IN SYNC with the prefab's groups AND the SimBalance.BedLeafBill*
-    // totals (= the sums per material across stages).
-    private static readonly (string Material, int Count)[] BedLeafStages =
-    {
-        (MaterialSticks, 4),  // stage 1: the frame
-        (MaterialSticks, 4),  // stage 2: the slats
-        (MaterialRope, 8),    // stage 3: the lashing
-        (MaterialLeaves, 46)  // stage 4: the mattress
-    };
-
-    // bed_basic_final prefab groups "1".."4".
+    // The one canonical bed is built in four visible stages.
     private static readonly (string Material, int Count)[] BedBasicStages =
     {
         (MaterialLogs, 4),    // stage 1: the side rails
@@ -126,38 +109,8 @@ internal static class BuildSiteMath
         (MaterialBoards, 4)  // 05: four tabletop planks
     };
 
-    private sealed class MaterialStage
-    {
-        public readonly (string Material, int Count)[] Requirements;
-
-        public MaterialStage(params (string Material, int Count)[] requirements)
-        {
-            Requirements = requirements;
-        }
-    }
-
-    // Architectural stages may require several resources in parallel. This is
-    // intentionally separate from the single-material furniture sequence: old
-    // beds/stations retain their exact delivery order, while a hut can accept
-    // both kinds of wood needed by one visible construction stage.
-    private static readonly MaterialStage[] Hut1HexStages =
-    {
-        new(
-            (MaterialSticks, BuildingRules.FrameSticks),
-            (MaterialBoards, BuildingRules.FrameBoards)),
-        new(
-            (MaterialSticks, BuildingRules.EnclosureSticks),
-            (MaterialBoards, BuildingRules.EnclosureBoards),
-            (MaterialRope, BuildingRules.EnclosureRope)),
-        new((MaterialLeaves, BuildingRules.RoofLeaves))
-    };
-
-    private static MaterialStage[] GroupedStagesFor(WorldObjectState site) =>
-        site.BuildProduct == ContentIds.Hut1Hex ? Hut1HexStages : null;
-
     private static (string Material, int Count)[] StagesFor(WorldObjectState site) => site.BuildProduct switch
     {
-        "bed.leaf" => BedLeafStages,
         "bed.basic" => BedBasicStages,
         "station.drying_rack" => DryingRackStages,
         "campfire.spot" => CampfireStages,
@@ -183,10 +136,18 @@ internal static class BuildSiteMath
     // (unstaged sites: campfire, hut pieces).
     public static int Remaining(WorldObjectState site, string materialId)
     {
-        var groupedStages = GroupedStagesFor(site);
-        if (groupedStages is not null)
+        if (site.BuildProduct == ContentIds.Hut1Hex)
         {
-            return RemainingInGroupedStages(site, materialId, groupedStages);
+            // §120 modular grammar: wall/floor/support cubes are independent,
+            // so all of their materials may be hauled in parallel. Roof leaves
+            // become demand only after half of this roof patch's support
+            // vertices are actually complete (3/6 for hut_1hex).
+            if (materialId == MaterialLeaves && !BuildingRules.RoofUnlocked(site))
+            {
+                return 0;
+            }
+
+            return TotalRemaining(site, materialId);
         }
 
         var stages = StagesFor(site);
@@ -215,49 +176,6 @@ internal static class BuildSiteMath
         }
 
         return 0; // every stage complete
-    }
-
-    private static int RemainingInGroupedStages(
-        WorldObjectState site, string materialId, MaterialStage[] stages)
-    {
-        System.Span<int> pool = stackalloc int[AllMaterials.Length];
-        for (var i = 0; i < AllMaterials.Length; i++)
-        {
-            pool[i] = Delivered(site, AllMaterials[i]);
-        }
-
-        foreach (var stage in stages)
-        {
-            var complete = true;
-            foreach (var (material, count) in stage.Requirements)
-            {
-                var index = System.Array.IndexOf(AllMaterials, material);
-                if (System.Math.Min(count, pool[index]) < count)
-                {
-                    complete = false;
-                }
-            }
-
-            if (!complete)
-            {
-                foreach (var (material, count) in stage.Requirements)
-                {
-                    if (material != materialId) continue;
-                    var index = System.Array.IndexOf(AllMaterials, material);
-                    return System.Math.Max(0, count - pool[index]);
-                }
-
-                return 0;
-            }
-
-            foreach (var (material, count) in stage.Requirements)
-            {
-                var index = System.Array.IndexOf(AllMaterials, material);
-                pool[index] -= count;
-            }
-        }
-
-        return 0;
     }
 
     public static bool Needs(WorldObjectState site, string materialId) =>

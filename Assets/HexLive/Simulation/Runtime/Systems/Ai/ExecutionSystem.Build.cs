@@ -39,6 +39,10 @@ public sealed partial class ExecutionSystem
 
                 npc.Inventory.Items.Remove(carried);
                 site.Contents.Add(carried);
+                if (site.BuildProduct == ContentIds.Hut1Hex)
+                {
+                    BuildingRules.AssignDeliveredMaterial(site, mat);
+                }
                 moved++;
             }
         }
@@ -175,12 +179,15 @@ public sealed partial class ExecutionSystem
             // §66: so does the yaw the site was staked at — the bed must come up
             // lying side-on to the fire, not on whatever default the prefab has.
             var yaw = site.RotationDegrees;
+            var architecture = new System.Collections.Generic.List<ArchitectureElementState>();
+            foreach (var element in site.ArchitectureElements) architecture.Add(element.Clone());
             WorldObjectMutations.DespawnObject(world, site.Id);
             if (junction is { } j)
             {
                 var raised = WorldObjectMutations.SpawnObject(world, product, npc.Fragment, tile, j);
                 raised.Owner = owner;
                 raised.RotationDegrees = yaw;
+                raised.ArchitectureElements.AddRange(architecture);
                 if (product == ContentIds.Workbench)
                 {
                     raised.CraftJunction = StructurePlacement.WorkbenchJunction(

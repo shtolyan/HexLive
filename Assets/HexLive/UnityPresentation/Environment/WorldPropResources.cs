@@ -14,7 +14,6 @@ namespace HexLive.UnityPresentation.Environment
         public static string NativeName(string id) => id switch
         {
             "campfire.spot" => "campfire_final_native",
-            "bed.leaf" => "bed_leaf_final_native",
             "bed.basic" => "bed_basic_final_native",
             "station.water_collector" => "water_collector_final_native",
             "tree.palm" => "palm_final_native",

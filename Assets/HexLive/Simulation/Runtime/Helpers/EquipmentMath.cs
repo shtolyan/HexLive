@@ -66,9 +66,9 @@ internal static class EquipmentMath
         RecalculateCapacity(world, npc);
     }
 
-    // Spec §52: the pack is only as big as what you wear. Base = the two hands;
-    // each worn garment adds its own pockets. Recomputed whenever WornItems
-    // changes (every Recalculate caller) and once at bootstrap. Naked ⇒ 2.
+    // Spec §52: functional hands + an always-there Carry allowance + the
+    // capacity of worn clothes/backpacks. InventoryLayoutBuilder partitions
+    // this same number for the UI; it never adds another capacity source.
     public static void RecalculateCapacity(WorldState world, NPCState npc)
     {
         // Spec §52: hand slots = intact hands (arms severed via §50 remove them),

@@ -11,6 +11,8 @@ namespace HexLive.Simulation.Agents
 // Spec 19.3C: per-part health (molly BoneHealthSystem, simplified).
 public sealed class BodyState
 {
+    public const float UsableHandFunctionThreshold = 0.20f;
+
     public System.Collections.Generic.Dictionary<BodyPart, float> Parts { get; } = new()
     {
         [BodyPart.Head] = 1f,
@@ -59,19 +61,22 @@ public sealed class BodyState
 
     // §50-prone: «лежит». A lost leg (EITHER one) puts her on the ground — she
     // crawls, she cannot stand. More prone states may join later (fainted,
-    // pinned…); gate on THIS, not on leg counts. Lying means: no tools, no
-    // weapons, no standing fight (the old gate checked BOTH legs, so a
-    // one-legged crawler stood up and boxed wolves — the bug).
+    // pinned…); gate on THIS, not on leg counts. Heavy tools, weapons and a
+    // standing fight need BOTH a standing body and at least one usable hand.
+    // Light hand-work (opening a coconut while prone) checks HasUsableHand
+    // separately at its own planning/execution gates.
     public bool IsProne => LimbFunction(BodyPart.LegL) <= 0f ||
                            LimbFunction(BodyPart.LegR) <= 0f;
 
-    public bool CanUseToolsOrWeapons => !IsProne;
+    public bool HasUsableHand => IntactHands > 0;
+
+    public bool CanUseToolsOrWeapons => !IsProne && HasUsableHand;
 
     // Spec §52: how many hands can still hold things — one inventory slot each,
     // and the pair a two-handed weapon needs. Lose an arm, lose a hand slot.
     public int IntactHands =>
-        (LimbFunction(BodyPart.ArmL) >= 0.20f ? 1 : 0) +
-        (LimbFunction(BodyPart.ArmR) >= 0.20f ? 1 : 0);
+        (LimbFunction(BodyPart.ArmL) >= UsableHandFunctionThreshold ? 1 : 0) +
+        (LimbFunction(BodyPart.ArmR) >= UsableHandFunctionThreshold ? 1 : 0);
 
     public bool CanUseTwoHanded => LimbFunction(BodyPart.ArmL) >= 0.75f &&
                                    LimbFunction(BodyPart.ArmR) >= 0.75f;

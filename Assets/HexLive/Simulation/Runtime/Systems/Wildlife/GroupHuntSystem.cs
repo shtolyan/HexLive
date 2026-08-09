@@ -316,9 +316,11 @@ public sealed class GroupHuntSystem : ISimulationSystem
             if (stands)
             {
                 if (quarry.Plan.Status == PlanStatus.Active ||
-                    quarry.Execution.Status == ExecutionStatus.InProgress)
+                    quarry.Execution.Status == ExecutionStatus.InProgress ||
+                    quarry.IsCarryingPerson)
                 {
-                    PlanInterruption.Abort(world, quarry, $"Cornered by NPC{nearest.Id.Value}");
+                    PlanInterruption.AbortForCombat(
+                        world, quarry, $"Cornered by NPC{nearest.Id.Value}");
                     quarry.Mind.CurrentGoal = GoalType.None;
                 }
 

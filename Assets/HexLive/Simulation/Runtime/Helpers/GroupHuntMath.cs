@@ -227,9 +227,10 @@ public static class GroupHuntMath
         foreach (var girl in gathered)
         {
             if (girl.Plan.Status == PlanStatus.Active ||
-                girl.Execution.Status == ExecutionStatus.InProgress)
+                girl.Execution.Status == ExecutionStatus.InProgress ||
+                girl.IsCarryingPerson)
             {
-                PlanInterruption.Abort(world, girl,
+                PlanInterruption.AbortForCombat(world, girl,
                     $"Going after NPC{stranger.Id.Value} with the others");
             }
 

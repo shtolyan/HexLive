@@ -18,6 +18,40 @@ public static class PlanInterruption
 {
     public static void Abort(WorldState world, NPCState npc, string reason)
     {
+        CancelInterruptedRescue(world, npc);
+        AbortCore(world, npc, reason);
+    }
+
+    // §118.4: combat is a temporary interruption, not permission to keep a
+    // patient glued to the fighter or to forget her. Put her down before any
+    // swing can start, reserve that same patient, then let RescueSystem resume
+    // the evacuation once the fight/scene releases the rescuer.
+    public static void AbortForCombat(WorldState world, NPCState npc, string reason)
+    {
+        var remembered = npc.Mind.InterruptedRescuePatientId;
+        var dropped = AbortCore(world, npc, reason);
+        var resumePatientId = dropped ?? remembered;
+        if (resumePatientId is not { } patientId ||
+            !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
+            !FactionRelations.AreAllies(npc, patient) ||
+            !KenshiRescueMath.NeedsRescue(world, patient))
+        {
+            CancelInterruptedRescue(world, npc);
+            return;
+        }
+
+        npc.Mind.InterruptedRescuePatientId = patientId;
+        patient.Mind.PendingAidFrom = npc.Id;
+        patient.Mind.PendingAidSinceTick = world.Tick;
+        Trace.Emit(world, npc.Id, "RescuePausedForCombat",
+            $"NPC{patientId.Value} Reason={reason}");
+    }
+
+    private static EntityId? AbortCore(WorldState world, NPCState npc, string reason)
+    {
+        var droppedPatientId = KenshiRescueMath.PutDownForPlanInterruption(
+            world, npc, $"Plan interrupted: {reason}");
+
         CraftProjectMath.ReleaseWorker(world, npc);
         ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
@@ -121,6 +155,19 @@ public static class PlanInterruption
         }
 
         Trace.Emit(world, npc.Id, "GoalInterrupted", reason);
+        return droppedPatientId;
+    }
+
+    private static void CancelInterruptedRescue(WorldState world, NPCState npc)
+    {
+        if (npc.Mind.InterruptedRescuePatientId is { } patientId &&
+            world.Entities.Npcs.TryGetValue(patientId, out var patient) &&
+            patient.Mind.PendingAidFrom == npc.Id)
+        {
+            patient.Mind.PendingAidFrom = null;
+        }
+
+        npc.Mind.InterruptedRescuePatientId = null;
     }
 }
 

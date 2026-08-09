@@ -242,6 +242,7 @@ internal static class KenshiRescueMath
         WorldState world, NPCState carrier, NPCState patient,
         WorldObjectState destination, JunctionId destinationJunction)
     {
+        carrier.Mind.InterruptedRescuePatientId = null;
         ExecutionSystem.ReleaseClaims(world, patient);
         if (patient.CurrentJunction is { } lying)
         {
@@ -326,6 +327,7 @@ internal static class KenshiRescueMath
         }
 
         ClearLinks(carrier, patient);
+        carrier.Mind.InterruptedRescuePatientId = null;
         if (destination is not null && IsBed(destination))
         {
             var anchor = LyingSpot.TryAnchor(world, destination, out var position)
@@ -353,12 +355,35 @@ internal static class KenshiRescueMath
 
     internal static void DropSafely(WorldState world, NPCState carrier, string reason)
     {
-        NPCState patient = null;
-        if (carrier.CarriedNpcId is { } patientId)
+        var hadCarry = carrier.CarriedNpcId is not null;
+        PutDownForPlanInterruption(world, carrier, reason);
+
+        if (carrier.Plan.Status == PlanStatus.Active)
         {
-            world.Entities.Npcs.TryGetValue(patientId, out patient);
+            PlanningSystem.SetGoalCooldown(world, carrier, GoalType.Rescue);
+            PlanInterruption.Abort(world, carrier, $"Rescue drop: {reason}");
+        }
+        carrier.Mind.CurrentGoal = GoalType.None;
+        if (!hadCarry)
+        {
+            Trace.Emit(world, carrier.Id, "PersonDropped", reason);
+        }
+    }
+
+    // §118.4: plan teardown and the carry link are one transaction. Before
+    // this hook existed, combat could invalidate Rescue while leaving the
+    // patient attached; the carrier then could neither swing nor replan.
+    // This primitive deliberately does not touch the plan itself, so
+    // PlanInterruption can call it without recursing through DropSafely.
+    internal static EntityId? PutDownForPlanInterruption(
+        WorldState world, NPCState carrier, string reason)
+    {
+        if (carrier.CarriedNpcId is not { } patientId)
+        {
+            return null;
         }
 
+        world.Entities.Npcs.TryGetValue(patientId, out var patient);
         ReleaseDestination(world, carrier, patient);
         if (patient is not null)
         {
@@ -372,13 +397,8 @@ internal static class KenshiRescueMath
             carrier.RescueDestinationObjectId = null;
         }
 
-        if (carrier.Plan.Status == PlanStatus.Active)
-        {
-            PlanningSystem.SetGoalCooldown(world, carrier, GoalType.Rescue);
-            PlanInterruption.Abort(world, carrier, $"Rescue drop: {reason}");
-        }
-        carrier.Mind.CurrentGoal = GoalType.None;
         Trace.Emit(world, carrier.Id, "PersonDropped", reason);
+        return patient?.Id;
     }
 
     private static void CompleteCarrier(WorldState world, NPCState carrier)

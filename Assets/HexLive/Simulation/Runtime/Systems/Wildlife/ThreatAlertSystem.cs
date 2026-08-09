@@ -216,9 +216,11 @@ public sealed class ThreatAlertSystem : ISimulationSystem
         }
 
         if (npc.Plan.Status == PlanStatus.Active ||
-            npc.Execution.Status == ExecutionStatus.InProgress)
+            npc.Execution.Status == ExecutionStatus.InProgress ||
+            npc.IsCarryingPerson)
         {
-            PlanInterruption.Abort(world, npc, $"Attacking spotted dog {threat.Id} first");
+            PlanInterruption.AbortForCombat(
+                world, npc, $"Attacking spotted dog {threat.Id} first");
         }
 
         npc.Mind.CurrentGoal = GoalType.Defend;

@@ -184,6 +184,20 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // §81/§118.4: once the abuser is close enough for the mark to
+            // brace, or the scene itself has begun, the scene owns her choice.
+            // A cowed mark is intentionally not IsFighting, so that flag alone
+            // cannot stop the ordinary auction from assigning "drink/chop"
+            // between abuse beats (and from replacing a paused rescue).
+            if (npc.Mind.PendingAbuseFrom is { } abuserId &&
+                world.Entities.Npcs.TryGetValue(abuserId, out var abuser) &&
+                (abuser.Execution.CurrentInteraction == InteractionType.Abuse ||
+                 HexSpatialMath.HexDistance(npc.Tile, abuser.Tile) <=
+                    Spec57.AnswerReadyRadiusTiles))
+            {
+                continue;
+            }
+
             // Spec 29C.4A: nothing outbids running for your life.
             if (npc.Mind.CurrentGoal == GoalType.Flee && npc.Plan.Status == PlanStatus.Active)
             {

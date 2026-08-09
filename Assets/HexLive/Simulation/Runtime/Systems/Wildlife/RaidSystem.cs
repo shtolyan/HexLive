@@ -146,9 +146,11 @@ public sealed class RaidSystem : ISimulationSystem
                 {
                     // Stand and fight: drop the chores, square up, swing back.
                     if (victim.Plan.Status == PlanStatus.Active ||
-                        victim.Execution.Status == ExecutionStatus.InProgress)
+                        victim.Execution.Status == ExecutionStatus.InProgress ||
+                        victim.IsCarryingPerson)
                     {
-                        PlanInterruption.Abort(world, victim, $"Fighting off NPC{raider.Id.Value}");
+                        PlanInterruption.AbortForCombat(
+                            world, victim, $"Fighting off NPC{raider.Id.Value}");
                         victim.Mind.CurrentGoal = GoalType.None;
                     }
 
@@ -247,9 +249,10 @@ public sealed class RaidSystem : ISimulationSystem
             }
 
             if (mark.Plan.Status == PlanStatus.Active ||
-                mark.Execution.Status == ExecutionStatus.InProgress)
+                mark.Execution.Status == ExecutionStatus.InProgress ||
+                mark.IsCarryingPerson)
             {
-                PlanInterruption.Abort(world, mark,
+                PlanInterruption.AbortForCombat(world, mark,
                     $"Braces for NPC{claimer.Id.Value}");
                 mark.Mind.CurrentGoal = GoalType.None;
                 Trace.Emit(world, mark.Id, "MarkBraces",
@@ -507,7 +510,8 @@ public sealed class RaidSystem : ISimulationSystem
 
             // Бросает дела: сборщик под ножами — покойник.
             if (target.Plan.Status == PlanStatus.Active ||
-                target.Execution.Status == ExecutionStatus.InProgress)
+                target.Execution.Status == ExecutionStatus.InProgress ||
+                target.IsCarryingPerson)
             {
                 if (target.Mind.CurrentGoal == GoalType.LootHelpless ||
                     target.Mind.LootHelplessTargetNpcId is not null ||
@@ -517,7 +521,7 @@ public sealed class RaidSystem : ISimulationSystem
                 }
                 else
                 {
-                    PlanInterruption.Abort(world, target,
+                    PlanInterruption.AbortForCombat(world, target,
                         $"Attacked by NPC{nearest.Id.Value}");
                 }
                 target.Mind.CurrentGoal = GoalType.None;

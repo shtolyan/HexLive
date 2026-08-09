@@ -58,9 +58,10 @@ internal static class CombatHelpSystem
             }
 
             if (helper.Plan.Status == PlanStatus.Active ||
-                helper.Execution.Status == ExecutionStatus.InProgress)
+                helper.Execution.Status == ExecutionStatus.InProgress ||
+                helper.IsCarryingPerson)
             {
-                PlanInterruption.Abort(world, helper,
+                PlanInterruption.AbortForCombat(world, helper,
                     $"Witnessed looting of NPC{victim.Id.Value}");
             }
 
@@ -169,9 +170,10 @@ internal static class CombatHelpSystem
             }
 
             if (helper.Plan.Status == PlanStatus.Active ||
-                helper.Execution.Status == ExecutionStatus.InProgress)
+                helper.Execution.Status == ExecutionStatus.InProgress ||
+                helper.IsCarryingPerson)
             {
-                PlanInterruption.Abort(world, helper,
+                PlanInterruption.AbortForCombat(world, helper,
                     $"Answering help cry from NPC{victim.Id.Value}");
             }
 
@@ -312,9 +314,10 @@ internal static class CombatHelpSystem
             }
 
             if (helper.Plan.Status == PlanStatus.Active ||
-                helper.Execution.Status == ExecutionStatus.InProgress)
+                helper.Execution.Status == ExecutionStatus.InProgress ||
+                helper.IsCarryingPerson)
             {
-                PlanInterruption.Abort(world, helper,
+                PlanInterruption.AbortForCombat(world, helper,
                     $"Rushing to defend friend NPC{victim.Id.Value}");
             }
 

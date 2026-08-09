@@ -802,6 +802,112 @@ public sealed class KenshiCoreTests
     }
 
     [Test]
+    public void AbuseCombat_DropsCarriedPatientThenResumesThatRescueAfterScene()
+    {
+        var world = TestWorld.CreateWorld();
+        world.Tick = 40;
+        var colony = world.Entities.Npcs.Values
+            .Where(n => n.Faction == Faction.Colony).Take(2).ToList();
+        var carrier = colony[0];
+        var patient = colony[1];
+        var abuser = world.Entities.Npcs.Values.First(n => n.Faction != carrier.Faction);
+
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Plan.Status = PlanStatus.Active; // keep unrelated helpers out of the auction
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Mind.CurrentGoal = GoalType.None;
+            npc.Mind.PendingAidFrom = null;
+        }
+
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        patient.Health = System.Math.Max(0.2f, patient.Body.Mean());
+        carrier.CarriedNpcId = patient.Id;
+        carrier.Mind.CurrentGoal = GoalType.Rescue;
+        carrier.Plan.Goal = GoalType.Rescue;
+        carrier.Plan.TargetAgentId = patient.Id;
+        patient.CarriedByNpcId = carrier.Id;
+        patient.Mind.PendingAidFrom = carrier.Id;
+        carrier.Mind.PendingAbuseFrom = abuser.Id;
+        abuser.Tile = carrier.Tile;
+        abuser.Position = carrier.Position;
+
+        PlanInterruption.AbortForCombat(world, carrier,
+            $"Abused by NPC{abuser.Id.Value}");
+        carrier.Mind.CurrentGoal = GoalType.None; // mirrors the abuse call site
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.CarriedNpcId, Is.Null,
+                "The abuse scene must free the carrier's hands before combat.");
+            Assert.That(patient.CarriedByNpcId, Is.Null);
+            Assert.That(patient.CurrentJunction, Is.Not.Null,
+                "The interrupted patient must be physically anchored on the ground.");
+            Assert.That(carrier.Mind.InterruptedRescuePatientId, Is.EqualTo(patient.Id));
+            Assert.That(patient.Mind.PendingAidFrom, Is.EqualTo(carrier.Id),
+                "The exact patient stays reserved while the rescuer is in the scene.");
+            Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+        });
+
+        MeleeSwing.TryAdvanceSwing(world, carrier, inReach: true, out _, out _);
+        Assert.That(carrier.StrikeLandsAtTick, Is.GreaterThan(world.Tick),
+            "Once the patient is down, the carrier must be able to start a counter-swing.");
+
+        new RescueSystem().Run(world);
+        Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Invalid),
+            "A cowed mark must not restart carrying in the middle of an abuse scene.");
+        new DecisionSystem().Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+            Assert.That(carrier.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+                "The ordinary goal auction must stay closed while the abuse scene owns her.");
+        });
+
+        carrier.Mind.PendingAbuseFrom = null;
+        carrier.IsFighting = false;
+        new RescueSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.Mind.CurrentGoal, Is.EqualTo(GoalType.Rescue));
+            Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Active));
+            Assert.That(carrier.Plan.TargetAgentId, Is.EqualTo(patient.Id));
+            Assert.That(carrier.Mind.InterruptedRescuePatientId, Is.Null);
+            Assert.That(patient.Mind.PendingAidFrom, Is.EqualTo(carrier.Id));
+        });
+    }
+
+    [Test]
+    public void OrdinaryReplan_DropsPatientWithoutKeepingACombatResumePromise()
+    {
+        var world = TestWorld.CreateWorld();
+        var pair = world.Entities.Npcs.Values
+            .Where(n => n.Faction == Faction.Colony).Take(2).ToList();
+        var carrier = pair[0];
+        var patient = pair[1];
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        carrier.CarriedNpcId = patient.Id;
+        patient.CarriedByNpcId = carrier.Id;
+        carrier.Mind.CurrentGoal = GoalType.Rescue;
+        carrier.Plan.Goal = GoalType.Rescue;
+        carrier.Plan.Status = PlanStatus.Active;
+        carrier.Plan.TargetAgentId = patient.Id;
+
+        PlanInterruption.Abort(world, carrier, "test replacement plan");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.CarriedNpcId, Is.Null);
+            Assert.That(patient.CarriedByNpcId, Is.Null);
+            Assert.That(patient.CurrentJunction, Is.Not.Null);
+            Assert.That(carrier.Mind.InterruptedRescuePatientId, Is.Null,
+                "Only a temporary combat interruption promises an automatic return.");
+            Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+        });
+    }
+
+    [Test]
     public void OwnMedicalCrisis_EndsPlayDeadAndTrainsToughnessOnce()
     {
         var world = TestWorld.CreateWorld();

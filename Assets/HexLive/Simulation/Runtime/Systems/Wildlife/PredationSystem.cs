@@ -190,9 +190,11 @@ public sealed class PredationSystem : ISimulationSystem
             // Stand and fight back — drop the chores, swing at the attacker.
             victim.IsFighting = true;
             if (victim.Plan.Status == PlanStatus.Active ||
-                victim.Execution.Status == ExecutionStatus.InProgress)
+                victim.Execution.Status == ExecutionStatus.InProgress ||
+                victim.IsCarryingPerson)
             {
-                PlanInterruption.Abort(world, victim, $"Fighting off NPC{predator.Id.Value}");
+                PlanInterruption.AbortForCombat(
+                    world, victim, $"Fighting off NPC{predator.Id.Value}");
                 victim.Mind.CurrentGoal = GoalType.None;
             }
 
@@ -308,9 +310,11 @@ public sealed class PredationSystem : ISimulationSystem
             // Стоит и дерётся: бросает дела и отвечает по тому же таймлайну.
             victim.IsFighting = true;
             if (victim.Plan.Status == PlanStatus.Active ||
-                victim.Execution.Status == ExecutionStatus.InProgress)
+                victim.Execution.Status == ExecutionStatus.InProgress ||
+                victim.IsCarryingPerson)
             {
-                PlanInterruption.Abort(world, victim, $"Fighting off NPC{predator.Id.Value}");
+                PlanInterruption.AbortForCombat(
+                    world, victim, $"Fighting off NPC{predator.Id.Value}");
                 victim.Mind.CurrentGoal = GoalType.None;
             }
 

@@ -313,9 +313,11 @@ public sealed class CampExpulsionSystem : ISimulationSystem
     {
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress ||
-            npc.Movement.IsMoving)
+            npc.Movement.IsMoving ||
+            npc.IsCarryingPerson)
         {
-            PlanInterruption.Abort(world, npc, $"Camp expulsion with NPC{peerId.Value}");
+            PlanInterruption.AbortForCombat(
+                world, npc, $"Camp expulsion with NPC{peerId.Value}");
         }
 
         npc.Plan.Goal = GoalType.Expel;

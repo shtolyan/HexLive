@@ -25,9 +25,16 @@ public sealed class RescueSystem : ISimulationSystem
             if (helper.Health <= 0f || helper.IsUnconscious(world.Tick) ||
                 helper.Body.IsProne || helper.IsBeingCarried ||
                 helper.IsCarryingPerson || helper.IsFighting ||
+                helper.Mind.PendingAbuseFrom is not null ||
+                helper.Mind.PendingExpulsionFrom is not null ||
                 helper.Plan.Status == PlanStatus.Active ||
                 helper.Execution.Status == ExecutionStatus.InProgress ||
                 helper.Mind.IsStarving || helper.Mind.IsDehydrated)
+            {
+                continue;
+            }
+
+            if (TryResumeInterruptedRescue(world, helper))
             {
                 continue;
             }
@@ -45,7 +52,7 @@ public sealed class RescueSystem : ISimulationSystem
             {
                 if (candidate.Id == helper.Id || !FactionRelations.AreAllies(helper, candidate) ||
                     !KenshiRescueMath.NeedsRescue(world, candidate) ||
-                    (candidate.Mind.PendingAidFrom is { } claimedBy && claimedBy != helper.Id))
+                    IsClaimedByOtherActiveHelper(world, helper, candidate))
                 {
                     continue;
                 }
@@ -60,37 +67,112 @@ public sealed class RescueSystem : ISimulationSystem
                 }
             }
 
-            if (patient is null ||
-                !KenshiRescueMath.TryFindApproach(world, helper, patient, out var approach))
+            if (patient is null || !TryAssignRescue(world, helper, patient, best, resumed: false))
             {
                 TryAssignLimbCare(world, helper);
                 continue;
             }
-
-            helper.Mind.CurrentGoal = GoalType.Rescue;
-            helper.Plan.Goal = GoalType.Rescue;
-            helper.Plan.TargetAgentId = patient.Id;
-            helper.Plan.TargetJunctionId = approach;
-            helper.Plan.TargetTile = patient.Tile;
-            helper.Plan.Steps.Clear();
-            helper.Plan.Steps.Add(new PlanStep
-            {
-                Type = PlanStepType.MoveToJunction,
-                TargetJunction = approach
-            });
-            helper.Plan.Steps.Add(new PlanStep
-            {
-                Type = PlanStepType.PickUpPerson,
-                TargetJunction = approach,
-                Interaction = InteractionType.PickUpPerson
-            });
-            helper.Plan.CurrentStepIndex = 0;
-            helper.Plan.Status = PlanStatus.Active;
-            patient.Mind.PendingAidFrom = helper.Id;
-            patient.Mind.PendingAidSinceTick = world.Tick;
-            Trace.Emit(world, helper.Id, "RescueAssigned",
-                $"NPC{patient.Id.Value} Distance={best} Approach={approach.Value}");
         }
+    }
+
+    private static bool TryResumeInterruptedRescue(WorldState world, NPCState helper)
+    {
+        if (helper.Mind.InterruptedRescuePatientId is not { } patientId)
+        {
+            return false;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
+            !FactionRelations.AreAllies(helper, patient) ||
+            !KenshiRescueMath.NeedsRescue(world, patient) ||
+            IsClaimedByOtherActiveHelper(world, helper, patient))
+        {
+            ClearInterruptedRescue(world, helper);
+            return false;
+        }
+
+        var distance = HexLive.Simulation.Spatial.HexSpatialMath.HexDistance(
+            helper.Tile, patient.Tile);
+        if (TryAssignRescue(world, helper, patient, distance, resumed: true))
+        {
+            return true;
+        }
+
+        // No reachable approach: do not hold a dying patient hostage behind a
+        // stale promise. Release her for another rescuer and continue the
+        // ordinary auction in this same pass.
+        ClearInterruptedRescue(world, helper);
+        return false;
+    }
+
+    private static bool TryAssignRescue(
+        WorldState world, NPCState helper, NPCState patient, int distance, bool resumed)
+    {
+        if (!KenshiRescueMath.TryFindApproach(world, helper, patient, out var approach))
+        {
+            return false;
+        }
+
+        helper.Mind.CurrentGoal = GoalType.Rescue;
+        helper.Mind.InterruptedRescuePatientId = null;
+        helper.Plan.Goal = GoalType.Rescue;
+        helper.Plan.TargetAgentId = patient.Id;
+        helper.Plan.TargetJunctionId = approach;
+        helper.Plan.TargetTile = patient.Tile;
+        helper.Plan.Steps.Clear();
+        helper.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = approach
+        });
+        helper.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PickUpPerson,
+            TargetJunction = approach,
+            Interaction = InteractionType.PickUpPerson
+        });
+        helper.Plan.CurrentStepIndex = 0;
+        helper.Plan.Status = PlanStatus.Active;
+        patient.Mind.PendingAidFrom = helper.Id;
+        patient.Mind.PendingAidSinceTick = world.Tick;
+        Trace.Emit(world, helper.Id, resumed ? "RescueResumed" : "RescueAssigned",
+            $"NPC{patient.Id.Value} Distance={distance} Approach={approach.Value}");
+        return true;
+    }
+
+    private static bool IsClaimedByOtherActiveHelper(
+        WorldState world, NPCState helper, NPCState patient)
+    {
+        if (patient.Mind.PendingAidFrom is not { } claimedBy || claimedBy == helper.Id)
+        {
+            return false;
+        }
+
+        if (world.Entities.Npcs.TryGetValue(claimedBy, out var claimant) &&
+            claimant.Health > 0f && !claimant.IsUnconscious(world.Tick) &&
+            (claimant.CarriedNpcId == patient.Id ||
+             claimant.Mind.InterruptedRescuePatientId == patient.Id ||
+             (claimant.Plan.TargetAgentId == patient.Id &&
+              claimant.Mind.CurrentGoal is GoalType.Aid or GoalType.Rescue or
+                  GoalType.Splint or GoalType.FitProsthetic)))
+        {
+            return true;
+        }
+
+        patient.Mind.PendingAidFrom = null;
+        return false;
+    }
+
+    private static void ClearInterruptedRescue(WorldState world, NPCState helper)
+    {
+        if (helper.Mind.InterruptedRescuePatientId is { } patientId &&
+            world.Entities.Npcs.TryGetValue(patientId, out var patient) &&
+            patient.Mind.PendingAidFrom == helper.Id)
+        {
+            patient.Mind.PendingAidFrom = null;
+        }
+
+        helper.Mind.InterruptedRescuePatientId = null;
     }
 
     private static bool TryAssignLimbCare(WorldState world, NPCState helper)

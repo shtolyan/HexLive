@@ -325,9 +325,10 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
         target.IsFighting = true;
         if (target.Plan.Status == PlanStatus.Active ||
-            target.Execution.Status == ExecutionStatus.InProgress)
+            target.Execution.Status == ExecutionStatus.InProgress ||
+            target.IsCarryingPerson)
         {
-            PlanInterruption.Abort(world, target, $"Attacked by dog {dog.Id}");
+            PlanInterruption.AbortForCombat(world, target, $"Attacked by dog {dog.Id}");
             target.Mind.CurrentGoal = GoalType.None;
         }
     }

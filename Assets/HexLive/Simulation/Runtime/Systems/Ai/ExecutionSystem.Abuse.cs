@@ -43,6 +43,19 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // Hot-reload/self-heal for an already running scene: the old teardown
+        // could leave the mark carrying somebody after her Rescue plan had
+        // already vanished. Do not wait for the scene to restart (it will not);
+        // put the patient down before the next combat pass.
+        if (npc.Execution.Status == ExecutionStatus.InProgress &&
+            npc.Execution.CurrentInteraction == InteractionType.Abuse &&
+            mark.IsCarryingPerson)
+        {
+            PlanInterruption.AbortForCombat(world, mark,
+                $"Active abuse by NPC{npc.Id.Value}");
+            mark.Mind.CurrentGoal = GoalType.None;
+        }
+
         if (npc.Movement.IsMoving)
         {
             return;
@@ -201,9 +214,11 @@ public sealed partial class ExecutionSystem
 
             // Она бросает свои дела: когда на тебя орут в упор, посуду не моют.
             if (mark.Plan.Status == PlanStatus.Active ||
-                mark.Execution.Status == ExecutionStatus.InProgress)
+                mark.Execution.Status == ExecutionStatus.InProgress ||
+                mark.IsCarryingPerson)
             {
-                PlanInterruption.Abort(world, mark, $"Abused by NPC{npc.Id.Value}");
+                PlanInterruption.AbortForCombat(world, mark,
+                    $"Abused by NPC{npc.Id.Value}");
                 mark.Mind.CurrentGoal = GoalType.None;
             }
 

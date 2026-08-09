@@ -181,6 +181,13 @@ public sealed class NPCMind
 
     public int PendingAidSinceTick { get; set; }
 
+    // §118.4: a fight may force a rescuer to put down the patient so both
+    // hands are free. This remembers that exact patient until the combat scene
+    // ends, so RescueSystem resumes the interrupted evacuation before bidding
+    // on a different chore. Transient by design: the ordinary rescue scan
+    // reconstructs the same intent after a load.
+    public HexLive.Simulation.Common.EntityId? InterruptedRescuePatientId { get; set; }
+
     // Spec §53.7: the AID ERRAND. She agreed to help a housemate but had
     // nothing to give, so she is off fetching the missing supply — food for a
     // starving friend, water for a parched one, plantain for a bandage. The

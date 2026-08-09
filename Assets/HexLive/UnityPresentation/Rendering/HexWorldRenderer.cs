@@ -1571,6 +1571,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // so mid-window) — the body then stayed at the old level for the rest of
         // the window and snapped a whole step when the arc was cut: the "she is
         // either above the ground or suddenly under it" report.
+        // §21.21B v22: the drop's vertical is synced to the VISIBLE crossing of
+        // the border between the two hop tiles — hand the view that border's
+        // midpoint and the flight direction (tile centres are robust for both).
         var hopFromCenter = SimulationUnityMapper.ToUnityTilePosition(npc.HopFromTile);
         var hopTargetCenter = SimulationUnityMapper.ToUnityTilePosition(npc.HopTargetTile);
         var hopFlightDirection = Vector3.ProjectOnPlane(

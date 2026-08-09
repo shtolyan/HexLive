@@ -298,22 +298,21 @@ public static class HexPathfinder
     // and expect which-seed-loses-whom to move even when the totals hold.
     private const long FlatCost = 10L;
 
-    // §40.17 v2: priced from the TIME a hop actually costs, not guessed. At the
-    // shipped HexHopTuning values a flat lattice edge takes ~2 ticks, an up-hop
-    // 8 (HopSeconds 2.0) and a down-hop 4 (DownHopSeconds 1.0), so marginally a
-    // climb up is worth ~3.5 extra flat edges and a drop ~1.5:
-    //     SeamUpCost   = FlatCost * (8 / 2) ≈ 45
-    //     SeamDownCost = FlatCost * (4 / 2) ≈ 25
+    // §40.17 v2: priced from the TIME a hop actually costs, not guessed.
+    // §21.21B v23: одно окно на оба направления. По оттюненному ассету
+    // HopSeconds 1.81 с ≈ 7.3 тика против ~2 тиков на плоское ребро решётки,
+    // то есть прыжок стоит ~3.6 плоских ребра в любую сторону:
+    //     SeamCost = FlatCost * (7.3 / 2) ≈ 36
     // Do NOT push these higher "to be safe": walking around one tile is ~6.9
     // edges ≈ 14 ticks, so past ~4.5x she starts taking detours that are slower
-    // in real time than the jump she avoided. Re-derive both if HopSeconds or
-    // DownHopSeconds is retuned (§21.21B) — they are the same number in
-    // different units.
+    // in real time than the jump she avoided. Re-derive both if HopSeconds is
+    // retuned (§21.21B) — they are the same number in different units.
     // The single earlier value (SeamCost 30, and 12 before that) was symmetric
     // AND charged per-JUNCTION, i.e. it also taxed the detour that merely walks
-    // along a wall. Both halves are fixed here.
-    private const long SeamUpCost = 45L;
-    private const long SeamDownCost = 25L;
+    // along a wall. Both halves are fixed here. Два имени остаются: вверх и
+    // вниз — разные ребра для §50 (кто не может прыгать) и будущего тюнинга.
+    private const long SeamUpCost = 36L;
+    private const long SeamDownCost = 36L;
 
     // Spec 40.18: entering the swim ring costs 4x a land step — a slow, risky
     // last resort, so a route only takes to the water when there's no dry way.

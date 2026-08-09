@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
-using HexLive.Simulation.AI;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
@@ -19,26 +18,45 @@ namespace HexLive.UnityPresentation.HexStepJumpTest
 {
 
 /// <summary>
-/// Isolated play-mode lab for §21.21B. A real NPC crosses a seven-hex flower
-/// through the raised centre, first up and then down, from all six directions.
-/// The orange marker shows the raw tick-stepped model position while the actor
-/// shows the interpolated view.
+/// Play-mode lab for §21.21B v23 — И это НАСТОЯЩАЯ симуляция, не скриптовый
+/// прогон. Зигзаг-лестница из гексов (+1 уровень на каждой кромке, поворот 60°
+/// перед каждым прыжком), внизу и наверху — водосборы §54.15 с припаркованными
+/// бутылками. Марта хочет пить; вода всегда в ПРОТИВОПОЛОЖНОМ конце лестницы,
+/// так что она сама (перцепция → решение → план → путь) идёт и прыгает по
+/// ступеням вверх, пьёт, а на следующем круге — вниз. Никаких телепортов и
+/// ручных маршрутов: только жажда.
+/// Оранжевый маркер показывает сырую тиковую позицию модели, актёр —
+/// интерполированную вьюху.
 /// </summary>
 public sealed class HexStepJumpTestBootstrap : MonoBehaviour
 {
     public static Action<HexTuningConfig> SaveConfigAssetInEditor;
 
-    private const float DefaultSpeed = 0.24f;
+    private const float DefaultSpeed = 0.35f;
     private const float StartDelaySeconds = 1.25f;
-    private const float RoutePauseSeconds = 1.5f;
+    private const float RearmPauseSeconds = 2f;
     private const float ElevationStep = 0.55f;
 
-    private static readonly TileCoord Center = new(0, 0);
-    private static readonly TileCoord[] Ring =
+    // Зигзаг NE/SE: каждый шаг +1 уровень и поворот 60° перед прыжком.
+    private static readonly TileCoord StartPad = new(-1, 0);   // e0
+    private static readonly TileCoord BottomTile = new(0, 0);  // e0, нижний водосбор
+    private static readonly TileCoord[] Steps =
     {
-        new(1, 0), new(1, -1), new(0, -1),
-        new(-1, 0), new(-1, 1), new(0, 1)
+        new(1, -1), // e1 (NE от низа)
+        new(1, 0),  // e2 (SE)
+        new(2, -1), // e3 (NE)
+        new(2, 0)   // e4 (SE) — вершина, верхний водосбор
     };
+
+    private const int TopCollectorId = 11;
+    private const int TopVesselId = 12;
+    private const int BottomCollectorId = 21;
+    private const int BottomVesselId = 22;
+
+    // §54.15 ids (WaterCollectorMath — internal для сим-сборки, поэтому
+    // литералы; станция и бутылка — шипнутый контент каталога).
+    private const string CollectorDefinitionId = "station.water_collector";
+    private const string VesselDefinitionId = "tool.bottle";
 
     private SimulationRunnerBehaviour _runner;
     private HexWorldRenderer _renderer;
@@ -46,11 +64,11 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
     private JumpValues _values;
     private GameObject _modelMarker;
     private Vector2 _scroll;
-    private int _directionIndex;
     private float _startDelay;
-    private float _routeDelay;
+    private float _rearmDelay;
     private bool _started;
-    private bool _autoDirections = true;
+    private bool _waterOnTop = true;
+    private int _lapCount;
     private string _status = "Загрузка тестового мира…";
     private GUIStyle _titleStyle;
     private GUIStyle _sectionStyle;
@@ -66,6 +84,12 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         Time.timeScale = 1f;
         _values = JumpValues.InitialDefaults;
         _config = Resources.Load<HexTuningConfig>("HexLive/HexTuningConfig");
+        if (_config != null)
+        {
+            // Стартуем с того, что реально играет игра, а не с код-дефолтов.
+            _values = JumpValues.From(_config, DefaultSpeed);
+        }
+
         ApplyLiveTuning();
         BuildModelMarker();
 
@@ -79,8 +103,8 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
 
         _runner.Configure(BuildWorldDefinition(), startPaused: true, initialSpeed: DefaultSpeed);
         BuildCamera();
-        StartRoute(_directionIndex);
-        _status = "Маршрут готов. После короткой паузы начнётся медленный прогон.";
+        ArmWaterCycle(waterOnTop: true);
+        _status = "Она хочет пить. Полная бутылка — в водосборе НАВЕРХУ лестницы.";
     }
 
     private void Update()
@@ -95,23 +119,27 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
             {
                 _started = true;
                 _runner.Resume();
-                _status = DirectionLabel();
             }
 
             return;
         }
 
-        if (!_autoDirections || !RouteFinished())
+        // Круг завершён: напилась и стоит. Перезаряжаем жажду и переносим
+        // воду в противоположный конец лестницы — следующий круг идёт в
+        // другую сторону (вверх ↔ вниз), всё через обычные решения сима.
+        var npc = CurrentNpc();
+        if (npc == null || npc.Needs.Thirst > 0.35f || npc.Movement.IsMoving ||
+            npc.Movement.HopTimer > 0f)
         {
-            _routeDelay = 0f;
+            _rearmDelay = 0f;
             return;
         }
 
-        _routeDelay += Time.unscaledDeltaTime;
-        if (_routeDelay >= RoutePauseSeconds)
+        _rearmDelay += Time.unscaledDeltaTime;
+        if (_rearmDelay >= RearmPauseSeconds)
         {
-            _directionIndex = (_directionIndex + 1) % Ring.Length;
-            StartRoute(_directionIndex);
+            _lapCount++;
+            ArmWaterCycle(!_waterOnTop);
         }
     }
 
@@ -119,19 +147,21 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
     {
         var tiles = new List<TileBootstrap>
         {
-            new() { Q = 0, R = 0, Walkable = true, Elevation = 2 }
+            new() { Q = StartPad.Q, R = StartPad.R, Walkable = true, Elevation = 0 },
+            new() { Q = BottomTile.Q, R = BottomTile.R, Walkable = true, Elevation = 0 }
         };
-        foreach (var coord in Ring)
+        for (var i = 0; i < Steps.Length; i++)
         {
             tiles.Add(new TileBootstrap
             {
-                Q = coord.Q,
-                R = coord.R,
+                Q = Steps[i].Q,
+                R = Steps[i].R,
                 Walkable = true,
-                Elevation = 1
+                Elevation = i + 1
             });
         }
 
+        var top = Steps[Steps.Length - 1];
         return new WorldBootstrapDefinition
         {
             Simulation = new SimulationBootstrapSettings { Seed = 21021 },
@@ -139,6 +169,35 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
             Fragments =
             {
                 new FragmentBootstrap { Id = 1, Tiles = tiles }
+            },
+            Objects =
+            {
+                // §54.15: водосбор + припаркованная в его слоте бутылка — на
+                // ОБОИХ концах лестницы. Кто из них полон, решает ArmWaterCycle.
+                new ObjectBootstrap
+                {
+                    Id = TopCollectorId, DefinitionId = CollectorDefinitionId,
+                    FragmentId = 1, TileQ = top.Q, TileR = top.R,
+                    JunctionSlots = { 0 }
+                },
+                new ObjectBootstrap
+                {
+                    Id = TopVesselId, DefinitionId = VesselDefinitionId,
+                    FragmentId = 1, TileQ = top.Q, TileR = top.R,
+                    JunctionSlots = { 0 }
+                },
+                new ObjectBootstrap
+                {
+                    Id = BottomCollectorId, DefinitionId = CollectorDefinitionId,
+                    FragmentId = 1, TileQ = BottomTile.Q, TileR = BottomTile.R,
+                    JunctionSlots = { 0 }
+                },
+                new ObjectBootstrap
+                {
+                    Id = BottomVesselId, DefinitionId = VesselDefinitionId,
+                    FragmentId = 1, TileQ = BottomTile.Q, TileR = BottomTile.R,
+                    JunctionSlots = { 0 }
+                }
             },
             Npcs =
             {
@@ -148,10 +207,10 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
                     DisplayName = "Marta",
                     ActorMesh = "Marta",
                     FragmentId = 1,
-                    TileQ = Ring[0].Q,
-                    TileR = Ring[0].R,
+                    TileQ = StartPad.Q,
+                    TileR = StartPad.R,
                     Hunger = 0.1f,
-                    Thirst = 0.1f,
+                    Thirst = 0.85f,
                     Energy = 0.95f,
                     Comfort = 0.95f,
                     Social = 0.95f,
@@ -161,109 +220,55 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         };
     }
 
-    private void StartRoute(int direction)
+    // Вода — в одном конце, пустая бутылка — в другом; её собственная бутылка
+    // пуста, жажда высокая. Дальше сим сам: перцепция находит полный водосбор,
+    // план ведёт её по лестнице, переливание даёт глотки, следующий план — пьёт.
+    private void ArmWaterCycle(bool waterOnTop)
     {
         var world = _runner?.Engine?.World;
         if (world == null)
         {
-            _status = "Мир ещё не готов.";
             return;
         }
 
-        var npc = FirstNpc(world);
-        var startTile = Ring[direction % Ring.Length];
-        var targetTile = Ring[(direction + 3) % Ring.Length];
-        var start = CenterJunction(world, startTile);
-        var middle = CenterJunction(world, Center);
-        var target = CenterJunction(world, targetTile);
-        if (npc == null || start is not { } startId || middle is not { } middleId ||
-            target is not { } targetId ||
-            !world.Junctions.Items.TryGetValue(startId, out var startJunction))
+        _waterOnTop = waterOnTop;
+        _rearmDelay = 0f;
+        SetVesselFill(world, TopVesselId, waterOnTop ? 1f : 0f);
+        SetVesselFill(world, BottomVesselId, waterOnTop ? 0f : 1f);
+
+        var npc = CurrentNpc();
+        if (npc != null)
         {
-            _status = "Не удалось собрать маршрут через центральный гекс.";
-            return;
+            npc.BottleWater = WaterKind.None;
+            npc.BottleCharges = 0;
+            npc.Needs.Thirst = 0.85f;
+            // Лаборатория живёт дольше одного дня: не даём сну и голоду
+            // перебить сценарий жажды.
+            npc.Needs.Energy = 0.95f;
+            npc.Needs.Hunger = 0.1f;
         }
 
-        var up = HexPathfinder.FindPath(world, startId, middleId, null,
-            weightClimb: false, canJump: true);
-        var down = HexPathfinder.FindPath(world, middleId, targetId, null,
-            weightClimb: false, canJump: true);
-        if (up.Count < 2 || down.Count < 2)
-        {
-            _status = "Pathfinder не нашёл обе половины маршрута.";
-            return;
-        }
-
-        var previousTile = npc.Tile;
-        ResetMovement(npc);
-        npc.Tile = startTile;
-        npc.CurrentJunction = startId;
-        npc.Position = startJunction.WorldPosition;
-        var facing = HexSpatialMath.TileToWorld(Center) - npc.Position;
-        npc.RotationDegrees = HexSpatialMath.AngleDegrees(facing);
-        if (previousTile != startTile)
-        {
-            SpatialMutations.MoveEntityToTile(world, npc.Id, previousTile, startTile);
-        }
-
-        npc.Mind.CurrentGoal = GoalType.None;
-        // Keep the ordinary goal auction out of this deterministic lab. The
-        // movement and execution systems still run; only DecisionSystem treats
-        // this as a permanent post-wake observation grace.
-        npc.Mind.WakeGraceUntilTick = int.MaxValue;
-        npc.Plan.Goal = GoalType.None;
-        npc.Plan.Status = PlanStatus.Active;
-        npc.Plan.CurrentStepIndex = 0;
-        npc.Plan.TargetObjectId = null;
-        npc.Plan.TargetJunctionId = targetId;
-        npc.Plan.TargetTile = targetTile;
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.MoveToJunction,
-            TargetJunction = targetId
-        });
-
-        npc.Movement.JunctionPath.AddRange(up);
-        for (var i = 1; i < down.Count; i++)
-        {
-            npc.Movement.JunctionPath.Add(down[i]);
-        }
-        npc.Movement.PathIndex = 1;
-        npc.Movement.IsMoving = true;
-        npc.Movement.SetStatus(MovementStatus.Moving);
-        _routeDelay = 0f;
-        _status = DirectionLabel();
+        _status = waterOnTop
+            ? $"Круг {_lapCount + 1}: вода НАВЕРХУ — она прыгает ВВЕРХ по ступеням."
+            : $"Круг {_lapCount + 1}: вода ВНИЗУ — она спрыгивает ВНИЗ по ступеням.";
     }
 
-    private static void ResetMovement(NPCState npc)
+    private static void SetVesselFill(WorldState world, int objectId, float fill)
     {
-        npc.Movement.JunctionPath.Clear();
-        npc.Movement.PathIndex = 0;
-        npc.Movement.IsMoving = false;
-        npc.Movement.SetStatus(MovementStatus.Idle);
-        npc.Movement.ClimbPauseTimer = 0f;
-        npc.Movement.PostTurnTimer = 0f;
-        npc.Movement.HopTimer = 0f;
-        npc.Movement.HopArmed = false;
-        npc.Movement.HopCrossed = false;
-        npc.Movement.HopPathIndex = -1;
-        npc.Movement.HopLandingIndex = 0;
-        npc.Plan.Steps.Clear();
-        npc.Plan.Status = PlanStatus.None;
-        npc.Plan.TargetJunctionId = null;
-        npc.Plan.TargetTile = null;
+        if (world.Entities.Objects.TryGetValue(new ObjectId(objectId), out var vessel))
+        {
+            vessel.ResourceAmount = fill;
+        }
     }
 
-    private bool RouteFinished()
+    private NPCState CurrentNpc()
     {
         var world = _runner?.Engine?.World;
-        var npc = world == null ? null : FirstNpc(world);
-        return npc != null && !npc.Movement.IsMoving && npc.Movement.HopTimer <= 0f &&
-            npc.Plan.Status == PlanStatus.Completed;
-    }
+        if (world == null)
+        {
+            return null;
+        }
 
-    private static NPCState FirstNpc(WorldState world)
-    {
         foreach (var npc in world.Entities.Npcs.Values)
         {
             return npc;
@@ -272,52 +277,14 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         return null;
     }
 
-    private static JunctionId? CenterJunction(WorldState world, TileCoord coord)
-    {
-        if (!world.Tiles.Items.TryGetValue(coord, out var tile))
-        {
-            return null;
-        }
-
-        var tileCenter = HexSpatialMath.TileToWorld(coord);
-        JunctionId? best = null;
-        var bestSq = float.MaxValue;
-        foreach (var id in tile.Junctions)
-        {
-            if (!world.Junctions.Items.TryGetValue(id, out var junction))
-            {
-                continue;
-            }
-
-            var dx = junction.WorldPosition.X - tileCenter.X;
-            var dy = junction.WorldPosition.Y - tileCenter.Y;
-            var sq = dx * dx + dy * dy;
-            if (sq < bestSq)
-            {
-                bestSq = sq;
-                best = id;
-            }
-        }
-
-        return best;
-    }
-
     private void ApplyLiveTuning()
     {
         _values.Validate();
         HexHopTuning.HopSeconds = _values.HopSeconds;
-        HexHopTuning.DownHopSeconds = _values.DownHopSeconds;
         HexHopTuning.TakeoffSeconds = _values.TakeoffSeconds;
         HexHopTuning.LandingSeconds = _values.LandingSeconds;
-        HexHopTuning.LandingFootClearance = _values.LandingFootClearance;
-        HexHopTuning.LandingFootGuardSeconds = _values.LandingFootGuardSeconds;
         HexHopTuning.EdgePadding = _values.EdgePadding;
-        HexHopTuning.FarPadding = _values.FarPadding;
-        HexHopTuning.DownHopUp = _values.DownHopUp;
-        HexHopTuning.DownFallStartFrac = _values.DownFallStart;
-        HexHopTuning.FlightSettleFrac = _values.FlightSettle;
-        HexHopTuning.UpApexFrac = _values.UpApex;
-        HexHopTuning.UpOvershoot = _values.UpOvershoot;
+        HexHopTuning.LipClearance = _values.LipClearance;
         if (_runner != null && Mathf.Abs(_runner.SpeedMultiplier - _values.Speed) > 0.0001f)
         {
             _runner.SetSpeed(_values.Speed);
@@ -377,23 +344,16 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
     private void UpdateModelMarker()
     {
         var world = _runner?.Engine?.World;
-        var npc = world == null ? null : FirstNpc(world);
+        var npc = world == null ? null : CurrentNpc();
         if (npc == null || _modelMarker == null)
         {
             return;
         }
 
-        var elevation = world.Tiles.Items.TryGetValue(npc.Tile, out var tile) ? tile.Elevation : 1;
+        var elevation = world.Tiles.Items.TryGetValue(npc.Tile, out var tile) ? tile.Elevation : 0;
         var groundY = SimulationUnityMapper.TileHeight + elevation * ElevationStep;
         _modelMarker.transform.position = SimulationUnityMapper.ToUnityPosition(
             npc.Position, groundY + 0.14f);
-    }
-
-    private string DirectionLabel()
-    {
-        var start = Ring[_directionIndex];
-        var target = Ring[(_directionIndex + 3) % Ring.Length];
-        return $"Направление {_directionIndex + 1}/6: ({start.Q},{start.R}) → центр ↑ → ({target.Q},{target.R}) ↓";
     }
 
     private void OnGUI()
@@ -402,48 +362,31 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         var panelWidth = Mathf.Min(430f, Screen.width - 24f);
         GUILayout.BeginArea(new Rect(12f, 12f, panelWidth, Screen.height - 24f), GUI.skin.box);
         _scroll = GUILayout.BeginScrollView(_scroll);
-        GUILayout.Label("ЛАБОРАТОРИЯ ПРЫЖКА ЧЕРЕЗ СТУПЕНЬ", _titleStyle);
+        GUILayout.Label("ЛАБОРАТОРИЯ ПРЫЖКА: ЛЕСТНИЦА И ЖАЖДА", _titleStyle);
         GUILayout.Label(_status, _smallStyle);
         GUILayout.Space(6f);
 
         GUILayout.Label("Просмотр", _sectionStyle);
         _values.Speed = Slider("Скорость модели и вьюхи", _values.Speed, 0.05f, 1f, "×");
         GUILayout.Label("ПКМ — орбита, колесо — зум, F — вернуть обзор. Камера работает по unscaled time.", _smallStyle);
-        _autoDirections = GUILayout.Toggle(_autoDirections, " Автоматически менять все 6 направлений");
-        GUILayout.BeginHorizontal();
-        if (GUILayout.Button("↻ Этот маршрут")) StartRoute(_directionIndex);
-        if (GUILayout.Button("→ Следующее"))
+        if (GUILayout.Button("↻ Перезарядить цикл (вода в другой конец)"))
         {
-            _directionIndex = (_directionIndex + 1) % Ring.Length;
-            StartRoute(_directionIndex);
+            _lapCount++;
+            ArmWaterCycle(!_waterOnTop);
         }
-        GUILayout.EndHorizontal();
 
-        GUILayout.Label("Тайминг", _sectionStyle);
-        _values.HopSeconds = Slider("Прыжок вверх — всё окно", _values.HopSeconds, 0.5f, 5f, "с");
-        _values.DownHopSeconds = Slider("Прыжок вниз — всё окно", _values.DownHopSeconds, 0.2f, 5f, "с");
+        GUILayout.Label("Прыжок — §21.21B v23, пять ручек", _sectionStyle);
+        _values.HopSeconds = Slider("Всё окно прыжка", _values.HopSeconds, 0.5f, 5f, "с");
         _values.TakeoffSeconds = Slider("Подготовка / толчок", _values.TakeoffSeconds, 0f, 2f, "с");
         _values.LandingSeconds = Slider("Посадка / выправление", _values.LandingSeconds, 0f, 2f, "с");
-        _values.LandingFootClearance = Slider("Клиренс подошвы", _values.LandingFootClearance, 0f, 0.08f, "wu");
-        _values.LandingFootGuardSeconds = Slider("Защита после касания", _values.LandingFootGuardSeconds, 0f, 1.2f, "с");
+        _values.EdgePadding = Slider("Отступ у кромки (симметрично)", _values.EdgePadding, 0.1f, 1.5f, "wu");
+        _values.LipClearance = Slider("Клиренс над кромкой", _values.LipClearance, 0f, 0.8f, "wu");
         var flight = Mathf.Max(0.05f, _values.HopSeconds - _values.TakeoffSeconds - _values.LandingSeconds);
-        GUILayout.Label($"Чистый полёт вверх: {flight:0.00} с", _smallStyle);
-
-        GUILayout.Label("Геометрия полёта", _sectionStyle);
-        _values.EdgePadding = Slider("Отступ у кромки", _values.EdgePadding, 0.1f, 1.5f, "wu");
-        _values.FarPadding = Slider("Дальний отступ / разбег", _values.FarPadding, 0.2f, 1.2f, "wu");
-        _values.FlightSettle = Slider("Доля полёта с движением", _values.FlightSettle, 0.2f, 1f, "");
-
-        GUILayout.Label("Кривая вверх", _sectionStyle);
-        _values.UpApex = Slider("Момент вершины дуги", _values.UpApex, 0.1f, 0.9f, "");
-        _values.UpOvershoot = Slider("Высота над ступенькой", _values.UpOvershoot, 1f, 2f, "×");
-
-        GUILayout.Label("Кривая вниз", _sectionStyle);
-        _values.DownHopUp = Slider("Подброс перед падением", _values.DownHopUp, 0f, 0.8f, "wu");
-        _values.DownFallStart = Slider("Когда начинается падение", _values.DownFallStart, 0f, 0.95f, "");
-        var lipCross = _values.EdgePadding / Mathf.Max(0.001f, _values.EdgePadding + _values.FarPadding);
-        GUILayout.Label($"Кромка пересекается на {lipCross:0.00}; падение лучше начинать не раньше.", _smallStyle);
-        GUILayout.Label("Глубина нырка не показана: эта сцена проверяет только сухую ступень.", _smallStyle);
+        GUILayout.Label(
+            $"Полёт {flight:0.00} с на {2f * _values.EdgePadding:0.00} wu = " +
+            $"{2f * _values.EdgePadding / flight:0.00} wu/с (шаг ≈ 1.2 wu/с). " +
+            "Перед отрывом она ДОВОРАЧИВАЕТСЯ до направления полёта — это не ручка, это правило.",
+            _smallStyle);
 
         GUILayout.Space(8f);
         GUI.backgroundColor = new Color(0.55f, 1f, 0.65f);
@@ -461,7 +404,7 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         if (GUILayout.Button("Вернуть дефолт"))
         {
             _values = JumpValues.InitialDefaults;
-            _status = "Восстановлен исходный пресет. Нажмите «Сохранить», чтобы принять его в игру.";
+            _status = "Восстановлен код-дефолт v23. Нажмите «Сохранить», чтобы принять его в игру.";
         }
         GUILayout.EndHorizontal();
 
@@ -474,8 +417,7 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
     private void DrawTelemetry()
     {
         GUILayout.Label("Телеметрия", _sectionStyle);
-        var world = _runner?.Engine?.World;
-        var npc = world == null ? null : FirstNpc(world);
+        var npc = CurrentNpc();
         if (npc == null)
         {
             GUILayout.Label("NPC ещё не создан.", _smallStyle);
@@ -486,8 +428,11 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
             ? $"view ({view.x:0.000}, {view.y:0.000}, {view.z:0.000})"
             : "view загружается";
         GUILayout.Label(
-            $"tick {_runner.CurrentTick}  |  model ({npc.Position.X:0.000}, {npc.Position.Y:0.000})  |  {viewText}  |  " +
+            $"tick {_runner.CurrentTick}  |  круг {_lapCount + 1} ({(_waterOnTop ? "вверх" : "вниз")})\n" +
+            $"model ({npc.Position.X:0.000}, {npc.Position.Y:0.000})  |  {viewText}  |  " +
             $"tile ({npc.Tile.Q},{npc.Tile.R})\n" +
+            $"жажда {npc.Needs.Thirst:0.00}  |  цель {npc.Mind.CurrentGoal}  |  " +
+            $"глотков в бутылке {npc.BottleCharges}\n" +
             $"state {npc.Movement.Status}  |  hop {npc.Movement.HopTimer:0.00} с  |  " +
             $"path {npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}\n" +
             "Оранжевая сфера = точка модели (телепорт раз в tick). Персонаж = интерполированная вьюха.",
@@ -530,37 +475,21 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
     {
         public float Speed;
         public float HopSeconds;
-        public float DownHopSeconds;
         public float TakeoffSeconds;
         public float LandingSeconds;
-        public float LandingFootClearance;
-        public float LandingFootGuardSeconds;
         public float EdgePadding;
-        public float FarPadding;
-        public float DownHopUp;
-        public float DownFallStart;
-        public float FlightSettle;
-        public float UpApex;
-        public float UpOvershoot;
+        public float LipClearance;
 
-        // Snapshot of HexTuningConfig at creation time. Saving experiments does
-        // not mutate this preset, so the original setup is always one click away.
+        // Код-дефолты v23 (HexHopTuning). «Загрузить сохранённое» берёт то,
+        // что реально играет игра (HexTuningConfig).
         public static JumpValues InitialDefaults => new()
         {
             Speed = DefaultSpeed,
-            HopSeconds = 2f,
-            DownHopSeconds = 1f,
-            TakeoffSeconds = 0.1f,
-            LandingSeconds = 0.5f,
-            LandingFootClearance = 0.025f,
-            LandingFootGuardSeconds = 0.65f,
-            EdgePadding = 0.1f,
-            FarPadding = 0.65f,
-            DownHopUp = 0f,
-            DownFallStart = 0.15f,
-            FlightSettle = 0.65f,
-            UpApex = 0.5f,
-            UpOvershoot = 1.3f
+            HopSeconds = 1.2f,
+            TakeoffSeconds = 0.25f,
+            LandingSeconds = 0.35f,
+            EdgePadding = 0.3f,
+            LipClearance = 0.2f
         };
 
         public static JumpValues From(HexTuningConfig config, float speed)
@@ -569,18 +498,10 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
             {
                 Speed = speed,
                 HopSeconds = config.hopSeconds,
-                DownHopSeconds = config.downHopSeconds,
                 TakeoffSeconds = config.hopTakeoffSeconds,
                 LandingSeconds = config.hopLandingSeconds,
-                LandingFootClearance = config.hopLandingFootClearance,
-                LandingFootGuardSeconds = config.hopLandingFootGuardSeconds,
                 EdgePadding = config.hopEdgePadding,
-                FarPadding = config.hopFarPadding,
-                DownHopUp = config.hopDownUp,
-                DownFallStart = config.hopDownFallStartFrac,
-                FlightSettle = config.hopFlightSettleFrac,
-                UpApex = config.hopUpApexFrac,
-                UpOvershoot = config.hopUpOvershoot
+                LipClearance = config.hopLipClearance
             };
         }
 
@@ -588,37 +509,21 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         {
             Speed = Mathf.Clamp(Speed, 0.05f, 1f);
             HopSeconds = Mathf.Clamp(HopSeconds, 0.5f, 5f);
-            DownHopSeconds = Mathf.Clamp(DownHopSeconds, 0.2f, 5f);
             TakeoffSeconds = Mathf.Clamp(TakeoffSeconds, 0f, HopSeconds - 0.05f);
             LandingSeconds = Mathf.Clamp(LandingSeconds, 0f,
                 Mathf.Max(0f, HopSeconds - TakeoffSeconds - 0.05f));
-            LandingFootClearance = Mathf.Clamp(LandingFootClearance, 0f, 0.08f);
-            LandingFootGuardSeconds = Mathf.Clamp(LandingFootGuardSeconds, 0f, 1.2f);
             EdgePadding = Mathf.Clamp(EdgePadding, 0.1f, 1.5f);
-            FarPadding = Mathf.Clamp(FarPadding, 0.2f, 1.2f);
-            DownHopUp = Mathf.Clamp(DownHopUp, 0f, 0.8f);
-            DownFallStart = Mathf.Clamp(DownFallStart, 0f, 0.95f);
-            FlightSettle = Mathf.Clamp(FlightSettle, 0.2f, 1f);
-            UpApex = Mathf.Clamp(UpApex, 0.1f, 0.9f);
-            UpOvershoot = Mathf.Clamp(UpOvershoot, 1f, 2f);
+            LipClearance = Mathf.Clamp(LipClearance, 0f, 0.8f);
         }
 
         public void WriteTo(HexTuningConfig config)
         {
             Validate();
             config.hopSeconds = HopSeconds;
-            config.downHopSeconds = DownHopSeconds;
             config.hopTakeoffSeconds = TakeoffSeconds;
             config.hopLandingSeconds = LandingSeconds;
-            config.hopLandingFootClearance = LandingFootClearance;
-            config.hopLandingFootGuardSeconds = LandingFootGuardSeconds;
             config.hopEdgePadding = EdgePadding;
-            config.hopFarPadding = FarPadding;
-            config.hopDownUp = DownHopUp;
-            config.hopDownFallStartFrac = DownFallStart;
-            config.hopFlightSettleFrac = FlightSettle;
-            config.hopUpApexFrac = UpApex;
-            config.hopUpOvershoot = UpOvershoot;
+            config.hopLipClearance = LipClearance;
         }
     }
 }
@@ -641,7 +546,7 @@ public sealed class HexStepJumpOrbitCamera : MonoBehaviour
     private Vector3 _focusVelocity;
     private float _yaw = 210f;
     private float _pitch = 32f;
-    private float _distance = 8.5f;
+    private float _distance = 9.5f;
     private bool _initialized;
 
     public void Configure(SimulationRunnerBehaviour runner, HexWorldRenderer renderer)
@@ -689,7 +594,7 @@ public sealed class HexStepJumpOrbitCamera : MonoBehaviour
         {
             _yaw = 210f;
             _pitch = 32f;
-            _distance = 8.5f;
+            _distance = 9.5f;
         }
 
         var mouse = Mouse.current;
@@ -739,7 +644,8 @@ public sealed class HexStepJumpOrbitCamera : MonoBehaviour
         return true;
     }
 
-    private static TileCoord CenterForCamera() => new(0, 0);
+    // Середина лестницы — гекс (1,0).
+    private static TileCoord CenterForCamera() => new(1, 0);
 }
 
 }

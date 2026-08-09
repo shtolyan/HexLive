@@ -66,50 +66,30 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     // §21.21B: живые ручки прыжка. Каждый кадр проталкиваются в HexHopTuning
     // (единый источник тайминга: сим-траверс + скорость клипа + дуга тела),
     // так что менять можно прямо в плей-моде — применяется мгновенно.
-    [Header("Прыжок — тайминг (анимация = мастер-часы)")]
-    [Tooltip("ВСЁ окно прыжка ВВЕРХ: толчок + полёт + приземление. Клип сжимается ровно в это время, сек.")]
+    [Header("Прыжок — §21.21B v23, пять ручек")]
+    [Tooltip("ВСЁ окно прыжка (оба направления): толчок + полёт + приземление. Клип сжимается ровно в это время, сек.")]
     [Range(0.5f, 5f)]
-    [SerializeField] private float _hopSeconds = 2f;
-
-    [Tooltip("Окно прыжка ВНИЗ (спрыгивание) — меньше = быстрее. Тайминги толчка/посадки масштабируются пропорционально. Сек.")]
-    [Range(0.2f, 5f)]
-    [SerializeField] private float _downHopSeconds = 2f;
+    [SerializeField] private float _hopSeconds = 1.2f;
 
     [Tooltip("ТОЛЧОК: сколько в начале клипа занимает присед/замах — тело стоит, анимация уже играет, сек.")]
     [Range(0f, 2f)]
-    [SerializeField] private float _hopTakeoffSeconds = 0.1f;
+    [SerializeField] private float _hopTakeoffSeconds = 0.25f;
 
     [Tooltip("ПРИЗЕМЛЕНИЕ: сколько в конце клипа занимает посадка/выправление ног — тело уже в точке, стоит, сек.")]
     [Range(0f, 2f)]
-    [SerializeField] private float _hopLandingSeconds = 0.5f;
+    [SerializeField] private float _hopLandingSeconds = 0.35f;
 
-    [Tooltip("БЛИЖНИЙ конец прыжка — отступ у самой кромки (мировые единицы). СПРЫГИВАНИЕ отталкивается за столько ДО кромки; ЗАПРЫГИВАНИЕ приземляется за столько ПОСЛЕ неё.")]
+    [Tooltip("Отступ у кромки (мировые единицы), симметрично: взлёт за столько ДО кромки, посадка за столько ПОСЛЕ. Длина прыжка = 2×отступ.")]
     [Range(0.1f, 1.5f)]
-    [SerializeField] private float _hopEdgePadding = 0.5f;
+    [SerializeField] private float _hopEdgePadding = 0.3f;
 
-    [Tooltip("ДАЛЬНИЙ конец прыжка (мировые единицы). СПРЫГИВАНИЕ приземляется за столько ЗА кромкой; ЗАПРЫГИВАНИЕ отталкивается за столько ДО неё (разбег). Длина прыжка = ближний + дальний.")]
-    [Range(0.2f, 1.2f)]
-    [SerializeField] private float _hopFarPadding = 0.65f;
+    [Tooltip("Клиренс над кромкой (мировые единицы): вверх — дуга выше ступеньки в верхней точке; вниз — подброс перед падением.")]
+    [Range(0f, 0.8f)]
+    [SerializeField] private float _hopLipClearance = 0.2f;
 
     [Tooltip("НЫРОК: на сколько мировых единиц она уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
     [Range(0f, 1.5f)]
     [SerializeField] private float _divePlungeDepth = 0.35f;
-
-    [Tooltip("СПРЫГИВАНИЕ: на сколько мировых единиц она подпрыгивает ВВЕРХ с края перед падением (чтобы ноги не задевали кромку). 0 = сразу вниз.")]
-    [Range(0f, 0.8f)]
-    [SerializeField] private float _hopDownUp = 0.2f;
-
-    [Tooltip("СПРЫГИВАНИЕ: доля полёта, до которой она летит РОВНО и не падает. 0.5 = падает только перелетев кромку (не задевает край). Меньше = падает раньше.")]
-    [Range(0f, 0.95f)]
-    [SerializeField] private float _hopDownFallStart = 0.5f;
-
-    [Tooltip("Какую долю полёта она РЕАЛЬНО летит: остаток окна уже стоит на месте приземления. Меньше = быстрее домчала и раньше встала (лечит «скользит после приземления»).")]
-    [Range(0.2f, 1f)]
-    [SerializeField] private float _hopFlightSettle = 0.65f;
-
-    [Tooltip("ЗАПРЫГИВАНИЕ: на какой доле полёта тело в самой верхней точке. Меньше = «сначала резко вверх, потом в сторону».")]
-    [Range(0.1f, 0.9f)]
-    [SerializeField] private float _hopUpApex = 0.5f;
 
     [Tooltip("Задержка старта симуляции после запуска сцены (реальные секунды): Unity успевает прогрузиться и отрисоваться, пока мир стоит на паузе.")]
     [Range(0f, 10f)]
@@ -132,15 +112,10 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         }
 
         _tuningConfig.hopSeconds = _hopSeconds;
-        _tuningConfig.downHopSeconds = _downHopSeconds;
         _tuningConfig.hopTakeoffSeconds = _hopTakeoffSeconds;
         _tuningConfig.hopLandingSeconds = _hopLandingSeconds;
         _tuningConfig.hopEdgePadding = _hopEdgePadding;
-        _tuningConfig.hopFarPadding = _hopFarPadding;
-        _tuningConfig.hopDownUp = _hopDownUp;
-        _tuningConfig.hopDownFallStartFrac = _hopDownFallStart;
-        _tuningConfig.hopFlightSettleFrac = _hopFlightSettle;
-        _tuningConfig.hopUpApexFrac = _hopUpApex;
+        _tuningConfig.hopLipClearance = _hopLipClearance;
         _tuningConfig.divePlungeDepth = _divePlungeDepth;
         _tuningConfig.swimEntryPauseSeconds = _treadPauseSeconds;
         _tuningConfig.swimSpeedFactor = _swimSpeedFactor;
@@ -176,15 +151,10 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         }
 
         Check("hopSeconds", _hopSeconds, _tuningConfig.hopSeconds);
-        Check("downHopSeconds", _downHopSeconds, _tuningConfig.downHopSeconds);
         Check("hopTakeoffSeconds", _hopTakeoffSeconds, _tuningConfig.hopTakeoffSeconds);
         Check("hopLandingSeconds", _hopLandingSeconds, _tuningConfig.hopLandingSeconds);
         Check("hopEdgePadding", _hopEdgePadding, _tuningConfig.hopEdgePadding);
-        Check("hopFarPadding", _hopFarPadding, _tuningConfig.hopFarPadding);
-        Check("hopDownUp", _hopDownUp, _tuningConfig.hopDownUp);
-        Check("hopDownFallStartFrac", _hopDownFallStart, _tuningConfig.hopDownFallStartFrac);
-        Check("hopFlightSettleFrac", _hopFlightSettle, _tuningConfig.hopFlightSettleFrac);
-        Check("hopUpApexFrac", _hopUpApex, _tuningConfig.hopUpApexFrac);
+        Check("hopLipClearance", _hopLipClearance, _tuningConfig.hopLipClearance);
         Check("divePlungeDepth", _divePlungeDepth, _tuningConfig.divePlungeDepth);
         Check("swimEntryPauseSeconds", _treadPauseSeconds, _tuningConfig.swimEntryPauseSeconds);
         Check("swimSpeedFactor", _swimSpeedFactor, _tuningConfig.swimSpeedFactor);
@@ -207,15 +177,10 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         }
 
         _hopSeconds = _tuningConfig.hopSeconds;
-        _downHopSeconds = _tuningConfig.downHopSeconds;
         _hopTakeoffSeconds = _tuningConfig.hopTakeoffSeconds;
         _hopLandingSeconds = _tuningConfig.hopLandingSeconds;
         _hopEdgePadding = _tuningConfig.hopEdgePadding;
-        _hopFarPadding = _tuningConfig.hopFarPadding;
-        _hopDownUp = _tuningConfig.hopDownUp;
-        _hopDownFallStart = _tuningConfig.hopDownFallStartFrac;
-        _hopFlightSettle = _tuningConfig.hopFlightSettleFrac;
-        _hopUpApex = _tuningConfig.hopUpApexFrac;
+        _hopLipClearance = _tuningConfig.hopLipClearance;
         _divePlungeDepth = _tuningConfig.divePlungeDepth;
         _treadPauseSeconds = _tuningConfig.swimEntryPauseSeconds;
         _swimSpeedFactor = _tuningConfig.swimSpeedFactor;
@@ -536,16 +501,11 @@ public sealed class SwimTestBootstrap : MonoBehaviour
 
         // §21.21B: hop timing — one shared source for sim and view.
         HexHopTuning.HopSeconds = _hopSeconds;
-        HexHopTuning.DownHopSeconds = _downHopSeconds;
         HexHopTuning.TakeoffSeconds = _hopTakeoffSeconds;
         HexHopTuning.LandingSeconds = _hopLandingSeconds;
         HexHopTuning.EdgePadding = _hopEdgePadding;
-        HexHopTuning.FarPadding = _hopFarPadding;
+        HexHopTuning.LipClearance = _hopLipClearance;
         HexHopTuning.DivePlungeDepth = _divePlungeDepth;
-        HexHopTuning.DownHopUp = _hopDownUp;
-        HexHopTuning.DownFallStartFrac = _hopDownFallStart;
-        HexHopTuning.FlightSettleFrac = _hopFlightSettle;
-        HexHopTuning.UpApexFrac = _hopUpApex;
     }
 
     // ---- environment ----

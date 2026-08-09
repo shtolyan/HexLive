@@ -32,6 +32,13 @@ public sealed class MovementSystem : ISimulationSystem
     // point in the NEXT column — i.e. the route turning away — is never skipped.
     private const float FlightCorridorHalfWidth = 0.3f;
 
+    // §21.21B v23: перед отрывом она обязана ДОВЕРНУТЬСЯ до направления полёта.
+    // Окно прыжка не открывается, пока остаточная ошибка курса больше этого
+    // порога — стоя в точке взлёта она крутится обычной скоростью поворота, и
+    // только потом прыгает. Порог маленький: RotateTowards дошагивает до цели
+    // точно, так что это один-два тика доворота, а не вечное ожидание.
+    private const float LaunchAlignDegrees = 1f;
+
 
     // Deep water = swim tile; the definition moved to SpatialQueries.IsSwimTile
     // (§106) so combat gates and movement can never disagree about who swims.
@@ -99,42 +106,29 @@ public sealed class MovementSystem : ISimulationSystem
         }
 
         npc.Movement.HopTimer -= world.TickDeltaTime;
-            // §21.21B: up and down can run on different windows (down faster).
-            // beatScale is 1 for an up-jump (byte-identical) and shrinks the
-            // takeoff/landing beats in step with the shorter down window.
-            var hopWindow = HexHopTuning.WindowSeconds(npc.Movement.HopUp);
-            var beatScale = npc.Movement.HopUp ? 1f : HexHopTuning.DownBeatScale;
-            var hopTakeoff = HexHopTuning.TakeoffSeconds * beatScale;
-            var hopLanding = HexHopTuning.LandingSeconds * beatScale;
+            // §21.21B v23: ONE window, one set of beats, both directions.
+            var hopWindow = HexHopTuning.HopSeconds;
+            var hopTakeoff = HexHopTuning.TakeoffSeconds;
+            var hopLanding = HexHopTuning.LandingSeconds;
             var hopElapsed = hopWindow - npc.Movement.HopTimer;
             var flightSpan = System.MathF.Max(0.05f, hopWindow - hopTakeoff - hopLanding);
 
             if (hopElapsed <= hopTakeoff)
             {
                 // Push-off beat: she already STOPPED at the takeoff point
-                // (v8 stop-short) — just hold there and crouch, turning to
-                // face the flight. No gather, no slide.
+                // (v8 stop-short) and already FACES the flight (v23 pre-launch
+                // turn) — just hold there and crouch. No gather, no slide.
                 npc.Position = npc.Movement.HopFrom;
-                npc.RotationDegrees = MathUtil.RotateTowards(
-                    npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
-                    npc.TurnSpeed * world.TickDeltaTime);
                 npc.Movement.SetStatus(MovementStatus.Waiting);
                 return true;
             }
 
-            // Airborne: straight lattice-point-to-lattice-point flight.
-            // §21.21B v16: on a CLIMB the distance is covered over the FIRST
-            // SettleFrac of the beat, not all of it. Spread evenly, the body
-            // finished rising (the arc overshoots the ledge on purpose) while
-            // the root still slid horizontally for another half second — she
-            // read as standing on the step and skating onto it. Arriving
-            // early means she lands, then plants; flightT still reaches 1, so
-            // every downstream check (touchdown bookkeeping, pre-facing, path
-            // advance) is unchanged — it just happens sooner.
-            var flightT = MathUtil.Clamp01(
-                (hopElapsed - hopTakeoff) /
-                (flightSpan * MathUtil.Clamp(
-                    HexHopTuning.SettleFrac(npc.Movement.HopUp), 0.2f, 1f)));
+            // Airborne: straight constant-speed flight over the whole beat.
+            // §21.21B v23: the v16 "settle fraction" (finish the distance
+            // early, then stand) is gone — it read as a snap to the landing
+            // point. Constant speed over the full beat is what the view's
+            // clip expects anyway.
+            var flightT = MathUtil.Clamp01((hopElapsed - hopTakeoff) / flightSpan);
             npc.Position = npc.Movement.HopFrom +
                 (npc.Movement.HopTo - npc.Movement.HopFrom) * flightT;
             npc.RotationDegrees = MathUtil.RotateTowards(
@@ -213,11 +207,11 @@ public sealed class MovementSystem : ISimulationSystem
                     TryBeginSwimEntry(world, npc, hopPreviousTile, npc.Tile);
                 }
 
-                // §21.21B v14: the flight now OVERSHOOTS lattice points. A
-                // drop lands FarPadding past the border while the junctions
-                // just past it sit ~0.375 out, and a climb takes off
-                // FarPadding short of it — either way the next path step can
-                // be a point she has physically already flown over, and
+                // §21.21B v14: the flight can OVERSHOOT lattice points — the
+                // landing sits EdgePadding past the border while a junction
+                // just past it can sit closer than that, and the takeoff
+                // leaves EdgePadding before it — either way the next path step
+                // can be a point she has physically already flown over, and
                 // walking to it means stepping backwards. Skip exactly those:
                 // a junction whose projection lands INSIDE the flight segment
                 // and close to its axis. CurrentJunction rides to the last one
@@ -268,9 +262,7 @@ public sealed class MovementSystem : ISimulationSystem
                     // it dangling and HopKind stuck for the view.
                     npc.Movement.HopTimer = 0f;
                     npc.Movement.ClimbPauseTimer = System.MathF.Max(
-                        npc.Movement.ClimbPauseTimer,
-                        HexHopTuning.LandingSeconds *
-                            (npc.Movement.HopUp ? 1f : HexHopTuning.DownBeatScale));
+                        npc.Movement.ClimbPauseTimer, HexHopTuning.LandingSeconds);
                     npc.Movement.IsMoving = false;
                     npc.Movement.SetStatus(MovementStatus.Arrived);
                     Trace.Emit(world, npc.Id, "MovementCompleted",
@@ -442,13 +434,10 @@ public sealed class MovementSystem : ISimulationSystem
                 var scanDist = 0f;
                 var scanFrom = npc.Position;
                 var scanTile = hopStandTile;
-                // §21.21B v14: an UP-jump now takes off FarPadding before the
-                // wall, so the wall has to be spotted at least that far out or
-                // the takeoff point lands behind her and the guard below has to
-                // salvage it (climb degrades to a flush walk-up). Scan on the
-                // LONGER of the two paddings.
-                var scanReach = System.MathF.Max(
-                    HexHopTuning.EdgePadding, HexHopTuning.FarPadding) + 1.2f;
+                // Spot the wall at least a padding out, or the takeoff point
+                // lands behind her and the clamp below has to salvage it
+                // (the climb degrades to a flush walk-up).
+                var scanReach = HexHopTuning.EdgePadding + 1.2f;
                 for (var i = npc.Movement.PathIndex;
                      i < npc.Movement.JunctionPath.Count && scanDist < scanReach;
                      i++)
@@ -508,29 +497,25 @@ public sealed class MovementSystem : ISimulationSystem
                     var crossing = (nearCenter + targetCenter) * 0.5f;
                     var flightDir = HexSpatialMath.Normalize(targetCenter - nearCenter);
 
-                    // §21.21B v14: ASYMMETRIC, mirrored by direction. Dropping
-                    // down she pushes off the very lip and flies FAR; climbing
-                    // up she leaves EARLY (run-up) and lands ON the lip. Same
-                    // length either way, so the flight pace is one number.
+                    // §21.21B v23: SYMMETRIC. Takeoff EdgePadding before the
+                    // border, landing EdgePadding after — no extra offset at
+                    // the landing end, both directions identical.
                     var hopUp = wallTile.Elevation > wallNearTile.Elevation;
-                    var nearPad = hopUp ? HexHopTuning.FarPadding : HexHopTuning.EdgePadding;
-                    var farPad = hopUp ? HexHopTuning.EdgePadding : HexHopTuning.FarPadding;
-                    var landing = crossing + flightDir * farPad;
+                    var landing = crossing + flightDir * HexHopTuning.EdgePadding;
 
-                    // Takeoff is nearPad before the border — but an UP takeoff
-                    // sits FarPadding out, so a wall spotted late can put it
-                    // BEHIND her. Walking back to it is the v9 death: the walk
-                    // aims one way, the rescan the other, and she oscillates in
-                    // place until she starves. So clamp along the flight axis to
-                    // where she actually is, never past the lip.
+                    // A wall spotted late can put the takeoff point BEHIND
+                    // her. Walking back to it is the v9 death: the walk aims
+                    // one way, the rescan the other, and she oscillates in
+                    // place until she starves. So clamp along the flight axis
+                    // to where she actually is, never past the lip.
                     // Clamping the PROJECTION, not taking her position outright:
                     // approaching off-axis, her raw position stretched the jump
-                    // to a measured 2.4 wu (against 0.75) and sent her flying
-                    // diagonally across the corner.
+                    // to a measured 2.4 wu and sent her flying diagonally
+                    // across the corner.
                     var fromCrossing = npc.Position - crossing;
                     var npcAlong = fromCrossing.X * flightDir.X + fromCrossing.Y * flightDir.Y;
                     var takeoff = crossing + flightDir *
-                        MathUtil.Clamp(npcAlong, -nearPad, -0.02f);
+                        MathUtil.Clamp(npcAlong, -HexHopTuning.EdgePadding, -0.02f);
 
                     target = takeoff;                 // ONE target for the walk
                     hopApproach = true;
@@ -551,6 +536,12 @@ public sealed class MovementSystem : ISimulationSystem
 
             var delta = new Float2(target.X - npc.Position.X, target.Y - npc.Position.Y);
             var direction = HexSpatialMath.Normalize(delta);
+            // §21.21B v23: стоя В точке взлёта (доворот перед прыжком) delta —
+            // нулевой вектор, и «направление на цель» из него — мусор (0°).
+            // Блок прицеливания ниже в этом состоянии пропускается: курсом
+            // владеет гейт запуска прыжка.
+            var standingAtTakeoff = hopApproach &&
+                HexSpatialMath.Distance(npc.Position, target) <= 0.0001f;
             // §76: a nimble girl also pivots faster (same reasoning as the pace
             // above — multiplied in, never stored on npc.TurnSpeed).
             var turnPerTick = npc.TurnSpeed * SimBalance.BaseTurnSpeedFactor *
@@ -570,7 +561,7 @@ public sealed class MovementSystem : ISimulationSystem
             // deadzone (see ambientAlignment below).
             var initialFacingError = 0f;
             var facingError = 0f;
-            if (npc.Movement.HopTimer <= 0f)
+            if (npc.Movement.HopTimer <= 0f && !standingAtTakeoff)
             {
                 npc.Movement.DesiredDirection = direction;
                 npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(direction);
@@ -835,19 +826,34 @@ public sealed class MovementSystem : ISimulationSystem
 
             var distance = HexSpatialMath.Distance(npc.Position, target);
 
-            // §21.21B v9: reached the takeoff point — launch the hop (the
-            // flight block owns the window from here). No tile switch / path
-            // advance now; that happens on touchdown.
+            // §21.21B v9: reached the takeoff point — snap onto it, then §21.21B
+            // v18: ДОВЕРНУТЬСЯ ДО ОТРЫВА. The hop window opens only once she
+            // faces the flight; until then she stands on the takeoff point and
+            // pivots at normal turn speed (the view plays the ordinary turn,
+            // not the jump clip). No tile switch / path advance now; that
+            // happens on touchdown.
             if (hopApproach && distance <= movementPerTick)
             {
                 npc.Position = npc.Movement.HopFrom;
+                npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(
+                    HexSpatialMath.Normalize(npc.Movement.HopTo - npc.Movement.HopFrom));
+                var launchError = MathUtil.Abs(MathUtil.DeltaAngle(
+                    npc.RotationDegrees, npc.Movement.DesiredRotationDegrees));
+                if (launchError > LaunchAlignDegrees)
+                {
+                    npc.RotationDegrees = MathUtil.RotateTowards(
+                        npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
+                        turnPerTick);
+                    npc.Movement.SetStatus(MovementStatus.Rotating);
+                    PauseGaitAndBreath(npc);
+                    continue;
+                }
+
                 npc.Movement.HopArmed = false;
                 npc.Movement.HopPathIndex = npc.Movement.PathIndex;
                 npc.Movement.HopCrossed = false;
-                npc.Movement.HopTimer = HexHopTuning.WindowSeconds(npc.Movement.HopUp);
+                npc.Movement.HopTimer = HexHopTuning.HopSeconds;
                 npc.Movement.HopStartTick = world.Tick;
-                npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(
-                    HexSpatialMath.Normalize(npc.Movement.HopTo - npc.Movement.HopFrom));
                 npc.Movement.SetStatus(MovementStatus.Waiting);
                 Trace.Emit(world, npc.Id, "HopStarted",
                     $"{(npc.Movement.HopUp ? "Up" : "Down")} " +

@@ -19,46 +19,25 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(HexHopTuning))]
     public sealed class HexTuningConfig : ScriptableObject
     {
-        [Header("Прыжок — тайминг")]
-        [Tooltip("ВСЁ окно прыжка ВВЕРХ: толчок + полёт + приземление. Клип сжимается ровно в это время, сек.")]
-        [Range(0.5f, 5f)] public float hopSeconds = 2f;
-        [Tooltip("Окно прыжка ВНИЗ (спрыгивание) — обычно меньше, чтобы было быстрее. Тайминги толчка/посадки масштабируются пропорционально. Сек.")]
-        [Range(0.2f, 5f)] public float downHopSeconds = 2f;
+        // §21.21B v23: прыжок нарочно ПРОСТОЙ — пять ручек. Симметричная
+        // геометрия (один отступ у кромки на оба конца и оба направления),
+        // одно окно, одна высота клиренса. Ручки asymметрии/settle/овершута
+        // удалены вместе с кодом, который они питали.
+        [Header("Прыжок")]
+        [Tooltip("ВСЁ окно прыжка: толчок + полёт + приземление, оба направления. Клип сжимается ровно в это время, сек.")]
+        [Range(0.5f, 5f)] public float hopSeconds = 1.2f;
         [Tooltip("ТОЛЧОК: сколько в начале клипа занимает присед/замах — тело стоит, анимация уже играет, сек.")]
         [MirrorField(typeof(HexHopTuning), "TakeoffSeconds")]
-        [Range(0f, 2f)] public float hopTakeoffSeconds = 0.1f;
+        [Range(0f, 2f)] public float hopTakeoffSeconds = 0.25f;
         [Tooltip("ПРИЗЕМЛЕНИЕ: сколько в конце клипа занимает посадка ног — тело уже в точке, стоит, сек.")]
         [MirrorField(typeof(HexHopTuning), "LandingSeconds")]
-        [Range(0f, 2f)] public float hopLandingSeconds = 0.5f;
-        [Tooltip("КЛИРЕНС СТОПЫ: минимальная высота носка над поверхностью в конце посадки, чтобы меш подошвы не проваливался в пол.")]
-        [MirrorField(typeof(HexHopTuning), "LandingFootClearance")]
-        [Range(0f, 0.08f)] public float hopLandingFootClearance = 0.025f;
-        [Tooltip("Сколько секунд после касания держать защиту подошвы во время blend из jump-клипа в походку.")]
-        [MirrorField(typeof(HexHopTuning), "LandingFootGuardSeconds")]
-        [Range(0f, 1.2f)] public float hopLandingFootGuardSeconds = 0.65f;
-
-        [Header("Прыжок — геометрия")]
-        [Tooltip("БЛИЖНИЙ конец прыжка — отступ у самой кромки (мировые единицы). СПРЫГИВАНИЕ отталкивается за столько ДО кромки; ЗАПРЫГИВАНИЕ приземляется за столько ПОСЛЕ неё.")]
+        [Range(0f, 2f)] public float hopLandingSeconds = 0.35f;
+        [Tooltip("Отступ у кромки (мировые единицы), симметрично: взлёт за столько ДО кромки, посадка за столько ПОСЛЕ. Длина прыжка = 2×отступ.")]
         [MirrorField(typeof(HexHopTuning), "EdgePadding")]
         [Range(0.1f, 1.5f)] public float hopEdgePadding = 0.3f;
-        [Tooltip("ДАЛЬНИЙ конец прыжка (мировые единицы). СПРЫГИВАНИЕ приземляется за столько ЗА кромкой; ЗАПРЫГИВАНИЕ отталкивается за столько ДО неё (разбег). Длина прыжка = ближний + дальний.")]
-        [MirrorField(typeof(HexHopTuning), "FarPadding")]
-        [Range(0.2f, 1.2f)] public float hopFarPadding = 0.65f;
-        [Tooltip("СПРЫГИВАНИЕ: на сколько подпрыгивает ВВЕРХ с края перед падением (клиренс ног над кромкой). 0 = сразу вниз.")]
-        [MirrorField(typeof(HexHopTuning), "DownHopUp")]
-        [Range(0f, 0.8f)] public float hopDownUp = 0.2f;
-        [Tooltip("СПРЫГИВАНИЕ: доля полёта, до которой она летит РОВНО и не падает. Кромка пересекается на ближний/(ближний+дальний) полёта — ставить чуть больше этого, иначе задевает край.")]
-        [MirrorField(typeof(HexHopTuning), "DownFallStartFrac")]
-        [Range(0f, 0.95f)] public float hopDownFallStartFrac = 0.35f;
-        [Tooltip("Какую долю полёта она РЕАЛЬНО летит: остаток окна уже стоит на месте приземления. Меньше = быстрее домчала и раньше встала (лечит «скользит после приземления»). 1 = едет до последнего мгновения.")]
-        [MirrorField(typeof(HexHopTuning), "FlightSettleFrac")]
-        [Range(0.2f, 1f)] public float hopFlightSettleFrac = 0.65f;
-        [Tooltip("ЗАПРЫГИВАНИЕ: на какой доле полёта тело в самой верхней точке (она чуть выше ступеньки). Меньше = «сначала резко вверх, потом в сторону».")]
-        [MirrorField(typeof(HexHopTuning), "UpApexFrac")]
-        [Range(0.1f, 0.9f)] public float hopUpApexFrac = 0.5f;
-        [Tooltip("ЗАПРЫГИВАНИЕ: высота вершины дуги относительно ступеньки. 1 = только до уровня ступени; больше 1 = перелёт выше с мягкой посадкой.")]
-        [MirrorField(typeof(HexHopTuning), "UpOvershoot")]
-        [Range(1f, 2f)] public float hopUpOvershoot = 1.3f;
+        [Tooltip("Клиренс над кромкой (мировые единицы): вверх — насколько дуга выше ступеньки в верхней точке; вниз — подброс перед падением.")]
+        [MirrorField(typeof(HexHopTuning), "LipClearance")]
+        [Range(0f, 0.8f)] public float hopLipClearance = 0.2f;
         [Tooltip("НЫРОК: на сколько уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
         [Range(0f, 1.5f)] public float divePlungeDepth = 0.35f;
 

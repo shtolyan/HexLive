@@ -27,7 +27,8 @@ public sealed class HopGeometryTests
 
         Assert.That(hops, Is.Not.Empty, "За прогон не случилось ни одного прыжка — мерить нечего.");
 
-        var nominal = HexHopTuning.EdgePadding + HexHopTuning.FarPadding;
+        // §21.21B v23: прыжок симметричен — EdgePadding с обеих сторон кромки.
+        var nominal = HexHopTuning.EdgePadding * 2f;
         foreach (var hop in hops)
         {
             // Строго не больше номинала: клэмп точки взлёта может только
@@ -59,8 +60,8 @@ public sealed class HopGeometryTests
         var (_, skips) = RunAndCollect();
 
         // Пролететь можно только точки, попавшие в отрезок полёта: при шаге
-        // решётки 0.375 и полёте 0.75 их физически не больше двух. Всё, что
-        // больше, означает съеденный маршрут (было: 118).
+        // решётки 0.375 и полёте 2×EdgePadding (0.6) их физически не больше
+        // двух. Всё, что больше, означает съеденный маршрут (было: 118).
         foreach (var skip in skips)
         {
             Assert.That(skip, Is.LessThanOrEqualTo(2),

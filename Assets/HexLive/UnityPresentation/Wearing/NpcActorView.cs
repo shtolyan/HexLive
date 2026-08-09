@@ -788,16 +788,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _jumpTimer;
     private float _jumpRetriggerGuard; // swallows the pose-delta echo at hop end
     private bool _jumpUp;
-    // A down-hop's vertical curve follows the ACTUALLY RENDERED XZ crossing,
-    // not its own clock. Snapshot interpolation deliberately trails the latest
-    // sim tick; a clock-only fall can therefore put the feet below the upper
-    // surface while the visible root is still behind the lip.
+    // §21.21B v22, ВОЗВРАЩЁН после v23 — и это НЕ подпорка асимметрии, а
+    // компенсация ЛАГА: часы дуги идут по последнему шагнутому тику, а
+    // видимый корень интерполируется на тик ПОЗАДИ. С окном v23 (полёт 0.6 с)
+    // один тик = 42% полёта, и «гравитация по часам» роняла тело на ЦЕЛУЮ
+    // ступень, пока оно зрительно ещё стояло на верхнем гексе — замер
+    // JumpDipProbe: body-root = −0.550 на 1.5 с, каждый прыжок вниз. Поэтому
+    // вертикаль СПРЫГИВАНИЯ ведётся по ВИДИМОМУ продвижению корня вдоль
+    // отрезка полёта (кромка ±EdgePadding), а не по клоку. Подъём остаётся
+    // на часах: ранний отрыв вверх — намеренный (v20).
     private Vector3 _jumpEdgePointWorld;
     private Vector3 _jumpFlightDirectionWorld;
     private bool _jumpSyncDownToVisibleXz;
-    private bool _jumpLandingFloorGuardEnabled;
-    private float _jumpLandingFloorLift;
-    private float _jumpLandingGuardTimer;
     // §21.21B v15: the vertical offset the body held on the last frame of the
     // window. A well-formed arc ends AT the root (offset 0), so this is normally
     // zero; when it is not — clock drift, a swim lift, a hop cut short — it eases
@@ -805,6 +807,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // body "teleporting" onto the ledge.
     private float _jumpResidualY;
     private const float JumpSettleSpeed = 5f; // wu/s ≈ one elevation step per 0.11 s
+    // §21.21B v23: ПРИШПИЛКА К УРОВНЮ ПОСАДКИ. Если окно дуги закрылось, а
+    // корень ещё не получил Y-снап посадочного тайла (кадр-фриз съел запас —
+    // снап приходит на тик позже касания), тело держится на АБСОЛЮТНОЙ высоте
+    // посадки, а не едет ease'ом к отставшему корню — та езда и была «при
+    // запрыгивании проваливается вниз». Грейс ограничен, чтобы обрыв прыжка
+    // по любой другой причине не оставил её висеть.
+    private const float JumpLandingPinGraceSeconds = 0.6f;
+    private const float JumpLandingPinThreshold = 0.1f; // wu; ниже — обычный ease
+    private float _jumpEndDesiredY;
+    private float _jumpPinGrace;
+    private bool _jumpPinToLanding; // только сим-прыжки; водные дуги — нет
 
     // §40.18-B: deep-water locomotion — the renderer flags the tile. While
     // swimming the animator runs TreadWater (still) / Swim (moving); the
@@ -863,6 +876,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _lastHopStartTick = hopStartTick;
         if (!started)
         {
+            // §21.21B v23: ПРИСТЁГИВАЕМ часы дуги к сим-фазе ЭТОГО же прыжка.
+            // Свободный ход по Time.deltaTime дрейфует на каждом фризе кадра
+            // (прогрев шейдеров на старте плея — гарантированный фриз), дуга
+            // закрывалась раньше Y-снапа посадочного тайла, и хвостовой ease
+            // ронял тело на ступень вниз. ageSeconds — точный сим-прошедший
+            // срок на последнем шагнутом тике: держим часы в [age, age+тик].
+            if (_jumpTimer > 0f && hopKind.Length > 0)
+            {
+                var runningElapsed = _jumpDuration - _jumpTimer;
+                var simFloor = Mathf.Clamp(ageSeconds, 0f, _jumpDuration);
+                var simCeil = Mathf.Min(_jumpDuration,
+                    simFloor + Mathf.Max(0.05f, visibleInterpolationLagSeconds));
+                _jumpTimer = _jumpDuration -
+                    Mathf.Clamp(runningElapsed, simFloor, simCeil);
+            }
+
             return;
         }
 
@@ -870,32 +899,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // sim's airborne window: [Takeoff .. HopSeconds - Landing]. During
         // the takeoff beat the root stands (offset 0 by construction);
         // during the landing beat the root has stopped at the landing point
-        // and the clip plants the feet.
+        // and the clip plants the feet. §21.21B v23: ONE window both
+        // directions, the flight fills the whole airborne beat — the arc, the
+        // sim and the clip share the same three numbers.
         var up = hopKind == "Up";
-        // §21.21B: down-jumps can run on their own (faster) window; the beat
-        // FRACTIONS stay tied to HopSeconds (same shape), only the total window
-        // changes, so the sim window, the arc and the clip scale together.
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
-        var fullWindow = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
-        // The visible root interpolates one snapshot behind the latest model
-        // pose. A drop is synchronized to that visible XZ below, so its clip
-        // must remain alive for the same one-tick latency or it exits while the
-        // body is still approaching the lower landing point.
+        // §21.21B v22: a DROP's vertical follows the RENDERED root, which
+        // interpolates one snapshot behind the arc clock — keep the clip and
+        // the arc alive for that extra tick or they end while the body is
+        // still approaching the lower landing point.
         var presentationWindow = up
-            ? fullWindow
-            : fullWindow + Mathf.Max(0f, visibleInterpolationLagSeconds);
+            ? hop
+            : hop + Mathf.Max(0f, visibleInterpolationLagSeconds);
         var takeoffFrac = HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop;
-        var airborneEndFrac =
+        var flightEndFrac =
             (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop;
-        // §21.21B v16: on a climb the sim covers the distance over the first
-        // SettleFrac of the airborne beat and stands for the rest, so the arc
-        // must finish there too — otherwise the body would still be rising while
-        // the root already stood on the ledge (the "skating onto the step" the
-        // asymmetric flight exposed). A drop keeps the full beat.
-        var settle = Mathf.Clamp(
-            HexLive.Simulation.Navigation.HexHopTuning.SettleFrac(up), 0.2f, 1f);
-        var flightEndFrac = takeoffFrac + (airborneEndFrac - takeoffFrac) * settle;
-        var age = Mathf.Clamp(ageSeconds, 0f, fullWindow);
+        var age = Mathf.Clamp(ageSeconds, 0f, hop);
 
         _jumpEdgePointWorld = edgePointWorld;
         _jumpFlightDirectionWorld = Vector3.ProjectOnPlane(
@@ -906,7 +925,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // left to play — the sim has already put her on the landing tile and the
         // root has snapped to it. Arcing from here would lift the body back off
         // the ground for the rest of the window.
-        if (age >= fullWindow * flightEndFrac)
+        if (age >= hop * flightEndFrac)
         {
             return;
         }
@@ -917,14 +936,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // replayed the crouch and only reached the target level at 75% of what
         // was LEFT, long after the root had snapped up.
         StartJumpArc(up, heightDeltaWorld, startGroundY, presentationWindow,
-            takeoffFrac, flightEndFrac, age, landingFloorGuard: !intoWater);
+            takeoffFrac, flightEndFrac, age);
+        _jumpPinToLanding = true;
+        _jumpPinGrace = JumpLandingPinGraceSeconds;
 
         // §67: нырок в воду — всплеск на посадочной доле дуги.
         if (intoWater && _simSpeed <= 4.01f)
         {
             Audio.SoundManager.Instance?.PlayDelayed(
                 Audio.FmodSfx.Sfx.Splash, transform.position,
-                Mathf.Max(0f, fullWindow * 0.6f - age) / Mathf.Max(0.25f, _simSpeed));
+                Mathf.Max(0f, hop * 0.6f - age) / Mathf.Max(0.25f, _simSpeed));
         }
     }
 
@@ -947,13 +968,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             heightDeltaWorld,
             transform.position.y,
             HexLive.Simulation.Navigation.HexHopTuning.HopSeconds * 0.5f,
-            0f, 1f, 0f, landingFloorGuard: false);
+            0f, 1f, 0f);
+        // Water arcs have no sim flight segment to sync against, no tile snap
+        // to wait for — and the plunge deliberately ends BELOW the surface.
+        _jumpSyncDownToVisibleXz = false;
+        _jumpPinToLanding = false;
     }
 
     private void StartJumpArc(
         bool up, float heightDelta, float startGroundY, float durationSimSeconds,
-        float takeoffFrac, float flightEndFrac, float startElapsed,
-        bool landingFloorGuard)
+        float takeoffFrac, float flightEndFrac, float startElapsed)
     {
         if (_laying || _dead || _animator == null)
         {
@@ -963,14 +987,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _jumpUp = up;
         _jumpHeightDelta = heightDelta;
         _jumpStartY = startGroundY;
+        _jumpEndDesiredY = startGroundY + heightDelta;
         _jumpDuration = Mathf.Max(0.05f, durationSimSeconds);
         _jumpTakeoffFrac = Mathf.Clamp01(takeoffFrac);
         _jumpFlightEndFrac = Mathf.Clamp(flightEndFrac, _jumpTakeoffFrac + 0.05f, 1f);
-        _jumpLandingFloorGuardEnabled = landingFloorGuard;
-        _jumpLandingFloorLift = 0f;
-        _jumpLandingGuardTimer = 0f;
-        if (up || !landingFloorGuard)
+        if (up)
         {
+            // The XZ sync is a drop-only device; the legacy water path and an
+            // up-jump must not inherit it from a previous drop.
             _jumpSyncDownToVisibleXz = false;
         }
         // §21.21B v15: seen late? Keep the window, skip to the phase the sim is
@@ -1003,49 +1027,37 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Vertical arc height 0..1 over the FLIGHT fraction tf (0 at takeoff-end,
     // 1 at flight-end). > 1 = above the target ledge on the way up.
+    // §21.21B v23: one fixed shape per direction, one knob (LipClearance, in
+    // world units) instead of apex/overshoot/fall-start sliders.
     private float JumpVerticalEase(float tf)
     {
+        // The clearance in EASE units (fraction of the height delta).
+        var clearance = HexLive.Simulation.Navigation.HexHopTuning.LipClearance /
+            Mathf.Max(0.01f, Mathf.Abs(_jumpHeightDelta));
+
         if (_jumpUp)
         {
-            // Launch fast, fly PAST the ledge height, drop onto it. §21.21B v16:
-            // the apex is a knob (was a hard 0.5). Earlier apex = "up first,
-            // then over", which is how a step-up actually reads; at 0.5 the rise
-            // and the travel finished together and looked like a slide.
-            var apex = Mathf.Clamp(
-                HexLive.Simulation.Navigation.HexHopTuning.UpApexFrac, 0.1f, 0.9f);
-            var overshoot = Mathf.Clamp(
-                HexLive.Simulation.Navigation.HexHopTuning.UpOvershoot, 1f, 2f);
-            return tf < apex
-                ? Mathf.SmoothStep(0f, overshoot, Mathf.InverseLerp(0f, apex, tf))
-                : Mathf.Lerp(overshoot, 1f,
-                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(apex, 1f, tf)));
+            // Rise past the ledge to a mid-flight peak, then settle onto it —
+            // the symmetric flight crosses the border at 0.5, so the peak sits
+            // right over the lip.
+            var peak = 1f + clearance;
+            return tf < 0.5f
+                ? Mathf.SmoothStep(0f, peak, tf * 2f)
+                : Mathf.Lerp(peak, 1f, Mathf.SmoothStep(0f, 1f, (tf - 0.5f) * 2f));
         }
 
-        // One drop for EVERYTHING (water or land — no special plunge): stay
-        // LEVEL across the lip and only fall once she has
-        // crossed to above the lower ground. Falling early scrapes her feet on
-        // the edge — so hold to DownFallStartFrac of the flight, then gravity
-        // (quadratic) from there down to touchdown at flight-end.
-        var fallStart = Mathf.Clamp(
-            HexLive.Simulation.Navigation.HexHopTuning.DownFallStartFrac, 0f, 0.95f);
-        float ease;
-        if (tf <= fallStart)
-        {
-            ease = 0f; // level flight — above the lower tile, not yet falling
-        }
-        else
-        {
-            var f = Mathf.InverseLerp(fallStart, 1f, tf);
-            ease = f * f; // gravity from the crossing point to the target
-        }
+        // DOWN: stay level (with a small clearing pop) until just past the lip
+        // — the symmetric flight crosses the border at 0.5 — then gravity
+        // (quadratic) down to touchdown at flight-end. Falling earlier scrapes
+        // her feet on the edge.
+        const float fallStart = 0.55f;
+        var ease = tf <= fallStart
+            ? 0f
+            : Mathf.InverseLerp(fallStart, 1f, tf) * Mathf.InverseLerp(fallStart, 1f, tf);
 
-        // A little UP pop off the edge during the level phase (feet clear the
-        // lip). ease < 0 = above stand level, since DOWN heightDelta < 0.
-        var pop = Mathf.Sin(Mathf.Clamp01(tf / Mathf.Max(0.01f, fallStart)) * Mathf.PI);
-        ease -= pop * (HexLive.Simulation.Navigation.HexHopTuning.DownHopUp /
-            Mathf.Max(0.01f, Mathf.Abs(_jumpHeightDelta)));
-
-        return ease;
+        // The pop: ease < 0 = above stand level, since DOWN heightDelta < 0.
+        var pop = Mathf.Sin(Mathf.Clamp01(tf / fallStart) * Mathf.PI);
+        return ease - pop * clearance;
     }
 
     // Advances the jump window and returns the world-space offset the body
@@ -1068,6 +1080,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (_jumpTimer <= 0f)
         {
+            // §21.21B v23: окно закрыто, но корень ещё НЕ на уровне посадки
+            // (его Y-снап приходит со снапшотом на тик позже касания, а
+            // кадр-фриз мог съесть весь запас). Пока разрыв больше порога,
+            // тело держится на АБСОЛЮТНОЙ высоте посадки — ease к отставшему
+            // корню и был секундным «провалом» при запрыгивании.
+            if (_jumpPinToLanding && _jumpPinGrace > 0f)
+            {
+                _jumpPinGrace -= Time.deltaTime * Mathf.Max(0.25f, _simSpeed);
+                var pinOffset = _jumpEndDesiredY - transform.position.y;
+                if (Mathf.Abs(pinOffset) > JumpLandingPinThreshold)
+                {
+                    _jumpResidualY = pinOffset;
+                    return new Vector3(0f, pinOffset, 0f);
+                }
+
+                // Корень догнал — остаток уходит обычным ease'ом.
+                _jumpPinGrace = 0f;
+            }
+
             // §21.21B v15: window closed. A well-formed arc ended level with the
             // root, so there is nothing left; anything that IS left (clock drift
             // between the arc and the sim, a swim lift fading, a hop cut short by
@@ -1100,18 +1131,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
         else if (!_jumpUp && _jumpSyncDownToVisibleXz)
         {
-            // The renderer interpolates the root between 4 Hz snapshots, while
-            // this arc clock advances every frame. Use visible XZ progress for
-            // a DROP so gravity cannot start until the visible body has really
-            // cleared the upper lip. The physical padded segment is the same
-            // one the sim builds in MovementSystem.
+            // §21.21B v22: the renderer interpolates the root one snapshot
+            // behind the arc clock. Drive a DROP's vertical from the VISIBLE
+            // XZ progress along the sim's own padded flight segment
+            // (±EdgePadding around the border), so gravity cannot start until
+            // the rendered body has really cleared the upper lip — clock-driven
+            // it fell a full step while still standing on the upper hex.
             var along = Vector3.Dot(
                 transform.position - _jumpEdgePointWorld,
                 _jumpFlightDirectionWorld);
-            var horizontalTf = Mathf.InverseLerp(
-                -HexLive.Simulation.Navigation.HexHopTuning.EdgePadding,
-                HexLive.Simulation.Navigation.HexHopTuning.FarPadding,
-                along);
+            var pad = HexLive.Simulation.Navigation.HexHopTuning.EdgePadding;
+            var horizontalTf = Mathf.InverseLerp(-pad, pad, along);
             arc = JumpVerticalEase(horizontalTf);
         }
         else if (t >= _jumpFlightEndFrac)
@@ -1130,70 +1160,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var desiredY = _jumpStartY + _jumpHeightDelta * arc;
         _jumpResidualY = desiredY - transform.position.y;
         return new Vector3(0f, _jumpResidualY, 0f);
-    }
-
-    // §21.21B v21: the FBX clips' foot/toe bones finish at the right ground Y,
-    // but the skinned bare sole reaches about 0.02 wu below those bones during
-    // the last jump frame and the blend into locomotion. That is the visible
-    // one-second floor dip. Keep the model/root trajectory untouched and lift
-    // only the rendered body by the smallest amount required at the contact
-    // bones. The short grace covers the jump→gait cross-fade; then the lift
-    // eases away instead of popping off.
-    private void ApplyJumpLandingFloorGuard()
-    {
-        if (_bodyRoot == null || _bodyBones == null || !_jumpLandingFloorGuardEnabled)
-        {
-            _jumpLandingFloorLift = 0f;
-            _jumpLandingGuardTimer = 0f;
-            return;
-        }
-
-        var simDelta = Time.deltaTime * Mathf.Max(0.01f, _simSpeed);
-        var landingBeat = _jumpTimer > 0f &&
-            _jumpTimer <= HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds;
-        if (landingBeat)
-        {
-            _jumpLandingGuardTimer = Mathf.Max(0f,
-                HexLive.Simulation.Navigation.HexHopTuning.LandingFootGuardSeconds);
-        }
-        else
-        {
-            _jumpLandingGuardTimer = Mathf.Max(0f, _jumpLandingGuardTimer - simDelta);
-        }
-
-        var guardActive = landingBeat || _jumpLandingGuardTimer > 0f;
-        var targetLift = 0f;
-        if (guardActive)
-        {
-            var lToe = _bodyBones.GetBone("lToe") ?? _bodyBones.GetBone("lFoot");
-            var rToe = _bodyBones.GetBone("rToe") ?? _bodyBones.GetBone("rFoot");
-            if (lToe != null || rToe != null)
-            {
-                var lowestToeY = lToe == null ? rToe.position.y :
-                    rToe == null ? lToe.position.y : Mathf.Min(lToe.position.y, rToe.position.y);
-                // During a down-hop the sim root intentionally remains on the
-                // upper tile until the atomic touchdown tick. The arc target is
-                // therefore the only correct floor during the landing beat.
-                var groundY = landingBeat
-                    ? _jumpStartY + _jumpHeightDelta
-                    : transform.position.y;
-                var clearance = Mathf.Clamp(
-                    HexLive.Simulation.Navigation.HexHopTuning.LandingFootClearance,
-                    0f, 0.08f);
-                targetLift = Mathf.Clamp(groundY + clearance - lowestToeY, 0f, 0.06f);
-            }
-        }
-
-        // Catch penetration immediately; release more softly so the correction
-        // cannot turn into a second, smaller landing pop.
-        _jumpLandingFloorLift = targetLift > _jumpLandingFloorLift
-            ? targetLift
-            : Mathf.MoveTowards(_jumpLandingFloorLift, targetLift, simDelta * 0.15f);
-        if (_jumpLandingFloorLift > 0.0001f)
-        {
-            _bodyRoot.position += Vector3.up * _jumpLandingFloorLift;
-        }
-
     }
 
     // Face anchor rig for the portrait camera, calibrated once in the prefab's
@@ -6446,8 +6412,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                         _wakeBlend = 0f;
                     }
                 }
-
-                ApplyJumpLandingFloorGuard();
             }
         }
 

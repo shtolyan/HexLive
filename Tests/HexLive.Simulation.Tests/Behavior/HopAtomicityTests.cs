@@ -41,10 +41,17 @@ public sealed class HopAtomicityTests
             // Ловим её В СЕРЕДИНЕ полёта: у самой точки взлёта прерывание
             // безобидно (она там и стоит), и тест прошёл бы даже на сломанном
             // коде — проверено, именно так первая версия и обманулась.
+            // §21.21B v23: порог «середины» масштабируется от фактической длины
+            // полёта (2×EdgePadding из simdata) — с коротким оттюненным прыжком
+            // (0.2 wu) жёсткие 0.15 не оставляли середины вовсе, и тест
+            // вырождался в «ни одного прерывания».
+            var flightLength =
+                HexLive.Simulation.Navigation.HexHopTuning.EdgePadding * 2f;
+            var midMargin = System.MathF.Min(0.15f, flightLength * 0.25f);
             var flying = world.Entities.Npcs.Values.FirstOrDefault(n =>
                 n.Movement.HopTimer > 0f && !n.Movement.HopCrossed &&
-                HexSpatialMath.Distance(n.Position, n.Movement.HopFrom) > 0.15f &&
-                HexSpatialMath.Distance(n.Position, n.Movement.HopTo) > 0.15f);
+                HexSpatialMath.Distance(n.Position, n.Movement.HopFrom) > midMargin &&
+                HexSpatialMath.Distance(n.Position, n.Movement.HopTo) > midMargin);
             if (flying is null)
             {
                 continue;

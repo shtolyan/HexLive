@@ -5516,13 +5516,25 @@ chase-stall timer — the shore statue read as a bug, not as patience.
 | Parameter | Value |
 |---|---|
 | Flee trigger | Health < 0.5 OR >= 2 dogs adjacent |
-| Flee behavior | abort plan → `Flee` goal: move-only plan to the nearest reachable indoor junction |
+| Flee behavior | abort plan → `Flee` goal: move-only plan to the nearest physically reachable indoor junction |
 | While fleeing | no strike-back; bites still land (escape has a price) |
 | Escape works because | NPC walks ~1.5× dog hop speed; dogs lose targets beyond aggro+3 |
 | Flee ends | on arrival (plan completes → normal life resumes) |
 
 The decision system holds the `Flee` goal unconditionally while its plan is
 active — nothing outbids running for your life.
+
+«Reachable» здесь означает тот же физический контракт, что у последующего
+`PathfindingSystem`: учитываются текущие тела/мобы, перепады высоты,
+`Body.CanJump` и запрет прыжка при переноске человека. Кандидаты сортируются по
+близости, но геометрически ближайшее убежище пропускается, если конкретная NPC
+не может пройти к нему; выбранная точка коротко резервируется, чтобы две
+бегущие не выбрали её одновременно. Четыре терминальных промаха пути ставят
+`Flee` на общий failure cooldown, и оба реактивных входа (`TryStartFlee`,
+`TryFleeToCamp`) обязаны его соблюдать: запрещено в том же тике заново создать
+тот же недоступный план. Если физического маршрута нет, ставится cooldown,
+эмитится `FleeUnavailable`, а вызывающий проваливается в бой вместо цикла
+`PathFailed → Flee → PathFailed`.
 
 **Cornered-fight valve (amendment):** a flee only saves her if it *breaks
 contact*. If a mob stays in **melee** with a fleeing girl for `FleeStallTicks`

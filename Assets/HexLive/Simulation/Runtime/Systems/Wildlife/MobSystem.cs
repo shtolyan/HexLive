@@ -790,14 +790,14 @@ public sealed class MobSystem : ISimulationSystem
     internal static bool TryFleeToCamp(WorldState world, NPCState npc, string reason)
     {
         if (npc.CurrentJunction is not { } startJunction ||
-            !world.FactionHomes.TryGetValue(npc.Faction, out var camp))
+            !world.FactionHomes.TryGetValue(npc.Faction, out var camp) ||
+            IsFleeOnCooldown(world, npc))
         {
             return false;
         }
 
-        JunctionId? best = null;
-        var bestScore = float.MaxValue;
-        var bestToCamp = int.MaxValue;
+        var currentToCamp = HexSpatialMath.HexDistance(npc.Tile, camp);
+        var candidates = new System.Collections.Generic.List<Junction>();
         foreach (var junction in world.Junctions.Items.Values)
         {
             if (junction.Blocked || junction.Tiles.Count == 0 ||
@@ -806,16 +806,39 @@ public sealed class MobSystem : ISimulationSystem
                 continue;
             }
 
-            // Сначала как можно ближе к якорю, при равенстве — ближе к себе.
             var toCamp = HexSpatialMath.HexDistance(junction.Tiles[0], camp);
-            var score = toCamp * 1000f +
-                HexSpatialMath.Distance(npc.Position, junction.WorldPosition);
-            if (score < bestScore)
+            if (toCamp < currentToCamp)
             {
-                bestScore = score;
-                bestToCamp = toCamp;
-                best = junction.Id;
+                candidates.Add(junction);
             }
+        }
+
+        // Сначала как можно ближе к якорю, при равенстве — ближе к себе.
+        // Перебираем, а не берём один геометрически лучший: ближайшая точка
+        // может требовать прыжка, которого раненая/несущая человека не умеет.
+        candidates.Sort((a, b) =>
+        {
+            var byCamp = HexSpatialMath.HexDistance(a.Tiles[0], camp).CompareTo(
+                HexSpatialMath.HexDistance(b.Tiles[0], camp));
+            if (byCamp != 0)
+            {
+                return byCamp;
+            }
+
+            var byDistance = HexSpatialMath.Distance(npc.Position, a.WorldPosition).CompareTo(
+                HexSpatialMath.Distance(npc.Position, b.WorldPosition));
+            return byDistance != 0 ? byDistance : a.Id.Value.CompareTo(b.Id.Value);
+        });
+
+        if (!TryReserveReachableFleeTarget(world, npc, startJunction, candidates,
+                out var refuge))
+        {
+            if (candidates.Count > 0)
+            {
+                MarkFleeUnavailable(world, npc, "No physically reachable route toward camp");
+            }
+
+            return false;
         }
 
         // Баг #13: «дом» должен быть ДАЛЬШЕ, чем стоишь. Свой джанкшен занят
@@ -825,17 +848,13 @@ public sealed class MobSystem : ISimulationSystem
         // на месте и не отвечал ни разу. Некуда бежать — не бегство: вернуть
         // false и пусть вызывающий дерётся (форма §108 TryFleeHome, где
         // refuge.Equals(from) стоял с самого начала).
-        if (best is not { } refuge ||
-            bestToCamp >= HexSpatialMath.HexDistance(npc.Tile, camp) ||
-            !Connectivity.Reachable(world, startJunction, refuge))
-        {
-            return false;
-        }
-
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {
             PlanInterruption.Abort(world, npc, reason);
+            // Abort releases the old target. If it happened to equal the newly
+            // chosen refuge, reacquire our short anti-race reservation.
+            SpatialMutations.TryReserveJunction(world, refuge, npc.Id, world.Tick, 48);
         }
 
         npc.IsFighting = false;
@@ -869,13 +888,12 @@ public sealed class MobSystem : ISimulationSystem
         int? dogId = null,
         EntityId? attackerNpcId = null)
     {
-        if (npc.CurrentJunction is not { } startJunction)
+        if (npc.CurrentJunction is not { } startJunction || IsFleeOnCooldown(world, npc))
         {
             return false;
         }
 
-        JunctionId? best = null;
-        var bestDistance = float.MaxValue;
+        var candidates = new System.Collections.Generic.List<Junction>();
         foreach (var junction in world.Junctions.Items.Values)
         {
             // Jul 2026: the refuge must be FREE — three girls fleeing the same
@@ -889,21 +907,29 @@ public sealed class MobSystem : ISimulationSystem
                 continue;
             }
 
-            var distance = HexSpatialMath.Distance(npc.Position, junction.WorldPosition);
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                best = junction.Id;
-            }
+            candidates.Add(junction);
         }
 
-        if (best is not { } refuge ||
-            !Connectivity.Reachable(world, startJunction, refuge))
+        candidates.Sort((a, b) =>
         {
+            var byDistance = HexSpatialMath.Distance(npc.Position, a.WorldPosition).CompareTo(
+                HexSpatialMath.Distance(npc.Position, b.WorldPosition));
+            return byDistance != 0 ? byDistance : a.Id.Value.CompareTo(b.Id.Value);
+        });
+
+        if (!TryReserveReachableFleeTarget(world, npc, startJunction, candidates,
+                out var refuge))
+        {
+            if (candidates.Count > 0)
+            {
+                MarkFleeUnavailable(world, npc, "No physically reachable indoor refuge");
+            }
+
             return false; // nowhere to run — keep fighting
         }
 
         PlanInterruption.Abort(world, npc, $"Fleeing from dogs (attackers={attackers})");
+        SpatialMutations.TryReserveJunction(world, refuge, npc.Id, world.Tick, 48);
         npc.IsFighting = false;
         // §109.9: бегство расцепляет бой — см. TryFleeToCamp выше. Здесь та же
         // дыра давала «скользит от налётчика, не переставая махать ножом».
@@ -934,6 +960,48 @@ public sealed class MobSystem : ISimulationSystem
             CombatHelpSystem.CallForHelpFromNpc(world, npc, attackerNpcId.Value, attackers);
         }
         return true;
+    }
+
+    private static bool IsFleeOnCooldown(WorldState world, NPCState npc) =>
+        npc.Mind.Cooldowns.Exists(c =>
+            c.Goal == GoalType.Flee && c.EndTick > world.Tick);
+
+    private static bool TryReserveReachableFleeTarget(
+        WorldState world,
+        NPCState npc,
+        JunctionId start,
+        System.Collections.Generic.List<Junction> candidates,
+        out JunctionId refuge)
+    {
+        var avoid = PathfindingSystem.OtherActorJunctions(world, npc);
+        foreach (var candidate in candidates)
+        {
+            // This is the exact physical contract PathfindingSystem will use
+            // on the following fast tick. Connectivity alone is insufficient:
+            // it ignores elevation jumps and a carried person's jump ban.
+            var path = HexPathfinder.FindPath(
+                world, start, candidate.Id, avoid,
+                weightClimb: false,
+                canJump: npc.Body.CanJump && !npc.IsCarryingPerson);
+            if (path.Count == 0 ||
+                !SpatialMutations.TryReserveJunction(
+                    world, candidate.Id, npc.Id, world.Tick, 48))
+            {
+                continue;
+            }
+
+            refuge = candidate.Id;
+            return true;
+        }
+
+        refuge = default;
+        return false;
+    }
+
+    private static void MarkFleeUnavailable(WorldState world, NPCState npc, string reason)
+    {
+        PlanningSystem.SetGoalCooldown(world, npc, GoalType.Flee);
+        Trace.Emit(world, npc.Id, "FleeUnavailable", reason);
     }
 
     private static void Roam(WorldState world, Wildlife.MobState dog)

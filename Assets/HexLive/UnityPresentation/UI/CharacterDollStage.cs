@@ -729,15 +729,13 @@ namespace HexLive.UnityPresentation.UI
             foreach (var renderer in _rendererScratch)
             {
                 if (renderer == null || !renderer.enabled) continue;
-                // Renderer.bounds is the last EVALUATED skinned pose. A clone
-                // made while its source is sitting or lying can retain that
-                // short/wide AABB until Unity renders it once, even though we
-                // have already rebound the clone to Idle above. Framing from it
-                // made the portrait zoom and jump with the source pose.
-                // localBounds is the authored renderer envelope; transform its
-                // corners ourselves so camera framing is deterministic before
-                // the first render and still includes clothes, hair and props.
-                if (!TryGetStableWorldBounds(renderer, out var rendererBounds)) continue;
+                // Renderer.bounds can still contain the source's last sitting
+                // or lying pose. Conversely, localBounds is only an authored
+                // culling envelope and may contain large invisible margins.
+                // Bake the clone after it has been rebound to Idle: this gives
+                // us the actual visible geometry for a stable, tight portrait
+                // before Unity renders its first frame.
+                if (!TryGetStableVisualWorldBounds(renderer, out var rendererBounds)) continue;
                 if (!hasBounds)
                 {
                     bounds = rendererBounds;
@@ -754,7 +752,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var focus = bounds.center + Vector3.up * (bounds.extents.y * 0.03f);
+            var focus = bounds.center;
             var halfFov = _camera.fieldOfView * Mathf.Deg2Rad * 0.5f;
             var verticalDistance = bounds.extents.y / Mathf.Tan(halfFov);
             var horizontalTangent = Mathf.Tan(halfFov) * (TextureWidth / (float)TextureHeight);
@@ -771,16 +769,30 @@ namespace HexLive.UnityPresentation.UI
             _rimLight.transform.position = focus + new Vector3(2.2f, 1.6f, -1.7f);
         }
 
-        private static bool TryGetStableWorldBounds(Renderer renderer, out Bounds worldBounds)
+        private static bool TryGetStableVisualWorldBounds(
+            Renderer renderer, out Bounds worldBounds)
         {
             worldBounds = default;
-            var local = renderer.localBounds;
+            Bounds local;
+            Mesh bakedMesh = null;
+            if (renderer is SkinnedMeshRenderer skin && skin.sharedMesh != null)
+            {
+                bakedMesh = new Mesh { name = "CharacterDollFraming" };
+                skin.BakeMesh(bakedMesh, false);
+                local = bakedMesh.bounds;
+            }
+            else
+            {
+                local = renderer.localBounds;
+            }
+
             var min = local.min;
             var max = local.max;
             if (local.size.sqrMagnitude <= 0.00000001f ||
                 !float.IsFinite(min.x) || !float.IsFinite(min.y) || !float.IsFinite(min.z) ||
                 !float.IsFinite(max.x) || !float.IsFinite(max.y) || !float.IsFinite(max.z))
             {
+                if (bakedMesh != null) Destroy(bakedMesh);
                 return false;
             }
 
@@ -798,6 +810,7 @@ namespace HexLive.UnityPresentation.UI
                 worldBounds.Encapsulate(matrix.MultiplyPoint3x4(corner));
             }
 
+            if (bakedMesh != null) Destroy(bakedMesh);
             return true;
         }
 

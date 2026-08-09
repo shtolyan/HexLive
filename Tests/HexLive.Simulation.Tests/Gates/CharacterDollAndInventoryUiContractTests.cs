@@ -89,7 +89,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
-    public void DollCameraUsesAuthoredBoundsInsteadOfTheSourcesEvaluatedPose()
+    public void DollCameraBakesTheIdleCloneInsteadOfUsingSourcePoseOrCullingMargins()
     {
         var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
         var frameStart = stage.IndexOf("private void FrameClone()", StringComparison.Ordinal);
@@ -99,9 +99,11 @@ public sealed class CharacterDollAndInventoryUiContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(framing, Does.Contain("TryGetStableWorldBounds(renderer"));
-            Assert.That(framing, Does.Contain("renderer.localBounds"));
+            Assert.That(framing, Does.Contain("TryGetStableVisualWorldBounds(renderer"));
+            Assert.That(framing, Does.Contain("skin.BakeMesh(bakedMesh, false)"));
             Assert.That(framing, Does.Contain("renderer.localToWorldMatrix"));
+            Assert.That(framing, Does.Contain("var focus = bounds.center;"),
+                "The visible doll, not an authored vertical offset, must own the frame centre.");
             Assert.That(framing, Does.Not.Match(@"bounds\s*=\s*renderer\.bounds"));
             Assert.That(framing, Does.Not.Contain("Encapsulate(renderer.bounds)"),
                 "The evaluated source pose makes sitting and lying dolls change camera scale.");

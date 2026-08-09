@@ -26,6 +26,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // Bug #95 / spec 41.5: manual orders are allowed to wake a sleeper
+            // and remain queued, but no interaction may start over the GetUp
+            // clip. This also covers an order whose target is already underfoot
+            // and therefore needs no pathfinding.
+            if (world.Tick < npc.Mind.WakeGraceUntilTick)
+            {
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.GetFood &&
                 (npc.Inventory.FindFirstFood(world.Content) is not null ||
                  DecisionSystem.HasInventoryCoconutMeal(npc)))

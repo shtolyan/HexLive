@@ -96,10 +96,23 @@ internal static class ManualCommandExecutor
     // приказ. Без этого спам кликов течёт резервациями (см. правило 1).
     private static void ClearForNewOrder(WorldState world, NPCState npc, string reason)
     {
+        // Bug #95 / spec 41.5: a manual order may wake a sleeper, but it must
+        // not make the sim translate the body while GetUp is still playing.
+        // Capture this before Abort clears CurrentInteraction, then retain the
+        // replacement order behind the same grace as a completed sleep.
+        var interruptedSleep = npc.Execution.Status == ExecutionStatus.InProgress &&
+            npc.Execution.CurrentInteraction == InteractionType.Sleep;
+
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {
             PlanInterruption.Abort(world, npc, reason);
+        }
+
+        if (interruptedSleep)
+        {
+            npc.Mind.WakeGraceUntilTick = System.Math.Max(
+                npc.Mind.WakeGraceUntilTick, world.Tick + AiBalance.WakeGraceTicks);
         }
 
         npc.Plan.Steps.Clear();

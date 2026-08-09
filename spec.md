@@ -10858,6 +10858,12 @@ clip finished and her feet slid along the ground. The fallen chain's StandUp
 crying breakdown gets the SAME grace (it stands up with the same GetUp clip);
 being ripped out of lying by a wound / coma / raid deliberately does not.
 
+**r3 (bug #95): interrupting Sleep is also waking up.** A replacement plan —
+including a manual Kenshi-style order — may be accepted and retained, but
+the manual-order boundary arms the same 18-tick grace before clearing Sleep,
+and both pathfinding and execution wait for it. Thus an order given from bed is
+queued through GetUp instead of translating or interacting in the lying pose.
+
 ## §42 Survival Realism Rebalance (iteration 38)
 The colony's numbers dated from the subsistence-race era; with the player
 watching one girl closely they read arcade-fast. New targets, tuned when a day

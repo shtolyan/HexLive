@@ -287,6 +287,14 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
+            // Bug #95 / spec 41.5: a replacement plan may already be queued
+            // while GetUp is playing (notably a manual order that woke her).
+            // Keep the order, but do not even arm locomotion during wake grace.
+            if (world.Tick < npc.Mind.WakeGraceUntilTick)
+            {
+                continue;
+            }
+
             // Пока взаимодействие живо, ноги выключены. Сцена §81 начинается
             // с УДАРНОЙ дистанции (§102 r3), то есть не дойдя до узла плана, —
             // план при этом остаётся Active на шаге «дойти», и без этого гейта

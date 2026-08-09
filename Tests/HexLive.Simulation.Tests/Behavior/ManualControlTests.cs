@@ -141,6 +141,51 @@ public sealed class ManualControlTests
     }
 
     [Test]
+    public void MoveOrderInterruptingSleepWaitsForGetUpBeforeWalking()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        // Reproduce bug #95 without a presentation-only fake: the actor is in
+        // the exact sim state exported as lying on a bed when the player gives
+        // a move order. The order must be retained, but translation must wait
+        // for the full authored GetUp window.
+        npc.Execution.Status = ExecutionStatus.InProgress;
+        npc.Execution.CurrentInteraction = InteractionType.Sleep;
+        npc.Execution.StartTick = world.Tick;
+        npc.Execution.EndTick = world.Tick + 100;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Mind.CurrentGoal = GoalType.Sleep;
+        var sleepingPosition = npc.Position;
+        var destination = NearbyFreeJunction(world, npc);
+
+        engine.Commands.Enqueue(new MoveToCommand(npc.Id, destination.WorldPosition));
+        engine.Step();
+
+        Assert.That(npc.Execution.CurrentInteraction, Is.Null,
+            "Ручной приказ обязан разбудить персонажа, а не оставить Sleep живым.");
+        Assert.That(npc.Mind.WakeGraceUntilTick,
+            Is.GreaterThanOrEqualTo(world.Tick + AiBalance.WakeGraceTicks - 1),
+            "Прерванный сон не получил окно для GetUp.");
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder),
+            "Приказ игрока должен ждать подъёма, а не теряться.");
+
+        var graceUntil = npc.Mind.WakeGraceUntilTick;
+        while (world.Tick < graceUntil)
+        {
+            engine.Step();
+            Assert.That(npc.Position, Is.EqualTo(sleepingPosition),
+                "Персонаж начал скользить в лежачей позе до конца GetUp.");
+        }
+
+        Step(engine, MediumTicks * 4);
+        Assert.That(npc.Position, Is.Not.EqualTo(sleepingPosition),
+            "После завершения GetUp сохранённый приказ обязан начать движение.");
+    }
+
+    [Test]
     public void InteractOrderPicksTheThingUp()
     {
         var engine = TestWorld.CreateEngine();

@@ -166,6 +166,53 @@ public sealed class InventoryLayoutTests
     }
 
     [Test]
+    public void FavoriteWeapon_ProtectsOneKnifeButNotIdenticalCopies()
+    {
+        var (world, npc) = CleanNpc();
+        var favorite = new ItemInstance(ContentIds.Knife);
+        var duplicate = new ItemInstance(ContentIds.Knife);
+        npc.Inventory.Items.Add(favorite);
+        npc.Inventory.Items.Add(duplicate);
+
+        Assert.That(InventoryMath.LowestImportanceDroppable(world, npc),
+            Is.SameAs(duplicate),
+            "Only one physical knife is the favorite; copies must not lock the pack.");
+    }
+
+    [Test]
+    public void MissingTool_ReplacesRedundantKnifeInFullInventory()
+    {
+        var (world, npc) = CleanNpc();
+        npc.Inventory.Capacity = 2;
+        npc.Inventory.Items.Add(ContentIds.Knife);
+        npc.Inventory.Items.Add(ContentIds.Knife);
+
+        Assert.That(InventoryMath.Importance(world, ContentIds.PickaxeStone),
+            Is.LessThan(InventoryMath.Importance(world, ContentIds.Knife)),
+            "Regression setup requires the missing tool to lose the ordinary importance comparison.");
+        Assert.That(InventoryMath.CanMakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.True,
+            "A missing capability must be able to displace redundant gear.");
+
+        Assert.That(InventoryMath.MakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.True);
+        Assert.That(npc.Inventory.Items.Count(item => item.DefinitionId == ContentIds.Knife),
+            Is.EqualTo(1));
+        Assert.That(npc.Inventory.HasSpace, Is.True);
+        Assert.That(world.Events.Items.Any(e =>
+            e.Type == "InventoryMadeRoom" && e.Message.Contains(ContentIds.PickaxeStone)), Is.True);
+    }
+
+    [Test]
+    public void MissingTool_DoesNotReplaceSoleFavoriteWeapon()
+    {
+        var (world, npc) = CleanNpc();
+        npc.Inventory.Capacity = 1;
+        npc.Inventory.Items.Add(ContentIds.Knife);
+
+        Assert.That(InventoryMath.CanMakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.False,
+            "The duplicate exception must not sacrifice the sole favorite weapon.");
+    }
+
+    [Test]
     public void RemovingGarment_RebuildsLayoutAndSpillsOnlyCurrentOverflow()
     {
         var (world, npc) = CleanNpc();

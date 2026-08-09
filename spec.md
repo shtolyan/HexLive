@@ -11699,6 +11699,15 @@ Every item has an importance (`ItemCatalog.Importance`, by `ItemCategory`):
 Resource 20, Misc 10. It drives *what to drop first*: overflow, combat load-drop
 and haul-to-fire always shed the least-wanted item (`InventoryMath`).
 
+Защита любимого оружия §75A относится ровно к **одному физическому экземпляру**,
+а не ко всем предметам с тем же id. Одинаковые копии ножа/оружия остаются
+обычными кандидатами на сброс. При подборе реально недостающего полезного
+инструмента действует узкое исключение из категорийной важности: он может
+вытеснить дублирующее снаряжение, только если после удаления копии инвентарь
+сохраняет все её способности и не худшее оружие. Поэтому полный набор одинаковых
+ножей освобождает место под молоток/кирку, но единственный любимый нож остаётся
+защищён; вода, еда и прочие обычные замены по-прежнему сравниваются по таблице.
+
 **Importance follows the instance, not the label.** A pierced coconut is Water
 (100) only while drink charges remain; drained (`ResourceAmount == 0`) it is an
 empty shell and ranks as Resource (20) on every *victim-side* check

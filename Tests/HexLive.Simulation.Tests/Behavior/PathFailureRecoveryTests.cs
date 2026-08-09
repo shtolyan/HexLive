@@ -119,6 +119,32 @@ public sealed class PathFailureRecoveryTests
         Assert.That(DecisionSystem.HasMissingToolReachable(npc, world), Is.False,
             "Planner пропустит shun-объект, значит availability обязана сделать то же.");
     }
+
+    [Test]
+    public void GatherToolsAvailabilityAllowsMissingToolPastDuplicateKnives()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Capacity = 2;
+        npc.Inventory.Items.Add(ContentIds.Knife);
+        npc.Inventory.Items.Add(ContentIds.Knife);
+        npc.Perception.Objects.Clear();
+
+        var pickaxe = new PerceivedObject
+        {
+            Id = new ObjectId(int.MaxValue - 2),
+            DefinitionId = ContentIds.PickaxeStone,
+            IsReachable = true,
+            IsOccupied = false,
+            Distance = 1f
+        };
+        pickaxe.AvailableInteractions.Add(InteractionType.PickUp);
+        npc.Perception.Objects.Add(pickaxe);
+
+        Assert.That(DecisionSystem.HasMissingToolReachable(npc, world), Is.True,
+            "GatherTools must replace a redundant knife instead of looping on a full pack.");
+    }
 }
 
 }

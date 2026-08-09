@@ -37,9 +37,7 @@ internal static class InventoryMath
             return true;
         }
 
-        var victim = LowestImportanceDroppable(world, npc);
-        return victim is not null &&
-            Importance(world, incomingDefinitionId) > Importance(world, victim);
+        return ReplacementVictim(world, npc, incomingDefinitionId) is not null;
     }
 
     public static bool MakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
@@ -55,18 +53,13 @@ internal static class InventoryMath
                !FitsExistingStack(npc, incomingDefinitionId) &&
                guard++ < 64)
         {
-            var victim = LowestImportanceDroppable(world, npc);
+            var victim = ReplacementVictim(world, npc, incomingDefinitionId);
             if (victim is null)
             {
                 return false;
             }
 
             var victimImportance = Importance(world, victim);
-            if (victimImportance >= incomingImportance)
-            {
-                return false;
-            }
-
             npc.Inventory.Items.Remove(victim);
             ExecutionSystem.DropItemAtFeet(world, npc, victim);
             Trace.Emit(world, npc.Id, "InventoryMadeRoom",
@@ -128,13 +121,13 @@ internal static class InventoryMath
     {
         ItemInstance worst = null;
         var worstImp = int.MaxValue;
-        var favoriteWeapon = ItemAffinity.FavoriteWeapon(npc.Id.Value, npc.Inventory.Items);
+        var favoriteWeapon = FavoriteWeaponInstance(npc);
         foreach (var item in npc.Inventory.Items)
         {
-            // §75A: the back mount is visual only — this item still consumes
-            // its real ordinary/holster cell. Personal preference nevertheless
-            // protects it from being the ordinary overflow victim.
-            if (item.DefinitionId == favoriteWeapon)
+            // §75A protects one physical favorite weapon. Identical copies
+            // are ordinary inventory: protecting the definition id made every
+            // knife in a knife-filled pack impossible to shed (bug #89).
+            if (ReferenceEquals(item, favoriteWeapon))
             {
                 continue;
             }
@@ -163,6 +156,100 @@ internal static class InventoryMath
 
         return worst;
     }
+
+    // Normal replacement follows category importance. A useful missing tool
+    // gets one narrow exception: it may displace redundant managed gear when
+    // the remaining inventory still provides every capability and at least as
+    // good a weapon. This lets a hammer/pickaxe break a pack full of duplicate
+    // knives without making the sole knife expendable.
+    private static ItemInstance ReplacementVictim(
+        WorldState world, NPCState npc, string incomingDefinitionId)
+    {
+        var incomingImportance = Importance(world, incomingDefinitionId);
+        var normalVictim = LowestImportanceDroppable(world, npc);
+        if (normalVictim is not null &&
+            Importance(world, normalVictim) < incomingImportance)
+        {
+            return normalVictim;
+        }
+
+        if (!IsUsefulMissingTool(world, npc, incomingDefinitionId))
+        {
+            return null;
+        }
+
+        var favoriteWeapon = FavoriteWeaponInstance(npc);
+        ItemInstance redundantVictim = null;
+        var redundantImportance = int.MaxValue;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (!CanFreePocket(npc, item, favoriteWeapon) ||
+                !IsRedundantManagedGear(npc, item))
+            {
+                continue;
+            }
+
+            var importance = Importance(world, item);
+            if (importance < redundantImportance)
+            {
+                redundantVictim = item;
+                redundantImportance = importance;
+            }
+        }
+
+        return redundantVictim;
+    }
+
+    private static bool IsUsefulMissingTool(
+        WorldState world, NPCState npc, string definitionId) =>
+        !npc.Inventory.Items.Contains(definitionId) &&
+        world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
+        definition.Tags.Contains("Tool") &&
+        Content.GearCatalog.AddsValueOver(
+            npc.Inventory.Items, definitionId, npc.Body.WeaponHands);
+
+    private static bool IsRedundantManagedGear(NPCState npc, ItemInstance candidate)
+    {
+        var stats = Content.GearCatalog.For(candidate.DefinitionId);
+        return stats.Id == candidate.DefinitionId &&
+            !Content.GearCatalog.AddsValueOver(
+                ItemsExcept(npc.Inventory.Items, candidate),
+                candidate.DefinitionId,
+                npc.Body.WeaponHands);
+    }
+
+    private static System.Collections.Generic.IEnumerable<ItemInstance> ItemsExcept(
+        System.Collections.Generic.IEnumerable<ItemInstance> items,
+        ItemInstance excluded)
+    {
+        foreach (var item in items)
+        {
+            if (!ReferenceEquals(item, excluded))
+            {
+                yield return item;
+            }
+        }
+    }
+
+    private static ItemInstance FavoriteWeaponInstance(NPCState npc)
+    {
+        var favoriteId = ItemAffinity.FavoriteWeapon(npc.Id.Value, npc.Inventory.Items);
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == favoriteId)
+            {
+                return item;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool CanFreePocket(
+        NPCState npc, ItemInstance item, ItemInstance favoriteWeapon) =>
+        !ReferenceEquals(item, favoriteWeapon) &&
+        !InventoryState.IsPersonalEffect(item.DefinitionId) &&
+        !npc.Inventory.IsHolstered(item);
 
     // Drop the lowest-importance pocket items until the pack fits again. Used
     // whenever capacity shrinks under a full load (undress, arm severed). Items

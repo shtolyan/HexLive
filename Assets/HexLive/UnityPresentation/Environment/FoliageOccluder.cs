@@ -63,6 +63,19 @@ namespace HexLive.UnityPresentation.Environment
         public IReadOnlyList<Renderer> Renderers => _renderers;
 
         /// <summary>
+        /// §121: скрыт ли вид ПРЯМО СЕЙЧАС — то есть переведён в
+        /// <see cref="ShadowCastingMode.ShadowsOnly"/> и камере не виден.
+        /// <para>
+        /// Нужно наведению мыши. Пальму убирают из кадра ровно затем, чтобы
+        /// добраться до того, что лежит под ней, — значит убранная пальма
+        /// обязана перестать быть целью курсора. Сама по себе она этого не
+        /// сообщает: рендерер остаётся <c>enabled</c>, объект активен, и
+        /// невидимая крона честно ловила бы луч.
+        /// </para>
+        /// </summary>
+        public bool Hidden => _hidden;
+
+        /// <summary>
         /// Keeps the view out of the shot until <paramref name="until"/> (unscaled
         /// time). The deadline is a de-flicker grace period: a frond that grazes
         /// the sight line for a single frame must not strobe.

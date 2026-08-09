@@ -206,7 +206,21 @@ public sealed class ObjectSnapshot
 
     // Spec 40.13: whose body/marker this is (corpse.npc / grave.npc carry the
     // dead NPC's id in CurrentUser) — lets the view adopt the actor's ragdoll.
+    // ⚠️ Это НЕ владелец вещи: сюда едет CurrentUser, то есть «кто пользуется
+    // сейчас / чьё это тело». Настоящая собственность — в OwnedByNpcId ниже.
     public int? OwnerNpcId { get; set; }
+
+    /// <summary>
+    /// §121: ЧЬЯ ЭТА ВЕЩЬ (<c>WorldObjectState.Owner</c>) — постоянная
+    /// собственность: личная кровать §64, оставленная в водосборе фляга.
+    /// null — ничья.
+    /// <para>
+    /// Отдельное поле, а не переиспользование <see cref="OwnerNpcId"/>: то
+    /// несёт текущего пользователя, и по имени их уже однажды перепутали —
+    /// инспектор гекса до сих пор подписывает его «Owner NPC».
+    /// </para>
+    /// </summary>
+    public int? OwnedByNpcId { get; set; }
 
     // Spec §50: object variant tag — for body.limb_severed, the BodyPart name
     // so the view bakes the matching bone chain from the owner's mesh.

@@ -59,6 +59,74 @@ public static class ColonyQueries
         return world.FactionHomes.TryGetValue(faction, out var home) ? home : null;
     }
 
+    /// <summary>
+    /// §121: чужая ли это вещь для приказа игрока — и, значит, отказать ли.
+    /// Возвращает id владельца, если действие ему запрещено; null — можно.
+    ///
+    /// <para>
+    /// ⭐ Правило ОДНО и живёт здесь, потому что читателей у него два: исполнитель
+    /// приказа (авторитет) и меню, которое заранее серит пункт. Две копии
+    /// предиката — ровно тот класс бага, ради которого написан
+    /// <c>AvailabilityMirrorsPlannerTests</c>: однажды фикс уже внесли в одну
+    /// копию из двух, и колонистка умерла от жажды.
+    /// </para>
+    /// <para>
+    /// ⚠️ Спрашивает это ТОЛЬКО приказ игрока. ИИ живёт как жил: §64 оставил
+    /// владение кроватью мягким предпочтением намеренно (см.
+    /// <c>SpecDream.BedExclusive</c> — «меняет баланс выживания»), и строгий
+    /// режим для ИИ здесь не включается. Поэтому мир считается как прежде.
+    /// </para>
+    /// </summary>
+    public static EntityId? ForbiddenOwner(
+        WorldState world, Agents.NPCState npc, WorldObjectState obj, InteractionType interaction)
+    {
+        if (obj.Owner is not { } owner || owner.Equals(npc.Id))
+        {
+            return null;
+        }
+
+        // Умер хозяин — вещь ничья. Кровати это чистит DreamSystem, но фляга
+        // мёртвой хозяйки так и остаётся помеченной, и правило обязано это
+        // пережить само.
+        if (!world.Entities.Npcs.TryGetValue(owner, out var holder) || holder.Health <= 0f)
+        {
+            return null;
+        }
+
+        return interaction switch
+        {
+            // Спать в чужой кровати нельзя. Это единственное действие с
+            // кроватью, которое владение запрещает: подойти, осмотреть или
+            // разобрать её на дрова — не «пользоваться постелью».
+            InteractionType.Sleep => owner,
+
+            // У фляги в водосборе правило уже написано и обкатано — не
+            // сочиняем второе, спрашиваем то же самое. Оно НЕ сводится к
+            // «чужое значит нельзя»: со своей флягой в руках она просто
+            // переливает, не трогая чужую.
+            InteractionType.TakeVessel =>
+                WaterCollectorMath.CanTake(world, npc, obj) ? null : owner,
+
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// §121: запрещает ли чужая собственность это действие ВСЕГДА — то есть
+    /// можно ли ответить, не заглядывая в мир.
+    ///
+    /// <para>
+    /// Нужно интерфейсу: меню серит пункт заранее, а мира и NPC у него нет.
+    /// Список глаголов ОДИН и живёт здесь, рядом с настоящим правилом, чтобы
+    /// они не разъехались. Флягу сюда не включаем НАМЕРЕННО: её правило
+    /// зависит от того, что у колонистки в руках, и меню, посеревшее «на
+    /// всякий случай», врало бы про законное действие. Такой пункт остаётся
+    /// живым, а откажет — если откажет — исполнитель, с внятной подписью.
+    /// </para>
+    /// </summary>
+    public static bool OwnershipAlwaysBlocks(InteractionType interaction) =>
+        interaction == InteractionType.Sleep;
+
     // §72: is this tile inside the given camp? A campfire or a bed has no
     // Owner worth scoping by — a hearth belongs to whoever stands at it — so a
     // camp is scoped by DISTANCE to its anchor. With one camp authored this is

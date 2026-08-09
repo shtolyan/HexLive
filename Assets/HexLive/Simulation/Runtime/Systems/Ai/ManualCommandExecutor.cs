@@ -258,6 +258,14 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        // §121: чужое. Правило то же самое, что посерило пункт в меню, — не
+        // копия его, а буквально тот же метод (ColonyQueries.ForbiddenOwner).
+        if (ColonyQueries.ForbiddenOwner(world, npc, worldObject, command.Interaction) is { } owner)
+        {
+            Reject(world, npc.Id, "Interact", $"Owned Owner=NPC{owner.Value}");
+            return;
+        }
+
         if (worldObject.IsOccupied && worldObject.CurrentUser is { } user && !user.Equals(npc.Id))
         {
             Reject(world, npc.Id, "Interact", "Occupied");

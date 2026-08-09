@@ -2833,6 +2833,22 @@ MonoBehaviour:
       - 'нет инструмента'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.owned_by'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0}'s — not hers to use'
+      - 'принадлежит: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.owned_title'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} · {1}'
+      - '{0} · {1}'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.target.person'
       TermType: 0
       Description: 
@@ -3015,6 +3031,14 @@ MonoBehaviour:
       Languages:
       - 'No tool for that'
       - 'Нет нужного инструмента'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.Owned'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'That belongs to someone else'
+      - 'Это чужое'
       Flags: 0101
       Languages_Touch: []
     - Term: 'toast.order_rejected.Occupied'

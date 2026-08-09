@@ -172,6 +172,148 @@ public sealed class ManualControlTests
             "Приказ «подобрать» не довёл кокос до инвентаря.");
     }
 
+    // ── 2б. Чужая собственность (§121) ───────────────────────────────────
+
+    /// <summary>
+    /// Ставит кровать неподалёку от NPC и возвращает её.
+    /// <para>
+    /// ⚠️ Именно НЕПОДАЛЁКУ, а не на соседний узел: у кровати
+    /// <c>ObstacleRadius = 1.25</c>, она блокирует вокруг себя целое кольцо, и
+    /// колонистка, стоящая вплотную, оказывается ВНУТРИ этой зоны — свободного
+    /// места «сбоку» не остаётся, и приказ честно отлетает с Unreachable. Это
+    /// свойство мира, а не владения; первая версия теста спотыкалась об него и
+    /// мерила не то.
+    /// </para>
+    /// </summary>
+    private static WorldObjectState BedNear(WorldState world, NPCState npc)
+    {
+        var junction = world.Junctions.Items.Values.First(j =>
+            !j.Blocked && j.Tiles.Count > 0 &&
+            HexSpatialMath.HexDistance(npc.Tile, j.Tiles[0]) is >= 2 and <= 3);
+        return WorldObjectMutations.SpawnObject(
+            world, ContentIds.BedBasic, new FragmentId(1), junction.Tiles[0], junction.Id);
+    }
+
+    [Test]
+    public void SleepOrderOnSomeoneElsesBedIsRefused()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        var bed = BedNear(world, npc);
+        var neighbour = world.Entities.Npcs.Values.First(n => !n.Id.Equals(npc.Id));
+        bed.Owner = neighbour.Id;
+
+        var reservedBefore = world.Reservations.Junctions.Count;
+        engine.Commands.Enqueue(new InteractCommand(npc.Id, bed.Id, InteractionType.Sleep));
+        engine.Step();
+
+        Assert.That(HasTrace(world, npc.Id, "ManualOrderRejected", "Reason=Owned"), Is.True,
+            "Спать в чужой кровати нельзя, и отказ обязан назвать причину — " +
+            "иначе игрок видит только то, что персонаж не пошёл.");
+        Assert.That(npc.Plan.Status, Is.Not.EqualTo(PlanStatus.Active));
+        Assert.That(world.Reservations.Junctions.Count, Is.EqualTo(reservedBefore),
+            "Отклонённый по владению приказ оставил за собой резервацию.");
+    }
+
+    [Test]
+    public void SleepOrderOnHerOwnBedIsAccepted()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        var bed = BedNear(world, npc);
+        bed.Owner = npc.Id;
+
+        engine.Commands.Enqueue(new InteractCommand(npc.Id, bed.Id, InteractionType.Sleep));
+        engine.Step();
+
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder),
+            "Своя кровать обязана приниматься — запрет касается только чужой.");
+    }
+
+    [Test]
+    public void SleepOrderOnAnOwnerlessBedIsAccepted()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        var bed = BedNear(world, npc);
+        bed.Owner = null;
+
+        engine.Commands.Enqueue(new InteractCommand(npc.Id, bed.Id, InteractionType.Sleep));
+        engine.Step();
+
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder),
+            "Ничья кровать — общая.");
+    }
+
+    [Test]
+    public void DeadOwnerFreesTheBed()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        var bed = BedNear(world, npc);
+        var neighbour = world.Entities.Npcs.Values.First(n => !n.Id.Equals(npc.Id));
+        bed.Owner = neighbour.Id;
+        neighbour.Health = 0f;
+
+        engine.Commands.Enqueue(new InteractCommand(npc.Id, bed.Id, InteractionType.Sleep));
+        engine.Step();
+
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder),
+            "Хозяйка мертва — вещь ничья. Правило обязано переживать это само: " +
+            "уборщик владения ходит редко, а игрок кликает сразу.");
+    }
+
+    [Test]
+    public void OwnershipRuleAndMenuGreyOutCannotDrift()
+    {
+        // ⭐ Меню серит пункт заранее, а отказывает исполнитель. Если эти два
+        // ответа разойдутся, игрок кликает по живому на вид пункту и получает
+        // отказ (или наоборот — видит серым то, что разрешено). Держим их на
+        // ОДНОМ списке глаголов, и вот его проверка.
+        Assert.That(ColonyQueries.OwnershipAlwaysBlocks(InteractionType.Sleep), Is.True,
+            "Спать в чужой кровати запрещено всегда — меню обязано серить пункт.");
+        Assert.That(ColonyQueries.OwnershipAlwaysBlocks(InteractionType.TakeVessel), Is.False,
+            "Фляга — не «всегда»: со своей в руках она просто переливает. Меню " +
+            "не вправе серить законное действие, решает исполнитель.");
+        Assert.That(ColonyQueries.OwnershipAlwaysBlocks(InteractionType.PickUp), Is.False);
+    }
+
+    [Test]
+    public void OwnershipIsVisibleInTheSnapshot()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        engine.Step(); // узел NPC появляется на первом тике
+
+        var bed = BedNear(world, npc);
+        var neighbour = world.Entities.Npcs.Values.First(n => !n.Id.Equals(npc.Id));
+        bed.Owner = neighbour.Id;
+
+        engine.Step();
+        var snapshot = HexLive.Simulation.Debug.WorldSnapshotExporter.Export(world, null);
+        var record = snapshot.Objects.First(o => o.Id.Value == bed.Id.Value);
+
+        Assert.That(record.OwnedByNpcId, Is.EqualTo(neighbour.Id.Value),
+            "Владелец обязан доехать до вида — иначе меню не сможет ни " +
+            "посерить пункт, ни назвать, чья это вещь.");
+        Assert.That(record.OwnerNpcId, Is.Not.EqualTo(neighbour.Id.Value),
+            "OwnerNpcId — это ТЕКУЩИЙ ПОЛЬЗОВАТЕЛЬ, а не собственник. Если эти " +
+            "два поля когда-нибудь сольют, чужой станет каждый занятый предмет.");
+    }
+
     // ── 3. Отказы: приказ, который нельзя выполнить ──────────────────────
 
     [Test]

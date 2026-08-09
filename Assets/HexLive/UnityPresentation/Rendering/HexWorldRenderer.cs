@@ -967,6 +967,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // frame, so it reads as "chopped down".
             if (_treeViewKeys.Remove(key) && view != null)
             {
+                // §121: номер объекта только что протух, а вид живёт ещё пару
+                // секунд — маркер обязан замолчать, иначе меню действовало бы
+                // на срубленное дерево.
+                view.GetComponent<Views.WorldObjectView>()?.Detach();
                 var fall = view.AddComponent<HexLive.UnityPresentation.Environment.TreeFall>();
                 fall.Fell(HexRadius);
             }
@@ -1094,8 +1098,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // поиском по сцене.
                 if (objectView.GetComponent<Views.WorldObjectView>() == null)
                 {
+                    // Радиус препятствия из каталога — по нему наведение целится
+                    // в СТВОЛ, а не в габаритную коробку кроны (§121, пальма).
+                    var obstacleRadius =
+                        _runner != null &&
+                        _runner.TryGetObjectDefinition(worldObject.DefinitionId, out var pickDef) &&
+                        pickDef != null
+                            ? pickDef.ObstacleRadius
+                            : 0f;
                     objectView.AddComponent<Views.WorldObjectView>()
-                        .Init(key, worldObject.DefinitionId);
+                        .Init(key, worldObject.DefinitionId, obstacleRadius);
                 }
             }
 

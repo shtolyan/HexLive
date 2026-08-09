@@ -253,6 +253,7 @@ public static class WorldSnapshotCodec
         BuildProduct = 1 << 2,
         Owner = 1 << 3,
         CraftProject = 1 << 4,
+        OwnedBy = 1 << 5, // §121: постоянная собственность (Owner), редкая — свой бит
     }
 
     // Definition ids repeat across every object; both ends derive the same table
@@ -320,6 +321,11 @@ public static class WorldSnapshotCodec
             parts |= ObjectParts.Owner;
         }
 
+        if (o.OwnedByNpcId.HasValue)
+        {
+            parts |= ObjectParts.OwnedBy; // §121
+        }
+
         if (o.CraftWorkRequired > 0 || o.CraftWorkDone > 0 ||
             o.CraftStationObjectId.HasValue || o.CraftIngredients.Count > 0)
         {
@@ -342,6 +348,11 @@ public static class WorldSnapshotCodec
         if ((parts & ObjectParts.Owner) != 0)
         {
             w.Write(o.OwnerNpcId.Value);
+        }
+
+        if ((parts & ObjectParts.OwnedBy) != 0)
+        {
+            w.Write(o.OwnedByNpcId.Value); // §121
         }
 
         if ((parts & ObjectParts.Variant) != 0)
@@ -417,6 +428,7 @@ public static class WorldSnapshotCodec
             // reused across frames, so an object that stops being a build site
             // would otherwise keep last frame's bill forever.
             o.OwnerNpcId = (parts & ObjectParts.Owner) != 0 ? r.ReadInt32() : (int?)null;
+            o.OwnedByNpcId = (parts & ObjectParts.OwnedBy) != 0 ? r.ReadInt32() : (int?)null; // §121
             o.Variant = (parts & ObjectParts.Variant) != 0 ? r.ReadString() : string.Empty;
             o.BuildProduct = (parts & ObjectParts.BuildProduct) != 0 ? r.ReadString() : string.Empty;
 

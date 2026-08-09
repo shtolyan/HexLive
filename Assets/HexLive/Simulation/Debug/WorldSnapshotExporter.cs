@@ -112,6 +112,7 @@ public static class WorldSnapshotExporter
                 Dirtiness = obj.Dirtiness,
                 Bloodiness = obj.Bloodiness,
                 OwnerNpcId = obj.CurrentUser?.Value,
+                OwnedByNpcId = obj.Owner?.Value, // §121: настоящая собственность
                 Variant = obj.Variant,
                 SpawnTick = obj.SpawnTick,
                 // Spec §54: build-site payload for the progressive-assembly view.

@@ -139,15 +139,50 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (!ReferenceEquals(objectHit, _hovered))
         {
-            _hovered?.SetHighlighted(false);
+            _hovered?.SetHighlighted(false, HoverTone.Normal);
             _hovered = objectHit;
-            _hovered?.SetHighlighted(true);
         }
+
+        // §121: красим КАЖДЫЙ кадр, а не только на смене цели. Так подсветка
+        // переживает всех, кто переписывает property-блок своим тиком (грязь
+        // одежды, пересборка кучи на стройплощадке), — см. WorldObjectView.
+        if (_hovered != null)
+        {
+            _hovered.SetHighlighted(true, ToneFor(snapshot, _hovered.ObjectId));
+        }
+    }
+
+    /// <summary>§121: чужая вещь светится иначе — видно ДО клика, а не после
+    /// отказа. Владельца спрашиваем у снапшота, запрет — у симуляции.</summary>
+    private HoverTone ToneFor(WorldSnapshot? snapshot, int objectId)
+    {
+        var owner = OwnerOf(snapshot, objectId);
+        return owner.HasValue && owner.Value != ManualNpcId
+            ? HoverTone.Foreign
+            : HoverTone.Normal;
+    }
+
+    private static int? OwnerOf(WorldSnapshot? snapshot, int objectId)
+    {
+        if (snapshot == null)
+        {
+            return null;
+        }
+
+        foreach (var obj in snapshot.Objects)
+        {
+            if (obj.Id.Value == objectId)
+            {
+                return obj.OwnedByNpcId;
+            }
+        }
+
+        return null;
     }
 
     private void ClearHover()
     {
-        _hovered?.SetHighlighted(false);
+        _hovered?.SetHighlighted(false, HoverTone.Normal);
         _hovered = null;
         _hoveredNpcId = -1;
         _hoveredMobId = -1;
@@ -307,20 +342,36 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
+        var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+        var owner = OwnerOf(snapshot, view.ObjectId);
+        var foreign = owner.HasValue && owner.Value != ManualNpcId;
+        var ownerName = foreign ? NpcTitle(owner!.Value) : string.Empty;
+
         var carried = CarriedItems();
         var actor = new EntityId(ManualNpcId);
         _entries.Clear();
         foreach (var interaction in definition.Interactions)
         {
-            var ok = HasEveryTool(carried, interaction);
             var objectId = view.ObjectId;
             var type = interaction.Type;
+
+            // Два запрета, и оба обязаны совпадать с тем, что скажет
+            // симуляция: инструмент и чужая собственность. Второй берётся у
+            // ColonyQueries — того же метода, который потом откажет приказу.
+            var hasTool = HasEveryTool(carried, interaction);
+            var ownerBlocks = foreign && ColonyQueries.OwnershipAlwaysBlocks(type);
+            var ok = hasTool && !ownerBlocks;
+
+            var hint = ownerBlocks
+                ? string.Format(Loc.Get("menu.owned_by"), ownerName)
+                : hasTool ? null : Loc.Get("menu.missing_tool");
+
             _entries.Add(new ContextMenuEntry(
                 Loc.Get($"interaction.{type}.verb"),
                 () => runner.EnqueueCommand(
                     new InteractCommand(actor, new ObjectId(objectId), type)),
                 ok,
-                ok ? null : Loc.Get("menu.missing_tool")));
+                hint));
         }
 
         if (_entries.Count == 0)
@@ -328,8 +379,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
-        ContextMenuPanel.Open(mousePos, ObjectTitle(definition, view.DefinitionId), _entries);
+        var title = ObjectTitle(definition, view.DefinitionId);
+        if (foreign)
+        {
+            title = string.Format(Loc.Get("menu.owned_title"), title, ownerName);
+        }
+
+        ContextMenuPanel.Open(mousePos, title, _entries);
     }
+
 
     private void OpenNpcMenu(Vector2 mousePos, int npcId)
     {

@@ -25,6 +25,7 @@ namespace HexLive.UnityPresentation.UI
     {
         private const int TextureWidth = 512;
         private const int TextureHeight = 768;
+        private const float DollFramePadding = 1.18f;
         private const float StageSeparation = 80f;
         private static readonly int SpeedParam = Animator.StringToHash("Speed");
         private static readonly int IdleState = Animator.StringToHash("Base Layer.Idle");
@@ -757,7 +758,8 @@ namespace HexLive.UnityPresentation.UI
             var verticalDistance = bounds.extents.y / Mathf.Tan(halfFov);
             var horizontalTangent = Mathf.Tan(halfFov) * (TextureWidth / (float)TextureHeight);
             var horizontalDistance = bounds.extents.x / Mathf.Max(0.001f, horizontalTangent);
-            var distance = Mathf.Max(1f, Mathf.Max(verticalDistance, horizontalDistance) * 1.08f);
+            var distance = Mathf.Max(
+                1f, Mathf.Max(verticalDistance, horizontalDistance) * DollFramePadding);
             var eye = focus + Vector3.forward * distance;
             _camera.transform.SetPositionAndRotation(
                 eye, Quaternion.LookRotation(focus - eye, Vector3.up));

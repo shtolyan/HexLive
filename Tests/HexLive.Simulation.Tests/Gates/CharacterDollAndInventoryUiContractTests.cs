@@ -104,10 +104,22 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(framing, Does.Contain("renderer.localToWorldMatrix"));
             Assert.That(framing, Does.Contain("var focus = bounds.center;"),
                 "The visible doll, not an authored vertical offset, must own the frame centre.");
+            Assert.That(stage, Does.Contain("DollFramePadding = 1.18f"),
+                "The tight baked geometry still needs safe head-and-feet padding.");
             Assert.That(framing, Does.Not.Match(@"bounds\s*=\s*renderer\.bounds"));
             Assert.That(framing, Does.Not.Contain("Encapsulate(renderer.bounds)"),
                 "The evaluated source pose makes sitting and lying dolls change camera scale.");
         });
+    }
+
+    [Test]
+    public void BothDollWindowsContainThePortraitInsteadOfCroppingIt()
+    {
+        var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        Assert.That(Regex.Matches(
+                panel, @"BackgroundSizeType\.Contain").Count,
+            Is.GreaterThanOrEqualTo(2),
+            "Inventory and health must both fit the complete 2:3 RenderTexture.");
     }
 
     [Test]

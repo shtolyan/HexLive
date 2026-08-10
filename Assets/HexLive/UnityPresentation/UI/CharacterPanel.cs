@@ -1793,6 +1793,8 @@ namespace HexLive.UnityPresentation.UI
             _healthDollImage.style.flexShrink = 0f;
             _healthDollImage.style.position = Position.Relative;
             _healthDollImage.style.backgroundColor = Track;
+            _healthDollImage.style.backgroundSize = new BackgroundSize(
+                BackgroundSizeType.Contain);
             SetBorder(_healthDollImage, StrokeStrong, 1f);
             SetRadius(_healthDollImage, 10f);
             _healthDollImage.style.overflow = Overflow.Hidden;

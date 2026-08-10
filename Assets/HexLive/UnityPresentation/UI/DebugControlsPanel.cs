@@ -199,6 +199,10 @@ namespace HexLive.UnityPresentation.UI
             _fogSelectedLabel = (Label)_fogSelectedButton[0];
             box.Add(_fogSelectedButton);
 
+            _traceButton = MakeButton("[ ] Trace (diagnostics)", Raised, ToggleTrace);
+            _traceLabel = (Label)_traceButton[0];
+            box.Add(_traceButton);
+
             var bugButton = MakeButton("Report bug", new Color(0.28f, 0.38f, 0.55f),
                 () => _bugReportPanel?.ToggleQuick());
             _bugLabel = (Label)bugButton[0];
@@ -298,6 +302,24 @@ namespace HexLive.UnityPresentation.UI
         private Label _fogLabel;
         private VisualElement _fogSelectedButton;
         private Label _fogSelectedLabel;
+
+        private Label _traceLabel;
+        private VisualElement _traceButton;
+
+        /// <summary>§30.17: диагностическая трасса молчит по умолчанию — этот
+        /// тумблер поднимает её вживую, вместе с обоими подканалами, когда
+        /// что-то разбирают. Выключение возвращает игру к тишине.</summary>
+        private void ToggleTrace()
+        {
+            var on = !HexLive.Simulation.Runtime.SimTrace.Enabled;
+            HexLive.Simulation.Runtime.SimTrace.Enabled = on;
+            HexLive.Simulation.Runtime.SimTrace.Perception = on;
+            HexLive.Simulation.Runtime.SimTrace.Scores = on;
+            if (_traceLabel != null)
+            {
+                _traceLabel.text = on ? "[x] Trace (diagnostics)" : "[ ] Trace (diagnostics)";
+            }
+        }
 
         private void ToggleFogOfWar()
         {

@@ -19,6 +19,9 @@ public sealed class SoakOptions
     public int StateHashEvery;
     public bool Quiet;
 
+    /// <summary>§30.17: прогнать в режиме игры — с молчащей диагностикой.</summary>
+    public bool NoTrace;
+
     /// <summary>
     /// Сколько первых застоев разобрать вслух: печатается хвост бортового
     /// самописца — что этот NPC делал ПЕРЕД тем, как замереть. Ровно то, что
@@ -191,6 +194,13 @@ public sealed class SoakOptions
                     case "--quiet":
                         options.Quiet = true;
                         break;
+                    // §30.17: трасса в игре молчит по умолчанию, а здесь она и
+                    // есть продукт — поэтому hexsoak включает её сам. Ключ
+                    // оставлен, чтобы прогнать соак В РЕЖИМЕ ИГРЫ и померить,
+                    // сколько стоит сама болтовня.
+                    case "--no-trace":
+                        options.NoTrace = true;
+                        break;
                     case "--help":
                     case "-h":
                         error = Usage;
@@ -240,6 +250,8 @@ public sealed class SoakOptions
   --loop-escape on|off    §122: автовыход из петель поверх simdata (A/B-ключ)
   --loop-max-rung N       §122: докуда поднимать лестницу (0 доклад .. 3 глушение)
   --quiet                 без человекочитаемого вывода
+  --no-trace              прогнать как ИГРА: диагностика молчит (§30.17).
+                          Метрики и --trace-out/--explain-* при этом пусты
 
 Несколько сидов и --trace-out: файл на сид, суффикс .seed<N>.";
 }

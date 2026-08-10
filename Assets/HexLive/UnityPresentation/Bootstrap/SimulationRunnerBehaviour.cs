@@ -113,6 +113,28 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public long DrainEvents(long sinceSeq, List<SimulationEvent> into) =>
         _backend?.DrainEvents(sinceSeq, into) ?? sinceSeq;
 
+    /// <summary>§30.17: -hexlive-trace — «мне нужна диагностика с первого
+    /// тика» (иначе её включают тумблером панели уже в игре).</summary>
+    private static bool TraceRequestedOnCommandLine()
+    {
+        try
+        {
+            foreach (var arg in System.Environment.GetCommandLineArgs())
+            {
+                if (string.Equals(arg, "-hexlive-trace", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (System.Exception)
+        {
+            // Платформа не отдаёт командную строку — молчим, как и по умолчанию.
+        }
+
+        return false;
+    }
+
     private void Awake()
     {
         SimulationSource.Current = this;
@@ -390,12 +412,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             clock.Resume();
         }
 
-        // Player builds drop the per-tick trace chatter (TickStart/Movement*/
-        // ExecProgress… — nobody consumes it in-game; GameHistory has its own
-        // whitelist). Editor + development builds keep the full stream for
-        // debugging and the sim harness.
-        HexLive.Simulation.Runtime.SimTrace.Verbose =
-            Application.isEditor || UnityEngine.Debug.isDebugBuild;
+        // §30.17: диагностическая трасса МОЛЧИТ ПО УМОЛЧАНИЮ везде — и в
+        // билде, и в редакторе: она стоит ~21 МБ аллокаций на тик на большой
+        // карте, а читают её только тогда, когда что-то разбирают. Включают
+        // осознанно: ключом -hexlive-trace при запуске или тумблером
+        // «Trace» в дебаг-панели прямо во время игры.
+        HexLive.Simulation.Runtime.SimTrace.Enabled = TraceRequestedOnCommandLine();
 
         // Spec 40.8-G: pull all wound/blood art into memory NOW, behind the
         // loading curtain — lazily loading it on the first landed bite cost a

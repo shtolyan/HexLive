@@ -57,7 +57,6 @@ namespace HexLive.UnityPresentation.Config
         public bool outsiderStartsArmed = true;
 
         [Header("Охота")]
-        [Tooltip("Радиус, в котором он вообще высматривает жертву, тайлы.")]
         [Tooltip("Сколько подруг рядом с жертвой он ещё терпит. 0 — только полные одиночки.")]
         [Range(0, 4)] public int raidMaxVictimAllies = 1;
         [Tooltip("Радиус, в котором считаются подруги жертвы.")]
@@ -126,7 +125,6 @@ namespace HexLive.UnityPresentation.Config
         [Header("Оборона колонии")]
         [Tooltip("Против ЧУЖАКА поднимать всю фракцию в радиусе без порога симпатии — в первые дни её ещё нет, а «дать отпор сплочённо» нужно именно тогда.")]
         public bool rallyIgnoresAffinityVsOutsider = true;
-        [Tooltip("С какой дистанции девушки замечают чужака, тайлы.")]
         [Tooltip("Как часто повторять ⚠️ на одного и того же чужака, тиков.")]
         [Range(60, 2400)] public int strangerCueCooldownTicks = 300;
         [Tooltip("Радиус кольца обхода вокруг чужака, тайлы (у волка §62 — 2).")]
@@ -292,7 +290,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float groupHuntBondAffinity = 0.10f;
         [Tooltip("⭐ Сколько симпатии теряет ТА, КТО ВИДЕЛА сцену (не жертва). Недостающее звено: без него он фиксируется на удобной жертве, её симпатия уходит в -1.00, у двух других остаётся -0.35, и единогласия не бывает никогда.")]
         [Range(0f, 1f)] public float groupHuntWitnessAffinityLoss = 0.18f;
-        [Tooltip("В каком радиусе сцену «видно». Шире круга сговора: слышно и с соседнего гекса.")]
         [Tooltip("Сколько ударов группы значит «проучили»: когда счёт набран и он оторвался или побежал — расправа удалась. Без этой меры у охоты с пощадой нет успешного конца вовсе.")]
         [Range(1, 30)] public int groupHuntBlowsToRout = 6;
         [Tooltip("Насколько он их за это возненавидит. Это его лестница оружия §91: побитый в следующий раз возьмётся за нож.")]
@@ -311,7 +308,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float lootHelplessGarmentStressBonus = 0.20f;
         [Tooltip("Добавка к шансу раздевания от личной ненависти к лежащему.")]
         [Range(0f, 1f)] public float lootHelplessGarmentHateBonus = 0.35f;
-        [Tooltip("В каком радиусе он замечает лежащего, тайлы. Режется ЗНАНИЕ, а не только дорога — иначе он чует тело через полострова.")]
         [Tooltip("Тиков на одну вещь. Вдвое быстрее лута трупа (20): там раздевание, тут «хоп-хоп» по карманам.")]
         [Range(2, 60)] public int lootHelplessTakeTicks = 10;
         [Tooltip("Передышка после сыгранной сцены — чтобы он не садился на то же тело снова.")]

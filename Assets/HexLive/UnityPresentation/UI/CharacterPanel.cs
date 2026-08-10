@@ -252,6 +252,12 @@ namespace HexLive.UnityPresentation.UI
         private const float FloatingInventoryGap = 12f;
         private const float InventoryWindowBottom = PanelBottomOffset + CharacterCardHeight + FloatingInventoryGap;
 
+        // The doll RenderTexture is 512x768. Both viewports keep that exact
+        // 2:3, so BackgroundSizeType.Contain has nothing left to letterbox.
+        private const float DollAspectHeight = 768f / 512f;
+        private const float DollViewportWidth = 195f;
+        private const float MinDollViewportHeight = 230f;
+
         // ── palette ───────────────────────────────────────────────────────
         private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
         private static readonly Color TextDim = new(0.604f, 0.651f, 0.678f);
@@ -1401,12 +1407,18 @@ namespace HexLive.UnityPresentation.UI
             _invDollPane.style.width = Length.Percent(50f);
             _invDollPane.style.flexShrink = 0f;
             _invDollPane.style.paddingLeft = 5f;
-            _invDollPane.style.alignItems = Align.Stretch;
+            _invDollPane.style.alignItems = Align.Center;
+            _invDollPane.style.justifyContent = Justify.Center;
+            // Unlike the health box this pane is elastic, so the 2:3 lock is
+            // recomputed from whatever room the window ends up with.
+            _invDollPane.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryDollViewport());
 
             _invPreviewView = new VisualElement();
             _invPreviewView.style.position = Position.Relative;
-            _invPreviewView.style.flexGrow = 1f;
-            _invPreviewView.style.minHeight = 230f;
+            _invPreviewView.style.flexGrow = 0f;
+            _invPreviewView.style.flexShrink = 0f;
+            _invPreviewView.style.width = DollViewportWidth;
+            _invPreviewView.style.height = DollViewportWidth * DollAspectHeight;
             _invPreviewView.style.backgroundColor = new Color(0.035f, 0.047f, 0.055f, 1f);
             _invPreviewView.style.backgroundSize = new BackgroundSize(
                 BackgroundSizeType.Contain);
@@ -1781,6 +1793,40 @@ namespace HexLive.UnityPresentation.UI
             ResetInventoryDensity();
         }
 
+        /// <summary>
+        /// Locks the elastic inventory preview to the doll's own 2:3, centred
+        /// in whatever room the pane has. Without it the viewport inherited
+        /// the window's aspect and Contain pillarboxed the portrait — the doll
+        /// looked small and off-square no matter how the camera framed it.
+        /// </summary>
+        private void FitInventoryDollViewport()
+        {
+            if (_invDollPane == null || _invPreviewView == null)
+            {
+                return;
+            }
+
+            var available = _invDollPane.contentRect;
+            if (available.width < 1f || available.height < 1f ||
+                float.IsNaN(available.width) || float.IsNaN(available.height))
+            {
+                return;
+            }
+
+            var height = Mathf.Min(available.height, available.width * DollAspectHeight);
+            height = Mathf.Max(height, MinDollViewportHeight);
+            // Writing a size from inside a geometry callback re-triggers that
+            // callback; only an actual change may be written, or the window
+            // relayouts itself forever.
+            if (Mathf.Abs(_invPreviewView.resolvedStyle.height - height) < 0.5f)
+            {
+                return;
+            }
+
+            _invPreviewView.style.height = height;
+            _invPreviewView.style.width = height / DollAspectHeight;
+        }
+
         private void ResetInventoryDensity()
         {
             if (_invItemsPane == null || _invItemsContent == null)
@@ -1945,10 +1991,12 @@ namespace HexLive.UnityPresentation.UI
             var body = new VisualElement();
             body.style.flexDirection = FlexDirection.Row;
 
-            // Doll viewport (3:4, matches the stage RenderTexture aspect).
+            // Doll viewport. Its box is the 2:3 of the stage RenderTexture
+            // itself (512x768): any other aspect makes Contain pillarbox the
+            // portrait and the doll stops filling the frame it was drawn for.
             _healthDollImage = new VisualElement();
-            _healthDollImage.style.width = 195f;
-            _healthDollImage.style.height = 260f;
+            _healthDollImage.style.width = DollViewportWidth;
+            _healthDollImage.style.height = DollViewportWidth * DollAspectHeight;
             _healthDollImage.style.flexShrink = 0f;
             _healthDollImage.style.position = Position.Relative;
             _healthDollImage.style.backgroundColor = Track;

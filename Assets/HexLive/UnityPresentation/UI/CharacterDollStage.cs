@@ -27,6 +27,8 @@ namespace HexLive.UnityPresentation.UI
         private const int TextureHeight = 768;
         private const float DollFramePadding = 1.18f;
         private const float StageSeparation = 80f;
+        private const float SignatureIntervalSeconds = 0.5f;
+        private const int SettleFrames = 2;
         private static readonly int SpeedParam = Animator.StringToHash("Speed");
         private static readonly int IdleState = Animator.StringToHash("Base Layer.Idle");
         private static readonly Vector3 StagePosition = new(StageSeparation, -260f, 0f);
@@ -73,6 +75,10 @@ namespace HexLive.UnityPresentation.UI
         private readonly Dictionary<Renderer, string> _wornByRenderer = new();
         private readonly HashSet<string> _wantedWorn = new();
         private readonly List<Renderer> _rendererScratch = new();
+        private readonly List<Material> _materialScratch = new();
+        private readonly List<SkinnedMeshRenderer> _cloneSkins = new();
+        private readonly HashSet<int> _sourceMaterialIds = new();
+        private readonly Dictionary<string, DollFraming> _framingByActor = new();
         private readonly Dictionary<string, (Transform bone, Vector3 scale)> _distalBones = new();
         private readonly float[] _zoneHp = new float[ZoneOrder.Length];
         private readonly bool[] _zoneSevered = new bool[ZoneOrder.Length];
@@ -104,6 +110,28 @@ namespace HexLive.UnityPresentation.UI
         private float _yaw;
         private string _buildError = string.Empty;
         private int _cloneGeneration;
+        private float _nextSignatureTime;
+        private int _settleFrames;
+        private bool _renderDirty;
+
+        /// <summary>
+        /// The photo point of one actor: where the portrait camera stands and
+        /// what it looks at, in stage-local space. Measured once from the
+        /// actor's own body in the frozen Idle pose, then reused for every
+        /// later clone of that actor so the doll cannot drift between two
+        /// openings of the window.
+        /// </summary>
+        private readonly struct DollFraming
+        {
+            public DollFraming(Vector3 focus, Vector3 eye)
+            {
+                Focus = focus;
+                Eye = eye;
+            }
+
+            public Vector3 Focus { get; }
+            public Vector3 Eye { get; }
+        }
 
         public RenderTexture Texture => _texture;
         public CharacterDollMode Mode => _mode;
@@ -158,6 +186,9 @@ namespace HexLive.UnityPresentation.UI
             _camera.nearClipPlane = 0.03f;
             _camera.farClipPlane = 30f;
             _camera.allowHDR = true;
+            // The doll is a frozen photo: the camera is armed only for the
+            // frames whose portrait changed, instead of re-rendering a still
+            // image every frame the window is open.
             _camera.enabled = false;
 
             _keyLight = CreateLight(
@@ -226,6 +257,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 _modelPivot.localRotation = Quaternion.Euler(0f, _yaw, 0f);
             }
+            _renderDirty = true;
         }
 
         public bool TryPickWorn(Vector2 localPoint, Vector2 viewportSize, out string definitionId)
@@ -378,11 +410,23 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var visualSignature = SourceVisualSignature(source);
-            if (_clone == null || _sourceRootId != source.GetInstanceID() ||
-                _sourceVisualSignature != visualSignature)
+            if (_clone == null || _sourceRootId != source.GetInstanceID())
             {
-                BuildClone(source, visualSignature);
+                BuildClone(source, SourceVisualSignature(source));
+            }
+            else if (Time.unscaledTime >= _nextSignatureTime)
+            {
+                // Walking the dressed hierarchy is by far the most expensive
+                // thing this stage does, and it used to run every frame just
+                // to notice a wardrobe change. The doll is a still photo: half
+                // a second of latency on a new hat is invisible, the per-frame
+                // scan was not.
+                _nextSignatureTime = Time.unscaledTime + SignatureIntervalSeconds;
+                var signature = SourceVisualSignature(source);
+                if (signature != _sourceVisualSignature)
+                {
+                    BuildClone(source, signature);
+                }
             }
 
             if (_clone == null)
@@ -391,19 +435,71 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            if (_animator != null)
+            SetStageEnabled(true);
+            // A render texture that renders once can also lose its contents
+            // once — on a device reset or a focus change the portrait would
+            // stay blank forever with nothing to redraw it.
+            if (_texture != null && !_texture.IsCreated())
             {
-                _animator.SetFloat(SpeedParam, 0f);
+                _texture.Create();
+                _renderDirty = true;
             }
 
-            ApplySeveredBonesAfterAnimator();
-            SetStageEnabled(true);
+            if (_settleFrames > 0)
+            {
+                _settleFrames--;
+                ApplySeveredBonesAfterAnimator();
+                _renderDirty = true;
+                if (_settleFrames == 0)
+                {
+                    FreezeClone();
+                }
+            }
+
+            // URP has no supported manual Camera.Render(), so the camera is
+            // armed for exactly the frames whose portrait actually changed and
+            // disarmed again on the next one. A still doll costs nothing.
+            _camera.enabled = _renderDirty;
+            _renderDirty = false;
+        }
+
+        /// <summary>
+        /// Stops every per-frame cost the clone still carries once its single
+        /// Idle frame is on screen: the Animator retargets the whole rig even
+        /// at speed 0, and <c>updateWhenOffscreen</c> skins every mesh whether
+        /// or not a camera renders the stage.
+        /// </summary>
+        private void FreezeClone()
+        {
+            if (_animator != null) _animator.enabled = false;
+            if (_lookAt != null) _lookAt.enabled = false;
+            if (_clone != null)
+            {
+                foreach (var follower in
+                         _clone.GetComponentsInChildren<FittedProstheticPoseFollower>(true))
+                {
+                    follower.enabled = false;
+                }
+            }
+
+            foreach (var skin in _cloneSkins)
+            {
+                if (skin == null) continue;
+                skin.updateWhenOffscreen = false;
+                // The pose can never change again, so one generous envelope
+                // keeps the frozen doll from being culled without asking Unity
+                // to re-skin it for a bounds recompute.
+                var bounds = skin.localBounds;
+                bounds.Expand(bounds.size.magnitude);
+                skin.localBounds = bounds;
+            }
         }
 
         private void BuildClone(Transform source, int visualSignature)
         {
             DestroyClone();
             _modelPivot.gameObject.SetActive(false);
+            CacheSourceMaterials(source);
 
             _clone = Instantiate(source.gameObject, _modelPivot, false);
             _clone.name = $"Character Doll NPC {_npcId}";
@@ -430,6 +526,7 @@ namespace HexLive.UnityPresentation.UI
                 _animator.applyRootMotion = false;
                 _animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 _animator.Rebind();
+                _animator.SetFloat(SpeedParam, 0f);
                 if (_animator.HasState(0, IdleState))
                 {
                     _animator.Play(IdleState, 0, 0f);
@@ -461,8 +558,12 @@ namespace HexLive.UnityPresentation.UI
                 follower.RefreshNow();
             }
 
-            foreach (var skin in _clone.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            _cloneSkins.Clear();
+            _clone.GetComponentsInChildren(true, _cloneSkins);
+            foreach (var skin in _cloneSkins)
             {
+                // Correct bounds while the clone is still being posed; the
+                // settle window turns this back off once the pose is final.
                 skin.updateWhenOffscreen = true;
             }
 
@@ -479,13 +580,42 @@ namespace HexLive.UnityPresentation.UI
                 DestroyHealthOverlay();
                 SetBuildError($"Health renderer failed: {exception.Message}");
             }
+            if (_healthBodyRenderer != null && !_cloneSkins.Contains(_healthBodyRenderer))
+            {
+                _cloneSkins.Add(_healthBodyRenderer);
+            }
+
             CacheDistalBones();
             RepaintHealthMesh();
             _sourceRootId = source.GetInstanceID();
             _sourceVisualSignature = visualSignature;
             _cloneGeneration++;
+            _settleFrames = SettleFrames;
+            _renderDirty = true;
             ApplyMode();
             FrameClone();
+        }
+
+        private void CacheSourceMaterials(Transform source)
+        {
+            // Instantiate copies the per-NPC material instances the skin and
+            // garment painters own, so a rebuild leaks a whole material set
+            // unless the clone's own copies are destroyed with it. Anything
+            // the live actor still references is recorded here and never
+            // touched — destroying a shared instance would strip the colonist
+            // herself.
+            _sourceMaterialIds.Clear();
+            _rendererScratch.Clear();
+            source.GetComponentsInChildren(true, _rendererScratch);
+            foreach (var renderer in _rendererScratch)
+            {
+                if (renderer == null) continue;
+                renderer.GetSharedMaterials(_materialScratch);
+                foreach (var material in _materialScratch)
+                {
+                    if (material != null) _sourceMaterialIds.Add(material.GetInstanceID());
+                }
+            }
         }
 
         private void BuildHealthRenderer()
@@ -585,14 +715,16 @@ namespace HexLive.UnityPresentation.UI
                 _healthBodyRenderer.enabled = useHealth;
             }
 
+            _renderDirty = true;
             SetStageEnabled(visible);
         }
 
         private void SetStageEnabled(bool enabled)
         {
-            if (_camera != null) _camera.enabled = enabled && _clone != null;
-            if (_animator != null) _animator.enabled = enabled;
-            if (_lookAt != null) _lookAt.enabled = enabled;
+            // The camera is armed by LateUpdate only for a changed frame.
+            // Animator and IK belong to the settle window and must never be
+            // revived after FreezeClone.
+            if (!enabled && _camera != null) _camera.enabled = false;
             if (_keyLight != null) _keyLight.enabled = enabled;
             if (_rimLight != null) _rimLight.enabled = enabled;
         }
@@ -688,6 +820,7 @@ namespace HexLive.UnityPresentation.UI
             }
             _healthMesh.colors32 = _colorScratch;
             ApplySeveredBonesAfterAnimator();
+            _renderDirty = true;
         }
 
         private static int[] ClassifyVertices(SkinnedMeshRenderer skin, Mesh mesh)
@@ -753,34 +886,82 @@ namespace HexLive.UnityPresentation.UI
         private void FrameClone()
         {
             _modelPivot.gameObject.SetActive(true);
-            _rendererScratch.Clear();
-            _clone.GetComponentsInChildren<Renderer>(true, _rendererScratch);
+            // One photo point per actor. It is measured on that actor's first
+            // clone and reused forever after, so nothing a colonist puts on,
+            // loses or bleeds can move the camera: rebuilds stopped being able
+            // to re-aim the portrait, which is what made the doll jump.
+            if (_actorMesh.Length > 0 &&
+                _framingByActor.TryGetValue(_actorMesh, out var cached))
+            {
+                ApplyFraming(cached);
+                return;
+            }
+
+            if (!TryMeasureFraming(out var framing))
+            {
+                return;
+            }
+
+            if (_actorMesh.Length > 0)
+            {
+                _framingByActor[_actorMesh] = framing;
+            }
+            ApplyFraming(framing);
+        }
+
+        /// <summary>
+        /// Measures the actor's photo point from its own body in the frozen
+        /// Idle pose — never from clothes, hair or props (they come and go),
+        /// never through the player's yaw, and never with an amputation
+        /// applied (a lost leg must not zoom the portrait in).
+        /// </summary>
+        private bool TryMeasureFraming(out DollFraming framing)
+        {
+            framing = default;
+            var pivotRotation = _modelPivot.localRotation;
+            _modelPivot.localRotation = Quaternion.identity;
+            RestoreDistalBones();
+
             var hasBounds = false;
             var bounds = new Bounds();
-            foreach (var renderer in _rendererScratch)
+            // Renderer.bounds can still contain the source's last sitting or
+            // lying pose; localBounds is only an authored culling envelope
+            // with large invisible margins. Baking the rebound Idle clone
+            // gives the actual visible geometry instead.
+            if (_normalBodyRenderer != null &&
+                TryGetStableVisualWorldBounds(_normalBodyRenderer, out var bodyBounds))
             {
-                if (renderer == null || !renderer.enabled) continue;
-                // Renderer.bounds can still contain the source's last sitting
-                // or lying pose. Conversely, localBounds is only an authored
-                // culling envelope and may contain large invisible margins.
-                // Bake the clone after it has been rebound to Idle: this gives
-                // us the actual visible geometry for a stable, tight portrait
-                // before Unity renders its first frame.
-                if (!TryGetStableVisualWorldBounds(renderer, out var rendererBounds)) continue;
-                if (!hasBounds)
+                bounds = bodyBounds;
+                hasBounds = true;
+            }
+            else
+            {
+                // No resolved body (an overlay build error): fall back to the
+                // whole clone so the window still frames something.
+                _rendererScratch.Clear();
+                _clone.GetComponentsInChildren(true, _rendererScratch);
+                foreach (var renderer in _rendererScratch)
                 {
-                    bounds = rendererBounds;
-                    hasBounds = true;
-                }
-                else
-                {
-                    bounds.Encapsulate(rendererBounds);
+                    if (renderer == null || !renderer.enabled ||
+                        renderer is ParticleSystemRenderer) continue;
+                    if (!TryGetStableVisualWorldBounds(renderer, out var rendererBounds)) continue;
+                    if (!hasBounds)
+                    {
+                        bounds = rendererBounds;
+                        hasBounds = true;
+                    }
+                    else
+                    {
+                        bounds.Encapsulate(rendererBounds);
+                    }
                 }
             }
 
+            ApplySeveredBonesAfterAnimator();
+            _modelPivot.localRotation = pivotRotation;
             if (!hasBounds)
             {
-                return;
+                return false;
             }
 
             var focus = bounds.center;
@@ -796,6 +977,16 @@ namespace HexLive.UnityPresentation.UI
                 bounds.extents.z +
                 Mathf.Max(verticalDistance, horizontalDistance) * DollFramePadding);
             var eye = focus + Vector3.forward * distance;
+            framing = new DollFraming(
+                transform.InverseTransformPoint(focus),
+                transform.InverseTransformPoint(eye));
+            return true;
+        }
+
+        private void ApplyFraming(DollFraming framing)
+        {
+            var focus = transform.TransformPoint(framing.Focus);
+            var eye = transform.TransformPoint(framing.Eye);
             _camera.transform.SetPositionAndRotation(
                 eye, Quaternion.LookRotation(focus - eye, Vector3.up));
             _gazeTarget.position = eye;
@@ -804,6 +995,15 @@ namespace HexLive.UnityPresentation.UI
             _keyLight.transform.rotation = Quaternion.LookRotation(
                 focus - _keyLight.transform.position, Vector3.up);
             _rimLight.transform.position = focus + new Vector3(2.2f, 1.6f, -1.7f);
+            _renderDirty = true;
+        }
+
+        private void RestoreDistalBones()
+        {
+            foreach (var pair in _distalBones)
+            {
+                if (pair.Value.bone != null) pair.Value.bone.localScale = pair.Value.scale;
+            }
         }
 
         private static bool TryGetStableVisualWorldBounds(
@@ -854,14 +1054,18 @@ namespace HexLive.UnityPresentation.UI
         private int SourceVisualSignature(Transform source)
         {
             _rendererScratch.Clear();
-            source.GetComponentsInChildren<Renderer>(true, _rendererScratch);
+            source.GetComponentsInChildren(true, _rendererScratch);
             unchecked
             {
                 var hash = 17;
                 foreach (var renderer in _rendererScratch)
                 {
-                    hash = hash * 31 + (renderer != null ? renderer.GetInstanceID() : 0);
-                    if (renderer == null) continue;
+                    // Blood and impact VFX are particle renderers that appear
+                    // on a bone and vanish on their own timer. Counting them
+                    // rebuilt the entire doll twice per wound — the loudest
+                    // source of both the stutter and the framing jumps.
+                    if (renderer == null || renderer is ParticleSystemRenderer) continue;
+                    hash = hash * 31 + renderer.GetInstanceID();
                     hash = hash * 31 + renderer.enabled.GetHashCode();
                     hash = hash * 31 + renderer.gameObject.activeSelf.GetHashCode();
                     if (renderer is SkinnedMeshRenderer skin)
@@ -870,7 +1074,10 @@ namespace HexLive.UnityPresentation.UI
                             ? skin.sharedMesh.GetInstanceID()
                             : 0);
                     }
-                    foreach (var material in renderer.sharedMaterials)
+                    // The sharedMaterials getter allocates a fresh array per
+                    // renderer; this list is reused instead.
+                    renderer.GetSharedMaterials(_materialScratch);
+                    foreach (var material in _materialScratch)
                     {
                         hash = hash * 31 + (material != null ? material.GetInstanceID() : 0);
                     }
@@ -940,9 +1147,32 @@ namespace HexLive.UnityPresentation.UI
             DestroyHealthOverlay();
             if (_clone != null)
             {
+                ReleaseCloneMaterials();
                 _clone.SetActive(false);
                 Destroy(_clone);
                 _clone = null;
+            }
+            _cloneSkins.Clear();
+            _settleFrames = 0;
+        }
+
+        private void ReleaseCloneMaterials()
+        {
+            _rendererScratch.Clear();
+            _clone.GetComponentsInChildren(true, _rendererScratch);
+            foreach (var renderer in _rendererScratch)
+            {
+                if (renderer == null) continue;
+                renderer.GetSharedMaterials(_materialScratch);
+                foreach (var material in _materialScratch)
+                {
+                    if (material == null ||
+                        _sourceMaterialIds.Contains(material.GetInstanceID()))
+                    {
+                        continue;
+                    }
+                    Destroy(material);
+                }
             }
         }
 

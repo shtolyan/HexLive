@@ -126,13 +126,84 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
+    public void DollFrameIsAPhotoPointMeasuredOncePerActor()
+    {
+        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var frameStart = stage.IndexOf("private void FrameClone()", StringComparison.Ordinal);
+        var signatureStart = stage.IndexOf(
+            "private int SourceVisualSignature", frameStart, StringComparison.Ordinal);
+        var framing = stage[frameStart..signatureStart];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(framing, Does.Contain("_framingByActor.TryGetValue(_actorMesh"),
+                "A rebuilt clone must reuse the actor's frame, never re-aim the camera.");
+            Assert.That(framing, Does.Contain("_framingByActor[_actorMesh] = framing"),
+                "The frame is measured on the actor's first clone and cached.");
+            Assert.That(framing, Does.Contain("_modelPivot.localRotation = Quaternion.identity"),
+                "Measuring through the player's yaw would frame a rotated doll.");
+            Assert.That(framing, Does.Contain("RestoreDistalBones()"),
+                "An amputation must not zoom the portrait in.");
+            Assert.That(framing, Does.Contain("_normalBodyRenderer"),
+                "The photo point belongs to the body, not to clothes, hair or props.");
+            Assert.That(stage, Does.Contain("transform.InverseTransformPoint(focus)"),
+                "The frame is stored in stage-local space so the stage may move.");
+        });
+    }
+
+    [Test]
+    public void DollStageRendersOnDemandAndFreezesItsClone()
+    {
+        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(stage, Does.Contain("_camera.enabled = _renderDirty"),
+                "A still portrait must not re-render every frame the window is open.");
+            Assert.That(stage, Does.Contain("private void FreezeClone()"));
+            Assert.That(stage, Does.Contain("_animator.enabled = false"),
+                "An Animator at speed 0 still retargets the whole rig every frame.");
+            Assert.That(stage, Does.Contain("skin.updateWhenOffscreen = false"),
+                "The frozen clone must not be skinned on frames nobody renders.");
+            Assert.That(stage, Does.Contain("!_texture.IsCreated()"),
+                "A texture that renders once can also lose its contents once.");
+            Assert.That(stage, Does.Contain("renderer is ParticleSystemRenderer"),
+                "Transient blood VFX must not rebuild the doll twice per wound.");
+            Assert.That(stage, Does.Contain("renderer.GetSharedMaterials(_materialScratch)"),
+                "The sharedMaterials getter allocates an array per renderer.");
+            Assert.That(stage, Does.Not.Contain("foreach (var material in renderer.sharedMaterials)"));
+            Assert.That(stage, Does.Contain("SignatureIntervalSeconds"),
+                "Walking the dressed hierarchy every frame is the stage's biggest cost.");
+        });
+    }
+
+    [Test]
     public void BothDollWindowsContainThePortraitInsteadOfCroppingIt()
     {
         var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        Assert.That(Regex.Matches(
-                panel, @"BackgroundSizeType\.Contain").Count,
-            Is.GreaterThanOrEqualTo(2),
-            "Inventory and health must both fit the complete 2:3 RenderTexture.");
+        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var width = int.Parse(Regex.Match(stage, @"TextureWidth = (\d+)").Groups[1].Value);
+        var height = int.Parse(Regex.Match(stage, @"TextureHeight = (\d+)").Groups[1].Value);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Regex.Matches(
+                    panel, @"BackgroundSizeType\.Contain").Count,
+                Is.GreaterThanOrEqualTo(2),
+                "Inventory and health must both fit the complete portrait.");
+            // Contain only stops letterboxing when the viewport carries the
+            // texture's own aspect. Both windows derive their box from it.
+            Assert.That(panel, Does.Contain(
+                    $"DollAspectHeight = {height}f / {width}f"),
+                "The viewport aspect must be derived from the stage texture, not retyped.");
+            Assert.That(panel, Does.Contain(
+                "_healthDollImage.style.height = DollViewportWidth * DollAspectHeight"));
+            Assert.That(panel, Does.Contain("private void FitInventoryDollViewport()"),
+                "The elastic inventory pane needs an explicit 2:3 lock.");
+            Assert.That(panel, Does.Contain("_invPreviewView.style.width = height / DollAspectHeight"));
+            Assert.That(panel, Does.Not.Contain("_healthDollImage.style.height = 260f"),
+                "195x260 is 3:4 and pillarboxes the 2:3 portrait.");
+        });
     }
 
     [Test]

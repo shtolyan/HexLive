@@ -442,6 +442,123 @@ public sealed class RescueDestinationTests
         });
     }
 
+    [Test]
+    public void RescueAuction_DoesNotSelectCryingCarrier_Bug99()
+    {
+        var world = TestWorld.CreateWorld(327779939);
+        world.Tick = 1931;
+        var (helper, patient) = RescuePair(world);
+
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Plan.Status = PlanStatus.Active;
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Mind.CurrentGoal = GoalType.None;
+            npc.Mind.PendingAidFrom = null;
+        }
+
+        helper.Plan.Status = PlanStatus.Completed;
+        helper.Mind.CryingUntilTick = world.Tick + 120;
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        patient.Health = System.Math.Max(0.2f, patient.Body.Mean());
+
+        new RescueSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.IsCrying(world.Tick), Is.True);
+            Assert.That(helper.IsLyingDown(world.Tick), Is.True);
+            Assert.That(helper.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Rescue));
+            Assert.That(helper.Plan.TargetAgentId, Is.Not.EqualTo(patient.Id));
+            Assert.That(patient.Mind.PendingAidFrom, Is.Null);
+        });
+    }
+
+    [Test]
+    public void CryingCarrier_DropsPatientBeforeNextMovement_Bug99()
+    {
+        var world = TestWorld.CreateWorld(327779939);
+        world.Tick = 1931;
+        var (carrier, patient) = RescuePair(world);
+        BeginTestCarry(world, carrier, patient);
+        carrier.Mind.CryingUntilTick = world.Tick + 120;
+        var carrierPosition = carrier.Position;
+
+        new MovementSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.CarriedNpcId, Is.Null);
+            Assert.That(patient.CarriedByNpcId, Is.Null);
+            Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+            Assert.That(carrier.Movement.IsMoving, Is.False,
+                "The lying pose must not slide along the old rescue route.");
+            Assert.That(carrier.Position, Is.EqualTo(carrierPosition));
+            Assert.That(patient.Tile, Is.EqualTo(carrier.Tile));
+            Assert.That(patient.Position, Is.Not.EqualTo(carrier.Position),
+                "The dropped patient must use a neighbouring non-overlapping lying spot.");
+            Assert.That(patient.CurrentJunction, Is.Not.Null);
+        });
+    }
+
+    [Test]
+    public void ExhaustedCarrier_FallsAsleepAndLeavesPatientBesideHer_Bug99()
+    {
+        var world = TestWorld.CreateWorld(327779939);
+        world.Tick = 1931;
+        var (carrier, patient) = RescuePair(world);
+        BeginTestCarry(world, carrier, patient);
+        carrier.Needs.Energy = 0f;
+
+        NeedsDecaySystem.EnterComa(world, carrier, ComaCause.Exhaustion);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.Mind.ComaCause, Is.EqualTo(ComaCause.Exhaustion));
+            Assert.That(carrier.IsLyingDown(world.Tick), Is.True);
+            Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+            Assert.That(carrier.CarriedNpcId, Is.Null);
+            Assert.That(patient.CarriedByNpcId, Is.Null);
+            Assert.That(patient.Tile, Is.EqualTo(carrier.Tile));
+            Assert.That(patient.Position, Is.Not.EqualTo(carrier.Position));
+            Assert.That(HexSpatialMath.Distance(patient.Position, carrier.Position),
+                Is.GreaterThanOrEqualTo(LyingSpot.BodyHalfWidth * 2f - 0.001f),
+                "The solver must leave at least one full body width between centres.");
+        });
+    }
+
+    private static void BeginTestCarry(WorldState world, NPCState carrier, NPCState patient)
+    {
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        patient.Health = System.Math.Max(0.2f, patient.Body.Mean());
+        ExecutionSystem.ReleaseClaims(world, patient);
+        if (patient.CurrentJunction is { } patientJunction)
+        {
+            SpatialMutations.FreeJunction(world, patientJunction, patient.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, patientJunction, patient.Id);
+        }
+
+        patient.CurrentJunction = null;
+        patient.Tile = carrier.Tile;
+        patient.Position = carrier.Position;
+        patient.CarriedByNpcId = carrier.Id;
+        patient.Mind.PendingAidFrom = carrier.Id;
+        carrier.CarriedNpcId = patient.Id;
+        carrier.Mind.CurrentGoal = GoalType.Rescue;
+        carrier.Plan.Goal = GoalType.Rescue;
+        carrier.Plan.TargetAgentId = patient.Id;
+        carrier.Plan.TargetJunctionId = carrier.CurrentJunction;
+        carrier.Plan.Status = PlanStatus.Active;
+        carrier.Movement.JunctionPath.Clear();
+        if (carrier.CurrentJunction is { } carrierJunction)
+        {
+            carrier.Movement.JunctionPath.Add(carrierJunction);
+        }
+        carrier.Movement.PathIndex = 0;
+        carrier.Movement.IsMoving = true;
+        carrier.Movement.SetStatus(MovementStatus.Moving);
+    }
+
     private static (NPCState Helper, NPCState Patient) RescuePair(WorldState world)
     {
         var pair = world.Entities.Npcs.Values

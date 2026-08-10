@@ -631,7 +631,7 @@ internal static class KenshiRescueMath
 
             if (!world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
                 patient.CarriedByNpcId != carrier.Id || carrier.Health <= 0f ||
-                carrier.IsUnconscious(world.Tick) || carrier.Body.IsProne ||
+                carrier.IsLyingDown(world.Tick) ||
                 patient.Health <= 0f ||
                 carrier.Movement.Status == MovementStatus.Invalid)
             {
@@ -690,8 +690,8 @@ internal static class KenshiRescueMath
             carrier.Plan.Status != PlanStatus.Active ||
             carrier.Plan.Goal != GoalType.Rescue ||
             carrier.Plan.TargetAgentId != patientId ||
-            carrier.Health <= 0f || carrier.IsUnconscious(world.Tick) ||
-            carrier.Body.IsProne || carrier.IsFighting ||
+            carrier.Health <= 0f || carrier.IsLyingDown(world.Tick) ||
+            carrier.IsFighting ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
             patient.CarriedByNpcId is not null || patient.Health <= 0f ||
             patient.Tile != carrier.Tile ||

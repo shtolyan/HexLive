@@ -11,6 +11,17 @@ public sealed partial class ExecutionSystem
 {
     private static void RunRescue(WorldState world, NPCState helper)
     {
+        // #99: RescueSystem auctions on Medium, while an already-authored plan
+        // can execute on Fast (including immediately after loading a save).
+        // Re-check the posture here so a crying/sleeping carrier cannot pick a
+        // patient up during that layer gap. DropSafely also tears down an
+        // already established carry before any movement step is consumed.
+        if (helper.IsLyingDown(world.Tick))
+        {
+            KenshiRescueMath.DropSafely(world, helper, "carrier is lying down");
+            return;
+        }
+
         if (helper.Plan.TargetAgentId is not { } patientId ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
             !FactionRelations.AreAllies(helper, patient))

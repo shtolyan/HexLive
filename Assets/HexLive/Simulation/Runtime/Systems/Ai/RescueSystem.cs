@@ -25,8 +25,8 @@ public sealed class RescueSystem : ISimulationSystem
         foreach (var helper in world.Entities.Npcs.Values)
         {
             if (ManualControlMath.IsManual(helper) ||
-                helper.Health <= 0f || helper.IsUnconscious(world.Tick) ||
-                helper.Body.IsProne || helper.IsBeingCarried ||
+                helper.Health <= 0f || helper.IsLyingDown(world.Tick) ||
+                helper.IsBeingCarried ||
                 helper.IsCarryingPerson || helper.IsFighting ||
                 helper.Mind.PendingAbuseFrom is not null ||
                 helper.Mind.PendingExpulsionFrom is not null ||

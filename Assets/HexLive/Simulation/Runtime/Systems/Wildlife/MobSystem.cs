@@ -1490,7 +1490,7 @@ public sealed class MobSystem : ISimulationSystem
 
     private static string BuildDeathCause(WorldState world, NPCState npc)
     {
-        var recentCause = FindRecentDeathCauseEvent(world, npc);
+        var recentCause = ReadDeathCause(world, npc);
         var worstPart = FindWorstPart(npc, out var worstHp);
         var vitals = npc.Body.VitalDestroyed(out var vital)
             ? $" Vital={vital}:0"
@@ -1502,55 +1502,29 @@ public sealed class MobSystem : ISimulationSystem
                $"Worst={worstPart}:{worstHp:F2}{vitals}";
     }
 
-    private static string FindRecentDeathCauseEvent(WorldState world, NPCState npc)
+    /// <summary>§30.17: причина берётся ИЗ СОСТОЯНИЯ (штамп ставит Trace.Emit
+    /// в момент самого удара), а не поиском по кольцу событий. Кольцо — это
+    /// диагностика: его глубина зависит от того, включена ли многословная
+    /// трасса, и пока причина выкапывалась оттуда, один и тот же сид давал
+    /// разную DeathRecord.Cause в редакторе, в билде и в headless-прогоне —
+    /// притом что Cause уходит в сейв и по проводу.
+    /// <para>
+    /// Окно то же, что задумывалось раньше (240 тиков): смерть наступает в тот
+    /// же или соседний тик с ударом, всё, что старше, — уже не про эту смерть.
+    /// Прежний поиск по кольцу до этого окна физически не доставал (2048
+    /// записей ≈ 11 тиков многословной трассы), так что окно наконец работает.
+    /// </para></summary>
+    private static string ReadDeathCause(WorldState world, NPCState npc)
     {
-        var events = world.Events.Items;
-        for (var i = events.Count - 1; i >= 0; i--)
+        if (npc.Mind.DeathCauseTick != int.MinValue &&
+            world.Tick - npc.Mind.DeathCauseTick <= 240 &&
+            !string.IsNullOrEmpty(npc.Mind.DeathCauseText))
         {
-            var e = events[i];
-            if (e.EntityId != npc.Id.Value)
-            {
-                continue;
-            }
-
-            // Death cleanup happens in the same or a nearby tick as the hit,
-            // bleed-out, starvation or exposure event. Anything older is likely
-            // stale context rather than the reason this body just dropped.
-            if (world.Tick - e.Tick > 240)
-            {
-                break;
-            }
-
-            if (IsDeathCauseEvent(e.Type))
-            {
-                return $"{e.Type}: {e.Message}";
-            }
+            return npc.Mind.DeathCauseText;
         }
 
         return InferDeathCause(npc);
     }
-
-    private static bool IsDeathCauseEvent(string type) => type switch
-    {
-        "BledOut" or
-        "DogFight" or
-        "Drowned" or
-        "Heatstroke" or
-        "Hypothermia" or
-        "LimbSevered" or
-        "PreyFoughtBack" or
-        "Preyed" or
-        // §72: without these two every raid death is recorded as inferred
-        // starvation/exposure — and the soak's own accounting then lies about
-        // the very mechanic being tuned.
-        "RaidFoughtBack" or
-        "RaidStruck" or
-        "SharkBite" or
-        "StarvedToDeath" or
-        "Sunburn" or
-        "VitalPartDestroyed" => true,
-        _ => false
-    };
 
     private static string InferDeathCause(NPCState npc)
     {

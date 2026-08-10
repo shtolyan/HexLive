@@ -38,7 +38,44 @@ internal static class Trace
         // поэтому самописец висит здесь, а не у потребителей. В сборке игрока
         // поле null, и это стоит одной проверки (spec §30.14).
         world.FlightRecorder?.Record(entityId.Value, world.Tick, type, message);
+
+        // §30.17: по той же причине здесь же ставится штамп причины смерти.
+        // Он ОБЯЗАН быть состоянием, а не поиском по кольцу: кольцо — это
+        // диагностика, его глубина зависит от многословности трассы, а Cause
+        // уходит в сейв и по проводу (см. NpcMind.DeathCauseText).
+        if (DeathCauses.Contains(type) &&
+            world.Entities.Npcs.TryGetValue(entityId, out var dying))
+        {
+            dying.Mind.DeathCauseText = type + ": " + message;
+            dying.Mind.DeathCauseTick = world.Tick;
+        }
     }
+
+    /// <summary>§30.17: события, которые ОБЪЯСНЯЮТ смерть. Список один на игру
+    /// и живёт здесь, рядом со штампом; MobSystem читает готовую строку.
+    /// Все они — «хроника», а не болтовня: гейт трассировки их не касается,
+    /// иначе причина смерти зависела бы от положения отладочного флага.</summary>
+    private static readonly System.Collections.Generic.HashSet<string> DeathCauses =
+        new(System.StringComparer.Ordinal)
+        {
+            "BledOut",
+            "DogFight",
+            "Drowned",
+            "Heatstroke",
+            "Hypothermia",
+            "LimbSevered",
+            "PreyFoughtBack",
+            "Preyed",
+            // §72: без этих двух каждая смерть в рейде записывалась бы как
+            // выведенное истощение — и соак врал бы про ту самую механику,
+            // которую им тюнят.
+            "RaidFoughtBack",
+            "RaidStruck",
+            "SharkBite",
+            "StarvedToDeath",
+            "Sunburn",
+            "VitalPartDestroyed",
+        };
 
     public static void EmitSystem(WorldState world, string type, string message)
     {

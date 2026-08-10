@@ -64,6 +64,21 @@ public sealed class NPCMind
     public int PlayDeadUntilTick { get; set; }
     public int PlayDeadSinceTick { get; set; }
 
+    // §30.17: ПРИЧИНА СМЕРТИ ЖИВЁТ В СОСТОЯНИИ, а не выкапывается из кольца
+    // трасс. Раньше её искал MobSystem.FindRecentDeathCauseEvent, сканируя
+    // world.Events на 240 тиков назад, — и это делало диагностику ЧАСТЬЮ
+    // симуляции: кольцо держит 2048 записей, то есть с многословной трассой
+    // ~11 тиков, а без неё сотни, поэтому один и тот же сид давал РАЗНУЮ
+    // DeathRecord.Cause в редакторе, в билде и в headless-прогоне — а Cause
+    // уходит в сейв и по проводу. Штамп ставится там же, где живёт самописец
+    // (единственная точка, видящая каждое событие ровно один раз).
+    //
+    // НЕ сериализуется намеренно — как DyingTickStamp/DrowningSinceTick: это
+    // передача внутри тика от удара к уборке тела. Сейв ровно между ними
+    // (окно в считанные тики) вернёт обычный вывод причины по состоянию.
+    public string DeathCauseText { get; set; } = string.Empty;
+    public int DeathCauseTick { get; set; } = int.MinValue;
+
     // Spec §60: coma — the deep unconsciousness. Unlike the timed faint above,
     // a coma has no deadline: the body lies as if dead, recovering exactly as
     // in sleep, until the STAT that felled it climbs back over its wake

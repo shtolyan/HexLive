@@ -1,6 +1,7 @@
 #nullable enable
 using HexLive.Simulation.Content;
 using HexLive.UnityPresentation;
+using HexLive.UnityPresentation.Spatial;
 using UnityEngine;
 using UnityEngine.Rendering;
 

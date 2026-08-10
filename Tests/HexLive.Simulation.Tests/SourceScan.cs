@@ -45,9 +45,16 @@ public static class SourceScan
 
     /// <summary>
     /// Литеральные типы событий, которые симуляция МОЖЕТ эмитить: третий аргумент
-    /// <c>Trace.Emit</c>, второй у <c>Trace.EmitSystem</c>, плюс <c>Type = "…"</c>
-    /// в прямых инициализаторах <c>new SimulationEvent</c> (их три штуки мимо
-    /// хелперов: TickStart движка и две мутации мира).
+    /// <c>Trace.Emit</c>/<c>Trace.Debug</c>, второй у <c>Trace.EmitSystem</c>/
+    /// <c>Trace.DebugSystem</c>, плюс <c>Type = "…"</c> в прямых инициализаторах
+    /// <c>new SimulationEvent</c> (их три штуки мимо хелперов: TickStart движка
+    /// и две мутации мира).
+    /// <para>
+    /// ⭐ §30.17 завёл диагностический ярус <c>Trace.Debug</c>. Забыть его здесь —
+    /// значит ослепить сразу два гейта МОЛЧА: EventWhitelistGate решит, что имя
+    /// из списка никто не эмитит, а TraceEmitLint перестанет видеть собранные
+    /// на лету типы. Любое новое имя метода эмита добавляется В ЭТОТ СПИСОК.
+    /// </para>
     /// </summary>
     public static List<SourceHit> EmittedEventTypes()
     {
@@ -68,7 +75,17 @@ public static class SourceScan
                 AddLiteralsOf(hits, relative, text, call, argumentIndex: 2);
             }
 
+            foreach (var call in FindCalls(text, "Trace.Debug"))
+            {
+                AddLiteralsOf(hits, relative, text, call, argumentIndex: 2);
+            }
+
             foreach (var call in FindCalls(text, "Trace.EmitSystem"))
+            {
+                AddLiteralsOf(hits, relative, text, call, argumentIndex: 1);
+            }
+
+            foreach (var call in FindCalls(text, "Trace.DebugSystem"))
             {
                 AddLiteralsOf(hits, relative, text, call, argumentIndex: 1);
             }
@@ -113,7 +130,17 @@ public static class SourceScan
                 AddIfComposed(hits, relative, text, call, argumentIndex: 2);
             }
 
+            foreach (var call in FindCalls(text, "Trace.Debug"))
+            {
+                AddIfComposed(hits, relative, text, call, argumentIndex: 2);
+            }
+
             foreach (var call in FindCalls(text, "Trace.EmitSystem"))
+            {
+                AddIfComposed(hits, relative, text, call, argumentIndex: 1);
+            }
+
+            foreach (var call in FindCalls(text, "Trace.DebugSystem"))
             {
                 AddIfComposed(hits, relative, text, call, argumentIndex: 1);
             }

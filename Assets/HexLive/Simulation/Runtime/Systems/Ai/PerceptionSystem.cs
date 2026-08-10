@@ -37,6 +37,11 @@ public sealed class PerceptionSystem : ISimulationSystem
     private readonly System.Collections.Generic.Dictionary<EntityId, (AidKind Kind, float Suffering)>
         _aidScratch = new();
 
+    // §125.2: кандидаты сенсора — кто попал в кольцо восприятия. Порядок
+    // фиксируется сортировкой по id: списки EntitiesByTile отражают порядок
+    // прихода на тайл и упорядоченными не являются.
+    private readonly System.Collections.Generic.List<EntityId> _agentScratch = new();
+
     public void Run(WorldState world)
     {
         _aidScratch.Clear();
@@ -59,21 +64,6 @@ public sealed class PerceptionSystem : ISimulationSystem
             npc.Perception.Self.Tile = npc.Tile;
             npc.Perception.Self.Fragment = npc.Fragment;
             npc.Perception.Environment.Temperature = world.Environment.GlobalTemperature;
-            // §72: "company" means ALLIES. An outsider lurking on the island is
-            // not someone she is less lonely for — and with the pre-§72 global
-            // count he silently made all four girls feel less alone.
-            var allies = 0;
-            foreach (var other in world.Entities.Npcs.Values)
-            {
-                if (other.Id != npc.Id && FactionRelations.AreAllies(npc, other))
-                {
-                    allies++;
-                }
-            }
-
-            npc.Perception.Environment.NearbyAgentsCount = allies;
-            npc.Perception.Environment.IsCrowded = allies > 1;
-            npc.Perception.Environment.IsPrivate = allies <= 0;
             npc.Perception.LastUpdatedTick = world.Tick;
 
             var npcJunction = ResolveCurrentJunction(world, npc);
@@ -255,10 +245,18 @@ public sealed class PerceptionSystem : ISimulationSystem
                 npc.Perception.Objects.Add(remembered);
             }
 
-            // Spec 28.3: perceived agents with reachability and relationship summary.
-            foreach (var other in world.Entities.Npcs.Values)
+            // §125.2 СЕНСОР: люди попадают в восприятие только из кольца
+            // радиуса RadiusTiles(npc). Кольцо (1+3r(r+1) тайлов) читается из
+            // EntitiesByTile; когда оно шире, чем весь остров людей, дешевле
+            // прежний полный перебор с фильтром дистанции — это ветка ПЕРФА,
+            // обязанная давать тот же список (обе сортируются по id).
+            var agentRadius = PerceptionMath.RadiusTiles(npc);
+            CollectAgentsInRadius(world, npc, agentRadius, _agentScratch);
+
+            var allies = 0;
+            foreach (var otherId in _agentScratch)
             {
-                if (other.Id == npc.Id)
+                if (!world.Entities.Npcs.TryGetValue(otherId, out var other))
                 {
                     continue;
                 }
@@ -320,12 +318,19 @@ public sealed class PerceptionSystem : ISimulationSystem
                 if (isAlly)
                 {
                     npc.Perception.Agents.Add(perceivedAgent);
+                    allies++;
                 }
                 else
                 {
                     npc.Perception.Hostiles.Add(perceivedAgent);
                 }
             }
+
+            // §72 «компания» = СОЮЗНИЦЫ, и с §125 — только те, кого она видит:
+            // подруга на другом конце острова больше не согревает.
+            npc.Perception.Environment.NearbyAgentsCount = allies;
+            npc.Perception.Environment.IsCrowded = allies > 1;
+            npc.Perception.Environment.IsPrivate = allies <= 0;
 
             var reachableCount = 0;
             var occupiedCount = 0;
@@ -339,7 +344,9 @@ public sealed class PerceptionSystem : ISimulationSystem
                 $"Objects={npc.Perception.Objects.Count} Reachable={reachableCount} Occupied={occupiedCount} " +
                 $"Needs=[{Trace.FormatNeeds(npc.Needs)}] Tile={npc.Tile.Q},{npc.Tile.R} " +
                 $"Pos={Trace.FormatPos(npc.Position)} Junction={Trace.FormatJunction(npcJunction)} " +
-                $"Env=[Temp={world.Environment.GlobalTemperature:F1} Agents={world.Entities.Npcs.Count - 1}]");
+                $"Env=[Temp={world.Environment.GlobalTemperature:F1} " +
+                $"Agents={npc.Perception.Agents.Count + npc.Perception.Hostiles.Count} " +
+                $"Radius={agentRadius}]");
 
             foreach (var obj in npc.Perception.Objects)
             {
@@ -349,6 +356,62 @@ public sealed class PerceptionSystem : ISimulationSystem
                     $"Reachable={obj.IsReachable} Occupied={obj.IsOccupied} Interactions=[{interactions}]");
             }
         }
+    }
+
+    /// <summary>§125.2: кто из людей стоит в кольце восприятия наблюдателя.
+    /// Две ветки дают ОДИН И ТОТ ЖЕ список (обе кончаются сортировкой по id) —
+    /// выбор между ними чисто по цене: кольцо радиуса r стоит 1+3r(r+1)
+    /// обращений к индексу, полный перебор — по человеку на острове.</summary>
+    private static void CollectAgentsInRadius(
+        WorldState world, NPCState npc, int radius,
+        System.Collections.Generic.List<EntityId> into)
+    {
+        into.Clear();
+        if (radius < 0)
+        {
+            return;
+        }
+
+        var ringTiles = 1 + 3 * radius * (radius + 1);
+        if (ringTiles <= world.Entities.Npcs.Count)
+        {
+            for (var dq = -radius; dq <= radius; dq++)
+            {
+                var lo = System.Math.Max(-radius, -dq - radius);
+                var hi = System.Math.Min(radius, -dq + radius);
+                for (var dr = lo; dr <= hi; dr++)
+                {
+                    var coord = new Common.TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
+                    if (!world.Caches.EntitiesByTile.TryGetValue(coord, out var onTile))
+                    {
+                        continue;
+                    }
+
+                    foreach (var id in onTile)
+                    {
+                        // Индекс держит и мёртвых на тик смерти, и саму
+                        // наблюдательницу — фильтруем по живому реестру.
+                        if (!id.Equals(npc.Id) && world.Entities.Npcs.ContainsKey(id))
+                        {
+                            into.Add(id);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            foreach (var other in world.Entities.Npcs.Values)
+            {
+                if (!other.Id.Equals(npc.Id) &&
+                    HexSpatialMath.HexDistance(npc.Tile, other.Tile) <= radius)
+                {
+                    into.Add(other.Id);
+                }
+            }
+        }
+
+        into.Sort(static (a, b) => a.Value.CompareTo(b.Value));
     }
 
     private static JunctionId? ResolveCurrentJunction(WorldState world, NPCState npc)

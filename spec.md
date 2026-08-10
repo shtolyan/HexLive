@@ -10876,6 +10876,12 @@ without a domain reload), and every cached or completed handle is checked with
 by Addressables teardown is discarded and resolves the actor's pending hair
 attempt as a terminal miss; it may never throw out of the coroutine and leave
 the loading curtain waiting forever.
+The macOS Player keeps URP's GPU Resident Drawer and its camera occlusion off.
+Hex tiles, terrain and most world props are generated at runtime; Unity 6's BRG
+occlusion path can classify that whole dynamic layer as invisible while skinned
+actors and incompatible tree renderers remain visible. The release entry point
+must reject a PC pipeline asset with either switch enabled rather than publish
+an actors-only island.
 External Addressables content has one distribution-level home:
 `<build folder>/HexLiveContent/<BuildTarget>`. Windows/Linux reach it one level
 above `<name>_Data`; macOS reaches it two levels above `<name>.app/Contents`.

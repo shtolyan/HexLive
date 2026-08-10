@@ -15,6 +15,7 @@ namespace HexLive.UnityDebug.Editor
     {
         private const string HutAssetPath = "Assets/Resources/HexLive/Objects/building.hut_1hex.fbx";
         private const string BedAssetPath = "Assets/Resources/HexLive/Objects/bed_basic_final_native.fbx";
+        private const string PcPipelineAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string OutputArgument = "-hexlive-build-output";
         private const string SummaryArgument = "-hexlive-build-summary";
         private const string ReleaseArgument = "-hexlive-release";
@@ -72,6 +73,7 @@ namespace HexLive.UnityDebug.Editor
 
                 ValidateBuildingResource(HutAssetPath, "HexLive/Objects/building.hut_1hex", 1);
                 ValidateBuildingResource(BedAssetPath, "HexLive/Objects/bed_basic_final_native", 69);
+                ValidateRuntimeGeneratedWorldRendering();
 
                 var options = BuildOptions.CompressWithLz4HC;
                 if (development)
@@ -192,6 +194,40 @@ namespace HexLive.UnityDebug.Editor
             }
 
             Debug.Log($"[BuildGate] Player contains building resource: {assetPath}.");
+        }
+
+        private static void ValidateRuntimeGeneratedWorldRendering()
+        {
+            var pipeline = AssetDatabase.LoadMainAssetAtPath(PcPipelineAssetPath);
+            if (pipeline == null)
+            {
+                throw new FileNotFoundException(
+                    $"PC render-pipeline asset is missing: {PcPipelineAssetPath}",
+                    PcPipelineAssetPath);
+            }
+
+            var serialized = new SerializedObject(pipeline);
+            var residentDrawer = serialized.FindProperty("m_GPUResidentDrawerMode");
+            var occlusion = serialized.FindProperty(
+                "m_GPUResidentDrawerEnableOcclusionCullingInCameras");
+            if (residentDrawer == null || occlusion == null)
+            {
+                throw new InvalidOperationException(
+                    $"GPU Resident Drawer settings are missing from {PcPipelineAssetPath}.");
+            }
+
+            // §41.1 / bug #111: the island is generated at runtime. Unity 6's
+            // BRG occlusion path treated those MeshRenderers as fully occluded
+            // in the macOS Player while skinned actors remained visible.
+            if (residentDrawer.intValue != 0 || occlusion.boolValue)
+            {
+                throw new InvalidOperationException(
+                    "GPU Resident Drawer and its camera occlusion must stay disabled for " +
+                    "the runtime-generated HexLive world. Otherwise a release Player can " +
+                    "render actors and palms while culling every hex and world prop.");
+            }
+
+            Debug.Log("[BuildGate] Runtime-generated world uses classic MeshRenderer path.");
         }
 
         private static bool HasArgument(string name)

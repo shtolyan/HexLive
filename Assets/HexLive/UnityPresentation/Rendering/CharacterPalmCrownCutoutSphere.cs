@@ -16,10 +16,11 @@ namespace HexLive.UnityPresentation.Rendering
     {
         public const int MaxShaderSpheres = 64;
 
-        private static readonly int SphereCountId =
-            Shader.PropertyToID("_CharacterPalmCutoutSphereCount");
-        private static readonly int SpheresId =
-            Shader.PropertyToID("_CharacterPalmCutoutSpheres");
+        // Unity API must not be called from a MonoBehaviour static initializer:
+        // the class can first load while Unity is constructing a component.
+        private static int SphereCountId;
+        private static int SpheresId;
+        private static bool _shaderPropertyIdsReady;
         private static readonly List<CharacterPalmCrownCutoutSphere> Live = new();
         private static readonly Vector4[] SphereScratch = new Vector4[MaxShaderSpheres];
 
@@ -40,6 +41,7 @@ namespace HexLive.UnityPresentation.Rendering
 
         private void Awake()
         {
+            EnsureShaderPropertyIds();
             _actor = GetComponent<NpcActorView>();
         }
 
@@ -72,6 +74,7 @@ namespace HexLive.UnityPresentation.Rendering
 
         private static void UploadSpheres()
         {
+            EnsureShaderPropertyIds();
             var count = 0;
             for (var i = 0; i < Live.Count; i++)
             {
@@ -117,10 +120,23 @@ namespace HexLive.UnityPresentation.Rendering
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
+            EnsureShaderPropertyIds();
             Live.Clear();
             _uploadedFrame = -1;
             _overflowWarned = false;
             Shader.SetGlobalInt(SphereCountId, 0);
+        }
+
+        private static void EnsureShaderPropertyIds()
+        {
+            if (_shaderPropertyIdsReady)
+            {
+                return;
+            }
+
+            SphereCountId = Shader.PropertyToID("_CharacterPalmCutoutSphereCount");
+            SpheresId = Shader.PropertyToID("_CharacterPalmCutoutSpheres");
+            _shaderPropertyIdsReady = true;
         }
     }
 }

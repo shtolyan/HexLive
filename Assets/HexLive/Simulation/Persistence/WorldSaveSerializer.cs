@@ -68,7 +68,7 @@ public static class WorldSaveSerializer
     // door element; v32 hut slots are migrated from the mirrored prototype.
     // v34: every constructor piece is a top-level WorldObject linked to its
     // footprint aggregate by ArchitectureOwnerId.
-    public const int BlobVersion = 34;
+    public const int BlobVersion = 35;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1241,6 +1241,11 @@ public static class WorldSaveSerializer
         w.Write(npc.Mind.ProstheticAidRetryAfterTick);
         WriteNullableObject(w, npc.Execution.CraftProjectId);
         w.Write(npc.Execution.CraftCycleStartWork);
+
+        // §125 / v35: седьмая характеристика — в конец записи, не рядом с
+        // шестёркой v19 (append-only; вставка в середину сломала бы чтение
+        // любого блоба v19..v34).
+        w.Write(npc.Attributes.Perception);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -1710,6 +1715,12 @@ public static class WorldSaveSerializer
         else
         {
             MigrateKenshiState(npc);
+        }
+
+        if (version >= 35)
+        {
+            // §125: Восприятие. Старый блоб — дефолт 0.5 (радиус 5, до-§125 мир).
+            npc.Attributes.Perception = r.ReadSingle();
         }
 
         return npc;

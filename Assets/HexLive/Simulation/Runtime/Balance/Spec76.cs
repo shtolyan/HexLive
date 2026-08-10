@@ -56,6 +56,12 @@ public static class Spec76
     // Gain of 0.3 is the ±15% band the design targets. Toughness inverts the
     // sign inside the helper (more grit = LESS damage taken).
 
+    // §125: гексов радиуса восприятия людей на единицу характеристики.
+    // 10 = «число с листа персонажа и есть радиус»: attr 0.8 читается как
+    // «Восприятие 8» и даёт ровно 8 гексов. Не Gain-множитель нарочно —
+    // радиус целочисленный и абсолютный, а не поправка к среднему.
+    public static float PerceptionRadiusPerAttribute = 10f;
+
     public static float MeleeDamageGain = 0.3f;
     public static float IncomingDamageGain = 0.3f;
     public static float MoveSpeedGain = 0.3f;

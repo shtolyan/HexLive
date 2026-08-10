@@ -1011,6 +1011,9 @@ public static class WorldSnapshotExporter
 
         Runtime.AttributeMath.CollectPerks(npc, npcSnapshot.Perks);
 
+        // §125: готовый радиус восприятия для тумана войны и кольца в дебаге.
+        npcSnapshot.PerceptionRadiusTiles = Runtime.PerceptionMath.RadiusTiles(npc);
+
         var worstPartValue = 1f;
         var worstPartName = "-";
         foreach (var part in npc.Body.Parts)

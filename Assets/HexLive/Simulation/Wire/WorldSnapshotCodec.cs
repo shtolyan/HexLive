@@ -775,6 +775,7 @@ public static class WorldSnapshotCodec
         // §76: innate attributes, learned skills, perks.
         WireIo.WriteStrings(w, n.Attributes);
         WireIo.WriteStrings(w, n.Skills);
+        w.Write(n.PerceptionRadiusTiles);
         WireIo.WriteStrings(w, n.Perks);
         w.Write(n.WoundLockedHp);
         w.Write(n.VitalHealth); // §105 r2
@@ -1023,6 +1024,7 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.Effects);
         WireIo.ReadStrings(r, n.Attributes);
         WireIo.ReadStrings(r, n.Skills);
+        n.PerceptionRadiusTiles = r.ReadInt32();
         WireIo.ReadStrings(r, n.Perks);
         n.WoundLockedHp = r.ReadSingle();
         n.VitalHealth = r.ReadSingle(); // §105 r2

@@ -345,6 +345,14 @@ MonoBehaviour:
       - 'Смекалка'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'attr.perception'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Perception'
+      - 'Восприятие'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'trait.compassion'
       TermType: 0
       Description: 
@@ -521,6 +529,22 @@ MonoBehaviour:
       - 'Простодушная'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'perk.perception.high'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Keen-eyed'
+      - 'Зоркая'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'perk.perception.low'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Absent'
+      - 'Ненаблюдательная'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'attr.strength.desc'
       TermType: 0
       Description: 
@@ -567,6 +591,14 @@ MonoBehaviour:
       Languages:
       - 'How quickly she picks up a trade, and how fast her hands work at crafting and doctoring.'
       - 'Как быстро она осваивает ремёсла и насколько споро работают руки в крафте и врачевании.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'attr.perception.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How far she notices people around her. The number is the radius in hexes: an eight sees eight hexes out.'
+      - 'Насколько далеко она замечает людей вокруг. Число — это радиус в гексах: восьмёрка видит на восемь гексов.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'skill.combat.desc'

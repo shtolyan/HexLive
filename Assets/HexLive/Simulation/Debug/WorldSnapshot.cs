@@ -746,6 +746,12 @@ public sealed class NpcSnapshot
     // them would disagree with the simulation the moment either was tuned.
     public List<string> Perks { get; } = new();
 
+    // §125: радиус восприятия людей в гексах — ГОТОВОЕ число из
+    // PerceptionMath.RadiusTiles. Вид (туман войны, кольцо радиуса) обязан
+    // читать его, а не выводить из строки Attributes: формула живёт в
+    // симуляции один раз.
+    public int PerceptionRadiusTiles { get; set; }
+
     // Spec 40.8B: HP fraction held hostage by open wounds (Fallout-style red
     // bar segment — regen can't cross it; it shrinks as wounds close).
     public float WoundLockedHp { get; set; }

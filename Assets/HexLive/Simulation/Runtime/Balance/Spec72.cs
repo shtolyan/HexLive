@@ -97,6 +97,7 @@ public static class Spec72
     public static float OutsiderHardiness = 0.6f;  // 6/10 — терпит голод и холод лучше домашних
     public static float OutsiderAgility = 0.5f;    // 5/10 — тяжёлый, не быстрый
     public static float OutsiderWits = 0.4f;       // 4/10 — не мастеровой: его сила в руках
+    public static float OutsiderPerception = 0.7f; // 7/10 — §125: зоркий охотник, живёт наблюдением
 
     // He comes ashore with a knife. Not a handout — a lone man has none of the
     // four-way division of labour the colony has, and the first soak had him

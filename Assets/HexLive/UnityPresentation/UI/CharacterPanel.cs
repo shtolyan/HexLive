@@ -349,6 +349,7 @@ namespace HexLive.UnityPresentation.UI
             new() { Id = "Toughness", Key = "attr.toughness", Color = Gold },
             new() { Id = "Hardiness", Key = "attr.hardiness", Color = Hunger },
             new() { Id = "Wits", Key = "attr.wits", Color = Social },
+            new() { Id = "Perception", Key = "attr.perception", Color = Comfort },
             new() { Id = "CompassionTrait", Key = "trait.compassion", Color = Compassion, Percent = true },
         };
 

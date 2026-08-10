@@ -1,7 +1,7 @@
 namespace HexLive.Simulation.Agents
 {
 
-// Spec §76: the six innate characteristics. WHO she is — rolled once from the
+// Spec §76 (+§125): the seven innate characteristics. WHO she is — rolled once from the
 // world seed at spawn and fixed for life, unlike Skills (what she has learned)
 // which grow with practice.
 //
@@ -14,7 +14,8 @@ public enum AttributeKind
     Endurance,  // выносливость — stamina pool & drain, breath, sleep
     Toughness,  // стойкость — incoming damage, bleeding, healing
     Hardiness,  // неприхотливость — hunger/thirst rates, thermal tolerance
-    Wits        // смекалка — skill learning rate, craft speed
+    Wits,       // смекалка — skill learning rate, craft speed
+    Perception  // восприятие §125 — радиус восприятия людей, round(attr*10) гексов
 }
 
 // Spec §76: six floats in 0..1, meaning "how far from the human average".
@@ -34,7 +35,8 @@ public sealed class AttributeSet
         AttributeKind.Endurance,
         AttributeKind.Toughness,
         AttributeKind.Hardiness,
-        AttributeKind.Wits
+        AttributeKind.Wits,
+        AttributeKind.Perception
     };
 
     // 0.5 is the §76 mean, so an UN-ROLLED body (a test scene bootstrap, a
@@ -52,6 +54,8 @@ public sealed class AttributeSet
 
     public float Wits { get; set; } = 0.5f;
 
+    public float Perception { get; set; } = 0.5f;
+
     public float Get(AttributeKind kind) => kind switch
     {
         AttributeKind.Strength => Strength,
@@ -60,6 +64,7 @@ public sealed class AttributeSet
         AttributeKind.Toughness => Toughness,
         AttributeKind.Hardiness => Hardiness,
         AttributeKind.Wits => Wits,
+        AttributeKind.Perception => Perception,
         _ => 0.5f
     };
 
@@ -73,6 +78,7 @@ public sealed class AttributeSet
             case AttributeKind.Toughness: Toughness = value; break;
             case AttributeKind.Hardiness: Hardiness = value; break;
             case AttributeKind.Wits: Wits = value; break;
+            case AttributeKind.Perception: Perception = value; break;
         }
     }
 }

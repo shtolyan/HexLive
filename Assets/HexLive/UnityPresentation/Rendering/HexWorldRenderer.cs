@@ -130,12 +130,28 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // "no Engine in rendering" rule; on a remote/loopback backend Engine is
     // null and the fog silently stays off.
     private readonly HashSet<int> _fogKnownObjects = new();
-    private readonly List<TileCoord> _fogColonyTiles = new();
+    // §125.5: пары (тайл наблюдателя, ЕЁ радиус восприятия). Радиус приезжает
+    // готовым числом в снапшоте — прежнее локальное зеркало константы 6 больше
+    // не имеет смысла: зоркость у каждой своя.
+    private readonly List<(TileCoord Tile, int Radius)> _fogEyes = new();
     private bool _fogActive;
 
-    // Mirrors Spec62.SpotRadiusTiles — how far a sim notices a threat. Kept as
-    // a local constant: presentation must not link sim balance.
-    private const int FogMobSpotRadiusTiles = 6;
+    // §125.5: кого прячет туман среди ЛЮДЕЙ. Пусто, когда режим «выбранная»
+    // выключен: без выбранной прятать людей не от чьего лица.
+    private readonly HashSet<int> _fogHiddenNpcs = new();
+    private bool _fogHidesNpcs;
+
+    // §125.5: подсвеченная граница радиуса выбранной — «докуда она видит».
+    // Тайлы кольца красятся своим MaterialPropertyBlock (материалы общие на
+    // десятки тайлов, менять material.color нельзя), исходный блок хранится
+    // и возвращается при снятии.
+    private static readonly int FogRingBaseColor = Shader.PropertyToID("_BaseColor");
+    private static readonly int FogRingLegacyColor = Shader.PropertyToID("_Color");
+    private readonly Dictionary<Renderer, MaterialPropertyBlock> _fogRingSaved = new();
+    private readonly MaterialPropertyBlock _fogRingScratch = new();
+    private readonly List<TileCoord> _fogRingTiles = new();
+    private TileCoord _fogRingCenter = TileCoord.Zero;
+    private int _fogRingRadius = -1;
 
     // §28.15C v4: СВЕЖИЕ ТЕЛА. Ключ — id самой погибшей. Реестр живёт ровно
     // двое игровых суток или до ножа; после истлевания его заменяет лёгкий
@@ -1018,6 +1034,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         RebuildFogState(snapshot);
+        SyncFogRing(snapshot);
 
         // §35.5B: map rack junctions and rank the garments hanging at each one
         // (sorted by object id) so every hung garment gets a stable hanger slot.
@@ -1244,6 +1261,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // ActorGroundY is the STATIC surface (tile top − sink); the live
             // wave swell is added per render frame in InterpolateViews so the
             // swimmer bobs with the exact surface under her, not a snapshot.
+            // §125.5: туман прячет тех, кого выбранная не видит. Вью живёт и
+            // двигается как обычно — гаснет только его картинка, ровно как у
+            // мобов; симуляция об этом не знает.
+            if (npcView != null)
+            {
+                var hiddenByFog = _fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key);
+                if (npcView.activeSelf == hiddenByFog)
+                {
+                    npcView.SetActive(!hiddenByFog);
+                }
+            }
+
             _npcOnWater[key] = _waterCoords.Contains(npc.Tile);
             var targetRot = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(npc.RotationDegrees), 0f);
             var targetPose = TryGetCarriedPose(snapshot, npc, targetRot, out var carriedPose)
@@ -3349,7 +3378,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var engine = UI.DebugControlsPanel.FogOfWar ? _runner?.Engine : null;
         _fogActive = engine != null;
         _fogKnownObjects.Clear();
-        _fogColonyTiles.Clear();
+        _fogEyes.Clear();
+        _fogHiddenNpcs.Clear();
+        _fogHidesNpcs = false;
         if (engine == null)
         {
             return;
@@ -3379,8 +3410,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        // Spot tiles come from the snapshot so the mob check matches what is
-        // actually rendered this tick.
+        // Глаза берём из снапшота, чтобы проверка совпадала с тем, что
+        // нарисовано в этом кадре, а радиус — тот же, что считает симуляция
+        // (§125.5: вид не выводит формулу повторно).
         foreach (var npc in snapshot.Npcs)
         {
             var include = selectedId >= 0
@@ -3388,16 +3420,137 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 : !npc.IsHostileToColony;
             if (include)
             {
-                _fogColonyTiles.Add(npc.Tile);
+                _fogEyes.Add((npc.Tile, npc.PerceptionRadiusTiles));
+            }
+        }
+
+        // §125.5: людей прячем только от лица ВЫБРАННОЙ — «чего не видит вся
+        // колония сразу» смысла не имеет, там всегда видно всех.
+        _fogHidesNpcs = selectedId >= 0;
+        if (!_fogHidesNpcs)
+        {
+            return;
+        }
+
+        foreach (var npc in snapshot.Npcs)
+        {
+            if (npc.Id.Value != selectedId && !FogSeesTile(npc.Tile))
+            {
+                _fogHiddenNpcs.Add(npc.Id.Value);
             }
         }
     }
 
-    private bool FogColonySeesTile(TileCoord tile)
+    /// <summary>§125.5: кольцо гексов на самой границе восприятия выбранной.
+    /// Перестраивается только когда она сменилась, сдвинулась или её радиус
+    /// изменился — иначе это была бы перекраска сотни рендереров каждый кадр.</summary>
+    private void SyncFogRing(WorldSnapshot snapshot)
     {
-        foreach (var colonistTile in _fogColonyTiles)
+        var show = _fogActive && _fogHidesNpcs && Input.NpcSelection.HasSelection;
+        if (!show)
         {
-            if (HexSpatialMath.HexDistance(colonistTile, tile) <= FogMobSpotRadiusTiles)
+            ClearFogRing();
+            return;
+        }
+
+        var selectedId = Input.NpcSelection.SelectedId;
+        var centre = TileCoord.Zero;
+        var radius = -1;
+        foreach (var npc in snapshot.Npcs)
+        {
+            if (npc.Id.Value == selectedId)
+            {
+                centre = npc.Tile;
+                radius = npc.PerceptionRadiusTiles;
+                break;
+            }
+        }
+
+        if (radius <= 0)
+        {
+            ClearFogRing(); // слепая — рисовать нечего
+            return;
+        }
+
+        if (radius == _fogRingRadius && centre.Equals(_fogRingCenter) && _fogRingSaved.Count > 0)
+        {
+            return;
+        }
+
+        ClearFogRing();
+        _fogRingCenter = centre;
+        _fogRingRadius = radius;
+
+        _fogRingTiles.Clear();
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            var lo = Mathf.Max(-radius, -dq - radius);
+            var hi = Mathf.Min(radius, -dq + radius);
+            for (var dr = lo; dr <= hi; dr++)
+            {
+                // Только ОБОД кольца: заливать всю зону значило бы перекрасить
+                // пол-острова и потерять сам рисунок границы.
+                if (Mathf.Max(Mathf.Abs(dq), Mathf.Max(Mathf.Abs(dr), Mathf.Abs(dq + dr))) != radius)
+                {
+                    continue;
+                }
+
+                _fogRingTiles.Add(new TileCoord(centre.Q + dq, centre.R + dr));
+            }
+        }
+
+        foreach (var coord in _fogRingTiles)
+        {
+            if (!_tileViews.TryGetValue(coord, out var view) || view == null)
+            {
+                continue;
+            }
+
+            foreach (var renderer in view.GetComponentsInChildren<Renderer>())
+            {
+                if (renderer == null || _fogRingSaved.ContainsKey(renderer))
+                {
+                    continue;
+                }
+
+                var before = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(before);
+                _fogRingSaved[renderer] = before;
+
+                var material = renderer.sharedMaterial;
+                var property = material != null && material.HasProperty(FogRingBaseColor)
+                    ? FogRingBaseColor
+                    : FogRingLegacyColor;
+                var tint = material != null && material.HasProperty(property)
+                    ? material.GetColor(property)
+                    : Color.white;
+
+                renderer.GetPropertyBlock(_fogRingScratch);
+                _fogRingScratch.SetColor(property, Color.Lerp(tint, new Color(0.35f, 0.75f, 1f), 0.55f));
+                renderer.SetPropertyBlock(_fogRingScratch);
+            }
+        }
+    }
+
+    private void ClearFogRing()
+    {
+        foreach (var pair in _fogRingSaved)
+        {
+            if (pair.Key != null)
+            {
+                pair.Key.SetPropertyBlock(pair.Value);
+            }
+        }
+
+        _fogRingSaved.Clear();
+        _fogRingRadius = -1;
+    }
+
+    private bool FogSeesTile(TileCoord tile)
+    {
+        foreach (var (eyeTile, radius) in _fogEyes)
+        {
+            if (HexSpatialMath.HexDistance(eyeTile, tile) <= radius)
             {
                 return true;
             }
@@ -3422,7 +3575,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             // FOG-OF-WAR EXPERIMENT: a mob exists for the player only while a
             // colonist would notice it (the sim's spot-scan radius).
-            var fogHideMob = _fogActive && !FogColonySeesTile(dog.Tile);
+            var fogHideMob = _fogActive && !FogSeesTile(dog.Tile);
             if (mobView.activeSelf == fogHideMob)
             {
                 mobView.SetActive(!fogHideMob);
@@ -3470,7 +3623,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             // FOG-OF-WAR EXPERIMENT: same spot-radius rule as the dogs above.
-            var fogHideCrab = _fogActive && !FogColonySeesTile(crab.Tile);
+            var fogHideCrab = _fogActive && !FogSeesTile(crab.Tile);
             if (crabView.activeSelf == fogHideCrab)
             {
                 crabView.SetActive(!fogHideCrab);

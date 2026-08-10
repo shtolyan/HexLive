@@ -190,7 +190,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         for (var i = 0; i < all.Count; i++)
         {
             var view = all[i];
-            if (view == null || view.ObjectId < 0)
+            if (view == null || view.ObjectId < 0 || !HasContextActions(view))
             {
                 continue;
             }
@@ -204,6 +204,17 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         return best;
     }
+
+    // Decorative/resource producers can visually enclose a real ground item:
+    // a herb bush encloses its shed leaf, and furniture can overlap dropped
+    // clothes. Such a view has no contextual action of its own and must not
+    // swallow the ray before the actionable object behind it is considered.
+    // The definition catalog remains the single eligibility source used again
+    // by OpenObjectMenu and ManualCommandExecutor; this is only hit selection.
+    private bool HasContextActions(WorldObjectView view) =>
+        _runner != null &&
+        _runner.TryGetObjectDefinition(view.DefinitionId, out var definition) &&
+        definition != null && definition.Interactions.Count > 0;
 
     private int PickNpcUnderCursor(WorldSnapshot? snapshot, Vector2 mousePos)
     {

@@ -1008,7 +1008,12 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   a multiplier over `ObjectFit`, so swapping the model can't break the size.
   `tool.bottle` is a plastic water bottle and is deliberately **slightly
   see-through**: `alphaMode: BLEND` with base-colour alpha 0.82 baked into
-  the glTF material.
+  the glTF material. Its retopologised authored mesh is **800 triangles**,
+  keeps the canonical base-at-zero / cap-at-`+Y` frame and is normalized by
+  the shared `ObjectFit` to `0.18 × HexRadius` in both world and hand. Unlike
+  dropped weapons it remains upright: ground yaw preserves the native wrapper's
+  Blender→Unity axis correction. The same correction is composed with the
+  authored drinking grip instead of being overwritten by it.
 - **Action animations** are procedural (`NpcActorView.ApplyActionPose`):
   the Animator only has locomotion + a generic crouch/sit/lay, so chopping,
   spear thrust, bow draw, eat/drink and combat swings are layered on in

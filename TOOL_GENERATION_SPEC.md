@@ -136,6 +136,7 @@ Blender -b -P orient_glb.py   -- dec.glb  out.glb <rx ry rz> preview.png [alpha]
 | handmade Kenney props (`.fbx`) | **28 - 400** |
 | `tool.axe_stone` / `knife` / `pickaxe` / `spear` | 21 310 - 34 830 |
 | `tool.machete` / `tool.saw` (as shipped) | 20 000 each |
+| `tool.bottle` (voxel-retopologised) | **800** |
 | `rope` / `yucca` | 46 855 / 52 760 |
 
 So every AI tool was **50-250x** the rest of the art, and nobody could push it

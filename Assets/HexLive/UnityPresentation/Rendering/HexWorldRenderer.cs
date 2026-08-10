@@ -4533,7 +4533,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // rotation with yaw stood dropped leaves on edge and made their pose
         // depend on whichever source/fallback happened to load. Preserve the
         // exact imported pose and scatter only around world up.
-        if (definitionId == "resource.palm_leaf")
+        if (definitionId == "resource.palm_leaf" || definitionId == "tool.bottle")
         {
             return Quaternion.Euler(0f, yaw, 0f) * authoredRotation;
         }
@@ -4545,7 +4545,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // on their side like a dropped tool; the pot is a container that rests upright.
     private static bool LiesFlatOnGround(string definitionId)
     {
-        return definitionId.StartsWith("tool.") && definitionId != "tool.pot";
+        return definitionId.StartsWith("tool.") &&
+            definitionId != "tool.pot" && definitionId != "tool.bottle";
     }
 
     // Ground the model: bottom of its renderer bounds sits on the tile top

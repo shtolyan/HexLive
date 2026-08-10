@@ -252,6 +252,9 @@ public sealed class ObjectSnapshot
 
     public List<ArchitectureElementSnapshot> ArchitectureElements { get; } = new();
 
+    // §120 v2: top-level LEGO piece -> invisible building footprint owner.
+    public int? ArchitectureOwnerObjectId { get; set; }
+
     // §119: an unfinished item exists in the world from the first work cycle.
     public int CraftWorkRequired { get; set; }
 

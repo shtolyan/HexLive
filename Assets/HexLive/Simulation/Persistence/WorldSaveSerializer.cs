@@ -64,7 +64,11 @@ public static class WorldSaveSerializer
     // продолжаются. (Ветка §121 приехала со своим v28 — номер занят §116,
     // поэтому поле переехало в хвост под v31.)
     // v32 (§120 constructor): persistent per-building architecture elements.
-    public const int BlobVersion = 32;
+    // v33: canonical Bay_00 geometry and topology come from the same persisted
+    // door element; v32 hut slots are migrated from the mirrored prototype.
+    // v34: every constructor piece is a top-level WorldObject linked to its
+    // footprint aggregate by ArchitectureOwnerId.
+    public const int BlobVersion = 34;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -526,15 +530,18 @@ public static class WorldSaveSerializer
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
         }
 
-        MigrateRetiredContent(world);
+        MigrateRetiredContent(world, version);
     }
 
     // Save migration: content retired from the bootstrap still lives inside
     // older saves' entity lists — despawn it on load or the girls keep using
     // ghosts (e.g. the water.pond anchors: removed from the world, invisible
     // to the renderer, yet loaded NPCs kept hiking to them for water).
-    private static void MigrateRetiredContent(WorldState world)
+    private static void MigrateRetiredContent(WorldState world, int loadedVersion)
     {
+        // v32-v33 stored all LEGO components inside one building object. Explode
+        // them exactly once into normal world objects before spatial repair.
+        BuildingRules.MaterializeLegacyElements(world);
         var retired = new List<ObjectId>();
         foreach (var obj in world.Entities.Objects.Values)
         {
@@ -571,6 +578,21 @@ public static class WorldSaveSerializer
         // Migration is spatial too: both legacy hut cots could retain one
         // anchor and render collapsed after becoming bed.basic.
         HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairIntegratedCotAnchors(world);
+        var hutsToRepair = new List<WorldObjectState>();
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == ContentIds.Hut1Hex) hutsToRepair.Add(obj);
+        }
+        foreach (var hut in hutsToRepair)
+        {
+            // Slot geometry belongs to the current blueprint catalog, not
+            // to instance save data. A v33 save made by a broken build can
+            // otherwise preserve the wrong door forever merely because its
+            // version already equals the reader's version.
+            BuildingRules.RefreshHutElementGeometry(world, hut);
+            HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairHutTopology(world, hut);
+            HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairIntegratedHearthAnchor(world, hut);
+        }
 
         MigrateRetiredGarments(world, world.Entities.Npcs.Values);
         MigrateRetiredGarments(world, world.Entities.Corpses.Values);
@@ -692,6 +714,7 @@ public static class WorldSaveSerializer
             w.Write(element.WorkRequired);
             w.Write(element.WorkDone);
         }
+        WriteNullableObject(w, obj.ArchitectureOwnerId);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -787,6 +810,8 @@ public static class WorldSaveSerializer
             BuildingRules.EnsureHutElements(obj, completed: obj.DefinitionId == ContentIds.Hut1Hex);
             if (obj.BuildProduct == ContentIds.Hut1Hex) BuildingRules.SyncHutElements(obj);
         }
+
+        obj.ArchitectureOwnerId = version >= 34 ? ReadNullableObject(r) : null;
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including
@@ -1724,22 +1749,27 @@ public static class WorldSaveSerializer
 
     private static void RepairCarryLinks(WorldState world)
     {
-        var safeDrops = new HashSet<EntityId>();
+        var safeLiveDrops = new HashSet<EntityId>();
+        var safeCorpseDrops = new HashSet<EntityId>();
         foreach (var npc in world.Entities.Npcs.Values)
         {
             if (npc.CarriedNpcId is { } carriedId)
             {
-                world.Entities.Npcs.TryGetValue(carriedId, out var patient);
+                KenshiRescueMath.TryGetPerson(world, carriedId, out var patient, out var dead);
                 if (carriedId.Equals(npc.Id) ||
                     patient == null ||
                     patient.CarriedByNpcId is not { } carrierId || !carrierId.Equals(npc.Id))
                 {
                     if (patient != null)
                     {
-                        safeDrops.Add(patient.Id);
+                        (dead ? safeCorpseDrops : safeLiveDrops).Add(patient.Id);
                     }
                     npc.CarriedNpcId = null;
                     npc.RescueDestinationObjectId = null;
+                }
+                else if (dead)
+                {
+                    CorpseMath.SuspendAnchor(world, patient);
                 }
             }
 
@@ -1750,21 +1780,49 @@ public static class WorldSaveSerializer
                     carrier.CarriedNpcId is not { } patientId || !patientId.Equals(npc.Id))
                 {
                     npc.CarriedByNpcId = null;
-                    safeDrops.Add(npc.Id);
+                    safeLiveDrops.Add(npc.Id);
                 }
+            }
+        }
+
+        foreach (var corpse in world.Entities.Corpses.Values)
+        {
+            if (corpse.CarriedByNpcId is not { } carrierId)
+            {
+                continue;
+            }
+
+            if (!world.Entities.Npcs.TryGetValue(carrierId, out var carrier) ||
+                carrier.CarriedNpcId is not { } bodyId || !bodyId.Equals(corpse.Id))
+            {
+                corpse.CarriedByNpcId = null;
+                safeCorpseDrops.Add(corpse.Id);
+            }
+            else
+            {
+                CorpseMath.SuspendAnchor(world, corpse);
             }
         }
 
         // A half-link from a corrupt/interrupted save must not leave a patient
         // with no junction forever. Re-anchor only bodies that should be lying;
         // a healthy standing NPC with an unrelated stale id keeps her pose.
-        foreach (var id in safeDrops)
+        foreach (var id in safeLiveDrops)
         {
             if (world.Entities.Npcs.TryGetValue(id, out var patient) &&
                 patient.Health > 0f && patient.CurrentJunction is null &&
                 (patient.IsUnconscious(world.Tick) || patient.IsDying || patient.Body.IsProne))
             {
                 HexLive.Simulation.Runtime.MortalityHelpers.AnchorLyingBody(world, patient);
+            }
+        }
+
+
+        foreach (var id in safeCorpseDrops)
+        {
+            if (world.Entities.Corpses.TryGetValue(id, out var body) && !body.IsBeingCarried)
+            {
+                CorpseMath.AnchorBody(world, body);
             }
         }
     }

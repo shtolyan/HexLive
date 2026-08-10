@@ -39,6 +39,28 @@ public interface ISimulationCommand
     EntityId? TargetEntity { get; }
 }
 
+public interface IGroupSimulationCommand : ISimulationCommand
+{
+    IReadOnlyList<EntityId> Actors { get; }
+}
+
+public abstract class GroupSimulationCommand : IGroupSimulationCommand
+{
+    protected GroupSimulationCommand(IEnumerable<EntityId> actors)
+    {
+        var unique = new HashSet<EntityId>();
+        var ordered = new List<EntityId>();
+        foreach (var actor in actors)
+        {
+            if (unique.Add(actor)) ordered.Add(actor);
+        }
+        Actors = ordered;
+    }
+
+    public IReadOnlyList<EntityId> Actors { get; }
+    public EntityId? TargetEntity => null;
+}
+
 /// <summary>§121: взять персонажа под ручное управление или вернуть ИИ.</summary>
 public sealed class SetManualControlCommand : ISimulationCommand
 {
@@ -109,6 +131,32 @@ public sealed class AttackNpcCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§124: вручную поднять лежащего живого человека или свежее тело.</summary>
+public sealed class CarryPersonCommand : ISimulationCommand
+{
+    public CarryPersonCommand(EntityId npc, EntityId target)
+    {
+        Npc = npc;
+        Target = target;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>§124: положить переносимого человека у ног носильщика.</summary>
+public sealed class PutDownPersonCommand : ISimulationCommand
+{
+    public PutDownPersonCommand(EntityId npc) => Npc = npc;
+
+    public EntityId Npc { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§121: бить зверя. Мобы живут отдельным списком со своей
 /// нумерацией, поэтому цель — int, а не EntityId.</summary>
 public sealed class AttackMobCommand : ISimulationCommand
@@ -138,6 +186,86 @@ public sealed class StopCommand : ISimulationCommand
 
     public EntityId Npc { get; }
 
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>§123: one target point, many independently placed actors.</summary>
+public sealed class GroupMoveCommand : GroupSimulationCommand
+{
+    public GroupMoveCommand(IEnumerable<EntityId> actors, Float2 worldPosition)
+        : base(actors) => WorldPosition = worldPosition;
+
+    public Float2 WorldPosition { get; }
+}
+
+public sealed class GroupStopCommand : GroupSimulationCommand
+{
+    public GroupStopCommand(IEnumerable<EntityId> actors) : base(actors) { }
+}
+
+public sealed class GroupAttackNpcCommand : GroupSimulationCommand
+{
+    public GroupAttackNpcCommand(IEnumerable<EntityId> actors, EntityId target)
+        : base(actors) => Target = target;
+
+    public EntityId Target { get; }
+}
+
+public sealed class GroupAttackMobCommand : GroupSimulationCommand
+{
+    public GroupAttackMobCommand(IEnumerable<EntityId> actors, int mobId)
+        : base(actors) => MobId = mobId;
+
+    public int MobId { get; }
+}
+
+public sealed class SetGroupManualControlCommand : GroupSimulationCommand
+{
+    public SetGroupManualControlCommand(IEnumerable<EntityId> actors, bool enabled)
+        : base(actors) => Enabled = enabled;
+
+    public bool Enabled { get; }
+}
+
+public enum InventoryItemSource
+{
+    Carried,
+    Worn
+}
+
+public readonly struct InventoryItemRef
+{
+    public InventoryItemRef(InventoryItemSource source, int index, string expectedDefinitionId)
+    {
+        Source = source;
+        Index = index;
+        ExpectedDefinitionId = expectedDefinitionId ?? string.Empty;
+    }
+
+    public InventoryItemSource Source { get; }
+    public int Index { get; }
+    public string ExpectedDefinitionId { get; }
+}
+
+public enum InventoryAction
+{
+    Wear,
+    Stow,
+    Drop
+}
+
+public sealed class ManageInventoryCommand : ISimulationCommand
+{
+    public ManageInventoryCommand(EntityId npc, InventoryItemRef item, InventoryAction action)
+    {
+        Npc = npc;
+        Item = item;
+        Action = action;
+    }
+
+    public EntityId Npc { get; }
+    public InventoryItemRef Item { get; }
+    public InventoryAction Action { get; }
     public EntityId? TargetEntity => Npc;
 }
 

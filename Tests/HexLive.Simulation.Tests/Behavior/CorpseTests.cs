@@ -12,7 +12,8 @@ namespace HexLive.Simulation.Tests.Behavior
 {
 
 /// <summary>
-/// §28.15C v4: двое суток она лежит сама, затем остаются скелет и мешок.
+/// §28.15C v5: двое суток она лежит сама, ещё двое — скелет и мешок,
+/// затем место окончательно очищается.
 ///
 /// <para>
 /// До этого смерть была исчезновением: сущность удалялась, гардероб и карманы
@@ -121,6 +122,47 @@ public sealed class CorpseTests
     }
 
     [Test]
+    public void CarriedBodyDoesNotRotOutOfSomeonesHands()
+    {
+        var (engine, deadId) = Kill();
+        var world = engine.World;
+        var body = world.Entities.Corpses[deadId];
+        var carrier = world.Entities.Npcs.Values.First();
+        var anchor = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == deadId);
+        carrier.CarriedNpcId = deadId;
+        body.CarriedByNpcId = carrier.Id;
+
+        world.Tick = anchor.SpawnTick + CorpseSystem.HumanCorpseLifetimeTicks + 100;
+        new CorpseSystem().Run(world);
+
+        Assert.That(world.Entities.Corpses.ContainsKey(deadId), Is.True,
+            "Тело истлело прямо в руках носильщика.");
+        Assert.That(world.Entities.Objects.ContainsKey(anchor.Id), Is.True);
+    }
+
+    [Test]
+    public void SkeletonAndLootBagDisappearAfterTwoMoreDays()
+    {
+        var (engine, deadId) = Kill();
+        var world = engine.World;
+        var corpse = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == deadId);
+        world.Tick = corpse.SpawnTick + CorpseSystem.HumanCorpseLifetimeTicks;
+        new CorpseSystem().Run(world);
+        var remains = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.HumanRemains && o.CurrentUser == deadId);
+
+        world.Tick = remains.SpawnTick + CorpseSystem.HumanRemainsLifetimeTicks;
+        new CorpseSystem().Run(world);
+
+        Assert.That(world.Entities.Objects.ContainsKey(remains.Id), Is.False,
+            "Скелет с мешком не исчез после полного срока разложения.");
+        Assert.That(world.DeathRecords.Any(r => r.EntityId == deadId), Is.True,
+            "Исчезновение останков не должно стирать архивную запись о смерти.");
+    }
+
+    [Test]
     public void LootBagSurvivesSaveAndReloadAsOneWorldObject()
     {
         var (engine, deadId) = Kill();
@@ -213,6 +255,43 @@ public sealed class CorpseTests
         Assert.That(after.WornItems.Select(i => i.DefinitionId),
             Is.EquivalentTo(before.WornItems.Select(i => i.DefinitionId)),
             "Одежда не пережила перезагрузку — тело загрузилось голым.");
+    }
+
+    [Test]
+    public void CarriedCorpseLinkAndSuspendedAnchorSurviveASaveAndReload()
+    {
+        var (engine, deadId) = Kill();
+        var world = engine.World;
+        var carrier = world.Entities.Npcs.Values.First();
+        var body = world.Entities.Corpses[deadId];
+        carrier.CarriedNpcId = deadId;
+        body.CarriedByNpcId = carrier.Id;
+        CorpseMath.SuspendAnchor(world, body);
+
+        using var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        blob.Position = 0;
+        var reloaded = TestWorld.CreateWorld();
+        using (var reader = new BinaryReader(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(reloaded, reader);
+        }
+
+        var reloadedCarrier = reloaded.Entities.Npcs[carrier.Id];
+        var reloadedBody = reloaded.Entities.Corpses[deadId];
+        var reloadedAnchor = reloaded.Entities.Objects.Values.Single(o =>
+            o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == deadId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(reloadedCarrier.CarriedNpcId, Is.EqualTo(deadId));
+            Assert.That(reloadedBody.CarriedByNpcId, Is.EqualTo(carrier.Id));
+            Assert.That(reloadedAnchor.Junctions, Is.Empty,
+                "Загрузка не должна возвращать удалённую цель обыска под переносимое тело.");
+        });
     }
 
     /// <summary>

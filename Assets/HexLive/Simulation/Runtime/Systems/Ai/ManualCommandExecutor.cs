@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -49,11 +50,35 @@ internal static class ManualCommandExecutor
             case AttackNpcCommand attackNpc:
                 ApplyAttackNpc(world, attackNpc);
                 break;
+            case CarryPersonCommand carryPerson:
+                ApplyCarryPerson(world, carryPerson);
+                break;
+            case PutDownPersonCommand putDownPerson:
+                ApplyPutDownPerson(world, putDownPerson);
+                break;
             case AttackMobCommand attackMob:
                 ApplyAttackMob(world, attackMob);
                 break;
             case StopCommand stop:
                 ApplyStop(world, stop);
+                break;
+            case GroupMoveCommand groupMove:
+                ApplyGroupMove(world, groupMove);
+                break;
+            case GroupStopCommand groupStop:
+                ApplyGroupStop(world, groupStop);
+                break;
+            case GroupAttackNpcCommand groupAttackNpc:
+                ApplyGroupAttackNpc(world, groupAttackNpc);
+                break;
+            case GroupAttackMobCommand groupAttackMob:
+                ApplyGroupAttackMob(world, groupAttackMob);
+                break;
+            case SetGroupManualControlCommand setGroupManual:
+                ApplySetGroupManual(world, setGroupManual);
+                break;
+            case ManageInventoryCommand inventory:
+                ApplyManageInventory(world, inventory);
                 break;
         }
     }
@@ -70,6 +95,12 @@ internal static class ManualCommandExecutor
         if (!world.Entities.Npcs.TryGetValue(id, out npc) || npc.Health <= 0f)
         {
             Reject(world, id, verb, "NoSuchNpc");
+            return false;
+        }
+
+        if (npc.Faction != Faction.Colony)
+        {
+            Reject(world, id, verb, "NotOwned");
             return false;
         }
 
@@ -94,7 +125,8 @@ internal static class ManualCommandExecutor
 
     // ⭐ Общее начало любого действия: снять с себя всё, что держал прошлый
     // приказ. Без этого спам кликов течёт резервациями (см. правило 1).
-    private static void ClearForNewOrder(WorldState world, NPCState npc, string reason)
+    private static void ClearForNewOrder(
+        WorldState world, NPCState npc, string reason, bool keepCarriedPerson = false)
     {
         // Bug #95 / spec 41.5: a manual order may wake a sleeper, but it must
         // not make the sim translate the body while GetUp is still playing.
@@ -104,9 +136,17 @@ internal static class ManualCommandExecutor
             npc.Execution.CurrentInteraction == InteractionType.Sleep;
 
         if (npc.Plan.Status == PlanStatus.Active ||
-            npc.Execution.Status == ExecutionStatus.InProgress)
+            npc.Execution.Status == ExecutionStatus.InProgress ||
+            npc.IsCarryingPerson || npc.Mind.InterruptedRescuePatientId is not null)
         {
-            PlanInterruption.Abort(world, npc, reason);
+            if (keepCarriedPerson && npc.IsCarryingPerson)
+            {
+                PlanInterruption.AbortKeepingCarriedPerson(world, npc, reason);
+            }
+            else
+            {
+                PlanInterruption.Abort(world, npc, reason);
+            }
         }
 
         if (interruptedSleep)
@@ -160,7 +200,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        ClearForNewOrder(world, npc, "Приказ отставить");
+        ClearForNewOrder(world, npc, "Приказ отставить", keepCarriedPerson: true);
         npc.Mind.CurrentGoal = GoalType.None;
         ClearAttackOrder(world, npc);
         Trace.Emit(world, npc.Id, "ManualOrderStopped", "Order=Stop");
@@ -187,7 +227,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        ClearForNewOrder(world, npc, "Новый приказ игрока");
+        ClearForNewOrder(world, npc, "Новый приказ игрока", keepCarriedPerson: true);
         ClearAttackOrder(world, npc);
 
         if (npc.CurrentJunction is not { } start ||
@@ -198,10 +238,16 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        // Форма плана — ровно как у прогулки (BuildExplorePlan): один шаг и
-        // никакой резервации. Резервируют те, кто идёт К ЧЕМУ-ТО занимаемому;
-        // «встань вон там» ничего не занимает, и держать за ней клетку значило
-        // бы мешать остальным ходить по острову.
+        InstallMovePlan(world, npc, destination, junction);
+
+        Trace.Emit(world, npc.Id, "ManualOrderAccepted",
+            $"Order=MoveTo Junction={destination.Value} " +
+            $"Tile={Trace.FormatTile(npc.Plan.TargetTile)}");
+    }
+
+    private static void InstallMovePlan(
+        WorldState world, NPCState npc, JunctionId destination, Junction junction)
+    {
         npc.Plan.Goal = GoalType.PlayerOrder;
         npc.Plan.TargetJunctionId = destination;
         npc.Plan.TargetTile = junction.Tiles.Count > 0 ? junction.Tiles[0] : null;
@@ -213,10 +259,361 @@ internal static class ManualCommandExecutor
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         npc.Mind.CurrentGoal = GoalType.PlayerOrder;
+    }
 
+    private static void ApplyCarryPerson(WorldState world, CarryPersonCommand command)
+    {
+        if (!TryTakeOrder(world, command.Npc, "CarryPerson", requireManual: true,
+                out var carrier))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, carrier))
+        {
+            Reject(world, carrier.Id, "CarryPerson", "Incapacitated");
+            return;
+        }
+
+        if (carrier.IsCarryingPerson)
+        {
+            Reject(world, carrier.Id, "CarryPerson", "HandsOccupied");
+            return;
+        }
+
+        if (!KenshiRescueMath.TryGetPerson(
+                world, command.Target, out var person, out var dead) ||
+            person.Id.Equals(carrier.Id))
+        {
+            Reject(world, carrier.Id, "CarryPerson", "NoSuchPerson");
+            return;
+        }
+
+        if (person.IsBeingCarried || (!dead && !person.IsLyingDown(world.Tick)))
+        {
+            Reject(world, carrier.Id, "CarryPerson", "PersonNotAvailable");
+            return;
+        }
+
+        ClearForNewOrder(world, carrier, "Ручной приказ поднять человека");
+        ClearAttackOrder(world, carrier);
+        if (!KenshiRescueMath.TryFindApproach(world, carrier, person, out var approach))
+        {
+            carrier.Mind.CurrentGoal = GoalType.None;
+            Reject(world, carrier.Id, "CarryPerson", "Unreachable");
+            return;
+        }
+
+        carrier.Plan.Goal = GoalType.PlayerOrder;
+        carrier.Plan.TargetAgentId = person.Id;
+        carrier.Plan.TargetJunctionId = approach;
+        carrier.Plan.TargetTile = person.Tile;
+        carrier.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = approach
+        });
+        carrier.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PickUpPerson,
+            TargetJunction = approach,
+            Interaction = InteractionType.PickUpPerson
+        });
+        carrier.Plan.CurrentStepIndex = 0;
+        carrier.Plan.Status = PlanStatus.Active;
+        carrier.Mind.CurrentGoal = GoalType.PlayerOrder;
+        Trace.Emit(world, carrier.Id, "ManualOrderAccepted",
+            $"Order=CarryPerson Target=NPC{person.Id.Value} Dead={(dead ? 1 : 0)} " +
+            $"Junction={approach.Value}");
+    }
+
+    private static void ApplyPutDownPerson(WorldState world, PutDownPersonCommand command)
+    {
+        if (!TryTakeOrder(world, command.Npc, "PutDownPerson", requireManual: true,
+                out var carrier))
+        {
+            return;
+        }
+
+        if (!carrier.IsCarryingPerson)
+        {
+            Reject(world, carrier.Id, "PutDownPerson", "HandsEmpty");
+            return;
+        }
+
+        var carried = carrier.CarriedNpcId;
+        PlanInterruption.Abort(world, carrier, "Игрок положил переносимого человека");
+        carrier.Mind.CurrentGoal = GoalType.None;
+        ClearAttackOrder(world, carrier);
+        Trace.Emit(world, carrier.Id, "ManualOrderAccepted",
+            $"Order=PutDownPerson Target=NPC{carried?.Value ?? 0}");
+    }
+
+    // §123: group commands deliberately have one aggregate trace. The UI can
+    // explain partial success without racing a burst of per-NPC toast events.
+    private static void GroupResult(
+        WorldState world, string order, int selected, int manual, int accepted,
+        int noPath, int incapacitated, int ai)
+    {
+        Trace.EmitSystem(world, "GroupOrderResult",
+            $"Order={order} Selected={selected} Manual={manual} Accepted={accepted} " +
+            $"NoPath={noPath} Incapacitated={incapacitated} AI={ai}");
+    }
+
+    private static List<NPCState> GroupActors(
+        WorldState world, IReadOnlyList<EntityId> ids, bool rejectIncapacitated,
+        out int manual, out int incapacitated, out int ai)
+    {
+        var eligible = new List<NPCState>();
+        manual = 0;
+        incapacitated = 0;
+        ai = 0;
+        foreach (var id in ids)
+        {
+            if (!PlayerAuthority.CanControl(world, id, out var npc) || npc.Health <= 0f)
+            {
+                continue;
+            }
+
+            if (!npc.Mind.ManualControl)
+            {
+                ai++;
+                continue;
+            }
+
+            manual++;
+            if (rejectIncapacitated && Incapacitated(world, npc))
+            {
+                incapacitated++;
+                continue;
+            }
+
+            eligible.Add(npc);
+        }
+
+        eligible.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
+        return eligible;
+    }
+
+    private static void ApplyGroupMove(WorldState world, GroupMoveCommand command)
+    {
+        var actors = GroupActors(world, command.Actors, rejectIncapacitated: true,
+            out var manual, out var incapacitated, out var ai);
+        var formation = GroupFormationPlanner.Plan(world, actors, command.WorldPosition);
+
+        // A participant's old reservation is releasable only when that same
+        // participant received a new assignment. Unmatched actors keep both
+        // their action and their claims.
+        var reassigned = new HashSet<EntityId>();
+        foreach (var assignment in formation.Assignments) reassigned.Add(assignment.Npc.Id);
+        foreach (var assignment in formation.Assignments)
+        {
+            if (world.Reservations.Junctions.TryGetValue(
+                    assignment.Destination, out var oldReservation) &&
+                reassigned.Contains(oldReservation.Owner))
+            {
+                SpatialMutations.ReleaseJunctionReservation(
+                    world, assignment.Destination, oldReservation.Owner);
+            }
+        }
+
+        var accepted = 0;
+        foreach (var assignment in formation.Assignments)
+        {
+            if (!world.Junctions.Items.TryGetValue(assignment.Destination, out var destination) ||
+                !SpatialMutations.TryReserveJunction(
+                    world, assignment.Destination, assignment.Npc.Id,
+                    world.Tick, Spec121.ManualReserveTicks))
+            {
+                continue;
+            }
+
+            ClearForNewOrder(world, assignment.Npc, "Новый групповой приказ игрока",
+                keepCarriedPerson: true);
+            ClearAttackOrder(world, assignment.Npc);
+            // If the deterministic assignment reused this actor's former
+            // endpoint, Abort just released the provisional owner-guarded
+            // claim above. Renew after interruption as the transaction's
+            // final write; no other system can race us inside command drain.
+            SpatialMutations.TryReserveJunction(
+                world, assignment.Destination, assignment.Npc.Id,
+                world.Tick, Spec121.ManualReserveTicks);
+            InstallMovePlan(world, assignment.Npc, assignment.Destination, destination);
+            Trace.Emit(world, assignment.Npc.Id, "ManualOrderAccepted",
+                $"Order=GroupMove Junction={assignment.Destination.Value}");
+            accepted++;
+        }
+
+        GroupResult(world, "MoveTo", command.Actors.Count, manual, accepted,
+            actors.Count - accepted, incapacitated, ai);
+    }
+
+    private static void ApplyGroupStop(WorldState world, GroupStopCommand command)
+    {
+        var actors = GroupActors(world, command.Actors, rejectIncapacitated: false,
+            out var manual, out var ignored, out var ai);
+        foreach (var npc in actors)
+        {
+            ClearForNewOrder(world, npc, "Групповой приказ отставить",
+                keepCarriedPerson: true);
+            npc.Mind.CurrentGoal = GoalType.None;
+            ClearAttackOrder(world, npc);
+            Trace.Emit(world, npc.Id, "ManualOrderStopped", "Order=GroupStop");
+        }
+
+        GroupResult(world, "Stop", command.Actors.Count, manual, actors.Count, 0, 0, ai);
+    }
+
+    private static void ApplyGroupAttackNpc(WorldState world, GroupAttackNpcCommand command)
+    {
+        var actors = GroupActors(world, command.Actors, rejectIncapacitated: true,
+            out var manual, out var incapacitated, out var ai);
+        var accepted = 0;
+        if (world.Entities.Npcs.TryGetValue(command.Target, out var target) && target.Health > 0f)
+        {
+            foreach (var npc in actors)
+            {
+                if (npc.Id.Equals(target.Id)) continue;
+                ClearForNewOrder(world, npc, "Групповой приказ атаковать");
+                ClearAttackOrder(world, npc);
+                npc.Mind.CurrentGoal = GoalType.PlayerAttack;
+                npc.Mind.ManualAttackNpcId = target.Id;
+                Trace.Emit(world, npc.Id, "ManualOrderAccepted",
+                    $"Order=GroupAttackNpc Target=NPC{target.Id.Value}");
+                accepted++;
+            }
+        }
+
+        GroupResult(world, "AttackNpc", command.Actors.Count, manual, accepted,
+            actors.Count - accepted, incapacitated, ai);
+    }
+
+    private static void ApplyGroupAttackMob(WorldState world, GroupAttackMobCommand command)
+    {
+        var actors = GroupActors(world, command.Actors, rejectIncapacitated: true,
+            out var manual, out var incapacitated, out var ai);
+        var accepted = 0;
+        if (ManualControlMath.TryGetMob(world, command.MobId, out _))
+        {
+            foreach (var npc in actors)
+            {
+                ClearForNewOrder(world, npc, "Групповой приказ атаковать зверя");
+                ClearAttackOrder(world, npc);
+                npc.Mind.CurrentGoal = GoalType.PlayerAttack;
+                npc.Mind.ManualAttackMobId = command.MobId;
+                npc.Mind.CombatAssistDogId = command.MobId;
+                Trace.Emit(world, npc.Id, "ManualOrderAccepted",
+                    $"Order=GroupAttackMob Target=Dog{command.MobId}");
+                accepted++;
+            }
+        }
+
+        GroupResult(world, "AttackMob", command.Actors.Count, manual, accepted,
+            actors.Count - accepted, incapacitated, ai);
+    }
+
+    private static void ApplySetGroupManual(
+        WorldState world, SetGroupManualControlCommand command)
+    {
+        var accepted = 0;
+        foreach (var id in command.Actors)
+        {
+            if (!PlayerAuthority.CanControl(world, id, out var npc) || npc.Health <= 0f)
+            {
+                continue;
+            }
+
+            accepted++;
+            if (npc.Mind.ManualControl == command.Enabled) continue;
+            ClearForNewOrder(world, npc, command.Enabled
+                ? "Игрок взял групповое управление"
+                : "Игрок вернул группу ИИ");
+            npc.Mind.CurrentGoal = GoalType.None;
+            ClearAttackOrder(world, npc);
+            npc.Mind.ManualControl = command.Enabled;
+            Trace.Emit(world, npc.Id, "ManualControlChanged",
+                $"Enabled={(command.Enabled ? 1 : 0)}");
+        }
+
+        GroupResult(world, "SetManual", command.Actors.Count,
+            command.Enabled ? accepted : 0, accepted, 0, 0,
+            command.Enabled ? 0 : accepted);
+    }
+
+    private static void ApplyManageInventory(WorldState world, ManageInventoryCommand command)
+    {
+        if (!PlayerAuthority.CanMutateInventory(world, command.Npc, out var npc) ||
+            npc.Health <= 0f)
+        {
+            Reject(world, command.Npc, "Inventory", "NotOwned");
+            return;
+        }
+
+        var source = command.Item.Source == InventoryItemSource.Carried
+            ? npc.Inventory.Items
+            : npc.WornItems;
+        if (command.Item.Index < 0 || command.Item.Index >= source.Count ||
+            source[command.Item.Index].DefinitionId != command.Item.ExpectedDefinitionId)
+        {
+            Reject(world, npc.Id, "Inventory", "StaleItem");
+            return;
+        }
+
+        var item = source[command.Item.Index];
+        var stepType = PlanStepType.PlayerDropCarried;
+        switch (command.Action)
+        {
+            case InventoryAction.Wear:
+                if (command.Item.Source != InventoryItemSource.Carried ||
+                    !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var wearDef) ||
+                    wearDef.Layer is null)
+                {
+                    Reject(world, npc.Id, "Inventory", "InvalidAction");
+                    return;
+                }
+                stepType = PlanStepType.PlayerWearInventory;
+                break;
+            case InventoryAction.Stow:
+                if (command.Item.Source != InventoryItemSource.Worn)
+                {
+                    Reject(world, npc.Id, "Inventory", "InvalidAction");
+                    return;
+                }
+                stepType = PlanStepType.PlayerStowWorn;
+                break;
+            case InventoryAction.Drop:
+                stepType = command.Item.Source == InventoryItemSource.Worn
+                    ? PlanStepType.PlayerDropWorn
+                    : PlanStepType.PlayerDropCarried;
+                break;
+            default:
+                Reject(world, npc.Id, "Inventory", "InvalidAction");
+                return;
+        }
+
+        if (!PlayerInventoryMath.FitsAfter(world, npc, command.Item, command.Action))
+        {
+            Reject(world, npc.Id, "Inventory", "InsufficientSpace");
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Ручное изменение инвентаря");
+        ClearAttackOrder(world, npc);
+        npc.Plan.Goal = GoalType.PlayerInventory;
+        npc.Plan.TargetItemDefinitionId = item.DefinitionId;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = stepType,
+            // Source index already exists in the serialized step shape. It is
+            // not a timeout for these append-only inventory step types.
+            TimeoutEndTick = command.Item.Index
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Mind.CurrentGoal = GoalType.PlayerInventory;
         Trace.Emit(world, npc.Id, "ManualOrderAccepted",
-            $"Order=MoveTo Junction={destination.Value} " +
-            $"Tile={Trace.FormatTile(npc.Plan.TargetTile)}");
+            $"Order=Inventory Action={command.Action} Source={command.Item.Source} " +
+            $"Index={command.Item.Index} Def={item.DefinitionId}");
     }
 
     private static void ApplyInteract(WorldState world, InteractCommand command)

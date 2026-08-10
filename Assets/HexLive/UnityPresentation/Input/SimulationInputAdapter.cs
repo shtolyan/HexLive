@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
@@ -41,16 +42,25 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private const float PickRadiusPixels = 70f;
 
     private Camera? _camera;
+    private HexWorldRenderer? _worldRenderer;
     private WorldObjectView? _hovered;
     private int _hoveredNpcId = -1;
     private int _hoveredMobId = -1;
 
     private readonly List<ContextMenuEntry> _entries = new();
+    private readonly List<int> _selectedColonyIds = new();
+    private readonly List<int> _manualSelectedIds = new();
 
     public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
 
     /// <summary>Кем сейчас управляет игрок, или -1.</summary>
     public int ManualNpcId { get; private set; } = -1;
+
+    // Режим команд = среди выделенных есть хотя бы одна ручная (🎮). В чистом
+    // AI-режиме (🧠) клики только выделяют: сим всё равно отклонит приказ
+    // (requireManual в ManualCommandExecutor), а маркер и меню без исполнения
+    // читаются игроком как «игра сломалась».
+    private bool CommandMode => _manualSelectedIds.Count > 0;
 
     private void Awake() => _camera = GetComponent<Camera>();
 
@@ -70,8 +80,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             _camera = own != null ? own : Camera.main;
         }
 
-        ManualNpcId = ResolveManualNpc();
-        if (ManualNpcId < 0 || PointerBlocked())
+        RefreshControlSelection();
+        if (!CommandMode || PointerBlocked())
         {
             ClearHover();
             return;
@@ -82,29 +92,41 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
     private void OnDisable() => ClearHover();
 
-    private int ResolveManualNpc()
+    private void RefreshControlSelection()
     {
+        _selectedColonyIds.Clear();
+        _manualSelectedIds.Clear();
+        ManualNpcId = -1;
         if (_runner == null || !_runner.IsReady || !_runner.SupportsNpcCommands ||
             !NpcSelection.HasSelection)
         {
-            return -1;
+            return;
         }
 
         var snapshot = _runner.CreateSnapshot();
         if (snapshot == null)
         {
-            return -1;
+            return;
         }
 
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.Id.Value == NpcSelection.SelectedId)
+            if (!NpcSelection.Contains(npc.Id.Value) ||
+                npc.Faction != Faction.Colony || npc.Health <= 0f)
             {
-                return npc.IsManualControl ? npc.Id.Value : -1;
+                continue;
             }
+
+            _selectedColonyIds.Add(npc.Id.Value);
+            if (npc.IsManualControl) _manualSelectedIds.Add(npc.Id.Value);
         }
 
-        return -1;
+        _selectedColonyIds.Sort();
+        _manualSelectedIds.Sort();
+        if (_selectedColonyIds.Count == 1 && _manualSelectedIds.Count == 1)
+        {
+            ManualNpcId = _manualSelectedIds[0];
+        }
     }
 
     private static bool PointerBlocked() =>
@@ -190,11 +212,40 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return -1;
         }
 
+        if (_worldRenderer == null)
+        {
+            _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
+        }
+
+        if (_worldRenderer != null)
+        {
+            var ray = _camera.ScreenPointToRay(mousePos);
+            var bestRayDistance = float.PositiveInfinity;
+            var rayHitId = -1;
+            foreach (var person in People(snapshot))
+            {
+                if (NpcSelection.Contains(person.Id.Value) ||
+                    !_worldRenderer.TryGetActorView(person.Id.Value, out var view) ||
+                    !view.TryRaycastVisibleGeometry(ray, bestRayDistance, out var hitDistance))
+                {
+                    continue;
+                }
+
+                bestRayDistance = hitDistance;
+                rayHitId = person.Id.Value;
+            }
+
+            if (rayHitId >= 0)
+            {
+                return rayHitId;
+            }
+        }
+
         var bestId = -1;
         var bestDistance = PickRadiusPixels;
-        foreach (var npc in snapshot.Npcs)
+        foreach (var npc in People(snapshot))
         {
-            if (npc.Id.Value == ManualNpcId)
+            if (NpcSelection.Contains(npc.Id.Value))
             {
                 continue; // сама себе не цель
             }
@@ -216,6 +267,12 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         }
 
         return bestId;
+    }
+
+    private static IEnumerable<NpcSnapshot> People(WorldSnapshot snapshot)
+    {
+        foreach (var npc in snapshot.Npcs) yield return npc;
+        foreach (var corpse in snapshot.Corpses) yield return corpse;
     }
 
     private int PickMobUnderCursor(WorldSnapshot? snapshot, Vector2 mousePos)
@@ -256,17 +313,23 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// </summary>
     public bool TryHandleManualClick(Vector2 mousePos)
     {
-        if (ManualNpcId < 0 || _runner == null)
+        if (_runner == null)
         {
             return false;
         }
 
         // Открытое меню закрывается кликом мимо себя — и на этом клик кончается:
-        // иначе то же нажатие тут же отдало бы приказ идти под меню.
+        // иначе то же нажатие тут же отдало бы приказ идти под меню. Гейт режима
+        // стоит НИЖЕ: меню могло остаться висеть после выключения 🎮.
         if (ContextMenuPanel.IsOpen)
         {
             ContextMenuPanel.Close();
             return true;
+        }
+
+        if (!CommandMode)
+        {
+            return false;
         }
 
         if (_hoveredNpcId >= 0)
@@ -289,7 +352,14 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (TryPickGroundPoint(mousePos, out var point))
         {
-            _runner.EnqueueCommand(new MoveToCommand(new EntityId(ManualNpcId), point));
+            if (_selectedColonyIds.Count == 1 && ManualNpcId >= 0)
+            {
+                _runner.EnqueueCommand(new MoveToCommand(new EntityId(ManualNpcId), point));
+            }
+            else
+            {
+                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point));
+            }
             DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(point, GroundMarkerY(point)));
             return true;
         }
@@ -304,6 +374,17 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             !runner.TryGetObjectDefinition(view.DefinitionId, out var definition) ||
             definition == null)
         {
+            return;
+        }
+
+        if (_selectedColonyIds.Count != 1 || ManualNpcId < 0)
+        {
+            _entries.Clear();
+            _entries.Add(new ContextMenuEntry(
+                Loc.Get("menu.select_one_character"), () => { }, false,
+                Loc.Get("menu.select_one_character")));
+            ContextMenuPanel.Open(
+                mousePos, ObjectTitle(definition, view.DefinitionId), _entries);
             return;
         }
 
@@ -339,10 +420,51 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
+        var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+        if (snapshot == null || !TryFindPerson(snapshot, npcId, out var target, out var dead))
+        {
+            return;
+        }
+
         var me = ManualNpcId;
+        NpcSnapshot? carrier = null;
+        foreach (var candidate in snapshot.Npcs)
+        {
+            if (candidate.Id.Value == me)
+            {
+                carrier = candidate;
+                break;
+            }
+        }
+
         _entries.Clear();
-        _entries.Add(new ContextMenuEntry(Loc.Get("menu.attack"),
-            () => runner.EnqueueCommand(new AttackNpcCommand(new EntityId(me), new EntityId(npcId)))));
+        if (!dead)
+        {
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.attack"),
+                () => EnqueueNpcAttack(runner, me, npcId)));
+        }
+
+        var lying = dead || target.IsUnconscious || target.IsDying || target.IsFainted ||
+            target.IsPlayingDead || target.CurrentInteraction == "Sleep";
+        if (carrier != null && carrier.CarriedNpcId == npcId)
+        {
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.put_down_person"),
+                () => runner.EnqueueCommand(
+                    new PutDownPersonCommand(new EntityId(carrier.Id.Value)))));
+        }
+        else if (lying)
+        {
+            var canCarry = carrier != null && _selectedColonyIds.Count == 1 &&
+                _manualSelectedIds.Count == 1 && carrier.CarriedNpcId is null &&
+                target.CarriedByNpcId is null;
+            var blockedReason = carrier?.CarriedNpcId is not null
+                ? Loc.Get("menu.hands_occupied")
+                : Loc.Get("menu.select_one_character");
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.carry_person"),
+                () => runner.EnqueueCommand(new CarryPersonCommand(
+                    new EntityId(carrier!.Id.Value), new EntityId(npcId))),
+                canCarry, canCarry ? null : blockedReason));
+        }
         // «Выбрать» — потому что в ручном режиме простой клик по человеку
         // открывает меню, а не переключает выбор: атака по неосторожному
         // клику — ровно то, от чего Kenshi защищается отдельным пунктом.
@@ -363,9 +485,43 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var me = ManualNpcId;
         _entries.Clear();
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.attack"),
-            () => runner.EnqueueCommand(new AttackMobCommand(new EntityId(me), mobId))));
+            () => EnqueueMobAttack(runner, me, mobId)));
 
         ContextMenuPanel.Open(mousePos, Loc.Get("menu.target.beast"), _entries);
+    }
+
+    // Приказы уходят только ручному подмножеству: сим отфильтровал бы AI-девочек
+    // сам, но слать заведомо отклоняемые id и рисовать для них маркер нельзя.
+    private List<EntityId> SelectedActors()
+    {
+        var result = new List<EntityId>(_manualSelectedIds.Count);
+        foreach (var id in _manualSelectedIds) result.Add(new EntityId(id));
+        return result;
+    }
+
+    private void EnqueueNpcAttack(SimulationRunnerBehaviour runner, int single, int target)
+    {
+        if (_selectedColonyIds.Count == 1 && single >= 0)
+        {
+            runner.EnqueueCommand(new AttackNpcCommand(new EntityId(single), new EntityId(target)));
+        }
+        else
+        {
+            runner.EnqueueCommand(new GroupAttackNpcCommand(
+                SelectedActors(), new EntityId(target)));
+        }
+    }
+
+    private void EnqueueMobAttack(SimulationRunnerBehaviour runner, int single, int target)
+    {
+        if (_selectedColonyIds.Count == 1 && single >= 0)
+        {
+            runner.EnqueueCommand(new AttackMobCommand(new EntityId(single), target));
+        }
+        else
+        {
+            runner.EnqueueCommand(new GroupAttackMobCommand(SelectedActors(), target));
+        }
     }
 
     private string ObjectTitle(ObjectDefinition definition, string definitionId)
@@ -386,9 +542,46 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     return Loc.NpcName(npc.DisplayName);
                 }
             }
+
+
+            foreach (var corpse in snapshot.Corpses)
+            {
+                if (corpse.Id.Value == npcId)
+                {
+                    return Loc.NpcName(corpse.DisplayName);
+                }
+            }
         }
 
         return Loc.Get("menu.target.person");
+    }
+
+    private static bool TryFindPerson(
+        WorldSnapshot snapshot, int npcId, out NpcSnapshot person, out bool dead)
+    {
+        foreach (var npc in snapshot.Npcs)
+        {
+            if (npc.Id.Value == npcId)
+            {
+                person = npc;
+                dead = false;
+                return true;
+            }
+        }
+
+        foreach (var corpse in snapshot.Corpses)
+        {
+            if (corpse.Id.Value == npcId)
+            {
+                person = corpse;
+                dead = true;
+                return true;
+            }
+        }
+
+        person = null!;
+        dead = false;
+        return false;
     }
 
     private List<string> CarriedItems()

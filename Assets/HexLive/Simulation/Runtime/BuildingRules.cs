@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -39,6 +42,17 @@ public static class BuildingRules
     public const int FloorElementCount = 6;
     public const int BayCount = 12;
     public const int RoofElementCount = 6;
+    public const int HutDoorBay = 7;
+
+    // Player-authored HutTest blueprint v2, snapped to the production junction grid.
+    public const float HutBed0LocalX = -0.974279f;
+    public const float HutBed0LocalZ = 0f;
+    public const float HutBed0LocalYaw = 0f;
+    public const float HutBed1LocalX = 0.487139f;
+    public const float HutBed1LocalZ = 0.84375f;
+    public const float HutBed1LocalYaw = 60f;
+    public const float HutHearthLocalX = -0.3248f;
+    public const float HutHearthLocalZ = 0.5625f;
 
     public const int FrameSticks = 28;
     public const int FrameBoards = 6;
@@ -68,6 +82,13 @@ public static class BuildingRules
 
     public static int RequiredSupportsForRoof(int supportCount) =>
         Math.Max(1, (supportCount + 1) / 2);
+
+    public static BuildingElementKind HutBayKind(int bay) => bay switch
+    {
+        2 or 3 or 10 or 11 => BuildingElementKind.Window,
+        HutDoorBay => BuildingElementKind.Door,
+        _ => BuildingElementKind.Wall
+    };
 
     public static IReadOnlyList<BuildingElementProgress> ResolveHutElements(
         int siteSeed, int sticks, int boards, int rope, int leaves)
@@ -115,7 +136,8 @@ public static class BuildingRules
 
     public static void EnsureHutElements(WorldObjectState owner, bool completed = false)
     {
-        if (owner == null || owner.ArchitectureElements.Count > 0) return;
+        if (owner == null) return;
+        if (owner.ArchitectureElements.Count > 0) return;
         var definitions = HutDefinitions();
         for (var i = 0; i < definitions.Count; i++)
         {
@@ -142,6 +164,258 @@ public static class BuildingRules
                 WorkDone = completed ? 1 : 0
             });
         }
+    }
+
+    /// <summary>
+    /// Creates the constructor as real top-level world objects. The hut/site is
+    /// only the footprint aggregate; it intentionally owns no renderable pieces.
+    /// </summary>
+    public static void EnsureHutElements(WorldState world, WorldObjectState owner, bool completed = false)
+    {
+        if (world == null || owner == null) return;
+        if (ArchitectureObjects(world, owner).Any()) return;
+
+        // Build the canonical component records, or consume v32-v33 records
+        // already loaded on the aggregate.
+        EnsureHutElements(owner, completed);
+        var components = owner.ArchitectureElements.Select(element => element.Clone()).ToArray();
+        owner.ArchitectureElements.Clear();
+        var anchor = owner.Junctions.Count > 0
+            ? owner.Junctions[0]
+            : StructurePlacement.CenterJunction(world, owner.Tile);
+        if (anchor is not { } anchorId) return;
+
+        foreach (var component in components)
+        {
+            var piece = WorldObjectMutations.SpawnObject(
+                world, component.DefinitionId, owner.Fragment, owner.Tile, anchorId);
+            piece.ArchitectureOwnerId = owner.Id;
+            piece.RotationDegrees = owner.RotationDegrees;
+            piece.ArchitectureElements.Add(component);
+        }
+    }
+
+    public static IEnumerable<WorldObjectState> ArchitectureObjects(
+        WorldState world, WorldObjectState owner) =>
+        world.Entities.Objects.Values.Where(candidate =>
+            candidate.ArchitectureOwnerId == owner.Id && candidate.ArchitectureElements.Count == 1);
+
+    public static IEnumerable<ArchitectureElementState> Elements(
+        WorldState world, WorldObjectState owner) =>
+        ArchitectureObjects(world, owner).Select(piece => piece.ArchitectureElements[0]);
+
+    public static void ReparentElements(WorldState world, ObjectId oldOwner, WorldObjectState newOwner)
+    {
+        foreach (var piece in world.Entities.Objects.Values)
+        {
+            if (piece.ArchitectureOwnerId != oldOwner) continue;
+            piece.ArchitectureOwnerId = newOwner.Id;
+            // Смена тайла обязана пройти и через ObjectsByTile: индекс — общий
+            // (hazard/fruit/placement/perception), запись на старом тайле — это
+            // объект-призрак для каждого его читателя.
+            if (!piece.Tile.Equals(newOwner.Tile))
+            {
+                if (world.Caches.ObjectsByTile.TryGetValue(piece.Tile, out var fromList))
+                {
+                    fromList.Remove(piece.Id);
+                }
+
+                if (!world.Caches.ObjectsByTile.TryGetValue(newOwner.Tile, out var toList))
+                {
+                    toList = new System.Collections.Generic.List<ObjectId>();
+                    world.Caches.ObjectsByTile[newOwner.Tile] = toList;
+                }
+
+                if (!toList.Contains(piece.Id))
+                {
+                    toList.Add(piece.Id);
+                }
+            }
+
+            piece.Tile = newOwner.Tile;
+            piece.Fragment = newOwner.Fragment;
+            piece.RotationDegrees = newOwner.RotationDegrees;
+        }
+    }
+
+    public static void MaterializeLegacyElements(WorldState world)
+    {
+        var owners = world.Entities.Objects.Values
+            .Where(obj => obj.ArchitectureElements.Count > 0 && !obj.ArchitectureOwnerId.HasValue)
+            .ToArray();
+        foreach (var owner in owners)
+        {
+            EnsureHutElements(world, owner,
+                completed: owner.DefinitionId == ContentIds.Hut1Hex);
+        }
+    }
+
+    public static float DoorOutwardYaw(WorldState world, WorldObjectState owner)
+    {
+        EnsureHutElements(world, owner, completed: owner.DefinitionId == ContentIds.Hut1Hex);
+        foreach (var element in Elements(world, owner))
+        {
+            if (element.DefinitionId != "architecture.door.wood") continue;
+            var localYaw = MathF.Atan2(element.LocalZ, element.LocalX) * 180f / MathF.PI;
+            return StructurePlacement.QuantizeHexSymmetryYaw(owner.RotationDegrees + localYaw);
+        }
+        throw new InvalidOperationException("Hut blueprint has no architecture.door.wood element.");
+    }
+
+    public static Float2 DoorLocalCenter(WorldState world, WorldObjectState owner)
+    {
+        EnsureHutElements(world, owner, completed: owner.DefinitionId == ContentIds.Hut1Hex);
+        foreach (var element in Elements(world, owner))
+            if (element.DefinitionId == "architecture.door.wood")
+                return new Float2(element.LocalX, element.LocalZ);
+        throw new InvalidOperationException("Hut blueprint has no architecture.door.wood element.");
+    }
+
+    public static bool RoofUnlocked(WorldState world, WorldObjectState owner)
+    {
+        EnsureHutElements(world, owner);
+        return Elements(world, owner).Count(element =>
+            element.DefinitionId == "architecture.support.wood" && element.Complete) >=
+            RequiredSupportsForRoof(SupportCount);
+    }
+
+    public static bool FloorComplete(WorldState world, WorldObjectState owner)
+    {
+        EnsureHutElements(world, owner);
+        var floors = Elements(world, owner)
+            .Where(element => element.DefinitionId == "architecture.floor.board").ToArray();
+        return floors.Length > 0 && floors.All(element => element.Complete);
+    }
+
+    public static bool AssignDeliveredMaterial(WorldState world, WorldObjectState owner, string materialId)
+    {
+        EnsureHutElements(world, owner);
+        var elements = Elements(world, owner).ToArray();
+        RefreshRoofBuildability(elements);
+        var candidates = elements.Where(element =>
+            element.Buildable && !element.Complete && RemainingFor(element, materialId) > 0).ToList();
+        if (candidates.Count == 0) return false;
+
+        var delivered = elements.Sum(element => element.DeliveredTotal);
+        var target = candidates[StableIndex(owner.Id.Value, delivered, materialId, candidates.Count)];
+        switch (materialId)
+        {
+            case ContentIds.Stick: target.DeliveredSticks++; break;
+            case ContentIds.Board: target.DeliveredBoards++; break;
+            case ContentIds.Rope: target.DeliveredRope++; break;
+            case ContentIds.PalmLeaf: target.DeliveredLeaves++; break;
+            default: return false;
+        }
+        if (target.DeliveredSticks >= target.RequiredSticks &&
+            target.DeliveredBoards >= target.RequiredBoards &&
+            target.DeliveredRope >= target.RequiredRope &&
+            target.DeliveredLeaves >= target.RequiredLeaves)
+            target.WorkDone = target.WorkRequired;
+        RefreshRoofBuildability(elements);
+        return true;
+    }
+
+    public static void SyncHutElements(WorldState world, WorldObjectState owner)
+    {
+        EnsureHutElements(world, owner);
+        var definitions = HutDefinitions();
+        var elements = Elements(world, owner).ToArray();
+        var byKey = elements.ToDictionary(element => element.SlotKey);
+        foreach (var element in elements)
+        {
+            element.DeliveredSticks = 0;
+            element.DeliveredBoards = 0;
+            element.DeliveredRope = 0;
+            element.DeliveredLeaves = 0;
+            element.WorkDone = 0;
+        }
+
+        var sticks = Count(owner, ContentIds.Stick);
+        var boards = Count(owner, ContentIds.Board);
+        var rope = Count(owner, ContentIds.Rope);
+        var leaves = Count(owner, ContentIds.PalmLeaf);
+        var nonRoof = definitions.FindAll(definition => definition.Kind != BuildingElementKind.Roof);
+        var roofs = definitions.FindAll(definition => definition.Kind == BuildingElementKind.Roof);
+        Shuffle(nonRoof, owner.Id.Value ^ 0x4B1D);
+        Shuffle(roofs, owner.Id.Value ^ 0x72A9);
+        SyncAllocate(nonRoof, byKey, ref sticks, ref boards, ref rope, ref leaves, true);
+        var supports = elements.Count(element =>
+            element.DefinitionId == "architecture.support.wood" && element.Complete);
+        SyncAllocate(roofs, byKey, ref sticks, ref boards, ref rope, ref leaves,
+            supports >= RequiredSupportsForRoof(SupportCount));
+    }
+
+    private static void RefreshRoofBuildability(IEnumerable<ArchitectureElementState> elements)
+    {
+        var array = elements as ArchitectureElementState[] ?? elements.ToArray();
+        var unlocked = array.Count(element => element.DefinitionId == "architecture.support.wood" &&
+            element.Complete) >= RequiredSupportsForRoof(SupportCount);
+        foreach (var element in array)
+            if (element.DefinitionId == "architecture.roof.palm") element.Buildable = unlocked;
+    }
+
+    /// <summary>
+    /// Slot geometry is blueprint data, while delivery/work fields are instance
+    /// state. Reapply the canonical geometry on load so old sites keep their
+    /// progress but cannot retain the former mirrored door metadata.
+    /// </summary>
+    public static void RefreshHutElementGeometry(WorldObjectState owner)
+    {
+        if (owner == null) return;
+        var definitions = HutDefinitions();
+        var byKey = new Dictionary<string, Definition>();
+        foreach (var definition in definitions) byKey[definition.Key] = definition;
+        foreach (var element in owner.ArchitectureElements)
+        {
+            if (!byKey.TryGetValue(element.SlotKey, out var definition)) continue;
+            element.DefinitionId = DefinitionId(definition.Kind);
+            element.SlotIndex = definition.Index;
+            element.Layer = PlacementLayer.Architecture;
+            element.LocalX = definition.LocalX;
+            element.LocalZ = definition.LocalZ;
+            element.LocalYaw = definition.LocalYaw;
+        }
+    }
+
+    public static void RefreshHutElementGeometry(WorldState world, WorldObjectState owner)
+    {
+        EnsureHutElements(world, owner, completed: owner.DefinitionId == ContentIds.Hut1Hex);
+        var definitions = HutDefinitions().ToDictionary(definition => definition.Key);
+        foreach (var element in Elements(world, owner))
+        {
+            if (!definitions.TryGetValue(element.SlotKey, out var definition)) continue;
+            element.DefinitionId = DefinitionId(definition.Kind);
+            element.SlotIndex = definition.Index;
+            element.Layer = PlacementLayer.Architecture;
+            element.LocalX = definition.LocalX;
+            element.LocalZ = definition.LocalZ;
+            element.LocalYaw = definition.LocalYaw;
+        }
+    }
+
+    public static float DoorOutwardYaw(WorldObjectState owner)
+    {
+        EnsureHutElements(owner);
+        foreach (var element in owner.ArchitectureElements)
+        {
+            if (element.DefinitionId != "architecture.door.wood") continue;
+            var localYaw = MathF.Atan2(element.LocalZ, element.LocalX) * 180f / MathF.PI;
+            return StructurePlacement.QuantizeHexSymmetryYaw(owner.RotationDegrees + localYaw);
+        }
+
+        throw new InvalidOperationException("Hut blueprint has no architecture.door.wood element.");
+    }
+
+    public static Float2 DoorLocalCenter(WorldObjectState owner)
+    {
+        EnsureHutElements(owner);
+        foreach (var element in owner.ArchitectureElements)
+        {
+            if (element.DefinitionId == "architecture.door.wood")
+                return new Float2(element.LocalX, element.LocalZ);
+        }
+
+        throw new InvalidOperationException("Hut blueprint has no architecture.door.wood element.");
     }
 
     public static void SyncHutElements(WorldObjectState owner)
@@ -300,12 +574,16 @@ public static class BuildingRules
 
         for (var bay = 0; bay < BayCount; bay++)
         {
-            var kind = bay == 0 ? BuildingElementKind.Door :
-                bay == 3 || bay == 9 ? BuildingElementKind.Window : BuildingElementKind.Wall;
-            var sticks = bay == 0 || bay is 1 or 2 or 4 or 5 or 6 ? 1 : 0;
-            var rope = bay == 0 || bay is 3 or 7 or 9 ? 1 : 0;
+            var kind = HutBayKind(bay);
+            var sticks = bay == HutDoorBay || bay is 0 or 1 or 4 or 5 or 6 ? 1 : 0;
+            // Preserve the approved total bill while moving the modules.
+            var rope = bay == HutDoorBay || bay is 2 or 10 or 11 ? 1 : 0;
             var edge = bay / 2;
             var half = bay % 2;
+            // Unity's imported Blender X/Y -> X/Z basis puts exported Bay_00
+            // on the upper-left edge (90°..150°). This catalog position is
+            // also the portal source; using the Blender pre-import sign here
+            // placed navigation on the opposite edge from the rendered door.
             var a0 = (90f + edge * 60f) * (MathF.PI / 180f);
             var a1 = (90f + (edge + 1) * 60f) * (MathF.PI / 180f);
             var t = half == 0 ? 0.25f : 0.75f;
@@ -313,7 +591,7 @@ public static class BuildingRules
             var z0 = MathF.Sin(a0) * 1.5f;
             var x1 = MathF.Cos(a1) * 1.5f;
             var z1 = MathF.Sin(a1) * 1.5f;
-            result.Add(New(kind, bay, sticks, bay == 0 ? 3 : 2, rope,
+            result.Add(New(kind, bay, sticks, bay == HutDoorBay ? 3 : 2, rope,
                 localX: x0 + (x1 - x0) * t, localZ: z0 + (z1 - z0) * t,
                 localYaw: MathF.Atan2(-(z1 - z0), x1 - x0) * 180f / MathF.PI));
         }

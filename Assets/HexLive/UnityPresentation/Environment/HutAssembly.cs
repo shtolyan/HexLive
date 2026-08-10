@@ -14,11 +14,10 @@ namespace HexLive.UnityPresentation.Environment
 /// </summary>
 public sealed class HutAssembly : MonoBehaviour
 {
-    // Native and imported one-hex kits share this authored floor plane:
-    // boards are centred at local Y=0.08 with 0.09 thickness, hence their
-    // walkable top is 0.125 wu above the terrain anchor. Actors and integrated
-    // furniture use the same value in HexWorldRenderer.
-    public const float FloorSurfaceLift = 0.125f;
+    // Measured from the shipped building.hut_1hex.fbx, not an eyeballed nominal:
+    // the six board tops are at local Y=0.10747495 wu after FBX axis conversion.
+    // Every standing/lying surface and integrated prop derives from this plane.
+    public const float FloorSurfaceLift = 0.107475f;
     private const string PrefabPath = "HexLive/Objects/building.hut_1hex";
     private static readonly Dictionary<Material, Material> DoubleSidedLeafMaterials = new();
     private static readonly Dictionary<Material, Material> ImportedMaterialVariants = new();
@@ -59,6 +58,17 @@ public sealed class HutAssembly : MonoBehaviour
         return root;
     }
 
+    public static GameObject BuildDesignerPreview(IReadOnlyList<BuildingElementKind> bays)
+    {
+        var root = BuildRoot(bays);
+        var assembly = root.GetComponent<HutAssembly>() ?? root.AddComponent<HutAssembly>();
+        assembly.ApplyAll();
+        var roofStage = FindStage(root.transform, "3");
+        if (roofStage != null) roofStage.gameObject.SetActive(false);
+        root.name = "Hut layout designer preview";
+        return root;
+    }
+
     public static GameObject BuildFinished(ObjectSnapshot building)
     {
         var root = BuildRoot();
@@ -87,7 +97,7 @@ public sealed class HutAssembly : MonoBehaviour
             site.DeliveredRope, site.DeliveredLeaves);
     }
 
-    private void ApplyElements(IReadOnlyList<ArchitectureElementSnapshot> elements)
+    public void ApplyElements(IReadOnlyList<ArchitectureElementSnapshot> elements)
     {
         Scan();
         foreach (var piece in _frame) piece.SetActive(false);
@@ -100,6 +110,17 @@ public sealed class HutAssembly : MonoBehaviour
                 ToggleFraction(pieces, element.Buildable ? element.Progress : 0f);
             }
         }
+    }
+
+    public Renderer[] RenderersForElement(string slotKey)
+    {
+        Scan();
+        if (!_buildElements.TryGetValue(slotKey, out var pieces))
+            return System.Array.Empty<Renderer>();
+        var renderers = new List<Renderer>();
+        foreach (var piece in pieces)
+            if (piece != null) renderers.AddRange(piece.GetComponentsInChildren<Renderer>(true));
+        return renderers.ToArray();
     }
 
     public void Apply(int siteSeed, int sticks, int boards, int rope, int leaves)
@@ -237,12 +258,11 @@ public sealed class HutAssembly : MonoBehaviour
             return ElementKey(BuildingElementKind.Support, 0);
         if (name.StartsWith("HL_Door_Pivot", System.StringComparison.Ordinal) ||
             name.Contains("door_leaf_") || name.Contains("door_lintel_"))
-            return ElementKey(BuildingElementKind.Door, 0);
+            return ElementKey(BuildingElementKind.Door, BuildingRules.HutDoorBay);
         if (name.Contains("Bay_") || name.Contains("wall_bay_"))
         {
             var bay = NumberAt(numbers, 0);
-            var kind = bay == 0 ? BuildingElementKind.Door :
-                bay == 3 || bay == 9 ? BuildingElementKind.Window : BuildingElementKind.Wall;
+            var kind = BuildingRules.HutBayKind(bay);
             return ElementKey(kind, bay);
         }
         if (name.Contains("Roof_woven_mat_") || name.Contains("roof_woven_mat_"))
@@ -515,20 +535,22 @@ public sealed class HutAssembly : MonoBehaviour
             : UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
     }
 
-    private static GameObject BuildRoot()
+    private static GameObject BuildRoot() => BuildRoot(null);
+
+    private static GameObject BuildRoot(IReadOnlyList<BuildingElementKind>? bayLayout)
     {
         var prefab = Resources.Load<GameObject>(PrefabPath);
         if (prefab != null && ObjectFit.HasRenderableGeometry(prefab))
         {
             var instance = Object.Instantiate(prefab);
-            PrepareImported(instance);
+            PrepareImported(instance, bayLayout);
             return instance;
         }
 
-        return BuildNative();
+        return BuildNative(bayLayout);
     }
 
-    private static GameObject BuildNative()
+    private static GameObject BuildNative(IReadOnlyList<BuildingElementKind>? bayLayout = null)
     {
         var root = new GameObject("building.hut_1hex (native assembly)");
         var frame = Stage(root.transform, "1");
@@ -586,7 +608,10 @@ public sealed class HutAssembly : MonoBehaviour
             {
                 var bay = edge * 2 + half;
                 var center = Vector3.Lerp(corner0, corner1, half == 0 ? 0.25f : 0.75f);
-                if (bay == 0)
+                var kind = bayLayout != null && bay < bayLayout.Count
+                    ? bayLayout[bay]
+                    : BuildingRules.HutBayKind(bay);
+                if (kind == BuildingElementKind.Door)
                 {
                     AddRoughBoard(enclosure, $"door_lintel_{bay:00}",
                         center + Vector3.up * 1.82f, Quaternion.Euler(0f, yaw, 0f),
@@ -595,14 +620,14 @@ public sealed class HutAssembly : MonoBehaviour
                     continue;
                 }
 
-                var levels = bay is 1 or 9
+                var levels = kind == BuildingElementKind.Window
                     ? new[] { 0.37f, 1.68f }
                     : new[] { 0.37f, 1.03f, 1.69f };
                 foreach (var y in levels)
                 {
                     AddRoughBoard(enclosure, $"wall_bay_{bay:00}_{y:0.00}",
                         center + Vector3.up * y, Quaternion.Euler(0f, yaw, 0f),
-                        0.80f, bay is 1 or 9 ? 0.48f : 0.60f, 0.10f,
+                        0.80f, kind == BuildingElementKind.Window ? 0.48f : 0.60f, 0.10f,
                         200 + bay * 7 + Mathf.RoundToInt(y * 10f));
                 }
             }
@@ -661,8 +686,10 @@ public sealed class HutAssembly : MonoBehaviour
         return stage.transform;
     }
 
-    private static void PrepareImported(GameObject root)
+    private static void PrepareImported(
+        GameObject root, IReadOnlyList<BuildingElementKind>? bayLayout = null)
     {
+        ApplyImportedBayLayout(root, bayLayout);
         foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
         {
             var sourceMaterials = renderer.sharedMaterials;
@@ -678,6 +705,122 @@ public sealed class HutAssembly : MonoBehaviour
         }
 
         PrepareImportedDoor(root);
+    }
+
+    private static void ApplyImportedBayLayout(
+        GameObject root, IReadOnlyList<BuildingElementKind>? bayLayout)
+    {
+        var stage = FindStage(root.transform, "2");
+        if (stage == null) return;
+
+        var rootsByBay = new Dictionary<int, List<Transform>>();
+        var originalBayRoots = new List<Transform>();
+        foreach (Transform candidate in stage)
+        {
+            if (!TryImportedBayIndex(candidate.name, out var bay)) continue;
+            if (!rootsByBay.TryGetValue(bay, out var list))
+            {
+                list = new List<Transform>();
+                rootsByBay[bay] = list;
+            }
+            list.Add(candidate);
+            originalBayRoots.Add(candidate);
+        }
+        if (!rootsByBay.ContainsKey(0) || !rootsByBay.ContainsKey(3) || rootsByBay.Count < 10) return;
+
+        var doorRoots = new List<Transform>();
+        foreach (Transform candidate in stage)
+            if (candidate.name.StartsWith("HL_Door_", System.StringComparison.Ordinal) &&
+                !TryImportedBayIndex(candidate.name, out _))
+                doorRoots.Add(candidate);
+
+        for (var targetBay = 0; targetBay < BuildingRules.BayCount; targetBay++)
+        {
+            var desired = bayLayout != null && targetBay < bayLayout.Count
+                ? bayLayout[targetBay]
+                : BuildingRules.HutBayKind(targetBay);
+            var sourceBay = SelectImportedSourceBay(rootsByBay, desired, targetBay);
+            if (sourceBay < 0) continue;
+            foreach (var source in rootsByBay[sourceBay])
+            {
+                var clone = Object.Instantiate(source.gameObject, stage, false);
+                clone.name = ReplaceBayNumber(clone.name, sourceBay, targetBay);
+                RepositionBayRoot(root.transform, stage, clone.transform, sourceBay, targetBay);
+            }
+            if (desired == BuildingElementKind.Door)
+            {
+                foreach (var source in doorRoots)
+                {
+                    var clone = Object.Instantiate(source.gameObject, stage, false);
+                    RepositionBayRoot(root.transform, stage, clone.transform, 0, targetBay);
+                }
+            }
+        }
+
+        foreach (var source in originalBayRoots) Object.DestroyImmediate(source.gameObject);
+        foreach (var source in doorRoots) Object.DestroyImmediate(source.gameObject);
+    }
+
+    private static int SelectImportedSourceBay(
+        Dictionary<int, List<Transform>> rootsByBay, BuildingElementKind kind, int target)
+    {
+        var best = -1;
+        var bestDistance = int.MaxValue;
+        foreach (var source in rootsByBay.Keys)
+        {
+            var sourceKind = source == 0 ? BuildingElementKind.Door :
+                source is 3 or 9 ? BuildingElementKind.Window : BuildingElementKind.Wall;
+            if (sourceKind != kind) continue;
+            var distance = System.Math.Abs(source - target);
+            distance = System.Math.Min(distance, BuildingRules.BayCount - distance);
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            best = source;
+        }
+        return best;
+    }
+
+    private static bool TryImportedBayIndex(string name, out int bay)
+    {
+        bay = -1;
+        var marker = name.IndexOf("HL_Bay_", System.StringComparison.Ordinal);
+        return marker >= 0 && marker + 9 <= name.Length &&
+            int.TryParse(name.Substring(marker + 7, 2), out bay) && bay is >= 0 and < 12;
+    }
+
+    private static string ReplaceBayNumber(string name, int source, int target) =>
+        name.Replace($"HL_Bay_{source:00}", $"HL_Bay_{target:00}");
+
+    private static void RepositionBayRoot(
+        Transform hutRoot, Transform stage, Transform target, int sourceBay, int targetBay)
+    {
+        BayPose(sourceBay, out var sourceCenter, out var sourceYaw);
+        BayPose(targetBay, out var targetCenter, out var targetYaw);
+        // Imported BuildStage_2 carries Blender's X=-90° conversion. BayPose
+        // is deliberately expressed in hut-root X/Z coordinates; convert the
+        // pivot points and the Y-axis rotation into the stage's basis before
+        // touching its children. Applying root-space Y directly to a stage
+        // child turns that into a Z rotation and throws walls through the floor.
+        var sourceInStage = stage.InverseTransformPoint(hutRoot.TransformPoint(sourceCenter));
+        var targetInStage = stage.InverseTransformPoint(hutRoot.TransformPoint(targetCenter));
+        var stageToRoot = Quaternion.Inverse(hutRoot.rotation) * stage.rotation;
+        var deltaRoot = Quaternion.Euler(0f, targetYaw - sourceYaw, 0f);
+        var deltaStage = Quaternion.Inverse(stageToRoot) * deltaRoot * stageToRoot;
+        target.localPosition = targetInStage + deltaStage * (target.localPosition - sourceInStage);
+        target.localRotation = deltaStage * target.localRotation;
+    }
+
+    private static void BayPose(int bay, out Vector3 center, out float yaw)
+    {
+        var edge = bay / 2;
+        var half = bay % 2;
+        var a0 = (90f + edge * 60f) * Mathf.Deg2Rad;
+        var a1 = (90f + (edge + 1) * 60f) * Mathf.Deg2Rad;
+        var corner0 = new Vector3(Mathf.Cos(a0) * 1.5f, 0f, Mathf.Sin(a0) * 1.5f);
+        var corner1 = new Vector3(Mathf.Cos(a1) * 1.5f, 0f, Mathf.Sin(a1) * 1.5f);
+        center = Vector3.Lerp(corner0, corner1, half == 0 ? 0.25f : 0.75f);
+        var edgeVector = corner1 - corner0;
+        yaw = Mathf.Atan2(-edgeVector.z, edgeVector.x) * Mathf.Rad2Deg;
     }
 
     private static void PrepareImportedDoor(GameObject root)

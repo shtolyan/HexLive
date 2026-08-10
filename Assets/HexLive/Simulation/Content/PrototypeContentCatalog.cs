@@ -1216,6 +1216,25 @@ public static class PrototypeContentCatalog
             Tags = { "Building", ObjectTags.Shelter, ObjectTags.Shade, ObjectTags.HandBuilt }
         };
 
+        // §120 v2: constructor cubes are genuine world objects. They live on
+        // the Architecture placement layer, so they deliberately carry no
+        // furniture Obstacle tag; the building topology owns edge blocking.
+        void AddArchitecturePiece(string id, string name)
+        {
+            defs[id] = new ObjectDefinition
+            {
+                Id = id,
+                DisplayName = name,
+                Tags = { "Architecture" }
+            };
+        }
+        AddArchitecturePiece("architecture.support.wood", "Wooden support");
+        AddArchitecturePiece("architecture.floor.board", "Board floor section");
+        AddArchitecturePiece("architecture.wall.wood", "Wooden wall section");
+        AddArchitecturePiece("architecture.window.wood", "Wooden window section");
+        AddArchitecturePiece("architecture.door.wood", "Wooden door section");
+        AddArchitecturePiece("architecture.roof.palm", "Palm roof section");
+
         // Spec §42: fold in the whole wearable wardrobe from the shared
         // library (built-in defaults, or the GarmentCatalog asset when the
         // Unity presentation layer applied it at startup).

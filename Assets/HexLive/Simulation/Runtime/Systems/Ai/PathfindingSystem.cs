@@ -450,7 +450,7 @@ public sealed class PathfindingSystem : ISimulationSystem
         npc.Mind.CurrentGoal = GoalType.None;
     }
 
-    private static bool ShouldWeightClimbs(NPCState npc)
+    internal static bool ShouldWeightClimbs(NPCState npc)
     {
         if (!npc.Body.CanJump)
         {

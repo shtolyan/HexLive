@@ -858,10 +858,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
             }
 
             var gatherBeside = interactionType == InteractionType.PickUp;
+            // A bed may deliberately have no blocked junctions (integrated hut
+            // furniture), but its centre is still a lying pose, never a valid
+            // place to stand. Reserve a separate approach/wake junction.
+            var sleepBeside = interactionType == InteractionType.Sleep;
             var anchorIsWater = targetJunction is { } wetId &&
                 SpatialQueries.IsAllWaterJunction(world, wetId);
             if (targetJunction is { } anchorId &&
-                (anchorIsWater || gatherBeside ||
+                (anchorIsWater || gatherBeside || sleepBeside ||
                  (world.Junctions.Items.TryGetValue(anchorId, out var anchorJunction) &&
                   anchorJunction.Blocked)))
             {

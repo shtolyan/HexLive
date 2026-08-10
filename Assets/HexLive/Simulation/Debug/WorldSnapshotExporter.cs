@@ -177,6 +177,7 @@ public static class WorldSnapshotExporter
                     WorkDone = element.WorkDone
                 });
             }
+            exported.ArchitectureOwnerObjectId = obj.ArchitectureOwnerId?.Value;
 
             foreach (var junctionId in obj.Junctions)
             {

@@ -1,5 +1,5 @@
 {
-    "nextId": 90,
+    "nextId": 103,
     "unityMcpLease": {
         "status": "free",
         "ownerAgent": "",
@@ -134,7 +134,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -156,7 +156,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -183,7 +183,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -205,7 +205,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -271,7 +271,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -298,7 +298,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -335,7 +335,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -362,7 +362,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -391,7 +391,7 @@
             ],
             "fixCommit": "883fec091aae424e40c1fbe546184dfc3f784d6c",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -418,7 +418,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -445,7 +445,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -494,7 +494,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -521,7 +521,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -553,7 +553,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -580,7 +580,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -671,7 +671,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -700,7 +700,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -754,7 +754,7 @@
             ],
             "fixCommit": "6886e3f78466f8d6c059c0bef4a1a54aaa2cc43d",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -803,7 +803,7 @@
             ],
             "fixCommit": "8d827881ee88dba0e9a94a05e952fb1bc9b6db22",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -837,7 +837,7 @@
             ],
             "fixCommit": "883fec091aae424e40c1fbe546184dfc3f784d6c",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -920,7 +920,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1116,7 +1116,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1242,7 +1242,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1277,7 +1277,7 @@
             ],
             "fixCommit": "830b5524d340e607cd87e3f56964a83101e4e5d8",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1316,7 +1316,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1346,7 +1346,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1385,7 +1385,7 @@
             ],
             "fixCommit": "2aedcbd261f4b782e4a72cebe378e6660dfa7699",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1415,7 +1415,7 @@
             ],
             "fixCommit": "a07c9237683f20210234acd760ec05c2e72526fb",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1454,7 +1454,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1496,7 +1496,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1520,7 +1520,7 @@
             ],
             "fixCommit": "e9d7908f7c8b84d64c24521f032dadca78a9c150",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1559,7 +1559,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1588,7 +1588,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1617,7 +1617,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1651,7 +1651,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1684,7 +1684,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1753,7 +1753,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1788,7 +1788,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1832,7 +1832,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1861,7 +1861,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1900,7 +1900,7 @@
             ],
             "fixCommit": "996c9868f304cc0bd297286b039e7fc8afbcc7b6",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1934,7 +1934,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1968,7 +1968,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2002,7 +2002,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2036,7 +2036,7 @@
             ],
             "fixCommit": "6e863bfb1c395389921c17604bbd9b04ff6f164c",
             "reportedInVersion": "0.1.8",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2070,7 +2070,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.8",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2116,7 +2116,7 @@
         {
             "id": 86,
             "createdUtc": "2026-08-08 10:54 UTC",
-            "status": "ready_for_test",
+            "status": "fixed",
             "text": "В этой симуляции Симон накрафти́л кучу ножей. Как так вышло? Почему они это сделали? Чего не забрали? Раз, раз.",
             "context": "seed=178429986 tick=1289 npc=2",
             "assignedAgent": "/root/finalize_52_loot_bubble",
@@ -2126,7 +2126,7 @@
             ],
             "fixCommit": "999151fada701b91949d06a9e201a7e39b4b6196",
             "reportedInVersion": "0.1.8",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.17",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2144,13 +2144,18 @@
                     "whenUtc": "2026-08-08 12:15 UTC",
                     "author": "codex",
                     "text": "Готово к тестированию: после 100% крафта тот же работник выполняет короткий PickUp созданного объекта и лишь затем завершает цель; достижимый готовый нож блокирует повторный CraftKnife, даже если результат пришлось оставить из-за заполненного рюкзака. Коммит 999151fada701b91949d06a9e201a7e39b4b6196. Тесты, Unity и сборка не запускались."
+                },
+                {
+                    "whenUtc": "2026-08-09 07:18 UTC",
+                    "author": "user",
+                    "text": "Подтверждено пользователем: исправлено."
                 }
             ]
         },
         {
             "id": 87,
             "createdUtc": "2026-08-08 16:16 UTC",
-            "status": "ready_for_test",
+            "status": "fixed",
             "text": "Оружие на спине спавнится слишком огромным. Их нужно уменьшить раз в шесть. Мачете до сих пор не в руке. Не сидит в руке нормально, так же, как другие предметы. Тоже надо разобраться.",
             "context": "seed=197304645 tick=3609 npc=3",
             "assignedAgent": "/root",
@@ -2161,7 +2166,7 @@
             ],
             "fixCommit": "02088ae75684f1e5d18df5f8f2811036459e97c0",
             "reportedInVersion": "0.1.10",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.17",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2184,6 +2189,11 @@
                     "whenUtc": "2026-08-08 18:12 UTC",
                     "author": "codex",
                     "text": "Готово к тестированию: отдельный back-only масштаб и ручное деление на шесть удалены, оружие на спине теперь проходит через тот же ObjectFit, что в руке и в мире. В живой сцене Unity MCP два ножа на спине дали 0.325–0.326 wu, два ножа в мире 0.328–0.329 wu; разница меньше 1% и объясняется поворотом world AABB. Ошибок и предупреждений нет. Коммит 78d21fe71781e2c03c7d658f68d64087a128e242."
+                },
+                {
+                    "whenUtc": "2026-08-09 07:17 UTC",
+                    "author": "user",
+                    "text": "Подтверждено пользователем: исправлено."
                 }
             ]
         },
@@ -2200,7 +2210,7 @@
             ],
             "fixCommit": "7cdb57b89c448ef36c8a1393a99900437a394686",
             "reportedInVersion": "0.1.10",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.23",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2224,7 +2234,7 @@
         {
             "id": 89,
             "createdUtc": "2026-08-09 01:41 UTC",
-            "status": "ready_for_test",
+            "status": "fixed",
             "text": "Сонаж завис в петле. Ищет инструменты, туда-сюда ходит.",
             "context": "seed=197304645 tick=104679 npc=2",
             "assignedAgent": "/root",
@@ -2234,7 +2244,7 @@
             ],
             "fixCommit": "684acc208e92f85f97b9669710d2dd28f7b40182",
             "reportedInVersion": "0.1.14",
-            "readyForTestInVersion": "0.1.15",
+            "readyForTestInVersion": "0.1.17",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2247,6 +2257,430 @@
                     "whenUtc": "2026-08-09 02:00 UTC",
                     "author": "codex",
                     "text": "Готово к тестированию. Исправлена причина петли GatherTools при полном инвентаре ножей: любимым остаётся один конкретный экземпляр, а одинаковые копии можно сбросить; реально недостающий полезный инструмент теперь вытесняет только дублирующее снаряжение без потери способностей или лучшего оружия. Добавлены регрессии для двух ножей, сохранения единственного любимого ножа и доступности GatherTools. Коммит 684acc208e92f85f97b9669710d2dd28f7b40182. Unity, сборку и тесты не запускал по указанию игрока."
+                },
+                {
+                    "whenUtc": "2026-08-09 07:17 UTC",
+                    "author": "user",
+                    "text": "Подтверждено пользователем: исправлено."
+                }
+            ]
+        },
+        {
+            "id": 90,
+            "createdUtc": "2026-08-09 07:16 UTC",
+            "status": "ready_for_test",
+            "text": "Персонаж попал в петлю. То хочет докопаться, то хочет пить. Не может никак решить.",
+            "context": "seed=251173145 tick=4253 npc=101",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 56af9f2b1b4a6e5f5384661b19ca295db27a0dce. Причина: общий RunMoveOnly после каждого участка prowl сбрасывал Abuse в None, Drink выигрывал промежуточный аукцион, затем Abuse немедленно прерывал его — цикл 20 тиков. Теперь прибытие завершает только участок поиска и сохраняет Abuse до решения планировщика. Добавлена регрессия; на seed=251173145 в окне t4000–4400 Drink исчез (40 смен целей до правки, 8 штатных после). Unity/MCP не использовались.",
+            "fixCommits": [
+                "56af9f2b1b4a6e5f5384661b19ca295db27a0dce"
+            ],
+            "fixCommit": "56af9f2b1b4a6e5f5384661b19ca295db27a0dce",
+            "reportedInVersion": "0.1.17",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-09 07:19 UTC",
+                    "author": "codex",
+                    "text": "Взял баг №90 в работу. Воспроизвожу seed=251173145 около tick=4253 для NPC 101 и разбираю переключение между Dig и Drink; Unity/MCP не использую."
+                },
+                {
+                    "whenUtc": "2026-08-09 07:31 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. RunMoveOnly больше не сбрасывает цель Abuse после каждого участка поиска: следующий участок строится без промежуточного аукциона, поэтому Drink не успевает вклиниться и быть тут же прерванным. На seed=251173145 в окне тиков 4000–4400 смены целей сократились с 40 до 8, выборов Drink после правки — 0; тесты AbuseRealWorldTests: 2 пройдено, 1 ранее отключён. Коммит 56af9f2b1b4a6e5f5384661b19ca295db27a0dce. Unity/MCP не использовались."
+                }
+            ]
+        },
+        {
+            "id": 91,
+            "createdUtc": "2026-08-09 08:47 UTC",
+            "status": "ready_for_test",
+            "text": "Энписи Вера вот этот никак не может отнести раненого NPC без сознания до деревни. Но она далеко, и она берет руки и кладет обратно. Берет руки, кладет обратно. Может, маршрут не построен, или еще что-то.",
+            "context": "seed=251173145 tick=25778 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено по реальному JuicyLove save seed=251173145 tick=62371. Причины: rescue-owned Sleep считался осиротевшим и отменялся, наземная угроза повторно открывала заявку, две кровати имели перекрёстные stale claims, а Rescue/ProstheticAid обходили ManualControl. Изменены KenshiRescueMath, RescueSystem, ProstheticAidSystem, PlanningSystem, spec и регрессии. На save за 512 тиков: один аварийный Drop старой битой связи, один PickUp, один PutDown, повторов нет, локальные маршруты Searches=0. Риск: текущий save blob v33 читается только вместе с параллельной незакоммиченной миграцией сериализатора; атомарный фикс отдельно прошёл 28/28 на чистом HEAD.",
+            "fixCommits": [
+                "bfd7128e1b9e8f3160e2d5ddb9bfec6049f8ef0a",
+                "b8cb8982467f13ad28db38c16e0e72c8f5f239b0",
+                "78cf28c61caaabde6bab02901c0b6dcdc0fb5e32"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.18",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-09 09:16 UTC",
+                    "author": "codex",
+                    "text": "Взял баг №91 в работу. Воспроизвожу seed=251173145 около tick=25778 для NPC 1 и проверяю, почему после PickUpPerson пациентку сразу кладут обратно; реализую гарантированную точку доставки без личной кровати. Unity/MCP не использую."
+                },
+                {
+                    "whenUtc": "2026-08-09 09:41 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. Исправлен выбор места доставки: сначала кровать пациентки, затем кровать спасательницы, затем свободная кровать союзного лагеря; без кроватей — безопасная сухая земля у костра, включая потухший, либо у home-якоря лагеря. До PickUpPerson теперь проверяются настоящий маршрут переноски без прыжков, корректный подход к физическому контуру кровати и полное место под лежащее тело. Новые RescueDestinationTests: 3/3. Коммит bfd7128e1b9e8f3160e2d5ddb9bfec6049f8ef0a. Unity/MCP не использовались."
+                },
+                {
+                    "whenUtc": "2026-08-09 21:36 UTC",
+                    "author": "codex",
+                    "text": "Пользователь вернул #91 в работу после проверки 0.1.19: при попытке эвакуации игра надолго зависает на поиске маршрута, затем переносчик кладёт пациента и повторяет цикл. Профилирую headless; уберу многократные полные поиски пути и реализую продолжение эвакуации через перепады с укладкой пациента, прыжком и повторным подъёмом. Unity/MCP не использую."
+                },
+                {
+                    "whenUtc": "2026-08-09 21:59 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. Полный pathfinder больше не запускается для каждого узла подхода: штатные выборы кровати и земли подтверждают 1 поиск, найденный маршрут не выбрасывается. Перепад проходит транзакцией: безопасно положить пациента на гексе приземления, прыгнуть без груза, сразу поднять того же пациента и продолжить к той же кровати; прерывание освобождает резерв. RescueDestinationTests 6/6, три параллельных soak по 7200 тиков и seed=251173145 на 30000 тиков завершены; полный набор 313 passed, 11 посторонних падений из незавершённых правок хижины/инвентаря/simdata. Коммит b8cb8982467f13ad28db38c16e0e72c8f5f239b0. Unity/MCP не использовались."
+                },
+                {
+                    "whenUtc": "2026-08-09 23:14 UTC",
+                    "author": "codex",
+                    "text": "Пользователь повторно вернул #91 в работу по текущему сохранению JuicyLove: seed=251173145, tick=62371. Персонажи циклически берут пациента помогать и сразу бросают; игра провисает. Также подтверждаю отдельное нарушение контракта ручного режима: RescueSystem не проверяет ManualControl. Читаю реальный save и трассирую точный PickUp/Drop без Unity/MCP."
+                },
+                {
+                    "whenUtc": "2026-08-09 23:53 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. На точном save seed=251173145 tick=62371 устранена петля: восстановительный Sleep после кровати/земли больше не отменяется планировщиком и не открывает повторную эвакуацию при подошедшем мародёре; перекрёстные stale claims двух кроватей очищаются; текущий и соседний узел подхода выполняются без островного pathfinder (Searches=0). RescueSystem и ProstheticAidSystem полностью пропускают ManualControl, а переключение снимает исходящую заявку помощи. Интегрированный save-прогон 512 тиков: 1 Drop старой битой связи, 1 PickUp, 1 PutDown, повторов нет. Чистый staged-набор: 28/28 тестов. Коммит 78cf28c61caaabde6bab02901c0b6dcdc0fb5e32. Unity/MCP не использовались."
+                }
+            ]
+        },
+        {
+            "id": 92,
+            "createdUtc": "2026-08-09 08:50 UTC",
+            "status": "ready_for_test",
+            "text": "Есть несколько проблем с инвентарем персонажа. Во-первых, он запивается куча предметов иногда. Они не могут что-то собрать, скрафтить, допустим, не хватает листочка второго, собрать стэки есть уже. То есть лекарство почему-то не может скрафтить. Понятно, что-то зависает. Потом этоТакое ощущение, что они не смотрят поблизости инструменты, уже скрафченные, а крафтят новые каждый раз. Это мое предположение, надо проверить это.",
+            "context": "seed=251173145 tick=25978 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Готово в f387bf63d69afa291edfe23287cda0583c67fad5. Подтверждены две причины #92: GatherHerb требовал пустой слот даже когда второй herb_leaf помещался в существующий стек; защита от повторного крафта учитывала только нож и только завершённый craft-project, игнорируя обычные готовые топор/кирку/копьё на земле. Теперь сбор использует CanMakeRoomFor, а CraftKnife/Axe/Pickaxe/Spear подавляются достижимым точным готовым output и передают работу GatherTools. Новые регрессии 2/2 passed; расширенные соседние наборы дали 19 passed и 2 посторонних падения из текущих незакоммиченных правок (importance pickaxe и WorkbenchYaw), не #92. Проверить seed=251173145 tick=25978 npc=1.",
+            "fixCommits": [
+                "f387bf63d69afa291edfe23287cda0583c67fad5"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.18",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-09 10:24 UTC",
+                    "author": "codex",
+                    "text": "Взял #92 в работу. Проверю полный маршрут потребность → поиск готового предмета/ресурса → вместимость/стэки → подбор → CraftBandage или инструмент, используя контекст seed=251173145 tick=25978 npc=1."
+                },
+                {
+                    "whenUtc": "2026-08-09 10:46 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию: второй лечебный лист теперь собирается в существующий стек даже при занятых слотах; готовые достижимые нож, топор, кирка и копьё подбираются через GatherTools вместо повторного крафта. Коммит f387bf63d69afa291edfe23287cda0583c67fad5; новые регрессии 2/2."
+                }
+            ]
+        },
+        {
+            "id": 93,
+            "createdUtc": "2026-08-09 09:59 UTC",
+            "status": "ready_for_test",
+            "text": "План готовить мясо, походу, не срабатывает, возможно, из-за нового костра, который не поддерживает готовку мяса.",
+            "context": "seed=251173145 tick=41199 npc=101",
+            "assignedAgent": "/root",
+            "agentHandoff": "Готово в bf5216a69208106eaacf6bf07ea0aea37177f5f7. Причина #93 не в prefab: при нескольких очагах FindCampfire возвращал первый, поэтому новый недостроенный/холодный костёр мог скрыть другой горящий костёр с готовым вертелом; свойства доступности и цели также могли браться с разных объектов. Теперь FindCookingFire выбирает один достижимый незанятый горящий костёр с готовым вертелом и свободным крюком, а планировщик применяет тот же контракт. CampfireStageTests 5/5 passed; Unity live-замер недоступен (MCP no_unity_session), нужен тест seed=251173145 tick=41199 npc=101.",
+            "fixCommits": [
+                "bf5216a69208106eaacf6bf07ea0aea37177f5f7"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.18",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-09 10:24 UTC",
+                    "author": "codex",
+                    "text": "Взял #93 в работу. Прослежу CookFood от аукциона цели до подвешивания мяса и проверю, не считает ли симуляция новый костёр незавершённым или без вертела."
+                },
+                {
+                    "whenUtc": "2026-08-09 10:42 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию: CookMeat больше не зависит от первого попавшегося костра и не смешивает горение одного очага с вертелом другого. Выбирается один конкретный пригодный костёр. Коммит bf5216a69208106eaacf6bf07ea0aea37177f5f7; целевые тесты 5/5."
+                }
+            ]
+        },
+        {
+            "id": 94,
+            "createdUtc": "2026-08-09 10:05 UTC",
+            "status": "ready_for_test",
+            "text": "Уже посмотрел третий раз, репорт один и тот же баг, что мне нужно с вот этой вот кепкой, которая сейчас на этом персонаже. Волосы скрывать не нужно. Проверь полностью, что это всё доходит точно, может, надо прифабы там, не знаю, перепаковать осет панд или ещё что-то. Почему так сложно пофиксить этот баг? Вот сейчас у меня выделен нужный персонаж. Шапка называется форменная кепка.",
+            "context": "seed=251173145 tick=42573 npc=1001",
+            "assignedAgent": "/root",
+            "agentHandoff": "Готово в df876972b478a8636a44bc84e48b1ce35d40a4a2. Корень повтора #77: в prefab уже было hidesHair=false, но drop-manifest не хранил это решение, а Editor мог читать старый packed Addressables bundle от 6 августа. Для clothing.cap_stars добавлен hairMode=show; extractor воспроизводит явное правило при чистой пересборке, генератор новых headwear пишет hairMode, Editor принудительно использует AssetDatabase. Unity 6000.4.5f1 compilation и полный Addressables build успешны; новый bundle cap_stars_287da6108f6577d9979f8056e316d3ff и catalog_0.1.18 установлены в Player HexLiveContent, SHA источника/назначения совпадают. Проверить seed=251173145 tick=42573 npc=1001.",
+            "fixCommits": [
+                "df876972b478a8636a44bc84e48b1ce35d40a4a2"
+            ],
+            "fixCommit": "df876972b478a8636a44bc84e48b1ce35d40a4a2",
+            "reportedInVersion": "0.1.18",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-09 10:24 UTC",
+                    "author": "codex",
+                    "text": "Взял #94 в работу и связал расследование с прежним #77. Проверю фактический id/mesh key выделенного NPC 1001 и прохождение hidesHair через исходный catalog/manifest до prefab, включая Player-контент."
+                },
+                {
+                    "whenUtc": "2026-08-09 11:02 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию: правило волос закреплено в source manifest как hairMode=show и переживает чистую генерацию; Editor больше не может незаметно подменить актуальный prefab старым packed bundle. Unity compilation и полный Addressables build прошли успешно. Новый cap_stars bundle и catalog_0.1.18 установлены в Player HexLiveContent, контрольные SHA совпали. Коммит df876972b478a8636a44bc84e48b1ce35d40a4a2."
+                }
+            ]
+        },
+        {
+            "id": 95,
+            "createdUtc": "2026-08-09 10:09 UTC",
+            "status": "ready_for_test",
+            "text": "Вот этот персонаж лежал на кровати. Анимация подъема не включилась. Теперь он, лежа, скользит.",
+            "context": "seed=251173145 tick=43429 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Готово в c03a31e29af6d3b0b84c526a4871bd93133ae3e4. Причина #95: ручной приказ прерывал Sleep и сразу запускал путь/действие, обходя 18-тиковое окно GetUp; симуляция двигала ещё лежащую модель. Теперь прерывание сна ручным приказом ставит WakeGrace, сам приказ сохраняется в очереди, а Pathfinding и Execution ждут конца подъёма. Регрессия MoveOrderInterruptingSleepWaitsForGetUpBeforeWalking и весь ManualControlTests: 16/16 passed. Нужен визуальный тест игрока seed=251173145 tick=43429 npc=1.",
+            "fixCommits": [
+                "c03a31e29af6d3b0b84c526a4871bd93133ae3e4"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.18",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-09 10:24 UTC",
+                    "author": "codex",
+                    "text": "Взял #95 в работу первым по приоритету. Прослежу точный переход от кровати к locomotion и устраню состояние, в котором движение начинается до выхода из лежачей позы."
+                },
+                {
+                    "whenUtc": "2026-08-09 10:31 UTC",
+                    "author": "codex",
+                    "text": "Исправление готово к тестированию: приказ, отданный спящему персонажу, теперь будит его, ждёт полный GetUp и только затем начинает путь или действие. Коммит c03a31e29af6d3b0b84c526a4871bd93133ae3e4. Целевой набор ManualControlTests прошёл: 16/16."
+                }
+            ]
+        },
+        {
+            "id": 96,
+            "createdUtc": "2026-08-09 22:08 UTC",
+            "status": "ready_for_test",
+            "text": "Размер персонажа в кукле/viewport постоянно меняется в зависимости от позы: когда персонаж лежит или сидит, камера кадрирует его нестабильно и кукла не всегда видна во весь размер. Возможно, в расчёт bounds или смещения камеры попадает лишнее смещение по Y. Нужно сделать стабильный полный кадр куклы для стоящей, сидящей и лежащей позы без скачков масштаба.",
+            "context": "reported verbally; doll viewport; poses=standing/sitting/lying",
+            "assignedAgent": "/root",
+            "agentHandoff": "Первый коммит 94b88c846929da1ecbe6cc73eab3c100138f8305 стабилизировал масштаб через authored localBounds, но оставил большое невидимое поле и смещение вверх. В доработке 910647caa8eb99e4ca33e6bd6883fc4cf19ba6f0 клон после Rebind/Idle один раз BakeMesh-ится: камера объединяет фактическую видимую геометрию, центрируется ровно по её bounds и сохраняет 8% поля. Это одновременно увеличивает и центрирует куклу, не возвращая зависимость от позы мирового NPC. Тесты, Unity и сборка отложены по указанию игрока.",
+            "fixCommits": [
+                "94b88c846929da1ecbe6cc73eab3c100138f8305",
+                "910647caa8eb99e4ca33e6bd6883fc4cf19ba6f0"
+            ],
+            "fixCommit": "910647caa8eb99e4ca33e6bd6883fc4cf19ba6f0",
+            "reportedInVersion": "0.1.19",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-09 22:08 UTC",
+                    "author": "codex",
+                    "text": "Взял #96 в работу сразу после создания. Проверяю расчёт bounds, Y-центра и дистанции камеры куклы во всех позах; исправление должно опираться на стабильные размеры персонажа, а не на текущую лежачую или сидячую анимацию."
+                },
+                {
+                    "whenUtc": "2026-08-09 22:21 UTC",
+                    "author": "codex",
+                    "text": "Исправил нестабильное кадрирование куклы: камера теперь использует стабильные authored bounds мешей, а не AABB текущей сидячей или лежачей позы. Изменение сохранено отдельным коммитом 94b88c846929da1ecbe6cc73eab3c100138f8305 и готово к тестированию игроком. Тесты, Unity и сборку сейчас не запускал по указанию игрока — проверим позже общим прогоном."
+                },
+                {
+                    "whenUtc": "2026-08-09 22:24 UTC",
+                    "author": "codex",
+                    "text": "Игрок вернул #96 в доработку: масштаб стал стабильным во всех позах, однако кукла больше не центрирована и прижата вверх. Снова взял баг в работу; исправляю только центр кадра, сохраняя стабильный масштаб."
+                },
+                {
+                    "whenUtc": "2026-08-09 23:04 UTC",
+                    "author": "codex",
+                    "text": "Доработал #96 отдельным коммитом 910647caa8eb99e4ca33e6bd6883fc4cf19ba6f0: вместо избыточных culling localBounds камера использует BakeMesh уже переведённого в Idle клона, центрируется по фактически видимой геометрии и оставляет равномерное поле. Кукла должна стать заметно крупнее и оказаться по центру, сохраняя одинаковый кадр для стоящей, сидящей и лежащей исходной позы. Готово к тестированию; тесты, Unity и сборку сейчас не запускал по указанию игрока."
+                }
+            ]
+        },
+        {
+            "id": 97,
+            "createdUtc": "2026-08-10 01:50 UTC",
+            "status": "ready_for_test",
+            "text": "Бак с куклы все еще воспроизводится в другом виде. Ну, короче, он слишком большой теперь и не помещается ни в одно из окон наших. Голову не видно, по плечи примерно обрезается.",
+            "context": "seed=318791168 tick=1101 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Готово в c13eedf0944627fcad59050d81ca27001fc07300. Причина #97 состояла из двух обрезаний: tight BakeMesh framing после #96 оставлял лишь 8% поля, а HP viewport 3:4 показывал RenderTexture 2:3 без BackgroundSize Contain и дополнительно кропал изображение. Теперь камера оставляет 18% запаса, а оба окна вписывают текстуру через Contain. Стабильные bounds и центрирование #96 сохранены. Тесты, Unity и сборка отложены по указанию игрока; проверить seed=318791168 tick=1101 npc=1 в HP и инвентаре.",
+            "fixCommits": [
+                "c13eedf0944627fcad59050d81ca27001fc07300"
+            ],
+            "fixCommit": "c13eedf0944627fcad59050d81ca27001fc07300",
+            "reportedInVersion": "0.1.21",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-10 01:53 UTC",
+                    "author": "codex",
+                    "text": "Взял #97 в работу. Проверяю не только camera bounds, но и отображение RenderTexture в обоих окнах: нужно сохранить стабильное центрирование из #96, уменьшить куклу до полного роста и гарантировать видимость головы и ног. Тесты пока не запускаю."
+                },
+                {
+                    "whenUtc": "2026-08-10 01:57 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. Камера теперь оставляет 18% безопасного поля вокруг фактической геометрии, а HP-окно использует тот же Contain, что и инвентарь, поэтому RenderTexture 2:3 больше не обрезается внутри viewport 3:4. Коммит c13eedf0944627fcad59050d81ca27001fc07300. Тесты, Unity и сборку не запускал по указанию игрока."
+                }
+            ]
+        },
+        {
+            "id": 98,
+            "createdUtc": "2026-08-10 04:23 UTC",
+            "status": "ready_for_test",
+            "text": "Персонажа отнесли на руках на кровать, но позиция тела легла криво. Хотя при этом пишут, что на кровати все хорошо. Чисто визуальный баг по ходу.",
+            "context": "seed=327779939 tick=1779 npc=1",
+            "assignedAgent": "/root/fix_48_health_doll",
+            "agentHandoff": "Симуляция после PutInBed корректно оставляет бессознательную пациентку в Sleep с TargetObject=bed, но presentation раньше выбирал IsUnconscious/Fallen и терял bed attach. SetFallen теперь принимает attach point; HexWorldRenderer передаёт authored точку и высоту кровати для rescue-sleep, сохраняя Fallen-анимацию. AI-перенос #99 не менялся. Коммит d491ec81453d32b0e458e78e2374d89bcb51940f; проверить seed=327779939 tick=1779 npc=1.",
+            "fixCommits": [
+                "d491ec81453d32b0e458e78e2374d89bcb51940f"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.22",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-10 04:44 UTC",
+                    "author": "codex",
+                    "text": "Баг #98 взят в работу агентом /root/fix_48_health_doll. Разбирается только визуальная посадка тела на кровать после успешной доставки; AI-перенос из #99 не затрагивается. Тесты пока не запускаются."
+                },
+                {
+                    "whenUtc": "2026-08-10 04:49 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию игроком: бессознательная пациентка сохраняет Fallen-анимацию, но после успешного PutInBed её body root теперь закрепляется на authored attach-точке и высоте целевой кровати. AI/маршрут переноски #99 не менялись. Атомарный коммит d491ec81453d32b0e458e78e2374d89bcb51940f. Тесты, Unity и сборка по указанию не запускались."
+                }
+            ]
+        },
+        {
+            "id": 99,
+            "createdUtc": "2026-08-10 04:26 UTC",
+            "status": "ready_for_test",
+            "text": "Персонаж сам лежал, плакал, но потом решил отнести другого персонажа. В итоге скользил в лежачей позе. Даниос продолжил плакать.Я думаю, что плачущий персонаж в стрессе не должен ходить и еще кого-то таскать куда-то.Кстати, может быть, я запутался, может быть, персонаж уснул, пока его несли. Давай, если персонаж, который нёс, уснул, то он падает спать и дальше план обрывается. Всё, он спит, и того персонажа, который нёс, тоже спавнится рядом с ним, ну как перенос тэпается рядом с ним, и они вместе спят.",
+            "context": "seed=327779939 tick=1931 npc=2",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено по seed=327779939 tick=1931 npc=2. Причина: RescueSystem назначал работу до DecisionSystem и не считал CryingUntilTick лежачим состоянием; затем ранний IsCarryingPerson сохранял план. Теперь IsLyingDown запрещает назначение и повторно проверяется на Fast/Movement: плач, сон, бессознательность, притворство и повреждённые ноги до движения разрывают переноску, кладут пациента рядом общим LyingSpot и обрывают rescue-план, не отменяя состояние носильщика. Чистый коммит: RescueDestinationTests 13/13; Unity/MCP не использовались.",
+            "fixCommits": [
+                "6d7850c50813a3e134e22b527af5cc84cb60cc04"
+            ],
+            "fixCommit": "6d7850c50813a3e134e22b527af5cc84cb60cc04",
+            "reportedInVersion": "0.1.22",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-10 04:44 UTC",
+                    "author": "codex",
+                    "text": "Служебное исправление маршрутизации: предыдущее сообщение относилось к #100, а не к этой карточке. #99 не взят нашей группой и оставлен в статусе created без assignedAgent — его забирает отдельный агент игрока."
+                },
+                {
+                    "whenUtc": "2026-08-10 04:45 UTC",
+                    "author": "codex",
+                    "text": "Взял #99 в работу по просьбе игрока. Разбираю отдельно выбор носильщика в состоянии плача/сна и обязательное безопасное завершение уже начатой переноски, если носильщик уснул или оказался лежачим. Unity/MCP не использую."
+                },
+                {
+                    "whenUtc": "2026-08-10 04:57 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. Плачущий, спящий или любой другой лежащий NPC больше не выбирается носильщиком; защитная проверка на Fast-слое не даёт старому/загруженному rescue-плану подобрать пациента. Если носильщик лёг уже с человеком в руках, связь разрывается до движения, план обрывается, пациент размещается рядом в том же гексе через общий solver тела 1.32 × 0.36 wu по 37 узлам, а сон/плач носильщика сохраняется. Чистый RescueDestinationTests: 13/13. Коммит 6d7850c50813a3e134e22b527af5cc84cb60cc04. Unity/MCP не использовались."
+                }
+            ]
+        },
+        {
+            "id": 100,
+            "createdUtc": "2026-08-10 04:28 UTC",
+            "status": "ready_for_test",
+            "text": "Очередной баг с куклой. Кукла ХП на мужском персонаже нормально. На женском голова срезана. То есть надо уменьшить так же, как и мужской персонаж.",
+            "context": "seed=327779939 tick=2298 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Готово в fb9c2c891efd384d79e1a6d1d3fe0467aeaa4c3a. Причина различия мужского и женского ригов: перспективная камера вписывала только X/Y bounds и игнорировала ближайшую полуглубину Z; более глубокая женская голова/волосы оказывались ближе и проецировались крупнее расчёта. Дистанция теперь равна half-depth + X/Y fit с padding. Стабильный BakeMesh, центр и Contain #96/#97 сохранены. Тесты, Unity и сборка не запускались по указанию игрока; проверить seed=327779939 tick=2298 npc=1 и мужского NPC в HP/Inventory.",
+            "fixCommits": [
+                "fb9c2c891efd384d79e1a6d1d3fe0467aeaa4c3a"
+            ],
+            "fixCommit": "fb9c2c891efd384d79e1a6d1d3fe0467aeaa4c3a",
+            "reportedInVersion": "0.1.22",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-10 04:44 UTC",
+                    "author": "codex",
+                    "text": "Взял #100 на себя как продолжение #96/#97. Сравниваю bounds мужского и женского actor-а и исправляю различие, из-за которого у женской HP-куклы срезается голова. Тесты пока не запускаю."
+                },
+                {
+                    "whenUtc": "2026-08-10 04:47 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. Перспективное вписывание теперь учитывает полуглубину bounds, ближайшую к камере: глубокий женский риг, голова и волосы больше не могут стать крупнее X/Y-расчёта и выйти за верх кадра. Коммит fb9c2c891efd384d79e1a6d1d3fe0467aeaa4c3a. Тесты, Unity и сборку не запускал по указанию игрока."
+                }
+            ]
+        },
+        {
+            "id": 101,
+            "createdUtc": "2026-08-10 04:30 UTC",
+            "status": "in_progress",
+            "text": "Когда персонаж не выбран, нам нужно разрешить теперь стрелочками скроллить карту. Всё, мы должны нормально просто двигаться по карте, когда персонаж не выбран или когда у нас не идёт следование за персонажем. Он может быть у нас выбран, но камера не следует. Тут же мы должны иметь возможность управлять стрелочками.",
+            "context": "seed=327779939 tick=2707",
+            "assignedAgent": "/root/fix_57_edit_bug_text",
+            "agentHandoff": "Диагноз подтверждён: незакоммиченная база §123 добавила HandleKeyboardRotation(_freeMaxPitch) в UpdateFree и убрала стрелки из HandlePan, поэтому Free вращается вместо панорамирования. Нужные hunks после базового commit: в RtsCameraController.UpdateFree удалить вызов HandleKeyboardRotation; в HandlePan добавить up/down/right/leftArrowKey к экранно-ориентированному вектору WASD; в spec §123.1 закрепить pan для Free и rotation только для Orbit/follow. Локально hunks уже применены, но commit отложен до коммита владельца базы, чтобы не поглотить #99/§123. Тесты, Unity и build не запускать.",
+            "fixCommits": [],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.22",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-10 04:44 UTC",
+                    "author": "codex",
+                    "text": "Баг #101 взят в работу агентом /root/fix_57_edit_bug_text. Он исправляет маршрутизацию стрелок между свободным панорамированием и follow, без запуска тестов."
+                },
+                {
+                    "whenUtc": "2026-08-10 05:05 UTC",
+                    "author": "codex",
+                    "text": "Диагноз готов: регрессия находится в ещё не закоммиченной базе §123 — Free вызывает клавиатурное вращение, а HandlePan читает только WASD. Локально стрелки возвращены в панорамирование Free, при Orbit/follow вращение сохранено. Отдельный коммит #101 ожидает базовый коммит владельца, чтобы не смешать чужие изменения; статус остаётся «в работе»."
+                }
+            ]
+        },
+        {
+            "id": 102,
+            "createdUtc": "2026-08-10 04:41 UTC",
+            "status": "ready_for_test",
+            "text": "Чужак лутает персонажа прямо через стенку дома. Через стенку дома лутать нельзя. Оказывать помощь нельзя. Ничего нельзя. Нужно правильно строить маршрут. С учетом стены.",
+            "context": "seed=327779939 tick=5459 npc=1",
+            "assignedAgent": "/root/fix_60_world_buildings",
+            "agentHandoff": "Диагноз: подход выбирался по прямой, а старт aid/loot проверял только метры, поэтому маршрут мог пройти через дверь обратно к внешней стороне стены и начать действие насквозь. Выбор подхода и старт теперь требуют контактный rim junction цели через CanTouchAcross; стены/уступы его блокируют, Door сохраняет штатный вход. Коммит af75283e61322d69dcde553f55e7c2da287bf565. Риск: игроку проверить позу у лежащего внутри хижины; тесты/Unity/build не запускались.",
+            "fixCommits": [
+                "af75283e61322d69dcde553f55e7c2da287bf565",
+                "8136776c0bdf3912afdf912d78f69e7cd28e7150"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.22",
+            "readyForTestInVersion": "0.1.23",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-10 04:44 UTC",
+                    "author": "codex",
+                    "text": "Баг #102 взят в работу агентом /root/fix_60_world_buildings. Проверяется построение подхода к персонажу внутри дома: лут и помощь через закрытую стену должны быть невозможны. Тесты пока не запускаются."
+                },
+                {
+                    "whenUtc": "2026-08-10 04:49 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию игроком. Помощь и обыск беспомощного теперь выбирают подход только на доступном контактном ободе junction цели и повторяют эту топологическую проверку перед стартом: стена, уступ или obstacle блокируют руки, а путь внутрь остаётся через Door-junction. AI-перенос #99 не затрагивался. Коммит af75283e61322d69dcde553f55e7c2da287bf565. Тесты, Unity и сборка не запускались."
+                },
+                {
+                    "whenUtc": "2026-08-10 04:55 UTC",
+                    "author": "codex",
+                    "text": "Canonical spec для #102 добавлен отдельным follow-up коммитом 8136776c0bdf3912afdf912d78f69e7cd28e7150: зафиксирован единый контактный rim для aid/loot, запрет действия через стену и штатный маршрут через Door-junction. Статус остаётся ready_for_test; тесты, Unity и сборка не запускались."
                 }
             ]
         }

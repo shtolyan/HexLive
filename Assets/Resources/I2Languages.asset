@@ -1321,6 +1321,14 @@ MonoBehaviour:
       - 'При смерти'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'state.dead'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dead'
+      - 'Мертва'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'state.playdead'
       TermType: 0
       Description:
@@ -2831,6 +2839,30 @@ MonoBehaviour:
       Languages:
       - 'Select'
       - 'Выбрать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.carry_person'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Pick up'
+      - 'Взять на руки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.put_down_person'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Put down'
+      - 'Положить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.hands_occupied'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hands are occupied'
+      - 'Руки заняты'
       Flags: 0101
       Languages_Touch: []
     - Term: 'menu.missing_tool'
@@ -17807,6 +17839,206 @@ MonoBehaviour:
       Languages:
       - 'commits: {0}'
       - 'коммиты: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'roster.clan'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Your clan'
+      - 'Твой клан'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'roster.outsiders'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outsiders'
+      - 'Чужаки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.control.mixed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Mixed'
+      - 'Смешано'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.control.readonly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'View only'
+      - 'Только просмотр'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.selected'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Selected: {0}'
+      - 'Выбрано: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.manual_summary'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Manual: {0} of {1}'
+      - 'Ручных: {0} из {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.alerts'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Incapacitated: {0} · Fighting: {1}'
+      - 'Не могут действовать: {0} · В бою: {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.stop'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Stop'
+      - 'Стоп'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.order_hint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Click the world to give an order'
+      - 'Кликните по миру, чтобы отдать приказ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.no_manual'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No characters in manual mode'
+      - 'Нет персонажей в ручном режиме'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.result.MoveTo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Moving: {0} of {1} · no path: {2} · incapacitated: {3} · AI: {4}'
+      - 'Идут {0} из {1} · без пути: {2} · недееспособны: {3} · под ИИ: {4}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.result.Stop'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Stopped: {0} of {1} · AI: {4}'
+      - 'Остановлены: {0} из {1} · под ИИ: {4}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.result.AttackNpc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Attacking: {0} of {1} · unavailable: {3} · AI: {4}'
+      - 'Атакуют: {0} из {1} · недоступны: {3} · под ИИ: {4}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.result.AttackMob'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Attacking: {0} of {1} · unavailable: {3} · AI: {4}'
+      - 'Атакуют: {0} из {1} · недоступны: {3} · под ИИ: {4}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'group.result.SetManual'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Control changed for {0} of {1}'
+      - 'Режим изменён у {0} из {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.select_one_character'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Select one character'
+      - 'Выберите одного персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NotOwned'
+      TermType: 0
+      Description:
+      Languages:
+      - 'You cannot control an outsider'
+      - 'Чужаком управлять нельзя'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.StaleItem'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The inventory changed; try again'
+      - 'Инвентарь изменился — попробуйте ещё раз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.InvalidAction'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This action is not available'
+      - 'Это действие недоступно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.InsufficientSpace'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Not enough space'
+      - 'Недостаточно места'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.action.wear'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wear'
+      - 'Надеть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.action.stow'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Take off'
+      - 'Снять в инвентарь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.action.drop'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drop'
+      - 'Выбросить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.readonly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'View only: you cannot change an outsider''s inventory'
+      - 'Только просмотр: инвентарь чужака изменять нельзя'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.drop_zone'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drop here to put the item on the ground'
+      - 'Перетащите сюда, чтобы положить вещь на землю'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

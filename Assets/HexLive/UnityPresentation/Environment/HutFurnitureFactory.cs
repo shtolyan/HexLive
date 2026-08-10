@@ -18,8 +18,11 @@ public static class HutFurnitureFactory
     // vertical wall at apothem 1.299. Interaction still starts from the safe
     // junction; furniture itself may occupy the architecture-edge space.
     public const float BedWallSnugOffset = 0.246f;
+    // Match the player-approved BedSleepPoseTest contract exactly: the bed root
+    // sits on the walkable plane. Do not reinterpret FBX bounds as a second
+    // placement offset; doing so dropped the production beds toward terrain.
+    public const float BedRootLift = HutAssembly.FloorSurfaceLift;
     private const string HutPrefabPath = "HexLive/Objects/building.hut_1hex";
-    private static readonly Vector3 HearthVisualOffset = new(0f, 0f, -0.20f);
     private static readonly Dictionary<string, Material> Materials = new();
 
     /// <summary>
@@ -44,7 +47,7 @@ public static class HutFurnitureFactory
         var root = new GameObject("Integrated hut hearth");
         var furniture = new GameObject("Hearth furniture").transform;
         furniture.SetParent(root.transform, false);
-        furniture.localPosition = HearthVisualOffset;
+        furniture.localPosition = Vector3.zero;
         var stone = Material("HearthStone", new Color(0.34f, 0.31f, 0.27f));
         var stoneLight = Material("HearthStoneLight", new Color(0.47f, 0.43f, 0.36f));
         var ember = Material("HearthEmber", new Color(0.36f, 0.075f, 0.025f), emission: true);
@@ -86,7 +89,7 @@ public static class HutFurnitureFactory
 
         var firePoint = new GameObject("fire_point");
         firePoint.transform.SetParent(root.transform, false);
-        firePoint.transform.localPosition = HearthVisualOffset;
+        firePoint.transform.localPosition = Vector3.zero;
         return root;
     }
 

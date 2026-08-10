@@ -63,7 +63,13 @@ public enum PlanStepType
     PickUpPerson,
     PutPersonInBed,
     ApplySplint,
-    FitProsthetic
+    FitProsthetic,
+    // §123 append-only player inventory mutations. TimeoutEndTick carries the
+    // authoritative source index; TargetItemDefinitionId guards stale layouts.
+    PlayerWearInventory,
+    PlayerStowWorn,
+    PlayerDropCarried,
+    PlayerDropWorn
 }
 
 public enum PlanStatus

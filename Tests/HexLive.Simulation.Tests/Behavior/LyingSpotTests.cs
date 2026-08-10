@@ -167,6 +167,48 @@ public sealed class LyingSpotTests
         Assert.That(world.Events.Items.Any(e =>
             e.Type == "LieDownSpot" && e.Message.Contains("Fit=NoSpace")), Is.True);
     }
+
+    [Test]
+    public void LegacyBedAnchor_WakesOntoNearestFreeStandingJunction()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girl = Girl(world);
+        MoveOtherNpcsAway(world, girl);
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic && o.Variant == ContentIds.HutBedVariant);
+        var anchor = bed.Junctions[0];
+        girl.Tile = bed.Tile;
+        girl.Position = world.Junctions.Items[anchor].WorldPosition;
+        girl.Plan.TargetJunctionId = anchor; // old save: bed centre, not approach point
+
+        Assert.That(LyingSpot.TryStandAfterObjectSleep(world, girl, bed), Is.True);
+        Assert.That(girl.Position, Is.Not.EqualTo(world.Junctions.Items[anchor].WorldPosition));
+        Assert.That(world.Tiles.Items[bed.Tile].Junctions.Any(id =>
+            world.Junctions.Items[id].WorldPosition.Equals(girl.Position) &&
+            !world.Junctions.Items[id].Blocked), Is.True);
+    }
+
+    [Test]
+    public void TwoBedSleepers_WakeOntoDifferentStandingPoints()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girls = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).Take(2).ToArray();
+        var beds = world.Entities.Objects.Values.Where(o =>
+                o.DefinitionId == ContentIds.BedBasic && o.Variant == ContentIds.HutBedVariant)
+            .OrderBy(o => o.Id.Value).Take(2).ToArray();
+        Assert.That(beds, Has.Length.EqualTo(2));
+        for (var i = 0; i < 2; i++)
+        {
+            girls[i].Tile = beds[i].Tile;
+            girls[i].Position = world.Junctions.Items[beds[i].Junctions[0]].WorldPosition;
+            girls[i].Plan.TargetJunctionId = beds[i].Junctions[0];
+        }
+
+        Assert.That(LyingSpot.TryStandAfterObjectSleep(world, girls[0], beds[0]), Is.True);
+        Assert.That(LyingSpot.TryStandAfterObjectSleep(world, girls[1], beds[1]), Is.True);
+        Assert.That(HexSpatialMath.Distance(girls[0].Position, girls[1].Position),
+            Is.GreaterThan(0.20f));
+    }
 }
 
 }

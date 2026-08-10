@@ -363,6 +363,7 @@ public static class GoalCatalog
         Add(GoalType.PlayerAttack, urgency: UrgencyClass.Hurry,
             ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true,
             loop: LoopPolicy.Sticky);
+        Add(GoalType.PlayerInventory, reactive: true, loop: LoopPolicy.Sticky);
 
         // ── Мёртвые ординалы (§52: заявка на мебель стала стадийной) ─────
         Add(GoalType.PlaceSite, dead: true);

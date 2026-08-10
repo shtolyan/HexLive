@@ -104,6 +104,95 @@ internal static class LyingSpot
     }
 
     /// <summary>
+    /// Moves a waking sleeper from the authored bed pose to a real standing
+    /// junction. New plans retain their reserved approach node; legacy plans
+    /// that targeted the bed anchor search the nearest free node instead.
+    /// </summary>
+    internal static bool TryStandAfterObjectSleep(
+        WorldState world, NPCState npc, WorldObjectState bed)
+    {
+        var anchor = bed.Junctions.Count > 0 ? bed.Junctions[0] : (JunctionId?)null;
+        if (npc.Plan.TargetJunctionId is { } planned &&
+            (!anchor.HasValue || !planned.Equals(anchor.Value)) &&
+            CanStandAt(world, npc, planned))
+        {
+            return MoveToStand(world, npc, planned);
+        }
+
+        if (!anchor.HasValue || !world.Junctions.Items.TryGetValue(anchor.Value, out var anchorNode))
+        {
+            return false;
+        }
+
+        var candidates = new List<JunctionId>();
+        SpatialQueries.CollectStandableAround(
+            world, anchor.Value, candidates, 96,
+            SpatialQueries.BesideReach(SolidRadius(world, bed)), bed,
+            SpatialQueries.RimPurpose.Route);
+        candidates.Sort((a, b) =>
+        {
+            var da = world.Junctions.Items.TryGetValue(a, out var ja)
+                ? DistanceSq(ja.WorldPosition, anchorNode.WorldPosition) : float.MaxValue;
+            var db = world.Junctions.Items.TryGetValue(b, out var jb)
+                ? DistanceSq(jb.WorldPosition, anchorNode.WorldPosition) : float.MaxValue;
+            var byDistance = da.CompareTo(db);
+            return byDistance != 0 ? byDistance : a.Value.CompareTo(b.Value);
+        });
+        foreach (var candidate in candidates)
+        {
+            if (CanStandAt(world, npc, candidate) && MoveToStand(world, npc, candidate))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool CanStandAt(WorldState world, NPCState npc, JunctionId candidate)
+    {
+        if (!world.Junctions.Items.TryGetValue(candidate, out var junction) ||
+            junction.Blocked || SpatialQueries.IsAllWaterJunction(world, candidate))
+        {
+            return false;
+        }
+        if (world.Occupancy.JunctionOwner.TryGetValue(candidate, out var owner) &&
+            owner is { } occupant && !occupant.Equals(npc.Id))
+        {
+            return false;
+        }
+
+        // Two sleepers may wake on the same tick. The first one's new position
+        // immediately excludes that point for the second, even after the short
+        // interaction reservation is released.
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id.Equals(npc.Id)) continue;
+            if (DistanceSq(other.Position, junction.WorldPosition) < 0.20f * 0.20f) return false;
+        }
+        return true;
+    }
+
+    private static bool MoveToStand(WorldState world, NPCState npc, JunctionId stand)
+    {
+        if (!world.Junctions.Items.TryGetValue(stand, out var junction)) return false;
+        npc.Position = junction.WorldPosition;
+        if (!junction.Tiles.Contains(npc.Tile) && junction.Tiles.Count > 0)
+        {
+            var previous = npc.Tile;
+            npc.Tile = junction.Tiles[0];
+            SpatialMutations.MoveEntityToTile(world, npc.Id, previous, npc.Tile);
+        }
+        return true;
+    }
+
+    private static float DistanceSq(Float2 a, Float2 b)
+    {
+        var delta = a - b;
+        return delta.X * delta.X + delta.Y * delta.Y;
+    }
+
+    /// <summary>
     /// Searches the 37 interior sub-grid nodes of the NPC's CURRENT tile.
     /// Candidates are nearest-position first; ties use the stable template slot.
     /// </summary>
@@ -276,6 +365,11 @@ internal static class LyingSpot
         // object anchor is only an interaction handle; collision uses the body.
         foreach (var corpse in world.Entities.Corpses.Values)
         {
+            if (corpse.Id.Equals(npc.Id) || corpse.IsBeingCarried)
+            {
+                continue;
+            }
+
             var corpseForward = Forward(corpse.RotationDegrees);
             if (BodiesOverlap(spot, forward, lateral, corpse.Position,
                 corpseForward, Lateral(corpseForward)))

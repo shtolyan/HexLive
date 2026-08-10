@@ -478,6 +478,29 @@ public sealed class MovementSystem : ISimulationSystem
                     scanTile = jt;
                 }
 
+                // ⭐ ПРИХОД — НЕ ПЕРЕСЕЧЕНИЕ (§21.21B v24). Последний узел пути —
+                // это место, где надо ВСТАТЬ, а не граница, которую надо
+                // перейти. Прыжок по построению перелетает границу на
+                // EdgePadding, то есть ЗА точку назначения, и следом резолвер
+                // направленного шага записывает её на ДАЛЬНЮЮ сторону.
+                //
+                // Из-за этого «пошла стирать»: план стирки целится в узел на
+                // кромке берега (StandTile = сухой тайл), сим видел границу
+                // земля/вода на ПОСЛЕДНЕМ шаге, прыгал в воду (SwimEnter, 2 с
+                // барахтанья, мокрая), а исполнитель тут же вытаскивал её
+                // обратно на берег через PlaceAtEdge — «спрыгнула и
+                // телепортировалась назад», каждый раз.
+                //
+                // Граничный узел принадлежит обеим сторонам, поэтому стоять на
+                // нём можно с ближней: прыжок не нужен вовсе.
+                if (wallIndex == npc.Movement.JunctionPath.Count - 1 &&
+                    world.Junctions.Items.TryGetValue(
+                        npc.Movement.JunctionPath[wallIndex], out var arrivalJunction) &&
+                    arrivalJunction.Tiles.Contains(wallNearTile.Coord))
+                {
+                    wallIndex = -1;
+                }
+
                 if (wallIndex >= 0)
                 {
                     // The hop crosses exactly ONE elevation border: she leaves
@@ -903,7 +926,17 @@ public sealed class MovementSystem : ISimulationSystem
                 npc.CurrentJunction = targetJunctionId;
 
                 var previousTile = npc.Tile;
-                if (HexPathfinder.TryGetDirectedStepTile(
+                // ⭐ Вторая половина правила «приход — не пересечение»: дойдя до
+                // ПОСЛЕДНЕГО узла пути, который граничит и с её собственным
+                // тайлом, она остаётся на СВОЁЙ стороне. Резолвер направленного
+                // шага смотрит «вперёд по вектору движения» — это верно для
+                // узла, который проходят насквозь, и неверно для того, на
+                // котором останавливаются: иначе стирающая, дойдя до кромки,
+                // числилась бы в воде (мокрая, барахтается), и её приходилось
+                // бы вытаскивать назад.
+                var arrivalStep = targetIndex == npc.Movement.JunctionPath.Count - 1 &&
+                    targetJunction.Tiles.Contains(previousTile);
+                if (!arrivalStep && HexPathfinder.TryGetDirectedStepTile(
                     world, previousJunctionId, targetJunctionId, out var targetTile))
                 {
                     var newTile = targetTile.Coord;
@@ -959,6 +992,8 @@ public sealed class MovementSystem : ISimulationSystem
                 }
             }
         }
+
+        KenshiRescueMath.SyncCarriedPositionsAfterMovement(world);
     }
 }
 

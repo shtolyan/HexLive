@@ -16,6 +16,19 @@ namespace HexLive.UnityPresentation.Environment
     /// </summary>
     public sealed class BedAssembly : MonoBehaviour
     {
+        // Tuned by the player in BedSleepPoseTest: authored 0.24 with slider
+        // -0.30 = -0.06. This is the animated BODY ROOT, not the bed surface;
+        // the Sleep clip's baked body offset then rests the body on the leaves.
+        // Measured against the shipped bed.basic: root sits at floor+0.1075,
+        // leaf surface is ~0.27 wu above it, while the sleeping skin extends
+        // ~0.10-0.13 wu below the animated body root. +0.35 places the skin on
+        // the leaves; the former -0.06 marker was below even the bed logs.
+        public const float SleepRootLocalY = 0.37f;
+        // The authored mattress stopped short of its production junction footprint,
+        // leaving an obvious empty strip at the feet. Keep width/height unchanged
+        // and extend only the bed-local longitudinal axis to nearly meet its nodes.
+        public const float BedWidthScale = 1.139507f; // 0.570000 -> 0.649519 wu
+        public const float BedLengthScale = 1.056338f; // 1.420000 -> 1.500000 wu
         private readonly List<GameObject> _logs = new();
         private readonly List<GameObject> _sticks = new();
         private readonly List<GameObject> _ropes = new();
@@ -238,6 +251,8 @@ namespace HexLive.UnityPresentation.Environment
             }
 
             go ??= BuildSafeFallback(product);
+            if (product == ContentIds.BedBasic)
+                go.transform.localScale = new Vector3(BedWidthScale, 1f, BedLengthScale);
             asm = go.GetComponent<BedAssembly>() ?? go.AddComponent<BedAssembly>();
             return go;
         }
@@ -502,7 +517,7 @@ namespace HexLive.UnityPresentation.Environment
             var point = new GameObject("point");
             point.transform.SetParent(root.transform, false);
             point.transform.localPosition = root.transform.InverseTransformVector(
-                Vector3.up * 0.24f);
+                Vector3.up * SleepRootLocalY);
         }
 
         /// A build-site in progress — only the delivered pieces of each material.

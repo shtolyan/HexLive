@@ -966,6 +966,14 @@ public sealed class MobSystem : ISimulationSystem
         npc.Mind.Cooldowns.Exists(c =>
             c.Goal == GoalType.Flee && c.EndTick > world.Tick);
 
+    // Бюджет полных поисков пути на один выбор убежища. Кандидаты
+    // отсортированы «лучший первым», штатный выбор укладывается в первые
+    // попытки; исчерпывающий перебор случается ровно тогда, когда дороги нет
+    // вообще (замерено: 800 мс и 0.8 ГБ аллокаций за тик на острове 1x —
+    // та же болезнь, что бюджет TryFindDestination у переноски §118).
+    // После бюджета — тот же честный MarkFleeUnavailable, но за миллисекунды.
+    private const int FleePathSearchBudget = 24;
+
     private static bool TryReserveReachableFleeTarget(
         WorldState world,
         NPCState npc,
@@ -974,8 +982,14 @@ public sealed class MobSystem : ISimulationSystem
         out JunctionId refuge)
     {
         var avoid = PathfindingSystem.OtherActorJunctions(world, npc);
+        var searches = 0;
         foreach (var candidate in candidates)
         {
+            if (++searches > FleePathSearchBudget)
+            {
+                break;
+            }
+
             // This is the exact physical contract PathfindingSystem will use
             // on the following fast tick. Connectivity alone is insufficient:
             // it ignores elevation jumps and a carried person's jump ban.
@@ -1420,9 +1434,13 @@ public sealed class MobSystem : ISimulationSystem
                 world, ContentIds.CorpseNpc, npc.Fragment, npc.Tile, corpseJunction);
             corpse.CurrentUser = deadId; // whose body this is
             corpse.SpawnTick = world.Tick;
-            // §28.15C v3: таймера гниения здесь БОЛЬШЕ НЕТ. Тело не истлевает и
-            // не хоронится — оно лежит до конца игры. Убрать его может только
-            // нож (§56), и это уже осознанный поступок живого человека.
+            if (npc.IsBeingCarried)
+            {
+                CorpseMath.SuspendAnchor(world, npc);
+            }
+            // §28.15C v5: свежий якорь хранит тело две игровые суток, затем
+            // CorpseSystem заменяет его останками ещё на двое суток. В руках
+            // замена откладывается, но срок всё равно считается от SpawnTick.
 
             foreach (var witness in world.Entities.Npcs.Values)
             {

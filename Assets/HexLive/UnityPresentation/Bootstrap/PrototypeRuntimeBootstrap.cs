@@ -267,12 +267,6 @@ public static class PrototypeRuntimeBootstrap
 
         manualInput.SetRunner(runner);
 
-        // §112: palms that stand between the lens and the framed colonist step
-        // out of the shot (shadows stay) until the camera moves off them.
-        if (mainCamera.GetComponent<Rendering.CameraFoliageCuller>() == null)
-        {
-            mainCamera.gameObject.AddComponent<Rendering.CameraFoliageCuller>();
-        }
     }
 }
 

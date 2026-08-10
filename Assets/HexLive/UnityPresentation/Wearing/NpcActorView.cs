@@ -2837,10 +2837,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     //
     // Дальше аниматор ВЫКЛЮЧАЕТСЯ совсем. Не «speed = 0», а enabled = false:
     // поза остаётся ровно той, на которой кончился клип, и её больше некому
-    // сдвинуть — ни дыханию, ни взгляду, ни фиджетам. Тела копятся до конца
-    // игры, так что выключенный аниматор здесь ещё и единственная плата за то,
-    // что остров помнит своих мёртвых.
+    // сдвинуть — ни дыханию, ни взгляду, ни фиджетам. При переносе включается
+    // только BeingCarried, после укладки запомненная мёртвая поза снова замирает.
     private bool _dead;
+    private bool _deadWasAlreadyLying;
+    private bool _corpseCarried;
     private float _deathFreezeAt = -1f; // Time.time, когда клип докрутится
     private float _deathSurfaceY;
     private static readonly int DeathStateHash = Animator.StringToHash("Death");
@@ -2864,6 +2865,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _dead = true;
+        _deadWasAlreadyLying = variant < 0;
         _deathSurfaceY = surfaceY;
         // §50: a corpse never crawls — clear the flag so the Crawl loop yields
         // to the death/laying pose (the Crawl transition also guards on !Dead).
@@ -2929,6 +2931,31 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             _animator.enabled = false;
         }
+    }
+
+    /// <summary>§124: PlayableGraph переносимой позы требует включённый
+    /// Animator. После выкладывания восстанавливаем авторский последний кадр
+    /// смерти, а не замораживаем вертикальную позу из рук носильщика.</summary>
+    internal void SetCorpseCarried(bool carried)
+    {
+        if (!_dead || _animator == null || _corpseCarried == carried)
+        {
+            return;
+        }
+
+        _corpseCarried = carried;
+        if (carried)
+        {
+            _deathFreezeAt = -1f;
+            _animator.enabled = true;
+            return;
+        }
+
+        _animator.enabled = true;
+        _animator.Play(_deadWasAlreadyLying ? FallenIdleStateHash : DeathStateHash,
+            0, _deadWasAlreadyLying ? 0f : 1f);
+        _animator.Update(0f);
+        FreezeDeathPose();
     }
 
     // Клип смерти авторский, а земля — свойство мира. У одних наборов костей

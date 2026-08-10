@@ -281,6 +281,7 @@ public static class WorldSnapshotCodec
         Owner = 1 << 3,
         CraftProject = 1 << 4,
         Architecture = 1 << 5,
+        ArchitectureOwner = 1 << 6,
     }
 
     // Definition ids repeat across every object; both ends derive the same table
@@ -354,6 +355,7 @@ public static class WorldSnapshotCodec
             parts |= ObjectParts.CraftProject;
         }
         if (o.ArchitectureElements.Count > 0) parts |= ObjectParts.Architecture;
+        if (o.ArchitectureOwnerObjectId.HasValue) parts |= ObjectParts.ArchitectureOwner;
 
         w.Write((byte)parts);
         w.Write(o.Id.Value);
@@ -427,6 +429,9 @@ public static class WorldSnapshotCodec
                 w.Write(element.WorkDone);
             }
         }
+
+        if ((parts & ObjectParts.ArchitectureOwner) != 0)
+            w.Write(o.ArchitectureOwnerObjectId.Value);
 
         if ((parts & ObjectParts.CraftProject) != 0)
         {
@@ -541,6 +546,10 @@ public static class WorldSnapshotCodec
                     });
                 }
             }
+
+            o.ArchitectureOwnerObjectId = (parts & ObjectParts.ArchitectureOwner) != 0
+                ? r.ReadInt32()
+                : (int?)null;
 
             o.CraftIngredients.Clear();
             if ((parts & ObjectParts.CraftProject) != 0)

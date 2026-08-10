@@ -1,0 +1,438 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 720" role="img" aria-labelledby="title desc">
+  <title id="title">Групповая формация на семи гексах</title>
+  <desc id="desc">Точный кластер из выбранного pointy-top гекса и шести соседей: 373 уникальных junction, 61 ссылка на гекс, шаг 0.375 wu.</desc>
+  <defs>
+    <circle id="junction" r="2.05" fill="#bfd7e8" fill-opacity="0.34"/>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6.5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#58d5ff"/></marker>
+  </defs>
+  <rect width="1040" height="720" fill="#15212b"/>
+  <text x="28" y="38" fill="#eef7ff" font-family="sans-serif" font-size="25" font-weight="700">§123.6 · групповое размещение</text>
+  <text x="28" y="66" fill="#9fb7c7" font-family="sans-serif" font-size="15">Реальные константы: HexRadius 1.5 wu · junction pitch 0.375 wu</text>
+  <g id="seven-tile-zone" stroke="#55bfe8" stroke-width="2">
+    <polygon points="360.00,460.50 447.04,410.25 447.04,309.75 360.00,259.50 272.96,309.75 272.96,410.25" fill="#245f7d" fill-opacity=".42"/>
+    <polygon points="534.07,460.50 621.11,410.25 621.11,309.75 534.07,259.50 447.04,309.75 447.04,410.25" fill="#1d4760" fill-opacity=".23"/>
+    <polygon points="447.04,611.25 534.07,561.00 534.07,460.50 447.04,410.25 360.00,460.50 360.00,561.00" fill="#1d4760" fill-opacity=".23"/>
+    <polygon points="272.96,611.25 360.00,561.00 360.00,460.50 272.96,410.25 185.93,460.50 185.93,561.00" fill="#1d4760" fill-opacity=".23"/>
+    <polygon points="185.93,460.50 272.96,410.25 272.96,309.75 185.93,259.50 98.89,309.75 98.89,410.25" fill="#1d4760" fill-opacity=".23"/>
+    <polygon points="272.96,309.75 360.00,259.50 360.00,159.00 272.96,108.75 185.93,159.00 185.93,259.50" fill="#1d4760" fill-opacity=".23"/>
+    <polygon points="447.04,309.75 534.07,259.50 534.07,159.00 447.04,108.75 360.00,159.00 360.00,259.50" fill="#1d4760" fill-opacity=".23"/>
+  </g>
+  <g id="cluster-nodes" data-count="373">
+    <use href="#junction" x="98.89" y="410.25"/>
+    <use href="#junction" x="98.89" y="385.13"/>
+    <use href="#junction" x="98.89" y="360.00"/>
+    <use href="#junction" x="98.89" y="334.88"/>
+    <use href="#junction" x="98.89" y="309.75"/>
+    <use href="#junction" x="120.65" y="422.81"/>
+    <use href="#junction" x="120.65" y="397.69"/>
+    <use href="#junction" x="120.65" y="372.56"/>
+    <use href="#junction" x="120.65" y="347.44"/>
+    <use href="#junction" x="120.65" y="322.31"/>
+    <use href="#junction" x="120.65" y="297.19"/>
+    <use href="#junction" x="142.41" y="435.38"/>
+    <use href="#junction" x="142.41" y="410.25"/>
+    <use href="#junction" x="142.41" y="385.13"/>
+    <use href="#junction" x="142.41" y="360.00"/>
+    <use href="#junction" x="142.41" y="334.88"/>
+    <use href="#junction" x="142.41" y="309.75"/>
+    <use href="#junction" x="142.41" y="284.63"/>
+    <use href="#junction" x="164.17" y="447.94"/>
+    <use href="#junction" x="164.17" y="422.81"/>
+    <use href="#junction" x="164.17" y="397.69"/>
+    <use href="#junction" x="164.17" y="372.56"/>
+    <use href="#junction" x="164.17" y="347.44"/>
+    <use href="#junction" x="164.17" y="322.31"/>
+    <use href="#junction" x="164.17" y="297.19"/>
+    <use href="#junction" x="164.17" y="272.06"/>
+    <use href="#junction" x="185.93" y="561.00"/>
+    <use href="#junction" x="185.93" y="535.88"/>
+    <use href="#junction" x="185.93" y="510.75"/>
+    <use href="#junction" x="185.93" y="485.63"/>
+    <use href="#junction" x="185.93" y="460.50"/>
+    <use href="#junction" x="185.93" y="435.38"/>
+    <use href="#junction" x="185.93" y="410.25"/>
+    <use href="#junction" x="185.93" y="385.13"/>
+    <use href="#junction" x="185.93" y="360.00"/>
+    <use href="#junction" x="185.93" y="334.88"/>
+    <use href="#junction" x="185.93" y="309.75"/>
+    <use href="#junction" x="185.93" y="284.63"/>
+    <use href="#junction" x="185.93" y="259.50"/>
+    <use href="#junction" x="185.93" y="234.38"/>
+    <use href="#junction" x="185.93" y="209.25"/>
+    <use href="#junction" x="185.93" y="184.13"/>
+    <use href="#junction" x="185.93" y="159.00"/>
+    <use href="#junction" x="207.69" y="573.56"/>
+    <use href="#junction" x="207.69" y="548.44"/>
+    <use href="#junction" x="207.69" y="523.31"/>
+    <use href="#junction" x="207.69" y="498.19"/>
+    <use href="#junction" x="207.69" y="473.06"/>
+    <use href="#junction" x="207.69" y="447.94"/>
+    <use href="#junction" x="207.69" y="422.81"/>
+    <use href="#junction" x="207.69" y="397.69"/>
+    <use href="#junction" x="207.69" y="372.56"/>
+    <use href="#junction" x="207.69" y="347.44"/>
+    <use href="#junction" x="207.69" y="322.31"/>
+    <use href="#junction" x="207.69" y="297.19"/>
+    <use href="#junction" x="207.69" y="272.06"/>
+    <use href="#junction" x="207.69" y="246.94"/>
+    <use href="#junction" x="207.69" y="221.81"/>
+    <use href="#junction" x="207.69" y="196.69"/>
+    <use href="#junction" x="207.69" y="171.56"/>
+    <use href="#junction" x="207.69" y="146.44"/>
+    <use href="#junction" x="229.45" y="586.13"/>
+    <use href="#junction" x="229.45" y="561.00"/>
+    <use href="#junction" x="229.45" y="535.88"/>
+    <use href="#junction" x="229.45" y="510.75"/>
+    <use href="#junction" x="229.45" y="485.63"/>
+    <use href="#junction" x="229.45" y="460.50"/>
+    <use href="#junction" x="229.45" y="435.38"/>
+    <use href="#junction" x="229.45" y="410.25"/>
+    <use href="#junction" x="229.45" y="385.13"/>
+    <use href="#junction" x="229.45" y="360.00"/>
+    <use href="#junction" x="229.45" y="334.88"/>
+    <use href="#junction" x="229.45" y="309.75"/>
+    <use href="#junction" x="229.45" y="284.63"/>
+    <use href="#junction" x="229.45" y="259.50"/>
+    <use href="#junction" x="229.45" y="234.38"/>
+    <use href="#junction" x="229.45" y="209.25"/>
+    <use href="#junction" x="229.45" y="184.13"/>
+    <use href="#junction" x="229.45" y="159.00"/>
+    <use href="#junction" x="229.45" y="133.88"/>
+    <use href="#junction" x="251.21" y="598.69"/>
+    <use href="#junction" x="251.21" y="573.56"/>
+    <use href="#junction" x="251.21" y="548.44"/>
+    <use href="#junction" x="251.21" y="523.31"/>
+    <use href="#junction" x="251.21" y="498.19"/>
+    <use href="#junction" x="251.21" y="473.06"/>
+    <use href="#junction" x="251.21" y="447.94"/>
+    <use href="#junction" x="251.21" y="422.81"/>
+    <use href="#junction" x="251.21" y="397.69"/>
+    <use href="#junction" x="251.21" y="372.56"/>
+    <use href="#junction" x="251.21" y="347.44"/>
+    <use href="#junction" x="251.21" y="322.31"/>
+    <use href="#junction" x="251.21" y="297.19"/>
+    <use href="#junction" x="251.21" y="272.06"/>
+    <use href="#junction" x="251.21" y="246.94"/>
+    <use href="#junction" x="251.21" y="221.81"/>
+    <use href="#junction" x="251.21" y="196.69"/>
+    <use href="#junction" x="251.21" y="171.56"/>
+    <use href="#junction" x="251.21" y="146.44"/>
+    <use href="#junction" x="251.21" y="121.31"/>
+    <use href="#junction" x="272.96" y="611.25"/>
+    <use href="#junction" x="272.96" y="586.13"/>
+    <use href="#junction" x="272.96" y="561.00"/>
+    <use href="#junction" x="272.96" y="535.88"/>
+    <use href="#junction" x="272.96" y="510.75"/>
+    <use href="#junction" x="272.96" y="485.63"/>
+    <use href="#junction" x="272.96" y="460.50"/>
+    <use href="#junction" x="272.96" y="435.38"/>
+    <use href="#junction" x="272.96" y="410.25"/>
+    <use href="#junction" x="272.96" y="385.13"/>
+    <use href="#junction" x="272.96" y="360.00"/>
+    <use href="#junction" x="272.96" y="334.88"/>
+    <use href="#junction" x="272.96" y="309.75"/>
+    <use href="#junction" x="272.96" y="284.63"/>
+    <use href="#junction" x="272.96" y="259.50"/>
+    <use href="#junction" x="272.96" y="234.38"/>
+    <use href="#junction" x="272.96" y="209.25"/>
+    <use href="#junction" x="272.96" y="184.13"/>
+    <use href="#junction" x="272.96" y="159.00"/>
+    <use href="#junction" x="272.96" y="133.88"/>
+    <use href="#junction" x="272.96" y="108.75"/>
+    <use href="#junction" x="294.72" y="598.69"/>
+    <use href="#junction" x="294.72" y="573.56"/>
+    <use href="#junction" x="294.72" y="548.44"/>
+    <use href="#junction" x="294.72" y="523.31"/>
+    <use href="#junction" x="294.72" y="498.19"/>
+    <use href="#junction" x="294.72" y="473.06"/>
+    <use href="#junction" x="294.72" y="447.94"/>
+    <use href="#junction" x="294.72" y="422.81"/>
+    <use href="#junction" x="294.72" y="397.69"/>
+    <use href="#junction" x="294.72" y="372.56"/>
+    <use href="#junction" x="294.72" y="347.44"/>
+    <use href="#junction" x="294.72" y="322.31"/>
+    <use href="#junction" x="294.72" y="297.19"/>
+    <use href="#junction" x="294.72" y="272.06"/>
+    <use href="#junction" x="294.72" y="246.94"/>
+    <use href="#junction" x="294.72" y="221.81"/>
+    <use href="#junction" x="294.72" y="196.69"/>
+    <use href="#junction" x="294.72" y="171.56"/>
+    <use href="#junction" x="294.72" y="146.44"/>
+    <use href="#junction" x="294.72" y="121.31"/>
+    <use href="#junction" x="316.48" y="586.13"/>
+    <use href="#junction" x="316.48" y="561.00"/>
+    <use href="#junction" x="316.48" y="535.88"/>
+    <use href="#junction" x="316.48" y="510.75"/>
+    <use href="#junction" x="316.48" y="485.63"/>
+    <use href="#junction" x="316.48" y="460.50"/>
+    <use href="#junction" x="316.48" y="435.38"/>
+    <use href="#junction" x="316.48" y="410.25"/>
+    <use href="#junction" x="316.48" y="385.13"/>
+    <use href="#junction" x="316.48" y="360.00"/>
+    <use href="#junction" x="316.48" y="334.88"/>
+    <use href="#junction" x="316.48" y="309.75"/>
+    <use href="#junction" x="316.48" y="284.63"/>
+    <use href="#junction" x="316.48" y="259.50"/>
+    <use href="#junction" x="316.48" y="234.38"/>
+    <use href="#junction" x="316.48" y="209.25"/>
+    <use href="#junction" x="316.48" y="184.13"/>
+    <use href="#junction" x="316.48" y="159.00"/>
+    <use href="#junction" x="316.48" y="133.88"/>
+    <use href="#junction" x="338.24" y="573.56"/>
+    <use href="#junction" x="338.24" y="548.44"/>
+    <use href="#junction" x="338.24" y="523.31"/>
+    <use href="#junction" x="338.24" y="498.19"/>
+    <use href="#junction" x="338.24" y="473.06"/>
+    <use href="#junction" x="338.24" y="447.94"/>
+    <use href="#junction" x="338.24" y="422.81"/>
+    <use href="#junction" x="338.24" y="397.69"/>
+    <use href="#junction" x="338.24" y="372.56"/>
+    <use href="#junction" x="338.24" y="347.44"/>
+    <use href="#junction" x="338.24" y="322.31"/>
+    <use href="#junction" x="338.24" y="297.19"/>
+    <use href="#junction" x="338.24" y="272.06"/>
+    <use href="#junction" x="338.24" y="246.94"/>
+    <use href="#junction" x="338.24" y="221.81"/>
+    <use href="#junction" x="338.24" y="196.69"/>
+    <use href="#junction" x="338.24" y="171.56"/>
+    <use href="#junction" x="338.24" y="146.44"/>
+    <use href="#junction" x="360.00" y="561.00"/>
+    <use href="#junction" x="360.00" y="535.88"/>
+    <use href="#junction" x="360.00" y="510.75"/>
+    <use href="#junction" x="360.00" y="485.63"/>
+    <use href="#junction" x="360.00" y="460.50"/>
+    <use href="#junction" x="360.00" y="435.38"/>
+    <use href="#junction" x="360.00" y="410.25"/>
+    <use href="#junction" x="360.00" y="385.13"/>
+    <use href="#junction" x="360.00" y="360.00"/>
+    <use href="#junction" x="360.00" y="334.88"/>
+    <use href="#junction" x="360.00" y="309.75"/>
+    <use href="#junction" x="360.00" y="284.63"/>
+    <use href="#junction" x="360.00" y="259.50"/>
+    <use href="#junction" x="360.00" y="234.38"/>
+    <use href="#junction" x="360.00" y="209.25"/>
+    <use href="#junction" x="360.00" y="184.13"/>
+    <use href="#junction" x="360.00" y="159.00"/>
+    <use href="#junction" x="381.76" y="573.56"/>
+    <use href="#junction" x="381.76" y="548.44"/>
+    <use href="#junction" x="381.76" y="523.31"/>
+    <use href="#junction" x="381.76" y="498.19"/>
+    <use href="#junction" x="381.76" y="473.06"/>
+    <use href="#junction" x="381.76" y="447.94"/>
+    <use href="#junction" x="381.76" y="422.81"/>
+    <use href="#junction" x="381.76" y="397.69"/>
+    <use href="#junction" x="381.76" y="372.56"/>
+    <use href="#junction" x="381.76" y="347.44"/>
+    <use href="#junction" x="381.76" y="322.31"/>
+    <use href="#junction" x="381.76" y="297.19"/>
+    <use href="#junction" x="381.76" y="272.06"/>
+    <use href="#junction" x="381.76" y="246.94"/>
+    <use href="#junction" x="381.76" y="221.81"/>
+    <use href="#junction" x="381.76" y="196.69"/>
+    <use href="#junction" x="381.76" y="171.56"/>
+    <use href="#junction" x="381.76" y="146.44"/>
+    <use href="#junction" x="403.52" y="586.13"/>
+    <use href="#junction" x="403.52" y="561.00"/>
+    <use href="#junction" x="403.52" y="535.88"/>
+    <use href="#junction" x="403.52" y="510.75"/>
+    <use href="#junction" x="403.52" y="485.63"/>
+    <use href="#junction" x="403.52" y="460.50"/>
+    <use href="#junction" x="403.52" y="435.38"/>
+    <use href="#junction" x="403.52" y="410.25"/>
+    <use href="#junction" x="403.52" y="385.13"/>
+    <use href="#junction" x="403.52" y="360.00"/>
+    <use href="#junction" x="403.52" y="334.88"/>
+    <use href="#junction" x="403.52" y="309.75"/>
+    <use href="#junction" x="403.52" y="284.63"/>
+    <use href="#junction" x="403.52" y="259.50"/>
+    <use href="#junction" x="403.52" y="234.38"/>
+    <use href="#junction" x="403.52" y="209.25"/>
+    <use href="#junction" x="403.52" y="184.13"/>
+    <use href="#junction" x="403.52" y="159.00"/>
+    <use href="#junction" x="403.52" y="133.88"/>
+    <use href="#junction" x="425.28" y="598.69"/>
+    <use href="#junction" x="425.28" y="573.56"/>
+    <use href="#junction" x="425.28" y="548.44"/>
+    <use href="#junction" x="425.28" y="523.31"/>
+    <use href="#junction" x="425.28" y="498.19"/>
+    <use href="#junction" x="425.28" y="473.06"/>
+    <use href="#junction" x="425.28" y="447.94"/>
+    <use href="#junction" x="425.28" y="422.81"/>
+    <use href="#junction" x="425.28" y="397.69"/>
+    <use href="#junction" x="425.28" y="372.56"/>
+    <use href="#junction" x="425.28" y="347.44"/>
+    <use href="#junction" x="425.28" y="322.31"/>
+    <use href="#junction" x="425.28" y="297.19"/>
+    <use href="#junction" x="425.28" y="272.06"/>
+    <use href="#junction" x="425.28" y="246.94"/>
+    <use href="#junction" x="425.28" y="221.81"/>
+    <use href="#junction" x="425.28" y="196.69"/>
+    <use href="#junction" x="425.28" y="171.56"/>
+    <use href="#junction" x="425.28" y="146.44"/>
+    <use href="#junction" x="425.28" y="121.31"/>
+    <use href="#junction" x="447.04" y="611.25"/>
+    <use href="#junction" x="447.04" y="586.13"/>
+    <use href="#junction" x="447.04" y="561.00"/>
+    <use href="#junction" x="447.04" y="535.88"/>
+    <use href="#junction" x="447.04" y="510.75"/>
+    <use href="#junction" x="447.04" y="485.63"/>
+    <use href="#junction" x="447.04" y="460.50"/>
+    <use href="#junction" x="447.04" y="435.38"/>
+    <use href="#junction" x="447.04" y="410.25"/>
+    <use href="#junction" x="447.04" y="385.13"/>
+    <use href="#junction" x="447.04" y="360.00"/>
+    <use href="#junction" x="447.04" y="334.88"/>
+    <use href="#junction" x="447.04" y="309.75"/>
+    <use href="#junction" x="447.04" y="284.63"/>
+    <use href="#junction" x="447.04" y="259.50"/>
+    <use href="#junction" x="447.04" y="234.38"/>
+    <use href="#junction" x="447.04" y="209.25"/>
+    <use href="#junction" x="447.04" y="184.13"/>
+    <use href="#junction" x="447.04" y="159.00"/>
+    <use href="#junction" x="447.04" y="133.88"/>
+    <use href="#junction" x="447.04" y="108.75"/>
+    <use href="#junction" x="468.79" y="598.69"/>
+    <use href="#junction" x="468.79" y="573.56"/>
+    <use href="#junction" x="468.79" y="548.44"/>
+    <use href="#junction" x="468.79" y="523.31"/>
+    <use href="#junction" x="468.79" y="498.19"/>
+    <use href="#junction" x="468.79" y="473.06"/>
+    <use href="#junction" x="468.79" y="447.94"/>
+    <use href="#junction" x="468.79" y="422.81"/>
+    <use href="#junction" x="468.79" y="397.69"/>
+    <use href="#junction" x="468.79" y="372.56"/>
+    <use href="#junction" x="468.79" y="347.44"/>
+    <use href="#junction" x="468.79" y="322.31"/>
+    <use href="#junction" x="468.79" y="297.19"/>
+    <use href="#junction" x="468.79" y="272.06"/>
+    <use href="#junction" x="468.79" y="246.94"/>
+    <use href="#junction" x="468.79" y="221.81"/>
+    <use href="#junction" x="468.79" y="196.69"/>
+    <use href="#junction" x="468.79" y="171.56"/>
+    <use href="#junction" x="468.79" y="146.44"/>
+    <use href="#junction" x="468.79" y="121.31"/>
+    <use href="#junction" x="490.55" y="586.13"/>
+    <use href="#junction" x="490.55" y="561.00"/>
+    <use href="#junction" x="490.55" y="535.88"/>
+    <use href="#junction" x="490.55" y="510.75"/>
+    <use href="#junction" x="490.55" y="485.63"/>
+    <use href="#junction" x="490.55" y="460.50"/>
+    <use href="#junction" x="490.55" y="435.38"/>
+    <use href="#junction" x="490.55" y="410.25"/>
+    <use href="#junction" x="490.55" y="385.13"/>
+    <use href="#junction" x="490.55" y="360.00"/>
+    <use href="#junction" x="490.55" y="334.88"/>
+    <use href="#junction" x="490.55" y="309.75"/>
+    <use href="#junction" x="490.55" y="284.63"/>
+    <use href="#junction" x="490.55" y="259.50"/>
+    <use href="#junction" x="490.55" y="234.38"/>
+    <use href="#junction" x="490.55" y="209.25"/>
+    <use href="#junction" x="490.55" y="184.13"/>
+    <use href="#junction" x="490.55" y="159.00"/>
+    <use href="#junction" x="490.55" y="133.88"/>
+    <use href="#junction" x="512.31" y="573.56"/>
+    <use href="#junction" x="512.31" y="548.44"/>
+    <use href="#junction" x="512.31" y="523.31"/>
+    <use href="#junction" x="512.31" y="498.19"/>
+    <use href="#junction" x="512.31" y="473.06"/>
+    <use href="#junction" x="512.31" y="447.94"/>
+    <use href="#junction" x="512.31" y="422.81"/>
+    <use href="#junction" x="512.31" y="397.69"/>
+    <use href="#junction" x="512.31" y="372.56"/>
+    <use href="#junction" x="512.31" y="347.44"/>
+    <use href="#junction" x="512.31" y="322.31"/>
+    <use href="#junction" x="512.31" y="297.19"/>
+    <use href="#junction" x="512.31" y="272.06"/>
+    <use href="#junction" x="512.31" y="246.94"/>
+    <use href="#junction" x="512.31" y="221.81"/>
+    <use href="#junction" x="512.31" y="196.69"/>
+    <use href="#junction" x="512.31" y="171.56"/>
+    <use href="#junction" x="512.31" y="146.44"/>
+    <use href="#junction" x="534.07" y="561.00"/>
+    <use href="#junction" x="534.07" y="535.88"/>
+    <use href="#junction" x="534.07" y="510.75"/>
+    <use href="#junction" x="534.07" y="485.63"/>
+    <use href="#junction" x="534.07" y="460.50"/>
+    <use href="#junction" x="534.07" y="435.38"/>
+    <use href="#junction" x="534.07" y="410.25"/>
+    <use href="#junction" x="534.07" y="385.13"/>
+    <use href="#junction" x="534.07" y="360.00"/>
+    <use href="#junction" x="534.07" y="334.88"/>
+    <use href="#junction" x="534.07" y="309.75"/>
+    <use href="#junction" x="534.07" y="284.63"/>
+    <use href="#junction" x="534.07" y="259.50"/>
+    <use href="#junction" x="534.07" y="234.38"/>
+    <use href="#junction" x="534.07" y="209.25"/>
+    <use href="#junction" x="534.07" y="184.13"/>
+    <use href="#junction" x="534.07" y="159.00"/>
+    <use href="#junction" x="555.83" y="447.94"/>
+    <use href="#junction" x="555.83" y="422.81"/>
+    <use href="#junction" x="555.83" y="397.69"/>
+    <use href="#junction" x="555.83" y="372.56"/>
+    <use href="#junction" x="555.83" y="347.44"/>
+    <use href="#junction" x="555.83" y="322.31"/>
+    <use href="#junction" x="555.83" y="297.19"/>
+    <use href="#junction" x="555.83" y="272.06"/>
+    <use href="#junction" x="577.59" y="435.38"/>
+    <use href="#junction" x="577.59" y="410.25"/>
+    <use href="#junction" x="577.59" y="385.13"/>
+    <use href="#junction" x="577.59" y="360.00"/>
+    <use href="#junction" x="577.59" y="334.88"/>
+    <use href="#junction" x="577.59" y="309.75"/>
+    <use href="#junction" x="577.59" y="284.63"/>
+    <use href="#junction" x="599.35" y="422.81"/>
+    <use href="#junction" x="599.35" y="397.69"/>
+    <use href="#junction" x="599.35" y="372.56"/>
+    <use href="#junction" x="599.35" y="347.44"/>
+    <use href="#junction" x="599.35" y="322.31"/>
+    <use href="#junction" x="599.35" y="297.19"/>
+    <use href="#junction" x="621.11" y="410.25"/>
+    <use href="#junction" x="621.11" y="385.13"/>
+    <use href="#junction" x="621.11" y="360.00"/>
+    <use href="#junction" x="621.11" y="334.88"/>
+    <use href="#junction" x="621.11" y="309.75"/>
+  </g>
+  <g fill="#d8effa" font-family="sans-serif" font-size="12" text-anchor="middle">
+    <text x="360.00" y="439.06">TARGET</text>
+    <text x="534.07" y="439.06">E</text>
+    <text x="447.04" y="589.81">SE</text>
+    <text x="272.96" y="589.81">SW</text>
+    <text x="185.93" y="439.06">W</text>
+    <text x="272.96" y="288.31">NW</text>
+    <text x="447.04" y="288.31">NE</text>
+  </g>
+  <g fill="none" stroke="#58d5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)">
+    <polyline points="185.93,360.00 251.19,360.00 316.45,360.00 338.23,372.60"/>
+    <polyline points="447.03,510.75 425.26,447.97 403.55,410.25 381.77,372.60"/>
+    <polyline points="534.07,360.00 468.81,334.88 425.26,334.88 360.00,309.75"/>
+  </g>
+  <g fill="#58d5ff" stroke="#dff8ff" stroke-width="1.4"><circle cx="338.23" cy="372.60" r="5"/><circle cx="381.77" cy="372.60" r="5"/><circle cx="360.00" cy="309.75" r="5"/></g>
+  <g id="sample-exclusions">
+    <path d="M376.77,342.4 l10,10 m0,-10 l-10,10" stroke="#ff5e65" stroke-width="3"/>
+    <circle cx="338.23" cy="347.40" r="6" fill="#ffad45" stroke="#fff0c7" stroke-width="1.5"/>
+    <rect x="355.00" y="405.25" width="10" height="10" rx="2" fill="#bf83ff" stroke="#f0ddff" stroke-width="1.5"/>
+  </g>
+  <g id="exact-click">
+    <circle cx="368.04" cy="366.03" r="11" fill="none" stroke="#ffd36a" stroke-width="2.5"/>
+    <circle cx="368.04" cy="366.03" r="3.5" fill="#ffd36a"/>
+    <line x1="368.04" y1="366.03" x2="360.00" y2="360.00" stroke="#ffd36a" stroke-width="1.5" stroke-dasharray="4 3"/>
+  </g>
+  <g transform="translate(720 104)" font-family="sans-serif">
+    <rect x="-18" y="-24" width="302" height="486" rx="16" fill="#1d2d39" stroke="#405869"/>
+    <text x="4" y="8" fill="#eef7ff" font-size="19" font-weight="700">Как читается схема</text>
+    <text x="4" y="42" fill="#9fdfff" font-size="15">Синяя зона</text><text x="4" y="64" fill="#b9cbd6" font-size="13">TARGET + 6 соседей</text>
+    <use href="#junction" x="10" y="96"/><text x="28" y="101" fill="#d5e4ec" font-size="13">свободный junction</text>
+    <path d="M5,120 l10,10 m0,-10 l-10,10" stroke="#ff5e65" stroke-width="3"/><text x="28" y="130" fill="#d5e4ec" font-size="13">blocked</text>
+    <circle cx="10" cy="156" r="6" fill="#ffad45"/><text x="28" y="161" fill="#d5e4ec" font-size="13">занят посторонним / мобом</text>
+    <rect x="5" y="178" width="10" height="10" rx="2" fill="#bf83ff"/><text x="28" y="188" fill="#d5e4ec" font-size="13">чужая резервация</text>
+    <line x1="4" y1="216" x2="22" y2="216" stroke="#58d5ff" stroke-width="3" marker-end="url(#arrow)"/><text x="32" y="221" fill="#d5e4ec" font-size="13">маршрут к уникальной точке</text>
+    <circle cx="10" cy="250" r="9" fill="none" stroke="#ffd36a" stroke-width="2"/><circle cx="10" cy="250" r="3" fill="#ffd36a"/><text x="32" y="255" fill="#d5e4ec" font-size="13">точная позиция клика</text>
+    <text x="4" y="300" fill="#eef7ff" font-size="16" font-weight="700">Проверенные размеры</text>
+    <text x="4" y="330" fill="#d5e4ec" font-size="14">37 внутренних + 24 граничных</text>
+    <text x="4" y="354" fill="#7fe0b5" font-size="17" font-weight="700">61 ссылка на один гекс</text>
+    <text x="4" y="388" fill="#d5e4ec" font-size="14">общие границы дедуплицированы</text>
+    <text x="4" y="414" fill="#7fe0b5" font-size="17" font-weight="700">373 физических узла</text>
+    <text x="4" y="444" fill="#9fb7c7" font-size="12">Центр = ближайший junction к клику.</text>
+  </g>
+  <text x="28" y="694" fill="#8ea7b7" font-family="sans-serif" font-size="13">Маршруты могут пересекать узел в разное время; конечные точки всегда уникальны.</text>
+</svg>

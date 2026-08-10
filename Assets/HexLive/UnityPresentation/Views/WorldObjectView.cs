@@ -9,12 +9,12 @@ namespace HexLive.UnityPresentation.Views
 /// <summary>
 /// §121: связь «нарисованный объект ↔ его номер в симуляции», и всё, что нужно
 /// для наведения мышью. Вешается на вид объекта при создании
-/// (<c>HexWorldRenderer</c>) — ровно как §112 вешает FoliageOccluder, и по той
-/// же причине: маркер найдут по статическому списку, а не поиском по сцене.
+/// (<c>HexWorldRenderer</c>), чтобы маркер находился по статическому списку,
+/// а не поиском по сцене.
 ///
 /// ⭐ Коллайдеров у объектов в этом проекте НЕТ и не заводится. Пикинг здесь
-/// аналитический — луч против <see cref="Renderer.bounds"/>, как уже делает
-/// CameraFoliageCuller. Добавить коллайдеры значило бы, среди прочего, начать
+/// аналитический — луч против <see cref="Renderer.bounds"/>. Добавить
+/// коллайдеры значило бы, среди прочего, начать
 /// попадать в физические тела ткани MagicaCloth на актрисах.
 /// </summary>
 [DisallowMultipleComponent]
@@ -40,6 +40,13 @@ public sealed class WorldObjectView : MonoBehaviour
         ObjectId = objectId;
         DefinitionId = definitionId ?? string.Empty;
         _renderers = GetComponentsInChildren<Renderer>(true);
+    }
+
+    public void Init(int objectId, string definitionId, Renderer[] renderers)
+    {
+        ObjectId = objectId;
+        DefinitionId = definitionId ?? string.Empty;
+        _renderers = renderers ?? Array.Empty<Renderer>();
     }
 
     /// <summary>

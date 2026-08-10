@@ -71,6 +71,27 @@ public sealed class ManualControlTests
             Connectivity.Reachable(world, start, j.Id));
     }
 
+    private static void PlaceOnFreeNeighbor(WorldState world, NPCState person, NPCState anchor)
+    {
+        var destinationId = SpatialQueries.GetPassableNeighbors(
+                world, anchor.CurrentJunction!.Value)
+            .First(id => SpatialQueries.IsJunctionFree(world, id));
+        var destination = world.Junctions.Items[destinationId];
+        if (person.CurrentJunction is { } previousJunction)
+        {
+            SpatialMutations.FreeJunction(world, previousJunction, person.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, previousJunction, person.Id);
+        }
+
+        var previousTile = person.Tile;
+        person.Tile = destination.Tiles[0];
+        person.Fragment = destination.Fragment;
+        person.Position = destination.WorldPosition;
+        person.CurrentJunction = destinationId;
+        SpatialMutations.MoveEntityToTile(world, person.Id, previousTile, person.Tile);
+        SpatialMutations.OccupyJunction(world, destinationId, person.Id);
+    }
+
     // ── 1. Автономия выключена ───────────────────────────────────────────
 
     [Test]
@@ -278,6 +299,94 @@ public sealed class ManualControlTests
         Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == "food.coconut"),
             Is.EqualTo(before + 1),
             "Приказ «подобрать» не довёл кокос до инвентаря.");
+    }
+
+    [Test]
+    public void ManualCarrierCanMoveAndPutDownADeadBody()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var carrier = Colonist(world);
+        TakeControl(engine, carrier);
+        var victim = world.Entities.Npcs.Values.First(n => n.Id != carrier.Id);
+        PlaceOnFreeNeighbor(world, victim, carrier);
+        victim.Health = 0f;
+        MobSystem.RemoveDeadNpc(world, victim.Id);
+        var body = world.Entities.Corpses[victim.Id];
+        var anchor = world.Entities.Objects.Values.Single(o =>
+            o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == victim.Id);
+
+        engine.Commands.Enqueue(new CarryPersonCommand(carrier.Id, victim.Id));
+        for (var i = 0; i < MediumTicks * 40 && carrier.CarriedNpcId is null; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.CarriedNpcId, Is.EqualTo(victim.Id));
+            Assert.That(body.CarriedByNpcId, Is.EqualTo(carrier.Id));
+            Assert.That(anchor.Junctions, Is.Empty,
+                "Старый якорь не должен позволять обыскивать унесённое тело издалека.");
+        });
+
+        var beforeMove = carrier.Position;
+        var destinationId = SpatialQueries.GetPassableNeighbors(
+                world, carrier.CurrentJunction!.Value)
+            .First(id => SpatialQueries.IsJunctionFree(world, id));
+        engine.Commands.Enqueue(new MoveToCommand(
+            carrier.Id, world.Junctions.Items[destinationId].WorldPosition));
+        for (var i = 0; i < MediumTicks * 10 && carrier.Position.Equals(beforeMove); i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.Position, Is.Not.EqualTo(beforeMove));
+            Assert.That(carrier.CarriedNpcId, Is.EqualTo(victim.Id),
+                "Обычный MoveTo не должен автоматически ронять тело.");
+            Assert.That(body.Position, Is.EqualTo(carrier.Position));
+        });
+
+        engine.Commands.Enqueue(new PutDownPersonCommand(carrier.Id));
+        engine.Step();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(carrier.CarriedNpcId, Is.Null);
+            Assert.That(body.CarriedByNpcId, Is.Null);
+            Assert.That(anchor.Junctions, Has.Count.EqualTo(1));
+            Assert.That(body.CurrentJunction, Is.EqualTo(anchor.Junctions[0]));
+            Assert.That(anchor.Tile, Is.EqualTo(body.Tile));
+        });
+    }
+
+    [Test]
+    public void ManualCarrierCanPickUpAnUnconsciousLivingPerson()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var carrier = Colonist(world);
+        TakeControl(engine, carrier);
+        var patient = world.Entities.Npcs.Values.First(n => n.Id != carrier.Id);
+        PlaceOnFreeNeighbor(world, patient, carrier);
+        patient.Mind.ComaCause = ComaCause.Exhaustion;
+
+        engine.Commands.Enqueue(new CarryPersonCommand(carrier.Id, patient.Id));
+        for (var i = 0; i < MediumTicks * 40 && carrier.CarriedNpcId is null; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(carrier.CarriedNpcId, Is.EqualTo(patient.Id));
+        Assert.That(patient.CarriedByNpcId, Is.EqualTo(carrier.Id));
+
+        engine.Commands.Enqueue(new PutDownPersonCommand(carrier.Id));
+        engine.Step();
+        Assert.That(patient.CarriedByNpcId, Is.Null);
+        Assert.That(patient.CurrentJunction, Is.Not.Null,
+            "Живой человек после PutDown должен снова получить лежачий якорь.");
     }
 
     // ── 3. Отказы: приказ, который нельзя выполнить ──────────────────────

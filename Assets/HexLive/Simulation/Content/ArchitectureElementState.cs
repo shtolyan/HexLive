@@ -8,9 +8,9 @@ public enum PlacementLayer
 }
 
 /// <summary>
-/// One addressable constructor piece. Identity is (owner ObjectId, ElementId),
-/// so architecture persists like furniture without polluting the top-level
-/// object collection or inheriting one-furniture-per-hex placement rules.
+/// Component carried by one top-level architecture WorldObject. ElementId is
+/// stable inside its owning building; the WorldObject's own ObjectId is the
+/// identity used by save/load, selection and commands.
 /// </summary>
 public sealed class ArchitectureElementState
 {

@@ -1,69 +1,209 @@
 using System;
+using System.Collections.Generic;
 
 namespace HexLive.UnityPresentation.Input
 {
     /// <summary>
-    /// Shared "who is selected" state. The camera writes it (click to select,
-    /// Escape to clear) and the character panel / portrait stage read it, so
-    /// selection is decoupled from any single view.
+    /// §123: shared ordered NPC selection. Selection and camera attachment are
+    /// deliberately separate: changing the set requests one frame, while
+    /// activating the exact same subject again toggles follow.
     /// </summary>
     public static class NpcSelection
     {
-        public static event Action<int> SelectionChanged;
+        public enum CameraRequest
+        {
+            Frame,
+            ToggleFollow
+        }
 
-        /// <summary>
-        /// True while the pointer is over the character bar, so world-picking
-        /// (camera) ignores clicks that land on the UI.
-        /// </summary>
+        public static event Action<IReadOnlyList<int>> SelectionChanged;
+        public static event Action<CameraRequest> CameraRequested;
+
+        private static readonly List<int> Selected = new();
+
+        /// <summary>True while the pointer is over any character UI.</summary>
         public static bool PointerOverUi { get; set; }
 
-        /// <summary>
-        /// Fraction of the screen height (0..1) currently covered by the
-        /// bottom character bar. The orbit camera reads it to keep the
-        /// followed NPC centered in the strip of world that stays visible
-        /// above the bar. Written by the character panel every frame.
-        /// </summary>
+        /// <summary>Visible bottom-bar fraction used by camera framing.</summary>
         public static float BottomUiCoverage { get; set; }
 
-        private static int _selectedId = -1;
+        /// <summary>Visible right-roster fraction used by camera framing.</summary>
+        public static float RightUiCoverage { get; set; }
 
-        // Editor runs without domain reload keep statics between play
-        // sessions — a selection from the LAST run silently survived and the
-        // debug panel kept wounding that NPC with "nothing" selected.
         [UnityEngine.RuntimeInitializeOnLoadMethod(
             UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
-            _selectedId = -1;
+            Selected.Clear();
             PointerOverUi = false;
             BottomUiCoverage = 0f;
+            RightUiCoverage = 0f;
             SelectionChanged = null;
+            CameraRequested = null;
         }
 
-        public static bool HasSelection => _selectedId >= 0;
+        public static bool HasSelection => Selected.Count > 0;
+        public static int Count => Selected.Count;
+        public static int PrimaryId => Selected.Count > 0 ? Selected[Selected.Count - 1] : -1;
 
-        public static int SelectedId => _selectedId;
+        // Compatibility for small test-scene bootstraps. New code should use
+        // PrimaryId only when it has explicitly decided how multi-selection is
+        // represented.
+        public static int SelectedId => PrimaryId;
 
-        public static void Select(int npcId)
+        public static IReadOnlyList<int> SelectedIds => Selected;
+
+        public static bool Contains(int npcId) => Selected.Contains(npcId);
+
+        /// <summary>
+        /// User activation of one portrait/actor. First activation replaces and
+        /// frames; activating the exact same singleton toggles follow.
+        /// </summary>
+        public static void Activate(int npcId)
         {
-            if (_selectedId == npcId)
+            if (Selected.Count == 1 && Selected[0] == npcId)
             {
+                CameraRequested?.Invoke(CameraRequest.ToggleFollow);
                 return;
             }
 
-            _selectedId = npcId;
-            SelectionChanged?.Invoke(_selectedId);
+            Replace(npcId);
+            CameraRequested?.Invoke(CameraRequest.Frame);
+        }
+
+        /// <summary>Legacy/programmatic exclusive selection with frame.</summary>
+        public static void Select(int npcId) => Activate(npcId);
+
+        public static void Replace(int npcId, bool requestFrame = false)
+        {
+            if (Selected.Count == 1 && Selected[0] == npcId)
+            {
+                if (requestFrame) CameraRequested?.Invoke(CameraRequest.Frame);
+                return;
+            }
+
+            Selected.Clear();
+            if (npcId >= 0) Selected.Add(npcId);
+            PublishSelection();
+            if (requestFrame) CameraRequested?.Invoke(CameraRequest.Frame);
+        }
+
+        public static void ActivateMany(IEnumerable<int> npcIds)
+        {
+            var replacement = UniqueOrdered(npcIds);
+            if (SameSelection(replacement))
+            {
+                if (replacement.Count > 0)
+                {
+                    CameraRequested?.Invoke(CameraRequest.ToggleFollow);
+                }
+                return;
+            }
+
+            SetSelection(replacement);
+            if (replacement.Count > 0)
+            {
+                CameraRequested?.Invoke(CameraRequest.Frame);
+            }
+        }
+
+        public static void ReplaceMany(IEnumerable<int> npcIds, bool requestFrame = true)
+        {
+            var replacement = UniqueOrdered(npcIds);
+            if (!SameSelection(replacement))
+            {
+                SetSelection(replacement);
+            }
+
+            if (requestFrame && replacement.Count > 0)
+            {
+                CameraRequested?.Invoke(CameraRequest.Frame);
+            }
+        }
+
+        public static void AddMany(IEnumerable<int> npcIds, bool requestFrame = true)
+        {
+            var changed = false;
+            foreach (var id in npcIds)
+            {
+                if (id >= 0 && !Selected.Contains(id))
+                {
+                    Selected.Add(id);
+                    changed = true;
+                }
+            }
+
+            if (changed) PublishSelection();
+            if (requestFrame && Selected.Count > 0)
+            {
+                CameraRequested?.Invoke(CameraRequest.Frame);
+            }
+        }
+
+        public static void Toggle(int npcId, bool requestFrame = true)
+        {
+            var index = Selected.IndexOf(npcId);
+            if (index >= 0)
+            {
+                Selected.RemoveAt(index);
+            }
+            else if (npcId >= 0)
+            {
+                Selected.Add(npcId);
+            }
+
+            PublishSelection();
+            if (requestFrame && Selected.Count > 0)
+            {
+                CameraRequested?.Invoke(CameraRequest.Frame);
+            }
+        }
+
+        public static void RequestFrame()
+        {
+            if (Selected.Count > 0) CameraRequested?.Invoke(CameraRequest.Frame);
         }
 
         public static void Clear()
         {
-            if (_selectedId < 0)
-            {
-                return;
-            }
+            if (Selected.Count == 0) return;
+            Selected.Clear();
+            PublishSelection();
+        }
 
-            _selectedId = -1;
-            SelectionChanged?.Invoke(_selectedId);
+        private static List<int> UniqueOrdered(IEnumerable<int> ids)
+        {
+            var result = new List<int>();
+            if (ids == null) return result;
+            foreach (var id in ids)
+            {
+                if (id >= 0 && !result.Contains(id)) result.Add(id);
+            }
+            return result;
+        }
+
+        private static bool SameSelection(IReadOnlyList<int> other)
+        {
+            if (other.Count != Selected.Count) return false;
+            for (var i = 0; i < other.Count; i++)
+            {
+                if (other[i] != Selected[i]) return false;
+            }
+            return true;
+        }
+
+        private static void SetSelection(List<int> replacement)
+        {
+            Selected.Clear();
+            Selected.AddRange(replacement);
+            PublishSelection();
+        }
+
+        private static void PublishSelection()
+        {
+            // Subscribers receive an immutable-in-practice point-in-time copy;
+            // a later Toggle cannot mutate the event payload under their feet.
+            SelectionChanged?.Invoke(Selected.ToArray());
         }
     }
 }

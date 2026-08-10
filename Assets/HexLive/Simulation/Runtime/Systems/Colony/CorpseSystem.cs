@@ -11,17 +11,22 @@ using HexLive.Simulation.Social;
 namespace HexLive.Simulation.Runtime
 {
 
-// §28.15C v4: человеческий труп двое ИГРОВЫХ суток остаётся телом,
-// затем тяжёлый NPCState заменяется одним лёгким объектом «скелет + мешок».
+// §28.15C v5: человеческий труп двое ИГРОВЫХ суток остаётся телом,
+// затем тяжёлый NPCState заменяется одним лёгким объектом «скелет + мешок»;
+// ещё через двое суток останки окончательно исчезают.
 // Все карманы и одежда складываются в Contents этого ОДНОГО объекта — никакой
 // россыпи десятков предметов по гексу. Поза, курс и якорь переезжают без изменений.
 // §50/§54: по тегу Decays продолжают истлевать отдельные конечности и звериные туши.
 public sealed class CorpseSystem : ISimulationSystem
 {
     private const int HumanCorpseLifetimeDays = 2;
+    private const int HumanRemainsLifetimeDays = 2;
 
     public static int HumanCorpseLifetimeTicks =>
         HumanCorpseLifetimeDays * EnvironmentSystem.DayLengthTicks;
+
+    public static int HumanRemainsLifetimeTicks =>
+        HumanRemainsLifetimeDays * EnvironmentSystem.DayLengthTicks;
 
     public string Name => nameof(CorpseSystem);
 
@@ -36,10 +41,28 @@ public sealed class CorpseSystem : ISimulationSystem
         _skeletonized.Clear();
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId == ContentIds.CorpseNpc &&
-                world.Tick - obj.SpawnTick >= HumanCorpseLifetimeTicks)
+            if (obj.DefinitionId == ContentIds.CorpseNpc)
             {
-                _skeletonized.Add(obj.Id);
+                var body = CorpseMath.BodyOf(world, obj);
+                // Нельзя заменить актёра мешком прямо в руках. Часы не
+                // останавливаются: просроченное тело сменит стадию сразу после
+                // выкладывания, потому что SpawnTick остаётся исходным.
+                if (body is not null && body.IsBeingCarried)
+                {
+                    continue;
+                }
+
+                if (world.Tick - obj.SpawnTick >= HumanCorpseLifetimeTicks)
+                {
+                    _skeletonized.Add(obj.Id);
+                }
+                continue;
+            }
+
+            if (obj.DefinitionId == ContentIds.HumanRemains &&
+                world.Tick - obj.SpawnTick >= HumanRemainsLifetimeTicks)
+            {
+                _decayed.Add(obj.Id);
                 continue;
             }
 

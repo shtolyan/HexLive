@@ -74,6 +74,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type is
+                PlanStepType.PlayerWearInventory or
+                PlanStepType.PlayerStowWorn or
+                PlanStepType.PlayerDropCarried or
+                PlanStepType.PlayerDropWorn)
+            {
+                RunPlayerInventory(world, npc);
+                continue;
+            }
+
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.DrinkBottle)
             {
                 RunDrinkBottle(world, npc);
@@ -122,6 +132,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             if (lastStep is { Type: PlanStepType.GroundSit or PlanStepType.GroundSleep or PlanStepType.GroundCool })
             {
                 RunGroundRestPlan(world, npc, lastStep);
+                continue;
+            }
+
+            if (lastStep is { Type: PlanStepType.PickUpPerson } &&
+                npc.Mind.CurrentGoal == GoalType.PlayerOrder)
+            {
+                RunManualPersonPickup(world, npc);
                 continue;
             }
 
@@ -194,6 +211,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // stale memory discovered — forget, release, re-decide.
                 if (npc.Memory.KnownObjects.Remove(npc.Plan.TargetObjectId.Value))
                 {
+                    npc.Memory.Version++; // §22.7: кэш вида памяти обязан увидеть удаление
                     Trace.Emit(world, npc.Id, "MemoryForgotten",
                         $"Obj={npc.Plan.TargetObjectId.Value.Value} Stale (arrived, object gone)");
                 }
@@ -751,6 +769,20 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     Trace.Emit(world, npc.Id, "SleepContinued",
                         $"Surface={worldObject.DefinitionId} Energy={npc.Needs.Energy:F2} " +
                         $"Comfort={npc.Needs.Comfort:F2}");
+                    continue;
+                }
+
+                // The authored lying pose is centred on the bed, but waking is
+                // a standing action. Never clear Sleep while the body is still
+                // inside furniture/a wall: return to the reserved approach node
+                // or find the nearest free junction (legacy-save fallback).
+                if (completedInteraction.Type == InteractionType.Sleep &&
+                    !LyingSpot.TryStandAfterObjectSleep(world, npc, worldObject))
+                {
+                    npc.Execution.StartTick = world.Tick;
+                    npc.Execution.EndTick = world.Tick + 1;
+                    Trace.Emit(world, npc.Id, "WakeStandDeferred",
+                        $"Bed={worldObject.Id.Value} no free standing junction");
                     continue;
                 }
 

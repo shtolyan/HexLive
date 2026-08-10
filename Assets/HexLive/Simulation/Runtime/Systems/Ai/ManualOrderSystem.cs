@@ -60,6 +60,17 @@ public sealed class ManualOrderSystem : ISimulationSystem
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {
+            // §123 formation endpoints remain owned until arrival. Ordinary
+            // single move orders still carry no reservation; renew only a
+            // claim that this NPC already owns, so old behavior is unchanged.
+            if (npc.Plan.TargetObjectId is null &&
+                npc.Plan.TargetJunctionId is { } destination &&
+                world.Reservations.Junctions.TryGetValue(destination, out var reservation) &&
+                reservation.Owner.Equals(npc.Id))
+            {
+                SpatialMutations.TryReserveJunction(
+                    world, destination, npc.Id, world.Tick, Spec121.ManualReserveTicks);
+            }
             return;
         }
 

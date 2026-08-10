@@ -2,6 +2,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -52,6 +53,92 @@ public static class CorpseMath
         }
 
         return world.Entities.Corpses.TryGetValue(deadId, out var body) ? body : null;
+    }
+
+    /// <summary>Интеракционный якорь свежего тела.</summary>
+    internal static WorldObjectState AnchorOf(WorldState world, EntityId bodyId)
+    {
+        foreach (var candidate in world.Entities.Objects.Values)
+        {
+            if (candidate.DefinitionId == ContentIds.CorpseNpc &&
+                candidate.CurrentUser == bodyId)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Пока тело в руках, его старое место не должно оставаться
+    /// доступной издалека целью обыска. Сам объект сохраняется для save/load и
+    /// таймера гниения, но временно не указывает ни на один узел.</summary>
+    internal static void SuspendAnchor(WorldState world, NPCState body)
+    {
+        var anchor = AnchorOf(world, body.Id);
+        anchor?.Junctions.Clear();
+        body.CurrentJunction = null;
+    }
+
+    /// <summary>Находит полноценное безопасное место под весь прямоугольник
+    /// тела и переносит туда как NPCState, так и его интеракционный якорь.</summary>
+    internal static bool AnchorBody(WorldState world, NPCState body)
+    {
+        var anchor = AnchorOf(world, body.Id);
+        if (anchor is null)
+        {
+            return false;
+        }
+
+        if (!LyingSpot.TrySolve(world, body, out var placement))
+        {
+            var nearest = SpatialQueries.FindNearestJunction(world, body.Position);
+            if (nearest is not { } fallback ||
+                !world.Junctions.Items.TryGetValue(fallback, out var fallbackJunction))
+            {
+                return false;
+            }
+
+            body.CurrentJunction = fallback;
+            RelocateAnchor(world, anchor, body.Tile, fallbackJunction.Fragment, fallback);
+            return true;
+        }
+
+        body.Position = placement.Position;
+        body.RotationDegrees = placement.Heading;
+        body.Movement.DesiredRotationDegrees = placement.Heading;
+        body.CurrentJunction = placement.Node;
+        var fragment = world.Junctions.Items.TryGetValue(placement.Node, out var junction)
+            ? junction.Fragment
+            : body.Fragment;
+        body.Fragment = fragment;
+        RelocateAnchor(world, anchor, body.Tile, fragment, placement.Node);
+        return true;
+    }
+
+    private static void RelocateAnchor(
+        WorldState world, WorldObjectState anchor, TileCoord tile,
+        FragmentId fragment, JunctionId junction)
+    {
+        if (world.Caches.ObjectsByTile.TryGetValue(anchor.Tile, out var oldTile))
+        {
+            oldTile.Remove(anchor.Id);
+        }
+
+        anchor.Tile = tile;
+        anchor.Fragment = fragment;
+        anchor.Junctions.Clear();
+        anchor.Junctions.Add(junction);
+        if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var newTile))
+        {
+            newTile = new System.Collections.Generic.List<ObjectId>();
+            world.Caches.ObjectsByTile[tile] = newTile;
+        }
+
+        if (!newTile.Contains(anchor.Id))
+        {
+            newTile.Add(anchor.Id);
+        }
     }
 
     /// <summary>Осталось ли на теле хоть что-нибудь.</summary>

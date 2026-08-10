@@ -135,7 +135,9 @@ public sealed partial class ExecutionSystem
                 out var destinationTile, out var route))
         {
             PlanningSystem.SetGoalCooldown(world, helper, GoalType.Rescue);
-            PlanInterruption.Abort(world, helper, "no safe bed or camp ground route");
+            PlanInterruption.Abort(world, helper,
+                "no safe bed or camp ground route " +
+                $"(searches={KenshiRescueMath.DestinationPathSearchesLastCall})");
             helper.Mind.CurrentGoal = GoalType.None;
             patient.Mind.PendingAidFrom = null;
             return;

@@ -41,14 +41,14 @@ public sealed partial class ExecutionSystem
                 site.Contents.Add(carried);
                 if (site.BuildProduct == ContentIds.Hut1Hex)
                 {
-                    BuildingRules.AssignDeliveredMaterial(site, mat);
+                    BuildingRules.SyncHutElements(world, site);
                 }
                 moved++;
             }
         }
 
         if (site.BuildProduct == ContentIds.Hut1Hex &&
-            BuildingRules.FloorComplete(site) &&
+            BuildingRules.FloorComplete(world, site) &&
             world.Tiles.Items.TryGetValue(site.Tile, out var floorTile))
         {
             floorTile.Flags |= TileFlags.HasFloor;
@@ -186,15 +186,14 @@ public sealed partial class ExecutionSystem
             // §66: so does the yaw the site was staked at — the bed must come up
             // lying side-on to the fire, not on whatever default the prefab has.
             var yaw = site.RotationDegrees;
-            var architecture = new System.Collections.Generic.List<ArchitectureElementState>();
-            foreach (var element in site.ArchitectureElements) architecture.Add(element.Clone());
+            var architectureOwner = site.Id;
             WorldObjectMutations.DespawnObject(world, site.Id);
             if (junction is { } j)
             {
                 var raised = WorldObjectMutations.SpawnObject(world, product, npc.Fragment, tile, j);
                 raised.Owner = owner;
                 raised.RotationDegrees = yaw;
-                raised.ArchitectureElements.AddRange(architecture);
+                BuildingRules.ReparentElements(world, architectureOwner, raised);
                 if (product == ContentIds.Workbench)
                 {
                     raised.CraftJunction = StructurePlacement.WorkbenchJunction(

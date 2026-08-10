@@ -301,6 +301,10 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             {
                 Input.ManualOrderFeedback.Report(rejectedNpc, e.Message);
             }
+            else if (e.Type == "GroupOrderResult")
+            {
+                Input.GroupOrderFeedback.Report(e.Message);
+            }
 
             if (!logAllTrace && !(logImportant && isGameHistoryEvent))
             {

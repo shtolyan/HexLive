@@ -26,6 +26,8 @@ namespace HexLive.UnityDebug.Editor
             }
 
             importer.isReadable = true;
+            importer.animationType = ModelImporterAnimationType.Human;
+            importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
         }
 
         public void OnPreprocessBuild(BuildReport report)
@@ -80,6 +82,34 @@ namespace HexLive.UnityDebug.Editor
                     !importer.isReadable)
                 {
                     errors.Add($"{prefabPath}: body FBX is not Read/Write enabled ({meshPath})");
+                }
+
+                var animator = prefab.GetComponentInChildren<Animator>(true);
+                if (animator == null)
+                {
+                    errors.Add($"{prefabPath}: Animator is missing");
+                }
+                else
+                {
+                    if (animator.avatar == null || !animator.avatar.isValid ||
+                        !animator.avatar.isHuman)
+                    {
+                        errors.Add($"{prefabPath}: Animator requires a valid Humanoid Avatar");
+                    }
+                    else
+                    {
+                        var avatarPath = AssetDatabase.GetAssetPath(animator.avatar);
+                        if (!avatarPath.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase))
+                        {
+                            errors.Add($"{prefabPath}: Animator Avatar is not embedded in an FBX ({avatarPath})");
+                        }
+                        else if (AssetImporter.GetAtPath(avatarPath) is not ModelImporter avatarImporter ||
+                                 avatarImporter.animationType != ModelImporterAnimationType.Human ||
+                                 avatarImporter.avatarSetup != ModelImporterAvatarSetup.CreateFromThisModel)
+                        {
+                            errors.Add($"{prefabPath}: Avatar FBX must create its own Humanoid Avatar ({avatarPath})");
+                        }
+                    }
                 }
 
                 foreach (var dependency in AssetDatabase.GetDependencies(prefabPath, true))

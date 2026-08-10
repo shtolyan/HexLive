@@ -69,6 +69,15 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(stage, Does.Contain("_healthBodyRenderer.enabled"));
             Assert.That(stage, Does.Contain("ActorBodyResolver.TryResolve"));
             Assert.That(stage, Does.Contain("FittedProstheticPoseFollower"));
+            Assert.That(stage, Does.Contain("new GameObject(\"CharacterDollHealthBody\")"),
+                "Unity forbids adding a second Renderer to the body GameObject.");
+            Assert.That(stage, Does.Not.Contain(
+                    "_normalBodyRenderer.gameObject.AddComponent<SkinnedMeshRenderer>()"),
+                "The HP renderer must live on an identity child of the body renderer.");
+            Assert.That(stage, Does.Contain("catch (Exception exception)"),
+                "An HP overlay failure must not restart the persistent clone every frame.");
+            Assert.That(stage, Does.Contain("!shader.isSupported"),
+                "An unsupported player shader must fall back to the ordinary body, not magenta.");
             Assert.That(setMode, Does.Not.Contain("Instantiate("),
                 "Mode switching must retain the existing clone.");
         });
@@ -216,6 +225,23 @@ public sealed class CharacterDollAndInventoryUiContractTests
                     File.ReadAllText(path), @"(?m)^\s+isReadable: 1$")))
             {
                 problems.Add($"{Path.GetFileName(prefab)} has no readable FBX dependency");
+            }
+
+            var avatarMatch = Regex.Match(
+                yaml, @"m_Avatar: \{fileID: \d+, guid: (\w{32}), type: 3\}");
+            if (!avatarMatch.Success || !metaByGuid.TryGetValue(
+                    avatarMatch.Groups[1].Value, out var avatarMeta))
+            {
+                problems.Add($"{Path.GetFileName(prefab)} Avatar is not embedded in an FBX");
+                continue;
+            }
+
+            var avatarYaml = File.ReadAllText(avatarMeta);
+            if (!Regex.IsMatch(avatarYaml, @"(?m)^\s+animationType: 3$") ||
+                !Regex.IsMatch(avatarYaml, @"(?m)^\s+avatarSetup: 1$"))
+            {
+                problems.Add(
+                    $"{Path.GetFileName(prefab)} Avatar FBX is not configured as CreateFromThisModel Humanoid");
             }
         }
 

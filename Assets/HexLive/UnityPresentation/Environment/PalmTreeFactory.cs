@@ -25,6 +25,7 @@ namespace HexLive.UnityPresentation.Environment
 
             var palm = Object.Instantiate(prefab);
             palm.name = $"Palm {definitionId}";
+            StandingPalmCrownCutout.Apply(palm);
             return palm;
         }
     }

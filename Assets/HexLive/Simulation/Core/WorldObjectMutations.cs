@@ -93,6 +93,35 @@ public static class WorldObjectMutations
     // spawn/despawn; felling a tree reopens the path via the same door.
     internal static void SetObstacleBlocking(WorldState world, WorldObjectState worldObject, bool blocked)
     {
+        if (worldObject.IsArchitectureElement)
+        {
+            // Each LEGO object owns the exact junctions it changed. Never run
+            // the furniture radius algorithm for a wall bay: removing one bay
+            // must reopen only that bay, not rebuild or erase the whole hut.
+            if (!blocked)
+            {
+                var architectureChanged = false;
+                foreach (var junctionId in worldObject.BlockedJunctions)
+                {
+                    if (!world.Junctions.Items.TryGetValue(junctionId, out var junction)) continue;
+                    junction.Blocked = false;
+                    architectureChanged = true;
+                }
+                if (worldObject.DefinitionId == "architecture.door.wood")
+                {
+                    foreach (var junctionId in worldObject.Junctions)
+                    {
+                        if (!world.Junctions.Items.TryGetValue(junctionId, out var junction)) continue;
+                        junction.Door = false;
+                        architectureChanged = true;
+                    }
+                }
+                worldObject.BlockedJunctions.Clear();
+                if (architectureChanged) world.TopologyVersion++;
+            }
+            return;
+        }
+
         if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
         {
             return;

@@ -14,7 +14,8 @@ namespace HexLive.UnityPresentation.Input
     /// RTS-style camera built as a single orbit rig around a pivot. Only what
     /// the pivot is attached to changes:
     ///   • Free: the pivot is a loose point magnetised to the hex ground;
-    ///     WASD/arrows slide it, right-drag rotates, scroll zooms.
+    ///     WASD slides it, while arrows/right-drag/two-finger horizontal
+    ///     swipe rotate and scroll zooms.
     ///   • Orbit: click an NPC and the pivot follows their body exactly;
     ///     smoothing delays the catch-up but never changes its target. Escape
     ///     releases it where it settled — the angle,
@@ -57,6 +58,14 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _orbitRotationSmooth = 0.08f;
         [SerializeField] private float _pickRadiusPixels = 70f;
 
+        [Header("Keyboard rotation")]
+        [SerializeField] private float _keyboardYawSpeed = 90f;
+        [SerializeField] private float _keyboardPitchSpeed = 70f;
+
+        [Header("Trackpad")]
+        [Tooltip("Yaw degrees per horizontal scroll unit (two-finger swipe rotates like the arrow keys). Negative flips direction.")]
+        [SerializeField] private float _scrollYawSpeed = 1.5f;
+
         [Header("Hex picking")]
         [SerializeField] private float _hexPickVerticalPadding = 0.04f;
 
@@ -76,23 +85,41 @@ namespace HexLive.UnityPresentation.Input
 
         // Free-mode state: a loose pivot glued to the hex ground.
         private Vector3 _freePivot;
-        private Vector3 _velocity;
 
         // Shared rig state (both modes drive the same yaw/pitch/distance).
+        // Smoothing happens in PARAMETER space — pivot, yaw, pitch and distance
+        // each damp independently and the transform is computed exactly from
+        // the rig equation. Smoothing the world position separately (the old
+        // scheme) made the subject slide off-centre during rotation: the
+        // desired position sweeps an arc while positional damping cuts the
+        // chord.
         private float _currentYaw;
         private float _currentPitch;
         private float _currentDistance;
         private float _smoothedYaw;
         private float _smoothedPitch;
+        private float _smoothedDistance;
         private float _yawVelocity;
         private float _pitchVelocity;
+        private float _distanceVelocity;
+        private float _requestedDistance;
+        private Vector3 _smoothedPivot;
+        private Vector3 _pivotVelocity;
+        private bool _hasSmoothedPivot;
 
         // Orbit-mode state.
-        private int _orbitTargetId;
         private Vector3 _smoothedTarget;
-        private Vector3 _targetVelocity;
         private bool _hasSmoothedTarget;
-        private readonly List<int> _orbitRoster = new();
+        private bool _pendingFrameSelection;
+
+        // §123 selection marquee. A click is dispatched on release; once the
+        // pointer travels beyond this threshold the same gesture becomes a
+        // colony-only box selection instead of a manual move order.
+        private const float SelectionDragThresholdPixels = 6f;
+        private bool _leftPressActive;
+        private bool _selectionDragging;
+        private Vector2 _leftPressPosition;
+        private Vector2 _selectionDragPosition;
 
         private Camera _camera;
         private HexWorldRenderer _worldRenderer;
@@ -114,22 +141,6 @@ namespace HexLive.UnityPresentation.Input
             _runner = runner;
         }
 
-        /// <summary>
-        /// Spec §112: what the rig is framing right now — the followed colonist
-        /// while orbiting, the ground pivot while panning. The foliage culler
-        /// clears the leaves standing between the lens and this point.
-        /// </summary>
-        public Vector3 FocusPoint =>
-            _mode == Mode.Orbit && _hasSmoothedTarget ? _smoothedTarget : _freePivot;
-
-        /// <summary>
-        /// Spec §112: true while the rig is framing a PERSON (orbit mode), i.e.
-        /// while <see cref="FocusPoint"/> is a subject and not just the ground
-        /// under a free-flying camera. The culler needs the difference: only a
-        /// subject gives the depth plane «нельзя стоять ближе неё».
-        /// </summary>
-        public bool HasFramedSubject => _mode == Mode.Orbit && _hasSmoothedTarget;
-
         private void Start()
         {
             _camera = GetComponent<Camera>();
@@ -141,6 +152,8 @@ namespace HexLive.UnityPresentation.Input
             _smoothedYaw = _currentYaw;
             _smoothedPitch = _currentPitch;
             _currentDistance = Mathf.Clamp(_startPosition.y, _orbitMinDistance, _orbitMaxDistance);
+            _requestedDistance = _currentDistance;
+            _smoothedDistance = _currentDistance;
 
             // The start pose looks straight down, so the pivot is simply the
             // ground under the camera.
@@ -150,31 +163,46 @@ namespace HexLive.UnityPresentation.Input
         private void OnEnable()
         {
             NpcSelection.SelectionChanged += OnSelectionChanged;
+            NpcSelection.CameraRequested += OnCameraRequested;
         }
 
         private void OnDisable()
         {
             NpcSelection.SelectionChanged -= OnSelectionChanged;
+            NpcSelection.CameraRequested -= OnCameraRequested;
         }
 
-        // Selection is the single source of truth: clicking an NPC (or the panel
-        // switching characters) drives the camera into/out of orbit.
-        private void OnSelectionChanged(int npcId)
+        // §123: selection no longer implies follow. Losing every selected actor
+        // detaches; changing a non-empty set leaves the current camera mode in
+        // place and the explicit CameraRequested event decides frame/follow.
+        private void OnSelectionChanged(System.Collections.Generic.IReadOnlyList<int> selection)
         {
-            if (npcId >= 0)
+            if (!NpcSelection.HasSelection && _mode == Mode.Orbit)
             {
-                if (_mode == Mode.Orbit)
-                {
-                    SwitchOrbitTarget(npcId);
-                }
-                else
-                {
-                    EnterOrbit(npcId);
-                }
+                ExitOrbit();
             }
             else if (_mode == Mode.Orbit)
             {
+                _hasSmoothedTarget = false;
+            }
+        }
+
+        private void OnCameraRequested(NpcSelection.CameraRequest request)
+        {
+            if (!NpcSelection.HasSelection) return;
+            if (request == NpcSelection.CameraRequest.Frame)
+            {
+                _pendingFrameSelection = true;
+                return;
+            }
+
+            if (_mode == Mode.Orbit)
+            {
                 ExitOrbit();
+            }
+            else
+            {
+                EnterOrbitSelection();
             }
         }
 
@@ -183,6 +211,19 @@ namespace HexLive.UnityPresentation.Input
             if (_runner == null)
             {
                 _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
+            }
+
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            {
+                if (UI.ContextMenuPanel.IsOpen)
+                {
+                    UI.ContextMenuPanel.Close();
+                }
+                else
+                {
+                    NpcSelection.Clear();
+                }
             }
 
             if (_mode == Mode.Orbit)
@@ -199,17 +240,25 @@ namespace HexLive.UnityPresentation.Input
 
         private void UpdateFree()
         {
+            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            if (_pendingFrameSelection && snapshot != null)
+            {
+                _pendingFrameSelection = false;
+                FrameSelection(snapshot);
+            }
+
             if (!UI.GameMenu.IsOpen && !UI.EndSummaryPanel.IsOpen)
             {
                 HandlePan();
                 HandleZoom();
+                HandleScrollYaw();
                 HandleFreeRotation();
-                TryHandleLeftClick();
+                HandlePointerGesture(snapshot);
             }
 
             _freePivot = SnapToGround(_freePivot);
 
-            ApplyRig(_freePivot, _panSmooth);
+            ApplyRig(_freePivot, _panSmooth, _panSmooth);
         }
 
         private void HandlePan()
@@ -219,10 +268,14 @@ namespace HexLive.UnityPresentation.Input
 
             var input = Vector2.zero;
 
-            if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) input.y += 1f;
-            if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) input.y -= 1f;
-            if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) input.x += 1f;
-            if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) input.x -= 1f;
+            if (keyboard.wKey.isPressed) input.y += 1f;
+            if (keyboard.sKey.isPressed) input.y -= 1f;
+            if (keyboard.dKey.isPressed) input.x += 1f;
+            if (keyboard.aKey.isPressed) input.x -= 1f;
+            if (keyboard.upArrowKey.isPressed) input.y += 1f;
+            if (keyboard.downArrowKey.isPressed) input.y -= 1f;
+            if (keyboard.rightArrowKey.isPressed) input.x += 1f;
+            if (keyboard.leftArrowKey.isPressed) input.x -= 1f;
 
             if (input.sqrMagnitude < 0.001f) return;
 
@@ -254,6 +307,41 @@ namespace HexLive.UnityPresentation.Input
             _currentDistance = Mathf.Clamp(
                 _currentDistance - scroll * _zoomSpeed * 0.01f,
                 _orbitMinDistance, _orbitMaxDistance);
+            _requestedDistance = _currentDistance;
+        }
+
+        private void HandleKeyboardRotation(float maxPitch)
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+
+            var yaw = 0f;
+            var pitch = 0f;
+            if (keyboard.leftArrowKey.isPressed) yaw -= 1f;
+            if (keyboard.rightArrowKey.isPressed) yaw += 1f;
+            if (keyboard.upArrowKey.isPressed) pitch -= 1f;
+            if (keyboard.downArrowKey.isPressed) pitch += 1f;
+            if (Mathf.Abs(yaw) < 0.01f && Mathf.Abs(pitch) < 0.01f) return;
+
+            _currentYaw += yaw * _keyboardYawSpeed * Time.unscaledDeltaTime;
+            _currentPitch = Mathf.Clamp(
+                _currentPitch + pitch * _keyboardPitchSpeed * Time.unscaledDeltaTime,
+                _orbitMinPitch, maxPitch);
+        }
+
+        // Трекпад: двухпальцевый горизонтальный свайп (scroll.x) крутит риг,
+        // как стрелки, без нажатия кнопок. Вертикальная ось остаётся зумом.
+        // Диагональный жест даёт зум и поворот одновременно — это штатное
+        // поведение тачпада, дедзона сверх порога дребезга не нужна.
+        private void HandleScrollYaw()
+        {
+            var mouse = Mouse.current;
+            if (mouse == null) return;
+
+            var scrollX = mouse.scroll.ReadValue().x;
+            if (Mathf.Abs(scrollX) < 0.01f) return;
+
+            _currentYaw += scrollX * _scrollYawSpeed;
         }
 
         private void HandleFreeRotation()
@@ -270,14 +358,32 @@ namespace HexLive.UnityPresentation.Input
         // ---- Shared rig ------------------------------------------------------
 
         // Places the camera on its orbit around <paramref name="pivot"/>.
-        private void ApplyRig(Vector3 pivot, float positionSmooth)
+        // Every parameter damps on its own; the transform then sits EXACTLY on
+        // the rig equation, so rotation can never desynchronise from position.
+        private void ApplyRig(Vector3 pivot, float pivotSmooth, float distanceSmooth)
         {
+            if (!_hasSmoothedPivot)
+            {
+                _smoothedPivot = pivot;
+                _pivotVelocity = Vector3.zero;
+                _hasSmoothedPivot = true;
+            }
+            else
+            {
+                _smoothedPivot = Vector3.SmoothDamp(
+                    _smoothedPivot, pivot, ref _pivotVelocity, pivotSmooth,
+                    Mathf.Infinity, Time.unscaledDeltaTime);
+            }
+
             _smoothedYaw = Mathf.SmoothDampAngle(
                 _smoothedYaw, _currentYaw, ref _yawVelocity, _orbitRotationSmooth,
                 Mathf.Infinity, Time.unscaledDeltaTime);
             _smoothedPitch = Mathf.SmoothDampAngle(
                 _smoothedPitch, _currentPitch, ref _pitchVelocity, _orbitRotationSmooth,
                 Mathf.Infinity, Time.unscaledDeltaTime);
+            _smoothedDistance = Mathf.SmoothDamp(
+                _smoothedDistance, _currentDistance, ref _distanceVelocity,
+                distanceSmooth, Mathf.Infinity, Time.unscaledDeltaTime);
 
             var rotation = Quaternion.Euler(_smoothedPitch, _smoothedYaw, 0f);
 
@@ -286,23 +392,32 @@ namespace HexLive.UnityPresentation.Input
             // Slide the frame down by half the bar's coverage: the pivot then
             // lands in the middle of the strip that stays visible above the bar.
             // With nothing selected the bar is hidden and the lift is zero.
+            // Offsets derive from the SMOOTHED distance so the framing animates
+            // in lockstep with the zoom instead of leading it.
             var uiLift = 0f;
+            var uiSide = 0f;
             var coverage = NpcSelection.BottomUiCoverage;
             if (_camera != null && coverage > 0.001f)
             {
-                var frustumHeight = 2f * _currentDistance *
+                var frustumHeight = 2f * _smoothedDistance *
                     Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
                 uiLift = frustumHeight * coverage * 0.5f;
             }
 
-            var desiredPosition = pivot
-                - rotation * Vector3.forward * _currentDistance
-                - rotation * Vector3.up * uiLift;
+            var rightCoverage = NpcSelection.RightUiCoverage;
+            if (_camera != null && rightCoverage > 0.001f)
+            {
+                var frustumHeight = 2f * _smoothedDistance *
+                    Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                uiSide = frustumHeight * _camera.aspect * rightCoverage * 0.5f;
+            }
 
-            transform.position = Vector3.SmoothDamp(
-                transform.position, desiredPosition, ref _velocity, positionSmooth,
-                Mathf.Infinity, Time.unscaledDeltaTime);
-            transform.rotation = rotation;
+            var desiredPosition = _smoothedPivot
+                - rotation * Vector3.forward * _smoothedDistance
+                - rotation * Vector3.up * uiLift
+                + rotation * Vector3.right * uiSide;
+
+            transform.SetPositionAndRotation(desiredPosition, rotation);
         }
 
         // ---- Ground magnet ---------------------------------------------------
@@ -369,22 +484,119 @@ namespace HexLive.UnityPresentation.Input
             return new TileCoord(rq, rr);
         }
 
-        // Left-click first tries an NPC, then falls back to the map hex under
-        // the cursor. Hex hit testing uses the sim snapshot rather than view
-        // colliders so invisible anchors and changed elevation still inspect.
-        private void TryHandleLeftClick(WorldSnapshot snapshot = null)
+        private void HandlePointerGesture(WorldSnapshot snapshot)
         {
             var mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
+            if (mouse == null) return;
+
+            var pointer = mouse.position.ReadValue();
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                _leftPressActive = !PointerBlockedForWorld();
+                _selectionDragging = false;
+                _leftPressPosition = pointer;
+                _selectionDragPosition = pointer;
+            }
+
+            if (_leftPressActive && mouse.leftButton.isPressed)
+            {
+                _selectionDragPosition = pointer;
+                if (!_selectionDragging &&
+                    Vector2.Distance(_leftPressPosition, pointer) >= SelectionDragThresholdPixels)
+                {
+                    _selectionDragging = true;
+                }
+            }
+
+            if (!_leftPressActive || !mouse.leftButton.wasReleasedThisFrame)
             {
                 return;
             }
 
-            // Don't pick NPCs behind the character bar or through the menu.
-            if (NpcSelection.PointerOverUi || UI.HexInspectorPanel.PointerOverPanel ||
-                UI.ContextMenuPanel.PointerOverPanel ||
-                UI.GameMenu.IsOpen || UI.EndSummaryPanel.IsOpen)
+            _leftPressActive = false;
+            _selectionDragPosition = pointer;
+            if (_selectionDragging)
             {
+                _selectionDragging = false;
+                ApplyMarqueeSelection(snapshot, _leftPressPosition, pointer);
+                return;
+            }
+
+            TryHandleLeftClick(pointer, snapshot);
+        }
+
+        private static bool PointerBlockedForWorld() =>
+            NpcSelection.PointerOverUi || UI.HexInspectorPanel.PointerOverPanel ||
+            UI.ContextMenuPanel.PointerOverPanel || UI.GameMenu.IsOpen ||
+            UI.EndSummaryPanel.IsOpen;
+
+        private void ApplyMarqueeSelection(WorldSnapshot snapshot, Vector2 from, Vector2 to)
+        {
+            if (snapshot == null || _camera == null) return;
+            var minX = Mathf.Min(from.x, to.x);
+            var maxX = Mathf.Max(from.x, to.x);
+            var minY = Mathf.Min(from.y, to.y);
+            var maxY = Mathf.Max(from.y, to.y);
+            var ids = new List<int>();
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony || npc.Health <= 0f)
+                {
+                    continue;
+                }
+
+                var world = SimulationUnityMapper.ToUnityPosition(
+                    npc.Position, SimulationUnityMapper.CameraTargetHeight);
+                var screen = _camera.WorldToScreenPoint(world);
+                if (screen.z > 0f && screen.x >= minX && screen.x <= maxX &&
+                    screen.y >= minY && screen.y <= maxY)
+                {
+                    ids.Add(npc.Id.Value);
+                }
+            }
+
+            ids.Sort();
+            var add = Keyboard.current != null &&
+                (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+            if (add) NpcSelection.AddMany(ids);
+            else NpcSelection.ReplaceMany(ids);
+        }
+
+        private void OnGUI()
+        {
+            if (!_selectionDragging) return;
+            var x = Mathf.Min(_leftPressPosition.x, _selectionDragPosition.x);
+            var width = Mathf.Abs(_selectionDragPosition.x - _leftPressPosition.x);
+            var bottom = Mathf.Min(_leftPressPosition.y, _selectionDragPosition.y);
+            var height = Mathf.Abs(_selectionDragPosition.y - _leftPressPosition.y);
+            var rect = new Rect(x, Screen.height - bottom - height, width, height);
+
+            var previous = GUI.color;
+            GUI.color = new Color(0.25f, 0.68f, 1f, 0.16f);
+            GUI.DrawTexture(rect, Texture2D.whiteTexture);
+            GUI.color = new Color(0.35f, 0.75f, 1f, 0.9f);
+            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 1f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x, rect.y, 1f, rect.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.xMax - 1f, rect.y, 1f, rect.height), Texture2D.whiteTexture);
+            GUI.color = previous;
+        }
+
+        // Left-click first tries an NPC, then falls back to the map hex under
+        // the cursor. Dispatch happens on release so the same press can become
+        // a selection marquee without also issuing a move order.
+        private void TryHandleLeftClick(Vector2 mousePosition, WorldSnapshot snapshot = null)
+        {
+            if (PointerBlockedForWorld()) return;
+
+            var shift = Keyboard.current != null &&
+                (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+
+            // Shift-picking own actors is a selection gesture even when manual
+            // input would otherwise open an action menu.
+            if (shift && TryPickNpc(mousePosition, snapshot, additiveOnly: true))
+            {
+                HexSelection.Clear();
                 return;
             }
 
@@ -396,25 +608,26 @@ namespace HexLive.UnityPresentation.Input
                 _manualInput = GetComponent<SimulationInputAdapter>();
             }
 
-            if (_manualInput != null && _manualInput.TryHandleManualClick(mouse.position.ReadValue()))
+            if (_manualInput != null && _manualInput.TryHandleManualClick(mousePosition))
             {
                 return;
             }
 
-            if (TryPickNpc(mouse.position.ReadValue(), snapshot))
+            if (TryPickNpc(mousePosition, snapshot))
             {
                 HexSelection.Clear();
                 return;
             }
 
-            if (HexSelection.Enabled && TryPickHex(mouse.position.ReadValue(), out var coord, snapshot))
+            if (HexSelection.Enabled && TryPickHex(mousePosition, out var coord, snapshot))
             {
                 HexSelection.Select(coord);
             }
         }
 
         // Left-click on an NPC -> enter orbit mode.
-        private bool TryPickNpc(Vector2 mousePos, WorldSnapshot currentSnapshot = null)
+        private bool TryPickNpc(
+            Vector2 mousePos, WorldSnapshot currentSnapshot = null, bool additiveOnly = false)
         {
             if (_camera == null)
             {
@@ -424,7 +637,8 @@ namespace HexLive.UnityPresentation.Input
 
             var snapshot = currentSnapshot ??
                 (_runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null);
-            if (snapshot == null || snapshot.Npcs.Count == 0)
+            if (snapshot == null ||
+                (snapshot.Npcs.Count == 0 && snapshot.Corpses.Count == 0))
             {
                 return false;
             }
@@ -445,9 +659,8 @@ namespace HexLive.UnityPresentation.Input
                 var nearestViewDistance = float.PositiveInfinity;
                 var viewHitId = -1;
 
-                for (var i = 0; i < snapshot.Npcs.Count; i++)
+                foreach (var npc in PickablePeople(snapshot))
                 {
-                    var npc = snapshot.Npcs[i];
                     if (!_worldRenderer.TryGetActorView(npc.Id.Value, out var view) ||
                         !view.TryRaycastVisibleGeometry(ray, nearestViewDistance, out var hitDistance))
                     {
@@ -460,8 +673,7 @@ namespace HexLive.UnityPresentation.Input
 
                 if (viewHitId >= 0)
                 {
-                    NpcSelection.Select(viewHitId);
-                    return true;
+                    return ApplyNpcPick(snapshot, viewHitId, additiveOnly);
                 }
             }
 
@@ -471,7 +683,7 @@ namespace HexLive.UnityPresentation.Input
             var bestId = -1;
             var bestDist = _pickRadiusPixels;
 
-            foreach (var npc in snapshot.Npcs)
+            foreach (var npc in PickablePeople(snapshot))
             {
                 var world = SimulationUnityMapper.ToUnityPosition(
                     npc.Position, SimulationUnityMapper.CameraTargetHeight);
@@ -491,11 +703,47 @@ namespace HexLive.UnityPresentation.Input
 
             if (bestId >= 0)
             {
-                NpcSelection.Select(bestId);
+                return ApplyNpcPick(snapshot, bestId, additiveOnly);
+            }
+
+            return false;
+        }
+
+        private static bool ApplyNpcPick(WorldSnapshot snapshot, int npcId, bool additiveOnly)
+        {
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Id.Value != npcId) continue;
+                var shift = Keyboard.current != null &&
+                    (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+                if ((additiveOnly || shift) &&
+                    npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f)
+                {
+                    NpcSelection.Toggle(npcId);
+                    return true;
+                }
+
+                if (additiveOnly) return false;
+                // Outsiders are always exclusive by construction.
+                NpcSelection.Activate(npcId);
+                return true;
+            }
+
+            foreach (var corpse in snapshot.Corpses)
+            {
+                if (corpse.Id.Value != npcId) continue;
+                if (additiveOnly) return false;
+                NpcSelection.Activate(npcId);
                 return true;
             }
 
             return false;
+        }
+
+        private static IEnumerable<NpcSnapshot> PickablePeople(WorldSnapshot snapshot)
+        {
+            foreach (var npc in snapshot.Npcs) yield return npc;
+            foreach (var corpse in snapshot.Corpses) yield return corpse;
         }
 
         private bool TryPickHex(
@@ -568,48 +816,71 @@ namespace HexLive.UnityPresentation.Input
 
         // ---- Orbit mode ------------------------------------------------------
 
-        private void EnterOrbit(int npcId)
+        private void EnterOrbitSelection()
         {
             _mode = Mode.Orbit;
-            _orbitTargetId = npcId;
-            _currentDistance = Mathf.Clamp(_orbitDistance, _orbitMinDistance, _orbitMaxDistance);
-            _currentYaw = _orbitYaw;
-            _currentPitch = _orbitPitch;
-            _hasSmoothedTarget = false; // snap the pivot to the new NPC on entry
-        }
-
-        // Switching an already-followed character is not a second orbit entry:
-        // framing survives and only smoothing velocities are reset. The next
-        // snapshot target is accepted immediately by UpdateOrbit.
-        private void SwitchOrbitTarget(int npcId)
-        {
-            if (_orbitTargetId == npcId)
-            {
-                return;
-            }
-
-            _orbitTargetId = npcId;
-            _targetVelocity = Vector3.zero;
-            _velocity = Vector3.zero;
-            _yawVelocity = 0f;
-            _pitchVelocity = 0f;
+            _requestedDistance = Mathf.Clamp(_currentDistance, _orbitMinDistance, _orbitMaxDistance);
             _hasSmoothedTarget = false;
+            // _smoothedPivot deliberately survives the transition: pivot
+            // smoothing is what glides the camera from the ground point to the
+            // NPC on orbit entry.
         }
 
-        private void SwitchOrbitTarget(WorldSnapshot snapshot, int npcId)
+        private void FrameSelection(WorldSnapshot snapshot)
         {
-            SwitchOrbitTarget(npcId);
-            if (!TryGetOrbitTarget(snapshot, npcId, out var target))
+            if (!TryGetSelectionFrame(snapshot, out var center, out var radius))
             {
                 return;
             }
 
-            _smoothedTarget = target;
-            _hasSmoothedTarget = true;
-            // Preserve yaw, pitch and distance, but make both pivot and rig use
-            // the selected NPC in this same LateUpdate frame.
-            _smoothedYaw = _currentYaw;
-            _smoothedPitch = _currentPitch;
+            _freePivot = SnapToGround(center);
+            var fit = FitDistance(radius);
+            _requestedDistance = fit;
+            _currentDistance = fit;
+            _pivotVelocity = Vector3.zero;
+        }
+
+        private bool TryGetSelectionFrame(
+            WorldSnapshot snapshot, out Vector3 center, out float radius)
+        {
+            center = Vector3.zero;
+            radius = 0f;
+            var min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+            var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+            var found = 0;
+            var ids = NpcSelection.SelectedIds;
+            for (var i = 0; i < ids.Count; i++)
+            {
+                if (!TryGetOrbitTarget(snapshot, ids[i], out var target)) continue;
+                min = Vector3.Min(min, target);
+                max = Vector3.Max(max, target);
+                found++;
+            }
+
+            if (found == 0) return false;
+            center = (min + max) * 0.5f;
+            var extent = max - min;
+            radius = Mathf.Max(0.65f, 0.5f * Mathf.Sqrt(
+                extent.x * extent.x + extent.y * extent.y + extent.z * extent.z) + 0.75f);
+            return true;
+        }
+
+        private float FitDistance(float radius)
+        {
+            _camera ??= GetComponent<Camera>();
+            if (_camera == null) return Mathf.Clamp(_orbitDistance, _orbitMinDistance, _orbitMaxDistance);
+
+            var visibleHeight = Mathf.Clamp(1f - NpcSelection.BottomUiCoverage, 0.35f, 1f);
+            var visibleWidth = Mathf.Clamp(1f - NpcSelection.RightUiCoverage, 0.35f, 1f);
+            var verticalHalf = Mathf.Atan(
+                Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * visibleHeight);
+            var horizontalHalf = Mathf.Atan(
+                Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) *
+                _camera.aspect * visibleWidth);
+            var limitingHalf = Mathf.Max(5f * Mathf.Deg2Rad,
+                Mathf.Min(verticalHalf, horizontalHalf));
+            var fit = radius / Mathf.Tan(limitingHalf) + 1.25f;
+            return Mathf.Clamp(Mathf.Max(_orbitDistance, fit), _orbitMinDistance, _orbitMaxDistance);
         }
 
         /// <summary>
@@ -625,29 +896,31 @@ namespace HexLive.UnityPresentation.Input
             }
 
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
-            if (snapshot == null ||
-                !TryGetOrbitTarget(snapshot, NpcSelection.SelectedId, out var target))
+            if (snapshot == null || !TryGetSelectionFrame(snapshot, out var target, out var radius))
             {
                 return false;
             }
 
-            if (_mode != Mode.Orbit || _orbitTargetId != NpcSelection.SelectedId)
-            {
-                EnterOrbit(NpcSelection.SelectedId);
-            }
-
+            _mode = Mode.Free;
             _camera ??= GetComponent<Camera>();
-            _smoothedTarget = target;
-            _targetVelocity = Vector3.zero;
-            _hasSmoothedTarget = true;
+            _freePivot = SnapToGround(target);
+            _requestedDistance = FitDistance(radius);
+            _currentDistance = _requestedDistance;
             _smoothedYaw = _currentYaw;
             _smoothedPitch = _currentPitch;
             _yawVelocity = 0f;
             _pitchVelocity = 0f;
-            _velocity = Vector3.zero;
+            // Snap every smoothed parameter: the next LateUpdate must
+            // reproduce this exact pose with zero first-frame glide.
+            _smoothedPivot = _freePivot;
+            _hasSmoothedPivot = true;
+            _pivotVelocity = Vector3.zero;
+            _smoothedDistance = _currentDistance;
+            _distanceVelocity = 0f;
 
             var rotation = Quaternion.Euler(_smoothedPitch, _smoothedYaw, 0f);
             var uiLift = 0f;
+            var uiSide = 0f;
             var coverage = NpcSelection.BottomUiCoverage;
             if (_camera != null && coverage > 0.001f)
             {
@@ -656,9 +929,16 @@ namespace HexLive.UnityPresentation.Input
                 uiLift = frustumHeight * coverage * 0.5f;
             }
 
+            if (_camera != null && NpcSelection.RightUiCoverage > 0.001f)
+            {
+                var frustumHeight = 2f * _currentDistance *
+                    Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                uiSide = frustumHeight * _camera.aspect * NpcSelection.RightUiCoverage * 0.5f;
+            }
+
             transform.SetPositionAndRotation(
-                target - rotation * Vector3.forward * _currentDistance -
-                rotation * Vector3.up * uiLift,
+                _freePivot - rotation * Vector3.forward * _currentDistance -
+                rotation * Vector3.up * uiLift + rotation * Vector3.right * uiSide,
                 rotation);
             return true;
         }
@@ -669,111 +949,69 @@ namespace HexLive.UnityPresentation.Input
             // Deselecting only unhooks the pivot from the character: it stays
             // exactly where they stood (magnetised to that hex's ground) and
             // the angle, distance and framing are left untouched, so the view
-            // does not fly back up to a top-down shot.
-            _orbitDistance = _currentDistance;
+            // does not fly back up to a top-down shot. _orbitDistance is NOT
+            // updated here: FitDistance floors explicit Frame requests with it,
+            // and mutating it would turn the last free-camera height into a
+            // creeping zoom minimum.
+            _requestedDistance = _currentDistance;
             var pivot = _hasSmoothedTarget ? _smoothedTarget : transform.position;
             _freePivot = SnapToGround(new Vector3(pivot.x, pivot.y, pivot.z));
-            _velocity = Vector3.zero;
+            _pivotVelocity = Vector3.zero;
         }
 
         private void UpdateOrbit()
         {
-            var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-            {
-                // §121: Escape сначала закрывает меню действий и только потом
-                // снимает выбор. Иначе игрок, передумав в меню, разом теряет и
-                // меню, и персонажа — а вернуть его надо новым кликом.
-                if (UI.ContextMenuPanel.IsOpen)
-                {
-                    UI.ContextMenuPanel.Close();
-                    return;
-                }
-
-                NpcSelection.Clear();
-                return;
-            }
-
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
             if (snapshot == null)
             {
                 return;
             }
 
-            // Left/right arrows cycle to the previous/next character (arrows
-            // aren't used for panning while orbiting).
-            HandleOrbitCycle(snapshot);
-
-            // Re-pick: clicking another NPC while orbiting switches focus to it
-            // (left click is free here — rotation uses the right button).
-            TryHandleLeftClick(snapshot);
-
-            if (!TryGetOrbitTarget(snapshot, _orbitTargetId, out var rawTarget))
+            if (HasPanInput())
             {
-                // The followed NPC is gone (died) — fall back to free camera.
+                ExitOrbit();
+                UpdateFree();
+                return;
+            }
+
+            HandlePointerGesture(snapshot);
+
+            if (!TryGetSelectionFrame(snapshot, out var rawTarget, out var radius))
+            {
                 NpcSelection.Clear();
                 return;
             }
 
-            // The NPC itself is the exact target every frame. Only ApplyRig
-            // smooths the camera's catch-up; smoothing this pivot as well would
-            // introduce a second lag and leave the subject visibly off-centre.
+            // The NPC itself is the exact target every frame; ApplyRig's pivot
+            // smoothing owns the catch-up.
             _smoothedTarget = rawTarget;
-            _targetVelocity = Vector3.zero;
             _hasSmoothedTarget = true;
 
+            // Auto-framing (fit) applies ONLY on an explicit Frame request —
+            // it must never act as a per-frame floor, or scroll could no longer
+            // reach the close-up minimum.
+            if (_pendingFrameSelection)
+            {
+                _pendingFrameSelection = false;
+                _requestedDistance = FitDistance(radius);
+            }
+
             HandleOrbitInput();
+            HandleKeyboardRotation(_orbitMaxPitch);
+            HandleScrollYaw();
+
+            _currentDistance = Mathf.Clamp(
+                _requestedDistance, _orbitMinDistance, _orbitMaxDistance);
 
             _currentPitch = Mathf.Clamp(_currentPitch, _orbitMinPitch, _orbitMaxPitch);
-            ApplyRig(_smoothedTarget, _orbitPositionSmooth);
+            ApplyRig(_smoothedTarget, _orbitTargetSmooth, _orbitPositionSmooth);
         }
 
-        // Cycle the followed character with the left/right arrow keys.
-        private void HandleOrbitCycle(HexLive.Simulation.Debug.WorldSnapshot snapshot)
+        private static bool HasPanInput()
         {
             var keyboard = Keyboard.current;
-            if (keyboard == null || snapshot.Npcs.Count == 0)
-            {
-                return;
-            }
-
-            var dir = 0;
-            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
-            {
-                dir = -1;
-            }
-            else if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
-            {
-                dir = 1;
-            }
-
-            if (dir == 0)
-            {
-                return;
-            }
-
-            _orbitRoster.Clear();
-            for (var i = 0; i < snapshot.Npcs.Count; i++)
-            {
-                _orbitRoster.Add(snapshot.Npcs[i].Id.Value);
-            }
-
-            _orbitRoster.Sort();
-            var count = _orbitRoster.Count;
-            var index = 0;
-            for (var i = 0; i < count; i++)
-            {
-                if (_orbitRoster[i] == _orbitTargetId)
-                {
-                    index = i;
-                    break;
-                }
-            }
-
-            var next = ((index + dir) % count + count) % count;
-            var nextId = _orbitRoster[next];
-            SwitchOrbitTarget(snapshot, nextId);
-            NpcSelection.Select(nextId);
+            return keyboard != null && (keyboard.wKey.isPressed || keyboard.aKey.isPressed ||
+                keyboard.sKey.isPressed || keyboard.dKey.isPressed);
         }
 
         private void HandleOrbitInput()
@@ -789,8 +1027,8 @@ namespace HexLive.UnityPresentation.Input
             {
                 // Proportional zoom: fine steps up close, big sweeps far out.
                 var step = _orbitZoomSpeed * 0.01f * Mathf.Max(0.15f, _currentDistance / 9f);
-                _currentDistance = Mathf.Clamp(
-                    _currentDistance - scroll * step,
+                _requestedDistance = Mathf.Clamp(
+                    _requestedDistance - scroll * step,
                     _orbitMinDistance, _orbitMaxDistance);
             }
 
@@ -837,6 +1075,17 @@ namespace HexLive.UnityPresentation.Input
                 {
                     target = SimulationUnityMapper.ToUnityPosition(
                         npc.Position, SimulationUnityMapper.TileHeight + neck);
+                    return true;
+                }
+            }
+
+
+            foreach (var corpse in snapshot.Corpses)
+            {
+                if (corpse.Id.Value == npcId)
+                {
+                    target = SimulationUnityMapper.ToUnityPosition(
+                        corpse.Position, SimulationUnityMapper.TileHeight + neck);
                     return true;
                 }
             }

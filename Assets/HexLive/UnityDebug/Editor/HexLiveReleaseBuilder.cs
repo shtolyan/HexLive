@@ -13,6 +13,8 @@ namespace HexLive.UnityDebug.Editor
     /// </summary>
     public static class HexLiveReleaseBuilder
     {
+        private const string HutAssetPath = "Assets/Resources/HexLive/Objects/building.hut_1hex.fbx";
+        private const string BedAssetPath = "Assets/Resources/HexLive/Objects/bed_basic_final_native.fbx";
         private const string OutputArgument = "-hexlive-build-output";
         private const string SummaryArgument = "-hexlive-build-summary";
         private const string ReleaseArgument = "-hexlive-release";
@@ -68,6 +70,9 @@ namespace HexLive.UnityDebug.Editor
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? ".");
                 Directory.CreateDirectory(Path.GetDirectoryName(summaryPath) ?? ".");
 
+                ValidateBuildingResource(HutAssetPath, "HexLive/Objects/building.hut_1hex", 1);
+                ValidateBuildingResource(BedAssetPath, "HexLive/Objects/bed_basic_final_native", 69);
+
                 var options = BuildOptions.CompressWithLz4HC;
                 if (development)
                 {
@@ -86,6 +91,9 @@ namespace HexLive.UnityDebug.Editor
                 var build = report.summary;
                 if (build.result == BuildResult.Succeeded)
                 {
+                    ValidatePackedBuildingResource(report, HutAssetPath);
+                    ValidatePackedBuildingResource(report, BedAssetPath);
+
                     // Unity 6 did not consistently rediscover the postprocess
                     // half of a callback that also owns preprocess in batchmode.
                     // This method is idempotent when the interface already ran.
@@ -139,6 +147,51 @@ namespace HexLive.UnityDebug.Editor
             }
 
             throw new ArgumentException($"Required command-line argument is missing: {name}");
+        }
+
+        private static void ValidateBuildingResource(
+            string assetPath, string resourcePath, int minimumRenderers)
+        {
+            if (!File.Exists(assetPath))
+            {
+                throw new FileNotFoundException(
+                    $"Required building Resources asset is missing: {assetPath}", assetPath);
+            }
+
+            var imported = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            var loaded = Resources.Load<GameObject>(resourcePath);
+            if (imported == null || loaded == null)
+            {
+                throw new InvalidOperationException(
+                    $"Building asset is not importable/loadable as Resources GameObject: " +
+                    $"asset={assetPath}, resource={resourcePath}.");
+            }
+
+            var rendererCount = loaded.GetComponentsInChildren<Renderer>(true).Length;
+            if (rendererCount < minimumRenderers)
+            {
+                throw new InvalidOperationException(
+                    $"Building Resources asset is incomplete: {assetPath} has {rendererCount} " +
+                    $"renderers, expected at least {minimumRenderers}.");
+            }
+
+            Debug.Log(
+                $"[BuildGate] Building resource ready: {resourcePath} " +
+                $"({rendererCount} renderers, {new FileInfo(assetPath).Length} bytes).");
+        }
+
+        private static void ValidatePackedBuildingResource(BuildReport report, string assetPath)
+        {
+            var packed = report.packedAssets.Any(container =>
+                container.contents.Any(item =>
+                    string.Equals(item.sourceAssetPath, assetPath, StringComparison.Ordinal)));
+            if (!packed)
+            {
+                throw new InvalidOperationException(
+                    $"Player build succeeded but omitted required Resources asset: {assetPath}.");
+            }
+
+            Debug.Log($"[BuildGate] Player contains building resource: {assetPath}.");
         }
 
         private static bool HasArgument(string name)

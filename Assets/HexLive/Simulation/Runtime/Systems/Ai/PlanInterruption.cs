@@ -19,7 +19,16 @@ public static class PlanInterruption
     public static void Abort(WorldState world, NPCState npc, string reason)
     {
         CancelInterruptedRescue(world, npc);
-        AbortCore(world, npc, reason);
+        AbortCore(world, npc, reason, keepCarriedPerson: false);
+    }
+
+    /// <summary>§124: новый приказ движения/остановки не роняет тело из рук.
+    /// Все владения старого плана освобождаются, но двусторонняя carry-ссылка
+    /// остаётся до явного PutDown или опасного прерывания.</summary>
+    public static void AbortKeepingCarriedPerson(WorldState world, NPCState npc, string reason)
+    {
+        CancelInterruptedRescue(world, npc);
+        AbortCore(world, npc, reason, keepCarriedPerson: true);
     }
 
     // §118.4: combat is a temporary interruption, not permission to keep a
@@ -29,7 +38,7 @@ public static class PlanInterruption
     public static void AbortForCombat(WorldState world, NPCState npc, string reason)
     {
         var remembered = npc.Mind.InterruptedRescuePatientId;
-        var dropped = AbortCore(world, npc, reason);
+        var dropped = AbortCore(world, npc, reason, keepCarriedPerson: false);
         var resumePatientId = dropped ?? remembered;
         if (resumePatientId is not { } patientId ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
@@ -47,10 +56,13 @@ public static class PlanInterruption
             $"NPC{patientId.Value} Reason={reason}");
     }
 
-    private static EntityId? AbortCore(WorldState world, NPCState npc, string reason)
+    private static EntityId? AbortCore(
+        WorldState world, NPCState npc, string reason, bool keepCarriedPerson)
     {
-        var droppedPatientId = KenshiRescueMath.PutDownForPlanInterruption(
-            world, npc, $"Plan interrupted: {reason}");
+        var droppedPatientId = keepCarriedPerson
+            ? KenshiRescueMath.DetachRescueDestinationForManualCarry(world, npc)
+            : KenshiRescueMath.PutDownForPlanInterruption(
+                world, npc, $"Plan interrupted: {reason}");
 
         CraftProjectMath.ReleaseWorker(world, npc);
         ExecutionSystem.ReleaseClaims(world, npc);
@@ -105,7 +117,14 @@ public static class PlanInterruption
         // must not vanish with the plan — lay it at her feet, pockets intact.
         if (npc.Execution.HeldGarment is { } held)
         {
-            var dropped = ExecutionSystem.DropItemAtFeet(world, npc, held);
+            // §123 player inventory animation keeps the authoritative item in
+            // its source list until the final tick so a mid-action save is
+            // self-contained. Abort must therefore not duplicate that visual
+            // hand reference onto the ground.
+            var stillOwned = npc.Mind.CurrentGoal == GoalType.PlayerInventory &&
+                (npc.Inventory.Items.Exists(item => ReferenceEquals(item, held)) ||
+                 npc.WornItems.Exists(item => ReferenceEquals(item, held)));
+            var dropped = stillOwned ? null : ExecutionSystem.DropItemAtFeet(world, npc, held);
             if (dropped != null && npc.Execution.HeldGarmentContents.Count > 0)
             {
                 dropped.Contents.AddRange(npc.Execution.HeldGarmentContents);

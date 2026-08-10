@@ -457,7 +457,19 @@ namespace HexLive.UnityPresentation.UI
                 skin.updateWhenOffscreen = true;
             }
 
-            BuildHealthRenderer();
+            try
+            {
+                BuildHealthRenderer();
+            }
+            catch (Exception exception)
+            {
+                // The HP overlay is optional presentation. A malformed mesh or
+                // renderer must never abort clone finalisation: that used to
+                // leave _sourceRootId unset and rebuild the entire doll every
+                // LateUpdate, producing a purple/empty RenderTexture.
+                DestroyHealthOverlay();
+                SetBuildError($"Health renderer failed: {exception.Message}");
+            }
             CacheDistalBones();
             RepaintHealthMesh();
             _sourceRootId = source.GetInstanceID();
@@ -485,9 +497,11 @@ namespace HexLive.UnityPresentation.UI
 
             var template = Resources.Load<Material>("HexLive/UI/HealthDoll");
             var shader = template != null ? template.shader : Shader.Find("HexLive/HealthDoll");
-            if (shader == null)
+            if (shader == null || !string.Equals(
+                    shader.name, "HexLive/HealthDoll", StringComparison.Ordinal) ||
+                !shader.isSupported)
             {
-                SetBuildError("Shader HexLive/HealthDoll is unavailable.");
+                SetBuildError("Shader HexLive/HealthDoll is unavailable or unsupported.");
                 return;
             }
 
@@ -498,7 +512,14 @@ namespace HexLive.UnityPresentation.UI
             _healthMaterial = template != null ? new Material(template) : new Material(shader);
             _healthMaterial.name = "CharacterDollHealth";
 
-            _healthBodyRenderer = _normalBodyRenderer.gameObject.AddComponent<SkinnedMeshRenderer>();
+            // Unity permits only one Renderer on a GameObject. Keep the second
+            // renderer on an identity child while binding it to the exact same
+            // skeleton; its object-to-world matrix therefore matches the body.
+            var overlayObject = new GameObject("CharacterDollHealthBody");
+            overlayObject.transform.SetParent(_normalBodyRenderer.transform, false);
+            overlayObject.layer = _normalBodyRenderer.gameObject.layer;
+            _healthBodyRenderer = overlayObject.AddComponent<SkinnedMeshRenderer>();
+            _healthBodyRenderer.enabled = false;
             _healthBodyRenderer.sharedMesh = _healthMesh;
             _healthBodyRenderer.bones = _normalBodyRenderer.bones;
             _healthBodyRenderer.rootBone = _normalBodyRenderer.rootBone;
@@ -527,7 +548,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (healthSlots == 0)
             {
-                Destroy(_healthBodyRenderer);
+                Destroy(_healthBodyRenderer.gameObject);
                 _healthBodyRenderer = null;
                 SetBuildError($"FBX mesh '{sourceMesh.name}' has no skin material slots.");
                 return;
@@ -856,6 +877,27 @@ namespace HexLive.UnityPresentation.UI
                              $"actor={_actorMesh} npc={_npcId}: {_buildError}");
         }
 
+        private void DestroyHealthOverlay()
+        {
+            if (_healthBodyRenderer != null)
+            {
+                Destroy(_healthBodyRenderer.gameObject);
+                _healthBodyRenderer = null;
+            }
+            if (_healthMesh != null)
+            {
+                Destroy(_healthMesh);
+                _healthMesh = null;
+            }
+            if (_healthMaterial != null)
+            {
+                Destroy(_healthMaterial);
+                _healthMaterial = null;
+            }
+            _vertexZone = null;
+            _colorScratch = null;
+        }
+
         private Light CreateLight(
             string objectName,
             LightType type,
@@ -883,22 +925,10 @@ namespace HexLive.UnityPresentation.UI
             _animator = null;
             _lookAt = null;
             _normalBodyRenderer = null;
-            _healthBodyRenderer = null;
-            _vertexZone = null;
-            _colorScratch = null;
             _zoneSignatureValid = false;
             _buildError = string.Empty;
 
-            if (_healthMesh != null)
-            {
-                Destroy(_healthMesh);
-                _healthMesh = null;
-            }
-            if (_healthMaterial != null)
-            {
-                Destroy(_healthMaterial);
-                _healthMaterial = null;
-            }
+            DestroyHealthOverlay();
             if (_clone != null)
             {
                 _clone.SetActive(false);

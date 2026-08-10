@@ -29,6 +29,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private const float NpcRadiusFactor = 17f / 75f;
     private const float NpcHeightFactor = 11f / 30f;
+    private const float PalmCrownCutoutRadiusFactor = 1.75f;
+    private const float PalmCrownCutoutCenterHeightFactor = 1.2f;
     // At 4 Hz this gives a fresh sever three seconds to reach a viewer even
     // across remote/delta batching. Distance is checked too, so an old limb
     // never follows an owner who has already crawled away.
@@ -292,7 +294,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // tick-stepped simulation position.
     public bool TryGetNpcViewPosition(int npcId, out Vector3 position)
     {
-        if (_npcViews.TryGetValue(npcId, out var view) && view != null)
+        if ((_npcViews.TryGetValue(npcId, out var view) ||
+             _corpseViews.TryGetValue(npcId, out view)) && view != null)
         {
             position = view.transform.position;
             return true;
@@ -306,7 +309,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // be spoken by the right mouth instead of a disembodied sfx.
     public bool TryGetActorView(int npcId, out NpcActorView view)
     {
-        if (_actorViews.TryGetValue(npcId, out var found) && found != null)
+        if ((_actorViews.TryGetValue(npcId, out var found) ||
+             _corpseActorViews.TryGetValue(npcId, out found)) && found != null)
         {
             view = found;
             return true;
@@ -320,12 +324,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // standing, following the body down when sitting/lying).
     public bool TryGetNpcBodyCenter(int npcId, out Vector3 center)
     {
-        if (_actorViews.TryGetValue(npcId, out var actorView) && actorView != null)
+        if ((_actorViews.TryGetValue(npcId, out var actorView) ||
+             _corpseActorViews.TryGetValue(npcId, out actorView)) && actorView != null)
         {
             return actorView.TryGetBodyCenter(out center);
         }
 
-        if (_npcViews.TryGetValue(npcId, out var view) && view != null)
+        if ((_npcViews.TryGetValue(npcId, out var view) ||
+             _corpseViews.TryGetValue(npcId, out view)) && view != null)
         {
             center = view.transform.position + Vector3.up * (HexRadius * NpcHeightFactor);
             return true;
@@ -883,6 +889,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _swimCoords.Clear();
         _tileElevations.Clear();
         _indoorCoords.Clear();
+        _floorTiles.Clear();
         foreach (var tile in snapshot.Tiles)
         {
             _tileElevations[tile.Coord] = tile.Elevation;
@@ -901,6 +908,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (tile.Indoor)
             {
                 _indoorCoords.Add(tile.Coord);
+            }
+            if (tile.HasFloor)
+            {
+                _floorTiles.Add(tile.Coord);
             }
         }
 
@@ -1085,18 +1096,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     _treeViewKeys.Add(key);
                 }
 
-                // §112: leaves let the camera through. Marking the view is the
-                // whole hookup — CameraFoliageCuller finds it from the marker.
-                if (HexLive.UnityPresentation.Environment.FoliageOccluder.IsFoliage(worldObject.DefinitionId) &&
-                    objectView.GetComponent<HexLive.UnityPresentation.Environment.FoliageOccluder>() == null)
-                {
-                    objectView.AddComponent<HexLive.UnityPresentation.Environment.FoliageOccluder>();
-                }
-
                 // §121: тот же приём для наведения мышью — маркер несёт номер
                 // объекта, и ввод находит его по статическому списку, а не
                 // поиском по сцене.
-                if (objectView.GetComponent<Views.WorldObjectView>() == null)
+                var selectableAggregate = worldObject.DefinitionId != ContentIds.Hut1Hex &&
+                    worldObject.BuildProduct != ContentIds.Hut1Hex;
+                if (!selectableAggregate && objectView.TryGetComponent<Views.WorldObjectView>(out var aggregateView))
+                    aggregateView.enabled = false;
+                if (selectableAggregate && objectView.GetComponent<Views.WorldObjectView>() == null)
                 {
                     objectView.AddComponent<Views.WorldObjectView>()
                         .Init(key, worldObject.DefinitionId);
@@ -1194,7 +1201,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 var architectureFootprint =
                     worldObject.DefinitionId == ContentIds.Hut1Hex ||
-                    worldObject.BuildProduct == ContentIds.Hut1Hex;
+                    worldObject.BuildProduct == ContentIds.Hut1Hex ||
+                    IsIntegratedHutBed(worldObject) ||
+                    IsIntegratedHutHearth(worldObject);
                 var builtRot = Quaternion.Euler(
                     0f, architectureFootprint
                         ? SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees)
@@ -1219,6 +1228,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             _currObjectPositions[key] = objPos;
         }
+
+
+        BindArchitectureElementViews(snapshot);
 
         foreach (var npc in snapshot.Npcs)
         {
@@ -1419,7 +1431,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // freezes (SetDead) — NO ragdoll: the hex tiles carry no
                 // colliders, so physics bodies spun out and fell through.
                 deadActor.SetRagdoll(false);
-                deadActor.SetDead(GroundY(fallen.Tile), fallen.DeathAnimVariant, fresh: true);
+                deadActor.SetDead(ActorGroundY(fallen.Tile), fallen.DeathAnimVariant, fresh: true);
 
                 // Симуляция кладёт тело в ЦЕНТР гекса (§60.2a), а упасть она
                 // могла на ободе — интерполяция живых видов для неё больше не
@@ -1453,6 +1465,43 @@ public sealed class HexWorldRenderer : MonoBehaviour
         SyncCorpseViews(snapshot);
     }
 
+    private void BindArchitectureElementViews(WorldSnapshot snapshot)
+    {
+        var byOwner = new Dictionary<int, List<ObjectSnapshot>>();
+        foreach (var piece in snapshot.Objects)
+        {
+            if (!piece.ArchitectureOwnerObjectId.HasValue || piece.ArchitectureElements.Count != 1)
+                continue;
+            if (!byOwner.TryGetValue(piece.ArchitectureOwnerObjectId.Value, out var list))
+            {
+                list = new List<ObjectSnapshot>();
+                byOwner[piece.ArchitectureOwnerObjectId.Value] = list;
+            }
+            list.Add(piece);
+        }
+
+        foreach (var pair in byOwner)
+        {
+            if (!_objectViews.TryGetValue(pair.Key, out var ownerView)) continue;
+            var assembly = ownerView.GetComponentInChildren<HexLive.UnityPresentation.Environment.HutAssembly>(true);
+            if (assembly == null) continue;
+
+            var components = new List<ArchitectureElementSnapshot>(pair.Value.Count);
+            foreach (var piece in pair.Value) components.Add(piece.ArchitectureElements[0]);
+            assembly.ApplyElements(components);
+
+            foreach (var piece in pair.Value)
+            {
+                if (!_objectViews.TryGetValue(piece.Id.Value, out var marker)) continue;
+                var view = marker.GetComponent<Views.WorldObjectView>() ??
+                    marker.AddComponent<Views.WorldObjectView>();
+                var component = piece.ArchitectureElements[0];
+                view.Init(piece.Id.Value, piece.DefinitionId,
+                    assembly.RenderersForElement(component.SlotKey));
+            }
+        }
+    }
+
     /// <summary>Запись тела в снапшоте по id погибшей, или null.</summary>
     private static NpcSnapshot FindCorpse(WorldSnapshot snapshot, int npcId)
     {
@@ -1483,10 +1532,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     /// <summary>
-    /// §28.15C v3: ТЕЛА. Лежат до конца игры, поэтому пасс устроен так, чтобы
-    /// стоить почти ничего: поза замерла (аниматор выключен в
-    /// <c>NpcActorView.SetDead</c>), позиция ставится один раз, и каждый кадр
-    /// синхронизируется ровно одно — ГАРДЕРОБ.
+    /// §28.15C v5: ТЕЛА. На земле поза замерла (аниматор выключен в
+    /// <c>NpcActorView.SetDead</c>); переносимое тело включает только граф
+    /// BeingCarried. Позиция и связь перечитываются каждый кадр.
     ///
     /// <para>
     /// Гардероб обязателен именно потому, что вещи остались на теле: когда
@@ -1495,8 +1543,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// на теле она всё ещё надета.
     /// </para>
     /// <para>
-    /// Тело, пропавшее из списка, — это разделанная ножом (§56), единственное,
-    /// что убирает труп с острова.
+    /// Тело пропадает из списка после разделки (§56) либо по окончании первой
+    /// стадии гниения; во втором случае объект останков и мешок лута ещё два
+    /// игровых дня остаются на острове.
     /// </para>
     /// </summary>
     private void SyncCorpseViews(WorldSnapshot snapshot)
@@ -1522,17 +1571,46 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     _actorViews.Remove(key);
                     _corpseActorViews[key] = restored;
                     restored.SetRagdoll(false);
-                    restored.SetDead(GroundY(body.Tile), body.DeathAnimVariant, fresh: false);
+                    restored.SetDead(ActorGroundY(body.Tile), body.DeathAnimVariant, fresh: false);
                 }
 
-                view.transform.SetPositionAndRotation(
-                    SimulationUnityMapper.ToUnityPosition(body.Position, ActorGroundY(body.Tile)),
-                    Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(body.RotationDegrees), 0f));
             }
+
+            var targetRotation = Quaternion.Euler(
+                0f, SimulationUnityMapper.ToUnityYawDegrees(body.RotationDegrees), 0f);
+            var targetPose = TryGetCarriedPose(snapshot, body, targetRotation, out var carriedPose)
+                ? carriedPose
+                : new Pose(
+                    SimulationUnityMapper.ToUnityPosition(body.Position, ActorGroundY(body.Tile)),
+                    targetRotation);
+            view.transform.SetPositionAndRotation(targetPose.Position, targetPose.Rotation);
 
             if (_corpseActorViews.TryGetValue(key, out var actor) && actor != null)
             {
                 actor.SyncWorn(body.WornItems);
+                var follower = actor.GetComponent<CarriedPoseFollower>();
+                if (body.CarriedByNpcId is { } carrierNpcId)
+                {
+                    if (follower == null)
+                    {
+                        follower = actor.gameObject.AddComponent<CarriedPoseFollower>();
+                    }
+
+                    follower.Bind(carrierNpcId);
+                    actor.SetCorpseCarried(true);
+                }
+                else
+                {
+                    follower?.Unbind();
+                    actor.SetCorpseCarried(false);
+                }
+
+                var decay = TryGetDeathTick(snapshot, key, out var deathTick)
+                    ? Mathf.Clamp01((snapshot.Tick - deathTick) /
+                        (float)CorpseSystem.HumanCorpseLifetimeTicks)
+                    : 0f;
+                actor.SetSkinWeathering(body.TanLevel, body.Sunburn, 0f,
+                    Mathf.Lerp(body.Hygiene, 0f, decay));
             }
         }
 
@@ -1894,7 +1972,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // безвольно, пока её не поднимут.
             actorView.SetRagdoll(false);
             actorView.SetCrying(false);
-            var fallenSurfaceY = GroundY(npc.Tile);
+            var fallenSurfaceY = ActorGroundY(npc.Tile);
             Transform fallenAttach = null;
             if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress" &&
                 npc.TargetObjectId is not null)
@@ -1909,7 +1987,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // просто спит: обморок это не кома, и вставать ей обычным GetUp.
             actorView.SetRagdoll(false);
             actorView.SetCrying(false);
-            actorView.SetFallen(true, sleepAfter: true, GroundY(npc.Tile));
+            actorView.SetFallen(true, sleepAfter: true, ActorGroundY(npc.Tile));
         }
         else if (npc.IsCrying)
         {
@@ -1918,7 +1996,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // она не дошла бы). Позу и лицо доводит NpcActorView.SetCrying.
             actorView.SetRagdoll(false);
             actorView.SetCrying(true);
-            actorView.SetLaying(true, null, GroundY(npc.Tile));
+            actorView.SetLaying(true, null, ActorGroundY(npc.Tile));
         }
         else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
         {
@@ -2258,7 +2336,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private Transform? FindBedAttachPoint(WorldSnapshot snapshot, NpcSnapshot npc, out float surfaceY)
     {
         // Default: the sleeper's own tile top, used when there is no bed.
-        surfaceY = GroundY(npc.Tile);
+        surfaceY = ActorGroundY(npc.Tile);
 
         // §66: beds sit at hex centres now, so the sleeper always stands on a
         // NEIGHBOURING tile and two beds can be equally "one tile away". Trust
@@ -2318,7 +2396,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
         else
         {
-            surfaceY = GroundY(bed.Tile);
+            surfaceY = ActorGroundY(bed.Tile);
         }
 
         var point = bedView.transform.Find("point");
@@ -2518,10 +2596,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private float ObjectGroundY(ObjectSnapshot worldObject)
     {
         var y = GroundY(worldObject.Tile);
-        if ((worldObject.DefinitionId == ContentIds.BedBasic &&
-             worldObject.Variant == ContentIds.HutBedVariant) ||
-            (worldObject.DefinitionId == ContentIds.Campfire &&
-             worldObject.Variant == BuildingRules.HutHearthVariant))
+        if (IsIntegratedHutBed(worldObject))
+        {
+            y += HexLive.UnityPresentation.Environment.HutFurnitureFactory.BedRootLift;
+        }
+        else if (IsIntegratedHutHearth(worldObject))
         {
             y += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
         }
@@ -2537,7 +2616,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         if (!_waterCoords.Contains(coord))
         {
-            return GroundY(coord) + (_indoorCoords.Contains(coord)
+            return GroundY(coord) + (_floorTiles.Contains(coord)
                 ? HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift
                 : 0f);
         }
@@ -2762,6 +2841,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private GameObject CreateObjectView(
         ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions, int snapshotTick)
     {
+        // Architecture pieces render through their owner's one shared hut mesh,
+        // but remain real top-level simulation objects. This marker receives a
+        // WorldObjectView bound only to its slot renderers in
+        // BindArchitectureElementViews; it must never instantiate a fallback
+        // primitive of its own.
+        if (worldObject.ArchitectureOwnerObjectId.HasValue)
+        {
+            var marker = new GameObject($"Architecture {worldObject.DefinitionId} #{worldObject.Id.Value}");
+            marker.transform.SetParent(_objectsRoot, false);
+            return marker;
+        }
+
         // §28.15C v4: через двое суток тяжёлый актёр трупа уходит из снапшота.
         // Вместо него один плоский ground-sprite рисует скелет и единственный
         // мешок лута. Длина 1.32 wu совпадает с расчётным телом §113; курс приходит из сима.
@@ -2798,7 +2889,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // and light attach here so a mid-upgrade fire still burns.
         if (worldObject.DefinitionId == "campfire.spot")
         {
-            var isHutHearth = worldObject.Variant == BuildingRules.HutHearthVariant;
+            var isHutHearth = IsIntegratedHutHearth(worldObject);
             var fireGo = isHutHearth
                 ? HexLive.UnityPresentation.Environment.HutFurnitureFactory.BuildHearth()
                 : string.IsNullOrEmpty(worldObject.BuildProduct)
@@ -2947,8 +3038,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             worldObject.DefinitionId == "station.water_collector" ||
             worldObject.DefinitionId == ContentIds.Workbench)
         {
-            var isHutCot = worldObject.DefinitionId == ContentIds.BedBasic &&
-                worldObject.Variant == ContentIds.HutBedVariant;
+            var isHutCot = IsIntegratedHutBed(worldObject);
             var bed = isHutCot
                 ? HexLive.UnityPresentation.Environment.HutFurnitureFactory.BuildBed()
                 : HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished(worldObject.DefinitionId);
@@ -3566,6 +3656,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // §85: and her eyes, on an axis of their own.
                 view.Construct(npc.ActorMesh, npc.Id.Value,
                     npc.SkinSet, npc.EyeColor, npc.Hairstyle, npc.VoiceBank);
+                actorRoot.AddComponent<CharacterPalmCrownCutoutSphere>().Construct(
+                    HexRadius * PalmCrownCutoutRadiusFactor,
+                    HexRadius * NpcHeightFactor * PalmCrownCutoutCenterHeightFactor);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =
@@ -3614,6 +3707,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             visorRenderer.sharedMaterial = CreateMaterial(visorColor);
         }
 
+        root.AddComponent<CharacterPalmCrownCutoutSphere>().Construct(
+            HexRadius * PalmCrownCutoutRadiusFactor,
+            HexRadius * NpcHeightFactor * PalmCrownCutoutCenterHeightFactor);
+
         return root;
     }
 
@@ -3640,23 +3737,48 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (_junctionAnchorById.TryGetValue(worldObject.Junctions[0].Value, out var pos))
             {
-                if (worldObject.DefinitionId == ContentIds.BedBasic &&
-                    worldObject.Variant == ContentIds.HutBedVariant)
-                {
-                    var center = HexSpatialMath.TileToWorld(worldObject.Tile);
-                    var radians = worldObject.RotationDegrees * Mathf.Deg2Rad;
-                    var right = new Float2(Mathf.Sin(radians), -Mathf.Cos(radians));
-                    var fromCenter = pos - center;
-                    var side = fromCenter.X * right.X + fromCenter.Y * right.Y < 0f ? -1f : 1f;
-                    pos += right * (side *
-                        HexLive.UnityPresentation.Environment.HutFurnitureFactory.BedWallSnugOffset);
-                }
+                if (IsIntegratedHutBed(worldObject))
+                    pos = IntegratedHutBedVisualPosition(snapshot, worldObject, pos);
                 return SimulationUnityMapper.ToUnityPosition(pos, ObjectGroundY(worldObject));
             }
         }
 
         return SimulationUnityMapper.ToUnityTilePosition(worldObject.Tile, ObjectGroundY(worldObject));
     }
+
+    private static Float2 IntegratedHutBedVisualPosition(
+        WorldSnapshot snapshot, ObjectSnapshot bed, Float2 anchor)
+    {
+        ObjectSnapshot? hut = null;
+        foreach (var candidate in snapshot.Objects)
+        {
+            if (candidate.DefinitionId == ContentIds.Hut1Hex && candidate.Tile.Equals(bed.Tile))
+            {
+                hut = candidate;
+                break;
+            }
+        }
+        if (hut == null) return anchor;
+
+        var center = HexSpatialMath.TileToWorld(bed.Tile);
+        var radians = hut.RotationDegrees * Mathf.Deg2Rad;
+        var cos = Mathf.Cos(radians);
+        var sin = Mathf.Sin(radians);
+        Float2 Target(float x, float z) => center + new Float2(x * cos - z * sin, x * sin + z * cos);
+        var first = Target(BuildingRules.HutBed0LocalX, BuildingRules.HutBed0LocalZ);
+        var second = Target(BuildingRules.HutBed1LocalX, BuildingRules.HutBed1LocalZ);
+        var d0 = anchor - first;
+        var d1 = anchor - second;
+        return d0.X * d0.X + d0.Y * d0.Y <= d1.X * d1.X + d1.Y * d1.Y ? first : second;
+    }
+
+    private bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
+        worldObject.DefinitionId == ContentIds.BedBasic &&
+        (worldObject.Variant == ContentIds.HutBedVariant || _floorTiles.Contains(worldObject.Tile));
+
+    private bool IsIntegratedHutHearth(ObjectSnapshot worldObject) =>
+        worldObject.DefinitionId == ContentIds.Campfire &&
+        (worldObject.Variant == BuildingRules.HutHearthVariant || _floorTiles.Contains(worldObject.Tile));
 
     private static Float2 GetObjectAnchorFromJunctions(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
     {
@@ -4029,15 +4151,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private void UpdateGrassFlattening(WorldSnapshot snapshot)
     {
         _lyingTiles.Clear();
-        _floorTiles.Clear();
-        foreach (var tile in snapshot.Tiles)
-        {
-            if (tile.HasFloor)
-            {
-                _floorTiles.Add(tile.Coord);
-            }
-        }
-
         foreach (var npc in snapshot.Npcs)
         {
             if (IsLyingDown(npc))

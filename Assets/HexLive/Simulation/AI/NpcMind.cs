@@ -551,7 +551,11 @@ public enum GoalType
     // что боевые системы рассуждают СПИСКАМИ целей (§109 AnswerBlows, зачистка
     // призрачных пар, MobSystem). PlayerAttack встаёт в эти списки ровно как
     // Expel, а PlayerOrder не должен попасть ни в один из них.
-    PlayerAttack
+    PlayerAttack,
+
+    // §123 append-only: authoritative wear/stow/drop plans issued by the
+    // player. Stored like PlayerOrder; no save format bump is required.
+    PlayerInventory
 }
 
 public sealed class GoalScore

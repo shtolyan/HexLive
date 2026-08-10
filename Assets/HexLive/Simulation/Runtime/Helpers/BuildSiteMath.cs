@@ -142,11 +142,12 @@ internal static class BuildSiteMath
             // so all of their materials may be hauled in parallel. Roof leaves
             // become demand only after half of this roof patch's support
             // vertices are actually complete (3/6 for hut_1hex).
-            if (materialId == MaterialLeaves && !BuildingRules.RoofUnlocked(site))
-            {
+            if (materialId == MaterialLeaves && !BuildingRules.RoofUnlocked(
+                    site.Id.Value,
+                    Delivered(site, MaterialSticks),
+                    Delivered(site, MaterialBoards),
+                    Delivered(site, MaterialRope)))
                 return 0;
-            }
-
             return TotalRemaining(site, materialId);
         }
 

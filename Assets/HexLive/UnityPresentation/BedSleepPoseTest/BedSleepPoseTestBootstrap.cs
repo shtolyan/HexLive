@@ -15,10 +15,10 @@ namespace HexLive.UnityPresentation.BedSleepPoseTest
 public sealed class BedSleepPoseTestBootstrap : MonoBehaviour
 {
     private const float ProductionActorScale = 1.5f * (11f / 30f) * 2.4f / 1.7f;
-    private const float AuthoredSleepSurfaceY = 0.24f;
+    private const float AuthoredSleepSurfaceY = BedAssembly.SleepRootLocalY;
 
     [Header("Sleep placement")]
-    [Tooltip("Дополнительный мировой Y-offset поверх штатных 0.24 wu. Можно крутить в Play Mode.")]
+    [Tooltip("Дополнительный мировой Y-offset поверх штатных -0.06 wu. Можно крутить в Play Mode.")]
     [Range(-0.30f, 0.30f)]
     [SerializeField] private float _sleepYOffset;
 
@@ -174,8 +174,7 @@ public sealed class BedSleepPoseOrbitCamera : MonoBehaviour
         {
             if (behaviour == this) continue;
             var typeName = behaviour.GetType().Name;
-            if (typeName is "RtsCameraController" or "SimulationInputAdapter" or
-                "CameraFoliageCuller")
+            if (typeName is "RtsCameraController" or "SimulationInputAdapter")
             {
                 behaviour.enabled = false;
             }

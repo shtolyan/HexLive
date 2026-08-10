@@ -17,11 +17,37 @@ internal static class KenshiRescueMath
     // one weighted graph search, not one search per rim/interior junction.
     internal static int DestinationPathSearchesLastCall { get; private set; }
 
+    // Бюджет островных weighted-поисков на ОДИН вызов TryFindDestination.
+    // Успешный подбор укладывается в 1-3 поиска; исчерпывающий перебор
+    // случается ровно тогда, когда маршрута переноски НЕТ ВООБЩЕ (например,
+    // каждый вариант режется правилом уступов), — и тогда все кандидаты
+    // лагеря × их джанкшены дают тысячи Дейкстр в одном тике: замерено
+    // 23 с и 15 ГБ аллокаций на острове 1x при 10 NPC. После бюджета это
+    // тот же честный провал "no safe bed or camp ground route" с тем же
+    // кулдауном Rescue, но за миллисекунды.
+    private const int DestinationPathSearchBudget = 24;
+
+    private static bool SearchBudgetExhausted =>
+        DestinationPathSearchesLastCall >= DestinationPathSearchBudget;
+
     internal static bool NeedsRescue(WorldState world, NPCState patient) =>
         patient.Health > 0f &&
         !patient.IsBeingCarried &&
         (patient.IsDying || patient.Mind.ComaCause != ComaCause.None) &&
         !IsRecoveryResting(world, patient);
+
+    internal static bool TryGetPerson(
+        WorldState world, EntityId id, out NPCState person, out bool dead)
+    {
+        if (world.Entities.Npcs.TryGetValue(id, out person))
+        {
+            dead = false;
+            return true;
+        }
+
+        dead = world.Entities.Corpses.TryGetValue(id, out person);
+        return dead;
+    }
 
     // §118.4: putting a critical patient down is the completion of one
     // evacuation, not a fresh rescue request on the next Medium tick. The
@@ -181,6 +207,11 @@ internal static class KenshiRescueMath
 
         foreach (var candidate in beds)
         {
+            if (SearchBudgetExhausted)
+            {
+                break;
+            }
+
             if (!TryObjectApproach(
                     world, helper, patient, candidate, from, occupiedByActor,
                     out var stand, out var candidateRoute))
@@ -258,6 +289,11 @@ internal static class KenshiRescueMath
 
         foreach (var candidate in candidates)
         {
+            if (SearchBudgetExhausted)
+            {
+                return false;
+            }
+
             if (!SpatialQueries.IsJunctionFree(world, candidate) ||
                 !world.Junctions.Items.ContainsKey(candidate) ||
                 !Connectivity.Reachable(world, from, candidate, helper.Body.CanJump))
@@ -375,6 +411,11 @@ internal static class KenshiRescueMath
 
         foreach (var tile in candidateTiles)
         {
+            if (SearchBudgetExhausted)
+            {
+                return false;
+            }
+
             if (!DestinationSafe(world, patient, tile.Coord) ||
                 !LyingSpot.CanSolveOnTile(world, patient, tile.Coord))
             {
@@ -397,6 +438,11 @@ internal static class KenshiRescueMath
 
             foreach (var candidate in junctions)
             {
+                if (SearchBudgetExhausted)
+                {
+                    return false;
+                }
+
                 if (SpatialQueries.IsJunctionFree(world, candidate) &&
                     world.Junctions.Items.TryGetValue(candidate, out var junction) &&
                     !junction.Blocked &&
@@ -445,6 +491,12 @@ internal static class KenshiRescueMath
             {
                 return true;
             }
+        }
+
+        if (SearchBudgetExhausted)
+        {
+            route.Clear();
+            return false;
         }
 
         DestinationPathSearchesLastCall++;
@@ -597,6 +649,39 @@ internal static class KenshiRescueMath
                   $"Searches={DestinationPathSearchesLastCall}");
     }
 
+    /// <summary>§124: ручной перенос заканчивается в руках, а не автоматически
+    /// выбранной кроватью. Следующий MoveTo держит связь до явного PutDown.</summary>
+    internal static void BeginManualCarry(
+        WorldState world, NPCState carrier, NPCState person, bool dead)
+    {
+        carrier.Mind.InterruptedRescuePatientId = null;
+        carrier.RescueDestinationObjectId = null;
+        if (dead)
+        {
+            CorpseMath.SuspendAnchor(world, person);
+        }
+        else
+        {
+            ReleasePatientBedOnWake(world, person);
+            ExecutionSystem.ReleaseClaims(world, person);
+            if (person.CurrentJunction is { } lying)
+            {
+                SpatialMutations.FreeJunction(world, lying, person.Id);
+                SpatialMutations.ReleaseJunctionReservation(world, lying, person.Id);
+            }
+        }
+
+        person.CurrentJunction = null;
+        person.CarriedByNpcId = carrier.Id;
+        carrier.CarriedNpcId = person.Id;
+        carrier.IsFighting = false;
+        MeleeSwing.Cancel(carrier);
+        carrier.StrikeReadyAtTick = 0;
+        SyncPatient(world, carrier, person, dead);
+        Trace.Emit(world, carrier.Id, "PersonPickedUp",
+            $"NPC{person.Id.Value} Manual=1 Dead={(dead ? 1 : 0)}");
+    }
+
     internal static void SyncAll(WorldState world)
     {
         // A normal rescue claim is already coherent. Only a loaded/interrupting
@@ -629,17 +714,33 @@ internal static class KenshiRescueMath
                 continue;
             }
 
-            if (!world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
+            if (!TryGetPerson(world, patientId, out var patient, out var dead) ||
                 patient.CarriedByNpcId != carrier.Id || carrier.Health <= 0f ||
                 carrier.IsLyingDown(world.Tick) ||
-                patient.Health <= 0f ||
+                (!dead && patient.Health <= 0f) ||
                 carrier.Movement.Status == MovementStatus.Invalid)
             {
                 DropSafely(world, carrier, "carry link/path/carrier invalid");
                 continue;
             }
 
-            SyncPatient(world, carrier, patient);
+            SyncPatient(world, carrier, patient, dead);
+        }
+    }
+
+    /// <summary>MovementSystem изменил позицию носильщика после основной
+    /// проверки ссылок — одним дешёвым проходом закрепить модель тела на новой
+    /// позиции до экспорта снапшота/сейва этого же тика.</summary>
+    internal static void SyncCarriedPositionsAfterMovement(WorldState world)
+    {
+        foreach (var carrier in world.Entities.Npcs.Values)
+        {
+            if (carrier.CarriedNpcId is { } personId &&
+                TryGetPerson(world, personId, out var person, out var dead) &&
+                person.CarriedByNpcId == carrier.Id)
+            {
+                SyncPatient(world, carrier, person, dead);
+            }
         }
     }
 
@@ -719,14 +820,19 @@ internal static class KenshiRescueMath
         return true;
     }
 
-    private static void SyncPatient(WorldState world, NPCState carrier, NPCState patient)
+    private static void SyncPatient(
+        WorldState world, NPCState carrier, NPCState patient, bool dead = false)
     {
         if (patient.Tile != carrier.Tile)
         {
-            SpatialMutations.MoveEntityToTile(world, patient.Id, patient.Tile, carrier.Tile);
+            if (!dead)
+            {
+                SpatialMutations.MoveEntityToTile(world, patient.Id, patient.Tile, carrier.Tile);
+            }
             patient.Tile = carrier.Tile;
         }
 
+        patient.Fragment = carrier.Fragment;
         patient.Position = carrier.Position;
         patient.RotationDegrees = carrier.RotationDegrees + 90f;
         patient.Movement.IsMoving = false;
@@ -778,7 +884,8 @@ internal static class KenshiRescueMath
         var hadCarry = carrier.CarriedNpcId is not null;
         PutDownForPlanInterruption(world, carrier, reason);
 
-        if (carrier.Plan.Status == PlanStatus.Active)
+        if (carrier.Plan.Status == PlanStatus.Active &&
+            carrier.Plan.Goal == GoalType.Rescue)
         {
             PlanningSystem.SetGoalCooldown(world, carrier, GoalType.Rescue);
             PlanInterruption.Abort(world, carrier, $"Rescue drop: {reason}");
@@ -820,13 +927,20 @@ internal static class KenshiRescueMath
             return null;
         }
 
-        world.Entities.Npcs.TryGetValue(patientId, out var patient);
+        TryGetPerson(world, patientId, out var patient, out var dead);
         ReleaseDestination(world, carrier, patient);
         if (patient is not null)
         {
-            SyncPatient(world, carrier, patient);
+            SyncPatient(world, carrier, patient, dead);
             ClearLinks(carrier, patient);
-            MortalityHelpers.AnchorLyingBody(world, patient);
+            if (dead)
+            {
+                CorpseMath.AnchorBody(world, patient);
+            }
+            else
+            {
+                MortalityHelpers.AnchorLyingBody(world, patient);
+            }
         }
         else
         {
@@ -836,6 +950,29 @@ internal static class KenshiRescueMath
 
         Trace.Emit(world, carrier.Id, "PersonDropped", reason);
         return patient?.Id;
+    }
+
+    /// <summary>Освобождает всё, что принадлежало rescue-плану, но не роняет
+    /// уже переносимого человека. Используется только новым ручным Move/Stop.</summary>
+    internal static EntityId? DetachRescueDestinationForManualCarry(
+        WorldState world, NPCState carrier)
+    {
+        NPCState person = null;
+        if (carrier.CarriedNpcId is { } personId)
+        {
+            TryGetPerson(world, personId, out person, out _);
+        }
+
+        ReleaseDestination(world, carrier, person);
+        if (person is not null && world.Entities.Npcs.ContainsKey(person.Id) &&
+            person.Mind.PendingAidFrom == carrier.Id)
+        {
+            person.Mind.PendingAidFrom = null;
+        }
+
+        carrier.RescueDestinationObjectId = null;
+        carrier.Mind.InterruptedRescuePatientId = null;
+        return null;
     }
 
     private static void CompleteCarrier(WorldState world, NPCState carrier)

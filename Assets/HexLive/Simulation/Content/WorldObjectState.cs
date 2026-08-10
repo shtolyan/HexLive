@@ -88,10 +88,18 @@ public sealed class WorldObjectState
     // workbench's six board_* children are revealed from this exact channel.
     public int BillBoards { get; set; }
 
-    // §120 constructor layer. These are addressable/persistent building pieces,
-    // not furniture WorldObjects; furniture and architecture therefore keep
-    // independent occupancy/intersection rules on the same tile.
+    // §120 constructor layer. A real constructor piece is a top-level
+    // WorldObject whose ArchitectureOwnerId points at the footprint aggregate
+    // and whose ArchitectureElements list contains exactly one component. The
+    // list remains for v32-v33 save migration only: those versions incorrectly
+    // stored every component on the building owner and consequently made the
+    // whole hut one selectable object.
+    public ObjectId? ArchitectureOwnerId { get; set; }
+
     public List<ArchitectureElementState> ArchitectureElements { get; } = new();
+
+    public bool IsArchitectureElement => ArchitectureOwnerId.HasValue &&
+        ArchitectureElements.Count == 1;
 
     // §119: one immutable work position chosen when a workbench site is staked.
     // It rides onto the finished station and is the only legal craft approach.

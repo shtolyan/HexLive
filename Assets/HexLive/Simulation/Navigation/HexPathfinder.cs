@@ -287,6 +287,90 @@ public static class HexPathfinder
         return path;
     }
 
+    /// <summary>
+    /// §123: one weighted search from an actor to every formation candidate.
+    /// Costs use the same edge rules as FindPath; missing goals receive the
+    /// same housemate-avoid fallback instead of one Dijkstra per slot.
+    /// </summary>
+    public static Dictionary<JunctionId, long> FindCosts(
+        WorldState world, JunctionId start, IReadOnlyCollection<JunctionId> goals,
+        HashSet<JunctionId> avoid, bool weightClimb = true, bool canJump = true,
+        HashSet<JunctionId> danger = null, long dangerCost = 0L,
+        HashSet<JunctionId> hardAvoid = null)
+    {
+        var result = FindCostsCore(
+            world, start, goals, avoid, weightClimb, canJump, danger, dangerCost, hardAvoid);
+        if (avoid is null || result.Count >= goals.Count) return result;
+
+        var fallback = FindCostsCore(
+            world, start, goals, null, weightClimb, canJump, danger, dangerCost, hardAvoid);
+        foreach (var pair in fallback)
+        {
+            if (!result.ContainsKey(pair.Key)) result[pair.Key] = pair.Value;
+        }
+        return result;
+    }
+
+    private static Dictionary<JunctionId, long> FindCostsCore(
+        WorldState world, JunctionId start, IReadOnlyCollection<JunctionId> goals,
+        HashSet<JunctionId> avoid, bool weightClimb, bool canJump,
+        HashSet<JunctionId> danger, long dangerCost, HashSet<JunctionId> hardAvoid)
+    {
+        var result = new Dictionary<JunctionId, long>();
+        if (goals is null || goals.Count == 0) return result;
+        var goalSet = goals as HashSet<JunctionId> ?? new HashSet<JunctionId>(goals);
+
+        const long priorityScale = 100_000_000L;
+        var frontier = new SortedDictionary<long, JunctionId>();
+        var frontierKey = new Dictionary<JunctionId, long>();
+        var closed = new HashSet<JunctionId>();
+        var score = new Dictionary<JunctionId, long> { [start] = 0L };
+        var seq = 0L;
+        frontier.Add(0L, start);
+        frontierKey[start] = 0L;
+
+        while (frontier.Count > 0 && result.Count < goalSet.Count)
+        {
+            var head = default(KeyValuePair<long, JunctionId>);
+            foreach (var pair in frontier) { head = pair; break; }
+            frontier.Remove(head.Key);
+            frontierKey.Remove(head.Value);
+            var current = head.Value;
+            if (!closed.Add(current)) continue;
+
+            if (goalSet.Contains(current)) result[current] = score[current];
+            if (!world.Junctions.Items.TryGetValue(current, out var junction)) continue;
+
+            for (var n = 0; n < junction.Neighbors.Count; n++)
+            {
+                var neighborId = junction.Neighbors[n];
+                if (closed.Contains(neighborId) ||
+                    !world.Junctions.Items.TryGetValue(neighborId, out var neighbor)) continue;
+
+                var isGoal = goalSet.Contains(neighborId);
+                if (neighbor.Blocked && !isGoal) continue;
+                if (IsClimbSeamWalk(world, current, neighborId)) continue;
+                if (avoid is not null && avoid.Contains(neighborId) && !isGoal) continue;
+                if (hardAvoid is not null && hardAvoid.Contains(neighborId) && !isGoal) continue;
+
+                var stepDelta = StepDelta(world, junction, n, neighborId);
+                if (!canJump && stepDelta != 0) continue;
+                var next = score[current] + ClimbCost(
+                    world, neighborId, stepDelta, weightClimb);
+                if (danger is not null && danger.Contains(neighborId)) next += dangerCost;
+                if (score.TryGetValue(neighborId, out var known) && next >= known) continue;
+
+                score[neighborId] = next;
+                if (frontierKey.TryGetValue(neighborId, out var stale)) frontier.Remove(stale);
+                var priority = next * priorityScale + seq++;
+                frontierKey[neighborId] = priority;
+                frontier.Add(priority, neighborId);
+            }
+        }
+
+        return result;
+    }
+
     // Spec 40.17: a flat step costs FlatCost, a crossing costs more, so a
     // comfortable NPC prefers the flat way. Costs are ×10 so a fractional
     // multiplier stays integer. The weight is LIVE, and gated: hungry/thirsty
@@ -301,18 +385,23 @@ public static class HexPathfinder
     // §40.17 v2: priced from the TIME a hop actually costs, not guessed.
     // §21.21B v23: одно окно на оба направления. По оттюненному ассету
     // HopSeconds 1.81 с ≈ 7.3 тика против ~2 тиков на плоское ребро решётки,
-    // то есть прыжок стоит ~3.6 плоских ребра в любую сторону:
-    //     SeamCost = FlatCost * (7.3 / 2) ≈ 36
+    // то есть КЛИМБ стоит ~3.6 плоских ребра:
+    //     SeamUpCost = FlatCost * (7.3 / 2) ≈ 36
     // Do NOT push these higher "to be safe": walking around one tile is ~6.9
     // edges ≈ 14 ticks, so past ~4.5x she starts taking detours that are slower
-    // in real time than the jump she avoided. Re-derive both if HopSeconds is
-    // retuned (§21.21B) — they are the same number in different units.
-    // The single earlier value (SeamCost 30, and 12 before that) was symmetric
-    // AND charged per-JUNCTION, i.e. it also taxed the detour that merely walks
-    // along a wall. Both halves are fixed here. Два имени остаются: вверх и
-    // вниз — разные ребра для §50 (кто не может прыгать) и будущего тюнинга.
+    // in real time than the jump she avoided. Re-derive if HopSeconds is
+    // retuned (§21.21B) — это одно и то же число в разных единицах.
+    //
+    // ⭐ СПУСК ДЕШЕВЛЕ ПОДЪЁМА, И ЭТО УЖЕ НЕ ПРО ВРЕМЯ. До v23 у спрыгивания
+    // было своё, вдвое более короткое окно, и разница цен просто повторяла
+    // разницу секунд. v23 сделал окно ОДНИМ — и цены на секунду сравнялись,
+    // уронив гейт `DroppingIsCheaperThanClimbing`. Гейт прав: выбирая между
+    // «вскарабкаться на ступень» и «спрыгнуть с неё», человек спрыгивает —
+    // спуску не нужен ни разбег, ни подъём собственного веса. Это отдельное
+    // предпочтение маршрутизатора, а не хронометраж, поэтому оно и живёт
+    // теперь отдельным множителем (2/3), а не выводится из окна.
     private const long SeamUpCost = 36L;
-    private const long SeamDownCost = 36L;
+    private const long SeamDownCost = 24L;
 
     // Spec 40.18: entering the swim ring costs 4x a land step — a slow, risky
     // last resort, so a route only takes to the water when there's no dry way.

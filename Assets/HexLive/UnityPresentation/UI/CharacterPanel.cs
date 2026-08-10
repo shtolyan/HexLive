@@ -37,6 +37,32 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _root;
         private VisualElement _stage;
         private VisualElement _card;
+        private VisualElement _groupCard;
+        private Label _groupTitle;
+        private Label _groupManualSummary;
+        private Label _groupAlerts;
+        private Label _groupControlLabel;
+        private Label _groupOrderResult;
+        private Label _groupStopLabel;
+        private VisualElement _groupPortraits;
+        private bool _groupAllManual;
+
+        // §123: the right roster is visible even with no selection.
+        private VisualElement _roster;
+        private VisualElement _clanRosterList;
+        private VisualElement _outsiderRosterList;
+        private Label _clanRosterHeader;
+        private Label _outsiderRosterHeader;
+        private int _rosterTick = int.MinValue;
+        private readonly List<RosterBinding> _rosterBindings = new();
+
+        private sealed class RosterBinding
+        {
+            public int Id;
+            public bool Fighting;
+            public VisualElement Card;
+            public VisualElement Dot;
+        }
 
         // Live elements
         private VisualElement _portrait;
@@ -84,6 +110,7 @@ namespace HexLive.UnityPresentation.UI
         private Label _controlGlyph;
         private Label _orderToast;
         private bool _manualControlNow;
+        private bool _controlAvailable;
         private VisualElement _inventoryWindow;
         private Label _inventoryTitle;
         private Label _inventoryCapacity;
@@ -103,6 +130,17 @@ namespace HexLive.UnityPresentation.UI
         private Label _invDetailCategory;
         private Label _invDetailDesc;
         private VisualElement _invDetailStats;
+        private VisualElement _invPrimaryAction;
+        private VisualElement _invDropAction;
+        private Label _invPrimaryActionLabel;
+        private Label _invDropActionLabel;
+        private Label _invReadOnlyLabel;
+        private int _inventoryActorId = -1;
+        private bool _inventoryMutable;
+        private string _invDraggedId;
+        private bool _invDraggedWorn;
+        private VisualElement _invDropZone;
+        private Label _invDropZoneLabel;
         private bool _inventoryOpen;
         private string _invSig;               // rebuild the list only on change
         private string _invSelectedId;        // item shown in the detail view
@@ -405,7 +443,7 @@ namespace HexLive.UnityPresentation.UI
             ApplyLanguage();
             _anim = 0f;
             _shown = false;
-            _root.style.display = DisplayStyle.None;
+            _stage.style.display = DisplayStyle.None;
         }
 
         private void OnEnable()
@@ -440,6 +478,9 @@ namespace HexLive.UnityPresentation.UI
                 Refresh();
             }
 
+            RefreshRoster();
+            AnimateRoster();
+
             Animate();
             UpdatePointerOverUi();
         }
@@ -452,7 +493,7 @@ namespace HexLive.UnityPresentation.UI
         {
             var mouse = Mouse.current;
             var panelHeight = _root != null ? _root.layout.height : 0f;
-            if (!_shown || _card == null || mouse == null || panelHeight < 1f)
+            if (mouse == null || panelHeight < 1f)
             {
                 NpcSelection.PointerOverUi = false;
                 return;
@@ -474,16 +515,18 @@ namespace HexLive.UnityPresentation.UI
                 var withinY = mousePos.y <= tab.height * scale + 4f;
                 var halfWidth = tab.width * scale * 0.5f + 4f;
                 var withinX = Mathf.Abs(mousePos.x - Screen.width * 0.5f) <= halfWidth;
-                NpcSelection.PointerOverUi = withinY && withinX;
+                NpcSelection.PointerOverUi = (withinY && withinX) ||
+                    PointerOverElement(_roster, mousePos, scale);
                 return;
             }
 
-            var overBar = PointerOverElement(_stage, mousePos, scale);
+            var overBar = _shown && PointerOverElement(_stage, mousePos, scale);
+            var overRoster = PointerOverElement(_roster, mousePos, scale);
 
             // The floating windows (inventory / limb health) sit ABOVE the bar —
             // their bounds must also swallow clicks, or picking inside them
             // deselects the NPC.
-            NpcSelection.PointerOverUi = overBar ||
+            NpcSelection.PointerOverUi = overBar || overRoster ||
                 PointerOverFloating(_inventoryOpen, _inventoryWindow, mousePos, scale) ||
                 PointerOverFloating(_healthOpen, _healthWindow, mousePos, scale);
         }
@@ -532,14 +575,16 @@ namespace HexLive.UnityPresentation.UI
                    mousePos.y >= bottom && mousePos.y <= top;
         }
 
-        private void OnSelectionChanged(int npcId)
+        private void OnSelectionChanged(IReadOnlyList<int> selection)
         {
-            _shown = npcId >= 0;
+            _shown = NpcSelection.HasSelection;
+            _refreshedTick = -1;
+            _rosterTick = int.MinValue;
             CloseInventory(); // a new/cleared selection resets the backpack
             CloseHealth();    // …and the limb-health window
-            if (npcId >= 0)
+            if (_shown)
             {
-                _root.style.display = DisplayStyle.Flex;
+                _stage.style.display = DisplayStyle.Flex;
             }
             else
             {
@@ -577,8 +622,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (!_shown && _anim <= 0.001f)
             {
-                _root.style.display = DisplayStyle.None;
-                NpcSelection.PointerOverUi = false;
+                _stage.style.display = DisplayStyle.None;
                 NpcSelection.BottomUiCoverage = 0f;
                 return;
             }
@@ -605,12 +649,21 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            if (snapshot.Tick == _refreshedTick && NpcSelection.SelectedId == _refreshedActorId)
+            if (NpcSelection.Count > 1)
+            {
+                RefreshGroup(snapshot);
+                return;
+            }
+
+            _groupCard.style.display = DisplayStyle.None;
+            _card.style.display = DisplayStyle.Flex;
+
+            if (snapshot.Tick == _refreshedTick && NpcSelection.PrimaryId == _refreshedActorId)
             {
                 return;
             }
 
-            var npc = FindNpc(snapshot, NpcSelection.SelectedId);
+            var npc = FindNpc(snapshot, NpcSelection.PrimaryId, out var isDead);
             if (npc == null)
             {
                 return;
@@ -624,12 +677,13 @@ namespace HexLive.UnityPresentation.UI
                 ? $"NPC #{npc.Id.Value}"
                 : Loc.NpcName(npc.DisplayName);
             _roleLabel.text = $"{Loc.Get("panel.role")} · #{npc.Id.Value}";
-            _thoughtValue.text = Loc.Goal(npc.CurrentGoal);
+            _thoughtValue.text = isDead ? Loc.Get("state.dead") : Loc.Goal(npc.CurrentGoal);
             RefreshControlToggle(npc); // §121
 
             // Spec §64: the dream pill — show her aspiration, hide it when she has
             // nothing left to dream of ("None"/empty).
-            var hasDream = !string.IsNullOrEmpty(npc.CurrentDream) && npc.CurrentDream != "None";
+            var hasDream = !isDead && !string.IsNullOrEmpty(npc.CurrentDream) &&
+                npc.CurrentDream != "None";
             _dream.style.display = hasDream ? DisplayStyle.Flex : DisplayStyle.None;
             if (hasDream)
             {
@@ -653,7 +707,7 @@ namespace HexLive.UnityPresentation.UI
             // целых руках и ногах читалась как «75%, всё неплохо», хотя
             // следующий удар убивает. Цвет берётся у той же функции, что красит
             // куклу §57, — два мнения о «насколько всё плохо» разошлись бы.
-            var hp = Mathf.Clamp01(npc.VitalHealth);
+            var hp = isDead ? 0f : Mathf.Clamp01(npc.VitalHealth);
             _healthRing.Set(hp, CharacterDollStage.StatusColor(hp, false));
             // Красным по-прежнему считается то, что не отрастёт, пока открыты
             // раны, — теперь это приписка к числу, а не второй бар.
@@ -662,7 +716,7 @@ namespace HexLive.UnityPresentation.UI
                 ? $"{Mathf.RoundToInt(hp * 100f)}% (-{Mathf.RoundToInt(locked * 100f)})"
                 : $"{Mathf.RoundToInt(hp * 100f)}%";
 
-            UpdateStatus(npc);
+            UpdateStatus(npc, isDead);
             UpdateUv(npc);
 
             var showBadge = npc.IsStarving || npc.IsFighting;
@@ -693,16 +747,33 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        private void UpdateStatus(NpcSnapshot npc)
+        private void UpdateStatus(NpcSnapshot npc, bool isDead)
         {
-            string key;
-            Color dot;
+            ResolveStatus(npc, isDead, out var key, out var dot);
+            _statusLabel.text = Loc.Get(key);
+            _statusDot.style.backgroundColor = dot;
+        }
+
+        /// <summary>§123 shared resolver for the roster and detail card.</summary>
+        private static void ResolveStatus(NpcSnapshot npc, out string key, out Color dot)
+        {
+            ResolveStatus(npc, isDead: false, out key, out dot);
+        }
+
+        private static void ResolveStatus(
+            NpcSnapshot npc, bool isDead, out string key, out Color dot)
+        {
             // §105 r5: СОСТОЯНИЕ ТЕЛА идёт первым и по убыванию тяжести.
             // Раньше строка знала три вещи — «идёт», «занята», «отдыхает» — и
             // умирающая, лежащая в коме и спящая одинаково попадали в
             // «отдыхает» (цель у всех троих None). Панель сообщала «просто
             // существует» ровно тогда, когда происходило самое важное.
-            if (npc.IsDying)
+            if (isDead)
+            {
+                key = "state.dead";
+                dot = Crit;
+            }
+            else if (npc.IsDying)
             {
                 key = "state.dying";
                 dot = Crit;
@@ -746,8 +817,6 @@ namespace HexLive.UnityPresentation.UI
                 dot = Energy;
             }
 
-            _statusLabel.text = Loc.Get(key);
-            _statusDot.style.backgroundColor = dot;
         }
 
         // UV: none (night/indoor/water) → low → medium → high; a shaded NPC
@@ -1357,6 +1426,35 @@ namespace HexLive.UnityPresentation.UI
             _invListView.Add(_invDollPane);
             _inventoryWindow.Add(_invListView);
 
+            _invDropZone = new VisualElement();
+            _invDropZone.style.height = 34f;
+            _invDropZone.style.marginTop = 7f;
+            _invDropZone.style.alignItems = Align.Center;
+            _invDropZone.style.justifyContent = Justify.Center;
+            _invDropZone.style.backgroundColor = new Color(Crit.r, Crit.g, Crit.b, 0.09f);
+            SetBorder(_invDropZone, new Color(Crit.r, Crit.g, Crit.b, 0.45f), 1f);
+            SetRadius(_invDropZone, 8f);
+            _invDropZoneLabel = new Label(Loc.Get("inv.drop_zone"));
+            _invDropZoneLabel.style.color = Crit;
+            _invDropZoneLabel.style.fontSize = 11f;
+            _invDropZoneLabel.pickingMode = PickingMode.Ignore;
+            _invDropZone.Add(_invDropZoneLabel);
+            _invDropZone.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (_invDraggedId == null) return;
+                CompleteInventoryDrag(InventoryAction.Drop);
+                evt.StopPropagation();
+            });
+            _inventoryWindow.Add(_invDropZone);
+
+            _invItemsPane.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (_invDraggedId == null || !_invDraggedWorn) return;
+                CompleteInventoryDrag(InventoryAction.Stow);
+                evt.StopPropagation();
+            });
+            _inventoryWindow.RegisterCallback<PointerUpEvent>(_ => ClearInventoryDrag());
+
             _invItemsPane.RegisterCallback<GeometryChangedEvent>(evt =>
             {
                 var width = evt.newRect.width;
@@ -1484,6 +1582,59 @@ namespace HexLive.UnityPresentation.UI
 
             _invDetailStats = new VisualElement();
             parent.Add(_invDetailStats);
+
+            var actions = new VisualElement();
+            actions.style.flexDirection = FlexDirection.Row;
+            actions.style.marginTop = 12f;
+            _invPrimaryAction = InventoryActionButton(
+                () => EnqueueInventoryAction(_invSelectedWorn
+                    ? InventoryAction.Stow : InventoryAction.Wear));
+            _invPrimaryActionLabel = new Label();
+            _invPrimaryActionLabel.style.color = Text;
+            _invPrimaryActionLabel.style.fontSize = 13f;
+            _invPrimaryActionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _invPrimaryActionLabel.pickingMode = PickingMode.Ignore;
+            _invPrimaryAction.Add(_invPrimaryActionLabel);
+            actions.Add(_invPrimaryAction);
+
+            _invDropAction = InventoryActionButton(
+                () => EnqueueInventoryAction(InventoryAction.Drop));
+            _invDropAction.style.marginLeft = 8f;
+            _invDropActionLabel = new Label(Loc.Get("inv.action.drop"));
+            _invDropActionLabel.style.color = Crit;
+            _invDropActionLabel.style.fontSize = 13f;
+            _invDropActionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _invDropActionLabel.pickingMode = PickingMode.Ignore;
+            _invDropAction.Add(_invDropActionLabel);
+            actions.Add(_invDropAction);
+            parent.Add(actions);
+
+            _invReadOnlyLabel = new Label(Loc.Get("inv.readonly"));
+            _invReadOnlyLabel.style.color = TextMute;
+            _invReadOnlyLabel.style.fontSize = 12f;
+            _invReadOnlyLabel.style.marginTop = 9f;
+            _invReadOnlyLabel.style.display = DisplayStyle.None;
+            parent.Add(_invReadOnlyLabel);
+        }
+
+        private static VisualElement InventoryActionButton(Action action)
+        {
+            var button = new VisualElement();
+            button.style.height = 34f;
+            button.style.minWidth = 104f;
+            button.style.paddingLeft = 12f;
+            button.style.paddingRight = 12f;
+            button.style.alignItems = Align.Center;
+            button.style.justifyContent = Justify.Center;
+            button.style.backgroundColor = Raised;
+            SetBorder(button, StrokeStrong, 1f);
+            SetRadius(button, 8f);
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                action?.Invoke();
+                evt.StopPropagation();
+            });
+            return button;
         }
 
         private void RegisterInventoryPreviewInput()
@@ -1517,6 +1668,13 @@ namespace HexLive.UnityPresentation.UI
             });
             _invPreviewView.RegisterCallback<PointerUpEvent>(evt =>
             {
+                if (_invDraggedId != null)
+                {
+                    if (!_invDraggedWorn) CompleteInventoryDrag(InventoryAction.Wear);
+                    else ClearInventoryDrag();
+                    evt.StopPropagation();
+                    return;
+                }
                 if (evt.pointerId != _invPreviewPointerId)
                 {
                     return;
@@ -2196,6 +2354,13 @@ namespace HexLive.UnityPresentation.UI
         // when the item set or a garment's live condition changes.
         private void RefreshInventory(NpcSnapshot npc)
         {
+            _inventoryActorId = npc.Id.Value;
+            _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
+                NpcSelection.Count == 1 &&
+                npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f;
+            if (_invDropZone != null)
+                _invDropZone.style.display = _inventoryMutable
+                    ? DisplayStyle.Flex : DisplayStyle.None;
             if (!_inventoryOpen)
             {
                 return;
@@ -2515,6 +2680,8 @@ namespace HexLive.UnityPresentation.UI
                         carriedWater, carriedStacks, wornWetness, wornDirtiness, header);
                 });
                 header.RegisterCallback<MouseLeaveEvent>(_ => ScheduleItemDetailHide());
+                header.RegisterCallback<PointerDownEvent>(evt =>
+                    BeginInventoryDrag(container.OwnerItemDefinitionId, worn: true, evt));
             }
 
             if (container.Kind == InventoryContainerKind.Carry)
@@ -2693,6 +2860,8 @@ namespace HexLive.UnityPresentation.UI
                         : StrokeStrong);
                     ScheduleItemDetailHide();
                 });
+                cell.RegisterCallback<PointerDownEvent>(evt =>
+                    BeginInventoryDrag(itemId, worn: false, evt));
             }
 
             return cell;
@@ -2788,6 +2957,8 @@ namespace HexLive.UnityPresentation.UI
                 ShowItemDetail(itemId, true, durability, water, stacks, wetness, dirtiness, row);
             });
             row.RegisterCallback<MouseLeaveEvent>(_ => ScheduleItemDetailHide());
+            row.RegisterCallback<PointerDownEvent>(evt =>
+                BeginInventoryDrag(itemId, worn: true, evt));
             return row;
         }
 
@@ -2859,9 +3030,72 @@ namespace HexLive.UnityPresentation.UI
 
             BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness);
 
+            var wearable = def != null && def.Layer.HasValue;
+            _invPrimaryAction.style.display = _inventoryMutable && (worn || wearable)
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            _invDropAction.style.display = _inventoryMutable
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            _invReadOnlyLabel.style.display = _inventoryMutable
+                ? DisplayStyle.None : DisplayStyle.Flex;
+            _invPrimaryActionLabel.text = Loc.Get(worn
+                ? "inv.action.stow" : "inv.action.wear");
+            _invDropActionLabel.text = Loc.Get("inv.action.drop");
+            _invReadOnlyLabel.text = Loc.Get("inv.readonly");
+
             _invDetailView.style.display = DisplayStyle.Flex;
             _invDetailView.BringToFront();
             _invDetailView.schedule.Execute(PositionInventoryDetail);
+        }
+
+        private void EnqueueInventoryAction(InventoryAction action)
+        {
+            if (!_inventoryMutable || _runner == null || _invSelectedId == null ||
+                _inventoryActorId < 0) return;
+            var snapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
+            var npc = snapshot != null ? FindNpc(snapshot, _inventoryActorId) : null;
+            if (npc == null) return;
+            var sourceItems = _invSelectedWorn ? npc.WornItems : npc.InventoryItems;
+            var index = -1;
+            for (var i = 0; i < sourceItems.Count; i++)
+            {
+                if (sourceItems[i] == _invSelectedId)
+                {
+                    index = i;
+                    break;
+                }
+            }
+            if (index < 0) return;
+            var itemRef = new InventoryItemRef(
+                _invSelectedWorn ? InventoryItemSource.Worn : InventoryItemSource.Carried,
+                index, _invSelectedId);
+            _runner.EnqueueCommand(new ManageInventoryCommand(
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId), itemRef, action));
+            HideItemDetail();
+            _invSig = null;
+        }
+
+        private void BeginInventoryDrag(string itemId, bool worn, PointerDownEvent evt)
+        {
+            if (!_inventoryMutable || evt.button != 0 || string.IsNullOrEmpty(itemId)) return;
+            _invDraggedId = itemId;
+            _invDraggedWorn = worn;
+            _invSelectedId = itemId;
+            _invSelectedWorn = worn;
+        }
+
+        private void CompleteInventoryDrag(InventoryAction action)
+        {
+            if (_invDraggedId == null) return;
+            _invSelectedId = _invDraggedId;
+            _invSelectedWorn = _invDraggedWorn;
+            EnqueueInventoryAction(action);
+            ClearInventoryDrag();
+        }
+
+        private void ClearInventoryDrag()
+        {
+            _invDraggedId = null;
+            _invDraggedWorn = false;
         }
 
         // Derived stat lines: warmth/armor/coverage/layer for apparel, hunger
@@ -4146,12 +4380,412 @@ namespace HexLive.UnityPresentation.UI
             card.Add(BuildRelationsColumn());
 
             card.Add(BuildCollapseButton());
+            BuildGroupCard();
             BuildLanguageButton();
             BuildDiagnostics();
             BuildExpandTab();
             BuildEffectTooltip();
             BuildInventoryWindow();
             BuildHealthWindow();
+            BuildRoster();
+        }
+
+        private void BuildGroupCard()
+        {
+            _groupCard = new VisualElement();
+            _groupCard.style.height = 172f;
+            _groupCard.style.width = Length.Percent(100f);
+            _groupCard.style.flexDirection = FlexDirection.Row;
+            _groupCard.style.alignItems = Align.Center;
+            _groupCard.style.paddingLeft = 24f;
+            _groupCard.style.paddingRight = 24f;
+            _groupCard.style.backgroundColor = Panel;
+            SetBorder(_groupCard, StrokeStrong, 1f);
+            SetRadius(_groupCard, 16f);
+            _groupCard.style.display = DisplayStyle.None;
+            _groupCard.pickingMode = PickingMode.Position;
+
+            var summary = new VisualElement();
+            summary.style.width = 290f;
+            summary.style.marginRight = 20f;
+            _groupTitle = new Label();
+            _groupTitle.style.fontSize = 22f;
+            _groupTitle.style.color = Text;
+            _groupTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
+            summary.Add(_groupTitle);
+            _groupManualSummary = new Label();
+            _groupManualSummary.style.fontSize = 14f;
+            _groupManualSummary.style.color = TextDim;
+            _groupManualSummary.style.marginTop = 7f;
+            summary.Add(_groupManualSummary);
+            _groupAlerts = new Label();
+            _groupAlerts.style.fontSize = 13f;
+            _groupAlerts.style.color = Warn;
+            _groupAlerts.style.marginTop = 7f;
+            summary.Add(_groupAlerts);
+            _groupCard.Add(summary);
+
+            _groupPortraits = new VisualElement();
+            _groupPortraits.style.flexDirection = FlexDirection.Row;
+            _groupPortraits.style.flexGrow = 1f;
+            _groupPortraits.style.flexWrap = Wrap.Wrap;
+            _groupPortraits.style.alignContent = Align.Center;
+            _groupCard.Add(_groupPortraits);
+
+            var commands = new VisualElement();
+            commands.style.width = 280f;
+            commands.style.marginLeft = 18f;
+            var mode = CommandButton(() => ToggleGroupManual());
+            _groupControlLabel = new Label();
+            _groupControlLabel.style.color = Text;
+            _groupControlLabel.style.fontSize = 14f;
+            _groupControlLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _groupControlLabel.pickingMode = PickingMode.Ignore;
+            mode.Add(_groupControlLabel);
+            commands.Add(mode);
+
+            var stop = CommandButton(StopGroup);
+            _groupStopLabel = new Label(Loc.Get("group.stop"));
+            _groupStopLabel.style.color = Crit;
+            _groupStopLabel.style.fontSize = 14f;
+            _groupStopLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _groupStopLabel.pickingMode = PickingMode.Ignore;
+            stop.Add(_groupStopLabel);
+            stop.style.marginTop = 7f;
+            commands.Add(stop);
+
+            _groupOrderResult = new Label();
+            _groupOrderResult.style.fontSize = 12f;
+            _groupOrderResult.style.color = TextDim;
+            _groupOrderResult.style.marginTop = 8f;
+            _groupOrderResult.style.whiteSpace = WhiteSpace.Normal;
+            commands.Add(_groupOrderResult);
+            _groupCard.Add(commands);
+            _stage.Add(_groupCard);
+        }
+
+        private static VisualElement CommandButton(Action action)
+        {
+            var button = new VisualElement();
+            button.style.flexDirection = FlexDirection.Row;
+            button.style.alignItems = Align.Center;
+            button.style.justifyContent = Justify.Center;
+            button.style.height = 36f;
+            button.style.backgroundColor = Raised;
+            SetBorder(button, StrokeStrong, 1f);
+            SetRadius(button, 8f);
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                action?.Invoke();
+                evt.StopPropagation();
+            });
+            return button;
+        }
+
+        private void RefreshGroup(WorldSnapshot snapshot)
+        {
+            var selected = new List<NpcSnapshot>();
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (NpcSelection.Contains(npc.Id.Value) &&
+                    npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f)
+                {
+                    selected.Add(npc);
+                }
+            }
+            selected.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
+            if (selected.Count <= 1) return;
+
+            _card.style.display = DisplayStyle.None;
+            _groupCard.style.display = DisplayStyle.Flex;
+            // Feedback uses unscaled time and may expire while the simulation
+            // is paused, so refresh just this line every frame. The portraits
+            // and aggregate state below only change with a snapshot tick.
+            _groupOrderResult.text = GroupOrderFeedback.IsFresh
+                ? GroupOrderFeedback.LocalizedSummary()
+                : Loc.Get("group.order_hint");
+            if (snapshot.Tick == _refreshedTick && _refreshedActorId == -1)
+            {
+                return;
+            }
+
+            _refreshedTick = snapshot.Tick;
+            _refreshedActorId = -1;
+            _groupTitle.text = string.Format(Loc.Get("group.selected"), selected.Count);
+
+            var manual = 0;
+            var incapacitated = 0;
+            var fighting = 0;
+            foreach (var npc in selected)
+            {
+                if (npc.IsManualControl) manual++;
+                if (npc.IsDying || npc.IsUnconscious || npc.IsFainted) incapacitated++;
+                if (npc.IsFighting) fighting++;
+            }
+            _groupAllManual = manual == selected.Count;
+            _groupManualSummary.text = string.Format(
+                Loc.Get("group.manual_summary"), manual, selected.Count);
+            _groupControlLabel.text = Loc.Get(manual == 0
+                ? "panel.control.ai"
+                : manual == selected.Count ? "panel.control.manual" : "panel.control.mixed");
+            _groupControlLabel.style.color = manual == 0 ? Text : Gold;
+
+            if (incapacitated > 0 || fighting > 0)
+            {
+                _groupAlerts.text = string.Format(
+                    Loc.Get("group.alerts"), incapacitated, fighting);
+                _groupAlerts.style.display = DisplayStyle.Flex;
+            }
+            else
+            {
+                _groupAlerts.style.display = DisplayStyle.None;
+            }
+
+            _groupPortraits.Clear();
+            foreach (var npc in selected)
+            {
+                var actorId = npc.Id.Value;
+                var portrait = new VisualElement();
+                portrait.style.width = 52f;
+                portrait.style.height = 52f;
+                portrait.style.marginRight = 7f;
+                portrait.style.marginBottom = 7f;
+                portrait.style.backgroundColor = PortraitBackdrop;
+                SetRadius(portrait, 26f);
+                SetBorder(portrait, npc.IsFighting ? Crit : StrokeStrong, 2f);
+                if (_portraitCache != null && _portraitCache.TryGet(actorId, out var face))
+                {
+                    portrait.style.backgroundImage = new StyleBackground(face);
+                }
+                else
+                {
+                    _portraitCache?.RequestNow(actorId);
+                    var initial = new Label(InitialOf(Loc.NpcName(npc.DisplayName)));
+                    initial.style.color = Text;
+                    initial.style.fontSize = 18f;
+                    initial.style.unityTextAlign = TextAnchor.MiddleCenter;
+                    initial.style.flexGrow = 1f;
+                    initial.pickingMode = PickingMode.Ignore;
+                    portrait.Add(initial);
+                }
+                portrait.RegisterCallback<MouseDownEvent>(evt =>
+                {
+                    NpcSelection.Replace(actorId, requestFrame: true);
+                    evt.StopPropagation();
+                });
+                _groupPortraits.Add(portrait);
+            }
+
+        }
+
+        private List<HexLive.Simulation.Common.EntityId> SelectedEntityIds()
+        {
+            var result = new List<HexLive.Simulation.Common.EntityId>(NpcSelection.Count);
+            foreach (var id in NpcSelection.SelectedIds)
+                result.Add(new HexLive.Simulation.Common.EntityId(id));
+            return result;
+        }
+
+        private void ToggleGroupManual()
+        {
+            if (_runner == null || !_runner.SupportsNpcCommands) return;
+            _runner.EnqueueCommand(new SetGroupManualControlCommand(
+                SelectedEntityIds(), !_groupAllManual));
+        }
+
+        private void StopGroup()
+        {
+            if (_runner == null || !_runner.SupportsNpcCommands) return;
+            _runner.EnqueueCommand(new GroupStopCommand(SelectedEntityIds()));
+        }
+
+        private void BuildRoster()
+        {
+            _roster = new VisualElement();
+            _roster.style.position = Position.Absolute;
+            _roster.style.right = 12f;
+            _roster.style.top = 78f;
+            _roster.style.width = 232f;
+            _roster.style.maxHeight = Length.Percent(78f);
+            _roster.style.paddingLeft = 8f;
+            _roster.style.paddingRight = 8f;
+            _roster.style.paddingTop = 8f;
+            _roster.style.paddingBottom = 8f;
+            _roster.style.backgroundColor = Panel;
+            SetBorder(_roster, StrokeStrong, 1f);
+            SetRadius(_roster, 12f);
+            _roster.pickingMode = PickingMode.Position;
+
+            var clanHeader = RosterHeader(
+                "roster.clan", () => SelectWholeClan(), out _clanRosterHeader);
+            _roster.Add(clanHeader);
+            _clanRosterList = new VisualElement();
+            _roster.Add(_clanRosterList);
+            var outsidersHeader = RosterHeader(
+                "roster.outsiders", null, out _outsiderRosterHeader);
+            outsidersHeader.style.marginTop = 9f;
+            _roster.Add(outsidersHeader);
+            _outsiderRosterList = new VisualElement();
+            _roster.Add(_outsiderRosterList);
+            _root.Add(_roster);
+        }
+
+        private static VisualElement RosterHeader(string key, Action clicked, out Label label)
+        {
+            var header = new VisualElement();
+            header.style.height = 30f;
+            header.style.justifyContent = Justify.Center;
+            header.style.paddingLeft = 7f;
+            header.style.backgroundColor = Raised;
+            SetRadius(header, 7f);
+            label = new Label(Loc.Get(key));
+            label.style.color = Text;
+            label.style.fontSize = 13f;
+            label.style.unityFontStyleAndWeight = FontStyle.Bold;
+            label.pickingMode = PickingMode.Ignore;
+            header.Add(label);
+            if (clicked != null)
+            {
+                header.RegisterCallback<MouseDownEvent>(evt =>
+                {
+                    clicked();
+                    evt.StopPropagation();
+                });
+            }
+            return header;
+        }
+
+        private void SelectWholeClan()
+        {
+            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            if (snapshot == null) return;
+            var ids = new List<int>();
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f)
+                    ids.Add(npc.Id.Value);
+            }
+            ids.Sort();
+            NpcSelection.ActivateMany(ids);
+        }
+
+        private void RefreshRoster()
+        {
+            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            if (snapshot == null || _roster == null) return;
+            NpcSelection.RightUiCoverage = _root.layout.width > 1f
+                ? Mathf.Clamp01(244f / _root.layout.width)
+                : 0.13f;
+            if (snapshot.Tick == _rosterTick) return;
+            _rosterTick = snapshot.Tick;
+            _rosterBindings.Clear();
+            _clanRosterList.Clear();
+            _outsiderRosterList.Clear();
+
+            var ordered = new List<NpcSnapshot>(snapshot.Npcs);
+            ordered.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
+            foreach (var npc in ordered)
+            {
+                if (npc.Health <= 0f) continue;
+                var card = BuildRosterCard(npc);
+                if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony)
+                    _clanRosterList.Add(card);
+                else
+                    _outsiderRosterList.Add(card);
+            }
+        }
+
+        private VisualElement BuildRosterCard(NpcSnapshot npc)
+        {
+            var card = new VisualElement();
+            card.style.height = 53f;
+            card.style.marginTop = 5f;
+            card.style.paddingLeft = 5f;
+            card.style.paddingRight = 6f;
+            card.style.flexDirection = FlexDirection.Row;
+            card.style.alignItems = Align.Center;
+            card.style.backgroundColor = NpcSelection.Contains(npc.Id.Value) ? Raised : PanelMid;
+            SetRadius(card, 8f);
+            SetBorder(card, NpcSelection.Contains(npc.Id.Value) ? GoldDim : Stroke, 1f);
+
+            var face = new VisualElement();
+            face.style.width = 39f;
+            face.style.height = 39f;
+            face.style.marginRight = 7f;
+            face.style.backgroundColor = PortraitBackdrop;
+            SetRadius(face, 20f);
+            if (_portraitCache != null && _portraitCache.TryGet(npc.Id.Value, out var texture))
+                face.style.backgroundImage = new StyleBackground(texture);
+            else
+            {
+                _portraitCache?.RequestNow(npc.Id.Value);
+                var initial = new Label(InitialOf(Loc.NpcName(npc.DisplayName)));
+                initial.style.color = TextDim;
+                initial.style.fontSize = 15f;
+                initial.style.flexGrow = 1f;
+                initial.style.unityTextAlign = TextAnchor.MiddleCenter;
+                initial.pickingMode = PickingMode.Ignore;
+                face.Add(initial);
+            }
+            card.Add(face);
+
+            var text = new VisualElement();
+            text.style.flexGrow = 1f;
+            var name = new Label(Loc.NpcName(npc.DisplayName));
+            name.style.fontSize = 12f;
+            name.style.color = Text;
+            name.style.unityFontStyleAndWeight = FontStyle.Bold;
+            name.pickingMode = PickingMode.Ignore;
+            text.Add(name);
+            ResolveStatus(npc, out var statusKey, out var statusColor);
+            var status = new Label(Loc.Get(statusKey));
+            status.style.fontSize = 10f;
+            status.style.color = TextDim;
+            status.pickingMode = PickingMode.Ignore;
+            text.Add(status);
+            card.Add(text);
+
+            if (npc.IsFighting)
+            {
+                var fight = new Label(Loc.Get("badge.fighting"));
+                fight.style.fontSize = 9f;
+                fight.style.color = Crit;
+                fight.pickingMode = PickingMode.Ignore;
+                card.Add(fight);
+            }
+            var dot = new VisualElement();
+            dot.style.width = 10f;
+            dot.style.height = 10f;
+            dot.style.marginLeft = 5f;
+            dot.style.backgroundColor = statusColor;
+            SetRadius(dot, 5f);
+            card.Add(dot);
+
+            var actorId = npc.Id.Value;
+            var colony = npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+            card.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                var shift = Keyboard.current != null &&
+                    (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+                if (colony && shift) NpcSelection.Toggle(actorId);
+                else NpcSelection.Activate(actorId);
+                evt.StopPropagation();
+            });
+            _rosterBindings.Add(new RosterBinding
+                { Id = actorId, Fighting = npc.IsFighting, Card = card, Dot = dot });
+            return card;
+        }
+
+        private void AnimateRoster()
+        {
+            var wave = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 4f);
+            foreach (var binding in _rosterBindings)
+            {
+                if (!binding.Fighting) continue;
+                var pulse = Color.Lerp(new Color(Crit.r, Crit.g, Crit.b, 0.35f), Crit, wave);
+                SetBorderColor(binding.Card, pulse);
+                binding.Dot.style.backgroundColor = pulse;
+            }
         }
 
         private void BuildLanguageButton()
@@ -4596,7 +5230,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void ToggleManualControl()
         {
-            if (_runner == null || !_runner.SupportsNpcCommands || !NpcSelection.HasSelection)
+            if (_runner == null || !_runner.SupportsNpcCommands ||
+                !_controlAvailable || !NpcSelection.HasSelection)
             {
                 return;
             }
@@ -4614,10 +5249,17 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var available = _runner != null && _runner.SupportsNpcCommands;
-            _controlButton.style.display = available ? DisplayStyle.Flex : DisplayStyle.None;
+            var available = _runner != null && _runner.SupportsNpcCommands &&
+                npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f;
+            _controlAvailable = available;
+            var readable = _runner != null;
+            _controlButton.style.display = readable ? DisplayStyle.Flex : DisplayStyle.None;
             if (!available)
             {
+                _controlLabel.text = Loc.Get("panel.control.readonly");
+                _controlLabel.style.color = TextMute;
+                _controlGlyph.text = "🔒";
+                SetBorderColor(_controlButton, Stroke);
                 return;
             }
 
@@ -5069,11 +5711,22 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _refreshedTick = -1; // texts set in Refresh() need re-localizing
+            _rosterTick = int.MinValue;
 
             _needsTitle.text = Loc.Get("panel.needs");
             _natureTitle.text = Loc.Get("panel.nature");
             _skillsTitle.text = Loc.Get("panel.skills");
             _relationsTitle.text = Loc.Get("panel.relations");
+            if (_groupStopLabel != null) _groupStopLabel.text = Loc.Get("group.stop");
+            if (_clanRosterHeader != null) _clanRosterHeader.text = Loc.Get("roster.clan");
+            if (_outsiderRosterHeader != null)
+                _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
+            if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");
+            if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
+            if (_invDropZoneLabel != null) _invDropZoneLabel.text = Loc.Get("inv.drop_zone");
+            if (_invPrimaryActionLabel != null && _invSelectedId != null)
+                _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn
+                    ? "inv.action.stow" : "inv.action.wear");
 
             // §76: row names, and force the perk badges to re-localize (they
             // are rebuilt only when the perk SET changes, which a language
@@ -5145,6 +5798,12 @@ namespace HexLive.UnityPresentation.UI
 
         private static NpcSnapshot FindNpc(WorldSnapshot snapshot, int id)
         {
+            return FindNpc(snapshot, id, out _);
+        }
+
+        private static NpcSnapshot FindNpc(WorldSnapshot snapshot, int id, out bool isDead)
+        {
+            isDead = false;
             if (snapshot == null)
             {
                 return null;
@@ -5155,6 +5814,16 @@ namespace HexLive.UnityPresentation.UI
                 if (npc.Id.Value == id)
                 {
                     return npc;
+                }
+            }
+
+
+            foreach (var corpse in snapshot.Corpses)
+            {
+                if (corpse.Id.Value == id)
+                {
+                    isDead = true;
+                    return corpse;
                 }
             }
 

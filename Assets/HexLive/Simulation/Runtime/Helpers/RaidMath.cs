@@ -125,13 +125,14 @@ public static class RaidMath
             return null;
         }
 
-        foreach (var candidate in world.Entities.Npcs.Values)
+        // §125.6: кандидатки берутся ИЗ ЕГО ВОСПРИЯТИЯ — список уже собран его
+        // радиусом и его фракцией. Порядок в нём по возрастанию id, поэтому
+        // прежнее правило «ничью решает меньший id» держится само.
+        foreach (var seen in raider.Perception.Hostiles)
         {
-            if (candidate.Health <= 0f ||
-                !FactionRelations.AreHostile(raider, candidate) ||
-                candidate.CurrentJunction is not { } candidateJunction ||
-                HexSpatialMath.HexDistance(raider.Tile, candidate.Tile) >
-                    PerceptionMath.RadiusTiles(raider))
+            if (!world.Entities.Npcs.TryGetValue(seen.Id, out var candidate) ||
+                candidate.Health <= 0f ||
+                candidate.CurrentJunction is not { } candidateJunction)
             {
                 continue;
             }

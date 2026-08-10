@@ -261,10 +261,9 @@ public static class AbuseMath
 
         tally.Hostile++;
 
-        // §125.4: «глазами» — значит его глазами: радиус восприятия охотника.
-        if (Spec81.AbuseHuntBySight &&
-            HexSpatialMath.HexDistance(abuser.Tile, mark.Tile) >
-                PerceptionMath.RadiusTiles(abuser))
+        // §125.6: «глазами» — значит спросить его глаза, а не мерить заново:
+        // список восприятия уже собран его радиусом в начале этого тика.
+        if (Spec81.AbuseHuntBySight && !PerceptionMath.Sees(abuser, mark.Id))
         {
             tally.OutOfSight++;
             return false;

@@ -49,8 +49,7 @@ public static class LootHelplessMath
 
         // §81.12: режем ЗНАНИЕ, а не только дорогу — иначе он чует лежащее тело
         // через полострова и идёт к нему мимо своих дел.
-        if (HexSpatialMath.HexDistance(looter.Tile, victim.Tile) >
-            PerceptionMath.RadiusTiles(looter))
+        if (!PerceptionMath.Sees(looter, victim.Id))
         {
             return false;
         }

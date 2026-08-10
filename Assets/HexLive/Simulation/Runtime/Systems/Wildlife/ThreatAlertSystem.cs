@@ -288,19 +288,26 @@ public sealed class ThreatAlertSystem : ISimulationSystem
 
     // The nearest live hostile within sight. Sanctuary is not consulted: seeing
     // him from indoors is exactly when you most want the warning.
+    //
+    // §125.6: берётся ИЗ ВОСПРИЯТИЯ, а не перебором острова. Список Hostiles
+    // уже отфильтрован её радиусом и её фракцией — PerceptionSystem прошёл
+    // кольцо в начале этого же medium-тика. Свой замер дистанции здесь был бы
+    // вторым мнением о том же вопросе.
     private static NPCState ScanForHostile(WorldState world, NPCState npc)
     {
         NPCState nearest = null;
         var bestDistance = int.MaxValue;
-        foreach (var other in world.Entities.Npcs.Values)
+        foreach (var seen in npc.Perception.Hostiles)
         {
-            if (other.Health <= 0f || !FactionRelations.AreHostile(npc, other))
+            if (!world.Entities.Npcs.TryGetValue(seen.Id, out var other) ||
+                other.Health <= 0f)
             {
                 continue;
             }
 
+            // Ничьи решает id, а не порядок обхода: список отсортирован по нему.
             var distance = HexSpatialMath.HexDistance(npc.Tile, other.Tile);
-            if (distance <= PerceptionMath.RadiusTiles(npc) && distance < bestDistance)
+            if (distance < bestDistance)
             {
                 bestDistance = distance;
                 nearest = other;

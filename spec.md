@@ -10869,6 +10869,13 @@ overlay (UIDocument, top sorting order) drives phases:
    Escape-menu pause can move roots while freezing every Animator, which
    appears as foot sliding. Only then fade out, unpause, and start the autosave
    timer.
+The hair and hair-colour Addressables caches are session caches, not process
+caches. They are cleared at `SubsystemRegistration` (Enter Play Mode may run
+without a domain reload), and every cached or completed handle is checked with
+`IsValid()` before `IsDone`, `Status`, or `Result` is read. A handle invalidated
+by Addressables teardown is discarded and resolves the actor's pending hair
+attempt as a terminal miss; it may never throw out of the coroutine and leave
+the loading curtain waiting forever.
 External Addressables content has one distribution-level home:
 `<build folder>/HexLiveContent/<BuildTarget>`. Windows/Linux reach it one level
 above `<name>_Data`; macOS reaches it two levels above `<name>.app/Contents`.

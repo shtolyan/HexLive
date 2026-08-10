@@ -32,6 +32,16 @@ public static class HairContent
     // Учёт ведёт ContentQueue — там же, где одежда и иконки.
     private static readonly Dictionary<string, AsyncOperationHandle<Material>> Materials = new();
 
+    // Enter Play Mode can run without a domain reload. Addressables tears its
+    // ResourceManager down between runs, but these managed dictionaries would
+    // otherwise retain handles whose InternalOp no longer exists.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        Hair.Clear();
+        Materials.Clear();
+    }
+
     public static string HairAddress(string hair) => $"hair/{hair}";
 
     public static string ColourAddress(string hair, string colour, string surface) =>
@@ -53,6 +63,11 @@ public static class HairContent
         }
 
         var address = HairAddress(hairId);
+        if (Hair.TryGetValue(address, out var cached) && !cached.IsValid())
+        {
+            Hair.Remove(address);
+        }
+
         if (!Hair.TryGetValue(address, out var handle))
         {
             handle = Addressables.LoadAssetAsync<GameObject>(address);
@@ -64,6 +79,16 @@ public static class HairContent
             Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Hair);
             yield return handle;
             Garments.ContentQueue.End(Garments.ContentQueue.Kind.Hair);
+        }
+
+        // A subsystem reset can invalidate an operation while a coroutine is
+        // being unwound. Never inspect Status/Result until validity is known.
+        if (!handle.IsValid())
+        {
+            Hair.Remove(address);
+            Debug.LogWarning($"[HairContent] операция загрузки «{address}» была сброшена.");
+            done(null);
+            yield break;
         }
 
         if (handle.Status != AsyncOperationStatus.Succeeded || handle.Result == null)
@@ -95,6 +120,11 @@ public static class HairContent
         foreach (var surface in colour.surfaces)
         {
             var address = ColourAddress(hair, colour.colour, surface);
+            if (Materials.TryGetValue(address, out var cached) && !cached.IsValid())
+            {
+                Materials.Remove(address);
+            }
+
             if (!Materials.TryGetValue(address, out var handle))
             {
                 handle = Addressables.LoadAssetAsync<Material>(address);
@@ -106,6 +136,12 @@ public static class HairContent
                 Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.HairColour);
                 yield return handle;
                 Garments.ContentQueue.End(Garments.ContentQueue.Kind.HairColour);
+            }
+
+            if (!handle.IsValid())
+            {
+                Materials.Remove(address);
+                continue;
             }
 
             if (handle.Status == AsyncOperationStatus.Succeeded && handle.Result != null)

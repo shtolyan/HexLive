@@ -145,8 +145,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // Тайлы кольца красятся своим MaterialPropertyBlock (материалы общие на
     // десятки тайлов, менять material.color нельзя), исходный блок хранится
     // и возвращается при снятии.
-    private static readonly int FogRingBaseColor = Shader.PropertyToID("_BaseColor");
-    private static readonly int FogRingLegacyColor = Shader.PropertyToID("_Color");
+    // Unity API cannot run while this MonoBehaviour's static fields initialize.
+    private static int FogRingBaseColor;
+    private static int FogRingLegacyColor;
+    private static bool _fogRingShaderIdsReady;
     private readonly Dictionary<Renderer, MaterialPropertyBlock> _fogRingSaved = new();
     private readonly MaterialPropertyBlock _fogRingScratch = new();
     private readonly List<TileCoord> _fogRingTiles = new();
@@ -453,6 +455,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
+    private void Awake()
+    {
+        EnsureFogRingShaderIds();
+    }
+
     private void Update()
     {
         // While offline ticks wind forward, stay dark: winding is pure headless
@@ -516,6 +523,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
         WaterWave.PushToShader();
         InterpolateMovables(_runner.TickAlpha);
         UpdateHutCutaways(snapshot);
+    }
+
+    private static void EnsureFogRingShaderIds()
+    {
+        if (_fogRingShaderIdsReady)
+        {
+            return;
+        }
+
+        FogRingBaseColor = Shader.PropertyToID("_BaseColor");
+        FogRingLegacyColor = Shader.PropertyToID("_Color");
+        _fogRingShaderIdsReady = true;
     }
 
     private void UpdateHutCutaways(WorldSnapshot snapshot)

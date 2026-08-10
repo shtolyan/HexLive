@@ -2610,8 +2610,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// безвольно лежит, пока его не поднимут. true — обычный сон: она потеряла
     /// сознание, рухнула так же, но дальше просто спит и встаёт обычным GetUp.
     /// </param>
-    public void SetFallen(bool fallen, bool sleepAfter = false, float surfaceY = 0f) =>
-        ApplyLying(fallen, null, surfaceY, fallenChain: true, sleepAfterFall: sleepAfter);
+    public void SetFallen(
+        bool fallen, bool sleepAfter = false, float surfaceY = 0f, Transform attachPoint = null) =>
+        ApplyLying(fallen, attachPoint, surfaceY, fallenChain: true, sleepAfterFall: sleepAfter);
 
     // §110: сломалась от стресса — лежит и плачет. Ложится она сонной цепочкой
     // (SetLaying), а этот переключатель добавляет к ней то, чем плач ОТЛИЧАЕТСЯ

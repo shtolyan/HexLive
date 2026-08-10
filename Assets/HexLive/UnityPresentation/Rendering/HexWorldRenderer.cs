@@ -1894,7 +1894,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // безвольно, пока её не поднимут.
             actorView.SetRagdoll(false);
             actorView.SetCrying(false);
-            actorView.SetFallen(true, sleepAfter: false, GroundY(npc.Tile));
+            var fallenSurfaceY = GroundY(npc.Tile);
+            Transform fallenAttach = null;
+            if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress" &&
+                npc.TargetObjectId is not null)
+            {
+                fallenAttach = FindBedAttachPoint(snapshot, npc, out fallenSurfaceY);
+            }
+            actorView.SetFallen(true, sleepAfter: false, fallenSurfaceY, fallenAttach);
         }
         else if (npc.IsFainted)
         {

@@ -117,6 +117,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
                 "The tight baked geometry still needs safe head-and-feet padding.");
             Assert.That(framing, Does.Contain("bounds.extents.z +"),
                 "Perspective fit must include the geometry nearest to the camera.");
+            Assert.That(stage, Does.Contain("_animator.speed = 0f"),
+                "The cloned source must not transition back into its sitting or lying pose.");
             Assert.That(framing, Does.Not.Match(@"bounds\s*=\s*renderer\.bounds"));
             Assert.That(framing, Does.Not.Contain("Encapsulate(renderer.bounds)"),
                 "The evaluated source pose makes sitting and lying dolls change camera scale.");

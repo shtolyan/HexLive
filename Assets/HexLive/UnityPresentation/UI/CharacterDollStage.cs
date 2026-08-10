@@ -178,6 +178,10 @@ namespace HexLive.UnityPresentation.UI
 
             _mode = mode;
             ApplyMode();
+            if (_clone != null)
+            {
+                FrameClone();
+            }
         }
 
         public void SetTarget(int npcId, string actorMesh, IReadOnlyList<string> wornItems)
@@ -431,6 +435,11 @@ namespace HexLive.UnityPresentation.UI
                     _animator.Play(IdleState, 0, 0f);
                 }
                 _animator.Update(0f);
+                // The portrait is a deterministic studio pose, not another
+                // live actor. Keeping the cloned Animator ticking lets copied
+                // sitting/lying parameters transition it away from the Idle
+                // pose after FrameClone has already fixed the camera.
+                _animator.speed = 0f;
             }
 
             _lookAt = _clone.GetComponentInChildren<LookAtIK>(true);

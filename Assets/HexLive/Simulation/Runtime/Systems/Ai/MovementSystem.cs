@@ -951,65 +951,20 @@ public sealed class MovementSystem : ISimulationSystem
 
             if (distance <= movementPerTick)
             {
-                var previousJunctionId = targetIndex > 0
-                    ? npc.Movement.JunctionPath[targetIndex - 1]
-                    : npc.CurrentJunction ?? targetJunctionId;
+                ArriveAtJunction(world, npc, targetIndex, targetJunctionId, targetJunction);
 
-                npc.Position = target;
-                npc.CurrentJunction = targetJunctionId;
-
-                var previousTile = npc.Tile;
-                // ⭐ Вторая половина правила «приход — не пересечение»: дойдя до
-                // ПОСЛЕДНЕГО узла пути, который граничит и с её собственным
-                // тайлом, она остаётся на СВОЁЙ стороне. Резолвер направленного
-                // шага смотрит «вперёд по вектору движения» — это верно для
-                // узла, который проходят насквозь, и неверно для того, на
-                // котором останавливаются: иначе стирающая, дойдя до кромки,
-                // числилась бы в воде (мокрая, барахтается), и её приходилось
-                // бы вытаскивать назад.
-                var arrivalStep = targetIndex == npc.Movement.JunctionPath.Count - 1 &&
-                    targetJunction.Tiles.Contains(previousTile);
-                if (!arrivalStep && HexPathfinder.TryGetDirectedStepTile(
-                    world, previousJunctionId, targetJunctionId, out var targetTile))
-                {
-                    var newTile = targetTile.Coord;
-                    if (newTile != previousTile)
-                    {
-                        npc.Tile = newTile;
-                        SpatialMutations.MoveEntityToTile(world, npc.Id, previousTile, npc.Tile);
-                        if (SimTrace.Enabled)
-                        {
-                            Trace.Debug(world, npc.Id, "EnteredTile",
-                                $"From={previousTile.Q},{previousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
-                        }
-
-                        // §40.18-B: plunged from land into deep water — tread in
-                        // place for a beat before stroking off (the view plays
-                        // the jump-in + treading idle).
-                        TryBeginSwimEntry(world, npc, previousTile, newTile);
-                    }
-                }
-
-                npc.Movement.PathIndex++;
-
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "JunctionReached",
-                        $"Junction={targetJunctionId.Value} Pos={Trace.FormatPos(target)} " +
-                        $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}");
-                }
-
-                if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
-                {
-                    npc.Movement.IsMoving = false;
-                    npc.Movement.SetStatus(MovementStatus.Arrived);
-                    if (SimTrace.Enabled)
-                    {
-                        Trace.Debug(world, npc.Id, "MovementCompleted",
-                            $"FinalJunction={targetJunctionId.Value} Tile={npc.Tile.Q},{npc.Tile.R} " +
-                            $"Pos={Trace.FormatPos(npc.Position)}");
-                    }
-                }
+                // §71.9: ПЕРЕНОС ОСТАТКА ШАГА ЧЕРЕЗ УЗЕЛ. Раньше остаток тика
+                // здесь выбрасывался: при звене решётки 0.375 wu и шаге
+                // 0.345 wu/тик тело чередовало полный шаг с шагом 0.030 —
+                // пила 2 Гц, фактическая скорость 54% от заданной, а бегун
+                // (шаг длиннее звена) был квантован потолком «узел за тик».
+                // Замерено рекордером локомоции (запись 000322). Остаток
+                // доезжает по следующим звеньям в ЭТОМ же тике; всё, чему
+                // положен собственный тик — крутой поворот, прыжок через шов,
+                // занятый узел, вход в воду, — обрывает перенос и разбирается
+                // штатными гейтами со следующего тика.
+                CarryLeftoverAcrossJunctions(
+                    world, npc, movementPerTick - distance, movementPerTick, turnPerTick);
             }
             else
             {
@@ -1039,6 +994,189 @@ public sealed class MovementSystem : ISimulationSystem
         }
 
         KenshiRescueMath.SyncCarriedPositionsAfterMovement(world);
+    }
+
+    // The single arrival primitive: snap to the node, resolve the directed
+    // step tile (with the §21.21B v24 "приход — не пересечение" exception for
+    // the final node), advance the path index and finish the move when the
+    // path is exhausted. Shared verbatim by the normal per-tick arrival and
+    // the §71.9 leftover carry — two editions of this block would drift.
+    private static void ArriveAtJunction(
+        WorldState world, NPCState npc, int targetIndex,
+        JunctionId targetJunctionId, Junction targetJunction)
+    {
+        var previousJunctionId = targetIndex > 0
+            ? npc.Movement.JunctionPath[targetIndex - 1]
+            : npc.CurrentJunction ?? targetJunctionId;
+
+        var target = targetJunction.WorldPosition;
+        npc.Position = target;
+        npc.CurrentJunction = targetJunctionId;
+
+        var previousTile = npc.Tile;
+        // ⭐ Вторая половина правила «приход — не пересечение»: дойдя до
+        // ПОСЛЕДНЕГО узла пути, который граничит и с её собственным
+        // тайлом, она остаётся на СВОЁЙ стороне. Резолвер направленного
+        // шага смотрит «вперёд по вектору движения» — это верно для
+        // узла, который проходят насквозь, и неверно для того, на
+        // котором останавливаются: иначе стирающая, дойдя до кромки,
+        // числилась бы в воде (мокрая, барахтается), и её приходилось
+        // бы вытаскивать назад.
+        var arrivalStep = targetIndex == npc.Movement.JunctionPath.Count - 1 &&
+            targetJunction.Tiles.Contains(previousTile);
+        if (!arrivalStep && HexPathfinder.TryGetDirectedStepTile(
+            world, previousJunctionId, targetJunctionId, out var targetTile))
+        {
+            var newTile = targetTile.Coord;
+            if (newTile != previousTile)
+            {
+                npc.Tile = newTile;
+                SpatialMutations.MoveEntityToTile(world, npc.Id, previousTile, npc.Tile);
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "EnteredTile",
+                        $"From={previousTile.Q},{previousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
+                }
+
+                // §40.18-B: plunged from land into deep water — tread in
+                // place for a beat before stroking off (the view plays
+                // the jump-in + treading idle).
+                TryBeginSwimEntry(world, npc, previousTile, newTile);
+            }
+        }
+
+        npc.Movement.PathIndex++;
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "JunctionReached",
+                $"Junction={targetJunctionId.Value} Pos={Trace.FormatPos(target)} " +
+                $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}");
+        }
+
+        if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
+        {
+            npc.Movement.IsMoving = false;
+            npc.Movement.SetStatus(MovementStatus.Arrived);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "MovementCompleted",
+                    $"FinalJunction={targetJunctionId.Value} Tile={npc.Tile.Q},{npc.Tile.R} " +
+                    $"Pos={Trace.FormatPos(npc.Position)}");
+            }
+        }
+    }
+
+    // §71.9: spend the remainder of this tick's step budget on the NEXT path
+    // segments instead of discarding it at the node. Every situation that
+    // deserves its own tick breaks the carry and is handled by the normal
+    // top-of-tick gates: a planted pivot, any elevation change (the hop scan
+    // must arm a takeoff), deep water for a carrier, an occupied node, a
+    // swim-entry tread pause. Bends inside the free/freeze corridor pay the
+    // same AlignmentFactor toll as a fresh tick, and rotation continues at
+    // the tick-fraction of the normal turn rate — the carry may not turn the
+    // body faster than a whole tick could.
+    private static void CarryLeftoverAcrossJunctions(
+        WorldState world, NPCState npc, float leftover, float movementPerTick, float turnPerTick)
+    {
+        while (leftover > 0.0005f && npc.Movement.IsMoving &&
+               npc.Movement.ClimbPauseTimer <= 0f &&
+               npc.Movement.PathIndex < npc.Movement.JunctionPath.Count)
+        {
+            var nextIndex = npc.Movement.PathIndex;
+            var nextJunctionId = npc.Movement.JunctionPath[nextIndex];
+            if (!world.Junctions.Items.TryGetValue(nextJunctionId, out var nextJunction))
+            {
+                return;
+            }
+
+            // Someone already standing there — the polite-wait bookkeeping
+            // (BlockedWaitTicks, repath) belongs to the next full tick.
+            foreach (var other in world.Entities.Npcs.Values)
+            {
+                if (other.Id.Value != npc.Id.Value && other.CurrentJunction is { } oj &&
+                    oj.Equals(nextJunctionId))
+                {
+                    return;
+                }
+            }
+
+            foreach (var mob in world.Mobs)
+            {
+                if (mob.Health > 0f && mob.Junction.Equals(nextJunctionId))
+                {
+                    return;
+                }
+            }
+
+            var previousJunctionId = nextIndex > 0
+                ? npc.Movement.JunctionPath[nextIndex - 1]
+                : npc.CurrentJunction ?? nextJunctionId;
+            if (HexPathfinder.TryGetDirectedStepTile(
+                    world, previousJunctionId, nextJunctionId, out var stepTile))
+            {
+                // An elevation border is the hop scan's business; deep water
+                // is a dead end for occupied hands and a tread pause for
+                // everyone else — all of it next tick.
+                if (world.Tiles.Items.TryGetValue(npc.Tile, out var standTile) &&
+                    stepTile.Elevation != standTile.Elevation)
+                {
+                    return;
+                }
+
+                if (npc.IsCarryingPerson && SpatialQueries.IsSwimTile(stepTile))
+                {
+                    return;
+                }
+            }
+
+            var segmentDelta = new Float2(
+                nextJunction.WorldPosition.X - npc.Position.X,
+                nextJunction.WorldPosition.Y - npc.Position.Y);
+            var segmentDistance = HexSpatialMath.Distance(npc.Position, nextJunction.WorldPosition);
+            if (segmentDistance <= 0.0001f)
+            {
+                ArriveAtJunction(world, npc, nextIndex, nextJunctionId, nextJunction);
+                continue;
+            }
+
+            var segmentDirection = HexSpatialMath.Normalize(segmentDelta);
+            var desiredRotation = HexSpatialMath.AngleDegrees(segmentDirection);
+            var bend = MathUtil.Abs(MathUtil.DeltaAngle(npc.RotationDegrees, desiredRotation));
+            if (LocomotionTurnPolicy.RequiresPlantedPivot(bend))
+            {
+                return;
+            }
+
+            npc.Movement.DesiredDirection = segmentDirection;
+            npc.Movement.DesiredRotationDegrees = desiredRotation;
+            npc.RotationDegrees = MathUtil.RotateTowards(
+                npc.RotationDegrees, desiredRotation,
+                turnPerTick * (leftover / movementPerTick));
+            var residual = MathUtil.Abs(MathUtil.DeltaAngle(
+                npc.RotationDegrees, npc.Movement.DesiredRotationDegrees));
+            var alignment = LocomotionTurnPolicy.AlignmentFactor(bend, residual);
+            var reach = leftover * alignment;
+
+            if (segmentDistance <= reach)
+            {
+                // Budget is spent in TIME, not distance: crossing a bend at
+                // reduced speed consumes proportionally more of the tick.
+                leftover -= segmentDistance / alignment;
+                ArriveAtJunction(world, npc, nextIndex, nextJunctionId, nextJunction);
+                continue;
+            }
+
+            npc.Position += segmentDirection * reach;
+            if (SimTrace.Verbose && SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "MovementStepCarry",
+                    $"Pos={Trace.FormatPos(npc.Position)} -> Junction={nextJunctionId.Value} " +
+                    $"Leftover={leftover:F3} Align={alignment:F2}");
+            }
+
+            return;
+        }
     }
 }
 

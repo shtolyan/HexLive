@@ -1045,10 +1045,11 @@ namespace HexLive.UnityPresentation.Input
             _currentPitch = Mathf.Clamp(_currentPitch, _orbitMinPitch, _orbitMaxPitch);
         }
 
-        // The orbit pivot: the pose-aware center of the body (bone-derived) —
-        // chest height standing, and it follows the body down when the NPC
-        // sits or lies, so the character stays centered in frame. Fallbacks:
-        // feet + neck offset, then the raw snapshot position.
+        // The orbit pivot follows the actor root, not animated hip/head bones.
+        // Otherwise breathing and transitions into sitting/lying move the
+        // camera target even while the NPC has not moved in the world, which
+        // reads as framing being reset. The canonical neck offset is stable for
+        // every pose; snapshot position remains the loading fallback.
         private bool TryGetOrbitTarget(
             HexLive.Simulation.Debug.WorldSnapshot snapshot, int npcId, out Vector3 target)
         {
@@ -1057,12 +1058,6 @@ namespace HexLive.UnityPresentation.Input
             if (_worldRenderer == null)
             {
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
-            }
-
-            if (_worldRenderer != null && _worldRenderer.TryGetNpcBodyCenter(npcId, out var bodyCenter))
-            {
-                target = bodyCenter;
-                return true;
             }
 
             if (_worldRenderer != null && _worldRenderer.TryGetNpcViewPosition(npcId, out var viewPos))

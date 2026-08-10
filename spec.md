@@ -6611,12 +6611,14 @@ Camera and selection are purely presentation concerns.
 
 - selecting NPC does not change simulation
 - camera follows snapshot data as an exact target with a **soft arrival**, not
-  a dead-zone frame: the selected NPC is the orbit pivot target every frame,
+  a dead-zone frame: the selected NPC's visual root plus one canonical neck
+  offset is the orbit pivot target every frame,
   while `SmoothDamp` only delays the camera's catch-up in unscaled time. The
   smoothing must never replace the target with the edge of a slack zone — that
   leaves a persistent offset after every walk segment and visibly loses the
-  character's centre. Pose and animation motion remain visually softened by
-  interpolation, but converge to zero framing error.
+  character's centre. Animated hip/head bones never define the pivot: breathing
+  and transitions between standing, sitting and lying must not move or reset
+  follow while the actor's world root remains in place.
 - Click selection first ray-tests the current bounds of every active renderer
   under each fully constructed NPC (skinned body, worn clothes, hair and held
   props) and selects the nearest hit. Thus any visible part of a standing,

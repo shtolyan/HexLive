@@ -61,6 +61,9 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(camera, Does.Contain("Mathf.Max(_requestedDistance, fit)"));
                 Assert.That(camera, Does.Contain("if (HasPanInput())"));
                 Assert.That(camera, Does.Contain("ExitOrbit();"));
+                Assert.That(camera, Does.Contain("TryGetNpcViewPosition"));
+                Assert.That(camera, Does.Not.Contain("TryGetNpcBodyCenter(npcId"),
+                    "An animated hip/head pivot makes follow recenter on every pose change.");
             });
         }
     }

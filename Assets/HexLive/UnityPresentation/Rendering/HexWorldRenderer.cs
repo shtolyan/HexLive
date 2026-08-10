@@ -1099,7 +1099,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 craftProject?.Sync(worldObject);
                 _objectViewParts[key] = new ObjectViewParts
                 {
-                    Fire = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireEffect>(),
+                    // The compact hut hearth keeps its effect on the authored
+                    // fire_point child; outdoor campfires keep it on the root.
+                    // Cache either form so the same ResourceAmount state drives
+                    // heat and visible flames.
+                    Fire = objectView.GetComponentInChildren<
+                        HexLive.UnityPresentation.Environment.CampfireEffect>(true),
                     Assembly = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>(),
                     SpitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>(),
                     Garment = objectView.GetComponent<GarmentWorldCondition>(),

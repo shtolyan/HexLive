@@ -55,20 +55,28 @@ public sealed class PerceptionSensorTests
     }
 
     [Test]
-    public void BlindObserverSeesNobodyAndFeelsAlone()
+    public void TheLeastObservantStillSeesWhoStandsNextToHer()
     {
         var world = TestWorld.CreateWorld();
         var perception = new PerceptionSystem();
         var (observer, neighbour) = TwoColonists(world);
 
-        observer.Attributes.Perception = 0f; // §125.1: слепая — допустимо
+        // §125.1: ролл §76.2 обязан положить чью-то ось на дно, и у 10.8%
+        // колонисток это Восприятие. Пол в один гекс — про присутствие, а не
+        // про зоркость: иначе она выпала бы из жизни колонии целиком.
+        observer.Attributes.Perception = 0f;
+
         Place(world, neighbour, new TileCoord(observer.Tile.Q + 1, observer.Tile.R));
         perception.Run(world);
+        Assert.That(observer.Perception.Agents.Any(a => a.Id.Equals(neighbour.Id)), Is.True,
+            "вплотную видит любая");
 
+        // А на два гекса — уже нет: обуза остаётся обузой.
+        Place(world, neighbour, new TileCoord(observer.Tile.Q + 2, observer.Tile.R));
+        perception.Run(world);
         Assert.Multiple(() =>
         {
             Assert.That(observer.Perception.Agents, Is.Empty);
-            Assert.That(observer.Perception.Hostiles, Is.Empty);
             Assert.That(observer.Perception.Environment.IsPrivate, Is.True,
                 "никого не видит — значит, одна");
         });

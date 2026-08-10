@@ -134,7 +134,7 @@ public sealed class PerceptionSystem : ISimulationSystem
                     record = new Memory.ObjectMemory { Id = obj.Id };
                     npc.Memory.KnownObjects[obj.Id] = record;
                     npc.Memory.Version++;
-                    Trace.Emit(world, npc.Id, "MemoryAdded",
+                    if (SimTrace.Enabled) Trace.Debug(world, npc.Id, "MemoryAdded",
                         $"Obj={obj.Id.Value} Def={obj.DefinitionId} Tile={obj.Tile.Q},{obj.Tile.R}");
                 }
 
@@ -155,7 +155,7 @@ public sealed class PerceptionSystem : ISimulationSystem
                 if (withinSight && !world.Entities.Objects.ContainsKey(record.Id))
                 {
                     _forgottenScratch.Add(record.Id);
-                    Trace.Emit(world, npc.Id, "MemoryForgotten",
+                    if (SimTrace.Enabled) Trace.Debug(world, npc.Id, "MemoryForgotten",
                         $"Obj={record.Id.Value} Def={record.DefinitionId} Gone (negative evidence)");
                     continue;
                 }
@@ -163,7 +163,7 @@ public sealed class PerceptionSystem : ISimulationSystem
                 if (!record.IsPermanent && world.Tick - record.LastSeenTick > MemoryTtlTicks)
                 {
                     _forgottenScratch.Add(record.Id);
-                    Trace.Emit(world, npc.Id, "MemoryForgotten",
+                    if (SimTrace.Enabled) Trace.Debug(world, npc.Id, "MemoryForgotten",
                         $"Obj={record.Id.Value} Def={record.DefinitionId} Expired " +
                         $"(unseen for {world.Tick - record.LastSeenTick} ticks)");
                 }
@@ -334,7 +334,7 @@ public sealed class PerceptionSystem : ISimulationSystem
                 {
                     met = new Memory.AgentMemory { Id = other.Id };
                     npc.Memory.KnownAgents[other.Id] = met;
-                    Trace.Emit(world, npc.Id, "AgentMemoryAdded",
+                    if (SimTrace.Enabled) Trace.Debug(world, npc.Id, "AgentMemoryAdded",
                         $"NPC{other.Id.Value} Tile={other.Tile.Q},{other.Tile.R}");
                 }
 
@@ -359,20 +359,28 @@ public sealed class PerceptionSystem : ISimulationSystem
                 if (obj.IsOccupied) occupiedCount++;
             }
 
-            Trace.Emit(world, npc.Id, "PerceptionUpdated",
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PerceptionUpdated",
                 $"Objects={npc.Perception.Objects.Count} Reachable={reachableCount} Occupied={occupiedCount} " +
                 $"Needs=[{Trace.FormatNeeds(npc.Needs)}] Tile={npc.Tile.Q},{npc.Tile.R} " +
                 $"Pos={Trace.FormatPos(npc.Position)} Junction={Trace.FormatJunction(npcJunction)} " +
                 $"Env=[Temp={world.Environment.GlobalTemperature:F1} " +
                 $"Agents={npc.Perception.Agents.Count + npc.Perception.Hostiles.Count} " +
                 $"Radius={agentRadius}]");
+            }
 
-            foreach (var obj in npc.Perception.Objects)
+            // §30.17: 78% всего потока событий — эта одна точка. Свой подканал:
+            // даже включённая диагностика её не поднимает, пока не попросят.
+            if (SimTrace.Perception)
             {
-                var interactions = string.Join(",", obj.AvailableInteractions);
-                Trace.Emit(world, npc.Id, "PerceivedObject",
-                    $"Obj={obj.Id.Value} Tile={obj.Tile.Q},{obj.Tile.R} Dist={obj.Distance:F2} " +
-                    $"Reachable={obj.IsReachable} Occupied={obj.IsOccupied} Interactions=[{interactions}]");
+                foreach (var obj in npc.Perception.Objects)
+                {
+                    var interactions = string.Join(",", obj.AvailableInteractions);
+                    Trace.Debug(world, npc.Id, "PerceivedObject",
+                        $"Obj={obj.Id.Value} Tile={obj.Tile.Q},{obj.Tile.R} Dist={obj.Distance:F2} " +
+                        $"Reachable={obj.IsReachable} Occupied={obj.IsOccupied} Interactions=[{interactions}]");
+                }
             }
         }
     }
@@ -396,7 +404,7 @@ public sealed class PerceptionSystem : ISimulationSystem
             if (world.Tick - met.LastSeenTick > MemoryTtlTicks)
             {
                 _forgottenAgentScratch.Add(met.Id);
-                Trace.Emit(world, npc.Id, "AgentMemoryForgotten",
+                if (SimTrace.Enabled) Trace.Debug(world, npc.Id, "AgentMemoryForgotten",
                     $"NPC{met.Id.Value} Expired (unseen for {world.Tick - met.LastSeenTick} ticks)");
             }
         }
@@ -479,7 +487,7 @@ public sealed class PerceptionSystem : ISimulationSystem
 
         var nearest = SpatialQueries.FindNearestJunction(world, npc.Position);
         npc.CurrentJunction = nearest;
-        Trace.Emit(world, npc.Id, "JunctionResolved",
+        if (SimTrace.Enabled) Trace.Debug(world, npc.Id, "JunctionResolved",
             $"NearestJunction={Trace.FormatJunction(nearest)} Pos={Trace.FormatPos(npc.Position)}");
         return nearest;
     }

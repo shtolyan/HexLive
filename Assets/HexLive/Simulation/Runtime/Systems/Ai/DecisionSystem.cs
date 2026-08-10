@@ -2378,22 +2378,33 @@ public sealed partial class DecisionSystem : ISimulationSystem
         GoalType? aidErrandGoal, AidKind aidErrandKindNow,
         EntityId? aidErrandTargetNow, float aidErrandBid)
     {
-        Trace.Emit(world, npc.Id, "DecisionInput",
-            $"Needs=[{Trace.FormatNeeds(npc.Needs)}] " +
-            $"Available=[Eat={avail.EatAvail} GetFood={avail.GetFoodAvail} Sleep={avail.SleepAvail} Sit={avail.SitAvail} " +
-            $"Dress={avail.DressAvail} Socialize={avail.SocializeAvail}] " +
-            $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
-            $"PrevGoal={previousGoal} PlanStatus={npc.Plan.Status} ExecStatus={npc.Execution.Status}");
+        // §30.17: второе по длине сообщение в игре (~175 символов, со сбором
+        // всего инвентаря в строку) — под мастер-гейтом диагностики.
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "DecisionInput",
+                $"Needs=[{Trace.FormatNeeds(npc.Needs)}] " +
+                $"Available=[Eat={avail.EatAvail} GetFood={avail.GetFoodAvail} Sleep={avail.SleepAvail} Sit={avail.SitAvail} " +
+                $"Dress={avail.DressAvail} Socialize={avail.SocializeAvail}] " +
+                $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
+                $"PrevGoal={previousGoal} PlanStatus={npc.Plan.Status} ExecStatus={npc.Execution.Status}");
+        }
 
         GoalScore? best = null;
         foreach (var score in npc.Mind.LastScores)
         {
-            Trace.Emit(world, npc.Id, "GoalScored",
-                $"{score.Goal}: Base={score.BaseScore:F3} Need={score.NeedModifier:F3} " +
-                $"Soc={score.SocialModifier:F3} " +
-                $"Env={score.EnvironmentModifier:F3} " +
-                $"Emg={score.EmergencyModifier:F3} " +
-                $"=> Final={score.FinalScore:F3}");
+            // §30.17: свой подканал — единственный потребитель этой строки
+            // эталонная трасса `golden_trace.sh --preset scores`, которая
+            // стережёт ПОРЯДОК float-операций в блоках оценки.
+            if (SimTrace.Scores)
+            {
+                Trace.Debug(world, npc.Id, "GoalScored",
+                    $"{score.Goal}: Base={score.BaseScore:F3} Need={score.NeedModifier:F3} " +
+                    $"Soc={score.SocialModifier:F3} " +
+                    $"Env={score.EnvironmentModifier:F3} " +
+                    $"Emg={score.EmergencyModifier:F3} " +
+                    $"=> Final={score.FinalScore:F3}");
+            }
 
             if (best is null || score.FinalScore > best.FinalScore)
             {

@@ -15,6 +15,11 @@ public static class TestWorld
 {
     public static SimulationEngine CreateEngine(int seed = 12345)
     {
+        // §30.17: в тестах трасса включена всегда — половина поведенческих
+        // проверок ассертит именно на события, а в игре тот же поток по
+        // умолчанию молчит.
+        SimTrace.EnableAll();
+
         var definition = PrototypeWorldDefinitionFactory.Create(seed);
         var world = new WorldStateFactory().Create(definition);
 

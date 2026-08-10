@@ -11,19 +11,77 @@ using HexLive.Simulation.Social;
 namespace HexLive.Simulation.Runtime
 {
 
-/// <summary>Trace verbosity knob. The per-tick chatter events (TickStart,
-/// ExecProgress, Path*/Movement* step spam) allocate an interpolated string
-/// each — ~1600 strings per combat frame in the 2026-07-19 deep capture —
-/// yet nothing consumes them in a normal game (GameHistoryLog filters by its
-/// own whitelist). Presentation turns Verbose OFF in player builds; the
-/// editor and headless harness probes keep the full stream (default true).</summary>
+/// <summary>§30.17: ТРАССИРОВКА — OPT-IN. Поток событий разделён на два яруса.
+/// <para>
+/// ХРОНИКА (<see cref="Trace.Emit"/>) — события белого списка
+/// <c>GameEventTypes</c>, ответы на приказы игрока и причины смерти: это часть
+/// игры (лента колонии, звук §67, речь, серверный канал, DeathRecord.Cause),
+/// она пишется ВСЕГДА и гейта не имеет.
+/// </para>
+/// <para>
+/// ДИАГНОСТИКА (<see cref="Trace.Debug"/>) — всё остальное: восприятие,
+/// скоринг, шаги пути, вехи планов. По умолчанию НЕ ПИШЕТСЯ ВООБЩЕ: замерено
+/// 204 события и ~38 КБ строк на тик в прототипном мире из четырёх девушек,
+/// из которых 95% дают две точки. Гейт стоит НА МЕСТЕ ВЫЗОВА, до интерполяции,
+/// поэтому при выключенном флаге строка не строится вовсе — проверка внутри
+/// метода срезала бы только объект события, а строка стоит вчетверо больше.
+/// </para>
+/// <para>
+/// ИНВАРИАНТ: положение флагов НЕ МЕНЯЕТ ПОВЕДЕНИЕ МИРА. Ни одна система не
+/// читает <c>world.Events</c> (последний такой читатель — причина смерти —
+/// переведён на состояние), поэтому golden-трасса обязана совпадать при любом
+/// положении переключателей.
+/// </para></summary>
 public static class SimTrace
 {
-    public static bool Verbose = true;
+    /// <summary>Мастер-выключатель диагностики. По умолчанию ВЫКЛЮЧЕН: игра не
+    /// платит за то, чего никто не читает. Включают осознанно — hexsoak, тесты,
+    /// сервер, редактор, тумблер дебаг-панели, флаг плеера.</summary>
+    public static bool Enabled;
+
+    /// <summary>Болтовня восприятия (<c>PerceivedObject</c>, ~159 событий на
+    /// тик — 78% всего потока). Подканал: не включается вместе с мастером,
+    /// её просят поимённо.</summary>
+    public static bool Perception;
+
+    /// <summary>Полный вывод блоков оценки (<c>GoalScored</c>, ~34 события на
+    /// тик — 17% потока). Нужен ровно одному потребителю: эталонной трассе
+    /// <c>golden_trace.sh --preset scores</c>, которая стережёт порядок
+    /// float-операций в DecisionSystem.</summary>
+    public static bool Scores;
+
+    /// <summary>Легаси-имя мастера. §30.17 переименовал флаг, но презентация и
+    /// сервер выставляют его по-старому; оставлено, пока обе стороны не
+    /// переедут на <see cref="Enabled"/>.</summary>
+    public static bool Verbose
+    {
+        get => Enabled;
+        set => Enabled = value;
+    }
+
+    /// <summary>Включить всё: мастер и оба подканала. Ровно это делает
+    /// hexsoak и любой инструмент, которому трасса и есть продукт.</summary>
+    public static void EnableAll()
+    {
+        Enabled = true;
+        Perception = true;
+        Scores = true;
+    }
 }
 
 internal static class Trace
 {
+    /// <summary>§30.17: ДИАГНОСТИЧЕСКОЕ событие. Вызов ОБЯЗАН стоять под
+    /// <c>if (SimTrace.Enabled)</c> (или под подканалом) — иначе интерполяция
+    /// аргумента выполнится всё равно, и гейт не сэкономит ничего, кроме
+    /// объекта события. За этим следит линт <c>TraceGateLint</c>.</summary>
+    public static void Debug(WorldState world, EntityId entityId, string type, string message) =>
+        Emit(world, entityId, type, message);
+
+    /// <summary>Диагностическое событие без владельца — см. <see cref="Debug"/>.</summary>
+    public static void DebugSystem(WorldState world, string type, string message) =>
+        EmitSystem(world, type, message);
+
     public static void Emit(WorldState world, EntityId entityId, string type, string message)
     {
         world.Events.Add(new SimulationEvent

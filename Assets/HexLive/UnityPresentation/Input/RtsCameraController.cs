@@ -249,7 +249,7 @@ namespace HexLive.UnityPresentation.Input
 
             if (!UI.GameMenu.IsOpen && !UI.EndSummaryPanel.IsOpen)
             {
-                HandlePan();
+                HandleFreePan();
                 HandleZoom();
                 HandleScrollYaw();
                 HandleFreeRotation();
@@ -261,7 +261,9 @@ namespace HexLive.UnityPresentation.Input
             ApplyRig(_freePivot, _panSmooth, _panSmooth);
         }
 
-        private void HandlePan()
+        // Arrow keys pan only while the pivot is detached. Orbit routes the
+        // same keys through HandleKeyboardRotation instead.
+        private void HandleFreePan()
         {
             var keyboard = Keyboard.current;
             if (keyboard == null) return;

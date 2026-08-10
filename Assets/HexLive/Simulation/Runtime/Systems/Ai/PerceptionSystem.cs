@@ -60,6 +60,7 @@ public sealed class PerceptionSystem : ISimulationSystem
             npc.Perception.Objects.Clear();
             npc.Perception.Agents.Clear();
             npc.Perception.Hostiles.Clear(); // §72
+            npc.Perception.Remembered.Clear(); // §125.7
             npc.Perception.Self.Hunger = npc.Needs.Hunger;
             npc.Perception.Self.Energy = npc.Needs.Energy;
             npc.Perception.Self.Comfort = npc.Needs.Comfort;
@@ -340,10 +341,19 @@ public sealed class PerceptionSystem : ISimulationSystem
 
                 met.Faction = other.Faction;
                 met.Tile = other.Tile;
+                met.Junction = otherJunction;
                 met.LastSeenTick = world.Tick;
+                // §125.7: запоминается ВЕРДИКТ (чем помочь и насколько плохо),
+                // а не улики — он уже посчитан выше на этот тик и стоит одного
+                // присваивания. Чужую беду не запоминаем, как и не воспринимаем:
+                // зеркало фракционного гейта строкой ниже.
+                met.Suffering = isAlly ? suffering : 0f;
+                met.AidKind = isAlly ? aidKind : AidKind.None;
+                met.Helpless = other.IsDying || other.IsUnconscious(world.Tick);
             }
 
             UpdateAgentMemory(world, npc);
+            BuildRememberedAgents(world, npc);
 
             // §72 «компания» = СОЮЗНИЦЫ, и с §125 — только те, кого она видит:
             // подруга на другом конце острова больше не согревает.
@@ -412,6 +422,41 @@ public sealed class PerceptionSystem : ISimulationSystem
         foreach (var forgotten in _forgottenAgentScratch)
         {
             npc.Memory.KnownAgents.Remove(forgotten);
+        }
+    }
+
+    /// <summary>§125.7: список «помню, но не вижу» — из него §53 берёт право
+    /// пойти проверить подругу, оставшуюся дома раненой. Живые записи сюда не
+    /// попадают: если она перед глазами, о ней говорит зрение, а не вера.
+    /// <para>
+    /// Записи живут в пуле наблюдателя — как PerceivedAgent, и по той же
+    /// причине: без пула каждый medium-тик аллоцировал бы по объекту на
+    /// каждого когда-либо виденного.
+    /// </para></summary>
+    private void BuildRememberedAgents(WorldState world, NPCState npc)
+    {
+        foreach (var met in npc.Memory.KnownAgents.Values)
+        {
+            if (met.LastSeenTick == world.Tick)
+            {
+                continue; // видит прямо сейчас — это не память
+            }
+
+            if (!npc.Perception.RememberedPool.TryGetValue(met.Id, out var entry))
+            {
+                entry = new RememberedAgent();
+                npc.Perception.RememberedPool[met.Id] = entry;
+            }
+
+            // Пул переживает тик, поэтому переустанавливается КАЖДОЕ поле.
+            entry.Id = met.Id;
+            entry.Tile = met.Tile;
+            entry.Junction = met.Junction;
+            entry.Age = world.Tick - met.LastSeenTick;
+            entry.Suffering = met.Suffering;
+            entry.AidKind = met.AidKind;
+            entry.Helpless = met.Helpless;
+            npc.Perception.Remembered.Add(entry);
         }
     }
 

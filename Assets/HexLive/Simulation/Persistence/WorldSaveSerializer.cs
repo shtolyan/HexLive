@@ -1257,6 +1257,11 @@ public static class WorldSaveSerializer
             w.Write((int)met.Faction);
             WriteTile(w, met.Tile);
             w.Write(met.LastSeenTick);
+            // §125.7: вердикт последней встречи — им живёт помощь по памяти.
+            WriteNullableJunction(w, met.Junction);
+            w.Write(met.Suffering);
+            w.Write((int)met.AidKind);
+            w.Write(met.Helpless);
         }
     }
 
@@ -1744,7 +1749,11 @@ public static class WorldSaveSerializer
                     Id = new EntityId(r.ReadInt32()),
                     Faction = (Faction)r.ReadInt32(),
                     Tile = ReadTile(r),
-                    LastSeenTick = r.ReadInt32()
+                    LastSeenTick = r.ReadInt32(),
+                    Junction = ReadNullableJunction(r),
+                    Suffering = r.ReadSingle(),
+                    AidKind = (AidKind)r.ReadInt32(),
+                    Helpless = r.ReadBoolean()
                 };
                 npc.Memory.KnownAgents[met.Id] = met;
             }

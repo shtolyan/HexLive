@@ -2275,6 +2275,36 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     aidAvail = true;
                 }
             }
+
+            // §125.7: ПО ПАМЯТИ — «ушла за дровами, а дома осталась раненая».
+            // Ставка идёт с долей от живой (AidMemoryBidShare), поэтому видимая
+            // страдающая всегда перебивает вспомненную, и только свежая вера
+            // (AidMemoryMaxAgeTicks) вообще считается основанием для похода.
+            // Достижимость и занятость здесь не спрашиваются: честного ответа
+            // у памяти нет, а проверит их живая переоценка по прибытии.
+            if (!aidAvail)
+            {
+                foreach (var remembered in npc.Perception.Remembered)
+                {
+                    if (remembered.AidKind == AidKind.None ||
+                        remembered.Age > Spec53.AidMemoryMaxAgeTicks ||
+                        remembered.Suffering < Spec53.SufferingThreshold ||
+                        !AidSupply.Has(world, npc, remembered.AidKind))
+                    {
+                        continue;
+                    }
+
+                    var believed = remembered.Suffering * Spec53.AidMemoryBidShare;
+                    if (believed > bestSuffering)
+                    {
+                        bestSuffering = believed;
+                        bestSuffererAffinity = npc.Social.GetOrCreate(remembered.Id).Affinity;
+                        bestAidKind = remembered.AidKind;
+                        bestSuffererDying = false; // §105-надбавка — только по живому взгляду
+                        aidAvail = true;
+                    }
+                }
+            }
         }
         // An in-flight aid (walking to the sufferer or mid-care) keeps its
         // goal available so the availability scan can't zero a live plan.

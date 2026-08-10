@@ -60,6 +60,20 @@ public static class Spec53
     // of sight while she walks. Expiry just lets the auction re-decide.
     public static int AidErrandTicks = 1200;
 
+    // §125.7: ПОМОЩЬ ПО ПАМЯТИ. Ушла за дровами, а дома осталась раненая — она
+    // об этом помнит и имеет право вернуться. Две ручки держат это от
+    // превращения в беготню через полкарты по слухам.
+    //
+    // Сколько тиков вера остаётся основанием для похода. Много меньше общего
+    // срока памяти (2400): помнить встречу час — нормально, идти спасать по
+    // часовой давности — нет, за это время её либо спасли, либо всё кончилось.
+    public static int AidMemoryMaxAgeTicks = 600;
+
+    // Доля ставки, с которой идёт цель ПО ПАМЯТИ против той же по глазам.
+    // Строго меньше единицы, поэтому видимая страдающая всегда перебивает
+    // вспомненную — иначе колония ходила бы к призракам мимо живых.
+    public static float AidMemoryBidShare = 0.6f;
+
     // §53.7: the share of the FULL aid bid (suffering × trait × AidWeight +
     // compassion pressure + bleed-out emergency) that flows into the supply
     // chore. Just under 1: fetching is a notch less urgent than the helping

@@ -251,6 +251,8 @@
     "Spec53.AidDuration": 70,
     "Spec53.AidErrandBidShare": 0.850000024,
     "Spec53.AidErrandTicks": 1200,
+    "Spec53.AidMemoryMaxAgeTicks": 600,
+    "Spec53.AidMemoryBidShare": 0.600000024,
     "Spec53.AidRelationshipGain": 0.180000007,
     "Spec53.AidSelfRestore": 0.400000006,
     "Spec53.AidWeight": 0.850000024,

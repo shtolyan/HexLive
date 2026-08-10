@@ -24,6 +24,17 @@ public sealed class PerceptionSnapshot
     // sighting, the detour ring) and by the raider's own target assessment.
     public List<PerceivedAgent> Hostiles { get; } = new();
 
+    // §125.7: ПО ПАМЯТИ — те, кого она сейчас не видит, но помнит по последней
+    // встрече. ОТДЕЛЬНЫЙ список, а не флаг FromMemory на PerceivedAgent: у
+    // объектов флаг работает, потому что кокос не уходит, а у людей каждое
+    // живое поле записи — про тело, которое движется. Подмешай их в Agents —
+    // и молча откатятся сразу шесть потребителей: Сострадание утечёт от
+    // невидимого страдания, «компания» согреет отсутствующей подругой,
+    // Socialize позовёт болтать с той, кого нет, выбор собеседницы погонит
+    // через остров, счётчик толпы наполнится призраками, а в сейв поедет вера
+    // под видом восприятия. Отдельный тип отвечает на это компилятором.
+    public List<RememberedAgent> Remembered { get; } = new();
+
     public PerceivedEnvironment Environment { get; } = new();
 
     public int LastUpdatedTick { get; set; }
@@ -54,6 +65,9 @@ public sealed class PerceptionSnapshot
     // RelationshipSummary. Записи умерших остаются в пуле (единицы, безвредно).
     // Runtime-only: ни в сейв, ни в провод не ходит.
     public Dictionary<EntityId, PerceivedAgent> AgentPool { get; } = new();
+
+    /// <summary>§125.7: тот же пул для записей по памяти.</summary>
+    public Dictionary<EntityId, RememberedAgent> RememberedPool { get; } = new();
 }
 
 public sealed class SelfState
@@ -94,6 +108,30 @@ public sealed class PerceivedObject
     public EntityId? OccupiedBy { get; set; }
 
     public List<InteractionType> AvailableInteractions { get; } = new();
+}
+
+/// <summary>§125.7: «я помню, что она лежала раненая дома». Полей ровно
+/// столько, сколько нужно, чтобы ПОЙТИ ПРОВЕРИТЬ: куда идти, что взять и
+/// насколько это срочно. Живых флагов здесь нет и быть не может — честного
+/// ответа на «занята ли она сейчас» у памяти не существует.</summary>
+public sealed class RememberedAgent
+{
+    public EntityId Id { get; set; }
+
+    public TileCoord Tile { get; set; } = TileCoord.Zero;
+
+    public JunctionId? Junction { get; set; }
+
+    /// <summary>Сколько тиков назад её видели: возраст веры. Без него ставка
+    /// по памяти неотличима от ставки по глазам, и помощь превратилась бы во
+    /// всеведение с задержкой.</summary>
+    public int Age { get; set; }
+
+    public float Suffering { get; set; }
+
+    public AidKind AidKind { get; set; } = AidKind.None;
+
+    public bool Helpless { get; set; }
 }
 
 public sealed class PerceivedAgent

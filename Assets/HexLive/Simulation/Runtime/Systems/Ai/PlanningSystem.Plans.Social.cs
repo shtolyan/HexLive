@@ -287,6 +287,45 @@ public sealed partial class PlanningSystem
     // Spec §53: walk to a suffering housemate and help. Mirrors BuildTalkPlan
     // but selects the WORST-OFF reachable neighbour (highest Suffering) rather
     // than the most-liked, and claims her with PendingAidFrom so she holds still.
+    /// <summary>§125.7: лучшая подопечная ПО ПАМЯТИ — та, кого она не видит, но
+    /// помнит раненой. Фильтры те же, что в ставке решения, иначе цель выиграла
+    /// бы аукцион и развалилась в планировщике (грабля HasUsableCoconut).
+    /// Достижимость и занятость не спрашиваются: у памяти нет на них честного
+    /// ответа, а проверит их живая переоценка по прибытии.</summary>
+    private static bool TryRememberedWard(
+        WorldState world, NPCState npc, out RememberedAgent best)
+    {
+        best = null;
+        foreach (var remembered in npc.Perception.Remembered)
+        {
+            if (remembered.AidKind == AidKind.None ||
+                remembered.Age > Spec53.AidMemoryMaxAgeTicks ||
+                remembered.Suffering < Spec53.SufferingThreshold ||
+                remembered.Junction is null ||
+                !AidSupply.Has(world, npc, remembered.AidKind))
+            {
+                continue;
+            }
+
+            // Уже идёт другая — не ходить вдвоём по одной вере.
+            if (world.Entities.Npcs.TryGetValue(remembered.Id, out var wardState) &&
+                wardState.Mind.PendingAidFrom is { } claimedBy &&
+                !claimedBy.Equals(npc.Id))
+            {
+                continue;
+            }
+
+            if (best is null || remembered.Suffering > best.Suffering + 0.001f ||
+                (System.Math.Abs(remembered.Suffering - best.Suffering) <= 0.001f &&
+                 remembered.Id.Value < best.Id.Value))
+            {
+                best = remembered;
+            }
+        }
+
+        return best is not null;
+    }
+
     private void BuildAidPlan(WorldState world, NPCState npc)
     {
         // If someone is already coming to help US, don't set off ourselves.
@@ -336,7 +375,35 @@ public sealed partial class PlanningSystem
             }
         }
 
-        if (target?.Junction is not { } targetJunction)
+        // §125.7: ПО ПАМЯТИ. Никого не видно — но она может помнить, что дома
+        // осталась раненая подруга, и имеет право пойти проверить. Живая цель
+        // всегда в приоритете: сюда попадаем, только когда видимой нет.
+        var fromMemory = false;
+        EntityId targetId;
+        AidKind targetKind;
+        TileCoord targetTile;
+        float targetSuffering;
+        JunctionId targetJunction;
+
+        if (target?.Junction is { } liveJunction)
+        {
+            targetId = target.Id;
+            targetKind = target.AidKind;
+            targetTile = target.Tile;
+            targetSuffering = target.Suffering;
+            targetJunction = liveJunction;
+        }
+        else if (TryRememberedWard(world, npc, out var remembered) &&
+                 remembered.Junction is { } rememberedJunction)
+        {
+            fromMemory = true;
+            targetId = remembered.Id;
+            targetKind = remembered.AidKind;
+            targetTile = remembered.Tile;
+            targetSuffering = remembered.Suffering;
+            targetJunction = rememberedJunction;
+        }
+        else
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Aid);
@@ -349,8 +416,14 @@ public sealed partial class PlanningSystem
         }
 
         // Help at arm's length — a free junction ~0.9 hex radius from her, on
-        // our side (same geometry as a talk approach).
-        world.Entities.Npcs.TryGetValue(target.Id, out var partnerState);
+        // our side (same geometry as a talk approach). У цели по памяти тела на
+        // месте может и не быть — подход строится от запомненного узла.
+        world.Entities.Npcs.TryGetValue(targetId, out var partnerState);
+        if (fromMemory)
+        {
+            partnerState = null;
+        }
+
         var approach = TryReserveArmsLengthApproach(world, npc, partnerState, targetJunction);
 
         if (approach is not { } approachJunction)
@@ -360,24 +433,31 @@ public sealed partial class PlanningSystem
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "PlanFailed",
-                    $"Goal=Aid Target={target.Id.Value} NoFreeApproachJunction");
+                    $"Goal=Aid Target={targetId.Value} NoFreeApproachJunction");
             }
             return;
         }
 
-        var interaction = AidInteraction(target.AidKind);
-        npc.Plan.TargetAgentId = target.Id;
+        var interaction = AidInteraction(targetKind);
+        npc.Plan.TargetAgentId = targetId;
         npc.Plan.TargetJunctionId = approachJunction;
-        npc.Plan.TargetTile = target.Tile;
-        if (world.Entities.Npcs.TryGetValue(target.Id, out var claimedTarget))
+        npc.Plan.TargetTile = targetTile;
+        if (world.Entities.Npcs.TryGetValue(targetId, out var claimedTarget))
         {
             claimedTarget.Mind.PendingAidFrom = npc.Id;
             claimedTarget.Mind.PendingAidSinceTick = world.Tick;
-            SocialCueSignals.Stamp(world, npc, "AidRequest", target.Id);
-            SocialCueSignals.Stamp(world, claimedTarget, "AidIncoming", npc.Id);
+            // Значки «просит помощи» / «к тебе идут» — про ВИДИМУЮ пару: по
+            // памяти обе стороны друг друга не видят, и рисовать им реплику
+            // было бы враньём вида.
+            if (!fromMemory)
+            {
+                SocialCueSignals.Stamp(world, npc, "AidRequest", targetId);
+                SocialCueSignals.Stamp(world, claimedTarget, "AidIncoming", npc.Id);
+            }
+
             Trace.Emit(world, npc.Id, "AidRequested",
-                $"Going to help NPC{target.Id.Value} Kind={target.AidKind} " +
-                $"Suffering={target.Suffering:F2}");
+                $"Going to help NPC{targetId.Value} Kind={targetKind} " +
+                $"Suffering={targetSuffering:F2} FromMemory={(fromMemory ? 1 : 0)}");
         }
 
         npc.Plan.Steps.Add(new PlanStep
@@ -396,9 +476,9 @@ public sealed partial class PlanningSystem
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "PlanBuilt",
-                $"Goal=Aid Kind={target.AidKind} Target=NPC{target.Id.Value} " +
-                $"Suffering={target.Suffering:F2} ApproachJunction={approachJunction.Value} " +
-                $"Steps=[MoveToJunction,{interaction}]");
+                $"Goal=Aid Kind={targetKind} Target=NPC{targetId.Value} " +
+                $"Suffering={targetSuffering:F2} ApproachJunction={approachJunction.Value} " +
+                $"FromMemory={(fromMemory ? 1 : 0)} Steps=[MoveToJunction,{interaction}]");
         }
     }
 

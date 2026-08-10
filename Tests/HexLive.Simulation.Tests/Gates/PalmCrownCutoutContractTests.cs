@@ -31,7 +31,7 @@ namespace HexLive.Simulation.Tests.Gates
         }
 
         [Test]
-        public void CharacterSpheresDriveOnlyStandingPalmLeafGreen()
+        public void SelectedCharacterSpheresDriveOnlyStandingPalmLeafGreen()
         {
             var renderer = File.ReadAllText(Presentation("Rendering", "HexWorldRenderer.cs"));
             var sphere = File.ReadAllText(Presentation(
@@ -47,9 +47,11 @@ namespace HexLive.Simulation.Tests.Gates
             {
                 Assert.That(renderer, Does.Contain(
                     "AddComponent<CharacterPalmCrownCutoutSphere>()"));
-                Assert.That(renderer, Does.Contain("PalmCrownCutoutRadiusFactor = 1.75f"));
+                Assert.That(renderer, Does.Contain("PalmCrownCutoutRadiusFactor = 3f"));
                 Assert.That(renderer, Does.Contain("HexRadius * PalmCrownCutoutRadiusFactor"));
                 Assert.That(sphere, Does.Contain("_CharacterPalmCutoutSpheres"));
+                Assert.That(sphere, Does.Contain("Construct(int npcId"));
+                Assert.That(sphere, Does.Contain("NpcSelection.Contains(marker._npcId)"));
                 Assert.That(sphere, Does.Contain("TryGetBodyCenter"));
                 Assert.That(standing, Does.Contain("CrownSurface = \"LeafGreen\""));
                 Assert.That(standing, Does.Contain("WoodBark was deliberately left untouched"));
@@ -59,11 +61,16 @@ namespace HexLive.Simulation.Tests.Gates
         }
 
         [Test]
-        public void CrownShaderClipsForwardShadowAndDepthPasses()
+        public void CrownShaderClipsForwardAndDepthButKeepsWholeShadow()
         {
             var shaderPath = Path.Combine(RepoPaths.Root, "Assets", "Resources",
                 "HexLive", "Shaders", "StandingPalmCrownCutout.shader");
             var shader = File.ReadAllText(shaderPath);
+            var shadowStart = shader.IndexOf(
+                "Name \"ShadowCaster\"", System.StringComparison.Ordinal);
+            var depthStart = shader.IndexOf(
+                "Name \"DepthOnly\"", System.StringComparison.Ordinal);
+            var shadowPass = shader.Substring(shadowStart, depthStart - shadowStart);
 
             Assert.Multiple(() =>
             {
@@ -72,8 +79,10 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(shader, Does.Contain("Name \"ForwardLit\""));
                 Assert.That(shader, Does.Contain("Name \"ShadowCaster\""));
                 Assert.That(shader, Does.Contain("Name \"DepthOnly\""));
+                Assert.That(shadowPass, Does.Not.Contain("ClipCharacterSpheres"));
+                Assert.That(shadowPass, Does.Contain("ClipAuthoredAlpha(input.uv);"));
                 Assert.That(Count(shader, "ClipCharacterSpheres(input.positionWS);"),
-                    Is.EqualTo(3));
+                    Is.EqualTo(2));
             });
         }
 

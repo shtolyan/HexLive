@@ -150,7 +150,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static int FogRingLegacyColor;
     private static bool _fogRingShaderIdsReady;
     private readonly Dictionary<Renderer, MaterialPropertyBlock> _fogRingSaved = new();
-    private readonly MaterialPropertyBlock _fogRingScratch = new();
+    private MaterialPropertyBlock _fogRingScratch = null!;
     private readonly List<TileCoord> _fogRingTiles = new();
     private TileCoord _fogRingCenter = TileCoord.Zero;
     private int _fogRingRadius = -1;
@@ -458,6 +458,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private void Awake()
     {
         EnsureFogRingShaderIds();
+        _fogRingScratch = new MaterialPropertyBlock();
     }
 
     private void Update()

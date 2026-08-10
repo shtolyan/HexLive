@@ -1246,6 +1246,18 @@ public static class WorldSaveSerializer
         // шестёркой v19 (append-only; вставка в середину сломала бы чтение
         // любого блоба v19..v34).
         w.Write(npc.Attributes.Perception);
+
+        // §125.3: память последней встречи. Живые списки восприятия
+        // пересобираются на первом же тике и не пишутся, а эта память — знание,
+        // которое обязано пережить загрузку.
+        w.Write(npc.Memory.KnownAgents.Count);
+        foreach (var met in npc.Memory.KnownAgents.Values)
+        {
+            w.Write(met.Id.Value);
+            w.Write((int)met.Faction);
+            WriteTile(w, met.Tile);
+            w.Write(met.LastSeenTick);
+        }
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -1721,6 +1733,21 @@ public static class WorldSaveSerializer
         {
             // §125: Восприятие. Старый блоб — дефолт 0.5 (радиус 5, до-§125 мир).
             npc.Attributes.Perception = r.ReadSingle();
+
+            // §125.3: память встреч. У старого блоба её нет — пустая память
+            // честно означает «никого пока не видела», сенсор наполнит.
+            var metCount = r.ReadInt32();
+            for (var i = 0; i < metCount; i++)
+            {
+                var met = new Memory.AgentMemory
+                {
+                    Id = new EntityId(r.ReadInt32()),
+                    Faction = (Faction)r.ReadInt32(),
+                    Tile = ReadTile(r),
+                    LastSeenTick = r.ReadInt32()
+                };
+                npc.Memory.KnownAgents[met.Id] = met;
+            }
         }
 
         return npc;

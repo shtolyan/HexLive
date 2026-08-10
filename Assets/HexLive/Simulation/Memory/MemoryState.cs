@@ -18,6 +18,14 @@ public sealed class MemoryState
     // заново от несовпадения ключа.
     public int Version { get; set; }
 
+    // §125.3: память последней встречи с ЛЮДЬМИ — «видела её там-то тогда-то».
+    // Живые списки восприятия радиусные (§125.2), поэтому знание о тех, кто
+    // сейчас вне глаз, живёт здесь и НЕ подмешивается в Perception.Agents:
+    // потребитель «сходить туда, где я её видела» читает словарь напрямую,
+    // как KnownObjects. Version эта память не трогает — он ключ кэша вида
+    // ОБЪЕКТОВ, и лишние бампы стоили бы лишних перестроек.
+    public Dictionary<Common.EntityId, AgentMemory> KnownAgents { get; } = new();
+
     // Spec 29C.4A: places where this NPC was attacked. TTL 2400 ticks, cap 8.
     public List<DangerMemory> Dangers { get; } = new();
 
@@ -32,6 +40,20 @@ public sealed class MemoryState
 
     public bool IsShunned(ObjectId id, int tick) =>
         ShunnedUntil.TryGetValue(id, out var until) && until > tick;
+}
+
+/// <summary>§125.3: одна запись «кого и где я видела». Намеренно лёгкая и НЕ
+/// <c>PerceivedAgent</c>: тот несёт живые флаги (занятость, страдание,
+/// достижимость), которым за пределами видимости взяться неоткуда.</summary>
+public sealed class AgentMemory
+{
+    public Common.EntityId Id { get; set; }
+
+    public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
+
+    public TileCoord Tile { get; set; } = TileCoord.Zero;
+
+    public int LastSeenTick { get; set; }
 }
 
 public sealed class DangerMemory

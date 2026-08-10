@@ -42,6 +42,10 @@ public sealed class PerceptionSystem : ISimulationSystem
     // прихода на тайл и упорядоченными не являются.
     private readonly System.Collections.Generic.List<EntityId> _agentScratch = new();
 
+    // §125.3: кого забыть после прохода — правка словаря во время его же
+    // обхода бросает.
+    private readonly System.Collections.Generic.List<EntityId> _forgottenAgentScratch = new();
+
     public void Run(WorldState world)
     {
         _aidScratch.Clear();
@@ -324,7 +328,22 @@ public sealed class PerceptionSystem : ISimulationSystem
                 {
                     npc.Perception.Hostiles.Add(perceivedAgent);
                 }
+
+                // §125.3: живой взгляд обновляет память встречи.
+                if (!npc.Memory.KnownAgents.TryGetValue(other.Id, out var met))
+                {
+                    met = new Memory.AgentMemory { Id = other.Id };
+                    npc.Memory.KnownAgents[other.Id] = met;
+                    Trace.Emit(world, npc.Id, "AgentMemoryAdded",
+                        $"NPC{other.Id.Value} Tile={other.Tile.Q},{other.Tile.R}");
+                }
+
+                met.Faction = other.Faction;
+                met.Tile = other.Tile;
+                met.LastSeenTick = world.Tick;
             }
+
+            UpdateAgentMemory(world, npc);
 
             // §72 «компания» = СОЮЗНИЦЫ, и с §125 — только те, кого она видит:
             // подруга на другом конце острова больше не согревает.
@@ -355,6 +374,36 @@ public sealed class PerceptionSystem : ISimulationSystem
                     $"Obj={obj.Id.Value} Tile={obj.Tile.Q},{obj.Tile.R} Dist={obj.Distance:F2} " +
                     $"Reachable={obj.IsReachable} Occupied={obj.IsOccupied} Interactions=[{interactions}]");
             }
+        }
+    }
+
+    /// <summary>§125.3: уборка памяти встреч. ТОЛЬКО по сроку — negative
+    /// evidence объектов (27.18A) здесь НЕ работает и намеренно не применяется:
+    /// пустой тайл означает, что предмет исчез, но что человек УШЁЛ. Правило
+    /// объектов стирало бы запись о каждой уходящей на первом же её шаге (её
+    /// последний видимый тайл всегда остаётся в радиусе), и память была бы
+    /// пуста всегда — ровно наоборот тому, зачем она заведена.</summary>
+    private void UpdateAgentMemory(WorldState world, NPCState npc)
+    {
+        if (npc.Memory.KnownAgents.Count == 0)
+        {
+            return;
+        }
+
+        _forgottenAgentScratch.Clear();
+        foreach (var met in npc.Memory.KnownAgents.Values)
+        {
+            if (world.Tick - met.LastSeenTick > MemoryTtlTicks)
+            {
+                _forgottenAgentScratch.Add(met.Id);
+                Trace.Emit(world, npc.Id, "AgentMemoryForgotten",
+                    $"NPC{met.Id.Value} Expired (unseen for {world.Tick - met.LastSeenTick} ticks)");
+            }
+        }
+
+        foreach (var forgotten in _forgottenAgentScratch)
+        {
+            npc.Memory.KnownAgents.Remove(forgotten);
         }
     }
 

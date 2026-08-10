@@ -27,6 +27,33 @@ public sealed class PerceptionSnapshot
     public PerceivedEnvironment Environment { get; } = new();
 
     public int LastUpdatedTick { get; set; }
+
+    // §22.7 кэш вида памяти: FromMemory-записи пересобираются только когда
+    // сменился любой из ключей ниже (тайл NPC, компонента её джанкшена,
+    // топология, состав памяти, умение прыгать). Между пересборками записи
+    // переиспользуются как есть, освежается только Distance — оно считается
+    // от живой позиции каждый medium-тик, как и раньше. Runtime-only: ни в
+    // сейв, ни в провод не ходит.
+    public List<PerceivedObject> MemoryView { get; } = new();
+
+    public TileCoord MemoryViewTile { get; set; } = TileCoord.Zero;
+
+    public int MemoryViewComponent { get; set; } = int.MinValue;
+
+    public int MemoryViewTopology { get; set; } = -1;
+
+    public int MemoryViewMemoryVersion { get; set; } = -1;
+
+    public bool MemoryViewCanJump { get; set; }
+
+    public bool MemoryViewBuilt { get; set; }
+
+    // §22.7 NPC×NPC: пул записей PerceivedAgent этого наблюдателя — по одной
+    // на соседку, все поля переустанавливаются каждый прогон восприятия.
+    // Без пула каждый medium-тик аллоцировал N×(N-1) объектов с вложенным
+    // RelationshipSummary. Записи умерших остаются в пуле (единицы, безвредно).
+    // Runtime-only: ни в сейв, ни в провод не ходит.
+    public Dictionary<EntityId, PerceivedAgent> AgentPool { get; } = new();
 }
 
 public sealed class SelfState

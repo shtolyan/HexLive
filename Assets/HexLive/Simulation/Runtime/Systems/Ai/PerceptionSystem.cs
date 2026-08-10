@@ -23,8 +23,29 @@ public sealed class PerceptionSystem : ISimulationSystem
 
     private readonly System.Collections.Generic.List<ObjectId> _forgottenScratch = new();
 
+    // Живой скан идёт по гекс-кольцу через ObjectsByTile, а не по всем
+    // объектам острова: кольцо радиуса r — это 1+3r(r+1) тайлов (19 при r=2)
+    // против ~2 300 проверок дистанции на карте 16x. Порядок обхода фиксируем
+    // сортировкой по id: словарный порядок Entities.Objects зависит от
+    // переиспользования слотов после despawn и не воспроизводим по смыслу.
+    private readonly System.Collections.Generic.List<ObjectId> _visibleScratch = new();
+
+    // §22.7 NPC×NPC: оценка страдания соседки — чистая функция ЕЁ состояния
+    // (AidAssessment.Assess не читает CurrentJunction и ничего не пишет),
+    // поэтому считается один раз за прогон на агента (O(N)), а не в каждой
+    // паре наблюдатель×наблюдаемая (O(N^2)). Словарь переиспользуется.
+    private readonly System.Collections.Generic.Dictionary<EntityId, (AidKind Kind, float Suffering)>
+        _aidScratch = new();
+
     public void Run(WorldState world)
     {
+        _aidScratch.Clear();
+        foreach (var someone in world.Entities.Npcs.Values)
+        {
+            var kind = AidAssessment.Assess(someone, world.Tick, out var suffering);
+            _aidScratch[someone.Id] = (kind, suffering);
+        }
+
         foreach (var npc in world.Entities.Npcs.Values)
         {
             npc.Perception.Objects.Clear();
@@ -59,9 +80,27 @@ public sealed class PerceptionSystem : ISimulationSystem
 
             // Live sight (spec 22.7): only objects within the perception
             // radius; every sighting upserts spatial memory (spec 27.18A).
-            foreach (var obj in world.Entities.Objects.Values)
+            _visibleScratch.Clear();
+            var radius = PerceptionRadiusTiles;
+            for (var dq = -radius; dq <= radius; dq++)
             {
-                if (HexSpatialMath.HexDistance(npc.Tile, obj.Tile) > PerceptionRadiusTiles)
+                var lo = System.Math.Max(-radius, -dq - radius);
+                var hi = System.Math.Min(radius, -dq + radius);
+                for (var dr = lo; dr <= hi; dr++)
+                {
+                    var coord = new Common.TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
+                    if (world.Caches.ObjectsByTile.TryGetValue(coord, out var onTile))
+                    {
+                        _visibleScratch.AddRange(onTile);
+                    }
+                }
+            }
+
+            _visibleScratch.Sort(static (a, b) => a.Value.CompareTo(b.Value));
+
+            foreach (var objId in _visibleScratch)
+            {
+                if (!world.Entities.Objects.TryGetValue(objId, out var obj))
                 {
                     continue;
                 }
@@ -100,6 +139,7 @@ public sealed class PerceptionSystem : ISimulationSystem
                 {
                     record = new Memory.ObjectMemory { Id = obj.Id };
                     npc.Memory.KnownObjects[obj.Id] = record;
+                    npc.Memory.Version++;
                     Trace.Emit(world, npc.Id, "MemoryAdded",
                         $"Obj={obj.Id.Value} Def={obj.DefinitionId} Tile={obj.Tile.Q},{obj.Tile.R}");
                 }
@@ -111,15 +151,14 @@ public sealed class PerceptionSystem : ISimulationSystem
             }
 
             // Memory maintenance (spec 27.18A): negative evidence inside the
-            // sight radius, TTL for discoveries, then remembered-but-unseen
-            // objects join the perceived list flagged FromMemory.
+            // sight radius and the discovery TTL run every medium tick — they
+            // are cheap integer checks and must fire even standing still.
             _forgottenScratch.Clear();
             foreach (var record in npc.Memory.KnownObjects.Values)
             {
                 var withinSight = HexSpatialMath.HexDistance(npc.Tile, record.Tile) <= PerceptionRadiusTiles;
-                var exists = world.Entities.Objects.ContainsKey(record.Id);
 
-                if (withinSight && !exists)
+                if (withinSight && !world.Entities.Objects.ContainsKey(record.Id))
                 {
                     _forgottenScratch.Add(record.Id);
                     Trace.Emit(world, npc.Id, "MemoryForgotten",
@@ -133,50 +172,87 @@ public sealed class PerceptionSystem : ISimulationSystem
                     Trace.Emit(world, npc.Id, "MemoryForgotten",
                         $"Obj={record.Id.Value} Def={record.DefinitionId} Expired " +
                         $"(unseen for {world.Tick - record.LastSeenTick} ticks)");
-                    continue;
                 }
-
-                if (withinSight)
-                {
-                    continue; // live entry already covers it
-                }
-
-                if (!world.Content.ObjectDefinitions.TryGetValue(record.DefinitionId, out var definition))
-                {
-                    continue;
-                }
-
-                // §26.6A r5: the remembered object usually still exists — hand it
-                // over so its own footprint stays crossable. Gone means its
-                // blocked junctions are gone too, so null is the right answer.
-                world.Entities.Objects.TryGetValue(record.Id, out var liveRemembered);
-                var isReachable = npcJunction.HasValue && record.Junction.HasValue &&
-                    Connectivity.ReachableBeside(world, npcJunction.Value, record.Junction.Value,
-                        npc.Body.CanJump, liveRemembered);
-
-                var remembered = new PerceivedObject
-                {
-                    Id = record.Id,
-                    DefinitionId = record.DefinitionId,
-                    FromMemory = true,
-                    Tile = record.Tile,
-                    Distance = HexSpatialMath.Distance(npc.Position, HexSpatialMath.TileToWorld(record.Tile)),
-                    IsReachable = isReachable,
-                    IsOccupied = false, // assumed free until seen (spec 27.18A)
-                    OccupiedBy = null
-                };
-
-                foreach (var interaction in definition.Interactions)
-                {
-                    remembered.AvailableInteractions.Add(interaction.Type);
-                }
-
-                npc.Perception.Objects.Add(remembered);
             }
 
             foreach (var forgottenId in _forgottenScratch)
             {
                 npc.Memory.KnownObjects.Remove(forgottenId);
+                npc.Memory.Version++;
+            }
+
+            // §22.7: remembered-but-unseen objects join the perceived list
+            // flagged FromMemory — through a cached view. ReachableBeside is a
+            // component-id comparison, so for a fixed topology its answers can
+            // only change together with the keys below; everything else in a
+            // FromMemory entry is a pure function of the memory record. Only
+            // Distance moves continuously — it is refreshed live further down.
+            var canJump = npc.Body.CanJump;
+            var component = npcJunction.HasValue
+                ? Connectivity.ComponentOf(world, npcJunction.Value, canJump)
+                : int.MinValue;
+            var view = npc.Perception;
+            if (!view.MemoryViewBuilt ||
+                !view.MemoryViewTile.Equals(npc.Tile) ||
+                view.MemoryViewComponent != component ||
+                view.MemoryViewTopology != world.TopologyVersion ||
+                view.MemoryViewMemoryVersion != npc.Memory.Version ||
+                view.MemoryViewCanJump != canJump)
+            {
+                view.MemoryView.Clear();
+                foreach (var record in npc.Memory.KnownObjects.Values)
+                {
+                    if (HexSpatialMath.HexDistance(npc.Tile, record.Tile) <= PerceptionRadiusTiles)
+                    {
+                        continue; // live entry already covers it
+                    }
+
+                    if (!world.Content.ObjectDefinitions.TryGetValue(record.DefinitionId, out var definition))
+                    {
+                        continue;
+                    }
+
+                    // §26.6A r5: the remembered object usually still exists —
+                    // hand it over so its own footprint stays crossable. Gone
+                    // means its blocked junctions are gone too, so null is the
+                    // right answer.
+                    world.Entities.Objects.TryGetValue(record.Id, out var liveRemembered);
+                    var isReachable = npcJunction.HasValue && record.Junction.HasValue &&
+                        Connectivity.ReachableBeside(world, npcJunction.Value, record.Junction.Value,
+                            canJump, liveRemembered);
+
+                    var remembered = new PerceivedObject
+                    {
+                        Id = record.Id,
+                        DefinitionId = record.DefinitionId,
+                        FromMemory = true,
+                        Tile = record.Tile,
+                        IsReachable = isReachable,
+                        IsOccupied = false, // assumed free until seen (spec 27.18A)
+                        OccupiedBy = null
+                    };
+
+                    foreach (var interaction in definition.Interactions)
+                    {
+                        remembered.AvailableInteractions.Add(interaction.Type);
+                    }
+
+                    view.MemoryView.Add(remembered);
+                }
+
+                view.MemoryViewBuilt = true;
+                view.MemoryViewTile = npc.Tile;
+                view.MemoryViewComponent = component;
+                view.MemoryViewTopology = world.TopologyVersion;
+                view.MemoryViewMemoryVersion = npc.Memory.Version;
+                view.MemoryViewCanJump = canJump;
+            }
+
+            foreach (var remembered in view.MemoryView)
+            {
+                remembered.Distance = HexSpatialMath.Distance(
+                    npc.Position, HexSpatialMath.TileToWorld(remembered.Tile));
+                npc.Perception.Objects.Add(remembered);
             }
 
             // Spec 28.3: perceived agents with reachability and relationship summary.
@@ -188,52 +264,57 @@ public sealed class PerceptionSystem : ISimulationSystem
                 }
 
                 var agentDistance = HexSpatialMath.Distance(npc.Position, other.Position);
+                // Джанкшен соседки читается В ПАРЕ, не из сводки: ResolveCurrentJunction
+                // может пере-якорить её посреди этого же прогона, и наблюдатели до/после
+                // обязаны видеть разное — как и до оптимизации.
                 var otherJunction = other.CurrentJunction;
+                // Reachable(a,b) — это сравнение компонент; компонента наблюдателя
+                // (component) уже посчитана для ключа кэша памяти выше. Семантика
+                // старого вызова сохранена точно: недостижимо, если любой из узлов
+                // выпал из словаря компонент или заблокирован (comp < 0).
                 var agentReachable = npcJunction.HasValue && otherJunction.HasValue &&
                     (npcJunction.Value.Equals(otherJunction.Value) ||
-                     Connectivity.Reachable(world, npcJunction.Value, otherJunction.Value, npc.Body.CanJump));
+                     (component >= 0 &&
+                      component == Connectivity.ComponentOf(world, otherJunction.Value, canJump)));
                 // §72: which pile this one goes on. Hostiles skip the whole §53
-                // suffering assessment below — nobody reads another faction's
-                // plight, and it is ~30 lines of arithmetic per pair per tick.
+                // suffering assessment — nobody reads another faction's plight.
                 var isAlly = FactionRelations.AreAllies(npc, other);
 
                 var relationship = npc.Social.GetOrCreate(other.Id);
 
-                var perceivedAgent = new PerceivedAgent
+                if (!view.AgentPool.TryGetValue(other.Id, out var perceivedAgent))
                 {
-                    Faction = other.Faction,
-                    Id = other.Id,
-                    Tile = other.Tile,
-                    Distance = agentDistance,
-                    CanSee = true,
-                    CanHear = true,
-                    Junction = otherJunction,
-                    IsReachable = agentReachable,
-                    IsBusy = other.IsFighting ||
-                        (other.Execution.Status == ExecutionStatus.InProgress &&
-                         other.Execution.CurrentInteraction != InteractionType.Talk),
-                    IsMoving = other.Movement.IsMoving,
-                    IsUnconscious = other.IsUnconscious(world.Tick) // §60: no chatting with a body
-                };
+                    perceivedAgent = new PerceivedAgent();
+                    view.AgentPool[other.Id] = perceivedAgent;
+                }
+
+                // Пул: запись переживает тик, поэтому переустанавливается КАЖДОЕ
+                // поле — оставленное «как было» поле читалось бы как прошлотиковое.
+                perceivedAgent.Faction = other.Faction;
+                perceivedAgent.Id = other.Id;
+                perceivedAgent.Tile = other.Tile;
+                perceivedAgent.Distance = agentDistance;
+                perceivedAgent.CanSee = true;
+                perceivedAgent.CanHear = true;
+                perceivedAgent.Junction = otherJunction;
+                perceivedAgent.IsReachable = agentReachable;
+                perceivedAgent.IsBusy = other.IsFighting ||
+                    (other.Execution.Status == ExecutionStatus.InProgress &&
+                     other.Execution.CurrentInteraction != InteractionType.Talk);
+                perceivedAgent.IsMoving = other.Movement.IsMoving;
+                perceivedAgent.IsUnconscious = other.IsUnconscious(world.Tick); // §60: no chatting with a body
                 perceivedAgent.Relationship.Trust = relationship.Trust;
                 perceivedAgent.Relationship.Affinity = relationship.Affinity;
 
                 // Spec §53: read how badly this neighbour needs help and the
                 // single most-urgent HELPABLE kind, so the Aid goal can bid on
                 // and route to the worst-off without re-scanning full state.
-                // Severity is 0..1; a bleed-out clock outranks mere hunger.
                 // §53.3/§105: сама формула живёт в AidAssessment — та же, по
-                // которой помощница переоценивает подопечную по прибытии. Двух
-                // редакций быть не должно: расхождение читается не как баг, а
-                // как «дошла и передумала».
-                var aidKind = AidKind.None;
-                var suffering = 0f;
-                if (isAlly)
-                {
-                    aidKind = AidAssessment.Assess(other, world.Tick, out suffering);
-                }
-                perceivedAgent.Suffering = suffering;
-                perceivedAgent.AidKind = aidKind;
+                // которой помощница переоценивает подопечную по прибытии.
+                // Значение снято один раз за прогон (_aidScratch, O(N)).
+                var (aidKind, suffering) = _aidScratch[other.Id];
+                perceivedAgent.Suffering = isAlly ? suffering : 0f;
+                perceivedAgent.AidKind = isAlly ? aidKind : AidKind.None;
                 perceivedAgent.IsDying = other.IsDying; // §105
 
                 if (isAlly)

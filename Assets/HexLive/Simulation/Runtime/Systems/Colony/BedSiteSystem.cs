@@ -444,6 +444,7 @@ public sealed class BedSiteSystem : ISimulationSystem
                 IsPermanent = true,
                 LastSeenTick = world.Tick
             };
+            npc.Memory.Version++; // §22.7: кэш вида памяти обязан увидеть вставку
         }
     }
 

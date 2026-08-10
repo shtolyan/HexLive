@@ -77,6 +77,34 @@ internal static class Connectivity
                ca == cb;
     }
 
+    // §22.7: идентификатор компоненты связности узла в нужном варианте графа.
+    // Reachable(a,b) — это ровно сравнение этих идентификаторов, поэтому кэш,
+    // ключёванный компонентой «откуда», меняет ответы только вместе с ними.
+    // Лениво перестраивает словарь так же, как Reachable.
+    public static int ComponentOf(WorldState world, JunctionId junction, bool canJump)
+    {
+        if (!canJump)
+        {
+            if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
+            {
+                RebuildFlat(world);
+            }
+
+            return world.JunctionComponentsFlat.TryGetValue(junction, out var flat)
+                ? flat
+                : int.MinValue + 1;
+        }
+
+        if (world.ComponentsBuiltVersion != world.TopologyVersion)
+        {
+            Rebuild(world);
+        }
+
+        return world.JunctionComponents.TryGetValue(junction, out var component)
+            ? component
+            : int.MinValue + 1;
+    }
+
     private static readonly System.Collections.Generic.Queue<JunctionId> _queue = new();
 
     private static void Rebuild(WorldState world)

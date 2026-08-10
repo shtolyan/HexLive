@@ -10,6 +10,14 @@ public sealed class MemoryState
 {
     public Dictionary<ObjectId, ObjectMemory> KnownObjects { get; } = new();
 
+    // §22.7/27.18A: ЛЮБАЯ мутация состава KnownObjects (добавление, удаление)
+    // обязана поднять Version — по нему PerceptionSystem понимает, что его
+    // кэшированный вид памяти устарел. Правки полей УЖЕ видимой записи
+    // (Tile/LastSeenTick при живом взгляде) бампа не требуют: видимые записи
+    // в вид памяти не входят. Не сериализуется: после загрузки кэш строится
+    // заново от несовпадения ключа.
+    public int Version { get; set; }
+
     // Spec 29C.4A: places where this NPC was attacked. TTL 2400 ticks, cap 8.
     public List<DangerMemory> Dangers { get; } = new();
 

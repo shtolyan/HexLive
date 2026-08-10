@@ -758,8 +758,13 @@ namespace HexLive.UnityPresentation.UI
             var verticalDistance = bounds.extents.y / Mathf.Tan(halfFov);
             var horizontalTangent = Mathf.Tan(halfFov) * (TextureWidth / (float)TextureHeight);
             var horizontalDistance = bounds.extents.x / Mathf.Max(0.001f, horizontalTangent);
+            // Perspective fitting must include the half-depth nearest to the
+            // camera. Ignoring it made deeper rigs project larger than the X/Y
+            // fit predicted (female heads/hair clipped while the male doll fit).
             var distance = Mathf.Max(
-                1f, Mathf.Max(verticalDistance, horizontalDistance) * DollFramePadding);
+                1f,
+                bounds.extents.z +
+                Mathf.Max(verticalDistance, horizontalDistance) * DollFramePadding);
             var eye = focus + Vector3.forward * distance;
             _camera.transform.SetPositionAndRotation(
                 eye, Quaternion.LookRotation(focus - eye, Vector3.up));

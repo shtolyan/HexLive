@@ -106,6 +106,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
                 "The visible doll, not an authored vertical offset, must own the frame centre.");
             Assert.That(stage, Does.Contain("DollFramePadding = 1.18f"),
                 "The tight baked geometry still needs safe head-and-feet padding.");
+            Assert.That(framing, Does.Contain("bounds.extents.z +"),
+                "Perspective fit must include the geometry nearest to the camera.");
             Assert.That(framing, Does.Not.Match(@"bounds\s*=\s*renderer\.bounds"));
             Assert.That(framing, Does.Not.Contain("Encapsulate(renderer.bounds)"),
                 "The evaluated source pose makes sitting and lying dolls change camera scale.");

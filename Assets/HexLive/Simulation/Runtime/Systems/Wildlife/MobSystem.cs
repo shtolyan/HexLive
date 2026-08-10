@@ -1444,7 +1444,10 @@ public sealed class MobSystem : ISimulationSystem
 
             foreach (var witness in world.Entities.Npcs.Values)
             {
-                if (HexSpatialMath.HexDistance(witness.Tile, npc.Tile) > 6)
+                // §125.4: увидела ли она смерть — по своему радиусу восприятия
+                // (был хардкод 6).
+                if (HexSpatialMath.HexDistance(witness.Tile, npc.Tile) >
+                    PerceptionMath.RadiusTiles(witness))
                 {
                     continue;
                 }

@@ -421,8 +421,10 @@ public sealed class PredationSystem : ISimulationSystem
 
         foreach (var witness in world.Entities.Npcs.Values)
         {
+            // §125.4: хардкод 6 заменён радиусом восприятия свидетельницы.
             if (witness.Id == killer.Id || witness.Id == victim.Id ||
-                HexSpatialMath.HexDistance(witness.Tile, victim.Tile) > 6)
+                HexSpatialMath.HexDistance(witness.Tile, victim.Tile) >
+                    PerceptionMath.RadiusTiles(witness))
             {
                 continue;
             }

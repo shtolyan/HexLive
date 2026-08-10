@@ -89,8 +89,10 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                     continue;
                 }
 
+                // §125.4: далеко ли она замечает зверя — её собственный
+                // радиус восприятия, а не общая для всех константа.
                 var distance = HexSpatialMath.HexDistance(npc.Tile, mob.Tile);
-                if (distance > Spec62.SpotRadiusTiles)
+                if (distance > PerceptionMath.RadiusTiles(npc))
                 {
                     continue;
                 }
@@ -289,7 +291,7 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             }
 
             var distance = HexSpatialMath.HexDistance(npc.Tile, other.Tile);
-            if (distance <= Spec72.SpotStrangerRadiusTiles && distance < bestDistance)
+            if (distance <= PerceptionMath.RadiusTiles(npc) && distance < bestDistance)
             {
                 bestDistance = distance;
                 nearest = other;

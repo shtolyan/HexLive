@@ -187,6 +187,14 @@ namespace HexLive.UnityPresentation.AbuseTest
                 }
             }
 
+            // §125: арена меряет СЦЕНУ, а не зоркость. Закрепляем всем радиус
+            // восприятия на прежней константе 6 (0.6 × 10) — иначе исход зависел
+            // бы от того, какое Восприятие выпало на сиде арены.
+            foreach (var body in world.Entities.Npcs.Values)
+            {
+                body.Attributes.Perception = 0.6f;
+            }
+
             if (world.Entities.Npcs.TryGetValue(new EntityId(OutsiderId), out var outsider))
             {
                 outsider.Inventory.Items.Add(ContentIds.Spear);

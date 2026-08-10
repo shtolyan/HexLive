@@ -100,9 +100,12 @@ public static class RaidMath
             ? MathUtil.Clamp(
                 (Spec72.RaidVictimHealthCeiling - condition) / Spec72.RaidVictimHealthCeiling, 0f, 1f)
             : 0f;
+        // §125.4: и отсечка, и нормировка близости идут от радиуса восприятия
+        // рейдера. Слепой (радиус 0) не видит никого — proximity 0.
+        var scanRadius = PerceptionMath.RadiusTiles(raider);
         var distance = HexSpatialMath.HexDistance(raider.Tile, victim.Tile);
-        var proximity = Spec72.RaidScanRadiusTiles > 0
-            ? 1f - MathUtil.Clamp(distance / (float)Spec72.RaidScanRadiusTiles, 0f, 1f)
+        var proximity = scanRadius > 0
+            ? 1f - MathUtil.Clamp(distance / (float)scanRadius, 0f, 1f)
             : 0f;
 
         return isolation * Spec72.RaidWeightIsolation +
@@ -127,7 +130,8 @@ public static class RaidMath
             if (candidate.Health <= 0f ||
                 !FactionRelations.AreHostile(raider, candidate) ||
                 candidate.CurrentJunction is not { } candidateJunction ||
-                HexSpatialMath.HexDistance(raider.Tile, candidate.Tile) > Spec72.RaidScanRadiusTiles)
+                HexSpatialMath.HexDistance(raider.Tile, candidate.Tile) >
+                    PerceptionMath.RadiusTiles(raider))
             {
                 continue;
             }

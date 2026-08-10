@@ -517,8 +517,9 @@ public sealed partial class ExecutionSystem
                     !FactionRelations.AreAllies(witness, mark) ||
                     witness.IsUnconscious(world.Tick) ||
                     witness.Execution.CurrentInteraction == InteractionType.Sleep ||
+                    // §125.4: увидела ли она сцену — по ЕЁ радиусу восприятия.
                     HexSpatialMath.HexDistance(witness.Tile, mark.Tile) >
-                        Spec108.GroupHuntWitnessRadiusTiles)
+                        PerceptionMath.RadiusTiles(witness))
                 {
                     continue;
                 }

@@ -99,7 +99,6 @@ public sealed class BalanceKnobHygieneGateTests
             ["SleepComfortBedNight"] = "1.4 против 1",
             ["AidErrandBidShare"] = "0.9 против 0.85",
             ["GrindSeverChance"] = "0.1 против 0.25",
-            ["SpotRadiusTiles"] = "6 против 4",
             ["AttackMaxPack"] = "0 против 1",
             ["MaxDogs"] = "2 против 3",
             ["DogRespawnCheckTicks"] = "7200 против 3600",

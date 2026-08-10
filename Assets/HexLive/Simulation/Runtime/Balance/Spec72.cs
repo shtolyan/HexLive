@@ -108,8 +108,8 @@ public static class Spec72
 
     // --- The hunt -----------------------------------------------------------
 
-    // How far he even looks for a victim.
-    public static int RaidScanRadiusTiles = 8;
+    // §125.4: как далеко он ищет жертву — его радиус восприятия; он же
+    // нормирует вес близости в Opportunity.
 
     // How many of the victim's allies he still tolerates near her. 1 = he will
     // take on a straggler with one friend nearby, never the whole camp.
@@ -245,8 +245,7 @@ public static class Spec72
     // simply would not happen when it matters most.
     public static bool RallyIgnoresAffinityVsOutsider = true;
 
-    // How far a girl notices a hostile HUMAN (§62 uses 6 for a wolf).
-    public static int SpotStrangerRadiusTiles = 6;
+    // §125.4: как далеко она замечает чужого — её радиус восприятия.
 
     // Re-warn per (girl, outsider) at most this often — one ⚠️ per sighting.
     // Shorter than §62's 600 for a wolf: a man closes distance far faster than

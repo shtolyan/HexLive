@@ -44,6 +44,15 @@ public sealed class LootHelplessTests
 
         var from = world.Junctions.Items.Values.First(j => j.Neighbors.Count > 0);
         var to = world.Junctions.Items[from.Neighbors[0]];
+        // §125: сцена §111 меряет ОБЫСК, а не зоркость. Радиус восприятия
+        // ВСЕХ тел закреплён на прежней константе 6 (0.6 × 10) — иначе исход
+        // арены зависел бы от того, какое Восприятие выпало на этом сиде
+        // (и не только участникам: подруги с другим радиусом ходят иначе).
+        foreach (var body in world.Entities.Npcs.Values)
+        {
+            body.Attributes.Perception = 0.6f;
+        }
+
         outsider.CurrentJunction = from.Id;
         outsider.Position = from.WorldPosition;
         outsider.Tile = from.Tiles[0];

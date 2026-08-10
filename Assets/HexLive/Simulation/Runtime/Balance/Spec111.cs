@@ -30,9 +30,8 @@ public static class Spec111
     // нельзя скрафтить, и до §111 оно попадало в колонию только с трупа.
     public static float LootHelplessWeaponBonus = 0.30f;
 
-    // В каком радиусе он вообще замечает лежащего. Шесть — ровно как у §81:
-    // мы режем ЗНАНИЕ, а не только дорогу, иначе он «чует» тело через полострова.
-    public static int LootHelplessSightRadiusTiles = 6;
+    // §125.4: в каком радиусе он замечает лежащего — его радиус восприятия.
+    // Режем ЗНАНИЕ, а не только дорогу, иначе он «чует» тело через полострова.
 
     // A helpless body cannot cry for help, but allies close enough to SEE the
     // search treat it exactly like an attack. Three hexes is the deliberately

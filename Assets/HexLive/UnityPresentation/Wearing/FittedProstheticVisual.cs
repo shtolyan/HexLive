@@ -331,7 +331,7 @@ internal sealed class ProstheticVisual
         return Color.Lerp(rust, original, Mathf.Sqrt(condition01));
     }
 
-    private static void UpgradeToUrp(Material material)
+    internal static void UpgradeToUrp(Material material)
     {
         var urp = Shader.Find("Universal Render Pipeline/Lit");
         if (urp == null || material.shader == urp)

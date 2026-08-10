@@ -3144,6 +3144,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        // §118.5 / bug #103: loose prosthetics live in the same external
+        // Addressables catalog as fitted devices. Return an async anchor now;
+        // ProstheticWorldDropView fills it when the selected L/R model arrives.
+        // A missing bundle stays visibly absent and logged — it must never fall
+        // through to Resources or the generic diagnostic sphere.
+        if (ProstheticWorldDropView.IsSupported(worldObject.DefinitionId))
+        {
+            var prostheticRoot = new GameObject($"Object {worldObject.DefinitionId}");
+            prostheticRoot.transform.SetParent(_objectsRoot, false);
+            var prostheticAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            prostheticRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                prostheticAnchor, GroundY(worldObject.Tile));
+            prostheticRoot.AddComponent<ProstheticWorldDropView>()
+                .Construct(worldObject.DefinitionId, worldObject.Id.Value);
+            return prostheticRoot;
+        }
+
         // Spec 31C.3: real prefabs first (Resources/HexLive/Objects/<id>),
         // primitives as the eternal fallback.
         // The current rock GLBs are mirrored as native FBXs under Resources.

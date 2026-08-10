@@ -41,8 +41,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 PlanInterruption.Abort(world, npc, "Food already available in inventory");
                 npc.Mind.CurrentGoal = GoalType.None;
-                Trace.Emit(world, npc.Id, "PlanAborted",
-                    "GetFood stopped: inventory food is available");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanAborted",
+                        "GetFood stopped: inventory food is available");
+                }
                 continue;
             }
 
@@ -51,8 +54,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 PlanInterruption.Abort(world, npc, "Water already available in inventory");
                 npc.Mind.CurrentGoal = GoalType.None;
-                Trace.Emit(world, npc.Id, "PlanAborted",
-                    "GetWater stopped: inventory water is available");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanAborted",
+                        "GetWater stopped: inventory water is available");
+                }
                 continue;
             }
 
@@ -212,12 +218,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 if (npc.Memory.KnownObjects.Remove(npc.Plan.TargetObjectId.Value))
                 {
                     npc.Memory.Version++; // §22.7: кэш вида памяти обязан увидеть удаление
-                    Trace.Emit(world, npc.Id, "MemoryForgotten",
-                        $"Obj={npc.Plan.TargetObjectId.Value.Value} Stale (arrived, object gone)");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "MemoryForgotten",
+                            $"Obj={npc.Plan.TargetObjectId.Value.Value} Stale (arrived, object gone)");
+                    }
                 }
 
-                Trace.Emit(world, npc.Id, "ExecFailed",
-                    $"TargetObject={npc.Plan.TargetObjectId.Value.Value} not found in world (despawned?)");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecFailed",
+                        $"TargetObject={npc.Plan.TargetObjectId.Value.Value} not found in world (despawned?)");
+                }
                 PlanInterruption.Abort(world, npc, "Target object despawned mid-plan");
                 npc.Mind.CurrentGoal = GoalType.None;
                 continue;
@@ -226,22 +238,31 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
             {
                 npc.Plan.Status = PlanStatus.Failed;
-                Trace.Emit(world, npc.Id, "ExecFailed",
-                    $"Definition={worldObject.DefinitionId} not found in catalog");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecFailed",
+                        $"Definition={worldObject.DefinitionId} not found in catalog");
+                }
                 continue;
             }
 
             if (npc.Movement.IsMoving)
             {
-                Trace.Emit(world, npc.Id, "ExecWaitingForMovement",
-                    $"Status={npc.Movement.Status} PathStep={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecWaitingForMovement",
+                        $"Status={npc.Movement.Status} PathStep={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}");
+                }
                 continue;
             }
 
             if (npc.Movement.Status != MovementStatus.Arrived && npc.Movement.JunctionPath.Count > 0)
             {
-                Trace.Emit(world, npc.Id, "ExecWaitingForArrival",
-                    $"MovementStatus={npc.Movement.Status} (not Arrived)");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecWaitingForArrival",
+                        $"MovementStatus={npc.Movement.Status} (not Arrived)");
+                }
                 continue;
             }
 
@@ -327,8 +348,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 if (interaction is null)
                 {
                     npc.Plan.Status = PlanStatus.Failed;
-                    Trace.Emit(world, npc.Id, "ExecFailed",
-                        $"No interaction of planned type on {worldObject.DefinitionId}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "ExecFailed",
+                            $"No interaction of planned type on {worldObject.DefinitionId}");
+                    }
                     continue;
                 }
 
@@ -640,19 +664,22 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     SpatialMutations.OccupyJunction(world, jId, npc.Id);
                 }
 
-                Trace.Emit(world, npc.Id, "InteractionStarted",
-                    $"{interaction.Type} -> {worldObject.DefinitionId} " +
-                    // §79: the AUTHORED duration and what the tool in her hands
-                    // actually made of it — a soak must be able to see that the
-                    // machete really did halve the job.
-                    $"Duration={workTicks}ticks ({workTicks * world.TickDeltaTime:F1}s) " +
-                    $"Authored={interaction.DurationTicks} Tool=x{toolSpeedMult:0.##} " +
-                    $"EndTick={npc.Execution.EndTick} " +
-                    $"Effects=[H={interaction.Effects.HungerDelta:+0.00;-0.00} " +
-                    $"E={interaction.Effects.EnergyDelta:+0.00;-0.00} " +
-                    $"C={interaction.Effects.ComfortDelta:+0.00;-0.00} " +
-                    $"T={interaction.Effects.ThermalDelta:+0.00;-0.00} " +
-                    $"W={interaction.Effects.WarmthDelta:+0.00;-0.00}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "InteractionStarted",
+                        $"{interaction.Type} -> {worldObject.DefinitionId} " +
+                        // §79: the AUTHORED duration and what the tool in her hands
+                        // actually made of it — a soak must be able to see that the
+                        // machete really did halve the job.
+                        $"Duration={workTicks}ticks ({workTicks * world.TickDeltaTime:F1}s) " +
+                        $"Authored={interaction.DurationTicks} Tool=x{toolSpeedMult:0.##} " +
+                        $"EndTick={npc.Execution.EndTick} " +
+                        $"Effects=[H={interaction.Effects.HungerDelta:+0.00;-0.00} " +
+                        $"E={interaction.Effects.EnergyDelta:+0.00;-0.00} " +
+                        $"C={interaction.Effects.ComfortDelta:+0.00;-0.00} " +
+                        $"T={interaction.Effects.ThermalDelta:+0.00;-0.00} " +
+                        $"W={interaction.Effects.WarmthDelta:+0.00;-0.00}]");
+                }
                 continue;
             }
 
@@ -681,9 +708,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // crisis is handled she returns to finish the recharge.
                     if (HasSleepInterrupt(world, npc, alreadyAsleep: true))
                     {
-                        Trace.Emit(world, npc.Id, "SleepInterrupted",
-                            $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
-                            $"Danger={npc.Memory.Dangers.Count}");
+                        if (SimTrace.Enabled)
+                        {
+                            Trace.Debug(world, npc.Id, "SleepInterrupted",
+                                $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
+                                $"Danger={npc.Memory.Dangers.Count}");
+                        }
                         PlanInterruption.Abort(world, npc, "Critical need interrupted sleep");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -732,9 +762,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
                     if (SimTrace.Verbose)
                     {
-                        Trace.Emit(world, npc.Id, "ExecProgress",
-                            $"{npc.Execution.CurrentInteraction} Progress={progress:P0} " +
-                            $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                        if (SimTrace.Enabled)
+                        {
+                            Trace.Debug(world, npc.Id, "ExecProgress",
+                                $"{npc.Execution.CurrentInteraction} Progress={progress:P0} " +
+                                $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                        }
                     }
 
                     continue;
@@ -745,8 +778,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 if (completedInteraction is null)
                 {
                     npc.Plan.Status = PlanStatus.Failed;
-                    Trace.Emit(world, npc.Id, "ExecFailed",
-                        $"Interaction {npc.Execution.CurrentInteraction} vanished from {worldObject.DefinitionId}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "ExecFailed",
+                            $"Interaction {npc.Execution.CurrentInteraction} vanished from {worldObject.DefinitionId}");
+                    }
                     continue;
                 }
 
@@ -766,9 +802,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     npc.Execution.StartTick = world.Tick;
                     npc.Execution.EndTick = world.Tick + completedInteraction.DurationTicks;
-                    Trace.Emit(world, npc.Id, "SleepContinued",
-                        $"Surface={worldObject.DefinitionId} Energy={npc.Needs.Energy:F2} " +
-                        $"Comfort={npc.Needs.Comfort:F2}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "SleepContinued",
+                            $"Surface={worldObject.DefinitionId} Energy={npc.Needs.Energy:F2} " +
+                            $"Comfort={npc.Needs.Comfort:F2}");
+                    }
                     continue;
                 }
 
@@ -781,8 +820,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     npc.Execution.StartTick = world.Tick;
                     npc.Execution.EndTick = world.Tick + 1;
-                    Trace.Emit(world, npc.Id, "WakeStandDeferred",
-                        $"Bed={worldObject.Id.Value} no free standing junction");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "WakeStandDeferred",
+                            $"Bed={worldObject.Id.Value} no free standing junction");
+                    }
                     continue;
                 }
 
@@ -805,9 +847,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     var sleepBlockTicks = System.Math.Max(1, completedTotal);
                     npc.Execution.StartTick = world.Tick;
                     npc.Execution.EndTick = world.Tick + sleepBlockTicks;
-                    Trace.Emit(world, npc.Id, "SleepContinued",
-                        $"Object={worldObject.DefinitionId} Energy={npc.Needs.Energy:F2} " +
-                        $"Comfort={npc.Needs.Comfort:F2}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "SleepContinued",
+                            $"Object={worldObject.DefinitionId} Energy={npc.Needs.Energy:F2} " +
+                            $"Comfort={npc.Needs.Comfort:F2}");
+                    }
                     continue;
                 }
 
@@ -839,8 +884,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 npc.Movement.JunctionPath.Clear();
                 npc.Movement.PathIndex = 0;
 
-                Trace.Emit(world, npc.Id, "CycleReset",
-                    $"Goal->None Plan->Completed Execution->Cleared Movement->Cleared (ready for next decision)");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CycleReset",
+                        $"Goal->None Plan->Completed Execution->Cleared Movement->Cleared (ready for next decision)");
+                }
             }
         }
     }
@@ -950,10 +998,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
             else
             {
-                Trace.Emit(world, npc.Id, "SpitHangFailed",
-                    $"spitComplete={BuildSiteMath.CampfireSpitComplete(worldObject)} " +
-                    $"hooksUsed={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw) + BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked)}" +
-                    $"/{SimBalance.CampfireSpitCapacity}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "SpitHangFailed",
+                        $"spitComplete={BuildSiteMath.CampfireSpitComplete(worldObject)} " +
+                        $"hooksUsed={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw) + BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked)}" +
+                        $"/{SimBalance.CampfireSpitCapacity}");
+                }
             }
 
             worldObject.IsOccupied = false;
@@ -1102,8 +1153,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 npc.Inventory.Items.Remove(victim);
                 DropItemAtFeet(world, npc, victim);
-                Trace.Emit(world, npc.Id, "StashedAtFire",
-                    $"{victim.DefinitionId} set by the fire (freed a slot)");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "StashedAtFire",
+                        $"{victim.DefinitionId} set by the fire (freed a slot)");
+                }
             }
         }
         else if (completedInteraction.Type == InteractionType.Observe &&
@@ -1143,10 +1197,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
 
-        Trace.Emit(world, npc.Id, "InteractionCompleted",
-            $"{completedInteraction.Type} on {worldObject.DefinitionId} " +
-            $"Duration={npc.Execution.EndTick - npc.Execution.StartTick}ticks " +
-            $"NeedsBefore=[{needsBefore}] NeedsAfter=[{needsAfter}]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InteractionCompleted",
+                $"{completedInteraction.Type} on {worldObject.DefinitionId} " +
+                $"Duration={npc.Execution.EndTick - npc.Execution.StartTick}ticks " +
+                $"NeedsBefore=[{needsBefore}] NeedsAfter=[{needsAfter}]");
+        }
 
         // §76: the ONE hook covering the whole world-object path —
         // harvesting, building, cooking at the fire, butchering, fire
@@ -1176,8 +1233,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-            Trace.Emit(world, npc.Id, "ExecFailed",
-                "PlaceVessel: no empty bottle to park, or the slot is taken");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed",
+                    "PlaceVessel: no empty bottle to park, or the slot is taken");
+            }
             return false;
         }
 
@@ -1187,8 +1247,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             worldObject.Tile, worldObject.Junctions[0]);
         vessel.Owner = npc.Id; // remembers whose bottle waits here
         vessel.ResourceAmount = 0f;
-        Trace.Emit(world, npc.Id, "VesselPlaced",
-            $"tool.bottle parked in collector {worldObject.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "VesselPlaced",
+                $"tool.bottle parked in collector {worldObject.Id.Value}");
+        }
 
         return true;
     }
@@ -1203,8 +1266,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-            Trace.Emit(world, npc.Id, "ExecFailed",
-                "TakeVessel: nothing collected yet, or the bottle is spoken for");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed",
+                    "TakeVessel: nothing collected yet, or the bottle is spoken for");
+            }
             return false;
         }
 
@@ -1223,9 +1289,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
         npc.BottleWater = WaterKind.Rain;
         npc.BottleCharges = charges;
-        Trace.Emit(world, npc.Id, "VesselTaken",
-            $"Rain x{charges} from collector {worldObject.Id.Value}" +
-            (pouredOver ? " (poured over)" : " (bottle reclaimed)"));
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "VesselTaken",
+                $"Rain x{charges} from collector {worldObject.Id.Value}" +
+                (pouredOver ? " (poured over)" : " (bottle reclaimed)"));
+        }
 
         return true;
     }
@@ -1239,9 +1308,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             worldObject.IsOccupied = false;
             worldObject.CurrentUser = null;
-            Trace.Emit(world, npc.Id, "PickupBlocked",
-                $"Craft project {worldObject.Id.Value} is only " +
-                $"{worldObject.CraftWorkDone}/{worldObject.CraftWorkRequired} ready");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PickupBlocked",
+                    $"Craft project {worldObject.Id.Value} is only " +
+                    $"{worldObject.CraftWorkDone}/{worldObject.CraftWorkRequired} ready");
+            }
             return false;
         }
 
@@ -1264,10 +1336,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             worldObject.IsOccupied = false;
             worldObject.CurrentUser = null;
-            Trace.Emit(world, npc.Id, "PickupBlocked",
-                $"Def={worldObject.DefinitionId} Obj={worldObject.Id.Value} " +
-                $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
-                $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PickupBlocked",
+                    $"Def={worldObject.DefinitionId} Obj={worldObject.Id.Value} " +
+                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
+                    $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+            }
             return false;
         }
         else
@@ -1283,9 +1358,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 Bloodiness = worldObject.Bloodiness
             });
             WorldObjectMutations.DespawnObject(world, worldObject.Id);
-            Trace.Emit(world, npc.Id, "ItemPickedUp",
-                $"Def={worldObject.DefinitionId} Obj={worldObject.Id.Value} " +
-                $"Inventory=[{string.Join(",", npc.Inventory.Items)}] ({npc.Inventory.Items.Count}/{npc.Inventory.Capacity})");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ItemPickedUp",
+                    $"Def={worldObject.DefinitionId} Obj={worldObject.Id.Value} " +
+                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}] ({npc.Inventory.Items.Count}/{npc.Inventory.Capacity})");
+            }
         }
 
         return true;
@@ -1326,8 +1404,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         if (_dressPourScratch.Count > 0)
         {
-            Trace.Emit(world, npc.Id, "StashRecovered",
-                $"{worldObject.DefinitionId} returned [{string.Join(",", _dressPourScratch)}]");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "StashRecovered",
+                    $"{worldObject.DefinitionId} returned [{string.Join(",", _dressPourScratch)}]");
+            }
         }
         // §52.9 r2: now that the new garment is on and the pack capacity
         // is live, put the displaced garment(s) away — into the pack if
@@ -1336,9 +1417,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // garment's pockets); the true overflow rides down inside the
         // dropped piece (lowest importance first).
         StowDisplacedGarments(world, npc);
-        Trace.Emit(world, npc.Id, "ItemWorn",
-            $"Def={worldObject.DefinitionId} Worn=[{string.Join(",", npc.WornItems)}] " +
-            $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ItemWorn",
+                $"Def={worldObject.DefinitionId} Worn=[{string.Join(",", npc.WornItems)}] " +
+                $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+        }
 
         // Spec 42: one wardrobe stop per while — never chain-dress.
         // A cold girl with no real warmth in reach pinned Dress at
@@ -1519,9 +1603,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             hung.Durability = wetWorn.Durability;
             hung.Dirtiness = wetWorn.Dirtiness;
             hung.Bloodiness = wetWorn.Bloodiness;
-            Trace.Emit(world, npc.Id, "ItemHung",
-                $"{wetWorn.DefinitionId} Wetness={wetWorn.Wetness:F2} on rack " +
-                $"Obj={worldObject.Id.Value}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ItemHung",
+                    $"{wetWorn.DefinitionId} Wetness={wetWorn.Wetness:F2} on rack " +
+                    $"Obj={worldObject.Id.Value}");
+            }
         }
 
         worldObject.IsOccupied = false;
@@ -1544,18 +1631,24 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             // Кто-то успел раньше. Не провал плана — просто здесь уже пусто.
             worldObject.IsOccupied = false;
-            Trace.Emit(world, npc.Id, "LootEmpty",
-                $"NPC{worldObject.CurrentUser?.Value.ToString() ?? "?"} has nothing left");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "LootEmpty",
+                    $"NPC{worldObject.CurrentUser?.Value.ToString() ?? "?"} has nothing left");
+            }
             return true;
         }
 
         if (!InventoryMath.MakeRoomFor(world, npc, spoil.DefinitionId))
         {
             worldObject.IsOccupied = false;
-            Trace.Emit(world, npc.Id, "LootBlocked",
-                $"Def={spoil.DefinitionId} " +
-                $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
-                $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "LootBlocked",
+                    $"Def={spoil.DefinitionId} " +
+                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
+                    $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+            }
             return false;
         }
 
@@ -1594,9 +1687,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
 
-        Trace.Emit(world, npc.Id, "MoveOnlyArrived",
-            $"Junction={npc.Plan.TargetJunctionId?.Value.ToString() ?? "-"} " +
-            $"Tile={npc.Tile.Q},{npc.Tile.R} (looking around)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "MoveOnlyArrived",
+                $"Junction={npc.Plan.TargetJunctionId?.Value.ToString() ?? "-"} " +
+                $"Tile={npc.Tile.Q},{npc.Tile.R} (looking around)");
+        }
 
         npc.Plan.Status = PlanStatus.Completed;
         npc.Plan.Steps.Clear();
@@ -1624,8 +1720,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         if (npc.Mind.CurrentGoal == GoalType.Hunt &&
             DecisionSystem.NearestVisibleRabbit(npc, world) is not null)
         {
-            Trace.Emit(world, npc.Id, "HuntContinues",
-                "Arrived but the crab moved on — keep chasing");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "HuntContinues",
+                    "Arrived but the crab moved on — keep chasing");
+            }
             return;
         }
 
@@ -1637,8 +1736,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // arrival owns only this leg while the drive still exists.
         if (npc.Mind.CurrentGoal == GoalType.Abuse && AbuseMath.Drive(npc) > 0f)
         {
-            Trace.Emit(world, npc.Id, "AbuseProwlContinues",
-                "Arrived at search point — keep the Abuse intent for the next leg");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "AbuseProwlContinues",
+                    "Arrived at search point — keep the Abuse intent for the next leg");
+            }
             return;
         }
 
@@ -1651,8 +1753,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         if (npc.Mind.CurrentGoal == GoalType.GroupHunt &&
             npc.Mind.GroupHuntTargetNpcId is not null)
         {
-            Trace.Emit(world, npc.Id, "GroupHuntContinues",
-                "Arrived but he moved on — keep after him");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "GroupHuntContinues",
+                    "Arrived but he moved on — keep after him");
+            }
             return;
         }
 
@@ -1660,8 +1765,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             (npc.Mind.ExpulsionTargetNpcId is not null ||
              npc.Mind.PendingExpulsionFrom is not null))
         {
-            Trace.Emit(world, npc.Id, "CampExpelContinues",
-                "Arrived but the live expulsion scene owns the goal");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CampExpelContinues",
+                    "Arrived but the live expulsion scene owns the goal");
+            }
             return;
         }
 
@@ -1674,8 +1782,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         if (npc.Mind.CurrentGoal == GoalType.PlayerAttack &&
             (npc.Mind.ManualAttackNpcId is not null || npc.Mind.ManualAttackMobId is not null))
         {
-            Trace.Emit(world, npc.Id, "ManualAttackContinues",
-                "Arrived — the player's attack order owns the goal");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ManualAttackContinues",
+                    "Arrived — the player's attack order owns the goal");
+            }
             return;
         }
 
@@ -1683,8 +1794,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // его исполнение. Цель гасится общим путём ниже, а ManualOrderSystem
         // на следующем среднем проходе только подтвердит, что приказ доигран.
         npc.Mind.CurrentGoal = GoalType.None;
-        Trace.Emit(world, npc.Id, "CycleReset",
-            "Goal->None Plan->Completed (move-only plan arrived)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CycleReset",
+                "Goal->None Plan->Completed (move-only plan arrived)");
+        }
     }
 
     // Spec 29F: into the inventory, or at the feet when full.
@@ -1715,8 +1829,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         carcass.ResourceAmount = SimBalance.CarcassDecayTicks;
         carcass.SpawnTick = world.Tick;
         carcass.Variant = variant;
-        Trace.EmitSystem(world, "CarcassSpawned",
-            $"{variant} carcass at Tile={tile.Q},{tile.R}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "CarcassSpawned",
+                $"{variant} carcass at Tile={tile.Q},{tile.R}");
+        }
     }
 
     // Spec §54 (R1): materialize a data-driven Yields list. Scatter drops land
@@ -1892,8 +2009,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
 
-        Trace.Emit(world, npc.Id, "PlanContinues",
-            $"{completed} complete; next step={npc.Plan.Steps[nextInteract].Interaction} on {target.DefinitionId}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanContinues",
+                $"{completed} complete; next step={npc.Plan.Steps[nextInteract].Interaction} on {target.DefinitionId}");
+        }
         return true;
     }
 
@@ -2042,8 +2162,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     {
         if (!LyingSpot.TrySolve(world, npc, out var placement))
         {
-            Trace.Emit(world, npc.Id, "LieDownSpot",
-                $"Tile={npc.Tile.Q},{npc.Tile.R} Fit=NoSpace");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "LieDownSpot",
+                    $"Tile={npc.Tile.Q},{npc.Tile.R} Fit=NoSpace");
+            }
             return false;
         }
 
@@ -2056,9 +2179,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         npc.Movement.DesiredDirection = forward;
         ClaimLyingFootprint(world, npc);
 
-        Trace.Emit(world, npc.Id, "LieDownSpot",
-            $"Tile={npc.Tile.Q},{npc.Tile.R} Node={placement.NodeSlot} " +
-            $"Heading={placement.Heading:F0} Fit=Clear");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "LieDownSpot",
+                $"Tile={npc.Tile.Q},{npc.Tile.R} Node={placement.NodeSlot} " +
+                $"Heading={placement.Heading:F0} Fit=Clear");
+        }
         return true;
     }
 

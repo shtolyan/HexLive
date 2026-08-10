@@ -93,7 +93,11 @@ public static class BodyDamageResolver
                 condition.Prosthetic = null;
                 EquipmentMath.RecalculateCapacity(world, target);
                 InventoryMath.SpillOverflow(world, target);
-                Trace.Emit(world, target.Id, "ProstheticBroken", $"{part} {id}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, target.Id, "ProstheticBroken", $"{part} {id}");
+
+                }
             }
 
             target.Health = target.Body.Mean();
@@ -131,11 +135,14 @@ public static class BodyDamageResolver
         AmputateSystemHelpers.TrySeverCritical(world, target, part, cut, source);
         MortalityHelpers.ResolveTrauma(world, target, landed, source);
 
-        Trace.Emit(world, target.Id, "BodyDamage",
-            $"Source={source} Part={part} Landed={landed:F3} Cut={cut:F3} " +
-            $"Blunt={blunt:F3} HP={target.Body.Parts[part]:F3} " +
-            $"Critical={condition.CriticalTrauma:F3} Blood={target.Needs.Blood:F3} " +
-            $"BloodDeficit={target.Body.BloodDeficit:F3}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, target.Id, "BodyDamage",
+                $"Source={source} Part={part} Landed={landed:F3} Cut={cut:F3} " +
+                $"Blunt={blunt:F3} HP={target.Body.Parts[part]:F3} " +
+                $"Critical={condition.CriticalTrauma:F3} Blood={target.Needs.Blood:F3} " +
+                $"BloodDeficit={target.Body.BloodDeficit:F3}");
+        }
         return new BodyDamageResult(landed, cut, blunt, false);
     }
 

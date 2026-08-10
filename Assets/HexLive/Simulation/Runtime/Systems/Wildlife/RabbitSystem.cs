@@ -110,28 +110,41 @@ public sealed class RabbitSystem : ISimulationSystem
 
             npc.Inventory.Items.Remove(ContentIds.Arrow);
             var hitRoll = MathUtil.Hash01(world.Seed, world.Tick, rabbit.Id * 173 + npc.Id.Value, 806);
-            Trace.Emit(world, npc.Id, "BowShot",
-                $"Rabbit={rabbit.Id} Dist={HexSpatialMath.HexDistance(npc.Tile, rabbit.Tile)} Roll={hitRoll:F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "BowShot",
+                    $"Rabbit={rabbit.Id} Dist={HexSpatialMath.HexDistance(npc.Tile, rabbit.Tile)} Roll={hitRoll:F2}");
+            }
             if (hitRoll < WildlifeBalance.RabbitBowHitChance)
             {
                 // Spec §54: no instant loot — the kill drops a carcass to butcher.
                 if (MathUtil.Hash01(world.Seed, world.Tick, rabbit.Id * 211 + npc.Id.Value, 807) < WildlifeBalance.ArrowRecoverChance)
                 {
                     ExecutionSystem.GiveOrDrop(world, npc, ContentIds.Arrow);
-                    Trace.Emit(world, npc.Id, "ArrowRecovered", $"From rabbit {rabbit.Id}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "ArrowRecovered", $"From rabbit {rabbit.Id}");
+
+                    }
                 }
 
                 _deadRabbits.Add(rabbit);
-                Trace.Emit(world, npc.Id, "CrabKilled",
-                    $"Crab={rabbit.Id} at Tile={rabbit.Tile.Q},{rabbit.Tile.R} " +
-                    $"(bow, Roll={hitRoll:F2}) -> carcass");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CrabKilled",
+                        $"Crab={rabbit.Id} at Tile={rabbit.Tile.Q},{rabbit.Tile.R} " +
+                        $"(bow, Roll={hitRoll:F2}) -> carcass");
+                }
             }
             else
             {
                 rabbit.SpookedUntilTick = world.Tick + SpookTicks;
                 PlanningSystem.SetGoalCooldown(world, npc, GoalType.Hunt);
-                Trace.Emit(world, npc.Id, "HuntMissed",
-                    $"Rabbit={rabbit.Id} arrow lost in the grass (Roll={hitRoll:F2})");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "HuntMissed",
+                        $"Rabbit={rabbit.Id} arrow lost in the grass (Roll={hitRoll:F2})");
+                }
             }
 
             return hitRoll < WildlifeBalance.RabbitBowHitChance;
@@ -171,16 +184,22 @@ public sealed class RabbitSystem : ISimulationSystem
             {
                 // Spec §54: no instant loot — the kill drops a carcass to butcher.
                 _deadRabbits.Add(rabbit);
-                Trace.Emit(world, npc.Id, "CrabKilled",
-                    $"Crab={rabbit.Id} at Tile={rabbit.Tile.Q},{rabbit.Tile.R} " +
-                    $"(Roll={roll:F2}) -> carcass");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CrabKilled",
+                        $"Crab={rabbit.Id} at Tile={rabbit.Tile.Q},{rabbit.Tile.R} " +
+                        $"(Roll={roll:F2}) -> carcass");
+                }
                 return true;
             }
 
             rabbit.SpookedUntilTick = world.Tick + SpookTicks;
             PlanningSystem.SetGoalCooldown(world, npc, GoalType.Hunt);
-            Trace.Emit(world, npc.Id, "HuntMissed",
-                $"Rabbit={rabbit.Id} escaped (Roll={roll:F2})");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "HuntMissed",
+                    $"Rabbit={rabbit.Id} escaped (Roll={roll:F2})");
+            }
             return false;
         }
 
@@ -325,8 +344,11 @@ public sealed class RabbitSystem : ISimulationSystem
             Tile = spawnJunction.Tiles[0]
         };
         world.Rabbits.Add(rabbit);
-        Trace.EmitSystem(world, "CrabSpawned",
-            $"Rabbit={rabbit.Id} at Tile={rabbit.Tile.Q},{rabbit.Tile.R}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "CrabSpawned",
+                $"Rabbit={rabbit.Id} at Tile={rabbit.Tile.Q},{rabbit.Tile.R}");
+        }
         return true;
     }
 }

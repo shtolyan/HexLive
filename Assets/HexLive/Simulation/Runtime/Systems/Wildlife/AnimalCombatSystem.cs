@@ -231,8 +231,11 @@ public sealed class AnimalCombatSystem : ISimulationSystem
             dog.AttackLandsAtTick = world.Tick +
                 SecondsToTicks(Stats(dog).AttackWindupSeconds);
             dog.AttackStartTick = world.Tick;
-            Trace.EmitSystem(world, "DogWindup",
-                $"Dog={dog.Id} lunges at NPC{target.Id.Value}");
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "DogWindup",
+                    $"Dog={dog.Id} lunges at NPC{target.Id.Value}");
+            }
         }
 
         // The moment the exchange is live, the quarry DEFENDS — on this fast

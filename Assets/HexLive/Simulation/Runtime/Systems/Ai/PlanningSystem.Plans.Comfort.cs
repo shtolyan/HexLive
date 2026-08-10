@@ -39,7 +39,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.CoolOff);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=CoolOff NoJunction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=CoolOff NoJunction");
+
+            }
             return;
         }
 
@@ -72,7 +76,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.CoolOff);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=CoolOff NoCoolTile");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=CoolOff NoCoolTile");
+
+            }
             return;
         }
 
@@ -83,9 +91,12 @@ public sealed partial class PlanningSystem
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         npc.Mind.CoolRearmCount = 0;
-        Trace.Emit(world, npc.Id, "CoolOffPlanned",
-            $"Junction={best.Id.Value} Tile={Trace.FormatTile(npc.Plan.TargetTile)} " +
-            $"Shade={TemperatureSystem.IsShaded(world, best.Tiles[0])}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CoolOffPlanned",
+                $"Junction={best.Id.Value} Tile={Trace.FormatTile(npc.Plan.TargetTile)} " +
+                $"Shade={TemperatureSystem.IsShaded(world, best.Tiles[0])}");
+        }
     }
 
     private void BuildBathePlan(WorldState world, NPCState npc)
@@ -106,8 +117,11 @@ public sealed partial class PlanningSystem
                 npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.RedressAfterBathe, TargetJunction = redressShore });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "PostBatheRedress",
-                    $"Resume: returning to {redressShore.Value} for {npc.Mind.RedressGarments.Count} garments");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PostBatheRedress",
+                        $"Resume: returning to {redressShore.Value} for {npc.Mind.RedressGarments.Count} garments");
+                }
                 return;
             }
 
@@ -152,7 +166,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Bathe);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Bathe NoWaterTile");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Bathe NoWaterTile");
+
+            }
             return;
         }
 
@@ -163,9 +181,12 @@ public sealed partial class PlanningSystem
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         npc.Mind.CoolRearmCount = 0;
-        Trace.Emit(world, npc.Id, "BathePlanned",
-            $"Junction={best.Id.Value} BodyHygiene={npc.Needs.Hygiene:F2} " +
-            $"ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "BathePlanned",
+                $"Junction={best.Id.Value} BodyHygiene={npc.Needs.Hygiene:F2} " +
+                $"ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2}");
+        }
     }
 
     private void BuildWashClothesPlan(WorldState world, NPCState npc)
@@ -290,9 +311,12 @@ public sealed partial class PlanningSystem
             });
             npc.Plan.CurrentStepIndex = 0;
             npc.Plan.Status = PlanStatus.Active;
-            Trace.Emit(world, npc.Id, "WashClothesPlanned",
-                $"Worn={wornCandidate} Dirt={wornContamination:F2} " +
-                $"Edge={bestTarget.Value} StandTile={bestStandTile.Q},{bestStandTile.R}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "WashClothesPlanned",
+                    $"Worn={wornCandidate} Dirt={wornContamination:F2} " +
+                    $"Edge={bestTarget.Value} StandTile={bestStandTile.Q},{bestStandTile.R}");
+            }
             return;
         }
 
@@ -360,10 +384,13 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "WashClothesPlanned",
-            $"Object={best.Id.Value} Def={best.DefinitionId} Dirt={best.Dirtiness:F2} " +
-            $"FetchVia={fetchStand.Value} Edge={bestTarget.Value} " +
-            $"StandTile={bestStandTile.Q},{bestStandTile.R}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "WashClothesPlanned",
+                $"Object={best.Id.Value} Def={best.DefinitionId} Dirt={best.Dirtiness:F2} " +
+                $"FetchVia={fetchStand.Value} Edge={bestTarget.Value} " +
+                $"StandTile={bestStandTile.Q},{bestStandTile.R}");
+        }
     }
 
     // Spec 29G: does perception offer real furniture for this interaction?
@@ -448,7 +475,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Sit);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Sit NoLedgeOrSeat");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Sit NoLedgeOrSeat");
+
+            }
             return;
         }
 
@@ -457,8 +488,11 @@ public sealed partial class PlanningSystem
         npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.GroundSit, TargetJunction = sitSpot });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "GroundSitPlanned",
-            $"Junction={sitSpot.Value} Ledge={IsLedgeId(world, sitSpot)}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "GroundSitPlanned",
+                $"Junction={sitSpot.Value} Ledge={IsLedgeId(world, sitSpot)}");
+        }
     }
 
     // Spec 29G: lie at the center of a free hexagon — walkable, dry, no
@@ -594,7 +628,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Sleep);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Sleep NoGroundSpot");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Sleep NoGroundSpot");
+
+            }
             return;
         }
 
@@ -603,8 +641,11 @@ public sealed partial class PlanningSystem
         npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.GroundSleep, TargetJunction = lieSpot });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "GroundSleepPlanned",
-            $"Junction={lieSpot.Value} Hearth={anchor}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "GroundSleepPlanned",
+                $"Junction={lieSpot.Value} Hearth={anchor}");
+        }
     }
 
     // Spec 35.5: is a free drying rack within reach?
@@ -652,7 +693,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.DryClothes);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=DryClothes NoLitFire");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=DryClothes NoLitFire");
+
+            }
             return;
         }
 
@@ -671,7 +716,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.DryClothes);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=DryClothes NoFreeApproach");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=DryClothes NoFreeApproach");
+
+            }
             return;
         }
 
@@ -684,8 +733,11 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "FireDryPlanned",
-            $"To campfire Tile={fire.Tile.Q},{fire.Tile.R}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "FireDryPlanned",
+                $"To campfire Tile={fire.Tile.Q},{fire.Tile.R}");
+        }
     }
 
     private static readonly System.Collections.Generic.List<JunctionId> _rimScratch = new();

@@ -85,8 +85,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
                 if (!huntStale && !groupHuntStale && !expelStale)
                 {
-                    Trace.Emit(world, npc.Id, "PlanSkipped",
-                        $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanSkipped",
+                            $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
+                    }
                     continue;
                 }
 
@@ -151,8 +154,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
             npc.Plan.TargetAgentId = null;
             npc.Plan.Goal = npc.Mind.CurrentGoal;
 
-            Trace.Emit(world, npc.Id, "PlanStarted",
-                $"Goal={npc.Mind.CurrentGoal} PrevGoal={prevGoal} PrevStatus={prevStatus}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanStarted",
+                    $"Goal={npc.Mind.CurrentGoal} PrevGoal={prevGoal} PrevStatus={prevStatus}");
+            }
 
             if (npc.Mind.CurrentGoal == GoalType.Eat)
             {
@@ -179,8 +185,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     });
                     npc.Plan.CurrentStepIndex = 0;
                     npc.Plan.Status = PlanStatus.Active;
-                    Trace.Emit(world, npc.Id, "PlanBuilt",
-                        $"Goal=Eat Item={foodDefinitionId} Steps=[ConsumeInventoryItem]");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanBuilt",
+                            $"Goal=Eat Item={foodDefinitionId} Steps=[ConsumeInventoryItem]");
+                    }
                     continue;
                 }
 
@@ -190,8 +199,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
 
                 npc.Plan.Status = PlanStatus.Failed;
-                Trace.Emit(world, npc.Id, "PlanFailed",
-                    "Goal=Eat but no food in inventory");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanFailed",
+                        "Goal=Eat but no food in inventory");
+                }
                 continue;
             }
 
@@ -240,11 +252,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.CraftInPlace });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "PlanBuilt",
-                    $"Goal={npc.Mind.CurrentGoal} Steps=[CraftInPlace]" +
-                    (npc.Plan.TargetJunctionId is { } pileJ
-                        ? $" (walk to ground pile Junction={pileJ.Value})"
-                        : " (no station)"));
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanBuilt",
+                        $"Goal={npc.Mind.CurrentGoal} Steps=[CraftInPlace]" +
+                        (npc.Plan.TargetJunctionId is { } pileJ
+                            ? $" (walk to ground pile Junction={pileJ.Value})"
+                            : " (no station)"));
+                }
                 continue;
             }
 
@@ -258,8 +273,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     });
                     npc.Plan.CurrentStepIndex = 0;
                     npc.Plan.Status = PlanStatus.Active;
-                    Trace.Emit(world, npc.Id, "PlanBuilt",
-                        $"Goal=Drink Item=tool.bottle Steps=[DrinkBottle] Charges={npc.BottleCharges}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanBuilt",
+                            $"Goal=Drink Item=tool.bottle Steps=[DrinkBottle] Charges={npc.BottleCharges}");
+                    }
                     continue;
                 }
 
@@ -274,8 +292,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     });
                     npc.Plan.CurrentStepIndex = 0;
                     npc.Plan.Status = PlanStatus.Active;
-                    Trace.Emit(world, npc.Id, "PlanBuilt",
-                        $"Goal=Drink Item={drinkDefinitionId} Steps=[ConsumeInventoryItem]");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanBuilt",
+                            $"Goal=Drink Item={drinkDefinitionId} Steps=[ConsumeInventoryItem]");
+                    }
                     continue;
                 }
 
@@ -311,8 +332,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // instead of letting GetWater/forage chains run.
                 SetGoalCooldown(world, npc, GoalType.Drink);
                 npc.Plan.Status = PlanStatus.Failed;
-                Trace.Emit(world, npc.Id, "PlanFailed",
-                    "Goal=Drink but nothing drinkable in inventory");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanFailed",
+                        "Goal=Drink but nothing drinkable in inventory");
+                }
                 continue;
             }
 
@@ -400,7 +424,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, GoalType.Hunt);
-                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Hunt NoVisibleRabbit");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Hunt NoVisibleRabbit");
+
+                    }
                     continue;
                 }
 
@@ -413,8 +441,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "HuntPlanned",
-                    $"Rabbit={rabbit.Id} Tile={rabbit.Tile.Q},{rabbit.Tile.R}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "HuntPlanned",
+                        $"Rabbit={rabbit.Id} Tile={rabbit.Tile.Q},{rabbit.Tile.R}");
+                }
                 continue;
             }
 
@@ -430,7 +461,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, GoalType.Prey);
-                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Prey NoReachableVictim");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Prey NoReachableVictim");
+
+                    }
                     continue;
                 }
 
@@ -443,8 +478,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "PreyPlanned",
-                    $"Victim={victim.Id.Value} Tile={victim.Tile.Q},{victim.Tile.R}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PreyPlanned",
+                        $"Victim={victim.Id.Value} Tile={victim.Tile.Q},{victim.Tile.R}");
+                }
                 continue;
             }
 
@@ -473,7 +511,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
                     npc.Plan.Status = PlanStatus.Failed;
                     AbandonRaid(world, npc, "NoVictim");
-                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Raid NoReachableVictim");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Raid NoReachableVictim");
+
+                    }
                     continue;
                 }
 
@@ -490,7 +532,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     AbandonRaid(world, npc, "NoApproach");
-                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Raid NoApproach");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Raid NoApproach");
+
+                    }
                     continue;
                 }
 
@@ -504,9 +550,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "RaidPlanned",
-                    $"Victim=NPC{raidVictim.Id.Value} Tile={raidVictim.Tile.Q},{raidVictim.Tile.R} " +
-                    $"Opp={RaidMath.Opportunity(world, npc, raidVictim):F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "RaidPlanned",
+                        $"Victim=NPC{raidVictim.Id.Value} Tile={raidVictim.Tile.Q},{raidVictim.Tile.R} " +
+                        $"Opp={RaidMath.Opportunity(world, npc, raidVictim):F2}");
+                }
                 continue;
             }
 
@@ -517,7 +566,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, GoalType.Undress);
-                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Undress NothingRemovable");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Undress NothingRemovable");
+
+                    }
                     continue;
                 }
 
@@ -529,8 +582,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "PlanBuilt",
-                    $"Goal=Undress Item={removable} Steps=[UndressItem]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanBuilt",
+                        $"Goal=Undress Item={removable} Steps=[UndressItem]");
+                }
                 continue;
             }
 
@@ -544,7 +600,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, GoalType.TreatWounds);
-                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=TreatWounds NoBandage");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanFailed", "Goal=TreatWounds NoBandage");
+
+                    }
                     continue;
                 }
 
@@ -555,8 +615,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "PlanBuilt",
-                    $"Goal=TreatWounds Bandages={npc.Needs.Bandages} Steps=[TreatSelf]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanBuilt",
+                        $"Goal=TreatWounds Bandages={npc.Needs.Bandages} Steps=[TreatSelf]");
+                }
                 continue;
             }
 
@@ -585,8 +648,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
             if (interactionType is null)
             {
                 npc.Plan.Status = PlanStatus.Completed;
-                Trace.Emit(world, npc.Id, "PlanNoInteraction",
-                    $"Goal={npc.Mind.CurrentGoal} has no mapped interaction (Idle?)");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanNoInteraction",
+                        $"Goal={npc.Mind.CurrentGoal} has no mapped interaction (Idle?)");
+                }
                 continue;
             }
 
@@ -647,8 +713,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (interactionType == InteractionType.PickUp &&
                     !InventoryMath.CanMakeRoomFor(world, npc, perceived.DefinitionId))
                 {
-                    Trace.Emit(world, npc.Id, "PlanCandidateSkipped",
-                        $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} NoRoomForImportance");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanCandidateSkipped",
+                            $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} NoRoomForImportance");
+                    }
                     continue;
                 }
 
@@ -676,8 +745,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (interactionType == InteractionType.Dress &&
                     !Content.GarmentLibrary.FitsSex(npc.Sex, perceived.DefinitionId))
                 {
-                    Trace.Emit(world, npc.Id, "PlanCandidateSkipped",
-                        $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} WrongSex");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanCandidateSkipped",
+                            $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} WrongSex");
+                    }
                     continue;
                 }
 
@@ -689,15 +761,21 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     EquipmentMath.WarmthGainFromWearing(world, npc, perceived.DefinitionId) <
                         SimBalance.DressWarmthGainMin)
                 {
-                    Trace.Emit(world, npc.Id, "PlanCandidateSkipped",
-                        $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} NoWarmthGain");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanCandidateSkipped",
+                            $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} NoWarmthGain");
+                    }
                     continue;
                 }
 
                 candidateCount++;
-                Trace.Emit(world, npc.Id, "PlanCandidate",
-                    $"Obj={perceived.Id.Value} Tile={perceived.Tile.Q},{perceived.Tile.R} " +
-                    $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanCandidate",
+                        $"Obj={perceived.Id.Value} Tile={perceived.Tile.Q},{perceived.Tile.R} " +
+                        $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
+                }
 
                 if (preferArmor)
                 {
@@ -813,9 +891,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
                 npc.Plan.Status = PlanStatus.Failed;
                 SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
-                Trace.Emit(world, npc.Id, "PlanFailed",
-                    $"Goal={npc.Mind.CurrentGoal} Interaction={interactionType} " +
-                    $"Candidates={candidateCount} NoSuitableObject");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanFailed",
+                        $"Goal={npc.Mind.CurrentGoal} Interaction={interactionType} " +
+                        $"Candidates={candidateCount} NoSuitableObject");
+                }
                 continue;
             }
 
@@ -836,15 +917,21 @@ public sealed partial class PlanningSystem : ISimulationSystem
             {
                 npc.Plan.Status = PlanStatus.Failed;
                 SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
-                Trace.Emit(world, npc.Id, "PlanFailed",
-                    $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} vanished and not remembered");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanFailed",
+                        $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} vanished and not remembered");
+                }
                 continue;
             }
 
-            Trace.Emit(world, npc.Id, "PlanTargetSelected",
-                $"Obj={selected.Id.Value} Def={selected.DefinitionId} " +
-                $"Tile={selected.Tile.Q},{selected.Tile.R} Dist={selected.Distance:F2} " +
-                $"FromMemory={selected.FromMemory} FromCandidates={candidateCount}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanTargetSelected",
+                    $"Obj={selected.Id.Value} Def={selected.DefinitionId} " +
+                    $"Tile={selected.Tile.Q},{selected.Tile.R} Dist={selected.Distance:F2} " +
+                    $"FromMemory={selected.FromMemory} FromCandidates={candidateCount}");
+            }
 
             // Spec 31C.1: obstacle anchors are blocked — stand beside the
             // trunk, not inside it. Gathering a ground item (PickUp) also stands
@@ -904,8 +991,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
-                    Trace.Emit(world, npc.Id, "PlanFailed",
-                        $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} no free junction beside obstacle");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanFailed",
+                            $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} no free junction beside obstacle");
+                    }
                     continue;
                 }
 
@@ -921,15 +1011,21 @@ public sealed partial class PlanningSystem : ISimulationSystem
             {
                 npc.Plan.Status = PlanStatus.Failed;
                 SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
-                Trace.Emit(world, npc.Id, "ReservationFailed",
-                    $"Junction={jId.Value} Already reserved or occupied");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ReservationFailed",
+                        $"Junction={jId.Value} Already reserved or occupied");
+                }
                 continue;
             }
 
             if (targetJunction is { } reservedJId)
             {
-                Trace.Emit(world, npc.Id, "JunctionReserved",
-                    $"Junction={reservedJId.Value} Duration=48ticks Until={world.Tick + 48}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "JunctionReserved",
+                        $"Junction={reservedJId.Value} Duration=48ticks Until={world.Tick + 48}");
+                }
             }
 
             npc.Plan.Steps.Add(new PlanStep
@@ -947,10 +1043,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
             });
             npc.Plan.CurrentStepIndex = 0;
             npc.Plan.Status = PlanStatus.Active;
-            Trace.Emit(world, npc.Id, "PlanBuilt",
-                $"Goal={npc.Plan.Goal} Target={selected.DefinitionId} " +
-                $"Tile={selected.Tile.Q},{selected.Tile.R} Junction={Trace.FormatJunction(targetJunction)} " +
-                $"FromMemory={selected.FromMemory} Steps=[MoveToJunction,Interact]");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanBuilt",
+                    $"Goal={npc.Plan.Goal} Target={selected.DefinitionId} " +
+                    $"Tile={selected.Tile.Q},{selected.Tile.R} Junction={Trace.FormatJunction(targetJunction)} " +
+                    $"FromMemory={selected.FromMemory} Steps=[MoveToJunction,Interact]");
+            }
         }
     }
 
@@ -1220,8 +1319,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
             npc.Mind.GoalLock = null;
         }
 
-        Trace.Emit(world, npc.Id, "GoalCooldownSet",
-            $"{goal} on cooldown until tick {world.Tick + ticks}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "GoalCooldownSet",
+                $"{goal} on cooldown until tick {world.Tick + ticks}");
+        }
     }
 
     // §4-колонка: 41-рукавный switch переехал в GoalCatalog. Знание «какое
@@ -1463,8 +1565,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
         if (!TryReserveBesideJunction(world, npc, collector.Junctions[0], 48,
                 out var beside, besideReach, collector))
         {
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal={npc.Mind.CurrentGoal} collector {collector.Id.Value}: no free junction beside it");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    $"Goal={npc.Mind.CurrentGoal} collector {collector.Id.Value}: no free junction beside it");
+            }
             return false;
         }
 
@@ -1486,9 +1591,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal={npc.Mind.CurrentGoal} Target={collector.DefinitionId} Collector={collector.Id.Value} " +
-            "Steps=[MoveToJunction,Interact(TakeVessel)]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal={npc.Mind.CurrentGoal} Target={collector.DefinitionId} Collector={collector.Id.Value} " +
+                "Steps=[MoveToJunction,Interact(TakeVessel)]");
+        }
         return true;
     }
 }

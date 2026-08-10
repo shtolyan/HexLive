@@ -136,9 +136,12 @@ public sealed class WeatherSystem : ISimulationSystem
                 MathUtil.Hash01(world.Seed, giftDay, giftIndex, 6366);
             spawned.Dirtiness = 0.1f + 0.2f *
                 MathUtil.Hash01(world.Seed, giftDay, giftIndex, 6367);
-            Trace.EmitSystem(world, "SurfGift",
-                $"{garment.Id} washed ashore at Tile={shore.Tiles[0].Q},{shore.Tiles[0].R} " +
-                $"(dur={spawned.Durability:F2} day {giftDay} gift {giftIndex + 1}/{count})");
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "SurfGift",
+                    $"{garment.Id} washed ashore at Tile={shore.Tiles[0].Q},{shore.Tiles[0].R} " +
+                    $"(dur={spawned.Durability:F2} day {giftDay} gift {giftIndex + 1}/{count})");
+            }
         }
     }
 

@@ -154,8 +154,11 @@ public sealed partial class ExecutionSystem
             npc.Plan.TargetAgentId = null;
             npc.Movement.JunctionPath.Clear();
             npc.Movement.PathIndex = 0;
-            Trace.Emit(world, npc.Id, "AbusePursues",
-                $"Mark=NPC{markId.Value} Dist={HexSpatialMath.HexDistance(npc.Tile, mark.Tile)}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "AbusePursues",
+                    $"Mark=NPC{markId.Value} Dist={HexSpatialMath.HexDistance(npc.Tile, mark.Tile)}");
+            }
             return;
         }
 
@@ -263,10 +266,13 @@ public sealed partial class ExecutionSystem
             // боевую стойку, и отдельной кьюшки ей не нужно.
             SocialCueSignals.Stamp(world, mark,
                 answers ? "AbuseThreatened" : "AbuseCowed", npc.Id);
-            Trace.Emit(world, npc.Id, "AbuseStarted",
-                $"Mark=NPC{mark.Id.Value} Loot={npc.Mind.AbuseHasLoot} " +
-                $"Ratio={AbuseMath.Ratio(world, npc, mark):F2} " +
-                $"Social={npc.Needs.Social:F2} Hunger={npc.Needs.Hunger:F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "AbuseStarted",
+                    $"Mark=NPC{mark.Id.Value} Loot={npc.Mind.AbuseHasLoot} " +
+                    $"Ratio={AbuseMath.Ratio(world, npc, mark):F2} " +
+                    $"Social={npc.Needs.Social:F2} Hunger={npc.Needs.Hunger:F2}");
+            }
             return;
         }
 
@@ -342,8 +348,11 @@ public sealed partial class ExecutionSystem
             {
                 SocialCueSignals.Stamp(world, mark, "AbuseDefied", npc.Id);
                 SocialCueSignals.Stamp(world, npc, "AbuseRefused", mark.Id);
-                Trace.Emit(world, npc.Id, "AbuseDefied",
-                    $"Mark=NPC{mark.Id.Value} Ratio={AbuseMath.Ratio(world, npc, mark):F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "AbuseDefied",
+                        $"Mark=NPC{mark.Id.Value} Ratio={AbuseMath.Ratio(world, npc, mark):F2}");
+                }
 
                 // §85: ОТКАЗ ПЕРЕВОДИТ СЦЕНУ В БОЙ. Раньше он ворчал и уходил,
                 // и со стороны это читалось как «подошёл, потоптался, ушёл» —
@@ -530,15 +539,21 @@ public sealed partial class ExecutionSystem
                 seen.Trust = MathUtil.Clamp(
                     seen.Trust - Spec108.GroupHuntWitnessAffinityLoss, -1f, 1f);
                 SocialCueSignals.Stamp(world, witness, "AbuseWitnessed", npc.Id);
-                Trace.Emit(world, witness.Id, "AbuseWitnessed",
-                    $"Abuser=NPC{npc.Id.Value} Mark=NPC{mark.Id.Value} " +
-                    $"Affinity={seen.Affinity:F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, witness.Id, "AbuseWitnessed",
+                        $"Abuser=NPC{npc.Id.Value} Mark=NPC{mark.Id.Value} " +
+                        $"Affinity={seen.Affinity:F2}");
+                }
             }
         }
 
-        Trace.Emit(world, npc.Id, submitted ? "AbuseDone" : "AbuseRebuffed",
-            $"Mark=NPC{mark.Id.Value} Took={taken ?? "nothing"} " +
-            $"Social={npc.Needs.Social:F2} MarkAffinity={rel.Affinity:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, submitted ? "AbuseDone" : "AbuseRebuffed",
+                $"Mark=NPC{mark.Id.Value} Took={taken ?? "nothing"} " +
+                $"Social={npc.Needs.Social:F2} MarkAffinity={rel.Affinity:F2}");
+        }
 
         if (npc.Plan.TargetJunctionId is { } jId)
         {
@@ -593,9 +608,12 @@ public sealed partial class ExecutionSystem
                 loser.Mind.SadWalkUntilTick = world.Tick + Spec81.SadWalkTicks;
                 var fled = MobSystem.TryFleeToCamp(world, loser,
                     $"Routed after abuse by NPC{winner.Id.Value}");
-                Trace.Emit(world, loser.Id, "AbuseRouted",
-                    $"Winner=NPC{winner.Id.Value} SelfDmg={SceneDamage(loser):F2} " +
-                    $"WinnerDmg={SceneDamage(winner):F2} Fled={fled}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, loser.Id, "AbuseRouted",
+                        $"Winner=NPC{winner.Id.Value} SelfDmg={SceneDamage(loser):F2} " +
+                        $"WinnerDmg={SceneDamage(winner):F2} Fled={fled}");
+                }
             }
         }
     }
@@ -625,8 +643,11 @@ public sealed partial class ExecutionSystem
                 leaving.Mind.SadWalkUntilTick = world.Tick + Spec81.SadWalkTicks;
                 var fled = MobSystem.TryFleeToCamp(world, leaving,
                     $"Shaken after abuse by NPC{npc.Id.Value}");
-                Trace.Emit(world, leaving.Id, "AbuseRouted",
-                    $"Winner=none Reason={reason} Fled={fled}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, leaving.Id, "AbuseRouted",
+                        $"Winner=none Reason={reason} Fled={fled}");
+                }
             }
         }
         else

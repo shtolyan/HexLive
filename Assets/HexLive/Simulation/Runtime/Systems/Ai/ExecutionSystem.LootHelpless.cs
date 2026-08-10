@@ -120,10 +120,13 @@ public sealed partial class ExecutionSystem
             // who see the search treat it as an attack and run at the looter.
             var witnesses = CombatHelpSystem.RallyLootWitnesses(world, mark, npc.Id);
 
-            Trace.Emit(world, npc.Id, "LootHelplessStarted",
-                $"Mark=NPC{mark.Id.Value} Items={mark.Inventory.Items.Count} " +
-                $"Weapon={GearCatalog.BestMeleeWeapon(mark.Inventory.Items, mark.Body.WeaponHands)} " +
-                $"Witnesses={witnesses}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "LootHelplessStarted",
+                    $"Mark=NPC{mark.Id.Value} Items={mark.Inventory.Items.Count} " +
+                    $"Weapon={GearCatalog.BestMeleeWeapon(mark.Inventory.Items, mark.Body.WeaponHands)} " +
+                    $"Witnesses={witnesses}");
+            }
             return;
         }
 
@@ -154,16 +157,22 @@ public sealed partial class ExecutionSystem
         {
             // Не влезло в рюкзак — конец сцены, а не провал плана: он уносит
             // то, что успел.
-            Trace.Emit(world, npc.Id, "LootHelplessBlocked",
-                $"Mark=NPC{mark.Id.Value} Took={npc.Mind.LootHelplessTakenCount}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "LootHelplessBlocked",
+                    $"Mark=NPC{mark.Id.Value} Took={npc.Mind.LootHelplessTakenCount}");
+            }
             FinishLootHelpless(world, npc, mark);
             return;
         }
 
         npc.Mind.LootHelplessTakenCount++;
         SocialCueSignals.StampItem(world, npc, "LootHelplessTook", takenId);
-        Trace.Emit(world, npc.Id, "LootHelplessTook",
-            $"Mark=NPC{mark.Id.Value} Def={takenId} Left={mark.Inventory.Items.Count}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "LootHelplessTook",
+                $"Mark=NPC{mark.Id.Value} Def={takenId} Left={mark.Inventory.Items.Count}");
+        }
 
         if (!LootHelplessMath.HasLoot(mark))
         {
@@ -257,7 +266,11 @@ public sealed partial class ExecutionSystem
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
 
-        Trace.Emit(world, npc.Id, "LootHelplessAborted", $"Reason={reason}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "LootHelplessAborted", $"Reason={reason}");
+
+        }
 
         // Abort снимает клеймы, брони шагов и несомую вещь; AbandonLootHelpless —
         // заявку на тело и саму цель.

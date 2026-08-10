@@ -113,8 +113,11 @@ public sealed partial class ExecutionSystem
                 }
             }
 
-            Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"{kind} on the ground Duration={durationTicks}ticks");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"{kind} on the ground Duration={durationTicks}ticks");
+            }
             return;
         }
 
@@ -138,9 +141,12 @@ public sealed partial class ExecutionSystem
 
         if (interruptedSleep)
         {
-            Trace.Emit(world, npc.Id, "SleepInterrupted",
-                $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
-                $"Danger={npc.Memory.Dangers.Count}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "SleepInterrupted",
+                    $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
+                    $"Danger={npc.Memory.Dangers.Count}");
+            }
         }
 
         // Spec §49: sleep in ONE continuous lie. Instead of ending the
@@ -154,8 +160,11 @@ public sealed partial class ExecutionSystem
         {
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + durationTicks;
-            Trace.Emit(world, npc.Id, "SleepContinued",
-                $"Energy={npc.Needs.Energy:F2} Comfort={npc.Needs.Comfort:F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "SleepContinued",
+                    $"Energy={npc.Needs.Energy:F2} Comfort={npc.Needs.Comfort:F2}");
+            }
             return;
         }
 
@@ -166,8 +175,11 @@ public sealed partial class ExecutionSystem
             SpatialMutations.ReleaseJunctionReservation(world, done, npc.Id);
         }
 
-        Trace.Emit(world, npc.Id, kind == InteractionType.Sleep ? "GroundSleptWell" : "GroundSatDown",
-            $"Comfort+{comfort:F2} Energy+{energy:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, kind == InteractionType.Sleep ? "GroundSleptWell" : "GroundSatDown",
+                $"Comfort+{comfort:F2} Energy+{energy:F2}");
+        }
 
         // Spec 41.5: wake up standing still for a beat — no sprinting off
         // the grass; the get-up clip plays out during the grace.
@@ -203,8 +215,11 @@ public sealed partial class ExecutionSystem
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
 
-        Trace.Emit(world, npc.Id, "CycleReset",
-            "Goal->None Plan->Completed Execution->Cleared (ground rest done)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CycleReset",
+                "Goal->None Plan->Completed Execution->Cleared (ground rest done)");
+        }
     }
 
     // Spec §49/§65.2: should a finished sleep block re-arm in place (keep
@@ -388,8 +403,11 @@ public sealed partial class ExecutionSystem
                 SpatialMutations.OccupyJunction(world, spot, npc.Id);
             }
 
-            Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"{(bathing ? "Bathe" : "CoolOff")} Duration={Spec49.CoolOffDwellTicks}ticks");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"{(bathing ? "Bathe" : "CoolOff")} Duration={Spec49.CoolOffDwellTicks}ticks");
+            }
             return;
         }
 
@@ -413,9 +431,12 @@ public sealed partial class ExecutionSystem
             npc.Mind.CoolRearmCount++;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + Spec49.CoolOffDwellTicks;
-            Trace.Emit(world, npc.Id, bathing ? "BatheContinued" : "CoolContinued",
-                $"Rearm={npc.Mind.CoolRearmCount} Hygiene={npc.Needs.Hygiene:F2} " +
-                $"ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, bathing ? "BatheContinued" : "CoolContinued",
+                    $"Rearm={npc.Mind.CoolRearmCount} Hygiene={npc.Needs.Hygiene:F2} " +
+                    $"ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2}");
+            }
             return;
         }
 
@@ -426,9 +447,12 @@ public sealed partial class ExecutionSystem
             SpatialMutations.ReleaseJunctionReservation(world, done, npc.Id);
         }
 
-        Trace.Emit(world, npc.Id, bathing ? "Bathed" : "CooledOff",
-            $"Hygiene={npc.Needs.Hygiene:F2} ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2} " +
-            $"Rearms={npc.Mind.CoolRearmCount}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, bathing ? "Bathed" : "CooledOff",
+                $"Hygiene={npc.Needs.Hygiene:F2} ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2} " +
+                $"Rearms={npc.Mind.CoolRearmCount}");
+        }
 
         // A short refractory window so she doesn't instantly re-select CoolOff even
         // if discomfort still hovers just under the clear edge (mirrors Sit's 240t).
@@ -456,8 +480,11 @@ public sealed partial class ExecutionSystem
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
 
-        Trace.Emit(world, npc.Id, "CycleReset",
-            "Goal->None Plan->Completed Execution->Cleared (cool-off done)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CycleReset",
+                "Goal->None Plan->Completed Execution->Cleared (cool-off done)");
+        }
     }
 
     private static bool ShouldKeepBathing(NPCState npc) =>
@@ -592,7 +619,11 @@ public sealed partial class ExecutionSystem
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
         npc.Movement.IsMoving = false;
-        Trace.Emit(world, npc.Id, "BatheReady", $"Naked; swimming to {swim.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "BatheReady", $"Naked; swimming to {swim.Id.Value}");
+
+        }
     }
 
     private static void RunSwimBathe(WorldState world, NPCState npc, PlanStep step)
@@ -616,8 +647,11 @@ public sealed partial class ExecutionSystem
             npc.Execution.CurrentInteraction = InteractionType.CoolOff;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + SimBalance.BatheDurationTicks;
-            Trace.Emit(world, npc.Id, "BatheStarted",
-                $"Duration={SimBalance.BatheDurationTicks} ticks (25 real seconds)");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "BatheStarted",
+                    $"Duration={SimBalance.BatheDurationTicks} ticks (25 real seconds)");
+            }
             return;
         }
 
@@ -671,8 +705,11 @@ public sealed partial class ExecutionSystem
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
         npc.Movement.IsMoving = false;
-        Trace.Emit(world, npc.Id, "PostBatheRedress",
-            $"Returning to {shore.Value} for {npc.Mind.RedressGarments.Count} garments");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PostBatheRedress",
+                $"Returning to {shore.Value} for {npc.Mind.RedressGarments.Count} garments");
+        }
         return true;
     }
 
@@ -751,8 +788,11 @@ public sealed partial class ExecutionSystem
 
         npc.Mind.RedressGarments.Clear();
         npc.Mind.RedressShore = null;
-        Trace.Emit(world, npc.Id, "PostBatheDressed",
-            $"Re-donned {reworn} garments Warmth={npc.EquippedWarmth:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PostBatheDressed",
+                $"Re-donned {reworn} garments Warmth={npc.EquippedWarmth:F2}");
+        }
         FinishPersonalCare(world, npc, shore, GoalType.Bathe, "Bathed");
     }
 
@@ -918,9 +958,12 @@ public sealed partial class ExecutionSystem
                 npc.WornItems.Remove(garment);
                 npc.Execution.HeldGarment = garment;
                 EquipmentMath.Recalculate(world, npc);
-                Trace.Emit(world, npc.Id, "GarmentInHand",
-                    $"Wash {garment.DefinitionId} doffed to hand " +
-                    $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "GarmentInHand",
+                        $"Wash {garment.DefinitionId} doffed to hand " +
+                        $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+                }
             }
 
             if (world.Tick < npc.Execution.EndTick)
@@ -1016,9 +1059,12 @@ public sealed partial class ExecutionSystem
             }
         }
 
-        Trace.Emit(world, npc.Id, "ItemWorn",
-            $"Def={held.DefinitionId} (re-dressed) Worn=[{string.Join(",", npc.WornItems)}] " +
-            $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ItemWorn",
+                $"Def={held.DefinitionId} (re-dressed) Worn=[{string.Join(",", npc.WornItems)}] " +
+                $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+        }
         return true;
     }
 
@@ -1065,8 +1111,11 @@ public sealed partial class ExecutionSystem
         WorldObjectMutations.DespawnObject(world, objectId);
         npc.Plan.TargetObjectId = null;
         npc.Execution.HeldGarment = held;
-        Trace.Emit(world, npc.Id, "GarmentInHand",
-            $"Wash {held.DefinitionId} picked up (Dirt={held.Dirtiness:F2} Blood={held.Bloodiness:F2})");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "GarmentInHand",
+                $"Wash {held.DefinitionId} picked up (Dirt={held.Dirtiness:F2} Blood={held.Bloodiness:F2})");
+        }
         return true;
     }
 

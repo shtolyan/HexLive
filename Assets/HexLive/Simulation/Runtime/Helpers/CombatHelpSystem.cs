@@ -77,9 +77,12 @@ internal static class CombatHelpSystem
             helper.Mind.PendingTalkFrom = null;
             helper.Mind.PendingAidFrom = null;
             SocialCueSignals.Stamp(world, helper, "LootWitnessed", looterId);
-            Trace.Emit(world, helper.Id, "LootWitnessRallied",
-                $"Victim=NPC{victim.Id.Value} Looter=NPC{looterId.Value} " +
-                $"Dist={HexSpatialMath.HexDistance(helper.Tile, victim.Tile)}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, helper.Id, "LootWitnessRallied",
+                    $"Victim=NPC{victim.Id.Value} Looter=NPC{looterId.Value} " +
+                    $"Dist={HexSpatialMath.HexDistance(helper.Tile, victim.Tile)}");
+            }
             responders++;
         }
 
@@ -305,10 +308,13 @@ internal static class CombatHelpSystem
             {
                 if (world.Tick % 64 == 0)
                 {
-                    Trace.Emit(world, helper.Id, "FriendGuardDeclined",
-                        $"Victim=NPC{victim.Id.Value} {attackerLabel} " +
-                        $"Score={score:F2} Roll={roll:F2} Edge={edge:F2} " +
-                        $"Cond={condition:F2} Aff={relationship.Affinity:F2}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, helper.Id, "FriendGuardDeclined",
+                            $"Victim=NPC{victim.Id.Value} {attackerLabel} " +
+                            $"Score={score:F2} Roll={roll:F2} Edge={edge:F2} " +
+                            $"Cond={condition:F2} Aff={relationship.Affinity:F2}");
+                    }
                 }
                 continue;
             }

@@ -52,8 +52,11 @@ public static class PlanInterruption
         npc.Mind.InterruptedRescuePatientId = patientId;
         patient.Mind.PendingAidFrom = npc.Id;
         patient.Mind.PendingAidSinceTick = world.Tick;
-        Trace.Emit(world, npc.Id, "RescuePausedForCombat",
-            $"NPC{patientId.Value} Reason={reason}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "RescuePausedForCombat",
+                $"NPC{patientId.Value} Reason={reason}");
+        }
     }
 
     private static EntityId? AbortCore(
@@ -173,7 +176,11 @@ public static class PlanInterruption
             npc.Movement.HopLandingIndex = 0;
         }
 
-        Trace.Emit(world, npc.Id, "GoalInterrupted", reason);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "GoalInterrupted", reason);
+
+        }
         return droppedPatientId;
     }
 

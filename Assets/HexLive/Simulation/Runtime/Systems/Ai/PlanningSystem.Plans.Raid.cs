@@ -140,9 +140,12 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "RaidProwl",
-            $"Toward=({camp.Q},{camp.R}) " +
-            $"Dist={HexSpatialMath.HexDistance(npc.Tile, camp)}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "RaidProwl",
+                $"Toward=({camp.Q},{camp.R}) " +
+                $"Dist={HexSpatialMath.HexDistance(npc.Tile, camp)}");
+        }
         return true;
     }
 
@@ -223,7 +226,11 @@ public sealed partial class PlanningSystem
             npc.Mind.CurrentGoal = GoalType.None;
         }
 
-        Trace.Emit(world, npc.Id, "RaidAbandoned", $"Reason={reason}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "RaidAbandoned", $"Reason={reason}");
+
+        }
     }
 
     internal static bool IsAdjacentJunction(WorldState world, JunctionId a, JunctionId b)

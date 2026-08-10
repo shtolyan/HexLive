@@ -87,7 +87,11 @@ public sealed class CorpseSystem : ISimulationSystem
         foreach (var id in _decayed)
         {
             WorldObjectMutations.DespawnObject(world, id);
-            Trace.EmitSystem(world, "CorpseGone", $"Obj={id.Value} decayed");
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "CorpseGone", $"Obj={id.Value} decayed");
+
+            }
         }
     }
 
@@ -127,9 +131,12 @@ public sealed class CorpseSystem : ISimulationSystem
             }
         }
 
-        Trace.EmitSystem(world, "CorpseSkeletonized",
-            $"NPC{body.Id.Value} Obj={corpseId.Value}->{remains.Id.Value} " +
-            $"Items={remains.Contents.Count} Variant={remains.Variant}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "CorpseSkeletonized",
+                $"NPC{body.Id.Value} Obj={corpseId.Value}->{remains.Id.Value} " +
+                $"Items={remains.Contents.Count} Variant={remains.Variant}");
+        }
     }
 }
 

@@ -77,7 +77,11 @@ public sealed class ManualOrderSystem : ISimulationSystem
         var outcome = npc.Plan.Status == PlanStatus.Completed ? "Completed" : "Failed";
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Plan.Status = PlanStatus.None;
-        Trace.Emit(world, npc.Id, "ManualOrderFinished", $"Order=PlayerOrder Outcome={outcome}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerOrder Outcome={outcome}");
+
+        }
     }
 
     private static void KeepAttacking(WorldState world, NPCState npc)
@@ -128,7 +132,11 @@ public sealed class ManualOrderSystem : ISimulationSystem
             npc.Mind.CombatOpponentNpcId = target.Id;
             if (fresh)
             {
-                Trace.Emit(world, npc.Id, "ManualAttackEngaged", $"Target=NPC{target.Id.Value}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ManualAttackEngaged", $"Target=NPC{target.Id.Value}");
+
+                }
             }
 
             return;
@@ -173,8 +181,11 @@ public sealed class ManualOrderSystem : ISimulationSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "ManualChaseRepath",
-            $"Target=NPC{target.Id.Value} ApproachJunction={approach.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualChaseRepath",
+                $"Target=NPC{target.Id.Value} ApproachJunction={approach.Value}");
+        }
     }
 
     private static void KeepAttackingMob(WorldState world, NPCState npc, int mobId)
@@ -232,8 +243,11 @@ public sealed class ManualOrderSystem : ISimulationSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "ManualChaseRepath",
-            $"Target=Dog{mobId} ApproachJunction={approach.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualChaseRepath",
+                $"Target=Dog{mobId} ApproachJunction={approach.Value}");
+        }
     }
 
     private static void EndAttack(WorldState world, NPCState npc, string reason)
@@ -247,7 +261,11 @@ public sealed class ManualOrderSystem : ISimulationSystem
         ManualCommandExecutor.ClearAttackOrder(world, npc);
         npc.IsFighting = false;
         npc.Mind.CurrentGoal = GoalType.None;
-        Trace.Emit(world, npc.Id, "ManualOrderFinished", $"Order=PlayerAttack Outcome={reason}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerAttack Outcome={reason}");
+
+        }
     }
 }
 

@@ -491,8 +491,11 @@ internal static class MortalityHelpers
         if (Spec105.StayDownIfSpent && npc.Needs.Energy <= SimBalance.SleepEnergyThreshold)
         {
             NeedsDecaySystem.EnterComa(world, npc, ComaCause.Exhaustion);
-            Trace.Emit(world, npc.Id, "StayedDown",
-                $"Too spent to get up (Energy={npc.Needs.Energy:F2}) — rolled over and slept");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "StayedDown",
+                    $"Too spent to get up (Energy={npc.Needs.Energy:F2}) — rolled over and slept");
+            }
             return;
         }
 
@@ -568,8 +571,11 @@ internal static class MortalityHelpers
         npc.IsFighting = false; // притворяющаяся не держит боевую стойку
         AnchorLyingBody(world, npc);
 
-        Trace.Emit(world, npc.Id, "PlayDeadStarted",
-            $"Hostile within {Spec105.PlayDeadRadiusTiles} tiles — staying limp");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlayDeadStarted",
+                $"Hostile within {Spec105.PlayDeadRadiusTiles} tiles — staying limp");
+        }
         return true;
     }
 
@@ -709,8 +715,11 @@ internal static class MortalityHelpers
         {
             AttributeMath.Train(npc, AttributeKind.Toughness,
                 Spec118.DangerousRiseToughnessTraining);
-            Trace.Emit(world, npc.Id, "DangerousRise",
-                $"Reason={reason} Toughness={npc.Attributes.Toughness:F3}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "DangerousRise",
+                    $"Reason={reason} Toughness={npc.Attributes.Toughness:F3}");
+            }
         }
 
         npc.Mind.PlayDeadUntilTick = 0;
@@ -724,7 +733,11 @@ internal static class MortalityHelpers
             SpatialMutations.ReleaseJunctionReservation(world, lay, npc.Id);
         }
 
-        Trace.Emit(world, npc.Id, "PlayDeadEnded", $"Reason={reason} — getting up");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlayDeadEnded", $"Reason={reason} — getting up");
+
+        }
     }
 
     // §105.14: «враг рядом» — одно определение на все точки входа. Радиус —
@@ -831,8 +844,11 @@ internal static class MortalityHelpers
                 {
                     npc.Mind.FaintedUntilTick = System.Math.Max(
                         npc.Mind.FaintedUntilTick, world.Tick + Spec118.VitalKnockoutTicks);
-                    Trace.Emit(world, npc.Id, "VitalKnockout",
-                        $"{criticalPart} reached zero after {source}; trauma={critical:F3}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "VitalKnockout",
+                            $"{criticalPart} reached zero after {source}; trauma={critical:F3}");
+                    }
                 }
 
                 if (npc.IsDying && !IsDepthCause(npc.Mind.DyingCause))

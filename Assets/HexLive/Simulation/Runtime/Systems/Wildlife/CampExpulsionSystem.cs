@@ -87,8 +87,11 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         };
         intruder.Mind.PendingExpulsionFrom = owner.Id;
 
-        Trace.Emit(world, owner.Id, "CampExpelStarted",
-            $"Intruder=NPC{intruder.Id.Value} Camp={owner.Faction} Health={intruder.Health:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, owner.Id, "CampExpelStarted",
+                $"Intruder=NPC{intruder.Id.Value} Camp={owner.Faction} Health={intruder.Health:F2}");
+        }
     }
 
     internal static void Advance(WorldState world, NPCState owner)
@@ -155,8 +158,11 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             EndTick = world.Tick + Spec82.TerritoryFightTimeoutTicks + 120
         };
         SocialCueSignals.Stamp(world, owner, "CampExpelDemand", intruder.Id);
-        Trace.Emit(world, owner.Id, "CampExpelDemanded",
-            $"Intruder=NPC{intruder.Id.Value} Health={intruder.Health:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, owner.Id, "CampExpelDemanded",
+                $"Intruder=NPC{intruder.Id.Value} Health={intruder.Health:F2}");
+        }
     }
 
     internal static void AdvanceDemand(WorldState world, NPCState owner, NPCState intruder)
@@ -174,8 +180,11 @@ public sealed class CampExpulsionSystem : ISimulationSystem
                 $"Agreed to leave NPC{owner.Id.Value}'s camp"))
         {
             SocialCueSignals.Stamp(world, intruder, "CampExpelAccepted", owner.Id);
-            Trace.Emit(world, owner.Id, "CampExpelAccepted",
-                $"Intruder=NPC{intruder.Id.Value} Health={intruder.Health:F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, owner.Id, "CampExpelAccepted",
+                    $"Intruder=NPC{intruder.Id.Value} Health={intruder.Health:F2}");
+            }
             Finish(world, owner, intruder, "Accepted", protectIntruder: false,
                 keepIntruderGoal: true);
             return;
@@ -194,8 +203,11 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         intruder.IsFighting = true;
         owner.Mind.ExpulsionPhase = FightPhase;
         owner.Mind.ExpulsionPhaseStartedTick = world.Tick;
-        Trace.Emit(world, owner.Id, "CampExpelFightStarted",
-            $"Intruder=NPC{intruder.Id.Value} Blows={Spec82.TerritoryMaxBlows}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, owner.Id, "CampExpelFightStarted",
+                $"Intruder=NPC{intruder.Id.Value} Blows={Spec82.TerritoryMaxBlows}");
+        }
     }
 
     internal static void AdvanceFight(WorldState world, NPCState owner, NPCState intruder)
@@ -221,10 +233,13 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         var intruderLost = anyDamage && intruderDamage >= ownerDamage;
 
         FightScene.End(world, owner, intruder);
-        Trace.Emit(world, owner.Id, "CampExpelFightResolved",
-            $"Intruder=NPC{intruder.Id.Value} OwnerDamage={ownerDamage:F3} " +
-            $"IntruderDamage={intruderDamage:F3} Result=" +
-            (intruderLost ? "Expelled" : anyDamage ? "IntruderHeld" : "NoDamage"));
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, owner.Id, "CampExpelFightResolved",
+                $"Intruder=NPC{intruder.Id.Value} OwnerDamage={ownerDamage:F3} " +
+                $"IntruderDamage={intruderDamage:F3} Result=" +
+                (intruderLost ? "Expelled" : anyDamage ? "IntruderHeld" : "NoDamage"));
+        }
 
         if (intruderLost)
         {
@@ -417,7 +432,11 @@ public sealed class CampExpulsionSystem : ISimulationSystem
 
         if (owner != null)
         {
-            Trace.Emit(world, owner.Id, "CampExpelEnded", $"Reason={reason}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, owner.Id, "CampExpelEnded", $"Reason={reason}");
+
+            }
         }
     }
 }

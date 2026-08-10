@@ -55,7 +55,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Explore);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Explore NoCandidateJunctions");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Explore NoCandidateJunctions");
+
+            }
             return;
         }
 
@@ -69,8 +73,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Explore);
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=Explore Destination={destination.Id.Value} unreachable");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    $"Goal=Explore Destination={destination.Id.Value} unreachable");
+            }
             return;
         }
 
@@ -83,9 +90,12 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "ExplorePlanned",
-            $"To Junction={destination.Id.Value} " +
-            $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} Steps=[MoveToJunction]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ExplorePlanned",
+                $"To Junction={destination.Id.Value} " +
+                $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} Steps=[MoveToJunction]");
+        }
     }
 
     // Spec 28.15A: walk to a free neighbor junction of the target agent, then Talk.
@@ -97,8 +107,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Completed;
             npc.Mind.CurrentGoal = GoalType.None;
-            Trace.Emit(world, npc.Id, "PlanNoInteraction",
-                $"Goal=Socialize WaitingForTalkFrom=NPC{incoming.Value}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanNoInteraction",
+                    $"Goal=Socialize WaitingForTalkFrom=NPC{incoming.Value}");
+            }
             return;
         }
 
@@ -134,8 +147,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Socialize);
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                "Goal=Socialize NoApproachableAgent");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    "Goal=Socialize NoApproachableAgent");
+            }
             return;
         }
 
@@ -149,8 +165,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Socialize);
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=Socialize Target={target.Id.Value} NoFreeApproachJunction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    $"Goal=Socialize Target={target.Id.Value} NoFreeApproachJunction");
+            }
             return;
         }
 
@@ -181,9 +200,12 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal=Socialize Target=NPC{target.Id.Value} " +
-            $"ApproachJunction={approachJunction.Value} Steps=[MoveToJunction,Talk]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=Socialize Target=NPC{target.Id.Value} " +
+                $"ApproachJunction={approachJunction.Value} Steps=[MoveToJunction,Talk]");
+        }
     }
 
     // Spec §53: which aid interaction serves this kind of suffering.
@@ -272,8 +294,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Completed;
             npc.Mind.CurrentGoal = GoalType.None;
-            Trace.Emit(world, npc.Id, "PlanNoInteraction",
-                $"Goal=Aid WaitingForAidFrom=NPC{incoming.Value}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanNoInteraction",
+                    $"Goal=Aid WaitingForAidFrom=NPC{incoming.Value}");
+            }
             return;
         }
 
@@ -315,7 +340,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Aid);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Aid NoReachableSufferer");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Aid NoReachableSufferer");
+
+            }
             return;
         }
 
@@ -328,8 +357,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Aid);
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=Aid Target={target.Id.Value} NoFreeApproachJunction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    $"Goal=Aid Target={target.Id.Value} NoFreeApproachJunction");
+            }
             return;
         }
 
@@ -361,10 +393,13 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal=Aid Kind={target.AidKind} Target=NPC{target.Id.Value} " +
-            $"Suffering={target.Suffering:F2} ApproachJunction={approachJunction.Value} " +
-            $"Steps=[MoveToJunction,{interaction}]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=Aid Kind={target.AidKind} Target=NPC{target.Id.Value} " +
+                $"Suffering={target.Suffering:F2} ApproachJunction={approachJunction.Value} " +
+                $"Steps=[MoveToJunction,{interaction}]");
+        }
     }
 
     private void BuildDefendPlan(WorldState world, NPCState npc)
@@ -460,8 +495,11 @@ public sealed partial class PlanningSystem
             npc.Plan.Status = PlanStatus.Completed;
             npc.Mind.AssistHoldSinceTick = 0;
             HumanCombatPairing.EngageAssist(world, npc, humanAttacker);
-            Trace.Emit(world, npc.Id, "HelpCryAssistEngaged",
-                $"{label} Reach=Act Reply=NPC{humanAttacker.Mind.CombatOpponentNpcId?.Value ?? -1}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "HelpCryAssistEngaged",
+                    $"{label} Reach=Act Reply=NPC{humanAttacker.Mind.CombatOpponentNpcId?.Value ?? -1}");
+            }
             return;
         }
 
@@ -499,8 +537,11 @@ public sealed partial class PlanningSystem
         if (approach is not { } approachJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=Defend {label} Reach=Approach NoFreeApproachJunction — will replan");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    $"Goal=Defend {label} Reach=Approach NoFreeApproachJunction — will replan");
+            }
             return;
         }
 

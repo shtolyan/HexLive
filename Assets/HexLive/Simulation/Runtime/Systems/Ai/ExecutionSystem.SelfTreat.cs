@@ -24,7 +24,11 @@ public sealed partial class ExecutionSystem
             // (the CraftBandage death class, Jul 2026).
             PlanningSystem.SetGoalCooldown(world, npc, GoalType.TreatWounds);
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed", "TreatSelf: no bandage left");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed", "TreatSelf: no bandage left");
+
+            }
             return;
         }
 
@@ -40,10 +44,13 @@ public sealed partial class ExecutionSystem
                 : AttributeMath.WorkTicks(
                     npc, Spec53.SelfTreatDuration, InteractionType.TreatSelf, npc.Plan.Goal);
             npc.Execution.EndTick = world.Tick + treatTicks;
-            Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"TreatSelf Duration={treatTicks}ticks " +
-                $"Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} " +
-                $"Bandages={npc.Needs.Bandages}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"TreatSelf Duration={treatTicks}ticks " +
+                    $"Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} " +
+                    $"Bandages={npc.Needs.Bandages}");
+            }
             return;
         }
 
@@ -135,7 +142,11 @@ public sealed partial class ExecutionSystem
         npc.Execution.CurrentInteraction = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
-        Trace.Emit(world, npc.Id, "CycleReset", "Goal->None Plan->Completed (treated her wounds)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CycleReset", "Goal->None Plan->Completed (treated her wounds)");
+
+        }
     }
 }
 

@@ -163,8 +163,11 @@ internal static class KenshiMedicalMath
 
             if (wound.Heal01 >= 1f)
             {
-                Trace.Emit(world, npc.Id, "WoundHealed",
-                    $"{part} wound #{wound.Id} closed");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "WoundHealed",
+                        $"{part} wound #{wound.Id} closed");
+                }
                 npc.Wounds.RemoveAt(i);
             }
         }

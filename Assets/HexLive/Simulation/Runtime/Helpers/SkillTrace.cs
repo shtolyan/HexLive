@@ -48,8 +48,11 @@ internal static class SkillTrace
             return;
         }
 
-        Trace.Emit(world, npc.Id, "SkillUp",
-            $"{kind}={npc.Skills.Get(kind):F3} Wits={npc.Attributes.Wits:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "SkillUp",
+                $"{kind}={npc.Skills.Get(kind):F3} Wits={npc.Attributes.Wits:F2}");
+        }
     }
 }
 

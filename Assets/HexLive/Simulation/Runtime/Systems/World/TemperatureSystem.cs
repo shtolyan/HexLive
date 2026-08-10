@@ -151,7 +151,11 @@ public sealed class TemperatureSystem : ISimulationSystem
             // the flames by construction.
             if (onFire)
             {
-                Trace.Emit(world, npc.Id, "FireBurn", "On the fire tile (no HP hit yet)");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "FireBurn", "On the fire tile (no HP hit yet)");
+
+                }
             }
 
             if (magnitude >= SimBalance.ThermalDamageGate)
@@ -204,14 +208,17 @@ public sealed class TemperatureSystem : ISimulationSystem
                     $"ThermalComfort={signed:+0.00;-0.00} Health={npc.Health:F2}");
             }
 
-            Trace.Emit(world, npc.Id, "TemperatureUpdate",
-                $"Thermal={prevThermal:F3}->{npc.Needs.ThermalDiscomfort:F3} " +
-                $"EnvironmentTarget={environmentTarget:+0.00;-0.00} " +
-                $"Body={prevBody:+0.00;-0.00}->{signed:+0.00;-0.00} " +
-                $"Rate={bodyRate:F2} Source={recoverySource} " +
-                $"EffectiveTemp={baseTemp:F1} BodyTemp={bodyTemp:F1} " +
-                $"(Global={world.Environment.GlobalTemperature:F1} " +
-                $"Warmth={npc.EquippedWarmth:F2} Fire={fireWarmth:F1}) Pressure={pressure:+0.00;-0.00}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "TemperatureUpdate",
+                    $"Thermal={prevThermal:F3}->{npc.Needs.ThermalDiscomfort:F3} " +
+                    $"EnvironmentTarget={environmentTarget:+0.00;-0.00} " +
+                    $"Body={prevBody:+0.00;-0.00}->{signed:+0.00;-0.00} " +
+                    $"Rate={bodyRate:F2} Source={recoverySource} " +
+                    $"EffectiveTemp={baseTemp:F1} BodyTemp={bodyTemp:F1} " +
+                    $"(Global={world.Environment.GlobalTemperature:F1} " +
+                    $"Warmth={npc.EquippedWarmth:F2} Fire={fireWarmth:F1}) Pressure={pressure:+0.00;-0.00}");
+            }
 
             // Spec 35.4: sun exposure and sunburn on uncovered parts.
             var effectiveUv = isIndoor || isInWater

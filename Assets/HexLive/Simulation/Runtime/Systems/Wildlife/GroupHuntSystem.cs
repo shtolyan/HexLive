@@ -210,10 +210,13 @@ public sealed class GroupHuntSystem : ISimulationSystem
             if (tookOverall >= Spec108.GroupHuntHunterFleeDamage ||
                 tookWorst >= Spec108.GroupHuntHunterFleeWorstDrop)
             {
-                Trace.Emit(world, hunter.Id, "GroupHuntHunterFled",
-                    $"Target=NPC{quarryId.Value} Health={hunter.Health:F2} " +
-                    $"Took={tookOverall:F2} WorstDrop={tookWorst:F2} " +
-                    $"Blows={hunter.Mind.GroupHuntBlowsLanded}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, hunter.Id, "GroupHuntHunterFled",
+                        $"Target=NPC{quarryId.Value} Health={hunter.Health:F2} " +
+                        $"Took={tookOverall:F2} WorstDrop={tookWorst:F2} " +
+                        $"Blows={hunter.Mind.GroupHuntBlowsLanded}");
+                }
                 EndHunt(world, hunter, "Hurt");
                 MobSystem.TryStartFlee(world, hunter, 1, attackerNpcId: quarryId);
                 continue;
@@ -342,8 +345,11 @@ public sealed class GroupHuntSystem : ISimulationSystem
             else
             {
                 // Бежать некуда — драться. Загнанный в угол бьётся (§29C.4A).
-                Trace.Emit(world, quarry.Id, "GroupHuntTargetCornered",
-                    $"Hunters={inReach} Health={quarry.Health:F2} — бежать некуда");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, quarry.Id, "GroupHuntTargetCornered",
+                        $"Hunters={inReach} Health={quarry.Health:F2} — бежать некуда");
+                }
                 quarry.IsFighting = true;
                 quarry.Mind.CombatOpponentNpcId = nearest.Id;
             }
@@ -508,7 +514,11 @@ public sealed class GroupHuntSystem : ISimulationSystem
     {
         if (announce)
         {
-            Trace.Emit(world, npc.Id, "GroupHuntLeft", $"Reason={reason}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "GroupHuntLeft", $"Reason={reason}");
+
+            }
         }
 
         Unpair(npc);

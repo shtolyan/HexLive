@@ -98,8 +98,11 @@ public sealed class PredationSystem : ISimulationSystem
             {
                 predator.IsFighting = true;
                 predator.Mind.CombatOpponentNpcId = victim.Id;
-                Trace.Emit(world, predator.Id, "PreyEngaged",
-                    $"Victim={victim.Id.Value} Health={victim.Health:F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, predator.Id, "PreyEngaged",
+                        $"Victim={victim.Id.Value} Health={victim.Health:F2}");
+                }
                 RunVictimResponse(world, predator, victim);
                 continue;
             }
@@ -113,9 +116,12 @@ public sealed class PredationSystem : ISimulationSystem
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
             if (!SimBalance.MeleeStrikeReady(world.Tick, predator.Id.Value, weaponId))
             {
-                Trace.Emit(world, predator.Id, "PreyWindup",
-                    $"Victim={victim.Id.Value} Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)} " +
-                    $"Speed={attackSpeed:F1}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, predator.Id, "PreyWindup",
+                        $"Victim={victim.Id.Value} Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)} " +
+                        $"Speed={attackSpeed:F1}");
+                }
                 continue;
             }
 

@@ -43,7 +43,11 @@ public sealed class FruitProductionSystem : ISimulationSystem
         foreach (var rottedId in _rotted)
         {
             WorldObjectMutations.DespawnObject(world, rottedId);
-            Trace.EmitSystem(world, "ProduceRotted", $"Obj={rottedId.Value}");
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "ProduceRotted", $"Obj={rottedId.Value}");
+
+            }
         }
 
         // Spec 29A.2/19.7A: production only in the "daylight" half. Timers are
@@ -87,18 +91,24 @@ public sealed class FruitProductionSystem : ISimulationSystem
             producer.ProducedItems.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
             if (producer.ProducedItems.Count >= produce.MaxConcurrent)
             {
-                Trace.EmitSystem(world, "ProduceSkipped",
-                    $"Obj={producer.Id.Value} Def={producer.DefinitionId} CapReached " +
-                    $"({producer.ProducedItems.Count}/{produce.MaxConcurrent})");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "ProduceSkipped",
+                        $"Obj={producer.Id.Value} Def={producer.DefinitionId} CapReached " +
+                        $"({producer.ProducedItems.Count}/{produce.MaxConcurrent})");
+                }
                 continue;
             }
 
             var (dropTile, dropJunction) = FindDropSpot(world, producer);
             if (dropJunction is null)
             {
-                Trace.EmitSystem(world, "ProduceSkipped",
-                    $"Obj={producer.Id.Value} Def={producer.DefinitionId} NoFreeSpot " +
-                    $"(retry at tick {producer.NextProductionTick})");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "ProduceSkipped",
+                        $"Obj={producer.Id.Value} Def={producer.DefinitionId} NoFreeSpot " +
+                        $"(retry at tick {producer.NextProductionTick})");
+                }
                 continue;
             }
 
@@ -106,10 +116,13 @@ public sealed class FruitProductionSystem : ISimulationSystem
                 world, produce.ProducedDefinitionId, producer.Fragment, dropTile, dropJunction.Value);
             producer.ProducedItems.Add(spawned.Id);
 
-            Trace.EmitSystem(world, "ProduceDropped",
-                $"Producer={producer.Id.Value} Spawned={spawned.Id.Value} Def={produce.ProducedDefinitionId} " +
-                $"Tile={dropTile.Q},{dropTile.R} Junction={dropJunction.Value.Value} " +
-                $"Concurrent={producer.ProducedItems.Count}/{produce.MaxConcurrent}");
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "ProduceDropped",
+                    $"Producer={producer.Id.Value} Spawned={spawned.Id.Value} Def={produce.ProducedDefinitionId} " +
+                    $"Tile={dropTile.Q},{dropTile.R} Junction={dropJunction.Value.Value} " +
+                    $"Concurrent={producer.ProducedItems.Count}/{produce.MaxConcurrent}");
+            }
         }
     }
 

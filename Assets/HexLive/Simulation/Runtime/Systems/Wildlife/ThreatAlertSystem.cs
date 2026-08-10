@@ -126,10 +126,13 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                     // всплывает лицо чужака, а у зверя иконка), и голосу:
                     // «человек на горизонте» звучит не так, как «волк».
                     SocialCueSignals.Stamp(world, npc, "DangerStranger", hostile.Id);
-                    Trace.Emit(world, npc.Id, "HostileSpotted",
-                        $"Npc={hostile.Id.Value} " +
-                        $"Dist={HexSpatialMath.HexDistance(npc.Tile, hostile.Tile)} " +
-                        $"Fit={IsFitToFight(npc)} FirstStrike=suppressed");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "HostileSpotted",
+                            $"Npc={hostile.Id.Value} " +
+                            $"Dist={HexSpatialMath.HexDistance(npc.Tile, hostile.Tile)} " +
+                            $"Fit={IsFitToFight(npc)} FirstStrike=suppressed");
+                    }
 
                     // NEVER StartFirstStrike. The girls do not open hostilities:
                     // partly because the rally scene only lands if he is
@@ -245,8 +248,11 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             MobSystem.ReadySpearHands(world, npc);
         }
 
-        Trace.Emit(world, npc.Id, "ThreatAttack",
-            $"Mob={threat.Id} first strike (fit and armed)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ThreatAttack",
+                $"Mob={threat.Id} first strike (fit and armed)");
+        }
     }
 
     private static void AvoidThreat(WorldState world, NPCState npc, Wildlife.MobState threat)
@@ -269,8 +275,11 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                 continue;
             }
 
-            Trace.Emit(world, npc.Id, "ThreatAvoid",
-                $"Mob={threat.Id} Tile={threat.Tile.Q},{threat.Tile.R} rerouting");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ThreatAvoid",
+                    $"Mob={threat.Id} Tile={threat.Tile.Q},{threat.Tile.R} rerouting");
+            }
             PlanInterruption.Abort(world, npc,
                 $"Route passes spotted dog {threat.Id} — rerouting");
             return;
@@ -317,8 +326,11 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                 continue;
             }
 
-            Trace.Emit(world, npc.Id, "HostileAvoid",
-                $"Npc={hostile.Id.Value} Tile={hostile.Tile.Q},{hostile.Tile.R} rerouting");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "HostileAvoid",
+                    $"Npc={hostile.Id.Value} Tile={hostile.Tile.Q},{hostile.Tile.R} rerouting");
+            }
             PlanInterruption.Abort(world, npc,
                 $"Route passes the outsider NPC{hostile.Id.Value} — rerouting");
             return;

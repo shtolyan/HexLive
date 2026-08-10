@@ -59,13 +59,16 @@ public sealed partial class ExecutionSystem
 
     private static void EmitSiteDelivered(WorldState world, NPCState npc, WorldObjectState site)
     {
-        Trace.Emit(world, npc.Id, "SiteDelivered",
-            $"{site.BuildProduct}: logs {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLogs)}/{site.BillLogs} " +
-            $"stones {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialStones)}/{site.BillStones} " +
-            $"leaves {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLeaves)}/{site.BillLeaves} " +
-            $"sticks {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks)}/{site.BillSticks} " +
-            $"rope {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialRope)}/{site.BillRope} " +
-            $"boards {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialBoards)}/{site.BillBoards}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "SiteDelivered",
+                $"{site.BuildProduct}: logs {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLogs)}/{site.BillLogs} " +
+                $"stones {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialStones)}/{site.BillStones} " +
+                $"leaves {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLeaves)}/{site.BillLeaves} " +
+                $"sticks {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks)}/{site.BillSticks} " +
+                $"rope {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialRope)}/{site.BillRope} " +
+                $"boards {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialBoards)}/{site.BillBoards}");
+        }
     }
 
     // §77: the mid-animation handoff, called from the in-progress branch. The
@@ -289,8 +292,11 @@ public sealed partial class ExecutionSystem
 
             if (keepDoor && !doorKept)
             {
-                Trace.EmitSystem(world, "DoorPlacementFailed",
-                    $"No free mid-edge junction on edge {bill.Edge} — hut may be sealed");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "DoorPlacementFailed",
+                        $"No free mid-edge junction on edge {bill.Edge} — hut may be sealed");
+                }
             }
 
             project.EdgeDone[bill.Edge] = true;

@@ -42,8 +42,11 @@ public sealed partial class PlanningSystem
         if (PickApproachJunction(world, npc, targetJunction) is not { } approach)
         {
             npc.Plan.Status = PlanStatus.Completed;
-            Trace.Emit(world, npc.Id, "CampExpelHolding",
-                $"Target=NPC{targetId.Value} NoFreeApproachJunction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CampExpelHolding",
+                    $"Target=NPC{targetId.Value} NoFreeApproachJunction");
+            }
             return;
         }
 
@@ -56,8 +59,11 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal=Expel Target=NPC{targetId.Value} ApproachJunction={approach.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=Expel Target=NPC{targetId.Value} ApproachJunction={approach.Value}");
+        }
     }
 }
 

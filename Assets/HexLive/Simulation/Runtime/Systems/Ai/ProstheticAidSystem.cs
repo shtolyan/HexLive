@@ -183,8 +183,11 @@ public sealed class ProstheticAidSystem : ISimulationSystem
         if (bestPatient is null) return;
         helper.Mind.ProstheticAidTargetId = bestPatient.Id;
         helper.Mind.ProstheticAidPart = bestPart;
-        Trace.Emit(world, helper.Id, "ProstheticAidPledged",
-            $"NPC{bestPatient.Id.Value} Part={bestPart} Compassion={helper.CompassionTrait:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, helper.Id, "ProstheticAidPledged",
+                $"NPC{bestPatient.Id.Value} Part={bestPart} Compassion={helper.CompassionTrait:F2}");
+        }
     }
 
     private static bool NeedsReplacement(NPCState patient, BodyPart part) =>
@@ -291,8 +294,11 @@ public sealed class ProstheticAidSystem : ISimulationSystem
         });
         helper.Plan.CurrentStepIndex = 0;
         helper.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, helper.Id, "ProstheticAidPickupAssigned",
-            $"Def={target.DefinitionId} Obj={target.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, helper.Id, "ProstheticAidPickupAssigned",
+                $"Def={target.DefinitionId} Obj={target.Id.Value}");
+        }
         return true;
     }
 }

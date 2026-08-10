@@ -93,17 +93,23 @@ public sealed partial class ExecutionSystem
             npc.Inventory.Items.Add(item);
             fire.IsOccupied = false;
             fire.CurrentUser = null;
-            Trace.Emit(world, npc.Id, "MeatTakenFromSpit",
-                $"food.meat_cooked off the spit at Tile={fire.Tile.Q},{fire.Tile.R} " +
-                $"left hanging={BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked)} " +
-                $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "MeatTakenFromSpit",
+                    $"food.meat_cooked off the spit at Tile={fire.Tile.Q},{fire.Tile.R} " +
+                    $"left hanging={BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked)} " +
+                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+            }
             return;
         }
 
         fire.IsOccupied = false;
         fire.CurrentUser = null;
-        Trace.Emit(world, npc.Id, "SpitTakeFailed",
-            $"no takeable cooked meat on the spit at Tile={fire.Tile.Q},{fire.Tile.R}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "SpitTakeFailed",
+                $"no takeable cooked meat on the spit at Tile={fire.Tile.Q},{fire.Tile.R}");
+        }
     }
 
     // §gear-craft: the item-output arm of the craft completion — shared by the
@@ -121,8 +127,11 @@ public sealed partial class ExecutionSystem
                 return true;
             case GoalType.CraftSpear:
                 GiveOrDrop(world, npc, ContentIds.Spear);
-                Trace.Emit(world, npc.Id, "CraftedSpear",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedSpear",
+                        $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                }
                 return true;
             // §54.14 (r2): CookMeat no longer grants here — the raw chunk is
             // hung on the spit at the station-craft arm and FireSystem roasts
@@ -132,45 +141,69 @@ public sealed partial class ExecutionSystem
                 npc.WornItems.Add(ContentIds.LeatherPants);
                 EquipmentMath.Recalculate(world, npc);
                 StowDisplacedGarments(world, npc); // §52.9 r2: displaced pants go to the pack, overflow to ground
-                Trace.Emit(world, npc.Id, "CraftedLeather",
-                    $"Pants worn. Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedLeather",
+                        $"Pants worn. Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+                }
                 return true;
             case GoalType.CraftAxe:
                 GiveOrDrop(world, npc, ContentIds.AxeStone);
-                Trace.Emit(world, npc.Id, "CraftedAxe",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedAxe",
+                        $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                }
                 return true;
             case GoalType.CraftPickaxe:
                 GiveOrDrop(world, npc, ContentIds.PickaxeStone);
-                Trace.Emit(world, npc.Id, "CraftedPickaxe",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedPickaxe",
+                        $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                }
                 return true;
             case GoalType.CraftBow:
                 GiveOrDrop(world, npc, ContentIds.Bow);
-                Trace.Emit(world, npc.Id, "CraftedBow",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedBow",
+                        $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                }
                 return true;
             case GoalType.CraftArrows:
                 GiveOrDrop(world, npc, ContentIds.Arrow);
                 GiveOrDrop(world, npc, ContentIds.Arrow);
                 GiveOrDrop(world, npc, ContentIds.Arrow);
-                Trace.Emit(world, npc.Id, "CraftedArrows",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedArrows",
+                        $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                }
                 return true;
             case GoalType.CraftRope:
                 GiveOrDrop(world, npc, ContentIds.Rope);
-                Trace.Emit(world, npc.Id, "CraftedRope",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedRope",
+                        $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                }
                 return true;
             case GoalType.CraftCloth:
                 GiveOrDrop(world, npc, ContentIds.Cloth);
-                Trace.Emit(world, npc.Id, "CraftedCloth",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedCloth",
+                        $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                }
                 return true;
             case GoalType.CraftKnife:
                 GiveOrDrop(world, npc, ContentIds.Knife);
-                Trace.Emit(world, npc.Id, "CraftedKnife",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "CraftedKnife",
+                        $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                }
                 return true;
             case GoalType.CraftSplint:
                 GiveOrDrop(world, npc, ContentIds.Splint);
@@ -357,8 +390,11 @@ public sealed partial class ExecutionSystem
             {
                 PlanningSystem.SetGoalCooldown(world, npc, goal);
                 npc.Plan.Status = PlanStatus.Failed;
-                Trace.Emit(world, npc.Id, "ExecFailed",
-                    $"CraftInPlace {goal}: no resumable project or complete bill");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecFailed",
+                        $"CraftInPlace {goal}: no resumable project or complete bill");
+                }
                 return;
             }
 
@@ -369,8 +405,11 @@ public sealed partial class ExecutionSystem
             var ticks = AttributeMath.WorkTicks(
                 npc, Spec119.CraftCycleWork, InteractionType.Craft, goal);
             npc.Execution.EndTick = world.Tick + ticks;
-            Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"CraftInPlace {goal} Project={project.Id.Value} Duration={ticks}ticks");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"CraftInPlace {goal} Project={project.Id.Value} Duration={ticks}ticks");
+            }
             return;
         }
 
@@ -395,8 +434,11 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + CraftTakeDurationTicks;
             FaceCraftLayout(world, npc);
-            Trace.Emit(world, npc.Id, "CraftOutputReady",
-                $"{goal} Project={resultId.Value}; take in {CraftTakeDurationTicks}ticks");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CraftOutputReady",
+                    $"{goal} Project={resultId.Value}; take in {CraftTakeDurationTicks}ticks");
+            }
             return;
         }
 
@@ -409,7 +451,11 @@ public sealed partial class ExecutionSystem
         if (!Content.RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe))
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed", $"CraftInPlace: no recipe for {goal}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed", $"CraftInPlace: no recipe for {goal}");
+
+            }
             return;
         }
 
@@ -462,8 +508,11 @@ public sealed partial class ExecutionSystem
                     // bled-out-at-CraftBandage death class, Jul 2026).
                     PlanningSystem.SetGoalCooldown(world, npc, goal);
                     npc.Plan.Status = PlanStatus.Failed;
-                    Trace.Emit(world, npc.Id, "ExecFailed",
-                        $"CraftInPlace {goal}: missing {ing.Id} x{ing.Count}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "ExecFailed",
+                            $"CraftInPlace {goal}: missing {ing.Id} x{ing.Count}");
+                    }
                     return;
                 }
             }
@@ -524,9 +573,12 @@ public sealed partial class ExecutionSystem
                 npc, CraftWorkBaseTicks(goal), InteractionType.Craft, goal);
             npc.Execution.EndTick = world.Tick + craftTicks;
             FaceCraftLayout(world, npc); // §61: kneel TOWARD the laid-out pieces
-            Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"CraftInPlace {goal} Duration={craftTicks}ticks " +
-                $"LaidOut={npc.Execution.CraftLayout.Count} FromGround={fromGround}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"CraftInPlace {goal} Duration={craftTicks}ticks " +
+                    $"LaidOut={npc.Execution.CraftLayout.Count} FromGround={fromGround}");
+            }
             return;
         }
 
@@ -574,9 +626,12 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + CraftTakeDurationTicks;
             FaceCraftLayout(world, npc); // §61: stoop TOWARD the finished item
-            Trace.Emit(world, npc.Id, "CraftOutputLaid",
-                $"{goal} -> [{string.Join(",", outputs)}] on the ground; " +
-                $"take in {CraftTakeDurationTicks}ticks");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CraftOutputLaid",
+                    $"{goal} -> [{string.Join(",", outputs)}] on the ground; " +
+                    $"take in {CraftTakeDurationTicks}ticks");
+            }
             return;
         }
 
@@ -623,8 +678,11 @@ public sealed partial class ExecutionSystem
         npc.Execution.CurrentInteraction = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
-        Trace.Emit(world, npc.Id, "CycleReset",
-            $"Goal->None Plan->Completed (crafted {goal} in place)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CycleReset",
+                $"Goal->None Plan->Completed (crafted {goal} in place)");
+        }
     }
 }
 

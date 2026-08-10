@@ -161,10 +161,13 @@ public sealed class RaidWaveSystem : ISimulationSystem
         AddToSpatialIndexes(world, npc);
         EquipmentMath.Recalculate(world, npc);
 
-        Trace.Emit(world, id, "RaidWaveSpawned",
-            $"Wave={wave} Sex={(female ? "Female" : "Male")} " +
-            $"Weapon={WeaponForWave(wave)} Armor={npc.EquippedArmor:F2} " +
-            $"Strength={npc.Attributes.Strength:F2} Tile={tile.Q},{tile.R}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, id, "RaidWaveSpawned",
+                $"Wave={wave} Sex={(female ? "Female" : "Male")} " +
+                $"Weapon={WeaponForWave(wave)} Armor={npc.EquippedArmor:F2} " +
+                $"Strength={npc.Attributes.Strength:F2} Tile={tile.Q},{tile.R}");
+        }
         return true;
     }
 
@@ -186,8 +189,11 @@ public sealed class RaidWaveSystem : ISimulationSystem
                 !world.Content.ObjectDefinitions.TryGetValue(piece, out var definition) ||
                 !definition.Tags.Contains("Clothing"))
             {
-                Trace.Emit(world, npc.Id, "RaidWaveArmorSkipped",
-                    $"Item={piece ?? "<null>"} missing-or-not-clothing");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "RaidWaveArmorSkipped",
+                        $"Item={piece ?? "<null>"} missing-or-not-clothing");
+                }
                 continue;
             }
 

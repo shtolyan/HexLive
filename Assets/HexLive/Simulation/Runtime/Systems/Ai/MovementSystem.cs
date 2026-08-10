@@ -54,8 +54,11 @@ public sealed class MovementSystem : ISimulationSystem
             SpatialQueries.IsSwimTile(landedTile) && !SpatialQueries.IsSwimTile(leftTile))
         {
             npc.Movement.ClimbPauseTimer = SwimEntryPauseSeconds;
-            Trace.Emit(world, npc.Id, "SwimEnter",
-                $"Pause={SwimEntryPauseSeconds:F2}s Tile={toTile.Q},{toTile.R}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "SwimEnter",
+                    $"Pause={SwimEntryPauseSeconds:F2}s Tile={toTile.Q},{toTile.R}");
+            }
         }
     }
 
@@ -198,8 +201,11 @@ public sealed class MovementSystem : ISimulationSystem
                 {
                     npc.Tile = hopLandTile;
                     SpatialMutations.MoveEntityToTile(world, npc.Id, hopPreviousTile, npc.Tile);
-                    Trace.Emit(world, npc.Id, "EnteredTile",
-                        $"From={hopPreviousTile.Q},{hopPreviousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "EnteredTile",
+                            $"From={hopPreviousTile.Q},{hopPreviousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
+                    }
 
                     // §40.18-B: dove into deep water — tread a beat (plays
                     // after the landing beat; the pause block defers while
@@ -252,9 +258,12 @@ public sealed class MovementSystem : ISimulationSystem
                 }
 
                 npc.Movement.PathIndex = nextIndex;
-                Trace.Emit(world, npc.Id, "HopLanded",
-                    $"Tile={npc.Tile.Q},{npc.Tile.R} Pos={Trace.FormatPos(npc.Position)} " +
-                    $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count} Eaten={eaten}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "HopLanded",
+                        $"Tile={npc.Tile.Q},{npc.Tile.R} Pos={Trace.FormatPos(npc.Position)} " +
+                        $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count} Eaten={eaten}");
+                }
                 if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
                 {
                     // The path ends on this landing — close the hop window
@@ -265,9 +274,12 @@ public sealed class MovementSystem : ISimulationSystem
                         npc.Movement.ClimbPauseTimer, HexHopTuning.LandingSeconds);
                     npc.Movement.IsMoving = false;
                     npc.Movement.SetStatus(MovementStatus.Arrived);
-                    Trace.Emit(world, npc.Id, "MovementCompleted",
-                        $"HopLanding Tile={npc.Tile.Q},{npc.Tile.R} " +
-                        $"Pos={Trace.FormatPos(npc.Position)}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "MovementCompleted",
+                            $"HopLanding Tile={npc.Tile.Q},{npc.Tile.R} " +
+                            $"Pos={Trace.FormatPos(npc.Position)}");
+                    }
                 }
             }
 
@@ -312,8 +324,11 @@ public sealed class MovementSystem : ISimulationSystem
             {
                 npc.Movement.IsMoving = false;
                 npc.Movement.SetStatus(MovementStatus.Arrived);
-                Trace.Emit(world, npc.Id, "MovementPathExhausted",
-                    $"PathIndex={targetIndex} >= PathCount={npc.Movement.JunctionPath.Count}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "MovementPathExhausted",
+                        $"PathIndex={targetIndex} >= PathCount={npc.Movement.JunctionPath.Count}");
+                }
                 continue;
             }
 
@@ -322,8 +337,11 @@ public sealed class MovementSystem : ISimulationSystem
             {
                 npc.Movement.IsMoving = false;
                 npc.Movement.SetStatus(MovementStatus.Invalid);
-                Trace.Emit(world, npc.Id, "MovementInvalidJunction",
-                    $"Junction={targetJunctionId.Value} not found in world");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "MovementInvalidJunction",
+                        $"Junction={targetJunctionId.Value} not found in world");
+                }
                 continue;
             }
 
@@ -390,8 +408,11 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.Movement.HopTimer = 0f;
                     npc.Movement.HopArmed = false;
                     npc.Movement.HopPathIndex = -1;
-                    Trace.Emit(world, npc.Id, "MovementRepath",
-                        $"Junction={targetJunctionId.Value} held by a housemate");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "MovementRepath",
+                            $"Junction={targetJunctionId.Value} held by a housemate");
+                    }
                 }
 
                 PauseGaitAndBreath(npc);
@@ -625,11 +646,14 @@ public sealed class MovementSystem : ISimulationSystem
 
                     if (SimTrace.Verbose)
                     {
-                        Trace.Emit(world, npc.Id, "MovementRotating",
-                            $"Rot={prevRotation:F1}->{npc.RotationDegrees:F1} Desired={npc.Movement.DesiredRotationDegrees:F1} " +
-                            $"Initial={initialFacingError:F1} Residual={facingError:F1} Planted=1 " +
-                            $"ToJunction={targetJunctionId.Value} " +
-                            $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
+                        if (SimTrace.Enabled)
+                        {
+                            Trace.Debug(world, npc.Id, "MovementRotating",
+                                $"Rot={prevRotation:F1}->{npc.RotationDegrees:F1} Desired={npc.Movement.DesiredRotationDegrees:F1} " +
+                                $"Initial={initialFacingError:F1} Residual={facingError:F1} Planted=1 " +
+                                $"ToJunction={targetJunctionId.Value} " +
+                                $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
+                        }
                     }
 
                     PauseGaitAndBreath(npc);
@@ -641,8 +665,11 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.Movement.PostTurnTimer = System.MathF.Max(
                         0f, npc.Movement.PostTurnTimer - world.TickDeltaTime);
                     npc.Movement.SetStatus(MovementStatus.Rotating);
-                    Trace.Emit(world, npc.Id, "MovementPostTurnPause",
-                        $"Timer={npc.Movement.PostTurnTimer:F2}s remaining");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "MovementPostTurnPause",
+                            $"Timer={npc.Movement.PostTurnTimer:F2}s remaining");
+                    }
                     PauseGaitAndBreath(npc);
                     continue;
                 }
@@ -655,8 +682,11 @@ public sealed class MovementSystem : ISimulationSystem
             {
                 npc.Movement.ClimbPauseTimer -= world.TickDeltaTime;
                 npc.Movement.SetStatus(MovementStatus.Waiting);
-                Trace.Emit(world, npc.Id, "ClimbPause",
-                    $"Timer={npc.Movement.ClimbPauseTimer:F2}s remaining");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ClimbPause",
+                        $"Timer={npc.Movement.ClimbPauseTimer:F2}s remaining");
+                }
                 PauseGaitAndBreath(npc);
                 continue;
             }
@@ -892,9 +922,12 @@ public sealed class MovementSystem : ISimulationSystem
                 npc.Movement.HopTimer = HexHopTuning.HopSeconds;
                 npc.Movement.HopStartTick = world.Tick;
                 npc.Movement.SetStatus(MovementStatus.Waiting);
-                Trace.Emit(world, npc.Id, "HopStarted",
-                    $"{(npc.Movement.HopUp ? "Up" : "Down")} " +
-                    $"From={Trace.FormatPos(npc.Movement.HopFrom)} To={Trace.FormatPos(npc.Movement.HopTo)}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "HopStarted",
+                        $"{(npc.Movement.HopUp ? "Up" : "Down")} " +
+                        $"From={Trace.FormatPos(npc.Movement.HopFrom)} To={Trace.FormatPos(npc.Movement.HopTo)}");
+                }
                 continue;
             }
 
@@ -944,8 +977,11 @@ public sealed class MovementSystem : ISimulationSystem
                     {
                         npc.Tile = newTile;
                         SpatialMutations.MoveEntityToTile(world, npc.Id, previousTile, npc.Tile);
-                        Trace.Emit(world, npc.Id, "EnteredTile",
-                            $"From={previousTile.Q},{previousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
+                        if (SimTrace.Enabled)
+                        {
+                            Trace.Debug(world, npc.Id, "EnteredTile",
+                                $"From={previousTile.Q},{previousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
+                        }
 
                         // §40.18-B: plunged from land into deep water — tread in
                         // place for a beat before stroking off (the view plays
@@ -956,17 +992,23 @@ public sealed class MovementSystem : ISimulationSystem
 
                 npc.Movement.PathIndex++;
 
-                Trace.Emit(world, npc.Id, "JunctionReached",
-                    $"Junction={targetJunctionId.Value} Pos={Trace.FormatPos(target)} " +
-                    $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "JunctionReached",
+                        $"Junction={targetJunctionId.Value} Pos={Trace.FormatPos(target)} " +
+                        $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}");
+                }
 
                 if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
                 {
                     npc.Movement.IsMoving = false;
                     npc.Movement.SetStatus(MovementStatus.Arrived);
-                    Trace.Emit(world, npc.Id, "MovementCompleted",
-                        $"FinalJunction={targetJunctionId.Value} Tile={npc.Tile.Q},{npc.Tile.R} " +
-                        $"Pos={Trace.FormatPos(npc.Position)}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "MovementCompleted",
+                            $"FinalJunction={targetJunctionId.Value} Tile={npc.Tile.Q},{npc.Tile.R} " +
+                            $"Pos={Trace.FormatPos(npc.Position)}");
+                    }
                 }
             }
             else
@@ -985,10 +1027,13 @@ public sealed class MovementSystem : ISimulationSystem
                     turnPerTick);
                 if (SimTrace.Verbose)
                 {
-                    Trace.Emit(world, npc.Id, "MovementStep",
-                        $"Pos={Trace.FormatPos(npc.Position)} -> Junction={targetJunctionId.Value} " +
-                        $"Dist={distance:F3} Speed={movementPerTick:F3} Align={alignmentFactor:F2} " +
-                        $"Rot={npc.RotationDegrees:F1}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "MovementStep",
+                            $"Pos={Trace.FormatPos(npc.Position)} -> Junction={targetJunctionId.Value} " +
+                            $"Dist={distance:F3} Speed={movementPerTick:F3} Align={alignmentFactor:F2} " +
+                            $"Rot={npc.RotationDegrees:F1}");
+                    }
                 }
             }
         }

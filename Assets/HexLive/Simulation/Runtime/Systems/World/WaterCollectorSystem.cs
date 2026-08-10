@@ -44,8 +44,11 @@ public sealed class WaterCollectorSystem : ISimulationSystem
                 1f, vessel.ResourceAmount + (float)elapsed / SimBalance.WaterCollectorFillTicks);
             if (vessel.ResourceAmount >= 1f)
             {
-                Trace.EmitSystem(world, "VesselFull",
-                    $"Collector={obj.Id.Value}: the parked bottle is full of rain water");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "VesselFull",
+                        $"Collector={obj.Id.Value}: the parked bottle is full of rain water");
+                }
             }
         }
     }

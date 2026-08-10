@@ -58,7 +58,11 @@ public sealed partial class PlanningSystem
         if (quarry.CurrentJunction is not { } quarryJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=GroupHunt TargetOffGrid");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=GroupHunt TargetOffGrid");
+
+            }
             return;
         }
 
@@ -94,8 +98,11 @@ public sealed partial class PlanningSystem
             if (npc.Mind.AssistHoldSinceTick == 0)
             {
                 npc.Mind.AssistHoldSinceTick = world.Tick;
-                Trace.Emit(world, npc.Id, "GroupHuntHolding",
-                    $"Target=NPC{targetId.Value} Mine={mine} Rear={rear} — ждёт своих");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "GroupHuntHolding",
+                        $"Target=NPC{targetId.Value} Mine={mine} Rear={rear} — ждёт своих");
+                }
             }
 
             return;
@@ -111,8 +118,11 @@ public sealed partial class PlanningSystem
             // Подхода нет — не бросать охоту (соседние узлы освободятся, когда
             // подруги встанут), просто подождать этот проход.
             npc.Plan.Status = PlanStatus.Completed;
-            Trace.Emit(world, npc.Id, "GroupHuntHolding",
-                $"Target=NPC{targetId.Value} NoFreeApproachJunction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "GroupHuntHolding",
+                    $"Target=NPC{targetId.Value} NoFreeApproachJunction");
+            }
             return;
         }
 
@@ -125,10 +135,13 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal=GroupHunt Target=NPC{targetId.Value} " +
-            $"ApproachJunction={approach.Value} Dist={mine} Rear={rear} " +
-            "Steps=[MoveToJunction]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=GroupHunt Target=NPC{targetId.Value} " +
+                $"ApproachJunction={approach.Value} Dist={mine} Rear={rear} " +
+                "Steps=[MoveToJunction]");
+        }
     }
 }
 

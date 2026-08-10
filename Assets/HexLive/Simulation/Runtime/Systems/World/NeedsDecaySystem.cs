@@ -1066,8 +1066,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
                     if (wound.Heal01 >= 1f)
                     {
-                        Trace.Emit(world, npc.Id, "WoundHealed",
-                            $"{wound.Zone} wound #{wound.Id} closed");
+                        if (SimTrace.Enabled)
+                        {
+                            Trace.Debug(world, npc.Id, "WoundHealed",
+                                $"{wound.Zone} wound #{wound.Id} closed");
+                        }
                         npc.Wounds.RemoveAt(wi);
                     }
                 }
@@ -1108,12 +1111,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // "воскресала" бы тем же тиком.
             TickDrowning(world, npc);
 
-            Trace.Emit(world, npc.Id, "NeedsDecay",
-                $"Hunger={prevHunger:F3}->{npc.Needs.Hunger:F3}(+{HungerRate}) " +
-                $"Energy={prevEnergy:F3}->{npc.Needs.Energy:F3}(-{energyDrain}) " +
-                $"Comfort={prevComfort:F3}->{npc.Needs.Comfort:F3}(-{ComfortRate}) " +
-                $"Social={prevSocial:F3}->{npc.Needs.Social:F3}(-{SocialRate}) " +
-                $"Sweat={sweat:F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "NeedsDecay",
+                    $"Hunger={prevHunger:F3}->{npc.Needs.Hunger:F3}(+{HungerRate}) " +
+                    $"Energy={prevEnergy:F3}->{npc.Needs.Energy:F3}(-{energyDrain}) " +
+                    $"Comfort={prevComfort:F3}->{npc.Needs.Comfort:F3}(-{ComfortRate}) " +
+                    $"Social={prevSocial:F3}->{npc.Needs.Social:F3}(-{SocialRate}) " +
+                    $"Sweat={sweat:F2}");
+            }
         }
 
         // Spec 40.16: joint-plan advisor trigger. On the rising edge of a

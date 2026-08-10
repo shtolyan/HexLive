@@ -18,7 +18,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             AbandonLootHelpless(world, npc, "NoMark");
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=LootHelpless NoMark");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=LootHelpless NoMark");
+
+            }
             return;
         }
 
@@ -61,8 +65,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             AbandonLootHelpless(world, npc, "NoApproach");
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=LootHelpless Mark={mark.Id.Value} NoApproach");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    $"Goal=LootHelpless Mark={mark.Id.Value} NoApproach");
+            }
             return;
         }
 
@@ -84,9 +91,12 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal=LootHelpless Mark=NPC{mark.Id.Value} " +
-            $"Items={mark.Inventory.Items.Count}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=LootHelpless Mark=NPC{mark.Id.Value} " +
+                $"Items={mark.Inventory.Items.Count}");
+        }
     }
 
     // Держимся ОДНОГО тела, пока оно годится: перевыбор на каждом ребилде
@@ -141,7 +151,11 @@ public sealed partial class PlanningSystem
             npc.Mind.CurrentGoal = GoalType.None;
         }
 
-        Trace.Emit(world, npc.Id, "LootHelplessAbandoned", $"Reason={reason}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "LootHelplessAbandoned", $"Reason={reason}");
+
+        }
     }
 }
 

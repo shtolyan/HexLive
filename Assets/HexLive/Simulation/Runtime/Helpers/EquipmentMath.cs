@@ -195,7 +195,11 @@ internal static class EquipmentMath
         {
             npc.WornItems.Remove(item);
             npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.1f);
-            Trace.Emit(world, npc.Id, "ItemDestroyed", $"{item.DefinitionId} fell apart");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ItemDestroyed", $"{item.DefinitionId} fell apart");
+
+            }
         }
 
         Recalculate(world, npc);

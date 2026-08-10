@@ -319,8 +319,11 @@ public sealed class PathfindingSystem : ISimulationSystem
                 npc.Movement.BlockedWaitTicks = 0;
                 if (SimTrace.Verbose)
                 {
-                    Trace.Emit(world, npc.Id, "PathAlreadyAtTarget",
-                        $"Junction={npc.CurrentJunction.Value.Value} (already at destination)");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PathAlreadyAtTarget",
+                            $"Junction={npc.CurrentJunction.Value.Value} (already at destination)");
+                    }
                 }
 
                 continue;
@@ -336,9 +339,12 @@ public sealed class PathfindingSystem : ISimulationSystem
 
             if (SimTrace.Verbose)
             {
-                Trace.Emit(world, npc.Id, "PathSearching",
-                    $"From={startJunction.Value.Value} To={npc.Plan.TargetJunctionId.Value.Value} " +
-                    $"Pos={Trace.FormatPos(npc.Position)}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PathSearching",
+                        $"From={startJunction.Value.Value} To={npc.Plan.TargetJunctionId.Value.Value} " +
+                        $"Pos={Trace.FormatPos(npc.Position)}");
+                }
             }
 
             // Spec 40.17: prefer flat routes by default. The old gate exempted
@@ -391,8 +397,11 @@ public sealed class PathfindingSystem : ISimulationSystem
                 if (i > 0) pathJunctions.Append("->");
                 pathJunctions.Append(path[i].Value);
             }
-            Trace.Emit(world, npc.Id, "PathBuilt",
-                $"Length={path.Count} Route=[{pathJunctions}] IsMoving={npc.Movement.IsMoving}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PathBuilt",
+                    $"Length={path.Count} Route=[{pathJunctions}] IsMoving={npc.Movement.IsMoving}");
+            }
         }
     }
 
@@ -439,11 +448,14 @@ public sealed class PathfindingSystem : ISimulationSystem
         }
 
         PlanningSystem.SetGoalCooldown(world, npc, failedGoal);
-        Trace.Emit(world, npc.Id, "PlanFailed",
-            $"Goal={failedGoal} PathRetryLimit=" +
-            $"{AiBalance.PathFailureRetryAttempts} TargetJunction=" +
-            $"{target?.Value.ToString() ?? "-"} TargetObject=" +
-            $"{failedTargetObject?.Value.ToString() ?? "-"}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanFailed",
+                $"Goal={failedGoal} PathRetryLimit=" +
+                $"{AiBalance.PathFailureRetryAttempts} TargetJunction=" +
+                $"{target?.Value.ToString() ?? "-"} TargetObject=" +
+                $"{failedTargetObject?.Value.ToString() ?? "-"}");
+        }
         PlanInterruption.Abort(world, npc,
             $"Path retry limit reached for {failedGoal}");
         npc.Movement.BlockedWaitTicks = 0;

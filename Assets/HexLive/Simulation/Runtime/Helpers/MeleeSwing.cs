@@ -325,11 +325,14 @@ internal static class MeleeSwing
         attacker.PendingHumanStrikeKillIntent = 0f;
         EquipmentMath.WearCoveringItems(world, target, part, SimBalance.ClothingBiteDurabilityWear);
 
-        Trace.Emit(world, attacker.Id, traceName,
-            $"Target=NPC{target.Id.Value} {part} -{landed:F3} (armor={partArmor:F2}) " +
-            $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)} " +
-            $"KillIntent={killIntent:F2} Fatal={fatalAtImpact} Authorized={killAuthorized} " +
-            $"TargetHealth={target.Health:F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, attacker.Id, traceName,
+                $"Target=NPC{target.Id.Value} {part} -{landed:F3} (armor={partArmor:F2}) " +
+                $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)} " +
+                $"KillIntent={killIntent:F2} Fatal={fatalAtImpact} Authorized={killAuthorized} " +
+                $"TargetHealth={target.Health:F2}");
+        }
     }
 
     // «Достаёт ли рука» переехало в InteractionReach.CanStrike — туда, где

@@ -148,9 +148,12 @@ internal static class CraftProjectMath
         project.CurrentUser = npc.Id;
         npc.Execution.CraftProjectId = project.Id;
         npc.Execution.CraftCycleStartWork = project.CraftWorkDone;
-        Trace.Emit(world, npc.Id, "CraftProjectCycleStarted",
-            $"Project={project.Id.Value} Output={project.DefinitionId} " +
-            $"Progress={project.CraftWorkDone}/{project.CraftWorkRequired}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CraftProjectCycleStarted",
+                $"Project={project.Id.Value} Output={project.DefinitionId} " +
+                $"Progress={project.CraftWorkDone}/{project.CraftWorkRequired}");
+        }
         return true;
     }
 
@@ -184,8 +187,11 @@ internal static class CraftProjectMath
         {
             project.CraftWorkDone = project.CraftWorkRequired;
             project.Contents.Clear(); // paid ingredients are consumed only now
-            Trace.Emit(world, npc.Id, "CraftProjectCompleted",
-                $"Project={project.Id.Value} Output={project.DefinitionId} Work={project.CraftWorkDone}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CraftProjectCompleted",
+                    $"Project={project.Id.Value} Output={project.DefinitionId} Work={project.CraftWorkDone}");
+            }
 
             // Herbal dressings predate physical inventory and are still stored
             // as the two medical counters consumed by every aid path. Keep the
@@ -203,9 +209,12 @@ internal static class CraftProjectMath
         }
         else
         {
-            Trace.Emit(world, npc.Id, "CraftProjectProgress",
-                $"Project={project.Id.Value} Output={project.DefinitionId} " +
-                $"Progress={project.CraftWorkDone}/{project.CraftWorkRequired}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CraftProjectProgress",
+                    $"Project={project.Id.Value} Output={project.DefinitionId} " +
+                    $"Progress={project.CraftWorkDone}/{project.CraftWorkRequired}");
+            }
         }
 
         return true;
@@ -275,8 +284,11 @@ internal static class CraftProjectMath
             CopyItem(item, dropped);
         }
         WorldObjectMutations.DespawnObject(world, project.Id);
-        Trace.EmitSystem(world, "CraftProjectCancelled",
-            $"Project={projectId.Value} reason={reason}; spilled={ingredients.Count}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "CraftProjectCancelled",
+                $"Project={projectId.Value} reason={reason}; spilled={ingredients.Count}");
+        }
         return true;
     }
 
@@ -350,9 +362,12 @@ internal static class CraftProjectMath
             }
         }
 
-        Trace.Emit(world, npc.Id, "CraftProjectCreated",
-            $"Project={project.Id.Value} Output={outputId} Work=0/{project.CraftWorkRequired} " +
-            $"Ingredients={project.Contents.Count} Station={station?.Id.Value.ToString() ?? "ground"}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CraftProjectCreated",
+                $"Project={project.Id.Value} Output={outputId} Work=0/{project.CraftWorkRequired} " +
+                $"Ingredients={project.Contents.Count} Station={station?.Id.Value.ToString() ?? "ground"}");
+        }
         return project;
     }
 

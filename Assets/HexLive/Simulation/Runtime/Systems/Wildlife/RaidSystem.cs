@@ -104,9 +104,12 @@ public sealed class RaidSystem : ISimulationSystem
             // --- Contact. -----------------------------------------------------
             if (raider.Mind.CombatOpponentNpcId is null)
             {
-                Trace.Emit(world, raider.Id, "RaidEngaged",
-                    $"Victim=NPC{victim.Id.Value} " +
-                    $"Weapon={WeaponLabel(raider)} VictimWeapon={WeaponLabel(victim)}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, raider.Id, "RaidEngaged",
+                        $"Victim=NPC{victim.Id.Value} " +
+                        $"Weapon={WeaponLabel(raider)} VictimWeapon={WeaponLabel(victim)}");
+                }
             }
 
             raider.IsFighting = true;
@@ -139,8 +142,11 @@ public sealed class RaidSystem : ISimulationSystem
                 if (fleeing)
                 {
                     Unpair(victim);
-                    Trace.Emit(world, victim.Id, "RaidVictimFled",
-                        $"From=NPC{raider.Id.Value} Health={victim.Health:F2}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, victim.Id, "RaidVictimFled",
+                            $"From=NPC{raider.Id.Value} Health={victim.Health:F2}");
+                    }
                 }
                 else
                 {
@@ -164,9 +170,12 @@ public sealed class RaidSystem : ISimulationSystem
                 MobSystem.WorstPartHealth(raider) < 0.35f ||
                 defenders >= Spec72.RaidBreakOffDefenders)
             {
-                Trace.Emit(world, raider.Id, "RaidBrokeOff",
-                    $"Health={raider.Health:F2} Defenders={defenders} " +
-                    $"Reason={(defenders >= Spec72.RaidBreakOffDefenders ? "Outnumbered" : "Wounded")}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, raider.Id, "RaidBrokeOff",
+                        $"Health={raider.Health:F2} Defenders={defenders} " +
+                        $"Reason={(defenders >= Spec72.RaidBreakOffDefenders ? "Outnumbered" : "Wounded")}");
+                }
                 BreakOff(world, raider, victim);
             }
         }
@@ -244,8 +253,11 @@ public sealed class RaidSystem : ISimulationSystem
             if (mark.IsCrying(world.Tick))
             {
                 mark.Mind.CryingUntilTick = 0;
-                Trace.Emit(world, mark.Id, "MarkBraces",
-                    $"Abuser=NPC{claimer.Id.Value} CutCrying=True");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, mark.Id, "MarkBraces",
+                        $"Abuser=NPC{claimer.Id.Value} CutCrying=True");
+                }
             }
 
             if (mark.Plan.Status == PlanStatus.Active ||
@@ -255,9 +267,12 @@ public sealed class RaidSystem : ISimulationSystem
                 PlanInterruption.AbortForCombat(world, mark,
                     $"Braces for NPC{claimer.Id.Value}");
                 mark.Mind.CurrentGoal = GoalType.None;
-                Trace.Emit(world, mark.Id, "MarkBraces",
-                    $"Abuser=NPC{claimer.Id.Value} " +
-                    $"Dist={HexSpatialMath.HexDistance(mark.Tile, claimer.Tile)}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, mark.Id, "MarkBraces",
+                        $"Abuser=NPC{claimer.Id.Value} " +
+                        $"Dist={HexSpatialMath.HexDistance(mark.Tile, claimer.Tile)}");
+                }
             }
 
             // §109.13: разворот — не слежение. Доворачиваем, только когда он
@@ -501,8 +516,11 @@ public sealed class RaidSystem : ISimulationSystem
                     target.Mind.CombatOpponentNpcId = nearest.Id;
                     if (freshPair)
                     {
-                        Trace.Emit(world, target.Id, "AnswersBlows",
-                            $"Attacker=NPC{nearest.Id.Value} Dist={nearestDist} KeptGoal=Abuse");
+                        if (SimTrace.Enabled)
+                        {
+                            Trace.Debug(world, target.Id, "AnswersBlows",
+                                $"Attacker=NPC{nearest.Id.Value} Dist={nearestDist} KeptGoal=Abuse");
+                        }
                     }
                 }
                 continue;
@@ -545,8 +563,11 @@ public sealed class RaidSystem : ISimulationSystem
                 target.Mind.CombatOpponentNpcId = nearest.Id;
                 if (fresh)
                 {
-                    Trace.Emit(world, target.Id, "AnswersBlows",
-                        $"Attacker=NPC{nearest.Id.Value} Dist={nearestDist}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, target.Id, "AnswersBlows",
+                            $"Attacker=NPC{nearest.Id.Value} Dist={nearestDist}");
+                    }
                 }
             }
         }
@@ -705,9 +726,12 @@ public sealed class RaidSystem : ISimulationSystem
                 if (explain)
                 {
                     var graceEnd = Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks;
-                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
-                        $"Reason=Grace Social={abuser.Needs.Social:F2} " +
-                        $"Left={graceEnd - world.Tick}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, abuser.Id, "AbuseBlocked",
+                            $"Reason=Grace Social={abuser.Needs.Social:F2} " +
+                            $"Left={graceEnd - world.Tick}");
+                    }
                 }
                 continue;
             }
@@ -716,8 +740,11 @@ public sealed class RaidSystem : ISimulationSystem
             {
                 if (explain)
                 {
-                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
-                        $"Reason=Cooldown Until={abuser.Mind.AbuseCooldownUntilTick}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, abuser.Id, "AbuseBlocked",
+                            $"Reason=Cooldown Until={abuser.Mind.AbuseCooldownUntilTick}");
+                    }
                 }
                 continue;
             }
@@ -734,10 +761,13 @@ public sealed class RaidSystem : ISimulationSystem
             {
                 if (explain)
                 {
-                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
-                        $"Reason=Unfit Uncon={abuser.IsUnconscious(world.Tick)} " +
-                        $"Prone={abuser.Body.IsProne} " +
-                        $"Hands={abuser.Body.CanUseToolsOrWeapons}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, abuser.Id, "AbuseBlocked",
+                            $"Reason=Unfit Uncon={abuser.IsUnconscious(world.Tick)} " +
+                            $"Prone={abuser.Body.IsProne} " +
+                            $"Hands={abuser.Body.CanUseToolsOrWeapons}");
+                    }
                 }
                 continue;
             }
@@ -749,9 +779,12 @@ public sealed class RaidSystem : ISimulationSystem
             {
                 if (explain)
                 {
-                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
-                        $"Reason=Wounded Vital={abuser.Body.VitalHealth():F2} " +
-                        $"Floor={Spec81.AbuseWoundedVitalFloor:F2}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, abuser.Id, "AbuseBlocked",
+                            $"Reason=Wounded Vital={abuser.Body.VitalHealth():F2} " +
+                            $"Floor={Spec81.AbuseWoundedVitalFloor:F2}");
+                    }
                 }
                 continue;
             }
@@ -763,9 +796,12 @@ public sealed class RaidSystem : ISimulationSystem
             {
                 if (explain)
                 {
-                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
-                        $"Reason=Busy Goal={abuser.Mind.CurrentGoal} " +
-                        $"Fighting={abuser.IsFighting}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, abuser.Id, "AbuseBlocked",
+                            $"Reason=Busy Goal={abuser.Mind.CurrentGoal} " +
+                            $"Fighting={abuser.IsFighting}");
+                    }
                 }
                 continue;
             }
@@ -774,9 +810,12 @@ public sealed class RaidSystem : ISimulationSystem
             {
                 if (explain)
                 {
-                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
-                        $"Reason=NoDrive Social={abuser.Needs.Social:F2} " +
-                        $"H={abuser.Needs.Hunger:F2} W={abuser.Needs.Thirst:F2}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, abuser.Id, "AbuseBlocked",
+                            $"Reason=NoDrive Social={abuser.Needs.Social:F2} " +
+                            $"H={abuser.Needs.Hunger:F2} W={abuser.Needs.Thirst:F2}");
+                    }
                 }
                 continue;
             }
@@ -786,8 +825,11 @@ public sealed class RaidSystem : ISimulationSystem
             {
                 if (explain)
                 {
-                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
-                        $"Reason=NoMark {tally.ToMessage()}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, abuser.Id, "AbuseBlocked",
+                            $"Reason=NoMark {tally.ToMessage()}");
+                    }
                 }
                 continue;
             }
@@ -810,10 +852,13 @@ public sealed class RaidSystem : ISimulationSystem
                 EndTick = world.Tick + Spec81.AbuseLockTicks
             };
 
-            Trace.Emit(world, abuser.Id, "AbuseTriggered",
-                $"Mark=NPC{mark.Id.Value} Social={abuser.Needs.Social:F2} " +
-                $"Drive={AbuseMath.Drive(abuser):F2} Loot={hasLoot} " +
-                $"Dist={HexSpatialMath.HexDistance(abuser.Tile, mark.Tile)}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, abuser.Id, "AbuseTriggered",
+                    $"Mark=NPC{mark.Id.Value} Social={abuser.Needs.Social:F2} " +
+                    $"Drive={AbuseMath.Drive(abuser):F2} Loot={hasLoot} " +
+                    $"Dist={HexSpatialMath.HexDistance(abuser.Tile, mark.Tile)}");
+            }
         }
     }
 
@@ -839,9 +884,12 @@ public sealed class RaidSystem : ISimulationSystem
                 AbuseMath.BestMark(world, abuser, out _) is { } spotted)
             {
                 PlanInterruption.Abort(world, abuser, $"Spotted NPC{spotted.Id.Value}");
-                Trace.Emit(world, abuser.Id, "AbuseSpotted",
-                    $"Mark=NPC{spotted.Id.Value} " +
-                    $"Dist={HexSpatialMath.HexDistance(abuser.Tile, spotted.Tile)}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, abuser.Id, "AbuseSpotted",
+                        $"Mark=NPC{spotted.Id.Value} " +
+                        $"Dist={HexSpatialMath.HexDistance(abuser.Tile, spotted.Tile)}");
+                }
             }
             return;
         }
@@ -881,9 +929,12 @@ public sealed class RaidSystem : ISimulationSystem
             PlanInterruption.Abort(world, abuser, $"Retarget NPC{best.Id.Value}");
         }
 
-        Trace.Emit(world, abuser.Id, "AbuseRetarget",
-            $"From=NPC{currentId.Value} To=NPC{best.Id.Value} " +
-            $"Route={currentRoute:F2}->{bestRoute:F2}wu");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, abuser.Id, "AbuseRetarget",
+                $"From=NPC{currentId.Value} To=NPC{best.Id.Value} " +
+                $"Route={currentRoute:F2}->{bestRoute:F2}wu");
+        }
     }
 
     // Общий вход в налёт; §115 использует его, если проигравшему некуда бежать.
@@ -913,10 +964,13 @@ public sealed class RaidSystem : ISimulationSystem
             EndTick = world.Tick + Spec72.RaidLockTicks
         };
 
-        Trace.Emit(world, raider.Id, "RaidStarted",
-            $"Victim=NPC{victim.Id.Value} Why={why} " +
-            $"Allies={RaidMath.AlliesAround(world, victim)} " +
-            $"Dist={HexSpatialMath.HexDistance(raider.Tile, victim.Tile)}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, raider.Id, "RaidStarted",
+                $"Victim=NPC{victim.Id.Value} Why={why} " +
+                $"Allies={RaidMath.AlliesAround(world, victim)} " +
+                $"Dist={HexSpatialMath.HexDistance(raider.Tile, victim.Tile)}");
+        }
     }
 
     // §85: вход в бой из сцены абьюза — «проигнорировала, значит будет драка».

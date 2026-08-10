@@ -52,8 +52,11 @@ public sealed partial class ExecutionSystem
                 new ItemInstance(conflictId);
             npc.WornItems.Remove(conflictItem);
             _displacedGarments.Add(conflictItem);
-            Trace.Emit(world, npc.Id, "ItemReplaced",
-                $"{conflictId} taken off (layer conflict with {newItemId})");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ItemReplaced",
+                    $"{conflictId} taken off (layer conflict with {newItemId})");
+            }
         }
     }
 
@@ -78,9 +81,12 @@ public sealed partial class ExecutionSystem
                 // No MakeRoomFor: a swapped-out shirt never outranks what is
                 // already carried — food and tools are not shed to fold laundry.
                 npc.Inventory.Items.Add(garment);
-                Trace.Emit(world, npc.Id, "GarmentStowed",
-                    $"{garment.DefinitionId} folded into the pack " +
-                    $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "GarmentStowed",
+                        $"{garment.DefinitionId} folded into the pack " +
+                        $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+                }
             }
             else
             {
@@ -271,7 +277,11 @@ public sealed partial class ExecutionSystem
         {
             GiveOrDrop(world, npc, ContentIds.Stick);
             GiveOrDrop(world, npc, ContentIds.Stick);
-            Trace.Emit(world, npc.Id, "ExecFailed", "CraftRack: nowhere to place the rack");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed", "CraftRack: nowhere to place the rack");
+
+            }
             return;
         }
 
@@ -309,8 +319,11 @@ public sealed partial class ExecutionSystem
         if (dropped != null && _garmentSpillScratch.Count > 0)
         {
             dropped.Contents.AddRange(_garmentSpillScratch);
-            Trace.Emit(world, npc.Id, "StashedInGarment",
-                $"{garment.DefinitionId} holds [{string.Join(",", _garmentSpillScratch)}]");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "StashedInGarment",
+                    $"{garment.DefinitionId} holds [{string.Join(",", _garmentSpillScratch)}]");
+            }
         }
 
         return dropped;
@@ -348,10 +361,13 @@ public sealed partial class ExecutionSystem
 
         stash.IsOccupied = false;
         stash.CurrentUser = null;
-        Trace.Emit(world, npc.Id, "StashRecovered",
-            $"{stash.DefinitionId} pockets returned [{string.Join(",", _stashRecoverScratch)}] " +
-            $"left [{string.Join(",", stash.Contents)}] " +
-            $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "StashRecovered",
+                $"{stash.DefinitionId} pockets returned [{string.Join(",", _stashRecoverScratch)}] " +
+                $"left [{string.Join(",", stash.Contents)}] " +
+                $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+        }
     }
 
     // Spec 31A.5A: take off a worn item in place; it drops to the world at
@@ -374,8 +390,11 @@ public sealed partial class ExecutionSystem
             if (itemId is null || !npc.WornItems.Contains(itemId))
             {
                 npc.Plan.Status = PlanStatus.Failed;
-                Trace.Emit(world, npc.Id, "ExecFailed",
-                    $"UndressItem: '{itemId ?? "-"}' is not worn");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecFailed",
+                        $"UndressItem: '{itemId ?? "-"}' is not worn");
+                }
                 return;
             }
 
@@ -385,8 +404,11 @@ public sealed partial class ExecutionSystem
             npc.Execution.HeldGarment = null;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + UndressDurationTicks;
-            Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"Undress -> {itemId} Duration={UndressDurationTicks}ticks");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"Undress -> {itemId} Duration={UndressDurationTicks}ticks");
+            }
             return;
         }
 
@@ -407,9 +429,12 @@ public sealed partial class ExecutionSystem
                 npc.WornItems.Remove(doffed);
                 EquipmentMath.Recalculate(world, npc);
                 npc.Execution.HeldGarment = doffed;
-                Trace.Emit(world, npc.Id, "GarmentInHand",
-                    $"Undress {itemId} doffed to hand " +
-                    $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "GarmentInHand",
+                        $"Undress {itemId} doffed to hand " +
+                        $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+                }
             }
 
             if (npc.Execution.EndTick - world.Tick > 0)
@@ -434,17 +459,23 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = 0;
             npc.Execution.EndTick = 0;
 
-            Trace.Emit(world, npc.Id, "ItemUndressed",
-                $"{itemId} dropped at Tile={npc.Tile.Q},{npc.Tile.R} " +
-                $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ItemUndressed",
+                    $"{itemId} dropped at Tile={npc.Tile.Q},{npc.Tile.R} " +
+                    $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+            }
 
             npc.Plan.Status = PlanStatus.Completed;
             npc.Plan.Steps.Clear();
             npc.Plan.TargetItemDefinitionId = null;
             npc.Mind.CurrentGoal = GoalType.None;
 
-            Trace.Emit(world, npc.Id, "CycleReset",
-                "Goal->None Plan->Completed (undressed)");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CycleReset",
+                    "Goal->None Plan->Completed (undressed)");
+            }
         }
     }
 
@@ -454,7 +485,11 @@ public sealed partial class ExecutionSystem
         if (itemId is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed", "DropInventoryItem: no target item");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed", "DropInventoryItem: no target item");
+
+            }
             return;
         }
 
@@ -471,7 +506,11 @@ public sealed partial class ExecutionSystem
         if (item is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed", $"DropInventoryItem: '{itemId}' not in inventory");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed", $"DropInventoryItem: '{itemId}' not in inventory");
+
+            }
             return;
         }
 
@@ -480,7 +519,11 @@ public sealed partial class ExecutionSystem
         if (dropped is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed", $"DropInventoryItem: no drop junction for '{itemId}'");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed", $"DropInventoryItem: no drop junction for '{itemId}'");
+
+            }
             return;
         }
 
@@ -500,8 +543,11 @@ public sealed partial class ExecutionSystem
             }
         }
 
-        Trace.Emit(world, npc.Id, "ItemDropped",
-            $"{itemId} placed on ground Obj={dropped.Id.Value} for {npc.Plan.Goal}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ItemDropped",
+                $"{itemId} placed on ground Obj={dropped.Id.Value} for {npc.Plan.Goal}");
+        }
     }
 
     // In-place consumption from inventory (spec 29B.3): no world object,
@@ -513,8 +559,11 @@ public sealed partial class ExecutionSystem
             !world.Content.ObjectDefinitions.TryGetValue(itemId, out var itemDefinition))
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed",
-                $"ConsumeInventoryItem: item '{itemId ?? "-"}' not in inventory or unknown definition");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed",
+                    $"ConsumeInventoryItem: item '{itemId ?? "-"}' not in inventory or unknown definition");
+            }
             return;
         }
 
@@ -528,8 +577,11 @@ public sealed partial class ExecutionSystem
         if (interaction is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed",
-                $"ConsumeInventoryItem: '{itemId}' has no {verb} interaction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed",
+                    $"ConsumeInventoryItem: '{itemId}' has no {verb} interaction");
+            }
             return;
         }
 
@@ -537,8 +589,11 @@ public sealed partial class ExecutionSystem
         if (item is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed",
-                $"ConsumeInventoryItem: '{itemId}' not available for {verb}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed",
+                    $"ConsumeInventoryItem: '{itemId}' not available for {verb}");
+            }
             return;
         }
 
@@ -550,13 +605,16 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + interaction.DurationTicks;
 
-            Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"{verb} (inventory) -> {itemId} " +
-                $"Duration={interaction.DurationTicks}ticks ({interaction.DurationTicks * world.TickDeltaTime:F1}s) " +
-                $"EndTick={npc.Execution.EndTick} " +
-                $"Effects=[H={interaction.Effects.HungerDelta:+0.00;-0.00} " +
-                $"T={interaction.Effects.ThirstDelta:+0.00;-0.00} " +
-                $"C={interaction.Effects.ComfortDelta:+0.00;-0.00}]");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"{verb} (inventory) -> {itemId} " +
+                    $"Duration={interaction.DurationTicks}ticks ({interaction.DurationTicks * world.TickDeltaTime:F1}s) " +
+                    $"EndTick={npc.Execution.EndTick} " +
+                    $"Effects=[H={interaction.Effects.HungerDelta:+0.00;-0.00} " +
+                    $"T={interaction.Effects.ThirstDelta:+0.00;-0.00} " +
+                    $"C={interaction.Effects.ComfortDelta:+0.00;-0.00}]");
+            }
             return;
         }
 
@@ -575,9 +633,12 @@ public sealed partial class ExecutionSystem
 
                 if (SimTrace.Verbose)
                 {
-                    Trace.Emit(world, npc.Id, "ExecProgress",
-                        $"{verb} (inventory) Progress={progress:P0} " +
-                        $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "ExecProgress",
+                            $"{verb} (inventory) Progress={progress:P0} " +
+                            $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                    }
                 }
 
                 return;
@@ -605,10 +666,13 @@ public sealed partial class ExecutionSystem
                     npc.Execution.Status = ExecutionStatus.InProgress;
                     npc.Execution.StartTick = world.Tick;
                     npc.Execution.EndTick = world.Tick + interaction.DurationTicks;
-                    Trace.Emit(world, npc.Id, "InteractionStarted",
-                        $"{verb} (inventory, next sip) -> {itemId} " +
-                        $"Duration={interaction.DurationTicks}ticks " +
-                        $"WaterLeft={item.ResourceAmount:F0} Thirst={npc.Needs.Thirst:F2}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "InteractionStarted",
+                            $"{verb} (inventory, next sip) -> {itemId} " +
+                            $"Duration={interaction.DurationTicks}ticks " +
+                            $"WaterLeft={item.ResourceAmount:F0} Thirst={npc.Needs.Thirst:F2}");
+                    }
                     return;
                 }
             }
@@ -630,13 +694,16 @@ public sealed partial class ExecutionSystem
             npc.Execution.Status = ExecutionStatus.Completed;
             npc.Execution.LastCompletedTick = world.Tick;
 
-            Trace.Emit(world, npc.Id, "ItemConsumed",
-                $"{itemId} {verb} from inventory " +
-                $"NeedsBefore=[{needsBefore}] NeedsAfter=[{needsAfter}] " +
-                $"Inventory=[{string.Join(",", npc.Inventory.Items)}]" +
-                (IsPortableCoconutDrink(itemDefinition, verb)
-                    ? $" CoconutWaterLeft={item.ResourceAmount:F0}"
-                    : string.Empty));
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ItemConsumed",
+                    $"{itemId} {verb} from inventory " +
+                    $"NeedsBefore=[{needsBefore}] NeedsAfter=[{needsAfter}] " +
+                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]" +
+                    (IsPortableCoconutDrink(itemDefinition, verb)
+                        ? $" CoconutWaterLeft={item.ResourceAmount:F0}"
+                        : string.Empty));
+            }
 
             // §54.17: the whole meat chain's finish line — hunt/butcher/cook
             // metrics read THIS, not ItemConsumed (which verbose-traces every
@@ -656,8 +723,11 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = 0;
             npc.Execution.EndTick = 0;
 
-            Trace.Emit(world, npc.Id, "CycleReset",
-                "Goal->None Plan->Completed Execution->Cleared (ate from inventory)");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CycleReset",
+                    "Goal->None Plan->Completed Execution->Cleared (ate from inventory)");
+            }
         }
     }
 
@@ -697,7 +767,11 @@ public sealed partial class ExecutionSystem
         if (npc.BottleWater == WaterKind.None)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            Trace.Emit(world, npc.Id, "ExecFailed", "DrinkBottle: the bottle is empty");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed", "DrinkBottle: the bottle is empty");
+
+            }
             return;
         }
 
@@ -708,8 +782,11 @@ public sealed partial class ExecutionSystem
             npc.Execution.TargetObject = null;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + DrinkBottleDurationTicks;
-            Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"Drink (bottle:{npc.BottleWater}) Duration={DrinkBottleDurationTicks}ticks");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"Drink (bottle:{npc.BottleWater}) Duration={DrinkBottleDurationTicks}ticks");
+            }
             return;
         }
 
@@ -807,8 +884,11 @@ public sealed partial class ExecutionSystem
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
 
-        Trace.Emit(world, npc.Id, "CycleReset",
-            "Goal->None Plan->Completed Execution->Cleared (drank from bottle)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CycleReset",
+                "Goal->None Plan->Completed Execution->Cleared (drank from bottle)");
+        }
     }
 }
 

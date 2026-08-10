@@ -144,8 +144,11 @@ internal static class Connectivity
         }
 
         world.ComponentsBuiltVersion = world.TopologyVersion;
-        Trace.EmitSystem(world, "ConnectivityRebuilt",
-            $"Components={component} Junctions={world.Junctions.Items.Count}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "ConnectivityRebuilt",
+                $"Components={component} Junctions={world.Junctions.Items.Count}");
+        }
     }
 
     // Spec §50: the no-jump connectivity graph — identical to Rebuild but an
@@ -190,8 +193,11 @@ internal static class Connectivity
         }
 
         world.ComponentsFlatBuiltVersion = world.TopologyVersion;
-        Trace.EmitSystem(world, "ConnectivityFlatRebuilt",
-            $"Components={component} Junctions={world.Junctions.Items.Count}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "ConnectivityFlatRebuilt",
+                $"Components={component} Junctions={world.Junctions.Items.Count}");
+        }
     }
 }
 

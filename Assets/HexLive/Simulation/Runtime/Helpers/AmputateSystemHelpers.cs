@@ -87,14 +87,22 @@ public static class AmputateSystemHelpers
             var credit = condition.SplintSupport * Spec118.SplintSeverCredit;
             condition.CriticalTrauma = System.Math.Max(0f, 1f - credit);
             condition.SplintSupport = 0f;
-            Trace.Emit(world, npc.Id, "SplintSavedLimb", $"{part} credit={credit:F3}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "SplintSavedLimb", $"{part} credit={credit:F3}");
+
+            }
             return;
         }
 
         if (condition.CriticalTrauma >= 1f)
         {
             Sever(world, npc, part);
-            Trace.Emit(world, npc.Id, "CriticalAmputation", $"{part} source={source}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CriticalAmputation", $"{part} source={source}");
+
+            }
         }
     }
 

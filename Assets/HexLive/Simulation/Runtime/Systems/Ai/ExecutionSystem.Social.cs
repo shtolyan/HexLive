@@ -299,8 +299,11 @@ public sealed partial class ExecutionSystem
             npc.Movement.JunctionPath.Clear();
             npc.Movement.PathIndex = 0;
 
-            Trace.Emit(world, npc.Id, "CycleReset",
-                "Goal->None Plan->Completed Execution->Cleared (talked)");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CycleReset",
+                    "Goal->None Plan->Completed Execution->Cleared (talked)");
+            }
         }
     }
 
@@ -708,7 +711,11 @@ public sealed partial class ExecutionSystem
             npc.Movement.JunctionPath.Clear();
             npc.Movement.PathIndex = 0;
 
-            Trace.Emit(world, npc.Id, "CycleReset", "Goal->None (aided)");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CycleReset", "Goal->None (aided)");
+
+            }
         }
     }
 
@@ -735,8 +742,11 @@ public sealed partial class ExecutionSystem
         }
 
         target.Needs.Blood = MathUtil.Clamp01(target.Needs.Blood + Spec53.TreatBlood * 0.5f);
-        Trace.Emit(world, helper.Id, "AidStabilized",
-            $"NPC{target.Id.Value} bleeding stemmed (Blood={target.Needs.Blood:F2})");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, helper.Id, "AidStabilized",
+                $"NPC{target.Id.Value} bleeding stemmed (Blood={target.Needs.Blood:F2})");
+        }
     }
 
     private static void AbortAid(WorldState world, NPCState npc, string reason)

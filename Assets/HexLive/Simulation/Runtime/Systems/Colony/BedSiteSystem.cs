@@ -61,8 +61,11 @@ public sealed class BedSiteSystem : ISimulationSystem
                 WorldObjectMutations.DespawnObject(world, id);
             }
 
-            Trace.EmitSystem(world, "OrphanSitesCleared",
-                $"removed {orphanSites.Count} orphaned object(s) (product-less build.site / retired shelter.tent)");
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "OrphanSitesCleared",
+                    $"removed {orphanSites.Count} orphaned object(s) (product-less build.site / retired shelter.tent)");
+            }
         }
 
         // §72: every camp stakes its own furniture. The outsider gets a hearth
@@ -229,8 +232,11 @@ public sealed class BedSiteSystem : ISimulationSystem
                 rackSite.BillSticks = SimBalance.RackBillSticks;
                 rackSite.BillRope = SimBalance.RackBillRope;
                 RememberSiteForColony(world, faction, rackSite);
-                Trace.EmitSystem(world, "RackSitePlaced",
-                    "station.drying_rack site staked by the hearth");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "RackSitePlaced",
+                        "station.drying_rack site staked by the hearth");
+                }
                 return;
             }
         }
@@ -260,8 +266,11 @@ public sealed class BedSiteSystem : ISimulationSystem
                 collectorSite.BillRope = SimBalance.WaterCollectorBillRope;
                 collectorSite.BillLeaves = SimBalance.WaterCollectorBillLeaves;
                 RememberSiteForColony(world, faction, collectorSite);
-                Trace.EmitSystem(world, "CollectorSitePlaced",
-                    "station.water_collector site staked by the hearth");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "CollectorSitePlaced",
+                        "station.water_collector site staked by the hearth");
+                }
                 return;
             }
         }
@@ -285,8 +294,11 @@ public sealed class BedSiteSystem : ISimulationSystem
                 site.BillRope = Spec119.WorkbenchBillRope;
                 WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
                 RememberSiteForColony(world, faction, site);
-                Trace.EmitSystem(world, "WorkbenchSitePlaced",
-                    "station.workbench site staked: boards 6, sticks 6, rope 2");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "WorkbenchSitePlaced",
+                        "station.workbench site staked: boards 6, sticks 6, rope 2");
+                }
                 return;
             }
         }
@@ -313,8 +325,11 @@ public sealed class BedSiteSystem : ISimulationSystem
                 if (claimant is not null)
                 {
                     ownerlessBed.Owner = claimant.Id;
-                    Trace.EmitSystem(world, "BedClaimed",
-                        $"{ownerlessBed.DefinitionId} {ownerlessBed.Id.Value} claimed by colonist {claimant.Id.Value}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.DebugSystem(world, "BedClaimed",
+                            $"{ownerlessBed.DefinitionId} {ownerlessBed.Id.Value} claimed by colonist {claimant.Id.Value}");
+                    }
                     return;
                 }
             }
@@ -379,9 +394,12 @@ public sealed class BedSiteSystem : ISimulationSystem
         site.BillLeaves = SimBalance.BedBasicBillLeaves;
 
         RememberSiteForColony(world, faction, site);
-        Trace.EmitSystem(world, "BedSitePlaced",
-            $"{product} site staked by the hearth" +
-            (owner is { } o ? $" for colonist {o.Value}" : string.Empty));
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "BedSitePlaced",
+                $"{product} site staked by the hearth" +
+                (owner is { } o ? $" for colonist {o.Value}" : string.Empty));
+        }
     }
 
     private static bool NeedsProstheticWorkbench(WorldState world, Faction faction)

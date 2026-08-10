@@ -114,8 +114,11 @@ public sealed partial class ExecutionSystem
                     System.Math.Max(1, helper.Execution.EndTick - helper.Execution.StartTick));
                 helper.Execution.Status = ExecutionStatus.None;
                 helper.Execution.CurrentInteraction = null;
-                Trace.Emit(world, helper.Id, "RescueBandaged",
-                    $"NPC{patient.Id.Value} before pickup");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, helper.Id, "RescueBandaged",
+                        $"NPC{patient.Id.Value} before pickup");
+                }
             }
         }
 

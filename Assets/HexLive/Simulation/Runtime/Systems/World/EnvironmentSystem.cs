@@ -65,9 +65,12 @@ public sealed class EnvironmentSystem : ISimulationSystem
 
         if (world.Environment.Phase != previousPhase)
         {
-            Trace.EmitSystem(world, "PhaseChanged",
-                $"{previousPhase}->{world.Environment.Phase} " +
-                $"Clock={FormatClock(progress)} Temp={world.Environment.GlobalTemperature:F1}");
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "PhaseChanged",
+                    $"{previousPhase}->{world.Environment.Phase} " +
+                    $"Clock={FormatClock(progress)} Temp={world.Environment.GlobalTemperature:F1}");
+            }
         }
 
         RebuildShadows(world, progress);

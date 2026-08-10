@@ -106,9 +106,12 @@ public sealed partial class PlanningSystem
             });
             npc.Plan.CurrentStepIndex = 0;
             npc.Plan.Status = PlanStatus.Active;
-            Trace.Emit(world, npc.Id, "PlanBuilt",
-                $"Goal=Eat Target={perceived.DefinitionId} (spit roast) " +
-                $"Tile={perceived.Tile.Q},{perceived.Tile.R} Steps=[MoveToJunction,PickUp]");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanBuilt",
+                    $"Goal=Eat Target={perceived.DefinitionId} (spit roast) " +
+                    $"Tile={perceived.Tile.Q},{perceived.Tile.R} Steps=[MoveToJunction,PickUp]");
+            }
             return true;
         }
 
@@ -183,7 +186,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, goal);
-            Trace.Emit(world, npc.Id, "PlanFailed", $"Goal={goal} Coconut inventory plan has no current junction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", $"Goal={goal} Coconut inventory plan has no current junction");
+
+            }
             return true;
         }
 
@@ -207,8 +214,11 @@ public sealed partial class PlanningSystem
 
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal={goal} Item={item.DefinitionId} Steps=[DropInventoryItem,{FormatInteractions(interactions)}]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal={goal} Item={item.DefinitionId} Steps=[DropInventoryItem,{FormatInteractions(interactions)}]");
+        }
         return true;
     }
 
@@ -224,7 +234,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, goal);
-            Trace.Emit(world, npc.Id, "PlanFailed", $"Goal={goal} Coconut target vanished or has no junction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", $"Goal={goal} Coconut target vanished or has no junction");
+
+            }
             return true;
         }
 
@@ -245,8 +259,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, goal);
-            Trace.Emit(world, npc.Id, "ReservationFailed",
-                $"Coconut Anchor={anchorJunction.Value} has no free junction beside it");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ReservationFailed",
+                    $"Coconut Anchor={anchorJunction.Value} has no free junction beside it");
+            }
             return true;
         }
 
@@ -256,8 +273,11 @@ public sealed partial class PlanningSystem
             {
                 npc.Plan.Status = PlanStatus.Failed;
                 SetGoalCooldown(world, npc, goal);
-                Trace.Emit(world, npc.Id, "ReservationFailed",
-                    $"Coconut beside Junction={targetJunction.Value} already reserved or occupied");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ReservationFailed",
+                        $"Coconut beside Junction={targetJunction.Value} already reserved or occupied");
+                }
                 return true;
             }
         }
@@ -284,10 +304,13 @@ public sealed partial class PlanningSystem
 
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal={goal} Target={target.DefinitionId} Tile={target.Tile.Q},{target.Tile.R} " +
-            $"Anchor={anchorJunction.Value} Junction={targetJunction.Value} " +
-            $"Steps=[MoveToJunction,{FormatInteractions(interactions)}]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal={goal} Target={target.DefinitionId} Tile={target.Tile.Q},{target.Tile.R} " +
+                $"Anchor={anchorJunction.Value} Junction={targetJunction.Value} " +
+                $"Steps=[MoveToJunction,{FormatInteractions(interactions)}]");
+        }
         return true;
     }
 
@@ -367,9 +390,12 @@ public sealed partial class PlanningSystem
         npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = target });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "SeekWaterHelp",
-            $"No blade, nothing drinkable — walking to {best.DisplayName} " +
-            $"(Dist={bestDistance} Tile={best.Tile.Q},{best.Tile.R})");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "SeekWaterHelp",
+                $"No blade, nothing drinkable — walking to {best.DisplayName} " +
+                $"(Dist={bestDistance} Tile={best.Tile.Q},{best.Tile.R})");
+        }
         return true;
     }
 
@@ -504,7 +530,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, forageGoal);
-            Trace.Emit(world, npc.Id, "PlanFailed", $"Goal={forageGoal} NoKnownProducer");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", $"Goal={forageGoal} NoKnownProducer");
+
+            }
             return;
         }
 
@@ -514,8 +544,11 @@ public sealed partial class PlanningSystem
             npc.Plan.Status = PlanStatus.Completed;
             npc.Mind.CurrentGoal = GoalType.None;
             SetGoalCooldown(world, npc, forageGoal);
-            Trace.Emit(world, npc.Id, "ForageWaiting",
-                $"At producer {flora.DefinitionId} Tile={flora.Tile.Q},{flora.Tile.R}, no fruit visible");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ForageWaiting",
+                    $"At producer {flora.DefinitionId} Tile={flora.Tile.Q},{flora.Tile.R}, no fruit visible");
+            }
             return;
         }
 
@@ -534,8 +567,11 @@ public sealed partial class PlanningSystem
             npc.Memory.Shun(flora.Id, world.Tick + AiBalance.ShunTicks);
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, forageGoal);
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal={forageGoal} Producer={flora.Id.Value} has no junction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    $"Goal={forageGoal} Producer={flora.Id.Value} has no junction");
+            }
             return;
         }
 
@@ -555,8 +591,11 @@ public sealed partial class PlanningSystem
             npc.Memory.Shun(flora.Id, world.Tick + AiBalance.ShunTicks);
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, forageGoal);
-            Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal={forageGoal} Producer={flora.Id.Value} NoFreeApproachJunction");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    $"Goal={forageGoal} Producer={flora.Id.Value} NoFreeApproachJunction");
+            }
             return;
         }
 
@@ -569,9 +608,12 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "ForagePlanned",
-            $"To {flora.DefinitionId} Tile={flora.Tile.Q},{flora.Tile.R} " +
-            $"Junction={approachJunction.Value} FromMemory={flora.FromMemory} Steps=[MoveToJunction]");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ForagePlanned",
+                $"To {flora.DefinitionId} Tile={flora.Tile.Q},{flora.Tile.R} " +
+                $"Junction={approachJunction.Value} FromMemory={flora.FromMemory} Steps=[MoveToJunction]");
+        }
     }
 
     // Spec 29E.4: goals shop by tag — food pickups and wood pickups never cross.

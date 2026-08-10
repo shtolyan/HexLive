@@ -131,8 +131,11 @@ public sealed class MoistureSystem : ISimulationSystem
                 item.Wetness = 1f;
                 if (worn && before <= 0.5f && item.Wetness > 0.5f)
                 {
-                    Trace.Emit(world, npc.Id, "SoakedThrough",
-                        $"{item.DefinitionId} Wetness={item.Wetness:F2}");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "SoakedThrough",
+                            $"{item.DefinitionId} Wetness={item.Wetness:F2}");
+                    }
                 }
             }
             else

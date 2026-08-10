@@ -170,8 +170,11 @@ internal static class InteractionReach
             return true;
         }
 
-        Trace.Emit(world, npc.Id, "InteractionTooFar",
-            $"{what} at {distance:F2}wu > reach {reach:F2}wu");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InteractionTooFar",
+                $"{what} at {distance:F2}wu > reach {reach:F2}wu");
+        }
         return false;
     }
 
@@ -205,9 +208,12 @@ internal static class InteractionReach
             return true;
         }
 
-        Trace.Emit(world, npc.Id, "InteractionTooFar",
-            $"{what} is across an impassable border (cliff/wall/obstacle) " +
-            $"from j{stand.Value} to j{targetJunction.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InteractionTooFar",
+                $"{what} is across an impassable border (cliff/wall/obstacle) " +
+                $"from j{stand.Value} to j{targetJunction.Value}");
+        }
         return false;
     }
 
@@ -254,9 +260,12 @@ internal static class InteractionReach
             return true;
         }
 
-        Trace.Emit(world, npc.Id, "InteractionTooFar",
-            $"{what} at {HexSpatialMath.Distance(npc.Position, anchorJunction.WorldPosition):F2}wu " +
-            $"is across an impassable border (cliff/wall/obstacle) from j{standJunction.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InteractionTooFar",
+                $"{what} at {HexSpatialMath.Distance(npc.Position, anchorJunction.WorldPosition):F2}wu " +
+                $"is across an impassable border (cliff/wall/obstacle) from j{standJunction.Value}");
+        }
         return false;
     }
 }

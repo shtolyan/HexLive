@@ -53,8 +53,11 @@ public sealed class DreamSystem : ISimulationSystem
             if (seen)
             {
                 world.CampfireDreamDone = true;
-                Trace.EmitSystem(world, "DreamFulfilled",
-                    "campfire — the colony has its hearth");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "DreamFulfilled",
+                        "campfire — the colony has its hearth");
+                }
             }
         }
 
@@ -94,8 +97,11 @@ public sealed class DreamSystem : ISimulationSystem
                 if (!livingIds.Contains(owner))
                 {
                     obj.Owner = null;
-                    Trace.EmitSystem(world, "BedReclaimed",
-                        $"bed {obj.Id.Value} freed — owner gone");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.DebugSystem(world, "BedReclaimed",
+                            $"bed {obj.Id.Value} freed — owner gone");
+                    }
                     continue;
                 }
 

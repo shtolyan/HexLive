@@ -29,8 +29,11 @@ internal static class DamageReactionSystemHelpers
         }
 
         npc.Mind.AdrenalineUntilTick = until;
-        Trace.Emit(world, npc.Id, "Adrenaline",
-            $"{reason} Damage={damage:F3} Until={npc.Mind.AdrenalineUntilTick}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "Adrenaline",
+                $"{reason} Damage={damage:F3} Until={npc.Mind.AdrenalineUntilTick}");
+        }
     }
 
     public static bool IsAdrenalineActive(WorldState world, NPCState npc) =>

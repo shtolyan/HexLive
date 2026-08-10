@@ -69,8 +69,11 @@ public sealed partial class ExecutionSystem
             helper.Execution.StartTick = world.Tick;
             helper.Execution.EndTick = world.Tick +
                 KenshiProstheticMath.TreatmentTicks(helper, helper.Mind.CurrentGoal, itemId);
-            Trace.Emit(world, helper.Id, splinting ? "SplintStarted" : "ProstheticFitStarted",
-                $"NPC{patient.Id.Value} Part={part} Item={itemId} Repair={repair}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, helper.Id, splinting ? "SplintStarted" : "ProstheticFitStarted",
+                    $"NPC{patient.Id.Value} Part={part} Item={itemId} Repair={repair}");
+            }
             return;
         }
 
@@ -96,8 +99,11 @@ public sealed partial class ExecutionSystem
         SkillTrace.Award(world, helper,
             splinting ? InteractionType.Splint : InteractionType.FitProsthetic,
             System.Math.Max(1, helper.Execution.EndTick - helper.Execution.StartTick));
-        Trace.Emit(world, helper.Id, splinting ? "SplintApplied" : "ProstheticFitted",
-            $"NPC{patient.Id.Value} Part={part} Item={itemId} Repair={repair}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, helper.Id, splinting ? "SplintApplied" : "ProstheticFitted",
+                $"NPC{patient.Id.Value} Part={part} Item={itemId} Repair={repair}");
+        }
         CompleteLimbCare(world, helper, patient);
     }
 

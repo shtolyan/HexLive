@@ -62,9 +62,12 @@ internal static class InventoryMath
             var victimImportance = Importance(world, victim);
             npc.Inventory.Items.Remove(victim);
             ExecutionSystem.DropItemAtFeet(world, npc, victim);
-            Trace.Emit(world, npc.Id, "InventoryMadeRoom",
-                $"Dropped {victim.DefinitionId}({victimImportance}) for " +
-                $"{incomingDefinitionId}({incomingImportance})");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InventoryMadeRoom",
+                    $"Dropped {victim.DefinitionId}({victimImportance}) for " +
+                    $"{incomingDefinitionId}({incomingImportance})");
+            }
         }
 
         return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
@@ -268,7 +271,11 @@ internal static class InventoryMath
 
             inv.Items.Remove(victim);
             ExecutionSystem.DropItemAtFeet(world, npc, victim);
-            Trace.Emit(world, npc.Id, "ItemSpilled", $"{victim.DefinitionId} (no pocket room)");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ItemSpilled", $"{victim.DefinitionId} (no pocket room)");
+
+            }
         }
     }
 }

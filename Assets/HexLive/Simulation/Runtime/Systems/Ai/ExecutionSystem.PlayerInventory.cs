@@ -46,9 +46,12 @@ namespace HexLive.Simulation.Runtime
                     ? InteractionType.Dress
                     : clothing ? InteractionType.Undress : null;
                 npc.Execution.HeldGarment = null;
-                Trace.Emit(world, npc.Id, "InteractionStarted",
-                    $"PlayerInventory Action={action} Def={definitionId} " +
-                    $"Duration={npc.Execution.EndTick - world.Tick}ticks");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "InteractionStarted",
+                        $"PlayerInventory Action={action} Def={definitionId} " +
+                        $"Duration={npc.Execution.EndTick - world.Tick}ticks");
+                }
                 return;
             }
 
@@ -96,8 +99,11 @@ namespace HexLive.Simulation.Runtime
                     break;
             }
 
-            Trace.Emit(world, npc.Id, "PlayerInventoryCompleted",
-                $"Action={action} Source={source} Index={index} Def={definitionId}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlayerInventoryCompleted",
+                    $"Action={action} Source={source} Index={index} Def={definitionId}");
+            }
             FinishPlayerInventory(npc, PlanStatus.Completed);
         }
 

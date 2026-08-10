@@ -640,13 +640,16 @@ internal static class KenshiRescueMath
             carrier.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived);
 
         SyncPatient(world, carrier, patient);
-        Trace.Emit(world, carrier.Id, "PersonPickedUp",
-            destination is null
-                ? $"NPC{patient.Id.Value} -> ground@{destinationTile.Q},{destinationTile.R} " +
-                  $"Route={route.Count} Searches={DestinationPathSearchesLastCall}"
-                : $"NPC{patient.Id.Value} -> {destination.DefinitionId}#{destination.Id.Value} " +
-                  $"at {destinationTile.Q},{destinationTile.R} Route={route.Count} " +
-                  $"Searches={DestinationPathSearchesLastCall}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "PersonPickedUp",
+                destination is null
+                    ? $"NPC{patient.Id.Value} -> ground@{destinationTile.Q},{destinationTile.R} " +
+                      $"Route={route.Count} Searches={DestinationPathSearchesLastCall}"
+                    : $"NPC{patient.Id.Value} -> {destination.DefinitionId}#{destination.Id.Value} " +
+                      $"at {destinationTile.Q},{destinationTile.R} Route={route.Count} " +
+                      $"Searches={DestinationPathSearchesLastCall}");
+        }
     }
 
     /// <summary>§124: ручной перенос заканчивается в руках, а не автоматически
@@ -678,8 +681,11 @@ internal static class KenshiRescueMath
         MeleeSwing.Cancel(carrier);
         carrier.StrikeReadyAtTick = 0;
         SyncPatient(world, carrier, person, dead);
-        Trace.Emit(world, carrier.Id, "PersonPickedUp",
-            $"NPC{person.Id.Value} Manual=1 Dead={(dead ? 1 : 0)}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "PersonPickedUp",
+                $"NPC{person.Id.Value} Manual=1 Dead={(dead ? 1 : 0)}");
+        }
     }
 
     internal static void SyncAll(WorldState world)
@@ -777,9 +783,12 @@ internal static class KenshiRescueMath
         patient.Position = landingPosition;
         patient.CurrentJunction = null;
         MortalityHelpers.AnchorLyingBody(world, patient);
-        Trace.Emit(world, carrier.Id, "RescuePatientStagedForHop",
-            $"NPC{patient.Id.Value} Tile={landingTile.Q},{landingTile.R} " +
-            $"Destination={carrier.RescueDestinationObjectId?.Value ?? 0}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "RescuePatientStagedForHop",
+                $"NPC{patient.Id.Value} Tile={landingTile.Q},{landingTile.R} " +
+                $"Destination={carrier.RescueDestinationObjectId?.Value ?? 0}");
+        }
         return true;
     }
 
@@ -814,9 +823,12 @@ internal static class KenshiRescueMath
         carrier.Mind.InterruptedRescuePatientId = null;
         patient.Mind.PendingAidFrom = carrier.Id;
         SyncPatient(world, carrier, patient);
-        Trace.Emit(world, carrier.Id, "RescuePatientRepickedAfterHop",
-            $"NPC{patient.Id.Value} Step={carrier.Movement.PathIndex}/" +
-            $"{carrier.Movement.JunctionPath.Count}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "RescuePatientRepickedAfterHop",
+                $"NPC{patient.Id.Value} Step={carrier.Movement.PathIndex}/" +
+                $"{carrier.Movement.JunctionPath.Count}");
+        }
         return true;
     }
 
@@ -875,8 +887,11 @@ internal static class KenshiRescueMath
         }
 
         CompleteCarrier(world, carrier);
-        Trace.Emit(world, carrier.Id, "PersonPutDown",
-            $"NPC{patient.Id.Value} at {(destination?.DefinitionId ?? "ground")}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "PersonPutDown",
+                $"NPC{patient.Id.Value} at {(destination?.DefinitionId ?? "ground")}");
+        }
     }
 
     internal static void DropSafely(WorldState world, NPCState carrier, string reason)
@@ -893,7 +908,11 @@ internal static class KenshiRescueMath
         carrier.Mind.CurrentGoal = GoalType.None;
         if (!hadCarry)
         {
-            Trace.Emit(world, carrier.Id, "PersonDropped", reason);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, carrier.Id, "PersonDropped", reason);
+
+            }
         }
     }
 
@@ -948,7 +967,11 @@ internal static class KenshiRescueMath
             carrier.RescueDestinationObjectId = null;
         }
 
-        Trace.Emit(world, carrier.Id, "PersonDropped", reason);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "PersonDropped", reason);
+
+        }
         return patient?.Id;
     }
 

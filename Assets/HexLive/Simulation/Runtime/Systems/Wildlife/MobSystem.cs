@@ -159,8 +159,11 @@ public sealed class MobSystem : ISimulationSystem
                 }
 
                 MoveDogTo(world, dog, neighbor);
-                Trace.EmitSystem(world, "DogUnstacked",
-                    $"Dog={dog.Id} moved to Junction={neighborId.Value}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "DogUnstacked",
+                        $"Dog={dog.Id} moved to Junction={neighborId.Value}");
+                }
                 break;
             }
         }
@@ -233,8 +236,11 @@ public sealed class MobSystem : ISimulationSystem
                     : IsNpcInRefugeFrom(world, dog, target)
                         ? " (in the water)"
                         : string.Empty;
-            Trace.EmitSystem(world, "DogLostTarget",
-                $"Dog={dog.Id} lost NPC{target.Id.Value}{lostReason}");
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "DogLostTarget",
+                    $"Dog={dog.Id} lost NPC{target.Id.Value}{lostReason}");
+            }
             dog.TargetNpc = null;
             dog.Status = Wildlife.MobStatus.Roaming;
             target = null;
@@ -448,8 +454,11 @@ public sealed class MobSystem : ISimulationSystem
             {
                 committedToFight = true;
                 target.Mind.FleeContactSinceTick = 0;
-                Trace.Emit(world, target.Id, "FleeStalled",
-                    $"Cornered by dog {dog.Id} (Health={target.Health:F2}) — standing to fight");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, target.Id, "FleeStalled",
+                        $"Cornered by dog {dog.Id} (Health={target.Health:F2}) — standing to fight");
+                }
             }
         }
 
@@ -713,8 +722,11 @@ public sealed class MobSystem : ISimulationSystem
 
         if (dropped > 0)
         {
-            Trace.Emit(world, npc.Id, "SpearReadied",
-                $"Dropped {dropped} to grab the spear");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "SpearReadied",
+                    $"Dropped {dropped} to grab the spear");
+            }
         }
     }
 
@@ -775,8 +787,11 @@ public sealed class MobSystem : ISimulationSystem
             npc.Memory.Dangers.RemoveAt(0);
         }
 
-        Trace.Emit(world, npc.Id, "DangerRemembered",
-            $"Tile={tile.Q},{tile.R} (dogs)");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "DangerRemembered",
+                $"Tile={tile.Q},{tile.R} (dogs)");
+        }
     }
 
     // Spec 29C.4A: run for the nearest reachable indoor junction.
@@ -876,8 +891,11 @@ public sealed class MobSystem : ISimulationSystem
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
 
-        Trace.Emit(world, npc.Id, "FleeStarted",
-            $"To camp Junction={refuge.Value} ({reason} Health={npc.Health:F2})");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "FleeStarted",
+                $"To camp Junction={refuge.Value} ({reason} Health={npc.Health:F2})");
+        }
         return true;
     }
 
@@ -949,8 +967,11 @@ public sealed class MobSystem : ISimulationSystem
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
 
-        Trace.Emit(world, npc.Id, "FleeStarted",
-            $"To indoor Junction={refuge.Value} (Health={npc.Health:F2} Attackers={attackers})");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "FleeStarted",
+                $"To indoor Junction={refuge.Value} (Health={npc.Health:F2} Attackers={attackers})");
+        }
         if (dogId.HasValue)
         {
             CombatHelpSystem.CallForHelpFromDog(world, npc, dogId.Value, attackers);
@@ -1015,7 +1036,11 @@ public sealed class MobSystem : ISimulationSystem
     private static void MarkFleeUnavailable(WorldState world, NPCState npc, string reason)
     {
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Flee);
-        Trace.Emit(world, npc.Id, "FleeUnavailable", reason);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "FleeUnavailable", reason);
+
+        }
     }
 
     private static void Roam(WorldState world, Wildlife.MobState dog)
@@ -1293,8 +1318,11 @@ public sealed class MobSystem : ISimulationSystem
             Health = Dog.MaxHealth
         };
         world.Mobs.Add(dog);
-        Trace.EmitSystem(world, "DogSpawned",
-            $"Dog={dog.Id} at Tile={dog.Tile.Q},{dog.Tile.R} Junction={dog.Junction.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "DogSpawned",
+                $"Dog={dog.Id} at Tile={dog.Tile.Q},{dog.Tile.R} Junction={dog.Junction.Value}");
+        }
         return true;
     }
 
@@ -1462,8 +1490,11 @@ public sealed class MobSystem : ISimulationSystem
                 {
                     witness.Needs.Comfort = MathUtil.Clamp(
                         witness.Needs.Comfort + Spec72.EnemyDeathRelief, 0f, 1f);
-                    Trace.Emit(world, witness.Id, "EnemyDeathRelief",
-                        $"NPC{deadId.Value} ({npc.DisplayName}) is dead");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, witness.Id, "EnemyDeathRelief",
+                            $"NPC{deadId.Value} ({npc.DisplayName}) is dead");
+                    }
                     continue;
                 }
 

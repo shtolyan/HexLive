@@ -189,8 +189,11 @@ internal static class ManualCommandExecutor
         }
 
         npc.Mind.ManualControl = command.Enabled;
-        Trace.Emit(world, npc.Id, "ManualControlChanged",
-            $"Enabled={(command.Enabled ? 1 : 0)}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualControlChanged",
+                $"Enabled={(command.Enabled ? 1 : 0)}");
+        }
     }
 
     private static void ApplyStop(WorldState world, StopCommand command)
@@ -203,7 +206,11 @@ internal static class ManualCommandExecutor
         ClearForNewOrder(world, npc, "Приказ отставить", keepCarriedPerson: true);
         npc.Mind.CurrentGoal = GoalType.None;
         ClearAttackOrder(world, npc);
-        Trace.Emit(world, npc.Id, "ManualOrderStopped", "Order=Stop");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderStopped", "Order=Stop");
+
+        }
     }
 
     private static void ApplyMoveTo(WorldState world, MoveToCommand command)
@@ -240,9 +247,12 @@ internal static class ManualCommandExecutor
 
         InstallMovePlan(world, npc, destination, junction);
 
-        Trace.Emit(world, npc.Id, "ManualOrderAccepted",
-            $"Order=MoveTo Junction={destination.Value} " +
-            $"Tile={Trace.FormatTile(npc.Plan.TargetTile)}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=MoveTo Junction={destination.Value} " +
+                $"Tile={Trace.FormatTile(npc.Plan.TargetTile)}");
+        }
     }
 
     private static void InstallMovePlan(
@@ -322,9 +332,12 @@ internal static class ManualCommandExecutor
         carrier.Plan.CurrentStepIndex = 0;
         carrier.Plan.Status = PlanStatus.Active;
         carrier.Mind.CurrentGoal = GoalType.PlayerOrder;
-        Trace.Emit(world, carrier.Id, "ManualOrderAccepted",
-            $"Order=CarryPerson Target=NPC{person.Id.Value} Dead={(dead ? 1 : 0)} " +
-            $"Junction={approach.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "ManualOrderAccepted",
+                $"Order=CarryPerson Target=NPC{person.Id.Value} Dead={(dead ? 1 : 0)} " +
+                $"Junction={approach.Value}");
+        }
     }
 
     private static void ApplyPutDownPerson(WorldState world, PutDownPersonCommand command)
@@ -345,8 +358,11 @@ internal static class ManualCommandExecutor
         PlanInterruption.Abort(world, carrier, "Игрок положил переносимого человека");
         carrier.Mind.CurrentGoal = GoalType.None;
         ClearAttackOrder(world, carrier);
-        Trace.Emit(world, carrier.Id, "ManualOrderAccepted",
-            $"Order=PutDownPerson Target=NPC{carried?.Value ?? 0}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "ManualOrderAccepted",
+                $"Order=PutDownPerson Target=NPC{carried?.Value ?? 0}");
+        }
     }
 
     // §123: group commands deliberately have one aggregate trace. The UI can
@@ -439,8 +455,11 @@ internal static class ManualCommandExecutor
                 world, assignment.Destination, assignment.Npc.Id,
                 world.Tick, Spec121.ManualReserveTicks);
             InstallMovePlan(world, assignment.Npc, assignment.Destination, destination);
-            Trace.Emit(world, assignment.Npc.Id, "ManualOrderAccepted",
-                $"Order=GroupMove Junction={assignment.Destination.Value}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, assignment.Npc.Id, "ManualOrderAccepted",
+                    $"Order=GroupMove Junction={assignment.Destination.Value}");
+            }
             accepted++;
         }
 
@@ -458,7 +477,11 @@ internal static class ManualCommandExecutor
                 keepCarriedPerson: true);
             npc.Mind.CurrentGoal = GoalType.None;
             ClearAttackOrder(world, npc);
-            Trace.Emit(world, npc.Id, "ManualOrderStopped", "Order=GroupStop");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ManualOrderStopped", "Order=GroupStop");
+
+            }
         }
 
         GroupResult(world, "Stop", command.Actors.Count, manual, actors.Count, 0, 0, ai);
@@ -478,8 +501,11 @@ internal static class ManualCommandExecutor
                 ClearAttackOrder(world, npc);
                 npc.Mind.CurrentGoal = GoalType.PlayerAttack;
                 npc.Mind.ManualAttackNpcId = target.Id;
-                Trace.Emit(world, npc.Id, "ManualOrderAccepted",
-                    $"Order=GroupAttackNpc Target=NPC{target.Id.Value}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                        $"Order=GroupAttackNpc Target=NPC{target.Id.Value}");
+                }
                 accepted++;
             }
         }
@@ -502,8 +528,11 @@ internal static class ManualCommandExecutor
                 npc.Mind.CurrentGoal = GoalType.PlayerAttack;
                 npc.Mind.ManualAttackMobId = command.MobId;
                 npc.Mind.CombatAssistDogId = command.MobId;
-                Trace.Emit(world, npc.Id, "ManualOrderAccepted",
-                    $"Order=GroupAttackMob Target=Dog{command.MobId}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                        $"Order=GroupAttackMob Target=Dog{command.MobId}");
+                }
                 accepted++;
             }
         }
@@ -531,8 +560,11 @@ internal static class ManualCommandExecutor
             npc.Mind.CurrentGoal = GoalType.None;
             ClearAttackOrder(world, npc);
             npc.Mind.ManualControl = command.Enabled;
-            Trace.Emit(world, npc.Id, "ManualControlChanged",
-                $"Enabled={(command.Enabled ? 1 : 0)}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ManualControlChanged",
+                    $"Enabled={(command.Enabled ? 1 : 0)}");
+            }
         }
 
         GroupResult(world, "SetManual", command.Actors.Count,
@@ -611,9 +643,12 @@ internal static class ManualCommandExecutor
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         npc.Mind.CurrentGoal = GoalType.PlayerInventory;
-        Trace.Emit(world, npc.Id, "ManualOrderAccepted",
-            $"Order=Inventory Action={command.Action} Source={command.Item.Source} " +
-            $"Index={command.Item.Index} Def={item.DefinitionId}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=Inventory Action={command.Action} Source={command.Item.Source} " +
+                $"Index={command.Item.Index} Def={item.DefinitionId}");
+        }
     }
 
     private static void ApplyInteract(WorldState world, InteractCommand command)
@@ -749,9 +784,12 @@ internal static class ManualCommandExecutor
         npc.Plan.Status = PlanStatus.Active;
         npc.Mind.CurrentGoal = GoalType.PlayerOrder;
 
-        Trace.Emit(world, npc.Id, "ManualOrderAccepted",
-            $"Order=Interact Obj={worldObject.Id.Value} Def={worldObject.DefinitionId} " +
-            $"Action={command.Interaction} Junction={target.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=Interact Obj={worldObject.Id.Value} Def={worldObject.DefinitionId} " +
+                $"Action={command.Interaction} Junction={target.Value}");
+        }
     }
 
     private static void ApplyAttackNpc(WorldState world, AttackNpcCommand command)
@@ -780,8 +818,11 @@ internal static class ManualCommandExecutor
 
         npc.Mind.CurrentGoal = GoalType.PlayerAttack;
         npc.Mind.ManualAttackNpcId = target.Id;
-        Trace.Emit(world, npc.Id, "ManualOrderAccepted",
-            $"Order=AttackNpc Target=NPC{target.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=AttackNpc Target=NPC{target.Id.Value}");
+        }
     }
 
     private static void ApplyAttackMob(WorldState world, AttackMobCommand command)
@@ -811,8 +852,11 @@ internal static class ManualCommandExecutor
         // Сцепку со зверем держит §57: AnimalCombatSystem бьёт любого, у кого
         // стоит CombatAssistDogId, — приказ просто становится в тот же строй.
         npc.Mind.CombatAssistDogId = command.MobId;
-        Trace.Emit(world, npc.Id, "ManualOrderAccepted",
-            $"Order=AttackMob Target=Dog{command.MobId}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=AttackMob Target=Dog{command.MobId}");
+        }
     }
 
     // Снять сцепку прошлого приказа-атаки. Отдельно от Abort: пара живёт не в

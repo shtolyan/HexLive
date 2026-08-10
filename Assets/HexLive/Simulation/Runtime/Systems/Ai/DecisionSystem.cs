@@ -1806,12 +1806,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             Spec81.AbuseBaseScore + abuseDrive, abuseAvail);
         if (raidAvail && world.Tick % 64 == 0)
         {
-            Trace.Emit(world, npc.Id, "RaidScored",
-                raidVictim is null
-                    ? "Victim=none (prowling)"
-                    : $"Victim=NPC{raidVictim.Id.Value} Opp={raidOpportunity:F2} " +
-                      $"Allies={RaidMath.AlliesAround(world, raidVictim)} " +
-                      $"VictimHealth={raidVictim.Health:F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "RaidScored",
+                    raidVictim is null
+                        ? "Victim=none (prowling)"
+                        : $"Victim=NPC{raidVictim.Id.Value} Opp={raidOpportunity:F2} " +
+                          $"Allies={RaidMath.AlliesAround(world, raidVictim)} " +
+                          $"VictimHealth={raidVictim.Health:F2}");
+            }
         }
 
         // Spec 35.3 + §52: build a hut piece when the full bill is carried
@@ -2174,11 +2177,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 // (every 64 ticks) so a long dry spell can't flood the log.
                 if (aidErrandKindNow != AidKind.None && world.Tick % 64 == 0)
                 {
-                    Trace.Emit(world, npc.Id, "AidErrandBlocked",
-                        $"Kind={aidErrandKindNow} Bid={aidErrandBid:F2} " +
-                        $"NoChore=[food={ctx.FoodFetchPossible} space={npc.Inventory.HasSpace} " +
-                        $"water={waterFetchPossible} herb={herbFetchPossible} " +
-                        $"craft={bandageCraftPossible}]");
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "AidErrandBlocked",
+                            $"Kind={aidErrandKindNow} Bid={aidErrandBid:F2} " +
+                            $"NoChore=[food={ctx.FoodFetchPossible} space={npc.Inventory.HasSpace} " +
+                            $"water={waterFetchPossible} herb={herbFetchPossible} " +
+                            $"craft={bandageCraftPossible}]");
+                    }
                 }
 
                 aidErrandGoal = null;
@@ -2346,8 +2352,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
         if (errandDone is not null)
         {
-            Trace.Emit(world, npc.Id, "AidErrandCleared",
-                $"Kind={npc.Mind.AidErrandKind} Reason={errandDone}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "AidErrandCleared",
+                    $"Kind={npc.Mind.AidErrandKind} Reason={errandDone}");
+            }
             npc.Mind.AidErrandKind = AidKind.None;
             npc.Mind.AidErrandFor = null;
             npc.Mind.AidErrandUntilTick = 0;
@@ -2414,7 +2423,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
         if (best is null)
         {
-            Trace.Emit(world, npc.Id, "DecisionSkipped", "No scores available");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "DecisionSkipped", "No scores available");
+
+            }
             return;
         }
 
@@ -2441,10 +2454,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             if (best.FinalScore - currentScore <= threshold)
             {
-                Trace.Emit(world, npc.Id, "GoalHeld",
-                    $"{previousGoal} kept over {best.Goal} " +
-                    $"(lead={best.FinalScore - currentScore:F3} <= {threshold:F2}" +
-                    $"{(locked ? $", locked until {npc.Mind.GoalLock!.EndTick}" : "")})");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "GoalHeld",
+                        $"{previousGoal} kept over {best.Goal} " +
+                        $"(lead={best.FinalScore - currentScore:F3} <= {threshold:F2}" +
+                        $"{(locked ? $", locked until {npc.Mind.GoalLock!.EndTick}" : "")})");
+                }
                 return;
             }
         }
@@ -2472,9 +2488,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             };
         }
 
-        Trace.Emit(world, npc.Id, "GoalSelected",
-            $"{best.Goal} (Score={best.FinalScore:F3}) " +
-            $"{(changed ? $"CHANGED from {previousGoal}" : "UNCHANGED")}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "GoalSelected",
+                $"{best.Goal} (Score={best.FinalScore:F3}) " +
+                $"{(changed ? $"CHANGED from {previousGoal}" : "UNCHANGED")}");
+        }
 
         // §53.7: the chore she just picked IS the errand — stamp it so it
         // keeps its aid weight while she walks out of the sufferer's sight,
@@ -2490,10 +2509,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Mind.AidErrandUntilTick = world.Tick + Spec53.AidErrandTicks;
             if (fresh)
             {
-                Trace.Emit(world, npc.Id, "AidErrandStarted",
-                    $"Kind={aidErrandKindNow} " +
-                    $"For={(aidErrandTargetNow is { } ward ? $"NPC{ward.Value}" : "unknown")} " +
-                    $"Goal={stampedErrand} Bid={aidErrandBid:F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "AidErrandStarted",
+                        $"Kind={aidErrandKindNow} " +
+                        $"For={(aidErrandTargetNow is { } ward ? $"NPC{ward.Value}" : "unknown")} " +
+                        $"Goal={stampedErrand} Bid={aidErrandBid:F2}");
+                }
             }
         }
 
@@ -2717,8 +2739,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         {
             if (npc.Mind.NightSleepUntilRested)
             {
-                Trace.Emit(world, npc.Id, "NightSleepSatisfied",
-                    $"Energy={npc.Needs.Energy:F2}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "NightSleepSatisfied",
+                        $"Energy={npc.Needs.Energy:F2}");
+                }
             }
 
             npc.Mind.NightSleepUntilRested = false;
@@ -2730,8 +2755,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Needs.Energy <= Spec49.NightSleepEnergy)
         {
             npc.Mind.NightSleepUntilRested = true;
-            Trace.Emit(world, npc.Id, "NightSleepPrepared",
-                $"Energy={npc.Needs.Energy:F2} Threshold={Spec49.NightSleepEnergy:F2}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "NightSleepPrepared",
+                    $"Energy={npc.Needs.Energy:F2} Threshold={Spec49.NightSleepEnergy:F2}");
+            }
         }
     }
 

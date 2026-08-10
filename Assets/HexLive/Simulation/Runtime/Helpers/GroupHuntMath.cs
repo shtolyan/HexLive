@@ -212,7 +212,11 @@ public static class GroupHuntMath
         {
             if (world.Tick % 64 == 0 && gathered.Count > 0)
             {
-                Trace.Emit(world, gathered[0].Id, "GroupHuntBlocked", $"Reason={blocked}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, gathered[0].Id, "GroupHuntBlocked", $"Reason={blocked}");
+
+                }
             }
 
             return false;

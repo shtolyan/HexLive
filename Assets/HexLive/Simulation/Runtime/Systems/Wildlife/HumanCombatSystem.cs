@@ -143,10 +143,13 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // deaths while the man died six times.
             if (opponent.Health <= 0f)
             {
-                Trace.EmitSystem(world, raiding || expelling ? "RaidKilledVictim" : "RaiderKilled",
-                    $"NPC{opponent.Id.Value} ({opponent.DisplayName}) killed by " +
-                    $"NPC{actor.Id.Value} ({actor.DisplayName}) at " +
-                    $"Tile={opponent.Tile.Q},{opponent.Tile.R}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, raiding || expelling ? "RaidKilledVictim" : "RaiderKilled",
+                        $"NPC{opponent.Id.Value} ({opponent.DisplayName}) killed by " +
+                        $"NPC{actor.Id.Value} ({actor.DisplayName}) at " +
+                        $"Tile={opponent.Tile.Q},{opponent.Tile.R}");
+                }
                 HumanCombatPairing.ClearFor(world, opponent);
                 CombatHelpSystem.ClearAssist(opponent);
             }

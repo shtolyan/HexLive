@@ -139,8 +139,11 @@ public sealed class RescueSystem : ISimulationSystem
         TryPrearmLocalApproach(world, helper, approach);
         patient.Mind.PendingAidFrom = helper.Id;
         patient.Mind.PendingAidSinceTick = world.Tick;
-        Trace.Emit(world, helper.Id, resumed ? "RescueResumed" : "RescueAssigned",
-            $"NPC{patient.Id.Value} Distance={distance} Approach={approach.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, helper.Id, resumed ? "RescueResumed" : "RescueAssigned",
+                $"NPC{patient.Id.Value} Distance={distance} Approach={approach.Value}");
+        }
         return true;
     }
 
@@ -281,8 +284,11 @@ public sealed class RescueSystem : ISimulationSystem
         helper.Plan.Status = PlanStatus.Active;
         patient.Mind.PendingAidFrom = helper.Id;
         patient.Mind.PendingAidSinceTick = world.Tick;
-        Trace.Emit(world, helper.Id, "LimbCareAssigned",
-            $"Goal={goal} NPC{patient.Id.Value} Approach={approach.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, helper.Id, "LimbCareAssigned",
+                $"Goal={goal} NPC{patient.Id.Value} Approach={approach.Value}");
+        }
         return true;
     }
 }

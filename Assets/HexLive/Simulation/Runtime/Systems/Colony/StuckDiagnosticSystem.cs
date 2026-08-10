@@ -154,14 +154,17 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
 
         // Формат Key=Value — как у остальной новой диагностики: разбирается
         // глазами и грепом, и ничей парсер на него не завязан.
-        Trace.Emit(world, npc.Id, "StuckDetected",
-            $"Reason={reason} Ticks={held} Goal={npc.Mind.CurrentGoal} " +
-            $"Exec={npc.Execution.Status} Moving={(npc.Movement.IsMoving ? 1 : 0)} " +
-            $"Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count} " +
-            $"Plan={npc.Plan.Status} Pos={Trace.FormatPos(npc.Position)} " +
-            $"Junction={Trace.FormatJunction(npc.CurrentJunction)} " +
-            $"Target={Trace.FormatJunction(npc.Plan.TargetJunctionId)} " +
-            $"{(firstTime ? "ONSET" : "STILL")}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "StuckDetected",
+                $"Reason={reason} Ticks={held} Goal={npc.Mind.CurrentGoal} " +
+                $"Exec={npc.Execution.Status} Moving={(npc.Movement.IsMoving ? 1 : 0)} " +
+                $"Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count} " +
+                $"Plan={npc.Plan.Status} Pos={Trace.FormatPos(npc.Position)} " +
+                $"Junction={Trace.FormatJunction(npc.CurrentJunction)} " +
+                $"Target={Trace.FormatJunction(npc.Plan.TargetJunctionId)} " +
+                $"{(firstTime ? "ONSET" : "STILL")}");
+        }
     }
 
     private const string ReasonIdle = "IdleWithGoal";

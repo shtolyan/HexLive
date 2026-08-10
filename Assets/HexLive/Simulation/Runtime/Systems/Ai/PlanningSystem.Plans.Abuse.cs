@@ -38,14 +38,21 @@ public sealed partial class PlanningSystem
             // заведомо бывают. Тот же ProwlTarget, которым ходит налёт.
             if (TryBuildProwlPlan(world, npc))
             {
-                Trace.Emit(world, npc.Id, "AbuseProwl",
-                    $"Social={npc.Needs.Social:F2} — идёт искать, кого задеть");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "AbuseProwl",
+                        $"Social={npc.Needs.Social:F2} — идёт искать, кого задеть");
+                }
                 return;
             }
 
             npc.Plan.Status = PlanStatus.Failed;
             AbandonAbuse(world, npc, "NoMark");
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Abuse NoMark");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Abuse NoMark");
+
+            }
             return;
         }
 
@@ -99,7 +106,11 @@ public sealed partial class PlanningSystem
         {
             npc.Plan.Status = PlanStatus.Failed;
             AbandonAbuse(world, npc, "NoApproach");
-            Trace.Emit(world, npc.Id, "PlanFailed", $"Goal=Abuse Mark={mark.Id.Value} NoApproach");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", $"Goal=Abuse Mark={mark.Id.Value} NoApproach");
+
+            }
             return;
         }
 
@@ -121,9 +132,12 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal=Abuse Mark=NPC{mark.Id.Value} Loot={npc.Mind.AbuseHasLoot} " +
-            $"Ratio={AbuseMath.Ratio(world, npc, mark):F2}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=Abuse Mark=NPC{mark.Id.Value} Loot={npc.Mind.AbuseHasLoot} " +
+                $"Ratio={AbuseMath.Ratio(world, npc, mark):F2}");
+        }
     }
 
     // Держимся ОДНОЙ жертвы, пока она годится: пересчёт на каждом тике заставлял
@@ -190,7 +204,11 @@ public sealed partial class PlanningSystem
             npc.Mind.CurrentGoal = GoalType.None;
         }
 
-        Trace.Emit(world, npc.Id, "AbuseAbandoned", $"Reason={reason}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "AbuseAbandoned", $"Reason={reason}");
+
+        }
     }
 }
 

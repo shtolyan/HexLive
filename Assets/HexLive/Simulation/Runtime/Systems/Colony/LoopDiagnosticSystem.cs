@@ -317,12 +317,15 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
 
         // Формат Key=Value — как у StuckDetected: разбирается глазами и грепом,
         // и ничей парсер на него не завязан.
-        Trace.Emit(world, npc.Id, "LoopDetected",
-            $"Reason={reason} {detail} Goal={npc.Mind.CurrentGoal} Policy={policy} " +
-            $"Exec={npc.Execution.Status} Plan={npc.Plan.Status} " +
-            $"Moving={(npc.Movement.IsMoving ? 1 : 0)} " +
-            $"Pos={Trace.FormatPos(npc.Position)} " +
-            $"{(firstTime ? "ONSET" : "STILL")}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "LoopDetected",
+                $"Reason={reason} {detail} Goal={npc.Mind.CurrentGoal} Policy={policy} " +
+                $"Exec={npc.Execution.Status} Plan={npc.Plan.Status} " +
+                $"Moving={(npc.Movement.IsMoving ? 1 : 0)} " +
+                $"Pos={Trace.FormatPos(npc.Position)} " +
+                $"{(firstTime ? "ONSET" : "STILL")}");
+        }
 
         Escalate(world, npc, reason, offender, policy);
     }
@@ -381,8 +384,11 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         // человек, а не сторож, отбирающий у голодной последний кокос.
         if (ServesCrisisNeed(npc, offender))
         {
-            Trace.Emit(world, npc.Id, "LoopEscapeHeld",
-                $"Reason={reason} Goal={offender} Why=ServesCrisisNeed");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "LoopEscapeHeld",
+                    $"Reason={reason} Goal={offender} Why=ServesCrisisNeed");
+            }
             return;
         }
 
@@ -429,8 +435,11 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         watch.LastActionTick = world.Tick;
         _watch[id] = watch;
 
-        Trace.Emit(world, npc.Id, "LoopEscalated",
-            $"Reason={reason} Rung={next} {action} Goal={offender}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "LoopEscalated",
+                $"Reason={reason} Rung={next} {action} Goal={offender}");
+        }
     }
 
     /// <summary>

@@ -2497,7 +2497,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         }
     }
 
-    private static bool IsBleedingCrisis(NPCState npc)
+    // internal, а не private: §122 спрашивает ровно этот вопрос перед тем, как
+    // заглушить цель — заглушить лечение у истекающей кровью значит намеренно
+    // повторить баг #88. Вторая копия правила здесь была бы шестой мерой в ряду
+    // тех пяти «близко ли», что уже разъехались (AI_REVIEW §1.3).
+    internal static bool IsBleedingCrisis(NPCState npc)
     {
         if (npc.Needs.Blood >= 0.45f)
         {

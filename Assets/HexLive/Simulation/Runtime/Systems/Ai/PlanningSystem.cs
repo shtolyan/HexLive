@@ -1184,7 +1184,18 @@ public sealed partial class PlanningSystem : ISimulationSystem
     // перестал — второе место жило голым числом 40.
     private static int FailureCooldownTicks => AiBalance.FailureCooldownTicks;
 
-    internal static void SetGoalCooldown(WorldState world, NPCState npc, GoalType goal)
+    internal static void SetGoalCooldown(WorldState world, NPCState npc, GoalType goal) =>
+        SetGoalCooldown(world, npc, goal, FailureCooldownTicks);
+
+    /// <summary>
+    /// Тот же кулдаун, но на заданный срок. Понадобился §122: сорок тиков петля
+    /// не замечает — она их и так пережила пять раз подряд, — а лестнице выхода
+    /// нужен срок, за который аукцион успеет заняться другим делом. Отдельным
+    /// механизмом это делать нельзя: снятие замка ниже — часть контракта
+    /// (§23.10), и вторая реализация однажды его забудет.
+    /// </summary>
+    internal static void SetGoalCooldown(WorldState world, NPCState npc, GoalType goal,
+        int ticks)
     {
         if (goal == GoalType.Idle || goal == GoalType.None)
         {
@@ -1194,7 +1205,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         npc.Mind.Cooldowns.Add(new GoalCooldown
         {
             Goal = goal,
-            EndTick = world.Tick + FailureCooldownTicks
+            EndTick = world.Tick + ticks
         });
 
         // A failed goal must not be defended by its own lock — otherwise the
@@ -1206,7 +1217,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         }
 
         Trace.Emit(world, npc.Id, "GoalCooldownSet",
-            $"{goal} on cooldown until tick {world.Tick + FailureCooldownTicks}");
+            $"{goal} on cooldown until tick {world.Tick + ticks}");
     }
 
     // §4-колонка: 41-рукавный switch переехал в GoalCatalog. Знание «какое

@@ -44,6 +44,17 @@ public sealed class SoakOptions
     public bool TimedMelee;
 
     /// <summary>
+    /// §122 фаза 2: автовыход из петель, поверх simdata. null — как в экспорте.
+    /// Существует ради A/B: §35.6 помнит, как вариант abort-on-Blocked выглядел
+    /// логично и дал 466 пустых отмен стирки с тройным churn. Отличить лечение
+    /// от такого можно только одним сидом с флагом и без.
+    /// </summary>
+    public bool? LoopEscape;
+
+    /// <summary>§122: потолок лестницы поверх simdata (0..3). null — как в экспорте.</summary>
+    public int? LoopMaxRung;
+
+    /// <summary>
     /// Пресеты трассы. <c>decisions</c> — дёшево и без шума, для проверки
     /// «поведение не поехало» на гигиенических правках. <c>scores</c> добавляет
     /// <c>GoalScored</c>: это ТОЧНЫЙ float-выхлоп каждого скоринг-блока, поэтому
@@ -156,6 +167,12 @@ public sealed class SoakOptions
                     case "--explain-stuck":
                         options.ExplainStuck = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--loop-escape":
+                        options.LoopEscape = Next(arg) == "on";
+                        break;
+                    case "--loop-max-rung":
+                        options.LoopMaxRung = int.Parse(Next(arg), CultureInfo.InvariantCulture);
+                        break;
                     case "--explain-loops":
                         options.ExplainLoops = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
@@ -220,6 +237,8 @@ public sealed class SoakOptions
                           зависшего NPC (по умолчанию 3, 0 — выключить)
   --explain-loops N       §122: то же для ПЕТЕЛЬ — «двигается и не продвигается»
                           (по умолчанию 3, 0 — выключить)
+  --loop-escape on|off    §122: автовыход из петель поверх simdata (A/B-ключ)
+  --loop-max-rung N       §122: докуда поднимать лестницу (0 доклад .. 3 глушение)
   --quiet                 без человекочитаемого вывода
 
 Несколько сидов и --trace-out: файл на сид, суффикс .seed<N>.";

@@ -275,6 +275,151 @@ public sealed class LoopDiagnosticTests
             "забьётся одной и той же жалобой, и история до петли пропадёт.");
     }
 
+    // ── Лестница выхода (фаза 2) ─────────────────────────────────────────
+
+    private static int Escalations(WorldState world, string contains) =>
+        world.Events.Items.Count(e =>
+            e.Type == "LoopEscalated" && e.Message.Contains(contains));
+
+    /// <summary>
+    /// Первая ступень — отвернуться от объекта. Дешевле неё нет ничего, и
+    /// именно поэтому она первая.
+    /// </summary>
+    [Test]
+    public void FirstRungShunsTheObjectItKeepsFailingAt()
+    {
+        var (engine, npc) = Arena();
+
+        for (var i = 0; i < AiBalance.LoopRepeatAttempts + 1; i++)
+        {
+            Attempt(engine, npc, GoalType.GatherWood, 77, PlanStatus.Failed);
+        }
+
+        Assert.That(npc.Memory.IsShunned(new ObjectId(77), engine.World.Tick), Is.True,
+            "Объект, к которому она сходила впустую пять раз, остался в кандидатах — " +
+            "значит следующий заход будет туда же, и петля продолжится.");
+        Assert.That(Escalations(engine.World, "Rung=1"), Is.GreaterThan(0));
+    }
+
+    /// <summary>
+    /// ⭐ §81.14/§109.6: липкую сцену докладываем, но НЕ ТРОГАЕМ. Это тест на то,
+    /// что фаза 2 не воскресила баг #90 «пить↔гнобить».
+    /// </summary>
+    [Test]
+    public void StickyGoalIsReportedButNeverActedOn()
+    {
+        var (engine, npc) = Arena();
+
+        for (var i = 0; i < AiBalance.LoopRepeatAttempts * 3; i++)
+        {
+            Attempt(engine, npc, GoalType.Abuse, 3, PlanStatus.Failed);
+        }
+
+        Assert.That(Loops(engine.World, LoopDiagnosticSystem.ReasonSisyphus), Is.GreaterThan(0),
+            "Предпосылка теста не выполнилась: петля не замечена.");
+        Assert.That(engine.World.Events.Items.Count(e => e.Type == "LoopEscalated"), Is.Zero,
+            "Лестница тронула липкую цель. §81.14: поход «докопаться» перебивает " +
+            "только нокаут, а первая версия с заморозкой и сбросом — это и есть баг #90.");
+        Assert.That(npc.Memory.IsShunned(new ObjectId(3), engine.World.Tick), Is.False,
+            "Даже отворот от объекта — уже вмешательство в сцену.");
+    }
+
+    /// <summary>
+    /// ⭐ Главный предохранитель. «Не может добыть воду» лечится поиском другого
+    /// источника, а не запретом хотеть пить: заглушив Drink у жаждущей, сторож
+    /// убил бы её тем самым действием, которым собирался помочь. Это класс
+    /// ошибки §35.6 — правка, логичная на бумаге и вредная в прогоне.
+    /// </summary>
+    [Test]
+    public void GoalServingAScreamingNeedIsNeverMuted()
+    {
+        var (engine, npc) = Arena();
+        npc.Needs.Thirst = 1f; // кризис
+
+        // Лестница поднимается по ступени за LoopRepeatEmitTicks, и каждой
+        // нужны свежие провалы ПОСЛЕ предыдущего действия — иначе она считала бы
+        // «лечение не помогло» по уликам, собранным до лечения. Значит и тесту
+        // нужно столько же времени, сколько живой петле.
+        for (var round = 0; round < 4; round++)
+        {
+            for (var i = 0; i < AiBalance.LoopRepeatAttempts + 1; i++)
+            {
+                Attempt(engine, npc, GoalType.Drink, 77, PlanStatus.Failed);
+            }
+
+            for (var t = 0; t < AiBalance.LoopRepeatEmitTicks + 8; t++)
+            {
+                npc.Needs.Thirst = 1f;
+                engine.Step();
+            }
+        }
+
+        Assert.That(npc.Mind.Cooldowns.Any(c => c.Goal == GoalType.Drink), Is.False,
+            "Жажда заглушена во время кризиса — это смерть от жажды, устроенная " +
+            "сторожем, который должен был помочь.");
+        Assert.That(engine.World.Events.Items.Any(e =>
+                e.Type == "LoopEscapeHeld" && e.Message.Contains("ServesCrisisNeed")),
+            Is.True,
+            "Предохранитель сработал молча — в трассе должно быть видно, ПОЧЕМУ " +
+            "лестница остановилась, иначе это читается как её поломка.");
+    }
+
+    /// <summary>
+    /// Не в кризис — глушить можно: это и есть ступень, ломающая качели.
+    /// Соперница успевает доделать дело, пока цель молчит.
+    /// </summary>
+    [Test]
+    public void OrdinaryGoalIsMutedOnTheThirdRung()
+    {
+        var (engine, npc) = Arena();
+
+        // Три разбора с действием: два отворота, потом глушение. Между ними
+        // должно пройти по LoopRepeatEmitTicks — столько лестница даёт ступени
+        // на то, чтобы сработать, и раньше подниматься не имеет права.
+        for (var round = 0; round < 4; round++)
+        {
+            for (var i = 0; i < AiBalance.LoopRepeatAttempts + 1; i++)
+            {
+                Attempt(engine, npc, GoalType.GatherWood, 900 + round, PlanStatus.Failed);
+            }
+
+            for (var t = 0; t < AiBalance.LoopRepeatEmitTicks + 8; t++)
+            {
+                engine.Step();
+            }
+        }
+
+        Assert.That(npc.Mind.Cooldowns.Any(c => c.Goal == GoalType.GatherWood), Is.True,
+            "Круг пережил оба отворота, а цель так и не заглушена — лестница " +
+            "не доходит до ступени, ради которой она и нужна.");
+    }
+
+    /// <summary>Выключатель гасит ДЕЙСТВИЯ, но не диагностику.</summary>
+    [Test]
+    public void KillSwitchStopsActionsButNotReports()
+    {
+        var previous = AiBalance.LoopEscapeEnabled;
+        AiBalance.LoopEscapeEnabled = false;
+        try
+        {
+            var (engine, npc) = Arena();
+            for (var i = 0; i < AiBalance.LoopRepeatAttempts + 1; i++)
+            {
+                Attempt(engine, npc, GoalType.GatherWood, 77, PlanStatus.Failed);
+            }
+
+            Assert.That(Loops(engine.World, LoopDiagnosticSystem.ReasonSisyphus), Is.GreaterThan(0),
+                "С выключенным автовыходом диагностика обязана остаться — иначе " +
+                "A/B-замер сравнивал бы не с чем.");
+            Assert.That(engine.World.Events.Items.Count(e => e.Type == "LoopEscalated"), Is.Zero);
+            Assert.That(npc.Memory.IsShunned(new ObjectId(77), engine.World.Tick), Is.False);
+        }
+        finally
+        {
+            AiBalance.LoopEscapeEnabled = previous;
+        }
+    }
+
     // ── Реестр намерений сам по себе ─────────────────────────────────────
 
     /// <summary>

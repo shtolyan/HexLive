@@ -81,6 +81,14 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         /// <summary>Что уже доложено и когда, чтобы не повторяться каждый разбор.</summary>
         public string ReportedReason;
         public int LastEmitTick;
+
+        /// <summary>§122 фаза 2: на какой ступени лестницы этот круг. 0 — только
+        /// доложено, ничего не сделано.</summary>
+        public int Rung;
+
+        /// <summary>Тик последнего ДЕЙСТВИЯ лестницы. Обрезает окно счёта, чтобы
+        /// попытки «до лечения» не толкали следующую ступень.</summary>
+        public int LastActionTick;
     }
 
     private readonly Dictionary<int, Watch> _watch = new Dictionary<int, Watch>();
@@ -230,11 +238,24 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         if (WatchdogExclusions.IsAuthoredStillness(world, npc) ||
             WatchdogExclusions.IsPlayerDriven(npc))
         {
+            world.IntentLedger.ClearLooping(id);
             Forget(id, world.Tick);
             return;
         }
 
+        _watch.TryGetValue(id, out var seen);
+
+        // ⚠️ Окно счёта не заглядывает раньше последнего ДЕЙСТВИЯ лестницы.
+        // Без этого попытки, ради которых ступень и была сделана, продолжают
+        // считаться после неё, порог остаётся пробитым, и следующая ступень
+        // срабатывает не потому, что лечение не помогло, а потому, что мы
+        // помним болезнь. Лестница пробегала бы до конца за три разбора.
         var since = world.Tick - AiBalance.LoopWindowTicks;
+        if (seen.LastActionTick > since)
+        {
+            since = seen.LastActionTick;
+        }
+
         var records = world.IntentLedger.Tail(id);
 
         var offender = GoalType.None;
@@ -244,15 +265,40 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
 
         if (reason == null)
         {
+            world.IntentLedger.ClearLooping(id);
             Forget(id, world.Tick);
             return;
         }
 
-        _watch.TryGetValue(id, out var watch);
+        // Метка «крутится сейчас» ставится ДО глушилки повторов: доля времени в
+        // петлях не должна зависеть от того, как часто мы об этом говорим.
+        world.IntentLedger.MarkLooping(id, world.Tick);
+
+        var watch = seen;
         var firstTime = watch.ReportedReason != reason;
         if (!firstTime && world.Tick - watch.LastEmitTick < AiBalance.LoopRepeatEmitTicks)
         {
             return;
+        }
+
+        // ⚠️ Ступень НЕ сбрасывается просто потому, что круг доложен заново.
+        //
+        // Первая версия обнуляла её на каждом ONSET — и лестница физически не
+        // могла подняться выше первой ступени. Механика такая: ступень
+        // отрабатывает, окно счёта обрезается по LastActionTick, улик временно
+        // не хватает, подпись пропадает, Forget через LoopRepeatEmitTicks стирает
+        // память — и следующее срабатывание приходит как ONSET, с нуля. NPC
+        // вечно получала бы отворот от объекта и никогда — глушение цели, то
+        // есть ровно ту ступень, ради которой лестница и заведена.
+        //
+        // Ступень считается СРАБОТАВШЕЙ, если целое окно не понадобилось
+        // действовать. Это и есть проверка «лечение помогло», а не «жалоба
+        // на секунду замолчала».
+        if (watch.LastActionTick != 0 &&
+            world.Tick - watch.LastActionTick > AiBalance.LoopWindowTicks)
+        {
+            watch.Rung = 0;
+            watch.LastActionTick = 0;
         }
 
         watch.ReportedReason = reason;
@@ -277,7 +323,148 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
             $"Moving={(npc.Movement.IsMoving ? 1 : 0)} " +
             $"Pos={Trace.FormatPos(npc.Position)} " +
             $"{(firstTime ? "ONSET" : "STILL")}");
+
+        Escalate(world, npc, reason, offender, policy);
     }
+
+    // ── Лестница выхода (§122 фаза 2) ────────────────────────────────────
+
+    /// <summary>
+    /// Одна лестница вместо N точечных заплаток.
+    ///
+    /// <para>
+    /// Ступени идут снизу вверх и переключаются только когда предыдущая НЕ
+    /// ПОМОГЛА — то есть круг пережил её и был замечен снова. Порядок такой,
+    /// потому что цена ошибки растёт: отвернуться от одного объекта почти
+    /// бесплатно, а заглушить цель целиком — это отнять у колонистки способность
+    /// на четверть игрового дня.
+    /// </para>
+    /// <para>
+    /// ⚠️ Обе нижние ступени — это ОДИН И ТОТ ЖЕ <c>Memory.Shun</c>, только с
+    /// разным сроком, а не новая таблица «запрет пары (цель, объект)», как
+    /// задумывалось на бумаге. Такая таблица потребовала бы 18 новых мест
+    /// проверки — ровно столько раз проверяется <c>IsShunned</c>, — и забытое
+    /// место не падает, а молча возвращает петлю. Именно так и появился баг #67:
+    /// <c>GetWater</c> не проверял shun. Механизм, который УЖЕ проверяется
+    /// везде, надёжнее точного, который надо не забыть подключить.
+    /// </para>
+    /// </summary>
+    private void Escalate(WorldState world, NPCState npc, string reason,
+        GoalType offender, LoopPolicy policy)
+    {
+        if (!AiBalance.LoopEscapeEnabled)
+        {
+            return;
+        }
+
+        // ⭐ §81.14/§109.6: липкую сцену рвать нельзя ничем и никогда. Доклад
+        // уже прозвучал — на нём для неё лестница и кончается.
+        if (policy != LoopPolicy.Normal)
+        {
+            return;
+        }
+
+        // ⭐ Предохранитель кризиса стоит на ВСЕЙ лестнице, а не только на
+        // глушении цели.
+        //
+        // Первая версия охраняла лишь третью ступень — и замер это наказал.
+        // Отворот от источника еды или воды выглядит безобидно («сходи к
+        // другому кокосу»), но голодная колонистка, у которой отвернули
+        // ближайший источник, пересекает кризисную черту, после чего срабатывает
+        // NeedStarved — то есть лестница СОБСТВЕННЫМИ руками делает ту петлю,
+        // которую диагностирует. На шести сидах ступень 1 в одиночку дала −3%
+        // времени в петлях и худшую выживаемость из всех вариантов: 13 против
+        // 16 без лестницы.
+        //
+        // Правило одно на все ступени: пока нужда кричит, вмешиваться в её
+        // обслуживание нельзя ничем. Круг всё равно доложен — пусть его чинит
+        // человек, а не сторож, отбирающий у голодной последний кокос.
+        if (ServesCrisisNeed(npc, offender))
+        {
+            Trace.Emit(world, npc.Id, "LoopEscapeHeld",
+                $"Reason={reason} Goal={offender} Why=ServesCrisisNeed");
+            return;
+        }
+
+        var id = npc.Id.Value;
+        _watch.TryGetValue(id, out var watch);
+        var target = LoopTarget(world, npc, id);
+
+        var next = watch.Rung + 1;
+        if (next > AiBalance.LoopMaxRung)
+        {
+            return;
+        }
+
+        string action = null;
+
+        if (next <= 2 && target is { } objectId)
+        {
+            // Ступени 1 и 2: отвернуться от объекта — сперва обычным сроком,
+            // потом надолго. Пятикратно проваленный объект уже пережил обычный
+            // отворот, значит шестисот тиков ему мало.
+            var ticks = next == 1 ? AiBalance.ShunTicks : AiBalance.LoopHardShunTicks;
+            npc.Memory.Shun(objectId, world.Tick + ticks);
+            action = $"Shun=obj{objectId.Value} Ticks={ticks}";
+        }
+        else if (next <= 3)
+        {
+            // Ступень 3: заглушить саму цель, чтобы аукцион выдал второе по
+            // счёту дело. Это ступень, ломающая качели: пока цель молчит,
+            // соперница успевает ДОДЕЛАТЬ и разорвать чередование.
+            // Предохранитель кризиса уже отработал выше — на всей лестнице.
+            PlanningSystem.SetGoalCooldown(world, npc, offender,
+                AiBalance.LoopGoalCooldownTicks);
+            action = $"Mute={offender} Ticks={AiBalance.LoopGoalCooldownTicks}";
+        }
+
+        if (action == null)
+        {
+            // Выше третьей ступени фаза 2 не поднимается: принудительная чужая
+            // цель и капитуляция с громким LoopUnresolved — фаза 3.
+            return;
+        }
+
+        watch.Rung = next;
+        watch.LastActionTick = world.Tick;
+        _watch[id] = watch;
+
+        Trace.Emit(world, npc.Id, "LoopEscalated",
+            $"Reason={reason} Rung={next} {action} Goal={offender}");
+    }
+
+    /// <summary>
+    /// На какой объект смотрит текущий круг. У качелей объекта нет — и это не
+    /// пробел: там виноват не объект, а пара целей, и лечится он ступенью 3.
+    /// </summary>
+    private static ObjectId? LoopTarget(WorldState world, NPCState npc, int id) =>
+        world.IntentLedger.TryGetLatestAim(id, out var aim) ? aim.Target : null;
+
+    /// <summary>
+    /// Обслуживает ли цель нужду, которая ПРЯМО СЕЙЧАС за кризисной чертой.
+    /// <para>
+    /// Единственный предохранитель третьей ступени, и он же — причина, по
+    /// которой подпись <c>NeedStarved</c> не нуждается в собственном исключении:
+    /// она по определению срабатывает во время кризиса, значит глушение её цели
+    /// заблокировано здесь по построению, а не отдельным правилом, которое
+    /// когда-нибудь забудут.
+    /// </para>
+    /// </summary>
+    private static bool ServesCrisisNeed(NPCState npc, GoalType goal) => goal switch
+    {
+        GoalType.Eat or GoalType.GetFood =>
+            npc.Needs.Hunger >= SimBalance.StarvingEnterThreshold,
+        GoalType.Drink or GoalType.GetWater =>
+            npc.Needs.Thirst >= SimBalance.StarvingEnterThreshold,
+        GoalType.Sleep =>
+            npc.Needs.Energy <= 1f - SimBalance.StarvingEnterThreshold,
+        // Лечение — тоже жизнеобеспечение: заглушить его у истекающей кровью
+        // значит повторить #88 намеренно. Вопрос задаётся ТОМУ ЖЕ правилу,
+        // которым живёт аукцион, а не его копии.
+        GoalType.TreatWounds or GoalType.GatherHerb or GoalType.CraftBandage =>
+            DecisionSystem.IsBleedingCrisis(npc),
+        _ => false,
+    };
 
     /// <summary>
     /// ⭐ Сизиф: один и тот же прицел, взятый снова и снова, и ни одного

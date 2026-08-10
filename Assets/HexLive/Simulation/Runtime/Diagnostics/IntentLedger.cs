@@ -321,9 +321,46 @@ public sealed class IntentLedger
         }
     }
 
-    public void Forget(int entityId) => _rings.Remove(entityId);
+    // ── «Крутится ли она ПРЯМО СЕЙЧАС» ───────────────────────────────────
+    //
+    // ⚠️ Считать петли ЭПИЗОДАМИ оказалось ловушкой. Первый A/B фазы 2 показал
+    // рост 40 → 80 и читался как «лестница сделала хуже» — а лестница по
+    // построению ДРОБИТ одну длинную петлю на несколько коротких: отвернувшись
+    // от объекта, NPC идёт к другому, и там начинается новый эпизод. Число
+    // эпизодов растёт даже когда времени в петлях становится меньше.
+    // Поэтому решает ВРЕМЯ: доля тиков, прожитых внутри распознанного круга —
+    // прямая родня stuckNpcTicks из §30.16.
 
-    public void Clear() => _rings.Clear();
+    private readonly Dictionary<int, int> _loopingSince = new Dictionary<int, int>();
+
+    /// <summary>Круг у этой NPC виден прямо сейчас (идемпотентно).</summary>
+    public void MarkLooping(int entityId, int tick)
+    {
+        if (!_loopingSince.ContainsKey(entityId))
+        {
+            _loopingSince[entityId] = tick;
+        }
+    }
+
+    public void ClearLooping(int entityId) => _loopingSince.Remove(entityId);
+
+    public bool IsLooping(int entityId) => _loopingSince.ContainsKey(entityId);
+
+    /// <summary>С какого тика длится текущий круг. 0 — круга нет.</summary>
+    public int LoopingSince(int entityId) =>
+        _loopingSince.TryGetValue(entityId, out var tick) ? tick : 0;
+
+    public void Forget(int entityId)
+    {
+        _rings.Remove(entityId);
+        _loopingSince.Remove(entityId);
+    }
+
+    public void Clear()
+    {
+        _rings.Clear();
+        _loopingSince.Clear();
+    }
 
     private Ring RingFor(int entityId)
     {

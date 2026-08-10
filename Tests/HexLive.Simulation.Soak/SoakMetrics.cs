@@ -28,6 +28,9 @@ public sealed class SoakMetrics
         public int GoalSinceTick;
         public int Changes;
         public int StuckTicks;
+
+        /// <summary>§122: тиков, прожитых внутри распознанного круга.</summary>
+        public int LoopTicks;
         public readonly List<int> Dwells = new List<int>();
 
         /// <summary>
@@ -102,6 +105,15 @@ public sealed class SoakMetrics
             {
                 track.StuckTicks++;
             }
+
+            // §122. ВРЕМЯ в петлях, а не число эпизодов: лестница выхода по
+            // построению дробит одну длинную петлю на несколько коротких, и
+            // счёт эпизодов растёт даже когда времени в кругах стало меньше.
+            // Родня stuckNpcTicks — и мерить их надо одинаково.
+            if (world.IntentLedger.IsLooping(npc.Id.Value))
+            {
+                track.LoopTicks++;
+            }
         }
     }
 
@@ -162,6 +174,13 @@ public sealed class SoakMetrics
 
     /// <summary>§122: всего начатых петель за прогон.</summary>
     public int LoopOnsets => _loopOnsets.Values.Sum();
+
+    /// <summary>§122: NPC-тиков внутри круга — главная метрика фазы 2.</summary>
+    public int LoopTicks => _tracks.Values.Sum(t => t.LoopTicks);
+
+    public double LoopShare => _tracks.Count == 0 || TicksRun == 0
+        ? 0
+        : LoopTicks / (double)(TicksRun * _tracks.Count);
 
     /// <summary>Сколько NPC хоть раз закрутились. Один NPC с десятью петлями и
     /// десять NPC с одной — совсем разные диагнозы.</summary>
@@ -227,7 +246,10 @@ public sealed class SoakMetrics
         text.AppendLine("  застой              " + StuckTicks + " NPC-тиков" +
                         "  (" + (StuckShare * 100).ToString("F1", invariant) +
                         "% — цель есть, дела нет, не идёт)");
-        text.AppendLine("  ПЕТЛИ               " + LoopOnsets + " начатых у " +
+        text.AppendLine("  ПЕТЛИ               " + LoopTicks + " NPC-тиков" +
+                        "  (" + (LoopShare * 100).ToString("F1", invariant) +
+                        "% — двигается и не продвигается)");
+        text.AppendLine("  из них эпизодов     " + LoopOnsets + " у " +
                         LoopingNpcs + " NPC" + WorstLoopers());
         text.AppendLine("  событий             " + TotalEvents);
         // §54.17: вся мясная цепочка одной строкой — охота до тарелки. Ноль в
@@ -273,6 +295,8 @@ public sealed class SoakMetrics
                ",\"planFailureRate\":" + PlanFailureRate.ToString("F4", invariant) +
                ",\"stuckNpcTicks\":" + StuckTicks +
                ",\"stuckShare\":" + StuckShare.ToString("F4", invariant) +
+               ",\"loopTicks\":" + LoopTicks +
+               ",\"loopShare\":" + LoopShare.ToString("F4", invariant) +
                ",\"loopOnsets\":" + LoopOnsets +
                ",\"loopingNpcs\":" + LoopingNpcs +
                ",\"totalEvents\":" + TotalEvents +

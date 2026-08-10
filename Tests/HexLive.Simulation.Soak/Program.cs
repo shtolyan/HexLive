@@ -37,6 +37,18 @@ public static class Program
                 // одним бинарём и одним simdata.
                 SimBalance.TimedMeleeEverywhere = true;
             }
+
+            // §122 фаза 2: тот же приём — ПОСЛЕ Require, чтобы одним бинарём и
+            // одним simdata сравнить колонию с лестницей выхода и без неё.
+            if (options.LoopEscape is { } loopEscape)
+            {
+                AiBalance.LoopEscapeEnabled = loopEscape;
+            }
+
+            if (options.LoopMaxRung is { } loopMaxRung)
+            {
+                AiBalance.LoopMaxRung = loopMaxRung;
+            }
         }
         catch (Exception exception)
         {

@@ -32,7 +32,10 @@ public sealed partial class PlanningSystem
         // §102 r2: уже вплотную — обыск начинается прямо здесь, на СВОЁМ узле.
         // Гнать его на её узел незачем, а «прибытие» в исполнении сверяется
         // именно с этим.
-        if (InteractionReach.CanStrike(world, npc, mark))
+        if (InteractionReach.CanStrike(world, npc, mark) &&
+            npc.CurrentJunction is { } hereJunction &&
+            InteractionReach.CanTouchPersonAcross(
+                world, hereJunction, markJunction, LyingSpot.InteractionStationReach))
         {
             var here = npc.CurrentJunction ?? markJunction;
             npc.Plan.TargetAgentId = mark.Id;

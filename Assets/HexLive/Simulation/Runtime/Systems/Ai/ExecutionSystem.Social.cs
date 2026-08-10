@@ -509,7 +509,7 @@ public sealed partial class ExecutionSystem
             // planner caps the reserved junction at the same reach — this is
             // the belt-and-braces re-check at start (was 2*R, a full hex:
             // visibly kneeling and feeding from across the clearing).
-            if (!InteractionReach.CheckStart(world, npc, target.Position,
+            if (!InteractionReach.CheckPersonStart(world, npc, target, target.Position,
                     InteractionReach.Aid, $"Aid NPC{targetId.Value}"))
             {
                 AbortAid(world, npc, $"Target NPC{targetId.Value} out of aid range");

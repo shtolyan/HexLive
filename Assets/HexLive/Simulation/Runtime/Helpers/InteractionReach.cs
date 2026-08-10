@@ -175,6 +175,42 @@ internal static class InteractionReach
         return false;
     }
 
+    // §120 / bug #102: person interactions need the same terrain-side proof as
+    // object work. Metric proximity alone lets an outside approach sit one
+    // sub-grid step from a patient inside the hut and feed/search through the
+    // wall. The target junction is the contact anchor; CollectStandableAround
+    // crosses neither wall nor cliff, so only a rim point on the target's side
+    // is legal. A route may still enter normally through a Door junction.
+    public static bool CanTouchPersonAcross(
+        WorldState world, JunctionId stand, JunctionId target, float reach) =>
+        SpatialQueries.CanTouchAcross(world, stand, target, reach, null, RimMode);
+
+    public static bool CheckPersonStart(
+        WorldState world, NPCState npc, NPCState target, Float2 anchor,
+        float reach, string what)
+    {
+        if (!CheckStart(world, npc, anchor, reach, what))
+        {
+            return false;
+        }
+
+        if (npc.CurrentJunction is not { } stand ||
+            target.CurrentJunction is not { } targetJunction)
+        {
+            return true; // off-grid interpolation: metric is the only honest proof
+        }
+
+        if (CanTouchPersonAcross(world, stand, targetJunction, reach))
+        {
+            return true;
+        }
+
+        Trace.Emit(world, npc.Id, "InteractionTooFar",
+            $"{what} is across an impassable border (cliff/wall/obstacle) " +
+            $"from j{stand.Value} to j{targetJunction.Value}");
+        return false;
+    }
+
     // Spec §26.6A r4: the whole gate for WORLD-OBJECT work (harvest, chop,
     // craft, build, pick-up, sit, sleep, fuel, draw...). Distance alone was
     // never enough: a hex border that stops the feet — a cliff face, a hut

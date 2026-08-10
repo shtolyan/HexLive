@@ -95,7 +95,7 @@ public sealed partial class ExecutionSystem
             // its free approach to the occupied feet station, but never
             // teleport across the camp if a future planner supplies junk.
             var feet = LyingSpot.InteractionFeet(mark);
-            if (!InteractionReach.CheckStart(world, npc, feet,
+            if (!InteractionReach.CheckPersonStart(world, npc, mark, feet,
                     LyingSpot.InteractionStationReach,
                     $"LootHelpless feet of NPC{mark.Id.Value}"))
             {

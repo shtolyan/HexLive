@@ -216,6 +216,8 @@ public sealed partial class PlanningSystem
                 world.Junctions.Items.TryGetValue(armsLength, out var armsJct) &&
                 HexSpatialMath.Distance(armsJct.WorldPosition, partner.Position) <=
                     InteractionReach.Aid &&
+                InteractionReach.CanTouchPersonAcross(
+                    world, armsLength, partnerJunction, InteractionReach.Aid) &&
                 !occupiedByActor.Contains(armsLength) &&
                 SpatialQueries.IsJunctionFree(world, armsLength) &&
                 SpatialMutations.TryReserveJunction(world, armsLength, npc.Id, world.Tick, 48))
@@ -233,7 +235,9 @@ public sealed partial class PlanningSystem
             if (partner is not null &&
                 (!world.Junctions.Items.TryGetValue(neighbor, out var nJct) ||
                  HexSpatialMath.Distance(nJct.WorldPosition, partner.Position) >
-                     InteractionReach.Aid))
+                     InteractionReach.Aid ||
+                 !InteractionReach.CanTouchPersonAcross(
+                     world, neighbor, partnerJunction, InteractionReach.Aid)))
             {
                 continue;
             }

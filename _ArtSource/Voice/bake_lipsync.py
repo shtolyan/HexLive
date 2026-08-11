@@ -187,32 +187,54 @@ class LipSyncDsp:
 
 SIL = -1
 
-# Буква хекскуфы → индекс виземы (порядок = VISEME_NAMES = профиль).
-# h пропускается: придыхание не формирует рот, его держит соседний гласный.
-_LETTER_VISEME = {
-    "a": 0, "i": 1, "u": 2, "e": 3, "o": 4,
-    "y": 1, "j": 1,                       # й-глайд → IY
-    "p": 5, "b": 5, "m": 5,               # губные → vM (закрытые губы)
-    "f": 6, "v": 6,
-    "s": 7, "z": 7, "c": 7,
-    "t": 9, "d": 9, "n": 9,               # альвеолярные → vT
-    "r": 10, "l": 11,
-    "k": 12, "g": 12,
-    "h": None,
-}
-# Диграфы: sh/ch/zh → SH; th → TH; nh — «носовой зачин», закрытый рот (§1).
-_DIGRAPH_VISEME = {"sh": 8, "ch": 8, "zh": 8, "th": 13, "nh": 5}
+# Порядок визем = порядок фонем профиля = индексы в .vis = PhonemeMap рантайма.
+VISEME_NAMES = ["A", "I", "U", "E", "O", "P", "F", "S", "SH", "T", "R", "L",
+                "K", "TH"]
+
+# Маппинг букв живёт в letter_visemes.json (его редактирует
+# Tools/lipsync_editor.py). "skip" = буква не формирует рот.
+DEFAULT_LETTER_MAP = Path(__file__).resolve().parent / "letter_visemes.json"
+
+# Неизвестные буквы, встреченные при g2p за этот запуск, — для сводки.
+UNKNOWN_LETTERS: set[str] = set()
+
+
+def load_letter_map(path: Path = DEFAULT_LETTER_MAP) -> tuple[dict, dict]:
+    """letter_visemes.json → ({буква: индекс|None}, {диграф: индекс|None})."""
+    data = json.loads(Path(path).read_text())
+
+    def to_index(name: str) -> int | None:
+        if name == "skip":
+            return None
+        return VISEME_NAMES.index(name)
+
+    letters = {k: to_index(v) for k, v in data["letters"].items()}
+    digraphs = {k: to_index(v) for k, v in data["digraphs"].items()}
+    return letters, digraphs
+
+
+_LETTER_MAP: tuple[dict, dict] | None = None
+
+
+def _letter_map() -> tuple[dict, dict]:
+    global _LETTER_MAP
+    if _LETTER_MAP is None:
+        _LETTER_MAP = load_letter_map()
+    return _LETTER_MAP
 
 _VOWELS = frozenset({0, 1, 2, 3, 4})  # A I U E O
 
 
-def g2p_words(text: str) -> list[list[tuple[int, bool]]]:
+def g2p_words(text: str,
+              letter_map: tuple[dict, dict] | None = None
+              ) -> list[list[tuple[int, bool]]]:
     """Текст реплики → слова как последовательности (индекс виземы, long).
     Повторы буквы схлопываются в один юнит; повтор ≥3 (долгота «Piiiisko»,
     manner-растяжки) помечается long — такому юниту не ограничиваем
     длительность. Поэтому точная строка синтеза (vowel_stretch,
     --fix-capped) не важна."""
     import re
+    letters, digraphs = letter_map if letter_map is not None else _letter_map()
     clean = re.sub(r"\[.*?\]", " ", text.lower())
     words: list[list[tuple[int, bool]]] = []
     for raw in re.split(r"[^a-z]+", clean):
@@ -222,11 +244,16 @@ def g2p_words(text: str) -> list[list[tuple[int, bool]]]:
         i = 0
         while i < len(raw):
             two = raw[i : i + 2]
-            if two in _DIGRAPH_VISEME:
-                vis = _DIGRAPH_VISEME[two]
+            if two in digraphs:
+                vis = digraphs[two]
                 i += 2
+            elif raw[i] in letters:
+                vis = letters[raw[i]]
+                i += 1
             else:
-                vis = _LETTER_VISEME.get(raw[i])
+                # Буквы нет в letter_visemes.json — рот её не сыграет.
+                UNKNOWN_LETTERS.add(raw[i])
+                vis = None
                 i += 1
             if vis is None:
                 continue
@@ -410,6 +437,74 @@ def viterbi_align(dists: np.ndarray, vols: np.ndarray,
     return [sub_state[j] for j in path]
 
 
+# Ручные правки таймлайнов из пиано-ролла (Tools/lipsync_editor.py).
+# Ключ — "<char>/<file>.wav", значение — {"sourceSamples": N,
+# "segments": [[висема, startMs, endMs], ...]}. Бейкер уважает оверрайд,
+# пока WAV не перегенерирован (sourceSamples совпадает) — иначе правка
+# устарела: предупреждаем и выравниваем заново.
+DEFAULT_OVERRIDES = Path(__file__).resolve().parent / "lipsync_overrides.json"
+
+
+def load_overrides(path: Path = DEFAULT_OVERRIDES) -> dict:
+    p = Path(path)
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
+def override_key(wav: Path) -> str:
+    return f"{wav.parent.name}/{wav.name}"
+
+
+def _volume_curve(samples: np.ndarray, dsp: LipSyncDsp,
+                  frame_count: int) -> np.ndarray:
+    """Кривая volume 0..1 по кадрам — формула uLipSyncBlendShape по rms."""
+    sq = np.concatenate([np.zeros(dsp.window_samples),
+                         samples.astype(np.float64) ** 2])
+    cum = np.concatenate([[0.0], np.cumsum(sq)])
+    vols = np.zeros(frame_count)
+    w = dsp.window_samples
+    n = samples.size
+    for t in range(frame_count - 1):
+        pos = min(int(round(t / dsp.fps * dsp.src_rate)), n)
+        rms = float(np.sqrt((cum[pos + w] - cum[pos]) / w))
+        if rms > 0.0:
+            v = (np.log10(rms) - dsp.min_volume) / max(
+                dsp.max_volume - dsp.min_volume, 1e-4)
+            vols[t] = float(np.clip(v, 0.0, 1.0))
+    return vols
+
+
+def bake_from_segments(samples: np.ndarray, dsp: LipSyncDsp,
+                       segments: list) -> bytes:
+    """Ручные сегменты [[висема, startMs, endMs], …] → содержимое .vis."""
+    n_samples = samples.size
+    frame_count = int(np.ceil(n_samples / dsp.src_rate * dsp.fps)) + 1
+    viseme_count = len(dsp.templates)
+    vols = _volume_curve(samples, dsp, frame_count)
+
+    ratios = np.zeros((frame_count, viseme_count))
+    for vis, start_ms, end_ms in segments:
+        f0 = max(0, int(round(start_ms * dsp.fps / 1000.0)))
+        f1 = min(frame_count - 1, int(round(end_ms * dsp.fps / 1000.0)))
+        if 0 <= vis < viseme_count and f1 > f0:
+            ratios[f0:f1] = 0.0
+            ratios[f0:f1, vis] = _ALIGN_GAIN
+
+    sm = ratios.copy()
+    sm[1:-1] = 0.25 * ratios[:-2] + 0.5 * ratios[1:-1] + 0.25 * ratios[2:]
+    ratios = sm
+    ratios[0] = 0.0
+    ratios[-1] = 0.0
+    vols[-1] = 0.0
+
+    frames = bytearray()
+    for t in range(frame_count):
+        frames += bytes(int(round(r * 255)) for r in ratios[t])
+        frames.append(int(round(float(vols[t]) * 255)))
+    header = struct.pack("<4sHBBHI", MAGIC, VERSION, viseme_count, dsp.fps,
+                         frame_count, n_samples)
+    return header + bytes(frames)
+
+
 def load_line_texts(path: Path = DEFAULT_LINES) -> dict[str, list[str]]:
     """hexkufa_lines.json → {group_id: [text варианта 0, 1, 2]}."""
     data = json.loads(Path(path).read_text())
@@ -561,22 +656,37 @@ def is_up_to_date(wav: Path, vis: Path) -> bool:
 
 _WORKER_DSP: LipSyncDsp | None = None
 _WORKER_TEXTS: dict[str, list[str]] | None = None
+_WORKER_OVERRIDES: dict | None = None
 
 
-def _init_worker(profile: dict, texts: dict[str, list[str]] | None) -> None:
-    global _WORKER_DSP, _WORKER_TEXTS
+def _init_worker(profile: dict, texts: dict[str, list[str]] | None,
+                 overrides: dict | None = None) -> None:
+    global _WORKER_DSP, _WORKER_TEXTS, _WORKER_OVERRIDES
     _WORKER_DSP = LipSyncDsp(profile)
     _WORKER_TEXTS = texts
+    _WORKER_OVERRIDES = overrides
 
 
 def _bake_one(wav_str: str) -> tuple[str, str, list[str]]:
     wav = Path(wav_str)
     dsp = _WORKER_DSP
     assert dsp is not None
-    words = words_for_wav(wav, _WORKER_TEXTS) if _WORKER_TEXTS else None
     samples = read_wav_mono16(wav)
+    problems: list[str] = []
+
+    ov = (_WORKER_OVERRIDES or {}).get(override_key(wav))
+    if ov is not None:
+        if ov.get("sourceSamples") == samples.size:
+            blob = bake_from_segments(samples, dsp, ov["segments"])
+            problems += validate(blob, wav, dsp)
+            vis_path_for(wav).write_bytes(blob)
+            return wav.name, "manual", problems
+        problems.append(
+            f"{wav.name}: оверрайд устарел (WAV перегенерирован) — выравниваю заново")
+
+    words = words_for_wav(wav, _WORKER_TEXTS) if _WORKER_TEXTS else None
     blob, algo = bake_samples(samples, dsp, words)
-    problems = validate(blob, wav, dsp)
+    problems += validate(blob, wav, dsp)
     if _WORKER_TEXTS is not None and algo != "align":
         problems.append(f"{wav.name}: align не сошёлся — запечён acoustic")
     vis_path_for(wav).write_bytes(blob)
@@ -588,7 +698,9 @@ _TEXTS_CACHE: dict[str, dict[str, list[str]]] = {}
 
 
 def bake_file(wav: Path, profile_path: Path = DEFAULT_PROFILE) -> Path:
-    """Запечь один WAV (используется generate_voices.py). Возвращает путь .vis."""
+    """Запечь один WAV (используется generate_voices.py). Возвращает путь .vis.
+    Оверрайд пиано-ролла для СВЕЖЕ-перегенерированного WAV всегда устаревает
+    (sourceSamples не совпадёт), так что тут он честно игнорируется."""
     key = str(profile_path)
     dsp = _DSP_CACHE.get(key)
     if dsp is None:
@@ -597,15 +709,26 @@ def bake_file(wav: Path, profile_path: Path = DEFAULT_PROFILE) -> Path:
     texts = _TEXTS_CACHE.get(lkey)
     if texts is None and DEFAULT_LINES.exists():
         texts = _TEXTS_CACHE[lkey] = load_line_texts()
-    words = words_for_wav(Path(wav), texts) if texts else None
-    samples = read_wav_mono16(Path(wav))
-    blob, algo = bake_samples(samples, dsp, words)
-    problems = validate(blob, Path(wav), dsp)
-    if words and algo != "align":
-        problems.append(f"{Path(wav).name}: align не сошёлся — запечён acoustic")
+    wav = Path(wav)
+    samples = read_wav_mono16(wav)
+    problems: list[str] = []
+
+    ov = load_overrides().get(override_key(wav))
+    if ov is not None and ov.get("sourceSamples") == samples.size:
+        blob = bake_from_segments(samples, dsp, ov["segments"])
+        algo = "manual"
+    else:
+        if ov is not None:
+            problems.append(f"{wav.name}: оверрайд устарел — выравниваю заново")
+        words = words_for_wav(wav, texts) if texts else None
+        blob, algo = bake_samples(samples, dsp, words)
+        if words and algo != "align":
+            problems.append(f"{wav.name}: align не сошёлся — запечён acoustic")
+
+    problems += validate(blob, wav, dsp)
     for p in problems:
         print(f"  ⚠ {p}", file=sys.stderr)
-    out = vis_path_for(Path(wav))
+    out = vis_path_for(wav)
     out.write_bytes(blob)
     return out
 
@@ -627,6 +750,7 @@ def main() -> int:
     profile = json.loads(args.profile.read_text())
     dsp = LipSyncDsp(profile)
     texts = load_line_texts() if args.algo == "align" else None
+    overrides = load_overrides()
 
     roots = args.paths or [DEFAULT_VOICES_DIR]
     wavs: list[Path] = []
@@ -650,12 +774,12 @@ def main() -> int:
     all_problems: list[str] = []
     workers = args.jobs if args.jobs > 0 else None
     if len(todo) == 1:
-        _init_worker(profile, texts)
+        _init_worker(profile, texts, overrides)
         done = [_bake_one(str(todo[0]))]
     else:
         with ProcessPoolExecutor(
                 max_workers=workers, initializer=_init_worker,
-                initargs=(profile, texts)) as pool:
+                initargs=(profile, texts, overrides)) as pool:
             done = list(pool.map(_bake_one, [str(w) for w in todo],
                                  chunksize=8))
     algos: dict[str, int] = {}

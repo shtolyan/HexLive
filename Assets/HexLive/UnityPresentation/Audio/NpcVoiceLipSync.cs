@@ -41,10 +41,19 @@ namespace HexLive.UnityPresentation.Audio
             public int SourceSamples;
         }
 
+        private sealed class CacheEntry
+        {
+            public Timeline? Timeline;
+            public long MtimeTicks; // 0 = файла не было
+        }
+
         // Кэш сайдкаров: весь банк (1020 реплик) — ~2.6 МБ, ограничен размером
         // корпуса, так что потолок не нужен (в отличие от покойного PCM-кэша,
-        // который держал распакованные WAV и дорастал до сотен МБ).
-        private static readonly Dictionary<string, Timeline?> Cache = new();
+        // который держал распакованные WAV и дорастал до сотен МБ). Запись
+        // сверяется по mtime на каждом Speak: пиано-ролл (Tools/
+        // lipsync_editor.py) перезаписывает .vis при работающей игре, и правка
+        // слышна со СЛЕДУЮЩЕЙ реплики — тот же живой контракт, что у BUGS.json.
+        private static readonly Dictionary<string, CacheEntry> Cache = new();
         private static readonly HashSet<string> Warned = new();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -247,11 +256,25 @@ namespace HexLive.UnityPresentation.Audio
         private static Timeline? LoadTimeline(string wavPath)
         {
             var path = Path.ChangeExtension(wavPath, ".vis");
-            if (Cache.TryGetValue(path, out var cached))
+            long mtime = 0;
+            try
             {
-                return cached;
+                if (File.Exists(path))
+                {
+                    mtime = File.GetLastWriteTimeUtc(path).Ticks;
+                }
+            }
+            catch (System.Exception)
+            {
+                // stat не удался — считаем «файла нет», ниже честно попробуем прочитать
             }
 
+            if (Cache.TryGetValue(path, out var cached) && cached.MtimeTicks == mtime)
+            {
+                return cached.Timeline;
+            }
+
+            Warned.Remove(path); // файл сменился — прежний вердикт не считается
             Timeline? timeline = null;
             try
             {
@@ -263,7 +286,7 @@ namespace HexLive.UnityPresentation.Audio
                 WarnOnce(path, e.Message);
             }
 
-            Cache[path] = timeline;
+            Cache[path] = new CacheEntry { Timeline = timeline, MtimeTicks = mtime };
             return timeline;
         }
 

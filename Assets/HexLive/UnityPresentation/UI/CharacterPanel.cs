@@ -252,9 +252,12 @@ namespace HexLive.UnityPresentation.UI
         private const float FloatingInventoryGap = 12f;
         private const float InventoryWindowBottom = PanelBottomOffset + CharacterCardHeight + FloatingInventoryGap;
 
-        // The doll RenderTexture is 512x768. Both viewports keep that exact
-        // 2:3, so BackgroundSizeType.Contain has nothing left to letterbox.
-        private const float DollAspectHeight = 768f / 512f;
+        // Both viewports keep the doll RenderTexture's exact aspect, so
+        // BackgroundSizeType.Contain has nothing left to letterbox. The health
+        // window is anchored by its BOTTOM and the doll box is its last row, so
+        // a taller box grows upward only — the feet stay put and the extra room
+        // opens above the head.
+        private const float DollAspectHeight = 896f / 512f;
         private const float DollViewportWidth = 195f;
 
         // ── palette ───────────────────────────────────────────────────────

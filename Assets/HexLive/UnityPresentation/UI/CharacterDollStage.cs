@@ -26,11 +26,16 @@ namespace HexLive.UnityPresentation.UI
     public sealed class CharacterDollStage : MonoBehaviour
     {
         private const int TextureWidth = 512;
-        private const int TextureHeight = 768;
+        // 768 * 7/6. The extra rows are the headroom below: they are added as
+        // PIXELS, not taken from the body, so opening the frame upward leaves
+        // the figure at exactly the same on-screen scale. Both viewports derive
+        // their box from this aspect, and the windows are anchored at their
+        // bottom, so the feet do not move when the shutter opens higher.
+        private const int TextureHeight = 896;
         // A portrait is framed on HEIGHT. Headroom is what keeps hair, hats and
         // the crown of the head inside the frame; the old single symmetric pad
         // spent half of itself under the feet and cropped the head instead.
-        private const float HeadroomFraction = 0.11f;
+        private const float HeadroomFraction = 0.30f;
         private const float FootroomFraction = 0.03f;
         private const string StudioPosePath = "HexLive/Poses/Female Standing Pose";
         private const float StageSeparation = 80f;
@@ -528,6 +533,14 @@ namespace HexLive.UnityPresentation.UI
 
             MapWornRenderers(source, _clone.transform);
             DisableCloneBehaviour();
+            // The clone is instantiated INACTIVE so the live solvers it carries
+            // (FinalIK, cloth, colliders) never reach their first Awake — but an
+            // Animator on an inactive hierarchy cannot be evaluated either, so
+            // the studio pose silently did nothing and the doll kept the exact
+            // bone transforms Instantiate copied from the walking, sitting or
+            // lying colonist. Behaviours are dead by now; wake the hierarchy up
+            // before posing it.
+            _modelPivot.gameObject.SetActive(true);
 
             _animator = _clone.GetComponentInChildren<Animator>(true);
             if (_animator != null)

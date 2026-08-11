@@ -123,6 +123,16 @@ public sealed class CharacterDollAndInventoryUiContractTests
                 "The cloned source must not transition back into its sitting or lying pose.");
             Assert.That(stage, Does.Contain("AnimationPlayableUtilities.PlayClip"),
                 "The studio pose must bypass the actor's controller and its cloned parameters.");
+            var buildStart = stage.IndexOf(
+                "private void BuildClone(", StringComparison.Ordinal);
+            var build = stage[buildStart..stage.IndexOf(
+                "AnimationPlayableUtilities.PlayClip", buildStart, StringComparison.Ordinal)];
+            Assert.That(build, Does.Contain("DisableCloneBehaviour();"));
+            Assert.That(build.IndexOf("_modelPivot.gameObject.SetActive(true)", StringComparison.Ordinal),
+                Is.GreaterThan(build.IndexOf("DisableCloneBehaviour();", StringComparison.Ordinal)),
+                "An Animator on an inactive hierarchy cannot be evaluated: the clone must " +
+                "be woken up after its live solvers are dead but before it is posed, or the " +
+                "doll silently keeps the pose Instantiate copied off the live colonist.");
             Assert.That(stage, Does.Contain("StudioPosePath = \"HexLive/Poses/Female Standing Pose\""));
             Assert.That(stage, Does.Contain("!_studioPose.humanMotion"),
                 "A Generic import of the pose flattens the humanoid rig into a sheet.");

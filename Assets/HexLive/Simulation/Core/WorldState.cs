@@ -130,6 +130,14 @@ public sealed class WorldState
     // TopologyVersion increments whenever junction blocking changes (walls).
     public int TopologyVersion { get; set; } = 1;
 
+    // §129: increments whenever a door opens or closes. Deliberately SEPARATE
+    // from TopologyVersion: a closed door is behaviour, not topology (the
+    // portal junction is never Blocked), so swinging a door must not force a
+    // rebuild of the connectivity/component caches above. Keys only the door
+    // caches in RuntimeCaches. DERIVED-cache key — never serialized; a loaded
+    // world starts at 1 and every dependent cache starts dirty.
+    public int DoorStateVersion { get; set; } = 1;
+
     public int ComponentsBuiltVersion { get; set; }
 
     public System.Collections.Generic.Dictionary<JunctionId, int> JunctionComponents { get; } = new();

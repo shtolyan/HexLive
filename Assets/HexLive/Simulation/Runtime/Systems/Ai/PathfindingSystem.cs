@@ -358,10 +358,14 @@ public sealed class PathfindingSystem : ISimulationSystem
             var danger = RouteAvoidRing(world, npc);
             var canJump = npc.Body.CanJump &&
                 (!npc.IsCarryingPerson || npc.Plan.Goal == GoalType.Rescue);
+            // §129: закрытые ЧУЖИЕ дверные порталы — жёсткий запрет (hardAvoid
+            // переживает enclosed-fallback ретрай). У колонисток набор пуст →
+            // null → путь бит-в-бит как до §129.
             var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value,
                 OtherActorJunctions(world, npc), preferFlat,
                 canJump,
-                danger, Spec62.DangerStepCost);
+                danger, TraitMath.DangerStepCost(npc),
+                DoorTopology.ForbiddenFor(world, npc.Faction));
             if (path.Count == 0)
             {
                 HandlePathFailure(world, npc, "PathFailed",

@@ -343,9 +343,12 @@ public static class AbuseMath
                 continue;
             }
 
+            // §129: жертва за закрытой чужой дверью НЕ выбирается — иначе
+            // рейдер вечно избирал бы недостижимую и крутился в PathFailed.
             var path = HexPathfinder.FindPath(
                 world, start.Value, goal.Value, avoid, weightClimb: false,
-                canJump: abuser.Body.CanJump);
+                canJump: abuser.Body.CanJump,
+                hardAvoid: DoorTopology.ForbiddenFor(world, abuser.Faction));
             if (path.Count == 0)
             {
                 continue;
@@ -381,7 +384,8 @@ public static class AbuseMath
         var path = HexPathfinder.FindPath(
             world, start.Value, goal.Value,
             PathfindingSystem.OtherActorJunctions(world, actor),
-            weightClimb: false, canJump: actor.Body.CanJump);
+            weightClimb: false, canJump: actor.Body.CanJump,
+            hardAvoid: DoorTopology.ForbiddenFor(world, actor.Faction));
         if (path.Count == 0)
         {
             return false;

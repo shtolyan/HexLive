@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 
 namespace HexLive.Simulation.Core
@@ -22,6 +23,26 @@ public sealed class RuntimeCaches
     public HashSet<JunctionId> MobForbiddenJunctions { get; } = new();
 
     public int MobForbiddenBuiltVersion { get; set; }
+
+    // §129: portal junction → the door piece standing in it. Doors appear and
+    // disappear only with construction/demolition, which bumps TopologyVersion,
+    // so that is the key. Rebuilt lazily by DoorTopology.
+    public Dictionary<JunctionId, ObjectId> DoorByPortal { get; } = new();
+
+    public int DoorByPortalBuiltVersion { get; set; }
+
+    // §129: portals whose door leaf is currently CLOSED, plus the per-faction
+    // hard-avoid sets derived from them (for faction F: closed portals whose
+    // door is hostile to F). Both depend on door STATE, so they key on the
+    // (TopologyVersion, DoorStateVersion) pair. An absent/empty faction entry
+    // means "no bans" and callers get null — the colony fast path.
+    public HashSet<JunctionId> ClosedDoorPortals { get; } = new();
+
+    public Dictionary<Faction, HashSet<JunctionId>> FactionForbiddenJunctions { get; } = new();
+
+    public int DoorStateBuiltTopologyVersion { get; set; }
+
+    public int DoorStateBuiltDoorVersion { get; set; }
 }
 
 }

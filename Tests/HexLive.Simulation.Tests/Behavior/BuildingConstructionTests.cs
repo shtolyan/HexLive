@@ -282,7 +282,7 @@ public sealed class BuildingConstructionTests
         var boundary = tile.Junctions
             .Select(id => world.Junctions.Items[id])
             .Where(junction => junction.Tiles.Count >= 2).ToArray();
-        Assert.That(boundary.Count(junction => junction.Door), Is.EqualTo(3));
+        Assert.That(boundary.Count(junction => junction.Door), Is.EqualTo(1));
         Assert.That(boundary.Where(junction => junction.Door).All(junction => !junction.Blocked),
             Is.True);
         Assert.That(boundary.All(junction => junction.Door || junction.Blocked), Is.True);
@@ -293,7 +293,7 @@ public sealed class BuildingConstructionTests
         Assert.That(pieceBlocked.Distinct().Count(), Is.EqualTo(boundary.Count(junction => junction.Blocked)));
         Assert.That(architecturePieces.Single(piece =>
                 piece.DefinitionId == "architecture.door.wood").Junctions.Count,
-            Is.EqualTo(3), "Door object itself must own the three portal junctions.");
+            Is.EqualTo(1), "Door object itself must own its single centre portal junction.");
         Assert.That(architecturePieces.Single(piece =>
                 piece.DefinitionId == "architecture.door.wood").ArchitectureElements[0].SlotIndex,
             Is.EqualTo(7));
@@ -318,6 +318,22 @@ public sealed class BuildingConstructionTests
                     portalLength, Is.GreaterThan(0.95f),
             "Portal-edge должен совпадать с видимым Bay_00, а не с противоположной гранью.");
 
+        var savedDoorLocal = BuildingRules.DoorLocalCenter(world, hut);
+        var expectedDoorCenter = center + new Float2(
+            savedDoorLocal.X * MathF.Cos(radians) - savedDoorLocal.Y * MathF.Sin(radians),
+            savedDoorLocal.X * MathF.Sin(radians) + savedDoorLocal.Y * MathF.Cos(radians));
+        var halfBayDelta = doorCenter - expectedDoorCenter;
+        Assert.That(halfBayDelta.X * halfBayDelta.X + halfBayDelta.Y * halfBayDelta.Y,
+            Is.LessThan(0.02f * 0.02f),
+            "Portal совпал с гранью, но не с её половиной: единственный проходимый " +
+            "junction обязан лежать в центре сохранённого door bay.");
+
+        var doorPiece = architecturePieces.Single(piece =>
+            piece.DefinitionId == "architecture.door.wood");
+        Assert.That(doorPiece.Junctions.OrderBy(id => id.Value),
+            Is.EqualTo(doorJunctions.Select(junction => junction.Id).OrderBy(id => id.Value)),
+            "LEGO-объект двери и навигация обязаны владеть одним набором трёх точек.");
+
         var homeDelta = HexSpatialMath.TileToWorld(world.FactionHomes[Faction.Colony]) - center;
         var homeLength = MathF.Sqrt(homeDelta.X * homeDelta.X + homeDelta.Y * homeDelta.Y);
         Assert.That((homeDelta.X * visibleDoorOutward.X + homeDelta.Y * visibleDoorOutward.Y) /
@@ -336,6 +352,60 @@ public sealed class BuildingConstructionTests
             Assert.That(HexPathfinder.FindPath(world, start.Value, cot.Junctions[0]), Is.Not.Empty,
                 "Кровать видна, но путь через дверной портал до неё закрыт.");
         }
+    }
+
+    [Test]
+    public void DoorApiClosesOnePortalReopensItAndPersistsTheState()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var door = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == "architecture.door.wood");
+        Assert.That(door.Junctions, Has.Count.EqualTo(1));
+        var portalId = door.Junctions[0];
+        var topology = world.TopologyVersion;
+        var doorState = world.DoorStateVersion;
+
+        // §129: закрытая дверь — поведение, не топология. Портал остаётся
+        // проходимым для графа (Blocked=false), меняется только DoorStateVersion.
+        Assert.That(BuildingDoorRules.TryClose(world, door.Id), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(door.IsDoorOpen, Is.False);
+            Assert.That(world.Junctions.Items[portalId].Door, Is.True);
+            Assert.That(world.Junctions.Items[portalId].Blocked, Is.False);
+            Assert.That(world.TopologyVersion, Is.EqualTo(topology),
+                "Створка не имеет права дёргать топологию (§129).");
+            Assert.That(world.DoorStateVersion, Is.EqualTo(doorState + 1));
+            Assert.That(DoorTopology.IsClosedDoorPortal(world, portalId), Is.True);
+        });
+
+        using var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSaveSerializer.Write(world, writer);
+        blob.Position = 0;
+        var loaded = TestWorld.CreateWorld(12345);
+        using (var reader = new BinaryReader(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSaveSerializer.Read(loaded, reader);
+        var loadedDoor = loaded.Entities.Objects[door.Id];
+        Assert.Multiple(() =>
+        {
+            Assert.That(loadedDoor.IsDoorOpen, Is.False);
+            Assert.That(loadedDoor.Junctions, Has.Count.EqualTo(1));
+            Assert.That(loaded.Junctions.Items[loadedDoor.Junctions[0]].Blocked, Is.False,
+                "RepairHutTopology на загрузке обязан оставить портал проходимым (§129).");
+            Assert.That(DoorTopology.IsClosedDoorPortal(
+                loaded, loadedDoor.Junctions[0]), Is.True);
+        });
+
+        Assert.That(BuildingDoorRules.TryOpen(loaded, loadedDoor.Id), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(loadedDoor.IsDoorOpen, Is.True);
+            Assert.That(loaded.Junctions.Items[loadedDoor.Junctions[0]].Door, Is.True);
+            Assert.That(loaded.Junctions.Items[loadedDoor.Junctions[0]].Blocked, Is.False);
+            Assert.That(DoorTopology.IsClosedDoorPortal(
+                loaded, loadedDoor.Junctions[0]), Is.False);
+        });
     }
 
     [TestCase(0f, 0f)]

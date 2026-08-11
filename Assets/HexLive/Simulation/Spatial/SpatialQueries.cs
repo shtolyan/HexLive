@@ -127,6 +127,17 @@ public static class SpatialQueries
             return IsTerrainBlocked(world, junctionId);
         }
 
+        // §129: a CLOSED door is a wall for hands — for everyone, ally or not.
+        // The portal is deliberately never Blocked (routes may pass; the walker
+        // opens the leaf), so without this line the closed door would be
+        // reach-transparent: a raider outside could strike or loot a girl one
+        // sub-grid step inside the doorway (0.375–0.75 wu < BesideReach).
+        // Allies interact after walking through, never through the leaf.
+        if (DoorTopology.IsClosedDoorPortal(world, junctionId))
+        {
+            return true;
+        }
+
         if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) || !junction.Blocked)
         {
             return false;

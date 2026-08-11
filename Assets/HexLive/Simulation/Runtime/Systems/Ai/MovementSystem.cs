@@ -241,6 +241,16 @@ public sealed class MovementSystem : ISimulationSystem
                     world.Junctions.Items.TryGetValue(
                         npc.Movement.JunctionPath[nextIndex], out var passedJunction))
                 {
+                    // §129: a closed-door portal is never "flown over" — the
+                    // door gate must see it as the next step. Hops cannot cross
+                    // the flat hut perimeter today; this is the cheap belt.
+                    if (Spec129.Enabled && passedJunction.Door &&
+                        DoorTopology.IsClosedDoorPortal(
+                            world, npc.Movement.JunctionPath[nextIndex]))
+                    {
+                        break;
+                    }
+
                     var rel = passedJunction.WorldPosition - npc.Movement.HopFrom;
                     var along = rel.X * landDir.X + rel.Y * landDir.Y;
                     var across = System.MathF.Abs(rel.X * landDir.Y - rel.Y * landDir.X);
@@ -342,6 +352,53 @@ public sealed class MovementSystem : ISimulationSystem
                     Trace.Debug(world, npc.Id, "MovementInvalidJunction",
                         $"Junction={targetJunctionId.Value} not found in world");
                 }
+                continue;
+            }
+
+            // §129: следующий шаг — портал ЗАКРЫТОЙ двери. Своя открывает
+            // створку и пережидает распах (ClimbPauseTimer, как вход в воду);
+            // чужая сюда попадает только с протухшим путём (роутер банит
+            // закрытые чужие порталы через hardAvoid) — путь сбрасывается, и
+            // следующий тик PathfindingSystem строит обход или честный
+            // PathFailed. Гейт стоит ДО петли занятости, чтобы не делить с ней
+            // BlockedWaitTicks, и ДО carrier-проверки §116.
+            if (Spec129.Enabled && targetJunction.Door &&
+                DoorTopology.IsClosedDoorPortal(world, targetJunctionId))
+            {
+                if (DoorTopology.TryGetDoorAt(world, targetJunctionId, out var closedDoor) &&
+                    FactionRelations.AreAllies(
+                        npc.Faction, DoorTopology.OwnerFaction(world, closedDoor)) &&
+                    BuildingDoorRules.TryOpen(world, closedDoor.Id))
+                {
+                    npc.Movement.ClimbPauseTimer = System.MathF.Max(
+                        npc.Movement.ClimbPauseTimer, Spec129.DoorSwingSeconds);
+                    npc.Movement.SetStatus(MovementStatus.Waiting);
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "DoorOpened",
+                            $"Door={closedDoor.Id.Value} Portal={targetJunctionId.Value}");
+                    }
+
+                    PauseGaitAndBreath(npc);
+                    continue;
+                }
+
+                // Не своя (или дверь не резолвится): дословно блок
+                // occupancy-repath — сброс пути + разоружение hop-тройки.
+                npc.Movement.BlockedWaitTicks = 0;
+                npc.Movement.JunctionPath.Clear();
+                npc.Movement.IsMoving = false;
+                npc.Movement.SetStatus(MovementStatus.Waiting);
+                npc.Movement.HopTimer = 0f;
+                npc.Movement.HopArmed = false;
+                npc.Movement.HopPathIndex = -1;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "DoorRefused",
+                        $"Portal={targetJunctionId.Value}");
+                }
+
+                PauseGaitAndBreath(npc);
                 continue;
             }
 
@@ -1065,6 +1122,71 @@ public sealed class MovementSystem : ISimulationSystem
                     $"Pos={Trace.FormatPos(npc.Position)}");
             }
         }
+
+        // §129: закрыть за собой. Только что ПОКИНУТЫЙ узел был открытым
+        // дверным порталом своей двери — прикрыть, если следом не идёт
+        // союзница (портал в ближайших шагах её пути) и в проёме никто не
+        // стоит (это второй ремень: TryClose сам отказывает при занятом
+        // портале). Путь, ЗАКАНЧИВАЮЩИЙСЯ на портале, сюда не попадает —
+        // previousJunctionId не равен порталу, и дверь остаётся открытой.
+        if (Spec129.Enabled && Spec129.CloseBehind &&
+            !previousJunctionId.Equals(targetJunctionId) &&
+            world.Junctions.Items.TryGetValue(previousJunctionId, out var leftJunction) &&
+            leftJunction.Door &&
+            DoorTopology.TryGetDoorAt(world, previousJunctionId, out var passedDoor) &&
+            passedDoor.IsDoorOpen &&
+            FactionRelations.AreAllies(
+                npc.Faction, DoorTopology.OwnerFaction(world, passedDoor)) &&
+            !AllyImminentAtPortal(world, npc, previousJunctionId) &&
+            BuildingDoorRules.TryClose(world, passedDoor.Id))
+        {
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "DoorClosed",
+                    $"Door={passedDoor.Id.Value} Portal={previousJunctionId.Value}");
+            }
+        }
+    }
+
+    // §129: идёт ли СОЮЗНИЦА следом через этот проём — стоит на портале или
+    // держит его в ближайших CloseBehindLookaheadSteps шагах своего пути.
+    // Враждебный протухший маршрут дверь не придерживает: перед его носом
+    // закрыться — ровно желаемое поведение.
+    private static bool AllyImminentAtPortal(
+        WorldState world, NPCState self, JunctionId portalId)
+    {
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id.Value == self.Id.Value ||
+                !FactionRelations.AreAllies(self, other))
+            {
+                continue;
+            }
+
+            if (other.CurrentJunction is { } standing && standing.Equals(portalId))
+            {
+                return true;
+            }
+
+            if (!other.Movement.IsMoving)
+            {
+                continue;
+            }
+
+            var path = other.Movement.JunctionPath;
+            var from = other.Movement.PathIndex;
+            var limit = System.Math.Min(
+                path.Count, from + Spec129.CloseBehindLookaheadSteps);
+            for (var i = from; i < limit; i++)
+            {
+                if (path[i].Equals(portalId))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     // §71.9: spend the remainder of this tick's step budget on the NEXT path
@@ -1086,6 +1208,14 @@ public sealed class MovementSystem : ISimulationSystem
             var nextIndex = npc.Movement.PathIndex;
             var nextJunctionId = npc.Movement.JunctionPath[nextIndex];
             if (!world.Junctions.Items.TryGetValue(nextJunctionId, out var nextJunction))
+            {
+                return;
+            }
+
+            // §129: шаг в портал закрытой двери — дело дверного гейта в начале
+            // следующего тика; бегунья не проскакивает створку внутри переноса.
+            if (Spec129.Enabled && nextJunction.Door &&
+                DoorTopology.IsClosedDoorPortal(world, nextJunctionId))
             {
                 return;
             }

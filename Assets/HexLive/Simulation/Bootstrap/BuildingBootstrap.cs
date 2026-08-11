@@ -226,11 +226,22 @@ public static class BuildingBootstrap
                     return (ap.X * ap.X + ap.Y * ap.Y).CompareTo(
                         bp.X * bp.X + bp.Y * bp.Y);
                 });
-                for (var i = 0; i < Math.Min(3, candidates.Count); i++)
+                // One half-edge door has one actual navigation throat: its
+                // centre junction. The neighbouring junctions belong to the
+                // jamb/frame and stay blocked like the rest of the wall.
+                //
+                // §129: the portal is NEVER Blocked, closed leaf or not — a
+                // closed door is behaviour (DoorStateVersion + the door caches),
+                // not topology. Running for every hut on every load, this line
+                // is also the entire save migration: a pre-§129 blob that
+                // stored the portal Blocked is healed right here.
+                for (var i = 0; i < Math.Min(1, candidates.Count); i++)
                 {
                     var portalId = candidates[i];
                     portals.Add(portalId);
-                    world.Junctions.Items[portalId].Door = true;
+                    var portal = world.Junctions.Items[portalId];
+                    portal.Door = true;
+                    portal.Blocked = false;
                 }
                 var doorPiece = architecture.FirstOrDefault(piece =>
                     piece.DefinitionId == "architecture.door.wood");

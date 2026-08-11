@@ -15,12 +15,14 @@ _ArtSource/Voice/lipsync_overrides.json И сразу перепекает .vis 
 
 from __future__ import annotations
 
+import difflib
 import json
 import struct
 import sys
 import threading
 import urllib.parse
 import webbrowser
+from concurrent.futures import ProcessPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -215,6 +217,141 @@ def save_letters(letters: dict, digraphs: dict) -> dict:
     return {"ok": True, "rebaked": len(todo), "problems": problems[:20]}
 
 
+# ---------------------------------------------------------------- аналитика
+# Сверка запечённого таймлайна с ожидаемой последовательностью букв (g2p)
+# и с акустикой. Ищет ровно те болезни, что видны глазом в пиано-ролле:
+# потерянные буквы, гласные, зажатые в минимальную длительность, сегменты,
+# чьи кадры спектрально не похожи на назначенную букву, и буквы в тишине.
+
+ANALYSIS_FILE = VOICE_DIR / "lipsync_analysis.json"
+_VOWEL_SET = {0, 1, 2, 3, 4}
+_MIN_VOWEL_MS = 55     # ≈ _VOWEL_MIN (3 кадра) — «гласная в минимуме»
+_QUIET = 0.08          # ниже — кадр считается тишиной
+_AGREE_TOP = 4         # назначенная висема в топ-4 акустики = «похожа»
+
+
+def _analyze_one(key: str) -> dict:
+    wav = VOICES / key
+    fps, fc, src, frames = read_vis(wav.with_suffix(".vis"))
+    overrides = bl.load_overrides()
+    ov = overrides.get(key)
+    manual = ov is not None and ov.get("sourceSamples") == src
+
+    words = bl.words_for_wav(wav, _texts) or []
+    expected = [u for word in words for u in word]  # [(vis, long)]
+
+    samples = bl.read_wav_mono16(wav)
+    padded = np.concatenate(
+        [np.zeros(_dsp.window_samples, dtype=np.float32), samples])
+    dists = np.full((fc, len(bl.VISEME_NAMES)), np.nan)
+    vols = np.zeros(fc)
+    for t in range(fc - 1):
+        pos = min(int(round(t / fps * 44100)), samples.size)
+        d, vol = _dsp.frame_features(padded[pos:pos + _dsp.window_samples])
+        vols[t] = vol
+        if d is not None:
+            dists[t] = d
+
+    if manual:
+        segments = ov["segments"]
+    else:
+        # Точный путь Витерби, не реконструкция из сглаженного .vis —
+        # иначе буквы у границ клипа «теряются» в измерении, а не в бейке.
+        segments = []
+        if words and np.isfinite(dists).any():
+            std = np.nanstd(dists)
+            norm = (dists - np.nanmean(dists)) / (std if std > 1e-9 else 1.0)
+            states = bl.build_states(words)
+            path = bl.viterbi_align(norm, vols, states)
+            if path is not None:
+                cur, start = path[0], 0
+                for t in range(1, fc):
+                    if path[t] != cur:
+                        if states[cur].vis != bl.SIL:
+                            segments.append([states[cur].vis,
+                                             round(start * 1000 / fps),
+                                             round(t * 1000 / fps)])
+                        cur, start = path[t], t
+                if states[cur].vis != bl.SIL:
+                    segments.append([states[cur].vis,
+                                     round(start * 1000 / fps),
+                                     round(fc * 1000 / fps)])
+        if not segments:
+            segments = segments_from_frames(frames, fps)
+
+    # Потерянные буквы: LCS ожидаемой последовательности с фактической.
+    exp_vis = [u[0] for u in expected]
+    seg_vis = [s[0] for s in segments]
+    sm = difflib.SequenceMatcher(a=exp_vis, b=seg_vis, autojunk=False)
+    matched_exp: set[int] = set()
+    matched_seg: set[int] = set()
+    for blk in sm.get_matching_blocks():
+        for k in range(blk.size):
+            matched_exp.add(blk.a + k)
+            matched_seg.add(blk.b + k)
+    missing = [bl.VISEME_NAMES[exp_vis[i]]
+               for i in range(len(exp_vis)) if i not in matched_exp]
+    missing_vowels = [m for m in missing if m in ("A", "I", "U", "E", "O")]
+
+    # Пер-сегментные метрики.
+    vowels_min = 0
+    bad_segs = []
+    silent_segs = 0
+    for si, (vis, s_ms, e_ms) in enumerate(segments):
+        f0 = max(0, int(s_ms * fps / 1000))
+        f1 = min(fc - 1, max(f0 + 1, int(round(e_ms * fps / 1000))))
+        seg_vols = vols[f0:f1]
+        if vis in _VOWEL_SET and si in matched_seg and e_ms - s_ms <= _MIN_VOWEL_MS:
+            vowels_min += 1
+        if seg_vols.size and float(seg_vols.mean()) < _QUIET:
+            silent_segs += 1
+            continue
+        # MFCC-шаблоны — слабое свидетельство (потому длительности и несут
+        # половину выравнивания), так что жалуемся только на «СОВСЕМ не
+        # похожа»: ни одного кадра в топ-4 на заметном отрезке.
+        voiced = [f for f in range(f0, f1)
+                  if vols[f] > _QUIET and np.isfinite(dists[f]).all()]
+        if len(voiced) >= 5:
+            ranks = [int(np.argsort(dists[f]).tolist().index(vis))
+                     for f in voiced]
+            agree = sum(r < _AGREE_TOP for r in ranks) / len(ranks)
+            if agree == 0.0:
+                bad_segs.append(
+                    {"vis": bl.VISEME_NAMES[vis], "startMs": s_ms,
+                     "agree": round(agree, 2)})
+
+    score = (3 * len(missing_vowels) + 2 * (len(missing) - len(missing_vowels))
+             + vowels_min + 2 * len(bad_segs) + 2 * silent_segs)
+    return {
+        "key": key, "manual": manual, "score": score,
+        "missing": missing, "vowelsMin": vowels_min,
+        "badSegs": bad_segs[:6], "silentSegs": silent_segs,
+        "units": len(expected), "segs": len(segments),
+    }
+
+
+def run_analysis() -> dict:
+    keys = [bl.override_key(w) for w in sorted(VOICES.rglob("voice_*.wav"))]
+    with ProcessPoolExecutor() as pool:
+        rows = list(pool.map(_analyze_one, keys, chunksize=16))
+    rows.sort(key=lambda r: -r["score"])
+    clean = sum(1 for r in rows if r["score"] == 0)
+    result = {
+        "total": len(rows), "clean": clean,
+        "flagged": len(rows) - clean,
+        "rows": [r for r in rows if r["score"] > 0],
+    }
+    ANALYSIS_FILE.write_text(
+        json.dumps(result, ensure_ascii=False) + "\n")
+    return result
+
+
+def cached_analysis() -> dict:
+    if ANALYSIS_FILE.exists():
+        return json.loads(ANALYSIS_FILE.read_text())
+    return {"total": 0, "clean": 0, "flagged": 0, "rows": []}
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):  # тихий сервер
         pass
@@ -244,6 +381,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(clip_payload(q["key"][0]))
             elif url.path == "/api/letters":
                 self._json(letters_payload())
+            elif url.path == "/api/analysis":
+                self._json(cached_analysis())
             elif url.path == "/audio":
                 data = wav_path(q["key"][0]).read_bytes()
                 self.send_response(200)
@@ -270,6 +409,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(reset_clip(payload["key"]))
             elif url.path == "/api/letters":
                 self._json(save_letters(payload["letters"], payload["digraphs"]))
+            elif url.path == "/api/analyze":
+                with _lock:
+                    self._json(run_analysis())
             else:
                 self._json({"error": "not found"}, 404)
         except Exception as e:  # noqa: BLE001
@@ -326,6 +468,16 @@ body { margin:0; background:var(--bg); color:var(--ink);
 #letters select { background:var(--panel2); color:var(--ink);
   border:1px solid var(--grid); border-radius:5px; padding:4px 6px; }
 #letters .ex { color:var(--dim); font-size:12.5px; }
+#analytics { display:none; overflow:auto; padding:16px; }
+#analytics table { border-collapse:collapse; width:100%; }
+#analytics td, #analytics th { padding:6px 10px;
+  border-bottom:1px solid var(--grid); text-align:left; font-size:13px; }
+#analytics tr[data-key] { cursor:pointer; }
+#analytics tr[data-key]:hover { background:var(--panel); }
+.chip { display:inline-block; background:var(--panel2); border:1px solid var(--grid);
+  border-radius:10px; padding:1px 8px; margin:1px 3px 1px 0; font-size:11.5px; }
+.chip.bad { color:#e07068; border-color:#5a3532; }
+.chip.warn { color:var(--acc); }
 .hint { color:var(--dim); font-size:12px; padding:0 14px 8px; }
 </style>
 <div id="side">
@@ -333,6 +485,7 @@ body { margin:0; background:var(--bg); color:var(--ink);
   <div id="tabs">
     <button id="tabRoll" class="on">Реплики</button>
     <button id="tabLetters">Буквы</button>
+    <button id="tabAn">Аналитика</button>
   </div>
   <div id="clips"></div>
 </div>
@@ -349,6 +502,7 @@ body { margin:0; background:var(--bg); color:var(--ink);
     двойной клик — новая нота · Delete — удалить · ⌘S — сохранить</div>
   <div id="rollwrap"><canvas id="roll"></canvas></div>
   <div id="letters"></div>
+  <div id="analytics"></div>
 </div>
 <audio id="au"></audio>
 <script>
@@ -576,17 +730,54 @@ $('#reset').onclick = async () => {
   status('Возвращено авто-выравнивание (' + (fresh.algo || 'align') + ')');
 };
 
-// ---------- вкладка «Буквы» ----------
+// ---------- вкладки ----------
 let lettersData = null;
-$('#tabRoll').onclick = () => switchTab(true);
-$('#tabLetters').onclick = () => switchTab(false);
-function switchTab(rollTab) {
-  $('#tabRoll').classList.toggle('on', rollTab);
-  $('#tabLetters').classList.toggle('on', !rollTab);
-  $('#rollwrap').style.display = rollTab ? '' : 'none';
-  document.querySelector('.hint').style.display = rollTab ? '' : 'none';
-  $('#letters').style.display = rollTab ? 'none' : 'block';
-  if (!rollTab) loadLetters();
+$('#tabRoll').onclick = () => switchTab('roll');
+$('#tabLetters').onclick = () => switchTab('letters');
+$('#tabAn').onclick = () => switchTab('an');
+function switchTab(tab) {
+  $('#tabRoll').classList.toggle('on', tab === 'roll');
+  $('#tabLetters').classList.toggle('on', tab === 'letters');
+  $('#tabAn').classList.toggle('on', tab === 'an');
+  $('#rollwrap').style.display = tab === 'roll' ? '' : 'none';
+  document.querySelector('.hint').style.display = tab === 'roll' ? '' : 'none';
+  $('#letters').style.display = tab === 'letters' ? 'block' : 'none';
+  $('#analytics').style.display = tab === 'an' ? 'block' : 'none';
+  if (tab === 'letters') loadLetters();
+  if (tab === 'an') loadAnalysis(false);
+}
+
+// ---------- вкладка «Аналитика» ----------
+async function loadAnalysis(rerun) {
+  const root = $('#analytics');
+  if (rerun) root.innerHTML = '<p>Гоняю анализ по всем репликам… (≈минута)</p>';
+  const data = await (await fetch(rerun ? '/api/analyze' : '/api/analysis',
+    rerun ? { method: 'POST', body: '{}' } : undefined)).json();
+  if (!data.total) {
+    root.innerHTML = `<p>Анализ ещё не гонялся.</p>
+      <p><button id="runAn">Прогнать анализ (≈минута)</button></p>`;
+    $('#runAn').onclick = () => loadAnalysis(true);
+    return;
+  }
+  const chips = r => [
+    ...r.missing.map(m => `<span class="chip bad">потеряна ${m}</span>`),
+    r.vowelsMin ? `<span class="chip warn">гласных в минимуме: ${r.vowelsMin}</span>` : '',
+    ...r.badSegs.map(b => `<span class="chip warn">${b.vis}@${(b.startMs/1000).toFixed(2)}s не похожа (${Math.round(b.agree*100)}%)</span>`),
+    r.silentSegs ? `<span class="chip">букв в тишине: ${r.silentSegs}</span>` : '',
+  ].filter(Boolean).join('');
+  root.innerHTML = `<p>Всего ${data.total} · чистых <b style="color:var(--acc2)">${data.clean}</b> ·
+      с флагами <b style="color:var(--acc)">${data.flagged}</b>
+      &nbsp;<button id="runAn">Перегнать анализ</button></p>
+    <table><tr><th>балл</th><th>реплика</th><th>что не так</th></tr>` +
+    data.rows.map(r => `<tr data-key="${r.key}">
+      <td>${r.score}</td>
+      <td class="k">${r.key}${r.manual ? ' ✎' : ''}<br>
+        <span class="ex">${(CLIPS.find(c => c.key === r.key) || {}).text || ''}</span></td>
+      <td>${chips(r)}</td></tr>`).join('') + '</table>';
+  $('#runAn').onclick = () => loadAnalysis(true);
+  root.querySelectorAll('tr[data-key]').forEach(tr => tr.onclick = () => {
+    switchTab('roll'); openClip(tr.dataset.key);
+  });
 }
 async function loadLetters() {
   lettersData = await (await fetch('/api/letters')).json();

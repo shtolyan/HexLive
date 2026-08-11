@@ -99,3 +99,4 @@ __pycache__/
 /BUGS.json.unity-mcp.lock
 # .meta files Unity generates next to ignored Blender backups.
 *.blend1.meta
+_ArtSource/Voice/lipsync_analysis.json

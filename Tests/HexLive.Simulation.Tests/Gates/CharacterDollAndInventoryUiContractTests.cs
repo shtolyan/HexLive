@@ -111,14 +111,21 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(framing, Does.Contain("TryGetStableVisualWorldBounds(renderer"));
             Assert.That(framing, Does.Contain("skin.BakeMesh(bakedMesh, false)"));
             Assert.That(framing, Does.Contain("renderer.localToWorldMatrix"));
-            Assert.That(framing, Does.Contain("var focus = bounds.center;"),
-                "The visible doll, not an authored vertical offset, must own the frame centre.");
-            Assert.That(stage, Does.Contain("DollFramePadding = 1.18f"),
-                "The tight baked geometry still needs safe head-and-feet padding.");
+            Assert.That(framing, Does.Contain("bounds.max.y + height * HeadroomFraction"),
+                "The head is kept in frame by explicit headroom, not by luck.");
+            Assert.That(stage, Does.Contain("HeadroomFraction"));
+            Assert.That(stage, Does.Contain("FootroomFraction"));
+            Assert.That(framing, Does.Not.Contain("horizontalDistance"),
+                "Fitting width let one wide silhouette pull the camera in for good.");
             Assert.That(framing, Does.Contain("bounds.extents.z +"),
                 "Perspective fit must include the geometry nearest to the camera.");
             Assert.That(stage, Does.Contain("_animator.speed = 0f"),
                 "The cloned source must not transition back into its sitting or lying pose.");
+            Assert.That(stage, Does.Contain("AnimationPlayableUtilities.PlayClip"),
+                "The studio pose must bypass the actor's controller and its cloned parameters.");
+            Assert.That(stage, Does.Contain("StudioPosePath = \"HexLive/Poses/Female Standing Pose\""));
+            Assert.That(stage, Does.Contain("!_studioPose.humanMotion"),
+                "A Generic import of the pose flattens the humanoid rig into a sheet.");
             Assert.That(framing, Does.Not.Match(@"bounds\s*=\s*renderer\.bounds"));
             Assert.That(framing, Does.Not.Contain("Encapsulate(renderer.bounds)"),
                 "The evaluated source pose makes sitting and lying dolls change camera scale.");

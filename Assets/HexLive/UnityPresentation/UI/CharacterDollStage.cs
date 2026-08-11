@@ -5,6 +5,8 @@ using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Wearing;
 using RootMotion.FinalIK;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 
 namespace HexLive.UnityPresentation.UI
 {
@@ -25,7 +27,12 @@ namespace HexLive.UnityPresentation.UI
     {
         private const int TextureWidth = 512;
         private const int TextureHeight = 768;
-        private const float DollFramePadding = 1.18f;
+        // A portrait is framed on HEIGHT. Headroom is what keeps hair, hats and
+        // the crown of the head inside the frame; the old single symmetric pad
+        // spent half of itself under the feet and cropped the head instead.
+        private const float HeadroomFraction = 0.11f;
+        private const float FootroomFraction = 0.03f;
+        private const string StudioPosePath = "HexLive/Poses/Female Standing Pose";
         private const float StageSeparation = 80f;
         private const float SignatureIntervalSeconds = 0.5f;
         private const int SettleFrames = 2;
@@ -43,6 +50,9 @@ namespace HexLive.UnityPresentation.UI
         private static readonly Color HpWarn = new(0.910f, 0.698f, 0.235f);
         private static readonly Color HpCrit = new(0.910f, 0.341f, 0.310f);
         private static readonly Color Stump = new(0.24f, 0.17f, 0.17f);
+
+        private static AnimationClip _studioPose;
+        private static bool _studioPoseTried;
 
         private static readonly Dictionary<string, int> ZoneRootBones = new()
         {
@@ -527,16 +537,13 @@ namespace HexLive.UnityPresentation.UI
                 _animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 _animator.Rebind();
                 _animator.SetFloat(SpeedParam, 0f);
-                if (_animator.HasState(0, IdleState))
-                {
-                    _animator.Play(IdleState, 0, 0f);
-                }
-                _animator.Update(0f);
-                // The portrait is a deterministic studio pose, not another
-                // live actor. Keeping the cloned Animator ticking lets copied
-                // sitting/lying parameters transition it away from the Idle
-                // pose after FrameClone has already fixed the camera.
                 _animator.speed = 0f;
+                ApplyStudioPose();
+                // Nothing may touch the pose again. The clone carries the
+                // live colonist's sitting/lying/crawling parameters, and an
+                // enabled Animator eventually acts on them — that is how every
+                // earlier fix ended up framing a pose it had not measured.
+                _animator.enabled = false;
             }
 
             _lookAt = _clone.GetComponentInChildren<LookAtIK>(true);
@@ -594,6 +601,51 @@ namespace HexLive.UnityPresentation.UI
             _renderDirty = true;
             ApplyMode();
             FrameClone();
+        }
+
+        /// <summary>
+        /// Puts the clone into THE studio pose: one evaluated frame of the
+        /// fixed "Female Standing Pose" clip, played through a throwaway
+        /// playable graph so the actor's own controller — and the sitting,
+        /// lying and crawling parameters cloned with it — never take part.
+        /// This is what makes both the portrait and the frame measured from it
+        /// identical in every session, for every colonist of that actor.
+        /// </summary>
+        private void ApplyStudioPose()
+        {
+            if (!_studioPoseTried)
+            {
+                _studioPoseTried = true;
+                _studioPose = Resources.Load<AnimationClip>(StudioPosePath);
+                // A non-humanoid import of the pose (it happened once: the FBX
+                // imported before the Poses postprocessor compiled and came out
+                // Generic) flattens the figure into a sheet. Refuse it.
+                if (_studioPose != null && !_studioPose.humanMotion)
+                {
+                    Debug.LogWarning(
+                        "[CharacterDoll] pose clip is not humanoid — reimport " +
+                        "Assets/Resources/HexLive/Poses (delete its .meta); " +
+                        "using the controller idle instead.");
+                    _studioPose = null;
+                }
+            }
+
+            if (_studioPose != null && _animator.avatar != null)
+            {
+                AnimationPlayableUtilities.PlayClip(_animator, _studioPose, out var graph);
+                graph.Evaluate(0f);
+                graph.Destroy();
+                return;
+            }
+
+            // Fallback only: the controller's own Idle. It is not deterministic
+            // — the copied parameters can still own the transition — so the
+            // missing pose asset is the real defect to fix.
+            if (_animator.HasState(0, IdleState))
+            {
+                _animator.Play(IdleState, 0, 0f);
+            }
+            _animator.Update(0f);
         }
 
         private void CacheSourceMaterials(Transform source)
@@ -886,10 +938,11 @@ namespace HexLive.UnityPresentation.UI
         private void FrameClone()
         {
             _modelPivot.gameObject.SetActive(true);
-            // One photo point per actor. It is measured on that actor's first
-            // clone and reused forever after, so nothing a colonist puts on,
-            // loses or bleeds can move the camera: rebuilds stopped being able
-            // to re-aim the portrait, which is what made the doll jump.
+            // One photo point per actor. The measurement is reproducible
+            // because the clone is in the fixed studio pose, so caching it only
+            // saves the work — it cannot freeze a lucky or unlucky reading. And
+            // because rebuilds reuse it, nothing a colonist puts on, loses or
+            // bleeds can re-aim the portrait.
             if (_actorMesh.Length > 0 &&
                 _framingByActor.TryGetValue(_actorMesh, out var cached))
             {
@@ -910,10 +963,10 @@ namespace HexLive.UnityPresentation.UI
         }
 
         /// <summary>
-        /// Measures the actor's photo point from its own body in the frozen
-        /// Idle pose — never from clothes, hair or props (they come and go),
-        /// never through the player's yaw, and never with an amputation
-        /// applied (a lost leg must not zoom the portrait in).
+        /// Measures the actor's photo point from its own body in the studio
+        /// pose — never from clothes, hair or props (they come and go), never
+        /// through the player's yaw, and never with an amputation applied (a
+        /// lost leg must not zoom the portrait in).
         /// </summary>
         private bool TryMeasureFraming(out DollFraming framing)
         {
@@ -926,8 +979,8 @@ namespace HexLive.UnityPresentation.UI
             var bounds = new Bounds();
             // Renderer.bounds can still contain the source's last sitting or
             // lying pose; localBounds is only an authored culling envelope
-            // with large invisible margins. Baking the rebound Idle clone
-            // gives the actual visible geometry instead.
+            // with large invisible margins. Baking the clone in the studio
+            // pose gives the actual visible geometry instead.
             if (_normalBodyRenderer != null &&
                 TryGetStableVisualWorldBounds(_normalBodyRenderer, out var bodyBounds))
             {
@@ -964,22 +1017,32 @@ namespace HexLive.UnityPresentation.UI
                 return false;
             }
 
-            var focus = bounds.center;
+            // A portrait is fitted on HEIGHT only, with an explicit headroom
+            // above the crown and a thin margin under the feet. The width of a
+            // standing figure never binds inside a 2:3 frame, and fitting it
+            // was the trap: one measurement of a wide silhouette (a lying or
+            // T-posed rig) pulled the camera in and cropped every head after.
+            var height = bounds.size.y;
+            var top = bounds.max.y + height * HeadroomFraction;
+            var bottom = bounds.min.y - height * FootroomFraction;
+            var focus = new Vector3(bounds.center.x, (top + bottom) * 0.5f, bounds.center.z);
             var halfFov = _camera.fieldOfView * Mathf.Deg2Rad * 0.5f;
-            var verticalDistance = bounds.extents.y / Mathf.Tan(halfFov);
-            var horizontalTangent = Mathf.Tan(halfFov) * (TextureWidth / (float)TextureHeight);
-            var horizontalDistance = bounds.extents.x / Mathf.Max(0.001f, horizontalTangent);
             // Perspective fitting must include the half-depth nearest to the
-            // camera. Ignoring it made deeper rigs project larger than the X/Y
-            // fit predicted (female heads/hair clipped while the male doll fit).
+            // camera. Ignoring it made deeper rigs project larger than the fit
+            // predicted (female heads/hair clipped while the male doll fit).
             var distance = Mathf.Max(
                 1f,
-                bounds.extents.z +
-                Mathf.Max(verticalDistance, horizontalDistance) * DollFramePadding);
+                bounds.extents.z + (top - bottom) * 0.5f / Mathf.Tan(halfFov));
             var eye = focus + Vector3.forward * distance;
             framing = new DollFraming(
                 transform.InverseTransformPoint(focus),
                 transform.InverseTransformPoint(eye));
+            // One line per actor per session: the next time the doll looks
+            // wrong this is a measurement instead of another guess.
+            Debug.Log($"[CharacterDoll] frame actor={_actorMesh} " +
+                      $"bodyHeight={height:0.###} focusY={focus.y:0.###} " +
+                      $"distance={distance:0.###} pose=" +
+                      (_studioPose != null ? "studio" : "controller-idle"));
             return true;
         }
 

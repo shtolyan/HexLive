@@ -256,7 +256,6 @@ namespace HexLive.UnityPresentation.UI
         // 2:3, so BackgroundSizeType.Contain has nothing left to letterbox.
         private const float DollAspectHeight = 768f / 512f;
         private const float DollViewportWidth = 195f;
-        private const float MinDollViewportHeight = 230f;
 
         // ── palette ───────────────────────────────────────────────────────
         private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
@@ -1813,8 +1812,10 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            // No floor: a box taller than the room it has would simply overflow
+            // its clipped parent, and the clipping takes the head and the feet
+            // — the exact complaint a 2:3 lock is supposed to end.
             var height = Mathf.Min(available.height, available.width * DollAspectHeight);
-            height = Mathf.Max(height, MinDollViewportHeight);
             // Writing a size from inside a geometry callback re-triggers that
             // callback; only an actual change may be written, or the window
             // relayouts itself forever.

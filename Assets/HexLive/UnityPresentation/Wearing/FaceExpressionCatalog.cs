@@ -159,13 +159,18 @@ public sealed class FaceExpressionRig
     private static readonly string[] MouthShapePrefixes =
     {
         "eCTRLJaw", "eCTRLTongue", "eCTRLLipsPart", "eCTRLMouthOpen",
+        // Не «открытие рта», но формируют его так же жёстко, как виземы:
+        // бантик, подворот/вертикаль губ, сужение и сдвиг рта вбок.
+        "eCTRLLipsPucker", "eCTRLLipTop", "eCTRLLipBottom",
+        "eCTRLMouthNarrow", "eCTRLMouthSide-Side",
     };
 
+    // Уголки/улыбка/фраун сознательно НЕ здесь: они складываются с виземами
+    // линейно, и без них лицо каменеет на каждой реплике.
     private static readonly string[] MouthShapes =
     {
         "eCTRLMouthSmileOpen", "eCTRLSurprised",
-        "eCTRLLipTopUp-Down", "eCTRLLipBottomUp-Down",
-        "eCTRLLipBottomUp-DownL", "eCTRLLipBottomUp-DownR",
+        "eCTRLCheeksBalloon", // надутые щёки подразумевают закрытый рот
     };
 
     private static bool IsMouthShape(string shape)

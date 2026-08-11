@@ -21,14 +21,18 @@ public sealed class CharacterDollAndInventoryUiContractTests
         }.Concat(parts).ToArray());
 
     [Test]
-    public void CharacterPanelIsFiftyFiftyAndContainsNoScroller()
+    public void CharacterPanelGivesThePortraitItsOwnWidthAndContainsNoScroller()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
 
         Assert.Multiple(() =>
         {
-            Assert.That(source, Does.Contain("_invItemsPane.style.width = Length.Percent(50f)"));
-            Assert.That(source, Does.Contain("_invDollPane.style.width = Length.Percent(50f)"));
+            // The portrait pane is as wide as the portrait and the item list
+            // takes the rest. Half the window each left tall dead strips beside
+            // a doll whose aspect is far narrower than half the window.
+            Assert.That(source, Does.Contain("_invItemsPane.style.flexGrow = 1f"));
+            Assert.That(source, Does.Not.Contain("_invItemsPane.style.width = Length.Percent(50f)"));
+            Assert.That(source, Does.Not.Contain("_invDollPane.style.width = Length.Percent(50f)"));
             Assert.That(source, Does.Not.Contain("new ScrollView"));
             Assert.That(source, Does.Not.Contain("Scroller"));
             Assert.That(source, Does.Not.Contain("_invLeftColumn"));
@@ -217,7 +221,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
                 "_healthDollImage.style.height = DollViewportWidth * DollAspectHeight"));
             Assert.That(panel, Does.Contain("private void FitInventoryDollViewport()"),
                 "The elastic inventory pane needs an explicit 2:3 lock.");
-            Assert.That(panel, Does.Contain("_invPreviewView.style.width = height / DollAspectHeight"));
+            Assert.That(panel, Does.Contain("room.height / DollAspectHeight"),
+                "The portrait is sized by the row's height; its pane's width follows it.");
             Assert.That(panel, Does.Not.Contain("_healthDollImage.style.height = 260f"),
                 "195x260 is 3:4 and pillarboxes the 2:3 portrait.");
         });

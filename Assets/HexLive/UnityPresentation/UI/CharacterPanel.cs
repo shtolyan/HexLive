@@ -259,6 +259,7 @@ namespace HexLive.UnityPresentation.UI
         // opens above the head.
         private const float DollAspectHeight = 896f / 512f;
         private const float DollViewportWidth = 195f;
+        private const float MaxDollPaneWidthFraction = 0.45f;
 
         // ── palette ───────────────────────────────────────────────────────
         private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
@@ -1392,8 +1393,12 @@ namespace HexLive.UnityPresentation.UI
             _invListView.style.minHeight = 0f;
 
             _invItemsPane = new VisualElement();
-            _invItemsPane.style.width = Length.Percent(50f);
-            _invItemsPane.style.flexShrink = 0f;
+            // The item list takes every pixel the portrait does not need. A
+            // pane pinned to half the window left tall empty strips beside a
+            // portrait whose aspect is much narrower than half the window.
+            _invItemsPane.style.flexGrow = 1f;
+            _invItemsPane.style.flexShrink = 1f;
+            _invItemsPane.style.minWidth = 0f;
             _invItemsPane.style.paddingRight = 5f;
             _invItemsPane.style.overflow = Overflow.Visible;
 
@@ -1406,14 +1411,12 @@ namespace HexLive.UnityPresentation.UI
             _invListView.Add(_invItemsPane);
 
             _invDollPane = new VisualElement();
-            _invDollPane.style.width = Length.Percent(50f);
+            // Width is AUTO on purpose: the card is exactly as wide as the
+            // portrait inside it, so there is no dead field to either side.
+            _invDollPane.style.flexGrow = 0f;
             _invDollPane.style.flexShrink = 0f;
-            _invDollPane.style.paddingLeft = 5f;
             _invDollPane.style.alignItems = Align.Center;
             _invDollPane.style.justifyContent = Justify.Center;
-            // Unlike the health box this pane is elastic, so the 2:3 lock is
-            // recomputed from whatever room the window ends up with.
-            _invDollPane.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryDollViewport());
 
             _invPreviewView = new VisualElement();
             _invPreviewView.style.position = Position.Relative;
@@ -1439,6 +1442,10 @@ namespace HexLive.UnityPresentation.UI
             _invPreviewView.Add(_invPreviewHoverAnchor);
             _invDollPane.Add(_invPreviewView);
             _invListView.Add(_invDollPane);
+            // Sized from the ROW's height, never from the pane's own width —
+            // that width now follows the portrait and the two would chase each
+            // other around the layout.
+            _invListView.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryDollViewport());
             _inventoryWindow.Add(_invListView);
 
             _invDropZone = new VisualElement();
@@ -1796,29 +1803,33 @@ namespace HexLive.UnityPresentation.UI
         }
 
         /// <summary>
-        /// Locks the elastic inventory preview to the doll's own 2:3, centred
-        /// in whatever room the pane has. Without it the viewport inherited
-        /// the window's aspect and Contain pillarboxed the portrait — the doll
-        /// looked small and off-square no matter how the camera framed it.
+        /// Gives the inventory preview the doll RenderTexture's exact aspect,
+        /// sized by the row's HEIGHT. Its pane then hugs that width, so the
+        /// portrait has no dead field beside it and Contain has nothing to
+        /// letterbox. Reading the pane's own width here would be circular —
+        /// the pane is as wide as this box.
         /// </summary>
         private void FitInventoryDollViewport()
         {
-            if (_invDollPane == null || _invPreviewView == null)
+            if (_invListView == null || _invPreviewView == null)
             {
                 return;
             }
 
-            var available = _invDollPane.contentRect;
-            if (available.width < 1f || available.height < 1f ||
-                float.IsNaN(available.width) || float.IsNaN(available.height))
+            var room = _invListView.contentRect;
+            if (room.width < 1f || room.height < 1f ||
+                float.IsNaN(room.width) || float.IsNaN(room.height))
             {
                 return;
             }
 
             // No floor: a box taller than the room it has would simply overflow
-            // its clipped parent, and the clipping takes the head and the feet
-            // — the exact complaint a 2:3 lock is supposed to end.
-            var height = Mathf.Min(available.height, available.width * DollAspectHeight);
+            // its clipped parent, and the clipping takes the head and the feet.
+            // The width cap keeps a very tall window from starving the item
+            // list, since the portrait is otherwise sized by height alone.
+            var width = Mathf.Min(
+                room.height / DollAspectHeight, room.width * MaxDollPaneWidthFraction);
+            var height = width * DollAspectHeight;
             // Writing a size from inside a geometry callback re-triggers that
             // callback; only an actual change may be written, or the window
             // relayouts itself forever.

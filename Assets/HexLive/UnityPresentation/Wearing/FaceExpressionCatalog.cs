@@ -140,7 +140,7 @@ public sealed class FaceExpressionRig
     // gameSafe-режим выкидывает из рецептов каналы, которыми в игре владеют
     // другие системы: направление взгляда (глазами рулит LookAt по костям —
     // запечённый морф поверх даёт двойной сдвиг, косоглазие) и визэмы eCTRLv*
-    // (их каждый кадр пишет uLipSync §67.7 — порядок LateUpdate не определён,
+    // (их каждый кадр пишет NpcVoiceLipSync §67.7 — порядок LateUpdate не определён,
     // была бы драка за рот). Превью в TwoPeopleTest показывает рецепт как есть.
     private static readonly string[] GazeShapes =
     {

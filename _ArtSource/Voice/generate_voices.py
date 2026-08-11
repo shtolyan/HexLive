@@ -35,6 +35,8 @@ import wave
 from concurrent.futures import ThreadPoolExecutor
 from urllib import request as urlrequest, error as urlerror
 
+import bake_lipsync  # §67.7: рядом с каждым WAV печём .vis-таймлайн визем
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LINES = ROOT / "_ArtSource/Voice/hexkufa_lines.json"
 VOICES = ROOT / "_ArtSource/Voice/voices.json"
@@ -314,6 +316,9 @@ def main() -> int:
             return
 
         secs = write_wav(path, best[1])
+        # Липсинк-таймлайн (.vis) обязан обновляться вместе с WAV — рантайм
+        # сверяет sourceSamples и молча выключит губы при рассинхроне.
+        bake_lipsync.bake_file(path)
         made.append((path, secs, best[2]))
         flag = " STILL CAPPED" if secs >= MAX_SECONDS - 0.01 else ""
         log(f"  ok {path.name} {secs:.2f}s [{best[2]}]{flag}")

@@ -1355,8 +1355,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // §74: …если сим не выдал ей ЧУЖОЙ банк — тогда играет он.
         var voice = string.IsNullOrEmpty(voiceBank) ? actorMeshName : voiceBank;
         _voiceChar = (voice ?? string.Empty).Trim().ToLowerInvariant();
-        // §67.7: липсинк на реплики — анализатору нужна голова с виземами
-        // (у примитивных фолбэк-капсул её нет, там и рта-то нет).
+        // §67.7: липсинк на реплики — сэмплеру .vis-таймлайнов нужна голова
+        // с виземами (у примитивных фолбэк-капсул её нет, там и рта-то нет).
         foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true))
         {
             if (smr.sharedMesh != null && smr.sharedMesh.blendShapeCount > 50)
@@ -4058,7 +4058,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (Audio.FmodSfx.HasSound(id))
         {
             _voiceChannel = Audio.FmodSfx.PlayTracked(id, pos);
-            // §67.7: рот проговаривает реплику (uLipSync по PCM файла).
+            // §67.7: рот проговаривает реплику (.vis-таймлайн по часам канала).
             if (_voiceLipSync != null)
             {
                 _voiceLipSync.Speak(ref _voiceChannel);

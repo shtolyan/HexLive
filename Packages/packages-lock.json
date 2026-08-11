@@ -17,15 +17,6 @@
       },
       "hash": "4ce7dd3cc54e37e2ed6dc59cb5a047f3dccb3f50"
     },
-    "com.hecomi.ulipsync": {
-      "version": "file:com.hecomi.ulipsync",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {
-        "com.unity.burst": "1.4.11",
-        "com.unity.mathematics": "1.2.5"
-      }
-    },
     "com.unity.addressables": {
       "version": "4.0.0",
       "depth": 0,

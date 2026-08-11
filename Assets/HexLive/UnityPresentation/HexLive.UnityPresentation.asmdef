@@ -4,7 +4,6 @@
   "references": [
     "HexLive.Simulation",
     "FMODUnity",
-    "uLipSync.Runtime",
     "I2.Loc",
     "Unity.InputSystem",
     "RootMotion",

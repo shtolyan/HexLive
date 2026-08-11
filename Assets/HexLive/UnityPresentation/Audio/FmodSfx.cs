@@ -117,7 +117,8 @@ namespace HexLive.UnityPresentation.Audio
             internal bool IsEvent;
             internal bool Valid;
             public bool IsValid => Valid;
-            /// <summary>Файл сыгранного варианта (§67.7: липсинк читает его PCM).</summary>
+            /// <summary>Файл сыгранного варианта (§67.7: липсинк берёт его
+            /// .vis-сайдкар с запечённым таймлайном визем).</summary>
             public string File;
         }
 
@@ -407,7 +408,7 @@ namespace HexLive.UnityPresentation.Audio
         }
 
         /// <summary>Позиция воспроизведения хэндла в мс (-1 = не играет) —
-        /// §67.7: точные часы для липсинк-фидера.</summary>
+        /// §67.7: часы липсинка (по ним сэмплируется .vis-таймлайн).</summary>
         public static int GetPlaybackMs(ref Loop handle)
         {
             if (!_ready || !handle.Valid)

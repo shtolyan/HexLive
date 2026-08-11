@@ -58,6 +58,17 @@ public sealed class BodyBones : MonoBehaviour
             }
         }
 
+        // §67.7: свежий инстанс стоит в авторской позе префаба — челюсть
+        // закрыта. Запоминаем её ДО первого кадра аниматора (см. LateUpdate).
+        if (_jaw == null)
+        {
+            _jaw = GetBone("lowerJaw");
+            if (_jaw != null)
+            {
+                _jawClosed = _jaw.localRotation;
+            }
+        }
+
         // A fresh body owns no hair yet — anything from a previous Construct
         // died with the old GameObject.
         _hairInstance = null;
@@ -150,6 +161,17 @@ public sealed class BodyBones : MonoBehaviour
     private float _heelPoseTarget = 1f;
     private const float HeelPoseTransitionSeconds = 0.12f;
 
+    // §67.7: замок челюсти. У части Humanoid-аватаров (пустой human: [] в
+    // .fbx.meta → автомап) кость lowerJaw замаплена в слот Jaw, и любой клип
+    // без jaw-кривых держит её в «нейтральной» мышечной позе — у Daz-рига она
+    // ПРИОТКРЫТА, рот выглядит открытым всегда, речь ни при чём. Явный
+    // пере-маппинг меты валит аватар в T-позу (skeleton-блок не восстановить
+    // руками), поэтому чиним после аниматора: каждый кадр возвращаем челюсти
+    // авторскую закрытую позу. Виземы липсинка и выражения — блендшейпы, от
+    // этой кости не зависят.
+    private Transform _jaw;
+    private Quaternion _jawClosed;
+
     public float HeelPoseWeight => _heelPoseWeight;
 
     public void SetHeelPoseSuppressed(bool suppressed)
@@ -176,6 +198,11 @@ public sealed class BodyBones : MonoBehaviour
     // Nothing accumulates — each frame starts from what the animation wrote.
     private void LateUpdate()
     {
+        if (_jaw != null)
+        {
+            _jaw.localRotation = _jawClosed;
+        }
+
         _heelPoseWeight = Mathf.MoveTowards(
             _heelPoseWeight,
             _heelPoseTarget,

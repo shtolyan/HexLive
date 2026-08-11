@@ -158,6 +158,40 @@ public sealed class BodyState
         return worst;
     }
 
+    // §105 r3: ЧИСЛО НА ПОРТРЕТЕ — витальное здоровье, дополнительно
+    // придавленное состоянием конечностей.
+    //
+    // r2 показывал ровно худшую витальную зону. Про «сколько осталось до того,
+    // как станет поздно» это правда, но про тело — нет: раздробленная рука или
+    // нога не двигали число ВООБЩЕ, и портрет уверял «100%» у колонистки,
+    // которая еле стоит. Возврат к среднему по семи зонам исключён — именно оно
+    // враньём в обе стороны и породило r2.
+    //
+    // Поэтому берётся МИНИМУМ из двух мнений:
+    //   * витальное (r2) — целые руки и ноги не могут его завысить, пробитая
+    //     грудь по-прежнему читается как критическая;
+    //   * взвешенное тело — конечности тянут число вниз, каждая на свою долю.
+    //
+    // Веса — presentation-константы, а НЕ ручки баланса (потому const: ручка
+    // обязана ехать в simdata.json). Ни одна система на это число не смотрит:
+    // пороги симуляции по-прежнему читают Health и VitalHealth.
+    private const float DisplayWeightHead = 0.24f;
+    private const float DisplayWeightTorso = 0.24f;
+    private const float DisplayWeightPelvis = 0.12f;
+    private const float DisplayWeightLimb = 0.10f; // ×4 конечности = 0.40
+
+    public float DisplayHealth()
+    {
+        var weighted =
+            Parts[BodyPart.Head] * DisplayWeightHead +
+            Parts[BodyPart.Torso] * DisplayWeightTorso +
+            Parts[BodyPart.Pelvis] * DisplayWeightPelvis +
+            (Parts[BodyPart.ArmL] + Parts[BodyPart.ArmR] +
+             Parts[BodyPart.LegL] + Parts[BodyPart.LegR]) * DisplayWeightLimb;
+        var vital = VitalHealth();
+        return weighted < vital ? weighted : vital;
+    }
+
     public bool VitalDestroyed(out BodyPart part)
     {
         // Порядок — как в VitalParts: голова первой, потому что трасса и §105

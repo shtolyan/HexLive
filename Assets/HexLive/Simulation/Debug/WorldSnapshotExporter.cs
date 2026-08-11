@@ -973,6 +973,7 @@ public static class WorldSnapshotExporter
 
         // Spec §48: derive the active status effects (buffs/debuffs) from this
         // NPC's live state — read-only, so nothing here touches balance. Each
+        npcSnapshot.DisplayHealth = npc.Body.DisplayHealth(); // §105 r3
         // exports as "Kind\tintensity\tdetailKey" for the character panel's
         // chip row; the optional third field explains the concrete cause.
         var effects = new List<ActiveEffect>();

@@ -791,6 +791,7 @@ public static class WorldSnapshotCodec
             w.Write((byte)part.Part);
             w.Write(part.Health);
             w.Write(part.Armor);
+        w.Write(n.DisplayHealth); // §105 r3
             w.Write(part.CriticalTrauma);
             w.Write(part.BluntDamage);
             w.Write(part.SplintSupport);
@@ -1043,6 +1044,7 @@ public static class WorldSnapshotCodec
             part.Armor = r.ReadSingle();
             part.CriticalTrauma = r.ReadSingle();
             part.BluntDamage = r.ReadSingle();
+        n.DisplayHealth = r.ReadSingle(); // §105 r3
             part.SplintSupport = r.ReadSingle();
             part.HitBias = r.ReadSingle();
             part.Severed = r.ReadBoolean();

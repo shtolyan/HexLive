@@ -712,19 +712,14 @@ namespace HexLive.UnityPresentation.UI
                 _relationsBuiltEmpty = false;
             }
 
-            // §105 r2: ХП — это ХУДШАЯ ВИТАЛЬНАЯ ЗОНА (голова/грудь), а не
-            // среднее по семи. Среднее врало в обе стороны: пробитая грудь при
-            // целых руках и ногах читалась как «75%, всё неплохо», хотя
-            // следующий удар убивает. Цвет берётся у той же функции, что красит
-            // куклу §57, — два мнения о «насколько всё плохо» разошлись бы.
-            var hp = isDead ? 0f : Mathf.Clamp01(npc.VitalHealth);
+            // §105 r3: ХП — витальное здоровье, придавленное конечностями
+            // (`BodyState.DisplayHealth`). Считает сим: «что такое витальная
+            // зона» и сколько весит нога — не знание вида. Цвет берётся у той
+            // же функции, что красит куклу §57, — два мнения о «насколько всё
+            // плохо» разошлись бы.
+            var hp = isDead ? 0f : Mathf.Clamp01(npc.DisplayHealth);
             _healthRing.Set(hp, CharacterDollStage.StatusColor(hp, false));
-            // Красным по-прежнему считается то, что не отрастёт, пока открыты
-            // раны, — теперь это приписка к числу, а не второй бар.
-            var locked = Mathf.Clamp01(npc.WoundLockedHp);
-            _healthValue.text = locked > 0.005f
-                ? $"{Mathf.RoundToInt(hp * 100f)}% (-{Mathf.RoundToInt(locked * 100f)})"
-                : $"{Mathf.RoundToInt(hp * 100f)}%";
+            _healthValue.text = $"{Mathf.RoundToInt(hp * 100f)}%";
 
             UpdateStatus(npc, isDead);
             UpdateUv(npc);

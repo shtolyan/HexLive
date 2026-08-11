@@ -779,6 +779,12 @@ public sealed class NpcSnapshot
 
     public List<RelationshipSnapshot> RelationshipDetails { get; } = new();
 
+    // §105 r3: то, что панель рисует кольцом — витальное здоровье, дополнительно
+    // придавленное конечностями (BodyState.DisplayHealth). VitalHealth осталось
+    // отдельным полем: его читают пороги и трассы, и оно не должно поехать
+    // из-за того, что число на портрете научилось замечать разбитую ногу.
+    public float DisplayHealth { get; set; } = 1f;
+
     public int KnownObjectCount { get; set; }
 
     public List<string> KnownObjects { get; } = new();

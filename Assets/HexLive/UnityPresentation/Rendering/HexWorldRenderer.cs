@@ -436,7 +436,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     public bool IsNpcPhotogenic(int npcId)
     {
         return _actorViews.TryGetValue(npcId, out var actorView) && actorView != null &&
-               actorView.IsPhotogenic;
+               actorView.IsPhotogenic && actorView.IsPortraitPoseSettled;
     }
 
     // §130: ближайшее к объективу лицо живой NPC, которой сейчас уместно

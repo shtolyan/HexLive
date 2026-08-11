@@ -36,13 +36,21 @@ namespace HexLive.UnityPresentation.UI
         // — меньше 2 МБ.
         private const int TextureSize = 192;
 
-        // Те же числа, что в PortraitStage: подобраны на модели ростом 1.7 м и
-        // домножаются на мировой масштаб.
-        private const float FaceDistanceMeters = 0.72f;
-        // Объектив строго на линии кадра: подъём был компенсацией за якорь,
-        // считавшийся от кости шеи. Якорь теперь строится от глаз (§107.4 r2),
-        // и любой подъём здесь — это наклон камеры, то есть съёмка сверху.
-        private const float EyeLiftMeters = 0f;
+        // §80 r3: КАДР СНИМКА — свой, а не позаимствованный у карточки.
+        //
+        // Общий лицевой якорь (§107.4 r2) стоит на 2 см НИЖЕ линии глаз: так
+        // скомпонована ШИРОКАЯ фотография в identity-card. В круглом снимке та
+        // же точка читается как «голова уехала вверх» — макушка с волосами
+        // упирается в край маски, а под подбородком остаётся пусто. Поэтому
+        // снимок поднимает точку прицела над общим якорем и отходит чуть
+        // дальше: центр круга приходится на середину головы ВМЕСТЕ с волосами,
+        // и причёске есть куда не влезть.
+        //
+        // Обе величины — на модели ростом 1.7 м, домножаются на мировой
+        // масштаб. Это ручки кадра: двигать их, а не якорь, иначе поедет и
+        // карточка, которая скомпонована иначе.
+        private const float FaceDistanceMeters = 0.86f;
+        private const float HeadCentreLiftMeters = 0.05f;
 
         // Фон ПРОЗРАЧНЫЙ: снимок — вырезка персонажа, а не плашка. Тёмную
         // подложку под неё рисует та панель, которой она нужна.
@@ -64,8 +72,8 @@ namespace HexLive.UnityPresentation.UI
         // Это ЗАПОЛНЯЮЩИЙ свет, а не студийная вспышка в упор: он складывается
         // с уже имеющимся освещением сцены, и первая версия (1.35) днём
         // выбивала лицо в белое. Задача — вытянуть ночь до читаемого, а не
-        // пересветить день.
-        private const float FlashIntensity = 0.42f;
+        // пересветить день. r3: 0.42 всё ещё пересвечивал — убавлено.
+        private const float FlashIntensity = 0.30f;
         private const float FlashRangeMeters = 2.5f;
         private static readonly Color FlashTint = new(1f, 0.97f, 0.92f);
 
@@ -329,7 +337,11 @@ namespace HexLive.UnityPresentation.UI
         // рига, на фиксированном расстоянии — одна и та же точка съёмки у всех.
         private void AimAt(Vector3 face, Vector3 forward, Vector3 up, float scale, out Vector3 eye)
         {
-            eye = face + forward * (FaceDistanceMeters * scale) + up * (EyeLiftMeters * scale);
+            // Прицел и объектив поднимаются ВМЕСТЕ. Поднять один объектив — это
+            // наклонить камеру, то есть снимать сверху; ровно поэтому прежний
+            // подъём объектива был занулён, а не увеличен.
+            var aim = face + up * (HeadCentreLiftMeters * scale);
+            eye = aim + forward * (FaceDistanceMeters * scale);
 
             // Горизонт держим по МИРУ, а не по темечку: наклон головы иначе
             // заваливает весь кадр, и в круглой аватарке это читается как брак
@@ -337,7 +349,7 @@ namespace HexLive.UnityPresentation.UI
             var levelUp = Vector3.Dot(up, Vector3.up) > 0.5f ? Vector3.up : up;
 
             _camera.transform.position = eye;
-            _camera.transform.rotation = Quaternion.LookRotation(face - eye, levelUp);
+            _camera.transform.rotation = Quaternion.LookRotation(aim - eye, levelUp);
         }
 
         // Снять взгляд и закрыть съёмку. Вызывается на КАЖДОМ выходе, в том
@@ -388,6 +400,15 @@ namespace HexLive.UnityPresentation.UI
             // трёх местах панели.
             ApplyCircleMask(texture);
             texture.Apply(false);
+
+            // Одна строка на первый снимок каждой: если кадр снова окажется не
+            // тем, разбор начнётся с чисел, а не с гипотезы.
+            if (!_bakedAtTick.ContainsKey(npcId))
+            {
+                Debug.Log($"[NpcPortrait] baked npc={npcId} " +
+                          $"dist={FaceDistanceMeters:0.###} lift={HeadCentreLiftMeters:0.###} " +
+                          $"fov={_camera.fieldOfView:0.#} flash={FlashIntensity:0.##}");
+            }
 
             _bakedAtTick[npcId] = _lastSweepTick;
             _bakedDay[npcId] = _currentDay;

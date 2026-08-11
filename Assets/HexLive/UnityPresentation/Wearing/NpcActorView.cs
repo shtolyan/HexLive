@@ -710,6 +710,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly Dictionary<string, AnimationClip> _actorLocomotion = new();
     private static readonly int GaitParam = Animator.StringToHash("Gait");
     private float _gait;
+
+    // §80 r3: ниже этого GaitBlend она считается стоящей и годится для снимка.
+    private const float PortraitStillGait = 0.05f;
     // §71: the sim's gait decision (SetRunning). NOT re-derived from speed.
     private bool _running;
     // A brisk walk is allowed to outrun the walk clip a little; a run clip
@@ -1287,6 +1290,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public bool TryGetBodyCenter(out Vector3 center)
     {
         var hip = _bodyBones != null
+            // §80 r3: причёска грузится асинхронно, и снимок, сделанный до её
+            // прихода, — это ЛЫСАЯ колонистка во всех списках до конца игровых
+            // суток. Кадр стоит доли миллисекунды; дождаться волос дешевле.
+            if (_pendingHairLoads > 0)
+            {
+                return false;
+            }
+
             ? (_bodyBones.GetBone("hip") ?? _bodyBones.GetBone("pelvis"))
             : null;
 
@@ -1294,6 +1305,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             center = Vector3.Lerp(hip.position, _headBone.position, 0.6f);
             return true;
+    // §80 r3: ПОЗА ДЛЯ СНИМКА — стоя, а не в шаге. Фотографии должны быть
+    // одинаковыми, а на ходу корпус несёт, голова качается на шаге, и один
+    // портрет выходит анфас, другой — в наклоне посреди стрида. Ждать почти
+    // ничего не стоит: съёмка идёт раз в игровые сутки и просто откладывается
+    // до ближайшей остановки.
+    public bool IsPortraitPoseSettled => _gait <= PortraitStillGait;
+
         }
 
         var scale = _bodyRoot != null ? _bodyRoot.lossyScale.y : transform.lossyScale.y;

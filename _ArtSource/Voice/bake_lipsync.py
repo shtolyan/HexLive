@@ -45,6 +45,7 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[2]
 DEFAULT_PROFILE = Path(__file__).resolve().parent / "lipsync_profile.json"
+DEFAULT_LINES = Path(__file__).resolve().parent / "hexkufa_lines.json"
 DEFAULT_VOICES_DIR = REPO / "Assets/StreamingAssets/HexLive/Sfx/Voices"
 
 MAGIC = b"HXLS"
@@ -120,15 +121,38 @@ class LipSyncDsp:
         self.dct = np.cos(
             np.outer(rows, (j + 0.5)) * (np.pi / self.mel_channels))
 
-    def analyze_window(self, window: np.ndarray) -> tuple[np.ndarray, float]:
-        """window: float32[window_samples] @44.1k → (ratios[14], volume 0..1)."""
+    def frame_features(self, window: np.ndarray) -> tuple[np.ndarray | None, float]:
+        """window @44.1k → (L2-дистанции до 14 шаблонов | None для тишины,
+        volume 0..1). Общий низ для обоих алгоритмов бейка."""
         rms = float(np.sqrt(np.mean(window.astype(np.float64) ** 2)))
+        if rms <= 0.0:
+            volume = 0.0
+        else:
+            volume = (np.log10(rms) - self.min_volume) / max(
+                self.max_volume - self.min_volume, 1e-4)
+            volume = float(np.clip(volume, 0.0, 1.0))
 
         peak = float(np.max(np.abs(window))) if window.size else 0.0
         if peak < EPSILON:
+            return None, 0.0
+        d = self._mfcc_distances(window)
+        if d is None:
+            return None, 0.0
+        return d, volume
+
+    def analyze_window(self, window: np.ndarray) -> tuple[np.ndarray, float]:
+        """window: float32[window_samples] @44.1k → (ratios[14], volume 0..1).
+        Алгоритм «acoustic» — порт рантайм-классификации uLipSync."""
+        d, volume = self.frame_features(window)
+        if d is None:
             # Нулевое окно: в C# log10(0) каскадом обнуляет и ratios, и volume.
             return np.zeros(len(self.templates)), 0.0
+        scores = np.power(10.0, -d)
+        total = scores.sum()
+        ratios = scores / total if total > 0 else np.zeros_like(scores)
+        return ratios, volume
 
+    def _mfcc_distances(self, window: np.ndarray) -> np.ndarray | None:
         x = window.astype(np.float64)
         # «LPF»: сигнал + причинная свёртка (data[i] += Σ b[j]·tmp[i-j]).
         x = x + np.convolve(x, self.fir)[: x.size]
@@ -146,23 +170,268 @@ class LipSyncDsp:
             mel_db = 10.0 * np.log10(mel)
         if not np.all(np.isfinite(mel_db)):
             # Пустой мел-канал → в C# те же -inf/NaN гасят скоры в нули.
-            return np.zeros(len(self.templates)), 0.0
+            return None
         mfcc = self.dct @ mel_db
 
-        # L2-скоринг (means=0, std=1): d = sqrt(mean((mfcc-tmpl)^2)).
-        d = np.sqrt(np.mean((mfcc - self.templates) ** 2, axis=1))
-        scores = np.power(10.0, -d)
-        total = scores.sum()
-        ratios = scores / total if total > 0 else np.zeros_like(scores)
+        # L2-дистанции (means=0, std=1): d = sqrt(mean((mfcc-tmpl)^2)).
+        return np.sqrt(np.mean((mfcc - self.templates) ** 2, axis=1))
 
-        # Volume-таргет — формула uLipSyncBlendShape.UpdateVolume.
-        if rms <= 0.0:
-            volume = 0.0
+
+# ---------------------------------------------------------------- align
+# Алгоритм «align» (дефолт): буквы реплики ИЗВЕСТНЫ (хекскуфа, §67.9),
+# распознавать нечего — нужно лишь расставить их по времени. g2p переводит
+# текст в последовательность визем, Витерби выравнивает её по аудио
+# (эмиссии = те же MFCC-дистанции + громкость для тишины). В отличие от
+# покадровой классификации (алгоритм «acoustic», бывший uLipSync), даёт
+# чёткие сегменты в правильном порядке вместо каши «всё по 20%».
+
+SIL = -1
+
+# Буква хекскуфы → индекс виземы (порядок = VISEME_NAMES = профиль).
+# h пропускается: придыхание не формирует рот, его держит соседний гласный.
+_LETTER_VISEME = {
+    "a": 0, "i": 1, "u": 2, "e": 3, "o": 4,
+    "y": 1, "j": 1,                       # й-глайд → IY
+    "p": 5, "b": 5, "m": 5,               # губные → vM (закрытые губы)
+    "f": 6, "v": 6,
+    "s": 7, "z": 7, "c": 7,
+    "t": 9, "d": 9, "n": 9,               # альвеолярные → vT
+    "r": 10, "l": 11,
+    "k": 12, "g": 12,
+    "h": None,
+}
+# Диграфы: sh/ch/zh → SH; th → TH; nh — «носовой зачин», закрытый рот (§1).
+_DIGRAPH_VISEME = {"sh": 8, "ch": 8, "zh": 8, "th": 13, "nh": 5}
+
+_VOWELS = frozenset({0, 1, 2, 3, 4})  # A I U E O
+
+
+def g2p_words(text: str) -> list[list[tuple[int, bool]]]:
+    """Текст реплики → слова как последовательности (индекс виземы, long).
+    Повторы буквы схлопываются в один юнит; повтор ≥3 (долгота «Piiiisko»,
+    manner-растяжки) помечается long — такому юниту не ограничиваем
+    длительность. Поэтому точная строка синтеза (vowel_stretch,
+    --fix-capped) не важна."""
+    import re
+    clean = re.sub(r"\[.*?\]", " ", text.lower())
+    words: list[list[tuple[int, bool]]] = []
+    for raw in re.split(r"[^a-z]+", clean):
+        if not raw:
+            continue
+        units: list[tuple[int, bool]] = []
+        i = 0
+        while i < len(raw):
+            two = raw[i : i + 2]
+            if two in _DIGRAPH_VISEME:
+                vis = _DIGRAPH_VISEME[two]
+                i += 2
+            else:
+                vis = _LETTER_VISEME.get(raw[i])
+                i += 1
+            if vis is None:
+                continue
+            if units and units[-1][0] == vis:
+                units[-1] = (vis, True)  # повтор буквы = долгий юнит
+            else:
+                units.append((vis, False))
+        if units:
+            words.append(units)
+    return words
+
+
+class _State:
+    __slots__ = ("vis", "optional", "min_frames", "max_frames")
+
+    def __init__(self, vis: int, optional: bool, min_frames: int,
+                 max_frames: int | None):
+        self.vis = vis
+        self.optional = optional
+        self.min_frames = min_frames
+        self.max_frames = max_frames  # None = не ограничена
+
+
+# Ручки выравнивания. Дистанции стандартизуются по файлу, поэтому масштаб
+# стабилен: 0 = средняя похожесть, ±1 = сигма.
+_SIL_LOUD_COST = 3.0      # тишина на громком кадре — дорого
+_PHONE_QUIET_COST = 2.5   # фонема на тихом кадре — дорого
+_QUIET_VOL = 0.10         # ниже этой громкости кадр «тихий»
+_ABANDON_COST = 4.0       # штраф за каждый недопетый юнит (обрезанные WAV)
+
+# Длительности в кадрах 60 fps (кадр ≈ 16.7 мс). Шаблоны MFCC — слабое
+# свидетельство, поэтому длительности несут половину работы: смычные
+# коротки, фрикативы среднее, гласные — минимум 50 мс и без потолка
+# (долготу решает Витерби по остатку слова).
+_VOWEL_MIN = 3
+_CONSONANT_MIN = 2
+_CONSONANT_MAX = {
+    5: 8, 9: 8, 12: 8,        # P T K — смычные/носовые, ≤133 мс
+    10: 10, 11: 10,           # R L — сонорные, ≤167 мс
+    6: 12, 7: 12, 8: 12, 13: 12,  # F S SH TH — фрикативы, ≤200 мс
+}
+
+
+def build_states(words: list[list[tuple[int, bool]]]) -> list[_State]:
+    """Слова → цепочка состояний: [SIL?] w1 [SIL?] w2 … [SIL?].
+    Гласные и долгие юниты без верхней границы; согласные ограничены —
+    иначе «m» (закрытые губы) присваивает себе соседние гласные."""
+    states: list[_State] = [_State(SIL, True, 1, None)]
+    for word in words:
+        for vis, is_long in word:
+            if vis in _VOWELS:
+                states.append(_State(vis, False, _VOWEL_MIN, None))
+            elif is_long:
+                states.append(_State(vis, False, _CONSONANT_MIN, None))
+            else:
+                states.append(_State(
+                    vis, False, _CONSONANT_MIN, _CONSONANT_MAX[vis]))
+        states.append(_State(SIL, True, 1, None))  # межсловные паузы
+    return states
+
+
+def viterbi_align(dists: np.ndarray, vols: np.ndarray,
+                  states: list[_State]) -> list[int] | None:
+    """dists[f,14] (стандартизованные, NaN на тихих кадрах), vols[f] →
+    индекс состояния на кадр. None = выравнивание не сошлось."""
+    frames = len(vols)
+    n_states = len(states)
+
+    # Суб-состояния кодируют длительность: цепочка длиной max (или min для
+    # неограниченных, у которых последний суб-стейт зациклен). Выход к
+    # следующему состоянию разрешён с позиции ≥ min-1.
+    sub_state: list[int] = []
+    sub_pos: list[int] = []
+    sub_entry: list[int] = []
+    for s, st in enumerate(states):
+        sub_entry.append(len(sub_state))
+        chain = st.min_frames if st.max_frames is None else st.max_frames
+        for p in range(chain):
+            sub_state.append(s)
+            sub_pos.append(p)
+    n_sub = len(sub_state)
+
+    # Эмиссии по состояниям (одинаковы для всех суб-позиций).
+    emit_state = np.zeros((frames, n_states))
+    quiet = _PHONE_QUIET_COST * np.clip((_QUIET_VOL - vols) / _QUIET_VOL, 0.0, 1.0)
+    for s, st in enumerate(states):
+        if st.vis == SIL:
+            emit_state[:, s] = _SIL_LOUD_COST * vols
         else:
-            volume = (np.log10(rms) - self.min_volume) / max(
-                self.max_volume - self.min_volume, 1e-4)
-            volume = float(np.clip(volume, 0.0, 1.0))
-        return ratios, volume
+            base = np.where(np.isnan(dists[:, st.vis]), 2.0, dists[:, st.vis])
+            emit_state[:, s] = base + quiet
+    emit = emit_state[:, sub_state]
+
+    # Переходы: из суб-стейта j — остаться (только последний суб-стейт
+    # неограниченного состояния), шаг по цепочке, выход к входам следующих
+    # состояний (через optional-пропуски).
+    next_entries: list[list[int]] = []
+    for s in range(n_states):
+        outs = []
+        t = s + 1
+        while t < n_states:
+            outs.append(sub_entry[t])
+            if not states[t].optional:
+                break
+            t += 1
+        next_entries.append(outs)
+
+    can_stay = np.zeros(n_sub, dtype=bool)
+    step_next: list[int | None] = [None] * n_sub
+    exits: list[list[int]] = [[] for _ in range(n_sub)]
+    for j in range(n_sub):
+        s = sub_state[j]
+        st = states[s]
+        chain = st.min_frames if st.max_frames is None else st.max_frames
+        last = sub_pos[j] == chain - 1
+        if last and st.max_frames is None:
+            can_stay[j] = True
+        if not last:
+            step_next[j] = j + 1
+        if sub_pos[j] >= st.min_frames - 1:
+            exits[j] = next_entries[s]
+
+    INF = 1e18
+    cost = np.full(n_sub, INF)
+    back: list[np.ndarray] = []
+
+    starts = [sub_entry[0]]
+    t = 1
+    while t < n_states and states[t - 1].optional:
+        starts.append(sub_entry[t])
+        t += 1
+    for j in starts:
+        cost[j] = emit[0, j]
+
+    for f in range(1, frames):
+        new = np.full(n_sub, INF)
+        arg = np.full(n_sub, -1, dtype=np.int64)
+        for j in range(n_sub):
+            c = cost[j]
+            if c >= INF:
+                continue
+            if can_stay[j] and c < new[j]:
+                new[j] = c
+                arg[j] = j
+            k = step_next[j]
+            if k is not None and c < new[k]:
+                new[k] = c
+                arg[k] = j
+            for k in exits[j]:
+                if c < new[k]:
+                    new[k] = c
+                    arg[k] = j
+        new += emit[f]
+        cost = new
+        back.append(arg)
+
+    # Финал: конец цепочки или ранний обрыв со штрафом за недопетое.
+    best_j, best_cost = -1, INF
+    for j in range(n_sub):
+        if cost[j] >= INF:
+            continue
+        s = sub_state[j]
+        remaining = sum(
+            1 for t in range(s + 1, n_states) if not states[t].optional)
+        if states[s].vis != SIL and sub_pos[j] < states[s].min_frames - 1:
+            remaining += 1  # оборвались, не допев фонему
+        total = cost[j] + _ABANDON_COST * remaining
+        if total < best_cost:
+            best_cost, best_j = total, j
+
+    if best_j < 0:
+        return None
+
+    path = [best_j]
+    for arg in reversed(back):
+        prev = arg[path[-1]]
+        if prev < 0:
+            return None
+        path.append(int(prev))
+    path.reverse()
+    return [sub_state[j] for j in path]
+
+
+def load_line_texts(path: Path = DEFAULT_LINES) -> dict[str, list[str]]:
+    """hexkufa_lines.json → {group_id: [text варианта 0, 1, 2]}."""
+    data = json.loads(Path(path).read_text())
+    return {g["id"]: [ln["text"] for ln in g["lines"]] for g in data["groups"]}
+
+
+def words_for_wav(wav: Path, texts: dict[str, list[str]]) -> list[list[int]] | None:
+    """voice_<char>_<group>_<n>.wav → виземы известного текста (None = нет)."""
+    char = wav.parent.name.lower()
+    stem = wav.stem
+    prefix = f"voice_{char}_"
+    if not stem.startswith(prefix) or "_" not in stem[len(prefix):]:
+        return None
+    rest = stem[len(prefix):]
+    group, _, variant = rest.rpartition("_")
+    if not variant.isdigit():
+        return None
+    lines = texts.get(group)
+    if lines is None or int(variant) >= len(lines):
+        return None
+    words = g2p_words(lines[int(variant)])
+    return words or None
 
 
 def read_wav_mono16(path: Path) -> np.ndarray:
@@ -175,8 +444,14 @@ def read_wav_mono16(path: Path) -> np.ndarray:
     return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
 
 
-def bake_samples(samples: np.ndarray, dsp: LipSyncDsp) -> bytes:
-    """PCM → готовое содержимое .vis."""
+# Пиковая сила виземы при выравнивании: полные 100 у Daz-визем — гротеск,
+# 0.8 читается как выразительная, но живая артикуляция.
+_ALIGN_GAIN = 0.8
+
+
+def bake_samples(samples: np.ndarray, dsp: LipSyncDsp,
+                 words: list[list[int]] | None = None) -> tuple[bytes, str]:
+    """PCM (+известные слова) → (содержимое .vis, использованный алгоритм)."""
     n_samples = samples.size
     duration = n_samples / dsp.src_rate
     frame_count = int(np.ceil(duration * dsp.fps)) + 1
@@ -184,21 +459,57 @@ def bake_samples(samples: np.ndarray, dsp: LipSyncDsp) -> bytes:
         [np.zeros(dsp.window_samples, dtype=np.float32), samples])
 
     viseme_count = len(dsp.templates)
-    frames = bytearray()
-    for t in range(frame_count):
+    dists = np.full((frame_count, viseme_count), np.nan)
+    vols = np.zeros(frame_count)
+    for t in range(frame_count - 1):
         pos = min(int(round(t / dsp.fps * dsp.src_rate)), n_samples)
         window = padded[pos : pos + dsp.window_samples]
-        if t == frame_count - 1:
-            ratios, volume = np.zeros(viseme_count), 0.0  # рот закрыт в конце
-        else:
-            ratios, volume = dsp.analyze_window(window)
-        frames += bytes(int(round(r * 255)) for r in ratios)
-        frames.append(int(round(volume * 255)))
+        d, vol = dsp.frame_features(window)
+        vols[t] = vol
+        if d is not None:
+            dists[t] = d
+
+    ratios = np.zeros((frame_count, viseme_count))
+    algo = "acoustic"
+    if words:
+        finite = np.isfinite(dists)
+        if finite.any():
+            std = np.nanstd(dists)
+            norm = (dists - np.nanmean(dists)) / (std if std > 1e-9 else 1.0)
+            states = build_states(words)
+            path = viterbi_align(norm, vols, states)
+            if path is not None:
+                for t in range(frame_count - 1):
+                    vis = states[path[t]].vis
+                    if vis != SIL:
+                        ratios[t, vis] = _ALIGN_GAIN
+                # Мягкий стык сегментов: треугольник 1 кадр по времени.
+                sm = ratios.copy()
+                sm[1:-1] = 0.25 * ratios[:-2] + 0.5 * ratios[1:-1] + 0.25 * ratios[2:]
+                ratios = sm
+                algo = "align"
+
+    if algo == "acoustic":
+        # Фолбэк/легаси: покадровая классификация (бывший uLipSync).
+        with np.errstate(invalid="ignore"):
+            scores = np.power(10.0, -dists)
+        scores = np.where(np.isfinite(scores), scores, 0.0)
+        sums = scores.sum(axis=1, keepdims=True)
+        np.divide(scores, sums, out=ratios, where=sums > 0)
+
+    ratios[0] = 0.0
+    ratios[-1] = 0.0          # рот закрыт в начале и в конце
+    vols[-1] = 0.0
+
+    frames = bytearray()
+    for t in range(frame_count):
+        frames += bytes(int(round(r * 255)) for r in ratios[t])
+        frames.append(int(round(float(vols[t]) * 255)))
 
     header = struct.pack(
         "<4sHBBHI", MAGIC, VERSION, viseme_count, dsp.fps,
         frame_count, n_samples)
-    return header + bytes(frames)
+    return header + bytes(frames), algo
 
 
 def validate(blob: bytes, path: Path, dsp: LipSyncDsp) -> list[str]:
@@ -213,8 +524,10 @@ def validate(blob: bytes, path: Path, dsp: LipSyncDsp) -> list[str]:
         problems.append("первый кадр не нулевой")
     if frames[-1].any():
         problems.append("последний кадр не нулевой")
+    # acoustic: суммы ~255; align: пик 0.8·255 и спады на стыках — важно
+    # лишь, чтобы сумма кадра не превышала «одну визему целиком».
     ratio_sums = frames[:, :vis].astype(np.int32).sum(axis=1)
-    bad = ~((ratio_sums == 0) | (np.abs(ratio_sums - 255) <= vis))
+    bad = ratio_sums > 255 + vis
     if bad.any():
         problems.append(f"сумма ratio вне нормы в {int(bad.sum())} кадрах")
     expected = int(np.ceil(src_samples / dsp.src_rate * fps)) + 1
@@ -247,25 +560,31 @@ def is_up_to_date(wav: Path, vis: Path) -> bool:
 
 
 _WORKER_DSP: LipSyncDsp | None = None
+_WORKER_TEXTS: dict[str, list[str]] | None = None
 
 
-def _init_worker(profile: dict) -> None:
-    global _WORKER_DSP
+def _init_worker(profile: dict, texts: dict[str, list[str]] | None) -> None:
+    global _WORKER_DSP, _WORKER_TEXTS
     _WORKER_DSP = LipSyncDsp(profile)
+    _WORKER_TEXTS = texts
 
 
-def _bake_one(wav_str: str) -> tuple[str, list[str]]:
+def _bake_one(wav_str: str) -> tuple[str, str, list[str]]:
     wav = Path(wav_str)
     dsp = _WORKER_DSP
     assert dsp is not None
+    words = words_for_wav(wav, _WORKER_TEXTS) if _WORKER_TEXTS else None
     samples = read_wav_mono16(wav)
-    blob = bake_samples(samples, dsp)
+    blob, algo = bake_samples(samples, dsp, words)
     problems = validate(blob, wav, dsp)
+    if _WORKER_TEXTS is not None and algo != "align":
+        problems.append(f"{wav.name}: align не сошёлся — запечён acoustic")
     vis_path_for(wav).write_bytes(blob)
-    return wav.name, problems
+    return wav.name, algo, problems
 
 
 _DSP_CACHE: dict[str, LipSyncDsp] = {}
+_TEXTS_CACHE: dict[str, dict[str, list[str]]] = {}
 
 
 def bake_file(wav: Path, profile_path: Path = DEFAULT_PROFILE) -> Path:
@@ -274,9 +593,16 @@ def bake_file(wav: Path, profile_path: Path = DEFAULT_PROFILE) -> Path:
     dsp = _DSP_CACHE.get(key)
     if dsp is None:
         dsp = _DSP_CACHE[key] = LipSyncDsp(json.loads(Path(profile_path).read_text()))
+    lkey = str(DEFAULT_LINES)
+    texts = _TEXTS_CACHE.get(lkey)
+    if texts is None and DEFAULT_LINES.exists():
+        texts = _TEXTS_CACHE[lkey] = load_line_texts()
+    words = words_for_wav(Path(wav), texts) if texts else None
     samples = read_wav_mono16(Path(wav))
-    blob = bake_samples(samples, dsp)
+    blob, algo = bake_samples(samples, dsp, words)
     problems = validate(blob, Path(wav), dsp)
+    if words and algo != "align":
+        problems.append(f"{Path(wav).name}: align не сошёлся — запечён acoustic")
     for p in problems:
         print(f"  ⚠ {p}", file=sys.stderr)
     out = vis_path_for(Path(wav))
@@ -289,6 +615,9 @@ def main() -> int:
     ap.add_argument("paths", nargs="*", type=Path,
                     help="WAV-файлы или директории (дефолт — весь банк голосов)")
     ap.add_argument("--profile", type=Path, default=DEFAULT_PROFILE)
+    ap.add_argument("--algo", choices=("align", "acoustic"), default="align",
+                    help="align (дефолт) = Витерби по известному тексту; "
+                         "acoustic = легаси-классификация uLipSync")
     ap.add_argument("--force", action="store_true",
                     help="пересобрать даже актуальные сайдкары")
     ap.add_argument("--jobs", type=int, default=0,
@@ -297,6 +626,7 @@ def main() -> int:
 
     profile = json.loads(args.profile.read_text())
     dsp = LipSyncDsp(profile)
+    texts = load_line_texts() if args.algo == "align" else None
 
     roots = args.paths or [DEFAULT_VOICES_DIR]
     wavs: list[Path] = []
@@ -320,18 +650,20 @@ def main() -> int:
     all_problems: list[str] = []
     workers = args.jobs if args.jobs > 0 else None
     if len(todo) == 1:
-        _init_worker(profile)
+        _init_worker(profile, texts)
         done = [_bake_one(str(todo[0]))]
     else:
         with ProcessPoolExecutor(
                 max_workers=workers, initializer=_init_worker,
-                initargs=(profile,)) as pool:
+                initargs=(profile, texts)) as pool:
             done = list(pool.map(_bake_one, [str(w) for w in todo],
                                  chunksize=8))
-    for _, problems in done:
+    algos: dict[str, int] = {}
+    for _, algo, problems in done:
+        algos[algo] = algos.get(algo, 0) + 1
         all_problems += problems
 
-    print(f"запечено: {len(done)}")
+    print(f"запечено: {len(done)} ({', '.join(f'{k}={v}' for k, v in sorted(algos.items()))})")
     if all_problems:
         print(f"⚠ нарушений инвариантов: {len(all_problems)}", file=sys.stderr)
         for p in all_problems[:40]:

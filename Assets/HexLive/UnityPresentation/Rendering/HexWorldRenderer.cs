@@ -439,6 +439,38 @@ public sealed class HexWorldRenderer : MonoBehaviour
                actorView.IsPhotogenic;
     }
 
+    // §130: ближайшее к объективу лицо живой NPC, которой сейчас уместно
+    // посмотреть в камеру (не лежит, не плывёт, не в бою, не рыдает, не
+    // ragdoll). Трупы не кандидаты по построению — только _actorViews.
+    public bool TryGetNearestCameraGazeCandidate(
+        Vector3 near, out int npcId, out NpcActorView? view, out Vector3 faceCenter)
+    {
+        npcId = -1;
+        view = null;
+        faceCenter = Vector3.zero;
+        var bestSq = float.MaxValue;
+        foreach (var pair in _actorViews)
+        {
+            var actor = pair.Value;
+            if (actor == null || !actor.IsCameraGazeEligible ||
+                !actor.TryGetFace(out var center, out _, out _, out _))
+            {
+                continue;
+            }
+
+            var sq = (center - near).sqrMagnitude;
+            if (sq < bestSq)
+            {
+                bestSq = sq;
+                npcId = pair.Key;
+                view = actor;
+                faceCenter = center;
+            }
+        }
+
+        return npcId >= 0;
+    }
+
     // §80: на время съёмки портрета отдать взгляд камере. Возвращает false,
     // если тела нет или оно не в состоянии позировать (ragdoll, кома).
     public bool TryBeginPortraitGaze(int npcId, Vector3 eyeWorldPos)

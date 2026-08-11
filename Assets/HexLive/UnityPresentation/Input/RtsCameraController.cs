@@ -132,6 +132,14 @@ namespace HexLive.UnityPresentation.Input
 
         private const float ElevationStep = 0.55f;
 
+        // §130: камера почти вплотную (мин. зум 0.7) — NPC на несколько
+        // секунд смотрит в объектив. Вход/выход с гистерезисом, метры от
+        // объектива до лица; пере-взгляд той же NPC не раньше кулдауна.
+        private const float CloseUpGazeEnterDistance = 2.0f;
+        private const float CloseUpGazeExitDistance = 2.6f;
+        private const float CloseUpGazeSeconds = 5f;
+        private const float CloseUpGazeCooldownSeconds = 30f;
+
         // §121: ручной ввод живёт рядом на той же камере и получает клик
         // первым. Ссылка ищется лениво — компонент навешивает бутстрап.
         private SimulationInputAdapter _manualInput;
@@ -144,6 +152,18 @@ namespace HexLive.UnityPresentation.Input
         private void Start()
         {
             _camera = GetComponent<Camera>();
+            var closeUpGaze = GetComponent<CameraCloseUpGaze>();
+            if (closeUpGaze == null)
+            {
+                closeUpGaze = gameObject.AddComponent<CameraCloseUpGaze>();
+            }
+
+            closeUpGaze.Construct(
+                CloseUpGazeEnterDistance,
+                CloseUpGazeExitDistance,
+                CloseUpGazeSeconds,
+                CloseUpGazeCooldownSeconds);
+
             transform.position = _startPosition;
             transform.rotation = Quaternion.Euler(_startRotation);
 

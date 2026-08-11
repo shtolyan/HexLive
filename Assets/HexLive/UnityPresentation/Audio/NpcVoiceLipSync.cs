@@ -40,7 +40,9 @@ namespace HexLive.UnityPresentation.Audio
         private FmodSfx.Loop _handle;
         private float[]? _samples;
         private int _fedSamples;
+        private float _silenceTail;
         private const int SampleRate = 44100; // все voice_-WAV авторим в 44.1k моно
+        private const float SilenceTailSeconds = 0.4f;
 
         /// <summary>Собрать анализатор и маппинг на виземы головы.</summary>
         public void Construct(SkinnedMeshRenderer face)
@@ -126,11 +128,35 @@ namespace HexLive.UnityPresentation.Audio
             _samples = LoadPcm(handle.File!);
             _handle = handle;
             _fedSamples = 0;
+            _silenceTail = 0f;
         }
 
         private void Update()
         {
-            if (_samples == null || _analyzer == null)
+            if (_analyzer == null)
+            {
+                return;
+            }
+
+            // Хвост тишины после конца реплики. Без него uLipSync каждый кадр
+            // пере-испускает ПОСЛЕДНЕЕ вычисленное окно (ScheduleJob молча
+            // выходит без новых данных, а Update/InvokeCallback безусловны),
+            // и uLipSyncBlendShape держит виземы открытыми до следующей
+            // реплики — та самая «ходит с открытым ртом» на 20-120 секунд.
+            if (_silenceTail > 0f)
+            {
+                _silenceTail -= Time.deltaTime;
+                var n = Mathf.Min(
+                    Mathf.CeilToInt(SampleRate * Time.deltaTime), SampleRate / 5);
+                if (n > 0)
+                {
+                    _analyzer.OnDataReceived(new float[n], 1);
+                }
+
+                return;
+            }
+
+            if (_samples == null)
             {
                 return;
             }
@@ -140,6 +166,7 @@ namespace HexLive.UnityPresentation.Audio
             {
                 // Реплика закончилась — тишина закрывает рот (smoothness).
                 _samples = null;
+                _silenceTail = SilenceTailSeconds;
                 return;
             }
 

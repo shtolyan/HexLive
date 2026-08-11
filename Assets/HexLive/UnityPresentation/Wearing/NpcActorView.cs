@@ -158,6 +158,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _gazeWeightTarget;
     private Transform _gazeProxy;
     private bool _portraitGaze; // §80: взгляд отдан камере портрета
+    private bool _cameraGaze;   // §130: на пару секунд смотрит в объектив игрока
+    private float _cameraGazeUntil;
     private Transform _bodyRoot;
 
     // Spec 31B.5: animation follows measured view motion, not sim status —
@@ -1270,6 +1272,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return Vector3.Dot(up, Vector3.up) > 0.64f;
         }
     }
+
+    // §130: уместно ли ей сейчас стрельнуть глазами в объектив. Фотогеничность
+    // отсекает лежащих/плывущих/запрокинутых; сверх того — не мёртвая, не
+    // ragdoll, не в бою и не в слезах (улыбка в камеру посреди драки или
+    // рыданий читалась бы как сломанное лицо).
+    public bool IsCameraGazeEligible =>
+        IsPhotogenic && !_dead && !_ragdollActive && !_fighting && !_crying;
 
     // Orbit-camera pivot: the visual center of the body in ANY pose — a point
     // between the head and the hip bones, biased toward the head so the face
@@ -2696,11 +2705,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Face mood: aggregate wellbeing (0..1) + combat flag from the snapshot.
     public void SetFaceMood(float wellbeing, bool fighting)
     {
+        _fighting = fighting; // §130: в бою в объектив не смотрим
         if (_face != null)
         {
             _face.SetMood(wellbeing, fighting);
         }
     }
+
+    private bool _fighting;
 
     // Face pain: 0 none .. 1 writhing, from fresh bleeding wounds. Composited
     // into a wince over the mood (see NpcFaceAnimator.SetPain).
@@ -3200,6 +3212,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (active)
         {
+            EndCameraGaze(); // §130: обмякшая в объектив не смотрит
             ClearActionTarget();
         }
 
@@ -5866,7 +5879,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Gaze: talkers look at each other, walkers glance down the path.
     public void LookAt(Transform target)
     {
-        if (_portraitGaze)
+        if (_portraitGaze || _cameraGaze)
         {
             return;
         }
@@ -5877,9 +5890,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     public void ClearGaze()
     {
-        // §80: пока идёт съёмка портрета, взгляд принадлежит камере — обычный
-        // выбор цели (собеседник, объект работы, точка пути) её не перебивает.
-        if (_portraitGaze)
+        // §80/§130: пока идёт съёмка портрета или взгляд отдан игровой камере,
+        // обычный выбор цели (собеседник, объект работы, точка пути) её не
+        // перебивает.
+        if (_portraitGaze || _cameraGaze)
         {
             return;
         }
@@ -5898,6 +5912,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return false;
         }
 
+        // §130: портретная съёмка главнее взгляда в игровую камеру.
+        EndCameraGaze();
         _portraitGaze = true;
         _gazeProxy.position = eyeWorldPos;
         _gazeTarget = _gazeProxy;
@@ -5917,6 +5933,52 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _portraitGaze = false;
         _gazeWeightTarget = 0f;
         _face?.SetEyesHold(false);
+    }
+
+    // §130: камера подъехала вплотную — на несколько секунд посмотреть в
+    // объектив и чуть улыбнуться, потом вернуться к обычной логике взгляда.
+    // В отличие от портрета (§80) вес НЕ снапится: штатный разгон
+    // MoveTowards(dt*2.5) и даёт то самое «плавно подняла глаза». Портретная
+    // съёмка главнее и не тревожится (no-op, пока она идёт).
+    public bool BeginCameraGaze(Vector3 lensWorldPos, float seconds)
+    {
+        if (_portraitGaze || _gazeProxy == null ||
+            _lookAtIK == null || !_lookAtIK.enabled)
+        {
+            return false;
+        }
+
+        _cameraGaze = true;
+        _cameraGazeUntil = Time.time + seconds;
+        _gazeProxy.position = lensWorldPos;
+        _gazeTarget = _gazeProxy;
+        _gazeWeightTarget = 1f;
+        _face?.SetCameraAttention(true);
+        return true;
+    }
+
+    /// <summary>Идёт ли ещё §130-взгляд в объектив (таймер гасит его сам).</summary>
+    public bool HasCameraGaze => _cameraGaze;
+
+    // Объектив каждый кадр в новом месте — цель едет за ним.
+    public void UpdateCameraGaze(Vector3 lensWorldPos)
+    {
+        if (_cameraGaze && _gazeProxy != null)
+        {
+            _gazeProxy.position = lensWorldPos;
+        }
+    }
+
+    public void EndCameraGaze()
+    {
+        if (!_cameraGaze)
+        {
+            return;
+        }
+
+        _cameraGaze = false;
+        _gazeWeightTarget = 0f;
+        _face?.SetCameraAttention(false);
     }
 
     private void ResetActionTargetIKWeights()
@@ -6491,6 +6553,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
+        // §130: взгляд в объектив кончается по своим часам — дальше первый же
+        // тик SyncActorView вернёт обычную цель (собеседник/путь/Clear).
+        if (_cameraGaze && Time.time >= _cameraGazeUntil)
+        {
+            EndCameraGaze();
+        }
+
         _gazeWeight = Mathf.MoveTowards(_gazeWeight, _gazeWeightTarget, Time.deltaTime * 2.5f);
         _lookAtIK.solver.IKPositionWeight = _gazeWeight;
         if (_gazeTarget != null)
@@ -6509,6 +6578,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 _lookAtIK.solver.bodyWeight = 0f;
                 _lookAtIK.solver.clampWeight = 0.5f;
                 _lookAtIK.solver.clampWeightEyes = 0.2f;
+                return;
+            }
+
+            if (_cameraGaze)
+            {
+                // §130: здесь, в отличие от портрета (§80 r2), голову вести
+                // МОЖНО — игровая камера не прибита к кости головы, обратной
+                // связи нет. Глаза решают, голова доворачивает, корпус едва.
+                _lookAtIK.solver.headWeight = 0.7f;
+                _lookAtIK.solver.eyesWeight = 1f;
+                _lookAtIK.solver.bodyWeight = 0.15f;
+                _lookAtIK.solver.clampWeight = 0.5f;
+                _lookAtIK.solver.clampWeightEyes = 0.3f;
                 return;
             }
 

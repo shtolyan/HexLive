@@ -300,25 +300,36 @@ first. Two more traps found the hard way while chasing it:
   at timeline 0 with no errors, which looks exactly like a broken bank. Verify
   suspicions in a FRESH play session, or against the standalone bank probe.
 
-### ⭐ A NEW VOICE LINE NEEDS NO FMOD WORK AT ALL
+### ⭐ A NEW VOICE LINE NEEDS NO FMOD WORK AT ALL — AND NO UNITY EITHER
 
 **Do not touch FMOD Studio when adding hexkufa lines.** Voices never play
 through Studio events: `FmodSfx.EventPathFor` hard-forces the event path off for
-every id starting with `voice_` (the §67.7 lipsync needs the concrete file and
-playback position, which an event hides) and reads the WAV straight off disk via
-the Core API, discovering it by scanning `Sfx/Voices/**` at load. So the whole
-flow is:
+every id starting with `voice_` (the §67.7 lipsync samples the `.vis` sidecar
+of the concrete file and needs the channel position as its clock — an event
+hides both) and reads the WAV straight off disk via the Core API, discovering
+it by scanning `Sfx/Voices/**` at load. So the whole flow is:
 
 ```bash
 # 1. add the group to HEXKUFA_LANGUAGE.md §7 (and any new word to §3)
 python3 _ArtSource/Voice/extract_lines.py               # doc -> hexkufa_lines.json
-python3 _ArtSource/Voice/generate_voices.py --groups <id>   # -> 5 voices x 3 wavs
+python3 _ArtSource/Voice/generate_voices.py --groups <id>   # -> 5 voices x 3 wavs + .vis
 ```
 
-That is the whole job — the line is audible on the next Play. `--dry-run` plans
-without spending API calls; `STILL CAPPED` in the output means the take hit the
-4.2 s cap and was **cut mid-word** — shorten the line in the doc and re-run with
-`--force`, do not ship it.
+That is the whole job — the line is audible AND lip-synced on the next Play.
+`--dry-run` plans without spending API calls; `STILL CAPPED` in the output means
+the take hit the 4.2 s cap and was **cut mid-word** — shorten the line in the
+doc and re-run with `--force`, do not ship it.
+
+**Lipsync is baked, not analyzed (spec §67.7 + `HEXKUFA_LANGUAGE.md` §9.2).**
+Next to every WAV lives a `.vis` viseme timeline; `generate_voices.py` bakes it
+automatically (known text → g2p → Viterbi alignment over the audio). Commit the
+`.vis` + its `.meta` together with the WAV. If a WAV was regenerated any other
+way, rebake: `python3 _ArtSource/Voice/bake_lipsync.py <file-or-dir>`
+(incremental; `--force` = whole bank, ~a minute). A stale sidecar is safe but
+mute: the runtime compares lengths and logs `stale .vis … rebake voices` once.
+An `align не сошёлся` warning means the filename does not match a catalog line —
+fix the name, don't ship the acoustic fallback. Articulation tuning lives ONLY
+in `bake_lipsync.py` knobs (`_ALIGN_GAIN`, duration caps) + rebake — never in C#.
 
 ### The Studio scripts are a rebuild, not a sync — reach for them rarely
 

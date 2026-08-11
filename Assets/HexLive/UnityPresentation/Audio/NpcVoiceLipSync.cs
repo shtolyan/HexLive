@@ -29,12 +29,36 @@ namespace HexLive.UnityPresentation.Audio
             ("L", "eCTRLvL"), ("K", "eCTRLvK"), ("TH", "eCTRLvTH"),
         };
 
-        // PCM-кэш реплик: файлы маленькие (≤4.2 с моно), персонажей четверо —
-        // держим всё, что уже звучало (≈15 МБ на всю колонию максимум).
-        private static readonly Dictionary<string, float[]> PcmCache = new();
+        // PCM-кэш реплик, с бюджетом и вытеснением самого давнего.
+        // ⚠️ Раньше здесь стоял словарь БЕЗ потолка, под оценку «≈15 МБ на всю
+        // колонию максимум». Оценка занижена в 33 раза: корпус хекскуфы —
+        // 1020 WAV, 248 МБ на диске, а в кэше они лежат распакованными в
+        // float[] (PCM16 → float32, вдвое), то есть до 496 МБ; один голосовой
+        // банк — 86-120 МБ, и колония из четверых за вечер болтовни тянула
+        // словарь к ~380 МБ, которые не освобождались никогда. Ровно та форма,
+        // на которую жаловался игрок: за сессию всё тяжелее, перезапуск
+        // ПРОЦЕССА лечит (кэш статический, в сейве его нет).
+        // Смысл кэша — не держать корпус, а не раскодировать заново реплику,
+        // которая скоро повторится; бюджета хватает на ~130 реплик.
+        private const long PcmCacheBudgetBytes = 32L * 1024 * 1024;
+
+        private sealed class PcmEntry
+        {
+            public float[] Samples = System.Array.Empty<float>();
+            public long LastUsed;
+        }
+
+        private static readonly Dictionary<string, PcmEntry> PcmCache = new();
+        private static long _pcmCacheBytes;
+        private static long _pcmUseCounter;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => PcmCache.Clear();
+        private static void ResetStatics()
+        {
+            PcmCache.Clear();
+            _pcmCacheBytes = 0;
+            _pcmUseCounter = 0;
+        }
 
         private uLipSync.uLipSync? _analyzer;
         private FmodSfx.Loop _handle;
@@ -198,7 +222,8 @@ namespace HexLive.UnityPresentation.Audio
         {
             if (PcmCache.TryGetValue(path, out var cached))
             {
-                return cached;
+                cached.LastUsed = ++_pcmUseCounter;
+                return cached.Samples;
             }
 
             try
@@ -219,7 +244,7 @@ namespace HexLive.UnityPresentation.Audio
                     samples[i] = System.BitConverter.ToInt16(bytes, start + i * 2) / 32768f;
                 }
 
-                PcmCache[path] = samples;
+                Remember(path, samples);
                 return samples;
             }
             catch (System.Exception e)
@@ -227,6 +252,43 @@ namespace HexLive.UnityPresentation.Audio
                 Debug.LogWarning($"[NpcVoiceLipSync] can't read {path}: {e.Message}");
                 return null;
             }
+        }
+
+        // Положить реплику в кэш, освободив место вытеснением самых давних.
+        // Словарь держит десятки записей, так что линейный поиск жертвы дешевле
+        // очереди и, в отличие от неё, ничего не аллоцирует.
+        private static void Remember(string path, float[] samples)
+        {
+            var bytes = (long)samples.Length * sizeof(float);
+            if (bytes > PcmCacheBudgetBytes)
+            {
+                return; // одна реплика длиннее бюджета — не кэшируем вовсе
+            }
+
+            while (_pcmCacheBytes + bytes > PcmCacheBudgetBytes && PcmCache.Count > 0)
+            {
+                string? stalest = null;
+                var stalestUse = long.MaxValue;
+                foreach (var pair in PcmCache)
+                {
+                    if (pair.Value.LastUsed < stalestUse)
+                    {
+                        stalestUse = pair.Value.LastUsed;
+                        stalest = pair.Key;
+                    }
+                }
+
+                if (stalest == null)
+                {
+                    break;
+                }
+
+                _pcmCacheBytes -= (long)PcmCache[stalest].Samples.Length * sizeof(float);
+                PcmCache.Remove(stalest);
+            }
+
+            PcmCache[path] = new PcmEntry { Samples = samples, LastUsed = ++_pcmUseCounter };
+            _pcmCacheBytes += bytes;
         }
 
         private static int FindDataChunk(byte[] bytes)

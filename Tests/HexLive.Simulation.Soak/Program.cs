@@ -178,6 +178,7 @@ public static class Program
 
         metrics.TicksRun = world.Tick;
         metrics.NpcsAtEnd = world.Entities.Npcs.Count;
+        metrics.MobsAtEnd = world.Mobs.Count;
         metrics.Seconds = stopwatch.Elapsed.TotalSeconds;
         metrics.Finish(world);
         return metrics;

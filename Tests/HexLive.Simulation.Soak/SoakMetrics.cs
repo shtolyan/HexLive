@@ -56,6 +56,8 @@ public sealed class SoakMetrics
     public int TicksRun;
     public int NpcsAtStart;
     public int NpcsAtEnd;
+    public int MobsAtEnd;
+    public int MobsPeak;
     public bool Completed;
     public double Seconds;
     private readonly Dictionary<string, int> _deathCauses =
@@ -70,6 +72,17 @@ public sealed class SoakMetrics
 
     public void SampleTick(WorldState world)
     {
+        // §46 v4: популяция мобов — метрика, которой здесь НЕ БЫЛО, и ровно
+        // поэтому храповик прожил долго. Ветка ночного рейда спавнила мимо
+        // потолка, уйти моб мог только смертью, список сериализуется — у
+        // игрока накопилось 14 собак при потолке 2, и заметил это не соак, а
+        // замер живой сессии. Пик, а не только конец: стая, погибшая к
+        // последнему тику, скрыла бы весь эпизод.
+        if (world.Mobs.Count > MobsPeak)
+        {
+            MobsPeak = world.Mobs.Count;
+        }
+
         foreach (var npc in world.Entities.Npcs.Values)
         {
             if (!_tracks.TryGetValue(npc.Id.Value, out var track))
@@ -231,6 +244,7 @@ public sealed class SoakMetrics
         text.AppendLine("сид " + Seed + ", тиков " + TicksRun +
                         " (" + (TicksRun / Math.Max(Seconds, 0.001)).ToString("F0", invariant) + " тик/с)");
         text.AppendLine("  NPC                 " + NpcsAtStart + " → " + NpcsAtEnd);
+        text.AppendLine("  мобы (пик/конец)    " + MobsPeak + " / " + MobsAtEnd);
         text.AppendLine("  плот                " + (Completed ? "запущен" : "не запущен"));
         text.AppendLine("  цель менялась       " + GoalChanges +
                         "  (" + ChangesPerNpcDay.ToString("F1", invariant) +
@@ -282,6 +296,8 @@ public sealed class SoakMetrics
                ",\"ticks\":" + TicksRun +
                ",\"npcsAtStart\":" + NpcsAtStart +
                ",\"npcsAtEnd\":" + NpcsAtEnd +
+               ",\"mobsAtEnd\":" + MobsAtEnd +
+               ",\"mobsPeak\":" + MobsPeak +
                ",\"completed\":" + (Completed ? "true" : "false") +
                ",\"dayTicks\":" + DayTicks +
                ",\"goalChanges\":" + GoalChanges +

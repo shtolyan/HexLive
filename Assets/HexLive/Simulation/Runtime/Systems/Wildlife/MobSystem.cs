@@ -34,10 +34,13 @@ public sealed class MobSystem : ISimulationSystem
     private static float RaidChancePerDay => Dog.RaidChancePerDay;
     private static int RaidPackSize => Dog.RaidPackSize;
     private static int RaidDuskOffsetTicks => WildlifeBalance.RaidDuskOffsetTicks;
+    private static int RaidLingerTicks => WildlifeBalance.RaidLingerTicks;
+    private static int RaidDepartureBackstopTicks => WildlifeBalance.RaidDepartureBackstopTicks;
     private static int SpawnMinDistanceFromNpc => WildlifeBalance.DogSpawnMinDistanceFromNpc;
     private static float NpcStrikePerPass => SimBalance.NpcStrikePerPass;
 
     private readonly System.Collections.Generic.List<Wildlife.MobState> _deadDogs = new();
+    private readonly System.Collections.Generic.List<Wildlife.MobState> _departed = new();
     private readonly System.Collections.Generic.List<EntityId> _deadNpcs = new();
     private readonly System.Collections.Generic.List<JunctionId> _spawnCandidates = new();
 
@@ -76,7 +79,13 @@ public sealed class MobSystem : ISimulationSystem
             var spawned = 0;
             for (var i = 0; i < RaidPackSize; i++)
             {
-                if (TrySpawnDog(world))
+                // §46 v4: стая — ГОСТЬИ. Раньше здесь стоял голый
+                // TrySpawnDog(world), то есть рейд спавнил мимо потолка
+                // MaxDogs, а уйти собака могла только смертью: за сессии
+                // население росло без предела (у игрока — 14 при потолке 2),
+                // и каждая лишняя собака стоит и тика симуляции, и своего
+                // скина в кадре.
+                if (TrySpawnDog(world, world.Tick + RaidLingerTicks))
                 {
                     spawned++;
                 }
@@ -88,6 +97,9 @@ public sealed class MobSystem : ISimulationSystem
                     $"{spawned} dogs at dusk of cycle {raidCycle}");
             }
         }
+
+        EnforceResidentCap(world);
+        DepartGuests(world);
 
         foreach (var npc in world.Entities.Npcs.Values)
         {
@@ -131,6 +143,105 @@ public sealed class MobSystem : ISimulationSystem
         {
             RemoveDeadNpc(world, deadId);
         }
+    }
+
+    // §46 v4: остров держит MaxDogs ЖИТЕЛЕЙ; всё сверх того — гости, которым
+    // назначается срок ухода. Правило самовосстанавливающееся, и в этом его
+    // смысл: оно чинит не только новые миры, но и сейвы, накопившие стаю по
+    // старому багу, без отдельной ветки миграции по версии блоба.
+    //
+    // Уходят по одному, а не всей толпой разом: срок разнесён на четверть
+    // окна гостевания, чтобы остров пустел постепенно и это читалось как
+    // «стая ушла», а не как «собаки исчезли».
+    private void EnforceResidentCap(WorldState world)
+    {
+        var residents = 0;
+        foreach (var dog in world.Mobs)
+        {
+            if (dog.LeavesAtTick == 0)
+            {
+                residents++;
+            }
+        }
+
+        if (residents <= MaxDogs)
+        {
+            return;
+        }
+
+        // Самые новые (наибольший Id) уходят первыми — старожилы остаются.
+        var stagger = 0;
+        for (var i = world.Mobs.Count - 1; i >= 0 && residents > MaxDogs; i--)
+        {
+            var dog = world.Mobs[i];
+            if (dog.LeavesAtTick != 0)
+            {
+                continue;
+            }
+
+            // Всегда строго в будущем: 0 — это «житель», и срок ухода, упавший
+            // в ноль, молча вернул бы гостя в жители.
+            dog.LeavesAtTick = System.Math.Max(1,
+                world.Tick + RaidLingerTicks + stagger * (RaidLingerTicks / 4));
+            stagger++;
+            residents--;
+            Trace.EmitSystem(world, "MobLeaving",
+                $"Dog={dog.Id} over resident cap, leaves at tick {dog.LeavesAtTick}");
+        }
+    }
+
+    // Гость уходит первым тиком после срока, когда его НИКТО НЕ ВИДИТ (§125) —
+    // собака не должна испариться на глазах у колонистки. Если же колония
+    // стоит прямо на нём и он не выходит из виду, срабатывает предохранитель:
+    // иначе «временная» стая осталась бы навсегда, то есть ровно тем багом,
+    // который мы и чиним.
+    private void DepartGuests(WorldState world)
+    {
+        _departed.Clear();
+        foreach (var dog in world.Mobs)
+        {
+            if (dog.LeavesAtTick <= 0 || world.Tick < dog.LeavesAtTick || dog.Health <= 0f)
+            {
+                continue;
+            }
+
+            // Уходит только СПОКОЙНАЯ собака: гость, растворившийся посреди
+            // погони или драки, читался бы как пропажа противника, а не как
+            // «стая ушла».
+            var forced = world.Tick >= dog.LeavesAtTick + RaidDepartureBackstopTicks;
+            if (!forced && (dog.Status != Wildlife.MobStatus.Roaming || IsSeenByColony(world, dog)))
+            {
+                continue;
+            }
+
+            _departed.Add(dog);
+        }
+
+        foreach (var dog in _departed)
+        {
+            world.Mobs.Remove(dog);
+            Trace.EmitSystem(world, "MobLeft",
+                $"Dog={dog.Id} at Tile={dog.Tile.Q},{dog.Tile.R}");
+            ForgetDangerAround(world, dog.Tile, 1); // ушла — метка страха уходит с ней
+        }
+    }
+
+    private static bool IsSeenByColony(WorldState world, Wildlife.MobState dog)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health <= 0f)
+            {
+                continue;
+            }
+
+            if (HexSpatialMath.HexDistance(npc.Tile, dog.Tile) <= PerceptionMath.RadiusTiles(npc))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void ResolveMobOverlaps(WorldState world)
@@ -1249,7 +1360,9 @@ public sealed class MobSystem : ISimulationSystem
         return false;
     }
 
-    private bool TrySpawnDog(WorldState world)
+    // leavesAtTick: 0 — ЖИТЕЛЬ (амбиентный респавн, живёт до смерти); >0 —
+    // ГОСТЬ ночного рейда, который после этого тика уходит (§46 v4).
+    private bool TrySpawnDog(WorldState world, int leavesAtTick = 0)
     {
         _spawnCandidates.Clear();
         foreach (var junction in world.Junctions.Items.Values)
@@ -1315,7 +1428,8 @@ public sealed class MobSystem : ISimulationSystem
             TargetPosition = spawnJunction.WorldPosition,
             GlideAnchor = spawnJunction.WorldPosition,
             Tile = spawnJunction.Tiles[0],
-            Health = Dog.MaxHealth
+            Health = Dog.MaxHealth,
+            LeavesAtTick = leavesAtTick
         };
         world.Mobs.Add(dog);
         if (SimTrace.Enabled)

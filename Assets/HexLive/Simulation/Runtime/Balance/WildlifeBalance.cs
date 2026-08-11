@@ -14,6 +14,17 @@ public static class WildlifeBalance
     public static int RaidDuskOffsetTicks = 1800;
     public static int DogSpawnMinDistanceFromNpc = 5;
 
+    // §46 v4: сколько ночная стая ГОСТИТ, прежде чем уйти с острова. 2400
+    // тиков = один событийный цикл = 10 реальных минут. MaxDogs — потолок
+    // ЖИТЕЛЕЙ; рейд приводит гостей сверх него, и уходят они сами.
+    public static int RaidLingerTicks = 2400;
+
+    // Уходит стая не на глазах у колонии — гость исчезает первым тиком, когда
+    // его никто не видит (§125). Если колония стоит лагерем прямо на нём и он
+    // не выходит из виду, этот запас — предохранитель: после него гость
+    // уходит независимо от зрителей, иначе «временная» стая стала бы вечной.
+    public static int RaidDepartureBackstopTicks = 2400;
+
     // Spec 29C.3 (stuck-chase give-up): a chase that hasn't moved the dog for
     // this many CONTINUOUS ticks (no walkable route — quarry behind the hut,
     // approach ring occupied) is hopeless; the dog drops the target and roams

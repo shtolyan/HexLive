@@ -644,7 +644,9 @@
     "MovementSystem.SwimSpeedFactor": 0.600000024
   },
   "mobs": [
+    "WildlifeBalance.RaidDepartureBackstopTicks": 2400,
     {"id": "dog", "maxHealth": 1.71, "attackDamage": 0.085, "cutFraction": 0.9, "bloodLossMultiplier": 1.2, "attackWindupSeconds": 0.5, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 3, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "meleeHoldDistance": 0.9, "attackMediums": "Land", "raidChancePerDay": 0.08, "raidPackSize": 3},
+    "WildlifeBalance.RaidLingerTicks": 2400,
     {"id": "shark", "maxHealth": 1, "attackDamage": 0.2, "cutFraction": 1, "bloodLossMultiplier": 1.4, "attackWindupSeconds": 0.1, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 1, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "meleeHoldDistance": 0, "attackMediums": "Water", "raidChancePerDay": 0, "raidPackSize": 0}
   ],
   "gear": [

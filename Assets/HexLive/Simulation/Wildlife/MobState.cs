@@ -66,6 +66,14 @@ public sealed class MobState
     // so it actually wanders off instead of re-acquiring the same unreachable
     // girl on the very next pass. Transient — not persisted.
     public int NextHuntAllowedTick { get; set; }
+
+    // §46 v4: ГОСТЬ или ЖИТЕЛЬ. 0 = житель: живёт на острове, пока его не
+    // убьют. >0 = ночная стая пришла и после этого тика собирается уходить.
+    // ⭐ ПЕРСИСТЕНТНО (blob v38), и это здесь главное: без записи в сейв
+    // каждая загрузка производила гостей в жители — а стая накапливалась
+    // именно так, потому что рейд спавнил мимо потолка, и уйти собака могла
+    // только смертью.
+    public int LeavesAtTick { get; set; }
 }
 
 public enum MobStatus

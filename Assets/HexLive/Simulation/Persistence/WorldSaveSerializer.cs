@@ -68,7 +68,7 @@ public static class WorldSaveSerializer
     // door element; v32 hut slots are migrated from the mirrored prototype.
     // v34: every constructor piece is a top-level WorldObject linked to its
     // footprint aggregate by ArchitectureOwnerId.
-    public const int BlobVersion = 35;
+    public const int BlobVersion = 38;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -184,6 +184,7 @@ public static class WorldSaveSerializer
         foreach (var rabbit in world.Rabbits)
         {
             w.Write(rabbit.Id);
+            w.Write(dog.LeavesAtTick); // v38: гость рейда остаётся гостем
             WriteTile(w, rabbit.Tile);
             w.Write(rabbit.Junction.Value);
             WriteFloat2(w, rabbit.Position);
@@ -436,6 +437,11 @@ public static class WorldSaveSerializer
             dog.GlideAnchor = dogPos;
             world.Mobs.Add(dog);
         }
+            // v38: срок ухода гостя рейда. Блобы до v38 его не знают — там
+            // все собаки читаются жителями, и лишних разберёт правило потолка
+            // в MobSystem.EnforceResidentCap (ровно так чинится сейв, в
+            // котором стая накопилась по старому багу).
+            dog.LeavesAtTick = version >= 38 ? r.ReadInt32() : 0;
 
         world.Rabbits.Clear();
         var rabbitCount = r.ReadInt32();

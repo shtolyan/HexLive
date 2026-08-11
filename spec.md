@@ -10882,6 +10882,11 @@ occlusion path can classify that whole dynamic layer as invisible while skinned
 actors and incompatible tree renderers remain visible. The release entry point
 must reject a PC pipeline asset with either switch enabled rather than publish
 an actors-only island.
+Every desktop Player process requests a `1920×1080` render surface in
+`FullScreenMode.FullScreenWindow` before the first scene renders. The matching
+PlayerSettings defaults are also Full HD, but startup reapplies the contract so
+resolution preferences persisted by an older build cannot reopen the game in a
+small window.
 External Addressables content has one distribution-level home:
 `<build folder>/HexLiveContent/<BuildTarget>`. Windows/Linux reach it one level
 above `<name>_Data`; macOS reaches it two levels above `<name>.app/Contents`.

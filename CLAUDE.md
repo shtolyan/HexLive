@@ -184,6 +184,10 @@ whole garment set came from there.**
 
 ## Conventions
 
+- **Desktop Player display contract:** every macOS/desktop Player launch must
+  request `1920×1080` with `FullScreenMode.FullScreenWindow` before the first
+  scene renders. Keep `ProjectSettings` defaults at the same Full HD values;
+  do not rely on Unity's persisted resolution from an older build.
 - Art style is **flat low-poly / faceted / cartoon** — no noise/procedural textures.
 - **Localization (spec §58): never author strings in C#.** All player-facing
   strings are I2 Localization terms in `Assets/Resources/I2Languages.asset`

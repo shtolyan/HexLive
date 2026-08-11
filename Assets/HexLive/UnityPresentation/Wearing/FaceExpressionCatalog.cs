@@ -135,6 +135,7 @@ public sealed class FaceExpressionRig
         public readonly List<(SkinnedMeshRenderer skin, int index)> Targets = new();
         public float Weight;
         public bool IsEyesClosed;   // канал моргания — блинк пишется поверх
+        public bool IsMouth;        // §67.8: во время реплики гасится (рот у липсинка)
     }
 
     // gameSafe-режим выкидывает из рецептов каналы, которыми в игре владеют
@@ -146,6 +147,39 @@ public sealed class FaceExpressionRig
     {
         "eCTRLEyesSideSide", "eCTRLEyesUpDown", "eCTRLEyesCrossed",
     };
+
+    // §67.8: группа «рот» — шейпы, которые открывают/двигают челюсть, губы и
+    // язык. Пока звучит реплика, ртом владеет липсинк §67.7 (виземы eCTRLv*),
+    // и эмоция поверх — это MouthOpen 60-70, который не даёт рту закрыться на
+    // согласных: губы «дерутся». Такие каналы на время реплики гасятся
+    // (mouthScale01 в Apply). Уголки/улыбка/хмурость НЕ в группе — они
+    // складываются с виземами линейно и артикуляцию не ломают, так что лицо
+    // остаётся эмоциональным. eCTRLSurprised здесь потому, что это монолитный
+    // DAZ-контрол с ЗАПЕЧЁННЫМ открытым ртом — на части он не делится.
+    private static readonly string[] MouthShapePrefixes =
+    {
+        "eCTRLJaw", "eCTRLTongue", "eCTRLLipsPart", "eCTRLMouthOpen",
+    };
+
+    private static readonly string[] MouthShapes =
+    {
+        "eCTRLMouthSmileOpen", "eCTRLSurprised",
+        "eCTRLLipTopUp-Down", "eCTRLLipBottomUp-Down",
+        "eCTRLLipBottomUp-DownL", "eCTRLLipBottomUp-DownR",
+    };
+
+    private static bool IsMouthShape(string shape)
+    {
+        foreach (var prefix in MouthShapePrefixes)
+        {
+            if (shape.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return Array.IndexOf(MouthShapes, shape) >= 0;
+    }
 
     private readonly FaceExpressionCatalog _catalog;
     // Per-expression resolved bindings, built lazily per expression.
@@ -191,8 +225,10 @@ public sealed class FaceExpressionRig
     }
 
     // Выставить выражение с интенсивностью 0..1. Смена выражения сама зануляет
-    // каналы предыдущего, которых нет в новом.
-    public void Apply(int expressionIndex, float intensity01)
+    // каналы предыдущего, которых нет в новом. mouthScale01 — §67.8: множитель
+    // ротовой группы (0 = рот целиком у липсинка, 1 = рецепт как есть);
+    // вызывается каждый кадр, так что погашенные каналы честно пишутся нулём.
+    public void Apply(int expressionIndex, float intensity01, float mouthScale01 = 1f)
     {
         if (expressionIndex < 0 || expressionIndex >= Count)
         {
@@ -211,6 +247,11 @@ public sealed class FaceExpressionRig
         foreach (var binding in bindings)
         {
             var weight = binding.Weight * Mathf.Clamp01(intensity01);
+            if (binding.IsMouth)
+            {
+                weight *= Mathf.Clamp01(mouthScale01);
+            }
+
             if (binding.IsEyesClosed)
             {
                 AppliedEyesClosed = weight;
@@ -272,6 +313,7 @@ public sealed class FaceExpressionRig
             {
                 Weight = weight,
                 IsEyesClosed = shape is "eCTRLEyesClosedL" or "eCTRLEyesClosedR",
+                IsMouth = IsMouthShape(shape),
             };
             foreach (var skin in _skins)
             {

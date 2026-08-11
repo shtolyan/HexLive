@@ -76,6 +76,15 @@ namespace HexLive.UnityPresentation.Audio
         private bool _idle = true;      // всё в нуле — Update/LateUpdate спят
         private bool _applyFinal;       // последний нулевой прогон в LateUpdate
 
+        /// <summary>
+        /// §67.8: реплика ещё звучит — ртом владеют виземы липсинка.
+        /// NpcFaceAnimator на это время гасит ротовую группу шейпов эмоции,
+        /// иначе MouthOpen выражения дерётся с артикуляцией. Флаг падает
+        /// только когда рот ДОГОВОРИЛ (volume дотянул до нуля), так что
+        /// возврат эмоции не перекрывает хвост реплики.
+        /// </summary>
+        public bool IsSpeaking => !_idle;
+
         /// <summary>Найти виземы на меше головы и включиться.</summary>
         public void Construct(SkinnedMeshRenderer face)
         {

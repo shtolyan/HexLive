@@ -24,6 +24,7 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     private const float SleepEyeSpeed = 160f;
     private const float TopicLevel = 55f;        // ambient face while chatting
     private const float PopSeconds = 2.2f;       // relationship flash length
+    private const float MouthMuteSpeed = 6f;     // §67.8: отдать/вернуть рот за ~0.17 с
 
     private static readonly Vector2 BlinkInterval = new(2.2f, 5.5f);
 
@@ -55,9 +56,19 @@ public sealed class NpcFaceAnimator : MonoBehaviour
                     ("eCTRLMouthFrown", 80f), ("eCTRLBrowSqueeze", 65f),
                     ("eCTRLEyesSquintL", 55f), ("eCTRLEyesSquintR", 55f),
                 });
+                // §67.8: разложен на отдельные FACS-юниты по образцу пака
+                // («03» Удивление) вместо монолитного eCTRLSurprised — у того
+                // ЗАПЕЧЁН открытый рот, и погасить рот на время реплики можно
+                // было бы только вместе с бровями. Так брови/глаза переживают
+                // разговорный mouth-mute, а рот отдаётся липсинку целиком.
                 _shared.AddCustom("x_fear", "Испуг", new (string, float)[]
                 {
-                    ("eCTRLSurprised", 85f), ("eCTRLLipsPart", 55f),
+                    ("eCTRLBrowInnerUp-DownL", 70f), ("eCTRLBrowInnerUp-DownR", 70f),
+                    ("eCTRLBrowUp-Down", 35f),
+                    ("eCTRLEyelidsUpperDownUp", -25f),
+                    ("eCTRLEyelidsLowerUpDown", -15f),
+                    ("eCTRLEyesSquintL", -15f), ("eCTRLEyesSquintR", -15f),
+                    ("eCTRLLipsPart", 40f), ("eCTRLMouthOpen", 45f),
                     ("eCTRLMouthFrown", 30f),
                 });
                 _shared.AddCustom("x_work", "Натуга", new (string, float)[]
@@ -132,6 +143,11 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     // ---------------------------------------------------------------- state
 
     private FaceExpressionRig _rig;
+    // §67.8: пока NpcVoiceLipSync озвучивает реплику, ротовая группа шейпов
+    // выражения гасится (рот целиком у визем) — брови/щёки/глаза остаются,
+    // так что боль и плач читаются на лице и во время реплики.
+    private Audio.NpcVoiceLipSync _lipSync;
+    private float _mouthScale = 1f;  // 1 рецепт как есть .. 0 рот у липсинка
     // Blink writes AFTER the rig so a closing lid always wins; the base under
     // the blink is whatever the current expression put on EyesClosedL/R.
     private readonly List<(SkinnedMeshRenderer skin, int index)> _eyeTargets = new();
@@ -199,6 +215,9 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         }
 
         _rig = new FaceExpressionRig(bodySkins, SharedCatalog, gameSafe: true);
+        // Липсинк живёт на том же GameObject (NpcActorView вешает его раньше);
+        // у примитивных капсул его нет — тогда рот всегда у эмоции.
+        _lipSync = GetComponent<Audio.NpcVoiceLipSync>();
         _idxPain = SharedCatalog.FindIndex("x_pain");
         _idxCry = SharedCatalog.FindIndex("x_cry");
         _idxAngry = SharedCatalog.FindIndex("x_angry");
@@ -426,7 +445,12 @@ public sealed class NpcFaceAnimator : MonoBehaviour
             _level = Mathf.MoveTowards(_level, level, EmotionSpeed * dt);
         }
 
-        _rig?.Apply(_currentIndex, _level / 100f);
+        // §67.8: звучит реплика → ротовая группа выражения плавно отпускается
+        // (ртом рулят виземы §67.7), после реплики так же плавно возвращается.
+        var mouthTarget = _lipSync != null && _lipSync.IsSpeaking ? 0f : 1f;
+        _mouthScale = Mathf.MoveTowards(_mouthScale, mouthTarget, MouthMuteSpeed * dt);
+
+        _rig?.Apply(_currentIndex, _level / 100f, _mouthScale);
 
         // --- Blink, ПОВЕРХ выражения (закрывающееся веко всегда побеждает).
         // База — то, что текущее выражение положило в EyesClosedL/R

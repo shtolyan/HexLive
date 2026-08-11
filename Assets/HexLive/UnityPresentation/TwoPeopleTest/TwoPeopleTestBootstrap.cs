@@ -92,6 +92,10 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
 
         private Vector2 _menuScroll;
         private string _status = "";
+        // §127: предпросмотр выражений лица (DAZ Cute & Fun) на актрисе.
+        private Wearing.FaceExpressionRig _femaleFaceRig;
+        private int _faceExpression = -1;   // -1 = нейтральное
+        private float _faceIntensity = 1f;
         private readonly List<(SkinnedMeshRenderer smr, int index, string name)> _genitalTargets =
             new List<(SkinnedMeshRenderer, int, string)>();
         private List<RomancePoseCatalog.GenitalShape> _defaultGenitalShapes =
@@ -115,6 +119,7 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
             _femaleBody = SpawnActor(femaleActor, _pairRoot, out _femaleAnimator);
             _maleBody = SpawnActor(maleActor, _maleRoot, out _maleAnimator);
             SetupMaleGenitals();
+            SetupFemaleFace();
 
             // Restore the last tuned pose, else start on the first one.
             var startKey = _catalog != null ? _catalog.lastSelectedKey : "";
@@ -231,6 +236,29 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
 
                 smr.SetBlendShapeWeight(index, weight);
             }
+        }
+
+        // §127: выражения лица из DAZ-пака (Resources/HexLive/FaceExpressions).
+        // Префабы приезжают с застрявшими авторскими выражениями (Jana: frown 42)
+        // — зануляем каждый eCTRL*-шейп, чтобы предпросмотр начинался с
+        // нейтрального лица; морфы персонажа (не eCTRL) не трогаем.
+        private void SetupFemaleFace()
+        {
+            if (_femaleBody == null) return;
+            var skins = _femaleBody.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            foreach (var skin in skins)
+            {
+                var mesh = skin != null ? skin.sharedMesh : null;
+                if (mesh == null) continue;
+                for (int i = 0; i < mesh.blendShapeCount; i++)
+                {
+                    if (mesh.GetBlendShapeName(i).Contains("eCTRL"))
+                        skin.SetBlendShapeWeight(i, 0f);
+                }
+            }
+
+            _femaleFaceRig = new Wearing.FaceExpressionRig(
+                skins, Wearing.FaceExpressionCatalog.Load());
         }
 
         // Pair Female_X ↔ Male_X by the name with the gender prefix stripped.
@@ -431,6 +459,7 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
             HandleNudge();
             HandleCamera();
             ApplyGenitalShapes();
+            _femaleFaceRig?.Apply(_faceExpression, _faceIntensity);
         }
 
         private void LateUpdate()
@@ -531,7 +560,7 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
 
         private void DrawControlPanel()
         {
-            var height = 340 + genitalShapes.Count * 24;
+            var height = 430 + genitalShapes.Count * 24;
             GUILayout.BeginArea(new Rect(Screen.width - 372, 12, 360, height), GUI.skin.box);
             GUILayout.Label($"<b>TwoPeopleTest — {(_current != null ? _current.key : "нет позы")}</b>");
             GUILayout.Label($"male pos   {maleLocalPosition}");
@@ -558,6 +587,27 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
                 GUILayout.BeginHorizontal();
                 GUILayout.Label($"{knob.shape} {knob.weight:F1}", GUILayout.Width(190));
                 knob.weight = GUILayout.HorizontalSlider(knob.weight, 0f, 100f);
+                GUILayout.EndHorizontal();
+            }
+
+            if (_femaleFaceRig != null && _femaleFaceRig.Count > 0)
+            {
+                GUILayout.Space(6);
+                var faceName = _faceExpression >= 0
+                    ? _femaleFaceRig.NameOf(_faceExpression)
+                    : "нейтральное";
+                GUILayout.Label($"<b>Выражение лица</b> — {faceName}");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("◀", GUILayout.Width(40)))
+                    _faceExpression = _faceExpression <= -1
+                        ? _femaleFaceRig.Count - 1 : _faceExpression - 1;
+                if (GUILayout.Button("▶", GUILayout.Width(40)))
+                    _faceExpression = _faceExpression >= _femaleFaceRig.Count - 1
+                        ? -1 : _faceExpression + 1;
+                if (GUILayout.Button("Сброс", GUILayout.Width(70)))
+                    _faceExpression = -1;
+                GUILayout.Label($"сила {_faceIntensity:F2}", GUILayout.Width(70));
+                _faceIntensity = GUILayout.HorizontalSlider(_faceIntensity, 0f, 1f);
                 GUILayout.EndHorizontal();
             }
 

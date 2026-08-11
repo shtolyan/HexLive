@@ -3508,6 +3508,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         EnsureSpeechBubble();
         _speech?.SetConversationTopic(topicName, subjectFace);
+        // §127.8: тема красит и ЛИЦО — флирт кокетничает, жалоба дуется,
+        // шутка смеётся (вариант выбирается на фронте смены темы).
+        _face?.SetTalkTopic(topicName);
     }
 
     // §67.10: her body, for the ambient self-talk layer (hungry/parched/cold…).
@@ -3539,6 +3542,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         EnsureSpeechBubble();
         _speechBubble?.PopRelationship(affinityDelta);
+        // §127.8: исход разговора вспыхивает и на лице — тёплая улыбка на
+        // плюс, поджатые губы/злость на минус.
+        _face?.FlashRelationship(affinityDelta);
 
         // §67.6/§67.10: исход беседы озвучивается той же эмоцией, что и «+/-»
         // поп — ссора злит, удачный разговор радует, и в бабле висит своя

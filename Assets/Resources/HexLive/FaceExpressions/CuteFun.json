@@ -1,0 +1,2916 @@
+{
+  "expressions": [
+    {
+      "name": "FXY Cute & Fun 01",
+      "label": "Радостный смех",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 6.9
+        },
+        {
+          "shape": "eCTRLBrowUp-Down",
+          "weight": 55.5
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 13.6
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 36.9
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 36.9
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": -19.6
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -9.6
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -6.9
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -6.9
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -6.9
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 12.3
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": 6.3
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": 15.5
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 45.6
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 45.6
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 45.6
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 18.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 45.6
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 45.6
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 02",
+      "label": "Хохот",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 7.77
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-Down",
+          "weight": 33.0
+        },
+        {
+          "shape": "eCTRLBrowUp-Down",
+          "weight": 33.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 34.5
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 23.4
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 13.6
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 13.6
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": -7.77
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -7.77
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -12.34
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -12.34
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 8.88
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": 5.55
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": 13.77
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 33.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 33.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 23.45
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 7.77
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 55.5
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 34.56
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 12.34
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 29.9
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 36.0
+        },
+        {
+          "shape": "eCTRLTongueBendTip",
+          "weight": 37.84
+        },
+        {
+          "shape": "eCTRLTongueCurl",
+          "weight": 10.34
+        },
+        {
+          "shape": "eCTRLTongueNarrow-Wide",
+          "weight": 10.34
+        },
+        {
+          "shape": "eCTRLTongueUp-Down",
+          "weight": -38.72
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 03",
+      "label": "Удивление «О!»",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowInnerUp-DownL",
+          "weight": 67.31
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-DownR",
+          "weight": 67.31
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownL",
+          "weight": -19.5
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownR",
+          "weight": -19.5
+        },
+        {
+          "shape": "eCTRLBrowUp-Down",
+          "weight": 20.69
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": -16.38
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -14.83
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -10.34
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -10.34
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 13.6
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": -17.24
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -25.86
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": -39.66
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": -10.34
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 29.31
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 68.97
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 32.76
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -17.76
+        },
+        {
+          "shape": "eCTRLvW",
+          "weight": 50.86
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 04",
+      "label": "Мягкая улыбка",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowUp-Down",
+          "weight": 23.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 23.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 23.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipsPartCenter",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLMouthSmileSimple",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLvS",
+          "weight": 50.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 05",
+      "label": "Лёгкая улыбка",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLBrowUp-Down",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -25.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 25.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 06",
+      "label": "Сияющая улыбка",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 46.0
+        },
+        {
+          "shape": "eCTRLBrowUp-Down",
+          "weight": 24.14
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 55.17
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 67.24
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 67.24
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 45.69
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 3.79
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 4.31
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 21.55
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 24.14
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 30.17
+        },
+        {
+          "shape": "eCTRLMouthSmileSimple",
+          "weight": 65.52
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 35.2
+        },
+        {
+          "shape": "eCTRLvM",
+          "weight": 23.28
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 07",
+      "label": "Довольная улыбка",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 35.34
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-Down",
+          "weight": 20.69
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-Down",
+          "weight": 13.79
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 21.55
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 15.52
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 27.59
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 27.59
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 13.36
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 0.43
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": 10.34
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": 6.9
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 36.21
+        },
+        {
+          "shape": "eCTRLLipsPuckerWide",
+          "weight": 12.93
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 18.97
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 18.97
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 13.79
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 45.69
+        },
+        {
+          "shape": "eCTRLMouthSmileSimple",
+          "weight": 63.79
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -9.98
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 8.8
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 08",
+      "label": "Дразнится языком",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowOuterUp-Down",
+          "weight": -25.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLLipsPuckerWide",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLTongueBendTip",
+          "weight": -1.32
+        },
+        {
+          "shape": "eCTRLTongueCurl",
+          "weight": 13.79
+        },
+        {
+          "shape": "eCTRLTongueIn-Out",
+          "weight": -75.0
+        },
+        {
+          "shape": "eCTRLTongueRaise-Lower",
+          "weight": 5.17
+        },
+        {
+          "shape": "eCTRLTongueUp-Down",
+          "weight": -29.7
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 09",
+      "label": "Поцелуйчик",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowInnerUp-Down",
+          "weight": -1.72
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-Down",
+          "weight": -39.66
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": -15.09
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 4.83
+        },
+        {
+          "shape": "eCTRLEyesClosedL",
+          "weight": 4.05
+        },
+        {
+          "shape": "eCTRLEyesClosedR",
+          "weight": 4.05
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": 46.55
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": 8.62
+        },
+        {
+          "shape": "eCTRLLipsPartCenter",
+          "weight": 15.52
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 43.97
+        },
+        {
+          "shape": "eCTRLLipsPuckerWide",
+          "weight": 36.21
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": -12.07
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": -12.07
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": -6.9
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 18.97
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 5.6
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 10",
+      "label": "Надула губки",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowInnerUp-Down",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLCheeksBalloon",
+          "weight": 71.55
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 10.78
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 2.76
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -44.83
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -44.83
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 6.9
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": -44.83
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": -5.17
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -37.93
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 28.45
+        },
+        {
+          "shape": "eCTRLLipsPuckerWide",
+          "weight": 24.14
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 36.21
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 11-Left",
+      "label": "Восторженный смех",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexL",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexR",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -30.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -30.0
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 60.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 60.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLvOW",
+          "weight": 10.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 11-Right",
+      "label": "Восторженный смех",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexL",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexR",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -30.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -30.0
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 60.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 60.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLvOW",
+          "weight": 10.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 12-Left",
+      "label": "Радостное изумление",
+      "shapes": [
+        {
+          "shape": "PHMCheekCreaseL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexL",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -20.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -65.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -13.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -13.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 45.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 12-Right",
+      "label": "Радостное изумление",
+      "shapes": [
+        {
+          "shape": "PHMCheekCreaseR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexR",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -20.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 65.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -13.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -13.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 45.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 13-Left",
+      "label": "Кокетливая улыбка",
+      "shapes": [
+        {
+          "shape": "PHMCheeksDimpleCreaseHDL",
+          "weight": 35.0
+        },
+        {
+          "shape": "PHMCheeksDimpleCreaseHDR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -50.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLMouthNarrowL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthNarrowR",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthSmileSimple",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -25.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 25.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 13-Right",
+      "label": "Кокетливая улыбка",
+      "shapes": [
+        {
+          "shape": "PHMCheeksDimpleCreaseHDL",
+          "weight": 15.0
+        },
+        {
+          "shape": "PHMCheeksDimpleCreaseHDR",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLMouthNarrowL",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthNarrowR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthSmileSimple",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -25.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 25.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 14-Left",
+      "label": "Томный прищур",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowInnerUp-DownL",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownL",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 14-Right",
+      "label": "Томный прищур",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowInnerUp-DownR",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownR",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 15-Left",
+      "label": "Смешливый прищур",
+      "shapes": [
+        {
+          "shape": "PHMCheekCreaseL",
+          "weight": 30.0
+        },
+        {
+          "shape": "PHMCheeksDimpleCreaseHDL",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-DownL",
+          "weight": 80.0
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-DownR",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownL",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexL",
+          "weight": 80.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexR",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -75.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-DownL",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-DownR",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLMouthSide-SideL",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLMouthSmileSimple",
+          "weight": 63.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 15-Right",
+      "label": "Смешливый прищур",
+      "shapes": [
+        {
+          "shape": "PHMCheekCreaseR",
+          "weight": 30.0
+        },
+        {
+          "shape": "PHMCheeksDimpleCreaseHDR",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-DownL",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-DownR",
+          "weight": 80.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownR",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexL",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexR",
+          "weight": 80.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 75.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 40.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-DownL",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-DownR",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLMouthSide-SideR",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLMouthSmileSimple",
+          "weight": 63.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 16-Left",
+      "label": "Скептично поджала губы",
+      "shapes": [
+        {
+          "shape": "PHMCheekCreaseL",
+          "weight": 51.72
+        },
+        {
+          "shape": "PHMCheeksDimpleCreaseHDL",
+          "weight": 39.66
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-Down",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownR",
+          "weight": -25.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexL",
+          "weight": 41.38
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 21.55
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 10.78
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 2.76
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -60.85
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -44.83
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -44.83
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": -25.86
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 9.48
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 13.79
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": -40.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 23.0
+        },
+        {
+          "shape": "eCTRLLipsPuckerWide",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": -23.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 23.0
+        },
+        {
+          "shape": "eCTRLMouthNarrowR",
+          "weight": -29.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": 33.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 69.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 16-Right",
+      "label": "Скептично поджала губы",
+      "shapes": [
+        {
+          "shape": "PHMCheekCreaseR",
+          "weight": 51.72
+        },
+        {
+          "shape": "PHMCheeksDimpleCreaseHDR",
+          "weight": 39.66
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-Down",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownL",
+          "weight": -25.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlexR",
+          "weight": 41.38
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 21.55
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 10.78
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 2.76
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 60.85
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -44.83
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -44.83
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": -25.86
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 9.48
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -13.79
+        },
+        {
+          "shape": "eCTRLLipsPart",
+          "weight": -40.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 23.0
+        },
+        {
+          "shape": "eCTRLLipsPuckerWide",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": -23.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 23.0
+        },
+        {
+          "shape": "eCTRLMouthNarrowL",
+          "weight": -29.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": -33.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 69.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 17-Left",
+      "label": "Задумчивая гримаска",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowInnerUp-DownL",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLvOW",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLvUW",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLvW",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 17-Right",
+      "label": "Задумчивая гримаска",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowInnerUp-DownR",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLvOW",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLvUW",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLvW",
+          "weight": 15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 18-Left",
+      "label": "Воздушный поцелуй",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 75.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 45.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -75.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -50.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -50.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLLipsPuckerWide",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 60.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLTongueUp-Down",
+          "weight": -15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 18-Right",
+      "label": "Воздушный поцелуй",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 45.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 75.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 75.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": -50.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": -50.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLLipsPucker",
+          "weight": 35.0
+        },
+        {
+          "shape": "eCTRLLipsPuckerWide",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthCornerUp-Down",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 60.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthSmile",
+          "weight": 55.0
+        },
+        {
+          "shape": "eCTRLMouthSmileOpen",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLTongueUp-Down",
+          "weight": -15.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 19-Left",
+      "label": "Облизывается",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 45.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -77.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 7.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthNarrowR",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 45.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLTongueRaise-Lower",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLTongueUp-Down",
+          "weight": -25.0
+        },
+        {
+          "shape": "eCTRLvT",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLvW",
+          "weight": 25.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 19-Right",
+      "label": "Облизывается",
+      "shapes": [
+        {
+          "shape": "eCTRLBrowUp-DownL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowUp-DownR",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 30.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 45.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 77.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -7.0
+        },
+        {
+          "shape": "eCTRLLipBottomUp-Down",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLLipTopUp-Down",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthNarrowL",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLMouthOpen",
+          "weight": 45.0
+        },
+        {
+          "shape": "eCTRLMouthOpenWide",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLNoseScrunch",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLTongueRaise-Lower",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLTongueUp-Down",
+          "weight": -25.0
+        },
+        {
+          "shape": "eCTRLvT",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLvW",
+          "weight": 25.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 20-Left",
+      "label": "Нежный взгляд",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-DownL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownL",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLBrowUp-Down",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": -70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": -5.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": 8.62
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLvF",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLvUW",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLvW",
+          "weight": 10.0
+        }
+      ]
+    },
+    {
+      "name": "FXY Cute & Fun 20-Right",
+      "label": "Нежный взгляд",
+      "shapes": [
+        {
+          "shape": "CTRLCheeksDimpleCreaseHD",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLBrowInnerUp-DownL",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLBrowOuterUp-DownR",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLBrowUp-Down",
+          "weight": -15.0
+        },
+        {
+          "shape": "eCTRLCheekCrease",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLCheekEyeFlex",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekFlexL",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLCheekFlexR",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLEyelidsLowerUpDown",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyelidsUpperDownUp",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLEyesSideSide",
+          "weight": 70.0
+        },
+        {
+          "shape": "eCTRLEyesSquintL",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLEyesSquintR",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLEyesUpDown",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLJawOut-In",
+          "weight": 20.0
+        },
+        {
+          "shape": "eCTRLJawSide-Side",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLLipBottomIn-Out",
+          "weight": 10.0
+        },
+        {
+          "shape": "eCTRLLipTopIn-Out",
+          "weight": 8.62
+        },
+        {
+          "shape": "eCTRLMouthCornerBackL",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthCornerBackR",
+          "weight": 5.0
+        },
+        {
+          "shape": "eCTRLMouthNarrow",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLMouthSide-Side",
+          "weight": -10.0
+        },
+        {
+          "shape": "eCTRLNostrilsFlare",
+          "weight": 15.0
+        },
+        {
+          "shape": "eCTRLvF",
+          "weight": 50.0
+        },
+        {
+          "shape": "eCTRLvUW",
+          "weight": 25.0
+        },
+        {
+          "shape": "eCTRLvW",
+          "weight": 10.0
+        }
+      ]
+    }
+  ]
+}

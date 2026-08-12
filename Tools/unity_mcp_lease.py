@@ -12,7 +12,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 from datetime import datetime, timezone
-import fcntl
 import json
 import os
 from pathlib import Path
@@ -20,6 +19,33 @@ import stat
 import sys
 import tempfile
 from typing import Any, Iterator
+
+# Блокировка одного байта файла-компаньона — единственное, что здесь нужно от
+# ОС, и она есть в обеих: POSIX даёт fcntl.lockf, Windows — msvcrt.locking.
+# Импорт разведён, потому что fcntl на Windows нет вовсе, и без этой развилки
+# ЛЮБАЯ работа с мостом на Windows падала на `ModuleNotFoundError: fcntl` —
+# то есть требование CLAUDE.md «сначала возьми лизу» было невыполнимо.
+try:  # POSIX
+    import fcntl
+
+    def _lock(handle) -> None:
+        fcntl.lockf(handle.fileno(), fcntl.LOCK_EX, 1, 0, os.SEEK_SET)
+
+    def _unlock(handle) -> None:
+        fcntl.lockf(handle.fileno(), fcntl.LOCK_UN, 1, 0, os.SEEK_SET)
+
+except ModuleNotFoundError:  # Windows
+    import msvcrt
+
+    def _lock(handle) -> None:
+        handle.seek(0)
+        # LK_LOCK ждёт освобождения (10 попыток по секунде), а не падает
+        # сразу, — это и есть сериализация конкурирующих агентов.
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+
+    def _unlock(handle) -> None:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 FREE = "free"
@@ -90,11 +116,11 @@ def write_store(path: Path, data: dict[str, Any]) -> None:
 def locked_store(path: Path) -> Iterator[dict[str, Any]]:
     lock_path = path.with_name(path.name + ".unity-mcp.lock")
     with lock_path.open("a+b") as lock_handle:
-        fcntl.lockf(lock_handle.fileno(), fcntl.LOCK_EX, 1, 0, os.SEEK_SET)
+        _lock(lock_handle)
         try:
             yield read_store(path)
         finally:
-            fcntl.lockf(lock_handle.fileno(), fcntl.LOCK_UN, 1, 0, os.SEEK_SET)
+            _unlock(lock_handle)
 
 
 def set_lease(data: dict[str, Any], lease: dict[str, str]) -> None:

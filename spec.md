@@ -11856,9 +11856,12 @@ SET apart from part HP — a 0-HP mauled zone heals back, a severed one never
 does — so omitting it (pre-v14) meant a reload turned every amputee back into
 a "mauled" body that regenerated and stood up.
 
-### §50.7 No jumping without legs — terrain goes off-limits
-A survivor missing a leg (`BodyState.CanJump` false) can't hop an elevation step
-or dive water — the hex-step hop (§21.21B) needs legs. `HexPathfinder.RequiresJump`
+### §50.7 No jumping without leg support — terrain goes off-limits
+A survivor with a bare stump or a broken leg support (`BodyState.CanJump` false)
+can't hop an elevation step or dive water — the hex-step hop (§21.21B) needs two
+supporting legs. An installed functional wooden or mechanical leg restores jump
+access despite its reduced movement function; a destroyed prosthesis does not.
+`HexPathfinder.RequiresJump`
 marks an edge that changes elevation (the tile stepped onto, `junction.Tiles[0]`,
 matching the movement hop-arm rule); `FindPath(…, canJump)` skips those edges for
 her, and a **second connectivity graph** (`WorldState.JunctionComponentsFlat`,

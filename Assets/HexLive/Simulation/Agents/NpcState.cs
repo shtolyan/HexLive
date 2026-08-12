@@ -51,10 +51,11 @@ public sealed class BodyState
 
     public bool AnySevered => Severed.Count > 0;
 
-    // Spec §50: jumping needs both legs. A survivor missing either leg can't
-    // hop an elevation step (or dive water) — that terrain becomes off-limits.
-    public bool CanJump => LimbFunction(BodyPart.LegL) >= 0.75f &&
-                           LimbFunction(BodyPart.LegR) >= 0.75f;
+    // Spec §50: jumping needs two supporting legs. A functional fitted
+    // prosthesis restores that support even when its deliberately reduced
+    // mobility score is below the natural-leg injury threshold.
+    public bool CanJump => LegSupportsJump(BodyPart.LegL) &&
+                           LegSupportsJump(BodyPart.LegR);
 
     public bool HasNoLegs => LimbFunction(BodyPart.LegL) <= 0f &&
                              LimbFunction(BodyPart.LegR) <= 0f;
@@ -102,6 +103,16 @@ public sealed class BodyState
         }
 
         return System.Math.Max(Parts[part], condition.SplintSupport);
+    }
+
+    private bool LegSupportsJump(BodyPart part)
+    {
+        if (IsSevered(part))
+        {
+            return Conditions[part].Prosthetic?.EffectiveFunction > 0f;
+        }
+
+        return LimbFunction(part) >= 0.75f;
     }
 
     public float Mean()

@@ -661,6 +661,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // the best armor over the nearest garment.
             var preferArmor = interactionType == InteractionType.Dress &&
                 npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f;
+            // §133: при чужаке первым делом закрывают таз и грудь — и выбирают
+            // по этому, а не по теплу и не по броне. Бельё здесь полноценный
+            // ответ: оно ничего не греет и не защищает, но закрывает.
+            var preferCover = interactionType == InteractionType.Dress &&
+                ModestyMath.OutsiderKnown(world, npc) &&
+                ModestyMath.MissingCover(world, npc);
             // §55: boiling is retired — GetWater now just fetches the nearest
             // coconut to crack open (no boiled-vs-raw source preference).
             var preferBoiled = false;
@@ -694,6 +700,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             var selectedMedicalStick = false;
             var selectedDressAffinity = -1f;
             var selectedDressQuality = -1f;
+            var selectedCover = 0; // §133: сколько стыдных мест закрывает кандидат
             var candidateCount = 0;
             foreach (var perceived in npc.Perception.Objects)
             {
@@ -758,7 +765,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // never walk to an identical/worse shirt (clamp-aware gain over
                 // what she wears now). Armor-driven dressing (preferArmor) keeps
                 // its own CandidateArmor gain rule below, untouched.
-                if (interactionType == InteractionType.Dress && !preferArmor &&
+                if (interactionType == InteractionType.Dress && !preferArmor && !preferCover &&
                     EquipmentMath.WarmthGainFromWearing(world, npc, perceived.DefinitionId) <
                         SimBalance.DressWarmthGainMin)
                 {
@@ -795,7 +802,33 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
                 }
 
-                if (preferArmor)
+                if (preferCover)
+                {
+                    // Сначала — сколько стыдных мест закроет, потом броня,
+                    // дальше вкус и расстояние (та же лесенка, что у брони).
+                    var cover = ModestyMath.CoverGainFromWearing(world, npc, perceived.DefinitionId);
+                    if (cover <= 0)
+                    {
+                        continue;
+                    }
+
+                    var coverArmor = DecisionSystem.CandidateArmor(world, perceived, npc.Sex);
+                    var coverAffinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);
+                    if (selected is null || cover > selectedCover ||
+                        (cover == selectedCover &&
+                         (coverArmor > selectedArmor + 0.01f ||
+                          (System.Math.Abs(coverArmor - selectedArmor) <= 0.01f &&
+                           (coverAffinity > selectedDressAffinity + 0.0001f ||
+                            (System.Math.Abs(coverAffinity - selectedDressAffinity) <= 0.0001f &&
+                             perceived.Distance < selected.Distance))))))
+                    {
+                        selected = perceived;
+                        selectedCover = cover;
+                        selectedArmor = coverArmor;
+                        selectedDressAffinity = coverAffinity;
+                    }
+                }
+                else if (preferArmor)
                 {
                     var armor = DecisionSystem.CandidateArmor(world, perceived, npc.Sex);
                     var affinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);

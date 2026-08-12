@@ -514,7 +514,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // off) — suppress the ordinary warmth-filtered Dress so it can't
             // hijack her and put back only the one warming garment.
             var pendingRedress = npc.Mind.RedressGarments.Count > 0;
-            var dressAvail = !pendingRedress && (wantsArmor ||
+            // §133: рядом чужак, а таз или грудь открыты — прикрыться СРОЧНО,
+            // мимо холодовых ворот: тут дело не в тепле, и бельё годится, даже
+            // если брони в нём ноль. Броню при этом всё так же хотят
+            // (wantsArmor выше) — одно другого не отменяет.
+            var wantsCover = ModestyMath.OutsiderKnown(world, npc) &&
+                ModestyMath.MissingCover(world, npc) &&
+                KnowsReachablePermittedCover(npc, world);
+            var dressAvail = !pendingRedress && (wantsArmor || wantsCover ||
                 (npc.Needs.ThermalDiscomfort >= SimBalance.DressThermalThreshold &&
                  effectiveTemp < SimBalance.DressColdTemp && // spec 42: dress against REAL cold only —
                  // a merely-cool girl (14..16) must not circle the wardrobe all
@@ -541,6 +548,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     ? System.Math.Max(npc.Needs.ThermalDiscomfort, 0.6f)
                     : npc.Needs.ThermalDiscomfort,
                 sunPressure);
+            if (wantsCover)
+            {
+                // §133: прикрыться при чужаке важнее и холода, и загара.
+                dressNeed = System.Math.Max(dressNeed, ModestyMath.CoverNeed);
+            }
 
             // Spec 28.6 / 28.15A: Socialize needs a reachable non-busy agent;
             // affinity toward the best target feeds the score back positively.
@@ -2138,7 +2150,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // warm is also armor under fresh danger, keep sweating. Spec 42:
         // only in REAL heat (past the [16,22] band) — day-warmth must not
         // strip the layers that the cold night needs back in an hour.
+        // §133: при известном чужаке не раздеваются вовсе — ни до белья, ни до
+        // куртки. Гейт тот же предикат, что поднимает встречное «прикройся»,
+        // поэтому Dress и Undress не могут перещёлкиваться друг за другом.
         var undressAvail = ctx.EffectiveTemp > 24f && npc.Needs.ThermalDiscomfort >= 0.4f &&
+            !ModestyMath.OutsiderKnown(world, npc) &&
             FindRemovableItem(npc, world) is not null;
         AddGoalScore(npc, world.Tick, GoalType.Undress, npc.Needs.ThermalDiscomfort, undressAvail);
 

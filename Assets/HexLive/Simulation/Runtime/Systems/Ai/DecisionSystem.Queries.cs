@@ -859,10 +859,13 @@ public sealed partial class DecisionSystem
                 continue; // protection beats comfort under threat
             }
 
-            // Spec 42: heat never strips the girls naked — underwear stays on
-            // (it barely warms anyway), only real layers come off.
+            // §133 (отменяет прежнее «жара НИКОГДА не раздевает догола»):
+            // раздеться до конца можно — но только когда рядом некому смотреть.
+            // Пока про чужака известно, бельё не снимается ни при какой жаре;
+            // без чужака это её дело.
             if (world.Content.ObjectDefinitions.TryGetValue(itemId, out var def) &&
-                def.Layer == WearLayer.Underwear)
+                def.Layer == WearLayer.Underwear &&
+                ModestyMath.OutsiderKnown(world, npc))
             {
                 continue;
             }
@@ -893,6 +896,38 @@ public sealed partial class DecisionSystem
         {
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
                 CandidateArmor(world, obj, npc.Sex) > npc.EquippedArmor)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// §133: есть ли в досягаемости вещь, которой можно прикрыть таз или грудь
+    /// И которую ей МОЖНО надеть прямо сейчас — своя, ничейная или уже
+    /// разрешённая. Чужая вещь подруги сюда не входит намеренно: под чужаком
+    /// бегать спрашивать разрешения — не план, а способ зависнуть.
+    /// </summary>
+    internal static bool KnowsReachablePermittedCover(NPCState npc, WorldState world)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
+                !Content.GarmentLibrary.FitsSex(npc.Sex, obj.DefinitionId) ||
+                ModestyMath.CoverGainFromWearing(world, npc, obj.DefinitionId) <= 0)
+            {
+                continue;
+            }
+
+            if (!world.Entities.Objects.TryGetValue(obj.Id, out var live))
+            {
+                continue;
+            }
+
+            if (ClothingOwnership.FellowOwner(world, npc, live) == null ||
+                PlanningSystem.HasWearGrant(npc, obj.Id, world.Tick))
             {
                 return true;
             }

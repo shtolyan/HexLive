@@ -83,6 +83,8 @@ public static class ContentIds
     public const string WaterCollector = "station.water_collector";
     public const string Workbench = "station.workbench";
     public const string Hut1Hex = "building.hut_1hex";
+    /// <summary>§133: домашняя сушилка-гардероб — вещи висят в доме, а не по карте.</summary>
+    public const string Wardrobe = "furniture.wardrobe";
     public const string HutBed = "building.hut_bed";
 
     public const string HutBedVariant = "hut.integrated_bed";

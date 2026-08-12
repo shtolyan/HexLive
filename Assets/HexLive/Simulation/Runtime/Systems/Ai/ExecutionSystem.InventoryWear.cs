@@ -110,6 +110,12 @@ public sealed partial class ExecutionSystem
             return true;
         }
 
+        // §133: у гардероба своя ёмкость — считаем по той станции, о которой речь.
+        var capacity = world.Content.ObjectDefinitions.TryGetValue(rack.DefinitionId, out var rackDef) &&
+            rackDef.Tags.Contains(ObjectTags.Wardrobe)
+            ? Spec133.WardrobeCapacity
+            : SimBalance.RackCapacity;
+
         var hung = 0;
         foreach (var obj in world.Entities.Objects.Values)
         {
@@ -119,7 +125,7 @@ public sealed partial class ExecutionSystem
                 definition.Layer is not null)
             {
                 hung++;
-                if (hung >= SimBalance.RackCapacity)
+                if (hung >= capacity)
                 {
                     return true;
                 }

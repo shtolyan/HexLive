@@ -628,6 +628,9 @@ public static class WorldSaveSerializer
             BuildingRules.RefreshHutElementGeometry(world, hut);
             HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairHutTopology(world, hut);
             HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairIntegratedHearthAnchor(world, hut);
+            // §133: гардероб — новая мебель, поэтому в домах из старых сейвов
+            // его нет; та же функция и ставит его впервые, и пересаживает.
+            HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairWardrobeAnchor(world, hut);
         }
 
         MigrateRetiredGarments(world, world.Entities.Npcs.Values);

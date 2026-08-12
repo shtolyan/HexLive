@@ -31,7 +31,7 @@ public sealed class MoistureSystem : ISimulationSystem
             world.Tiles.Items.TryGetValue(npc.Tile, out var tile);
             var onWater = tile is not null && tile.Flags.HasFlag(TileFlags.Water);
             var touchesWater = onWater || ShelterMath.RainReaches(world, npc.Tile);
-            var dryRate = DryBase * DryMultiplier(world, npc.Tile, indoor, rackBoost: false);
+            var dryRate = DryBase * DryMultiplier(world, npc.Tile, indoor, stationBoost: 0f);
 
             // Spec 35.5: the body soaks too — rain/water wet the skin directly,
             // so a naked or near-naked survivor still reads as soaked even with
@@ -92,9 +92,9 @@ public sealed class MoistureSystem : ISimulationSystem
                 continue;
             }
 
-            var onRack = IsOnRack(world, obj);
+            var stationBoost = StationDryMultiplier(world, obj);
             obj.Wetness = System.MathF.Max(0f,
-                obj.Wetness - DryBase * DryMultiplier(world, obj.Tile, indoor, onRack));
+                obj.Wetness - DryBase * DryMultiplier(world, obj.Tile, indoor, stationBoost));
         }
     }
 
@@ -146,12 +146,14 @@ public sealed class MoistureSystem : ISimulationSystem
     }
 
     // Spec 35.5: best of sun x3 / lit campfire x4 / rack x5, else x1.
-    private static float DryMultiplier(WorldState world, TileCoord tile, bool indoor, bool rackBoost)
+    // §133: гардероб приходит сюда своим множителем (×5 при живом очаге,
+    // ×1.5 при потухшем), поэтому станция передаётся числом, а не флагом.
+    private static float DryMultiplier(WorldState world, TileCoord tile, bool indoor, float stationBoost)
     {
         var best = 1f;
-        if (rackBoost)
+        if (stationBoost > 0f)
         {
-            best = 5f;
+            best = stationBoost;
         }
         else if (NearLitCampfire(world, tile))
         {
@@ -181,17 +183,48 @@ public sealed class MoistureSystem : ISimulationSystem
         return false;
     }
 
-    private static bool IsOnRack(WorldState world, WorldObjectState item)
+    /// <summary>
+    /// На какой сушильной станции лежит вещь: 0 — ни на какой, ×5 — уличная
+    /// сушилка (§35.5B), гардероб (§133) — ×5 при горящем очаге в том же доме и
+    /// ×1.5 при потухшем: тепло даёт очаг, крыша уже отсекает дождь.
+    /// </summary>
+    private static float StationDryMultiplier(WorldState world, WorldObjectState item)
     {
         if (item.Junctions.Count == 0)
         {
-            return false;
+            return 0f;
         }
 
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId == ContentIds.DryingRack && obj.Junctions.Count > 0 &&
-                obj.Junctions[0].Equals(item.Junctions[0]))
+            if (obj.Junctions.Count == 0 || !obj.Junctions[0].Equals(item.Junctions[0]))
+            {
+                continue;
+            }
+
+            if (obj.DefinitionId == ContentIds.DryingRack)
+            {
+                return 5f;
+            }
+
+            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
+                def.Tags.Contains(ObjectTags.Wardrobe))
+            {
+                return HearthLitOn(world, obj.Tile)
+                    ? Spec133.WardrobeDryMultiplierLit
+                    : Spec133.WardrobeDryMultiplierUnlit;
+            }
+        }
+
+        return 0f;
+    }
+
+    private static bool HearthLitOn(WorldState world, TileCoord tile)
+    {
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == ContentIds.Campfire && obj.ResourceAmount > 0f &&
+                obj.Tile.Equals(tile))
             {
                 return true;
             }

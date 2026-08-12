@@ -120,6 +120,7 @@ public static class BuildingBootstrap
         SpawnCot(world, hut, 1);
         RepairIntegratedCotAnchors(world);
         SpawnHearth(world, hut);
+        SpawnWardrobe(world, hut);
     }
 
     public static bool CanPlaceHut(WorldState world, TileCoord tile)
@@ -603,6 +604,100 @@ public static class BuildingBootstrap
         var radians = hut.RotationDegrees * MathF.PI / 180f;
         var desired = center + RotateLocal(
             new Float2(BuildingRules.HutHearthLocalX, BuildingRules.HutHearthLocalZ), radians);
+        JunctionId? best = null;
+        var bestSq = float.MaxValue;
+        foreach (var junctionId in world.Tiles.Items[hut.Tile].Junctions)
+        {
+            if (!world.Junctions.Items.TryGetValue(junctionId, out var candidate) ||
+                candidate.Tiles.Count != 1 || candidate.Blocked ||
+                InteriorObjectUses(world, hut, junctionId))
+            {
+                continue;
+            }
+
+            var fromCenter = candidate.WorldPosition - center;
+            if (fromCenter.X * fromCenter.X + fromCenter.Y * fromCenter.Y > 0.9f * 0.9f) continue;
+            var delta = candidate.WorldPosition - desired;
+            var sq = delta.X * delta.X + delta.Y * delta.Y;
+            if (sq < bestSq)
+            {
+                bestSq = sq;
+                best = junctionId;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// §133: домашний гардероб у свободной стены. Ставится как кровати — без
+    /// obstacle-блокировки: комната в один гекс, и любой лишний занятый
+    /// джанкшен запирает дверь или койку.
+    /// </summary>
+    private static void SpawnWardrobe(WorldState world, WorldObjectState hut)
+    {
+        if (FindWardrobe(world, hut) != null) return;
+        if (FindWardrobeJunction(world, hut) is not { } junctionId) return;
+
+        var wardrobe = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Wardrobe, hut.Fragment, hut.Tile, junctionId);
+        wardrobe.RotationDegrees = StructurePlacement.QuantizeHexYaw(
+            hut.RotationDegrees + BuildingRules.HutWardrobeLocalYaw);
+        WorldObjectMutations.SetObstacleBlocking(world, wardrobe, blocked: false);
+    }
+
+    /// <summary>
+    /// Идемпотентная пересадка гардероба из канонической локальной геометрии —
+    /// и его появление в домах из старых сейвов, где его ещё не было.
+    /// </summary>
+    public static void RepairWardrobeAnchor(WorldState world, WorldObjectState hut)
+    {
+        if (hut == null || hut.DefinitionId != ContentIds.Hut1Hex ||
+            !world.Caches.ObjectsByTile.ContainsKey(hut.Tile)) return;
+
+        var wardrobe = FindWardrobe(world, hut);
+        if (wardrobe == null)
+        {
+            SpawnWardrobe(world, hut);
+            return;
+        }
+
+        foreach (var blockedId in wardrobe.BlockedJunctions)
+        {
+            if (world.Junctions.Items.TryGetValue(blockedId, out var blocked)) blocked.Blocked = false;
+        }
+        wardrobe.BlockedJunctions.Clear();
+        wardrobe.Junctions.Clear();
+        wardrobe.RotationDegrees = StructurePlacement.QuantizeHexYaw(
+            hut.RotationDegrees + BuildingRules.HutWardrobeLocalYaw);
+        WorldObjectMutations.SetObstacleBlocking(world, wardrobe, blocked: false);
+
+        if (FindWardrobeJunction(world, hut) is not { } junctionId) return;
+        wardrobe.Junctions.Add(junctionId);
+        world.TopologyVersion++;
+    }
+
+    private static WorldObjectState FindWardrobe(WorldState world, WorldObjectState hut)
+    {
+        if (!world.Caches.ObjectsByTile.TryGetValue(hut.Tile, out var objects)) return null;
+        foreach (var id in objects)
+        {
+            if (world.Entities.Objects.TryGetValue(id, out var candidate) &&
+                candidate.DefinitionId == ContentIds.Wardrobe)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static JunctionId? FindWardrobeJunction(WorldState world, WorldObjectState hut)
+    {
+        var center = HexSpatialMath.TileToWorld(hut.Tile);
+        var radians = hut.RotationDegrees * MathF.PI / 180f;
+        var desired = center + RotateLocal(
+            new Float2(BuildingRules.HutWardrobeLocalX, BuildingRules.HutWardrobeLocalZ), radians);
         JunctionId? best = null;
         var bestSq = float.MaxValue;
         foreach (var junctionId in world.Tiles.Items[hut.Tile].Junctions)

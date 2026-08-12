@@ -703,6 +703,32 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
+            // §133: гардероб — домашняя родня сушилки. Стоит у стены хижины,
+            // держит те же 8 вещей на своём джанкшене и сушит их от очага, а не
+            // от солнца. Тег "Rack" здесь несущий: он бесплатно включает
+            // гардероб во всё, что уже умеет искать сушилку (DryClothes,
+            // RackIsFull), — отдельной ветки «а ещё бывает гардероб» нет.
+            // Obstacle НЕ ставим: комната в один гекс, дверь и кровати заперли
+            // бы сами себя (идиома кроватей из BuildingBootstrap).
+            ["furniture.wardrobe"] = new ObjectDefinition
+            {
+                Id = "furniture.wardrobe",
+                DisplayName = "Wardrobe",
+                // HandBuilt здесь НЕТ намеренно: этот тег отвечает на вопрос
+                // «можно ли достроить руками, без молотка», а гардероб пока не
+                // строится вовсе — он появляется готовым вместе с хижиной.
+                Tags = { "Station", "Rack", ObjectTags.Wardrobe },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "hang.wardrobe",
+                        Type = InteractionType.Hang,
+
+                        DurationTicks = 8
+                    }
+                }
+            },
             // §54.15: the water collector — a staged fireside build-site like
             // the rack (4 planted uprights → a stone stand → the top rim →
             // rope lashings → the leaf funnel). The funnel sheds rain inward

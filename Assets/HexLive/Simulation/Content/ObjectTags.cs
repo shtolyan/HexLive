@@ -71,6 +71,8 @@ public static class ObjectTags
     public const string Chair = "Chair";
     public const string Station = "Station";
     public const string Rack = "Rack";
+    /// <summary>§133: домашний гардероб. Носит и <see cref="Rack"/> — сушилка ему родня.</summary>
+    public const string Wardrobe = "Wardrobe";
     public const string Shade = "Shade";
     public const string Shelter = "Shelter";
     public const string Raft = "Raft";

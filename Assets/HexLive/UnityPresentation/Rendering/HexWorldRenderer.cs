@@ -289,6 +289,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // §35.5B: drying-rack hanging — the junctions occupied by racks this
     // snapshot, and each hung garment's hanger rank (object id → slot index).
     private readonly HashSet<JunctionId> _rackJunctions = new();
+
+    // §133: подмножество _rackJunctions, принадлежащее гардеробам — у них своя
+    // раскладка мест (пока стопка в одной точке, до приезда модели).
+    private readonly HashSet<JunctionId> _wardrobeJunctions = new();
     // §54.15: junctions occupied by water collectors — a tool.bottle sharing
     // one is PARKED in the vessel slot (drawn on the stone stand, not scattered).
     private readonly HashSet<JunctionId> _collectorJunctions = new();
@@ -1093,6 +1097,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §35.5B: map rack junctions and rank the garments hanging at each one
         // (sorted by object id) so every hung garment gets a stable hanger slot.
         _rackJunctions.Clear();
+        _wardrobeJunctions.Clear();
         _rackHangRank.Clear();
         _collectorJunctions.Clear();
         foreach (var worldObject in snapshot.Objects)
@@ -1100,6 +1105,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (worldObject.DefinitionId == "station.drying_rack" && worldObject.Junctions.Count > 0)
             {
                 _rackJunctions.Add(worldObject.Junctions[0]);
+            }
+
+            // §133: гардероб развешивает одежду тем же механизмом, что и
+            // сушилка, — отличается только раскладка мест (пока стопка).
+            if (worldObject.DefinitionId == "furniture.wardrobe" && worldObject.Junctions.Count > 0)
+            {
+                _rackJunctions.Add(worldObject.Junctions[0]);
+                _wardrobeJunctions.Add(worldObject.Junctions[0]);
             }
 
             if (worldObject.DefinitionId == "station.water_collector" && worldObject.Junctions.Count > 0)
@@ -1116,6 +1129,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 if (worldObject.Junctions.Count > 0 &&
                     _rackJunctions.Contains(worldObject.Junctions[0]) &&
                     worldObject.DefinitionId != "station.drying_rack" &&
+                    worldObject.DefinitionId != "furniture.wardrobe" &&
                     GarmentDropFactory.IsGarment(worldObject.DefinitionId))
                 {
                     _rackHangScratch.Add(worldObject);
@@ -1264,7 +1278,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (_rackHangRank.TryGetValue(key, out var hangSlot) && objectView.transform.childCount > 0)
             {
                 var hungChild = objectView.transform.GetChild(0);
-                hungChild.localPosition = HangSlotOffset(hungChild, hangSlot);
+                hungChild.localPosition = HangSlotOffset(hungChild, hangSlot,
+                    worldObject.Junctions.Count > 0 &&
+                    _wardrobeJunctions.Contains(worldObject.Junctions[0]));
             }
 
             // Spec §66: a BUILT piece stands at the yaw the sim staked it with —
@@ -3292,7 +3308,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var hungScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
                 hung.transform.localScale = Vector3.one * hungScale;
                 _rackHangRank.TryGetValue(worldObject.Id.Value, out var slot);
-                hung.transform.localPosition = HangSlotOffset(hung.transform, slot);
+                hung.transform.localPosition = HangSlotOffset(hung.transform, slot,
+                    _wardrobeJunctions.Contains(worldObject.Junctions[0]));
                 // Face across the rail with a little per-item jitter so the row
                 // reads hand-hung, not machine-stamped.
                 hung.transform.localRotation =
@@ -3410,8 +3427,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // over the hanger slot's rail — dropped by the garment's own half-height
     // (bounds are translation-invariant, so this works before placement too),
     // clamped so a long garment on the low rail doesn't clip the ground.
-    private static Vector3 HangSlotOffset(Transform hung, int slot)
+    private static Vector3 HangSlotOffset(Transform hung, int slot, bool inWardrobe)
     {
+        // §133: в гардеробе вещи пока кладутся стопкой в одну точку — модели с
+        // плечиками ещё нет, и раскладка живёт в WardrobeHangers.
+        if (inWardrobe)
+        {
+            return HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
+        }
+
         var attach = HexLive.UnityPresentation.Environment.DryingRackHangers.Slot(slot);
         var half = 0.15f;
         var renderers = hung.GetComponentsInChildren<Renderer>();
@@ -4642,7 +4666,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         if (definitionId.StartsWith("tool.") || definitionId.StartsWith("resource.") ||
-            definitionId == "construction.site")
+            definitionId == "construction.site" ||
+            // §133: модели гардероба ещё нет — до неё это честный ящик у стены,
+            // а не загадочная сфера (Spec 31C.5).
+            definitionId == "furniture.wardrobe")
         {
             return PrimitiveType.Cube;
         }

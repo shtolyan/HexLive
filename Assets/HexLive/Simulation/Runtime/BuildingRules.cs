@@ -51,6 +51,15 @@ public static class BuildingRules
     public const float HutBed1LocalX = 0.487139f;
     public const float HutBed1LocalZ = 0.84375f;
     public const float HutBed1LocalYaw = 60f;
+    // §133: гардероб у свободной стены 210°..270° — зеркало кровати-1 через
+    // центр. Проверенная геометрия: тот же локальный радиус 0.974, что и у
+    // кроватей, поэтому якорь садится на такой же интерьерный джанкшен.
+    // Клиренсы от выбранной точки: дверь 1.46 wu, кровать-0 0.97, очаг 1.42,
+    // кровать-1 1.95 — центральный проход «дверь → кровати/очаг» свободен.
+    public const float HutWardrobeLocalX = -0.487139f;
+    public const float HutWardrobeLocalZ = -0.84375f;
+    public const float HutWardrobeLocalYaw = 60f;
+
     public const float HutHearthLocalX = -0.3248f;
     public const float HutHearthLocalZ = 0.5625f;
 

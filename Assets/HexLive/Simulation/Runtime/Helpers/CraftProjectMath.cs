@@ -76,6 +76,33 @@ internal static class CraftProjectMath
             }
         }
 
+        // §133 (продолжение той же мысли, что и #86/#92): готовый выход может
+        // лежать не на земле, а В КАРМАНЕ брошенной одежды — снятая куртка
+        // уносит с собой всё, что не влезло в рюкзак (§52). GatherTools такую
+        // заначку видит (InventoryMath.StashHoldsWantedTool), а крафт не видел
+        // — и колония делала второй нож, когда первый лежал в кармане куртки
+        // в трёх шагах. Тот же вопрос, тот же ответ.
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (!perceived.IsReachable ||
+                npc.Memory.IsShunned(perceived.Id, world.Tick) ||
+                !world.Entities.Objects.TryGetValue(perceived.Id, out var container) ||
+                container.Contents.Count == 0 ||
+                !container.Fragment.Equals(npc.Fragment))
+            {
+                continue;
+            }
+
+            foreach (var stashed in container.Contents)
+            {
+                if (stashed.DefinitionId == output &&
+                    InventoryMath.CanMakeRoomFor(world, npc, output))
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 

@@ -74,9 +74,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
-            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.UndressItem)
+            // §133: раздевание может иметь ногу «дойти домой», поэтому смотрим на
+            // ПОСЛЕДНИЙ шаг (для раздевания на месте это тот же самый шаг).
+            if (npc.Plan.Steps.Count > 0 &&
+                npc.Plan.Steps[npc.Plan.Steps.Count - 1].Type == PlanStepType.UndressItem)
             {
-                RunUndressItem(world, npc);
+                RunUndressItem(world, npc, npc.Plan.Steps[npc.Plan.Steps.Count - 1]);
                 continue;
             }
 

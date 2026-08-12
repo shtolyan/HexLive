@@ -40,6 +40,13 @@ public static class Spec133
     /// карте, и её несут домой (§133 StowClothes).
     /// </summary>
     public const int HomeStowRadiusTiles = 3;
+
+    /// <summary>
+    /// До какой духоты раздеваться в жару ходят ДОМОЙ. Выше — снимают на месте:
+    /// когда тепловой удар на пороге, идти через полострова в гардероб глупо, и
+    /// брошенная в поле кофта — меньшее зло. Это и есть «крайний случай».
+    /// </summary>
+    public const float UndressAtHomeMaxDiscomfort = 0.85f;
 }
 
 }

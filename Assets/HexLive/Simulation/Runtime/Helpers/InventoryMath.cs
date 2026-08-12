@@ -107,8 +107,11 @@ internal static class InventoryMath
 
             if (world.Content.ObjectDefinitions.TryGetValue(stashed.DefinitionId, out var def) &&
                 def.Tags.Contains("Tool") &&
+                // §133: тот же счёт рук, что и на всех остальных путях к
+                // инструменту (WeaponHands, не IntactHands) — иначе у калеки
+                // заначка и земля отвечали по-разному на один вопрос.
                 Content.GearCatalog.AddsValueOver(
-                    npc.Inventory.Items, stashed.DefinitionId, npc.Body.IntactHands) &&
+                    npc.Inventory.Items, stashed.DefinitionId, npc.Body.WeaponHands) &&
                 CanMakeRoomFor(world, npc, stashed.DefinitionId))
             {
                 return true;

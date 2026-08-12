@@ -443,9 +443,38 @@ public sealed partial class ExecutionSystem
     // so the garment leaves the body here and is only dropped at the very end.
     internal const float WardrobeHandoffFraction = 0.5f;
 
-    private static void RunUndressItem(WorldState world, NPCState npc)
+    private static void RunUndressItem(WorldState world, NPCState npc, PlanStep step)
     {
         var itemId = npc.Plan.TargetItemDefinitionId;
+
+        // §133: если план вёл домой — раздеваемся, только дойдя до места.
+        if (npc.Execution.Status == ExecutionStatus.None && step.TargetJunction is { } stand)
+        {
+            if (npc.Movement.IsMoving)
+            {
+                return;
+            }
+
+            if (npc.CurrentJunction is not { } here || !here.Equals(stand))
+            {
+                // Дорога домой закрыта — не стоять же одетой в пекле: снимаем
+                // здесь, как раньше (тот же «крайний случай»).
+                if (npc.Movement.Status != MovementStatus.Blocked)
+                {
+                    return;
+                }
+
+                step.TargetJunction = null;
+                step.TargetObject = null;
+                npc.Movement.JunctionPath.Clear();
+                npc.Movement.PathIndex = 0;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "UndressAtHomeAborted",
+                        "route home blocked; undressing where she stands");
+                }
+            }
+        }
 
         if (npc.Execution.Status == ExecutionStatus.None)
         {
@@ -514,7 +543,9 @@ public sealed partial class ExecutionSystem
             EquipmentMath.Recalculate(world, npc);
             // Spec §52: the garment carries down whatever pocket items no longer
             // fit — they wait inside it on the ground, retrievable later.
-            DropGarmentWithContents(world, npc, wornItem);
+            // §133: дошла до гардероба/сушилки — вещь вешается туда, а не
+            // остаётся лежать под ногами.
+            StowGarmentWithContents(world, npc, wornItem, step.TargetObject);
 
             npc.Execution.Status = ExecutionStatus.None;
             npc.Execution.CurrentInteraction = null;

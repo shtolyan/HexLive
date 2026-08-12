@@ -576,17 +576,43 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
 
                 npc.Plan.TargetItemDefinitionId = removable;
+
+                // §133: снятое не бросают там, где застала жара, — идут домой и
+                // вешают в гардероб (или на сушилку). На месте раздеваются лишь
+                // в крайнем случае: когда печёт уже опасно или дома нет.
+                StowMath.UndressSpot? spot = null;
+                if (npc.Needs.ThermalDiscomfort < Spec133.UndressAtHomeMaxDiscomfort)
+                {
+                    spot = StowMath.FindUndressSpot(world, npc);
+                }
+
+                if (spot is { } homeSpot &&
+                    !(npc.CurrentJunction is { } here && here.Equals(homeSpot.Stand)))
+                {
+                    npc.Plan.TargetObjectId = homeSpot.StowObject;
+                    npc.Plan.TargetJunctionId = homeSpot.Stand;
+                    npc.Plan.Steps.Add(new PlanStep
+                    {
+                        Type = PlanStepType.MoveToJunction,
+                        TargetJunction = homeSpot.Stand
+                    });
+                }
+
                 npc.Plan.Steps.Add(new PlanStep
                 {
                     Type = PlanStepType.UndressItem,
-                    Interaction = InteractionType.Undress
+                    Interaction = InteractionType.Undress,
+                    TargetJunction = spot?.Stand,
+                    TargetObject = spot?.StowObject
                 });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "PlanBuilt",
-                        $"Goal=Undress Item={removable} Steps=[UndressItem]");
+                        $"Goal=Undress Item={removable} " +
+                        $"Stow={(spot?.StowObject is { } so ? so.Value.ToString() : "inPlace")} " +
+                        $"Steps=[{(npc.Plan.Steps.Count > 1 ? "MoveToJunction," : string.Empty)}UndressItem]");
                 }
                 continue;
             }
@@ -718,7 +744,19 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
-                if (interactionType == InteractionType.PickUp &&
+                // §52: цель GatherTools может указывать на БРОШЕННУЮ ОДЕЖДУ, в
+                // кармане которой лежит нужный инструмент, — забирают оттуда
+                // только инструмент, саму куртку не поднимают. Спрашивать «влезет
+                // ли куртка» здесь значило отбрасывать единственного кандидата,
+                // которого ставка уже посчитала доступным: решение говорило
+                // «иди возьми», планировщик отвечал «некуда», и цель молотила
+                // вхолостую.
+                var stashPickup = npc.Mind.CurrentGoal == GoalType.GatherTools &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var stashCandidate) &&
+                    stashCandidate.Contents.Count > 0 &&
+                    InventoryMath.StashHoldsWantedTool(world, npc, stashCandidate);
+
+                if (interactionType == InteractionType.PickUp && !stashPickup &&
                     !InventoryMath.CanMakeRoomFor(world, npc, perceived.DefinitionId))
                 {
                     if (SimTrace.Enabled)

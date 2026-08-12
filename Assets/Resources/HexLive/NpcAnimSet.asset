@@ -41,6 +41,11 @@ MonoBehaviour:
     slowRun: {fileID: -203655887218126122, guid: 3d9b6641c0c85409bbad3b6ba806b9d5, type: 3}
     run: {fileID: -203655887218126122, guid: 83e1a6a61910c4ab4ad9dc3265780b2c, type: 3}
     sit: {fileID: -203655887218126122, guid: cf429408c49cc420596a8df523468276, type: 3}
+  strides:
+  - clip: {fileID: 7400000, guid: b1a5e04ae51004842aba06704a6c2903, type: 3}
+    bodyHeightsPerSec: 1.0031964
+  - clip: {fileID: -203655887218126122, guid: 6cf9658d2b5e24bd8983044df01d3944, type: 3}
+    bodyHeightsPerSec: 1.994182
   weapons:
   - weaponId: tool.spear
     idle: {fileID: 0}

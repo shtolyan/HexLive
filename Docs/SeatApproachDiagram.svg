@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
+  <title>Единая цепочка подхода к стулу и кровати</title>
+  <desc>Центральный якорь мебели, свободный обод и разворот спиной перед анимацией.</desc>
+  <style>
+    text { font-family: sans-serif; fill: #20252b; }
+    .small { font-size: 16px; }
+    .label { font-size: 19px; font-weight: 600; }
+    .rim { fill: #dbeafe; stroke: #2563eb; stroke-width: 3; }
+    .anchor { fill: #fecaca; stroke: #dc2626; stroke-width: 3; }
+    .body { fill: #bbf7d0; stroke: #15803d; stroke-width: 3; }
+    .route { fill: none; stroke: #2563eb; stroke-width: 4; marker-end: url(#arrow); }
+    .back { fill: none; stroke: #15803d; stroke-width: 4; stroke-dasharray: 8 7; marker-end: url(#arrowGreen); }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#2563eb"/></marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#15803d"/></marker>
+  </defs>
+
+  <text x="30" y="36" class="label">Общий поток Sit / Sleep</text>
+  <text x="30" y="64" class="small">HexRadius = 1.5 wu · StandStepAllowance = 0.80 wu</text>
+
+  <!-- Furniture anchor and the six-point free rim. -->
+  <polygon class="anchor" points="280,180 325,206 325,258 280,284 235,258 235,206"/>
+  <text x="246" y="239" class="label">якорь</text>
+  <text x="229" y="306" class="small">сиденье / точка кровати</text>
+
+  <circle class="rim" cx="280" cy="112" r="22"/>
+  <circle class="rim" cx="366" cy="162" r="22"/>
+  <circle class="rim" cx="366" cy="302" r="22"/>
+  <circle class="rim" cx="280" cy="352" r="22"/>
+  <circle class="rim" cx="194" cy="302" r="22"/>
+  <circle class="rim" cx="194" cy="162" r="22"/>
+  <text x="390" y="164" class="small">свободные клетки обода</text>
+
+  <path class="route" d="M610 112 C520 122 450 145 366 162"/>
+  <circle class="body" cx="610" cy="112" r="25"/>
+  <text x="570" y="78" class="label">NPC</text>
+  <text x="510" y="145" class="small">1. выбрать ближайшую</text>
+  <text x="510" y="166" class="small">зарезервированную клетку</text>
+
+  <path class="back" d="M366 162 L455 162"/>
+  <text x="390" y="202" class="small">2. плавно развернуться</text>
+  <text x="390" y="222" class="small">спиной к якорю</text>
+
+  <path d="M455 255 L645 255" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="395" y="287" class="small">3. только теперь: Sit-анимация</text>
+  <text x="395" y="308" class="small">или LyingSpot.AlignBodyToObject</text>
+
+  <rect x="30" y="365" width="830" height="34" rx="8" fill="#f3f4f6"/>
+  <text x="48" y="388" class="small">Ручной приказ и автономный план используют один резолвер обода и один этап разворота.</text>
+</svg>

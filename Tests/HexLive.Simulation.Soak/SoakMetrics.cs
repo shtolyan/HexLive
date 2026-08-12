@@ -42,6 +42,15 @@ public sealed class SoakMetrics
         /// </summary>
         public GoalType LastMeaningful = GoalType.None;
         public int MeaningfulSwitches;
+
+        // §71: gait/breath is sampled from state, like stuck/loop time. Keep
+        // the previous tick here so the soak can count real run bursts and
+        // breath use without parsing presentation-facing trace strings.
+        public bool HasBreathSample;
+        public float LastBreath = 1f;
+        public bool WasRunning;
+        public bool WasBreathSpent;
+        public int RunStreak;
     }
 
     private readonly Dictionary<int, NpcTrack> _tracks = new Dictionary<int, NpcTrack>();
@@ -51,6 +60,7 @@ public sealed class SoakMetrics
     /// поимённо: одна петля одного NPC в одном сиде тонет в колониальном
     /// среднем, и ровно поэтому churn её не показывал.</summary>
     private readonly Dictionary<int, int> _loopOnsets = new Dictionary<int, int>();
+    private readonly HashSet<int> _breathUsers = new HashSet<int>();
 
     public int Seed;
     public int TicksRun;
@@ -60,6 +70,13 @@ public sealed class SoakMetrics
     public int MobsPeak;
     public bool Completed;
     public double Seconds;
+    public int MovingNpcTicks;
+    public int RunningNpcTicks;
+    public int RunOnsets;
+    public int MaxRunTicks;
+    public int BreathSpentOnsets;
+    public int MovingBreathRecoveryNpcTicks;
+    public float MinBreath = 1f;
     private readonly Dictionary<string, int> _deathCauses =
         new Dictionary<string, int>(StringComparer.Ordinal);
 
@@ -90,6 +107,57 @@ public sealed class SoakMetrics
                 track = new NpcTrack { Goal = npc.Mind.CurrentGoal, GoalSinceTick = world.Tick };
                 _tracks[npc.Id.Value] = track;
             }
+
+            if (npc.Movement.IsMoving)
+            {
+                MovingNpcTicks++;
+            }
+
+            if (npc.Mind.IsRunning)
+            {
+                RunningNpcTicks++;
+                track.RunStreak++;
+                if (!track.WasRunning)
+                {
+                    RunOnsets++;
+                }
+                if (track.RunStreak > MaxRunTicks)
+                {
+                    MaxRunTicks = track.RunStreak;
+                }
+            }
+            else
+            {
+                track.RunStreak = 0;
+            }
+
+            if (npc.Needs.Breath < MinBreath)
+            {
+                MinBreath = npc.Needs.Breath;
+            }
+
+            if (track.HasBreathSample)
+            {
+                if (npc.Needs.Breath < track.LastBreath - 0.000001f)
+                {
+                    _breathUsers.Add(npc.Id.Value);
+                }
+                else if (npc.Movement.IsMoving && !npc.Mind.IsRunning &&
+                         npc.Needs.Breath > track.LastBreath + 0.000001f)
+                {
+                    MovingBreathRecoveryNpcTicks++;
+                }
+
+                if (!track.WasBreathSpent && npc.Mind.BreathSpent)
+                {
+                    BreathSpentOnsets++;
+                }
+            }
+
+            track.HasBreathSample = true;
+            track.LastBreath = npc.Needs.Breath;
+            track.WasRunning = npc.Mind.IsRunning;
+            track.WasBreathSpent = npc.Mind.BreathSpent;
 
             if (npc.Mind.CurrentGoal != track.Goal)
             {
@@ -209,6 +277,12 @@ public sealed class SoakMetrics
         ? 0
         : StuckTicks / (double)(TicksRun * _tracks.Count);
 
+    public int BreathUsers => _breathUsers.Count;
+
+    public double RunningShare => MovingNpcTicks == 0
+        ? 0
+        : RunningNpcTicks / (double)MovingNpcTicks;
+
     public int MedianDwell
     {
         get
@@ -257,6 +331,14 @@ public sealed class SoakMetrics
         text.AppendLine("  планов начато       " + EventCount("PlanStarted"));
         text.AppendLine("  планов провалено    " + EventCount("PlanFailed") +
                         "  (" + (PlanFailureRate * 100).ToString("F1", invariant) + "%)");
+        text.AppendLine("  бег                 " + RunningNpcTicks + " / " +
+                        MovingNpcTicks + " NPC-тиков движения (" +
+                        (RunningShare * 100).ToString("F1", invariant) + "%), рывков " +
+                        RunOnsets + ", максимум " + MaxRunTicks + " тиков");
+        text.AppendLine("  дыхание             использовали " + BreathUsers + " NPC, минимум " +
+                        MinBreath.ToString("F3", invariant) + ", выдохлись " +
+                        BreathSpentOnsets + " раз, восстанавливались в шаге " +
+                        MovingBreathRecoveryNpcTicks + " NPC-тиков");
         text.AppendLine("  застой              " + StuckTicks + " NPC-тиков" +
                         "  (" + (StuckShare * 100).ToString("F1", invariant) +
                         "% — цель есть, дела нет, не идёт)");
@@ -309,6 +391,15 @@ public sealed class SoakMetrics
                ",\"plansStarted\":" + EventCount("PlanStarted") +
                ",\"plansFailed\":" + EventCount("PlanFailed") +
                ",\"planFailureRate\":" + PlanFailureRate.ToString("F4", invariant) +
+               ",\"movingNpcTicks\":" + MovingNpcTicks +
+               ",\"runningNpcTicks\":" + RunningNpcTicks +
+               ",\"runningShare\":" + RunningShare.ToString("F4", invariant) +
+               ",\"runOnsets\":" + RunOnsets +
+               ",\"maxRunTicks\":" + MaxRunTicks +
+               ",\"breathUsers\":" + BreathUsers +
+               ",\"minBreath\":" + MinBreath.ToString("F4", invariant) +
+               ",\"breathSpentOnsets\":" + BreathSpentOnsets +
+               ",\"movingBreathRecoveryNpcTicks\":" + MovingBreathRecoveryNpcTicks +
                ",\"stuckNpcTicks\":" + StuckTicks +
                ",\"stuckShare\":" + StuckShare.ToString("F4", invariant) +
                ",\"loopTicks\":" + LoopTicks +

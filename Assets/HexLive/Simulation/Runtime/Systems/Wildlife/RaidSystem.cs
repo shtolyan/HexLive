@@ -252,7 +252,7 @@ public sealed class RaidSystem : ISimulationSystem
             // того чтобы встать, взять нож и ждать в стойке.
             if (mark.IsCrying(world.Tick))
             {
-                mark.Mind.CryingUntilTick = 0;
+                LyingSpot.EndCrying(world, mark);
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, mark.Id, "MarkBraces",
@@ -694,7 +694,9 @@ public sealed class RaidSystem : ISimulationSystem
 
         foreach (var abuser in world.Entities.Npcs.Values)
         {
-            if (abuser.Faction == Faction.Colony ||
+            // §126: латч ищет ХАРАКТЕР, а не фракцию — парный гейт к ставке в
+            // DecisionSystem, и именно этот латч сцены и запускает (§87).
+            if (!abuser.Traits.Has(Agents.TraitKind.Abuser) ||
                 abuser.Health <= 0f)
             {
                 continue;

@@ -123,6 +123,12 @@ public sealed class HutAssembly : MonoBehaviour
         return renderers.ToArray();
     }
 
+    public void SetDoorOpen(bool open)
+    {
+        foreach (var door in GetComponentsInChildren<HutDoorVisual>(true))
+            door.SetOpen(open);
+    }
+
     public void Apply(int siteSeed, int sticks, int boards, int rope, int leaves)
     {
         Scan();

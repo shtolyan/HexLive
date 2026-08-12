@@ -78,18 +78,22 @@ public sealed class SetManualControlCommand : ISimulationCommand
 }
 
 /// <summary>§121: идти в точку. Точка, а не узел: клик игрока приходит по
-/// поверхности мира, а ближайший узел — уже дело симуляции.</summary>
+/// поверхности мира, а ближайший узел — уже дело симуляции.
+/// Run=false — одиночный клик, Run=true — двойной.</summary>
 public sealed class MoveToCommand : ISimulationCommand
 {
-    public MoveToCommand(EntityId npc, Float2 worldPosition)
+    public MoveToCommand(EntityId npc, Float2 worldPosition, bool run = false)
     {
         Npc = npc;
         WorldPosition = worldPosition;
+        Run = run;
     }
 
     public EntityId Npc { get; }
 
     public Float2 WorldPosition { get; }
+
+    public bool Run { get; }
 
     public EntityId? TargetEntity => Npc;
 }
@@ -192,10 +196,17 @@ public sealed class StopCommand : ISimulationCommand
 /// <summary>§123: one target point, many independently placed actors.</summary>
 public sealed class GroupMoveCommand : GroupSimulationCommand
 {
-    public GroupMoveCommand(IEnumerable<EntityId> actors, Float2 worldPosition)
-        : base(actors) => WorldPosition = worldPosition;
+    public GroupMoveCommand(
+        IEnumerable<EntityId> actors, Float2 worldPosition, bool run = false)
+        : base(actors)
+    {
+        WorldPosition = worldPosition;
+        Run = run;
+    }
 
     public Float2 WorldPosition { get; }
+
+    public bool Run { get; }
 }
 
 public sealed class GroupStopCommand : GroupSimulationCommand
@@ -267,6 +278,41 @@ public sealed class ManageInventoryCommand : ISimulationCommand
     public InventoryItemRef Item { get; }
     public InventoryAction Action { get; }
     public EntityId? TargetEntity => Npc;
+}
+
+public enum InventoryTransferDirection
+{
+    Take,
+    Give
+}
+
+/// <summary>
+/// §128: move one visible inventory cell between the selected colonist and an
+/// unconscious person. The simulation resolves the physical instances again
+/// after the approach, so a stale UI can never duplicate or delete an item.
+/// </summary>
+public sealed class TransferInventoryCommand : ISimulationCommand
+{
+    public TransferInventoryCommand(
+        EntityId looter,
+        EntityId other,
+        InventoryItemRef item,
+        int count,
+        InventoryTransferDirection direction)
+    {
+        Looter = looter;
+        Other = other;
+        Item = item;
+        Count = count > 0 ? count : 1;
+        Direction = direction;
+    }
+
+    public EntityId Looter { get; }
+    public EntityId Other { get; }
+    public InventoryItemRef Item { get; }
+    public int Count { get; }
+    public InventoryTransferDirection Direction { get; }
+    public EntityId? TargetEntity => Looter;
 }
 
 }

@@ -68,7 +68,19 @@ public static class WorldSaveSerializer
     // door element; v32 hut slots are migrated from the mirrored prototype.
     // v34: every constructor piece is a top-level WorldObject linked to its
     // footprint aggregate by ArchitectureOwnerId.
-    public const int BlobVersion = 38;
+    // v36 (§126): черты характера — одна битовая маска в хвост NPC-записи.
+    // Блоб v35 и старше черт не знает, поэтому при чтении их ВЫВОДЯТ из
+    // фракции: до §126 «абьюзер» и «неряха» и были синонимами Faction !=
+    // Colony, так что чужак из старого сейва обязан очнуться собой, а не
+    // безобидным. Без этой миграции загрузка тихо разоружила бы врага.
+    // v37 (§120.2): architectural door open/closed state on each LEGO piece.
+    // v39 (§121.1): unfinished manual movement plans retain Walk/Run pace.
+    // v40 (§132): processed weekly colony-arrival boundaries. Without this
+    // cursor a loaded full camp would accumulate a hidden replacement backlog.
+    // v41 (§40.8-H r10): накопительная кровяная подложка per-zone (BloodSoil)
+    // в хвост NPC-записи. Старый блоб читается чистым — прежние спеклы были
+    // производной от HP и в сейве не жили.
+    public const int BlobVersion = 41;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -110,6 +122,7 @@ public static class WorldSaveSerializer
         w.Write(world.NextRabbitSpawnCheckTick);
         w.Write(world.TopologyVersion);
         w.Write(world.RaidWavesSpawned); // §72.14, v27
+        w.Write(world.ColonyArrivalsProcessed); // §132, v40
 
         var env = world.Environment;
         w.Write(env.GlobalTemperature);
@@ -178,13 +191,13 @@ public static class WorldSaveSerializer
             w.Write(dog.Health);
             w.Write((int)dog.Status);
             WriteNullableEntity(w, dog.TargetNpc);
+            w.Write(dog.LeavesAtTick); // v38: гость рейда остаётся гостем
         }
 
         w.Write(world.Rabbits.Count);
         foreach (var rabbit in world.Rabbits)
         {
             w.Write(rabbit.Id);
-            w.Write(dog.LeavesAtTick); // v38: гость рейда остаётся гостем
             WriteTile(w, rabbit.Tile);
             w.Write(rabbit.Junction.Value);
             WriteFloat2(w, rabbit.Position);
@@ -327,8 +340,19 @@ public static class WorldSaveSerializer
             ? r.ReadInt32()
             // Same boundary formula as RaidWaveSystem (calendar days), or the
             // adoption would mark a different set of waves as already handled.
-            : HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(world.Tick) /
-              HexLive.Simulation.Runtime.Spec72.RaidWaveIntervalDays;
+            : HexLive.Simulation.Runtime.Spec72.RaidWaveIntervalDays > 0
+                ? HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(world.Tick) /
+                  HexLive.Simulation.Runtime.Spec72.RaidWaveIntervalDays
+                : 0;
+        // Old saves adopt elapsed weekly boundaries as already handled: a day
+        // 50 colony must not receive seven women at once merely because the
+        // feature (and its cursor) did not exist when that save was written.
+        world.ColonyArrivalsProcessed = version >= 40
+            ? r.ReadInt32()
+            : HexLive.Simulation.Runtime.WorldBalance.ColonyArrivalIntervalDays > 0
+                ? HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(world.Tick) /
+                  HexLive.Simulation.Runtime.WorldBalance.ColonyArrivalIntervalDays
+                : 0;
 
         var env = world.Environment;
         env.GlobalTemperature = r.ReadSingle();
@@ -431,17 +455,17 @@ public static class WorldSaveSerializer
                 Status = (MobStatus)r.ReadInt32(),
                 TargetNpc = ReadNullableEntity(r)
             };
+            // v38: срок ухода гостя рейда. Блобы до v38 его не знают — там
+            // все собаки читаются жителями, и лишних разберёт правило потолка
+            // в MobSystem.EnforceResidentCap (ровно так чинится сейв, в
+            // котором стая накопилась по старому багу).
+            dog.LeavesAtTick = version >= 38 ? r.ReadInt32() : 0;
             // The glide is a render-only smoothing; a loaded dog stands at its
             // saved position with no pending hop, so anchor the target there.
             dog.TargetPosition = dogPos;
             dog.GlideAnchor = dogPos;
             world.Mobs.Add(dog);
         }
-            // v38: срок ухода гостя рейда. Блобы до v38 его не знают — там
-            // все собаки читаются жителями, и лишних разберёт правило потолка
-            // в MobSystem.EnforceResidentCap (ровно так чинится сейв, в
-            // котором стая накопилась по старому багу).
-            dog.LeavesAtTick = version >= 38 ? r.ReadInt32() : 0;
 
         world.Rabbits.Clear();
         var rabbitCount = r.ReadInt32();
@@ -721,6 +745,7 @@ public static class WorldSaveSerializer
             w.Write(element.WorkDone);
         }
         WriteNullableObject(w, obj.ArchitectureOwnerId);
+        w.Write(obj.IsDoorOpen);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -818,6 +843,7 @@ public static class WorldSaveSerializer
         }
 
         obj.ArchitectureOwnerId = version >= 34 ? ReadNullableObject(r) : null;
+        obj.IsDoorOpen = version >= 37 ? r.ReadBoolean() : true;
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including
@@ -1048,6 +1074,7 @@ public static class WorldSaveSerializer
 
         WriteNullableString(w, plan.TargetItemDefinitionId);
         WriteNullableEntity(w, plan.TargetAgentId);
+        w.Write(plan.RunRequested); // v39, §121.1
         w.Write(plan.Steps.Count);
         foreach (var step in plan.Steps)
         {
@@ -1268,6 +1295,21 @@ public static class WorldSaveSerializer
             w.Write(met.Suffering);
             w.Write((int)met.AidKind);
             w.Write(met.Helpless);
+        }
+
+        // §126 / v36: черты характера — ОДНО число, ординал каждой черты это
+        // номер бита (TraitKind — append-only ровно поэтому). Список имён здесь
+        // был бы двумя ошибками сразу: длина записи поехала бы от состава, а
+        // переименование черты в коде молча потеряло бы её у всех сохранённых.
+        w.Write(npc.Traits.Bits);
+
+        // §40.8-H r10 / v41: кровяная подложка per-zone — в конец записи
+        // (append-only). Порядок зон фиксирован BodyPartOrder, как в v28.
+        w.Write(BodyPartOrder.Length);
+        foreach (var part in BodyPartOrder)
+        {
+            w.Write((int)part);
+            w.Write(npc.Body.Condition(part).BloodSoil);
         }
     }
 
@@ -1511,6 +1553,7 @@ public static class WorldSaveSerializer
         plan.TargetTile = r.ReadBoolean() ? ReadTile(r) : null;
         plan.TargetItemDefinitionId = ReadNullableString(r);
         plan.TargetAgentId = ReadNullableEntity(r);
+        plan.RunRequested = version >= 39 && r.ReadBoolean();
         var stepCount = r.ReadInt32();
         for (var i = 0; i < stepCount; i++)
         {
@@ -1762,6 +1805,35 @@ public static class WorldSaveSerializer
                     Helpless = r.ReadBoolean()
                 };
                 npc.Memory.KnownAgents[met.Id] = met;
+            }
+        }
+
+        if (version >= 36)
+        {
+            // §126: черты характера одним числом.
+            npc.Traits.Bits = r.ReadUInt64();
+        }
+        else
+        {
+            // §126 миграция: до v36 «гнобит» и «не моется» БЫЛИ фракцией.
+            // Правило живёт в TraitMath, чтобы его можно было проверить гейтом,
+            // а не подделкой двоичного блоба.
+            HexLive.Simulation.Runtime.TraitMath.ApplyPreTraitDefaults(npc);
+        }
+
+        if (version >= 41)
+        {
+            // §40.8-H r10: кровяная подложка. Старый блоб — чистая кожа (0):
+            // прежние спеклы были производной от HP и не сохранялись.
+            var soilCount = r.ReadInt32();
+            for (var i = 0; i < soilCount; i++)
+            {
+                var part = (BodyPart)r.ReadInt32();
+                var soil = r.ReadSingle();
+                if (npc.Body.Conditions.TryGetValue(part, out var condition))
+                {
+                    condition.BloodSoil = soil;
+                }
             }
         }
 

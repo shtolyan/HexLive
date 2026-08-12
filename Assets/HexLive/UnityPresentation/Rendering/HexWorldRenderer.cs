@@ -29,8 +29,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private const float NpcRadiusFactor = 17f / 75f;
     private const float NpcHeightFactor = 11f / 30f;
-    private const float PalmCrownCutoutRadiusFactor = 1.75f;
-    private const float PalmCrownCutoutCenterHeightFactor = 1.2f;
     // At 4 Hz this gives a fresh sever three seconds to reach a viewer even
     // across remote/delta batching. Distance is checked too, so an old limb
     // never follows an owner who has already crawled away.
@@ -435,6 +433,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // вид на дальнем плане) позировать некому — снимок пропускаем.
     public bool IsNpcPhotogenic(int npcId)
     {
+        // §80 r3: сверх фотогеничности — ещё и СТОИТ. Съёмка на ходу давала
+        // разные позы у разных колонисток; ждать нечего, кадр раз в сутки.
+        // §130 (взгляд в игровую камеру) спрашивает IsPhotogenic напрямую и
+        // этой добавки не видит: там ходьба помехой не является.
         return _actorViews.TryGetValue(npcId, out var actorView) && actorView != null &&
                actorView.IsPhotogenic && actorView.IsPortraitPoseSettled;
     }
@@ -1334,8 +1336,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var targetRot = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(npc.RotationDegrees), 0f);
             var targetPose = TryGetCarriedPose(snapshot, npc, targetRot, out var carriedPose)
                 ? carriedPose
-                : TryGetStumpSeatPose(snapshot, npc, targetRot, out var stumpSeatPose)
-                    ? stumpSeatPose
+                : TryGetFurnitureSeatPose(snapshot, npc, targetRot, out var furnitureSeatPose)
+                    ? furnitureSeatPose
                     : new Pose(
                         SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)),
                         targetRot);
@@ -1575,6 +1577,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var components = new List<ArchitectureElementSnapshot>(pair.Value.Count);
             foreach (var piece in pair.Value) components.Add(piece.ArchitectureElements[0]);
             assembly.ApplyElements(components);
+            var doorPiece = pair.Value.Find(piece =>
+                piece.DefinitionId == "architecture.door.wood");
+            if (doorPiece != null) assembly.SetDoorOpen(doorPiece.IsDoorOpen);
 
             foreach (var piece in pair.Value)
             {
@@ -2509,13 +2514,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return point != null ? point : bedView.transform;
     }
 
-    private bool TryGetStumpSeatPose(
+    private bool TryGetFurnitureSeatPose(
         WorldSnapshot snapshot, NpcSnapshot npc, Quaternion rotation, out Pose pose)
     {
         pose = default;
         if (npc.CurrentInteraction != "Sit" ||
             !TryGetTargetObject(snapshot, npc, out var seat) ||
-            seat.DefinitionId != "stump.palm")
+            (seat.DefinitionId != "stump.palm" && seat.DefinitionId != "chair.basic"))
         {
             return false;
         }
@@ -3883,9 +3888,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // §85: and her eyes, on an axis of their own.
                 view.Construct(npc.ActorMesh, npc.Id.Value,
                     npc.SkinSet, npc.EyeColor, npc.Hairstyle, npc.VoiceBank);
-                actorRoot.AddComponent<CharacterPalmCrownCutoutSphere>().Construct(
-                    HexRadius * PalmCrownCutoutRadiusFactor,
-                    HexRadius * NpcHeightFactor * PalmCrownCutoutCenterHeightFactor);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =
@@ -3933,10 +3935,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             visorRenderer.sharedMaterial = CreateMaterial(visorColor);
         }
-
-        root.AddComponent<CharacterPalmCrownCutoutSphere>().Construct(
-            HexRadius * PalmCrownCutoutRadiusFactor,
-            HexRadius * NpcHeightFactor * PalmCrownCutoutCenterHeightFactor);
 
         return root;
     }
@@ -3988,15 +3986,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (hut == null) return anchor;
 
         var center = HexSpatialMath.TileToWorld(bed.Tile);
-        var radians = hut.RotationDegrees * Mathf.Deg2Rad;
-        var cos = Mathf.Cos(radians);
-        var sin = Mathf.Sin(radians);
-        Float2 Target(float x, float z) => center + new Float2(x * cos - z * sin, x * sin + z * cos);
-        var first = Target(BuildingRules.HutBed0LocalX, BuildingRules.HutBed0LocalZ);
-        var second = Target(BuildingRules.HutBed1LocalX, BuildingRules.HutBed1LocalZ);
-        var d0 = anchor - first;
-        var d1 = anchor - second;
-        return d0.X * d0.X + d0.Y * d0.Y <= d1.X * d1.X + d1.Y * d1.Y ? first : second;
+        return BuildingRules.HutBedVisualPosition(
+            center, hut.RotationDegrees, anchor);
     }
 
     private bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
@@ -4532,7 +4523,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // still costing a draw call in every cascade it falls into. Measured by the
     // fitted bounds rather than by an id list, so a new item classifies itself;
     // trees, beds, fires and the girls are all far above the line and keep
-    // their shadows.
+    // their shadows. The same short props also move to the SmallProps layer,
+    // which the camera distance-culls (PrototypeRuntimeBootstrap.InstallCamera):
+    // a dropped knife two screens away is sub-pixel and needs no draw call.
+    // Colliders move with the layer — the default raycast mask still includes
+    // it, so hover/click picking is unaffected.
     private const float ShadowCastMinHeightFactor = 0.30f;
 
     private void SuppressSmallPropShadows(GameObject instance)
@@ -4557,6 +4552,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         for (var i = 0; i < renderers.Length; i++)
         {
             renderers[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        var smallPropLayer = LayerMask.NameToLayer("SmallProps");
+        if (smallPropLayer >= 0)
+        {
+            SetLayerRecursive(instance.transform, smallPropLayer);
+        }
+    }
+
+    private static void SetLayerRecursive(Transform root, int layer)
+    {
+        root.gameObject.layer = layer;
+        for (var i = 0; i < root.childCount; i++)
+        {
+            SetLayerRecursive(root.GetChild(i), layer);
         }
     }
 

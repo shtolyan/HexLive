@@ -43,6 +43,25 @@ internal static class WoundMath
     // clutter that burns the cap for nothing.
     private static float MinSplittableDamage => SimBalance.MinSplittableDamage;
 
+    // §40.8-H r10: вода смывает кровяную подложку со всех зон. Единственный
+    // путь вниз для BloodSoil — вызывается водяным тиком NeedsDecaySystem и
+    // купанием (Bathe обнуляет через amount >= 1).
+    public static void WashBloodSoil(NPCState npc, float amount)
+    {
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+        foreach (var condition in npc.Body.Conditions.Values)
+        {
+            if (condition.BloodSoil > 0f)
+            {
+                condition.BloodSoil = MathUtil.Clamp01(condition.BloodSoil - amount);
+            }
+        }
+    }
+
     // HP still held hostage by open wounds in a zone: Σ severity·(1−heal).
     // Generic fed-regen may not raise the zone above 1 − this value; the HP
     // returns only as each wound closes.
@@ -186,7 +205,7 @@ internal static class WoundMath
 
         if (world.Tick < npc.Mind.CryingUntilTick)
         {
-            npc.Mind.CryingUntilTick = 0;
+            LyingSpot.EndCrying(world, npc);
         }
 
         foreach (var garment in npc.WornItems)
@@ -214,6 +233,12 @@ internal static class WoundMath
         {
             return;
         }
+
+        // §40.8-H r10: рана пачкает кожу кровью. Накопительная величина —
+        // заживление её не убирает, только вода (WashBloodSoil).
+        var condition = npc.Body.Condition(zone);
+        condition.BloodSoil = MathUtil.Clamp01(
+            condition.BloodSoil + damage * SimBalance.BloodSoilPerCut);
 
         // §118 wounds are medical records: one landed cutting event is one
         // wound that one dressing can stabilize. The older visual-only model

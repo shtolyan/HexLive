@@ -178,6 +178,7 @@ public static class WorldSnapshotExporter
                 });
             }
             exported.ArchitectureOwnerObjectId = obj.ArchitectureOwnerId?.Value;
+            exported.IsDoorOpen = obj.IsDoorOpen;
 
             foreach (var junctionId in obj.Junctions)
             {
@@ -840,6 +841,7 @@ public static class WorldSnapshotExporter
                 Id = sourceContainer.Id,
                 Kind = sourceContainer.Kind,
                 OwnerItemDefinitionId = sourceContainer.OwnerItemDefinitionId,
+                OwnerSourceIndex = sourceContainer.OwnerSourceIndex,
                 BodyAnchor = sourceContainer.BodyAnchor,
                 Capacity = sourceContainer.Capacity,
                 BaseCapacity = sourceContainer.BaseCapacity,
@@ -851,6 +853,7 @@ public static class WorldSnapshotExporter
                 targetContainer.Slots.Add(new InventorySlotSnapshot
                 {
                     Index = sourceSlot.Index,
+                    SourceIndex = sourceSlot.SourceIndex,
                     ItemDefinitionId = sourceSlot.ItemDefinitionId,
                     StackCount = sourceSlot.StackCount,
                     AcceptedItemDefinitionId = sourceSlot.AcceptedItemDefinitionId
@@ -970,10 +973,10 @@ public static class WorldSnapshotExporter
 
         npcSnapshot.WoundLockedHp = lockedHp / npc.Body.Parts.Count;
         npcSnapshot.VitalHealth = npc.Body.VitalHealth(); // §105 r2
+        npcSnapshot.DisplayHealth = npc.Body.DisplayHealth(); // §105 r3
 
         // Spec §48: derive the active status effects (buffs/debuffs) from this
         // NPC's live state — read-only, so nothing here touches balance. Each
-        npcSnapshot.DisplayHealth = npc.Body.DisplayHealth(); // §105 r3
         // exports as "Kind\tintensity\tdetailKey" for the character panel's
         // chip row; the optional third field explains the concrete cause.
         var effects = new List<ActiveEffect>();
@@ -1012,6 +1015,9 @@ public static class WorldSnapshotExporter
 
         Runtime.AttributeMath.CollectPerks(npc, npcSnapshot.Perks);
 
+        // §126: черты характера для вкладки «Характер».
+        Runtime.TraitMath.CollectTraits(npc, npcSnapshot.Traits);
+
         // §125: готовый радиус восприятия для тумана войны и кольца в дебаге.
         npcSnapshot.PerceptionRadiusTiles = Runtime.PerceptionMath.RadiusTiles(npc);
 
@@ -1032,6 +1038,7 @@ public static class WorldSnapshotExporter
                 BluntDamage = condition.BluntDamage,
                 SplintSupport = condition.SplintSupport,
                 HitBias = condition.HitBias,
+                BloodSoil = condition.BloodSoil,
                 Severed = npc.Body.IsSevered(part.Key),
                 BandageKind = npc.BandagedZones.Contains(part.Key) ? "herbal" :
                     npc.GauzeZones.Contains(part.Key) ? "gauze" : string.Empty

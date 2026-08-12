@@ -54,7 +54,8 @@ public sealed class Junction
 
     public bool Blocked { get; set; }
 
-    // Spec 35.3: a passable door junction — humans only, animals never.
+    // Spec 35.3: a door throat. Humans may use it only while !Blocked;
+    // animals reject Door in either state.
     public bool Door { get; set; }
 
     public List<JunctionId> Neighbors { get; } = new();

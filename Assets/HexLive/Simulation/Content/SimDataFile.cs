@@ -96,6 +96,104 @@ namespace HexLive.Simulation.Content
             return true;
         }
 
+        /// <summary>
+        /// Apply a small, player-build-side balance override without rebuilding
+        /// the application. Accepted shapes are either a flat object of
+        /// <c>"Class.Field": value</c> pairs or a full/partial SimData object
+        /// whose pairs live under <c>"balance"</c>.
+        /// <para>
+        /// Validation is atomic: one unknown key, fractional int, wrong type or
+        /// non-finite number rejects the WHOLE file before any static changes.
+        /// That property matters more than permissiveness here — half a balance
+        /// deployment is a different game nobody intended to test.
+        /// </para>
+        /// </summary>
+        public static bool TryApplyBalanceOverrides(
+            string json, out int applied, out string error)
+        {
+            applied = 0;
+            error = string.Empty;
+            if (MiniJson.Parse(json) is not Dictionary<string, object> root)
+            {
+                error = "JSON не разбирается как объект.";
+                return false;
+            }
+
+            Dictionary<string, object> balance;
+            if (root.TryGetValue("balance", out var nested))
+            {
+                if (nested is not Dictionary<string, object> nestedBalance)
+                {
+                    error = "Поле 'balance' должно быть JSON-объектом.";
+                    return false;
+                }
+
+                balance = nestedBalance;
+            }
+            else
+            {
+                balance = root;
+            }
+
+            if (balance.Count == 0)
+            {
+                error = "Файл не содержит ни одной ручки баланса.";
+                return false;
+            }
+
+            var pending = new List<(System.Reflection.FieldInfo Field, object Value)>();
+            foreach (var pair in balance)
+            {
+                var field = BalanceReflection.Find(pair.Key);
+                if (field == null)
+                {
+                    error = $"Неизвестная ручка '{pair.Key}'. Имя должно совпадать с balance-ключом из SimData/simdata.json.";
+                    return false;
+                }
+
+                object converted;
+                if (field.FieldType == typeof(bool) && pair.Value is bool boolean)
+                {
+                    converted = boolean;
+                }
+                else if (field.FieldType == typeof(float) && pair.Value is double number &&
+                         !double.IsNaN(number) && !double.IsInfinity(number) &&
+                         number >= -float.MaxValue && number <= float.MaxValue)
+                {
+                    converted = (float)number;
+                }
+                else if (field.FieldType == typeof(int) && pair.Value is double integer &&
+                         !double.IsNaN(integer) && !double.IsInfinity(integer) &&
+                         integer == System.Math.Truncate(integer) &&
+                         integer >= int.MinValue && integer <= int.MaxValue)
+                {
+                    converted = (int)integer;
+                }
+                else if (field.FieldType == typeof(long) && pair.Value is double longInteger &&
+                         !double.IsNaN(longInteger) && !double.IsInfinity(longInteger) &&
+                         longInteger == System.Math.Truncate(longInteger) &&
+                         longInteger >= long.MinValue && longInteger <= long.MaxValue)
+                {
+                    converted = (long)longInteger;
+                }
+                else
+                {
+                    error = $"Неверный тип/диапазон '{pair.Key}': ожидается {field.FieldType.Name}.";
+                    return false;
+                }
+
+                pending.Add((field, converted));
+            }
+
+            foreach (var change in pending)
+            {
+                change.Field.SetValue(null, change.Value);
+            }
+
+            applied = pending.Count;
+            return true;
+        }
+
         private static void Apply(Dictionary<string, object> root)
         {
             ApplyBalance(root);

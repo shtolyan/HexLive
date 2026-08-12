@@ -819,6 +819,11 @@ namespace HexLive.UnityPresentation.Wearing
 
                     GL.PopMatrix();
                     RenderTexture.active = previous;
+                    // GPU-side painting does not update Texture.updateCount
+                    // automatically. The persistent inventory doll uses that
+                    // revision to refresh this material without cloning the
+                    // actor again.
+                    rt.IncrementUpdateCount();
                     _materials[slot].SetTexture("_TearMaskTex", rt);
                     _materials[slot].SetFloat("_TearTexOn", 1f);
                 }
@@ -970,6 +975,7 @@ namespace HexLive.UnityPresentation.Wearing
                     GL.PopMatrix();
                     RenderTexture.active = previous;
                     rt.GenerateMips();
+                    rt.IncrementUpdateCount();
                     _materials[slot].SetTexture("_BaseMap", rt);
                     if (source == null)
                     {

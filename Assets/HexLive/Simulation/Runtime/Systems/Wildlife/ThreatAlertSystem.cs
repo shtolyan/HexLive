@@ -171,6 +171,10 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             // Раньше сюда шёл id самой кричащей, что прочиталось бы как «боится
             // себя»; null оставляет прежнюю иконку зверя.
             SocialCueSignals.Stamp(world, npc, "DangerSpotted:" + threat.MobId, null);
+            // §126: черта сдвигает планку «достаточно ли она цела» (внутри
+            // IsFitToFight), но НЕ трогает потолок стаи: «первой бьём только
+            // одиночку» — правило выживания §62, и храбрость его не отменяет.
+            // Соак, где отменяла, стоил колонии всех четверых.
             var fit = IsFitToFight(npc) && pack <= Spec62.AttackMaxPack;
             Trace.Emit(world, npc.Id, "ThreatSpotted",
                 $"Mob={threat.Id} Dist={bestDistance} Pack={pack} Fit={fit} " +
@@ -198,7 +202,8 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             !npc.Body.CanUseToolsOrWeapons ||
             npc.Mind.IsStarving ||
             npc.Mind.IsDehydrated ||
-            MobSystem.WorstPartHealth(npc) < Spec62.FitBoneHealth)
+            // §126: у храброй планка «достаточно цела, чтобы драться» ниже.
+            MobSystem.WorstPartHealth(npc) < TraitMath.FitBoneHealth(npc))
         {
             return false;
         }

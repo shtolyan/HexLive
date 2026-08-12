@@ -80,6 +80,9 @@ internal static class ManualCommandExecutor
             case ManageInventoryCommand inventory:
                 ApplyManageInventory(world, inventory);
                 break;
+            case TransferInventoryCommand transfer:
+                ApplyTransferInventory(world, transfer);
+                break;
         }
     }
 
@@ -156,6 +159,7 @@ internal static class ManualCommandExecutor
         }
 
         npc.Plan.Steps.Clear();
+        npc.Plan.RunRequested = false;
         npc.Mind.GoalLock = null;
     }
 
@@ -245,22 +249,25 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        InstallMovePlan(world, npc, destination, junction);
+        InstallMovePlan(world, npc, destination, junction, command.Run);
 
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
                 $"Order=MoveTo Junction={destination.Value} " +
-                $"Tile={Trace.FormatTile(npc.Plan.TargetTile)}");
+                $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} " +
+                $"Pace={(command.Run ? "Run" : "Walk")}");
         }
     }
 
     private static void InstallMovePlan(
-        WorldState world, NPCState npc, JunctionId destination, Junction junction)
+        WorldState world, NPCState npc, JunctionId destination, Junction junction,
+        bool run)
     {
         npc.Plan.Goal = GoalType.PlayerOrder;
         npc.Plan.TargetJunctionId = destination;
         npc.Plan.TargetTile = junction.Tiles.Count > 0 ? junction.Tiles[0] : null;
+        npc.Plan.RunRequested = run;
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.MoveToJunction,
@@ -454,11 +461,13 @@ internal static class ManualCommandExecutor
             SpatialMutations.TryReserveJunction(
                 world, assignment.Destination, assignment.Npc.Id,
                 world.Tick, Spec121.ManualReserveTicks);
-            InstallMovePlan(world, assignment.Npc, assignment.Destination, destination);
+            InstallMovePlan(
+                world, assignment.Npc, assignment.Destination, destination, command.Run);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, assignment.Npc.Id, "ManualOrderAccepted",
-                    $"Order=GroupMove Junction={assignment.Destination.Value}");
+                    $"Order=GroupMove Junction={assignment.Destination.Value} " +
+                    $"Pace={(command.Run ? "Run" : "Walk")}");
             }
             accepted++;
         }
@@ -651,6 +660,112 @@ internal static class ManualCommandExecutor
         }
     }
 
+    private static void ApplyTransferInventory(
+        WorldState world, TransferInventoryCommand command)
+    {
+        if (!TryTakeOrder(world, command.Looter, "TransferInventory",
+                requireManual: true, out var looter))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, looter))
+        {
+            Reject(world, looter.Id, "TransferInventory", "Incapacitated");
+            return;
+        }
+
+        if (command.Direction is not InventoryTransferDirection.Take and
+            not InventoryTransferDirection.Give)
+        {
+            Reject(world, looter.Id, "TransferInventory", "InvalidDirection");
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Other, out var other) ||
+            other.Id.Equals(looter.Id) || other.Health <= 0f ||
+            !other.IsUnconscious(world.Tick) || other.IsBeingCarried ||
+            CombatMedium.IsNpcSwimming(world, other))
+        {
+            Reject(world, looter.Id, "TransferInventory", "PersonNotAvailable");
+            return;
+        }
+
+        var source = command.Direction == InventoryTransferDirection.Take ? other : looter;
+        var destination = command.Direction == InventoryTransferDirection.Take ? looter : other;
+        if (!PlayerInventoryTransferMath.FitsAfter(
+                world, source, destination, command.Item, command.Count))
+        {
+            Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace");
+            return;
+        }
+
+        ClearForNewOrder(world, looter, "Ручной обмен с лежащим человеком");
+        ClearAttackOrder(world, looter);
+
+        looter.Plan.Goal = GoalType.PlayerInventory;
+        looter.Plan.TargetAgentId = other.Id;
+        looter.Plan.TargetItemDefinitionId = command.Item.ExpectedDefinitionId;
+        looter.Plan.TargetTile = other.Tile;
+
+        var closeEnough = InteractionReach.CheckPersonStart(
+            world, looter, other, LyingSpot.InteractionFeet(other),
+            LyingSpot.InteractionStationReach,
+            $"Player inventory transfer with NPC{other.Id.Value}");
+        if (!closeEnough)
+        {
+            if (!KenshiRescueMath.TryFindApproach(world, looter, other, out var approach))
+            {
+                looter.Mind.CurrentGoal = GoalType.None;
+                looter.Plan.Goal = GoalType.None;
+                looter.Plan.Status = PlanStatus.Failed;
+                looter.Plan.CurrentStepIndex = 0;
+                looter.Plan.Steps.Clear();
+                looter.Plan.TargetAgentId = null;
+                looter.Plan.TargetItemDefinitionId = null;
+                looter.Plan.TargetJunctionId = null;
+                looter.Plan.TargetTile = null;
+                Reject(world, looter.Id, "TransferInventory", "Unreachable");
+                return;
+            }
+
+            looter.Plan.TargetJunctionId = approach;
+            looter.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.MoveToJunction,
+                TargetJunction = approach
+            });
+        }
+
+        var stepType = (command.Direction, command.Item.Source) switch
+        {
+            (InventoryTransferDirection.Take, InventoryItemSource.Carried) =>
+                PlanStepType.PlayerTakeCarried,
+            (InventoryTransferDirection.Take, InventoryItemSource.Worn) =>
+                PlanStepType.PlayerTakeWorn,
+            (InventoryTransferDirection.Give, InventoryItemSource.Carried) =>
+                PlanStepType.PlayerGiveCarried,
+            _ => PlanStepType.PlayerGiveWorn
+        };
+        looter.Plan.Steps.Add(new PlanStep
+        {
+            Type = stepType,
+            TimeoutEndTick = PlayerInventoryTransferMath.PackCursor(
+                command.Item.Index, command.Count)
+        });
+        looter.Plan.CurrentStepIndex = 0;
+        looter.Plan.Status = PlanStatus.Active;
+        looter.Mind.CurrentGoal = GoalType.PlayerInventory;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, looter.Id, "ManualOrderAccepted",
+                $"Order=TransferInventory Direction={command.Direction} " +
+                $"Other=NPC{other.Id.Value} Source={command.Item.Source} " +
+                $"Index={command.Item.Index} Count={command.Count} " +
+                $"Def={command.Item.ExpectedDefinitionId}");
+        }
+    }
+
     private static void ApplyInteract(WorldState world, InteractCommand command)
     {
         if (!TryTakeOrder(world, command.Npc, "Interact", requireManual: true, out var npc))
@@ -719,9 +834,11 @@ internal static class ManualCommandExecutor
         ClearAttackOrder(world, npc);
 
         var anchor = worldObject.Junctions[0];
-        var standBeside = command.Interaction == InteractionType.PickUp ||
-            SpatialQueries.IsAllWaterJunction(world, anchor) ||
-            (world.Junctions.Items.TryGetValue(anchor, out var anchorJunction) && anchorJunction.Blocked);
+        // Manual and autonomous object orders share the exact same approach
+        // predicate.  In particular Sit/Sleep always reserve the nearest free
+        // rim junction; their anchor is a pose marker, never a standing spot.
+        var standBeside = PlanningSystem.RequiresBesideApproach(
+            world, anchor, command.Interaction);
 
         JunctionId target;
         if (standBeside)

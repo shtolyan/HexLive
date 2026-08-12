@@ -73,10 +73,10 @@ namespace HexLive.UnityPresentation.UI
         private Label _uvLabel;
         private VisualElement _statusDot;
         private Label _thoughtValue;
-        // §105 r2: кольцо здоровья вокруг портрета. Горизонтальная полоска
-        // (_healthFill/_healthLockedFill) снята — два бара про одно и то же
-        // спорили бы друг с другом, а кольцо ещё и всегда рядом с лицом.
+        // §105: компактный круг HP поверх полноразмерного портретного фона.
+        // Лицо больше не обводится: здоровье — самостоятельный instrument.
         private RingMeter _healthRing;
+        private VisualElement _healthButton;
         private Label _healthValue;
         private Label _starvingBadge;
         private VisualElement _needsContainer;
@@ -102,12 +102,15 @@ namespace HexLive.UnityPresentation.UI
         // column opens the body/container layout. Its existing item card is a
         // single anchored popover, not a second inventory view or item store.
         private VisualElement _inventoryButton;
-        private Label _inventoryButtonLabel;
 
         // §121: тумблер «ИИ / Ручное» и последний прочитанный из снапшота режим.
         private VisualElement _controlButton;
-        private Label _controlLabel;
-        private Label _controlGlyph;
+        private VisualElement _controlAiSegment;
+        private VisualElement _controlPlayerSegment;
+        private Label _controlAiGlyph;
+        private Label _controlPlayerGlyph;
+        private VisualElement _controlAiIcon;
+        private VisualElement _controlPlayerIcon;
         private Label _orderToast;
         private bool _manualControlNow;
         private bool _controlAvailable;
@@ -149,11 +152,22 @@ namespace HexLive.UnityPresentation.UI
         private bool _invPreviewDragging;
         private int _invPreviewPointerId = -1;
         private Vector2 _invPreviewPointerPosition;
-        private int _invDetailHideToken;
+        private Vector2 _invPreviewPointerDownPosition;
+        private bool _invPreviewRotated;
+        private string _invPointerItemId;
+        private bool _invPointerItemWorn;
+        private int _invPointerId = -1;
+        private Vector2 _invPointerDownPosition;
+        private bool _invPointerMoved;
         private string _invHoveredWornId;
         private readonly Dictionary<string, VisualElement> _invItemAnchors = new();
         private readonly Dictionary<string, VisualElement> _invWornCards = new();
         private readonly List<VisualElement> _invContainerCards = new();
+        private readonly List<VisualElement> _invGarmentCards = new();
+        private readonly List<GarmentGridBinding> _invGarmentGrids = new();
+        private readonly List<VisualElement> _invGarmentHeroIcons = new();
+        private readonly List<Label> _invGarmentDescriptions = new();
+        private readonly List<Label> _invGarmentSecondaryLabels = new();
         private readonly List<VisualElement> _invCompactRows = new();
         private readonly List<VisualElement> _invSlotCells = new();
         private readonly List<VisualElement> _invSlotIcons = new();
@@ -167,6 +181,12 @@ namespace HexLive.UnityPresentation.UI
         private static readonly float[] InventoryCellSizes = { 48f, 42f, 36f, 30f, 28f };
         private static readonly float[] InventoryGaps = { 5f, 4f, 3f, 2f, 2f };
         private static readonly float[] InventoryPaddings = { 9f, 8f, 6f, 5f, 4f };
+        // Garments use the exact same slot component and density ladder as
+        // carry/holster. Only card geometry differs: the clothing hero image
+        // deliberately owns most of the upper half.
+        private static readonly float[] GarmentCardHeights = { 224f, 204f, 184f, 166f, 152f };
+        private static readonly float[] GarmentHeroIconSizes = { 152f, 136f, 120f, 104f, 92f };
+        private const float InventoryDragThreshold = 6f;
         private Dictionary<string, float> _invWornDurability = new();
         private Dictionary<string, WaterContainerState> _invCarriedWater = new();
         private Dictionary<string, int> _invCarriedStacks = new();
@@ -200,6 +220,14 @@ namespace HexLive.UnityPresentation.UI
             public float Capacity;
         }
 
+        private struct GarmentGridBinding
+        {
+            public VisualElement Grid;
+            public int Columns;
+            public int Rows;
+            public int SlotCount;
+        }
+
         // Static (re-labeled on language change)
         private Label _needsTitle;
 
@@ -209,6 +237,15 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _natureContainer;
         private VisualElement _skillsContainer;
         private VisualElement _perkRow;
+
+        // §126: страница «Характер» — черты карточками с описанием прямо на
+        // ней, а не бейджами с тултипом. Черт у человека одна-две, объяснение
+        // им нужно ровно там же, где имя: «Неряха» само по себе не говорит,
+        // что она никогда не пойдёт мыться.
+        private Label _characterTitle;
+        private VisualElement _characterContainer;
+        private Label _characterEmpty;
+        private readonly List<string> _traitSig = new();
         private SheetTab _sheetTab = SheetTab.Needs;
         // §76: what the sheet tooltip pops above — the whole middle column, so
         // the card lands in one predictable place instead of chasing the row
@@ -260,6 +297,9 @@ namespace HexLive.UnityPresentation.UI
         private const float DollAspectHeight = 896f / 512f;
         private const float DollViewportWidth = 195f;
         private const float MaxDollPaneWidthFraction = 0.45f;
+        private const float HealthWindowWidth = 540f;
+        private const float HealthColumnGap = 12f;
+        private const float HealthZoneRowGap = 6f;
 
         // ── palette ───────────────────────────────────────────────────────
         private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
@@ -271,6 +311,14 @@ namespace HexLive.UnityPresentation.UI
         private static readonly Color Stroke = new(1f, 1f, 1f, 0.10f);
         private static readonly Color StrokeStrong = new(1f, 1f, 1f, 0.13f);
         private static readonly Color Track = new(0.051f, 0.067f, 0.078f);
+        private static readonly Color IdentityGlass = new(0.025f, 0.050f, 0.067f, 0.82f);
+        private static readonly Color NeonCyan = new(0.18f, 0.92f, 0.88f);
+        private static readonly Color NeonCyanDim = new(0.18f, 0.92f, 0.88f, 0.34f);
+        // CharacterDollStage clears to this transparent RGB. Repeating the
+        // same opaque colour across the whole pane turns the aspect-fit side
+        // space into one studio surface instead of two accidental gutters.
+        private static readonly Color InventoryDollBackdrop =
+            new(0.035f, 0.047f, 0.055f, 1f);
         // §80: подложка под прозрачные снимки лиц (тот же тон, что был залит
         // в саму текстуру, пока фон был непрозрачным).
         private static readonly Color PortraitBackdrop = new(0.10f, 0.12f, 0.14f);
@@ -378,7 +426,10 @@ namespace HexLive.UnityPresentation.UI
         // §76: which page of the middle column is showing. Needs is the default
         // because it is what the player checks every few seconds; the sheet is
         // reference material she consults once per colonist.
-        private enum SheetTab { Needs, Nature, Skills }
+        // §126 дописал Character в конец: страница про то, КАКОЙ она человек —
+        // рядом с «Природой» (что может тело) и «Умениями» (что умеют руки),
+        // но своей страницей, потому что черта это не число на шкале.
+        private enum SheetTab { Needs, Nature, Skills, Character }
 
         private static readonly NeedConfig[] Needs =
         {
@@ -919,6 +970,78 @@ namespace HexLive.UnityPresentation.UI
             ApplySheet(_attrBindings, npc.Attributes);
             ApplySheet(_skillBindings, npc.Skills);
             UpdatePerks(npc);
+            UpdateTraits(npc);
+        }
+
+        // §126: карточки черт. Сим отдаёт ГОТОВЫЕ базовые ключи ("trait.slob"),
+        // вид дописывает ".title"/".desc" — два суффикса в одном месте вместо
+        // двух строк на черту в снапшоте. Перестраивается только при СМЕНЕ
+        // набора, как перки и чипы эффектов: черта постоянна, и пересоздавать
+        // карточки каждый тик было бы чистым мусором.
+        private void UpdateTraits(NpcSnapshot npc)
+        {
+            var changed = _traitSig.Count != npc.Traits.Count;
+            for (var i = 0; !changed && i < npc.Traits.Count; i++)
+            {
+                changed = _traitSig[i] != npc.Traits[i];
+            }
+
+            if (!changed)
+            {
+                return;
+            }
+
+            _traitSig.Clear();
+            _traitSig.AddRange(npc.Traits);
+
+            // Заглушка живёт отдельным полем и переиспользуется, а не
+            // пересоздаётся: у большинства колонисток черт нет вовсе, и это
+            // самый частый вид страницы.
+            for (var i = _characterContainer.childCount - 1; i >= 0; i--)
+            {
+                if (_characterContainer[i] != _characterEmpty)
+                {
+                    _characterContainer.RemoveAt(i);
+                }
+            }
+
+            _characterEmpty.text = Loc.Get("sheet.character.empty");
+            _characterEmpty.style.display = npc.Traits.Count == 0
+                ? DisplayStyle.Flex : DisplayStyle.None;
+
+            foreach (var key in npc.Traits)
+            {
+                _characterContainer.Add(BuildTraitCard(key));
+            }
+        }
+
+        // Одна черта: имя и под ним объяснение, что она меняет в поведении.
+        private VisualElement BuildTraitCard(string key)
+        {
+            var card = new VisualElement();
+            card.style.backgroundColor = Raised;
+            card.style.paddingLeft = 10f;
+            card.style.paddingRight = 10f;
+            card.style.paddingTop = 7f;
+            card.style.paddingBottom = 8f;
+            card.style.marginTop = 5f;
+            SetRadius(card, 8f);
+            SetBorder(card, Stroke, 1f);
+
+            var title = new Label(Loc.Get(key + ".title"));
+            title.style.color = Gold;
+            title.style.fontSize = 12;
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            card.Add(title);
+
+            var desc = new Label(Loc.Get(key + ".desc"));
+            desc.style.color = TextDim;
+            desc.style.fontSize = 11;
+            desc.style.whiteSpace = WhiteSpace.Normal;
+            desc.style.marginTop = 3f;
+            card.Add(desc);
+
+            return card;
         }
 
         // The snapshot carries "Strength\t0.62" rows (the §48 Effects idiom).
@@ -1318,7 +1441,7 @@ namespace HexLive.UnityPresentation.UI
         // ── inventory / backpack (spec §51) ───────────────────────────────
 
         // The floating body/container layout. It stays visible while the
-        // unchanged legacy item card opens beside the hovered item.
+        // unchanged legacy item card opens beside the deliberately clicked item.
         private void BuildInventoryWindow()
         {
             _inventoryWindow = new VisualElement();
@@ -1412,6 +1535,10 @@ namespace HexLive.UnityPresentation.UI
             _invDollPane.style.flexShrink = 0f;
             _invDollPane.style.alignItems = Align.Center;
             _invDollPane.style.justifyContent = Justify.Center;
+            _invDollPane.style.backgroundColor = InventoryDollBackdrop;
+            _invDollPane.style.overflow = Overflow.Hidden;
+            SetBorder(_invDollPane, Stroke, 1f);
+            SetRadius(_invDollPane, 13f);
 
             _invPreviewView = new VisualElement();
             _invPreviewView.style.position = Position.Relative;
@@ -1419,12 +1546,9 @@ namespace HexLive.UnityPresentation.UI
             _invPreviewView.style.flexShrink = 0f;
             _invPreviewView.style.width = DollViewportWidth;
             _invPreviewView.style.height = DollViewportWidth * DollAspectHeight;
-            _invPreviewView.style.backgroundColor = new Color(0.035f, 0.047f, 0.055f, 1f);
+            _invPreviewView.style.backgroundColor = InventoryDollBackdrop;
             _invPreviewView.style.backgroundSize = new BackgroundSize(
                 BackgroundSizeType.Contain);
-            SetBorder(_invPreviewView, Stroke, 1f);
-            SetRadius(_invPreviewView, 13f);
-            _invPreviewView.style.overflow = Overflow.Hidden;
             RegisterInventoryPreviewInput();
 
             // A tiny non-pickable anchor lets the legacy card open beside the
@@ -1470,7 +1594,11 @@ namespace HexLive.UnityPresentation.UI
                 CompleteInventoryDrag(InventoryAction.Stow);
                 evt.StopPropagation();
             });
-            _inventoryWindow.RegisterCallback<PointerUpEvent>(_ => ClearInventoryDrag());
+            // Track the prepared click/drag gesture across the whole screen. A
+            // fast move out of the inventory must still cross the six-unit
+            // threshold, while PointerUp keeps its real target for drop zones.
+            _root.RegisterCallback<PointerMoveEvent>(UpdateInventoryPointerGesture);
+            _root.RegisterCallback<PointerUpEvent>(_ => ClearInventoryDrag());
 
             _invItemsPane.RegisterCallback<GeometryChangedEvent>(evt =>
             {
@@ -1501,9 +1629,15 @@ namespace HexLive.UnityPresentation.UI
             _invDetailView.style.paddingBottom = 14f;
             _invDetailView.style.display = DisplayStyle.None;
             BuildInventoryDetail(_invDetailView);
-            _invDetailView.RegisterCallback<MouseEnterEvent>(_ => CancelItemDetailHide());
-            _invDetailView.RegisterCallback<MouseLeaveEvent>(_ => ScheduleItemDetailHide());
             _inventoryWindow.Add(_invDetailView);
+
+            // Standard popover dismissal: an ordinary click inside the card
+            // stays inside it, while PointerUp on any uncovered part of the
+            // inventory window closes it. A real drag is allowed to bubble to
+            // the root cleanup so releasing over the popover cannot stick it.
+            _invDetailView.RegisterCallback<PointerUpEvent>(KeepInventoryDetailOpen);
+            _inventoryWindow.RegisterCallback<PointerUpEvent>(
+                DismissInventoryDetailOnBackgroundClick);
 
             _root.Add(_inventoryWindow);
             _root.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryWindow());
@@ -1514,6 +1648,25 @@ namespace HexLive.UnityPresentation.UI
                     PositionInventoryDetail();
                 }
             });
+        }
+
+        private void KeepInventoryDetailOpen(PointerUpEvent evt)
+        {
+            if (_invDraggedId == null && !_invPointerMoved)
+            {
+                evt.StopPropagation();
+            }
+        }
+
+        private void DismissInventoryDetailOnBackgroundClick(PointerUpEvent evt)
+        {
+            if (evt.button != 0 || _invSelectedId == null ||
+                _invDraggedId != null || _invPointerMoved || _invPreviewRotated)
+            {
+                return;
+            }
+
+            HideItemDetail();
         }
 
         private void BuildInventoryDetail(VisualElement parent)
@@ -1663,11 +1816,13 @@ namespace HexLive.UnityPresentation.UI
                     return;
                 }
 
+                ClearInventoryDrag();
                 _invPreviewDragging = true;
                 _invPreviewPointerId = evt.pointerId;
                 _invPreviewPointerPosition = new Vector2(evt.position.x, evt.position.y);
+                _invPreviewPointerDownPosition = _invPreviewPointerPosition;
+                _invPreviewRotated = false;
                 _invPreviewView.CapturePointer(evt.pointerId);
-                HideItemDetail();
                 evt.StopPropagation();
             });
             _invPreviewView.RegisterCallback<PointerMoveEvent>(evt =>
@@ -1676,6 +1831,15 @@ namespace HexLive.UnityPresentation.UI
                     _invPreviewView.HasPointerCapture(evt.pointerId))
                 {
                     var position = new Vector2(evt.position.x, evt.position.y);
+                    if (!_invPreviewRotated &&
+                        (position - _invPreviewPointerDownPosition).sqrMagnitude <
+                        InventoryDragThreshold * InventoryDragThreshold)
+                    {
+                        _invPreviewPointerPosition = position;
+                        return;
+                    }
+
+                    _invPreviewRotated = true;
                     _characterDollStage?.Rotate((position.x - _invPreviewPointerPosition.x) * -0.55f);
                     _invPreviewPointerPosition = position;
                     return;
@@ -1697,8 +1861,36 @@ namespace HexLive.UnityPresentation.UI
                     return;
                 }
 
+                if (!_invPreviewRotated)
+                {
+                    var localPosition = new Vector2(evt.localPosition.x, evt.localPosition.y);
+                    if (_characterDollStage != null &&
+                        _characterDollStage.TryPickWorn(
+                            localPosition,
+                            new Vector2(
+                                _invPreviewView.resolvedStyle.width,
+                                _invPreviewView.resolvedStyle.height),
+                            out var wornId))
+                    {
+                        _invPreviewHoverAnchor.style.left = localPosition.x - 1f;
+                        _invPreviewHoverAnchor.style.top = localPosition.y - 1f;
+                        ShowItemDetail(
+                            wornId, true, _invWornDurability, _invCarriedWater,
+                            _invCarriedStacks, _invWornWetness, _invWornDirtiness,
+                            _invPreviewHoverAnchor);
+                    }
+                    else
+                    {
+                        // Preview captures its pointer for rotation and cannot
+                        // bubble to the window's background handler. A short
+                        // click that hit no garment is therefore dismissed here.
+                        HideItemDetail();
+                    }
+                }
+
                 _invPreviewDragging = false;
                 _invPreviewPointerId = -1;
+                _invPreviewRotated = false;
                 if (_invPreviewView.HasPointerCapture(evt.pointerId))
                 {
                     _invPreviewView.ReleasePointer(evt.pointerId);
@@ -1709,7 +1901,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (!_invPreviewDragging)
                 {
-                    ScheduleItemDetailHide();
+                    SetHoveredWorn(string.Empty);
                 }
             });
         }
@@ -1722,23 +1914,11 @@ namespace HexLive.UnityPresentation.UI
                     new Vector2(_invPreviewView.resolvedStyle.width, _invPreviewView.resolvedStyle.height),
                     out var wornId))
             {
-                _invPreviewHoverAnchor.style.left = localPosition.x - 1f;
-                _invPreviewHoverAnchor.style.top = localPosition.y - 1f;
-                if (_invSelectedWorn && _invSelectedId == wornId)
-                {
-                    CancelItemDetailHide();
-                    SetHoveredWorn(wornId);
-                    return;
-                }
-
-                ShowItemDetail(
-                    wornId, true, _invWornDurability, _invCarriedWater,
-                    _invCarriedStacks, _invWornWetness, _invWornDirtiness,
-                    _invPreviewHoverAnchor);
+                SetHoveredWorn(wornId);
                 return;
             }
 
-            ScheduleItemDetailHide();
+            SetHoveredWorn(string.Empty);
         }
 
         private void ToggleInventory()
@@ -1834,7 +2014,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _invPreviewView.style.height = height;
-            _invPreviewView.style.width = height / DollAspectHeight;
+            _invPreviewView.style.width = width;
         }
 
         private void ResetInventoryDensity()
@@ -1920,6 +2100,56 @@ namespace HexLive.UnityPresentation.UI
                 secondary.style.fontSize = Mathf.Max(7.5f, 10.5f - tier * 0.75f);
             }
 
+            var maxGarmentRows = 1;
+            foreach (var binding in _invGarmentGrids)
+            {
+                maxGarmentRows = Mathf.Max(maxGarmentRows, binding.Rows);
+            }
+            var garmentHeight = GarmentCardHeights[tier] +
+                                Mathf.Max(0, maxGarmentRows - 1) * (size + gap);
+            foreach (var card in _invGarmentCards)
+            {
+                card.style.height = garmentHeight;
+                card.style.paddingLeft = padding;
+                card.style.paddingRight = padding;
+                card.style.paddingTop = Mathf.Max(3f, padding - 1f);
+                card.style.paddingBottom = padding;
+                card.style.marginBottom = gap;
+            }
+            foreach (var icon in _invGarmentHeroIcons)
+            {
+                var heroSize = GarmentHeroIconSizes[tier];
+                icon.style.width = heroSize;
+                icon.style.height = heroSize;
+            }
+            foreach (var description in _invGarmentDescriptions)
+            {
+                description.style.fontSize = Mathf.Max(7.5f, 9f - tier * 0.35f);
+                description.style.maxHeight = Mathf.Max(17f, 23f - tier * 1.5f);
+            }
+            foreach (var secondary in _invGarmentSecondaryLabels)
+            {
+                secondary.style.fontSize = Mathf.Max(7.5f, 9.5f - tier * 0.5f);
+            }
+            foreach (var binding in _invGarmentGrids)
+            {
+                binding.Grid.style.width = binding.Columns * size +
+                                           Mathf.Max(0, binding.Columns - 1) * gap;
+                binding.Grid.style.height = binding.Rows * size +
+                                            Mathf.Max(0, binding.Rows - 1) * gap;
+                var cellIndex = 0;
+                foreach (var cell in binding.Grid.Children())
+                {
+                    cell.style.width = size;
+                    cell.style.height = size;
+                    cell.style.marginRight = (cellIndex + 1) % binding.Columns == 0 ||
+                                             cellIndex == binding.SlotCount - 1 ? 0f : gap;
+                    cell.style.marginBottom = cellIndex / binding.Columns >= binding.Rows - 1
+                        ? 0f : gap;
+                    cellIndex++;
+                }
+            }
+
             var rowHeight = Mathf.Max(27f, 38f - tier * 2.75f);
             foreach (var row in _invCompactRows)
             {
@@ -1941,7 +2171,7 @@ namespace HexLive.UnityPresentation.UI
         // ── limb health window (spec §57) ─────────────────────────────────
 
         // Floating window over the identity column: the rotating body doll
-            // (per-zone green→yellow→red mesh from CharacterDollStage) beside a
+        // (per-zone green→yellow→red mesh from CharacterDollStage) beside a
         // per-limb readout list. Same chrome as the inventory window.
         private void BuildHealthWindow()
         {
@@ -1949,7 +2179,7 @@ namespace HexLive.UnityPresentation.UI
             _healthWindow.style.position = Position.Absolute;
             _healthWindow.style.left = 20f;
             _healthWindow.style.bottom = InventoryWindowBottom;
-            _healthWindow.style.width = 470f;
+            _healthWindow.style.width = HealthWindowWidth;
             _healthWindow.style.backgroundColor = Panel;
             SetBorder(_healthWindow, StrokeStrong, 1f);
             SetRadius(_healthWindow, 14f);
@@ -2000,9 +2230,10 @@ namespace HexLive.UnityPresentation.UI
 
             var body = new VisualElement();
             body.style.flexDirection = FlexDirection.Row;
+            body.style.alignItems = Align.Stretch;
 
-            // Doll viewport. Its box is the 2:3 of the stage RenderTexture
-            // itself (512x768): any other aspect makes Contain pillarbox the
+            // Doll viewport. Its box has the exact aspect of the stage
+            // RenderTexture (512x896): any other aspect makes Contain pillarbox the
             // portrait and the doll stops filling the frame it was drawn for.
             _healthDollImage = new VisualElement();
             _healthDollImage.style.width = DollViewportWidth;
@@ -2036,32 +2267,53 @@ namespace HexLive.UnityPresentation.UI
             _healthDollImage.Add(_healthDollError);
             body.Add(_healthDollImage);
 
-            // Per-limb readout rows.
+            // Per-limb readout rows. The column deliberately matches the
+            // portrait height: after the RenderTexture grew upward, centering
+            // the old compact list left a large dead band beside the doll.
+            // Equal flex cards now make both sides read as one aligned block.
             var list = new VisualElement();
             list.style.flexGrow = 1f;
-            list.style.marginLeft = 15f;
-            list.style.justifyContent = Justify.Center;
+            list.style.minWidth = 0f;
+            list.style.height = DollViewportWidth * DollAspectHeight;
+            list.style.marginLeft = HealthColumnGap;
 
             _zoneRows.Clear();
-            foreach (var zone in CharacterDollStage.ZoneOrder)
+            for (var zoneIndex = 0; zoneIndex < CharacterDollStage.ZoneOrder.Length; zoneIndex++)
             {
+                var zone = CharacterDollStage.ZoneOrder[zoneIndex];
                 var row = new VisualElement();
                 row.style.flexDirection = FlexDirection.Row;
                 row.style.alignItems = Align.Center;
-                row.style.marginBottom = 8f;
+                row.style.flexGrow = 1f;
+                row.style.flexBasis = 0f;
+                row.style.minHeight = 0f;
+                row.style.paddingLeft = 9f;
+                row.style.paddingRight = 9f;
+                row.style.backgroundColor = PanelMid;
+                if (zoneIndex + 1 < CharacterDollStage.ZoneOrder.Length)
+                {
+                    row.style.marginBottom = HealthZoneRowGap;
+                }
+                SetBorder(row, Stroke, 1f);
+                SetRadius(row, 8f);
 
                 var dot = new VisualElement();
-                dot.style.width = 9f;
-                dot.style.height = 9f;
+                dot.style.width = 8f;
+                dot.style.height = 8f;
                 dot.style.flexShrink = 0f;
-                SetRadius(dot, 4.5f);
-                dot.style.marginRight = 9f;
+                SetRadius(dot, 4f);
+                dot.style.marginRight = 8f;
                 row.Add(dot);
 
                 var name = new Label();
                 name.style.color = Text;
-                name.style.fontSize = 13.5f;
+                name.style.fontSize = 13f;
                 name.style.flexGrow = 1f;
+                name.style.minWidth = 0f;
+                name.style.overflow = Overflow.Hidden;
+                name.style.textOverflow = TextOverflow.Ellipsis;
+                name.style.whiteSpace = WhiteSpace.NoWrap;
+                name.pickingMode = PickingMode.Ignore;
                 row.Add(name);
 
                 // Worn-armor absorption (hidden while the zone is bare).
@@ -2071,12 +2323,17 @@ namespace HexLive.UnityPresentation.UI
                 armor.style.flexShrink = 0f;
                 armor.style.marginRight = 8f;
                 armor.style.display = DisplayStyle.None;
+                armor.style.unityTextAlign = TextAnchor.MiddleRight;
+                armor.pickingMode = PickingMode.Ignore;
                 row.Add(armor);
 
                 var value = new Label();
                 value.style.color = TextDim;
                 value.style.fontSize = 12.5f;
                 value.style.flexShrink = 0f;
+                value.style.minWidth = 44f;
+                value.style.unityTextAlign = TextAnchor.MiddleRight;
+                value.pickingMode = PickingMode.Ignore;
                 row.Add(value);
 
                 list.Add(row);
@@ -2320,7 +2577,6 @@ namespace HexLive.UnityPresentation.UI
 
         private void HideItemDetail()
         {
-            _invDetailHideToken++;
             _invSelectedId = null;
             _invDetailAnchor = null;
             SetHoveredWorn(string.Empty);
@@ -2328,28 +2584,6 @@ namespace HexLive.UnityPresentation.UI
             {
                 _invDetailView.style.display = DisplayStyle.None;
             }
-        }
-
-        private void CancelItemDetailHide()
-        {
-            _invDetailHideToken++;
-        }
-
-        private void ScheduleItemDetailHide()
-        {
-            if (_invDetailView == null || _invSelectedId == null)
-            {
-                return;
-            }
-
-            var token = ++_invDetailHideToken;
-            _invDetailView.schedule.Execute(() =>
-            {
-                if (token == _invDetailHideToken)
-                {
-                    HideItemDetail();
-                }
-            }).StartingIn(140);
         }
 
         private void SetHoveredWorn(string itemId)
@@ -2413,6 +2647,12 @@ namespace HexLive.UnityPresentation.UI
         // when the item set or a garment's live condition changes.
         private void RefreshInventory(NpcSnapshot npc)
         {
+            if (_inventoryActorId >= 0 && _inventoryActorId != npc.Id.Value)
+            {
+                ClearInventoryDrag();
+                HideItemDetail();
+                _invSig = null;
+            }
             _inventoryActorId = npc.Id.Value;
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
@@ -2521,6 +2761,11 @@ namespace HexLive.UnityPresentation.UI
             _invItemAnchors.Clear();
             _invWornCards.Clear();
             _invContainerCards.Clear();
+            _invGarmentCards.Clear();
+            _invGarmentGrids.Clear();
+            _invGarmentHeroIcons.Clear();
+            _invGarmentDescriptions.Clear();
+            _invGarmentSecondaryLabels.Clear();
             _invCompactRows.Clear();
             _invSlotCells.Clear();
             _invSlotIcons.Clear();
@@ -2562,9 +2807,9 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            // Carry/backpack is always the first and only full-width group.
-            // Functional hands stay typed in the snapshot and become its last
-            // cells; a hand-only synthetic carry keeps that visual contract.
+            // Carry keeps its specialized presentation, but no longer stretches
+            // across empty horizontal space. Functional hands stay typed in the
+            // snapshot and become its last cells.
             if (carry == null && hands.Count > 0)
             {
                 carry = new InventoryContainerSnapshot
@@ -2582,7 +2827,14 @@ namespace HexLive.UnityPresentation.UI
                     wornWetness, carriedWetness, wornDirtiness, carriedDirtiness, hands));
             }
 
-            // Garment containers follow WornItems, not dictionary/hash order.
+            // Garment containers follow WornItems inside their own strict
+            // two-column card grid, not dictionary/hash order.
+            var garmentGrid = new VisualElement();
+            garmentGrid.name = "inventory-garment-grid";
+            garmentGrid.style.width = Length.Percent(100f);
+            garmentGrid.style.flexDirection = FlexDirection.Row;
+            garmentGrid.style.flexWrap = Wrap.Wrap;
+            garmentGrid.style.alignContent = Align.FlexStart;
             var renderedGarments = new HashSet<string>();
             foreach (var wornId in npc.WornItems)
             {
@@ -2594,7 +2846,7 @@ namespace HexLive.UnityPresentation.UI
                         continue;
                     }
 
-                    _invItemsContent.Add(BuildInventoryContainerCard(
+                    garmentGrid.Add(BuildGarmentInventoryCard(
                         npc, garment, wornDurability, carriedDurability, carriedWater, carriedStacks,
                         wornWetness, carriedWetness, wornDirtiness, carriedDirtiness));
                     renderedGarments.Add(garment.Id);
@@ -2605,10 +2857,14 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (renderedGarments.Add(garment.Id))
                 {
-                    _invItemsContent.Add(BuildInventoryContainerCard(
+                    garmentGrid.Add(BuildGarmentInventoryCard(
                         npc, garment, wornDurability, carriedDurability, carriedWater, carriedStacks,
                         wornWetness, carriedWetness, wornDirtiness, carriedDirtiness));
                 }
+            }
+            if (garmentGrid.childCount > 0)
+            {
+                _invItemsContent.Add(garmentGrid);
             }
 
             foreach (var holster in holsters)
@@ -2646,18 +2902,190 @@ namespace HexLive.UnityPresentation.UI
             foreach (var container in npc.InventoryContainers)
             {
                 result.Append(container.Id).Append(':').Append((int)container.Kind).Append(':')
-                    .Append(container.OwnerItemDefinitionId).Append(':').Append((int)container.BodyAnchor)
+                    .Append(container.OwnerItemDefinitionId).Append(':').Append(container.OwnerSourceIndex)
+                    .Append(':').Append((int)container.BodyAnchor)
                     .Append(':').Append(container.Capacity).Append(':').Append(container.BaseCapacity)
                     .Append(':').Append(container.StrengthBonus).Append(':').Append(container.BackpackCapacity);
                 foreach (var slot in container.Slots)
                 {
-                    result.Append('[').Append(slot.Index).Append(':').Append(slot.ItemDefinitionId)
+                    result.Append('[').Append(slot.Index).Append(':').Append(slot.SourceIndex)
+                        .Append(':').Append(slot.ItemDefinitionId)
                         .Append(':').Append(slot.StackCount).Append(':')
                         .Append(slot.AcceptedItemDefinitionId).Append(']');
                 }
                 result.Append('|');
             }
             return result.ToString();
+        }
+
+        private VisualElement BuildGarmentInventoryCard(
+            NpcSnapshot npc,
+            InventoryContainerSnapshot container,
+            Dictionary<string, float> wornDurability,
+            Dictionary<string, float> carriedDurability,
+            Dictionary<string, WaterContainerState> carriedWater,
+            Dictionary<string, int> carriedStacks,
+            Dictionary<string, float> wornWetness,
+            Dictionary<string, float> carriedWetness,
+            Dictionary<string, float> wornDirtiness,
+            Dictionary<string, float> carriedDirtiness)
+        {
+            var itemId = container.OwnerItemDefinitionId;
+            var def = ResolveDef(itemId);
+            var info = ResolveItemInfo(itemId, def);
+            var card = new VisualElement();
+            card.name = "inventory-garment-card";
+            card.style.width = Length.Percent(49f);
+            card.style.height = GarmentCardHeights[0];
+            card.style.flexShrink = 0f;
+            card.style.marginRight = Length.Percent(1f);
+            card.style.marginBottom = InventoryGaps[0];
+            card.style.backgroundColor = Raised;
+            card.style.paddingLeft = InventoryPaddings[0];
+            card.style.paddingRight = InventoryPaddings[0];
+            card.style.paddingTop = InventoryPaddings[0] - 1f;
+            card.style.paddingBottom = InventoryPaddings[0];
+            card.style.overflow = Overflow.Hidden;
+            SetBorder(card, Stroke, 1f);
+            SetRadius(card, 10f);
+            _invGarmentCards.Add(card);
+
+            var header = new VisualElement();
+            header.name = "inventory-garment-header";
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.alignItems = Align.FlexStart;
+            header.style.flexShrink = 0f;
+            header.style.marginBottom = 5f;
+
+            var icon = LoadItemIcon(itemId);
+            VisualElement heroIcon;
+            if (icon != null)
+            {
+                var image = new Image { sprite = icon, scaleMode = ScaleMode.ScaleToFit };
+                heroIcon = image;
+            }
+            else
+            {
+                var glyph = new Label(info.Emoji);
+                glyph.style.fontSize = 24f;
+                glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
+                heroIcon = glyph;
+            }
+            heroIcon.style.width = GarmentHeroIconSizes[0];
+            heroIcon.style.height = GarmentHeroIconSizes[0];
+            heroIcon.style.flexShrink = 0f;
+            heroIcon.style.marginRight = 10f;
+            heroIcon.style.backgroundColor = Track;
+            heroIcon.pickingMode = PickingMode.Ignore;
+            SetBorder(heroIcon, StrokeStrong, 1f);
+            SetRadius(heroIcon, 10f);
+            header.Add(heroIcon);
+            _invGarmentHeroIcons.Add(heroIcon);
+
+            var text = new VisualElement();
+            text.style.flexGrow = 1f;
+            text.style.minWidth = 0f;
+            text.style.paddingTop = 4f;
+
+            var titleLine = new VisualElement();
+            titleLine.style.flexDirection = FlexDirection.Row;
+            titleLine.style.alignItems = Align.Center;
+            var title = new Label(ItemName(def, info));
+            title.style.color = Text;
+            title.style.fontSize = 10.5f;
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            title.style.flexGrow = 1f;
+            title.style.whiteSpace = WhiteSpace.NoWrap;
+            title.style.overflow = Overflow.Hidden;
+            title.style.textOverflow = TextOverflow.Ellipsis;
+            title.pickingMode = PickingMode.Ignore;
+            titleLine.Add(title);
+
+            var filled = 0;
+            foreach (var slot in container.Slots)
+            {
+                if (!string.IsNullOrEmpty(slot.ItemDefinitionId)) filled++;
+            }
+            var capacity = new Label($"{filled}/{container.Capacity}");
+            capacity.style.color = TextMute;
+            capacity.style.fontSize = 9.5f;
+            capacity.style.marginLeft = 4f;
+            capacity.style.flexShrink = 0f;
+            capacity.pickingMode = PickingMode.Ignore;
+            titleLine.Add(capacity);
+            text.Add(titleLine);
+            _invGarmentSecondaryLabels.Add(capacity);
+
+            var anchor = new Label(
+                $"{InventoryBodyAnchorName(container.BodyAnchor)} · " +
+                $"{container.Capacity} {Loc.Get("inv.slots")}");
+            anchor.style.color = TextMute;
+            anchor.style.fontSize = 9f;
+            anchor.style.marginTop = 3f;
+            anchor.style.whiteSpace = WhiteSpace.NoWrap;
+            anchor.style.overflow = Overflow.Hidden;
+            anchor.style.textOverflow = TextOverflow.Ellipsis;
+            anchor.pickingMode = PickingMode.Ignore;
+            text.Add(anchor);
+            _invGarmentSecondaryLabels.Add(anchor);
+
+            var description = new Label(ItemDesc(def, info));
+            description.style.color = TextDim;
+            description.style.fontSize = 9f;
+            description.style.maxHeight = 23f;
+            description.style.marginTop = 9f;
+            description.style.whiteSpace = WhiteSpace.Normal;
+            description.style.overflow = Overflow.Hidden;
+            description.pickingMode = PickingMode.Ignore;
+            text.Add(description);
+            _invGarmentDescriptions.Add(description);
+            header.Add(text);
+            card.Add(header);
+
+            RememberItemAnchor(itemId, true, header);
+            _invWornCards[itemId] = card;
+            header.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(card, GoldDim));
+            header.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
+                card, _invHoveredWornId == itemId ? Gold : Stroke));
+            RegisterInventoryItemInteraction(
+                header, itemId, true, wornDurability, carriedWater, carriedStacks,
+                wornWetness, wornDirtiness);
+
+            var slotCount = container.Slots.Count;
+            var columns = slotCount <= 4 ? 2 : 3;
+            var rows = Mathf.Max(1, Mathf.CeilToInt(slotCount / (float)columns));
+            var slots = new VisualElement();
+            slots.name = columns == 2
+                ? "inventory-garment-slots-2-column"
+                : "inventory-garment-slots-3-column";
+            slots.style.flexDirection = FlexDirection.Row;
+            slots.style.flexWrap = Wrap.Wrap;
+            slots.style.justifyContent = Justify.Center;
+            slots.style.alignContent = Align.Center;
+            slots.style.alignSelf = Align.Center;
+            slots.style.flexShrink = 0f;
+            foreach (var slot in container.Slots)
+            {
+                slots.Add(BuildInventorySlotCell(
+                    npc, slot, carriedDurability, carriedWater, carriedStacks,
+                    carriedWetness, carriedDirtiness));
+            }
+            var slotArea = new VisualElement();
+            slotArea.name = "inventory-garment-slot-area";
+            slotArea.style.flexGrow = 1f;
+            slotArea.style.minHeight = 0f;
+            slotArea.style.alignItems = Align.Center;
+            slotArea.style.justifyContent = Justify.FlexEnd;
+            slotArea.Add(slots);
+            card.Add(slotArea);
+            _invGarmentGrids.Add(new GarmentGridBinding
+            {
+                Grid = slots,
+                Columns = columns,
+                Rows = rows,
+                SlotCount = slotCount
+            });
+            return card;
         }
 
         private VisualElement BuildInventoryContainerCard(
@@ -2674,14 +3102,9 @@ namespace HexLive.UnityPresentation.UI
             IReadOnlyList<InventoryContainerSnapshot> mergedHands = null)
         {
             var card = new VisualElement();
-            card.style.width = container.Kind == InventoryContainerKind.Carry
-                ? Length.Percent(100f)
-                : Length.Percent(49f);
+            card.style.width = Length.Percent(49f);
             card.style.flexShrink = 0f;
-            if (container.Kind != InventoryContainerKind.Carry)
-            {
-                card.style.marginRight = Length.Percent(1f);
-            }
+            card.style.marginRight = Length.Percent(1f);
             card.style.backgroundColor = Raised;
             card.style.paddingLeft = 9f;
             card.style.paddingRight = 9f;
@@ -2733,14 +3156,12 @@ namespace HexLive.UnityPresentation.UI
             {
                 RememberItemAnchor(container.OwnerItemDefinitionId, true, header);
                 _invWornCards[container.OwnerItemDefinitionId] = card;
-                header.RegisterCallback<MouseEnterEvent>(_ =>
-                {
-                    ShowItemDetail(container.OwnerItemDefinitionId, true, wornDurability,
-                        carriedWater, carriedStacks, wornWetness, wornDirtiness, header);
-                });
-                header.RegisterCallback<MouseLeaveEvent>(_ => ScheduleItemDetailHide());
-                header.RegisterCallback<PointerDownEvent>(evt =>
-                    BeginInventoryDrag(container.OwnerItemDefinitionId, worn: true, evt));
+                header.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(card, GoldDim));
+                header.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
+                    card, _invHoveredWornId == container.OwnerItemDefinitionId ? Gold : Stroke));
+                RegisterInventoryItemInteraction(
+                    header, container.OwnerItemDefinitionId, true, wornDurability,
+                    carriedWater, carriedStacks, wornWetness, wornDirtiness);
             }
 
             if (container.Kind == InventoryContainerKind.Carry)
@@ -2822,6 +3243,7 @@ namespace HexLive.UnityPresentation.UI
                 badge.style.overflow = Overflow.Hidden;
                 badge.style.textOverflow = TextOverflow.Ellipsis;
                 badge.pickingMode = PickingMode.Ignore;
+                badge.AddToClassList("inventory-slot-badge");
                 cell.Add(badge);
                 _invSlotBadges.Add(badge);
                 cell.tooltip = slotBadge;
@@ -2841,6 +3263,7 @@ namespace HexLive.UnityPresentation.UI
                     image.style.height = 40f;
                     image.style.opacity = string.IsNullOrEmpty(itemId) ? 0.22f : 1f;
                     image.pickingMode = PickingMode.Ignore;
+                    image.AddToClassList("inventory-slot-icon");
                     cell.Add(image);
                     _invSlotIcons.Add(image);
                 }
@@ -2850,6 +3273,7 @@ namespace HexLive.UnityPresentation.UI
                     glyph.style.fontSize = 23f;
                     glyph.style.opacity = string.IsNullOrEmpty(itemId) ? 0.25f : 1f;
                     glyph.pickingMode = PickingMode.Ignore;
+                    glyph.AddToClassList("inventory-slot-glyph");
                     cell.Add(glyph);
                     _invSlotGlyphs.Add(glyph);
                 }
@@ -2869,6 +3293,7 @@ namespace HexLive.UnityPresentation.UI
                 count.style.fontSize = 9.5f;
                 count.style.unityFontStyleAndWeight = FontStyle.Bold;
                 count.pickingMode = PickingMode.Ignore;
+                count.AddToClassList("inventory-slot-badge");
                 cell.Add(count);
                 _invSlotBadges.Add(count);
             }
@@ -2888,6 +3313,7 @@ namespace HexLive.UnityPresentation.UI
                     use.style.fontSize = 7.5f;
                     use.style.unityFontStyleAndWeight = FontStyle.Bold;
                     use.pickingMode = PickingMode.Ignore;
+                    use.AddToClassList("inventory-slot-badge");
                     cell.Add(use);
                     _invSlotBadges.Add(use);
                 }
@@ -2901,6 +3327,7 @@ namespace HexLive.UnityPresentation.UI
                     favorite.style.color = Gold;
                     favorite.style.fontSize = 10f;
                     favorite.pickingMode = PickingMode.Ignore;
+                    favorite.AddToClassList("inventory-slot-badge");
                     cell.Add(favorite);
                     _invSlotBadges.Add(favorite);
                 }
@@ -2909,18 +3336,16 @@ namespace HexLive.UnityPresentation.UI
                 cell.RegisterCallback<MouseEnterEvent>(_ =>
                 {
                     SetBorderColor(cell, GoldDim);
-                    ShowItemDetail(itemId, false, carriedDurability, carriedWater,
-                        carriedStacks, carriedWetness, carriedDirtiness, cell);
                 });
                 cell.RegisterCallback<MouseLeaveEvent>(_ =>
                 {
                     SetBorderColor(cell, inUse
                         ? new Color(0.37f, 0.78f, 0.91f, 0.95f)
                         : StrokeStrong);
-                    ScheduleItemDetailHide();
                 });
-                cell.RegisterCallback<PointerDownEvent>(evt =>
-                    BeginInventoryDrag(itemId, worn: false, evt));
+                RegisterInventoryItemInteraction(
+                    cell, itemId, false, carriedDurability, carriedWater,
+                    carriedStacks, carriedWetness, carriedDirtiness);
             }
 
             return cell;
@@ -2947,6 +3372,22 @@ namespace HexLive.UnityPresentation.UI
                 _ => Loc.Get("inv.carried")
             };
         }
+
+        private static string InventoryBodyAnchorName(InventoryBodyAnchor anchor) =>
+            Loc.Get(anchor switch
+            {
+                InventoryBodyAnchor.Head => "inv.anchor.head",
+                InventoryBodyAnchor.Chest => "inv.anchor.chest",
+                InventoryBodyAnchor.Back => "inv.anchor.back",
+                InventoryBodyAnchor.Pelvis => "inv.anchor.pelvis",
+                InventoryBodyAnchor.ArmLeft => "inv.anchor.arm_left",
+                InventoryBodyAnchor.ArmRight => "inv.anchor.arm_right",
+                InventoryBodyAnchor.ThighLeft => "inv.anchor.thigh_left",
+                InventoryBodyAnchor.ThighRight => "inv.anchor.thigh_right",
+                InventoryBodyAnchor.Legs => "inv.anchor.legs",
+                InventoryBodyAnchor.Feet => "inv.anchor.feet",
+                _ => "inv.anchor.none"
+            });
 
         private VisualElement BuildCompactWornRow(
             string itemId,
@@ -3011,13 +3452,11 @@ namespace HexLive.UnityPresentation.UI
 
             RememberItemAnchor(itemId, true, row);
             _invWornCards[itemId] = row;
-            row.RegisterCallback<MouseEnterEvent>(_ =>
-            {
-                ShowItemDetail(itemId, true, durability, water, stacks, wetness, dirtiness, row);
-            });
-            row.RegisterCallback<MouseLeaveEvent>(_ => ScheduleItemDetailHide());
-            row.RegisterCallback<PointerDownEvent>(evt =>
-                BeginInventoryDrag(itemId, worn: true, evt));
+            row.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(row, GoldDim));
+            row.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
+                row, _invHoveredWornId == itemId ? Gold : Stroke));
+            RegisterInventoryItemInteraction(
+                row, itemId, true, durability, water, stacks, wetness, dirtiness);
             return row;
         }
 
@@ -3055,7 +3494,6 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> dirtiness,
             VisualElement anchor = null)
         {
-            CancelItemDetailHide();
             _invSelectedId = id;
             _invSelectedWorn = worn;
             SetHoveredWorn(worn ? id : string.Empty);
@@ -3133,13 +3571,81 @@ namespace HexLive.UnityPresentation.UI
             _invSig = null;
         }
 
-        private void BeginInventoryDrag(string itemId, bool worn, PointerDownEvent evt)
+        private void RegisterInventoryItemInteraction(
+            VisualElement element,
+            string itemId,
+            bool worn,
+            Dictionary<string, float> durability,
+            Dictionary<string, WaterContainerState> water,
+            Dictionary<string, int> stacks,
+            Dictionary<string, float> wetness,
+            Dictionary<string, float> dirtiness)
         {
-            if (!_inventoryMutable || evt.button != 0 || string.IsNullOrEmpty(itemId)) return;
+            element.RegisterCallback<PointerDownEvent>(evt =>
+                BeginInventoryPointerGesture(itemId, worn, evt));
+            element.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (!FinishInventoryClick(itemId, worn, evt))
+                {
+                    return;
+                }
+
+                ShowItemDetail(
+                    itemId, worn, durability, water, stacks, wetness, dirtiness, element);
+                evt.StopPropagation();
+            });
+        }
+
+        private void BeginInventoryPointerGesture(string itemId, bool worn, PointerDownEvent evt)
+        {
+            if (evt.button != 0 || string.IsNullOrEmpty(itemId)) return;
+            ClearInventoryDrag();
+            _invPointerItemId = itemId;
+            _invPointerItemWorn = worn;
+            _invPointerId = evt.pointerId;
+            _invPointerDownPosition = new Vector2(evt.position.x, evt.position.y);
+            _invPointerMoved = false;
+        }
+
+        private void UpdateInventoryPointerGesture(PointerMoveEvent evt)
+        {
+            if (_invPointerItemId == null || evt.pointerId != _invPointerId ||
+                _invPointerMoved)
+            {
+                return;
+            }
+
+            var position = new Vector2(evt.position.x, evt.position.y);
+            if ((position - _invPointerDownPosition).sqrMagnitude <
+                InventoryDragThreshold * InventoryDragThreshold)
+            {
+                return;
+            }
+
+            _invPointerMoved = true;
+            if (_inventoryMutable)
+            {
+                BeginInventoryDrag(_invPointerItemId, _invPointerItemWorn);
+            }
+        }
+
+        private bool FinishInventoryClick(string itemId, bool worn, PointerUpEvent evt)
+        {
+            if (evt.button != 0 || evt.pointerId != _invPointerId ||
+                !string.Equals(itemId, _invPointerItemId, StringComparison.Ordinal) ||
+                worn != _invPointerItemWorn || _invPointerMoved || _invDraggedId != null)
+            {
+                return false;
+            }
+
+            ClearInventoryDrag();
+            return true;
+        }
+
+        private void BeginInventoryDrag(string itemId, bool worn)
+        {
             _invDraggedId = itemId;
             _invDraggedWorn = worn;
-            _invSelectedId = itemId;
-            _invSelectedWorn = worn;
         }
 
         private void CompleteInventoryDrag(InventoryAction action)
@@ -3155,6 +3661,10 @@ namespace HexLive.UnityPresentation.UI
         {
             _invDraggedId = null;
             _invDraggedWorn = false;
+            _invPointerItemId = null;
+            _invPointerItemWorn = false;
+            _invPointerId = -1;
+            _invPointerMoved = false;
         }
 
         // Derived stat lines: warmth/armor/coverage/layer for apparel, hunger
@@ -5058,134 +5568,201 @@ namespace HexLive.UnityPresentation.UI
             var col = new VisualElement();
             col.style.width = 396f;
             col.style.flexShrink = 0f;
-            col.style.flexDirection = FlexDirection.Row;
-            col.style.alignItems = Align.Center;
-            col.style.backgroundColor = Panel;
-            col.style.paddingLeft = 22f;
-            col.style.paddingRight = 18f;
+            col.style.position = Position.Relative;
+            col.style.backgroundColor = PortraitBackdrop;
             col.style.marginRight = 2f;
+            col.style.overflow = Overflow.Hidden;
 
-            // Portrait, обведённый КОЛЬЦОМ ЗДОРОВЬЯ (§105 r2).
-            //
-            // Обёртка шире портрета ровно на толщину кольца, и портрет внутри
-            // отцентрован: кольцо рисуется по внешнему радиусу и не наползает
-            // на лицо. Живой бейдж по-прежнему висит в углу обёртки.
-            const float portraitSize = 156f;
-            const float ringPad = 8f;
-            var wrap = new VisualElement();
-            wrap.style.width = portraitSize + ringPad * 2f;
-            wrap.style.height = portraitSize + ringPad * 2f;
-            wrap.style.flexShrink = 0f;
-            wrap.style.alignItems = Align.Center;
-            wrap.style.justifyContent = Justify.Center;
-
-            _healthRing = new RingMeter(1f, CharacterDollStage.StatusColor(1f, false))
-            {
-                // Толще колец нужд: это главный индикатор панели, и читаться
-                // он должен боковым зрением, а не при разглядывании.
-                LineWidth = 7f
-            };
-            _healthRing.style.position = Position.Absolute;
-            _healthRing.style.left = 0f;
-            _healthRing.style.right = 0f;
-            _healthRing.style.top = 0f;
-            _healthRing.style.bottom = 0f;
-            wrap.Add(_healthRing);
-
+            // The live RenderTexture is the card, not an avatar embedded in it.
+            // PortraitStage owns composition and keeps the face on the former
+            // circle's centre while the wider frame reveals the neon set.
             _portrait = new VisualElement();
-            _portrait.style.width = portraitSize;
-            _portrait.style.height = portraitSize;
-            SetRadius(_portrait, portraitSize * 0.5f);
-            _portrait.style.overflow = Overflow.Hidden;
-            // §105 r2: золотой ободок СНЯТ — теперь портрет обводит кольцо
-            // здоровья, и два кольца вокруг одного лица спорили бы за взгляд.
-            // Осталось «кружок камеры внутри кольца», как и задумано.
-            _portrait.style.backgroundColor = new Color(0.10f, 0.12f, 0.14f);
-            wrap.Add(_portrait);
-            wrap.Add(BuildLiveBadge());
-            col.Add(wrap);
+            _portrait.style.position = Position.Absolute;
+            _portrait.style.left = 0f;
+            _portrait.style.right = 0f;
+            _portrait.style.top = 0f;
+            _portrait.style.bottom = 0f;
+            _portrait.style.backgroundColor = PortraitBackdrop;
+            _portrait.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Cover);
+            _portrait.pickingMode = PickingMode.Ignore;
+            col.Add(_portrait);
 
-            // Info column
-            var info = new VisualElement();
-            info.style.flexGrow = 1f;
-            info.style.marginLeft = 18f;
+            // A glass scrim under the readouts. The actor remains visible to the
+            // left; text never fights bright skin or the animated grid.
+            var readoutScrim = new VisualElement();
+            readoutScrim.style.position = Position.Absolute;
+            readoutScrim.style.left = 178f;
+            readoutScrim.style.right = 0f;
+            readoutScrim.style.top = 0f;
+            readoutScrim.style.bottom = 0f;
+            readoutScrim.style.backgroundColor = new Color(0.018f, 0.035f, 0.050f, 0.62f);
+            readoutScrim.pickingMode = PickingMode.Ignore;
+            col.Add(readoutScrim);
 
             _nameLabel = new Label("—");
             _nameLabel.style.color = Text;
-            _nameLabel.style.fontSize = 23;
+            _nameLabel.style.fontSize = 22f;
             _nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            info.Add(_nameLabel);
+            _nameLabel.style.position = Position.Absolute;
+            _nameLabel.style.left = 190f;
+            _nameLabel.style.right = 80f;
+            _nameLabel.style.top = 17f;
+            _nameLabel.style.height = 28f;
+            _nameLabel.style.unityTextAlign = TextAnchor.MiddleLeft;
+            _nameLabel.style.overflow = Overflow.Hidden;
+            _nameLabel.style.textOverflow = TextOverflow.Ellipsis;
+            _nameLabel.style.whiteSpace = WhiteSpace.NoWrap;
+            _nameLabel.pickingMode = PickingMode.Ignore;
+            col.Add(_nameLabel);
 
             _roleLabel = new Label();
             _roleLabel.style.color = TextMute;
-            _roleLabel.style.fontSize = 11;
-            _roleLabel.style.marginBottom = 12f;
-            info.Add(_roleLabel);
+            _roleLabel.style.fontSize = 10.5f;
+            _roleLabel.style.position = Position.Absolute;
+            _roleLabel.style.left = 190f;
+            _roleLabel.style.right = 80f;
+            _roleLabel.style.top = 47f;
+            _roleLabel.style.height = 18f;
+            _roleLabel.style.overflow = Overflow.Hidden;
+            _roleLabel.style.textOverflow = TextOverflow.Ellipsis;
+            _roleLabel.style.whiteSpace = WhiteSpace.NoWrap;
+            _roleLabel.pickingMode = PickingMode.Ignore;
+            col.Add(_roleLabel);
 
-            // Health caption + value
-            var hRow = new VisualElement();
-            hRow.style.flexDirection = FlexDirection.Row;
-            hRow.style.alignItems = Align.Center;
-            hRow.style.marginBottom = 5f;
-            var hIcon = new VectorIcon(VectorIcon.Kind.Health, Health);
-            hIcon.style.width = 14f;
-            hIcon.style.height = 14f;
-            hIcon.style.marginRight = 6f;
-            hIcon.style.flexShrink = 0f;
-            var hCap = MakeCaption("HP");
-            hCap.style.flexGrow = 1f;
+            // One lower-right HUD module: the status rail grows out from under
+            // the HP dial. Keeping a shared parent makes the connection stable
+            // when the identity card is resized or restyled.
+            var vitalsCluster = new VisualElement();
+            vitalsCluster.style.position = Position.Absolute;
+            vitalsCluster.style.right = 12f;
+            vitalsCluster.style.bottom = 12f;
+            vitalsCluster.style.width = 218f;
+            vitalsCluster.style.height = 96f;
+
+            // HP is the large leading instrument instead of a frame around the
+            // face. It remains the entry point to the limb window.
+            var healthBadge = new VisualElement();
+            healthBadge.style.position = Position.Absolute;
+            healthBadge.style.right = 0f;
+            healthBadge.style.bottom = 0f;
+            healthBadge.style.width = 96f;
+            healthBadge.style.height = 96f;
+            healthBadge.style.backgroundColor = IdentityGlass;
+            SetRadius(healthBadge, 48f);
+            SetBorder(healthBadge, StrokeStrong, 1f);
+            healthBadge.tooltip = Loc.Get("panel.health");
+            _healthButton = healthBadge;
+
+            _healthRing = new RingMeter(1f, CharacterDollStage.StatusColor(1f, false))
+            {
+                LineWidth = 5f
+            };
+            _healthRing.style.position = Position.Absolute;
+            _healthRing.style.left = 2f;
+            _healthRing.style.right = 2f;
+            _healthRing.style.top = 2f;
+            _healthRing.style.bottom = 2f;
+            healthBadge.Add(_healthRing);
+
             _healthValue = new Label("—");
             _healthValue.style.color = Text;
-            _healthValue.style.fontSize = 11;
-            _healthValue.style.flexShrink = 0f;
-            hRow.Add(hIcon);
-            hRow.Add(hCap);
-            hRow.Add(_healthValue);
-            info.Add(hRow);
+            _healthValue.style.fontSize = 20f;
+            _healthValue.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _healthValue.style.position = Position.Absolute;
+            _healthValue.style.left = 0f;
+            _healthValue.style.right = 0f;
+            _healthValue.style.top = 21f;
+            _healthValue.style.height = 25f;
+            _healthValue.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _healthValue.pickingMode = PickingMode.Ignore;
+            healthBadge.Add(_healthValue);
 
-            // Spec §57: the HP row is a button — click pops the limb-health
-            // window (body doll + per-limb readout).
-            void HookHealthClick(VisualElement element)
+            // Just the two letters: the badge already draws the value in the
+            // ring and the number. A heart glyph and a second percentage under
+            // it read as three competing HP readouts.
+            var healthCaption = new Label("HP");
+            healthCaption.style.position = Position.Absolute;
+            healthCaption.style.left = 0f;
+            healthCaption.style.right = 0f;
+            healthCaption.style.top = 49f;
+            healthCaption.style.height = 17f;
+            healthCaption.style.color = Health;
+            healthCaption.style.fontSize = 11f;
+            healthCaption.style.unityFontStyleAndWeight = FontStyle.Bold;
+            healthCaption.style.unityTextAlign = TextAnchor.MiddleCenter;
+            healthCaption.pickingMode = PickingMode.Ignore;
+            healthBadge.Add(healthCaption);
+
+            healthBadge.RegisterCallback<MouseEnterEvent>(_ =>
+                SetBorderColor(healthBadge, GoldDim));
+            healthBadge.RegisterCallback<MouseLeaveEvent>(_ =>
+                SetBorderColor(healthBadge, StrokeStrong));
+            healthBadge.RegisterCallback<MouseDownEvent>(evt =>
             {
-                element.RegisterCallback<MouseEnterEvent>(_ => hCap.style.color = Gold);
-                element.RegisterCallback<MouseLeaveEvent>(_ => hCap.style.color = TextMute);
-                element.RegisterCallback<MouseDownEvent>(evt =>
-                {
-                    ToggleHealth();
-                    evt.StopPropagation();
-                });
-            }
+                ToggleHealth();
+                evt.StopPropagation();
+            });
 
-            HookHealthClick(hRow);
+            // Movement and heat/UV share a single connected glass rail. Its
+            // rounded end runs beneath the HP circle so the three readouts read
+            // as one instrument rather than unrelated controls.
+            var vitalsRail = new VisualElement();
+            vitalsRail.style.position = Position.Absolute;
+            vitalsRail.style.left = 0f;
+            vitalsRail.style.right = 76f;
+            vitalsRail.style.top = 9f;
+            vitalsRail.style.bottom = 9f;
+            vitalsRail.style.backgroundColor = IdentityGlass;
+            SetRadius(vitalsRail, 16f);
+            SetBorder(vitalsRail, StrokeStrong, 1f);
+            vitalsRail.style.overflow = Overflow.Hidden;
 
-            // §105 r2: горизонтальной полоски здоровья больше нет — её место
-            // занял круг вокруг портрета (см. wrap выше). Два бара про одно и
-            // то же спорили бы друг с другом, а кольцо вдобавок всегда рядом с
-            // лицом: видно, КОМУ скоро конец, не читая цифр.
-            // По портрету тоже кликается кукла §57.
-            HookHealthClick(wrap);
+            var vitalsRailAccent = new VisualElement();
+            vitalsRailAccent.style.position = Position.Absolute;
+            vitalsRailAccent.style.left = 0f;
+            vitalsRailAccent.style.top = 14f;
+            vitalsRailAccent.style.bottom = 14f;
+            vitalsRailAccent.style.width = 2f;
+            vitalsRailAccent.style.backgroundColor = NeonCyan;
+            vitalsRailAccent.pickingMode = PickingMode.Ignore;
+            vitalsRail.Add(vitalsRailAccent);
 
-            // Status chip + badge in a row
+            // Movement/body state occupies the upper half of the shared rail.
             var statusRow = new VisualElement();
+            statusRow.style.position = Position.Absolute;
+            statusRow.style.left = 0f;
+            statusRow.style.right = 0f;
+            statusRow.style.top = 0f;
+            statusRow.style.height = 39f;
             statusRow.style.flexDirection = FlexDirection.Row;
             statusRow.style.alignItems = Align.Center;
-            statusRow.style.marginTop = 8f;
+            statusRow.style.paddingLeft = 11f;
+            statusRow.style.paddingRight = 25f;
 
             _statusDot = new VisualElement();
-            _statusDot.style.width = 7f;
-            _statusDot.style.height = 7f;
+            _statusDot.style.width = 8f;
+            _statusDot.style.height = 8f;
             _statusDot.style.flexShrink = 0f;
-            SetRadius(_statusDot, 3.5f);
+            SetRadius(_statusDot, 4f);
             _statusDot.style.backgroundColor = Energy;
-            _statusDot.style.marginRight = 6f;
+            _statusDot.style.marginRight = 7f;
             _statusLabel = new Label();
-            _statusLabel.style.color = TextDim;
-            _statusLabel.style.fontSize = 13;
+            _statusLabel.style.color = Text;
+            _statusLabel.style.fontSize = 11f;
             _statusLabel.style.flexGrow = 1f;
+            _statusLabel.style.overflow = Overflow.Hidden;
+            _statusLabel.style.textOverflow = TextOverflow.Ellipsis;
+            _statusLabel.style.whiteSpace = WhiteSpace.NoWrap;
+            _statusLabel.pickingMode = PickingMode.Ignore;
             statusRow.Add(_statusDot);
             statusRow.Add(_statusLabel);
+            vitalsRail.Add(statusRow);
 
             _starvingBadge = new Label();
+            _starvingBadge.style.position = Position.Absolute;
+            _starvingBadge.style.left = 190f;
+            _starvingBadge.style.right = 14f;
+            _starvingBadge.style.top = 158f;
             _starvingBadge.style.color = Color.white;
             _starvingBadge.style.backgroundColor = new Color(0.75f, 0.12f, 0.12f);
             _starvingBadge.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -5198,46 +5775,81 @@ namespace HexLive.UnityPresentation.UI
             SetRadius(_starvingBadge, 5f);
             _starvingBadge.style.fontSize = 10;
             _starvingBadge.style.display = DisplayStyle.None;
-            statusRow.Add(_starvingBadge);
+            _starvingBadge.pickingMode = PickingMode.Ignore;
+            col.Add(_starvingBadge);
 
-            info.Add(statusRow);
+            var vitalsDivider = new VisualElement();
+            vitalsDivider.style.position = Position.Absolute;
+            vitalsDivider.style.left = 11f;
+            vitalsDivider.style.right = 25f;
+            vitalsDivider.style.top = 38f;
+            vitalsDivider.style.height = 1f;
+            vitalsDivider.style.backgroundColor = Stroke;
+            vitalsDivider.pickingMode = PickingMode.Ignore;
+            vitalsRail.Add(vitalsDivider);
 
-            // Sun exposure: how much UV hits her right now (shade-aware).
+            // UV gets the lower half of that same rail.
             var uvRow = new VisualElement();
+            uvRow.style.position = Position.Absolute;
+            uvRow.style.left = 0f;
+            uvRow.style.right = 0f;
+            uvRow.style.top = 39f;
+            uvRow.style.height = 39f;
             uvRow.style.flexDirection = FlexDirection.Row;
             uvRow.style.alignItems = Align.Center;
-            uvRow.style.marginTop = 5f;
+            uvRow.style.paddingLeft = 11f;
+            uvRow.style.paddingRight = 25f;
             _uvIcon = new VectorIcon(VectorIcon.Kind.Sun, Gold);
-            _uvIcon.style.width = 12f;
-            _uvIcon.style.height = 12f;
+            _uvIcon.style.width = 14f;
+            _uvIcon.style.height = 14f;
             _uvIcon.style.flexShrink = 0f;
-            _uvIcon.style.marginRight = 6f;
+            _uvIcon.style.marginRight = 7f;
             _uvLabel = new Label();
-            _uvLabel.style.color = TextDim;
-            _uvLabel.style.fontSize = 12;
+            _uvLabel.style.color = Text;
+            _uvLabel.style.fontSize = 10.5f;
+            _uvLabel.style.flexGrow = 1f;
+            _uvLabel.style.overflow = Overflow.Hidden;
+            _uvLabel.style.textOverflow = TextOverflow.Ellipsis;
+            _uvLabel.style.whiteSpace = WhiteSpace.NoWrap;
+            _uvLabel.pickingMode = PickingMode.Ignore;
             uvRow.Add(_uvIcon);
             uvRow.Add(_uvLabel);
-            info.Add(uvRow);
+            vitalsRail.Add(uvRow);
 
-            info.Add(BuildInventoryButton());
-            info.Add(BuildControlToggle());
+            // Rail first, dial second: the dial hides the rail's rounded tail
+            // and makes the capsule appear to emerge directly from the ring.
+            vitalsCluster.Add(vitalsRail);
+            vitalsCluster.Add(healthBadge);
+            col.Add(vitalsCluster);
 
-            // §121: почему приказ не выполнен. Место — прямо под тумблером:
-            // подпись читается там же, где игрок только что кликал.
+            col.Add(BuildControlToggle());
+            col.Add(BuildInventoryButton());
+
+            // Why a manual order failed: a transient note above the combined
+            // vitals module, never over the actor's face or the readouts.
             _orderToast = new Label
             {
                 style =
                 {
                     color = Warn,
-                    fontSize = 12,
-                    marginTop = 5f,
+                    fontSize = 10f,
+                    position = Position.Absolute,
+                    left = 190f,
+                    right = 14f,
+                    top = 78f,
+                    paddingLeft = 7f,
+                    paddingRight = 7f,
+                    paddingTop = 4f,
+                    paddingBottom = 4f,
+                    backgroundColor = IdentityGlass,
+                    whiteSpace = WhiteSpace.Normal,
                     display = DisplayStyle.None,
                 }
             };
+            SetRadius(_orderToast, 7f);
+            SetBorder(_orderToast, new Color(Warn.r, Warn.g, Warn.b, 0.32f), 1f);
             _orderToast.pickingMode = PickingMode.Ignore;
-            info.Add(_orderToast);
-
-            col.Add(info);
+            col.Add(_orderToast);
 
             return col;
         }
@@ -5249,34 +5861,88 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement BuildControlToggle()
         {
             var button = new VisualElement();
+            button.style.position = Position.Absolute;
+            button.style.left = 12f;
+            button.style.top = 12f;
+            button.style.width = 88f;
+            button.style.height = 34f;
             button.style.flexDirection = FlexDirection.Row;
             button.style.alignItems = Align.Center;
-            button.style.alignSelf = Align.FlexStart;
-            button.style.marginTop = 6f;
-            button.style.backgroundColor = Raised;
+            button.style.backgroundColor = IdentityGlass;
             SetBorder(button, StrokeStrong, 1f);
-            SetRadius(button, 8f);
-            button.style.paddingLeft = 11f;
-            button.style.paddingRight = 13f;
-            button.style.paddingTop = 6f;
-            button.style.paddingBottom = 6f;
+            SetRadius(button, 10f);
+            button.style.overflow = Overflow.Hidden;
+            button.tooltip = Loc.Get("panel.control.tooltip");
 
-            _controlGlyph = new Label("🧠");
-            _controlGlyph.style.fontSize = 16;
-            _controlGlyph.style.marginRight = 8f;
-            _controlGlyph.pickingMode = PickingMode.Ignore;
-            _controlGlyph.style.unityTextAlign = TextAnchor.MiddleCenter;
-            button.Add(_controlGlyph);
+            VisualElement BuildSegment(
+                string iconResource,
+                string fallbackGlyph,
+                string tooltip,
+                out Label glyphLabel,
+                out VisualElement iconView)
+            {
+                var segment = new VisualElement();
+                segment.style.width = Length.Percent(50f);
+                segment.style.height = Length.Percent(100f);
+                segment.style.alignItems = Align.Center;
+                segment.style.justifyContent = Justify.Center;
+                segment.tooltip = tooltip;
 
-            _controlLabel = new Label(Loc.Get("panel.control.ai"));
-            _controlLabel.style.color = Text;
-            _controlLabel.style.fontSize = 13;
-            _controlLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            _controlLabel.pickingMode = PickingMode.Ignore;
-            button.Add(_controlLabel);
+                iconView = new VisualElement();
+                iconView.style.width = 27f;
+                iconView.style.height = 27f;
+                iconView.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
+                iconView.pickingMode = PickingMode.Ignore;
+                var iconTexture = Resources.Load<Texture2D>(iconResource);
+                if (iconTexture != null)
+                {
+                    iconView.style.backgroundImage = new StyleBackground(iconTexture);
+                }
+                else
+                {
+                    iconView.style.display = DisplayStyle.None;
+                }
+                segment.Add(iconView);
+
+                // Text is deliberately only a missing-resource fallback: a
+                // bad or delayed content import must not remove the control.
+                glyphLabel = new Label(fallbackGlyph);
+                glyphLabel.style.fontSize = 17f;
+                glyphLabel.style.color = Text;
+                glyphLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+                glyphLabel.style.display = iconTexture == null
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
+                glyphLabel.pickingMode = PickingMode.Ignore;
+                segment.Add(glyphLabel);
+                return segment;
+            }
+
+            _controlAiSegment = BuildSegment(
+                "HexLive/UI/IdentityAiIcon", "🧠", Loc.Get("panel.control.ai"),
+                out _controlAiGlyph, out _controlAiIcon);
+            _controlPlayerSegment = BuildSegment(
+                "HexLive/UI/IdentityManualIcon", "🎮", Loc.Get("panel.control.manual"),
+                out _controlPlayerGlyph, out _controlPlayerIcon);
+            SetRadius(_controlAiSegment, 9f);
+            SetRadius(_controlPlayerSegment, 9f);
+            button.Add(_controlAiSegment);
+            button.Add(_controlPlayerSegment);
+
+            var divider = new VisualElement();
+            divider.style.position = Position.Absolute;
+            divider.style.left = 43f;
+            divider.style.top = 7f;
+            divider.style.bottom = 7f;
+            divider.style.width = 1f;
+            divider.style.backgroundColor = StrokeStrong;
+            divider.pickingMode = PickingMode.Ignore;
+            button.Add(divider);
 
             button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
-            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(button, StrokeStrong));
+            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
+                button,
+                !_controlAvailable ? Stroke : _manualControlNow ? GoldDim : NeonCyanDim));
             button.RegisterCallback<MouseDownEvent>(evt =>
             {
                 ToggleManualControl();
@@ -5313,20 +5979,36 @@ namespace HexLive.UnityPresentation.UI
             _controlAvailable = available;
             var readable = _runner != null;
             _controlButton.style.display = readable ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_orderToast != null)
+            {
+                _orderToast.style.display = DisplayStyle.None;
+            }
             if (!available)
             {
-                _controlLabel.text = Loc.Get("panel.control.readonly");
-                _controlLabel.style.color = TextMute;
-                _controlGlyph.text = "🔒";
+                _controlButton.tooltip = Loc.Get("panel.control.readonly");
+                _controlAiSegment.style.backgroundColor = Color.clear;
+                _controlPlayerSegment.style.backgroundColor = Color.clear;
+                _controlAiGlyph.style.color = TextMute;
+                _controlPlayerGlyph.style.color = TextMute;
+                _controlAiIcon.style.opacity = 0.35f;
+                _controlPlayerIcon.style.opacity = 0.35f;
                 SetBorderColor(_controlButton, Stroke);
                 return;
             }
 
             _manualControlNow = npc.IsManualControl;
-            _controlLabel.text = Loc.Get(_manualControlNow ? "panel.control.manual" : "panel.control.ai");
-            _controlLabel.style.color = _manualControlNow ? Gold : Text;
-            _controlGlyph.text = _manualControlNow ? "🎮" : "🧠";
-            SetBorderColor(_controlButton, _manualControlNow ? GoldDim : StrokeStrong);
+            _controlButton.tooltip = Loc.Get("panel.control.tooltip");
+            _controlAiSegment.style.backgroundColor = _manualControlNow
+                ? Color.clear
+                : new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f);
+            _controlPlayerSegment.style.backgroundColor = _manualControlNow
+                ? new Color(Gold.r, Gold.g, Gold.b, 0.24f)
+                : Color.clear;
+            _controlAiGlyph.style.color = _manualControlNow ? TextMute : NeonCyan;
+            _controlPlayerGlyph.style.color = _manualControlNow ? Gold : TextMute;
+            _controlAiIcon.style.opacity = _manualControlNow ? 0.42f : 1f;
+            _controlPlayerIcon.style.opacity = _manualControlNow ? 1f : 0.42f;
+            SetBorderColor(_controlButton, _manualControlNow ? GoldDim : NeonCyanDim);
 
             if (_orderToast != null)
             {
@@ -5339,39 +6021,88 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        // Spec §51: "🎒 Backpack" pill under the identity block. Toggles the
-        // floating inventory window.
+        // Spec §51: raised neon-glass backpack control in the card's upper-right.
         private VisualElement BuildInventoryButton()
         {
             var button = new VisualElement();
-            button.style.flexDirection = FlexDirection.Row;
+            button.style.position = Position.Absolute;
+            button.style.right = 12f;
+            button.style.top = 12f;
+            button.style.width = 58f;
+            button.style.height = 58f;
             button.style.alignItems = Align.Center;
-            button.style.alignSelf = Align.FlexStart;
-            button.style.marginTop = 10f;
-            button.style.backgroundColor = Raised;
-            SetBorder(button, StrokeStrong, 1f);
-            SetRadius(button, 8f);
-            button.style.paddingLeft = 11f;
-            button.style.paddingRight = 13f;
-            button.style.paddingTop = 6f;
-            button.style.paddingBottom = 6f;
+            button.style.justifyContent = Justify.Center;
+            button.style.backgroundColor = new Color(0.014f, 0.058f, 0.074f, 0.94f);
+            SetBorder(button, NeonCyanDim, 1.5f);
+            SetRadius(button, 18f);
+            button.tooltip = Loc.Get("inv.button");
+
+            // UI Toolkit has no dependable runtime shadow here, so a second
+            // translucent plate and a luminous underline give the control the
+            // same depth without introducing a texture asset.
+            var inventoryButtonInner = new VisualElement();
+            inventoryButtonInner.style.position = Position.Absolute;
+            inventoryButtonInner.style.left = 4f;
+            inventoryButtonInner.style.right = 4f;
+            inventoryButtonInner.style.top = 4f;
+            inventoryButtonInner.style.bottom = 4f;
+            inventoryButtonInner.style.backgroundColor = new Color(0.045f, 0.095f, 0.115f, 0.72f);
+            SetBorder(inventoryButtonInner, StrokeStrong, 1f);
+            SetRadius(inventoryButtonInner, 14f);
+            inventoryButtonInner.pickingMode = PickingMode.Ignore;
+            button.Add(inventoryButtonInner);
+
+            var inventoryButtonAccent = new VisualElement();
+            inventoryButtonAccent.style.position = Position.Absolute;
+            inventoryButtonAccent.style.left = 15f;
+            inventoryButtonAccent.style.right = 15f;
+            inventoryButtonAccent.style.bottom = 5f;
+            inventoryButtonAccent.style.height = 2f;
+            inventoryButtonAccent.style.backgroundColor = NeonCyan;
+            SetRadius(inventoryButtonAccent, 1f);
+            inventoryButtonAccent.pickingMode = PickingMode.Ignore;
+            button.Add(inventoryButtonAccent);
+
+            var backpackIcon = new VisualElement();
+            backpackIcon.style.width = 46f;
+            backpackIcon.style.height = 46f;
+            backpackIcon.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
+            backpackIcon.pickingMode = PickingMode.Ignore;
+            var backpackTexture = Resources.Load<Texture2D>("HexLive/UI/IdentityBackpackIcon");
+            if (backpackTexture != null)
+            {
+                backpackIcon.style.backgroundImage = new StyleBackground(backpackTexture);
+            }
+            else
+            {
+                backpackIcon.style.display = DisplayStyle.None;
+            }
+            button.Add(backpackIcon);
 
             var glyph = new Label("🎒");
-            glyph.style.fontSize = 16;
-            glyph.style.marginRight = 8f;
+            glyph.style.fontSize = 26f;
+            glyph.style.color = Text;
+            glyph.style.display = backpackTexture == null
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
             glyph.pickingMode = PickingMode.Ignore;
             glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
             button.Add(glyph);
 
-            _inventoryButtonLabel = new Label(Loc.Get("inv.button"));
-            _inventoryButtonLabel.style.color = Text;
-            _inventoryButtonLabel.style.fontSize = 13;
-            _inventoryButtonLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            _inventoryButtonLabel.pickingMode = PickingMode.Ignore;
-            button.Add(_inventoryButtonLabel);
-
-            button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
-            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(button, StrokeStrong));
+            button.RegisterCallback<MouseEnterEvent>(_ =>
+            {
+                button.style.backgroundColor = new Color(Gold.r, Gold.g, Gold.b, 0.20f);
+                inventoryButtonInner.style.backgroundColor = new Color(Gold.r, Gold.g, Gold.b, 0.12f);
+                inventoryButtonAccent.style.backgroundColor = Gold;
+                SetBorderColor(button, GoldDim);
+            });
+            button.RegisterCallback<MouseLeaveEvent>(_ =>
+            {
+                button.style.backgroundColor = new Color(0.014f, 0.058f, 0.074f, 0.94f);
+                inventoryButtonInner.style.backgroundColor = new Color(0.045f, 0.095f, 0.115f, 0.72f);
+                inventoryButtonAccent.style.backgroundColor = NeonCyan;
+                SetBorderColor(button, NeonCyanDim);
+            });
             button.RegisterCallback<MouseDownEvent>(evt =>
             {
                 ToggleInventory();
@@ -5380,20 +6111,6 @@ namespace HexLive.UnityPresentation.UI
 
             _inventoryButton = button;
             return button;
-        }
-
-        private VisualElement BuildLiveBadge()
-        {
-            var live = new VisualElement();
-            live.style.position = Position.Absolute;
-            live.style.bottom = 2f;
-            live.style.right = 2f;
-            live.style.width = 12f;
-            live.style.height = 12f;
-            SetRadius(live, 6f);
-            live.style.backgroundColor = new Color(1f, 0.353f, 0.302f);
-            SetBorder(live, new Color(0.075f, 0.094f, 0.110f), 2f);
-            return live;
         }
 
         private VisualElement BuildNeedsColumn()
@@ -5417,6 +6134,7 @@ namespace HexLive.UnityPresentation.UI
             _needsTitle = BuildSheetTab(tabs, SheetTab.Needs);
             _natureTitle = BuildSheetTab(tabs, SheetTab.Nature);
             _skillsTitle = BuildSheetTab(tabs, SheetTab.Skills);
+            _characterTitle = BuildSheetTab(tabs, SheetTab.Character);
             col.Add(tabs);
 
             _needsContainer = new VisualElement();
@@ -5470,6 +6188,25 @@ namespace HexLive.UnityPresentation.UI
 
             col.Add(_skillsContainer);
 
+            // §126: «Характер» — черты КАРТОЧКАМИ, во всю ширину и с описанием
+            // на самой странице, а не бейджами с тултипом, как перки §76.6.
+            // Причина в том, чем черта отличается от перка: перков у человека
+            // до дюжины и каждый читается из своей строки характеристик
+            // («Сила 9» → «Силачка»), а черт одна-две, и по имени они НЕ
+            // читаются — «Неряха» ничего не говорит про то, что она не пойдёт
+            // мыться вообще никогда. Объяснение обязано лежать рядом с именем.
+            _characterContainer = new VisualElement();
+            _characterContainer.style.flexDirection = FlexDirection.Column;
+
+            _characterEmpty = new Label();
+            _characterEmpty.style.color = TextMute;
+            _characterEmpty.style.fontSize = 12;
+            _characterEmpty.style.whiteSpace = WhiteSpace.Normal;
+            _characterEmpty.style.marginTop = 4f;
+            _characterContainer.Add(_characterEmpty);
+
+            col.Add(_characterContainer);
+
             _sheetTooltipAnchor = col;
             SelectSheetTab(SheetTab.Needs);
             return col;
@@ -5506,10 +6243,12 @@ namespace HexLive.UnityPresentation.UI
             _needsContainer.style.display = tab == SheetTab.Needs ? DisplayStyle.Flex : DisplayStyle.None;
             _natureContainer.style.display = tab == SheetTab.Nature ? DisplayStyle.Flex : DisplayStyle.None;
             _skillsContainer.style.display = tab == SheetTab.Skills ? DisplayStyle.Flex : DisplayStyle.None;
+            _characterContainer.style.display = tab == SheetTab.Character ? DisplayStyle.Flex : DisplayStyle.None;
 
             _needsTitle.style.color = tab == SheetTab.Needs ? Gold : TextMute;
             _natureTitle.style.color = tab == SheetTab.Nature ? Gold : TextMute;
             _skillsTitle.style.color = tab == SheetTab.Skills ? Gold : TextMute;
+            _characterTitle.style.color = tab == SheetTab.Character ? Gold : TextMute;
 
             // Refresh() early-returns while the snapshot tick is unchanged, so
             // without this the new page stays blank until the sim ticks over.
@@ -5775,6 +6514,7 @@ namespace HexLive.UnityPresentation.UI
             _needsTitle.text = Loc.Get("panel.needs");
             _natureTitle.text = Loc.Get("panel.nature");
             _skillsTitle.text = Loc.Get("panel.skills");
+            _characterTitle.text = Loc.Get("panel.character");
             _relationsTitle.text = Loc.Get("panel.relations");
             if (_groupStopLabel != null) _groupStopLabel.text = Loc.Get("group.stop");
             if (_clanRosterHeader != null) _clanRosterHeader.text = Loc.Get("roster.clan");
@@ -5801,6 +6541,9 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _perkSig.Clear();
+            // §126: то же и для карточек черт — они перестраиваются только при
+            // смене НАБОРА, а смена языка набор не двигает.
+            _traitSig.Clear();
             // The relation tabs carry localized names (Loc.NpcName), so the
             // cached signature must not survive a language switch either.
             _relationSig.Clear();
@@ -5821,13 +6564,25 @@ namespace HexLive.UnityPresentation.UI
                 _thermalLabel.text = Loc.Get("need.temperature");
             }
 
-            // Inventory window (spec §51) — static chrome + force a rebuild so
-            // the item rows / open detail re-localize on the next refresh.
-            if (_inventoryButtonLabel != null)
+            if (_controlButton != null)
             {
-                _inventoryButtonLabel.text = Loc.Get("inv.button");
+                _controlButton.tooltip = Loc.Get("panel.control.tooltip");
+                _controlAiSegment.tooltip = Loc.Get("panel.control.ai");
+                _controlPlayerSegment.tooltip = Loc.Get("panel.control.manual");
             }
 
+            if (_inventoryButton != null)
+            {
+                _inventoryButton.tooltip = Loc.Get("inv.button");
+            }
+
+            if (_healthButton != null)
+            {
+                _healthButton.tooltip = Loc.Get("panel.health");
+            }
+
+            // Inventory window (spec §51) — static chrome + force a rebuild so
+            // the item rows / open detail re-localize on the next refresh.
             if (_inventoryTitle != null)
             {
                 _inventoryTitle.text = Loc.Get("panel.inventory");
@@ -6012,8 +6767,8 @@ namespace HexLive.UnityPresentation.UI
             private float _value;
             private Color _color;
 
-            // Толщина обводки. Кольца нужд оставляют её по умолчанию; кольцо
-            // здоровья вокруг портрета просит больше.
+            // Толщина обводки. Кольца нужд оставляют её по умолчанию; компактный
+            // HP-instrument задаёт свою толщину независимо от лица.
             public float LineWidth { get; set; } = 5f;
 
             public RingMeter(float value, Color color)
@@ -6024,7 +6779,7 @@ namespace HexLive.UnityPresentation.UI
                 generateVisualContent += OnGenerate;
             }
 
-            // §105 r2: кольцо здоровья живёт весь кадр и меняется каждый тик —
+            // §105: круг здоровья живёт весь кадр и меняется каждый тик —
             // в отличие от колец нужд, которые пересоздаются вместе со строкой.
             // Перерисовка запрашивается только на РЕАЛЬНОМ изменении: панель
             // обновляется каждый кадр, и безусловный MarkDirtyRepaint гонял бы

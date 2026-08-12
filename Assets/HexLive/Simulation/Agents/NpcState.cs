@@ -292,6 +292,12 @@ public sealed class BodyPartCondition
 
     public int HitBiasChangedTick { get; set; }
 
+    // §40.8-H r10: накопительная кровяная «грязь» под спеклы (0..1). Растёт
+    // только от режущего урона, создающего рану (WoundMath.InflictCut);
+    // смывается только водой/купанием. Заживление ран и реген HP её НЕ
+    // трогают — голод/жажда/жара/болезнь тело не красят.
+    public float BloodSoil { get; set; }
+
     public ProstheticState Prosthetic { get; set; }
 }
 
@@ -556,6 +562,17 @@ public sealed class NPCState
     // Spec §76: WHAT she has learned — eight trades that grow with practice
     // (SkillMath.Award). Everyone starts at zero.
     public SkillSet Skills { get; } = new();
+
+    // Spec §126: WHAT KIND of person she is — named traits rolled once from the
+    // world seed (TraitMath.Roll) or authored on the bootstrap, and fixed for
+    // life. Empty is the pre-§126 game exactly: every gate asks Has(), and an
+    // empty mask always answers no.
+    //
+    // Deliberately NOT derived from Faction. Faction answers "who is my enemy";
+    // a trait answers "what will I do when the choice is mine" — the outsider's
+    // §81 bullying and §89 filth used to be spelled as `Faction != Colony`, so a
+    // colonist could not be a slob and a stranger could not be tidy.
+    public TraitSet Traits { get; } = new();
 
     // Spec §76: THE melee output factor — limb condition (§19.3C/§50) × innate
     // Strength × learned Combat. Every damage site in every combat system must

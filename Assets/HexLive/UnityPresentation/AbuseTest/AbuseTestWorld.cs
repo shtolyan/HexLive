@@ -146,7 +146,16 @@ namespace HexLive.UnityPresentation.AbuseTest
                         Energy = 0.8f,
                         Comfort = 0.5f,
                         Social = 0f,
-                        ThermalDiscomfort = 0.2f
+                        ThermalDiscomfort = 0.2f,
+                        // §126: гнобит теперь ХАРАКТЕР, а не фракция. Арена
+                        // обязана выдать черту явно — ровно так же, как её
+                        // выдаёт прототипный мир: без неё §81 в арене молчит
+                        // целиком, и гейт падает с «сцена не случилась ни разу».
+                        Traits = new List<string>
+                        {
+                            TraitKind.Abuser.ToString(),
+                            TraitKind.Slob.ToString()
+                        }
                     }
                 }
             };

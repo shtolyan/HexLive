@@ -151,6 +151,7 @@ public static class PlanInterruption
         npc.Plan.TargetTile = null;
         npc.Plan.TargetItemDefinitionId = null;
         npc.Plan.TargetAgentId = null;
+        npc.Plan.RunRequested = false;
 
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;

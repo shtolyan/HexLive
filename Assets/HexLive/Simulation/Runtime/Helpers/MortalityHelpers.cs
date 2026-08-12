@@ -163,9 +163,27 @@ internal static class MortalityHelpers
     // §60.2a r4: the visible pose comes from the full-body sub-grid solver.
     // A junction below remains only an occupancy anchor; the oriented pathing
     // footprint was already claimed around the actual pose by the shared entry.
-    internal static void AnchorLyingBody(WorldState world, NPCState npc)
+    internal static void AnchorLyingBody(
+        WorldState world, NPCState npc, bool allowNearbyBed = false,
+        int restUntilTick = int.MaxValue)
     {
-        ExecutionSystem.TryLieDownOnGround(world, npc);
+        var placed = allowNearbyBed
+            ? ExecutionSystem.TryLieDownForCollapse(world, npc, restUntilTick)
+            : ExecutionSystem.TryLieDownOnGround(world, npc);
+        if (!placed)
+        {
+            return;
+        }
+
+        // A bed owns its authored pose and occupancy. Its old standing
+        // junction must not be replaced by an arbitrary anchor inside the bed.
+        if (npc.Execution.CurrentInteraction == InteractionType.Sleep &&
+            npc.Execution.TargetObject is { } bedId &&
+            world.Entities.Objects.TryGetValue(bedId, out var bed) &&
+            KenshiRescueMath.IsBed(bed) && bed.CurrentUser == npc.Id)
+        {
+            return;
+        }
 
         var center = npc.Position;
         JunctionId? spot = null;
@@ -236,7 +254,7 @@ internal static class MortalityHelpers
         PlanInterruption.Abort(world, npc, "Collapsed — dying");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // тело, которое только что выключилось, не держит стойку
-        AnchorLyingBody(world, npc);
+        AnchorLyingBody(world, npc, allowNearbyBed: true);
 
         Trace.Emit(world, npc.Id, "Collapsed",
             $"Cause={cause} Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} " +
@@ -443,10 +461,7 @@ internal static class MortalityHelpers
         }
 
         var cause = npc.Mind.DyingCause;
-        if (Spec118.Enabled)
-        {
-            KenshiRescueMath.ReleasePatientBedOnWake(world, npc);
-        }
+        LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
         npc.Mind.DyingCause = DyingCause.None;
         npc.Mind.DyingReserve = 0f;
         npc.Mind.DyingTickStamp = 0;
@@ -480,15 +495,20 @@ internal static class MortalityHelpers
     // экспортёр подаёт его виду как обычный сон. Вид доигрывает это одним
     // движением (переход FallenIdle → Sleep), не поднимая её на ноги.
     //
-    // Порог — тот самый, по которому аукцион и выбрал бы сон
-    // (SimBalance.SleepEnergyThreshold): спрашивать надо ровно то, что она
-    // решила бы сама, иначе «остаться лежать» и «пойти спать» разойдутся.
+    // ⭐ Порог — «дошла до ручки» (Spec49.DeadTiredEnergy), а НЕ «готова лечь»
+    // (SimBalance.SleepEnergyThreshold). Раньше это было одно число, и вопрос
+    // читался как «она и так пошла бы спать». §126/§49 r2 развёл их: порог сна
+    // стал щедрым (0.45 — «хочешь спать, спи»), а «остаться лежать вместо того,
+    // чтобы встать» — это по-прежнему про исчерпанность, и на 0.45 упавшая
+    // обязана продолжать умирать, а не проваливаться в кому от изнеможения.
+    // Ровно это и поймал гейт §105 (запас умирания переставал таять).
+    //
     // §105.14 добавил вторую причину остаться лежать — враг рядом. Порядок
     // важен: вымотанная сначала засыпает (сон восстанавливает, притворство —
     // нет), и только бодрая переходит к притворству.
     private static void StayDownIfNeeded(WorldState world, NPCState npc)
     {
-        if (Spec105.StayDownIfSpent && npc.Needs.Energy <= SimBalance.SleepEnergyThreshold)
+        if (Spec105.StayDownIfSpent && npc.Needs.Energy <= Spec49.DeadTiredEnergy)
         {
             NeedsDecaySystem.EnterComa(world, npc, ComaCause.Exhaustion);
             if (SimTrace.Enabled)
@@ -722,6 +742,7 @@ internal static class MortalityHelpers
             }
         }
 
+        LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
         npc.Mind.PlayDeadUntilTick = 0;
         npc.Mind.PlayDeadSinceTick = 0;
         npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // §41.5

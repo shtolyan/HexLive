@@ -26,6 +26,11 @@ public sealed class NPCPlanState
 
     // Agent targeted by a Talk plan (spec 28.15A).
     public EntityId? TargetAgentId { get; set; }
+
+    // §121.1: explicit pace of a player-issued movement order. It belongs
+    // to the plan (and therefore survives a save with that unfinished order),
+    // not to the NPC: the next ordinary click must return her to a walk.
+    public bool RunRequested { get; set; }
 }
 
 public sealed class PlanStep
@@ -69,7 +74,13 @@ public enum PlanStepType
     PlayerWearInventory,
     PlayerStowWorn,
     PlayerDropCarried,
-    PlayerDropWorn
+    PlayerDropWorn,
+    // §128 append-only two-way transfer with an unconscious person. Direction
+    // and source list stay in the type; TimeoutEndTick packs count + index.
+    PlayerTakeCarried,
+    PlayerTakeWorn,
+    PlayerGiveCarried,
+    PlayerGiveWorn
 }
 
 public enum PlanStatus

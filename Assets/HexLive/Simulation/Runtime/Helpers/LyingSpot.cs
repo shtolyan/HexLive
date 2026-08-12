@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -85,22 +86,129 @@ internal static class LyingSpot
         actor.Movement.DesiredDirection = Forward(heading);
     }
 
-    // Beds own an authored attach pose. They deliberately bypass the ground
-    // footprint solver: the object itself promises support for that pose.
-    internal static void AlignBodyToObject(
-        WorldState world, NPCState body, WorldObjectState worldObject, Float2 anchorPosition)
+    /// <summary>
+    /// §110.9 / §60.2a r5: an emergency posture change may use a bed only when
+    /// the NPC can touch it from where she is standing right now. This is not a
+    /// path or a teleport across a house: metric reach and the terrain/obstacle
+    /// rim must both agree. Own bed wins, then another free colony bed.
+    /// </summary>
+    internal static bool TryUseNearbyBed(
+        WorldState world, NPCState npc, int restUntilTick, out WorldObjectState selected)
     {
-        if (body.Tile != worldObject.Tile)
+        selected = null;
+        var candidates = new List<WorldObjectState>();
+        foreach (var candidate in world.Entities.Objects.Values)
         {
-            var previousTile = body.Tile;
-            body.Tile = worldObject.Tile;
-            SpatialMutations.MoveEntityToTile(world, body.Id, previousTile, body.Tile);
+            var priority = NearbyBedPriority(world, npc, candidate);
+            if (priority == int.MaxValue || candidate.Tile != npc.Tile ||
+                ((candidate.IsOccupied || candidate.CurrentUser is not null) &&
+                 candidate.CurrentUser != npc.Id) ||
+                !TryAnchor(world, candidate, out var anchor) ||
+                !world.Content.ObjectDefinitions.TryGetValue(
+                    candidate.DefinitionId, out var definition))
+            {
+                continue;
+            }
+
+            var reach = InteractionReach.ForObject(definition.ObstacleRadius);
+            if (HexSpatialMath.Distance(npc.Position, anchor) > reach)
+            {
+                continue;
+            }
+
+            var stand = npc.CurrentJunction ??
+                SpatialQueries.FindNearestJunction(world, npc.Position);
+            if (stand is { } standId &&
+                !SpatialQueries.CanTouchAcross(
+                    world, standId, candidate.Junctions[0], reach,
+                    candidate, InteractionReach.RimMode))
+            {
+                continue;
+            }
+
+            candidates.Add(candidate);
         }
 
-        body.Position = anchorPosition;
-        body.RotationDegrees = Wrap360(worldObject.RotationDegrees);
-        body.Movement.DesiredRotationDegrees = body.RotationDegrees;
-        body.Movement.DesiredDirection = Forward(body.RotationDegrees);
+        candidates.Sort((a, b) =>
+        {
+            var byPriority = NearbyBedPriority(world, npc, a)
+                .CompareTo(NearbyBedPriority(world, npc, b));
+            if (byPriority != 0)
+            {
+                return byPriority;
+            }
+
+            TryAnchor(world, a, out var aAnchor);
+            TryAnchor(world, b, out var bAnchor);
+            var byDistance = DistanceSq(npc.Position, aAnchor)
+                .CompareTo(DistanceSq(npc.Position, bAnchor));
+            return byDistance != 0 ? byDistance : a.Id.Value.CompareTo(b.Id.Value);
+        });
+
+        if (candidates.Count == 0)
+        {
+            return false;
+        }
+
+        selected = candidates[0];
+        var wakeJunction = npc.CurrentJunction;
+        ExecutionSystem.ReleaseClaims(world, npc);
+        if (!BedSleep.TryEnter(world, npc, selected, restUntilTick, wakeJunction))
+        {
+            selected = null;
+            return false;
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "LieDownSpot",
+                $"Surface=Bed Bed={selected.Id.Value} Tile={selected.Tile.Q},{selected.Tile.R} Reach=Nearby");
+        }
+        return true;
+    }
+
+    /// <summary>Returns an emergency sleeper to a legal standing point and
+    /// releases the bed/ground recovery marker before she can act again.</summary>
+    internal static void ReleaseRestSurfaceOnRise(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.CurrentInteraction != InteractionType.Sleep)
+        {
+            return;
+        }
+
+        if (npc.Execution.TargetObject is { } bedId &&
+            world.Entities.Objects.TryGetValue(bedId, out var bed) &&
+            KenshiRescueMath.IsBed(bed))
+        {
+            TryStandAfterObjectSleep(world, npc, bed);
+        }
+
+        KenshiRescueMath.ReleasePatientBedOnWake(world, npc);
+    }
+
+    internal static void EndCrying(WorldState world, NPCState npc)
+    {
+        npc.Mind.CryingUntilTick = 0;
+        ReleaseRestSurfaceOnRise(world, npc);
+        ExecutionSystem.ReleaseClaims(world, npc);
+    }
+
+    private static int NearbyBedPriority(
+        WorldState world, NPCState npc, WorldObjectState candidate)
+    {
+        if (!KenshiRescueMath.IsBed(candidate) || !string.IsNullOrEmpty(candidate.BuildProduct))
+        {
+            return int.MaxValue;
+        }
+
+        if (candidate.Owner == npc.Id)
+        {
+            return 0;
+        }
+
+        return ColonyQueries.InCamp(world, candidate.Tile, npc.Faction)
+            ? 1
+            : int.MaxValue;
     }
 
     /// <summary>
@@ -112,9 +220,20 @@ internal static class LyingSpot
         WorldState world, NPCState npc, WorldObjectState bed)
     {
         var anchor = bed.Junctions.Count > 0 ? bed.Junctions[0] : (JunctionId?)null;
+        // Emergency bed use has no active plan, but it deliberately keeps the
+        // junction the NPC was standing on before lying down. Prefer that exact
+        // legal side of the furniture on wake instead of leaking its occupancy
+        // and searching from the bed centre.
+        if (npc.CurrentJunction is { } previousStand &&
+            (!anchor.HasValue || !previousStand.Equals(anchor.Value)) &&
+            CanStandBesideBed(world, npc, bed, anchor, previousStand))
+        {
+            return MoveToStand(world, npc, previousStand);
+        }
+
         if (npc.Plan.TargetJunctionId is { } planned &&
             (!anchor.HasValue || !planned.Equals(anchor.Value)) &&
-            CanStandAt(world, npc, planned))
+            CanStandBesideBed(world, npc, bed, anchor, planned))
         {
             return MoveToStand(world, npc, planned);
         }
@@ -140,13 +259,31 @@ internal static class LyingSpot
         });
         foreach (var candidate in candidates)
         {
-            if (CanStandAt(world, npc, candidate) && MoveToStand(world, npc, candidate))
+            if (CanStandBesideBed(world, npc, bed, anchor, candidate) &&
+                MoveToStand(world, npc, candidate))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private static bool CanStandBesideBed(
+        WorldState world, NPCState npc, WorldObjectState bed,
+        JunctionId? anchor, JunctionId candidate)
+    {
+        if (!CanStandAt(world, npc, candidate) || !anchor.HasValue)
+        {
+            return false;
+        }
+
+        // CollectStandableAround crosses the target object's own blocked
+        // cluster in order to discover its rim. Never accept the anchor or any
+        // authored blocked junction as the standing result, even if the global
+        // topology cache has not yet mirrored that object flag.
+        return !candidate.Equals(anchor.Value) &&
+            !bed.BlockedJunctions.Contains(candidate);
     }
 
     private static bool CanStandAt(WorldState world, NPCState npc, JunctionId candidate)

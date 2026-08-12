@@ -104,6 +104,9 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
         private void Awake()
         {
             Application.runInBackground = true;
+            // timeScale переживает Enter Play Mode без domain reload и может
+            // остаться нулём от Escape-меню игры — анимации тогда стоят.
+            Time.timeScale = 1f;
             BuildEnvironment();
             LoadCatalog();
             DiscoverClips();

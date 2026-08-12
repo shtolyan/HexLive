@@ -51,6 +51,7 @@ public sealed class SystemRegistryGateTests
         "ProstheticAidSystem",
         "PlanningSystem",
         "MobSystem",
+        "ColonyArrivalSystem",
         "RaidWaveSystem",
         "CampExpulsionSystem",
         "RaidSystem",

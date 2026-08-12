@@ -43,6 +43,15 @@ namespace HexLive.UnityPresentation.UI
         private const int SettleFrames = 2;
         private static readonly int SpeedParam = Animator.StringToHash("Speed");
         private static readonly int IdleState = Animator.StringToHash("Base Layer.Idle");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
+        private static readonly int TearAmountId = Shader.PropertyToID("_TearAmount");
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int BumpMapId = Shader.PropertyToID("_BumpMap");
+        private static readonly int MetallicGlossMapId = Shader.PropertyToID("_MetallicGlossMap");
+        private static readonly int TearMaskTexId = Shader.PropertyToID("_TearMaskTex");
         private static readonly Vector3 StagePosition = new(StageSeparation, -260f, 0f);
         private static readonly Color Backdrop = new(0.035f, 0.047f, 0.055f, 0f);
 
@@ -90,7 +99,11 @@ namespace HexLive.UnityPresentation.UI
         private readonly Dictionary<Renderer, string> _wornByRenderer = new();
         private readonly HashSet<string> _wantedWorn = new();
         private readonly List<Renderer> _rendererScratch = new();
+        private readonly List<Renderer> _cloneRendererScratch = new();
         private readonly List<Material> _materialScratch = new();
+        private readonly List<Material> _cloneMaterialScratch = new();
+        private readonly List<SurfaceBinding> _surfaceBindings = new();
+        private readonly MaterialPropertyBlock _surfaceBlock = new();
         private readonly List<SkinnedMeshRenderer> _cloneSkins = new();
         private readonly HashSet<int> _sourceMaterialIds = new();
         private readonly Dictionary<string, DollFraming> _framingByActor = new();
@@ -120,6 +133,7 @@ namespace HexLive.UnityPresentation.UI
         private string _actorMesh = string.Empty;
         private int _sourceRootId;
         private int _sourceVisualSignature;
+        private int _sourceSurfaceSignature;
         private int _zoneSignature;
         private bool _zoneSignatureValid;
         private float _yaw;
@@ -128,6 +142,20 @@ namespace HexLive.UnityPresentation.UI
         private float _nextSignatureTime;
         private int _settleFrames;
         private bool _renderDirty;
+
+        private readonly struct SurfaceBinding
+        {
+            public SurfaceBinding(Renderer source, Renderer clone, int slotCount)
+            {
+                Source = source;
+                Clone = clone;
+                SlotCount = slotCount;
+            }
+
+            public Renderer Source { get; }
+            public Renderer Clone { get; }
+            public int SlotCount { get; }
+        }
 
         /// <summary>
         /// The photo point of one actor: where the portrait camera stands and
@@ -442,6 +470,17 @@ namespace HexLive.UnityPresentation.UI
                 {
                     BuildClone(source, signature);
                 }
+                else
+                {
+                    // Instantiate copies material references but not the
+                    // per-submesh MaterialPropertyBlock used by tanning,
+                    // wetness and garment condition. Painted skin textures
+                    // can also finish one slot at a time after the still
+                    // portrait was taken. Synchronise those surfaces on the
+                    // existing clone and take one new photo; never rebuild the
+                    // skeleton for a colour or texture update.
+                    SynchronizeSurfaceState(force: false);
+                }
             }
 
             if (_clone == null)
@@ -521,6 +560,8 @@ namespace HexLive.UnityPresentation.UI
             _clone.transform.localPosition = Vector3.zero;
             _clone.transform.localRotation = Quaternion.identity;
             _modelPivot.localRotation = Quaternion.Euler(0f, _yaw, 0f);
+
+            BindSurfaceRenderers(source, _clone.transform);
 
             var layer = LayerMask.NameToLayer("Portrait");
             if (layer >= 0)
@@ -606,6 +647,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             CacheDistalBones();
+            SynchronizeSurfaceState(force: true);
             RepaintHealthMesh();
             _sourceRootId = source.GetInstanceID();
             _sourceVisualSignature = visualSignature;
@@ -680,6 +722,182 @@ namespace HexLive.UnityPresentation.UI
                 {
                     if (material != null) _sourceMaterialIds.Add(material.GetInstanceID());
                 }
+            }
+        }
+
+        private void BindSurfaceRenderers(Transform source, Transform clone)
+        {
+            _surfaceBindings.Clear();
+            _rendererScratch.Clear();
+            _cloneRendererScratch.Clear();
+            source.GetComponentsInChildren(true, _rendererScratch);
+            clone.GetComponentsInChildren(true, _cloneRendererScratch);
+
+            // Instantiate preserves component traversal order. Validate every
+            // pair so a malformed runtime hierarchy cannot copy one actor's
+            // skin overrides onto an unrelated renderer.
+            var count = Mathf.Min(_rendererScratch.Count, _cloneRendererScratch.Count);
+            for (var i = 0; i < count; i++)
+            {
+                var sourceRenderer = _rendererScratch[i];
+                var cloneRenderer = _cloneRendererScratch[i];
+                if (sourceRenderer == null || cloneRenderer == null ||
+                    sourceRenderer is ParticleSystemRenderer ||
+                    sourceRenderer.GetType() != cloneRenderer.GetType() ||
+                    !string.Equals(sourceRenderer.gameObject.name,
+                        cloneRenderer.gameObject.name, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                sourceRenderer.GetSharedMaterials(_materialScratch);
+                cloneRenderer.GetSharedMaterials(_cloneMaterialScratch);
+                var slotCount = Mathf.Min(_materialScratch.Count, _cloneMaterialScratch.Count);
+                if (slotCount > 0)
+                {
+                    _surfaceBindings.Add(new SurfaceBinding(
+                        sourceRenderer, cloneRenderer, slotCount));
+                }
+            }
+        }
+
+        private void SynchronizeSurfaceState(bool force)
+        {
+            var signature = SourceSurfaceSignature();
+            if (!force && signature == _sourceSurfaceSignature)
+            {
+                return;
+            }
+
+            foreach (var binding in _surfaceBindings)
+            {
+                if (binding.Source == null || binding.Clone == null)
+                {
+                    continue;
+                }
+
+                for (var slot = 0; slot < binding.SlotCount; slot++)
+                {
+                    // GetPropertyBlock completely overwrites/clears the block.
+                    // Passing null for an empty source block is important: it
+                    // also removes an older tan/wet override from the clone.
+                    binding.Source.GetPropertyBlock(_surfaceBlock, slot);
+                    binding.Clone.SetPropertyBlock(
+                        _surfaceBlock.isEmpty ? null : _surfaceBlock, slot);
+                }
+            }
+
+            _sourceSurfaceSignature = signature;
+            _renderDirty = true;
+        }
+
+        private int SourceSurfaceSignature()
+        {
+            unchecked
+            {
+                var hash = 23;
+                foreach (var binding in _surfaceBindings)
+                {
+                    var renderer = binding.Source;
+                    if (renderer == null)
+                    {
+                        hash *= 31;
+                        continue;
+                    }
+
+                    renderer.GetSharedMaterials(_materialScratch);
+                    var slotCount = Mathf.Min(binding.SlotCount, _materialScratch.Count);
+                    for (var slot = 0; slot < slotCount; slot++)
+                    {
+                        renderer.GetPropertyBlock(_surfaceBlock, slot);
+                        hash = hash * 31 + _surfaceBlock.isEmpty.GetHashCode();
+                        hash = HashColor(hash, _surfaceBlock.GetColor(BaseColorId));
+                        hash = hash * 31 + _surfaceBlock.GetFloat(SmoothnessId).GetHashCode();
+                        hash = hash * 31 + _surfaceBlock.GetFloat(TearAmountId).GetHashCode();
+                        hash = HashTexture(hash, _surfaceBlock.GetTexture(BaseMapId));
+                        hash = HashTexture(hash, _surfaceBlock.GetTexture(BumpMapId));
+                        hash = HashTexture(hash, _surfaceBlock.GetTexture(MetallicGlossMapId));
+                        hash = HashTexture(hash, _surfaceBlock.GetTexture(TearMaskTexId));
+
+                        var material = _materialScratch[slot];
+                        if (material == null)
+                        {
+                            hash *= 31;
+                            continue;
+                        }
+
+                        hash = hash * 31 + material.GetInstanceID();
+                        hash = hash * 31 + (material.shader != null
+                            ? material.shader.GetInstanceID()
+                            : 0);
+                        hash = hash * 31 + material.renderQueue;
+                        hash = HashMaterialColor(hash, material, BaseColorId);
+                        hash = HashMaterialColor(hash, material, ColorId);
+                        hash = HashMaterialColor(hash, material, EmissionColorId);
+                        hash = HashMaterialFloat(hash, material, SmoothnessId);
+                        hash = HashMaterialFloat(hash, material, TearAmountId);
+                        hash = HashMaterialTexture(hash, material, BaseMapId);
+                        hash = HashMaterialTexture(hash, material, BumpMapId);
+                        hash = HashMaterialTexture(hash, material, MetallicGlossMapId);
+                        hash = HashMaterialTexture(hash, material, TearMaskTexId);
+                    }
+                }
+
+                return hash;
+            }
+        }
+
+        private static int HashMaterialColor(int hash, Material material, int propertyId)
+        {
+            unchecked
+            {
+                return material.HasProperty(propertyId)
+                    ? HashColor(hash * 31 + 1, material.GetColor(propertyId))
+                    : hash * 31;
+            }
+        }
+
+        private static int HashMaterialFloat(int hash, Material material, int propertyId)
+        {
+            unchecked
+            {
+                return material.HasProperty(propertyId)
+                    ? (hash * 31 + 1) * 31 + material.GetFloat(propertyId).GetHashCode()
+                    : hash * 31;
+            }
+        }
+
+        private static int HashMaterialTexture(int hash, Material material, int propertyId)
+        {
+            unchecked
+            {
+                return material.HasProperty(propertyId)
+                    ? HashTexture(hash * 31 + 1, material.GetTexture(propertyId))
+                    : hash * 31;
+            }
+        }
+
+        private static int HashColor(int hash, Color color)
+        {
+            unchecked
+            {
+                return hash * 31 + color.GetHashCode();
+            }
+        }
+
+        private static int HashTexture(int hash, Texture texture)
+        {
+            if (texture == null)
+            {
+                return unchecked(hash * 31);
+            }
+
+            // Texture identity catches a newly assigned paint target;
+            // updateCount catches another GPU repaint into the same target.
+            unchecked
+            {
+                return (hash * 31 + texture.GetInstanceID()) * 31 +
+                       (int)texture.updateCount;
             }
         }
 
@@ -1213,6 +1431,7 @@ namespace HexLive.UnityPresentation.UI
         private void DestroyClone()
         {
             _wornByRenderer.Clear();
+            _surfaceBindings.Clear();
             _distalBones.Clear();
             _animator = null;
             _lookAt = null;
@@ -1230,6 +1449,7 @@ namespace HexLive.UnityPresentation.UI
             }
             _cloneSkins.Clear();
             _settleFrames = 0;
+            _sourceSurfaceSignature = 0;
         }
 
         private void ReleaseCloneMaterials()

@@ -26,6 +26,7 @@ public sealed class WorldObjectView : MonoBehaviour
     public static IReadOnlyList<WorldObjectView> All => Live;
 
     private Renderer[] _renderers = Array.Empty<Renderer>();
+    private WorldObjectPickBounds[] _pickBounds = Array.Empty<WorldObjectPickBounds>();
     private bool _highlighted;
 
     /// <summary>Номер объекта в симуляции (<c>ObjectId.Value</c>).</summary>
@@ -40,6 +41,7 @@ public sealed class WorldObjectView : MonoBehaviour
         ObjectId = objectId;
         DefinitionId = definitionId ?? string.Empty;
         _renderers = GetComponentsInChildren<Renderer>(true);
+        _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
     }
 
     public void Init(int objectId, string definitionId, Renderer[] renderers)
@@ -47,6 +49,7 @@ public sealed class WorldObjectView : MonoBehaviour
         ObjectId = objectId;
         DefinitionId = definitionId ?? string.Empty;
         _renderers = renderers ?? Array.Empty<Renderer>();
+        _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
     }
 
     /// <summary>
@@ -56,8 +59,32 @@ public sealed class WorldObjectView : MonoBehaviour
     /// </summary>
     public bool TryIntersect(Ray ray, out float distance)
     {
+        // Вид с переопределением зоны пикинга (пальма: только ствол, крона не
+        // активатор) проверяется исключительно против него — рендереры такого
+        // вида в наведении не участвуют вовсе.
         distance = float.MaxValue;
         var hit = false;
+        var overridden = false;
+        for (var i = 0; i < _pickBounds.Length; i++)
+        {
+            var pick = _pickBounds[i];
+            if (pick == null || !pick.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            overridden = true;
+            if (pick.TryIntersect(ray, out var pickDistance) && pickDistance < distance)
+            {
+                distance = pickDistance;
+                hit = true;
+            }
+        }
+
+        if (overridden)
+        {
+            return hit;
+        }
         for (var i = 0; i < _renderers.Length; i++)
         {
             var renderer = _renderers[i];

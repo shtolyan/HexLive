@@ -426,6 +426,10 @@ public sealed partial class ExecutionSystem
                 {
                     target.Mind.CryingUntilTick = System.Math.Max(
                         world.Tick, target.Mind.CryingUntilTick - Spec53.ConsoleCryingReliefTicks);
+                    if (target.Mind.CryingUntilTick <= world.Tick)
+                    {
+                        LyingSpot.EndCrying(world, target);
+                    }
                 }
                 // Comforting someone eases the comforter's own tension a touch.
                 helper.Needs.Stress = MathUtil.Clamp01(

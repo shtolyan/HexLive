@@ -40,8 +40,8 @@ public sealed class ProstheticAidSystem : ISimulationSystem
             if (!MayWorkOnPledge(world, helper)) continue;
 
             // A ready part in the pack is intentionally left to RescueSystem:
-            // as soon as the patient is lying on a bed it atomically claims the
-            // pair and performs the authored installation interaction.
+            // it prepares a compatible bed (including carrying a conscious
+            // prone patient there) and then performs the authored installation.
             var arm = part is BodyPart.ArmL or BodyPart.ArmR;
             var wooden = arm ? ContentIds.WoodenArm : ContentIds.WoodenLeg;
             var mechanical = arm ? ContentIds.MechanicalArm : ContentIds.MechanicalLeg;

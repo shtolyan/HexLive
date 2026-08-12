@@ -149,6 +149,15 @@ public sealed class NpcBootstrap
     // NOTE a pinned value breaks the point-buy budget on purpose — it is
     // authorial intent, not a roll.
     public Dictionary<Agents.AttributeKind, float> Attributes { get; } = new();
+
+    // §126: authored character traits, by enum name ("Abuser"). null = ROLL,
+    // a non-null list (even an empty one) = authored verbatim, no roll.
+    //
+    // The distinction matters: the outsider must carry Abuser+Slob on every
+    // seed — he IS the bully, that is not a lottery — while a test scene that
+    // wants a provably trait-less control girl says `Traits = new()` and gets
+    // one. §74's blank-means-roll rule with an explicit "authored nothing".
+    public List<string> Traits { get; set; }
 }
 
 }

@@ -77,6 +77,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
         var outcome = npc.Plan.Status == PlanStatus.Completed ? "Completed" : "Failed";
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Plan.Status = PlanStatus.None;
+        npc.Plan.RunRequested = false;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerOrder Outcome={outcome}");

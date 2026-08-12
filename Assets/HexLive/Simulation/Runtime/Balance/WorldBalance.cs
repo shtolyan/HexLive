@@ -17,6 +17,18 @@ public static class WorldBalance
     // число можно крутить, не трогая ничего больше.
     public static int ColonistCount = 3;
 
+    // §132: жёсткий потолок живых людей в мире и квоты двух лагерей.
+    // Трупы не считаются: потеря освобождает место для будущего прибытия,
+    // но не воскрешает пропущенную неделю. Квоты отдельны от общего потолка намеренно:
+    // так балансер может сделать асимметричный сценарий, не меняя код.
+    public static int MaxLivingNpcs = 10;
+    public static int MaxColonyNpcs = 5;
+    public static int MaxOutsiderNpcs = 5;
+
+    // Начало календарных дней 7, 14, 21…: одна новая девушка, если оба
+    // потолка оставляют ей место. 0 выключает пополнение.
+    public static int ColonyArrivalIntervalDays = 7;
+
     public static int DayLengthTicks = 24000;
 
     // The GAMEPLAY CADENCE — how often the seeded "once per day" rolls happen

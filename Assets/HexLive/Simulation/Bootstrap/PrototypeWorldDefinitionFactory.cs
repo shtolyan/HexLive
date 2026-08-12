@@ -139,7 +139,13 @@ namespace HexLive.Simulation.Bootstrap
             };
 
             var count = System.Math.Max(0,
-                System.Math.Min(HexLive.Simulation.Runtime.WorldBalance.ColonistCount, spots.Length));
+                System.Math.Min(
+                    HexLive.Simulation.Runtime.WorldBalance.ColonistCount,
+                    System.Math.Min(
+                        spots.Length,
+                        System.Math.Min(
+                            HexLive.Simulation.Runtime.WorldBalance.MaxColonyNpcs,
+                            HexLive.Simulation.Runtime.WorldBalance.MaxLivingNpcs))));
             for (var i = 0; i < count; i++)
             {
                 var (q, r) = spots[i];
@@ -301,7 +307,17 @@ namespace HexLive.Simulation.Bootstrap
                 });
             }
 
-            var outsiders = System.Math.Max(0, HexLive.Simulation.Runtime.Spec72.OutsiderCount);
+            // §132: оба потолка действуют уже на стартовый ростер, а не только на
+            // будущие волны. Заданный в конфиге перекомплект не создаёт мир,
+            // который уже в нулевом тике нарушает обещанный максимум.
+            var remainingWorldSeats = System.Math.Max(0,
+                HexLive.Simulation.Runtime.WorldBalance.MaxLivingNpcs - definition.Npcs.Count);
+            var outsiders = System.Math.Max(0,
+                System.Math.Min(
+                    HexLive.Simulation.Runtime.Spec72.OutsiderCount,
+                    System.Math.Min(
+                        HexLive.Simulation.Runtime.WorldBalance.MaxOutsiderNpcs,
+                        remainingWorldSeats)));
             if (outsiders == 0)
             {
                 return;
@@ -363,6 +379,16 @@ namespace HexLive.Simulation.Bootstrap
                         [Agents.AttributeKind.Hardiness] = HexLive.Simulation.Runtime.Spec72.OutsiderHardiness,
                         [Agents.AttributeKind.Wits] = HexLive.Simulation.Runtime.Spec72.OutsiderWits,
                         [Agents.AttributeKind.Perception] = HexLive.Simulation.Runtime.Spec72.OutsiderPerception,
+                    },
+                    // §126: его характер — тоже АВТОРСКИЙ, не выпавший. Гнобит
+                    // (§81) и не моется (§89) он не потому, что он «чужой» —
+                    // фракция теперь отвечает только на вопрос, кто кому враг, —
+                    // а потому, что он вот такой человек. Список задан явно,
+                    // значит ролл §126 для него не бросается вовсе.
+                    Traits = new System.Collections.Generic.List<string>
+                    {
+                        Agents.TraitKind.Abuser.ToString(),
+                        Agents.TraitKind.Slob.ToString()
                     },
                 });
             }

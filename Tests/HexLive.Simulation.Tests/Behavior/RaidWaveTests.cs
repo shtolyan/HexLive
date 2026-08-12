@@ -101,6 +101,58 @@ public sealed class RaidWaveTests
         Assert.That(loaded.RaidWavesSpawned, Is.EqualTo(7),
             "Без счётчика сейв повторно спавнит уже пройденные волны.");
     }
+
+    [Test]
+    public void FullEnemyCampConsumesWave_AndReplacementWaitsForNextBoundary()
+    {
+        var oldCap = WorldBalance.MaxOutsiderNpcs;
+        var oldTotal = WorldBalance.MaxLivingNpcs;
+        var oldInterval = Spec72.RaidWaveIntervalDays;
+        try
+        {
+            WorldBalance.MaxOutsiderNpcs = 1;
+            WorldBalance.MaxLivingNpcs = 10;
+            Spec72.RaidWaveIntervalDays = 3;
+
+            var world = TestWorld.CreateWorld();
+            var system = new RaidWaveSystem();
+            world.Tick = 2 * EnvironmentSystem.DayLengthTicks -
+                EnvironmentSystem.DayLengthTicks / 4;
+            system.Run(world);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(world.RaidWavesSpawned, Is.EqualTo(1));
+                Assert.That(world.Entities.Npcs.ContainsKey(new EntityId(1001)), Is.False);
+            });
+
+            var opening = world.Entities.Npcs.Values.Single(n => n.Faction == Faction.Outsiders);
+            world.Entities.Npcs.Remove(opening.Id);
+            if (world.Occupancy.EntitiesInTile.TryGetValue(opening.Tile, out var occupied))
+            {
+                occupied.Remove(opening.Id);
+            }
+
+            system.Run(world);
+            Assert.That(world.Entities.Npcs.ContainsKey(new EntityId(1001)), Is.False,
+                "Потеря после пропущенной волны не должна вызывать мгновенную замену.");
+
+            world.Tick = 5 * EnvironmentSystem.DayLengthTicks -
+                EnvironmentSystem.DayLengthTicks / 4;
+            system.Run(world);
+            Assert.Multiple(() =>
+            {
+                Assert.That(world.RaidWavesSpawned, Is.EqualTo(2));
+                Assert.That(world.Entities.Npcs.ContainsKey(new EntityId(1002)), Is.True);
+            });
+        }
+        finally
+        {
+            WorldBalance.MaxOutsiderNpcs = oldCap;
+            WorldBalance.MaxLivingNpcs = oldTotal;
+            Spec72.RaidWaveIntervalDays = oldInterval;
+        }
+    }
 }
 
 }

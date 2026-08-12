@@ -32,7 +32,7 @@ MonoBehaviour:
   maxWalkCadence: 1.6
   walkStretchCadence: 1.15
   maxWalkGait: 0.35
-  speedSmoothTau: 0.15
+  speedSmoothTau: 0.21235806
   walkHoldSeconds: 0.3
   midJourneyWalkHoldSeconds: 0.8
   pivotYawSpeed: 90

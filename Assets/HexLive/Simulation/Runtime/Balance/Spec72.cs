@@ -41,11 +41,12 @@ public static class Spec72
     // лагерем: садятся на якорь стоянки и кольцо вокруг него.
     public static int OutsiderCount = 1;
 
-    // §72.14: wave 0 is the authored male outsider. Wave 1 lands after three
-    // days, then one new hostile survivor every three days. Exact authored rule
-    // (not a tuning knob): save migration and deterministic wave numbering both
-    // depend on this interval.
-    public const int RaidWaveIntervalDays = 3;
+    // §72.14/§132: wave 0 is the authored male outsider. Wave 1 lands at
+    // the start of calendar day 3, then one opportunity every three days. It is
+    // a real balance knob now; migration and deterministic numbering read the
+    // same live value, so changing it never creates a second hidden cadence.
+    // 0 disables new waves without removing the authored opening outsider.
+    public static int RaidWaveIntervalDays = 3;
 
     // --- His camp -----------------------------------------------------------
 

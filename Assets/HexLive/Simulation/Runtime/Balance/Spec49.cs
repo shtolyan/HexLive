@@ -104,13 +104,14 @@ public static class Spec49
     public static float DeadTiredEnergy = 0.15f;      // below this: drop work, bed down
     public static float DeadTiredSleepBoost = 0.30f;  // auction pull (cf. StarvingBoost 1.0)
 
-    // Bug #25 / §49.9: the deliberate night bedtime. After 23:00 a body at/below
-    // 25% energy stops ordinary work, prepares a sufficiently fuelled hearth,
-    // and sleeps beside it. The intention stays armed through those separate
-    // goals and through critical wake-ups until the energy bar is full.
-    public static bool NightSleepSchedule = true;
-    public static float NightSleepEnergy = 0.25f;
-    public static float NightSleepBoost = 1.0f;
+    // §126/§49 r2 «хочешь спать — спи». Здесь стояли три ручки ночного затвора
+    // (расписание, порог отбоя в 23:00, буст ставки). Затвор снят: он был
+    // обходом слишком низкого дневного порога сна, а не самостоятельной идеей.
+    // Осталась ОДНА — черта, по которой сон кончается.
+    //
+    // Сон идёт до полной энергии, и это единственный его конец: ни рассвет, ни
+    // мороз, ни «уже достаточно» не будят. Будит только настоящая нужда
+    // (потолки прерывания) или опасность.
     public static float NightSleepWakeEnergy = 0.999f;
 
     // §65 (EXPERIMENTAL, default OFF): only a RECENTLY-seen threat forbids sleep.

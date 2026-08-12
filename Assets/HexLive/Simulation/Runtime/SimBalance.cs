@@ -232,6 +232,15 @@ namespace HexLive.Simulation.Runtime
         // гигиену — надо полностью помыться. Через неё же прячутся кровяные
         // капли на коже (баг #10): помылась — капли исчезли, раны остались.
         public static float HygieneDamageLoss = 3f;
+        // §40.8-H r10: кровяная подложка = грязь. Прирост BloodSoil зоны на
+        // единицу режущего урона: 2 ⇒ мачете (~0.48 cut) заливает торс почти
+        // до потолка, топор (~0.2) — до половины, укус волка (~0.08) — ~0.15
+        // за укус, царапина 0.01 остаётся ниже onset-порога спеклов (0.05).
+        public static float BloodSoilPerCut = 2f;
+        // Смывание крови водой, за тик на водяном тайле (= HygieneWashGain,
+        // чтобы кровь и общая грязь сходили синхронно). На суше кровь не
+        // дрейфует — засохла и держится до мытья, как грязь на одежде.
+        public static float BloodSoilWashPerTick = 0.05f;
         public static float ClothingDirtGain = 0.00035f;
         public static float DirtyClothingComfortLoss = 0.002f;
         public static float BatheNeedThreshold = 0.4f;
@@ -377,10 +386,11 @@ namespace HexLive.Simulation.Runtime
         public static float TurnMinSpeedFactor = 0.6f; // slowest a graded turn gets
         public static float PostTurnPauseSeconds = 0.15f; // only after a planted pivot
 
-        // §71 RUNNING. Gait is a decision, not a side effect of speed: she
-        // walks by default and runs only for a REASON, so a running figure
-        // always means something happened. Each reason carries its own pace;
-        // they do not compound (MovementSystem takes the largest).
+        // §71 RUNNING. Gait is a decision, not a side effect of speed. An
+        // autonomous routine route spends the same finite breath reserve as
+        // an emergency, only at a calmer pace. Reasons do not compound:
+        // MovementSystem takes the largest factor.
+        public static float RoutineRunSpeedFactor = 1.6f;
         public static float FleeRunSpeedFactor = 2.25f;  // running for her life
         public static float NeedRunSpeedFactor = 1.6f;   // hurrying to food/water when desperate
 

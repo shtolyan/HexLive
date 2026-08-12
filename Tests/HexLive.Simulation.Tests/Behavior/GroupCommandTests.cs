@@ -165,10 +165,12 @@ namespace HexLive.Simulation.Tests.Behavior
         }
 
         [Test]
-        public void FormationUsesEachActorsJumpCapability()
+        public void FormationUsesEachActorsJumpCapabilityWhileCarrying()
         {
             var world = TestWorld.CreateWorld();
-            var actor = Colonists(world, 1)[0];
+            var actors = Colonists(world, 2);
+            var actor = actors[0];
+            var passenger = actors[1];
             actor.CurrentJunction = SpatialQueries.FindNearestJunction(world, actor.Position);
             Assert.That(actor.CurrentJunction, Is.Not.Null);
             var start = actor.CurrentJunction!.Value;
@@ -208,12 +210,65 @@ namespace HexLive.Simulation.Tests.Behavior
             actor.Body.Parts[BodyPart.LegL] = 1f;
             actor.Body.Parts[BodyPart.LegR] = 1f;
             var withJump = GroupFormationPlanner.Plan(world, new[] { actor }, click);
+            actor.CarriedNpcId = passenger.Id;
+            passenger.CarriedByNpcId = actor.Id;
+            var whileCarrying = GroupFormationPlanner.Plan(world, new[] { actor }, click);
 
             Assert.Multiple(() =>
             {
                 Assert.That(withoutJump.Assignments, Is.Empty);
                 Assert.That(withJump.Assignments, Has.Count.EqualTo(1));
                 Assert.That(withJump.Assignments[0].Destination, Is.EqualTo(destination.Id));
+                Assert.That(whileCarrying.Assignments, Has.Count.EqualTo(1),
+                    "Occupied hands must not remove the carrier's physical jump capability.");
+                Assert.That(whileCarrying.Assignments[0].Destination, Is.EqualTo(destination.Id));
+            });
+        }
+
+        [Test]
+        public void PathfindingKeepsJumpCapabilityWhileCarrying()
+        {
+            var world = TestWorld.CreateWorld();
+            var actors = Colonists(world, 2);
+            var carrier = actors[0];
+            var passenger = actors[1];
+            carrier.CurrentJunction = SpatialQueries.FindNearestJunction(world, carrier.Position);
+            Assert.That(carrier.CurrentJunction, Is.Not.Null);
+            var start = carrier.CurrentJunction!.Value;
+
+            foreach (var other in world.Entities.Npcs.Values)
+            {
+                if (!other.Id.Equals(carrier.Id)) other.CurrentJunction = null;
+            }
+            world.Mobs.Clear();
+
+            var destination = world.Junctions.Items.Values
+                .Where(j => !j.Blocked && j.Tiles.Count > 0 &&
+                    Connectivity.Reachable(world, start, j.Id, canJump: true) &&
+                    !Connectivity.Reachable(world, start, j.Id, canJump: false))
+                .OrderBy(j => j.Id.Value).FirstOrDefault();
+            Assert.That(destination, Is.Not.Null,
+                "The prototype world must contain a shelf reachable only by jumping.");
+
+            carrier.Body.Parts[BodyPart.LegL] = 1f;
+            carrier.Body.Parts[BodyPart.LegR] = 1f;
+            carrier.CarriedNpcId = passenger.Id;
+            passenger.CarriedByNpcId = carrier.Id;
+            carrier.Mind.CurrentGoal = GoalType.PlayerOrder;
+            carrier.Plan.Goal = GoalType.PlayerOrder;
+            carrier.Plan.TargetJunctionId = destination!.Id;
+            carrier.Plan.TargetTile = destination.Tiles[0];
+            carrier.Plan.Status = PlanStatus.Active;
+            carrier.Movement.JunctionPath.Clear();
+            carrier.Movement.IsMoving = false;
+
+            new PathfindingSystem().Run(world);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(carrier.Movement.IsMoving, Is.True);
+                Assert.That(carrier.Movement.JunctionPath, Is.Not.Empty);
+                Assert.That(carrier.Movement.JunctionPath[^1], Is.EqualTo(destination.Id));
             });
         }
 

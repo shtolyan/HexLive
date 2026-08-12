@@ -70,7 +70,10 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (!KenshiRescueMath.NeedsRescue(world, patient))
+        var prostheticBedTransport =
+            KenshiProstheticMath.TryGetPledgedBedTransport(
+                world, helper, patient, out _, out var prostheticItemId);
+        if (!KenshiRescueMath.NeedsRescue(world, patient) && !prostheticBedTransport)
         {
             PlanInterruption.Abort(world, helper, "patient recovered before pickup");
             helper.Mind.CurrentGoal = GoalType.None;
@@ -135,7 +138,12 @@ public sealed partial class ExecutionSystem
 
         if (!KenshiRescueMath.TryFindDestination(
                 world, helper, patient, out var destination, out var destinationJunction,
-                out var destinationTile, out var route))
+                out var destinationTile, out var route,
+                allowGround: !prostheticBedTransport,
+                requiredBedDefinitionId: prostheticBedTransport &&
+                    KenshiProstheticMath.IsMechanical(prostheticItemId)
+                        ? ContentIds.BedBasic
+                        : null))
         {
             PlanningSystem.SetGoalCooldown(world, helper, GoalType.Rescue);
             PlanInterruption.Abort(world, helper,

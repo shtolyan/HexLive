@@ -1124,11 +1124,11 @@ public sealed class MobSystem : ISimulationSystem
 
             // This is the exact physical contract PathfindingSystem will use
             // on the following fast tick. Connectivity alone is insufficient:
-            // it ignores elevation jumps and a carried person's jump ban.
+            // it ignores elevation jumps.
             var path = HexPathfinder.FindPath(
                 world, start, candidate.Id, avoid,
                 weightClimb: false,
-                canJump: npc.Body.CanJump && !npc.IsCarryingPerson);
+                canJump: npc.Body.CanJump);
             if (path.Count == 0 ||
                 !SpatialMutations.TryReserveJunction(
                     world, candidate.Id, npc.Id, world.Tick, 48))

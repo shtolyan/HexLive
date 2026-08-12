@@ -162,7 +162,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         // a posture transition, not movement (bugs #53/#54).
         // §105: сам примитив переехал в MortalityHelpers — умирание кладёт тело
         // на землю ровно тем же способом, и двух редакций §60.2a быть не должно.
-        MortalityHelpers.AnchorLyingBody(world, npc);
+        MortalityHelpers.AnchorLyingBody(world, npc, allowNearbyBed: true);
 
         // §60 r2: exhaustion reads as SLEEP (she crashed dead-tired), only
         // blood loss reads as unconsciousness — the "coma" framing is gone.
@@ -200,10 +200,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     // the junction the body held (mirrors the ground-rest wake path).
     internal static void WakeFromComa(WorldState world, NPCState npc, string cause)
     {
-        if (Spec118.Enabled)
-        {
-            KenshiRescueMath.ReleasePatientBedOnWake(world, npc);
-        }
+        LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
         npc.Mind.ComaCause = ComaCause.None;
         npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // spec 41.5
 
@@ -564,14 +561,24 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 (npc.Needs.Hunger >= 0.9f || npc.Needs.Blood < 0.25f) &&
                 npc.Health > 0f)
             {
-                npc.Mind.FaintedUntilTick = world.Tick + 80;
+                var faintedUntilTick = world.Tick + 80;
                 PlanInterruption.Abort(world, npc, "Collapsed — unconscious");
                 npc.Mind.CurrentGoal = GoalType.None;
                 // §113 r2: choose the nearest sub-grid pose whose whole body is
-                // supported; do not preserve a mid-stride point over an edge.
-                ExecutionSystem.TryLieDownOnGround(world, npc);
-                Trace.Emit(world, npc.Id, "Fainted",
-                    $"Stamina={npc.Needs.Stamina:F2} Hunger={npc.Needs.Hunger:F2} Blood={npc.Needs.Blood:F2}");
+                // supported; a furnished tile may fall back to a free bed that
+                // is already at hand, but never to an intersecting old point.
+                if (ExecutionSystem.TryLieDownForCollapse(
+                        world, npc, faintedUntilTick))
+                {
+                    npc.Mind.FaintedUntilTick = faintedUntilTick;
+                    Trace.Emit(world, npc.Id, "Fainted",
+                        $"Stamina={npc.Needs.Stamina:F2} Hunger={npc.Needs.Hunger:F2} Blood={npc.Needs.Blood:F2}");
+                }
+                else if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "LieDownSpot",
+                        "State=Collapse Outcome=Deferred no collision-free ground rectangle or nearby free bed");
+                }
             }
             // Spec §110: the STRESS arm of the same collapse is not a faint —
             // she is conscious, she just can't go on. She lies down and CRIES:
@@ -588,12 +595,21 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Mind.ComaCause == ComaCause.None && !npc.IsDying &&
                 !npc.IsFighting && !DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
             {
-                npc.Mind.CryingUntilTick = world.Tick + SimBalance.CryingBreakdownTicks;
+                var cryingUntilTick = world.Tick + SimBalance.CryingBreakdownTicks;
                 PlanInterruption.Abort(world, npc, "Broke down crying");
                 npc.Mind.CurrentGoal = GoalType.None;
-                ExecutionSystem.TryLieDownOnGround(world, npc);
-                Trace.Emit(world, npc.Id, "CryingBreakdown",
-                    $"Stamina={npc.Needs.Stamina:F2} Stress={npc.Needs.Stress:F2}");
+                if (ExecutionSystem.TryLieDownForCrying(
+                        world, npc, cryingUntilTick))
+                {
+                    npc.Mind.CryingUntilTick = cryingUntilTick;
+                    Trace.Emit(world, npc.Id, "CryingBreakdown",
+                        $"Stamina={npc.Needs.Stamina:F2} Stress={npc.Needs.Stress:F2}");
+                }
+                else if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "LieDownSpot",
+                        "State=Crying Outcome=Deferred no collision-free ground rectangle or nearby free bed");
+                }
             }
 
             // §40.6 r10 (bug #18): water itself washes the body, regardless of
@@ -606,6 +622,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 hygieneTile.Flags.HasFlag(TileFlags.Water);
             npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
                 (standingInWater ? SimBalance.HygieneWashGain : -SimBalance.HygieneDriftLoss));
+            // §40.8-H r10: та же вода смывает кровяную подложку. На суше —
+            // ничего: засохшая кровь, как грязь одежды, держится до мытья.
+            if (standingInWater)
+            {
+                WoundMath.WashBloodSoil(npc, SimBalance.BloodSoilWashPerTick);
+            }
             foreach (var worn in npc.WornItems)
             {
                 worn.Dirtiness = MathUtil.Clamp01(worn.Dirtiness + SimBalance.ClothingDirtGain);

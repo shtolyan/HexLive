@@ -302,6 +302,57 @@ public sealed class ManualControlTests
     }
 
     [Test]
+    public void ManualSleepUsesApproachJunctionAndStaysInBedUntilCancelled()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Needs.Energy = 1f;
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic &&
+            o.Variant == ContentIds.HutBedVariant && !o.IsOccupied);
+        var bedAnchor = bed.Junctions[0];
+
+        engine.Commands.Enqueue(new InteractCommand(npc.Id, bed.Id, InteractionType.Sleep));
+        engine.Step();
+
+        Assert.That(npc.Plan.TargetJunctionId, Is.Not.EqualTo(bedAnchor),
+            "Manual sleep must reserve a standing approach point, not the bed footprint.");
+
+        for (var i = 0; i < MediumTicks * 120 &&
+             npc.Execution.CurrentInteraction != InteractionType.Sleep; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep),
+            "The manual order never reached the authored bed interaction.");
+        var firstBlockEnd = npc.Execution.EndTick;
+        while (world.Tick <= firstBlockEnd + 2)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep),
+                "A fully rested manual character stood up after the first sleep block.");
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder));
+            Assert.That(npc.Execution.EndTick, Is.GreaterThan(world.Tick),
+                "Manual sleep was not re-armed as a persistent player order.");
+        });
+
+        engine.Commands.Enqueue(new StopCommand(npc.Id));
+        engine.Step();
+        Assert.That(npc.Execution.CurrentInteraction, Is.Null,
+            "Stop must wake a character held in manual sleep.");
+    }
+
+    [Test]
     public void ManualCarrierCanMoveAndPutDownADeadBody()
     {
         var engine = TestWorld.CreateEngine();

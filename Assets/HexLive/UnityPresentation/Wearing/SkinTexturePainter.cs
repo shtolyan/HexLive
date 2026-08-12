@@ -99,6 +99,11 @@ namespace HexLive.UnityPresentation.Wearing
             // texture stays null, so the normal/gloss walks skip it) and
             // drawn FIRST in RepaintSlot — wounds/bandages land on top.
             public bool IsSpeckle;
+            // §40.8-H r11: синяк — та же спекл-частица, но фиолетовая версия
+            // арта и прозрачнее. Источник — BluntDamage зоны (тупой урон),
+            // рисуется САМЫМ НИЖНИМ (глубже крови: разлитое под кожей, не на
+            // ней). Albedo-only, как спеклы.
+            public bool IsBruise;
             // r4: seeded random spin (degrees) applied via the GL matrix at
             // draw time, so the same splatter art never tiles visibly.
             public float RotationDeg;
@@ -283,6 +288,23 @@ namespace HexLive.UnityPresentation.Wearing
         private static int SpeckleCountFor(string zone, float q) =>
             q <= 0f ? 0 : Mathf.Max(1, Mathf.RoundToInt(MaxSpecklesFor(zone) * SpeckleRamp(q)));
 
+        // ---- §40.8-H r11: bruise (тупой урон) knobs ----
+        // Синяки — те же спекл-частицы, но: арт перекрашен в багрово-фиолетовый
+        // (MakeBruiseTexture), заметно прозрачнее (разлитое ПОД кожей, не
+        // кровь на ней), чуть крупнее и вдвое реже — сплошная заливка читалась
+        // бы как краска, а не как побои. Без neighbour-bleed: синяк локален —
+        // где ударили, там и цветёт. Источник — BluntDamage зоны, поэтому
+        // поле само сходит по мере заживления (TickBluntRecovery), воде тут
+        // делать нечего.
+        private const float BruiseAlphaMin = 0.22f;
+        private const float BruiseAlphaMax = 0.5f;
+        private const float BruiseWorldSizeMin = 0.16f;
+        private const float BruiseWorldSizeMax = 0.28f;
+        private static Color BruiseTint(float alpha) => StampTint(alpha);
+
+        private static int BruiseCountFor(string zone, float q) =>
+            q <= 0f ? 0 : Mathf.Max(1, Mathf.RoundToInt(MaxSpecklesFor(zone) * 0.5f * SpeckleRamp(q)));
+
         // Which zones a zone's damage bleeds onto (both directions listed).
         private static readonly Dictionary<string, string[]> SpeckleAdjacency = new()
         {
@@ -346,6 +368,10 @@ namespace HexLive.UnityPresentation.Wearing
         // molly damage decal used (copied back from molly_copy as
         // blood_stain.png; the user asked for exactly this picture).
         private static Texture2D? _texStain;
+        // §40.8-H r11: тот же сплаттер, перекрашенный в фиолетовый на лету
+        // (MakeBruiseTexture) — отдельного PNG нет нарочно, форма синяка
+        // обязана совпадать с формой кровяного пятна.
+        private static Texture2D? _texBruise;
         private static Texture2D? _texBandage;
         private static Texture2D? _texGauze;
         // Matching relief maps (RGB = encoded tangent normal, A = stamp
@@ -477,6 +503,9 @@ namespace HexLive.UnityPresentation.Wearing
         // pixels, so nothing may be carried over from the previous composite.
         private bool _forceFullRebuild;
         private int _speckleHash;
+        // §40.8-H r11: то же самое для поля синяков (BluntDamage).
+        private bool _bruisesDirty;
+        private int _bruiseHash;
 
         public bool WantsFreshPass =>
             _materials != null && (_freshPending || HasPendingSeamUpgrade());
@@ -539,6 +568,7 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             ReconcileSpeckles();
+            ReconcileBruises();
             _freshPending = false;
             RepaintAll();
             _forceFullRebuild = false;
@@ -693,13 +723,18 @@ namespace HexLive.UnityPresentation.Wearing
         /// becomes the gloss map's base so droplets sit ON the wet sheen.
         /// New wounds raycast-place once; heals repaint with lower alpha;
         /// fully healed marks vanish (composite rebuilt from the original).
-        /// zoneDamage (spec 40.8-H): per-zone damage 0..1 (1-hp, severed zones
-        /// excluded upstream) driving the bruise-speckle field.
+        /// zoneDamage (spec 40.8-H r10): per-zone BloodSoil 0..1 (накопительная
+        /// кровяная подложка из сима — растёт от ран, смывается водой; severed
+        /// zones excluded upstream) driving the blood-speckle field.
+        /// zoneBruise (spec 40.8-H r11): per-zone BluntDamage 0..1 — то же
+        /// поле частиц фиолетовым и прозрачнее, сходит вместе с заживлением
+        /// тупой травмы (мытьём НЕ смывается — это под кожей).
         /// </summary>
         public void Sync(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
             float sweat01 = 0f, HashSet<string>? uncovered = null, float wetSmoothness = 0.32f,
             HashSet<string>? gauzed = null,
-            List<(string zone, float damage01)>? zoneDamage = null)
+            List<(string zone, float damage01)>? zoneDamage = null,
+            List<(string zone, float bruise01)>? zoneBruise = null)
         {
             if (_body == null || _materials == null)
             {
@@ -871,6 +906,41 @@ namespace HexLive.UnityPresentation.Wearing
                     {
                         _desired.Add(pair.Key);
                     }
+                }
+            }
+
+            // §40.8-H r11: поле СИНЯКОВ — та же машинерия, свой источник
+            // (BluntDamage зоны) и свой хэш. Без neighbour-bleed: синяк не
+            // растекается на соседнюю зону, он ровно там, куда пришёлся удар.
+            if (zoneBruise != null && zoneBruise.Count > 0 && _map != null)
+            {
+                ComputeZoneBruise(zoneBruise);
+                var bruiseHash = 19;
+                foreach (var pair in _bruiseQ)
+                {
+                    bruiseHash = bruiseHash * 31 + pair.Key.GetHashCode();
+                    bruiseHash = bruiseHash * 31 + Mathf.RoundToInt(pair.Value * 20f);
+                }
+
+                stateHash = stateHash * 31 + bruiseHash;
+                if (bruiseHash != _bruiseHash)
+                {
+                    _bruiseHash = bruiseHash;
+                    _bruisesDirty = true;
+                }
+            }
+            else if (_bruiseQ.Count > 0 || _bruiseHash != 0)
+            {
+                _bruiseQ.Clear();
+                _bruiseHash = 0;
+                _bruisesDirty = true;
+            }
+
+            foreach (var pair in _stamps)
+            {
+                if (pair.Value.IsBruise)
+                {
+                    _desired.Add(pair.Key);
                 }
             }
 
@@ -1053,11 +1123,106 @@ namespace HexLive.UnityPresentation.Wearing
             }
         }
 
+        // §40.8-H r11: то же для синяков. Отдельный набор ключей (`bz{zone}#i`),
+        // отдельная сетка обхода — иначе синяк сел бы ровно под каждым
+        // кровяным пятном и они читались бы как одно грязное месиво.
+        private readonly HashSet<string> _bruiseDesired = new();
+
+        private void ReconcileBruises()
+        {
+            if (!_bruisesDirty || _map == null)
+            {
+                return;
+            }
+
+            _bruisesDirty = false;
+            _bruiseDesired.Clear();
+
+            foreach (var pair in _bruiseQ)
+            {
+                var count = BruiseCountFor(pair.Key, pair.Value);
+                if (count <= 0)
+                {
+                    continue;
+                }
+
+                var alphaBase = Mathf.Lerp(BruiseAlphaMin, BruiseAlphaMax,
+                    SpeckleRamp(pair.Value));
+                for (var i = 0; i < count; i++)
+                {
+                    var key = BruiseKey(pair.Key, i);
+                    _bruiseDesired.Add(key);
+                    _alpha[key] = alphaBase * (0.75f + 0.25f * SpeckleJitter01(pair.Key, i + 613));
+                    if (!_stamps.ContainsKey(key))
+                    {
+                        TryPlaceBruise(key, pair.Key, i);
+                    }
+                }
+            }
+
+            _stale.Clear();
+            foreach (var pair in _stamps)
+            {
+                if (pair.Value.IsBruise && !_bruiseDesired.Contains(pair.Key))
+                {
+                    _stale.Add(pair.Key);
+                }
+            }
+
+            foreach (var key in _stale)
+            {
+                _stamps.Remove(key);
+                _alpha.Remove(key);
+            }
+        }
+
         // ---- Spec 40.8-H zone-damage speckle helpers ----
 
         // zone -> own damage / quantized onset-remapped effective damage.
         private readonly Dictionary<string, float> _speckleOwn = new();
         private readonly Dictionary<string, float> _speckleQ = new();
+        // r11: то же для синяков (без neighbour-bleed — только own).
+        private readonly Dictionary<string, float> _bruiseQ = new();
+
+        private static readonly Dictionary<string, List<string>> BruiseKeyCache = new();
+
+        private static string BruiseKey(string zone, int index)
+        {
+            if (!BruiseKeyCache.TryGetValue(zone, out var list))
+            {
+                list = new List<string>();
+                BruiseKeyCache[zone] = list;
+            }
+
+            while (list.Count <= index)
+            {
+                list.Add($"bz{zone}#{list.Count}");
+            }
+
+            return list[index];
+        }
+
+        // Синяк локален: никакого растекания на соседей, только собственный
+        // BluntDamage зоны через тот же onset и те же 0.05-бакеты.
+        private void ComputeZoneBruise(List<(string zone, float bruise01)> zoneBruise)
+        {
+            _bruiseQ.Clear();
+            foreach (var (zone, raw) in zoneBruise)
+            {
+                var q = Mathf.Clamp01((Mathf.Clamp01(raw) - SpeckleOnsetDamage) /
+                    (1f - SpeckleOnsetDamage));
+                if (q <= 0f)
+                {
+                    continue;
+                }
+
+                q = Mathf.Round(q * 20f) / 20f;
+                if (q > 0f)
+                {
+                    _bruiseQ[zone] = q;
+                }
+            }
+        }
 
         // Speckle keys are hot (up to ~100 per NPC per Sync) — cache the
         // strings once, shared across all NPCs.
@@ -1200,6 +1365,75 @@ namespace HexLive.UnityPresentation.Wearing
                 UvSizeY = sizeV,
                 Over = SpeckleVariant(ref state),
                 IsSpeckle = true,
+                RotationDeg = NextRand(ref state) * 360f
+            };
+        }
+
+        // §40.8-H r11: синяк размещается той же прогулкой по сетке, что и
+        // спекл, но со СВОИМ стартом и своим шагом — иначе синяк №i сел бы
+        // ровно в ячейку кровяного пятна №i и оба читались бы как одно
+        // грязное месиво. Крупнее, реже, прозрачнее.
+        private void TryPlaceBruise(string key, string zoneName, int index)
+        {
+            var points = _map!.PointsFor(zoneName);
+            var n = points.Length;
+            if (n == 0)
+            {
+                PlaceTombstone(key, index, isBandage: false);
+                return;
+            }
+
+            EnsureStampTextures();
+            var start = (int)((((uint)(_npcId * 40503 + 7919)) ^
+                (uint)(zoneName.GetHashCode() * 17)) % (uint)n);
+            var state = (uint)(_npcId * 22468223 ^ (zoneName.GetHashCode() * 61 + index)) | 1u;
+            var targetWorld = (BruiseWorldSizeMin +
+                               NextRand(ref state) * (BruiseWorldSizeMax - BruiseWorldSizeMin)) *
+                              (_height / 1.7f);
+
+            var point = default(PaintPointMap.Point);
+            var sizeU = 0f;
+            var sizeV = 0f;
+            var found = false;
+            for (var probe = 0; probe < SpeckleEdgeProbes && !found; probe++)
+            {
+                var candidate = points[
+                    (start + index * SpeckleCellStride + probe * SpeckleEdgeProbeStep) % n];
+                if (!candidate.Valid)
+                {
+                    continue;
+                }
+
+                SizeFromDensity(candidate, targetWorld, out var u, out var v, minUv: 0.004f);
+                u = Mathf.Min(u, SpeckleMaxUvSize);
+                v = Mathf.Min(v, SpeckleMaxUvSize);
+
+                var clearance = Mathf.Max(u, v) * 0.5f;
+                if (candidate.UvEdgeDistance <= 0f || candidate.UvEdgeDistance >= clearance)
+                {
+                    point = candidate;
+                    sizeU = u;
+                    sizeV = v;
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                PlaceTombstone(key, index, isBandage: false);
+                return;
+            }
+
+            _stamps[key] = new Stamp
+            {
+                Key = key,
+                Slot = point.Slot,
+                Uv = point.Uv,
+                Seed = index,
+                UvSizeX = sizeU,
+                UvSizeY = sizeV,
+                Over = _texBruise,
+                IsBruise = true,
                 RotationDeg = NextRand(ref state) * 360f
             };
         }
@@ -1899,6 +2133,14 @@ namespace HexLive.UnityPresentation.Wearing
                 return;
             }
 
+            // r11: то же для синяков — фиолетовая перекраска пересобирается
+            // в EnsureStampTextures, здесь только восстановить ссылку.
+            if (stamp.IsBruise)
+            {
+                stamp.Over ??= _texBruise;
+                return;
+            }
+
             stamp.Under ??= _texSplash;
             var (wover, wgloss, wnormal) = WoundVariant(stamp.Seed);
             stamp.Over ??= wover;
@@ -1957,6 +2199,54 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             return best;
+        }
+
+        // §40.8-H r11: фиолетовая версия кровяного сплаттера для синяков.
+        // Перекраска на лету, а не отдельный PNG: форма синяка обязана
+        // совпадать с формой пятна, а исходник может быть без Read/Write —
+        // поэтому копия через RT + ReadPixels, затем канал R (арт
+        // красно-доминантный) становится маской багрово-фиолетового.
+        private static Texture2D? MakeBruiseTexture(Texture2D? source)
+        {
+            if (source == null)
+            {
+                return null;
+            }
+
+            // sRGB на обоих концах явно: проект линейный, а арт — sRGB, и
+            // Default-таргет прогнал бы копию через лишнюю гамма-конверсию
+            // (фиолетовый уехал бы в грязно-синий).
+            var rt = RenderTexture.GetTemporary(source.width, source.height, 0,
+                RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            Graphics.Blit(source, rt);
+            var previous = RenderTexture.active;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(source.width, source.height, TextureFormat.RGBA32, true)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                anisoLevel = source.anisoLevel,
+                name = "bruise_stain_runtime"
+            };
+            tex.ReadPixels(new Rect(0f, 0f, rt.width, rt.height), 0, 0);
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(rt);
+
+            var pixels = tex.GetPixels32();
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                var c = pixels[i];
+                var intensity = System.Math.Max(c.r, System.Math.Max(c.g, c.b));
+                pixels[i] = new Color32(
+                    (byte)(intensity * 0.42f),
+                    (byte)(intensity * 0.20f),
+                    (byte)(intensity * 0.52f),
+                    c.a);
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(true, true);
+            return tex;
         }
 
         // Spec 44: procedural medkit gauze wrap — a pale off-white cloth pad
@@ -2055,7 +2345,8 @@ namespace HexLive.UnityPresentation.Wearing
             if (_stampTexturesLoaded && _texScratchN != null && _texSplatN != null &&
                 _texSplashN != null && _texSweatN != null && _dropletStamp != null &&
                 _texScratchG != null && _texSplatG != null && _glossStamp != null &&
-                _skinTintBlit != null && _texStain != null && _projectedStamp != null)
+                _skinTintBlit != null && _texStain != null && _projectedStamp != null &&
+                _texBruise != null)
             {
                 return;
             }
@@ -2076,6 +2367,9 @@ namespace HexLive.UnityPresentation.Wearing
             _texSweatN = Resources.Load<Texture2D>("HexLive/Decals/sweat_drops_n");
             _texScratchG = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch_g");
             _texSplatG = Resources.Load<Texture2D>("HexLive/Decals/blood_splat_g");
+            // r11: фиолетовая версия сплаттера для синяков — перекраска того
+            // же арта, поэтому строго ПОСЛЕ его загрузки. Раз за сессию.
+            _texBruise ??= MakeBruiseTexture(_texStain ?? _texSplat ?? _texSplash);
 
             // Load the wound over-art variant table (over + matching gloss).
             // A missing variant PNG leaves nulls — WoundVariant() skips them,
@@ -2275,7 +2569,8 @@ namespace HexLive.UnityPresentation.Wearing
 
             foreach (var pair in _stamps)
             {
-                if (pair.Value.IsSpeckle && StampTouchesSlot(pair.Value, slot) &&
+                if ((pair.Value.IsSpeckle || pair.Value.IsBruise) &&
+                    StampTouchesSlot(pair.Value, slot) &&
                     !_paintedKeys[slot].Contains(pair.Key))
                 {
                     return false;
@@ -2698,6 +2993,33 @@ namespace HexLive.UnityPresentation.Wearing
                 GL.PushMatrix();
                 GL.LoadPixelMatrix(0f, 1f, 1f, 0f); // (0,0) top-left, UV v flips below
 
+                // §40.8-H r11: СИНЯКИ идут в самый низ — глубже кровяных
+                // пятен: синяк разлит ПОД кожей, кровь лежит НА ней.
+                foreach (var stamp in _stamps.Values)
+                {
+                    if (!stamp.IsBruise || stamp.Slot != slot || stamp.Over == null ||
+                        !_alpha.TryGetValue(stamp.Key, out var bruiseAlpha) || bruiseAlpha <= 0.01f)
+                    {
+                        continue;
+                    }
+
+                    if (SkipAlreadyPainted(slot, additive, stamp.Key))
+                    {
+                        continue;
+                    }
+
+                    var bcx = stamp.Uv.x;
+                    var bcy = 1f - stamp.Uv.y;
+                    GL.PushMatrix();
+                    GL.MultMatrix(Matrix4x4.Translate(new Vector3(bcx, bcy, 0f)) *
+                                  Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, stamp.RotationDeg)) *
+                                  Matrix4x4.Translate(new Vector3(-bcx, -bcy, 0f)));
+                    Graphics.DrawTexture(new Rect(bcx - stamp.UvSizeX * 0.5f, bcy - stamp.UvSizeY * 0.5f,
+                            stamp.UvSizeX, stamp.UvSizeY),
+                        stamp.Over, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, BruiseTint(bruiseAlpha));
+                    GL.PopMatrix();
+                }
+
                 // Spec 40.8-H: the zone-damage speckle field goes down FIRST —
                 // wounds, bandages and droplets all land on top of the bruised
                 // base. Explicit pass because Dictionary iteration order after
@@ -2733,7 +3055,7 @@ namespace HexLive.UnityPresentation.Wearing
 
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.IsSpeckle || !StampTouchesSlot(stamp, slot) ||
+                    if (stamp.IsSpeckle || stamp.IsBruise || !StampTouchesSlot(stamp, slot) ||
                         !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
                     {
                         continue;
@@ -2807,6 +3129,11 @@ namespace HexLive.UnityPresentation.Wearing
                 GL.PopMatrix();
                 RenderTexture.active = previous;
                 rt.GenerateMips();
+                // GPU-side writes do not advance Texture.updateCount by
+                // themselves. CharacterDollStage watches that revision so a
+                // frozen portrait can retake exactly one frame when this
+                // face/torso/limb slot finishes painting.
+                rt.IncrementUpdateCount();
                 _materials[slot].SetTexture("_BaseMap", rt);
             }
             catch (System.Exception e)
@@ -2919,6 +3246,7 @@ namespace HexLive.UnityPresentation.Wearing
                 GL.PopMatrix();
                 RenderTexture.active = previous;
                 rt.GenerateMips();
+                rt.IncrementUpdateCount();
                 _materials[slot].SetTexture("_MetallicGlossMap", rt);
                 _materials[slot].EnableKeyword("_METALLICSPECGLOSSMAP");
                 _glossLive[slot] = true;
@@ -3052,6 +3380,7 @@ namespace HexLive.UnityPresentation.Wearing
                 GL.PopMatrix();
                 RenderTexture.active = previous;
                 rt.GenerateMips();
+                rt.IncrementUpdateCount();
                 _materials[slot].SetTexture("_BumpMap", rt);
                 // Slots whose material had no normal map need the keyword to
                 // start sampling one.

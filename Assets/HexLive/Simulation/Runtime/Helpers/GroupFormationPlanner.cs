@@ -56,7 +56,7 @@ namespace HexLive.Simulation.Runtime
 
                 var avoid = PathfindingSystem.OtherActorJunctions(world, actor);
                 var danger = PathfindingSystem.RouteAvoidRing(world, actor);
-                var canJump = actor.Body.CanJump && !actor.IsCarryingPerson;
+                var canJump = actor.Body.CanJump;
                 costs.Add(HexPathfinder.FindCosts(
                     world, start, candidateSet, avoid,
                     PathfindingSystem.ShouldWeightClimbs(actor), canJump,

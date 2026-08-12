@@ -38,7 +38,7 @@ MonoBehaviour:
   socialRate: 0.006
   sweatThirstFactor: 0.182
   getFoodHungerThreshold: 0.35
-  sleepEnergyThreshold: 0.203
+  sleepEnergyThreshold: 0.45
   sitComfortThreshold: 0.29
   sitNeedGate: 0.29
   sleepInterruptHunger: 0.7

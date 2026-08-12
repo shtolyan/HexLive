@@ -1,5 +1,6 @@
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -65,8 +66,176 @@ public sealed class LyingSpotTests
             .Min(p => HexSpatialMath.Distance(p, before));
         Assert.That(HexSpatialMath.Distance(girl.Position, before),
             Is.EqualTo(nearest).Within(0.001f));
+        Assert.That(girl.ClaimedJunctions.Count, Is.GreaterThanOrEqualTo(3),
+            "A ground body must reserve at least the centre/head/feet support nodes.");
         Assert.That(world.Events.Items.Any(e =>
             e.Type == "LieDownSpot" && e.Message.Contains("Fit=Clear")), Is.True);
+    }
+
+    [Test]
+    public void BedSleepEntry_OwnsPoseInteractionAndClaimAsOneInvariant()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girl = Girl(world);
+        var hut = world.Entities.Objects.Values.Single(o =>
+            o.DefinitionId == ContentIds.Hut1Hex);
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic &&
+            o.Variant == ContentIds.HutBedVariant);
+        Assert.That(LyingSpot.TryAnchor(world, bed, out var routeAnchor), Is.True);
+
+        var expectedCentre = BuildingRules.HutBedVisualPosition(
+            HexSpatialMath.TileToWorld(bed.Tile),
+            hut.RotationDegrees,
+            routeAnchor);
+        var wakeJunction = girl.CurrentJunction;
+        var endTick = world.Tick + 321;
+
+        Assert.That(BedSleep.TryEnter(
+            world, girl, bed, endTick, wakeJunction), Is.True);
+
+        Assert.That(girl.Position, Is.EqualTo(expectedCentre),
+            "The junction is only the route anchor; the sleeper belongs at the rendered point.");
+        Assert.That(HexSpatialMath.Distance(girl.Position, routeAnchor),
+            Is.GreaterThan(0.30f),
+            "HutTest reproduces the old attach rejection: its authored centre is over the 0.30-wu guard from the node.");
+
+        var bodyRadians = girl.RotationDegrees * System.MathF.PI / 180f;
+        var bedRadians = bed.RotationDegrees * System.MathF.PI / 180f;
+        var simulatedHead = new Float2(
+            -System.MathF.Cos(bodyRadians), -System.MathF.Sin(bodyRadians));
+        var renderedHead = new Float2(
+            System.MathF.Sin(bedRadians), -System.MathF.Cos(bedRadians));
+        Assert.That(simulatedHead.X, Is.EqualTo(renderedHead.X).Within(0.0001f));
+        Assert.That(simulatedHead.Y, Is.EqualTo(renderedHead.Y).Within(0.0001f));
+        Assert.That(girl.Execution.Status, Is.EqualTo(ExecutionStatus.InProgress));
+        Assert.That(girl.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep));
+        Assert.That(girl.Execution.TargetObject, Is.EqualTo(bed.Id));
+        Assert.That(girl.Execution.StartTick, Is.EqualTo(world.Tick));
+        Assert.That(girl.Execution.EndTick, Is.EqualTo(endTick));
+        Assert.That(girl.CurrentJunction, Is.EqualTo(wakeJunction));
+        Assert.That(girl.Movement.IsMoving, Is.False);
+        Assert.That(bed.IsOccupied, Is.True);
+        Assert.That(bed.CurrentUser, Is.EqualTo(girl.Id));
+    }
+
+    [Test]
+    public void BedSleepEntry_RejectsASecondSleeperWithoutPartialMutation()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girls = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).ToArray();
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic &&
+            o.Variant == ContentIds.HutBedVariant);
+        var secondPosition = girls[1].Position;
+
+        Assert.That(BedSleep.TryEnter(
+            world, girls[0], bed, world.Tick + 100, girls[0].CurrentJunction), Is.True);
+        Assert.That(BedSleep.TryEnter(
+            world, girls[1], bed, world.Tick + 100, girls[1].CurrentJunction), Is.False);
+
+        Assert.That(girls[1].Position, Is.EqualTo(secondPosition));
+        Assert.That(girls[1].Execution.CurrentInteraction, Is.Null);
+        Assert.That(bed.CurrentUser, Is.EqualTo(girls[0].Id));
+    }
+
+    [Test]
+    public void CryingBesideAFreeBed_UsesTheBedAndReleasesItOnRise()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girls = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).ToArray();
+        var girl = girls[0];
+        MoveOtherNpcsAway(world, girl);
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic && o.Variant == ContentIds.HutBedVariant);
+
+        // Make this bed the deterministic first choice; no unrelated bed may
+        // accidentally satisfy the assertion just because it is a little nearer.
+        foreach (var otherBed in world.Entities.Objects.Values.Where(
+                     o => ContentIds.IsBed(o.DefinitionId)))
+        {
+            otherBed.IsOccupied = !otherBed.Id.Equals(bed.Id);
+            otherBed.CurrentUser = otherBed.Id.Equals(bed.Id) ? null : girls[1].Id;
+            if (!otherBed.Id.Equals(bed.Id))
+            {
+                otherBed.Owner = girls[1].Id;
+            }
+        }
+        bed.Owner = girl.Id;
+
+        Assert.That(LyingSpot.TryAnchor(world, bed, out var anchor), Is.True);
+        var definition = world.Content.ObjectDefinitions[bed.DefinitionId];
+        var reach = InteractionReach.ForObject(definition.ObstacleRadius);
+        var stand = world.Junctions.Items.Values
+            .Where(j => !j.Blocked && !SpatialQueries.IsAllWaterJunction(world, j.Id) &&
+                SpatialQueries.IsJunctionFree(world, j.Id))
+            .Where(j => !bed.BlockedJunctions.Contains(j.Id) && !j.Id.Equals(bed.Junctions[0]))
+            .Where(j => girls.Skip(1).All(other =>
+                HexSpatialMath.Distance(other.Position, j.WorldPosition) >= 0.20f))
+            .Where(j => HexSpatialMath.Distance(j.WorldPosition, anchor) <= reach)
+            .Where(j => SpatialQueries.CanTouchAcross(
+                world, j.Id, bed.Junctions[0], reach, bed, InteractionReach.RimMode))
+            .OrderBy(j => HexSpatialMath.Distance(j.WorldPosition, anchor))
+            .ThenBy(j => j.Id.Value)
+            .First();
+        girl.Tile = stand.Tiles.Contains(bed.Tile) ? bed.Tile : stand.Tiles[0];
+        girl.Position = stand.WorldPosition;
+        girl.CurrentJunction = stand.Id;
+
+        var cryingUntil = world.Tick + 240;
+        Assert.That(ExecutionSystem.TryLieDownForCrying(
+            world, girl, cryingUntil), Is.True);
+        girl.Mind.CryingUntilTick = cryingUntil;
+
+        Assert.That(girl.Execution.TargetObject, Is.EqualTo(bed.Id));
+        Assert.That(girl.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep));
+        Assert.That(girl.CurrentJunction, Is.EqualTo(stand.Id));
+        var hut = world.Entities.Objects.Values.Single(o =>
+            o.DefinitionId == ContentIds.Hut1Hex && o.Tile.Equals(bed.Tile));
+        var visualCentre = BuildingRules.HutBedVisualPosition(
+            HexSpatialMath.TileToWorld(bed.Tile), hut.RotationDegrees, anchor);
+        Assert.That(girl.Position, Is.EqualTo(visualCentre));
+        Assert.That(bed.IsOccupied, Is.True);
+        Assert.That(bed.CurrentUser, Is.EqualTo(girl.Id));
+        Assert.That(world.Junctions.Items[stand.Id].Blocked, Is.False);
+        Assert.That(SpatialQueries.IsAllWaterJunction(world, stand.Id), Is.False);
+        Assert.That(!world.Occupancy.JunctionOwner.TryGetValue(stand.Id, out var standOwner) ||
+            standOwner is null || standOwner == girl.Id, Is.True);
+        Assert.That(girls.Skip(1).All(other =>
+            HexSpatialMath.Distance(other.Position, stand.WorldPosition) >= 0.20f), Is.True);
+
+        LyingSpot.EndCrying(world, girl);
+
+        Assert.That(girl.Mind.CryingUntilTick, Is.Zero);
+        Assert.That(bed.IsOccupied, Is.False);
+        Assert.That(bed.CurrentUser, Is.Null);
+        Assert.That(girl.Position, Is.EqualTo(stand.WorldPosition),
+            "Rising must return to the same legal furniture side instead of getting up inside it.");
+    }
+
+    [Test]
+    public void OccupiedNearbyBeds_DoNotReplaceSafeGroundForACollapse()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girls = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).ToArray();
+        var girl = girls[0];
+        MoveOtherNpcsAway(world, girl);
+        foreach (var bed in world.Entities.Objects.Values.Where(
+                     o => ContentIds.IsBed(o.DefinitionId)))
+        {
+            bed.IsOccupied = true;
+            bed.CurrentUser = girls[1].Id;
+        }
+
+        Assert.That(ExecutionSystem.TryLieDownForCollapse(
+            world, girl, world.Tick + 80), Is.True);
+        Assert.That(girl.Execution.TargetObject, Is.Null);
+        var radians = girl.RotationDegrees * (System.MathF.PI / 180f);
+        var forward = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
+        var lateral = new Float2(-forward.Y, forward.X);
+        Assert.That(LyingSpot.BodyClear(
+            world, girl, girl.Tile, girl.Position, forward, lateral), Is.True);
+        Assert.That(girl.ClaimedJunctions.Count, Is.GreaterThanOrEqualTo(3));
     }
 
     [Test]
@@ -166,6 +335,38 @@ public sealed class LyingSpotTests
         Assert.That(girl.Position, Is.EqualTo(before));
         Assert.That(world.Events.Items.Any(e =>
             e.Type == "LieDownSpot" && e.Message.Contains("Fit=NoSpace")), Is.True);
+    }
+
+    [Test]
+    public void CryingWithNoLegalSurface_DoesNotArmALyingStateAtTheOldPoint()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girls = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).ToArray();
+        var girl = girls[0];
+        MoveOtherNpcsAway(world, girl);
+        foreach (var bed in world.Entities.Objects.Values.Where(
+                     o => ContentIds.IsBed(o.DefinitionId)))
+        {
+            bed.IsOccupied = true;
+            bed.CurrentUser = girls[1].Id;
+        }
+        foreach (var junctionId in world.Tiles.Items[girl.Tile].Junctions)
+        {
+            world.Junctions.Items[junctionId].Blocked = true;
+        }
+
+        girl.Needs.Energy = 0.5f;
+        girl.Needs.Hunger = 0.2f;
+        girl.Needs.Blood = 1f;
+        girl.Needs.Stamina = 0f;
+        girl.Needs.Stress = 1f;
+        var before = girl.Position;
+
+        new NeedsDecaySystem().Run(world);
+
+        Assert.That(girl.Mind.CryingUntilTick, Is.Zero,
+            "The view must not enter a lying state when no collision-free pose exists.");
+        Assert.That(girl.Position, Is.EqualTo(before));
     }
 
     [Test]

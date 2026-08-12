@@ -152,6 +152,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             npc.Plan.TargetTile = null;
             npc.Plan.TargetItemDefinitionId = null;
             npc.Plan.TargetAgentId = null;
+            npc.Plan.RunRequested = false;
             npc.Plan.Goal = npc.Mind.CurrentGoal;
 
             if (SimTrace.Enabled)
@@ -944,50 +945,20 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 targetJunction = authoredWorkPoint; // §119: always the same side of the bench
             }
 
-            var gatherBeside = interactionType == InteractionType.PickUp;
-            // A bed may deliberately have no blocked junctions (integrated hut
-            // furniture), but its centre is still a lying pose, never a valid
-            // place to stand. Reserve a separate approach/wake junction.
-            var sleepBeside = interactionType == InteractionType.Sleep;
-            var anchorIsWater = targetJunction is { } wetId &&
-                SpatialQueries.IsAllWaterJunction(world, wetId);
+            // Furniture has one approach contract for both autonomous and
+            // manual orders: seats and beds are never entered from their
+            // anchor.  Pickups/water/obstacles keep the older beside rule.
+            // Keeping this predicate shared is important: otherwise a manual
+            // sleep could still use a different junction than an autonomous
+            // sleep and the turn-back pose would start from the wrong side.
             if (targetJunction is { } anchorId &&
-                (anchorIsWater || gatherBeside || sleepBeside ||
-                 (world.Junctions.Items.TryGetValue(anchorId, out var anchorJunction) &&
-                  anchorJunction.Blocked)))
+                RequiresBesideApproach(world, anchorId, interactionType.Value))
             {
-                // Reserve in-loop: the first free neighbor is the same for
-                // every claimant — without reserving here two sleepers fight
-                // over one spot forever (ReservationFailed loop). Nearest-to-NPC
-                // first, so "beside" is the CLOSEST reachable cell to the item.
-                // Capped to BesideReach: a boxed-in item yields no rim (fail +
-                // retarget) rather than a stand a whole hex out (user: interact
-                // at the smallest hop, never across a wall/cliff).
-                JunctionId? beside = null;
                 var besideReach = SpatialQueries.BesideReach(
                     world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var besideDef)
                         ? besideDef.ObstacleRadius : 0f);
-                SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, besideReach,
-                    worldObject, InteractionReach.RimMode);
-                _rimScratch.Sort((a, b) =>
-                {
-                    var da = world.Junctions.Items.TryGetValue(a, out var ja)
-                        ? HexSpatialMath.Distance(ja.WorldPosition, npc.Position) : float.MaxValue;
-                    var db = world.Junctions.Items.TryGetValue(b, out var jb)
-                        ? HexSpatialMath.Distance(jb.WorldPosition, npc.Position) : float.MaxValue;
-                    return da.CompareTo(db);
-                });
-                foreach (var rim in _rimScratch)
-                {
-                    if (SpatialQueries.IsJunctionFree(world, rim) &&
-                        SpatialMutations.TryReserveJunction(world, rim, npc.Id, world.Tick, 48))
-                    {
-                        beside = rim;
-                        break;
-                    }
-                }
-
-                if (beside is null)
+                if (!TryReserveBesideJunction(world, npc, anchorId, 48, out var beside,
+                        besideReach, worldObject))
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
@@ -1051,6 +1022,26 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     $"FromMemory={selected.FromMemory} Steps=[MoveToJunction,Interact]");
             }
         }
+    }
+
+    // One source of truth for object approach geometry.  Sit/Sleep always use
+    // the free rim, even when an integrated bed leaves its anchor unblocked;
+    // the anchor is a pose marker, not a place where a standing body may wait.
+    internal static bool RequiresBesideApproach(
+        WorldState world, JunctionId anchor, InteractionType interaction)
+    {
+        if (interaction is InteractionType.Sit or InteractionType.Sleep or InteractionType.PickUp)
+        {
+            return true;
+        }
+
+        if (SpatialQueries.IsAllWaterJunction(world, anchor))
+        {
+            return true;
+        }
+
+        return world.Junctions.Items.TryGetValue(anchor, out var anchorJunction) &&
+            anchorJunction.Blocked;
     }
 
     // §121: internal, потому что тем же выбором клетки на ободе пользуется
@@ -1370,14 +1361,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     return false;
                 }
 
-                // §49.9: bedtime wants a burnable stick. A whole log remains
-                // a SplitLog target on the ground; picking it up first removes
-                // the very Process interaction needed to turn it into fuel.
-                if (npc.Mind.NightSleepUntilRested)
-                {
-                    return perceived.DefinitionId == ContentIds.Stick;
-                }
-
+                // §126/§49 r2: здесь стояла ветка «перед сном бери ТОЛЬКО
+                // палку» — часть ночного затвора, снятого вместе с ним. Общее
+                // правило ниже (целое бревно оставить лежать как цель SplitLog)
+                // и было настоящим содержанием этой ветки.
                 if (!definition.Tags.Contains("Log"))
                 {
                     return true;

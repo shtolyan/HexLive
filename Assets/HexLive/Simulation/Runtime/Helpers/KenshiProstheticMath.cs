@@ -227,6 +227,48 @@ internal static class KenshiProstheticMath
     internal static bool HasItem(NPCState npc, string definitionId) =>
         npc.Inventory.Items.Contains(definitionId);
 
+    /// <summary>
+    /// A pledged helper who already has the replacement must prepare the
+    /// conscious prone patient on a bed instead of waiting for an unrelated
+    /// sleep cycle. Installation itself still has the stricter bed/stump gates.
+    /// </summary>
+    internal static bool TryGetPledgedBedTransport(
+        WorldState world, NPCState helper, NPCState patient,
+        out BodyPart part, out string itemId)
+    {
+        part = BodyPart.ArmL;
+        itemId = string.Empty;
+        if (helper.Mind.ProstheticAidTargetId != patient.Id ||
+            helper.Mind.ProstheticAidPart is not { } pledgedPart ||
+            patient.Health <= 0f || patient.IsBeingCarried ||
+            !patient.Body.IsSevered(pledgedPart) ||
+            patient.Body.Condition(pledgedPart).Prosthetic is not null ||
+            HasUnstabilizedWound(patient, pledgedPart) ||
+            TryPatientBed(world, patient, out _))
+        {
+            return false;
+        }
+
+        var arm = pledgedPart is BodyPart.ArmL or BodyPart.ArmR;
+        var wooden = arm ? ContentIds.WoodenArm : ContentIds.WoodenLeg;
+        var mechanical = arm ? ContentIds.MechanicalArm : ContentIds.MechanicalLeg;
+        if (HasItem(helper, wooden))
+        {
+            part = pledgedPart;
+            itemId = wooden;
+            return true;
+        }
+
+        if (HasItem(helper, mechanical))
+        {
+            part = pledgedPart;
+            itemId = mechanical;
+            return true;
+        }
+
+        return false;
+    }
+
     internal static bool IsMechanical(string itemId) =>
         itemId is ContentIds.MechanicalArm or ContentIds.MechanicalLeg;
 }

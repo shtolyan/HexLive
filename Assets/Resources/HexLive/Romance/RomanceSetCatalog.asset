@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fffecf34e82b4be3bdece54726dc8def, type: 3}
+  m_Name: RomanceSetCatalog
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.HexFlowerTest.RomanceSetCatalog
+  sets:
+  - name: Sitting_Mission_Loop0 #1
+    clipKey: Sitting_Mission_Loop0
+    girlTileQ: 0
+    girlTileR: 0
+    girlSubQ: 2
+    girlSubR: -3
+    facingDeg: 120
+    maleEnabled: 1
+    elevations: 01000000010000000200000002000000030000000100000002000000
+    maleTileQ: 0
+    maleTileR: 0
+    maleSubQ: 2
+    maleSubR: -3
+    maleNodeDistance: 0.16031218
+    maleWorldOffset: {x: 0.07133973, y: 0, z: -0.14356405}
+  - name: Sitting_Mission_Loop0 #2
+    clipKey: Sitting_Mission_Loop0
+    girlTileQ: 0
+    girlTileR: 0
+    girlSubQ: 1
+    girlSubR: -3
+    facingDeg: 120
+    maleEnabled: 1
+    elevations: 01000000010000000200000002000000030000000100000002000000
+    maleTileQ: 0
+    maleTileR: 0
+    maleSubQ: 1
+    maleSubR: -3
+    maleNodeDistance: 0.16031218
+    maleWorldOffset: {x: 0.071339756, y: 0, z: -0.14356405}
+  - name: Wall_Doggy_Loop0 #3
+    clipKey: Wall_Doggy_Loop0
+    girlTileQ: 0
+    girlTileR: 0
+    girlSubQ: -3
+    girlSubR: 1
+    facingDeg: 180
+    maleEnabled: 1
+    elevations: 01000000010000000200000002000000030000000100000002000000
+    maleTileQ: 0
+    maleTileR: 0
+    maleSubQ: -2
+    maleSubR: 0
+    maleNodeDistance: 0.14828531
+    maleWorldOffset: {x: 0.34000003, y: 0, z: -0.03999996}
+  - name: Wall_Doggy_Loop0 #4
+    clipKey: Wall_Doggy_Loop0
+    girlTileQ: 0
+    girlTileR: 0
+    girlSubQ: -3
+    girlSubR: 2
+    facingDeg: 180
+    maleEnabled: 1
+    elevations: 01000000010000000200000002000000030000000100000002000000
+    maleTileQ: 0
+    maleTileR: 0
+    maleSubQ: -2
+    maleSubR: 1
+    maleNodeDistance: 0.14828531
+    maleWorldOffset: {x: 0.34000003, y: 0, z: -0.03999996}

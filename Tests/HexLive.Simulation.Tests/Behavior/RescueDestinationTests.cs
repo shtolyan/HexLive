@@ -274,19 +274,13 @@ public sealed class RescueDestinationTests
     }
 
     [Test]
-    public void RescueHop_StagesOnLandingSide_ThenRepicksSamePatient_Bug91()
+    public void InterruptedCarry_ReleasesFinalBedReservation()
     {
         var world = TestWorld.CreateWorld(251173145);
         var (helper, patient) = RescuePair(world);
         patient.Mind.ComaCause = ComaCause.Exhaustion;
-
-        Assert.That(TryFindSafeJumpEdge(
-            world, patient, out var from, out var to, out var after,
-            out var takeoffTile, out var landingTile),
-            Is.True, "Fixture needs one dry elevation crossing with room for a full body.");
-
-        Relocate(world, helper, takeoffTile, from);
-        Relocate(world, patient, takeoffTile, from);
+        var junction = helper.CurrentJunction!.Value;
+        Relocate(world, patient, helper.Tile, junction);
         ExecutionSystem.ReleaseClaims(world, patient);
         patient.CurrentJunction = null;
         patient.CarriedByNpcId = helper.Id;
@@ -294,82 +288,14 @@ public sealed class RescueDestinationTests
         helper.Mind.CurrentGoal = GoalType.Rescue;
         helper.Plan.Goal = GoalType.Rescue;
         helper.Plan.TargetAgentId = patient.Id;
-        helper.Plan.TargetJunctionId = after;
-        helper.Plan.TargetTile = landingTile;
-        helper.Plan.Status = PlanStatus.Active;
-        helper.Movement.JunctionPath.Clear();
-        helper.Movement.JunctionPath.Add(from);
-        helper.Movement.JunctionPath.Add(to);
-        helper.Movement.JunctionPath.Add(after);
-        helper.Movement.PathIndex = 1;
-        var finalDestination = world.Entities.Objects.Values
-            .FirstOrDefault(KenshiRescueMath.IsBed)?.Id;
-        Assert.That(finalDestination, Is.Not.Null);
-        helper.RescueDestinationObjectId = finalDestination;
-
-        var staged = KenshiRescueMath.TryStagePatientForHop(
-            world, helper, landingTile, HexSpatialMath.TileToWorld(landingTile));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(staged, Is.True);
-            Assert.That(helper.CarriedNpcId, Is.Null);
-            Assert.That(patient.CarriedByNpcId, Is.Null);
-            Assert.That(helper.Mind.InterruptedRescuePatientId, Is.EqualTo(patient.Id));
-            Assert.That(patient.Tile, Is.EqualTo(landingTile));
-            Assert.That(patient.CurrentJunction, Is.Not.Null,
-                "The staged patient must occupy a real ground spot.");
-            Assert.That(helper.RescueDestinationObjectId, Is.EqualTo(finalDestination),
-                "The final bed/ground destination survives the hop transfer.");
-            Assert.That(helper.Plan.Status, Is.EqualTo(PlanStatus.Active));
-        });
-
-        Relocate(world, helper, landingTile, to);
-        helper.Position = patient.Position;
-        helper.Movement.HopTimer = 0f;
-
-        var repicked = KenshiRescueMath.TryResumeCarryAfterHop(world, helper);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(repicked, Is.True);
-            Assert.That(helper.CarriedNpcId, Is.EqualTo(patient.Id));
-            Assert.That(patient.CarriedByNpcId, Is.EqualTo(helper.Id));
-            Assert.That(helper.Mind.InterruptedRescuePatientId, Is.Null);
-            Assert.That(helper.RescueDestinationObjectId, Is.EqualTo(finalDestination));
-            Assert.That(helper.Movement.JunctionPath, Is.EqualTo(new[] { from, to, after }),
-                "Repick must continue the same route without a fresh destination search.");
-        });
-    }
-
-    [Test]
-    public void InterruptedStagedHop_ReleasesFinalBedReservation_Bug91()
-    {
-        var world = TestWorld.CreateWorld(251173145);
-        var (helper, patient) = RescuePair(world);
-        patient.Mind.ComaCause = ComaCause.Exhaustion;
-        Assert.That(TryFindSafeJumpEdge(
-            world, patient, out var from, out _, out var after,
-            out var takeoffTile, out var landingTile), Is.True);
-        Relocate(world, helper, takeoffTile, from);
-        Relocate(world, patient, takeoffTile, from);
-        patient.CurrentJunction = null;
-        patient.CarriedByNpcId = helper.Id;
-        helper.CarriedNpcId = patient.Id;
-        helper.Mind.CurrentGoal = GoalType.Rescue;
-        helper.Plan.Goal = GoalType.Rescue;
-        helper.Plan.TargetAgentId = patient.Id;
-        helper.Plan.TargetJunctionId = after;
+        helper.Plan.TargetJunctionId = junction;
         helper.Plan.Status = PlanStatus.Active;
         var bed = world.Entities.Objects.Values.First(KenshiRescueMath.IsBed);
         bed.IsOccupied = true;
         bed.CurrentUser = patient.Id;
         helper.RescueDestinationObjectId = bed.Id;
 
-        Assert.That(KenshiRescueMath.TryStagePatientForHop(
-            world, helper, landingTile, HexSpatialMath.TileToWorld(landingTile)), Is.True);
-
-        PlanInterruption.Abort(world, helper, "test interruption while patient is staged");
+        PlanInterruption.Abort(world, helper, "test interruption while carrying patient");
 
         Assert.Multiple(() =>
         {
@@ -378,18 +304,20 @@ public sealed class RescueDestinationTests
             Assert.That(helper.RescueDestinationObjectId, Is.Null);
             Assert.That(helper.Mind.InterruptedRescuePatientId, Is.Null);
             Assert.That(patient.Mind.PendingAidFrom, Is.Null);
+            Assert.That(helper.CarriedNpcId, Is.Null);
+            Assert.That(patient.CarriedByNpcId, Is.Null);
             Assert.That(helper.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
         });
     }
 
     [Test]
-    public void MovementSystem_PerformsRescueHopTransferAtActualTakeoff_Bug91()
+    public void MovementSystem_KeepsPatientLinkedThroughoutRescueHop()
     {
         var world = TestWorld.CreateWorld(251173145);
         var (helper, patient) = RescuePair(world);
         patient.Mind.ComaCause = ComaCause.Exhaustion;
-        Assert.That(TryFindSafeJumpEdge(
-            world, patient, out var from, out var to, out var after,
+        Assert.That(TryFindDryJumpEdge(
+            world, out var from, out var to, out var after,
             out var takeoffTile, out var landingTile), Is.True);
 
         Relocate(world, helper, takeoffTile, from);
@@ -412,19 +340,28 @@ public sealed class RescueDestinationTests
         helper.Movement.HopPathIndex = -1;
         helper.Movement.IsMoving = true;
         helper.Movement.SetStatus(MovementStatus.Moving);
+        var finalDestination = world.Entities.Objects.Values
+            .FirstOrDefault(KenshiRescueMath.IsBed)?.Id;
+        Assert.That(finalDestination, Is.Not.Null);
+        helper.RescueDestinationObjectId = finalDestination;
 
         var movement = new MovementSystem();
-        var staged = false;
-        var repicked = false;
+        var sawHopWindow = false;
+        var landed = false;
+        var linksStayedAttached = true;
+        var patientStayedSynchronized = true;
         for (var tick = 0; tick < 96; tick++)
         {
             movement.Run(world);
-            staged |= helper.Mind.InterruptedRescuePatientId == patient.Id &&
-                helper.CarriedNpcId is null && patient.Tile == landingTile;
-            if (staged && helper.CarriedNpcId == patient.Id &&
-                patient.CarriedByNpcId == helper.Id && helper.Tile == landingTile)
+            sawHopWindow |= helper.Movement.HopTimer > 0f;
+            landed |= helper.Tile == landingTile;
+            linksStayedAttached &= helper.CarriedNpcId == patient.Id &&
+                patient.CarriedByNpcId == helper.Id &&
+                helper.Mind.InterruptedRescuePatientId is null;
+            patientStayedSynchronized &= patient.Tile == helper.Tile &&
+                HexSpatialMath.Distance(patient.Position, helper.Position) <= 0.0001f;
+            if (landed && helper.Movement.HopTimer <= 0f)
             {
-                repicked = true;
                 break;
             }
 
@@ -433,12 +370,15 @@ public sealed class RescueDestinationTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(staged, Is.True,
-                "Patient must be put down only when the real hop launches.");
-            Assert.That(repicked, Is.True,
-                "The first grounded movement tick must pick the same patient up.");
+            Assert.That(sawHopWindow, Is.True, "The carrier must enter the real hop window.");
+            Assert.That(landed, Is.True, "The carrier and patient must cross the elevation seam.");
+            Assert.That(linksStayedAttached, Is.True,
+                "A hop must never stage or detach the carried patient.");
+            Assert.That(patientStayedSynchronized, Is.True,
+                "The carried body must follow the carrier in the same simulation tick.");
             Assert.That(helper.Plan.Status, Is.EqualTo(PlanStatus.Active));
             Assert.That(helper.Movement.JunctionPath, Is.EqualTo(new[] { from, to, after }));
+            Assert.That(helper.RescueDestinationObjectId, Is.EqualTo(finalDestination));
         });
     }
 
@@ -655,8 +595,8 @@ public sealed class RescueDestinationTests
         return null;
     }
 
-    private static bool TryFindSafeJumpEdge(
-        WorldState world, NPCState patient, out JunctionId from, out JunctionId to,
+    private static bool TryFindDryJumpEdge(
+        WorldState world, out JunctionId from, out JunctionId to,
         out JunctionId after,
         out TileCoord takeoffTile, out TileCoord landingTile)
     {
@@ -670,8 +610,7 @@ public sealed class RescueDestinationTests
                     !HexPathfinder.TryGetDirectedStepTile(
                         world, junction.Id, neighborId, out var landing) ||
                     SpatialQueries.IsSwimTile(source) ||
-                    SpatialQueries.IsSwimTile(landing) ||
-                    !LyingSpot.CanSolveOnTile(world, patient, landing.Coord))
+                    SpatialQueries.IsSwimTile(landing))
                 {
                     continue;
                 }

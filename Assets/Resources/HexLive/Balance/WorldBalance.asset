@@ -13,6 +13,10 @@ MonoBehaviour:
   m_Name: WorldBalance
   m_EditorClassIdentifier: 
   colonistCount: 3
+  maxLivingNpcs: 10
+  maxColonyNpcs: 5
+  maxOutsiderNpcs: 5
+  colonyArrivalIntervalDays: 7
   dayLengthTicks: 24000
   eventCycleTicks: 2400
   shadowRaySteps: 7

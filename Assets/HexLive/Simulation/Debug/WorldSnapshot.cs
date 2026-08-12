@@ -255,6 +255,8 @@ public sealed class ObjectSnapshot
     // §120 v2: top-level LEGO piece -> invisible building footprint owner.
     public int? ArchitectureOwnerObjectId { get; set; }
 
+    public bool IsDoorOpen { get; set; } = true;
+
     // §119: an unfinished item exists in the world from the first work cycle.
     public int CraftWorkRequired { get; set; }
 
@@ -282,6 +284,10 @@ public sealed class InventorySlotSnapshot
 {
     public int Index { get; set; }
 
+    // Index of the first physical InventoryState.Items instance in this cell;
+    // -1 for empty cells. StackCount says how many same-id instances move with it.
+    public int SourceIndex { get; set; } = -1;
+
     public string ItemDefinitionId { get; set; } = string.Empty;
 
     public int StackCount { get; set; }
@@ -298,6 +304,9 @@ public sealed class InventoryContainerSnapshot
     public InventoryContainerKind Kind { get; set; }
 
     public string OwnerItemDefinitionId { get; set; } = string.Empty;
+
+    // Physical index in NpcSnapshot.WornItems; -1 for body-only containers.
+    public int OwnerSourceIndex { get; set; } = -1;
 
     public InventoryBodyAnchor BodyAnchor { get; set; }
 
@@ -746,6 +755,12 @@ public sealed class NpcSnapshot
     // them would disagree with the simulation the moment either was tuned.
     public List<string> Perks { get; } = new();
 
+    // §126: базовые ключи локализации черт характера ("trait.abuser"), тоже
+    // резолвятся СИМ-стороной — состав черт это состояние мира, и вид, который
+    // вывел бы его сам (например из фракции, как было до §126), разошёлся бы с
+    // симуляцией на первой же правке. Вид дописывает ".title"/".desc".
+    public List<string> Traits { get; } = new();
+
     // §125: радиус восприятия людей в гексах — ГОТОВОЕ число из
     // PerceptionMath.RadiusTiles. Вид (туман войны, кольцо радиуса) обязан
     // читать его, а не выводить из строки Attributes: формула живёт в
@@ -764,6 +779,12 @@ public sealed class NpcSnapshot
     // заводить второе мнение.
     public float VitalHealth { get; set; } = 1f;
 
+    // §105 r3: то, что панель рисует кольцом — витальное здоровье, дополнительно
+    // придавленное конечностями (BodyState.DisplayHealth). VitalHealth осталось
+    // отдельным полем: его читают пороги и трассы, и оно не должно поехать
+    // из-за того, что число на портрете научилось замечать разбитую ногу.
+    public float DisplayHealth { get; set; } = 1f;
+
     public int InventoryCapacity { get; set; }
 
     // §28.15C v3: каким клипом она упала. Число обязано прийти из симуляции, а
@@ -778,12 +799,6 @@ public sealed class NpcSnapshot
     public List<string> Relationships { get; } = new();
 
     public List<RelationshipSnapshot> RelationshipDetails { get; } = new();
-
-    // §105 r3: то, что панель рисует кольцом — витальное здоровье, дополнительно
-    // придавленное конечностями (BodyState.DisplayHealth). VitalHealth осталось
-    // отдельным полем: его читают пороги и трассы, и оно не должно поехать
-    // из-за того, что число на портрете научилось замечать разбитую ногу.
-    public float DisplayHealth { get; set; } = 1f;
 
     public int KnownObjectCount { get; set; }
 
@@ -803,6 +818,9 @@ public sealed class BodyPartConditionSnapshot
     public float BluntDamage { get; set; }
     public float SplintSupport { get; set; }
     public float HitBias { get; set; } = 1f;
+    // §40.8-H r10: накопительная кровяная подложка (спеклы вида) — растёт от
+    // ран, смывается водой; не производная от Health.
+    public float BloodSoil { get; set; }
     public bool Severed { get; set; }
     public string BandageKind { get; set; } = string.Empty;
     public ProstheticSnapshot Prosthetic { get; set; }

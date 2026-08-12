@@ -48,6 +48,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
     public void Run(WorldState world)
     {
         if (!Spec72.Enabled || Spec72.OutsiderCount <= 0 ||
+            Spec72.RaidWaveIntervalDays <= 0 ||
             !world.FactionHomes.TryGetValue(Faction.Outsiders, out var home))
         {
             return;
@@ -63,6 +64,23 @@ public sealed class RaidWaveSystem : ISimulationSystem
         while (world.RaidWavesSpawned < wavesDue)
         {
             var wave = world.RaidWavesSpawned + 1;
+
+            // §132: a full camp consumes this scheduled wave. A later death
+            // opens a seat for the NEXT boundary; it must not unleash every
+            // missed attacker immediately from a hidden backlog.
+            if (!PopulationArrivalMath.HasRoom(world, Faction.Outsiders))
+            {
+                world.RaidWavesSpawned = wave;
+                if (SimTrace.Enabled)
+                {
+                    Trace.DebugSystem(world, "RaidWaveSkippedCapacity",
+                        $"Wave={wave} Alive={world.Entities.Npcs.Count} " +
+                        $"WorldCap={WorldBalance.MaxLivingNpcs} " +
+                        $"OutsiderCap={WorldBalance.MaxOutsiderNpcs}");
+                }
+                continue;
+            }
+
             if (!SpawnWave(world, home, wave))
             {
                 return; // retry next medium pass; never consume a failed wave
@@ -82,8 +100,8 @@ public sealed class RaidWaveSystem : ISimulationSystem
 
     private static bool SpawnWave(WorldState world, TileCoord home, int wave)
     {
-        var tile = PickLandingTile(world, home, wave);
-        if (!world.Tiles.Items.TryGetValue(tile, out var landing))
+        if (!PopulationArrivalMath.TryPickLanding(
+                world, home, wave, salt: 7213, out var landing))
         {
             return false;
         }
@@ -97,7 +115,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
         }
 
         var female = (wave & 1) == 1;
-        var look = female ? RollFemaleLook(world, id.Value) : default;
+        var look = female ? PopulationArrivalMath.RollFemaleLook(world, id.Value) : default;
         var npc = new NPCState
         {
             Id = id,
@@ -108,9 +126,10 @@ public sealed class RaidWaveSystem : ISimulationSystem
             Hairstyle = female ? look.Hairstyle : string.Empty,
             VoiceBank = female ? look.VoiceBank : "kshishtof",
             Faction = Faction.Outsiders,
-            Fragment = FragmentOf(world, landing),
-            Tile = tile,
-            Position = HexSpatialMath.TileToWorld(tile),
+            Fragment = landing.Fragment,
+            Tile = landing.Tile,
+            Position = landing.Position,
+            CurrentJunction = landing.Junction,
             CompassionTrait = System.Math.Max(0f,
                 Spec72.OutsiderCompassionMax - wave * 0.04f),
         };
@@ -123,6 +142,14 @@ public sealed class RaidWaveSystem : ISimulationSystem
         npc.Needs.Comfort = 0.55f;
         npc.Needs.Social = 0.30f;
         npc.Needs.ThermalDiscomfort = 0.20f;
+
+        // §126: волна приходит с тем же характером, что и первый чужак —
+        // авторски, не роллом. Этот спавн идёт МИМО WorldStateFactory, поэтому
+        // ролл и переопределения бутстрапа сюда не доходят: без этих двух строк
+        // прибывший молча перестал бы гнобить, а гейт §81 читал бы черту,
+        // которой у него нет.
+        npc.Traits.Add(Agents.TraitKind.Abuser);
+        npc.Traits.Add(Agents.TraitKind.Slob);
 
         ApplyWaveAttributes(npc, wave);
         npc.Inventory.Items.Add(new ItemInstance(GearCatalog.Bottle));
@@ -157,8 +184,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
             RaidSpawnWardrobe.EquipFemale(world, npc);
         }
 
-        world.Entities.Npcs[id] = npc;
-        AddToSpatialIndexes(world, npc);
+        PopulationArrivalMath.AddToWorld(world, npc, landing.Junction);
         EquipmentMath.Recalculate(world, npc);
 
         if (SimTrace.Enabled)
@@ -166,7 +192,8 @@ public sealed class RaidWaveSystem : ISimulationSystem
             Trace.Debug(world, id, "RaidWaveSpawned",
                 $"Wave={wave} Sex={(female ? "Female" : "Male")} " +
                 $"Weapon={WeaponForWave(wave)} Armor={npc.EquippedArmor:F2} " +
-                $"Strength={npc.Attributes.Strength:F2} Tile={tile.Q},{tile.R}");
+                $"Strength={npc.Attributes.Strength:F2} " +
+                $"Tile={landing.Tile.Q},{landing.Tile.R} Junction={landing.Junction.Value}");
         }
         return true;
     }
@@ -213,79 +240,6 @@ public sealed class RaidWaveSystem : ISimulationSystem
         npc.Skills.Combat = MathUtil.Clamp01(wave * 0.12f);
     }
 
-    private static ColonistAppearance.Look RollFemaleLook(WorldState world, int id)
-    {
-        var names = new HashSet<string>();
-        var looks = new HashSet<string>();
-        var hair = new HashSet<string>();
-        void Take(NPCState npc)
-        {
-            if (!string.IsNullOrEmpty(npc.DisplayName)) names.Add(npc.DisplayName);
-            if (!string.IsNullOrEmpty(npc.Hairstyle)) hair.Add(npc.Hairstyle);
-            if (!string.IsNullOrEmpty(npc.ActorMesh))
-                looks.Add(ColonistAppearance.LookKey(npc.ActorMesh, npc.SkinSet, npc.Hairstyle));
-        }
-
-        foreach (var npc in world.Entities.Npcs.Values) Take(npc);
-        foreach (var npc in world.Entities.Corpses.Values) Take(npc);
-        return ColonistAppearance.Roll(world.Seed, id, names, looks, hair);
-    }
-
-    private static TileCoord PickLandingTile(WorldState world, TileCoord home, int wave)
-    {
-        var candidates = new List<TileCoord>();
-        foreach (var pair in world.Tiles.Items)
-        {
-            var tile = pair.Value;
-            if (HexSpatialMath.HexDistance(pair.Key, home) <= 1 &&
-                tile.Flags.HasFlag(TileFlags.Walkable) &&
-                !tile.Flags.HasFlag(TileFlags.Blocked) &&
-                !tile.Flags.HasFlag(TileFlags.Water))
-            {
-                candidates.Add(pair.Key);
-            }
-        }
-
-        if (candidates.Count == 0) return home;
-        candidates.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
-        var index = (int)(MathUtil.Hash01(world.Seed, wave, 72, 7213) * candidates.Count);
-        return candidates[index % candidates.Count];
-    }
-
-    private static FragmentId FragmentOf(WorldState world, Tile tile)
-    {
-        foreach (var junctionId in tile.Junctions)
-        {
-            if (world.Junctions.Items.TryGetValue(junctionId, out var junction))
-                return junction.Fragment;
-        }
-
-        return new FragmentId(1);
-    }
-
-    private static void AddToSpatialIndexes(WorldState world, NPCState npc)
-    {
-        if (!world.Occupancy.EntitiesInTile.TryGetValue(npc.Tile, out var occupied))
-        {
-            occupied = new List<EntityId>();
-            world.Occupancy.EntitiesInTile[npc.Tile] = occupied;
-        }
-        occupied.Add(npc.Id);
-
-        if (!world.Caches.EntitiesByTile.TryGetValue(npc.Tile, out var byTile))
-        {
-            byTile = new List<EntityId>();
-            world.Caches.EntitiesByTile[npc.Tile] = byTile;
-        }
-        byTile.Add(npc.Id);
-
-        if (!world.Caches.EntitiesByFragment.TryGetValue(npc.Fragment, out var byFragment))
-        {
-            byFragment = new List<EntityId>();
-            world.Caches.EntitiesByFragment[npc.Fragment] = byFragment;
-        }
-        byFragment.Add(npc.Id);
-    }
 }
 
 }

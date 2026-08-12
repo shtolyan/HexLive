@@ -402,9 +402,9 @@ public sealed class MovementSystem : ISimulationSystem
                 continue;
             }
 
-            // §116: a carrier never jumps or swims. Flat land can still be
-            // routed normally; a route that attempts to enter deep water is a
-            // failed rescue path and releases the patient safely on this side.
+            // §118.4: a carrier may use an ordinary hop while keeping the
+            // patient linked, but still cannot swim. A stale route that enters
+            // deep water releases the patient safely on this side.
             if (npc.IsCarryingPerson)
             {
                 var previousJunctionId = targetIndex > 0
@@ -792,14 +792,21 @@ public sealed class MovementSystem : ISimulationSystem
                     Spec76.AttributeTrainPerRunTick * 2f);
             }
 
-            // §71: GAIT IS A DECISION. She walks unless there is a reason to
-            // run, so a running figure always means something happened — the
-            // old "faster than a walk therefore jogging" rule had the whole
-            // colony permanently at a trot. The reasons do NOT compound: the
-            // largest wins, or a defender who had also just been bitten would
-            // hit 2.25 x 2.5 and cross the camp in a couple of ticks.
+            // §71: GAIT IS A DECISION. Routine autonomous travel may spend the
+            // finite breath reserve on a calm sprint; emergencies still carry
+            // their stronger pace. Reasons do NOT compound: the largest wins,
+            // or a defender who had also just been bitten would hit 2.25 x 2.5
+            // and cross the camp in a couple of ticks.
+            var manualMoveOrder = npc.Mind.ManualControl &&
+                npc.Mind.CurrentGoal == GoalType.PlayerOrder &&
+                npc.Plan.Goal == GoalType.PlayerOrder;
+            var manualRun = manualMoveOrder && npc.Plan.RunRequested;
+
             var urgency = 1f;
-            if (DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
+            // §121.1: the player's click owns the pace of a manual move.
+            // A single click must remain a walk even while an old adrenaline
+            // timer is live; combat orders use PlayerAttack and stay urgent.
+            if (!manualMoveOrder && DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
             {
                 urgency = SimBalance.AdrenalineMoveSpeedFactor;
             }
@@ -811,9 +818,9 @@ public sealed class MovementSystem : ISimulationSystem
             // (§57 клич о помощи / 29C.4B защита подруги / §62 первый удар):
             // бежит встать между подругой и зверем. §89: он ДОГОНЯЕТ — пока он
             // шёл прогулочным шагом, она успевала отойти снова, и сцена не
-            // начиналась никогда; гопник не провожает жертву взглядом. Та же
-            // скорость, что у бегущей на подмогу: это единственное мирное
-            // время, когда бежать осмысленно.
+            // начиналась никогда; гопник не провожает жертву взглядом. Эти
+            // причины получают срочный темп, а обычный путь ниже — спокойные
+            // дыхательные рывки.
             //
             // Множитель РАЗРЕШАЕТСЯ ЗДЕСЬ, а не хранится в таблице: ручки
             // баланса тюнятся, а таблица строится один раз и заморозила бы их
@@ -821,6 +828,24 @@ public sealed class MovementSystem : ISimulationSystem
             // Считается ОДИН раз: ниже §71.4 спрашивает тот же класс, а второй
             // вызов — это второй шанс разойтись, когда таблица поменяется.
             var goalUrgency = AI.GoalCatalog.UrgencyFor(npc.Mind.CurrentGoal);
+            var routineRun = goalUrgency == AI.UrgencyClass.Stroll &&
+                !npc.Mind.ManualControl &&
+                npc.Mind.CurrentGoal is not GoalType.None and not GoalType.Idle &&
+                !npc.Body.IsProne &&
+                !npc.IsCarryingPerson &&
+                world.Tick >= npc.Mind.ConvalescentUntilTick &&
+                world.Tick >= npc.Mind.SadWalkUntilTick &&
+                (!world.Tiles.Items.TryGetValue(npc.Tile, out var routineRunTile) ||
+                 !SpatialQueries.IsSwimTile(routineRunTile));
+            if (routineRun)
+            {
+                urgency = System.MathF.Max(urgency, SimBalance.RoutineRunSpeedFactor);
+            }
+            if (manualRun)
+            {
+                urgency = System.MathF.Max(urgency, SimBalance.RoutineRunSpeedFactor);
+            }
+
             switch (goalUrgency)
             {
                 case AI.UrgencyClass.Hurry:
@@ -831,9 +856,8 @@ public sealed class MovementSystem : ISimulationSystem
                     break;
             }
 
-            // A body in real trouble hurries to the food or the water — the
-            // only peacetime reason to run, so the run clip is seen without
-            // every stroll becoming a jog.
+            // A body in real trouble hurries to food or water at the same
+            // 1.6 pace even if another routine-run condition later changes.
             if ((npc.Mind.IsStarving || npc.Mind.IsDehydrated) &&
                 npc.Mind.CurrentGoal is GoalType.GetFood or GoalType.GetWater)
             {
@@ -855,6 +879,7 @@ public sealed class MovementSystem : ISimulationSystem
             // операции с float не выполняется, и трасса не шевелится там, где
             // поведение не менялось.
             if (urgency > 1.001f &&
+                !manualRun &&
                 goalUrgency != AI.UrgencyClass.Flee &&
                 npc.Plan.TargetAgentId is null &&
                 !hopApproach && npc.Movement.HopTimer <= 0f &&
@@ -956,20 +981,6 @@ public sealed class MovementSystem : ISimulationSystem
                         turnPerTick);
                     npc.Movement.SetStatus(MovementStatus.Rotating);
                     PauseGaitAndBreath(npc);
-                    continue;
-                }
-
-                // §118.4: the route may cross a ledge, the occupied hands may
-                // not. Put the patient on a proven full-body spot on the
-                // landing side immediately before takeoff; SyncAll re-picks
-                // the same patient on the first grounded tick and preserves
-                // this path and final rescue destination across the transfer.
-                if (npc.IsCarryingPerson &&
-                    !KenshiRescueMath.TryStagePatientForHop(
-                        world, npc, npc.Movement.HopTargetTile, npc.Movement.HopTo))
-                {
-                    KenshiRescueMath.DropSafely(
-                        world, npc, "no safe full-body landing for rescue hop");
                     continue;
                 }
 

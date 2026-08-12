@@ -70,12 +70,35 @@ public sealed class RescueSystem : ISimulationSystem
                 }
             }
 
-            if (patient is null || !TryAssignRescue(world, helper, patient, best, resumed: false))
+            if (patient is not null &&
+                TryAssignRescue(world, helper, patient, best, resumed: false))
             {
-                TryAssignLimbCare(world, helper);
+                continue;
+            }
+
+            if (TryAssignPledgedProstheticTransport(world, helper) ||
+                TryAssignLimbCare(world, helper))
+            {
                 continue;
             }
         }
+    }
+
+    private static bool TryAssignPledgedProstheticTransport(
+        WorldState world, NPCState helper)
+    {
+        if (helper.Mind.ProstheticAidTargetId is not { } patientId ||
+            !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
+            !FactionRelations.AreAllies(helper, patient) ||
+            !KenshiProstheticMath.TryGetPledgedBedTransport(
+                world, helper, patient, out _, out _))
+        {
+            return false;
+        }
+
+        var distance = HexLive.Simulation.Spatial.HexSpatialMath.HexDistance(
+            helper.Tile, patient.Tile);
+        return TryAssignRescue(world, helper, patient, distance, resumed: false);
     }
 
     private static bool TryResumeInterruptedRescue(WorldState world, NPCState helper)

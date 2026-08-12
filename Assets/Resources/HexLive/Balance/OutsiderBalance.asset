@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Config.OutsiderBalanceConfig
   enabled: 1
   outsiderCount: 1
+  raidWaveIntervalDays: 3
   outsiderCampMinDistanceTiles: 8
   campKnowledgeRadiusTiles: 4
   maxCampRadiusTiles: 6

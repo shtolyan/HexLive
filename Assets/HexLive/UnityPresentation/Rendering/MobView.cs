@@ -83,6 +83,16 @@ public sealed class MobView : MonoBehaviour
     private void Awake()
     {
         _animator = GetComponentInChildren<Animator>();
+        // PERF: a live mob only ever stands, walks and bites — poses that stay
+        // inside the authored skin bounds — so an offscreen wolf may skip its
+        // transform writes. The state machine still advances (sync with the sim
+        // is kept); the lying death pose lives on the separate carcass prefab,
+        // which this component never drives.
+        if (_animator != null)
+        {
+            _animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+        }
+
         _lastPosition = transform.position;
         MeasureBodyLength();
     }

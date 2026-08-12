@@ -51,11 +51,30 @@ namespace HexLive.Simulation.Runtime
                 if (itemRef.Index < 0 || itemRef.Index >= worn.Count) return false;
                 var item = worn[itemRef.Index];
                 if (item.DefinitionId != itemRef.ExpectedDefinitionId) return false;
+                if (action == InventoryAction.Stow &&
+                    (!InventoryLayoutBuilder.TryCollectOwnedContents(
+                         world, npc, itemRef.Index, out var pocketContents) ||
+                     pocketContents.Count > 0))
+                {
+                    // A filled container may move as one worn bundle in §128,
+                    // but it may never become a nested pocket inside another
+                    // flat inventory container.
+                    return false;
+                }
                 worn.RemoveAt(itemRef.Index);
                 if (action == InventoryAction.Stow) carried.Add(item);
                 else if (action != InventoryAction.Drop) return false;
             }
 
+            return FitsProjected(world, npc, carried, worn);
+        }
+
+        internal static bool FitsProjected(
+            WorldState world,
+            NPCState npc,
+            IReadOnlyList<ItemInstance> carried,
+            IReadOnlyList<ItemInstance> worn)
+        {
             var capacity = npc.Inventory.Capacity;
             foreach (var current in npc.WornItems)
             {

@@ -63,7 +63,14 @@ public static class WorldSnapshotCodec
     /// v17: §51/§52 typed inventory containers and §75A favorite-weapon projection.
     /// v18: §120 floor state rides keyframes and deltas so presentation can
     /// remove terrain grass as soon as the architectural floor is complete.
-    public const int WireVersion = 18;
+    /// v19: §126 черты характера — вкладка «Характер» на листе персонажа.
+    /// v20: §128 physical source indices for drag-transfer inventory cells and
+    /// their worn container owners.
+    /// v22: §105 r3 DisplayHealth — число на портрете замечает разбитые руки и
+    /// ноги, а VitalHealth остаётся тем же числом для порогов и трасс.
+    /// v23: §40.8-H r10 BloodSoil — накопительная кровяная подложка per-zone
+    /// (растёт от ран, смывается водой) едет в типизированных кондициях.
+    public const int WireVersion = 23;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -282,6 +289,7 @@ public static class WorldSnapshotCodec
         CraftProject = 1 << 4,
         Architecture = 1 << 5,
         ArchitectureOwner = 1 << 6,
+        DoorClosed = 1 << 7,
     }
 
     // Definition ids repeat across every object; both ends derive the same table
@@ -356,6 +364,7 @@ public static class WorldSnapshotCodec
         }
         if (o.ArchitectureElements.Count > 0) parts |= ObjectParts.Architecture;
         if (o.ArchitectureOwnerObjectId.HasValue) parts |= ObjectParts.ArchitectureOwner;
+        if (!o.IsDoorOpen) parts |= ObjectParts.DoorClosed;
 
         w.Write((byte)parts);
         w.Write(o.Id.Value);
@@ -550,6 +559,7 @@ public static class WorldSnapshotCodec
             o.ArchitectureOwnerObjectId = (parts & ObjectParts.ArchitectureOwner) != 0
                 ? r.ReadInt32()
                 : (int?)null;
+            o.IsDoorOpen = (parts & ObjectParts.DoorClosed) == 0;
 
             o.CraftIngredients.Clear();
             if ((parts & ObjectParts.CraftProject) != 0)
@@ -743,6 +753,7 @@ public static class WorldSnapshotCodec
             WireIo.WriteString(w, container.Id);
             w.Write((byte)container.Kind);
             WireIo.WriteString(w, container.OwnerItemDefinitionId);
+            w.Write(container.OwnerSourceIndex);
             w.Write((byte)container.BodyAnchor);
             w.Write(container.Capacity);
             w.Write(container.BaseCapacity);
@@ -752,6 +763,7 @@ public static class WorldSnapshotCodec
             foreach (var slot in container.Slots)
             {
                 w.Write(slot.Index);
+                w.Write(slot.SourceIndex);
                 WireIo.WriteString(w, slot.ItemDefinitionId);
                 w.Write(slot.StackCount);
                 WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
@@ -777,8 +789,11 @@ public static class WorldSnapshotCodec
         WireIo.WriteStrings(w, n.Skills);
         w.Write(n.PerceptionRadiusTiles);
         WireIo.WriteStrings(w, n.Perks);
+        // §126/v19: черты характера.
+        WireIo.WriteStrings(w, n.Traits);
         w.Write(n.WoundLockedHp);
         w.Write(n.VitalHealth); // §105 r2
+        w.Write(n.DisplayHealth); // §105 r3
 
         // §116/v12: typed conditions, wounds, prosthetics and carry links.
         w.Write(n.BloodDeficit);
@@ -791,11 +806,11 @@ public static class WorldSnapshotCodec
             w.Write((byte)part.Part);
             w.Write(part.Health);
             w.Write(part.Armor);
-        w.Write(n.DisplayHealth); // §105 r3
             w.Write(part.CriticalTrauma);
             w.Write(part.BluntDamage);
             w.Write(part.SplintSupport);
             w.Write(part.HitBias);
+            w.Write(part.BloodSoil);
             w.Write(part.Severed);
             WireIo.WriteString(w, part.BandageKind);
             w.Write(part.Prosthetic != null);
@@ -995,6 +1010,7 @@ public static class WorldSnapshotCodec
             container.Id = r.ReadString();
             container.Kind = (HexLive.Simulation.Runtime.InventoryContainerKind)r.ReadByte();
             container.OwnerItemDefinitionId = r.ReadString();
+            container.OwnerSourceIndex = r.ReadInt32();
             container.BodyAnchor = (HexLive.Simulation.Runtime.InventoryBodyAnchor)r.ReadByte();
             container.Capacity = r.ReadInt32();
             container.BaseCapacity = r.ReadInt32();
@@ -1006,6 +1022,7 @@ public static class WorldSnapshotCodec
             {
                 var slot = container.Slots[j];
                 slot.Index = r.ReadInt32();
+                slot.SourceIndex = r.ReadInt32();
                 slot.ItemDefinitionId = r.ReadString();
                 slot.StackCount = r.ReadInt32();
                 slot.AcceptedItemDefinitionId = r.ReadString();
@@ -1027,8 +1044,10 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.Skills);
         n.PerceptionRadiusTiles = r.ReadInt32();
         WireIo.ReadStrings(r, n.Perks);
+        WireIo.ReadStrings(r, n.Traits);
         n.WoundLockedHp = r.ReadSingle();
         n.VitalHealth = r.ReadSingle(); // §105 r2
+        n.DisplayHealth = r.ReadSingle(); // §105 r3
 
         n.BloodDeficit = r.ReadSingle();
         n.CarriedNpcId = WireIo.ReadNullableInt(r);
@@ -1044,9 +1063,9 @@ public static class WorldSnapshotCodec
             part.Armor = r.ReadSingle();
             part.CriticalTrauma = r.ReadSingle();
             part.BluntDamage = r.ReadSingle();
-        n.DisplayHealth = r.ReadSingle(); // §105 r3
             part.SplintSupport = r.ReadSingle();
             part.HitBias = r.ReadSingle();
+            part.BloodSoil = r.ReadSingle();
             part.Severed = r.ReadBoolean();
             part.BandageKind = r.ReadString();
             part.Prosthetic = r.ReadBoolean()

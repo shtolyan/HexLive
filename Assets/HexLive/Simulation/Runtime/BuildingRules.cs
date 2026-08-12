@@ -54,6 +54,32 @@ public static class BuildingRules
     public const float HutHearthLocalX = -0.3248f;
     public const float HutHearthLocalZ = 0.5625f;
 
+    /// <summary>
+    /// Exact visual/attach centre of the integrated bed nearest its navigation
+    /// anchor. The authored four-corner centre lies between junctions, so the
+    /// route anchor and the lying-body centre are deliberately different.
+    /// Shared by simulation and presentation to keep aid/loot geometry on the
+    /// rendered sleeper rather than on the approach grid point.
+    /// </summary>
+    public static Float2 HutBedVisualPosition(
+        Float2 tileCenter, float hutRotationDegrees, Float2 interactionAnchor)
+    {
+        var radians = hutRotationDegrees * MathF.PI / 180f;
+        var cos = MathF.Cos(radians);
+        var sin = MathF.Sin(radians);
+        Float2 Target(float x, float z) => tileCenter + new Float2(
+            x * cos - z * sin,
+            x * sin + z * cos);
+
+        var first = Target(HutBed0LocalX, HutBed0LocalZ);
+        var second = Target(HutBed1LocalX, HutBed1LocalZ);
+        var d0 = interactionAnchor - first;
+        var d1 = interactionAnchor - second;
+        return d0.X * d0.X + d0.Y * d0.Y <= d1.X * d1.X + d1.Y * d1.Y
+            ? first
+            : second;
+    }
+
     public const int FrameSticks = 28;
     public const int FrameBoards = 6;
     public const int EnclosureSticks = 6;

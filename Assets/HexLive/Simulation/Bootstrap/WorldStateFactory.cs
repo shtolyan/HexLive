@@ -996,6 +996,15 @@ public sealed class WorldStateFactory
         AttributeMath.Roll(npc, world.Seed, bootstrap.Id);
         ApplyAttributeOverrides(npc, bootstrap);
 
+        // §126: черты характера. Тот же порядок и та же доктрина, что у §76:
+        // сначала ролл от сида, потом авторские — заполненное поле бутстрапа
+        // это намерение автора, а не бросок. Отличие одно: у черты нет
+        // «среднего», поэтому авторский список ЗАМЕНЯЕТ ролл целиком, а не
+        // перекрывает по одной (иначе «дайте мне заведомо безликую» было бы
+        // невыразимо).
+        TraitMath.Roll(npc, world.Seed, bootstrap.Id);
+        ApplyTraitOverrides(npc, bootstrap);
+
         // Spec 29H: everyone carries a personal water bottle (starts empty) — the
         // only starting kit. §54 cold start: the spear is no longer handed out,
         // it must be crafted (1 stick at the fire), like every other tool.
@@ -1048,6 +1057,27 @@ public sealed class WorldStateFactory
         foreach (var pair in bootstrap.Attributes)
         {
             npc.Attributes.Set(pair.Key, MathUtil.Clamp01(pair.Value));
+        }
+    }
+
+    // §126: authored traits REPLACE the roll (null = roll, see NpcBootstrap).
+    // An unknown name is dropped rather than thrown: a test-scene typo must not
+    // take the world down — but it must not silently hand out a different trait
+    // either, so nothing is guessed.
+    private static void ApplyTraitOverrides(NPCState npc, NpcBootstrap bootstrap)
+    {
+        if (bootstrap.Traits is null)
+        {
+            return;
+        }
+
+        npc.Traits.Clear();
+        foreach (var name in bootstrap.Traits)
+        {
+            if (Agents.TraitSet.TryParse(name, out var kind))
+            {
+                npc.Traits.Add(kind);
+            }
         }
     }
 

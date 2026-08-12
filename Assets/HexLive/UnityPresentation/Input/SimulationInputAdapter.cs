@@ -40,12 +40,16 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     // Тот же радиус, которым камера выбирает NPC: два разных числа значили бы,
     // что подсветилось одно, а кликнулось другое.
     private const float PickRadiusPixels = 70f;
+    private const float DoubleClickSeconds = 0.30f;
+    private const float DoubleClickRadiusPixels = 18f;
 
     private Camera? _camera;
     private HexWorldRenderer? _worldRenderer;
     private WorldObjectView? _hovered;
     private int _hoveredNpcId = -1;
     private int _hoveredMobId = -1;
+    private float _lastGroundClickTime = float.NegativeInfinity;
+    private Vector2 _lastGroundClickPosition;
 
     private readonly List<ContextMenuEntry> _entries = new();
     private readonly List<int> _selectedColonyIds = new();
@@ -90,7 +94,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         UpdateHover();
     }
 
-    private void OnDisable() => ClearHover();
+    private void OnDisable()
+    {
+        ClearHover();
+        ResetGroundClickCadence();
+    }
 
     private void RefreshControlSelection()
     {
@@ -133,6 +141,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         NpcSelection.PointerOverUi ||
         HexInspectorPanel.PointerOverPanel ||
         ContextMenuPanel.PointerOverPanel ||
+        LootTransferPanel.IsOpen ||
         GameMenu.IsOpen ||
         EndSummaryPanel.IsOpen;
 
@@ -335,6 +344,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (ContextMenuPanel.IsOpen)
         {
             ContextMenuPanel.Close();
+            ResetGroundClickCadence();
             return true;
         }
 
@@ -345,37 +355,68 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (_hoveredNpcId >= 0)
         {
+            ResetGroundClickCadence();
             OpenNpcMenu(mousePos, _hoveredNpcId);
             return true;
         }
 
         if (_hoveredMobId >= 0)
         {
+            ResetGroundClickCadence();
             OpenMobMenu(mousePos, _hoveredMobId);
             return true;
         }
 
         if (_hovered != null)
         {
+            ResetGroundClickCadence();
             OpenObjectMenu(mousePos, _hovered);
             return true;
         }
 
         if (TryPickGroundPoint(mousePos, out var point))
         {
+            var run = ConsumeGroundDoubleClick(mousePos, Time.unscaledTime);
             if (_selectedColonyIds.Count == 1 && ManualNpcId >= 0)
             {
-                _runner.EnqueueCommand(new MoveToCommand(new EntityId(ManualNpcId), point));
+                _runner.EnqueueCommand(
+                    new MoveToCommand(new EntityId(ManualNpcId), point, run));
             }
             else
             {
-                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point));
+                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point, run));
             }
             DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(point, GroundMarkerY(point)));
             return true;
         }
 
         return false;
+    }
+
+    // The first click is dispatched immediately as Walk. If a second release
+    // lands close enough and soon enough, its Run order atomically replaces
+    // the first one through the normal command queue. Unscaled time keeps the
+    // gesture usable while the simulation itself is paused.
+    private bool ConsumeGroundDoubleClick(Vector2 position, float now)
+    {
+        var elapsed = now - _lastGroundClickTime;
+        var isDouble = elapsed >= 0f && elapsed <= DoubleClickSeconds &&
+            Vector2.Distance(position, _lastGroundClickPosition) <= DoubleClickRadiusPixels;
+        if (isDouble)
+        {
+            ResetGroundClickCadence();
+            return true;
+        }
+
+        _lastGroundClickTime = now;
+        _lastGroundClickPosition = position;
+        return false;
+    }
+
+    private void ResetGroundClickCadence()
+    {
+        _lastGroundClickTime = float.NegativeInfinity;
+        _lastGroundClickPosition = default;
     }
 
     private void OpenObjectMenu(Vector2 mousePos, WorldObjectView view)
@@ -475,6 +516,18 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 () => runner.EnqueueCommand(new CarryPersonCommand(
                     new EntityId(carrier!.Id.Value), new EntityId(npcId))),
                 canCarry, canCarry ? null : blockedReason));
+        }
+        if (!dead && target.IsUnconscious)
+        {
+            var canLoot = carrier != null && _selectedColonyIds.Count == 1 &&
+                _manualSelectedIds.Count == 1 && carrier.Id.Value != npcId &&
+                carrier.CarriedNpcId is null && target.CarriedByNpcId is null;
+            var blockedReason = carrier?.CarriedNpcId is not null
+                ? Loc.Get("menu.hands_occupied")
+                : Loc.Get("menu.select_one_character");
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
+                () => LootTransferPanel.Open(carrier!.Id.Value, npcId),
+                canLoot, canLoot ? null : blockedReason));
         }
         // «Выбрать» — потому что в ручном режиме простой клик по человеку
         // открывает меню, а не переключает выбор: атака по неосторожному

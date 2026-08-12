@@ -50,7 +50,6 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // reopen her survival-only auction) now governs on its own.
             UpdateStarvingStatus(world, npc);
             UpdateDehydratedStatus(world, npc);
-            UpdateNightSleepIntent(world, npc);
 
             // Spec §60: comatose — the body lies as if dead; recovery runs in
             // NeedsDecaySystem (sleep rules) and the wake check lives there
@@ -89,8 +88,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // ХЭШИРУЕТСЯ иначе, и с выключенной ручкой golden trace расходился
             // на ровном месте (сид 12345, тик 200). Выключено — не трогаем
             // ничего вообще.
+            if (npc.Mind.FaintedUntilTick != 0)
+            {
+                LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
+            }
+
             if (Spec105.PlayDeadEnabled && npc.Mind.FaintedUntilTick != 0)
             {
+                ExecutionSystem.ReleaseClaims(world, npc);
                 npc.Mind.FaintedUntilTick = 0;
                 // Bug #54: without wake grace, NeedsDecaySystem could re-arm
                 // the same faint later in this very tick while the collapse
@@ -125,7 +130,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // ставится один раз — на тике истечения плача.
             if (npc.Mind.CryingUntilTick != 0)
             {
-                npc.Mind.CryingUntilTick = 0;
+                LyingSpot.EndCrying(world, npc);
                 npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
 
                 // §105.14: те же ворота перед подъёмом, и та же причина
@@ -276,12 +281,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // exhaustion so it never outbids ordinary chores until she truly
             // needs sleep; sleepAvail (below) opens the moderate-hunger gate in
             // the same regime, and starving/dehydrated/danger still block it.
-            var deadTiredBoost = Spec49.DeadTiredSeek && npc.Needs.Energy < Spec49.DeadTiredEnergy
-                ? Spec49.DeadTiredSleepBoost : 0f;
-            var scheduledNightSleep = npc.Mind.NightSleepUntilRested;
-            var sleepUrgencyBoost = scheduledNightSleep
-                ? System.Math.Max(deadTiredBoost, Spec49.NightSleepBoost)
-                : deadTiredBoost;
+            // §126/§49 r2 «хочешь спать — спи»: ночного затвора больше нет.
+            // Он существовал только потому, что дневной порог сна стоял на
+            // 0.203 — лечь до 80% истощения было НЕЛЬЗЯ, и ночью её приходилось
+            // впускать в сон отдельным механизмом с часами (23:00), своим
+            // бустом и топливным гейтом, который умел сон ЗАПРЕТИТЬ. С щедрым
+            // порогом (0.45) и сном до полной энергии всё это лишнее: усталость
+            // сама поднимает ставку, а ночь остаётся мягкой надбавкой среды.
+            var sleepUrgencyBoost =
+                Spec49.DeadTiredSeek && npc.Needs.Energy < Spec49.DeadTiredEnergy
+                    ? Spec49.DeadTiredSleepBoost : 0f;
 
             // Spec 28.15C: discovering a body triggers grief on sight.
             foreach (var perceived in npc.Perception.Objects)
@@ -417,10 +426,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // the first tick (hunger/thirst over the wake threshold, danger
             // remembered) — the same condition execution wakes on. Without
             // this the thirsty-and-tired girl loops lie-down→wake forever.
+            // §126/§49 r2: устала — ложится. Порог per-NPC (соня ложится
+            // раньше), и это ВСЁ: ни часов, ни очереди к костру. Прежний
+            // топливный гейт мог запретить сон, пока где-то лежит подбираемая
+            // палка, — «иди сначала натаскай дров» это не то, что делает
+            // человек, который валится с ног.
             var sleepAvail =
-                (npc.Needs.Energy < SimBalance.SleepEnergyThreshold || scheduledNightSleep) &&
-                !ExecutionSystem.HasSleepInterrupt(world, npc) &&
-                NightFireReadyOrCannotPrepare(world, npc);
+                npc.Needs.Energy < TraitMath.EffectiveSleepThreshold(npc) &&
+                !ExecutionSystem.HasSleepInterrupt(world, npc);
             // Spec 31C.7A: sit because you need it — and never settle into a
             // chair on an empty stomach. Sitting yields to sleep hours (the
             // Sit->Sleep churn was 47 interrupts/soak before this gate).
@@ -808,8 +821,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Spec 40.1: low stamina adds a gentle pull toward sitting to
         // recover (score only — availability unchanged, so the economy
         // isn't reshaped, just the timing of an already-available rest).
+        // §126: лентяйке досуг дороже — сидит охотнее и дольше. Прибавка к
+        // СТАВКЕ, а не к доступности: экономику она не переписывает, только
+        // сдвигает, чем человек занимает свободную минуту.
         AddGoalScore(npc, world.Tick, GoalType.Sit,
-            (1f - npc.Needs.Comfort) * 0.5f + (1f - npc.Needs.Stamina) * 0.25f, ctx.SitAvail);
+            (1f - npc.Needs.Comfort) * 0.5f + (1f - npc.Needs.Stamina) * 0.25f +
+                TraitMath.LeisureBonus(npc), ctx.SitAvail);
         AddGoalScore(npc, world.Tick, GoalType.Dress, ctx.DressNeed, ctx.DressAvail);
         // Spec 28.15B: dislike lowers the urge, embarrassment causes
         // post-quarrel withdrawal.
@@ -954,16 +971,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Spec §54: "wood in hand" for fire/craft now means a STICK.
         var hasWood = npc.Inventory.Items.Contains(ContentIds.Stick);
         var (campfireSeen, campfireFuel, campfireObj) = FindCampfire(npc, world);
-        var nightSleepFuel = npc.Mind.NightSleepUntilRested && campfireObj is not null
-            ? ExecutionSystem.NightSleepFuelRequired(world, npc, campfireObj)
-            : 0f;
-        var nightFireReady = campfireObj is not null && campfireFuel > 0f &&
-            campfireFuel >= nightSleepFuel;
-        var nightFireChain = npc.Mind.NightSleepUntilRested &&
-            !ExecutionSystem.HasSleepInterrupt(world, npc) &&
-            campfireSeen && !nightFireReady
-            ? Spec49.NightSleepBoost
-            : 0f;
+        // §126/§49 r2: вместе с ночным затвором ушла и его топливная цепочка —
+        // арифметика «хватит ли дров дожечь до утра», которая поднимала ставку
+        // дров перед сном. Тяга к дровам осталась обычная (fuelLow ниже): у
+        // костра есть свои причины гореть, и они не обязаны быть чьим-то
+        // расписанием сна.
+        var nightFireChain = 0f;
         // §gear-craft: a recipe with NO station crafts in place — its
         // availability must not demand a campfire in view.
         bool CraftPlaceOk(GoalType craftGoal)
@@ -1033,9 +1046,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var wantsBoil = false;
         // Spec 35.2: any reachable Tool not carried (saw, dropped gear).
         var gatherToolsAvail = HasMissingToolReachable(npc, world);
-        // §49.9: the ordinary 600-unit housekeeping line remains, but bedtime
-        // may demand more when rain can consume the reserve at 4x speed.
-        var fuelLow = campfireSeen && campfireFuel < System.Math.Max(600f, nightSleepFuel);
+        // §126/§49 r2: обычная хозяйственная черта в 600 единиц — и всё. Здесь
+        // же стояла надбавка ночного затвора («перед сном запаси больше, дождь
+        // жрёт вчетверо»), снятая вместе с ним: у костра свои причины гореть, и
+        // они не обязаны быть чьим-то расписанием сна.
+        var fuelLow = campfireSeen && campfireFuel < 600f;
         // Balance audit (Jul 2026): the raft chain's gate — shared by
         // raftWoodDemand here and buildRaftAvail below — used to demand
         // needs < 0.55 and an EMPTY danger memory. Needs equilibrate at
@@ -1072,9 +1087,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §54.12: a site's stick stage pulls loose ground sticks too — SplitLog
         // only covers the log-rich camp; with a fed fire and no logs around,
         // nothing else ever picked a scattered stick up for the bed.
-        var gatherWoodTargetReachable = npc.Mind.NightSleepUntilRested
-            ? HasReachableDefinition(npc, world, ContentIds.Stick)
-            : HasReachableWithTag(npc, world, "Wood");
+        var gatherWoodTargetReachable = HasReachableWithTag(npc, world, "Wood");
         var gatherWoodAvail = ((fuelLow && carriedSticks == 0 && carriedLogs == 0) ||
                 (piece is { } pLog && carriedLogs < pLog.Logs) ||
                 siteNeedsLogs ||
@@ -1105,7 +1118,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Mind.LastFreezingTick = world.Tick;
         }
 
-        var canFrictionLight = npc.Mind.NightSleepUntilRested ||
+        // §126/§49 r2: место ночного затвора занял тот же порог, по которому
+        // она пойдёт спать. Смысл сохранён — «собирается на ночь, пусть добудет
+        // огонь трением» — но выражен усталостью, а не часами, и потому не
+        // расходится со ставкой сна: обе читают EffectiveSleepThreshold.
+        var canFrictionLight =
+            npc.Needs.Energy < TraitMath.EffectiveSleepThreshold(npc) ||
             npc.Needs.ThermalComfort < AiBalance.FreezingComfortThreshold ||
             world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
         var tendFireAvail = hasWood && fuelLow &&
@@ -1246,8 +1264,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var treatWoundsAvail = Spec53.SelfTreatEnabled &&
             npc.Needs.Bandages > 0 &&
             (woundBurden >= treatBurdenGate || quietAftercare) &&
-            npc.Body.CanUseToolsOrWeapons && // a hand is needed to wind it
-            !npc.IsFighting;                 // not mid-bite: fight or flee first
+            // Light hand-work: a lost leg must not forbid winding a bandage.
+            npc.Body.HasUsableHand &&
+            !npc.IsFighting; // not mid-bite: fight or flee first
         // Deliberately NOT gated on remembered danger: that is the §65 trap
         // that already forbids sleep for a day after a wolf walks past, and a
         // dressing is exactly what she needs AFTER the fight.
@@ -1491,10 +1510,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // beds. Same reasoning as buildPeacetime/raftDangerNear: only a
         // FRESH scare (BuildDangerFreshTicks) stays the settled hands;
         // day-old ghosts don't cancel the day's work.
+        // §126: трудяга/лентяйка крутят ИМЕННО эту прибавку — она кормит ~18
+        // хозяйственных ставок разом, поэтому характер выражается один раз, у
+        // истока, а не восемнадцатью правками, которые потом разъедутся.
+        // Множитель, а не слагаемое: ниже есть проверки вида `freeHands > 0f`
+        // («руки свободны вообще»), и они обязаны отвечать одинаково всем.
         var freeHands = npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
             npc.Needs.Energy > 0.35f && npc.Needs.ThermalDiscomfort < 0.5f &&
             !freshDanger
-                ? 0.3f
+                ? 0.3f * TraitMath.IndustryMult(npc)
                 : 0f;
         // §64: the dream pull. Once basic needs are met (freeHands), a
         // colonist leans her build/gather effort toward HER OWN current dream
@@ -1751,8 +1775,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // когда ему самому нужно.
         var abuseDrive = 0f;
         var abuseAvail = false;
+        // §126: гнобит тот, у кого ТАКОЙ ХАРАКТЕР, а не тот, у кого другая
+        // фракция. Гейт переехал с бита Faction на черту; жертву по-прежнему
+        // выбирает вражда (AbuseMath.IsEligibleMark) — своих абьюзер не трогает
+        // никогда, и некого гнобить значит просто «ставка недоступна».
+        //
+        // ⭐ Парный гейт живёт в RaidSystem.TryStartAbuse: ставка сцен НЕ
+        // запускает (§87), так что флипать их надо ВМЕСТЕ.
         if (Spec81.AbuseEnabled &&
-            npc.Faction != Faction.Colony &&
+            npc.Traits.Has(TraitKind.Abuser) &&
             !AbuseMath.GraceHolds(world, npc) &&
             // §81.16: разбитая витальная зона — не до сцен. Гейт только на
             // НОВУЮ ставку: идущий поход/сцену держат блоки ниже, а бой,
@@ -1959,13 +1990,20 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 EquipmentMath.WorstDirtiness(npc) * SimBalance.BatheWornDirtWeight);
         // §63: no spa while bleeding out — a mauled girl (blood < 0.6)
         // planned an 80-tick wash at the far shore between bleed ticks.
-        // §89: чужаку на быт ПЛЕВАТЬ (см. подробный комментарий у стирки
+        // §89: неряхе на быт ПЛЕВАТЬ (см. подробный комментарий у стирки
         // ниже). Купание — из той же корзины: это занятие человека, у
         // которого всё хорошо.
-        var caresAboutGrooming = npc.Faction == Faction.Colony;
+        //
+        // §126: гейт по ЧЕРТЕ, а не по фракции. Раньше здесь стояло
+        // `Faction == Colony`, то есть «не моется» было свойством стороны
+        // конфликта: колонистка не могла быть неряхой в принципе, а чужак
+        // чистюлей. Теперь это характер, и он ездит с человеком.
+        var caresAboutGrooming = !npc.Traits.Has(TraitKind.Slob);
         var batheAvail = caresAboutGrooming &&
             (ctx.PendingRedress ||
-             (batheNeed >= SimBalance.BatheNeedThreshold &&
+             // §126: чистюле хватает меньшей грязи, чтобы взяться (множитель к
+             // ПОРОГУ — ставку она потом выигрывает по общей формуле).
+             (batheNeed >= SimBalance.BatheNeedThreshold * TraitMath.GroomingThresholdMult(npc) &&
               npc.Needs.Blood >= 0.6f &&
               HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons));
         if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
@@ -2004,7 +2042,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // всё равно всплывёт, когда остальные дела кончатся, и человек
         // опять пойдёт полоскать чистую рубаху вместо дела.
         var washAvail = caresAboutGrooming &&
-            washNeed >= SimBalance.WashClothesNeedThreshold &&
+            washNeed >= SimBalance.WashClothesNeedThreshold * TraitMath.GroomingThresholdMult(npc) &&
             npc.Needs.Blood >= 0.6f;
         var washActive = npc.Mind.CurrentGoal == GoalType.WashClothes &&
             npc.Plan.Status == PlanStatus.Active;
@@ -2751,79 +2789,6 @@ public sealed partial class DecisionSystem : ISimulationSystem
             GoalType.CraftBandage or GoalType.GatherHerb => true,
             _ => false
         };
-    }
-
-    // §49.9: remember the whole bedtime chain across GatherWood -> TendFire ->
-    // Sleep and across a critical wake-up. A clock-only condition cannot do
-    // that: at dawn, or once the first sleep block raises Energy above 25%, the
-    // NPC would otherwise forget that she still owes herself a full recharge.
-    private static void UpdateNightSleepIntent(WorldState world, NPCState npc)
-    {
-        if (!Spec49.NightSleepSchedule)
-        {
-            npc.Mind.NightSleepUntilRested = false;
-            return;
-        }
-
-        if (npc.Needs.Energy >= Spec49.NightSleepWakeEnergy)
-        {
-            if (npc.Mind.NightSleepUntilRested)
-            {
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "NightSleepSatisfied",
-                        $"Energy={npc.Needs.Energy:F2}");
-                }
-            }
-
-            npc.Mind.NightSleepUntilRested = false;
-            return;
-        }
-
-        if (!npc.Mind.NightSleepUntilRested &&
-            EnvironmentSystem.IsAfter23(world) &&
-            npc.Needs.Energy <= Spec49.NightSleepEnergy)
-        {
-            npc.Mind.NightSleepUntilRested = true;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "NightSleepPrepared",
-                    $"Energy={npc.Needs.Energy:F2} Threshold={Spec49.NightSleepEnergy:F2}");
-            }
-        }
-    }
-
-    // Preparing the fire is preferred, never a new deadlock. If there is no
-    // known reachable hearth or no possible wood step, the safety fallback is
-    // still to sleep at home instead of wandering until exhaustion.
-    private static bool NightFireReadyOrCannotPrepare(WorldState world, NPCState npc)
-    {
-        if (!npc.Mind.NightSleepUntilRested)
-        {
-            return true;
-        }
-
-        var (seen, fuel, fire) = FindCampfire(npc, world);
-        if (!seen || fire is null)
-        {
-            return true;
-        }
-
-        var required = ExecutionSystem.NightSleepFuelRequired(world, npc, fire);
-        if (fuel > 0f && fuel >= required)
-        {
-            return true;
-        }
-
-        var carriesStick = npc.Inventory.Items.Contains(ContentIds.Stick);
-        var canFetchStick = npc.Inventory.HasSpace &&
-            HasReachableDefinition(npc, world, ContentIds.Stick);
-        var canSplitLog = npc.Inventory.HasSpace &&
-            HasReachableWithTag(npc, world, "Log") &&
-            CanPerformDeclared(world, npc, ContentIds.Log, InteractionType.Process,
-                legacyOk: Content.GearCatalog.HasCapability(
-                    npc.Inventory.Items, Content.GearCapability.ChopWood));
-        return !carriesStick && !canFetchStick && !canSplitLog;
     }
 
     private static void UpdateDehydratedStatus(WorldState world, NPCState npc)

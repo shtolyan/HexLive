@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="690" viewBox="0 0 1000 690" role="img" aria-labelledby="title desc">
+  <title id="title">§132 — общая зона прибытия для двух лагерей</title>
+  <desc id="desc">Якорный гекс лагеря и шесть соседей. Из 373 уникальных точек субсетки отбрасываются вода, блокировки и занятые точки; оставшаяся точка выбирается по сиду.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#020617" flood-opacity="0.45"/>
+    </filter>
+    <g id="tile-points">
+      <circle class="inner" cx="0.000" cy="-90.000" r="2.2"/><circle class="inner" cx="25.981" cy="-75.000" r="2.2"/>
+      <circle class="inner" cx="51.962" cy="-60.000" r="2.2"/><circle class="inner" cx="77.942" cy="-45.000" r="2.2"/>
+      <circle class="inner" cx="-25.981" cy="-75.000" r="2.2"/><circle class="inner" cx="0.000" cy="-60.000" r="2.2"/>
+      <circle class="inner" cx="25.981" cy="-45.000" r="2.2"/><circle class="inner" cx="51.962" cy="-30.000" r="2.2"/>
+      <circle class="inner" cx="77.942" cy="-15.000" r="2.2"/><circle class="inner" cx="-51.962" cy="-60.000" r="2.2"/>
+      <circle class="inner" cx="-25.981" cy="-45.000" r="2.2"/><circle class="inner" cx="0.000" cy="-30.000" r="2.2"/>
+      <circle class="inner" cx="25.981" cy="-15.000" r="2.2"/><circle class="inner" cx="51.962" cy="0.000" r="2.2"/>
+      <circle class="inner" cx="77.942" cy="15.000" r="2.2"/><circle class="inner" cx="-77.942" cy="-45.000" r="2.2"/>
+      <circle class="inner" cx="-51.962" cy="-30.000" r="2.2"/><circle class="inner" cx="-25.981" cy="-15.000" r="2.2"/>
+      <circle class="inner" cx="0.000" cy="0.000" r="2.2"/><circle class="inner" cx="25.981" cy="15.000" r="2.2"/>
+      <circle class="inner" cx="51.962" cy="30.000" r="2.2"/><circle class="inner" cx="77.942" cy="45.000" r="2.2"/>
+      <circle class="inner" cx="-77.942" cy="-15.000" r="2.2"/><circle class="inner" cx="-51.962" cy="0.000" r="2.2"/>
+      <circle class="inner" cx="-25.981" cy="15.000" r="2.2"/><circle class="inner" cx="0.000" cy="30.000" r="2.2"/>
+      <circle class="inner" cx="25.981" cy="45.000" r="2.2"/><circle class="inner" cx="51.962" cy="60.000" r="2.2"/>
+      <circle class="inner" cx="-77.942" cy="15.000" r="2.2"/><circle class="inner" cx="-51.962" cy="30.000" r="2.2"/>
+      <circle class="inner" cx="-25.981" cy="45.000" r="2.2"/><circle class="inner" cx="0.000" cy="60.000" r="2.2"/>
+      <circle class="inner" cx="25.981" cy="75.000" r="2.2"/><circle class="inner" cx="-77.942" cy="45.000" r="2.2"/>
+      <circle class="inner" cx="-51.962" cy="60.000" r="2.2"/><circle class="inner" cx="-25.981" cy="75.000" r="2.2"/>
+      <circle class="inner" cx="0.000" cy="90.000" r="2.2"/>
+      <circle class="rim" cx="-103.923" cy="60.000" r="2.2"/><circle class="rim" cx="-77.942" cy="75.000" r="2.2"/>
+      <circle class="rim" cx="-51.962" cy="90.000" r="2.2"/><circle class="rim" cx="-25.981" cy="105.000" r="2.2"/>
+      <circle class="rim" cx="0.000" cy="120.000" r="2.2"/><circle class="rim" cx="25.981" cy="105.000" r="2.2"/>
+      <circle class="rim" cx="51.962" cy="90.000" r="2.2"/><circle class="rim" cx="77.942" cy="75.000" r="2.2"/>
+      <circle class="rim" cx="103.923" cy="60.000" r="2.2"/><circle class="rim" cx="103.923" cy="30.000" r="2.2"/>
+      <circle class="rim" cx="103.923" cy="0.000" r="2.2"/><circle class="rim" cx="103.923" cy="-30.000" r="2.2"/>
+      <circle class="rim" cx="103.923" cy="-60.000" r="2.2"/><circle class="rim" cx="77.942" cy="-75.000" r="2.2"/>
+      <circle class="rim" cx="51.962" cy="-90.000" r="2.2"/><circle class="rim" cx="25.981" cy="-105.000" r="2.2"/>
+      <circle class="rim" cx="0.000" cy="-120.000" r="2.2"/><circle class="rim" cx="-25.981" cy="-105.000" r="2.2"/>
+      <circle class="rim" cx="-51.962" cy="-90.000" r="2.2"/><circle class="rim" cx="-77.942" cy="-75.000" r="2.2"/>
+      <circle class="rim" cx="-103.923" cy="-60.000" r="2.2"/><circle class="rim" cx="-103.923" cy="-30.000" r="2.2"/>
+      <circle class="rim" cx="-103.923" cy="0.000" r="2.2"/><circle class="rim" cx="-103.923" cy="30.000" r="2.2"/>
+    </g>
+    <g id="hex">
+      <path d="M0,-120 L103.923,-60 L103.923,60 L0,120 L-103.923,60 L-103.923,-60 Z"/>
+    </g>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#4ade80"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #e2e8f0; }
+    .title { font-size: 25px; font-weight: 700; }
+    .subtitle { font-size: 15px; fill: #94a3b8; }
+    .hexes use { fill: #0f2740; fill-opacity: 0.78; stroke: #38bdf8; stroke-width: 1.6; }
+    .hexes use.anchor { fill: #153b2e; stroke: #4ade80; stroke-width: 2.6; }
+    .points .inner { fill: #94a3b8; opacity: 0.50; }
+    .points .rim { fill: #64748b; opacity: 0.42; }
+    .callout { fill: #0f172a; stroke: #334155; stroke-width: 1; }
+    .label { font-size: 14px; }
+    .small { font-size: 12px; fill: #94a3b8; }
+  </style>
+  <rect width="1000" height="690" rx="22" fill="#07111f"/>
+  <text class="title" x="46" y="48">Один контракт высадки для обоих лагерей</text>
+  <text class="subtitle" x="46" y="75">PopulationArrivalMath • масштаб и точки из HexSpatialMath / HexPointLayout</text>
+
+  <g transform="translate(390 350)" filter="url(#shadow)">
+    <g class="hexes">
+      <use href="#hex" transform="translate(0 0)" class="anchor"/>
+      <use href="#hex" transform="translate(207.846 0)"/>
+      <use href="#hex" transform="translate(103.923 -180)"/>
+      <use href="#hex" transform="translate(-103.923 -180)"/>
+      <use href="#hex" transform="translate(-207.846 0)"/>
+      <use href="#hex" transform="translate(-103.923 180)"/>
+      <use href="#hex" transform="translate(103.923 180)"/>
+    </g>
+    <g class="points">
+      <use href="#tile-points" transform="translate(0 0)"/>
+      <use href="#tile-points" transform="translate(207.846 0)"/>
+      <use href="#tile-points" transform="translate(103.923 -180)"/>
+      <use href="#tile-points" transform="translate(-103.923 -180)"/>
+      <use href="#tile-points" transform="translate(-207.846 0)"/>
+      <use href="#tile-points" transform="translate(-103.923 180)"/>
+      <use href="#tile-points" transform="translate(103.923 180)"/>
+    </g>
+
+    <!-- Representative unavailable points: runtime computes these from the live world. -->
+    <g fill="#fb7185" stroke="#fecdd3" stroke-width="1.2">
+      <circle cx="0" cy="0" r="7"/><circle cx="-25.981" cy="15" r="7"/>
+      <circle cx="207.846" cy="0" r="7"/><circle cx="181.865" cy="15" r="7"/>
+    </g>
+    <g fill="#fb923c" stroke="#fed7aa" stroke-width="1.2">
+      <circle cx="103.923" cy="-180" r="7"/><circle cx="129.904" cy="-165" r="7"/>
+    </g>
+    <circle cx="-155.884" cy="30" r="10" fill="#4ade80" stroke="#dcfce7" stroke-width="3"/>
+    <path d="M-154 18 C-135 -25 -92 -50 -47 -54" fill="none" stroke="#4ade80" stroke-width="3" marker-end="url(#arrow)"/>
+
+    <rect x="-85" y="-35" width="170" height="70" rx="12" fill="#062b25" stroke="#4ade80" stroke-width="1.5"/>
+    <text x="0" y="-7" text-anchor="middle" class="label" fill="#dcfce7">Якорь своего лагеря</text>
+    <text x="0" y="15" text-anchor="middle" class="small">Colony или Outsiders</text>
+  </g>
+
+  <g transform="translate(740 155)">
+    <rect class="callout" x="0" y="0" width="220" height="400" rx="16"/>
+    <text class="label" x="22" y="38">Зона: radius = 1 tile</text>
+    <text class="small" x="22" y="63">якорь + 6 соседей</text>
+    <text class="label" x="22" y="100">HexRadius = 1.5 wu</text>
+    <text class="small" x="22" y="125">центры: 2.598 wu</text>
+    <text class="label" x="22" y="162">Точки: до 373</text>
+    <text class="small" x="22" y="187">37 внутри + 24 на краю / гекс</text>
+
+    <circle cx="30" cy="231" r="4" fill="#94a3b8" opacity="0.65"/>
+    <text class="label" x="48" y="236">кандидат субсетки</text>
+    <circle cx="30" cy="271" r="7" fill="#fb7185" stroke="#fecdd3"/>
+    <text class="label" x="48" y="276">блок / вода</text>
+    <circle cx="30" cy="311" r="7" fill="#fb923c" stroke="#fed7aa"/>
+    <text class="label" x="48" y="316">занято телом</text>
+    <circle cx="30" cy="351" r="9" fill="#4ade80" stroke="#dcfce7" stroke-width="2"/>
+    <text class="label" x="48" y="356">выбор по seed+номеру</text>
+    <text class="small" x="22" y="384">CurrentJunction + occupancy</text>
+  </g>
+
+  <text class="subtitle" x="46" y="650">Лимит не влияет на геометрию: сначала проверяются места 10 / 5 / 5, затем ищется точка.</text>
+</svg>

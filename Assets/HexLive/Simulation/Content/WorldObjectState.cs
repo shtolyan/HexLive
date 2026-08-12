@@ -101,6 +101,9 @@ public sealed class WorldObjectState
     public bool IsArchitectureElement => ArchitectureOwnerId.HasValue &&
         ArchitectureElements.Count == 1;
 
+    // §120.2: persistent state of an architectural door LEGO piece.
+    public bool IsDoorOpen { get; set; } = true;
+
     // §119: one immutable work position chosen when a workbench site is staked.
     // It rides onto the finished station and is the only legal craft approach.
     public JunctionId? CraftJunction { get; set; }

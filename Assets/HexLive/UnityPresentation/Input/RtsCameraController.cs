@@ -85,6 +85,11 @@ namespace HexLive.UnityPresentation.Input
 
         // Free-mode state: a loose pivot glued to the hex ground.
         private Vector3 _freePivot;
+        // §131: свободный пивот живёт не НА земле, а НАД ней — по умолчанию на
+        // высоте головы стоящей (шея, _orbitNeckFactor), а после отцепления
+        // слежения — на той высоте, где пивот был в момент отцепа. Это и
+        // убирает прыжок «голова↔ноги» при вкл/выкл слежения.
+        private float _freePivotHeight;
 
         // Shared rig state (both modes drive the same yaw/pitch/distance).
         // Smoothing happens in PARAMETER space — pivot, yaw, pitch and distance
@@ -131,6 +136,12 @@ namespace HexLive.UnityPresentation.Input
         private const float TileTopsRefreshSeconds = 0.5f;
 
         private const float ElevationStep = 0.55f;
+        // §112: full-3D distance from the lens to the nearest point of the
+        // LeafGreen submesh bounds. The wider exit threshold prevents material
+        // flicker, and the movement threshold avoids redundant palm scans.
+        private const float PalmCrownHideDistance = 2.1f;
+        private const float PalmCrownShowDistance = 2.5f;
+        private const float PalmCrownCheckMovement = 0.1f;
 
         // §130: камера почти вплотную (мин. зум 0.7) — NPC на несколько
         // секунд смотрит в объектив. Вход/выход с гистерезисом, метры от
@@ -139,6 +150,12 @@ namespace HexLive.UnityPresentation.Input
         private const float CloseUpGazeExitDistance = 2.6f;
         private const float CloseUpGazeSeconds = 5f;
         private const float CloseUpGazeCooldownSeconds = 30f;
+
+        // §131: стартовый кадр игры — камера сразу у головы первой выделенной,
+        // спереди-сбоку (¾), низко, и слежение уже включено. Числа под тюнинг.
+        private const float OpeningShotDistance = 2.6f;
+        private const float OpeningShotPitch = 14f;
+        private const float OpeningShotYawFromFacing = 145f; // 180=в лицо, 90=профиль
 
         // §121: ручной ввод живёт рядом на той же камере и получает клик
         // первым. Ссылка ищется лениво — компонент навешивает бутстрап.
@@ -152,6 +169,17 @@ namespace HexLive.UnityPresentation.Input
         private void Start()
         {
             _camera = GetComponent<Camera>();
+            var palmVisibility = GetComponent<CameraPalmCrownVisibility>();
+            if (palmVisibility == null)
+            {
+                palmVisibility = gameObject.AddComponent<CameraPalmCrownVisibility>();
+            }
+
+            palmVisibility.Construct(
+                PalmCrownHideDistance,
+                PalmCrownShowDistance,
+                PalmCrownCheckMovement);
+
             var closeUpGaze = GetComponent<CameraCloseUpGaze>();
             if (closeUpGaze == null)
             {
@@ -163,7 +191,6 @@ namespace HexLive.UnityPresentation.Input
                 CloseUpGazeExitDistance,
                 CloseUpGazeSeconds,
                 CloseUpGazeCooldownSeconds);
-
             transform.position = _startPosition;
             transform.rotation = Quaternion.Euler(_startRotation);
 
@@ -176,8 +203,9 @@ namespace HexLive.UnityPresentation.Input
             _smoothedDistance = _currentDistance;
 
             // The start pose looks straight down, so the pivot is simply the
-            // ground under the camera.
-            _freePivot = SnapToGround(new Vector3(_startPosition.x, 0f, _startPosition.z));
+            // ground under the camera (plus the standing-head hover, §131).
+            _freePivotHeight = SimulationUnityMapper.HexRadius * _orbitNeckFactor;
+            _freePivot = GroundAnchor(new Vector3(_startPosition.x, 0f, _startPosition.z));
         }
 
         private void OnEnable()
@@ -240,6 +268,10 @@ namespace HexLive.UnityPresentation.Input
                 {
                     UI.ContextMenuPanel.Close();
                 }
+                else if (UI.LootTransferPanel.IsOpen)
+                {
+                    UI.LootTransferPanel.Close();
+                }
                 else
                 {
                     NpcSelection.Clear();
@@ -276,7 +308,7 @@ namespace HexLive.UnityPresentation.Input
                 HandlePointerGesture(snapshot);
             }
 
-            _freePivot = SnapToGround(_freePivot);
+            _freePivot = GroundAnchor(_freePivot);
 
             ApplyRig(_freePivot, _panSmooth, _panSmooth);
         }
@@ -444,6 +476,16 @@ namespace HexLive.UnityPresentation.Input
 
         // ---- Ground magnet ---------------------------------------------------
 
+        // §131: рельеф под пивотом меняется при панораме — прилипание к земле
+        // сохраняет унаследованную высоту головы, а не роняет вид на грунт.
+        private Vector3 GroundAnchor(Vector3 pivot)
+        {
+            pivot.y -= _freePivotHeight;
+            pivot = SnapToGround(pivot);
+            pivot.y += _freePivotHeight;
+            return pivot;
+        }
+
         // Drops a pivot onto the top of the hex it stands over. Water tiles
         // magnetise to their surface, so the pivot never sinks under the sea.
         private Vector3 SnapToGround(Vector3 pivot)
@@ -549,7 +591,8 @@ namespace HexLive.UnityPresentation.Input
 
         private static bool PointerBlockedForWorld() =>
             NpcSelection.PointerOverUi || UI.HexInspectorPanel.PointerOverPanel ||
-            UI.ContextMenuPanel.PointerOverPanel || UI.GameMenu.IsOpen ||
+            UI.ContextMenuPanel.PointerOverPanel || UI.LootTransferPanel.IsOpen ||
+            UI.GameMenu.IsOpen ||
             UI.EndSummaryPanel.IsOpen;
 
         private void ApplyMarqueeSelection(WorldSnapshot snapshot, Vector2 from, Vector2 to)
@@ -855,11 +898,23 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            _freePivot = SnapToGround(center);
+            // §131: центр кадра приходит уже на высоте голов (TryGetOrbitTarget)
+            // — свободный пивот принимает эту высоту, а не падает на землю.
+            SetFreePivotAt(center);
             var fit = FitDistance(radius);
             _requestedDistance = fit;
             _currentDistance = fit;
             _pivotVelocity = Vector3.zero;
+        }
+
+        // §131: поставить свободный пивот в точку, запомнив её высоту над
+        // землёй — единственный способ записи _freePivot из мира NPC.
+        private void SetFreePivotAt(Vector3 point)
+        {
+            var ground = SnapToGround(new Vector3(point.x, 0f, point.z));
+            _freePivotHeight = Mathf.Clamp(
+                point.y - ground.y, 0f, SimulationUnityMapper.HexRadius);
+            _freePivot = ground + Vector3.up * _freePivotHeight;
         }
 
         private bool TryGetSelectionFrame(
@@ -909,8 +964,11 @@ namespace HexLive.UnityPresentation.Input
         /// Place the rig on the selected NPC immediately. The opening world is
         /// intentionally paused, so SmoothDamp (scaled delta time) cannot move
         /// the camera before the loading curtain fades.
+        /// §131: openingShot=true — стартовый кадр: слежение за primary уже
+        /// включено, камера близко, спереди-сбоку и низко (константы
+        /// OpeningShot*).
         /// </summary>
-        public bool SnapToSelectedTarget()
+        public bool SnapToSelectedTarget(bool openingShot = false)
         {
             if (!NpcSelection.HasSelection)
             {
@@ -923,10 +981,38 @@ namespace HexLive.UnityPresentation.Input
                 return false;
             }
 
-            _mode = Mode.Free;
             _camera ??= GetComponent<Camera>();
-            _freePivot = SnapToGround(target);
-            _requestedDistance = FitDistance(radius);
+            var pivot = target;
+            if (openingShot &&
+                TryGetOrbitTarget(snapshot, NpcSelection.PrimaryId, out var anchor))
+            {
+                _mode = Mode.Orbit;
+                pivot = anchor;
+                _smoothedTarget = anchor;
+                _hasSmoothedTarget = true;
+                _requestedDistance = Mathf.Clamp(
+                    OpeningShotDistance, _orbitMinDistance, _orbitMaxDistance);
+                _currentPitch = Mathf.Clamp(
+                    OpeningShotPitch, _orbitMinPitch, _orbitMaxPitch);
+                foreach (var npc in snapshot.Npcs)
+                {
+                    if (npc.Id.Value != NpcSelection.PrimaryId)
+                    {
+                        continue;
+                    }
+
+                    _currentYaw = SimulationUnityMapper.ToUnityYawDegrees(
+                        npc.RotationDegrees) + OpeningShotYawFromFacing;
+                    break;
+                }
+            }
+            else
+            {
+                _mode = Mode.Free;
+                _requestedDistance = FitDistance(radius);
+            }
+
+            SetFreePivotAt(pivot);
             _currentDistance = _requestedDistance;
             _smoothedYaw = _currentYaw;
             _smoothedPitch = _currentPitch;
@@ -934,7 +1020,7 @@ namespace HexLive.UnityPresentation.Input
             _pitchVelocity = 0f;
             // Snap every smoothed parameter: the next LateUpdate must
             // reproduce this exact pose with zero first-frame glide.
-            _smoothedPivot = _freePivot;
+            _smoothedPivot = pivot;
             _hasSmoothedPivot = true;
             _pivotVelocity = Vector3.zero;
             _smoothedDistance = _currentDistance;
@@ -959,7 +1045,7 @@ namespace HexLive.UnityPresentation.Input
             }
 
             transform.SetPositionAndRotation(
-                _freePivot - rotation * Vector3.forward * _currentDistance -
+                pivot - rotation * Vector3.forward * _currentDistance -
                 rotation * Vector3.up * uiLift + rotation * Vector3.right * uiSide,
                 rotation);
             return true;
@@ -968,16 +1054,18 @@ namespace HexLive.UnityPresentation.Input
         private void ExitOrbit()
         {
             _mode = Mode.Free;
-            // Deselecting only unhooks the pivot from the character: it stays
-            // exactly where they stood (magnetised to that hex's ground) and
-            // the angle, distance and framing are left untouched, so the view
-            // does not fly back up to a top-down shot. _orbitDistance is NOT
+            // §131: отцепили слежение — камера ОСТАЁТСЯ ровно где была: пивот
+            // принимает фактическое (сглаженное) положение рига вместе с его
+            // высотой над землёй, дальше NPC сам уходит из кадра. Раньше тут
+            // стоял SnapToGround и вид ронялся с головы на ноги. Угол,
+            // дистанция и кадрирование не трогаются; _orbitDistance NOT
             // updated here: FitDistance floors explicit Frame requests with it,
             // and mutating it would turn the last free-camera height into a
             // creeping zoom minimum.
             _requestedDistance = _currentDistance;
-            var pivot = _hasSmoothedTarget ? _smoothedTarget : transform.position;
-            _freePivot = SnapToGround(new Vector3(pivot.x, pivot.y, pivot.z));
+            var pivot = _hasSmoothedPivot ? _smoothedPivot
+                : _hasSmoothedTarget ? _smoothedTarget : transform.position;
+            SetFreePivotAt(pivot);
             _pivotVelocity = Vector3.zero;
         }
 
@@ -1082,7 +1170,12 @@ namespace HexLive.UnityPresentation.Input
 
             if (_worldRenderer != null && _worldRenderer.TryGetNpcViewPosition(npcId, out var viewPos))
             {
-                target = viewPos + Vector3.up * neck;
+                // §131: высоту головы отвечает сама фигура ЕДИНЫМ методом —
+                // стоит/сидит/лежит/плывёт даёт свою высоту, камера не гадает.
+                var height = _worldRenderer.TryGetActorView(npcId, out var actorView)
+                    ? actorView.CameraAnchorHeight
+                    : neck;
+                target = viewPos + Vector3.up * height;
                 return true;
             }
 

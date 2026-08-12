@@ -90,6 +90,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type is
+                PlanStepType.PlayerTakeCarried or
+                PlanStepType.PlayerTakeWorn or
+                PlanStepType.PlayerGiveCarried or
+                PlanStepType.PlayerGiveWorn)
+            {
+                RunPlayerInventoryTransfer(world, npc);
+                continue;
+            }
+
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.DrinkBottle)
             {
                 RunDrinkBottle(world, npc);
@@ -574,7 +584,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // §54.14 (r2): same hysteresis as the decision layer — the
                     // walk over must not revoke the drill (LastFreezingTick is
                     // stamped in DecisionSystem each freezing tick).
-                    var canFrictionLight = npc.Mind.NightSleepUntilRested ||
+                    // §126/§49 r2: ночной затвор снят, его место занял тот же
+                    // порог сна, что читает решение (парность обязательна —
+                    // иначе она пришла бы разжигать и передумала на месте).
+                    var canFrictionLight =
+                        npc.Needs.Energy < TraitMath.EffectiveSleepThreshold(npc) ||
                         npc.Needs.ThermalComfort < -0.35f ||
                         world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
                     var missingLighter = worldObject.ResourceAmount <= 0f &&
@@ -591,30 +605,28 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     }
                 }
 
-                // Face the work (spec 26.3 r2): builds/fuel run from the rim of
-                // the site's blocked footprint — hammering while looking away
-                // read as detached. Skip when she stands ON the anchor (seats,
-                // beds): a zero-length direction has no meaningful angle.
+                // Furniture uses a deliberate two-beat entry: arrive at the
+                // reserved rim, turn with the back to the anchor, and only
+                // then switch on Sit/Sleep.  Manual and autonomous plans both
+                // reach this same gate, so the bed's authored lying formula is
+                // never entered from a different orientation.
                 var anchorPosition = worldObject.Junctions.Count > 0 &&
                     world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var anchorJunction)
                         ? anchorJunction.WorldPosition
                         : HexSpatialMath.TileToWorld(worldObject.Tile);
-                if (HexSpatialMath.Distance(anchorPosition, npc.Position) > 0.05f)
+                if (interaction.Type is InteractionType.Sit or InteractionType.Sleep)
+                {
+                    if (!TryTurnBackToFurniture(world, npc, worldObject, anchorPosition))
+                    {
+                        continue;
+                    }
+                }
+                else if (HexSpatialMath.Distance(anchorPosition, npc.Position) > 0.05f)
                 {
                     var faceDirection = HexSpatialMath.Normalize(new Float2(
                         anchorPosition.X - npc.Position.X, anchorPosition.Y - npc.Position.Y));
                     npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(faceDirection);
                     npc.RotationDegrees = npc.Movement.DesiredRotationDegrees;
-                }
-
-                // §66.5 + §111.9 r3: the renderer pins a sleeping body to the
-                // bed's centre and rotation. Mirror that authored pose in the
-                // simulation before anybody targets the sleeper for aid/loot;
-                // the free rim junction remains only the route/occupancy
-                // anchor, never the visible body's position or direction.
-                if (interaction.Type == InteractionType.Sleep)
-                {
-                    LyingSpot.AlignBodyToObject(world, npc, worldObject, anchorPosition);
                 }
 
                 if (interaction.Type == InteractionType.Craft &&
@@ -629,11 +641,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
-                npc.Execution.Status = ExecutionStatus.InProgress;
-                npc.Execution.CurrentInteraction = interaction.Type;
-                npc.Execution.TargetObject = worldObject.Id;
-                npc.Execution.StartTick = world.Tick;
-                npc.Execution.BuildDeposited = false; // §77: this visit still owes its load
                 // §76 + §79: how long the job takes — first the TOOL doing it
                 // (§79: the gear that carries the required capability sets the
                 // pace: machete 2 → half, stone axe 1 → authored, knife 0.75 →
@@ -651,13 +658,37 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 var workTicks = AttributeMath.WorkTicks(
                     npc, Content.GearCatalog.ScaleTicks(authoredWorkTicks, toolSpeedMult),
                     interaction.Type, npc.Plan.Goal);
-                npc.Execution.EndTick = world.Tick + workTicks;
-                worldObject.IsOccupied = true;
-                // Spec 28.15C: a corpse's CurrentUser records whose body it
-                // is — mourning must not overwrite it.
-                if (!CorpseMath.IsHumanDead(definition))
+                if (interaction.Type == InteractionType.Sleep)
                 {
-                    worldObject.CurrentUser = npc.Id;
+                    // The whole transition is atomic and shared with rescue
+                    // and deterministic test scenes. No caller is allowed to
+                    // assemble a bed sleeper from pose/state/claim fragments.
+                    if (!BedSleep.TryEnter(
+                            world, npc, worldObject, world.Tick + workTicks,
+                            npc.CurrentJunction))
+                    {
+                        PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                        PlanInterruption.Abort(world, npc,
+                            $"Cannot enter bed {worldObject.Id.Value}");
+                        npc.Mind.CurrentGoal = GoalType.None;
+                        continue;
+                    }
+                }
+                else
+                {
+                    npc.Execution.Status = ExecutionStatus.InProgress;
+                    npc.Execution.CurrentInteraction = interaction.Type;
+                    npc.Execution.TargetObject = worldObject.Id;
+                    npc.Execution.StartTick = world.Tick;
+                    npc.Execution.EndTick = world.Tick + workTicks;
+                    npc.Execution.BuildDeposited = false; // §77: this visit still owes its load
+                    worldObject.IsOccupied = true;
+                    // Spec 28.15C: a corpse's CurrentUser records whose body it
+                    // is — mourning must not overwrite it.
+                    if (!CorpseMath.IsHumanDead(definition))
+                    {
+                        worldObject.CurrentUser = npc.Id;
+                    }
                 }
                 if (npc.Plan.TargetJunctionId is { } jId)
                 {
@@ -696,16 +727,19 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // interaction, not only a one-shot adjustment at its start.
                 if (npc.Execution.CurrentInteraction == InteractionType.Sleep)
                 {
-                    var sleepAnchor = worldObject.Junctions.Count > 0 &&
-                        world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var sleepJunction)
-                            ? sleepJunction.WorldPosition
-                            : HexSpatialMath.TileToWorld(worldObject.Tile);
-                    LyingSpot.AlignBodyToObject(world, npc, worldObject, sleepAnchor);
+                    if (!BedSleep.MaintainPose(world, npc, worldObject))
+                    {
+                        PlanInterruption.Abort(world, npc,
+                            $"Bed pose unavailable for {worldObject.Id.Value}");
+                        npc.Mind.CurrentGoal = GoalType.None;
+                        continue;
+                    }
 
                     // §49 parity: object-backed sleep used to ignore the same
                     // critical wake conditions that ground sleep honors. Abort
-                    // promptly, but retain NightSleepUntilRested so after the
-                    // crisis is handled she returns to finish the recharge.
+                    // promptly; §49 r2 не нужен латч, чтобы она вернулась
+                    // досыпать, — энергия всё ещё под порогом, и ставка сна
+                    // поднимется сама, как только кризис снят.
                     if (HasSleepInterrupt(world, npc, alreadyAsleep: true))
                     {
                         if (SimTrace.Enabled)
@@ -2155,9 +2189,30 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return false;
     }
 
+    // §110.9: crying is a conscious choice of posture. If a free bed is
+    // literally at hand, use its authored pose; otherwise use the same safe
+    // ground solver as every other lying state.
+    internal static bool TryLieDownForCrying(
+        WorldState world, NPCState npc, int cryingUntilTick)
+    {
+        return LyingSpot.TryUseNearbyBed(world, npc, cryingUntilTick, out _) ||
+            TryLieDownOnGround(world, npc);
+    }
+
+    // §60.2a r5: an involuntary fall prefers the ground on the CURRENT tile.
+    // In a furnished one-hex house that has no legal ground rectangle, a free
+    // bed at arm's reach is the only non-overlapping local surface; using it is
+    // still a posture change, never a route to another hex.
+    internal static bool TryLieDownForCollapse(
+        WorldState world, NPCState npc, int restUntilTick)
+    {
+        return TryLieDownOnGround(world, npc) ||
+            LyingSpot.TryUseNearbyBed(world, npc, restUntilTick, out _);
+    }
+
     // §60/§29G/§40.13/§113 r2: one entry for every ground-lying state. It no
     // longer promises the centre: LyingSpot chooses among all 37 interior nodes
-    // by full-body support/collision geometry. Beds use AlignBodyToObject instead.
+    // by full-body support/collision geometry. Beds use BedSleep.TryEnter instead.
     internal static bool TryLieDownOnGround(WorldState world, NPCState npc)
     {
         if (!LyingSpot.TrySolve(world, npc, out var placement))
@@ -2305,6 +2360,56 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Turns an actor smoothly away from a furniture anchor before the seat or
+    /// bed animation starts.  The simulation position deliberately remains on
+    /// the reserved rim until this method succeeds; only Sleep's existing
+    /// <see cref="BedSleep.TryEnter"/> may move the body onto its
+    /// authored bed pose afterwards.
+    /// </summary>
+    private static bool TryTurnBackToFurniture(
+        WorldState world, NPCState npc, WorldObjectState worldObject,
+        Float2 anchorPosition)
+    {
+        var away = HexSpatialMath.Normalize(new Float2(
+            npc.Position.X - anchorPosition.X,
+            npc.Position.Y - anchorPosition.Y));
+        if (HexSpatialMath.Distance(away, Float2.Zero) <= 0.0001f)
+        {
+            // A malformed/legacy object can have its approach point on the
+            // anchor.  Fall back to the authored furniture yaw rather than
+            // inventing a zero-length direction; this is also the same yaw
+            // LyingSpot uses when it commits a bed pose.
+            away = new Float2(
+                System.MathF.Cos(worldObject.RotationDegrees * System.MathF.PI / 180f),
+                System.MathF.Sin(worldObject.RotationDegrees * System.MathF.PI / 180f));
+        }
+
+        var desired = HexSpatialMath.AngleDegrees(away);
+        npc.Movement.DesiredDirection = away;
+        npc.Movement.DesiredRotationDegrees = desired;
+
+        var error = MathUtil.Abs(MathUtil.DeltaAngle(npc.RotationDegrees, desired));
+        if (error > 0.5f)
+        {
+            var turnPerTick = npc.TurnSpeed * SimBalance.BaseTurnSpeedFactor *
+                AttributeMath.TurnSpeedMult(npc) * world.TickDeltaTime;
+            npc.RotationDegrees = MathUtil.RotateTowards(
+                npc.RotationDegrees, desired, turnPerTick);
+            if (SimTrace.Verbose)
+            {
+                Trace.Debug(world, npc.Id, "FurnitureApproachTurning",
+                    $"Obj={worldObject.DefinitionId} Rot={npc.RotationDegrees:F1} " +
+                    $"Desired={desired:F1} Error={error:F1}");
+            }
+
+            return false;
+        }
+
+        npc.RotationDegrees = desired;
+        return true;
     }
 
     private static InteractionDefinition? ResolveInteraction(

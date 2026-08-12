@@ -178,6 +178,7 @@ namespace HexLive.UnityPresentation.UI
             box.Add(_hexInspectorButton);
 
             box.Add(MakeButton("+ Random wound", Wound, AddRandomWound));
+            box.Add(MakeButton("+ Random bruise", Raised, AddRandomBruise));
             box.Add(MakeButton("Clear wounds", Raised, ClearWounds));
             box.Add(MakeButton("+ Dirt", Dirt, () => AdjustHygiene(-0.25f)));
             box.Add(MakeButton("- Dirt (wash)", Raised, () => AdjustHygiene(+0.25f)));
@@ -382,6 +383,11 @@ namespace HexLive.UnityPresentation.UI
             npc.Body.Parts[part] = Mathf.Clamp01(npc.Body.Parts[part] - 0.35f);
             npc.Health = npc.Body.Mean();
             npc.Needs.Blood = Mathf.Clamp01(npc.Needs.Blood - 0.15f);
+            // §40.8-H r10: боевой путь (WoundMath.InflictCut) пачкает зону
+            // кровью — дебаг-рана обязана выглядеть как настоящая.
+            var condition = npc.Body.Condition(part);
+            condition.BloodSoil = Mathf.Clamp01(condition.BloodSoil +
+                0.35f * HexLive.Simulation.Runtime.SimBalance.BloodSoilPerCut);
             // Spec 40.8B/40.8-E: the decal comes from the wound RECORD, not
             // from HP, and a hit tears THREE gashes (mirrors WoundMath: the
             // damage splits, so balance math is identical). At the cap (36)
@@ -407,11 +413,28 @@ namespace HexLive.UnityPresentation.UI
             }
         });
 
+        // §40.8-H r11: тупой удар — HP вниз, но раны нет; след на коже несёт
+        // BluntDamage (фиолетовое поле синяков), и он сам рассасывается по
+        // мере заживления. Зеркалит боевую ветку BodyDamageResolver.
+        private void AddRandomBruise() => ForEachTarget(npc =>
+        {
+            var part = Parts[UnityEngine.Random.Range(0, Parts.Length)];
+            const float damage = 0.3f;
+            var landed = Mathf.Min(npc.Body.Parts[part], damage);
+            npc.Body.Parts[part] = Mathf.Clamp01(npc.Body.Parts[part] - landed);
+            var condition = npc.Body.Condition(part);
+            condition.BluntDamage = Mathf.Max(0f, condition.BluntDamage + landed);
+            npc.Health = npc.Body.Mean();
+        });
+
         private void ClearWounds() => ForEachTarget(npc =>
         {
             foreach (var part in Parts)
             {
                 npc.Body.Parts[part] = 1f;
+                var condition = npc.Body.Condition(part);
+                condition.BluntDamage = 0f;
+                condition.BloodSoil = 0f;
             }
 
             npc.Health = 1f;
@@ -420,7 +443,18 @@ namespace HexLive.UnityPresentation.UI
         });
 
         private void AdjustHygiene(float delta) => ForEachTarget(npc =>
-            npc.Needs.Hygiene = Mathf.Clamp01(npc.Needs.Hygiene + delta));
+        {
+            npc.Needs.Hygiene = Mathf.Clamp01(npc.Needs.Hygiene + delta);
+            // §40.8-H r10: «- Dirt (wash)» — это мытьё, а мытьё смывает и
+            // кровяную подложку (в симе тот же водяной путь).
+            if (delta > 0f)
+            {
+                foreach (var condition in npc.Body.Conditions.Values)
+                {
+                    condition.BloodSoil = Mathf.Clamp01(condition.BloodSoil - delta);
+                }
+            }
+        });
 
         private void AdjustTan(float delta) => ForEachTarget(npc =>
             npc.Needs.TanLevel = Mathf.Clamp01(npc.Needs.TanLevel + delta));

@@ -42,6 +42,13 @@ public sealed class InventorySlotLayout
 {
     public int Index { get; set; }
 
+    /// <summary>
+    /// Index of the first physical <see cref="ItemInstance"/> represented by
+    /// this cell in <see cref="InventoryState.Items"/>. Empty cells use -1.
+    /// A stacked cell couples this with <see cref="StackCount"/>.
+    /// </summary>
+    public int SourceIndex { get; set; } = -1;
+
     public string ItemDefinitionId { get; set; } = string.Empty;
 
     public int StackCount { get; set; }
@@ -61,6 +68,9 @@ public sealed class InventoryContainerLayout
     /// worn backpack (empty when the panel is the body's plain carry space).
     /// </summary>
     public string OwnerItemDefinitionId { get; set; } = string.Empty;
+
+    /// <summary>Physical index in NPCState.WornItems, or -1 for body containers.</summary>
+    public int OwnerSourceIndex { get; set; } = -1;
 
     public InventoryBodyAnchor BodyAnchor { get; set; }
 
@@ -96,6 +106,7 @@ public static class InventoryLayoutBuilder
     {
         public string ItemId = string.Empty;
         public int Count;
+        public int SourceIndex = -1;
     }
 
     public static InventoryLayout Build(WorldState world, NPCState npc)
@@ -132,6 +143,55 @@ public static class InventoryLayoutBuilder
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Resolves the physical carried instances currently shown inside one worn
+    /// item's derived containers. A backpack owns only the bonus tail of the
+    /// merged Carry panel; body carry and hands stay with the body.
+    /// </summary>
+    internal static bool TryCollectOwnedContents(
+        WorldState world,
+        NPCState npc,
+        int wornIndex,
+        out List<ItemInstance> contents)
+    {
+        contents = new List<ItemInstance>();
+        if (wornIndex < 0 || wornIndex >= npc.WornItems.Count)
+        {
+            return false;
+        }
+
+        var layout = Build(world, npc);
+        foreach (var container in layout.Containers)
+        {
+            if (container.OwnerSourceIndex != wornIndex)
+            {
+                continue;
+            }
+
+            var firstOwnedSlot = container.Kind == InventoryContainerKind.Carry
+                ? container.BaseCapacity + container.StrengthBonus
+                : 0;
+            foreach (var slot in container.Slots)
+            {
+                if (slot.Index < firstOwnedSlot ||
+                    string.IsNullOrEmpty(slot.ItemDefinitionId) ||
+                    slot.StackCount <= 0)
+                {
+                    continue;
+                }
+
+                if (!TryCollectSlotInstances(
+                        npc.Inventory.Items, slot, contents))
+                {
+                    contents.Clear();
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public static InventoryBodyAnchor AnchorFor(
@@ -186,8 +246,9 @@ public static class InventoryLayoutBuilder
         HashSet<string> claimedHolsterIds)
     {
         var ordinal = 0;
-        foreach (var worn in npc.WornItems)
+        for (var wornIndex = 0; wornIndex < npc.WornItems.Count; wornIndex++)
         {
+            var worn = npc.WornItems[wornIndex];
             var acceptedIds = HolsterCatalog.SlotsFor(worn.DefinitionId);
             if (acceptedIds.Count == 0)
             {
@@ -201,6 +262,7 @@ public static class InventoryLayoutBuilder
                 worn.DefinitionId,
                 AnchorFor(worn.DefinitionId, definition),
                 acceptedIds.Count);
+            container.OwnerSourceIndex = wornIndex;
 
             for (var i = 0; i < acceptedIds.Count; i++)
             {
@@ -221,6 +283,7 @@ public static class InventoryLayoutBuilder
                 container.Slots.Add(new InventorySlotLayout
                 {
                     Index = i,
+                    SourceIndex = item is null ? -1 : IndexOfReference(npc.Inventory.Items, item),
                     ItemDefinitionId = item?.DefinitionId ?? string.Empty,
                     StackCount = item is null ? 0 : 1,
                     AcceptedItemDefinitionId = acceptedId
@@ -239,9 +302,11 @@ public static class InventoryLayoutBuilder
         var garmentOrdinal = 0;
         var backpackCapacity = 0;
         var backpackId = string.Empty;
+        var backpackSourceIndex = -1;
 
-        foreach (var worn in npc.WornItems)
+        for (var wornIndex = 0; wornIndex < npc.WornItems.Count; wornIndex++)
         {
+            var worn = npc.WornItems[wornIndex];
             if (!world.Content.ObjectDefinitions.TryGetValue(worn.DefinitionId, out var definition))
             {
                 continue;
@@ -255,6 +320,7 @@ public static class InventoryLayoutBuilder
                     if (backpackId.Length == 0)
                     {
                         backpackId = worn.DefinitionId;
+                        backpackSourceIndex = wornIndex;
                     }
                 }
 
@@ -266,12 +332,14 @@ public static class InventoryLayoutBuilder
                 continue;
             }
 
-            regular.Add(NewContainer(
+            var garment = NewContainer(
                 $"garment:{garmentOrdinal++}:{worn.DefinitionId}",
                 InventoryContainerKind.Garment,
                 worn.DefinitionId,
                 AnchorFor(worn.DefinitionId, definition),
-                definition.InventoryCapacity));
+                definition.InventoryCapacity);
+            garment.OwnerSourceIndex = wornIndex;
+            regular.Add(garment);
         }
 
         var baseCapacity = npc.Body.IntactHands > 0 ? SimBalance.BaseCarrySlots : 0;
@@ -288,6 +356,7 @@ public static class InventoryLayoutBuilder
             carry.BaseCapacity = baseCapacity;
             carry.StrengthBonus = strengthBonus;
             carry.BackpackCapacity = backpackCapacity;
+            carry.OwnerSourceIndex = backpackSourceIndex;
             regular.Add(carry);
         }
     }
@@ -348,7 +417,12 @@ public static class InventoryLayoutBuilder
 
             if (!InventoryState.IsStackable(item.DefinitionId))
             {
-                cells.Add(new Cell { ItemId = item.DefinitionId, Count = 1 });
+                cells.Add(new Cell
+                {
+                    ItemId = item.DefinitionId,
+                    Count = 1,
+                    SourceIndex = i
+                });
                 continue;
             }
 
@@ -357,23 +431,29 @@ public static class InventoryLayoutBuilder
                 continue;
             }
 
-            var count = 0;
-            for (var j = i; j < items.Count; j++)
+            var sourceIndices = new List<int>();
+            for (var j = 0; j < items.Count; j++)
             {
                 var candidate = items[j];
                 if (candidate.DefinitionId == item.DefinitionId &&
                     !ContainsReference(holsteredInstances, candidate))
                 {
-                    count++;
+                    sourceIndices.Add(j);
                 }
             }
 
             var stackSize = InventoryState.StackSizeFor(item.DefinitionId);
-            while (count > 0)
+            var sourceOffset = 0;
+            while (sourceOffset < sourceIndices.Count)
             {
-                var chunk = Math.Min(stackSize, count);
-                cells.Add(new Cell { ItemId = item.DefinitionId, Count = chunk });
-                count -= chunk;
+                var chunk = Math.Min(stackSize, sourceIndices.Count - sourceOffset);
+                cells.Add(new Cell
+                {
+                    ItemId = item.DefinitionId,
+                    Count = chunk,
+                    SourceIndex = sourceIndices[sourceOffset]
+                });
+                sourceOffset += chunk;
             }
         }
 
@@ -393,6 +473,7 @@ public static class InventoryLayoutBuilder
                 container.Slots.Add(new InventorySlotLayout
                 {
                     Index = i,
+                    SourceIndex = cell?.SourceIndex ?? -1,
                     ItemDefinitionId = cell?.ItemId ?? string.Empty,
                     StackCount = cell?.Count ?? 0
                 });
@@ -413,6 +494,7 @@ public static class InventoryLayoutBuilder
             overflow.Slots.Add(new InventorySlotLayout
             {
                 Index = overflow.Slots.Count,
+                SourceIndex = cell.SourceIndex,
                 ItemDefinitionId = cell.ItemId,
                 StackCount = cell.Count
             });
@@ -463,6 +545,47 @@ public static class InventoryLayoutBuilder
         }
 
         return false;
+    }
+
+    private static int IndexOfReference(IReadOnlyList<ItemInstance> items, ItemInstance sought)
+    {
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (ReferenceEquals(items[i], sought))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool TryCollectSlotInstances(
+        IReadOnlyList<ItemInstance> carried,
+        InventorySlotLayout slot,
+        List<ItemInstance> collected)
+    {
+        if (slot.SourceIndex < 0 || slot.SourceIndex >= carried.Count ||
+            carried[slot.SourceIndex].DefinitionId != slot.ItemDefinitionId)
+        {
+            return false;
+        }
+
+        var remaining = slot.StackCount;
+        for (var i = slot.SourceIndex; i < carried.Count && remaining > 0; i++)
+        {
+            var item = carried[i];
+            if (item.DefinitionId != slot.ItemDefinitionId ||
+                ContainsReference(collected, item))
+            {
+                continue;
+            }
+
+            collected.Add(item);
+            remaining--;
+        }
+
+        return remaining == 0;
     }
 
     private static bool HasAny(IReadOnlyList<WearSlot> slots, params WearSlot[] sought)

@@ -19,6 +19,7 @@ Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.InventoryWear.cs	#3
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.LootHelpless.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.ManualCarry.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.PlayerInventory.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.PlayerInventoryTransfer.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#2
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#3

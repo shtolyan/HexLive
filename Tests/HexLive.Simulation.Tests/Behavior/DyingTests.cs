@@ -34,6 +34,7 @@ namespace HexLive.Simulation.Tests.Behavior
 public sealed class DyingTests
 {
     private bool _kenshiWasEnabled;
+    private bool _aidFreezeWasEnabled;
 
     [SetUp]
     public void UseLegacySection105Model()
@@ -43,10 +44,23 @@ public sealed class DyingTests
         // switches separate makes both migration paths testable.
         _kenshiWasEnabled = Spec118.Enabled;
         Spec118.Enabled = false;
+
+        // ⭐ И заморозка запаса помощью — тоже прочь, потому что здесь меряют
+        // ЧАСЫ, а не помощь. §126/§49 r2 («хочешь спать — спи») сдвинул порог
+        // сна, соседка перестала выбирать сон, добежала до раненой за те же
+        // сорок тиков и начала лечить — запас честно замер, и гейт упал на
+        // «часы не идут». Механика §105 сработала ровно как задумана, а тест
+        // мерил её вместе с секундомером. Свой предмет он теперь изолирует.
+        _aidFreezeWasEnabled = Spec105.AidFreezesReserve;
+        Spec105.AidFreezesReserve = false;
     }
 
     [TearDown]
-    public void RestoreKenshiModel() => Spec118.Enabled = _kenshiWasEnabled;
+    public void RestoreKenshiModel()
+    {
+        Spec118.Enabled = _kenshiWasEnabled;
+        Spec105.AidFreezesReserve = _aidFreezeWasEnabled;
+    }
 
     // Довести до кровопотери: свежая глубокая рана + пустая кровь.
     //

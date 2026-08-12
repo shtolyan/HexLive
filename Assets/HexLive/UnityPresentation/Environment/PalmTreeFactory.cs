@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Environment
@@ -25,8 +26,71 @@ namespace HexLive.UnityPresentation.Environment
 
             var palm = UnityEngine.Object.Instantiate(prefab);
             palm.name = $"Palm {definitionId}";
-            StandingPalmCrownCutout.Apply(palm);
+            StandingPalmCrownVisibility.Apply(palm);
+            ConfigureTrunkPicking(palm);
             return palm;
+        }
+
+        // §121: активатором наведения/клика служит только ствол. Крона — сабмеш
+        // LeafGreen того же рендерера, поэтому её нельзя исключить рендерером:
+        // пикинг переопределяется габаритом сабмеша WoodBark. Если ствольный
+        // сабмеш не нашёлся (другая раскладка меша), компонент не ставится и
+        // пальма пикается по-старому — целиком, но не становится некликабельной.
+        private static void ConfigureTrunkPicking(GameObject palm)
+        {
+            foreach (var renderer in palm.GetComponentsInChildren<Renderer>(true))
+            {
+                Mesh? mesh = null;
+                if (renderer is SkinnedMeshRenderer skinned)
+                {
+                    mesh = skinned.sharedMesh;
+                }
+                else if (renderer.TryGetComponent<MeshFilter>(out var filter))
+                {
+                    mesh = filter.sharedMesh;
+                }
+
+                if (mesh == null)
+                {
+                    continue;
+                }
+
+                Views.WorldObjectPickBounds? pick = null;
+                var materials = renderer.sharedMaterials;
+                var slots = Mathf.Min(materials.Length, mesh.subMeshCount);
+                for (var i = 0; i < slots; i++)
+                {
+                    if (!IsTrunkSurface(materials[i]))
+                    {
+                        continue;
+                    }
+
+                    var bounds = mesh.GetSubMesh(i).bounds;
+                    if (bounds.size.sqrMagnitude <= Mathf.Epsilon)
+                    {
+                        continue;
+                    }
+
+                    if (pick == null)
+                    {
+                        pick = renderer.gameObject
+                            .AddComponent<Views.WorldObjectPickBounds>();
+                    }
+
+                    pick.Add(bounds);
+                }
+            }
+        }
+
+        private static bool IsTrunkSurface(Material? material)
+        {
+            if (material == null)
+            {
+                return false;
+            }
+
+            var surface = material.name.Replace(" (Instance)", string.Empty);
+            return string.Equals(surface, "WoodBark", StringComparison.Ordinal);
         }
     }
 }

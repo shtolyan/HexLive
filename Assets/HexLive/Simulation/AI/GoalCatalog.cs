@@ -46,7 +46,7 @@ public enum LoopPolicy
 /// <summary>Как быстро NPC движется К этой цели.</summary>
 public enum UrgencyClass
 {
-    /// <summary>Обычным шагом.</summary>
+    /// <summary>Обычная цель: автономная NPC может делать дыхательный рывок.</summary>
     Stroll,
 
     /// <summary>Бежит на подмогу / догоняет (§57, §89).</summary>

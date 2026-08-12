@@ -29,6 +29,11 @@ public static class SimulationSystemRegistry
         engine.Register(new ProstheticAidSystem()); // §119: persistent compassion chain
         engine.Register(new PlanningSystem());
         engine.Register(new MobSystem());
+        // §132: process the colony's visible weekly boundary before the
+        // hostile one. With the default disjoint faction quotas the order
+        // cannot change eligibility; keeping both together makes the shared
+        // population ceiling auditable.
+        engine.Register(new ColonyArrivalSystem());
         // §72.14: create a due attacker before RaidSystem scans for hunters, so
         // a landing at a boundary joins the ordinary faction/GOAP machinery in
         // the same medium pass.

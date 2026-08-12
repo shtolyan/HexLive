@@ -1,0 +1,7 @@
+{
+    "WorldBalance.MaxLivingNpcs": 10,
+    "WorldBalance.MaxColonyNpcs": 5,
+    "WorldBalance.MaxOutsiderNpcs": 5,
+    "WorldBalance.ColonyArrivalIntervalDays": 7,
+    "Spec72.RaidWaveIntervalDays": 3
+}

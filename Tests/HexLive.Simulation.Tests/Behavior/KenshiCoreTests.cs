@@ -567,6 +567,76 @@ public sealed class KenshiCoreTests
     }
 
     [Test]
+    public void ProneAmputee_WithAUsableHand_CanChooseSelfBandaging()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Body.Sever(BodyPart.LegL);
+        patient.Wounds.Clear();
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1183,
+            Zone = BodyPart.LegL,
+            Severity = Spec118.StumpWoundSeverity,
+            Heal01 = 0f,
+            Clot01 = 0.4f,
+            Stabilized = false,
+            BleedFactor = 1.2f
+        });
+        patient.Needs.Bandages = 2;
+        patient.Needs.HerbalBandages = 2;
+        patient.Plan.Status = PlanStatus.Completed;
+        patient.Execution.Status = ExecutionStatus.None;
+        patient.Mind.CurrentGoal = GoalType.None;
+
+        new DecisionSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Body.IsProne, Is.True);
+            Assert.That(patient.Body.HasUsableHand, Is.True);
+            Assert.That(patient.Mind.LastScores.Single(score =>
+                score.Goal == GoalType.TreatWounds).FinalScore, Is.GreaterThan(0f),
+                "A missing leg must not make carried bandages unusable.");
+            Assert.That(patient.Mind.CurrentGoal, Is.EqualTo(GoalType.TreatWounds));
+        });
+    }
+
+    [Test]
+    public void ReadyPledgedProsthetic_TransportsAwakePatientToBed()
+    {
+        var world = TestWorld.CreateWorld();
+        var colonists = world.Entities.Npcs.Values
+            .Where(npc => npc.Faction == Faction.Colony).Take(2).ToList();
+        var patient = colonists[0];
+        var helper = colonists[1];
+        patient.Body.Sever(BodyPart.LegL);
+        patient.Wounds.Clear();
+        patient.Plan.Status = PlanStatus.Completed;
+        patient.Execution.Status = ExecutionStatus.None;
+        patient.Mind.CurrentGoal = GoalType.None;
+        helper.Inventory.Items.Clear();
+        helper.Inventory.Items.Add(ContentIds.WoodenLeg);
+        helper.Mind.ProstheticAidTargetId = patient.Id;
+        helper.Mind.ProstheticAidPart = BodyPart.LegL;
+        helper.Plan.Status = PlanStatus.Completed;
+        helper.Execution.Status = ExecutionStatus.None;
+        helper.Mind.CurrentGoal = GoalType.None;
+
+        new RescueSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(KenshiRescueMath.NeedsRescue(world, patient), Is.False,
+                "This is medical preparation, not critical-coma rescue.");
+            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.Rescue));
+            Assert.That(helper.Plan.Status, Is.EqualTo(PlanStatus.Active));
+            Assert.That(helper.Plan.TargetAgentId, Is.EqualTo(patient.Id));
+            Assert.That(patient.Mind.PendingAidFrom, Is.EqualTo(helper.Id));
+        });
+    }
+
+    [Test]
     public void Splint_AddsFunctionalSupportWithoutHealingTheLimb()
     {
         var world = TestWorld.CreateWorld();

@@ -41,6 +41,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Contain("48f, 42f, 36f, 30f, 28f"));
             Assert.That(source, Does.Contain("mergedHands"));
             Assert.That(source, Does.Contain("slots.Add(BuildInventorySlotCell"));
+            Assert.That(source, Does.Contain("inventory-garment-grid"));
+            Assert.That(source, Does.Contain("BuildGarmentInventoryCard"));
         });
     }
 
@@ -51,6 +53,126 @@ public sealed class CharacterDollAndInventoryUiContractTests
         Assert.That(Regex.Matches(source, @"void\s+BuildInventoryDetail\s*\(").Count, Is.EqualTo(1));
         Assert.That(Regex.Matches(source, @"void\s+ShowItemDetail\s*\(").Count, Is.EqualTo(1));
         Assert.That(Regex.Matches(source, @"void\s+BuildItemStats\s*\(").Count, Is.EqualTo(1));
+        Assert.That(source, Does.Not.Contain("ScheduleItemDetailHide"));
+        Assert.That(source, Does.Not.Contain("CancelItemDetailHide"));
+        Assert.That(source, Does.Contain("RegisterInventoryItemInteraction"));
+        Assert.That(source, Does.Contain("FinishInventoryClick"));
+    }
+
+    [Test]
+    public void InventoryDetailDismissesOnEmptyClickButNotOnDragOrInsideClick()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var start = source.IndexOf(
+            "private void KeepInventoryDetailOpen", StringComparison.Ordinal);
+        var end = source.IndexOf(
+            "private void BuildInventoryDetail", start, StringComparison.Ordinal);
+        Assert.That(start, Is.GreaterThanOrEqualTo(0));
+        Assert.That(end, Is.GreaterThan(start));
+        var dismissal = source[start..end];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain(
+                "_inventoryWindow.RegisterCallback<PointerUpEvent>(\n" +
+                "                DismissInventoryDetailOnBackgroundClick)"));
+            Assert.That(source, Does.Contain(
+                "_invDetailView.RegisterCallback<PointerUpEvent>(KeepInventoryDetailOpen)"));
+            Assert.That(dismissal, Does.Contain("evt.button != 0"));
+            Assert.That(dismissal, Does.Contain("_invSelectedId == null"));
+            Assert.That(dismissal, Does.Contain("_invDraggedId != null"));
+            Assert.That(dismissal, Does.Contain("_invPointerMoved"));
+            Assert.That(dismissal, Does.Contain("_invPreviewRotated"));
+            Assert.That(dismissal, Does.Contain("HideItemDetail()"));
+            Assert.That(dismissal, Does.Contain("evt.StopPropagation()"),
+                "A normal click inside the detail card must not reach window dismissal.");
+            Assert.That(source, Does.Contain("click that hit no garment is therefore dismissed here"));
+            Assert.That(source, Does.Contain("else\n                    {\n" +
+                "                        // Preview captures its pointer for rotation"));
+        });
+    }
+
+    [Test]
+    public void GarmentCardsUseUniformTwoByTwoOrThreeByThreeGrids()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var localization = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+        var columnsRule = Regex.Match(
+            source,
+            @"var columns = slotCount <= (?<limit>\d+) \? (?<small>\d+) : (?<large>\d+);");
+        Assert.That(columnsRule.Success, Is.True);
+        var limit = int.Parse(columnsRule.Groups["limit"].Value);
+        var smallColumns = int.Parse(columnsRule.Groups["small"].Value);
+        var largeColumns = int.Parse(columnsRule.Groups["large"].Value);
+        int ColumnsFor(int capacity) => capacity <= limit ? smallColumns : largeColumns;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("card.name = \"inventory-garment-card\""));
+            Assert.That(source, Does.Contain("card.style.width = Length.Percent(49f)"));
+            Assert.That(source, Does.Contain("GarmentCardHeights"));
+            Assert.That(source, Does.Contain("GarmentHeroIconSizes"));
+            Assert.That(source, Does.Contain("152f, 136f, 120f, 104f, 92f"),
+                "The clothing image must own the card instead of staying a 44px thumbnail.");
+            Assert.That(source, Does.Contain("slotCount <= 4 ? 2 : 3"));
+            Assert.That(source, Does.Contain("inventory-garment-slots-2-column"));
+            Assert.That(source, Does.Contain("inventory-garment-slots-3-column"));
+            Assert.That(source, Does.Contain("slots.style.justifyContent = Justify.Center"));
+            Assert.That(source, Does.Contain("inventory-garment-slot-area"));
+            Assert.That(source, Does.Contain("slotArea.style.justifyContent = Justify.FlexEnd"),
+                "Every card must pin its real slot grid to the same lower area.");
+            Assert.That(source, Does.Contain("foreach (var slot in container.Slots)"),
+                "Only real snapshot slots may be drawn; placeholder cells are forbidden.");
+            Assert.That(ColumnsFor(1), Is.EqualTo(2));
+            Assert.That(ColumnsFor(4), Is.EqualTo(2));
+            Assert.That(ColumnsFor(5), Is.EqualTo(3));
+            Assert.That(ColumnsFor(9), Is.EqualTo(3));
+            Assert.That(source, Does.Contain("Mathf.Max(0, maxGarmentRows - 1)"),
+                "Future capacities above nine must add rows without clipping any slots.");
+            Assert.That(source, Does.Contain("binding.Grid.style.width = binding.Columns * size"));
+            Assert.That(source, Does.Contain("cell.style.width = size"));
+            Assert.That(source, Does.Not.Contain("GarmentTwoColumnCellSizes"));
+            Assert.That(source, Does.Not.Contain("GarmentThreeColumnCellSizes"));
+            Assert.That(source, Does.Not.Contain("trackGenericDensity"),
+                "Every inventory cell must use the one shared density component.");
+            Assert.That(source, Does.Contain("card.style.width = Length.Percent(49f)"),
+                "Carry and garment cards use half-width visual columns.");
+            Assert.That(source, Does.Not.Contain(
+                "container.Kind == InventoryContainerKind.Carry\n                ? Length.Percent(100f)"));
+            Assert.That(source, Does.Contain("BuildCompactWornRow"),
+                "Zero-capacity garments stay compact.");
+            Assert.That(localization, Does.Contain("Term: 'inv.anchor.head'"));
+            Assert.That(localization, Does.Contain("Term: 'inv.anchor.back'"));
+            Assert.That(localization, Does.Contain("Term: 'inv.anchor.thigh_left'"));
+            Assert.That(localization, Does.Contain("Term: 'inv.anchor.feet'"));
+        });
+    }
+
+    [Test]
+    public void InventoryHoverOnlyHighlightsAndClickIsSeparatedFromDrag()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var hoverStart = source.IndexOf(
+            "private void HoverInventoryPreview", StringComparison.Ordinal);
+        var toggleStart = source.IndexOf(
+            "private void ToggleInventory", hoverStart, StringComparison.Ordinal);
+        var previewHover = source[hoverStart..toggleStart];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(previewHover, Does.Contain("SetHoveredWorn(wornId)"));
+            Assert.That(previewHover, Does.Not.Contain("ShowItemDetail("));
+            Assert.That(source, Does.Not.Contain(
+                "RegisterCallback<MouseEnterEvent>(_ => ShowItemDetail"));
+            Assert.That(source, Does.Contain("private const float InventoryDragThreshold = 6f"));
+            Assert.That(source, Does.Contain("UpdateInventoryPointerGesture"));
+            Assert.That(source, Does.Contain("FinishInventoryClick"));
+            Assert.That(source, Does.Contain("_invPreviewRotated"));
+            Assert.That(source, Does.Contain("if (!_invPreviewRotated)"));
+            Assert.That(source, Does.Contain("_root.RegisterCallback<PointerMoveEvent>"),
+                "The threshold must still be observed after the pointer leaves a card.");
+        });
     }
 
     [Test]
@@ -195,6 +317,55 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(stage, Does.Not.Contain("foreach (var material in renderer.sharedMaterials)"));
             Assert.That(stage, Does.Contain("SignatureIntervalSeconds"),
                 "Walking the dressed hierarchy every frame is the stage's biggest cost.");
+        });
+    }
+
+    [Test]
+    public void DollSynchronizesPaintedSurfaceWithoutRebuildingItsClone()
+    {
+        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var painter = File.ReadAllText(Presentation("Wearing", "SkinTexturePainter.cs"));
+        var garmentPainter = File.ReadAllText(
+            Presentation("Wearing", "GarmentWearPainter.cs"));
+        var syncStart = stage.IndexOf(
+            "private void SynchronizeSurfaceState", StringComparison.Ordinal);
+        var signatureStart = stage.IndexOf(
+            "private int SourceSurfaceSignature", syncStart, StringComparison.Ordinal);
+        var healthStart = stage.IndexOf(
+            "private void BuildHealthRenderer", signatureStart, StringComparison.Ordinal);
+        Assert.That(syncStart, Is.GreaterThanOrEqualTo(0));
+        Assert.That(signatureStart, Is.GreaterThan(syncStart));
+        Assert.That(healthStart, Is.GreaterThan(signatureStart));
+        var sync = stage[syncStart..signatureStart];
+        var surfaceSignature = stage[signatureStart..healthStart];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(stage, Does.Contain("BindSurfaceRenderers(source, _clone.transform)"),
+                "Source and clone renderers need a stable per-slot binding.");
+            Assert.That(stage, Does.Contain("SynchronizeSurfaceState(force: true)"),
+                "The first portrait must copy property blocks that Instantiate omits.");
+            Assert.That(stage, Does.Contain("SynchronizeSurfaceState(force: false)"),
+                "A frozen open portrait must notice later skin-painter passes.");
+            Assert.That(sync, Does.Contain(
+                "binding.Source.GetPropertyBlock(_surfaceBlock, slot)"));
+            Assert.That(sync, Does.Contain("binding.Clone.SetPropertyBlock("));
+            Assert.That(sync, Does.Not.Contain("Instantiate("));
+            Assert.That(sync, Does.Not.Contain("BuildClone("),
+                "Tan, wetness or paint revisions must not replace the persistent doll.");
+            Assert.That(surfaceSignature, Does.Contain("BaseColorId"));
+            Assert.That(surfaceSignature, Does.Contain("SmoothnessId"));
+            Assert.That(surfaceSignature, Does.Contain("BaseMapId"));
+            Assert.That(surfaceSignature, Does.Contain("BumpMapId"));
+            Assert.That(surfaceSignature, Does.Contain("MetallicGlossMapId"));
+            Assert.That(surfaceSignature, Does.Contain("texture.updateCount"),
+                "Repainting an existing RenderTexture must invalidate the still photo.");
+            Assert.That(Regex.Matches(painter, @"\.IncrementUpdateCount\(\)").Count,
+                Is.GreaterThanOrEqualTo(3),
+                "GPU albedo, gloss and normal writes must publish their texture revision.");
+            Assert.That(Regex.Matches(garmentPainter, @"\.IncrementUpdateCount\(\)").Count,
+                Is.GreaterThanOrEqualTo(2),
+                "GPU garment mask and albedo writes must publish their texture revision.");
         });
     }
 

@@ -816,7 +816,9 @@ namespace HexLive.UnityPresentation.UI
             // camera synchronously. The world is paused, so its ordinary
             // SmoothDamp path cannot reach the selected NPC before fade-out.
             yield return null;
-            FindFirstObjectByType<RtsCameraController>()?.SnapToSelectedTarget();
+            // §131: стартовый кадр — слежение включено, камера у головы,
+            // спереди-сбоку и низко (константы OpeningShot* контроллера).
+            FindFirstObjectByType<RtsCameraController>()?.SnapToSelectedTarget(openingShot: true);
 
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;
@@ -923,7 +925,9 @@ namespace HexLive.UnityPresentation.UI
             NpcSelection.Clear();
             NpcSelection.Select(FindOpeningTarget(npcs));
             yield return null;
-            FindFirstObjectByType<RtsCameraController>()?.SnapToSelectedTarget();
+            // §131: стартовый кадр — слежение включено, камера у головы,
+            // спереди-сбоку и низко (константы OpeningShot* контроллера).
+            FindFirstObjectByType<RtsCameraController>()?.SnapToSelectedTarget(openingShot: true);
 
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;

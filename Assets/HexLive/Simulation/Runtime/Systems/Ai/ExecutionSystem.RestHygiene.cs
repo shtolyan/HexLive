@@ -233,37 +233,6 @@ public sealed partial class ExecutionSystem
     private static float SleepInterruptThirst => SimBalance.SleepInterruptThirst;
 
     // §49.9: fuel is time, so reserve TIME rather than an arbitrary pile size.
-    // Ground sleep is the slowest supported surface and therefore the safe
-    // baseline. The interaction restores every fast tick; needs recovery and
-    // energy drain happen every 16 ticks. One extra slow burn covers alignment
-    // at the start/end of the block. FireSystem supplies the real ring/rain
-    // burn rule, reserving against a downpour that may begin after lying down.
-    internal static float NightSleepFuelRequired(
-        WorldState world, NPCState npc, WorldObjectState fire)
-    {
-        var deficit = System.Math.Max(0f,
-            Spec49.NightSleepWakeEnergy - npc.Needs.Energy);
-        if (deficit <= 0f)
-        {
-            return 0f;
-        }
-
-        const float blockTicks = 100f;
-        const float slowInterval = 16f;
-        var slowTicksPerBlock = blockTicks / slowInterval;
-        var slowRecovery = SimBalance.SleepEnergyBaseBonus +
-            SimBalance.SleepEnergyFireBonus -
-            SimBalance.EnergyRate * AttributeMath.EnergyDrainMult(npc);
-        var recoveryPerBlock = SimBalance.GroundSleepEnergy +
-            slowTicksPerBlock * slowRecovery;
-        recoveryPerBlock = System.Math.Max(0.01f, recoveryPerBlock);
-
-        var sleepTicks = System.MathF.Ceiling(deficit / recoveryPerBlock * blockTicks);
-        var burnSlowTicks = System.MathF.Ceiling(sleepTicks / slowInterval) + 1f;
-        return burnSlowTicks *
-            FireSystem.FuelBurnPerSlowTick(world, fire, reserveForRain: true);
-    }
-
     // NOTE: cold is deliberately NOT a wake trigger — mild cold at night is the
     // norm and she usually can't fix it, so waking just produced the "empty
     // get-up" churn; sleeping through it is what a real body does (§49.1).
@@ -287,25 +256,23 @@ public sealed partial class ExecutionSystem
             return false;
         }
 
-        // Bug #25: the late-night sleep has an ENERGY end, not a clock end.
-        // The latch survives dawn and critical wake-ups; otherwise crossing
-        // either 06:00 or the 25% start line would forget the unfinished sleep.
-        if (npc.Mind.NightSleepUntilRested)
+        // An explicit player order is not a request to refill the energy bar;
+        // it is a persistent "stay in bed" order (the same way a Kenshi job
+        // remains assigned). A rested manual character therefore keeps lying
+        // until Stop/new order interrupts the plan. Real danger and critical
+        // hunger/thirst still win through the common interrupt gate above.
+        if (npc.Mind.ManualControl && npc.Plan.Goal == GoalType.PlayerOrder &&
+            npc.Execution.CurrentInteraction == InteractionType.Sleep)
         {
-            if (npc.Needs.Energy < Spec49.NightSleepWakeEnergy)
-            {
-                return true;
-            }
-
-            npc.Mind.NightSleepUntilRested = false;
-            return false;
+            return true;
         }
 
-        // §65.2 r2: a day sleep runs to the SAME full-energy line as the night
-        // latch — she sleeps to the last, until the bar is full, and only a
-        // real need (the interrupt ceilings above) or danger wakes her early.
-        // Waking at the old day line (SleepEnergyThreshold) put her back on
-        // her feet still tired, which read as "они постоянно не выспавшиеся".
+        // Сон КОНЧАЕТСЯ ПО ЭНЕРГИИ, а не по часам — одной строкой для всех.
+        // §65.2 r2 дал это дневному сну, §126/§49 r2 убрал ночной затвор,
+        // который держал то же правило вторым, отдельным путём: спит до
+        // полного, и будит её только настоящая нужда (потолки прерывания выше)
+        // или опасность. Пробуждение на старой дневной черте ставило её на
+        // ноги всё ещё уставшей — «они постоянно не выспавшиеся».
         return npc.Needs.Energy < Spec49.NightSleepWakeEnergy;
     }
 
@@ -663,6 +630,8 @@ public sealed partial class ExecutionSystem
         }
 
         npc.Needs.Hygiene = 1f;
+        // §40.8-H r10: осознанное купание домывает кровь начисто.
+        WoundMath.WashBloodSoil(npc, 1f);
 
         // §40.6: she came out of the water naked — walk back to the shore pile
         // and put the same clothes back on. Only falls through to a plain

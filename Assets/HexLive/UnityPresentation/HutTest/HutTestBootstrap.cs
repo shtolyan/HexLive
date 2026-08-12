@@ -153,7 +153,7 @@ public sealed class HutTestBootstrap : MonoBehaviour
         foreach (var piece in pieces)
         {
             pieceCount++;
-            if (piece.DefinitionId == "architecture.door.wood" && piece.Junctions.Count == 3)
+            if (piece.DefinitionId == "architecture.door.wood" && piece.Junctions.Count == 1)
                 doorObjects++;
         }
         var boundary = new List<JunctionId>();
@@ -167,7 +167,7 @@ public sealed class HutTestBootstrap : MonoBehaviour
             portalCount++;
         }
         _geometryStatus = pieceCount == 30 && hut.ArchitectureElements.Count == 0 &&
-                          doorObjects == 1 && portalCount == 3
+                          doorObjects == 1 && portalCount == 1
             ? $"WAIT: data OK, checking rendered door bay {BuildingRules.HutDoorBay}"
             : $"FAIL: pieces={pieceCount} ownerNested={hut.ArchitectureElements.Count} doorObj={doorObjects} portals={portalCount}";
 
@@ -240,19 +240,16 @@ public sealed class HutTestBootstrap : MonoBehaviour
         var sleepBed = beds[1];
         if (world.Entities.Npcs.TryGetValue(
                 new HexLive.Simulation.Common.EntityId(2), out var sleeping) &&
-            sleepBed.Junctions.Count > 0 &&
-            world.Junctions.Items.TryGetValue(sleepBed.Junctions[0], out var bedAnchor))
+            sleepBed.Junctions.Count > 0)
         {
-            sleeping.Tile = hut.Tile;
-            sleeping.CurrentJunction = sleepBed.Junctions[0];
-            sleeping.Position = bedAnchor.WorldPosition;
-            sleeping.RotationDegrees = sleepBed.RotationDegrees;
             sleeping.Needs.Energy = 0.05f;
-            sleeping.Execution.CurrentInteraction = InteractionType.Sleep;
-            sleeping.Execution.Status = ExecutionStatus.InProgress;
-            sleeping.Execution.TargetObject = sleepBed.Id;
-            sleeping.Execution.StartTick = world.Tick;
-            sleeping.Execution.EndTick = world.Tick + 600;
+            if (!BedSleep.TryEnter(
+                    world, sleeping, sleepBed, world.Tick + 600,
+                    sleepBed.Junctions[0]))
+            {
+                Debug.LogError(
+                    $"[HutTest] cannot enter acceptance bed {sleepBed.Id.Value}", this);
+            }
         }
     }
 
@@ -391,7 +388,7 @@ public sealed class HutTestBootstrap : MonoBehaviour
             portal += new Vector3(junction.WorldPosition.X, lintel.bounds.center.y, junction.WorldPosition.Y);
             portalCount++;
         }
-        if (portalCount != 3) return;
+        if (portalCount != 1) return;
         portal /= portalCount;
         var center2 = HexSpatialMath.TileToWorld(hut.Tile);
         var center = new Vector3(center2.X, portal.y, center2.Y);

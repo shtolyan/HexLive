@@ -297,6 +297,150 @@ MonoBehaviour:
       - 'Умения'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'panel.character'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Character'
+      - 'Характер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'sheet.character.empty'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing out of the ordinary about her.'
+      - 'Ничего особенного за ней не водится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.abuser.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bully'
+      - 'Абьюзер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.abuser.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Picks on outsiders — takes their supplies, or just leans on them. Never touches her own clan.'
+      - 'Докапывается до чужаков: отбирает припасы или просто гнобит. Своих не трогает никогда.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.slob.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slob'
+      - 'Неряха'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.slob.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Never washes and never does laundry. Filth and stink build up unchecked.'
+      - 'Никогда не моется и не стирает. Грязь и вонь копятся без остановки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.neat.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Neat freak'
+      - 'Чистюля'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.neat.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Washes herself and her clothes sooner and more eagerly than anyone else.'
+      - 'Моется и стирает раньше и охотнее остальных.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.lazy.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Idler'
+      - 'Лентяйка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.lazy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Free hands mean rest, not chores. Sits out spare time more often than she works it.'
+      - 'Свободные руки — это отдых, а не дела. Свободное время чаще просиживает, чем отрабатывает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.diligent.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grafter'
+      - 'Трудяга'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.diligent.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Free hands almost always find work — rope, hauling, the build site.'
+      - 'Свободные руки почти всегда находят работу: верёвки, переноска, стройка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.sleepyhead.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleepyhead'
+      - 'Соня'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.sleepyhead.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Turns in earlier than the rest. She sleeps until fully rested either way, so she also sleeps longer.'
+      - 'Ложится раньше остальных. Спит всё равно до полного отдыха, поэтому и спит дольше.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.coward.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Coward'
+      - 'Трусиха'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.coward.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Gives danger a wider berth and runs for longer. Never strikes first.'
+      - 'Обходит опасность шире и бежит дольше. Первой не бьёт никогда.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.brave.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Brave'
+      - 'Храбрая'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'trait.brave.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Accepts a fight sooner and wastes less time circling in a standoff.'
+      - 'Раньше принимает бой и меньше топчется в патовой.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'attr.strength'
       TermType: 0
       Description: 
@@ -2889,6 +3033,62 @@ MonoBehaviour:
       - 'Положить'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.loot_person'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Loot'
+      - 'Обобрать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Inventory exchange'
+      - 'Обмен вещами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.drag_hint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drag an item into the other inventory'
+      - 'Перетащите вещь в другой инвентарь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.drop_hint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drop it into the other window'
+      - 'Отпустите в другом окне'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.transferring'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Approaching and transferring…'
+      - 'Подходит и передаёт…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.transfer_failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Transfer failed: no route, no room or free wear slot, or the item changed'
+      - 'Не удалось передать: нет пути, места или свободного слота одежды либо вещь уже изменилась'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.empty'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Nothing here'
+      - 'Здесь пусто'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.hands_occupied'
       TermType: 0
       Description:
@@ -3175,6 +3375,94 @@ MonoBehaviour:
       Languages:
       - 'slots'
       - 'слотов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.none'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Body'
+      - 'Тело'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.head'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Head'
+      - 'Голова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.chest'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Torso'
+      - 'Торс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.back'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Back'
+      - 'Спина'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.pelvis'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Pelvis'
+      - 'Таз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.arm_left'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left arm'
+      - 'Левая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.arm_right'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right arm'
+      - 'Правая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.thigh_left'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left thigh'
+      - 'Левое бедро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.thigh_right'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right thigh'
+      - 'Правое бедро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.legs'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Legs'
+      - 'Ноги'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.anchor.feet'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Feet'
+      - 'Стопы'
       Flags: 0101
       Languages_Touch: []
     - Term: 'inv.garment_containers'
@@ -17877,8 +18165,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - 'Your clan'
-      - 'Твой клан'
+      - 'Your camp'
+      - 'Наш лагерь'
       Flags: 0101
       Languages_Touch: []
     - Term: 'roster.outsiders'

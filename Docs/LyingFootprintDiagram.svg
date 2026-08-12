@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Безопасное укладывание NPC возле мебели</title>
+  <desc id="desc">Слева падение занимает безопасный прямоугольник тела и минимум три узла. Справа плач использует свободную кровать в том же гексе, когда она уже физически доступна.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0L8 4L0 8Z" fill="#2563eb"/>
+    </marker>
+    <g id="interior-nodes" fill="#94a3b8">
+      <circle cx="0" cy="-129.38" r="3"/><circle cx="37.35" cy="-107.81" r="3"/><circle cx="74.69" cy="-86.25" r="3"/><circle cx="112.04" cy="-64.69" r="3"/>
+      <circle cx="-37.35" cy="-107.81" r="3"/><circle cx="0" cy="-86.25" r="3"/><circle cx="37.35" cy="-64.69" r="3"/><circle cx="74.69" cy="-43.12" r="3"/><circle cx="112.04" cy="-21.56" r="3"/>
+      <circle cx="-74.69" cy="-86.25" r="3"/><circle cx="-37.35" cy="-64.69" r="3"/><circle cx="0" cy="-43.12" r="3"/><circle cx="37.35" cy="-21.56" r="3"/><circle cx="74.69" cy="0" r="3"/><circle cx="112.04" cy="21.56" r="3"/>
+      <circle cx="-112.04" cy="-64.69" r="3"/><circle cx="-74.69" cy="-43.12" r="3"/><circle cx="-37.35" cy="-21.56" r="3"/><circle cx="0" cy="0" r="3"/><circle cx="37.35" cy="21.56" r="3"/><circle cx="74.69" cy="43.12" r="3"/><circle cx="112.04" cy="64.69" r="3"/>
+      <circle cx="-112.04" cy="-21.56" r="3"/><circle cx="-74.69" cy="0" r="3"/><circle cx="-37.35" cy="21.56" r="3"/><circle cx="0" cy="43.12" r="3"/><circle cx="37.35" cy="64.69" r="3"/><circle cx="74.69" cy="86.25" r="3"/>
+      <circle cx="-112.04" cy="21.56" r="3"/><circle cx="-74.69" cy="43.12" r="3"/><circle cx="-37.35" cy="64.69" r="3"/><circle cx="0" cy="86.25" r="3"/><circle cx="37.35" cy="107.81" r="3"/>
+      <circle cx="-112.04" cy="64.69" r="3"/><circle cx="-74.69" cy="86.25" r="3"/><circle cx="-37.35" cy="107.81" r="3"/><circle cx="0" cy="129.38" r="3"/>
+    </g>
+  </defs>
+  <rect width="1000" height="560" fill="#f8fafc"/>
+  <text x="250" y="38" text-anchor="middle" font-family="system-ui" font-size="22" font-weight="600" fill="#0f172a">Падение: пол сначала</text>
+  <text x="750" y="38" text-anchor="middle" font-family="system-ui" font-size="22" font-weight="600" fill="#0f172a">Плач: кровать сначала</text>
+
+  <g transform="translate(250 270)">
+    <polygon points="0,-172.5 149.39,-86.25 149.39,86.25 0,172.5 -149.39,86.25 -149.39,-86.25" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+    <use href="#interior-nodes"/>
+    <circle cx="74.69" cy="0" r="51.75" fill="#f97316" fill-opacity="0.18" stroke="#ea580c" stroke-width="2"/>
+    <circle cx="74.69" cy="0" r="8" fill="#dc2626"/>
+    <circle cx="37.35" cy="-21.56" r="5" fill="#dc2626"/><circle cx="37.35" cy="21.56" r="5" fill="#dc2626"/>
+    <circle cx="112.04" cy="-21.56" r="5" fill="#dc2626"/><circle cx="112.04" cy="21.56" r="5" fill="#dc2626"/>
+    <rect x="-153.89" y="-21.6" width="158.4" height="43.2" rx="7" fill="#2563eb" fill-opacity="0.24" stroke="#2563eb" stroke-width="2"/>
+    <circle cx="-149.38" cy="0" r="7" fill="#f59e0b"/><circle cx="-74.69" cy="0" r="7" fill="#f59e0b"/><circle cx="0" cy="0" r="7" fill="#f59e0b"/>
+    <text x="74.69" y="-61" text-anchor="middle" font-family="system-ui" font-size="13" fill="#9a3412">твёрдая мебель: r=0.45 wu</text>
+    <text x="-74.69" y="50" text-anchor="middle" font-family="system-ui" font-size="13" fill="#1e40af">тело 1.32 × 0.36 wu</text>
+    <text x="-74.69" y="72" text-anchor="middle" font-family="system-ui" font-size="13" fill="#92400e">3 опоры: голова · центр · ноги</text>
+  </g>
+
+  <g transform="translate(750 270)">
+    <polygon points="0,-172.5 149.39,-86.25 149.39,86.25 0,172.5 -149.39,86.25 -149.39,-86.25" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+    <use href="#interior-nodes"/>
+    <circle cx="0" cy="0" r="143.75" fill="#f97316" fill-opacity="0.08" stroke="#ea580c" stroke-width="2" stroke-dasharray="7 6"/>
+    <rect x="-126.5" y="-69" width="253" height="138" rx="12" fill="#f59e0b" fill-opacity="0.23" stroke="#d97706" stroke-width="2"/>
+    <rect x="-79.2" y="-21.6" width="158.4" height="43.2" rx="7" fill="#2563eb" fill-opacity="0.30" stroke="#2563eb" stroke-width="2"/>
+    <circle cx="-149.39" cy="0" r="8" fill="#f59e0b" stroke="#92400e" stroke-width="2"/>
+    <path d="M-140 0H-86" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+    <text x="0" y="-82" text-anchor="middle" font-family="system-ui" font-size="13" fill="#92400e">кровать 2.20 × 1.20 wu; ObstacleRadius=1.25 wu</text>
+    <text x="0" y="92" text-anchor="middle" font-family="system-ui" font-size="13" fill="#1e40af">авторская attach-поза</text>
+    <text x="0" y="113" text-anchor="middle" font-family="system-ui" font-size="13" fill="#334155">дистанция 1.30 wu ≤ reach 2.05 wu</text>
+  </g>
+
+  <g transform="translate(105 505)" font-family="system-ui" font-size="13" fill="#334155">
+    <circle cx="0" cy="0" r="4" fill="#94a3b8"/><text x="12" y="5">37 внутренних узлов (шаг 0.375 wu)</text>
+    <circle cx="260" cy="0" r="6" fill="#dc2626"/><text x="273" y="5">заблокировано мебелью</text>
+    <circle cx="480" cy="0" r="6" fill="#f59e0b"/><text x="493" y="5">занято телом/кроватью</text>
+    <rect x="700" y="-7" width="18" height="14" fill="#2563eb" fill-opacity="0.3" stroke="#2563eb"/><text x="726" y="5">безопасная поза</text>
+  </g>
+  <text x="500" y="545" text-anchor="middle" font-family="system-ui" font-size="12" fill="#64748b">Масштаб геометрии: 115 px = 1 wu; HexRadius = 1.5 wu</text>
+</svg>

@@ -126,13 +126,14 @@ public sealed class NPCMind
     // get-up animation has room to play.
     public int WakeGraceUntilTick { get; set; }
 
-    // Bug #25 / spec §49.9: late-night bedtime is a multi-goal intention, not
-    // just a large Sleep score. It stays armed while the NPC gathers a stick,
-    // fuels the hearth, handles a critical interruption, and finally sleeps to
-    // a full energy bar. Transient by design: after load the ordinary 23:00 +
-    // low-energy edge re-arms it; an interrupted bedtime may otherwise be
-    // reconsidered from the freshly restored needs like every other goal chain.
-    public bool NightSleepUntilRested { get; set; }
+    // §126/§49 r2: здесь жил NightSleepUntilRested — «отбой объявлен» (23:00 +
+    // низкая энергия), намерение на несколько целей: собрать палку, накормить
+    // очаг, пережить кризис и доспать до полного бара. Поле удалено вместе со
+    // всем ночным затвором. Оно существовало только потому, что дневной порог
+    // сна стоял на 0.203: лечь до 80% истощения было нельзя, и ночью человека
+    // приходилось впускать в сон отдельным механизмом с часами. С порогом 0.45
+    // и сном до полной энергии усталость делает то же самое сама — и без
+    // топливного гейта, который умел сон ЗАПРЕТИТЬ.
 
     // Pain/fear spike after fresh damage. While active she should not start or
     // continue sleeping; every new hit extends the window.

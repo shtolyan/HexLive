@@ -439,10 +439,37 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly HashSet<string> _uncoveredScratch = new();
     private readonly HashSet<string> _bandagedScratch = new();
     private readonly HashSet<string> _gauzeScratch = new();
-    // Spec 40.8-H: per-zone damage (1-hp) feeding the skin painter's bruise
-    // speckles. When ANY zone is hurt, every non-severed zone rides along so
-    // the painter can bleed colour onto undamaged neighbours.
+    // Spec 40.8-H r10: per-zone BloodSoil (накопительная кровяная подложка из
+    // сима) feeding the skin painter's speckles. When ANY zone is bloodied,
+    // every non-severed zone rides along so the painter can bleed colour onto
+    // clean neighbours.
     private readonly List<(string zone, float damage01)> _zoneDamageScratch = new();
+
+    // Spec 40.8-H r11: per-zone BluntDamage — фиолетовое поле синяков (тупой
+    // урон). Едут только ушибленные зоны: синяк локален, не растекается.
+    private readonly List<(string zone, float bruise01)> _zoneBruiseScratch = new();
+
+    // BodyPart → имя зоны painter'а (те же строки, что в снапшотном BodyParts
+    // "Zone=hp") без ToString()-аллокаций каждый кадр.
+    private static readonly string[] ZoneNames = BuildZoneNames();
+
+    private static string[] BuildZoneNames()
+    {
+        var values = (BodyPart[])System.Enum.GetValues(typeof(BodyPart));
+        var names = new string[values.Length];
+        foreach (var part in values)
+        {
+            names[(int)part] = part.ToString();
+        }
+
+        return names;
+    }
+
+    private static string ZoneName(BodyPart part)
+    {
+        var index = (int)part;
+        return index >= 0 && index < ZoneNames.Length ? ZoneNames[index] : part.ToString();
+    }
 
     // Spec §50: zones already hidden by amputation (a limb never comes back, so
     // this only grows). Maps a severed BodyPart zone to the DISTAL bone whose
@@ -866,10 +893,31 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _swimming = swimming;
         SyncHeelPoseTarget();
+        RefreshAnimatorCulling();
         if (_animator != null)
         {
             _animator.SetBool(SwimmingParam, swimming);
         }
+    }
+
+    // Spec 31C.8 + PERF: a standing/walking animator that scrolled offscreen
+    // skips its transform writes (CullUpdateTransforms) — the state machine
+    // still advances, so nothing desyncs when she comes back into view. Every
+    // pose that leaves the authored skin bounds (lying, swimming, death,
+    // ragdoll) keeps AlwaysAnimate: there the renderer's visibility answer
+    // cannot be trusted, and a culled animator would freeze the body mid-pose
+    // while the root keeps moving.
+    private void RefreshAnimatorCulling()
+    {
+        if (_animator == null)
+        {
+            return;
+        }
+
+        var boundsUntrustworthy = _laying || _swimming || _dead || _ragdollActive;
+        _animator.cullingMode = boundsUntrustworthy
+            ? UnityEngine.AnimatorCullingMode.AlwaysAnimate
+            : UnityEngine.AnimatorCullingMode.CullUpdateTransforms;
     }
 
     // §21.21B: sim hop signal ("Up"/"Down"/""), fed every sync. Starts the
@@ -1265,27 +1313,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 return false;
             }
 
-            // Голова держится вертикально: наклон до ~50° прощаем (она может
-            // смотреть под ноги), кувырок — нет.
-            var up = _headBone.TransformDirection(_faceLocalUp).normalized;
-            return Vector3.Dot(up, Vector3.up) > 0.64f;
-        }
-    }
-
-    // §130: уместно ли ей сейчас стрельнуть глазами в объектив. Фотогеничность
-    // отсекает лежащих/плывущих/запрокинутых; сверх того — не мёртвая, не
-    // ragdoll, не в бою и не в слезах (улыбка в камеру посреди драки или
-    // рыданий читалась бы как сломанное лицо).
-    public bool IsCameraGazeEligible =>
-        IsPhotogenic && !_dead && !_ragdollActive && !_fighting && !_crying;
-
-    // Orbit-camera pivot: the visual center of the body in ANY pose — a point
-    // between the head and the hip bones, biased toward the head so the face
-    // keeps priority. Standing it sits at the chest; lying it follows the body
-    // down to the ground, so the camera stays centered on the character.
-    public bool TryGetBodyCenter(out Vector3 center)
-    {
-        var hip = _bodyBones != null
             // §80 r3: причёска грузится асинхронно, и снимок, сделанный до её
             // прихода, — это ЛЫСАЯ колонистка во всех списках до конца игровых
             // суток. Кадр стоит доли миллисекунды; дождаться волос дешевле.
@@ -1294,13 +1321,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 return false;
             }
 
-            ? (_bodyBones.GetBone("hip") ?? _bodyBones.GetBone("pelvis"))
-            : null;
+            // Голова держится вертикально: наклон до ~50° прощаем (она может
+            // смотреть под ноги), кувырок — нет.
+            var up = _headBone.TransformDirection(_faceLocalUp).normalized;
+            return Vector3.Dot(up, Vector3.up) > 0.64f;
+        }
+    }
 
-        if (_headBone != null && hip != null)
-        {
-            center = Vector3.Lerp(hip.position, _headBone.position, 0.6f);
-            return true;
     // §80 r3: ПОЗА ДЛЯ СНИМКА — стоя, а не в шаге. Фотографии должны быть
     // одинаковыми, а на ходу корпус несёт, голова качается на шаге, и один
     // портрет выходит анфас, другой — в наклоне посреди стрида. Ждать почти
@@ -1308,6 +1335,56 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // до ближайшей остановки.
     public bool IsPortraitPoseSettled => _gait <= PortraitStillGait;
 
+    // §130: уместно ли ей сейчас стрельнуть глазами в объектив. Фотогеничность
+    // отсекает лежащих/плывущих/запрокинутых; сверх того — не мёртвая, не
+    // ragdoll, не в бою и не в слезах (улыбка в камеру посреди драки или
+    // рыданий читалась бы как сломанное лицо).
+    public bool IsCameraGazeEligible =>
+        IsPhotogenic && !_dead && !_ragdollActive && !_fighting && !_crying;
+
+    // §131: единая точка ответа «на какой высоте голова» для камеры. Поза уже
+    // сведена во флаги (лежит/плывёт/сидит/ragdoll) — камера спрашивает ЗДЕСЬ,
+    // а не читает кость головы: кость дышит и шагает, пивот бы качало. Ответ —
+    // высота над корнем тела в wu; дискретный на позу, сглаживание делает
+    // SmoothDamp пивота в контроллере.
+    public float CameraAnchorHeight
+    {
+        get
+        {
+            var r = Spatial.SimulationUnityMapper.HexRadius;
+            if (_dead || _ragdollActive || _laying)
+            {
+                return r * 0.16f;
+            }
+
+            if (_swimming)
+            {
+                return r * 0.24f;
+            }
+
+            if (_sitting)
+            {
+                return r * 0.44f;
+            }
+
+            return r * 0.62f; // стоя: шея, прежний _orbitNeckFactor
+        }
+    }
+
+    // Orbit-camera pivot: the visual center of the body in ANY pose — a point
+    // between the head and the hip bones, biased toward the head so the face
+    // keeps priority. Standing it sits at the chest; lying it follows the body
+    // down to the ground, so the camera stays centered on the character.
+    public bool TryGetBodyCenter(out Vector3 center)
+    {
+        var hip = _bodyBones != null
+            ? (_bodyBones.GetBone("hip") ?? _bodyBones.GetBone("pelvis"))
+            : null;
+
+        if (_headBone != null && hip != null)
+        {
+            center = Vector3.Lerp(hip.position, _headBone.position, 0.6f);
+            return true;
         }
 
         var scale = _bodyRoot != null ? _bodyRoot.lossyScale.y : transform.lossyScale.y;
@@ -1498,9 +1575,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_animator != null)
         {
             _animator.applyRootMotion = false;
-            // Spec 31C.8: baked lying poses confuse skinned bounds — culled
-            // animators freeze mid-pose while the root keeps moving.
-            _animator.cullingMode = UnityEngine.AnimatorCullingMode.AlwaysAnimate;
+            RefreshAnimatorCulling();
             _bodyRoot = _animator.transform;
             // Spec 31B.5: 10 % of body height per second separates
             // "standing" from "walking" at any view scale.
@@ -1850,37 +1925,58 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             SyncWoundSplashVfx();
-            // Spec 40.8-H: per-zone damage drives the speckle field. Raw
-            // damage travels — onset/curve/neighbour-bleed live in the
-            // painter (one tuning site). Severed zones are excluded: the
-            // limb is gone, the stump wound carries the visual.
+            // Spec 40.8-H r10: кровяная подложка = грязь. Спеклы кормит
+            // накопительный BloodSoil из сима (растёт только от режущего
+            // урона в WoundMath.InflictCut, смывается только водой), а не
+            // производная от HP зон — умирающая от голода/жажды больше не
+            // краснеет, отхил ран кровь не «рассасывает». Onset/кривая/
+            // neighbour-bleed по-прежнему живут в painter'е (одно место
+            // тюнинга). Severed-зоны исключены: конечности нет, визуал несёт
+            // рана культи.
             _zoneDamageScratch.Clear();
-            var anyZoneDamage = false;
-            foreach (var pair in _zoneHealthScratch)
+            if (partConditions != null)
             {
-                if (pair.Value < 0.99f && !_severedZones.Contains(pair.Key))
+                // Как и раньше: если кровь есть хоть где-то, едут ВСЕ
+                // не-severed зоны (и нулевые) — painter растекает цвет на
+                // соседей только по зонам, присутствующим в списке.
+                var anyBloodSoil = false;
+                foreach (var part in partConditions)
                 {
-                    anyZoneDamage = true;
-                    break;
+                    if (!part.Severed && part.BloodSoil > 0f)
+                    {
+                        anyBloodSoil = true;
+                        break;
+                    }
+                }
+
+                if (anyBloodSoil)
+                {
+                    foreach (var part in partConditions)
+                    {
+                        if (!part.Severed)
+                        {
+                            _zoneDamageScratch.Add((ZoneName(part.Part),
+                                Mathf.Clamp01(part.BloodSoil)));
+                        }
+                    }
                 }
             }
 
-            if (anyZoneDamage)
+            // §40.8-H r11: СИНЯКИ — второй слой тех же частиц, фиолетовый и
+            // прозрачный. Источник — `BluntDamage` зоны (тупой урон: кулаки,
+            // дубина, падение), который сим уже возит в кондициях и сам
+            // рассасывает при заживлении (KenshiMedicalMath.TickBluntRecovery).
+            // Водой НЕ смывается — это под кожей, не на ней. Список без
+            // растекания на соседей: едут только реально ушибленные зоны.
+            _zoneBruiseScratch.Clear();
+            if (partConditions != null)
             {
-                // Баг #10: капли крови смываются. Урон роняет гигиену (баг #9,
-                // ResolveTrauma), купание возвращает её в 1 — так что чистая
-                // кожа прячет капли, а раны (отдельный слой стемпов, не
-                // IsSpeckle) остаются. Корень, а не линейка: свежая небольшая
-                // рана (гигиена ~0.85) всё ещё заметно кровит, а не тухнет до
-                // 15%. Дрейф гигиены медленно проявляет капли обратно на
-                // недолеченных зонах — «рана сочится».
-                var bloodShow = Mathf.Sqrt(Mathf.Clamp01(1f - hygiene));
-                foreach (var pair in _zoneHealthScratch)
+                foreach (var part in partConditions)
                 {
-                    if (!_severedZones.Contains(pair.Key))
+                    if (!part.Severed && part.BluntDamage > 0f)
                     {
-                        _zoneDamageScratch.Add((pair.Key,
-                            Mathf.Clamp01(1f - pair.Value) * bloodShow));
+                        _zoneBruiseScratch.Add((ZoneName(part.Part),
+                            Mathf.Clamp01(part.BluntDamage)));
                     }
                 }
             }
@@ -1891,7 +1987,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, _skinWetness);
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
                 PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint,
-                _gauzeScratch, _zoneDamageScratch);
+                _gauzeScratch, _zoneDamageScratch, _zoneBruiseScratch);
             // v4.3: the projector RAIN droplets serve rain AND sweat — the
             // unified wetness pool (whichever of rain/sweat is stronger)
             // feeds the rain pass, so a sweating body beads exactly like a
@@ -2683,6 +2779,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _laying = laying;
         SyncHeelPoseTarget();
+        RefreshAnimatorCulling();
         _layingAttach = attachPoint;
         _layingSurfaceY = surfaceY;
         // Spec 31C.8: lying poses stretch outside the authored skin bounds and
@@ -2893,6 +2990,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _dead = true;
         _deadWasAlreadyLying = variant < 0;
         _deathSurfaceY = surfaceY;
+        RefreshAnimatorCulling();
         // §50: a corpse never crawls — clear the flag so the Crawl loop yields
         // to the death/laying pose (the Crawl transition also guards on !Dead).
         if (_animator != null)
@@ -3212,6 +3310,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _ragdollActive = active;
+        RefreshAnimatorCulling();
         if (_animator != null)
         {
             _animator.enabled = !active;

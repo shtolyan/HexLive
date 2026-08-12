@@ -163,7 +163,8 @@ internal static class KenshiRescueMath
     internal static bool TryFindDestination(
         WorldState world, NPCState helper, NPCState patient,
         out WorldObjectState destination, out JunctionId approach,
-        out TileCoord destinationTile, out List<JunctionId> route)
+        out TileCoord destinationTile, out List<JunctionId> route,
+        bool allowGround = true, string requiredBedDefinitionId = null)
     {
         destination = null;
         approach = default;
@@ -182,6 +183,8 @@ internal static class KenshiRescueMath
         {
             var priority = BedPriority(world, helper, patient, candidate);
             if (priority == int.MaxValue ||
+                (requiredBedDefinitionId is not null &&
+                 candidate.DefinitionId != requiredBedDefinitionId) ||
                 (candidate.IsOccupied && candidate.CurrentUser != patient.Id) ||
                 !DestinationSafe(world, patient, candidate.Tile))
             {
@@ -228,6 +231,11 @@ internal static class KenshiRescueMath
 
         if (destination is null)
         {
+            if (!allowGround)
+            {
+                return false;
+            }
+
             if (!TryGroundDestination(
                     world, helper, patient, from, occupiedByActor,
                     out destination, out approach, out destinationTile, out route))
@@ -705,14 +713,6 @@ internal static class KenshiRescueMath
             }
         }
 
-        // A staged patient waits on the far side only for the atomic hop
-        // window. The first grounded tick reattaches that same patient before
-        // ordinary walking can consume another route step.
-        foreach (var carrier in world.Entities.Npcs.Values)
-        {
-            TryResumeCarryAfterHop(world, carrier);
-        }
-
         foreach (var carrier in world.Entities.Npcs.Values)
         {
             if (carrier.CarriedNpcId is not { } patientId)
@@ -750,88 +750,6 @@ internal static class KenshiRescueMath
         }
     }
 
-    internal static bool TryStagePatientForHop(
-        WorldState world, NPCState carrier, TileCoord landingTile, Float2 landingPosition)
-    {
-        if (carrier.CarriedNpcId is not { } patientId ||
-            !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
-            patient.CarriedByNpcId != carrier.Id ||
-            carrier.Plan.Status != PlanStatus.Active ||
-            carrier.Plan.Goal != GoalType.Rescue ||
-            carrier.Plan.TargetAgentId != patient.Id ||
-            !world.Tiles.Items.TryGetValue(landingTile, out var landingTileState) ||
-            SpatialQueries.IsSwimTile(landingTileState) ||
-            !LyingSpot.CanSolveOnTile(world, patient, landingTile))
-        {
-            return false;
-        }
-
-        SyncPatient(world, carrier, patient);
-        patient.CarriedByNpcId = null;
-        carrier.CarriedNpcId = null;
-        carrier.Mind.InterruptedRescuePatientId = patient.Id;
-        patient.Mind.PendingAidFrom = carrier.Id;
-        patient.Mind.PendingAidSinceTick = world.Tick;
-
-        var previousTile = patient.Tile;
-        if (previousTile != landingTile)
-        {
-            patient.Tile = landingTile;
-            SpatialMutations.MoveEntityToTile(world, patient.Id, previousTile, landingTile);
-        }
-
-        patient.Position = landingPosition;
-        patient.CurrentJunction = null;
-        MortalityHelpers.AnchorLyingBody(world, patient);
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, carrier.Id, "RescuePatientStagedForHop",
-                $"NPC{patient.Id.Value} Tile={landingTile.Q},{landingTile.R} " +
-                $"Destination={carrier.RescueDestinationObjectId?.Value ?? 0}");
-        }
-        return true;
-    }
-
-    internal static bool TryResumeCarryAfterHop(WorldState world, NPCState carrier)
-    {
-        if (carrier.CarriedNpcId is not null ||
-            carrier.Mind.InterruptedRescuePatientId is not { } patientId ||
-            carrier.Movement.HopTimer > 0f ||
-            carrier.Plan.Status != PlanStatus.Active ||
-            carrier.Plan.Goal != GoalType.Rescue ||
-            carrier.Plan.TargetAgentId != patientId ||
-            carrier.Health <= 0f || carrier.IsLyingDown(world.Tick) ||
-            carrier.IsFighting ||
-            !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
-            patient.CarriedByNpcId is not null || patient.Health <= 0f ||
-            patient.Tile != carrier.Tile ||
-            HexSpatialMath.Distance(patient.Position, carrier.Position) > HexSpatialMath.HexRadius)
-        {
-            return false;
-        }
-
-        ExecutionSystem.ReleaseClaims(world, patient);
-        if (patient.CurrentJunction is { } lying)
-        {
-            SpatialMutations.FreeJunction(world, lying, patient.Id);
-            SpatialMutations.ReleaseJunctionReservation(world, lying, patient.Id);
-        }
-
-        patient.CurrentJunction = null;
-        patient.CarriedByNpcId = carrier.Id;
-        carrier.CarriedNpcId = patient.Id;
-        carrier.Mind.InterruptedRescuePatientId = null;
-        patient.Mind.PendingAidFrom = carrier.Id;
-        SyncPatient(world, carrier, patient);
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, carrier.Id, "RescuePatientRepickedAfterHop",
-                $"NPC{patient.Id.Value} Step={carrier.Movement.PathIndex}/" +
-                $"{carrier.Movement.JunctionPath.Count}");
-        }
-        return true;
-    }
-
     private static void SyncPatient(
         WorldState world, NPCState carrier, NPCState patient, bool dead = false)
     {
@@ -859,25 +777,24 @@ internal static class KenshiRescueMath
             world.Entities.Objects.TryGetValue(destinationId, out destination);
         }
 
+        var wakeJunction = carrier.CurrentJunction;
         ClearLinks(carrier, patient);
         carrier.Mind.InterruptedRescuePatientId = null;
-        if (destination is not null && IsBed(destination))
+        var enteredBed = destination is not null && IsBed(destination) &&
+            BedSleep.TryEnter(
+                world, patient, destination, int.MaxValue, wakeJunction);
+        if (!enteredBed)
         {
-            var anchor = LyingSpot.TryAnchor(world, destination, out var position)
-                ? position
-                : HexSpatialMath.TileToWorld(destination.Tile);
-            LyingSpot.AlignBodyToObject(world, patient, destination, anchor);
-            patient.CurrentJunction = null;
-            patient.Execution.Status = ExecutionStatus.InProgress;
-            patient.Execution.CurrentInteraction = InteractionType.Sleep;
-            patient.Execution.TargetObject = destination.Id;
-            patient.Execution.StartTick = world.Tick;
-            patient.Execution.EndTick = int.MaxValue;
-            destination.IsOccupied = true;
-            destination.CurrentUser = patient.Id;
-        }
-        else
-        {
+            // A bed selected earlier can become invalid before arrival (for
+            // example after a legacy topology repair). Release that stale
+            // patient claim and use the ordinary ground placement instead.
+            if (destination is not null && IsBed(destination) &&
+                destination.CurrentUser == patient.Id)
+            {
+                destination.IsOccupied = false;
+                destination.CurrentUser = null;
+            }
+
             MortalityHelpers.AnchorLyingBody(world, patient);
             patient.Execution.Status = ExecutionStatus.InProgress;
             patient.Execution.CurrentInteraction = InteractionType.Sleep;
@@ -890,7 +807,8 @@ internal static class KenshiRescueMath
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, carrier.Id, "PersonPutDown",
-                $"NPC{patient.Id.Value} at {(destination?.DefinitionId ?? "ground")}");
+                $"NPC{patient.Id.Value} at " +
+                $"{(enteredBed ? destination.DefinitionId : "ground")}");
         }
     }
 
@@ -926,10 +844,9 @@ internal static class KenshiRescueMath
     {
         if (carrier.CarriedNpcId is not { } patientId)
         {
-            // During a rescue hop the patient is already lying safely on the
-            // landing side, but the destination reservation still belongs to
-            // the active plan. An interruption must release it just like an
-            // interruption one tick earlier while the patient was in hand.
+            // A rescue can still own its destination while the patient is not
+            // in hand (during approach or while a combat-resume promise is
+            // active). An interruption must release that reservation too.
             var stagedPatientId = carrier.Mind.InterruptedRescuePatientId ??
                 (carrier.Plan.Goal == GoalType.Rescue ? carrier.Plan.TargetAgentId : null);
             if (stagedPatientId is { } stagedId)

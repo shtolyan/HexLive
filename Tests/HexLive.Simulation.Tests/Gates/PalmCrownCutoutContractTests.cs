@@ -10,7 +10,7 @@ namespace HexLive.Simulation.Tests.Gates
                 Path.Combine(parts));
 
         [Test]
-        public void CameraDrivenFoliageCullingWasRemovedCompletely()
+        public void OldCameraFoliageCullingWasRemovedCompletely()
         {
             Assert.Multiple(() =>
             {
@@ -31,13 +31,14 @@ namespace HexLive.Simulation.Tests.Gates
         }
 
         [Test]
-        public void SelectedCharacterSpheresDriveOnlyStandingPalmLeafGreen()
+        public void OneCameraManagerSwapsOnlyStandingPalmLeafGreen()
         {
             var renderer = File.ReadAllText(Presentation("Rendering", "HexWorldRenderer.cs"));
-            var sphere = File.ReadAllText(Presentation(
-                "Rendering", "CharacterPalmCrownCutoutSphere.cs"));
+            var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
+            var managerPath = Presentation("Rendering", "CameraPalmCrownVisibility.cs");
+            var manager = File.ReadAllText(managerPath);
             var standing = File.ReadAllText(Presentation(
-                "Environment", "StandingPalmCrownCutout.cs"));
+                "Environment", "StandingPalmCrownVisibility.cs"));
             var palmFactory = File.ReadAllText(Presentation(
                 "Environment", "PalmTreeFactory.cs"));
             var fallenFactory = File.ReadAllText(Presentation(
@@ -45,58 +46,45 @@ namespace HexLive.Simulation.Tests.Gates
 
             Assert.Multiple(() =>
             {
-                Assert.That(renderer, Does.Contain(
-                    "AddComponent<CharacterPalmCrownCutoutSphere>()"));
-                Assert.That(renderer, Does.Contain("PalmCrownCutoutRadiusFactor = 3f"));
-                Assert.That(renderer, Does.Contain("HexRadius * PalmCrownCutoutRadiusFactor"));
-                Assert.That(sphere, Does.Contain("_CharacterPalmCutoutSpheres"));
-                Assert.That(sphere, Does.Contain("Construct(int npcId"));
-                Assert.That(sphere, Does.Contain("NpcSelection.Contains(marker._npcId)"));
-                Assert.That(sphere, Does.Contain("TryGetBodyCenter"));
+                Assert.That(File.Exists(managerPath), Is.True);
+                Assert.That(File.Exists(Presentation(
+                    "Rendering", "CameraPalmCrownCutoutSphere.cs")), Is.False);
+                Assert.That(File.Exists(Presentation(
+                    "Rendering", "CharacterPalmCrownCutoutSphere.cs")), Is.False);
+                Assert.That(renderer, Does.Not.Contain("CharacterPalmCrownCutoutSphere"));
+                Assert.That(camera, Does.Contain("PalmCrownHideDistance = 2.1f"));
+                Assert.That(camera, Does.Contain("PalmCrownShowDistance = 2.5f"));
+                Assert.That(camera, Does.Contain("PalmCrownCheckMovement = 0.1f"));
+                Assert.That(camera, Does.Contain(
+                    "gameObject.AddComponent<CameraPalmCrownVisibility>()"));
+                Assert.That(manager, Does.Contain("bounds.SqrDistance(cameraPosition)"));
+                Assert.That(manager, Does.Contain("StandingPalmCrownVisibility.RegistryVersion"));
+                Assert.That(manager, Does.Not.Contain("Shader.SetGlobalVector"));
+                Assert.That(manager, Does.Not.Contain("NpcSelection"));
                 Assert.That(standing, Does.Contain("CrownSurface = \"LeafGreen\""));
+                Assert.That(standing, Does.Contain("mesh.GetSubMesh(materialIndex).bounds"));
+                Assert.That(standing, Does.Contain("entry.Renderer.sharedMaterials = hidden"));
                 Assert.That(standing, Does.Contain("WoodBark was deliberately left untouched"));
-                Assert.That(palmFactory, Does.Contain("StandingPalmCrownCutout.Apply(palm)"));
-                Assert.That(fallenFactory, Does.Not.Contain("StandingPalmCrownCutout"));
+                Assert.That(palmFactory, Does.Contain("StandingPalmCrownVisibility.Apply(palm)"));
+                Assert.That(fallenFactory, Does.Not.Contain("StandingPalmCrownVisibility"));
             });
         }
 
         [Test]
-        public void CrownShaderClipsForwardAndDepthButKeepsWholeShadow()
+        public void HiddenCrownShaderHasOnlyAnAuthoredAlphaShadowPass()
         {
             var shaderPath = Path.Combine(RepoPaths.Root, "Assets", "Resources",
-                "HexLive", "Shaders", "StandingPalmCrownCutout.shader");
+                "HexLive", "Shaders", "StandingPalmCrownShadowOnly.shader");
             var shader = File.ReadAllText(shaderPath);
-            var shadowStart = shader.IndexOf(
-                "Name \"ShadowCaster\"", System.StringComparison.Ordinal);
-            var depthStart = shader.IndexOf(
-                "Name \"DepthOnly\"", System.StringComparison.Ordinal);
-            var shadowPass = shader.Substring(shadowStart, depthStart - shadowStart);
-
             Assert.Multiple(() =>
             {
-                Assert.That(shader, Does.Contain("_CharacterPalmCutoutSpheres[64]"));
-                Assert.That(shader, Does.Contain("clip(CharacterSphereOutside(positionWS))"));
-                Assert.That(shader, Does.Contain("Name \"ForwardLit\""));
+                Assert.That(shader, Does.Contain("Shader \"HexLive/StandingPalmCrownShadowOnly\""));
                 Assert.That(shader, Does.Contain("Name \"ShadowCaster\""));
-                Assert.That(shader, Does.Contain("Name \"DepthOnly\""));
-                Assert.That(shadowPass, Does.Not.Contain("ClipCharacterSpheres"));
-                Assert.That(shadowPass, Does.Contain("ClipAuthoredAlpha(input.uv);"));
-                Assert.That(Count(shader, "ClipCharacterSpheres(input.positionWS);"),
-                    Is.EqualTo(2));
+                Assert.That(shader, Does.Contain("ClipAuthoredAlpha(input.uv);"));
+                Assert.That(shader, Does.Not.Contain("Name \"ForwardLit\""));
+                Assert.That(shader, Does.Not.Contain("Name \"DepthOnly\""));
+                Assert.That(shader, Does.Not.Contain("_CameraPalmCrownCutoutSphere"));
             });
-        }
-
-        private static int Count(string text, string needle)
-        {
-            var count = 0;
-            var index = 0;
-            while ((index = text.IndexOf(needle, index, System.StringComparison.Ordinal)) >= 0)
-            {
-                count++;
-                index += needle.Length;
-            }
-
-            return count;
         }
     }
 }

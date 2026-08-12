@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3aef6a5591914413a0dd3adb6da4c8f4, type: 3}
+  m_Name: TraitsBalance
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Config.TraitsBalanceConfig
+  enabled: 1
+  neatChance: 0.15
+  lazyChance: 0
+  diligentChance: 0
+  cowardChance: 0
+  braveChance: 0
+  sleepyChance: 0.15
+  sleepyThresholdBonus: 0.2
+  neatThresholdMult: 0.6
+  diligentIndustryMult: 1.25
+  lazyIndustryMult: 0.8
+  lazySitBonus: 0.08
+  braveFitMult: 0.85
+  cowardDangerCostMult: 1.5

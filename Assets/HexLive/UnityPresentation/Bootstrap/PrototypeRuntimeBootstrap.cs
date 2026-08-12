@@ -42,6 +42,11 @@ public static class PrototypeRuntimeBootstrap
         // via the reflection mirror.
         Config.BalanceTuning.LoadAndApply();
 
+        // §132: optional no-rebuild deployment layer. A small strict JSON
+        // beside the Player overrides any registered balance field after the
+        // complete SO defaults are loaded and before worldgen reads them.
+        Config.ExternalBalanceTuning.LoadAndApply();
+
         // Spec §42: load the wearable wardrobe from the GarmentCatalog asset
         // into GarmentLibrary before the world (and its content) is built.
         Config.GarmentTuning.LoadAndApply();
@@ -88,6 +93,18 @@ public static class PrototypeRuntimeBootstrap
             return;
         }
 
+        // §127: романтические тест-сцены — свои камера/актёры/UI, мир и
+        // загрузочная шторка поверх них не нужны.
+        if (Object.FindAnyObjectByType<TwoPeopleTest.TwoPeopleTestBootstrap>() is not null)
+        {
+            return;
+        }
+
+        if (Object.FindAnyObjectByType<HexFlowerTest.HexFlowerTestBootstrap>() is not null)
+        {
+            return;
+        }
+
         // §71.5: both LocomotionTest and MovementSmoothnessTest are driven by
         // the same self-contained bootstrap. They deliberately have no sim
         // runner: spawning the main menu/world over their measured lane adds a
@@ -96,6 +113,10 @@ public static class PrototypeRuntimeBootstrap
         {
             return;
         }
+
+        // PERF: cap the render scale on Retina/4K displays before anything
+        // draws — player builds only, see GraphicsPerfPolicy.
+        GraphicsPerfPolicy.ApplyRenderScale();
 
         var root = new GameObject("HexLive Prototype");
         var runner = root.AddComponent<SimulationRunnerBehaviour>();
@@ -177,6 +198,12 @@ public static class PrototypeRuntimeBootstrap
         contextMenuRoot.AddComponent<UIDocument>();
         contextMenuRoot.AddComponent<ContextMenuPanel>();
 
+        // §128: Kenshi-style two-window exchange with any unconscious person.
+        var lootRoot = new GameObject("HexLive Loot Transfer");
+        lootRoot.AddComponent<UIDocument>();
+        var lootPanel = lootRoot.AddComponent<LootTransferPanel>();
+        lootPanel.SetRunner(runner);
+
         // Always-visible time controls (pause / play / speed) at the top.
         var speedRoot = new GameObject("HexLive Speed Bar");
         speedRoot.AddComponent<UIDocument>();
@@ -239,6 +266,20 @@ public static class PrototypeRuntimeBootstrap
         if (portraitLayer >= 0)
         {
             mainCamera.cullingMask &= ~(1 << portraitLayer);
+        }
+
+        // PERF: short ground props (SmallProps layer, assigned in
+        // HexWorldRenderer.SuppressSmallPropShadows) stop drawing beyond the
+        // distance where they are a few pixels tall. A zero entry means "use
+        // the far plane", so every other layer is untouched. Spherical
+        // distance keeps the cut stable while the camera pitches.
+        var smallPropsLayer = LayerMask.NameToLayer("SmallProps");
+        if (smallPropsLayer >= 0)
+        {
+            var cullDistances = new float[32];
+            cullDistances[smallPropsLayer] = 45f;
+            mainCamera.layerCullDistances = cullDistances;
+            mainCamera.layerCullSpherical = true;
         }
 
         // Disable orbit camera if present

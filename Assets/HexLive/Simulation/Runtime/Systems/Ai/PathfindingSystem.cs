@@ -356,8 +356,7 @@ public sealed class PathfindingSystem : ISimulationSystem
             // so their routes bend around a spotted wolf instead of past it.
             // §72: …and around a hostile person, on the same soft terms.
             var danger = RouteAvoidRing(world, npc);
-            var canJump = npc.Body.CanJump &&
-                (!npc.IsCarryingPerson || npc.Plan.Goal == GoalType.Rescue);
+            var canJump = npc.Body.CanJump;
             // §129: закрытые ЧУЖИЕ дверные порталы — жёсткий запрет (hardAvoid
             // переживает enclosed-fallback ретрай). У колонисток набор пуст →
             // null → путь бит-в-бит как до §129.

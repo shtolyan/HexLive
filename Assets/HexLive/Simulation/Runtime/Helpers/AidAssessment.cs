@@ -33,6 +33,30 @@ internal static class AidAssessment
         if (target.IsDying)
         {
             severity = 1f;
+
+            // ⭐ Причина падения — не то же самое, что беда СЕЙЧАС.
+            //
+            // Причина умирания залипает: пока BloodDeficit больше нуля,
+            // ResolveTrauma держит её в BloodLoss, сколько бы дней ни прошло.
+            // Если решать вид помощи только по ней, соседка носит бинт
+            // умирающей от жажды — ровно это и было в баге #115: девять
+            // подходов `Kind=Treat` к npc3, у которой кровь давно 1.00, а
+            // жажда и голод стояли в 1.00.
+            //
+            // Поэтому нужда, дошедшая до смертельной черты (§29C.2), бьёт
+            // причину падения: воду и еду нести раньше бинта. Жажда впереди
+            // голода — она убивает быстрее (порядок §53.3). Обычная раненая
+            // этого не видит: порог здесь смертельный, а не «проголодалась».
+            if (target.Needs.Thirst >= SimBalance.StarveDeathThreshold)
+            {
+                return AidKind.Hydrate;
+            }
+
+            if (target.Needs.Hunger >= SimBalance.StarveDeathThreshold)
+            {
+                return AidKind.Feed;
+            }
+
             return target.Mind.DyingCause switch
             {
                 DyingCause.Starvation => AidKind.Feed,

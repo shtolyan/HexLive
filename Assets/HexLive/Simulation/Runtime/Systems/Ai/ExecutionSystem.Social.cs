@@ -519,6 +519,16 @@ public sealed partial class ExecutionSystem
             if (!InteractionReach.CheckPersonStart(world, npc, target, target.Position,
                     InteractionReach.Aid, $"Aid NPC{targetId.Value}"))
             {
+                // §53: дошла по памяти и не дотянулась — это ещё не повод
+                // бросать подопечную. Пересчитать подход по живому телу и
+                // доводить поход; только если её отсюда не видно — отменять.
+                // Без этого поход отменялся и планировался снова тем же
+                // способом, вечным холостым кругом (баг #117).
+                if (PlanningSystem.TryRetargetAidOnArrival(world, npc, target))
+                {
+                    return;
+                }
+
                 AbortAid(world, npc, $"Target NPC{targetId.Value} out of aid range");
                 return;
             }

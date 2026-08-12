@@ -275,6 +275,86 @@ public sealed partial class PlanningSystem
         return null;
     }
 
+    // ⭐ §53/§111.9: ПОХОД ЗА ПОМОЩЬЮ ДОВОДИТСЯ, А НЕ ВЫБРАСЫВАЕТСЯ.
+    //
+    // План по ПАМЯТИ строится без живой подопечной (`partner = null`) — и это
+    // намеренно: «у памяти нет честного ответа про достижимость, проверит
+    // живая переоценка по прибытии». Но вместе с partner отключаются ОБЕ
+    // проверки досягаемости и станция у ног лежащей: бронируется просто первый
+    // свободный сосед запомненного узла. Для лежащей подопечной он почти
+    // никогда не проходит боевой `InteractionReach.Aid`, и переоценка по
+    // прибытии — единственная, кто это замечает, — поход просто отменяла.
+    //
+    // Получался вечный холостой круг: дошла, не дотянулась, отменила, кулдаун,
+    // спланировала тот же поход снова. Замерено на seed 63287937: 28 из 59
+    // походов на помощь (47%) не начинались вовсе, «Target out of aid range» —
+    // самая частая причина; к npc3 так сходили девять раз за 6000 тиков, пока
+    // она умирала в двух шагах (баг #117, нашёлся при разборе #115).
+    //
+    // Поэтому по прибытии сначала ПЕРЕПРИЦЕЛИВАНИЕ: подопечная теперь перед
+    // глазами, значит геометрию можно пересчитать честно — той же общей
+    // формулой, но уже с живым телом, то есть со станцией у ног, если она
+    // лежит. Не видно её отсюда — забыть узел (а не страдание): «пришла, где
+    // помнила, там пусто, где она теперь — не знаю». Память без узла походов
+    // больше не притягивает и починится сама при следующей встрече.
+    internal static bool TryRetargetAidOnArrival(
+        WorldState world, NPCState npc, NPCState target)
+    {
+        var seen = false;
+        foreach (var agent in npc.Perception.Agents)
+        {
+            if (agent.Id.Equals(target.Id) && agent.CanSee)
+            {
+                seen = true;
+                break;
+            }
+        }
+
+        if (!seen || target.CurrentJunction is not { } targetJunction)
+        {
+            if (npc.Memory.KnownAgents.TryGetValue(target.Id, out var stale))
+            {
+                stale.Junction = null;
+            }
+
+            return false;
+        }
+
+        // Старую бронь отпустить до новой: иначе узел, на котором она стоит,
+        // остаётся за ней же и блокирует собственный пересчёт.
+        if (npc.Plan.TargetJunctionId is { } held)
+        {
+            SpatialMutations.ReleaseJunctionReservation(world, held, npc.Id);
+        }
+
+        if (TryReserveArmsLengthApproach(world, npc, target, targetJunction)
+            is not { } approach)
+        {
+            return false;
+        }
+
+        npc.Plan.TargetJunctionId = approach;
+        npc.Plan.TargetTile = target.Tile;
+        npc.Plan.Steps.Clear();
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = approach
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            Interaction = AidInteraction(AidAssessment.Assess(target, world.Tick, out _))
+        });
+
+        Trace.Emit(world, npc.Id, "AidRetargeted",
+            $"NPC{target.Id.Value} was not at the remembered spot — " +
+            $"walking to her actual station (Junction={approach.Value})");
+        return true;
+    }
+
     private static InteractionType AidInteraction(AidKind kind) => kind switch
     {
         AidKind.Feed => InteractionType.FeedOther,
@@ -473,6 +553,16 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
+
+        // NB (замерено, не чинится намеренно): обычный замок цели держится
+        // GoalLockTicks = 24 тика, дальше помощь перебивается SwitchDelta =
+        // 0.15. Выглядит как дыра — «бросила помощь ради болтовни», 16 случаев
+        // на seed 63287937, — но по данным она бьёт ТОЛЬКО лёгкие походы:
+        // Console 0.47…0.60, Feed/Hydrate 0.56…0.74. Ни один поход Treat, в том
+        // числе все шесть с Suffering=1.00, не был брошен ни до правки #117, ни
+        // после. Усиливать замок для тяжёлой помощи означало бы охранять то,
+        // чего в данных нет; проверка стоит здесь, чтобы это не пришлось
+        // выяснять заново.
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "PlanBuilt",

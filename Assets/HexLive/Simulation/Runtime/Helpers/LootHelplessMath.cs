@@ -219,6 +219,9 @@ public static class LootHelplessMath
         // снять, затем пересчитать и штатно пролить переполнение.
         EquipmentMath.Recalculate(world, victim);
         InventoryMath.SpillOverflow(world, victim);
+        // §133: снятая с чужака одежда меняет хозяйку — трофей принадлежит
+        // взявшей, и уже у НЕЁ его придётся просить.
+        garment.OwnerId = looter.Id.Value;
         looter.Inventory.Items.Add(garment);
         takenId = garment.DefinitionId;
         return true;

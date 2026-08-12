@@ -1389,7 +1389,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 Durability = worldObject.Durability,
                 ResourceAmount = worldObject.ResourceAmount,
                 Dirtiness = worldObject.Dirtiness,
-                Bloodiness = worldObject.Bloodiness
+                Bloodiness = worldObject.Bloodiness,
+                // §133: поднятая вещь несёт владельца дальше — иначе одежда
+                // теряла бы хозяйку каждый раз, как её несут в руках.
+                OwnerId = definition.Layer != null
+                    ? ClothingOwnership.ResolveOnTake(world, npc, worldObject)
+                    : 0
             });
             WorldObjectMutations.DespawnObject(world, worldObject.Id);
             if (SimTrace.Enabled)
@@ -1422,7 +1427,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             Wetness = worldObject.Wetness,
             Durability = worldObject.Durability,
             Dirtiness = worldObject.Dirtiness,
-            Bloodiness = worldObject.Bloodiness
+            Bloodiness = worldObject.Bloodiness,
+            // §133: ничейное и трофейное становится её собственным, вещь
+            // подруги остаётся подругиной (одолжила — не присвоила).
+            OwnerId = ClothingOwnership.ResolveOnTake(world, npc, worldObject)
         });
         // Spec §52: putting the garment back on recovers whatever it
         // was carrying — the pockets pour into the pack (capacity just
@@ -1637,6 +1645,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             hung.Durability = wetWorn.Durability;
             hung.Dirtiness = wetWorn.Dirtiness;
             hung.Bloodiness = wetWorn.Bloodiness;
+            // §133: своя одежда на сушилке/в гардеробе остаётся своей —
+            // сушится не «общественная», а конкретно её вещь.
+            hung.Owner = wetWorn.OwnerId != 0
+                ? new EntityId(wetWorn.OwnerId)
+                : npc.Id;
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ItemHung",
@@ -2116,6 +2129,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             dropped.ResourceAmount = item.ResourceAmount;
             dropped.Dirtiness = item.Dirtiness;
             dropped.Bloodiness = item.Bloodiness;
+            // §133: владение переживает границу «надето/лежит» — вещь на земле
+            // помнит хозяйку, поэтому подруга спросит разрешение, а не наденет.
+            dropped.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : null;
             return dropped;
         }
 

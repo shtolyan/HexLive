@@ -86,8 +86,30 @@ public sealed class DreamSystem : ISimulationSystem
         var bedOwners = new HashSet<EntityId>();
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) ||
-                !def.Tags.Contains("Bed"))
+            if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
+            {
+                continue;
+            }
+
+            // §133: одежда покойной становится ничейной по тому же правилу, что
+            // и её кровать, — иначе разрешение спрашивать не у кого и вещь
+            // навсегда выпадает из оборота колонии.
+            if (def.Layer != null)
+            {
+                if (obj.Owner is { } garmentOwner && !livingIds.Contains(garmentOwner))
+                {
+                    obj.Owner = null;
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.DebugSystem(world, "GarmentReleased",
+                            $"garment {obj.Id.Value} freed — owner gone");
+                    }
+                }
+
+                continue;
+            }
+
+            if (!def.Tags.Contains("Bed"))
             {
                 continue;
             }

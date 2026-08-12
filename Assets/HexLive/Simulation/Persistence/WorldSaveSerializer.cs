@@ -80,7 +80,13 @@ public static class WorldSaveSerializer
     // v41 (§40.8-H r10): накопительная кровяная подложка per-zone (BloodSoil)
     // в хвост NPC-записи. Старый блоб читается чистым — прежние спеклы были
     // производной от HP и в сейве не жили.
-    public const int BlobVersion = 41;
+    // v42 (§133): у каждой вещи есть владелец (ItemInstance.OwnerId), зеркало
+    // WorldObjectState.Owner по ту сторону границы «надето ↔ лежит». Старый блоб
+    // читается так: НАДЕТОЕ принадлежит носительнице (что на ней — её), а
+    // носимое в карманах и лежащее на земле остаётся ничейным и обретает
+    // владельца при первом надевании. Иначе пришлось бы гадать, какая палка в
+    // рюкзаке «чья», а ничейное — ровно то состояние, которое умеет claim.
+    public const int BlobVersion = 42;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1399,6 +1405,15 @@ public static class WorldSaveSerializer
         }
 
         ReadItemList(r, npc.WornItems, version);
+        if (version < 42)
+        {
+            // §133: то, что на ней надето в старом сейве, — её собственное.
+            foreach (var worn in npc.WornItems)
+            {
+                worn.OwnerId = npc.Id.Value;
+            }
+        }
+
         ReadJunctionList(r, npc.ClaimedJunctions);
 
         var partCount = r.ReadInt32();
@@ -2001,6 +2016,7 @@ public static class WorldSaveSerializer
             w.Write(item.ResourceAmount);
             w.Write(item.Dirtiness);
             w.Write(item.Bloodiness);
+            w.Write(item.OwnerId);
         }
     }
 
@@ -2015,7 +2031,8 @@ public static class WorldSaveSerializer
                 Durability = r.ReadSingle(),
                 ResourceAmount = r.ReadSingle(),
                 Dirtiness = version >= 7 ? r.ReadSingle() : 0f,
-                Bloodiness = version >= 7 ? r.ReadSingle() : 0f
+                Bloodiness = version >= 7 ? r.ReadSingle() : 0f,
+                OwnerId = version >= 42 ? r.ReadInt32() : 0
             };
             if (version == 7)
             {

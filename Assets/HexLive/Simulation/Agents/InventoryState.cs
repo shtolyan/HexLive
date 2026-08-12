@@ -29,6 +29,11 @@ public sealed class ItemInstance : System.IEquatable<ItemInstance>
     // like the NPC bottle: pickup/drop preserves the remaining water.
     public float ResourceAmount { get; set; }
 
+    // §133: who this garment belongs to (NPC id; 0 = nobody's). Mirrors
+    // WorldObjectState.Owner across the worn/ground boundary. Deliberately NOT
+    // part of Equals/GetHashCode — recipe semantics stay by-definition.
+    public int OwnerId { get; set; }
+
     public ItemInstance(string definitionId)
     {
         DefinitionId = definitionId;

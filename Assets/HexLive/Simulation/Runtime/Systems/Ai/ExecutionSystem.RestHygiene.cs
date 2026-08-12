@@ -739,7 +739,9 @@ public sealed partial class ExecutionSystem
                 Wetness = garment.Wetness,
                 Durability = garment.Durability,
                 Dirtiness = garment.Dirtiness,
-                Bloodiness = garment.Bloodiness
+                Bloodiness = garment.Bloodiness,
+                // §133: она одевается обратно В СВОЮ одежду — владелец её же.
+                OwnerId = ClothingOwnership.ResolveOnTake(world, npc, garment)
             });
             _dressPourScratch.Clear();
             _dressPourScratch.AddRange(garment.Contents);

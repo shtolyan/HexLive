@@ -73,7 +73,9 @@ internal static class RaidSpawnWardrobe
         var id = pool[index];
         if (!npc.WornItems.Contains(id))
         {
-            npc.WornItems.Add(id);
+            // §133: стартовый наряд — её собственный. С этого владения и
+            // начинается «своя одежда»: подруге придётся спросить.
+            npc.WornItems.Add(new ItemInstance(id) { OwnerId = npc.Id.Value });
         }
     }
 }

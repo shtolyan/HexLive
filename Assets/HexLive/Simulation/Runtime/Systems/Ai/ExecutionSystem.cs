@@ -155,6 +155,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §133: подобрать забытую одежду и отнести её домой.
+            if (lastStep is { Type: PlanStepType.StowCarriedGarment })
+            {
+                RunStowCarriedGarment(world, npc, lastStep);
+                continue;
+            }
+
             if (lastStep is { Type: PlanStepType.GroundSit or PlanStepType.GroundSleep or PlanStepType.GroundCool })
             {
                 RunGroundRestPlan(world, npc, lastStep);

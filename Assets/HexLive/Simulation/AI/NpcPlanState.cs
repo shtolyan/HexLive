@@ -82,7 +82,9 @@ public enum PlanStepType
     PlayerGiveCarried,
     PlayerGiveWorn,
     // §133 append-only: подойти к хозяйке вещи и спросить разрешения надеть её.
-    AskWearPermission
+    AskWearPermission,
+    // §133 append-only: поднять валяющуюся одежду и отнести её к дому.
+    StowCarriedGarment
 }
 
 public enum PlanStatus

@@ -188,6 +188,7 @@ public static class GameEventTypes
         // Оба ответа игроку видны: это сюжет колонии, а не отладка.
         "WearPermissionGranted",
         "WearPermissionRefused",
+        "ClothesStowed",
 
         // §108: групповая охота на чужака. Вся дуга видима игроку — сговор,
         // первое столкновение, его бегство и исход; «кто держит строй» и

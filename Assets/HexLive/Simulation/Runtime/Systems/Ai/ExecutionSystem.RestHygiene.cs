@@ -1078,7 +1078,10 @@ public sealed partial class ExecutionSystem
             Durability = garment.Durability,
             Dirtiness = garment.Dirtiness,
             Bloodiness = garment.Bloodiness,
-            ResourceAmount = garment.ResourceAmount
+            ResourceAmount = garment.ResourceAmount,
+            // §133: вещь в руках не теряет хозяйку — иначе постирать чужое
+            // значило бы его присвоить.
+            OwnerId = ClothingOwnership.OwnerIdOf(garment)
         };
         npc.Execution.HeldGarmentContents.Clear();
         npc.Execution.HeldGarmentContents.AddRange(garment.Contents);

@@ -222,6 +222,8 @@ public static class GoalCatalog
         Add(GoalType.Undress);
         Add(GoalType.Bathe);
         Add(GoalType.WashClothes);
+        // §133: как Bathe — своя цепочка шагов, а не интеракция с объектом.
+        Add(GoalType.StowClothes);
         Add(GoalType.DryClothes, InteractionType.Hang);
         Add(GoalType.CoolOff);
         Add(GoalType.WarmUp, InteractionType.Observe);

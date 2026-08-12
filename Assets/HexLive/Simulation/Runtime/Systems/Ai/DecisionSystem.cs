@@ -1977,6 +1977,23 @@ public sealed partial class DecisionSystem : ISimulationSystem
             InventoryMath.Importance(world, haulVictim) <= 25;
         AddGoalScore(npc, world.Tick, GoalType.HaulToFire, 0.28f, haulToFireAvail);
 
+        // §133: одежда не должна лежать по всей карте. Скучная фоновая работа
+        // «подобрать своё и отнести домой» — ставка нарочно низкая: любое живое
+        // дело её перебивает, а в спокойный час двор прибирается сам. Под
+        // угрозой (как и уборка карманов выше) не прибираются.
+        // ⭐ Гейт НЕ переиспользует lifeThreatened выше: тот считает угрозой любую
+        // запись в Memory.Dangers, а она живёт долго — у каждой колонистки их по
+        // 2-5 почти всегда, и уборка была бы недоступна навсегда (замерено: за
+        // 12000 тиков цель не выбралась ни разу). Прибираться мешает угроза
+        // ПРЯМО СЕЙЧАС, а не память о волке на том берегу.
+        var stowThreatened = npc.IsFighting || npc.Perception.Hostiles.Count > 0 ||
+            npc.Health < 0.4f || npc.Needs.Hunger >= 0.6f || npc.Needs.Thirst >= 0.6f;
+        var stowClothesAvail = !stowThreatened && npc.Body.CanUseToolsOrWeapons &&
+            npc.Mind.RedressGarments.Count == 0 &&
+            StowMath.FindUndressSpot(world, npc) is not null &&
+            StrayGarmentMath.FindStray(world, npc) is not null;
+        AddGoalScore(npc, world.Tick, GoalType.StowClothes, 0.18f, stowClothesAvail);
+
         // Spec 35.4: overheating drives a trip to shade or the river. Gate on
         // the latched IsOverheated (enter 0.35 / clear 0.20) rather than a raw
         // 0.35 compare, so availability doesn't flicker on/off around the edge

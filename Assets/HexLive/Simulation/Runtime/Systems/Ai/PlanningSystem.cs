@@ -416,6 +416,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            // §133: прибраться — отнести забытую одежду к дому.
+            if (npc.Mind.CurrentGoal == GoalType.StowClothes)
+            {
+                BuildStowClothesPlan(world, npc);
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Hunt)
             {
                 // Spec 29F.2: a move-only chase to the rabbit's junction;

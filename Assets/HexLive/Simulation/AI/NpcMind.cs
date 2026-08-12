@@ -605,7 +605,11 @@ public enum GoalType
 
     // §123 append-only: authoritative wear/stow/drop plans issued by the
     // player. Stored like PlayerOrder; no save format bump is required.
-    PlayerInventory
+    PlayerInventory,
+
+    // §133 append-only: отнести свою (или ничейную) одежду, валяющуюся вдали
+    // от дома, в гардероб/на сушилку — чтобы вещи жили у дома, а не по карте.
+    StowClothes
 }
 
 public sealed class GoalScore

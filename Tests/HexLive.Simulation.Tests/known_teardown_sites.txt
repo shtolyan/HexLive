@@ -37,3 +37,4 @@ Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Prosthetics.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Rescue.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Rescue.cs	#2
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.WearPermission.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.StowClothes.cs	#1

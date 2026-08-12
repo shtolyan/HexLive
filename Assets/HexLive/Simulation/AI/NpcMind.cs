@@ -188,6 +188,15 @@ public sealed class NPCMind
 
     public int PendingTalkSinceTick { get; set; }
 
+    // §133: чужую вещь надевают только с разрешения, и спрашивают КАЖДЫЙ раз.
+    // Отсюда две памятки, обе НЕ персистятся (идиома PendingTalkFrom): полученное
+    // «да» на конкретную вещь — оно одноразовое и сгорает при надевании — и
+    // свежее «нет», чтобы не ходить спрашивать по кругу. После загрузки сейва
+    // она просто спросит заново, что ровно и требовалось.
+    public System.Collections.Generic.List<WearGrant> WearGrants { get; } = new();
+
+    public System.Collections.Generic.List<WearDenial> WearDenials { get; } = new();
+
     // Spec §53: someone is walking over to HELP this NPC (feed/treat/medicate/
     // console). Mirrors PendingTalkFrom — while set, the sufferer holds still so
     // the helper can reach her, until arrival, timeout, or an emergency. This is
@@ -428,6 +437,31 @@ public sealed class NPCMind
     public List<GoalScore> LastScores { get; } = new();
 
     public DecisionResult LastDecision { get; set; } = new();
+}
+
+/// <summary>
+/// §133: разовое «да, надень» на КОНКРЕТНУЮ вещь. Сгорает при надевании и по
+/// истечении срока, поэтому за вторую вещь (и за ту же вещь во второй раз)
+/// придётся спрашивать снова — прямое требование игрока.
+/// </summary>
+public sealed class WearGrant
+{
+    public HexLive.Simulation.Common.ObjectId Item { get; set; }
+
+    public HexLive.Simulation.Common.EntityId Owner { get; set; }
+
+    public int ExpiresTick { get; set; }
+}
+
+/// <summary>
+/// §133: свежее «нет» на конкретную вещь. Без него отказ ничего не менял бы в
+/// мире и просящая ходила бы спрашивать по кругу каждый тик.
+/// </summary>
+public sealed class WearDenial
+{
+    public HexLive.Simulation.Common.ObjectId Item { get; set; }
+
+    public int UntilTick { get; set; }
 }
 
 // Spec §60: what dropped the body into a coma — and therefore which stat must

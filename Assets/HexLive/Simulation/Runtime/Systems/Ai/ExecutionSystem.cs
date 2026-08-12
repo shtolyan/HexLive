@@ -145,6 +145,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §133: подойти к хозяйке и спросить, можно ли надеть её вещь.
+            if (lastStep is { Type: PlanStepType.AskWearPermission })
+            {
+                RunAskWearPermission(world, npc, lastStep);
+                continue;
+            }
+
             if (lastStep is { Type: PlanStepType.GroundSit or PlanStepType.GroundSleep or PlanStepType.GroundCool })
             {
                 RunGroundRestPlan(world, npc, lastStep);
@@ -1408,11 +1415,33 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return true;
     }
 
-    private static bool CompleteDress(
+    internal static bool CompleteDress(
         WorldState world, NPCState npc, WorldObjectState worldObject,
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
+        // §133: чужое надевают только с разрешения, и разрешение ОДНОРАЗОВОЕ —
+        // сгорает здесь же. Планировщик до сюда чужое без «да» не пропускает;
+        // это последний рубеж на случай, если вещь сменила хозяйку по дороге.
+        if (ClothingOwnership.FellowOwner(world, npc, worldObject) is { } fellowOwner)
+        {
+            if (!PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick))
+            {
+                worldObject.IsOccupied = false;
+                worldObject.CurrentUser = null;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "DressBlocked",
+                        $"Obj={worldObject.Id.Value} belongs to NPC{fellowOwner.Id.Value} " +
+                        "without permission");
+                }
+
+                return false;
+            }
+
+            npc.Mind.WearGrants.RemoveAll(g => g.Item.Equals(worldObject.Id));
+        }
+
         // Spec 31A.5B: one item per (layer, body part) — dressing
         // over an occupied slot takes the old garment off. §52.7: the
         // displaced piece is only COLLECTED here; it is dropped after

@@ -770,6 +770,23 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
+                // §133: чужое надевают только с разрешения. Своё, ничейное и
+                // трофейное (вещь чужака) проходят молча; вещь ЖИВОЙ подруги —
+                // только если она уже сказала «да», иначе кандидат отпадает и
+                // ниже, отдельным планом, к хозяйке идут спрашивать.
+                if (interactionType == InteractionType.Dress &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var ownedCheck) &&
+                    ClothingOwnership.FellowOwner(world, npc, ownedCheck) != null &&
+                    !HasWearGrant(npc, perceived.Id, world.Tick))
+                {
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanCandidateSkipped",
+                            $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} NotHers");
+                    }
+                    continue;
+                }
+
                 candidateCount++;
                 if (SimTrace.Enabled)
                 {
@@ -887,6 +904,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (npc.Mind.CurrentGoal is GoalType.GetFood or GoalType.GetWater)
                 {
                     BuildForagePlan(world, npc);
+                    continue;
+                }
+
+                // §133: одеться нечем, потому что всё вокруг — чужое. Значит
+                // идём спрашивать разрешения у хозяйки, а не признаём провал.
+                if (interactionType == InteractionType.Dress &&
+                    TryBuildAskWearPermissionPlan(world, npc))
+                {
                     continue;
                 }
 

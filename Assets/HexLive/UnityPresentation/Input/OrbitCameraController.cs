@@ -12,7 +12,9 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _distance = 9f;
         [SerializeField] private float _minDistance = 4f;
         [SerializeField] private float _maxDistance = 16f;
-        [SerializeField] private float _zoomSpeed = 1.5f;
+        // Доля дистанции за один нормированный щелчок колеса — см. разбор
+        // единиц скролла в RtsCameraController.ZoomedDistance (баг #113).
+        [SerializeField] private float _zoomPerScrollTick = 0.12f;
         [SerializeField] private float _rotationSpeed = 3.5f;
         [SerializeField] private float _positionSmoothTime = 0.08f;
         [SerializeField] private float _rotationSmoothTime = 0.06f;
@@ -85,7 +87,10 @@ namespace HexLive.UnityPresentation.Input
             var scroll = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) > 0.001f)
             {
-                _distance = Mathf.Clamp(_distance - scroll * (_zoomSpeed * 0.01f), _minDistance, _maxDistance);
+                var ticks = Mathf.Clamp(scroll, -1.5f, 1.5f);
+                _distance = Mathf.Clamp(
+                    _distance * Mathf.Exp(-ticks * _zoomPerScrollTick),
+                    _minDistance, _maxDistance);
             }
 
             if (!mouse.rightButton.isPressed)

@@ -39,7 +39,15 @@ namespace HexLive.UnityPresentation.Input
         [Header("Zoom")]
         [SerializeField] private float _minHeight = 3f;
         [SerializeField] private float _maxHeight = 20f;
-        [SerializeField] private float _zoomSpeed = 1.5f;
+
+        [Tooltip("Доля дистанции за ОДИН щелчок колеса: 0.12 = на 12% ближе/дальше. " +
+                 "Весь диапазон 0.7…22 wu проходится примерно за 29 щелчков.")]
+        [SerializeField] private float _zoomPerScrollTick = 0.12f;
+
+        [Tooltip("Потолок накопленного за кадр скролла в щелчках. Трекпад шлёт поток " +
+                 "событий вместо дискретных щелчков, и без потолка резкий свайп " +
+                 "перепрыгивает весь диапазон за пару кадров.")]
+        [SerializeField] private float _maxScrollTicksPerFrame = 1.5f;
 
         [Tooltip("Free-mode pitch ceiling. 90 = straight down (the classic RTS top view).")]
         [SerializeField] private float _freeMaxPitch = 90f;
@@ -48,7 +56,6 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _orbitDistance = 9f;
         [SerializeField] private float _orbitMinDistance = 0.7f; // close-up: face fills the frame
         [SerializeField] private float _orbitMaxDistance = 22f;
-        [SerializeField] private float _orbitZoomSpeed = 4f;
         [SerializeField] private float _orbitRotationSpeed = 0.2f;
         [SerializeField] private float _orbitPitch = 25f;
         [SerializeField] private float _orbitMinPitch = 5f;
@@ -350,6 +357,28 @@ namespace HexLive.UnityPresentation.Input
             _freePivot.z += move.z;
         }
 
+        // ⭐ Единица зума — НОРМИРОВАННЫЙ ЩЕЛЧОК, а не «сколько отдало устройство».
+        // Unity 6 + Input System 1.19 по умолчанию держат
+        // ScrollDeltaBehavior.UniformAcrossAllPlatforms, то есть приводят скролл
+        // к [-1, 1] НА ВСЕХ платформах: один щелчок колеса = ровно 1.0, а не 120,
+        // как Windows отдаёт в сыром виде (WHEEL_DELTA). Прежняя формула
+        // (scroll * _zoomSpeed * 0.01) молча считала единицу большой и давала
+        // 0.015 wu за щелчок — ~1420 щелчков на диапазон 0.7…22 wu. На трекпаде
+        // это тонуло в потоке событий и выглядело нормально, а на мыши под
+        // Windows читалось как «зум почти не работает» (баг #113).
+        //
+        // Шаг ПРОПОРЦИОНАЛЬНЫЙ (умножение, не сложение): щелчок меняет дистанцию
+        // на фиксированный процент, поэтому вблизи он мелкий, вдали крупный, и
+        // ощущается одинаково в любой точке диапазона. Весь диапазон —
+        // ln(22/0.7) / 0.12 ≈ 29 щелчков.
+        private float ZoomedDistance(float distance, float scroll)
+        {
+            var ticks = Mathf.Clamp(scroll, -_maxScrollTicksPerFrame, _maxScrollTicksPerFrame);
+            return Mathf.Clamp(
+                distance * Mathf.Exp(-ticks * _zoomPerScrollTick),
+                _orbitMinDistance, _orbitMaxDistance);
+        }
+
         private void HandleZoom()
         {
             var mouse = Mouse.current;
@@ -358,9 +387,7 @@ namespace HexLive.UnityPresentation.Input
             var scroll = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) < 0.01f) return;
 
-            _currentDistance = Mathf.Clamp(
-                _currentDistance - scroll * _zoomSpeed * 0.01f,
-                _orbitMinDistance, _orbitMaxDistance);
+            _currentDistance = ZoomedDistance(_currentDistance, scroll);
             _requestedDistance = _currentDistance;
         }
 
@@ -1135,11 +1162,9 @@ namespace HexLive.UnityPresentation.Input
             var scroll = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) > 0.001f)
             {
-                // Proportional zoom: fine steps up close, big sweeps far out.
-                var step = _orbitZoomSpeed * 0.01f * Mathf.Max(0.15f, _currentDistance / 9f);
-                _requestedDistance = Mathf.Clamp(
-                    _requestedDistance - scroll * step,
-                    _orbitMinDistance, _orbitMaxDistance);
+                // Тот же пропорциональный шаг, что и в свободном режиме: зум
+                // обязан ощущаться одинаково по обе стороны переключения follow.
+                _requestedDistance = ZoomedDistance(_requestedDistance, scroll);
             }
 
             if (!mouse.rightButton.isPressed)

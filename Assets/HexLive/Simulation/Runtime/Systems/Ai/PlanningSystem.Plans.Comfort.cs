@@ -174,17 +174,52 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        npc.Plan.TargetJunctionId = best.Id;
-        npc.Plan.TargetTile = best.Tiles[0];
-        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = best.Id });
-        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.PrepareBathe, TargetJunction = best.Id });
+        // §133: раздеваться она идёт ДОМОЙ — к гардеробу, к сушилке или хотя бы
+        // на домашний тайл, — и только оттуда в воду. Прежнее поведение (раздеться
+        // у самой воды) остаётся запасным: без дома или без пути от дома к воде.
+        var undressStand = best.Id;
+        ObjectId? stowObject = null;
+        if (StowMath.FindUndressSpot(world, npc) is { } spot &&
+            Connectivity.Reachable(world, spot.Stand, best.Id))
+        {
+            undressStand = spot.Stand;
+            stowObject = spot.StowObject;
+        }
+
+        if (!undressStand.Equals(best.Id))
+        {
+            // Резервируем ту точку, где она реально будет стоять и раздеваться;
+            // берег доедет своим ходом, когда она разденется.
+            SpatialMutations.ReleaseJunctionReservation(world, best.Id, npc.Id);
+            if (!SpatialMutations.TryReserveJunction(world, undressStand, npc.Id, world.Tick, 96))
+            {
+                undressStand = best.Id;
+                stowObject = null;
+                SpatialMutations.TryReserveJunction(world, best.Id, npc.Id, world.Tick, 96);
+            }
+        }
+
+        npc.Plan.TargetObjectId = stowObject;
+        npc.Plan.TargetJunctionId = undressStand;
+        npc.Plan.TargetTile = world.Junctions.Items[undressStand].Tiles.Count > 0
+            ? world.Junctions.Items[undressStand].Tiles[0]
+            : best.Tiles[0];
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = undressStand });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PrepareBathe,
+            TargetJunction = undressStand,
+            TargetObject = stowObject
+        });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         npc.Mind.CoolRearmCount = 0;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "BathePlanned",
-                $"Junction={best.Id.Value} BodyHygiene={npc.Needs.Hygiene:F2} " +
+                $"Junction={undressStand.Value} Water={best.Id.Value} " +
+                $"Stow={(stowObject is { } s ? s.Value.ToString() : "ground")} " +
+                $"BodyHygiene={npc.Needs.Hygiene:F2} " +
                 $"ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2}");
         }
     }

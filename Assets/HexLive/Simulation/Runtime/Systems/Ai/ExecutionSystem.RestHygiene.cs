@@ -507,7 +507,10 @@ public sealed partial class ExecutionSystem
             }
 
             npc.WornItems.Remove(garment);
-            var doffed = DropGarmentWithContents(world, npc, garment);
+            // §133: если раздевается у гардероба/сушилки — вещь вешается на неё,
+            // а не падает под ноги. Станция переполнилась (вторая купальщица
+            // успела раньше) — тогда честная куча на полу, это всё равно дома.
+            var doffed = StowGarmentWithContents(world, npc, garment, step.TargetObject);
             // §40.6: remember this exact ground piece so she re-dons it after
             // the swim (the same clothes she took off, not just any garment).
             if (doffed != null)

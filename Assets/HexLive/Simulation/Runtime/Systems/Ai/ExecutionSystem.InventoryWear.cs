@@ -335,6 +335,62 @@ public sealed partial class ExecutionSystem
         return dropped;
     }
 
+    /// <summary>
+    /// §133: снять вещь и повесить её на гардероб/сушилку, если та указана и в
+    /// ней ещё есть место; иначе — обычная куча под ноги. Карманы едут внутри
+    /// вещи в обоих случаях (§52), владение сохраняется (§133).
+    /// </summary>
+    internal static WorldObjectState StowGarmentWithContents(
+        WorldState world, NPCState npc, ItemInstance garment, ObjectId? stowObjectId)
+    {
+        if (stowObjectId is not { } stowId ||
+            !world.Entities.Objects.TryGetValue(stowId, out var station) ||
+            station.Junctions.Count == 0 || RackIsFull(world, station))
+        {
+            return DropGarmentWithContents(world, npc, garment);
+        }
+
+        _garmentSpillScratch.Clear();
+        var inv = npc.Inventory;
+        var guard = 0;
+        while (inv.UsedSlots > inv.Capacity && guard++ < 64)
+        {
+            var victim = InventoryMath.LowestImportanceDroppable(world, npc);
+            if (victim is null)
+            {
+                break;
+            }
+
+            inv.Items.Remove(victim);
+            _garmentSpillScratch.Add(victim);
+        }
+
+        // Рецепт тот же, что у CompleteHang: вещь становится объектом на
+        // джанкшене станции и наследует её поворот (§66 — иначе висит мимо).
+        var hung = WorldObjectMutations.SpawnObject(
+            world, garment.DefinitionId, npc.Fragment, station.Tile, station.Junctions[0]);
+        hung.RotationDegrees = station.RotationDegrees;
+        hung.Wetness = garment.Wetness;
+        hung.Durability = garment.Durability;
+        hung.Dirtiness = garment.Dirtiness;
+        hung.Bloodiness = garment.Bloodiness;
+        hung.ResourceAmount = garment.ResourceAmount;
+        hung.Owner = garment.OwnerId != 0 ? new EntityId(garment.OwnerId) : npc.Id;
+        if (_garmentSpillScratch.Count > 0)
+        {
+            hung.Contents.AddRange(_garmentSpillScratch);
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "GarmentStowed",
+                $"{garment.DefinitionId} onto Obj={station.Id.Value} " +
+                $"({station.DefinitionId}) holds [{string.Join(",", _garmentSpillScratch)}]");
+        }
+
+        return hung;
+    }
+
     private static readonly System.Collections.Generic.List<ItemInstance> _garmentSpillScratch = new();
 
     private static readonly System.Collections.Generic.List<ItemInstance> _dressPourScratch = new();

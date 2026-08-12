@@ -4899,7 +4899,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_animator != null)
         {
             _animator.SetBool(CrawlingParam, false);
-            _animator.SetBool(LimpingParam, _posture == "Limp");
+            SyncLimpingAnimator();
+        }
+    }
+
+    // A limp is a gait, not a standing pose. Keeping the Limp state active
+    // after arrival parks the authored walk clip on an arbitrary stride frame:
+    // one knee then stays visibly bent backwards even though the NPC is idle.
+    // Preserve the impaired walk while moving and return to the straight idle
+    // stance as soon as the authoritative locomotion sampler says she stopped.
+    private void SyncLimpingAnimator()
+    {
+        if (_animator != null)
+        {
+            _animator.SetBool(LimpingParam, _posture == "Limp" && _wasWalking);
         }
     }
 
@@ -5651,6 +5664,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
              Mathf.Abs(motionYawSpeed) <= PivotYawSpeed);
         _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
+        SyncLimpingAnimator();
 
         // §109.15: ⛔ ЗДЕСЬ СТОЯЛ ДОСРОЧНЫЙ ВЫХОД ИЗ ПОЗЫ УДАРА
         // (`CrossFade(Idle)` при «пошла»). Он ломал тела: SampleMotion идёт

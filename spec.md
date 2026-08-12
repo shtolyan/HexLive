@@ -10292,6 +10292,10 @@ pass — order chosen to add robustness before difficulty.
   `Upright`. Export-only — no simulation logic changes. The poses
   themselves are presentation (Unity) and land when the pose layer reads
   this hint.
+- `Limp` is a locomotion gait, not a standing pose. A wounded or prosthetic
+  leg uses the limp clip only while the authoritative movement sampler says
+  the NPC is walking; after arrival the Animator returns to the straight
+  idle stance instead of holding an arbitrary bent-knee stride frame.
 
 ### 40.10 Clothing wear (verify + visual)
 - Verify durability actually works; **worn-out clothing turns to trash**

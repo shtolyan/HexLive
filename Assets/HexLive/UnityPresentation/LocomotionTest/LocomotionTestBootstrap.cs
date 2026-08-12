@@ -906,8 +906,6 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
             NpcActorView.FullWalkBodyHeightsPerSec * NpcActorView.SlowRunCadence);
         StrideRow("Бег", view?.ActiveGaitClip(2),
             NpcActorView.FullWalkBodyHeightsPerSec * NpcActorView.RunCadence);
-        StrideRow("Хромота (отдельный state)", view?.ActiveLimpClip(),
-            NpcActorView.LimpBodyHeightsPerSec);
 
         GUILayout.Space(6f);
         GUILayout.Label("Сглаживание вьюхи");

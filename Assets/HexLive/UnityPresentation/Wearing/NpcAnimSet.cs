@@ -35,7 +35,7 @@ namespace HexLive.UnityPresentation.Wearing
         [Header("Потеря ноги (§50) — заменяют стоячие клипы")]
         [Tooltip("Лежачий айдл без ноги (LayingBelly — лежание на животе из molly, растянуто 10x как в её Laying-стейте). На него подменяются Idle/Gather/Talk/Dress/Turn/Crouch у безногой.")]
         public AnimationClip proneIdle;
-        [Tooltip("Ползание (Zombie Crawl). На него подменяется Walk у безногой.")]
+        [Tooltip("Ползание (X Bot@Crawling). На него подменяются все gait-слоты у лежащей.")]
         public AnimationClip crawl;
         [Tooltip("§Wardrobe: надевание одежды — второй такт (после газеринга, одежда в руке). Пусто = базовый клип состояния Dress.")]
         public AnimationClip dress;

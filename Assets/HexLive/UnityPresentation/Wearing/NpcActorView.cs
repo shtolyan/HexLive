@@ -487,11 +487,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // save loaded mid-amputation shouldn't spray); real severs after fire.
     private bool _severVfxPrimed;
 
-    // Spec §50: once a leg is gone she can't stand — every standing/idle clip is
-    // swapped for the prone idle (and walking for the crawl) via the override
-    // controller; sit/sleep/lie/drink keep their own clips.
-    // §50-prone («лежит»): ANY lost leg — she crawls; prone = no tools, no
-    // weapons, no work/fight poses. Mirrors sim BodyState.IsProne.
+    // Spec §50: a body with no support on either side cannot stand. Every
+    // standing/idle clip is swapped for the existing prone idle (and walking
+    // for crawl) via the override controller; no extra leg/knee pose is layered.
+    // Driven by PostureHint=Crawl — the snapshot form of BodyState.IsProne —
+    // rather than re-deriving it from amputation visuals in this view.
     private bool _legless;
 
     private AnimationClip ProneClip => _animSet != null ? _animSet.proneIdle : null;
@@ -645,10 +645,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // 3.4 — §71.5: defaults for a run clip with no stride row of its own.
     public static float SlowRunCadence = 2.0f;
     public static float RunCadence = 3.4f;
-    // Limp is a dedicated Animator state, not one of the three gait slots.
-    // Its own clip still needs a ground-pace fallback until the laboratory
-    // writes a measured row into NpcAnimSet.strides.
-    public static float LimpBodyHeightsPerSec = 0.76f;
     // Playback still trims a little around the blended gait (a hobbling or
     // soaked girl takes slower steps), but never far from the authored rate.
     public static float MinGaitCadence = 0.35f;
@@ -2155,7 +2151,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void RefreshLeglessPresentation()
     {
-        var missingLeg =
+        var missingLeg = _posture == "Crawl" ||
             (_severedZones.Contains("LegL") && !_prostheticZones.Contains(BodyPart.LegL)) ||
             (_severedZones.Contains("LegR") && !_prostheticZones.Contains(BodyPart.LegR));
         if (_legless == missingLeg)
@@ -3896,10 +3892,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public AnimationClip ActiveGaitClip(int gaitSlot) =>
         gaitSlot >= 0 && gaitSlot < _activeGait.Length ? _activeGait[gaitSlot] : null;
 
-    /// <summary>The authored clip used by the dedicated Limp state.</summary>
-    public AnimationClip ActiveLimpClip() =>
-        _clipsByName.TryGetValue("Limp", out var clip) ? clip : null;
-
     // One locomotion slot: remember the actor's clip and play it, or hand the
     // slot back to the controller's authored take when he has none.
     private void SetLocomotionClip(string baseName, AnimationClip clip)
@@ -4889,30 +4881,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         _posture = string.IsNullOrEmpty(postureHint) ? "Upright" : postureHint;
         _winded = winded;
+        RefreshLeglessPresentation();
 
-        // Spec 40.9: a leg wound swaps the Walk cycle for the imported Limp clip.
-        // Spec §50: a LOST leg is handled by the AnimatorOverrideController
-        // instead (Idle→prone, Walk→crawl, standing actions→prone) — so the
-        // normal states play as usual and Sit/Sleep/Drink keep their own clips.
+        // Spec 40.9 r2: the dedicated limp pose was removed by player decision.
+        // Damaged and prosthetic legs use ordinary authored locomotion;
+        // mobility remains simulation-owned, but presentation never twists a
+        // knee or parks the body in a special stride state.
+        // Spec §50: the authoritative prone hint is handled by the
+        // AnimatorOverrideController instead (Idle→prone, gait→crawl, standing
+        // actions→prone), so Sit/Sleep/Drink keep their own clips.
         // The old dedicated Crawl state is NOT used (Crawling stays off), so it
         // can never hijack sitting/sleeping/drinking.
         if (_animator != null)
         {
             _animator.SetBool(CrawlingParam, false);
-            SyncLimpingAnimator();
-        }
-    }
-
-    // A limp is a gait, not a standing pose. Keeping the Limp state active
-    // after arrival parks the authored walk clip on an arbitrary stride frame:
-    // one knee then stays visibly bent backwards even though the NPC is idle.
-    // Preserve the impaired walk while moving and return to the straight idle
-    // stance as soon as the authoritative locomotion sampler says she stopped.
-    private void SyncLimpingAnimator()
-    {
-        if (_animator != null)
-        {
-            _animator.SetBool(LimpingParam, _posture == "Limp" && _wasWalking);
+            _animator.SetBool(LimpingParam, false);
         }
     }
 
@@ -5496,10 +5479,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // Layered injury body language. Faint is handled by SetLaying (the body is
-    // already down) and Limp by the animator's Limp walk state (LimpingParam),
-    // so both are skipped here. ArmHang, HeadClutch and the winded breathing
-    // are authored to spec; Crawl is a subtle placeholder until the rig can do
-    // real all-fours (the sim signal is authoritative).
+    // already down); Limp has no presentation pose. ArmHang, HeadClutch and
+    // winded breathing are authored here. Crawl is entirely handled by the
+    // prone locomotion override selected from the authoritative sim hint.
     private void ApplyPosturePose()
     {
         if (_laying || _swimming || _bodyRoot == null || _rShldr == null)
@@ -5535,10 +5517,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // угол поверх любого клипа и читался как сгибание руки в пустоту.
             case "HeadClutch":
                 break;
-            // Spec §50: "Limp" and "Crawl" are now fully animator-driven (the
-            // Limp walk state via LimpingParam; the real Crawl clip via
-            // CrawlingParam) — no procedural pose on top, which would corrupt
-            // the all-fours clip.
+            // Spec §50: Crawl has no procedural bone pose here; the locomotion
+            // override supplies the imported clip. Limp intentionally has no
+            // special pose at all.
         }
 
         // Spec 40.1: winded — a spent body heaves for breath (shoulders bob).
@@ -5664,7 +5645,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
              Mathf.Abs(motionYawSpeed) <= PivotYawSpeed);
         _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
-        SyncLimpingAnimator();
 
         // §109.15: ⛔ ЗДЕСЬ СТОЯЛ ДОСРОЧНЫЙ ВЫХОД ИЗ ПОЗЫ УДАРА
         // (`CrossFade(Idle)` при «пошла»). Он ломал тела: SampleMotion идёт
@@ -5712,19 +5692,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // _running is the sim's decision and speed only picks HOW HARD she
             // runs, plus the playback rate that keeps the feet on the ground.
             float gaitGround;
-            var limpClip = ActiveLimpClip();
-            if (_posture == "Limp" && limpClip != null)
-            {
-                // The Limp state sits outside GaitBlend. Feeding it slot 0's
-                // Walk stride made cadence independent of the authored limp
-                // cycle and especially obvious after leg health slowed the
-                // simulation. It now has the same per-clip calibration path.
-                targetGait = 0f;
-                gaitGround = bodyScale * (_animSet != null
-                    ? _animSet.StrideFor(limpClip, LimpBodyHeightsPerSec)
-                    : LimpBodyHeightsPerSec);
-            }
-            else if (!_running)
+            if (!_running)
             {
                 // §71.6: БОДРЫЙ ШАГ РАСПУСКАЕТСЯ В ПОЗУ, А НЕ В ПЕРЕМОТКУ.
                 // Здесь стояло «шаг остаётся шагом, темп доберёт каденс» — и

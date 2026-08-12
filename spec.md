@@ -10292,10 +10292,16 @@ pass — order chosen to add robustness before difficulty.
   `Upright`. Export-only — no simulation logic changes. The poses
   themselves are presentation (Unity) and land when the pose layer reads
   this hint.
-- `Limp` is a locomotion gait, not a standing pose. A wounded or prosthetic
-  leg uses the limp clip only while the authoritative movement sampler says
-  the NPC is walking; after arrival the Animator returns to the straight
-  idle stance instead of holding an arbitrary bent-knee stride frame.
+- **r2 — специальная поза хромоты отключена по решению игрока.** `Limp`
+  остаётся диагностическим `PostureHint`, но presentation его не применяет:
+  повреждённая или протезированная нога использует обычные Idle/Walk/Run/Jump,
+  `Animator.Limping` всегда сброшен, отдельный stride/cadence не выбирается и
+  колено дополнительно не вращается. Модельное замедление от функции ног
+  сохраняется.
+- `Crawl` — отдельный авторитетный случай: это snapshot-форма
+  `BodyState.IsProne`. View больше не выводит её только из голой культи: нога с
+  нулевой функцией тоже включает уже существующие prone-idle/crawl clips, так
+  что персонаж не идёт стоя вопреки данным симуляции.
 
 ### 40.10 Clothing wear (verify + visual)
 - Verify durability actually works; **worn-out clothing turns to trash**
@@ -11794,13 +11800,15 @@ a below-elbow/below-knee cut that leaves a stub (and drops the sleeve/trouser
 riding those bones) without deforming the shoulder/hip. The stump bleeds via the
 normal §40.8-D wound paint on the remaining stub (the sim already filed the deep
 wound there) — no special stump art (the "prosthetic-hole" look stays rejected,
-§40.8-D). A **lost leg** forces `PostureHint = Crawl`; presentation derives
-`_legless` from the severed/prosthetic state and makes it the highest-priority
-locomotion override: Idle becomes `NpcAnimSet.proneIdle`, and all three gait
-slots become the imported `Zombie Crawl` clip. The legacy AnyState `Crawl`
-state is not entered (`Crawling` stays false), so it cannot hijack sitting,
-sleeping or drinking. Crawl and Limp remain mutually exclusive, and the old
-procedural Crawl shoulder-pose is gone. While legless, every other standing
+§40.8-D). A **lost or zero-function leg** forces `PostureHint = Crawl`;
+presentation consumes that authoritative `BodyState.IsProne` hint instead of
+deriving pose from the visible stump/prosthesis, and makes it the
+highest-priority locomotion override: Idle becomes `NpcAnimSet.proneIdle`, and
+all three gait slots become the imported looped `X Bot@Crawling` clip. The
+legacy AnyState `Crawl` state is not entered (`Crawling` stays false), so it
+cannot hijack sitting, sleeping or drinking. The extra `Limp` pose is disabled
+(`Limping` stays false), and the old procedural Crawl shoulder-pose is gone.
+While prone, every other standing
 base clip (crouch/turn-on-spot) and standing verb —
 Gather/Talk/Dress, and **Eat/Drink** (raise-to-mouth suppressed, `X Bot@Drinking`
 overridden) — swaps to the prone idle `NpcAnimSet.proneIdle`: the `LayingBelly`
@@ -15503,9 +15511,9 @@ frame-time/GC trace, не deep profiling capture.
 в `Tests/HexLive.Simulation.Tests/Behavior/LocomotionTurnPolicyTests.cs`, а
 кнопки углов и телеметрия остаточной ошибки — в `MovementSmoothnessTest`.
 
-Хромота не ускоряет прежний шаговый клип: `NpcActorView` выбирает отдельный
-`Limp`-клип и отдельную строку калибровки (`LimpBodyHeightsPerSec`). Поэтому
-уменьшение скорости тела и cadence анимации меняются согласованно.
+Отдельная поза/клип хромоты удалены по решению игрока (§40.9 r2): повреждённая
+нога влияет на скорость в симуляции, но `NpcActorView` оставляет обычный
+Idle/Walk/Run и их штатную stride-калибровку. `Animator.Limping` всегда сброшен.
 
 ### §71.6 Бодрый шаг — это ПОЗА, а не ускоренная плёнка
 

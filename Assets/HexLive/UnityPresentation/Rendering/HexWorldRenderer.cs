@@ -2457,13 +2457,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // NEIGHBOURING tile and two beds can be equally "one tile away". Trust
         // the sim's own target first — that is the bed she walked to — and fall
         // back to the nearest by real distance, not by hex ring.
+        //
+        // ⭐ Баг #122: цель ОБЯЗАНА пройти ту же проверку соседства, что и
+        // запасная ветка ниже. Без неё вид прижимал тело к кровати, до которой
+        // полкарты: симуляция держала лежачую на улице (мокла под дождём,
+        // кровь на земле), а на экране она лежала в кровати. И это не только
+        // «криво нарисовано» — камера кадрирует КОРЕНЬ вида (он на позиции
+        // симуляции), вырез крыш и дождь идут по npc.Tile, поэтому один
+        // необеспеченный прижим читался как три разных бага. Рассинхрон обязан
+        // быть ВИДЕН: тело рисуется там, где оно есть.
         ObjectSnapshot? bed = null;
         if (npc.TargetObjectId is { } sleepTargetId)
         {
             foreach (var worldObject in snapshot.Objects)
             {
                 if (worldObject.Id.Value == sleepTargetId &&
-                    worldObject.DefinitionId.Contains("bed"))
+                    worldObject.DefinitionId.Contains("bed") &&
+                    HexSpatialMath.HexDistance(worldObject.Tile, npc.Tile) <= 1)
                 {
                     bed = worldObject;
                     break;

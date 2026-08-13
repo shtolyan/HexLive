@@ -167,20 +167,36 @@ internal static class MortalityHelpers
         WorldState world, NPCState npc, bool allowNearbyBed = false,
         int restUntilTick = int.MaxValue)
     {
+        // ⭐ Баг #122: гард кровати стоит ДО укладки, а не после неё. Раньше он
+        // висел ниже и спасал только назначение джанкшена — тело к тому моменту
+        // уже переехало на землю (TryLieDownOnGround перезаписывает Position),
+        // а Execution оставался Sleep@bed. Так уложенная в кровать пациентка
+        // после комы/умирания оказывалась телом на земле при живой заявке на
+        // кровать, вид продолжал рисовать её в кровати, и рассинхрон уезжал в
+        // сейв: переставить его назад некому — MaintainPose зовёт
+        // ExecutionSystem, а тот пропускает NPC без активного плана, которого у
+        // принесённой пациентки нет. Кровать владеет позой; здесь её
+        // переутверждаем, а не решаем заново.
+        if (npc.Execution.CurrentInteraction == InteractionType.Sleep &&
+            npc.Execution.TargetObject is { } ownedBedId &&
+            world.Entities.Objects.TryGetValue(ownedBedId, out var ownedBed) &&
+            KenshiRescueMath.IsBed(ownedBed) && ownedBed.CurrentUser == npc.Id)
+        {
+            if (BedSleep.MaintainPose(world, npc, ownedBed))
+            {
+                return;
+            }
+
+            // Кровать перестала быть годной (снесена, перестроена, легаси-репэйр
+            // топологии): заявку снять — иначе тело ляжет на землю, а вид так и
+            // будет держаться за мёртвую цель, — и лечь обычным путём.
+            KenshiRescueMath.ReleasePatientBedOnWake(world, npc);
+        }
+
         var placed = allowNearbyBed
             ? ExecutionSystem.TryLieDownForCollapse(world, npc, restUntilTick)
             : ExecutionSystem.TryLieDownOnGround(world, npc);
         if (!placed)
-        {
-            return;
-        }
-
-        // A bed owns its authored pose and occupancy. Its old standing
-        // junction must not be replaced by an arbitrary anchor inside the bed.
-        if (npc.Execution.CurrentInteraction == InteractionType.Sleep &&
-            npc.Execution.TargetObject is { } bedId &&
-            world.Entities.Objects.TryGetValue(bedId, out var bed) &&
-            KenshiRescueMath.IsBed(bed) && bed.CurrentUser == npc.Id)
         {
             return;
         }

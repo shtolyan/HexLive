@@ -91,11 +91,41 @@ calls Unity MCP does not take the lease.
 
 ## Versioned player builds
 
-The build agent uses one entry point:
+The build agent uses one entry point **per platform** — macOS and Windows are
+two scripts, not one script with a flag, because almost nothing about the
+outside of a build is portable (prefs live in `defaults` vs the registry,
+symlink vs junction, codesign vs nothing):
 
 ```bash
-python3 Tools/build_release.py
+python3 Tools/build_release.py            # macOS  → HexLive.app
+python Tools/build_release_windows.py     # Windows → HexLive/HexLive.exe
 ```
+
+Both share the version reservation, the `BUGS.json` snapshot and stamping, and
+the report/manifest shape. `HexLiveReleaseBuilder` exposes `BuildMacOS` and
+`BuildWindows` over one `Run(BuildTarget)`; each refuses to run unless Unity was
+launched with the matching `-buildTarget`.
+
+The Windows script differs where the platform forces it:
+
+- **It builds the Addressables content itself** (first Unity run,
+  `HexLiveContentBatchBuild.Build`, ~12 min), then mirrors it to
+  `~/hex-girls/HexLiveContent/StandaloneWindows64`. `--skip-content` reuses
+  `Build/AddressableContent/StandaloneWindows64` for a player-only retry. The
+  catalog is validated the same way as on macOS: it must expose wear, hair,
+  icons **and** prosthetics, or publication is refused.
+- Auto Refresh is forced on through `HKCU\Software\Unity Technologies\Unity
+  Editor 5.x` (value names are hashed, so they are matched by prefix) and
+  restored afterwards — otherwise `CompileControl` leaves batchmode running
+  `-executeMethod` against stale assemblies.
+- The «latest player» pointer and the content link are **NTFS junctions**
+  (`mklink /J`), which need no admin rights, unlike symlinks.
+- A `Temp/UnityLockfile` left by a batch run that exited non-zero is cleared
+  automatically: the file is only treated as a live editor when `Unity.exe` is
+  actually in the process table. Do not read the file alone as proof.
+- Publication retries the staging→`v<version>` rename: Windows refuses to
+  rename a directory while any file under it is open, and a `tail -f` on
+  `unity-build.log` is enough to lose a finished build.
 
 It builds the macOS development player into
 `~/hex-girls/Releases/v<version>/` on the internal disk, next to

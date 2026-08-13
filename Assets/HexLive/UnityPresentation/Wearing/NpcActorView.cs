@@ -939,6 +939,37 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : UnityEngine.AnimatorCullingMode.CullUpdateTransforms;
     }
 
+    // ⭐ Труп висел над землёй, потому что ЕГО МЕРИЛИ АВТОРСКОЙ КОРОБКОЙ.
+    //
+    // PlantDeadBodyOnSurface сажает тело по фактическому нижнему краю скина —
+    // и это верно ровно до тех пор, пока `bounds` описывают ТЕКУЩИЙ кадр.
+    // Скиннер пересчитывает их за кадр только при `updateWhenOffscreen`, а
+    // включался он единственной строкой в ApplyLying, по флагу лежания. У
+    // свежего трупа (клип смерти, `_laying` остаётся false) он не только не
+    // включался — ApplyLying зовётся КАЖДЫЙ ТИК и активно гасил его обратно.
+    // Мерка тогда бралась со стоячей авторской коробки: её низ у ступней
+    // стоящей, то есть примерно у корня, поправка выходила почти нулевой, и
+    // тело оставалось на запечённой в клипе высоте — висеть над поверхностью.
+    //
+    // Условие то же самое, что у отключения куллинга выше, и по той же
+    // причине: в этих позах авторским границам верить нельзя.
+    private void RefreshSkinBounds()
+    {
+        if (_bodySkins == null)
+        {
+            return;
+        }
+
+        var perFrameBounds = _laying || _dead || _ragdollActive;
+        foreach (var skin in _bodySkins)
+        {
+            if (skin != null)
+            {
+                skin.updateWhenOffscreen = perFrameBounds;
+            }
+        }
+    }
+
     // §21.21B: sim hop signal ("Up"/"Down"/""), fed every sync. Starts the
     // ballistic arc on a hop the sim began and we have not played yet.
     // heightDeltaWorld is the EXACT signed root-level difference
@@ -2814,16 +2845,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _layingSurfaceY = surfaceY;
         // Spec 31C.8: lying poses stretch outside the authored skin bounds and
         // get frustum-culled; per-frame bounds while sleeping keep her visible.
-        if (_bodySkins != null)
-        {
-            foreach (var skin in _bodySkins)
-            {
-                if (skin != null)
-                {
-                    skin.updateWhenOffscreen = laying;
-                }
-            }
-        }
+        // Труп держит их по своей причине (см. RefreshSkinBounds), поэтому
+        // решение принимается там, а не флагом лежания здесь.
+        RefreshSkinBounds();
 
         if (_animator != null)
         {
@@ -3049,6 +3073,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _deadWasAlreadyLying = variant < 0;
         _deathSurfaceY = surfaceY;
         RefreshAnimatorCulling();
+        RefreshSkinBounds();
         // §50: a corpse never crawls — clear the flag so the Crawl loop yields
         // to the death/laying pose (the Crawl transition also guards on !Dead).
         if (_animator != null)
@@ -3369,6 +3394,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _ragdollActive = active;
         RefreshAnimatorCulling();
+        RefreshSkinBounds();
         if (_animator != null)
         {
             _animator.enabled = !active;

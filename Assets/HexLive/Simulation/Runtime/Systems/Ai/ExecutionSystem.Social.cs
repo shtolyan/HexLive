@@ -551,21 +551,36 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            if (target.IsLyingDown(world.Tick))
-            {
-                LyingSpot.AlignInteractorAtFeet(npc, target);
-            }
-
             // Turn to face her — a caring stance. The HELPER kneels toward the
             // patient; the patient, if she's lying (coma/asleep/prone), keeps
             // her authored pose and is NOT rotated to face back (§60: a flat
             // body pivoting to look at you reads as creepy).
-            var faceDelta = new Float2(
-                target.Position.X - npc.Position.X, target.Position.Y - npc.Position.Y);
-            var faceDirection = HexSpatialMath.Normalize(faceDelta);
-            npc.RotationDegrees = HexSpatialMath.AngleDegrees(faceDirection);
-            if (!target.IsLyingDown(world.Tick))
+            //
+            // §111.13: у ЛЕЖАЩЕЙ курс задаёт станция, и он смотрит на голову, а
+            // не в центр тела. Раньше эти два ответа совпадали (с ног центр и
+            // голова на одной прямой), поэтому «повернуться к ней» стояло общей
+            // строкой; с боковых станций совпадение кончается, и общая строка
+            // молча отменила бы станционный курс.
+            if (target.IsLyingDown(world.Tick))
             {
+                // Поход по памяти (§125.7) строится без живого тела и станции не
+                // берёт — она берётся здесь, когда подопечная уже перед глазами.
+                // Идемпотентно: занятая по плану станция возвращается как есть.
+                if (!LyingStations.TryClaim(world, npc, target, out var startSlot))
+                {
+                    AbortAid(world, npc,
+                        $"No free station at NPC{targetId.Value}");
+                    return;
+                }
+
+                LyingStations.Align(npc, target, startSlot);
+            }
+            else
+            {
+                var faceDelta = new Float2(
+                    target.Position.X - npc.Position.X, target.Position.Y - npc.Position.Y);
+                var faceDirection = HexSpatialMath.Normalize(faceDelta);
+                npc.RotationDegrees = HexSpatialMath.AngleDegrees(faceDirection);
                 target.RotationDegrees = HexSpatialMath.AngleDegrees(
                     new Float2(-faceDirection.X, -faceDirection.Y));
             }
@@ -585,10 +600,7 @@ public sealed partial class ExecutionSystem
                 ? WoundMath.BandageTicks(npc)
                 : Spec53.AidDuration;
             npc.Execution.EndTick = world.Tick + aidDuration;
-            if (npc.Plan.TargetJunctionId is { } jId)
-            {
-                SpatialMutations.OccupyJunction(world, jId, npc.Id);
-            }
+            HoldSceneJunction(world, npc);
 
             // §105 r5: над ПОМОЩНИЦЕЙ всплывает знак того, ЧТО она делает —
             // крест перевязки, а не еда. Раньше все пять видов помощи давали
@@ -610,9 +622,23 @@ public sealed partial class ExecutionSystem
 
         if (npc.Execution.Status == ExecutionStatus.InProgress)
         {
+            HoldSceneJunction(world, npc);
             if (target.IsLyingDown(world.Tick))
             {
-                LyingSpot.AlignInteractorAtFeet(npc, target);
+                // §111.13: снап держит позу, но он не имеет права ДОГОНЯТЬ.
+                // Мерить надо до того, как поза приложена, иначе дистанция
+                // всегда нулевая по построению, а уползающая §50 подопечная
+                // утаскивает помощницу за собой телепортом.
+                var slot = LyingStations.SlotFor(world, npc, target);
+                if (!InteractionReach.CheckPersonStart(world, npc, target,
+                        LyingStations.Point(target, slot), LyingStations.Reach(slot),
+                        $"AidHold NPC{targetId.Value}"))
+                {
+                    AbortAid(world, npc, $"Target NPC{targetId.Value} left the aid station");
+                    return;
+                }
+
+                LyingStations.Align(npc, target, slot);
             }
 
             var remaining = npc.Execution.EndTick - world.Tick;
@@ -694,6 +720,8 @@ public sealed partial class ExecutionSystem
                 SpatialMutations.FreeJunction(world, jId, npc.Id);
                 SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
             }
+
+            LyingStations.ReleaseStation(npc);
 
             Trace.Emit(world, npc.Id, "Aided",
                 $"Kind={kind} " +

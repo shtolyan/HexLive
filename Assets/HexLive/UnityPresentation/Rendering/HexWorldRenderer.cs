@@ -1812,7 +1812,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
-            npc.InteractionSeconds);
+            npc.InteractionSeconds, npc.LyingStationSlot);
         // §119/#83: one progress indicator belongs to the working person, not
         // to the table/project. Its component follows the animated head bone in
         // LateUpdate, so sitting and lying poses need no renderer-side offsets.

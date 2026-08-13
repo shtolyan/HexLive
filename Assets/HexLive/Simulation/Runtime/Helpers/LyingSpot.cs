@@ -68,23 +68,17 @@ internal static class LyingSpot
         HexSpatialMath.HexRadius * Spec49.LieBodyWidthFactor * 0.5f;
 
     // §111.9: the lying actor root runs HEAD -> FEET along +forward.
+    // §111.13: точка у ног стала ПЕРВОЙ станцией кольца, а не единственной
+    // точкой. Три имени ниже остались её именами и считаются там же, где и все
+    // остальные станции, чтобы у геометрии был ровно один источник.
     internal static Float2 InteractionFeet(NPCState target) =>
-        target.Position + Forward(target.RotationDegrees) * BodyHalfLength;
+        LyingStations.Point(target, LyingStations.FeetSlot);
 
     internal static float InteractionHeading(NPCState target) =>
-        Wrap360(target.RotationDegrees + 180f);
+        LyingStations.Heading(target, LyingStations.FeetSlot);
 
     internal static float InteractionStationReach =>
-        InteractionReach.Aid + BodyHalfLength;
-
-    internal static void AlignInteractorAtFeet(NPCState actor, NPCState target)
-    {
-        var heading = InteractionHeading(target);
-        actor.Position = InteractionFeet(target);
-        actor.RotationDegrees = heading;
-        actor.Movement.DesiredRotationDegrees = heading;
-        actor.Movement.DesiredDirection = Forward(heading);
-    }
+        LyingStations.Reach(LyingStations.FeetSlot);
 
     /// <summary>
     /// §110.9 / §60.2a r5: an emergency posture change may use a bed only when
@@ -305,6 +299,11 @@ internal static class LyingSpot
         foreach (var other in world.Entities.Npcs.Values)
         {
             if (other.Id.Equals(npc.Id)) continue;
+            // §111.13: те, кто стоит на СТАНЦИЯХ ЭТОГО ЖЕ тела, местом не
+            // считаются. Их сцена кончается ровно тем, что она встаёт, а мерка
+            // 0.20 wu против пяти станций в 0.375 wu заперла бы её в позе:
+            // все кандидаты вокруг оказались бы «заняты» её же помощницами.
+            if (LyingStations.Held(world, other, npc) is not null) continue;
             if (DistanceSq(other.Position, junction.WorldPosition) < 0.20f * 0.20f) return false;
         }
         return true;

@@ -181,6 +181,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // §110: утешение над рыдающей — своя коленопреклонённая цепочка
     // (PrayDown → Pray → PrayUp), а не заимствованный крафтовый присед.
     private static readonly int PrayingParam = Animator.StringToHash("Praying");
+    // §111.13: сторона станции (−1 / 0 / +1) и «станция у головы».
+    private static readonly int StationSideParam = Animator.StringToHash("StationSide");
+    private static readonly int StationAtHeadParam = Animator.StringToHash("StationAtHead");
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     // Clip-based action states (built by the "HexLive ▸ Build NPC Action States"
     // editor menu). Clips are swapped in via an AnimatorOverrideController.
@@ -3540,10 +3543,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    // §111.13: слоты 1 и 3 стоят с одного борта тела, 2 и 4 — с другого.
+    // Таблица короткая нарочно: раскладка станций — правило симуляции, вид
+    // только читает её номер и не имеет права выводить сторону из позиций.
+    private static float LyingStationSide(int slot) => slot switch
+    {
+        1 or 3 => 1f,
+        2 or 4 => -1f,
+        _ => 0f
+    };
+
     // Spec 31C.6: interaction poses — crouch while gathering/working, sit
     // on Sit, and hold the relevant item in the currently functional hand.
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
-        float interactionSeconds = 0f)
+        float interactionSeconds = 0f, int lyingStationSlot = -1)
     {
         if ((_legless || !_hasUsableHand) && IsToolOrWeapon(heldItemId))
         {
@@ -3613,6 +3626,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 interaction is "Harvest" or "BuildRaft");
             _animator.SetBool(CraftingParam, kneelingCraft);
             _animator.SetBool(PrayingParam, praying); // §110
+            // §111.13: с какой станции лежащего тела она работает. Слот 0 (ноги)
+            // — прежнее поведение бит-в-бит: сторона 0, у головы нет. Боковые
+            // дают клипу зеркало и «поза у головы»; сам слот вид не вычисляет,
+            // он приезжает числом из симуляции.
+            _animator.SetFloat(StationSideParam, LyingStationSide(lyingStationSlot));
+            _animator.SetBool(StationAtHeadParam, lyingStationSlot is 3 or 4);
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.

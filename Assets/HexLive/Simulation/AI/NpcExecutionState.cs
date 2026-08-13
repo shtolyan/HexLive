@@ -14,6 +14,16 @@ public sealed class NPCExecutionState
 
     public ObjectId? TargetObject { get; set; }
 
+    // §111.13: КАКУЮ станцию лежащего тела этот персонаж держит. Заявка живёт на
+    // актёре, а не на пациентке: занятость выводится обходом держателей с
+    // предикатом живости и потому самолечится, тогда как поле-заявка на теле
+    // («слот k занят таким-то») пришлось бы чистить во всех выходах из сцены —
+    // аборт плана, пробуждение, смерть, подъём на руки, — и один забытый навсегда
+    // отнимал бы место. -1 = не держит ничего.
+    public EntityId? LyingStationTargetId { get; set; }
+
+    public int LyingStationSlot { get; set; } = -1;
+
     public int StartTick { get; set; }
 
     public int EndTick { get; set; }

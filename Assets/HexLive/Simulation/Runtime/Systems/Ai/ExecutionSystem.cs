@@ -2337,6 +2337,32 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         npc.ClaimedJunctions.Clear();
     }
 
+    // Сколько тиков живёт бронь узла, на котором идёт сцена. Ровно столько же
+    // просит планировщик, когда бронирует подход.
+    internal const int SceneJunctionHoldTicks = 48;
+
+    /// <summary>
+    /// §111.13: удержать узел, на котором персонаж СЕЙЧАС работает, пока сцена
+    /// не кончилась. Бронь выдаётся на 48 тиков, а помощь §53 длится 70, обыск
+    /// §111 — до 240, лечение конечности и того дольше: всю вторую половину
+    /// сцены узел формально свободен, и держала его только безусловная запись
+    /// владельца. С одним участником это не всплывало; с несколькими второй
+    /// пришедший забирал просроченную бронь, а освобождение первого становилось
+    /// no-op. Поэтому бронь перевзводится в том же месте, где сцена и так
+    /// повторяет свою позу каждый тик.
+    /// </summary>
+    internal static void HoldSceneJunction(WorldState world, NPCState npc)
+    {
+        if (npc.Plan.TargetJunctionId is not { } junction)
+        {
+            return;
+        }
+
+        SpatialMutations.TryReserveJunction(
+            world, junction, npc.Id, world.Tick, SceneJunctionHoldTicks);
+        SpatialMutations.TryOccupyJunction(world, junction, npc.Id);
+    }
+
     private static void PlaceAtEdge(
         WorldState world, NPCState npc, Junction edge, TileCoord standTile, Float2 facing)
     {

@@ -726,6 +726,10 @@ public static class WorldSnapshotExporter
             // same zero-guard as the ticks above.
             InteractionSeconds = hasTimedInteraction ? execTotal * world.TickDeltaTime : 0f,
             AidTargetLyingDown = aidTargetLying,
+            // §111.13: станция едет ЧИСЛОМ, а не выводится видом из геометрии —
+            // рендер интерполирует кадры, и производная станция мигала бы на
+            // границах (тот же урок, что §111.9 r2/r3: позицией владеет симуляция).
+            LyingStationSlot = npc.Execution.LyingStationSlot,
             HeldGarmentId = heldGarmentId,
             // §40.6 r2: live condition of the held piece — the hand prop shows
             // the dirt actually washing out during the scrub.

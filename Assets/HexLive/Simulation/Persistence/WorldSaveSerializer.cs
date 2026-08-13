@@ -90,7 +90,7 @@ public static class WorldSaveSerializer
     // сытость. Объекта `body.limb_severed` в мире на это время НЕТ (его забрали
     // с земли), так что без этих полей загрузка молча уничтожала бы ногу вместе
     // со сценой; старый блоб читается «пасть пуста, зверь не сыт».
-    public const int BlobVersion = 43;
+    public const int BlobVersion = 44;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1139,6 +1139,12 @@ public static class WorldSaveSerializer
         w.Write(execution.FailureReason);
         w.Write(execution.LastCompletedTick);
 
+        // §111.13 (v44): чью станцию и какую держит. Цели Aid и LootHelpless
+        // переживают сохранение, поэтому без этих двух полей все после загрузки
+        // перебирали бы станции заново и держатель ног менялся — видимый скачок.
+        WriteNullableEntity(w, execution.LyingStationTargetId);
+        w.Write(execution.LyingStationSlot);
+
         // §gear-craft v2: the staged craft's laid-out ground items (inputs
         // during the work beat, the finished output during the take beat).
         w.Write(execution.CraftLayout.Count);
@@ -1615,6 +1621,17 @@ public static class WorldSaveSerializer
         execution.EndTick = r.ReadInt32();
         execution.FailureReason = r.ReadString();
         execution.LastCompletedTick = r.ReadInt32();
+
+        if (version >= 44)
+        {
+            execution.LyingStationTargetId = ReadNullableEntity(r);
+            execution.LyingStationSlot = r.ReadInt32();
+        }
+        else
+        {
+            execution.LyingStationTargetId = null;
+            execution.LyingStationSlot = -1;
+        }
 
         execution.CraftLayout.Clear();
         if (version >= 10)

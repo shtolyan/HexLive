@@ -92,18 +92,25 @@ public sealed partial class ExecutionSystem
         if (npc.Execution.Status == ExecutionStatus.None)
         {
             // The path may only hand off locally: accept the short move from
-            // its free approach to the occupied feet station, but never
-            // teleport across the camp if a future planner supplies junk.
-            var feet = LyingSpot.InteractionFeet(mark);
-            if (!InteractionReach.CheckPersonStart(world, npc, mark, feet,
-                    LyingSpot.InteractionStationReach,
-                    $"LootHelpless feet of NPC{mark.Id.Value}"))
+            // its free approach to the station itself, but never teleport
+            // across the camp if a future planner supplies junk.
+            // §111.13: §102 r2 разрешает начать обыск прямо с места, без похода,
+            // — такой план станции не берёт, поэтому она берётся здесь.
+            if (!LyingStations.TryClaim(world, npc, mark, out var startSlot))
             {
-                AbortLootHelpless(world, npc, "FeetStationOutOfReach");
+                AbortLootHelpless(world, npc, "NoFreeStation");
                 return;
             }
 
-            LyingSpot.AlignInteractorAtFeet(npc, mark);
+            if (!InteractionReach.CheckPersonStart(world, npc, mark,
+                    LyingStations.Point(mark, startSlot), LyingStations.Reach(startSlot),
+                    $"LootHelpless station of NPC{mark.Id.Value}"))
+            {
+                AbortLootHelpless(world, npc, "StationOutOfReach");
+                return;
+            }
+
+            LyingStations.Align(npc, mark, startSlot);
 
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.Loot;
@@ -111,10 +118,7 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + Spec111.LootHelplessMaxSceneTicks;
             npc.Mind.LootHelplessTakenCount = 0;
-            if (npc.Plan.TargetJunctionId is { } jId)
-            {
-                SpatialMutations.OccupyJunction(world, jId, npc.Id);
-            }
+            HoldSceneJunction(world, npc);
 
             // The body cannot call for help while unconscious. Nearby allies
             // who see the search treat it as an attack and run at the looter.
@@ -130,10 +134,23 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // Hold the single shared feet->head pose for the whole scene. This is
-        // positional presentation data owned by the simulation, like shore
-        // washing: renderer interpolation must not guess it independently.
-        LyingSpot.AlignInteractorAtFeet(npc, mark);
+        // Hold the pose for the whole scene. This is positional presentation
+        // data owned by the simulation, like shore washing: renderer
+        // interpolation must not guess it independently.
+        HoldSceneJunction(world, npc);
+
+        // §111.13: удержание позы — не погоня. Мерить до снапа, иначе
+        // дистанция нулевая по построению и уехавшее тело утаскивает лутера.
+        var holdSlot = LyingStations.SlotFor(world, npc, mark);
+        if (!InteractionReach.CheckPersonStart(world, npc, mark,
+                LyingStations.Point(mark, holdSlot), LyingStations.Reach(holdSlot),
+                $"LootHold NPC{mark.Id.Value}"))
+        {
+            AbortLootHelpless(world, npc, "MarkLeftStation");
+            return;
+        }
+
+        LyingStations.Align(npc, mark, holdSlot);
 
         // Потолок сцены — страховка от зависшего такта, а не игровой срок.
         if (world.Tick >= npc.Execution.EndTick)
@@ -200,6 +217,8 @@ public sealed partial class ExecutionSystem
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
 
+        LyingStations.ReleaseStation(npc);
+
         if (mark.Mind.PendingLootedBy is { } claimed && claimed.Equals(npc.Id))
         {
             mark.Mind.PendingLootedBy = null;
@@ -265,6 +284,8 @@ public sealed partial class ExecutionSystem
             SpatialMutations.FreeJunction(world, jId, npc.Id);
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
+
+        LyingStations.ReleaseStation(npc);
 
         if (SimTrace.Enabled)
         {

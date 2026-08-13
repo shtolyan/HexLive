@@ -564,6 +564,12 @@ public sealed class NpcSnapshot
     // just stands and shows the item in hand. False when not aiding.
     public bool AidTargetLyingDown { get; set; }
 
+    // §111.13: КАКУЮ станцию лежащего тела занимает этот персонаж (0 — ноги,
+    // 1..4 — бока, -1 — никакую). Вид не имеет права выводить её из позиций:
+    // рендер интерполирует кадры, и производная станция мигала бы на границах.
+    // Клип берёт отсюда сторону и «у головы ли она».
+    public int LyingStationSlot { get; set; } = -1;
+
     // Iter 28: sitting at a one-step ledge junction — the presentation
     // lifts the body so the butt rests on the upper step. Export-only.
     public bool IsLedgeSit { get; set; }

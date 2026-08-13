@@ -715,9 +715,15 @@ internal static class ManualCommandExecutor
         looter.Plan.TargetItemDefinitionId = command.Item.ExpectedDefinitionId;
         looter.Plan.TargetTile = other.Tile;
 
+        // §111.13: приказ игрока идёт мимо планировщика, поэтому станцию он
+        // занимает прямо здесь — иначе ручной обмен остался бы единственным
+        // путём, который по-прежнему делит точку у ног с чужой сценой.
+        var orderSlot = LyingStations.TryClaim(world, looter, other, out var claimed)
+            ? claimed
+            : LyingStations.SlotFor(world, looter, other);
         var closeEnough = InteractionReach.CheckPersonStart(
-            world, looter, other, LyingSpot.InteractionFeet(other),
-            LyingSpot.InteractionStationReach,
+            world, looter, other, LyingStations.Point(other, orderSlot),
+            LyingStations.Reach(orderSlot),
             $"Player inventory transfer with NPC{other.Id.Value}");
         if (!closeEnough)
         {

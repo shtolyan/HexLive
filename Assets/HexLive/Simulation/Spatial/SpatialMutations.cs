@@ -75,6 +75,27 @@ public static class SpatialMutations
         world.Occupancy.JunctionOwner[junctionId] = owner;
     }
 
+    /// <summary>
+    /// §111.13: то же самое, но НЕ отнимая узел у живого владельца. Обычный
+    /// <see cref="OccupyJunction"/> перезаписывает владельца безусловно, и пока
+    /// к лежащему телу подходил один человек, это было безобидно. Со сценой на
+    /// несколько участников — уже нет: второй пришедший молча становился
+    /// владельцем, а <see cref="FreeJunction"/> первого превращался в no-op
+    /// (он сверяет владельца), и узел оставался занятым навсегда.
+    /// </summary>
+    public static bool TryOccupyJunction(
+        WorldState world, JunctionId junctionId, EntityId owner)
+    {
+        if (world.Occupancy.JunctionOwner.TryGetValue(junctionId, out var existing) &&
+            existing is { } holder && holder != owner)
+        {
+            return false;
+        }
+
+        world.Occupancy.JunctionOwner[junctionId] = owner;
+        return true;
+    }
+
     public static void FreeJunction(WorldState world, JunctionId junctionId, EntityId owner)
     {
         if (world.Occupancy.JunctionOwner.TryGetValue(junctionId, out var existing) && existing == owner)

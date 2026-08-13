@@ -699,6 +699,7 @@ public static class WorldSnapshotCodec
         w.Write(n.IsSadWalk); // §81.10
         w.Write(n.IsPlayingDead); // §105.14
         w.Write(n.AidTargetLyingDown);
+        w.Write(n.LyingStationSlot); // §111.13
         w.Write(n.IsLedgeSit);
         w.Write(n.LedgeSeatStepsUp);
         w.Write(n.IsWaking);
@@ -958,6 +959,7 @@ public static class WorldSnapshotCodec
         n.IsSadWalk = r.ReadBoolean(); // §81.10
         n.IsPlayingDead = r.ReadBoolean(); // §105.14
         n.AidTargetLyingDown = r.ReadBoolean();
+        n.LyingStationSlot = r.ReadInt32(); // §111.13
         n.IsLedgeSit = r.ReadBoolean();
         n.LedgeSeatStepsUp = r.ReadInt32();
         n.IsWaking = r.ReadBoolean();

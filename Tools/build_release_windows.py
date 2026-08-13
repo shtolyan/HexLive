@@ -112,10 +112,18 @@ def parse_args() -> argparse.Namespace:
 
 
 def git(*args: str, check: bool = True) -> str:
+    # Decode git's output as UTF-8 EXPLICITLY. `text=True` alone decodes with
+    # the process locale, which on this Windows box is cp1252 — and the commit
+    # subjects in this repository are Russian. The build then died reading its
+    # own Git history, but only once a previous build existed to compare
+    # against: without `.last-success.json` the script never asks for a commit
+    # LIST, so the bug stayed invisible through the first build.
     result = subprocess.run(
         ["git", *args],
         cwd=ROOT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,

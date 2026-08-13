@@ -650,7 +650,7 @@ public sealed class KenshiCoreTests
         healer.Inventory.Items.Add(ContentIds.Splint);
 
         var applied = KenshiProstheticMath.ApplySplint(
-            healer, patient, BodyPart.LegR);
+            world, healer, patient, BodyPart.LegR);
 
         Assert.Multiple(() =>
         {

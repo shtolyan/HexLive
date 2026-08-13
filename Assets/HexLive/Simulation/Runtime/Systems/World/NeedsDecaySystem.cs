@@ -278,6 +278,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             var prevEnergy = npc.Needs.Energy;
             var prevComfort = npc.Needs.Comfort;
             var prevSocial = npc.Needs.Social;
+            // §50: лежала ли она в начале тика. Всё, что ниже, умеет вернуть
+            // ноге функцию — естественная регенерация, бинт, таблетка, — и
+            // тогда тело поднимается с земли клипом вставания. Замер стоит
+            // ЗДЕСЬ, один на весь тик, а не у каждого места лечения: так ни
+            // один будущий источник заживления не сможет его забыть.
+            var wasProne = npc.Body.IsProne;
 
             // Spec §60: coma wake check — the body comes to the moment the
             // stat that felled it climbs back over the threshold. Checked
@@ -1141,6 +1147,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     $"Social={prevSocial:F3}->{npc.Needs.Social:F3}(-{SocialRate}) " +
                     $"Sweat={sweat:F2}");
             }
+
+            // §50/§41.5: встала за этот тик — дать доиграть клип подъёма,
+            // иначе сим повезёт её сразу и ноги поедут по земле (баг #1).
+            MortalityHelpers.GrantStandUpGrace(world, npc, wasProne);
         }
 
         // Spec 40.16: joint-plan advisor trigger. On the rising edge of a

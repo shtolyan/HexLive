@@ -120,7 +120,8 @@ internal static class KenshiProstheticMath
             : Spec118.WoodenProstheticInstallTicks;
     }
 
-    internal static bool ApplySplint(NPCState helper, NPCState patient, BodyPart part)
+    internal static bool ApplySplint(
+        WorldState world, NPCState helper, NPCState patient, BodyPart part)
     {
         if (!helper.Inventory.Items.Remove(ContentIds.Splint) ||
             patient.Body.IsSevered(part) || HasUnstabilizedWound(patient, part))
@@ -128,10 +129,14 @@ internal static class KenshiProstheticMath
             return false;
         }
 
+        // §50: шина на ногу с нулевой функцией тоже поднимает лежачую — значит
+        // и ей нужно время на клип вставания (см. MortalityHelpers).
+        var wasProne = patient.Body.IsProne;
         var medicine = MathUtil.Clamp01(helper.Skills.Medicine);
         patient.Body.Condition(part).SplintSupport =
             Spec118.SplintSupportNovice +
             (Spec118.SplintSupportExpert - Spec118.SplintSupportNovice) * medicine;
+        MortalityHelpers.GrantStandUpGrace(world, patient, wasProne);
         return true;
     }
 
@@ -146,6 +151,10 @@ internal static class KenshiProstheticMath
         }
 
         var condition = patient.Body.Condition(part);
+        // §50: лежала ли она ДО починки/установки. Нога, которая снова держит,
+        // поднимает тело с земли — а подъём это клип, и ему нужно время (см.
+        // GrantStandUpGrace ниже).
+        var wasProne = patient.Body.IsProne;
         if (repair)
         {
             if (condition.Prosthetic is not { } existing ||
@@ -155,6 +164,7 @@ internal static class KenshiProstheticMath
             }
 
             existing.Condition = existing.MaxCondition;
+            MortalityHelpers.GrantStandUpGrace(world, patient, wasProne);
             return true;
         }
 
@@ -186,6 +196,7 @@ internal static class KenshiProstheticMath
             Mechanical = mechanical
         };
         EquipmentMath.RecalculateCapacity(world, patient);
+        MortalityHelpers.GrantStandUpGrace(world, patient, wasProne);
         return true;
     }
 

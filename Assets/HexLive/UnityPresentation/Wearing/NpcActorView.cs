@@ -251,6 +251,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private const string SleepStateName = "Sleep";
     private const string IdleStateName = "Idle";
     private const string FallenIdleStateName = "FallenIdle";
+    // §50: подъём с земли — состояние StandUp (клип X Bot@Standing Up, 50
+    // кадров). Из него граф сам уходит в Idle по exit time.
+    private const string StandUpStateName = "StandUp";
+    // Вход в подъём смешиваем чуть дольше, чем смену лежачих поз: стартовый
+    // кадр клипа не совпадает с позой, в которой она лежала.
+    private const float StandUpBlendSeconds = 0.25f;
     // Длина этого перехода, В СЕКУНДАХ (отсюда CrossFadeInFixedTime: у обычного
     // CrossFade длительность нормализована по КЛИПУ-ЦЕЛИ, а Sleep играет на
     // скорости 0.4 — те же «0.2» стали бы там секундами). Не ноль: обе позы
@@ -2314,6 +2320,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             RestoreLeglessClipOverrides();
             ResolveLocomotionSlots();
+
+            // §50: С ЗЕМЛИ ВСТАЮТ, А НЕ ПОЯВЛЯЮТСЯ СТОЯ.
+            //
+            // Обратный переход — «нога снова держит» (поставили протез, зажила
+            // культя) — раньше просто подменял лежачий айдл на стоячий, и тело
+            // щёлкало из позы лёжа в стойку одним кадром. Теперь играем клип
+            // подъёма (состояние StandUp, X Bot@Standing Up); дальше граф сам
+            // уводит её в Idle по exit time, поэтому ничего доигрывать руками
+            // не нужно.
+            //
+            // ⚠️ Только по РЕБРУ: метод выходит выше, если _legless не менялся
+            // (см. ранний return), а рендерер зовёт SetPosture каждый тик —
+            // покадровый CrossFade это §109.15.
+            //
+            // Лежащую не поднимаем: она встанет своей цепочкой Sleep -> GetUp,
+            // когда сим её разбудит. Мёртвую и плывущую — тем более.
+            if (_animator != null && !_laying && !_swimming && !_dead && !_ragdollActive)
+            {
+                _animator.CrossFadeInFixedTime(StandUpStateName, StandUpBlendSeconds, 0);
+            }
         }
 
         // A repaired leg allows work/weapons again; a newly bare stump removes

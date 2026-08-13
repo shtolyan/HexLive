@@ -87,7 +87,7 @@ public sealed partial class ExecutionSystem
         }
 
         var applied = splinting
-            ? KenshiProstheticMath.ApplySplint(helper, patient, part)
+            ? KenshiProstheticMath.ApplySplint(world, helper, patient, part)
             : KenshiProstheticMath.FitOrRepair(
                 world, helper, patient, part, itemId, repair);
         if (!applied)

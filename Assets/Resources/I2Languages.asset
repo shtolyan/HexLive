@@ -18417,6 +18417,1254 @@ MonoBehaviour:
       - 'Перетащите сюда, чтобы положить вещь на землю'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'journal.button'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Journal'
+      - 'Дневник'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.journal'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Journal'
+      - 'Дневник'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.subtitle'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0}''s own words'
+      - 'Её словами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.empty'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The first page is still blank.'
+      - 'Первая страница ещё пуста.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.unread'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'new'
+      - 'новых'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.me'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I'
+      - 'Я'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing much happened.'
+      - 'Ничего особенного не случилось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A quiet hour. For once.'
+      - 'Тихий час. Хоть один.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.v2'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing worth remembering.'
+      - 'Ничего, что стоило бы запомнить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.v3'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The island let me be today.'
+      - 'Сегодня остров меня не трогал.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.span.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} hours went by, and nothing happened at all.'
+      - '{0} часа прошли, и ничего не случилось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.span.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} quiet hours in a row. I almost don''t trust it.'
+      - '{0} тихих часа подряд. Я почти не верю.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.span.v2'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} hours of nothing. I''ll take it.'
+      - '{0} часа пустоты. И на том спасибо.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.span.v3'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} hours, and not one thing worth writing down.'
+      - '{0} часа — и ни одной строчки, которую стоило бы писать.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.chores.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Just the usual: {0}.'
+      - 'Как всегда: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.chores.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I kept my hands busy: {0}.'
+      - 'Руки были заняты: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.chores.v2'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Only chores — {0}.'
+      - 'Одна работа — {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.quiet.chores.v3'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0}. That was the whole day.'
+      - '{0}. Вот и весь день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.TreeChopped'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'felled a tree'
+      - 'валила дерево'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.CrownChopped'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'cut down a crown'
+      - 'срубала крону'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.LogSplit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'split logs'
+      - 'колола брёвна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.BoulderBroken'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'broke stone'
+      - 'била камень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.CoconutProcessed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'husked coconuts'
+      - 'чистила кокосы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.CoconutDrank'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'drank coconut water'
+      - 'пила кокосовую воду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.CoconutEaten'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'ate coconut'
+      - 'ела кокос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.MeatEaten'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'ate meat'
+      - 'ела мясо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.MeatRoasted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'roasted meat'
+      - 'жарила мясо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.MeatHungOnSpit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'hung meat on the spit'
+      - 'вешала мясо на вертел'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.BottleFilled'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'filled the bottle'
+      - 'наполняла бутылку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.DrankBottle'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'drank from the bottle'
+      - 'пила из бутылки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.FireLit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'lit the fire'
+      - 'разжигала костёр'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.FireFueled'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'fed the fire'
+      - 'подкидывала в костёр'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.BuildProgress'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'worked on the build'
+      - 'возилась со стройкой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.RaftProgress'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'worked on the raft'
+      - 'возилась с плотом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.BandageCrafted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'rolled bandages'
+      - 'крутила бинты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.ClothesStowed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'put clothes away'
+      - 'убирала одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.TalkRequested'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'tried to talk to someone'
+      - 'звала кого-то поговорить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.chore.InteractionBlocked'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'waited my turn'
+      - 'ждала своей очереди'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} helped me. I won''t forget it.'
+      - '{0} мне помогла. Я этого не забуду.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} came to me with {1}. Just came, without being asked twice.'
+      - '{0} пришла ко мне — {1}. Просто пришла, не заставила просить дважды.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.tender.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} is wonderful. She helped me — {1} — and I could have cried.'
+      - '{0} замечательная. Она мне помогла — {1}, — и я чуть не расплакалась.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.tender.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I love {0}. Really love her.'
+      - 'Я обожаю {0}. Правда обожаю.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.hurt.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I was in a bad way, and {0} helped me — {1}. I love her for that.'
+      - 'Мне было совсем худо, и {0} мне помогла — {1}. За это я её и люблю.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.hurt.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} found me. I don''t know what I would have done alone.'
+      - '{0} меня нашла. Не знаю, что бы я делала одна.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.dying.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} got to me in time. I was already saying goodbye to everything.'
+      - '{0} успела. Я уже со всем прощалась.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.hurt.beloved.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How wonderful {0} is. I adore her — especially for giving me water when I was so far gone.'
+      - 'Какая {0} классная. Я её обожаю — особенно за то, что напоила меня, когда мне было так плохо.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.hurt.beloved.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0}. Always {0}. She sat with me and made it stop hurting so much.'
+      - '{0}. Всегда {0}. Она посидела рядом, и стало не так больно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.tender.beloved.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} took care of me today. She is the best thing on this island.'
+      - '{0} сегодня обо мне позаботилась. Она — лучшее, что есть на этом острове.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.cold.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} helped me. Fine. I said thank you and we both pretended.'
+      - '{0} мне помогла. Ладно. Я сказала спасибо, и обе сделали вид.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.got.hated.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Of all people, {0} was the one to help me. I hate that I needed it.'
+      - 'Помогла мне именно {0}. Ненавижу, что мне это было нужно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I helped {0} — {1}. She needed it.'
+      - 'Я помогла {0} — {1}. Ей было нужно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.did.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} was in a bad way. I did what I could.'
+      - '{0} было плохо. Я сделала что могла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.did.tender.beloved.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I looked after {0} today. I would do it again tomorrow.'
+      - 'Сегодня я возилась с {0}. И завтра снова буду.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Aided.did.weary.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I helped {0}. I had nothing left myself, but I helped.'
+      - 'Помогла {0}. У самой ничего не осталось, но помогла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FoodShared.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} gave me food. I was starving.'
+      - '{0} дала мне поесть. Я умирала с голоду.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FoodShared.got.tender.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} shared her food with me. Nobody made her.'
+      - '{0} поделилась со мной едой. Её никто не заставлял.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FoodShared.got.hurt.beloved.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} fed me when I had nothing. I will remember that for as long as I live.'
+      - '{0} накормила меня, когда у меня не было ничего. Буду помнить, пока живу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FoodShared.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I gave {0} some of mine. She looked worse than me.'
+      - 'Отдала {0} часть своего. Она выглядела хуже меня.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryDefended.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} stepped in front of me. In front of ME.'
+      - '{0} встала передо мной. Передо МНОЙ.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryDefended.got.tender.beloved.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} fought for me today. I have never had anyone do that.'
+      - 'Сегодня {0} за меня дралась. За меня никто никогда не дрался.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryDefended.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I got between {0} and the thing that wanted her.'
+      - 'Я встала между {0} и тем, что до неё добиралось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryAnswered.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I screamed, and {0} came.'
+      - 'Я закричала — и {0} пришла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryAnswered.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} was screaming. I ran.'
+      - '{0} кричала. Я побежала.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryIgnored.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I screamed. {0} heard me. {0} did not come.'
+      - 'Я кричала. {0} слышала. {0} не пришла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryIgnored.got.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'So that''s how it is. I called for {0} and she looked away.'
+      - 'Вот, значит, как. Я звала {0}, а она отвернулась.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCry.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I screamed for help until my throat gave out.'
+      - 'Я звала на помощь, пока не сорвала голос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCry.got.dying.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I called and called. Nobody. Just the sound of my own voice.'
+      - 'Я звала и звала. Никого. Только мой собственный голос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpMoan.got.dying.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I couldn''t scream any more. I could only lie there and make a sound.'
+      - 'Кричать я уже не могла. Только лежать и мычать.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Collapsed.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'My legs went. I went down and I did not get up.'
+      - 'Ноги подкосились. Я упала и не встала.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Collapsed.got.dying.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I feel so bad. I think I''m dying. Is this really how it ends?'
+      - 'Мне так плохо. Я, кажется, умираю. Неужели на этом всё закончится?'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Collapsed.got.dying.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Everything is going far away. I don''t want to. I really don''t want to.'
+      - 'Всё уходит куда-то далеко. Я не хочу. Я очень не хочу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Collapsed.got.dying.v2'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'So this is it. Right here, on this sand, and nobody knows.'
+      - 'Значит, вот так. Здесь, на этом песке, и никто не знает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Rescued.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Someone got to me. I am still here.'
+      - 'Кто-то до меня добрался. Я всё ещё здесь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Rescued.got.tender.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I opened my eyes and I was alive. I am still not used to it.'
+      - 'Я открыла глаза и была жива. До сих пор не привыкну.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Rescued.got.dying.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'They pulled me back. I was already gone, and they pulled me back.'
+      - 'Меня вытащили. Я уже уходила — и меня вытащили.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WoundInflicted.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'It got me. {1}. It hurts.'
+      - 'Меня достали. {1}. Больно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WoundInflicted.got.hurt.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{1}. I keep pressing on it and it keeps coming through.'
+      - '{1}. Зажимаю — и всё равно проступает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WoundInflicted.got.dying.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{1}. I can''t stop the bleeding. I can''t stop it.'
+      - '{1}. Не могу остановить кровь. Не могу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.LimbSevered.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I lost it. {1}. It''s gone and it is not coming back.'
+      - 'Я её лишилась. {1}. Её нет, и она не вернётся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.LimbSevered.got.dying.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{1}. I looked at where it used to be and I stopped understanding anything.'
+      - '{1}. Я посмотрела туда, где она была, и перестала что-либо понимать.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.MobTookLimb.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'It took it away in its teeth. Mine. It took a part of me away.'
+      - 'Он унёс её в зубах. Мою. Он унёс часть меня.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.SharkBite.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Something took me from below. I didn''t even see it.'
+      - 'Что-то взяло меня снизу. Я даже не увидела.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DogFight.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I fought it off. My hands are still shaking.'
+      - 'Я отбилась. Руки до сих пор трясутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DogFight.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I fought it off. My hands are still shaking.'
+      - 'Я отбилась. Руки до сих пор трясутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FellAsleepExhausted.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I simply switched off. Mid-step.'
+      - 'Я просто выключилась. Прямо на ходу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FellAsleepExhausted.got.weary.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'There was nothing left in me. I went down where I stood.'
+      - 'Во мне уже ничего не осталось. Легла там, где стояла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FaintedBloodLoss.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Everything went white and then went out.'
+      - 'Всё побелело, а потом погасло.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Fainted.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I blacked out. I don''t know for how long.'
+      - 'Я отключилась. Не знаю, надолго ли.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WokeUp.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I woke up. Still here, then.'
+      - 'Я очнулась. Значит, всё ещё здесь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.CryingBreakdown.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I lay down and cried and could not stop.'
+      - 'Я легла и плакала, и не могла перестать.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.CryingBreakdown.got.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I broke. Just lay there and howled like an animal.'
+      - 'Меня сорвало. Просто лежала и выла, как зверь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.StatusStarving.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The hunger has stopped being hunger. It''s something else now.'
+      - 'Голод перестал быть голодом. Теперь это что-то другое.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.StatusDehydrated.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'My mouth is sand. I think about water and nothing else.'
+      - 'Во рту песок. Я думаю о воде и больше ни о чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.StatusOverheated.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The heat is eating me alive.'
+      - 'Жара съедает меня заживо.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Sunburn.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The sun took {1}. It burns to touch.'
+      - 'Солнце сожгло {1}. Больно даже тронуть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.GotSick.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Something is wrong with me. It came on fast.'
+      - 'Со мной что-то не так. Накрыло быстро.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Bandaged.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I dressed my wounds. Badly, but I dressed them.'
+      - 'Перевязала раны. Плохо, но перевязала.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Medicated.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I took a pill. Now I wait.'
+      - 'Приняла таблетку. Теперь жду.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Preyed.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} came at me. {0}. One of ours.'
+      - '{0} напала на меня. {0}. Своя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Preyed.got.hurt.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} looked at me like I was meat. And then she was on me.'
+      - '{0} смотрела на меня, как на мясо. А потом бросилась.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Preyed.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I did it. I was so hungry that I stopped seeing a person in {0}.'
+      - 'Я это сделала. Мне было так голодно, что я перестала видеть в {0} человека.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Preyed.did.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I went for {0}. I am not writing down why. I know why.'
+      - 'Я бросилась на {0}. Не пишу зачем. Я знаю зачем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.PreyFoughtBack.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I fought {0} off. I didn''t think I had it in me.'
+      - 'Я отбилась от {0}. Не думала, что смогу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.PreyFled.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I ran from {0}. I ran and I did not look back.'
+      - 'Я убежала от {0}. Бежала и не оглядывалась.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.StrippedHelpless.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I was lying there and {0} went through my things. I felt every hand.'
+      - 'Я лежала, а {0} рылась в моих вещах. Я чувствовала каждое прикосновение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.StrippedHelpless.got.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} stripped me while I could not move. I will remember.'
+      - '{0} обобрала меня, пока я не могла шевельнуться. Я запомню.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.StrippedHelpless.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} was lying there and I took what she had. I am not proud.'
+      - '{0} лежала, и я забрала, что у неё было. Гордиться нечем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FoodStolen.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} took my food. Right out of my hands.'
+      - '{0} забрала мою еду. Прямо из рук.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.GroupHuntTargetFled.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'They came for me together. All of them at once.'
+      - 'Они пришли за мной вместе. Все сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.GroupHuntPactFormed.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'We agreed about {0} today. There was no other way.'
+      - 'Сегодня мы сговорились насчёт {0}. По-другому было никак.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.NightRaid.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'They came in the dark. I heard them before I saw them.'
+      - 'Они пришли в темноте. Я услышала их раньше, чем увидела.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.ThreatSpotted.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I saw it before it saw me. That is the only reason I am writing this.'
+      - 'Я заметила его раньше, чем он меня. Только поэтому и пишу это.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Grieving.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} is dead. I keep turning round to look for her.'
+      - '{0} умерла. Я всё оборачиваюсь её искать.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Grieving.got.hurt.beloved.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} is gone. I don''t know how to be here without her.'
+      - '{0} больше нет. Я не знаю, как здесь быть без неё.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Mourned.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I sat with {0} for a while. It was the only thing left to do.'
+      - 'Посидела немного с {0}. Больше сделать было нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TalkQuarreled.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} and I had it out. Both of us said too much.'
+      - 'Мы с {0} поругались. Обе наговорили лишнего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TalkQuarreled.did.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I shouted at {0}. I meant every word of it and I hate that.'
+      - 'Я наорала на {0}. Каждое слово всерьёз — и мне за это противно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TalkQuarreled.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} went at me over nothing. Or maybe not over nothing.'
+      - '{0} накинулась на меня из-за ерунды. А может, и не из-за ерунды.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TalkCompleted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} and I talked. It was good to just talk.'
+      - 'Поговорили с {0}. Хорошо было просто поговорить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TalkCompleted.did.tender.beloved.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I talked to {0} for a long time. Those hours are the reason I''m still sane.'
+      - 'Долго говорила с {0}. Только на таких часах я и держусь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.InteractionRejected.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} did not want to talk to me. Fine.'
+      - '{0} не захотела со мной говорить. Ну и ладно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.InteractionRejected.got.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} brushed me off. I won''t ask twice.'
+      - '{0} от меня отмахнулась. Второй раз я не попрошу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WearPermissionRefused.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} wouldn''t lend me her things. Hers is hers, I suppose.'
+      - '{0} не дала мне свои вещи. Своё есть своё, наверное.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WearPermissionGranted.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} lent me her things. That''s not a small thing here.'
+      - '{0} одолжила мне свои вещи. Здесь это немало.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.AidWaitTimeout.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I waited for {0}. She never came.'
+      - 'Я ждала {0}. Она не пришла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.BedCrafted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I have a bed. A real place of my own to lie down.'
+      - 'У меня есть кровать. Настоящее своё место, чтобы лечь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TentCrafted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I put up a shelter. There is shade now.'
+      - 'Поставила навес. Теперь есть тень.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HutCompleted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The hut is finished. We have walls.'
+      - 'Хижина готова. У нас есть стены.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FurnitureBuilt.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Finished the build. It stands.'
+      - 'Достроила. Стоит.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.RackCrafted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The drying rack is up.'
+      - 'Сушилка готова.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.RaftLaunched.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The raft is in the water. It''s really in the water.'
+      - 'Плот на воде. Он правда на воде.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Butchered.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I butchered it. There is meat now. I try not to think about it.'
+      - 'Разделала. Теперь есть мясо. Стараюсь об этом не думать.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Crafted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Made myself {1}.'
+      - 'Смастерила себе {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DireStraits.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Things are bad. Properly bad, for all of us.'
+      - 'Дела плохи. По-настоящему плохи, у всех.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.StormSurge.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The sea came up over everything. We just held on.'
+      - 'Море пошло поверх всего. Мы просто держались.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.MeatSpoiled.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The meat went off. All that work for nothing.'
+      - 'Мясо испортилось. Вся работа впустую.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FireOut.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The fire went out. It got cold at once.'
+      - 'Костёр погас. Сразу стало холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FriendGuard.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} put herself between me and it. She didn''t have to.'
+      - '{0} встала между мной и этим. Её никто не просил.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FriendGuard.got.tender.beloved.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} guarded me today. I keep thinking about it.'
+      - 'Сегодня {0} меня прикрыла. Я всё об этом думаю.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FriendGuard.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I stood over {0} until it backed off.'
+      - 'Я стояла над {0}, пока оно не отступило.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WearPermissionRefused.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} asked for my things. I said no. They''re mine.'
+      - '{0} просила мои вещи. Я отказала. Они мои.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WearPermissionRefused.did.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} wanted my things. No. I have little enough as it is.'
+      - '{0} хотела мои вещи. Нет. У меня и так почти ничего нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WearPermissionGranted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I lent {0} my things. She needed them more.'
+      - 'Отдала {0} свои вещи поносить. Ей нужнее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.AidRequested.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I set off to help {0} — {1}.'
+      - 'Пошла к {0} — {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.AidStarted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I got to {0} and started on it — {1}.'
+      - 'Дошла до {0} и взялась — {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.AidWaitTimeout.got.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I waited for {0} for so long. Nobody came at all.'
+      - 'Я так долго ждала {0}. Не пришёл вообще никто.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryAssistArrived.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I got there and threw myself into it.'
+      - 'Добежала и влезла в драку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.HelpCryAssistLost.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I ran, and by the time I got there it was already over.'
+      - 'Бежала, а когда добежала — всё уже кончилось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.MeatEaten.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I ate properly for once — {1}.'
+      - 'Наконец нормально поела — {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.FireLit.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I got the fire going. It''s warm.'
+      - 'Развела костёр. Тепло.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TreeChopped.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Took a tree down. My arms are dead.'
+      - 'Свалила дерево. Руки отваливаются.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.MeatSpoiled.got.bitter.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The meat rotted. All of it. All that work.'
+      - 'Мясо сгнило. Всё. Вся работа впустую.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Grieving.got.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} died today. The island got quieter.'
+      - 'Сегодня умерла {0}. На острове стало тише.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.Collapsed.got.dying.v3'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I don''t want to close my eyes. I''m afraid I won''t open them.'
+      - 'Не хочу закрывать глаза. Боюсь, что не открою.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.WoundInflicted.got.dying.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'There''s so much blood. I never knew there was so much in me.'
+      - 'Крови так много. Я не знала, что во мне столько.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.me.dative'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'me'
+      - 'мне'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

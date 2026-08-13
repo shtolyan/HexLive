@@ -70,7 +70,10 @@ public static class WorldSnapshotCodec
     /// ноги, а VitalHealth остаётся тем же числом для порогов и трасс.
     /// v23: §40.8-H r10 BloodSoil — накопительная кровяная подложка per-zone
     /// (растёт от ран, смывается водой) едет в типизированных кондициях.
-    public const int WireVersion = 23;
+    /// v24: §136 дневники — СВОЯ секция, а не поле в записи NPC: она меняется
+    /// раз в игровой час, тогда как запись NPC переписывается каждый тик, и
+    /// внутри неё дневник стоил бы втрое больше всего остального трафика.
+    public const int WireVersion = 24;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -97,6 +100,7 @@ public static class WorldSnapshotCodec
         WriteCrabs(snapshot, w);
         WriteSharks(snapshot, w);
         WriteDeathRecords(snapshot, w);
+        WriteJournals(snapshot, w);
 
         w.Write(EndMarker);
     }
@@ -132,6 +136,7 @@ public static class WorldSnapshotCodec
         ReadCrabs(r, into);
         ReadSharks(r, into);
         ReadDeathRecords(r, into);
+        ReadJournals(r, into);
 
         var marker = r.ReadInt32();
         if (marker != EndMarker)
@@ -1299,6 +1304,75 @@ public static class WorldSnapshotCodec
         d.Tick = r.ReadInt32();
         d.Tile = WireIo.ReadTile(r);
         d.Cause = r.ReadString();
+    }
+
+    // ── §136: дневники ──────────────────────────────────────────────────────
+    // Своя секция, потому что меняется раз в игровой час, а запись NPC — каждый
+    // тик; подробности в комментарии к WorldSnapshot.Journals.
+
+    private static void WriteJournals(WorldSnapshot snapshot, BinaryWriter w)
+    {
+        var items = snapshot.Journals;
+        w.Write(items.Count);
+        for (var i = 0; i < items.Count; i++)
+        {
+            WriteJournalRecord(w, items[i]);
+        }
+    }
+
+    internal static void WriteJournalRecord(BinaryWriter w, NpcJournalSnapshot j)
+    {
+        w.Write(j.NpcId);
+        w.Write(j.Entries.Count);
+        for (var i = 0; i < j.Entries.Count; i++)
+        {
+            var e = j.Entries[i];
+            w.Write(e.Tick);
+            WireIo.WriteString(w, e.Type);
+            w.Write((byte)e.Register);
+            w.Write((byte)e.Bond);
+            w.Write((byte)e.Perspective);
+            WireIo.WriteString(w, e.SubjectNameId);
+            WireIo.WriteString(w, e.Extra);
+            w.Write((byte)e.Variant);
+            w.Write((byte)e.QuietHours);
+            WireIo.WriteString(w, e.Chore0);
+            WireIo.WriteString(w, e.Chore1);
+            WireIo.WriteString(w, e.Chore2);
+        }
+    }
+
+    private static void ReadJournals(BinaryReader r, WorldSnapshot into)
+    {
+        var count = r.ReadInt32();
+        WireIo.Resize(into.Journals, count);
+        for (var i = 0; i < count; i++)
+        {
+            ReadJournalRecord(r, into.Journals[i]);
+        }
+    }
+
+    internal static void ReadJournalRecord(BinaryReader r, NpcJournalSnapshot j)
+    {
+        j.NpcId = r.ReadInt32();
+        var count = r.ReadInt32();
+        WireIo.Resize(j.Entries, count);
+        for (var i = 0; i < count; i++)
+        {
+            var e = j.Entries[i];
+            e.Tick = r.ReadInt32();
+            e.Type = r.ReadString();
+            e.Register = r.ReadByte();
+            e.Bond = r.ReadByte();
+            e.Perspective = r.ReadByte();
+            e.SubjectNameId = r.ReadString();
+            e.Extra = r.ReadString();
+            e.Variant = r.ReadByte();
+            e.QuietHours = r.ReadByte();
+            e.Chore0 = r.ReadString();
+            e.Chore1 = r.ReadString();
+            e.Chore2 = r.ReadString();
+        }
     }
 }
 

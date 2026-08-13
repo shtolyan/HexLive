@@ -97,6 +97,10 @@ internal static class Trace
         // поле null, и это стоит одной проверки (spec §30.14).
         world.FlightRecorder?.Record(entityId.Value, world.Tick, type, message);
 
+        // §136: и по той же причине здесь же кормится дневник. Он сам отсеет
+        // всё, что не «хроника», — отладочная болтовня до записи не доходит.
+        Journal.NpcJournalIntake.Offer(world, entityId, type, message);
+
         // §30.17: по той же причине здесь же ставится штамп причины смерти.
         // Он ОБЯЗАН быть состоянием, а не поиском по кольцу: кольцо — это
         // диагностика, его глубина зависит от многословности трассы, а Cause
@@ -144,6 +148,11 @@ internal static class Trace
             Type = type,
             Message = message
         });
+
+        // §136: системное событие тоже бывает личным — «убита», «зверь унёс
+        // ногу». Хозяина записи в этом случае указывает каталог: у события нет
+        // EntityId, но человек в сообщении есть.
+        Journal.NpcJournalIntake.Offer(world, null, type, message);
     }
 
     public static string FormatTile(TileCoord? tile) => tile is null ? "-" : $"{tile.Value.Q},{tile.Value.R}";

@@ -3,6 +3,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Runtime.Journal;
 using HexLive.Simulation.Social;
 
 namespace HexLive.Simulation.Agents
@@ -659,6 +660,11 @@ public sealed class NPCState
     public MemoryState Memory { get; } = new();
 
     public SocialState Social { get; } = new();
+
+    // Spec §136: личный дневник — одна запись в игровой час о самом важном.
+    // В отличие от бортового самописца (§30.14, инструмент наблюдения), это
+    // состояние мира: оно переживает сейв и едет по проводу.
+    public NpcJournal Journal { get; } = new();
 
     public InventoryState Inventory { get; } = new();
 

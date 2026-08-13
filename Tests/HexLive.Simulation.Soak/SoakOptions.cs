@@ -30,6 +30,13 @@ public sealed class SoakOptions
     public int ExplainStuck = 3;
 
     /// <summary>
+    /// §136: id колонистки, чей дневник напечатать в конце прогона. -1 —
+    /// не печатать. Это единственный способ прочитать настоящий дневник, не
+    /// открывая Unity, — то есть отревьюить текст, а не только механику.
+    /// </summary>
+    public int Journal = -1;
+
+    /// <summary>
     /// §122. Сколько первых ПЕТЕЛЬ разобрать вслух. Отдельно от застоя, потому
     /// что это разные болезни: застой — «не двигается», петля — «двигается и не
     /// продвигается», и в одном прогоне их может быть по-разному много.
@@ -167,6 +174,9 @@ public sealed class SoakOptions
                     case "--state-hash-every":
                         options.StateHashEvery = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--journal":
+                        options.Journal = int.Parse(Next(arg), CultureInfo.InvariantCulture);
+                        break;
                     case "--explain-stuck":
                         options.ExplainStuck = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
@@ -243,6 +253,8 @@ public sealed class SoakOptions
 
   --arena NAME            prototype (по умолчанию) | abuse — арена §91
   --combat-frames         по-тиковая раскадровка боя: замах/попадание/готовность
+  --journal N             §136: напечатать дневник NPC N — что она сама
+                          записала о своих днях. 12000 тиков = 12 записей
   --explain-stuck N       разобрать первые N застоев: печатает хвост событий
                           зависшего NPC (по умолчанию 3, 0 — выключить)
   --explain-loops N       §122: то же для ПЕТЕЛЬ — «двигается и не продвигается»

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Content;
@@ -176,6 +177,11 @@ public static class Program
             CombatFrames.Report();
         }
 
+        if (options.Journal >= 0 && !options.Quiet)
+        {
+            PrintJournal(world, options.Journal);
+        }
+
         metrics.TicksRun = world.Tick;
         metrics.NpcsAtEnd = world.Entities.Npcs.Count;
         metrics.MobsAtEnd = world.Mobs.Count;
@@ -247,6 +253,58 @@ public static class Program
         }
 
         return watermark;
+    }
+
+    /// <summary>
+    /// §136: печатает дневник одной колонистки — СЫРЫМИ полями записи.
+    ///
+    /// <para>
+    /// Фразы здесь быть не может и не должно: текст живёт в терминах I2, а
+    /// они в Unity-слое (§58.3). Смотреть надо на другое — не спамит ли
+    /// дневник, попадают ли в записи люди, меняется ли регистр вместе с её
+    /// состоянием и не выродились ли двое суток в сорок восемь «тихо».
+    /// </para>
+    /// </summary>
+    private static void PrintJournal(WorldState world, int npcId)
+    {
+        var id = new HexLive.Simulation.Common.EntityId(npcId);
+        if (!world.Entities.Npcs.TryGetValue(id, out var npc) &&
+            !world.Entities.Corpses.TryGetValue(id, out npc))
+        {
+            Console.WriteLine();
+            Console.WriteLine("§136: NPC " + npcId + " в этом мире нет.");
+            return;
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("── дневник NPC " + npcId + " (" + npc.DisplayName + "), записей: " +
+                          npc.Journal.Entries.Count);
+
+        foreach (var entry in npc.Journal.Entries)
+        {
+            var day = HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(entry.Tick);
+            var progress = (entry.Tick % HexLive.Simulation.Runtime.EnvironmentSystem.DayLengthTicks) /
+                           (float)HexLive.Simulation.Runtime.EnvironmentSystem.DayLengthTicks;
+            var clock = HexLive.Simulation.Runtime.EnvironmentSystem.FormatClock(progress);
+
+            if (entry.IsQuiet)
+            {
+                var chores = string.Join(", ", new[] { entry.Chore0, entry.Chore1, entry.Chore2 }
+                    .Where(c => !string.IsNullOrEmpty(c)));
+                Console.WriteLine($"  день {day} {clock}  [{entry.Register}] тихо ×{entry.QuietHours}" +
+                                  (chores.Length == 0 ? "" : "  дела: " + chores));
+                continue;
+            }
+
+            var who = string.IsNullOrEmpty(entry.SubjectNameId)
+                ? ""
+                : $"  о {entry.SubjectNameId} ({entry.Bond})";
+            var extra = string.IsNullOrEmpty(entry.Extra) ? "" : $"  [{entry.Extra}]";
+            Console.WriteLine($"  день {day} {clock}  [{entry.Register}] " +
+                              $"{entry.Type} ({entry.Perspective}){who}{extra}  v{entry.Variant}");
+        }
+
+        Console.WriteLine();
     }
 
     /// <summary>

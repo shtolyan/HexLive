@@ -22,7 +22,9 @@ namespace HexLive.UnityPresentation.UI
     /// (designed at 1920×1080, scales like the old CanvasScaler).
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
-    public sealed class CharacterPanel : MonoBehaviour
+    // §136: дневник живёт в CharacterPanel.Journal.cs — тот же класс, потому
+    // что окно делит место и взаимное исключение с рюкзаком и куклой здоровья.
+    public sealed partial class CharacterPanel : MonoBehaviour
     {
         [SerializeField] private SimulationRunnerBehaviour _runner;
 
@@ -577,7 +579,10 @@ namespace HexLive.UnityPresentation.UI
                 PointerOverFloating(
                     _inventoryOpen && _invSelectedId != null,
                     _invDetailView, mousePos, scale) ||
-                PointerOverFloating(_healthOpen, _healthWindow, mousePos, scale);
+                PointerOverFloating(_healthOpen, _healthWindow, mousePos, scale) ||
+                // §136: без этой строки клик внутри дневника снимал бы
+                // выделение с колонистки, чей дневник открыт.
+                PointerOverFloating(_journalOpen, _journalWindow, mousePos, scale);
         }
 
         private static bool PointerOverElement(VisualElement element, Vector2 mousePos, float scale)
@@ -631,6 +636,7 @@ namespace HexLive.UnityPresentation.UI
             _rosterTick = int.MinValue;
             CloseInventory(); // a new/cleared selection resets the backpack
             CloseHealth();    // …and the limb-health window
+            CloseJournal();   // …and the journal (§136)
             if (_shown)
             {
                 _stage.style.display = DisplayStyle.Flex;
@@ -774,6 +780,11 @@ namespace HexLive.UnityPresentation.UI
             _meleeStats = npc.MeleeStats ?? new MeleeStatsSnapshot();
             RefreshInventory(npc);
             RefreshHealth(npc);
+
+            // §136: бейдж считается ВСЕГДА — он и существует ради того, чтобы
+            // сказать «у неё что-то случилось» до того, как окно откроют.
+            UpdateJournalBadge(snapshot, npc);
+            RefreshJournal(snapshot, npc);
         }
 
         private void BindPortrait(int npcId)
@@ -1640,7 +1651,11 @@ namespace HexLive.UnityPresentation.UI
             // stable place just beyond the doll-side edge without covering the
             // RenderTexture or being cut off by the window's rounded bounds.
             _root.Add(_invDetailView);
-            _root.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryWindow());
+            _root.RegisterCallback<GeometryChangedEvent>(_ =>
+            {
+                FitInventoryWindow();
+                FitJournalWindow(); // §136
+            });
             _invDetailView.RegisterCallback<GeometryChangedEvent>(_ =>
             {
                 if (_invSelectedId != null)
@@ -2047,7 +2062,8 @@ namespace HexLive.UnityPresentation.UI
             }
             else
             {
-                CloseHealth(); // the two floating windows share the same spot
+                CloseHealth(); // the floating windows share the same spot
+                CloseJournal(); // §136
                 _inventoryOpen = true;
                 _invVisibleWearLayer = VisualWearLayer.Bags;
                 _invSig = null; // force a rebuild on the next refresh
@@ -2405,7 +2421,8 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            CloseInventory(); // the two floating windows share the same spot
+            CloseInventory(); // the floating windows share the same spot
+            CloseJournal();   // §136
             _healthOpen = true;
             _healthWindow.style.display = DisplayStyle.Flex;
             _characterDollStage?.SetMode(CharacterDollMode.Health);
@@ -4454,6 +4471,7 @@ namespace HexLive.UnityPresentation.UI
             BuildEffectTooltip();
             BuildInventoryWindow();
             BuildHealthWindow();
+            BuildJournalWindow(); // §136
             BuildRoster();
         }
 
@@ -5320,6 +5338,7 @@ namespace HexLive.UnityPresentation.UI
 
             col.Add(BuildControlToggle());
             col.Add(BuildInventoryButton());
+            col.Add(BuildJournalButton()); // §136: слева от рюкзака
 
             // Why a manual order failed: a transient note above the combined
             // vitals module, never over the actor's face or the readouts.
@@ -6075,6 +6094,8 @@ namespace HexLive.UnityPresentation.UI
             {
                 _healthButton.tooltip = Loc.Get("panel.health");
             }
+
+            LocalizeJournal(); // §136
 
             // Inventory window (spec §51) — static chrome + force a rebuild so
             // the item rows / open detail re-localize on the next refresh.

@@ -88,7 +88,6 @@ public sealed class HutTestBootstrap : MonoBehaviour
         if (rtsCamera == null) rtsCamera = cameraObject.AddComponent<Input.RtsCameraController>();
         rtsCamera.SetRunner(_runner);
         PrepareFinishedHouse();
-        SeedWardrobeGarments();
         if (_startInAcceptancePose) PrepareStandingAndSleepingAcceptancePose();
         else PrepareAutonomousSleepScenario();
         PushIsolationOverrides();
@@ -331,45 +330,6 @@ public sealed class HutTestBootstrap : MonoBehaviour
             {
                 obj.ResourceAmount = 6000f;
             }
-        }
-    }
-
-    // A visible, deterministic four-piece sample for the furniture acceptance
-    // scene. These are ordinary loose world objects anchored at the wardrobe's
-    // real junction, so HexWorldRenderer assigns their sockets and hangers by
-    // exactly the same path that a player-stowed garment uses. Keep this out of
-    // the production bootstrap: it is showcase inventory, not a starter grant.
-    private void SeedWardrobeGarments()
-    {
-        var world = _runner?.Engine?.World;
-        if (world == null) return;
-
-        WorldObjectState? wardrobe = null;
-        foreach (var obj in world.Entities.Objects.Values)
-        {
-            if (obj.DefinitionId == ContentIds.Wardrobe)
-            {
-                wardrobe = obj;
-                break;
-            }
-        }
-
-        if (wardrobe == null || wardrobe.Junctions.Count == 0) return;
-
-        // All four ids have shipped, native presentation prefabs. The fixed
-        // order makes this seed reproducible while still showing mixed forms.
-        var garments = new[]
-        {
-            "clothing.top_classic",
-            "clothing.shorts_classic",
-            "clothing.scarf_classic",
-            "clothing.gloves_classic"
-        };
-        foreach (var garmentId in garments)
-        {
-            if (!world.Content.ObjectDefinitions.ContainsKey(garmentId)) continue;
-            WorldObjectMutations.SpawnObject(
-                world, garmentId, wardrobe.Fragment, wardrobe.Tile, wardrobe.Junctions[0]);
         }
     }
 

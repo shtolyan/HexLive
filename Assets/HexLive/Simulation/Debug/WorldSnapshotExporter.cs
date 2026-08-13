@@ -47,6 +47,10 @@ public static class WorldSnapshotExporter
 
     private static readonly Comparison<MobSnapshot> ByMobId = (a, b) => a.Id.CompareTo(b.Id);
 
+    // §136: дневники — по тому же правилу возрастающего id, что и все секции.
+    private static readonly Comparison<NpcJournalSnapshot> ByJournalNpcId =
+        (a, b) => a.NpcId.CompareTo(b.NpcId);
+
     private static readonly Comparison<CrabSnapshot> ByCrabId = (a, b) => a.Id.CompareTo(b.Id);
 
     private static readonly Comparison<SharkSnapshot> BySharkId = (a, b) => a.Id.CompareTo(b.Id);
@@ -205,6 +209,23 @@ public static class WorldSnapshotExporter
         {
             snapshot.Corpses.Add(ExportNpc(world, pair.Value));
         }
+
+        // §136: дневники — своей секцией, чтобы сорок восемь записей не ездили
+        // каждый тик вместе с координатами (см. WorldSnapshot.Journals).
+        // Покойницы тоже здесь: последняя запись умершей — это то, ради чего
+        // дневник и читают, и терять её вместе с ней было бы жестоко.
+        snapshot.Journals.Clear();
+        foreach (var pair in world.Entities.Npcs)
+        {
+            AddJournal(snapshot, pair.Key.Value, pair.Value.Journal);
+        }
+
+        foreach (var pair in world.Entities.Corpses)
+        {
+            AddJournal(snapshot, pair.Key.Value, pair.Value.Journal);
+        }
+
+        snapshot.Journals.Sort(ByJournalNpcId);
 
         snapshot.DeathRecords.Clear();
         foreach (var death in world.DeathRecords)
@@ -1231,6 +1252,42 @@ public static class WorldSnapshotExporter
         }
 
         return npcSnapshot;
+    }
+
+    /// <summary>§136: перелить кольцо дневника в секцию снапшота.</summary>
+    private static void AddJournal(
+        WorldSnapshot snapshot,
+        int npcId,
+        Runtime.Journal.NpcJournal journal)
+    {
+        if (journal == null || journal.Entries.Count == 0)
+        {
+            return;
+        }
+
+        var record = new NpcJournalSnapshot { NpcId = npcId };
+        var entries = journal.Entries;
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            record.Entries.Add(new JournalEntrySnapshot
+            {
+                Tick = entry.Tick,
+                Type = entry.Type ?? string.Empty,
+                Register = (int)entry.Register,
+                Bond = (int)entry.Bond,
+                Perspective = (int)entry.Perspective,
+                SubjectNameId = entry.SubjectNameId ?? string.Empty,
+                Extra = entry.Extra ?? string.Empty,
+                Variant = entry.Variant,
+                QuietHours = entry.QuietHours,
+                Chore0 = entry.Chore0 ?? string.Empty,
+                Chore1 = entry.Chore1 ?? string.Empty,
+                Chore2 = entry.Chore2 ?? string.Empty
+            });
+        }
+
+        snapshot.Journals.Add(record);
     }
 }
 

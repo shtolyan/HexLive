@@ -239,6 +239,10 @@ namespace HexLive.UnityPresentation.History
             return F("history.detail.cause", localized);
         }
 
+        /// <summary>§136: дневник красит чернила тем же тоном — одно событие не
+        /// может быть тревожным в ленте и будничным на странице.</summary>
+        internal static GameHistoryTone ToneOf(string type) => Tone(type);
+
         private static GameHistoryTone Tone(string type)
         {
             if (type is "Aided" or "AidRequested" or "AidStarted" or "TalkCompleted" or "TalkRequested" or
@@ -285,7 +289,9 @@ namespace HexLive.UnityPresentation.History
             return GameHistoryTone.Neutral;
         }
 
-        private static string FormatTime(int tick)
+        /// <summary>§136: дневник показывает то же «День N, ЧЧ:ММ», и делать
+        /// это вторым способом значило бы завести второй календарь.</summary>
+        internal static string FormatTime(int tick)
         {
             var day = EnvironmentSystem.CalendarDay(tick);
             var progress = (tick % EnvironmentSystem.DayLengthTicks) /

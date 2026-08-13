@@ -89,6 +89,11 @@ public static class SimulationSystemRegistry
         // единственное, на чём держится отличие работы от петли.
         engine.Register(new LoopDiagnosticSystem());
 
+        // §136: дневник закрывает игровой час — и потому идёт САМЫМ последним,
+        // после наблюдателей. Событие, случившееся под конец часа, иначе
+        // опоздало бы на свою же запись. Как и они, ничего в мире не меняет.
+        engine.Register(new JournalSystem());
+
         // NOT registered, on purpose-of-record rather than by decision: SharkSystem.
         // It is implemented (Systems/Wildlife/SharkSystem.cs, TickLayer.Medium) and
         // world.Sharks IS persisted by WorldSaveSerializer, so sharks are spawned and

@@ -42,6 +42,13 @@ public sealed class SnapshotDeltaEncoder
     private readonly Dictionary<int, byte[]> _mobs = new();
     private readonly Dictionary<int, byte[]> _crabs = new();
     private readonly Dictionary<int, byte[]> _sharks = new();
+
+    // §136: дневники. Ради этого словаря секция и отделена от записи NPC —
+    // дневник меняется раз в игровой час (1000 тиков), а колонистка шевелится
+    // каждый. Внутри её записи он уезжал бы 4 раза в секунду; здесь после
+    // первого кадра это ноль байт до следующей записи.
+    private readonly Dictionary<int, byte[]> _journals = new();
+
     private byte[] _header = Array.Empty<byte>();
     private int _deaths;
 
@@ -67,6 +74,7 @@ public sealed class SnapshotDeltaEncoder
         _mobs.Clear();
         _crabs.Clear();
         _sharks.Clear();
+        _journals.Clear();
         _header = Array.Empty<byte>();
         _deaths = 0;
         BaselineTick = -1;
@@ -144,6 +152,9 @@ public sealed class SnapshotDeltaEncoder
 
         WriteSection(w, snapshot.Sharks, _sharks,
             (s) => s.Id, (sw, s) => WorldSnapshotCodec.WriteSharkRecord(sw, s));
+
+        WriteSection(w, snapshot.Journals, _journals,
+            (j) => j.NpcId, (sw, j) => WorldSnapshotCodec.WriteJournalRecord(sw, j));
 
         // Death records are only ever appended, so the delta is "how many are new".
         // A shrink cannot reach this line: EnsureBaselineValid resets the baseline

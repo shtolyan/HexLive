@@ -8,6 +8,7 @@ using HexLive.Simulation.Core;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Runtime.Journal;
 using HexLive.Simulation.Social;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Wildlife;
@@ -90,7 +91,11 @@ public static class WorldSaveSerializer
     // сытость. Объекта `body.limb_severed` в мире на это время НЕТ (его забрали
     // с земли), так что без этих полей загрузка молча уничтожала бы ногу вместе
     // со сценой; старый блоб читается «пасть пуста, зверь не сыт».
-    public const int BlobVersion = 44;
+    // v45 (§136): дневник колонистки — кольцо закрытых записей на каждую NPC.
+    // Старый блоб читается «дневник пуст», и это не потеря: до v45 его никто не
+    // вёл, а первая запись появится через игровой час. Кандидат текущего часа
+    // не пишется намеренно — он черновик, а не состояние мира.
+    public const int BlobVersion = 45;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1348,6 +1353,29 @@ public static class WorldSaveSerializer
             w.Write((int)part);
             w.Write(npc.Body.Condition(part).BloodSoil);
         }
+
+        // §136 / v45: дневник. Пишется ТОЛЬКО кольцо закрытых записей —
+        // недописанный кандидат текущего часа намеренно теряется: он не
+        // состояние мира, а полминуты накопления, и восстанавливать его значило
+        // бы хранить в сейве черновик.
+        var entries = npc.Journal.Entries;
+        w.Write(entries.Count);
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            w.Write(entry.Tick);
+            WriteNullableString(w, entry.Type);
+            w.Write((byte)entry.Register);
+            w.Write((byte)entry.Bond);
+            w.Write((byte)entry.Perspective);
+            WriteNullableString(w, entry.SubjectNameId);
+            WriteNullableString(w, entry.Extra);
+            w.Write(entry.Variant);
+            w.Write(entry.QuietHours);
+            WriteNullableString(w, entry.Chore0);
+            WriteNullableString(w, entry.Chore1);
+            WriteNullableString(w, entry.Chore2);
+        }
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -1893,6 +1921,34 @@ public static class WorldSaveSerializer
                     condition.BloodSoil = soil;
                 }
             }
+        }
+
+        if (version >= 45)
+        {
+            // §136: дневник. Старый блоб — пустой дневник, и это правда: до
+            // этой версии его никто не вёл. Первая запись появится через час.
+            var entryCount = r.ReadInt32();
+            var entries = new List<JournalEntry>(entryCount);
+            for (var i = 0; i < entryCount; i++)
+            {
+                entries.Add(new JournalEntry
+                {
+                    Tick = r.ReadInt32(),
+                    Type = ReadNullableString(r),
+                    Register = (JournalRegister)r.ReadByte(),
+                    Bond = (JournalBond)r.ReadByte(),
+                    Perspective = (JournalPerspective)r.ReadByte(),
+                    SubjectNameId = ReadNullableString(r),
+                    Extra = ReadNullableString(r),
+                    Variant = r.ReadByte(),
+                    QuietHours = r.ReadByte(),
+                    Chore0 = ReadNullableString(r),
+                    Chore1 = ReadNullableString(r),
+                    Chore2 = ReadNullableString(r)
+                });
+            }
+
+            npc.Journal.LoadFrom(entries);
         }
 
         return npc;

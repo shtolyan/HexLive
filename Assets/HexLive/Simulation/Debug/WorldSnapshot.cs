@@ -78,6 +78,65 @@ public sealed class WorldSnapshot
     public List<SharkSnapshot> Sharks { get; } = new();
 
     public List<TraceEventSnapshot> TraceEvents { get; } = new();
+
+    /// <summary>
+    /// §136: дневники. ОТДЕЛЬНАЯ секция, а не поле в <see cref="NpcSnapshot"/>,
+    /// и это решение про трафик, а не про вкус.
+    ///
+    /// <para>
+    /// ⭐ Дельта-кодек не смотрит на поля — он сравнивает БАЙТЫ записи целиком
+    /// (§83: именно поэтому поле нельзя забыть в одном месте из двух). У идущей
+    /// колонистки позиция меняется каждый тик, значит её запись уезжает
+    /// целиком 4 раза в секунду. Лежи дневник внутри неё, сорок восемь записей
+    /// ездили бы вместе с координатами — на четырёх NPC это ~+23 КБ/с против
+    /// измеренных 10 КБ/с на зрителя, то есть втрое дороже за строчку текста,
+    /// которая меняется раз в игровой час. Своей секцией она и меняется раз в
+    /// час: в дельте её почти всегда ноль байт.
+    /// </para>
+    /// </summary>
+    public List<NpcJournalSnapshot> Journals { get; } = new();
+}
+
+/// <summary>§136: дневник одной NPC — то, что видит панель.</summary>
+public sealed class NpcJournalSnapshot
+{
+    public int NpcId { get; set; }
+
+    public List<JournalEntrySnapshot> Entries { get; } = new();
+}
+
+/// <summary>
+/// §136: одна запись. Ни одной готовой фразы — только id и перечисления;
+/// текст собирает вид из терминов I2 (§58), поэтому уже написанный дневник
+/// переезжает на другой язык по переключателю.
+/// </summary>
+public sealed class JournalEntrySnapshot
+{
+    public int Tick { get; set; }
+
+    public string Type { get; set; } = string.Empty;
+
+    public int Register { get; set; }
+
+    public int Bond { get; set; }
+
+    public int Perspective { get; set; }
+
+    /// <summary>§74: id имени второй участницы (<c>jolly</c>), не подпись.</summary>
+    public string SubjectNameId { get; set; } = string.Empty;
+
+    public string Extra { get; set; } = string.Empty;
+
+    public int Variant { get; set; }
+
+    /// <summary>&gt;0 — тихая запись, и столько часов подряд она покрывает.</summary>
+    public int QuietHours { get; set; }
+
+    public string Chore0 { get; set; } = string.Empty;
+
+    public string Chore1 { get; set; } = string.Empty;
+
+    public string Chore2 { get; set; } = string.Empty;
 }
 
 public sealed class DeathRecordSnapshot

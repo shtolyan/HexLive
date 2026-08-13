@@ -72,6 +72,11 @@ public static class SnapshotDeltaReader
         ApplySection(r, into.Sharks, s => s.Id,
             (reader, s) => WorldSnapshotCodec.ReadSharkRecord(reader, s));
 
+        // §136: дневники — той же секционной механикой; порядок обязан
+        // совпадать с SnapshotDelta.Encode, иначе кадр не сойдётся на маркере.
+        ApplySection(r, into.Journals, j => j.NpcId,
+            (reader, j) => WorldSnapshotCodec.ReadJournalRecord(reader, j));
+
         var appended = r.ReadUInt16();
         if (appended > into.DeathRecords.Count)
         {

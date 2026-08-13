@@ -398,6 +398,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.ReachSafeGround)
+            {
+                BuildReachSafeGroundPlan(world, npc);
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.CoolOff)
             {
                 BuildCoolOffPlan(world, npc);

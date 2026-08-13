@@ -1307,6 +1307,36 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 ? Spec53.SelfTreatBleedEmergency
                 : 0f);
 
+        // §50.9: «спуститься, пока ноги держат». Мир без прыжка — половина
+        // острова, порог прыжка 0.75 на ногу; раненая на крошечном уступе
+        // обязана уйти на большую землю ДО того, как деградация ран отнимет
+        // прыжок. Ставка растёт с тем, насколько ноги близки к порогу; выше
+        // быта, ниже собственных смертельных кризисов (их надбавки ~1.0).
+        var safeGroundAvail = false;
+        var safeGroundUrgency = 0f;
+        if (AiBalance.SafeGroundRetreatEnabled && npc.Body.CanJump &&
+            npc.CurrentJunction is { } safeGroundFrom)
+        {
+            var minLeg = System.MathF.Min(
+                npc.Body.LimbFunction(BodyPart.LegL),
+                npc.Body.LimbFunction(BodyPart.LegR));
+            if (minLeg < AiBalance.SafeGroundLegAlert)
+            {
+                var isletSize = Connectivity.FlatComponentSizeAt(world, safeGroundFrom);
+                if (isletSize > 0 && isletSize < AiBalance.SafeGroundIsletMaxJunctions &&
+                    world.JunctionComponentsFlatSizes.TryGetValue(
+                        world.LargestFlatComponentId, out var mainlandSize) &&
+                    mainlandSize >= AiBalance.SafeGroundIsletMaxJunctions)
+                {
+                    safeGroundAvail = true;
+                    safeGroundUrgency = 0.65f + (AiBalance.SafeGroundLegAlert - minLeg);
+                }
+            }
+        }
+
+        AddGoalScore(npc, world.Tick, GoalType.ReachSafeGround,
+            safeGroundUrgency, safeGroundAvail);
+
         // Spec 29F: hunting & crafting.
         var hasSpear = npc.Inventory.Items.Contains(ContentIds.Spear);
         var hasRawMeat = npc.Inventory.Items.Contains(ContentIds.MeatRaw);

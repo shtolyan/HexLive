@@ -592,8 +592,8 @@ public sealed partial class DecisionSystem
             if (known.Junction is { } j &&
                 world.Content.ObjectDefinitions.TryGetValue(known.DefinitionId, out var def) &&
                 def.Tags.Contains(tag) &&
-                (Connectivity.Reachable(world, from, j) ||
-                 Connectivity.ReachableBeside(world, from, j, true,
+                (Connectivity.Reachable(world, from, j, npc.Body.CanJump) ||
+                 Connectivity.ReachableBeside(world, from, j, npc.Body.CanJump,
                      world.Entities.Objects.TryGetValue(known.Id, out var live) ? live : null)))
             {
                 return true;
@@ -811,7 +811,7 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
-            if (Connectivity.Reachable(world, from, junction.Id))
+            if (Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
             {
                 return true;
             }

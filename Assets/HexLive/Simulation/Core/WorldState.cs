@@ -154,6 +154,14 @@ public sealed class WorldState
 
     public System.Collections.Generic.Dictionary<JunctionId, int> JunctionComponentsFlat { get; } = new();
 
+    // §50/§: размеры плоских компонент (id → число узлов) и id самой большой.
+    // Считаются вместе с JunctionComponentsFlat и нужны инстинкту «спуститься
+    // на большую землю»: раненая на крошечном уступе должна ВИДЕТЬ, что её
+    // мир сжался до горстки узлов, пока прыжок ещё возможен. Кэш, не сейв.
+    public System.Collections.Generic.Dictionary<int, int> JunctionComponentsFlatSizes { get; } = new();
+
+    public int LargestFlatComponentId { get; set; } = -1;
+
     // Spec §26.6A r4: the junctions closed by an OBJECT FOOTPRINT (a palm trunk,
     // the fire's ember ring, a bed) — as opposed to TERRAIN (a cliff face, a hut
     // wall, the open sea). Both read `Junction.Blocked`, and the ROUTE question

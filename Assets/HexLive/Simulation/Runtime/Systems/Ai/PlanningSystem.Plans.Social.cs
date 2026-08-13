@@ -47,6 +47,15 @@ public sealed partial class PlanningSystem
 
             if (!dangerous)
             {
+                // §50.9: кандидат обязан быть достижим ЕЙ — иначе ползущая
+                // (полкарты вне её мира) проваливала 9 из 10 выборов и часами
+                // крутила PlanFailed вместо прогулки по своему берегу.
+                if (npc.CurrentJunction is { } exploreFrom &&
+                    !Connectivity.Reachable(world, exploreFrom, junction.Id, npc.Body.CanJump))
+                {
+                    continue;
+                }
+
                 _exploreCandidates.Add(junction);
             }
         }
@@ -69,7 +78,7 @@ public sealed partial class PlanningSystem
 
         // Reachability check: destination must connect to where we stand.
         if (npc.CurrentJunction is not { } startJunction ||
-            !Connectivity.Reachable(world, startJunction, destination.Id))
+            !Connectivity.Reachable(world, startJunction, destination.Id, npc.Body.CanJump))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Explore);
@@ -95,6 +104,72 @@ public sealed partial class PlanningSystem
             Trace.Debug(world, npc.Id, "ExplorePlanned",
                 $"To Junction={destination.Id.Value} " +
                 $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} Steps=[MoveToJunction]");
+        }
+    }
+
+    // §50.9: «спуститься, пока ноги держат» — дойти до ближайшего узла САМОЙ
+    // БОЛЬШОЙ плоской компоненты (большой земли), пока прыжок ещё возможен.
+    // Дальше обычная жизнь: еда/вода/лечение планируются уже с материка.
+    private void BuildReachSafeGroundPlan(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from ||
+            world.LargestFlatComponentId <= 0)
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.ReachSafeGround);
+            return;
+        }
+
+        // Ближайший узел материка по миру-расстоянию; достижимость — с её
+        // РЕАЛЬНОЙ способностью (прыжок пока есть, иначе цель и не ставилась).
+        JunctionId? best = null;
+        var bestDistance = float.MaxValue;
+        foreach (var pair in world.JunctionComponentsFlat)
+        {
+            if (pair.Value != world.LargestFlatComponentId ||
+                !world.Junctions.Items.TryGetValue(pair.Key, out var junction) ||
+                junction.Blocked)
+            {
+                continue;
+            }
+
+            var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
+            if (d < bestDistance && SpatialQueries.IsJunctionFree(world, pair.Key))
+            {
+                bestDistance = d;
+                best = pair.Key;
+            }
+        }
+
+        if (best is not { } destination ||
+            !Connectivity.Reachable(world, from, destination, npc.Body.CanJump))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.ReachSafeGround);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    "Goal=ReachSafeGround NoRouteToMainland");
+            }
+            return;
+        }
+
+        npc.Plan.TargetJunctionId = destination;
+        npc.Plan.TargetTile = world.Junctions.Items[destination].Tiles.Count > 0
+            ? world.Junctions.Items[destination].Tiles[0]
+            : null;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = destination
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=ReachSafeGround To Junction={destination.Value} " +
+                $"Dist={bestDistance:F1} Steps=[MoveToJunction]");
         }
     }
 

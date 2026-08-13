@@ -105,6 +105,21 @@ internal static class Connectivity
             : int.MinValue + 1;
     }
 
+    /// <summary>Сколько узлов в ПЛОСКОЙ компоненте этого узла (0 — узел
+    /// заблокирован/неизвестен). Ленивая перестройка как у Reachable.</summary>
+    public static int FlatComponentSizeAt(WorldState world, JunctionId junction)
+    {
+        if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
+        {
+            RebuildFlat(world);
+        }
+
+        return world.JunctionComponentsFlat.TryGetValue(junction, out var comp) && comp > 0 &&
+            world.JunctionComponentsFlatSizes.TryGetValue(comp, out var size)
+                ? size
+                : 0;
+    }
+
     private static readonly System.Collections.Generic.Queue<JunctionId> _queue = new();
 
     private static void Rebuild(WorldState world)
@@ -181,9 +196,17 @@ internal static class Connectivity
                 var current = world.Junctions.Items[currentId];
                 foreach (var neighborId in current.Neighbors)
                 {
+                    // Ребро «шов→шов» пафйндер запрещает ВСЕМ (ходьба вдоль
+                    // кромки обрыва), а этот граф его считал — и ползущая
+                    // получала «достижимо» там, куда путь не строится. Замер
+                    // (seed 987654, узлы 934→12294): одна плоская компонента,
+                    // FindPath(canJump=false)=NULL — и 37 циклов PlanFailed
+                    // Goal=GetFood к одному кокосу, пока она голодала. Граф
+                    // обязан быть проекцией правил пафйндера, не оптимизмом.
                     if (world.JunctionComponentsFlat.TryGetValue(neighborId, out var mark) && mark == 0 &&
                         world.Junctions.Items.TryGetValue(neighborId, out var neighbor) && !neighbor.Blocked &&
-                        !Navigation.HexPathfinder.RequiresJump(world, currentId, neighborId))
+                        !Navigation.HexPathfinder.RequiresJump(world, currentId, neighborId) &&
+                        !(world.ClimbSeams.Contains(currentId) && world.ClimbSeams.Contains(neighborId)))
                     {
                         world.JunctionComponentsFlat[neighborId] = component;
                         _queue.Enqueue(neighborId);
@@ -192,11 +215,35 @@ internal static class Connectivity
             }
         }
 
+        // Размеры компонент — для инстинкта «спуститься на большую землю»
+        // (крошечный уступ против материка) и любых будущих вопросов «а велик
+        // ли мой мир без прыжка». Считаются здесь же, за один проход.
+        world.JunctionComponentsFlatSizes.Clear();
+        world.LargestFlatComponentId = -1;
+        var largestSize = 0;
+        foreach (var pair in world.JunctionComponentsFlat)
+        {
+            if (pair.Value <= 0)
+            {
+                continue;
+            }
+
+            world.JunctionComponentsFlatSizes.TryGetValue(pair.Value, out var size);
+            size++;
+            world.JunctionComponentsFlatSizes[pair.Value] = size;
+            if (size > largestSize)
+            {
+                largestSize = size;
+                world.LargestFlatComponentId = pair.Value;
+            }
+        }
+
         world.ComponentsFlatBuiltVersion = world.TopologyVersion;
         if (SimTrace.Enabled)
         {
             Trace.DebugSystem(world, "ConnectivityFlatRebuilt",
-                $"Components={component} Junctions={world.Junctions.Items.Count}");
+                $"Components={component} Junctions={world.Junctions.Items.Count} " +
+                $"Largest={world.LargestFlatComponentId}({largestSize})");
         }
     }
 }

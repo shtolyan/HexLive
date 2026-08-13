@@ -2217,6 +2217,14 @@ MonoBehaviour:
       - 'Просто существует'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'goal.ReachSafeGround'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Getting off the ledge'
+      - 'Спускается с уступа'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'goal.Idle'
       TermType: 0
       Description:

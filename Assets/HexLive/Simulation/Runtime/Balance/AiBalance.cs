@@ -24,6 +24,23 @@ public static class AiBalance
     // §28.15: how long the invited listener waits for the talk to start.
     public static int TalkWaitTimeoutTicks = 120;
 
+    // ── §50.9: «спуститься, пока ноги держат» ────────────────────────────
+    // Порог прыжка — 0.75 на КАЖДУЮ ногу (NpcState.LegSupportsJump), то есть
+    // пара укусов превращает возвышенность в ловушку: мир без прыжка — это
+    // ~половина узлов острова, а уступ может быть и тремя узлами (seed 987654:
+    // Ines умерла от жажды на компоненте из 3 узлов с бинтами в рюкзаке).
+    // Инстинкт: нога уже потрёпана, а плоская компонента подо мной крошечная —
+    // уходить на большую землю, ПОКА прыжок ещё возможен.
+    public static bool SafeGroundRetreatEnabled = true;
+
+    // Нога «потрёпана», когда её функция ниже этого (0.75 — сам порог прыжка;
+    // 0.9 даёт запас в одну-две раны на реакцию, пока спуск ещё возможен).
+    public static float SafeGroundLegAlert = 0.9f;
+
+    // Компонента МЕНЬШЕ этого числа узлов считается уступом-ловушкой. Материк
+    // после честного графа — тысячи узлов; терраса горы — десятки.
+    public static int SafeGroundIsletMaxJunctions = 96;
+
     // spec §30.15 — when to say out loud "this one is not getting anywhere".
     //
     // These live HERE, in an already-registered balance class, on purpose: a NEW

@@ -64,7 +64,7 @@ public sealed partial class PlanningSystem
 
             var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
             if (d < bestDist && d < HexSpatialMath.HexRadius * 12f &&
-                Connectivity.Reachable(world, from, junction.Id))
+                Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
             {
                 bestDist = d;
                 best = junction;
@@ -148,7 +148,7 @@ public sealed partial class PlanningSystem
             if (junction.Blocked || junction.Tiles.Count == 0 ||
                 !SpatialQueries.IsJunctionFree(world, junction.Id) ||
                 !HygieneMath.IsShoreTile(world, junction.Tiles[0]) ||
-                !Connectivity.Reachable(world, from, junction.Id))
+                !Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
             {
                 continue;
             }
@@ -180,7 +180,7 @@ public sealed partial class PlanningSystem
         var undressStand = best.Id;
         ObjectId? stowObject = null;
         if (StowMath.FindUndressSpot(world, npc) is { } spot &&
-            Connectivity.Reachable(world, spot.Stand, best.Id))
+            Connectivity.Reachable(world, spot.Stand, best.Id, npc.Body.CanJump))
         {
             undressStand = spot.Stand;
             stowObject = spot.StowObject;
@@ -274,7 +274,7 @@ public sealed partial class PlanningSystem
                 if (!TryGetEdgeSeatGeometry(world, junction, waterOnly: true,
                         out var standTile, out _) ||
                     !JunctionAvailableFor(world, junction.Id, npc.Id) ||
-                    !Connectivity.Reachable(world, from, junction.Id))
+                    !Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
                 {
                     continue;
                 }
@@ -310,7 +310,7 @@ public sealed partial class PlanningSystem
                 if (!TryGetEdgeSeatGeometry(world, junction, waterOnly: true,
                         out var standTile, out _) ||
                     !JunctionAvailableFor(world, junction.Id, npc.Id) ||
-                    !Connectivity.Reachable(world, from, junction.Id))
+                    !Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
                 {
                     continue;
                 }
@@ -383,7 +383,7 @@ public sealed partial class PlanningSystem
         });
         foreach (var rim in _rimScratch)
         {
-            if (Connectivity.Reachable(world, from, rim) &&
+            if (Connectivity.Reachable(world, from, rim, npc.Body.CanJump) &&
                 SpatialQueries.IsJunctionFree(world, rim) &&
                 SpatialMutations.TryReserveJunction(world, rim, npc.Id, world.Tick, 48))
             {
@@ -492,7 +492,7 @@ public sealed partial class PlanningSystem
                 // Only a ledge she's basically beside — walk up to it, don't trek
                 // across the island to a scenic edge (user: sit close, not afar).
                 if (d < bestDist && d < HexSpatialMath.HexRadius * 2f &&
-                    Connectivity.Reachable(world, from, junction.Id))
+                    Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
                 {
                     bestDist = d;
                     spot = junction.Id;
@@ -651,7 +651,7 @@ public sealed partial class PlanningSystem
                 world.Junctions.Items.TryGetValue(cj, out var sleepJunction) &&
                 SpatialQueries.IsJunctionFree(world, cj) &&
                 SpatialQueries.LyingBodyClear(world, sleepJunction) &&
-                npc.CurrentJunction is { } from2 && Connectivity.Reachable(world, from2, cj))
+                npc.CurrentJunction is { } from2 && Connectivity.Reachable(world, from2, cj, npc.Body.CanJump))
             {
                 bestDist = d;
                 spot = cj;

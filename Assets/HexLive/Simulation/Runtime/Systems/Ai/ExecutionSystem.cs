@@ -2450,7 +2450,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         if (error > 0.5f)
         {
             var turnPerTick = npc.TurnSpeed * SimBalance.BaseTurnSpeedFactor *
-                AttributeMath.TurnSpeedMult(npc) * world.TickDeltaTime;
+                AttributeMath.TurnSpeedMult(npc) * world.TickDeltaTime *
+                // §50: доворот к станции у ползущей такой же медленный, как её шаг.
+                npc.Body.MobilityTurnFactor();
             npc.RotationDegrees = MathUtil.RotateTowards(
                 npc.RotationDegrees, desired, turnPerTick);
             if (SimTrace.Verbose)

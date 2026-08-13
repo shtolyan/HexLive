@@ -711,6 +711,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public static float WalkHoldSeconds = 0.3f;
     public static float MidJourneyWalkHoldSeconds = 0.8f;
     public static float PivotYawSpeed = 90f;
+    // §50: с какой угловой скорости (град/с) разворот ползущей уже считается
+    // движением и включает клип ползания. Порог низкий нарочно: сим крутит
+    // ползущую втрое медленнее ходячей (BodyState.MobilityTurnFactor), и
+    // «стоящий» порог пивота её разворот просто не заметил бы.
+    public static float CrawlTurnAnimYawSpeed = 5f;
     // §71: the three GaitBlend slots, keyed by CLIP name — these are the
     // AnimatorOverrideController keys. Overriding all three with one clip (the
     // §50 crawl) pins her to a single gait that can never blend into a run.
@@ -5738,7 +5743,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var holdSeconds = midJourney ? MidJourneyWalkHoldSeconds : WalkHoldSeconds;
         var filteredWalkContinuation = _wasWalking && midJourney &&
             _smoothedSpeed > threshold * 0.65f;
-        var walking = moving ||
+        // §50: ПОЛЗУЩАЯ, КОТОРАЯ ПОВОРАЧИВАЕТСЯ, ПРОДОЛЖАЕТ ГРЕСТИ.
+        //
+        // Разворот у всех остальных — планированный пивот: тело стоит, играет
+        // Idle либо turn-on-spot, и это честно, потому что стоящая переступает
+        // на месте. У лежащей «стоять на месте» = поза лёжа плашмя, и тело
+        // просто ПРОВОРАЧИВАЕТСЯ на земле как стрелка компаса. Поэтому в позе
+        // Crawl вращение само по себе считается движением: клип ползания идёт,
+        // руки перебирают, и разворот читается как разворот, а не как вращение
+        // бревна. Каденс при этом падает до MinGaitCadence (скорость по земле
+        // ~0), то есть гребёт она медленно — ровно то, что нужно.
+        var crawlTurning = _posture == "Crawl" &&
+            Mathf.Abs(motionYawSpeed) > CrawlTurnAnimYawSpeed;
+        var walking = moving || crawlTurning ||
             (_wasWalking &&
              (_stillTimer < holdSeconds || filteredWalkContinuation) &&
              Mathf.Abs(motionYawSpeed) <= PivotYawSpeed);

@@ -225,6 +225,14 @@ public sealed class BodyState
     // shuffles at 40%); a LOST leg (one or both) means she crawls — a fixed
     // slow pace (CrawlSpeedFactor, ~1/3 of walking) that pairs with the crawl
     // animation, regardless of how the other leg is doing.
+    // §50: насколько медленнее ПОВОРАЧИВАЕТСЯ тело. Ползущая разворачивается
+    // тем же множителем, что и ползёт (CrawlSpeedFactor): на локтях поворот —
+    // это перебор руками, а не вращение вокруг оси. Отдельной ручки нарочно
+    // нет — один шаг, один поворот, одна цифра; понадобится разводить — заводим
+    // ручку и зеркалим её в конфиг-ассет и simdata.json (§59.3).
+    public float MobilityTurnFactor() =>
+        IsProne ? HexLive.Simulation.Runtime.Spec50.CrawlSpeedFactor : 1f;
+
     public float MobilityFactor()
     {
         if (IsProne)

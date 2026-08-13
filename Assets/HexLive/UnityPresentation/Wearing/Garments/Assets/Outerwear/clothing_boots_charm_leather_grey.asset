@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_leather_grey
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Leather Grey)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: e5a3565724a46dd439296a9c09129d82, type: 2}
   - {fileID: 2100000, guid: 1712636b9719cfa42a7a8c0b5297be66, type: 2}

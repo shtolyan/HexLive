@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_leather_red
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Leather Red)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 251970e7919ebfa4b8d39f575bd2592c, type: 2}
   - {fileID: 2100000, guid: f2d69dd7cb442ac4bbccc73f629a6565, type: 2}

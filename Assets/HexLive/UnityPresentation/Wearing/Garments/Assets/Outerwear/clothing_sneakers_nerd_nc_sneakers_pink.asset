@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sneakers_nerd_nc_sneakers_pink
   prototypeId: clothing.sneakers_nerd
   displayName: Canvas Sneakers (NC Sneakers Pink)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 6eadb225b6f361749bb8770cc4611591, type: 2}
   - {fileID: 2100000, guid: df3b1a7ba4bdb894aae9b1bae09c091a, type: 2}

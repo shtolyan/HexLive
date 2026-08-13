@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_bt_dusty_pink
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (BT Dusty Pink)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 72fdaf44fda612743a560a54abd20caa, type: 2}
   - {fileID: 2100000, guid: 24341f90c0a62ff409f975cb1c42b528, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bodysuit_devi_05_reptile_leather
   prototypeId: 
   displayName: Lace Bodysuit (05 Reptile Leather)
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 0100000002000000

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer2_style_02_salmon
   prototypeId: clothing.sandals_summer2
   displayName: Sandals, Style II (Style 02 Salmon)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: e08cb64f02a2ac741b42a4847c7f8de9, type: 2}
   - {fileID: 2100000, guid: 98c486a996e9e844897f7c85fb49c769, type: 2}

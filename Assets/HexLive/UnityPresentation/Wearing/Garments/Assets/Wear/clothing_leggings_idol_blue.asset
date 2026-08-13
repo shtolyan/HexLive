@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.leggings_idol_blue
   prototypeId: clothing.leggings_idol
   displayName: Leggings (Blue)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: ab0af4623ef851d4cb6416c838666973, type: 2}
   - {fileID: 2100000, guid: 27bcec8836deb8a4a8374e04770c4bb1, type: 2}

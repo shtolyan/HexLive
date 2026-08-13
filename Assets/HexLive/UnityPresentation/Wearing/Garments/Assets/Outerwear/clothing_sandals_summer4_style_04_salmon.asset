@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer4_style_04_salmon
   prototypeId: clothing.sandals_summer4
   displayName: Sandals, Style IV (Style 04 Salmon)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 1011377a46f95a04fb18880b0f252fa1, type: 2}
   - {fileID: 2100000, guid: 1ffc1a1e96ace0e489d740c9d3d2024b, type: 2}

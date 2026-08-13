@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bikini_briefs_mat05
   prototypeId: underwear.bikini_briefs
   displayName: Bikini Briefs (Mat05)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: ca15591210a67ad44ac46ee949c3c5dc, type: 2}
   - {fileID: 2100000, guid: ae7fd370860750f44812fb1cdfa1f2a6, type: 2}

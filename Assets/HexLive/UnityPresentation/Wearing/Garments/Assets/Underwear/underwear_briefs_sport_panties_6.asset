@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_sport_panties_6
   prototypeId: underwear.briefs_sport
   displayName: Sports Briefs (Panties 6)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: f3a0c14a0131a194ebc2f672e5212cbd, type: 2}
   - {fileID: 2100000, guid: d50e50698a49d744fa149b1763e60c4a, type: 2}

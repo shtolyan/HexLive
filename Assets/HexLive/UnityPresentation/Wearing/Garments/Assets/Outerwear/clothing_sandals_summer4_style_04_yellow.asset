@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer4_style_04_yellow
   prototypeId: clothing.sandals_summer4
   displayName: Sandals, Style IV (Style 04 Yellow)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 729558ba56674404bb4049ec39a3bcba, type: 2}
   - {fileID: 2100000, guid: 86b477ae74efbf7488ca2d8bc773b308, type: 2}

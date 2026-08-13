@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.belt_anarchy
   prototypeId: 
   displayName: Studded Belt
+  category: 13
   variantMaterials: []
   layer: 2
   covers: 02000000

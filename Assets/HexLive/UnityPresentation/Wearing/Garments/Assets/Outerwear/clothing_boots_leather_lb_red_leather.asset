@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_leather_lb_red_leather
   prototypeId: clothing.boots_leather
   displayName: Leather Boots (LB Red Leather)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: e4db5f43baa7c9142a5cb0ea3e59b35c, type: 2}
   - {fileID: 2100000, guid: 4a3d6d87fe7d7374b9ea1e3bbc61355e, type: 2}

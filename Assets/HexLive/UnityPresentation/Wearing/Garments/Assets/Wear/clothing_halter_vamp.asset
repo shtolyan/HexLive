@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.halter_vamp
   prototypeId: 
   displayName: Buckled Halter
+  category: 2
   variantMaterials: []
   layer: 1
   covers: 01000000

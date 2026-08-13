@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.sportsbra_jmr_bra_5
   prototypeId: underwear.sportsbra_jmr
   displayName: Cross-Back Bra (Bra 5)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 8290acd53ea948d42abd94728d1ed989, type: 2}
   - {fileID: 2100000, guid: 11843f0401995524c80c872c36fa19ba, type: 2}

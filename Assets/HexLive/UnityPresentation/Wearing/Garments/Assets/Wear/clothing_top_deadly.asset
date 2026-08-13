@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.top_deadly
   prototypeId: 
   displayName: Cropped Halter
+  category: 2
   variantMaterials: []
   layer: 1
   covers: 01000000

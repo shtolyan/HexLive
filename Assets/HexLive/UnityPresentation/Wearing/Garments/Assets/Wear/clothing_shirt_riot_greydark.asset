@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shirt_riot_greydark
   prototypeId: clothing.shirt_riot
   displayName: Buttoned Shirt (GreyDark)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 05dc652cccf2c25448642373241fa29a, type: 2}
   - {fileID: 2100000, guid: 9e3ea68de6746dd46999d4d0670fef69, type: 2}

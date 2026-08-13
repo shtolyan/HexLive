@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sunglasses_luxury_sunset_color
   prototypeId: clothing.sunglasses_luxury
   displayName: Sunglasses (sunset color)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 2256934e43f13d548a30f9da855b039c, type: 2}
   - {fileID: 2100000, guid: 07c9581b0f5f37f4a9b2bcfdb4323457, type: 2}

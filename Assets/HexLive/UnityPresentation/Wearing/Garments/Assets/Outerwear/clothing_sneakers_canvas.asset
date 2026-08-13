@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sneakers_canvas
   prototypeId: 
   displayName: Canvas Sneakers
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

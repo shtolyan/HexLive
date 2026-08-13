@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shorts_fit_4_camouflage
   prototypeId: clothing.shorts_fit
   displayName: Running Shorts (4 Camouflage)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 457848ce192a4824595bc651ec7ccd66, type: 2}
   layer: 0

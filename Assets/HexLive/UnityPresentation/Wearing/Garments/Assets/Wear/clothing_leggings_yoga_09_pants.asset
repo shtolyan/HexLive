@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.leggings_yoga_09_pants
   prototypeId: clothing.leggings_yoga
   displayName: Yoga Leggings (09 - Pants)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 68928cd0e0d48a74089ac28afa2284d1, type: 2}
   layer: 1

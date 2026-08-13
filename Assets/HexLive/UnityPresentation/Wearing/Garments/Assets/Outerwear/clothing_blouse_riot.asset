@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.blouse_riot
   prototypeId: 
   displayName: Work Blouse
+  category: 2
   variantMaterials: []
   layer: 2
   covers: 010000000300000004000000

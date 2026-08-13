@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.top_luxury_03_white_bra
   prototypeId: underwear.top_luxury
   displayName: Jewelled Bikini Top (03 White Bra)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 60c8e82e0f4c9294aae30fa8c9401180, type: 2}
   - {fileID: 2100000, guid: a22aade3670874f418039d7430c7baf5, type: 2}

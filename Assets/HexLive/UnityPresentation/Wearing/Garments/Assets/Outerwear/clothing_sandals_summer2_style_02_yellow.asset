@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer2_style_02_yellow
   prototypeId: clothing.sandals_summer2
   displayName: Sandals, Style II (Style 02 Yellow)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 0cc6580889d03394283887117e7d0dd6, type: 2}
   - {fileID: 2100000, guid: 8c07f90b2c6b50a4eb426d88ef54c64a, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.collar_studded_anarchy
   prototypeId: 
   displayName: Studded Collar
+  category: 9
   variantMaterials: []
   layer: 1
   covers: 01000000

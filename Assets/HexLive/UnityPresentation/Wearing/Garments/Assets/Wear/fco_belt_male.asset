@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: fco_belt_male
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: FCO Belt Male
+  prototypeId:
   displayName: Poyas boitsa
+  category: 13
+  variantMaterials: []
   layer: 1
   covers: 01000000
   warmth: 0.04

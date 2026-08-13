@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.heels_luxury_silver_color
   prototypeId: clothing.heels_luxury
   displayName: Strap Heels (Silver Color)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 198927bca90eeb24ab93a9f87a0928f5, type: 2}
   - {fileID: 2100000, guid: bccd48698a622e346a7815dc0da94f13, type: 2}

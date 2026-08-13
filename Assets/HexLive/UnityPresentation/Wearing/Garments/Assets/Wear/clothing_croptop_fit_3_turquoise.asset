@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.croptop_fit_3_turquoise
   prototypeId: clothing.croptop_fit
   displayName: Crop Top (3 Turquoise)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: a4f2892be86783a4889211ab4473b784, type: 2}
   layer: 1

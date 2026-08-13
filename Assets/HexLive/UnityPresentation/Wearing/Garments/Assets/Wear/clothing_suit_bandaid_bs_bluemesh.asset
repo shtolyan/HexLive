@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.suit_bandaid_bs_bluemesh
   prototypeId: clothing.suit_bandaid
   displayName: Strap Bodysuit (BS_BlueMesh)
+  category: 15
   variantMaterials:
   - {fileID: 2100000, guid: 4d80f3c1868fffb4d9dee8c499e20670, type: 2}
   layer: 1

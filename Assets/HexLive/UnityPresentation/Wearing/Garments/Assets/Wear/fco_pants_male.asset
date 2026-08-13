@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: fco_pants_male
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: FCO Pants Male
+  prototypeId:
   displayName: Shtany boitsa
+  category: 3
+  variantMaterials: []
   layer: 1
   covers: 020000000500000006000000
   warmth: 0.2

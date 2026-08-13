@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.top_primal_1
   prototypeId: clothing.top_primal
   displayName: Hide Wrap (1)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 8610f2f94d3261540a4afab51e8ab563, type: 2}
   - {fileID: 2100000, guid: 4315d1af2718d7b46a9e2eda649a7563, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sunglasses_luxury_animal_print_color
   prototypeId: clothing.sunglasses_luxury
   displayName: Sunglasses (Animal Print Color)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 4ac90989d06ecff46bd6a2bfcf4e1e14, type: 2}
   - {fileID: 2100000, guid: 175e4c9de5458764087ba74d74c9c316, type: 2}

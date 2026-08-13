@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_primal_3
   prototypeId: clothing.skirt_primal
   displayName: Hide Skirt (3)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 27f72025aee845f4ebe26e79b2fd7157, type: 2}
   - {fileID: 2100000, guid: 8fae63eaf98b14e498fb7edcc03d8afd, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.heels_luxury_golden_color
   prototypeId: clothing.heels_luxury
   displayName: Strap Heels (Golden Color)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 197191871a9ce0b47b20b90d5cdfc307, type: 2}
   - {fileID: 2100000, guid: ef5d965f68ba9cb438bc350fc7547709, type: 2}

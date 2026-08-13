@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shorts_fit_1_blacklime
   prototypeId: clothing.shorts_fit
   displayName: Running Shorts (1 BlackLime)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 769468e72335b8e409b05312cbaf4e13, type: 2}
   layer: 0

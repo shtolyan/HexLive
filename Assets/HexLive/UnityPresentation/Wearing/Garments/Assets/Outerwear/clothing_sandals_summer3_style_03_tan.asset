@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer3_style_03_tan
   prototypeId: clothing.sandals_summer3
   displayName: Sandals, Style III (Style 03 Tan)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 28300d2efbc4b36489c082d76e48509b, type: 2}
   - {fileID: 2100000, guid: cc80ad79f46c6eb4eb44a242fcc33b2a, type: 2}

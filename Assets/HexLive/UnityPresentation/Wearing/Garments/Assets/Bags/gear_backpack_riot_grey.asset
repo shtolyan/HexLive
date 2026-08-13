@@ -15,6 +15,7 @@ MonoBehaviour:
   id: gear.backpack_riot_grey
   prototypeId: gear.backpack_riot
   displayName: Canvas Backpack (Grey)
+  category: 14
   variantMaterials:
   - {fileID: 2100000, guid: b018fae8ea0cdee4f83a2b9030b3c3a1, type: 2}
   - {fileID: 2100000, guid: 2d4ce41d0a41a484abedac3c80346919, type: 2}

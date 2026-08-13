@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_top_red
   prototypeId: underwear.swimsuit_top
   displayName: Strappy Swim Top (Red)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 4843f280a48cf594eaadc2cfabb362af, type: 2}
   - {fileID: 2100000, guid: 2d1b061b875cbf343a076058172b9495, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer1_style_01_white
   prototypeId: clothing.sandals_summer1
   displayName: Sandals, Style I (Style 01 White)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: e25cf08582a98b348a7cb3906715f8c8, type: 2}
   - {fileID: 2100000, guid: ae9cfdd597cd0a24aa5145dbca508d10, type: 2}

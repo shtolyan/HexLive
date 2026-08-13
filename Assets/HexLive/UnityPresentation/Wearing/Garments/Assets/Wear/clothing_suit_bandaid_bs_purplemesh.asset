@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.suit_bandaid_bs_purplemesh
   prototypeId: clothing.suit_bandaid
   displayName: Strap Bodysuit (BS_PurpleMesh)
+  category: 15
   variantMaterials:
   - {fileID: 2100000, guid: 17577b8838b7693459df6390808e0bd6, type: 2}
   layer: 1

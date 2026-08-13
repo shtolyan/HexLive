@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer3_style_03_cherry
   prototypeId: clothing.sandals_summer3
   displayName: Sandals, Style III (Style 03 Cherry)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 80cac7b1a81fa6f4c9a68ad1aa5bb4c0, type: 2}
   - {fileID: 2100000, guid: 20ddeb1ed8112b146affcd9a9d5c6a9c, type: 2}

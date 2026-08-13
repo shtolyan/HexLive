@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.blouse_waist_riot_green
   prototypeId: clothing.blouse_waist_riot
   displayName: Blouse Tied at the Waist (Green)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 4002d1e9f37430a40b186f50a09b5345, type: 2}
   - {fileID: 2100000, guid: 4c947306d93556e4496a1f25697e0be8, type: 2}

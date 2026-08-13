@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tank_jane_lavendar
   prototypeId: clothing.tank_jane
   displayName: Jersey Tank (Lavendar)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 45d6b098e53813d4b8a5ee85d0ca74ab, type: 2}
   - {fileID: 2100000, guid: 720fda3fd67fe754c9be9bb138db08e2, type: 2}

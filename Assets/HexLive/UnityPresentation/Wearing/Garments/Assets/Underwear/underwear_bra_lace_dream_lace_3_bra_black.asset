@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bra_lace_dream_lace_3_bra_black
   prototypeId: underwear.bra_lace
   displayName: Lace Bra (Dream Lace 3 Bra Black)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: f1c861e54de94bc41a058bd3b2cb10fd, type: 2}
   - {fileID: 2100000, guid: f665c24b448be9f41a9c2c78a3a6917e, type: 2}

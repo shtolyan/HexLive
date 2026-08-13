@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_summer_i13sw_tshirt_05
   prototypeId: clothing.tshirt_summer
   displayName: T-Shirt (i13SW TShirt 05)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 56932abc3ebf3e54989fd154f8d52216, type: 2}
   - {fileID: 2100000, guid: ef65952cdb923db46a2eaba0eacd7737, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer1_style_01_tan
   prototypeId: clothing.sandals_summer1
   displayName: Sandals, Style I (Style 01 Tan)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 32f9584f0bbd5ed4b9b31beafbe5567c, type: 2}
   - {fileID: 2100000, guid: dccd0dd73778a2843978bcd11befd542, type: 2}

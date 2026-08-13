@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_tshirt_heartbreaker
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (TShirt Heartbreaker)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 9c8208bb6b0223b409ba2b545a234b7d, type: 2}
   - {fileID: 2100000, guid: cfbeafe4257cf2f4882da9cbb184e6f5, type: 2}

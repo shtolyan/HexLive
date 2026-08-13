@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.blouse_riot_green
   prototypeId: clothing.blouse_riot
   displayName: Work Blouse (Green)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: ba1f7ab26b051464c8f97e1332c580b6, type: 2}
   - {fileID: 2100000, guid: b43653d2b5715e7489c2632fb3577ab8, type: 2}

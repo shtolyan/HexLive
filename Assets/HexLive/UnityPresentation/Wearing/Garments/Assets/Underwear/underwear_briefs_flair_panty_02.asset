@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_flair_panty_02
   prototypeId: underwear.briefs_flair
   displayName: Silk Briefs (Panty-02)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: b7fa1ceab1624e042860cd42ec56b837, type: 2}
   layer: 0

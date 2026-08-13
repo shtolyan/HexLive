@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: fao_harness_male
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: FAO Harness Male
+  prototypeId:
   displayName: Portupeya
+  category: 5
+  variantMaterials: []
   layer: 2
   covers: 01000000
   warmth: 0.1

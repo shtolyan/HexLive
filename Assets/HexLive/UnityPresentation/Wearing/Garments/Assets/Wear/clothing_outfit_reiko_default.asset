@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.outfit_reiko_default
   prototypeId: clothing.outfit_reiko
   displayName: Boxing Outfit (Default)
+  category: 15
   variantMaterials:
   - {fileID: 2100000, guid: 5b19c581e97785845a3580d79f832b59, type: 2}
   - {fileID: 2100000, guid: 00772e975c7f0fd4aa0cd8eed79fb9c3, type: 2}

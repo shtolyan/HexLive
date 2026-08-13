@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.cap_riot_camel
   prototypeId: clothing.cap_riot
   displayName: Pinned Cap (Camel)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 51969392fc6986b4e8550cbbd6d486f0, type: 2}
   - {fileID: 2100000, guid: 35f5f2351792ce24fae7ec5a09d4203e, type: 2}

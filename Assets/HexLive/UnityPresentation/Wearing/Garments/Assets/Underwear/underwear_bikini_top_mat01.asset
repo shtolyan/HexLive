@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bikini_top_mat01
   prototypeId: underwear.bikini_top
   displayName: Bikini Top (Mat01)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: ba88eb25cfb81754eb57c1ede18eebaf, type: 2}
   - {fileID: 2100000, guid: 742cc83de445f934c91effbe38e56fc9, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.glasses_nerd
   prototypeId: 
   displayName: Round Glasses
+  category: 8
   variantMaterials: []
   layer: 2
   covers: 00000000

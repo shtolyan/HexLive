@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.pants_fighter
   prototypeId: 
   displayName: Training Trousers
+  category: 3
   variantMaterials: []
   layer: 1
   covers: 020000000500000006000000

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_velvet_purple
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Velvet Purple)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 93cc1d6d1f1e2e843ad37d7be208dc9c, type: 2}
   - {fileID: 2100000, guid: ea6cf40fac0216e478a488b4c5955b31, type: 2}

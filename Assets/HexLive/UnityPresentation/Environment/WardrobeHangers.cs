@@ -6,6 +6,7 @@ namespace HexLive.UnityPresentation.Environment
     public static class WardrobeHangers
     {
         public const int SlotCount = 12;
+        private const int ShoeShelfSlotCount = 4;
         // Fallback only: normal rendering reads the named ClothingSlot_00…11
         // transforms directly from furniture.wardrobe.fbx through
         // WardrobeAssembly. These values retain the last verified export basis
@@ -23,6 +24,17 @@ namespace HexLive.UnityPresentation.Environment
             // The exported wardrobe uses the same footprint basis as bed.basic:
             // Blender +Y (Unity local Z) spans the occupied junctions.
             return new Vector3(RoomSideX, RailY, FirstAlong + wrapped * StepAlong);
+        }
+
+        /// <summary>
+        /// Four places on the wardrobe's lower board. Footwear is stored here
+        /// upright, never on a rail hanger. This shares the wardrobe's local
+        /// axis and is rotated only by the furniture root's six-way yaw.
+        /// </summary>
+        public static Vector3 ShoeShelfSlot(int index)
+        {
+            var wrapped = ((index % ShoeShelfSlotCount) + ShoeShelfSlotCount) % ShoeShelfSlotCount;
+            return new Vector3(RoomSideX, 0.19f, -0.24f + wrapped * 0.16f);
         }
     }
 }

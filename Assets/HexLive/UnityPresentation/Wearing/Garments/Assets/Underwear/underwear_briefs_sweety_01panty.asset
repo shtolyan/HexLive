@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_sweety_01panty
   prototypeId: underwear.briefs_sweety
   displayName: Lace Panties (01Panty)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 7febe51a87f2cb54c8138676c864f4f3, type: 2}
   - {fileID: 2100000, guid: b27cb769ea94745479806801bbf3950c, type: 2}

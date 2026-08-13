@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.babydoll_sweety_01babydoll
   prototypeId: clothing.babydoll_sweety
   displayName: Lace Babydoll (01BabyDoll)
+  category: 4
   variantMaterials:
   - {fileID: 2100000, guid: 99eafc640b7d00b438d78efeb5775ccc, type: 2}
   - {fileID: 2100000, guid: fb13984b9ab5e9b4f90d9b2d091690ac, type: 2}

@@ -49,6 +49,29 @@ namespace HexLive.UnityPresentation.Wearing.Garments
             BuildInternal(overwriteExisting: true);
         }
 
+        [MenuItem("HexLive/Garments/Classify Storage Categories")]
+        public static void ClassifyStorageCategories()
+        {
+            var changed = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:GarmentDefinition", new[] { GarmentsRoot }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var definition = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(path);
+                if (definition == null) continue;
+
+                var category = GarmentCategoryRules.Classify(
+                    definition.id, definition.displayName, definition.layer,
+                    definition.covers, definition.capacity);
+                if (definition.category == category) continue;
+                definition.category = category;
+                EditorUtility.SetDirty(definition);
+                changed++;
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log($"Garment storage categories classified: {changed} assets updated.");
+        }
+
         private static void BuildInternal(bool overwriteExisting)
         {
             EnsureFolder(GarmentsRoot);
@@ -108,6 +131,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
             def.id = p.Id;
             def.displayName = p.DisplayName;
             def.layer = p.Layer;
+            def.category = p.Category;
             def.covers = new List<BodyPart>(p.Covers);
             def.warmth = p.Warmth;
             def.armor = p.Armor;

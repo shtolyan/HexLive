@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.top_yoga_07_top
   prototypeId: clothing.top_yoga
   displayName: Yoga Top (07 - Top)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: bbf765e6d8329554fb1cec4859a469f3, type: 2}
   layer: 1

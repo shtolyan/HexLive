@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_briefs_bottom_pink
   prototypeId: underwear.swimsuit_briefs
   displayName: Strappy Swim Bottom (Bottom Pink)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 3a41bff9f656fc246b54fc84c8261135, type: 2}
   - {fileID: 2100000, guid: 7ac096673a559f0498542dfa52b0b70e, type: 2}

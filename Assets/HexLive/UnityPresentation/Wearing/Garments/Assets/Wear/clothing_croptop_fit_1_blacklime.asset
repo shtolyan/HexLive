@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.croptop_fit_1_blacklime
   prototypeId: clothing.croptop_fit
   displayName: Crop Top (1 BlackLime)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 85638acb78146a742ab89f028daa2ce1, type: 2}
   layer: 1

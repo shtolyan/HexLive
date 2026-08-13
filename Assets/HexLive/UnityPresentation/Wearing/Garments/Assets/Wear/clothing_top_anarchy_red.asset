@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.top_anarchy_red
   prototypeId: clothing.top_anarchy
   displayName: Anarchy Top (Red)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 500eb37e27a1262479cfe57c672db447, type: 2}
   - {fileID: 2100000, guid: 95007251e91594248b9d207408b4aac4, type: 2}

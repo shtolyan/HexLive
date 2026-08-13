@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads_pink
   prototypeId: clothing.slipons_fads
   displayName: Slip-Ons (Pink)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 9b3a1374be312474e8273287a38196f3, type: 2}
   - {fileID: 2100000, guid: e3f949a289ae0dd4094669317d41f371, type: 2}

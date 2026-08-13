@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer4_style_04_tan
   prototypeId: clothing.sandals_summer4
   displayName: Sandals, Style IV (Style 04 Tan)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 6ea66732d768c994eba5958c8627742a, type: 2}
   - {fileID: 2100000, guid: 3fb8a35c08c453b4c8756895b21940ca, type: 2}

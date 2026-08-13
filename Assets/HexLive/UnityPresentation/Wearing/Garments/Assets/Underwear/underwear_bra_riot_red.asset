@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bra_riot_red
   prototypeId: underwear.bra_riot
   displayName: Plain Bra (Red)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 3486ca05d9b1a8443a54b1055bd30244, type: 2}
   - {fileID: 2100000, guid: 0091f0e954edd5d46bb80ee35a795d15, type: 2}

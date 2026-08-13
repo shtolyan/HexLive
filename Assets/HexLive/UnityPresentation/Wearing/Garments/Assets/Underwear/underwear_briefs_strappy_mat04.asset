@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_strappy_mat04
   prototypeId: underwear.briefs_strappy
   displayName: Strappy Briefs (Mat04)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 5d01aa95ad6608d488800e3a7b76e1e3, type: 2}
   layer: 0

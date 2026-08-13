@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer1_style_01_sky
   prototypeId: clothing.sandals_summer1
   displayName: Sandals, Style I (Style 01 Sky)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: ceca2e986db2ea74e9a70b403cd67b1b, type: 2}
   - {fileID: 2100000, guid: 42d3dbb9bff4eb9488d1aa080afcb3f7, type: 2}

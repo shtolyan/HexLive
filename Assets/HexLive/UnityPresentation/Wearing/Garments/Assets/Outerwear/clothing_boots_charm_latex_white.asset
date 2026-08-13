@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_latex_white
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Latex White)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: c55c9489e1b6aab4abd0d19d8689b288, type: 2}
   - {fileID: 2100000, guid: bb5402f09d6b70b41ab96f9c87a01c21, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer3_style_03_yellow
   prototypeId: clothing.sandals_summer3
   displayName: Sandals, Style III (Style 03 Yellow)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 4da067f41d811a544855f9f491d1f5d4, type: 2}
   - {fileID: 2100000, guid: f5074d2c13f800c44b1e25d598cc9ab9, type: 2}

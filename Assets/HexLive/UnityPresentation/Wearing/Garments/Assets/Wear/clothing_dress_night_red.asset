@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.dress_night_red
   prototypeId: clothing.dress_night
   displayName: Night Dress (Red)
+  category: 4
   variantMaterials:
   - {fileID: 2100000, guid: a1117651df121ac4cb5715be7ac86f2a, type: 2}
   - {fileID: 2100000, guid: 18b4aa34cba0c504485b7f0eb875935b, type: 2}

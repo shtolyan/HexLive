@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads_checks
   prototypeId: clothing.slipons_fads
   displayName: Slip-Ons (Checks)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 5c423b2d82e6d294c9d13245885387f0, type: 2}
   - {fileID: 2100000, guid: 4ff609c1c646e5c498e114446e037beb, type: 2}

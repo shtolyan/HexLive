@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez_bt_panty_red
   prototypeId: underwear.briefs_teez
   displayName: Cotton Briefs (BT Panty Red)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 5969e4d6a484268479c5144771cf54f7, type: 2}
   - {fileID: 2100000, guid: 28ee1ba74408e6645a5b6f37fe1abbdd, type: 2}

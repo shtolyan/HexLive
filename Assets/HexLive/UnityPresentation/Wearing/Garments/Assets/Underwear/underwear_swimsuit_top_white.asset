@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_top_white
   prototypeId: underwear.swimsuit_top
   displayName: Strappy Swim Top (White)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: b8abf99a565202346b00999b61822227, type: 2}
   - {fileID: 2100000, guid: b6935e289e4121847babfb35bc599ae3, type: 2}

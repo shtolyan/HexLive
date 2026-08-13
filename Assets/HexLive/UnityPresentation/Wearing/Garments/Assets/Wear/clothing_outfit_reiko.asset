@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.outfit_reiko
   prototypeId: 
   displayName: Boxing Outfit
+  category: 15
   variantMaterials: []
   layer: 1
   covers: 0200000003000000040000000500000006000000

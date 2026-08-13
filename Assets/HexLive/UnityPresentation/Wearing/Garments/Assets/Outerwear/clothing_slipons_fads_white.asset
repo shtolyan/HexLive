@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads_white
   prototypeId: clothing.slipons_fads
   displayName: Slip-Ons (White)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: d2e9db0651d8b32419fc61934b22ccd6, type: 2}
   - {fileID: 2100000, guid: ab89c16920738dc488ddf59cb6be3357, type: 2}

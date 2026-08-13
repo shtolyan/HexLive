@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.halter_vamp_burgundy
   prototypeId: clothing.halter_vamp
   displayName: Buckled Halter (Burgundy)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: cd2444054b9cbb245900941b62f36a7f, type: 2}
   - {fileID: 2100000, guid: 7fd0e3fc6bd6dc743b057bcaa696dacb, type: 2}

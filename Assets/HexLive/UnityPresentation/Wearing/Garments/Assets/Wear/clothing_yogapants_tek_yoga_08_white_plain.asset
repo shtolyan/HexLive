@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.yogapants_tek_yoga_08_white_plain
   prototypeId: clothing.yogapants_tek
   displayName: Yoga Pants (Yoga 08 White Plain)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 7b123d799a9c63540aa7c3d6eeaa40f0, type: 2}
   - {fileID: 2100000, guid: 85cfb8d6ac8edc44aba144c50e6b6cad, type: 2}

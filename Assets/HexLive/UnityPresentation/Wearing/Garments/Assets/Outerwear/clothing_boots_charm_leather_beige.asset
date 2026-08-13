@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_leather_beige
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Leather Beige)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 849f6b1d462a55542a974873295a09cd, type: 2}
   - {fileID: 2100000, guid: b1f9e4ac4d567384094a0380c91fde37, type: 2}

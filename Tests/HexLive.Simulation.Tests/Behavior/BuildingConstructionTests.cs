@@ -378,12 +378,66 @@ public sealed class BuildingConstructionTests
             .ToArray();
 
         Assert.That(firstGarments, Has.Length.EqualTo(3));
-        Assert.That(firstGarments.Select(obj => obj.DefinitionId).Distinct(), Has.Count.EqualTo(3));
+        Assert.That(firstGarments.Select(obj => obj.DefinitionId).Distinct().Count(), Is.EqualTo(3));
         Assert.That(firstGarments.All(obj => obj.BlockedJunctions.Count == 0), Is.True,
             "Стартовая одежда висит на гардеробе и не запирает проход в хижине.");
         Assert.That(secondGarments.Select(obj => obj.DefinitionId),
             Is.EqualTo(firstGarments.Select(obj => obj.DefinitionId)),
             "Одна и та же seed-новая игра должна давать один и тот же набор вещей.");
+    }
+
+    [Test]
+    public void FreshPrototypeWardrobeUsesOnlyLightEverydayClothesAndAtMostOnePairOfShoes()
+    {
+        for (var seed = 1; seed <= 100; seed++)
+        {
+            var world = TestWorld.CreateWorld(seed);
+            var wardrobe = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.Wardrobe);
+            var garments = world.Entities.Objects.Values
+                .Where(obj => obj.Tile.Equals(wardrobe.Tile) &&
+                              obj.Junctions.Count == 1 &&
+                              obj.Junctions[0].Equals(wardrobe.Junctions[0]) &&
+                              obj.DefinitionId.StartsWith("clothing.", StringComparison.Ordinal))
+                .ToArray();
+
+            var footwearCount = 0;
+            foreach (var objectState in garments)
+            {
+                var garment = GarmentLibrary.Active.Single(candidate => candidate.Id == objectState.DefinitionId);
+                Assert.That(BuildingBootstrap.IsStarterWardrobeGarment(garment, out var isFootwear), Is.True,
+                    $"{objectState.DefinitionId} is outside the starter wardrobe policy.");
+                Assert.That(garment.Armor, Is.LessThanOrEqualTo(0.10f));
+                if (isFootwear) footwearCount++;
+            }
+
+            Assert.That(footwearCount, Is.LessThanOrEqualTo(1),
+                "A starter hut may receive at most one rare footwear item.");
+        }
+    }
+
+    [Test]
+    public void WardrobeStorageCategoriesRequireTheWholeWearSlotShape()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(GarmentStorageCategories.CategoryFor("clothing.sandals_summer1"),
+                Is.EqualTo(GarmentCategory.Footwear));
+            Assert.That(GarmentStorageCategories.CategoryFor("clothing.gloves_cindy"),
+                Is.EqualTo(GarmentCategory.Gloves));
+            Assert.That(GarmentStorageCategories.CategoryFor("clothing.outfit_reiko"),
+                Is.EqualTo(GarmentCategory.Outfit),
+                "Цельный наряд не является обувью из-за наличия ступней.");
+            Assert.That(GarmentStorageCategories.CategoryFor("clothing.armguards_fighter"),
+                Is.EqualTo(GarmentCategory.Armwear),
+                "Наручи не являются перчатками.");
+        });
+    }
+
+    [Test]
+    public void EveryDefaultGarmentHasAnExplicitSemanticCategory()
+    {
+        Assert.That(GarmentLibrary.Defaults.All(garment =>
+            garment.Category != GarmentCategory.Unclassified), Is.True);
     }
 
     [Test]

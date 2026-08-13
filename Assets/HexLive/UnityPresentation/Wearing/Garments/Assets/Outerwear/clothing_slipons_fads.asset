@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads
   prototypeId: 
   displayName: Slip-Ons
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

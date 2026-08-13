@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bra_riot_pink
   prototypeId: underwear.bra_riot
   displayName: Plain Bra (Pink)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 7954e60f501dae04b8e7146d6e50f55a, type: 2}
   - {fileID: 2100000, guid: eda36f07498253940bdc9cf407e1ad21, type: 2}

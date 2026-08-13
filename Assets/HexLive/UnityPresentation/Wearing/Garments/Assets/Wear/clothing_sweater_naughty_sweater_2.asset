@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sweater_naughty_sweater_2
   prototypeId: clothing.sweater_naughty
   displayName: Loose Sweater (Sweater 2)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 54b08b01caddb50469b9a330c58b19f7, type: 2}
   layer: 1

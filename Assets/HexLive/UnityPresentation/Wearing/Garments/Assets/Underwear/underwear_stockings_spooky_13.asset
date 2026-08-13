@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.stockings_spooky_13
   prototypeId: underwear.stockings_spooky
   displayName: Patterned Stockings (13)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 035ec04dd4cfaae40adee725dbb87b21, type: 2}
   layer: 0

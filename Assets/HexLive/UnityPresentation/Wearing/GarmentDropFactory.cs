@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HexLive.Simulation.Content;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Wearing
@@ -74,15 +75,17 @@ public static class GarmentDropFactory
             // another. Split the disconnected left/right halves only for the
             // hanging presentation, then hang the cuffs together and turn both
             // finger tips down. The sim still owns one garment item.
-            // Extracted wear meshes deliberately ship without a CPU vertex
-            // copy. BakeMesh gives this presentation-only split a readable
-            // bind-pose copy without changing the imported garment asset.
-            var bakedGloveMesh = false;
-            if (hangingGloves && !mesh.isReadable)
+            // Always bake the rail presentation. Some imported glove variants
+            // expose a readable bind mesh while others do not; mixing those
+            // two paths was why the same gloves could look compact at spawn
+            // but revert to the character-wide T-pose after a reload.
+            // Baking supplies one readable, renderer-local mesh contract for
+            // every variant without changing the source asset.
+            var bakedGloveMesh = hangingGloves;
+            if (hangingGloves)
             {
                 mesh = new Mesh { name = $"{mesh.name} hanging copy" };
                 source.BakeMesh(mesh);
-                bakedGloveMesh = true;
             }
             if (hangingGloves && TryCreateHangingGlovePair(
                     root.transform, mesh, source, definitionId, pieces, widths))
@@ -98,7 +101,7 @@ public static class GarmentDropFactory
                 // Lying: squash height. Hanging (§35.5B): stay upright, squash
                 // front-to-back to cloth thickness instead.
                 piece.transform.localScale = hanging
-                    ? new Vector3(1f, 1f, FlattenFactor)
+                    ? new Vector3(hangingGloves ? 0.28f : 1f, 1f, FlattenFactor)
                     : new Vector3(1f, FlattenFactor, 1f);
             }
 
@@ -150,14 +153,15 @@ public static class GarmentDropFactory
         return root;
     }
 
-    private static bool IsFootwear(string definitionId)
-    {
-        var id = definitionId.ToLowerInvariant();
-        return id.Contains("boot") || id.Contains("shoe");
-    }
+    /// <summary>
+    /// Uses the shared wardrobe slot catalogue rather than item-name guesses:
+    /// sandals, heels and sneakers belong on the same shelf as boots.
+    /// </summary>
+    public static bool IsFootwear(string definitionId)
+        => GarmentStorageCategories.IsFootwear(definitionId);
 
     private static bool IsGloves(string definitionId) =>
-        definitionId.ToLowerInvariant().Contains("glove");
+        GarmentStorageCategories.IsPairedGloves(definitionId);
 
     private static bool TryCreateHangingGlovePair(
         Transform parent, Mesh source, SkinnedMeshRenderer renderer, string definitionId,

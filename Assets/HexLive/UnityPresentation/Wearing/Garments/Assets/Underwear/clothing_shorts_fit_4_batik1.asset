@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shorts_fit_4_batik1
   prototypeId: clothing.shorts_fit
   displayName: Running Shorts (4 Batik1)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 00c6f64809e254245be759258cd69985, type: 2}
   layer: 0

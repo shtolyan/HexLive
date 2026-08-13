@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.gloves_strap_anarchy_brn
   prototypeId: clothing.gloves_strap_anarchy
   displayName: Strap Gloves (Brn)
+  category: 7
   variantMaterials:
   - {fileID: 2100000, guid: 98199486cbf438941a7f93c154439f32, type: 2}
   layer: 1

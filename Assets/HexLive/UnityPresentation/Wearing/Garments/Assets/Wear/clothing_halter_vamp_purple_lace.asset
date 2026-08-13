@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.halter_vamp_purple_lace
   prototypeId: clothing.halter_vamp
   displayName: Buckled Halter (Purple Lace)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 5dd8dab4908059046b3352d62163314c, type: 2}
   - {fileID: 2100000, guid: fc1adda8f67994e4db3e712c4b5a98a4, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_bt_red
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (BT Red)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 7677d431ef7e0ac47a28c4605dcba70e, type: 2}
   - {fileID: 2100000, guid: 93f16e8ec16d8544b8b77740cd7ae79e, type: 2}

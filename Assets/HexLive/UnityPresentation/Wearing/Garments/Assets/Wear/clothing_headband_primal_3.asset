@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.headband_primal_3
   prototypeId: clothing.headband_primal
   displayName: Hide Headband (3)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 2caa5efa4290eed4ea6d88bb746582e9, type: 2}
   - {fileID: 2100000, guid: 782536ac1932fa74c96199c5705f7a40, type: 2}

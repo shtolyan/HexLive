@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_latex_red
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Latex Red)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: ce1b2aba5b1e8bf4a9dccb6d50ea59cc, type: 2}
   - {fileID: 2100000, guid: e91d89b558a84594b84c84a686363ec5, type: 2}

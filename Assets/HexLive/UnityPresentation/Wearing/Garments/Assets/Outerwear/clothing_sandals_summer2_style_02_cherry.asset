@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer2_style_02_cherry
   prototypeId: clothing.sandals_summer2
   displayName: Sandals, Style II (Style 02 Cherry)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: dcfd1fa29d650fa4fb9dbaba73439491, type: 2}
   - {fileID: 2100000, guid: 6b86b885362b03a4fa8acf07c0268a9b, type: 2}

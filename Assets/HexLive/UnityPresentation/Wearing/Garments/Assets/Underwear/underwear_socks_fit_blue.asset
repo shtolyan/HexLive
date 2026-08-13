@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.socks_fit_blue
   prototypeId: underwear.socks_fit
   displayName: Ankle Socks (Blue)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: da14705ea1a32ba4ba1bc8b71ca6e64d, type: 2}
   layer: 0

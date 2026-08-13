@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bodysuit_devi_cloth_1_berry
   prototypeId: 
   displayName: Lace Bodysuit (Cloth 1 Berry)
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 0100000002000000

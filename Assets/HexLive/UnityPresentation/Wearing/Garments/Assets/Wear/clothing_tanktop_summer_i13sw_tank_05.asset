@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tanktop_summer_i13sw_tank_05
   prototypeId: clothing.tanktop_summer
   displayName: Tank Top (i13SW Tank 05)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 6be137df6ac9ab24594c8598aca0c9f8, type: 2}
   - {fileID: 2100000, guid: fae2c70bbdd27cf49bb12c3fcb8de1c3, type: 2}

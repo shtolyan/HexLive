@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_alloy
   prototypeId: 
   displayName: Plated Boots
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

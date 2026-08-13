@@ -15,6 +15,7 @@ MonoBehaviour:
   id: gear.backpack_riot_denim
   prototypeId: gear.backpack_riot
   displayName: Canvas Backpack (Denim)
+  category: 14
   variantMaterials:
   - {fileID: 2100000, guid: db99a39737190f54890ce9bf9cda2056, type: 2}
   - {fileID: 2100000, guid: c079926557b21414e91ed2848b084ee4, type: 2}

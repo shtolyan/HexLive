@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez_bt_panty_dusty_purple
   prototypeId: underwear.briefs_teez
   displayName: Cotton Briefs (BT Panty Dusty Purple)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: a5168b501e56b0044933072a4bff2784, type: 2}
   - {fileID: 2100000, guid: 94aeec5a76368c54991a633edd47f7f0, type: 2}

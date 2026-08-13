@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sneakers_sport
   prototypeId: 
   displayName: Running Shoes
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.sportsbra_tek_bra_07_blue_black_orange
   prototypeId: underwear.sportsbra_tek
   displayName: Sports Bra (Bra 07 Blue Black Orange)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 1aab49d84de778d458b37bd759d749d3, type: 2}
   - {fileID: 2100000, guid: c1a6db115be2683428550d3378bfc098, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.sportsbra_tek_bra_01_apply_black_bottom_trim
   prototypeId: underwear.sportsbra_tek
   displayName: Sports Bra (Bra 01 Apply Black Bottom Trim)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 7acde24209aa6dd42bbf391617245ee3, type: 2}
   - {fileID: 2100000, guid: d5aac3cf07ac7e248b5e4269718f5c2e, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bra_strappy_mat03
   prototypeId: underwear.bra_strappy
   displayName: Strappy Bra (Mat03)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: b247d5f294f4d774a9f74a63ddbd0714, type: 2}
   - {fileID: 2100000, guid: e7a917aaca8953347b52d869dd00b6b9, type: 2}

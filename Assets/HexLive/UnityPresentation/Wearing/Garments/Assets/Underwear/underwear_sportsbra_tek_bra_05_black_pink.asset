@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.sportsbra_tek_bra_05_black_pink
   prototypeId: underwear.sportsbra_tek
   displayName: Sports Bra (Bra 05 Black Pink)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 137ea8c04fce2594c93a8fb0392391c3, type: 2}
   - {fileID: 2100000, guid: 442a981298438fc41b96a96011612777, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shorts_vamp_blk_lea
   prototypeId: clothing.shorts_vamp
   displayName: Laced Shorts (Blk Lea)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: bd86c2f1b64640148964341814e752ed, type: 2}
   - {fileID: 2100000, guid: 76852ee5d38ebf047b1af144ac3bddc2, type: 2}

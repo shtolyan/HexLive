@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer3_style_03_white
   prototypeId: clothing.sandals_summer3
   displayName: Sandals, Style III (Style 03 White)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 87e811ac15f21bf4fa3a9988f669e707, type: 2}
   - {fileID: 2100000, guid: 4700775e81efe594fa22363620c0f63f, type: 2}

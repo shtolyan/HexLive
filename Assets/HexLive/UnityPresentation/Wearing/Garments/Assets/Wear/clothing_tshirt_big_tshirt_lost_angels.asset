@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_tshirt_lost_angels
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (TShirt Lost Angels)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: c3486dd15c0bc964ba74188c5d66cb6b, type: 2}
   - {fileID: 2100000, guid: 720b5ca6652ad0f40b14595c847f82a4, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bodysuit_devi_04_cotton_cloth
   prototypeId: 
   displayName: Lace Bodysuit (04 Cotton Cloth)
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 0100000002000000

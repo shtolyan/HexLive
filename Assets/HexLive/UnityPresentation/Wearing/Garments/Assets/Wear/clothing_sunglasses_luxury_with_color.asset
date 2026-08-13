@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sunglasses_luxury_with_color
   prototypeId: clothing.sunglasses_luxury
   displayName: Sunglasses (with color)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 3bb50c69b1d512b42bf135a77f898d7f, type: 2}
   - {fileID: 2100000, guid: b2c1e78f568760548acbbea260781b62, type: 2}

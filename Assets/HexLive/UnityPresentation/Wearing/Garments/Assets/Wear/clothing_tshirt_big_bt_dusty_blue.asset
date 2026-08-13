@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_bt_dusty_blue
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (BT Dusty Blue)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 1a2b1253d89c31b4d8786cfa209c22b2, type: 2}
   - {fileID: 2100000, guid: bf2912800878abb44900a8b80e44b3a2, type: 2}

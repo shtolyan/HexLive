@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.yogapants_tek_yoga_01_black_mesh
   prototypeId: clothing.yogapants_tek
   displayName: Yoga Pants (Yoga 01 Black Mesh)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: bc2167c8d067bbe48824cd9bd793f14d, type: 2}
   - {fileID: 2100000, guid: 539d83214019ca74fbf121a0d521f44f, type: 2}

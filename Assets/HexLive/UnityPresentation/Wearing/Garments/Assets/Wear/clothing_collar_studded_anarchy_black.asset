@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.collar_studded_anarchy_black
   prototypeId: clothing.collar_studded_anarchy
   displayName: Studded Collar (Black)
+  category: 9
   variantMaterials:
   - {fileID: 2100000, guid: 1a0a7308da9531f4687f3b885aa77265, type: 2}
   - {fileID: 2100000, guid: 3c0bd7fd9ce464a4ca8bf911246bac47, type: 2}

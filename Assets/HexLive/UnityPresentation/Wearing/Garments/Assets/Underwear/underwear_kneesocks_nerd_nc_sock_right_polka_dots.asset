@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.kneesocks_nerd_nc_sock_right_polka_dots
   prototypeId: underwear.kneesocks_nerd
   displayName: Knee Socks (NC Sock Right Polka Dots)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: def9c822f231cb645af56fd5a9f2146b, type: 2}
   - {fileID: 2100000, guid: 05f44a144d26ad54b8d7e45c28fdf99a, type: 2}

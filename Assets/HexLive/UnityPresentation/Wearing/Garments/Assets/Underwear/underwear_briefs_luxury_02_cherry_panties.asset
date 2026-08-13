@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_luxury_02_cherry_panties
   prototypeId: underwear.briefs_luxury
   displayName: Jewelled Bikini Bottom (02 Cherry Panties)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 194c989f2557fe94084b455501f64c58, type: 2}
   - {fileID: 2100000, guid: 6db0bedd775968b44b39bee283000cff, type: 2}

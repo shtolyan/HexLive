@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_leather_lb_yellow_white_leather
   prototypeId: clothing.boots_leather
   displayName: Leather Boots (LB Yellow White Leather)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: affdaaa97ac95784eb71bcf062a01b18, type: 2}
   - {fileID: 2100000, guid: b9b3a0ba255b97b439929e168eca126b, type: 2}

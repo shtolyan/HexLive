@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_latex_pink
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Latex Pink)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: db186b4f089b1bc46b593d1f1ba3e867, type: 2}
   - {fileID: 2100000, guid: 77b2a5dda5abd9f489226578c85d5352, type: 2}

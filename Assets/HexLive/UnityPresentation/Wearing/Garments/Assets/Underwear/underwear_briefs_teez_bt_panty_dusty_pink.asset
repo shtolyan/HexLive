@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez_bt_panty_dusty_pink
   prototypeId: underwear.briefs_teez
   displayName: Cotton Briefs (BT Panty Dusty Pink)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: a2cfbeea72ebc6e478e19b93542dfb41, type: 2}
   - {fileID: 2100000, guid: 2e27839a7319a38478d9ded47e05758e, type: 2}

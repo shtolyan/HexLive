@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.cap_anarchy_black
   prototypeId: clothing.cap_anarchy
   displayName: Studded Cap (Black)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 156ce9ea4408f82409d1d8c8d9ccd201, type: 2}
   - {fileID: 2100000, guid: af8f162593368d44a8368e2cad962dc5, type: 2}

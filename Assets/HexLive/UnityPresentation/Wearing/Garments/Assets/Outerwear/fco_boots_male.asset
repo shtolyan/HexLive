@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: fco_boots_male
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: FCO Boots Male
+  prototypeId:
   displayName: Sapogi boitsa
+  category: 6
+  variantMaterials: []
   layer: 2
   covers: 0500000006000000
   warmth: 0.16

@@ -54,6 +54,7 @@ namespace HexLive.Simulation.Content
             DressDurationTicks = dressDurationTicks;
             Capacity = capacity;
             Covers = new List<BodyPart>(covers);
+            Category = GarmentCategoryRules.Classify(id, displayName, layer, Covers, capacity);
         }
 
         // Stable content id — the ITEM. Keys saves, localization and the sim.
@@ -90,6 +91,8 @@ namespace HexLive.Simulation.Content
         public GarmentSex Sex { get; }
 
         public WearLayer Layer { get; }
+
+        public GarmentCategory Category { get; set; }
 
         // Body zones this garment covers (armor & warmth apply per covered part).
         public List<BodyPart> Covers { get; }

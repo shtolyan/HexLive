@@ -15,6 +15,7 @@ MonoBehaviour:
   id: gear.backpack_osiris
   prototypeId: 
   displayName: Field Pack
+  category: 14
   variantMaterials: []
   layer: 3
   covers: 01000000

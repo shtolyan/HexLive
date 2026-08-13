@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.yogapants_tek_yoga_06_black_blue
   prototypeId: clothing.yogapants_tek
   displayName: Yoga Pants (Yoga 06 Black Blue)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: cda1dc887b92da143a925a864385377a, type: 2}
   - {fileID: 2100000, guid: 9dd8efe8b31478947a1b3e214323a813, type: 2}

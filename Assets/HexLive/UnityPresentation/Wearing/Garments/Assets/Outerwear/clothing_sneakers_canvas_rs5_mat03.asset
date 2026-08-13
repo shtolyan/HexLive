@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sneakers_canvas_rs5_mat03
   prototypeId: clothing.sneakers_canvas
   displayName: Canvas Sneakers (RS5 MAT03)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 3632282179fd2604d9682ab2b890867c, type: 2}
   - {fileID: 2100000, guid: 93f1a1e266d06d24fb3ea641688b0f7b, type: 2}

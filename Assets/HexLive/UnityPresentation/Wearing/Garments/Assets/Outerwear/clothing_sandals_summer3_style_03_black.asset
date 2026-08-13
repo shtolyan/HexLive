@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer3_style_03_black
   prototypeId: clothing.sandals_summer3
   displayName: Sandals, Style III (Style 03 Black)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 657f53d9779d640468c78108865afd13, type: 2}
   - {fileID: 2100000, guid: 91c819bba4b4e28488827fa117be77b9, type: 2}

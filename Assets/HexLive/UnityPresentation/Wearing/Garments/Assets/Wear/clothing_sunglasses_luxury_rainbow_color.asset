@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sunglasses_luxury_rainbow_color
   prototypeId: clothing.sunglasses_luxury
   displayName: Sunglasses (Rainbow Color)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: c602706eea494a446870bcffa0a76fc2, type: 2}
   - {fileID: 2100000, guid: 4ca56d23276255644899577af68d16f0, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_top_top_4
   prototypeId: underwear.swimsuit_top
   displayName: Strappy Swim Top (Top 4)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: c7364cd6cf61dbd44b7b955781f88563, type: 2}
   - {fileID: 2100000, guid: e4c7c4d01d2a3924bbb8072d0e956ef6, type: 2}

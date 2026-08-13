@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_wild
   prototypeId: 
   displayName: Studded Skirt
+  category: 3
   variantMaterials: []
   layer: 1
   covers: 02000000

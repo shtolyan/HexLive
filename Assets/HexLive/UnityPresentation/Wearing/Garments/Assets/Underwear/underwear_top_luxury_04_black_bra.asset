@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.top_luxury_04_black_bra
   prototypeId: underwear.top_luxury
   displayName: Jewelled Bikini Top (04 Black Bra)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 9d1793c04b2ba0e4d8e8ad117baddcd0, type: 2}
   - {fileID: 2100000, guid: deb3cd85b1a4a7945ab05e4791d458e9, type: 2}

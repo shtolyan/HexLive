@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.vest_ranger_packs
   prototypeId: clothing.vest_ranger
   displayName: Padded Vest (Packs)
+  category: 5
   variantMaterials:
   - {fileID: 2100000, guid: fded9dd4cd0fb754e9c5303a96d5ba8e, type: 2}
   - {fileID: 2100000, guid: bfde3c69ba9fdb94dabc6858efd3b8bc, type: 2}

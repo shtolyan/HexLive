@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_latex_grey
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Latex Grey)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 07846e3efb054e541bdabd27edc3d189, type: 2}
   - {fileID: 2100000, guid: b34c7d912fe7d6743b5c60b6f2e84cc9, type: 2}

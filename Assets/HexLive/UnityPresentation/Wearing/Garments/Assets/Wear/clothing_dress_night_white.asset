@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.dress_night_white
   prototypeId: clothing.dress_night
   displayName: Night Dress (White)
+  category: 4
   variantMaterials:
   - {fileID: 2100000, guid: 62db7db84db6afd42b173541d2227891, type: 2}
   - {fileID: 2100000, guid: ac1434891b5518f45be736b3fdb58596, type: 2}

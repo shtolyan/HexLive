@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer2_style_02_silver
   prototypeId: clothing.sandals_summer2
   displayName: Sandals, Style II (Style 02 Silver)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 9070336f5ca7c594595f418bd956251e, type: 2}
   - {fileID: 2100000, guid: 53f79909fa572c549ae7558007b648c5, type: 2}

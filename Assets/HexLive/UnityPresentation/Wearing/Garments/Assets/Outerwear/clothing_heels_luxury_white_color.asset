@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.heels_luxury_white_color
   prototypeId: clothing.heels_luxury
   displayName: Strap Heels (White Color)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: fe30a96bb15ce3c44bd36c6f2854eb05, type: 2}
   - {fileID: 2100000, guid: 05f509021b26a5e43ab8a674c25f79d8, type: 2}

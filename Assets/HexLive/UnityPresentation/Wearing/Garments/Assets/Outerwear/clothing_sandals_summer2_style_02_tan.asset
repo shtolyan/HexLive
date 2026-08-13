@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer2_style_02_tan
   prototypeId: clothing.sandals_summer2
   displayName: Sandals, Style II (Style 02 Tan)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: ea98963bf6fe9ee43be97924d6e89c1f, type: 2}
   - {fileID: 2100000, guid: 564224670e3880644a9171325f7a848e, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.blouse_waist_riot_denim
   prototypeId: clothing.blouse_waist_riot
   displayName: Blouse Tied at the Waist (Denim)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 362cfd6efb99b144490c22f7e7c0a536, type: 2}
   - {fileID: 2100000, guid: 2c7370bdf37874e4b9708d8e26030f6c, type: 2}

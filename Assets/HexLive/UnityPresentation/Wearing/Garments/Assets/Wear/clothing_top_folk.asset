@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.top_folk
   prototypeId: 
   displayName: Folk Blouse
+  category: 2
   variantMaterials: []
   layer: 1
   covers: 01000000

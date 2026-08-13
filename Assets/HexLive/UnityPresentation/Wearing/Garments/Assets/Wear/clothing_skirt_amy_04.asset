@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_amy_04
   prototypeId: clothing.skirt_amy
   displayName: Pleated Skirt (04)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 5f2b72d0a0272ac43b37ce6dba3859e7, type: 2}
   - {fileID: 2100000, guid: 3302f55e2b64e96429438bc2a159c737, type: 2}

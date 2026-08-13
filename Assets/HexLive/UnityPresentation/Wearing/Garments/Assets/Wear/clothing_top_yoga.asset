@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.top_yoga
   prototypeId: 
   displayName: Yoga Top
+  category: 2
   variantMaterials: []
   layer: 1
   covers: 01000000

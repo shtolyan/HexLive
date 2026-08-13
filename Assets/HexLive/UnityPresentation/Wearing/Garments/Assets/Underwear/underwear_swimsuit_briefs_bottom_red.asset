@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_briefs_bottom_red
   prototypeId: underwear.swimsuit_briefs
   displayName: Strappy Swim Bottom (Bottom Red)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 4a6c626daec2d804482c9e9bfd72c944, type: 2}
   - {fileID: 2100000, guid: b0c6124b5bd7aaf4ebf6114eeea9bb67, type: 2}

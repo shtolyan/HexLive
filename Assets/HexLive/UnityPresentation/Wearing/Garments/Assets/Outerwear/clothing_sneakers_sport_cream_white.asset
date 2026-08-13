@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sneakers_sport_cream_white
   prototypeId: clothing.sneakers_sport
   displayName: Running Shoes (Cream White)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 03f477b84504a4d48955fec7aec415a2, type: 2}
   - {fileID: 2100000, guid: 7b6038febcb988146b84099a9f0ba68b, type: 2}

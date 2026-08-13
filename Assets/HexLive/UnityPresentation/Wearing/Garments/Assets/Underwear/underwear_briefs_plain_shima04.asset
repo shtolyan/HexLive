@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_plain_shima04
   prototypeId: underwear.briefs_plain
   displayName: Plain Panties (Shima04)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 823b52358a377ce40bdc1d33ae413ae2, type: 2}
   - {fileID: 2100000, guid: 0639ce814fbf07d42b9c11d6d5d51bde, type: 2}

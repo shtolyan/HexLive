@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: fco_waist_strappy_male
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: FCO Waist Strappy Male
+  prototypeId:
   displayName: Nabedrennyy remen
+  category: 5
+  variantMaterials: []
   layer: 2
   covers: 02000000
   warmth: 0.04

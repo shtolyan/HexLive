@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer3_style_03_salmon
   prototypeId: clothing.sandals_summer3
   displayName: Sandals, Style III (Style 03 Salmon)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 407920a553021a740b36bc3bdc077671, type: 2}
   - {fileID: 2100000, guid: 7498865625ed29a47ac42e5072a289ad, type: 2}

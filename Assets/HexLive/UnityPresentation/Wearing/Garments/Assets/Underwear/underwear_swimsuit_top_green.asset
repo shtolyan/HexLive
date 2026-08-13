@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_top_green
   prototypeId: underwear.swimsuit_top
   displayName: Strappy Swim Top (Green)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: dcadb3f6fb444a840933b858803b85a4, type: 2}
   - {fileID: 2100000, guid: b287825fadcc89140800d3455a529bea, type: 2}

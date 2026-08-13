@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: fco_gloves_male
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: FCO Gloves Male
+  prototypeId:
   displayName: Perchatki
+  category: 7
+  variantMaterials: []
   layer: 1
   covers: 0300000004000000
   warmth: 0.06

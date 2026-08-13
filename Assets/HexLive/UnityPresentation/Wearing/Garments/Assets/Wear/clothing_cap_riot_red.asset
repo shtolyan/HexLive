@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.cap_riot_red
   prototypeId: clothing.cap_riot
   displayName: Pinned Cap (Red)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 5f3bf82e464472341a650122530cb90c, type: 2}
   - {fileID: 2100000, guid: 9aab2b445f8d6f048af12a404b791f6e, type: 2}

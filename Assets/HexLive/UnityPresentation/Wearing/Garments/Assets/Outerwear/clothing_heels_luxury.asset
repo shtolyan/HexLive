@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.heels_luxury
   prototypeId: 
   displayName: Strap Heels
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

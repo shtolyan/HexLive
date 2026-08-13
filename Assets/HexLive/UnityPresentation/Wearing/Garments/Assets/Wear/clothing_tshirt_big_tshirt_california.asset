@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_tshirt_california
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (TShirt California)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 598d9170dd7562048b1bcffc47f8dcea, type: 2}
   - {fileID: 2100000, guid: f27960fe85ec4b84194b0ffc5a8160e0, type: 2}

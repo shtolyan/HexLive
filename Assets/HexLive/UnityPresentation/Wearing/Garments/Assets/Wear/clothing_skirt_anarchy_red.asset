@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_anarchy_red
   prototypeId: clothing.skirt_anarchy
   displayName: Pleated Skirt (Red)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 6c2cff1286f05434192ab59700370610, type: 2}
   layer: 1

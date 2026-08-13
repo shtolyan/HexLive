@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: fco_knee_straps_male
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: FCO Knee Straps Male
+  prototypeId:
   displayName: Nakolenniki
+  category: 5
+  variantMaterials: []
   layer: 2
   covers: 0500000006000000
   warmth: 0.04

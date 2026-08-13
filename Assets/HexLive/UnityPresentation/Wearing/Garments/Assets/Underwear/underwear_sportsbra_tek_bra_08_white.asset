@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.sportsbra_tek_bra_08_white
   prototypeId: underwear.sportsbra_tek
   displayName: Sports Bra (Bra 08 White)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: bad39020ab197be45a66b160ad7db2a9, type: 2}
   - {fileID: 2100000, guid: 650f5f1c5048c9a4ea02bda53337357d, type: 2}

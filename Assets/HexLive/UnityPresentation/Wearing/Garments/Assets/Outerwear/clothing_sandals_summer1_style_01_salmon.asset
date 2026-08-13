@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer1_style_01_salmon
   prototypeId: clothing.sandals_summer1
   displayName: Sandals, Style I (Style 01 Salmon)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 36b6df08c3ab8e7418a225fdb82ad9eb, type: 2}
   - {fileID: 2100000, guid: 08bd7f86c12b1ce499c476620e603b07, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads_planets
   prototypeId: clothing.slipons_fads
   displayName: Slip-Ons (Planets)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 33e3a30693afda640a9e2e3b3da7c718, type: 2}
   - {fileID: 2100000, guid: afcd6b77fc95f964a94551a72b8a02f9, type: 2}

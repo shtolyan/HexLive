@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez_bt_panty_grey
   prototypeId: underwear.briefs_teez
   displayName: Cotton Briefs (BT Panty Grey)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 653b66ca048479f40b4ccc88ec6c90df, type: 2}
   - {fileID: 2100000, guid: 99e44dc92aa698b4c8a8ecb300552e6f, type: 2}

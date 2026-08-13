@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_alloy_af_boots_casual_dark
   prototypeId: 
   displayName: Plated Boots (AF Boots Casual Dark)
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

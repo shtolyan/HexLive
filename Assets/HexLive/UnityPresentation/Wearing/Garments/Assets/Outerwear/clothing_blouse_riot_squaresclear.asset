@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.blouse_riot_squaresclear
   prototypeId: clothing.blouse_riot
   displayName: Work Blouse (SquaresClear)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 4622db18efc895043933976035ed298c, type: 2}
   - {fileID: 2100000, guid: 2b296114854d9f44291a4df64a654c4a, type: 2}

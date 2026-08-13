@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_velvet_beige
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Velvet Beige)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: dab75f616413c194c80ceb8ded8a94c9, type: 2}
   - {fileID: 2100000, guid: 31e14ff06389b594a803612d89759bf8, type: 2}

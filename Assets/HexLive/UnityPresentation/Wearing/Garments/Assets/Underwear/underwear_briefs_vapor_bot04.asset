@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_vapor_bot04
   prototypeId: underwear.briefs_vapor
   displayName: Sheer Briefs (Bot04)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 23ec1ea389c03dc488be79766eaaefd1, type: 2}
   - {fileID: 2100000, guid: 586e0ed4e7905914e877f8daad30c1ee, type: 2}

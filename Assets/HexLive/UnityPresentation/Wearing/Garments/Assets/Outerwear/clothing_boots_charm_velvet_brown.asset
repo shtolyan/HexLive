@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_velvet_brown
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Velvet Brown)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: d83f671bc16d2dd41a39af89cc0c5b8c, type: 2}
   - {fileID: 2100000, guid: d50578593a7879e47882a87af67aaf10, type: 2}

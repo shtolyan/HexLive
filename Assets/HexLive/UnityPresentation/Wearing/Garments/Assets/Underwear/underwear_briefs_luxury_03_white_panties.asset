@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_luxury_03_white_panties
   prototypeId: underwear.briefs_luxury
   displayName: Jewelled Bikini Bottom (03 White Panties)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: a2386659d4e788546b45e6caa76b5d48, type: 2}
   - {fileID: 2100000, guid: 736677257b7f61641983f87b29ccd6a5, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.vest_ranger
   prototypeId: 
   displayName: Padded Vest
+  category: 5
   variantMaterials: []
   layer: 2
   covers: 01000000

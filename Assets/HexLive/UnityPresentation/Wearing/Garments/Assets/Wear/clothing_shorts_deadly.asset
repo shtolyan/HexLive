@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shorts_deadly
   prototypeId: 
   displayName: High-Waist Shorts
+  category: 3
   variantMaterials: []
   layer: 1
   covers: 020000000500000006000000

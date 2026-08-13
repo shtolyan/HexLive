@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_velvet_red
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Velvet Red)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: c539322b157cc3c4e926ed279cb3c850, type: 2}
   - {fileID: 2100000, guid: a6c36d8af871cc04c9fa38ad197ee9ef, type: 2}

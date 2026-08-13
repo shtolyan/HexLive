@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shoes_tod
   prototypeId: 
   displayName: Buckled Shoes
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

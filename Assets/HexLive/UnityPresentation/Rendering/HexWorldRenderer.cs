@@ -1288,14 +1288,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var hungChild = objectView.transform.GetChild(0);
                 var inWardrobe = worldObject.Junctions.Count > 0 &&
                     _wardrobeJunctions.Contains(worldObject.Junctions[0]);
+                var footwearOnWardrobeShelf = inWardrobe &&
+                    GarmentDropFactory.IsFootwear(worldObject.DefinitionId);
                 var wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(hangSlot);
-                if (inWardrobe)
+                if (footwearOnWardrobeShelf)
+                {
+                    wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.ShoeShelfSlot(hangSlot);
+                }
+                else if (inWardrobe)
                 {
                     HexLive.UnityPresentation.Environment.WardrobeAssembly.TryGetClothingSlotLocal(
                         hangSlot, out wardrobeSocket);
                 }
-                hungChild.localPosition = HangSlotOffset(hungChild, hangSlot, inWardrobe,
-                    wardrobeSocket);
+                hungChild.localPosition = footwearOnWardrobeShelf
+                    ? wardrobeSocket
+                    : HangSlotOffset(hungChild, hangSlot, inWardrobe, wardrobeSocket);
                 // A rack ranks its garments by id every sync. The old code moved
                 // only the cloth when that rank changed, leaving the procedural
                 // hanger at its former socket. Move both children from the same
@@ -1308,6 +1315,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                         var child = objectView.transform.GetChild(childIndex);
                         if (child.name == "Occupied wardrobe hanger")
                         {
+                            // Shoes never own a hanger; an old visual can
+                            // survive one sync after a hot reload, so hide it
+                            // until the object view is rebuilt.
+                            child.gameObject.SetActive(!footwearOnWardrobeShelf);
                             child.localPosition = wardrobeSocket;
                             child.localRotation = Quaternion.identity;
                         }
@@ -3375,7 +3386,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (worldObject.Junctions.Count > 0 && _rackJunctions.Contains(worldObject.Junctions[0]) &&
             GarmentDropFactory.IsGarment(worldObject.DefinitionId))
         {
-            var hung = GarmentDropFactory.BuildHanging(worldObject.DefinitionId);
+            var inWardrobe = _wardrobeJunctions.Contains(worldObject.Junctions[0]);
+            var footwearOnWardrobeShelf = inWardrobe &&
+                GarmentDropFactory.IsFootwear(worldObject.DefinitionId);
+            var hung = footwearOnWardrobeShelf
+                ? GarmentDropFactory.Build(worldObject.DefinitionId)
+                : GarmentDropFactory.BuildHanging(worldObject.DefinitionId);
             if (hung != null)
             {
                 var hungRoot = new GameObject($"Object {worldObject.DefinitionId} (hung)");
@@ -3384,15 +3400,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var hungScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
                 hung.transform.localScale = Vector3.one * hungScale;
                 _rackHangRank.TryGetValue(worldObject.Id.Value, out var slot);
-                var inWardrobe = _wardrobeJunctions.Contains(worldObject.Junctions[0]);
                 var wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
-                if (inWardrobe)
+                if (footwearOnWardrobeShelf)
+                {
+                    wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.ShoeShelfSlot(slot);
+                }
+                else if (inWardrobe)
                 {
                     HexLive.UnityPresentation.Environment.WardrobeAssembly.TryGetClothingSlotLocal(
                         slot, out wardrobeSocket);
                 }
-                hung.transform.localPosition = HangSlotOffset(hung.transform, slot,
-                    inWardrobe, wardrobeSocket);
+                hung.transform.localPosition = footwearOnWardrobeShelf
+                    ? wardrobeSocket
+                    : HangSlotOffset(hung.transform, slot, inWardrobe, wardrobeSocket);
                 // One slot owns one orientation. Garment categories (including
                 // underwear) must not add another 90° or random yaw here.
                 hung.transform.localRotation = Quaternion.identity;
@@ -3402,7 +3422,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 if (inWardrobe && _wardrobeYawByJunction.TryGetValue(
                         worldObject.Junctions[0], out var wardrobeYaw))
                     hungRoot.transform.rotation = Quaternion.Euler(0f, wardrobeYaw, 0f);
-                if (inWardrobe)
+                if (inWardrobe && !footwearOnWardrobeShelf)
                 {
                     var hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build();
                     hanger.transform.SetParent(hungRoot.transform, false);

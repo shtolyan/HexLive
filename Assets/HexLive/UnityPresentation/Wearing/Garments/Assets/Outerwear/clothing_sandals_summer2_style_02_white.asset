@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer2_style_02_white
   prototypeId: clothing.sandals_summer2
   displayName: Sandals, Style II (Style 02 White)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 6699943f4f0876344bb477acf55039f4, type: 2}
   - {fileID: 2100000, guid: 9c4e332e9a35c6d479260b0c882410a3, type: 2}

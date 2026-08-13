@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bra_lace
   prototypeId: 
   displayName: Lace Bra
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 01000000

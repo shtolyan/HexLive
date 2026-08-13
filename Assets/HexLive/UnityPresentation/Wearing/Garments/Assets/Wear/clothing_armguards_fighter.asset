@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.armguards_fighter
   prototypeId: 
   displayName: Arm Guards
+  category: 16
   variantMaterials: []
   layer: 1
   covers: 0300000004000000

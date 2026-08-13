@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.collar_anarchy_brn
   prototypeId: clothing.collar_anarchy
   displayName: Strap Collar (Brn)
+  category: 9
   variantMaterials:
   - {fileID: 2100000, guid: 90f1c0cd9215ddb48abffd091a7b868d, type: 2}
   - {fileID: 2100000, guid: 011bf288467e20746bf5f291f65a6d01, type: 2}

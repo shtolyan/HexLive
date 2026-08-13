@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.wrapboots_primal_2
   prototypeId: clothing.wrapboots_primal
   displayName: Wrapped Boots (2)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 690b260c7970d504fa0295d44a01a89c, type: 2}
   - {fileID: 2100000, guid: 3c668388fa6da1d49999de5f69424f3c, type: 2}

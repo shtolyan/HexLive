@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_lace_dream_lace_3_panty_blue1
   prototypeId: underwear.briefs_lace
   displayName: Lace Briefs (Dream Lace 3 Panty Blue1)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 3f77d9e2b32d5cd429d48c733987a5d9, type: 2}
   - {fileID: 2100000, guid: 36f0d5c5b774d0948a58f40e14353883, type: 2}

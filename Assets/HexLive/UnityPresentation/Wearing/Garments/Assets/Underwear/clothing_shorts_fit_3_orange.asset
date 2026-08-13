@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shorts_fit_3_orange
   prototypeId: clothing.shorts_fit
   displayName: Running Shorts (3 Orange)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: c8f5b9f8151d72c4db3bb26006a86bd1, type: 2}
   layer: 0

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shirt_riot_pink
   prototypeId: clothing.shirt_riot
   displayName: Buttoned Shirt (Pink)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: b58a2ada3082f024c91b6826e4d3721b, type: 2}
   - {fileID: 2100000, guid: d71f871931146f14a9cb17ce352a6eea, type: 2}

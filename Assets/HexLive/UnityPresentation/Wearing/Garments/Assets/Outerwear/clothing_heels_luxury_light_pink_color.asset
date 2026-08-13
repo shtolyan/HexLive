@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.heels_luxury_light_pink_color
   prototypeId: clothing.heels_luxury
   displayName: Strap Heels (Light Pink Color)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 8295e2444a1e5de41b2e9dca54eae926, type: 2}
   - {fileID: 2100000, guid: ff868df80fd7963499c3c375a30a974c, type: 2}

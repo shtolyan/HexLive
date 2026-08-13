@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer2
   prototypeId: 
   displayName: Sandals, Style II
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

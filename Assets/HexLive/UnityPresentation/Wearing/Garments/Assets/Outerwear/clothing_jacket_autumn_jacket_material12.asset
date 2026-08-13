@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.jacket_autumn_jacket_material12
   prototypeId: clothing.jacket_autumn
   displayName: Autumn Jacket (Jacket Material12)
+  category: 5
   variantMaterials:
   - {fileID: 2100000, guid: 69ac86a977388eb439f1df0e26a24808, type: 2}
   - {fileID: 2100000, guid: 9c315a3ae0dd35b4abc8eb99f3e4252c, type: 2}

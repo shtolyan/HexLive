@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer3_style_03_silver
   prototypeId: clothing.sandals_summer3
   displayName: Sandals, Style III (Style 03 Silver)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 0eb35e2396aae1a4bb88f2b093dfd47d, type: 2}
   - {fileID: 2100000, guid: 8cfe48258bf148547bb940f20881f2d7, type: 2}

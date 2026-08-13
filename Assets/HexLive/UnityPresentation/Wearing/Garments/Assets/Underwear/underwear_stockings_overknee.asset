@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.stockings_overknee
   prototypeId: 
   displayName: Over-Knee Socks
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 0500000006000000

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.kneesocks_nerd_nc_sock_right_hearts
   prototypeId: underwear.kneesocks_nerd
   displayName: Knee Socks (NC Sock Right Hearts)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 8a3ff76154540a64db25c6822aad021d, type: 2}
   - {fileID: 2100000, guid: 22c6be3b8578b8344b92a2127cc2d49c, type: 2}

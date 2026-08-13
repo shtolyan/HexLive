@@ -15,6 +15,7 @@ MonoBehaviour:
   id: gear.beltpouch_ranger
   prototypeId: 
   displayName: Belt Pouches
+  category: 5
   variantMaterials: []
   layer: 2
   covers: 02000000

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bra_riot_blue
   prototypeId: underwear.bra_riot
   displayName: Plain Bra (Blue)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: d3c4e143ff39cd24caa273189aa41bf2, type: 2}
   - {fileID: 2100000, guid: fbc94e9540c660c4f935359168cce892, type: 2}

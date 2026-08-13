@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.stockings_overknee_over_knee_2
   prototypeId: underwear.stockings_overknee
   displayName: Over-Knee Socks (Over Knee 2)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 65ce0e9e111a38d4b97f26736b4553a0, type: 2}
   - {fileID: 2100000, guid: 92e344db86ae7124bbbfddf1301e910a, type: 2}

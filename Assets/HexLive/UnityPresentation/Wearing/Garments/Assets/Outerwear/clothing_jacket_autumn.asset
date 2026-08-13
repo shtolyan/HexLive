@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.jacket_autumn
   prototypeId: 
   displayName: Autumn Jacket
+  category: 5
   variantMaterials: []
   layer: 2
   covers: 010000000300000004000000

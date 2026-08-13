@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez
   prototypeId: 
   displayName: Cotton Briefs
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 02000000

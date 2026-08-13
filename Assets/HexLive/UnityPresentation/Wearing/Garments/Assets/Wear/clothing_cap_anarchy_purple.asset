@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.cap_anarchy_purple
   prototypeId: clothing.cap_anarchy
   displayName: Studded Cap (Purple)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 3fad5a6bad1e9184488e4694cfb740dd, type: 2}
   - {fileID: 2100000, guid: 72106df035b77954bb348a71ef9d449d, type: 2}

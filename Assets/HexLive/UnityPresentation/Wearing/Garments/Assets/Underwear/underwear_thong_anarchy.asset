@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.thong_anarchy
   prototypeId: 
   displayName: Thong
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 02000000

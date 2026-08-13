@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.sportsbra_tek_bra_04_red_black
   prototypeId: underwear.sportsbra_tek
   displayName: Sports Bra (Bra 04 Red Black)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 52fd836b11b5f2944bf24b32a926d567, type: 2}
   - {fileID: 2100000, guid: 7335fde0a41e37c449cbbdaa05f5cb8d, type: 2}

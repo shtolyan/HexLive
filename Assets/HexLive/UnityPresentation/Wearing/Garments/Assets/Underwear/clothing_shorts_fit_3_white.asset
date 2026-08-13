@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shorts_fit_3_white
   prototypeId: clothing.shorts_fit
   displayName: Running Shorts (3 White)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 8f285e145dd5bc54c90c76cb3435ce98, type: 2}
   layer: 0

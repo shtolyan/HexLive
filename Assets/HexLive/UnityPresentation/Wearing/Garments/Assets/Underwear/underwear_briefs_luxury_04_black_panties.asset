@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_luxury_04_black_panties
   prototypeId: underwear.briefs_luxury
   displayName: Jewelled Bikini Bottom (04 Black Panties)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: e59fdac5ef54c7641a1ae5fea017a6b2, type: 2}
   - {fileID: 2100000, guid: 129a07ec6844bc24ba178be2dde997fa, type: 2}

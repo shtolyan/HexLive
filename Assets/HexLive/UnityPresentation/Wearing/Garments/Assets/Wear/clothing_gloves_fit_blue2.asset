@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.gloves_fit_blue2
   prototypeId: clothing.gloves_fit
   displayName: Training Gloves (Blue2)
+  category: 7
   variantMaterials:
   - {fileID: 2100000, guid: 0347b1764f69acc4c8d01d3fe83deba7, type: 2}
   layer: 1

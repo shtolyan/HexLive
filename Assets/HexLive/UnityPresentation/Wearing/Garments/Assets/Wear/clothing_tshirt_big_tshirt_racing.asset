@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_tshirt_racing
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (TShirt Racing)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: e61abad9d684a8d4088282ee4fae98d5, type: 2}
   - {fileID: 2100000, guid: fc14ee3c0d1821145aaa36b3b52f50bd, type: 2}

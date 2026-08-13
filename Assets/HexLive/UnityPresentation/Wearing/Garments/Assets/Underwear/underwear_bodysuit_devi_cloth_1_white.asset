@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bodysuit_devi_cloth_1_white
   prototypeId: 
   displayName: Lace Bodysuit (Cloth 1 White)
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 0100000002000000

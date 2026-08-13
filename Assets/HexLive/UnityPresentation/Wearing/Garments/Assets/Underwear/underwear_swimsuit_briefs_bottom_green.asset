@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_briefs_bottom_green
   prototypeId: underwear.swimsuit_briefs
   displayName: Strappy Swim Bottom (Bottom Green)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 24c7b522b9e69c845930cf75d7b0b655, type: 2}
   - {fileID: 2100000, guid: 541722dfe9ae39f41a6d68d55bea47b9, type: 2}

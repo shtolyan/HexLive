@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.corset_anarchy_red
   prototypeId: clothing.corset_anarchy
   displayName: Laced Corset (Red)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 5e4c52240178b9446851e870f76bbef9, type: 2}
   - {fileID: 2100000, guid: 6e59a905cef6b384cae9b731bae3027b, type: 2}

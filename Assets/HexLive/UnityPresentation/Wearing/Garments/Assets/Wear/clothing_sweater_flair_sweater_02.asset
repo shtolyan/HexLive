@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sweater_flair_sweater_02
   prototypeId: clothing.sweater_flair
   displayName: Knit Sweater (Sweater-02)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: ddb7e85c1553edc4385e3e2e74b83a8e, type: 2}
   - {fileID: 2100000, guid: 3aacd0f7d855b4d49a8849a4c63f0c65, type: 2}

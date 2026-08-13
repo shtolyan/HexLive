@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.yogapants_tek_yoga_05_black_pink
   prototypeId: clothing.yogapants_tek
   displayName: Yoga Pants (Yoga 05 Black Pink)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 2f19aed57cd52214db4b2e1c02056b25, type: 2}
   - {fileID: 2100000, guid: 1cea59365255c0e42bc979147f1db981, type: 2}

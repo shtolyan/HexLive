@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer2_style_02_red
   prototypeId: clothing.sandals_summer2
   displayName: Sandals, Style II (Style 02 Red)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 81ba524405d1c284cb838114a602a931, type: 2}
   - {fileID: 2100000, guid: dc70cf722b0d0f141bdf79af7c9747d5, type: 2}

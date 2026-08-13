@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sneakers_sport_lilac_purple
   prototypeId: clothing.sneakers_sport
   displayName: Running Shoes (Lilac Purple)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 5d7ee58799d8eb842bf6c48e430905cc, type: 2}
   - {fileID: 2100000, guid: fb8cf3e290836c243bc9a8875a8fe28b, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_tshirt_denim
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (TShirt Denim)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 0b92e7110263a7e42983bb0ca2dc80d5, type: 2}
   - {fileID: 2100000, guid: 07ac481aeb5e7f64c9ad9d6cc8ad9b7f, type: 2}

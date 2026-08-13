@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_leather_lb_white_leather
   prototypeId: clothing.boots_leather
   displayName: Leather Boots (LB White Leather)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 8ab7bf5da323d4646a2f19c0b6d6aeb6, type: 2}
   - {fileID: 2100000, guid: baa7a546b3ad96445a03b18d92567f96, type: 2}

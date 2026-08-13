@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_tshirt_american
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (TShirt American)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 6f258db593f698a40b38f2fcf00070da, type: 2}
   - {fileID: 2100000, guid: 12a99e16a4f07094cae647d7c1a68c24, type: 2}

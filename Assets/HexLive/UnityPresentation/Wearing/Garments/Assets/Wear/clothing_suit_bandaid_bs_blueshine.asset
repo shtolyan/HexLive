@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.suit_bandaid_bs_blueshine
   prototypeId: clothing.suit_bandaid
   displayName: Strap Bodysuit (BS_BlueShine)
+  category: 15
   variantMaterials:
   - {fileID: 2100000, guid: 47fada1688aa6eb4e84fb40409287cc5, type: 2}
   layer: 1

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tank_jane_blues
   prototypeId: clothing.tank_jane
   displayName: Jersey Tank (Blues)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 94413180a89e52349a7abee88fa48fda, type: 2}
   - {fileID: 2100000, guid: eb3ca2d2749c743428bd77799ce6698c, type: 2}

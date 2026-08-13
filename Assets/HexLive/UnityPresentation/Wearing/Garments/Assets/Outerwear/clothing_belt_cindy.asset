@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.belt_cindy
   prototypeId: 
   displayName: Hip Belt
+  category: 13
   variantMaterials: []
   layer: 2
   covers: 020000000500000006000000

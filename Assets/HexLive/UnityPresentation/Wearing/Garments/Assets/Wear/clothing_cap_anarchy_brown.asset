@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.cap_anarchy_brown
   prototypeId: clothing.cap_anarchy
   displayName: Studded Cap (Brown)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: e7962b59ccb94b547a67986ebd5c0b86, type: 2}
   - {fileID: 2100000, guid: c8b3db0cb42162443a9c543962432644, type: 2}

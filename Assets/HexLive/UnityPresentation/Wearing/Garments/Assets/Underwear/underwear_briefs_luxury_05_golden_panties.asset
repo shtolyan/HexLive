@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_luxury_05_golden_panties
   prototypeId: underwear.briefs_luxury
   displayName: Jewelled Bikini Bottom (05 Golden Panties)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: c9f7568ba69b8f240ab3e0dcf046dc5a, type: 2}
   - {fileID: 2100000, guid: 1ad42664cc6adde42b21df6e04529e39, type: 2}

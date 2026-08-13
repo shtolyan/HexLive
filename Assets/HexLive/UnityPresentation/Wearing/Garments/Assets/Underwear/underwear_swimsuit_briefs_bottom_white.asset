@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_briefs_bottom_white
   prototypeId: underwear.swimsuit_briefs
   displayName: Strappy Swim Bottom (Bottom White)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: ab250bf1a08768349a54a887f3a7f0ee, type: 2}
   - {fileID: 2100000, guid: 43fc0241df0b0504190883c22e440f78, type: 2}

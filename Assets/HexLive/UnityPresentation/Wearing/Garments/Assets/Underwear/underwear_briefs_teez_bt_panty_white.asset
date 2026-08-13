@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez_bt_panty_white
   prototypeId: underwear.briefs_teez
   displayName: Cotton Briefs (BT Panty White)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: c22aab2b8b2e24a41b3d77f364441817, type: 2}
   - {fileID: 2100000, guid: 713d99a0756358a439b056b70b65e80c, type: 2}

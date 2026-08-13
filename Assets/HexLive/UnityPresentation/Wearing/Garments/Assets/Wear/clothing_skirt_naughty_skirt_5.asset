@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_naughty_skirt_5
   prototypeId: clothing.skirt_naughty
   displayName: Pleated Mini (Skirt 5)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 68b7cf08f5a370844a020a6220cb00db, type: 2}
   - {fileID: 2100000, guid: ab25363d3abac114891e27e6d0df8b68, type: 2}

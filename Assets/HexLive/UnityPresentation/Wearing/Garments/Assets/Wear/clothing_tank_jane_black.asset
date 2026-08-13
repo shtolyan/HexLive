@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tank_jane_black
   prototypeId: clothing.tank_jane
   displayName: Jersey Tank (Black)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 95d8e4ca133d0fa489e0f2e62a0016ee, type: 2}
   - {fileID: 2100000, guid: d026bc41c725528468675619209a6a24, type: 2}

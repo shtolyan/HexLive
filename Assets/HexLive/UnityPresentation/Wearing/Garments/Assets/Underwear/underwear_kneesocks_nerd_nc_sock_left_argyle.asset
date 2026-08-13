@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.kneesocks_nerd_nc_sock_left_argyle
   prototypeId: underwear.kneesocks_nerd
   displayName: Knee Socks (NC Sock Left Argyle)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 982d4edec03eaed46a46b13d1bbc6ac4, type: 2}
   - {fileID: 2100000, guid: 91551ba183f652749947cfc323e50463, type: 2}

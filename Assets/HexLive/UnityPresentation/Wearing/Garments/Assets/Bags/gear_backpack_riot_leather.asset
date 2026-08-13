@@ -15,6 +15,7 @@ MonoBehaviour:
   id: gear.backpack_riot_leather
   prototypeId: gear.backpack_riot
   displayName: Canvas Backpack (Leather)
+  category: 14
   variantMaterials:
   - {fileID: 2100000, guid: 7fb0e84fd129b9c48aafd34fe0e48a41, type: 2}
   - {fileID: 2100000, guid: 245abb16c7acd534e8f77fd290061278, type: 2}

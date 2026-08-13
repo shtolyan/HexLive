@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shorts_fit
   prototypeId: 
   displayName: Running Shorts
+  category: 3
   variantMaterials: []
   layer: 0
   covers: 02000000

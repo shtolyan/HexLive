@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.sportsbra_tek_bra_06_blue_black
   prototypeId: underwear.sportsbra_tek
   displayName: Sports Bra (Bra 06 Blue Black)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 2103f860743c67b4d9470fa7d872e15e, type: 2}
   - {fileID: 2100000, guid: 57c1761edd2e5ab4694dd2959b0c6ced, type: 2}

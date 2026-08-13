@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bodysuit_devi_cloth_3_black
   prototypeId: 
   displayName: Lace Bodysuit (Cloth 3 Black)
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 0100000002000000

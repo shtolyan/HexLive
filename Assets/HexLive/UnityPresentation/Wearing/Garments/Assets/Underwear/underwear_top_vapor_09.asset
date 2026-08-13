@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.top_vapor_09
   prototypeId: underwear.top_vapor
   displayName: Sheer Top (09)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 81d087f33488ab04bbc66a81f35469ab, type: 2}
   - {fileID: 2100000, guid: 70150bf00dff4a54a9cdb5c56a7ae896, type: 2}

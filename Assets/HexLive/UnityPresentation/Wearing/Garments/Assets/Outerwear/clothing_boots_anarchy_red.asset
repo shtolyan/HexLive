@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_anarchy_red
   prototypeId: clothing.boots_anarchy
   displayName: Buckled Thigh Boots (Red)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 6fbb5a9686f90194c85b646e0eedbfd7, type: 2}
   - {fileID: 2100000, guid: 69a1083b8abc086488d0ebf58478de30, type: 2}

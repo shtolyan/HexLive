@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.croptop_fit_3_orange
   prototypeId: clothing.croptop_fit
   displayName: Crop Top (3 Orange)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 2ddb77f8f2e5eb94096d2c79bf9a7d1f, type: 2}
   layer: 1

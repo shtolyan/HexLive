@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.yogapants_tek_yoga_04_black_orange
   prototypeId: clothing.yogapants_tek
   displayName: Yoga Pants (Yoga 04 Black Orange)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: f21358dd7a32688438b89b0cb036ac4d, type: 2}
   - {fileID: 2100000, guid: a4040c5c7003a2a458e0b61df20bcf3d, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads_navy
   prototypeId: clothing.slipons_fads
   displayName: Slip-Ons (Navy)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: bfbd3a85f14537b44937740db1e12708, type: 2}
   - {fileID: 2100000, guid: 046dcd17c44c64947858cb8634b9378f, type: 2}

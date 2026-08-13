@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer1_style_01_red
   prototypeId: clothing.sandals_summer1
   displayName: Sandals, Style I (Style 01 Red)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: ce9df735294bf064fa27fdcab7899e9e, type: 2}
   - {fileID: 2100000, guid: f276abc3cce60f348a8a23aff303e657, type: 2}

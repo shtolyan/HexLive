@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.dress_primal_color06
   prototypeId: clothing.dress_primal
   displayName: Fur-Trimmed Dress (color06)
+  category: 4
   variantMaterials:
   - {fileID: 2100000, guid: 2bc62a176d75b5a47bf73e0f42d3fe9a, type: 2}
   - {fileID: 2100000, guid: 4c058df2db2e6ee44b2247499091d776, type: 2}

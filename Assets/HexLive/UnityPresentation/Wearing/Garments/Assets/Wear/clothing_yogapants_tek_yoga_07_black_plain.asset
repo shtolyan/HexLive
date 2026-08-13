@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.yogapants_tek_yoga_07_black_plain
   prototypeId: clothing.yogapants_tek
   displayName: Yoga Pants (Yoga 07 Black Plain)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: afc1df7e45be67d488e541dea3afecd8, type: 2}
   - {fileID: 2100000, guid: d77e605c7dbf20744aecb1f09b76418e, type: 2}

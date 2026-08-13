@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_tshirt_queen
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (TShirt Queen)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 78858e995a4a02745ba1be76c001fee7, type: 2}
   - {fileID: 2100000, guid: 6eb59309f99c2c24d9f276a183e7cc69, type: 2}

@@ -18,20 +18,9 @@ namespace HexLive.Simulation.Bootstrap
 /// </summary>
 public static class BuildingBootstrap
 {
-    // §133.2: the first finished hut in a fresh prototype world begins with a
-    // small, useful wardrobe. Keep this a curated native-art pool rather than
-    // sampling the whole catalog: every entry has a shipped wearable prefab and
-    // all three fit the real wardrobe hanger path.
-    private static readonly string[] StarterWardrobeGarmentPool =
-    {
-        "clothing.top_classic",
-        "clothing.shorts_classic",
-        "clothing.scarf_classic",
-        "clothing.skirt_alloy",
-        "clothing.gloves_classic"
-    };
-
     private const int StarterWardrobeGarmentCount = 3;
+    private const float StarterWardrobeMaxArmor = 0.10f;
+    private const float StarterWardrobeFootwearChance = 0.10f;
 
     public static WorldObjectState SpawnCompletedTestHut(WorldState world, Faction faction)
     {
@@ -673,15 +662,42 @@ public static class BuildingBootstrap
         var wardrobe = FindWardrobe(world, hut);
         if (wardrobe == null || wardrobe.Junctions.Count != 1) return;
 
-        var candidates = new List<string>(StarterWardrobeGarmentPool);
-        for (var slot = 0;
-             slot < StarterWardrobeGarmentCount && candidates.Count > 0;
-             slot++)
+        // A new hut starts with ordinary light clothes, never with armour or a
+        // coat. Shoes are deliberately the rare exception: at most one pair
+        // has a 10% chance to replace an ordinary clothing slot. Sorting is
+        // part of the deterministic-random contract: catalog registration
+        // order must not change what a given new-game seed grants.
+        var everydayCandidates = new List<string>();
+        var footwearCandidates = new List<string>();
+        foreach (var garment in GarmentLibrary.Active)
         {
-            var roll = MathUtil.Hash01(world.Seed, hut.Id.Value, slot, 13302);
-            var index = Math.Min(candidates.Count - 1, (int)(roll * candidates.Count));
-            var definitionId = candidates[index];
-            candidates.RemoveAt(index);
+            if (garment == null || garment.Sex == GarmentSex.Male ||
+                !world.Content.ObjectDefinitions.TryGetValue(garment.Id, out var definition) ||
+                !definition.Tags.Contains("Clothing") ||
+                !IsStarterWardrobeGarment(garment, out var isFootwear))
+            {
+                continue;
+            }
+
+            (isFootwear ? footwearCandidates : everydayCandidates).Add(garment.Id);
+        }
+        everydayCandidates.Sort(StringComparer.Ordinal);
+        footwearCandidates.Sort(StringComparer.Ordinal);
+
+        var selected = new List<string>(StarterWardrobeGarmentCount);
+        if (footwearCandidates.Count > 0 &&
+            MathUtil.Hash01(world.Seed, hut.Id.Value, 0, 13303) < StarterWardrobeFootwearChance)
+        {
+            selected.Add(DrawStarterWardrobeGarment(world, hut, footwearCandidates, 13304));
+        }
+
+        while (selected.Count < StarterWardrobeGarmentCount && everydayCandidates.Count > 0)
+        {
+            selected.Add(DrawStarterWardrobeGarment(world, hut, everydayCandidates, 13302));
+        }
+
+        foreach (var definitionId in selected)
+        {
             if (!world.Content.ObjectDefinitions.ContainsKey(definitionId)) continue;
 
             var garment = WorldObjectMutations.SpawnObject(
@@ -690,6 +706,37 @@ public static class BuildingBootstrap
             // they never add a navigation obstacle to the one-hex room.
             WorldObjectMutations.SetObstacleBlocking(world, garment, blocked: false);
         }
+    }
+
+    internal static bool IsStarterWardrobeGarment(GarmentParams garment, out bool isFootwear)
+    {
+        isFootwear = false;
+        if (garment == null || garment.Sex == GarmentSex.Male ||
+            garment.Armor > StarterWardrobeMaxArmor)
+        {
+            return false;
+        }
+
+        isFootwear = garment.Category == GarmentCategory.Footwear;
+        if (isFootwear)
+        {
+            return true;
+        }
+
+        return garment.Category is GarmentCategory.Top or GarmentCategory.Bottom;
+    }
+
+    private static string DrawStarterWardrobeGarment(
+        WorldState world,
+        WorldObjectState hut,
+        List<string> candidates,
+        int salt)
+    {
+        var roll = MathUtil.Hash01(world.Seed, hut.Id.Value, candidates.Count, salt);
+        var index = Math.Min(candidates.Count - 1, (int)(roll * candidates.Count));
+        var definitionId = candidates[index];
+        candidates.RemoveAt(index);
+        return definitionId;
     }
 
     /// <summary>

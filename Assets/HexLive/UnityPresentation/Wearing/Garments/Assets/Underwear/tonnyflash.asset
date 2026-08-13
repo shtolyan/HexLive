@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: tonnyflash
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: TonnyFlash
+  prototypeId:
   displayName: Poddospeshnik
+  category: 1
+  variantMaterials: []
   layer: 0
   covers: 01000000
   warmth: 0.12

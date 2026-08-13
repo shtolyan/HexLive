@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.belt_fighter
   prototypeId: 
   displayName: Wide Belt
+  category: 13
   variantMaterials: []
   layer: 2
   covers: 01000000

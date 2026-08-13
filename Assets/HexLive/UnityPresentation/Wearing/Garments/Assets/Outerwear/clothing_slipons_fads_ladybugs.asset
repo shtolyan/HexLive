@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads_ladybugs
   prototypeId: clothing.slipons_fads
   displayName: Slip-Ons (Ladybugs)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 87948b5a47d3f334b81d8b4cb6535aad, type: 2}
   - {fileID: 2100000, guid: c546e706945534c44a64f4668b956156, type: 2}

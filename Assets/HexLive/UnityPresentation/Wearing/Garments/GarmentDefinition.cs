@@ -27,6 +27,10 @@ namespace HexLive.UnityPresentation.Wearing.Garments
         [Tooltip("Отображаемое имя (запасное, если нет строки в локализации).")]
         public string displayName = string.Empty;
 
+        [Header("Категория хранения")]
+        [Tooltip("Смысловая категория вещи: обувь — полка, перчатки — парный подвес. Не путать со слоем одежды.")]
+        public GarmentCategory category = GarmentCategory.Unclassified;
+
         [Header("Вариация (§31B.4E)")]
         [Tooltip("Материалы этой вариации, по одному на подмеш прототипа, в его порядке. " +
                  "Пусто = материалы прототипа как есть. Меняет ТОЛЬКО вид: статы наследуются, " +
@@ -75,6 +79,9 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 parts)
             {
                 PrototypeId = ArtId,
+                Category = category == GarmentCategory.Unclassified
+                    ? GarmentCategoryRules.Classify(id, displayName, layer, parts, capacity)
+                    : category,
             };
         }
     }

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_leather
   prototypeId: 
   displayName: Leather Boots
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

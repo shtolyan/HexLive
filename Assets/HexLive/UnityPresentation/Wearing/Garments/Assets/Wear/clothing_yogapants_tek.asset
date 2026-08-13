@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.yogapants_tek
   prototypeId: 
   displayName: Yoga Pants
+  category: 3
   variantMaterials: []
   layer: 1
   covers: 020000000500000006000000

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_latex_blue
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Latex Blue)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 31f69be3d566e7244bc01cb5e2d8e2b8, type: 2}
   - {fileID: 2100000, guid: 90d18203a341a124d945bcb48c9d379d, type: 2}

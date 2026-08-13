@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.armwraps_primal_sleeve2
   prototypeId: clothing.armwraps_primal
   displayName: Hide Arm Wraps (Sleeve2)
+  category: 16
   variantMaterials:
   - {fileID: 2100000, guid: bbce4b0c7816ef548becf31cf21666db, type: 2}
   - {fileID: 2100000, guid: 9569ebc58b76ca744ae66e5a3d0bea06, type: 2}

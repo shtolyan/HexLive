@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_primal_panty1
   prototypeId: underwear.briefs_primal
   displayName: Hide Briefs (Panty1)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 44298ddfe4ec2104b8ef7b54cdbb9e0d, type: 2}
   - {fileID: 2100000, guid: 458ffa85d57284746bab0366f1d23a18, type: 2}

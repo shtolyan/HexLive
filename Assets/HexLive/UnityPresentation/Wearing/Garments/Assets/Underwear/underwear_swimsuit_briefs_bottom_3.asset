@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_briefs_bottom_3
   prototypeId: underwear.swimsuit_briefs
   displayName: Strappy Swim Bottom (Bottom 3)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 2495cc4a0b06d174686074724544477c, type: 2}
   - {fileID: 2100000, guid: 969cd63a85787a14fbf2872271357ef3, type: 2}

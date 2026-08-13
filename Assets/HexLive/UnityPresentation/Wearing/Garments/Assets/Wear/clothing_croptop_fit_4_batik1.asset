@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.croptop_fit_4_batik1
   prototypeId: clothing.croptop_fit
   displayName: Crop Top (4 Batik1)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 40bbe49addff9ac44a997df720fab5d8, type: 2}
   layer: 1

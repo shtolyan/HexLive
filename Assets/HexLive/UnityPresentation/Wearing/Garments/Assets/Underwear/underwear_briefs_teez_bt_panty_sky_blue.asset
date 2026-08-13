@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez_bt_panty_sky_blue
   prototypeId: underwear.briefs_teez
   displayName: Cotton Briefs (BT Panty Sky Blue)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: e6395f7c49a952f42b7a973e74590d2f, type: 2}
   - {fileID: 2100000, guid: 4999a0bc40e9ebd42a0dc552903a30f2, type: 2}

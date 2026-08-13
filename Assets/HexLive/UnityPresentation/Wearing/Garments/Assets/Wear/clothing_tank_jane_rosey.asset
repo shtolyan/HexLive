@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tank_jane_rosey
   prototypeId: clothing.tank_jane
   displayName: Jersey Tank (Rosey)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: d1260e8c9e394054f9ad9286394919cc, type: 2}
   - {fileID: 2100000, guid: 5cbe9b7ae0d8fc04cbff5279d8725acb, type: 2}

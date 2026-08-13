@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.pants_anarchy_black
   prototypeId: clothing.pants_anarchy
   displayName: Torn Trousers (Black)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: e2b09fc0ddfd5ba4aac0d1fa787a4864, type: 2}
   layer: 1

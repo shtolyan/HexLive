@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shirt_amy_07
   prototypeId: clothing.shirt_amy
   displayName: Street Shirt (07)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: d1c9fb566a1cd384b9be4042269b9f8c, type: 2}
   - {fileID: 2100000, guid: 156352582bbfc0a41812ac022535fb07, type: 2}

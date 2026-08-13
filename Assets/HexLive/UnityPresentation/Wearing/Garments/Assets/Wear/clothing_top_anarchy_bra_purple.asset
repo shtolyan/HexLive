@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.top_anarchy_bra_purple
   prototypeId: clothing.top_anarchy
   displayName: Anarchy Top (Bra Purple)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 867d042b83d99174c8197f62fc69283a, type: 2}
   - {fileID: 2100000, guid: 3598fe46c13f11e47a0b28a76ff019c7, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.top_vapor
   prototypeId: 
   displayName: Sheer Top
+  category: 1
   variantMaterials: []
   layer: 0
   covers: 01000000

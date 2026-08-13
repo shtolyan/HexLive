@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer4_style_04_black
   prototypeId: clothing.sandals_summer4
   displayName: Sandals, Style IV (Style 04 Black)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: c614345ba5d66ce48bbb4a7d68d8e45c, type: 2}
   - {fileID: 2100000, guid: b0ef3c9c96b6bfb4eac79c31cbe5d623, type: 2}

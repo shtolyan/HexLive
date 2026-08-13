@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_bt_dusty_purple
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (BT Dusty Purple)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: bc384273524465c4db6784111311a3d6, type: 2}
   - {fileID: 2100000, guid: f137d49fba3de874e9e96453a9c2b9a2, type: 2}

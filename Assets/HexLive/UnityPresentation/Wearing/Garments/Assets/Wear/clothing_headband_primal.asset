@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.headband_primal
   prototypeId: 
   displayName: Hide Headband
+  category: 8
   variantMaterials: []
   layer: 1
   covers: 00000000

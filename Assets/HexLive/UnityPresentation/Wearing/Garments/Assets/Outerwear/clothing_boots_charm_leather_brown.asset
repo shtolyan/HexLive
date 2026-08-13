@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_charm_leather_brown
   prototypeId: clothing.boots_charm
   displayName: Thigh-High Boots (Leather Brown)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 0e48870b00ba99843aafcb46675be41e, type: 2}
   - {fileID: 2100000, guid: b290efea5cc641a4b8d01179133dbb7e, type: 2}

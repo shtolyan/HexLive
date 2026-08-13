@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_openback_panties_2
   prototypeId: underwear.briefs_openback
   displayName: Lace Panties (Panties 2)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 5d03f0d9e32e16044b0d73d681d4e07f, type: 2}
   - {fileID: 2100000, guid: 8e55bf91f90705541b6d95916caf9b40, type: 2}

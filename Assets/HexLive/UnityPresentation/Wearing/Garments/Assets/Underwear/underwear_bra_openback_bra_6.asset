@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.bra_openback_bra_6
   prototypeId: underwear.bra_openback
   displayName: Lace Bra (Bra 6)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: cfa47422e52d43747bb6fce4588cc655, type: 2}
   - {fileID: 2100000, guid: 1b4759854bf2c8d4c84d17c7a7b0321c, type: 2}

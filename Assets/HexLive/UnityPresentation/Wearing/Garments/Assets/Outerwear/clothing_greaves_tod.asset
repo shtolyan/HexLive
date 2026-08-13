@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.greaves_tod
   prototypeId: 
   displayName: Brass Greaves
+  category: 12
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

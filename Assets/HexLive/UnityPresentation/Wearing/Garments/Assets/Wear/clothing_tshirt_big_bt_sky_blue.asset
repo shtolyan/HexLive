@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_bt_sky_blue
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (BT Sky Blue)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 27fa440b3e6e8e3489a54a9fd9b1d893, type: 2}
   - {fileID: 2100000, guid: 9af2be2a1a870cb4a8c13c6bfc4e790d, type: 2}

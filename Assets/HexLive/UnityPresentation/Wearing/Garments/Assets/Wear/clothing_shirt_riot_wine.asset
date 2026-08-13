@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.shirt_riot_wine
   prototypeId: clothing.shirt_riot
   displayName: Buttoned Shirt (Wine)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: bca95ce1e4636ba41aaf9f93f8f18c5a, type: 2}
   - {fileID: 2100000, guid: 7b255775817d75a4abef812550ef6694, type: 2}

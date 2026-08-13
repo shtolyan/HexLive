@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sunglasses_luxury_light_peach_color
   prototypeId: clothing.sunglasses_luxury
   displayName: Sunglasses (Light Peach Color)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: e97dfa5128e83a74bba51cfe1c34de33, type: 2}
   - {fileID: 2100000, guid: 90c0edf1305b7ed40a2c6413345944f3, type: 2}

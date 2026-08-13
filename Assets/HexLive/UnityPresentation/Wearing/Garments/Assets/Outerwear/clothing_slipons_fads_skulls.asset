@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads_skulls
   prototypeId: clothing.slipons_fads
   displayName: Slip-Ons (Skulls)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 6af2ab7cc9bd1a6439731ceccde2777d, type: 2}
   - {fileID: 2100000, guid: b8852d559ea86524485236814e978df9, type: 2}

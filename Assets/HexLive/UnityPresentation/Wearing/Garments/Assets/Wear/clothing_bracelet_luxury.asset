@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.bracelet_luxury
   prototypeId: 
   displayName: Bracelet
+  category: 10
   variantMaterials: []
   layer: 1
   covers: 0300000004000000

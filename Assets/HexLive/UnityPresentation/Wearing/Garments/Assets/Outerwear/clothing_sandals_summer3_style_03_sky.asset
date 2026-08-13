@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer3_style_03_sky
   prototypeId: clothing.sandals_summer3
   displayName: Sandals, Style III (Style 03 Sky)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 22ce17539f9e8ec4494216643011732e, type: 2}
   - {fileID: 2100000, guid: 824bd9bbf7f678047a38aa90703b379a, type: 2}

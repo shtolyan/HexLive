@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_anarchy
   prototypeId: 
   displayName: Buckled Thigh Boots
+  category: 6
   variantMaterials: []
   layer: 2
   covers: 0500000006000000

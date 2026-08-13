@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.collar_fur_color03
   prototypeId: clothing.collar_fur
   displayName: Fur Collar (color03)
+  category: 9
   variantMaterials:
   - {fileID: 2100000, guid: ab28b0fe7c273654a8c5e280ae39e0db, type: 2}
   - {fileID: 2100000, guid: 5e6eb08035f1b6a40a7b64a68e2736a1, type: 2}

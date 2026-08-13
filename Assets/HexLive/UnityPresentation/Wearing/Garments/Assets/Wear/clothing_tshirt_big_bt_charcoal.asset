@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.tshirt_big_bt_charcoal
   prototypeId: clothing.tshirt_big
   displayName: Oversized Tee (BT Charcoal)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 0074594bfdf58b346958449319072060, type: 2}
   - {fileID: 2100000, guid: 07d0bf0452331ef41b6eaf5be6fdbf67, type: 2}

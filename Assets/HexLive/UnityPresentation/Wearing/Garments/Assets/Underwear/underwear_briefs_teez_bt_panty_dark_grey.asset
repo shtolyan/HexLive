@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez_bt_panty_dark_grey
   prototypeId: underwear.briefs_teez
   displayName: Cotton Briefs (BT Panty Dark Grey)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: c875244086d5f1141b75ed95003f1430, type: 2}
   - {fileID: 2100000, guid: 453662edbccee5941827c180f8d7a99f, type: 2}

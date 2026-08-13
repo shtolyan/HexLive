@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.blouse_waist_riot_squaresclear
   prototypeId: clothing.blouse_waist_riot
   displayName: Blouse Tied at the Waist (SquaresClear)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: dc6b7498ac9a8864b98b1e38fa069389, type: 2}
   - {fileID: 2100000, guid: 03128107cff95d14eb82c638c70e1b03, type: 2}

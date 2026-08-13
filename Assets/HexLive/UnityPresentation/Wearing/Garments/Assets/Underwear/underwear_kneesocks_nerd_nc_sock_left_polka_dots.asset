@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.kneesocks_nerd_nc_sock_left_polka_dots
   prototypeId: underwear.kneesocks_nerd
   displayName: Knee Socks (NC Sock Left Polka Dots)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 5ceb32682d4227f4bad034497e8b52d4, type: 2}
   - {fileID: 2100000, guid: 785afd2ce22905245a5ec907e2807505, type: 2}

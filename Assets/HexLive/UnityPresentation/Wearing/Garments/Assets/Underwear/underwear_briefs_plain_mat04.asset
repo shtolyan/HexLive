@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_plain_mat04
   prototypeId: underwear.briefs_plain
   displayName: Plain Panties (Mat04)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 31b743a2a5b649f408051f08f1ec54db, type: 2}
   - {fileID: 2100000, guid: b5042b5e986bbae4c9a3b12f83adb5b5, type: 2}

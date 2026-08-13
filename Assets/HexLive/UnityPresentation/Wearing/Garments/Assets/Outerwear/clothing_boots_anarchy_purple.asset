@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.boots_anarchy_purple
   prototypeId: clothing.boots_anarchy
   displayName: Buckled Thigh Boots (Purple)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 8d0c0c0abd2299b4d86615abadbae288, type: 2}
   - {fileID: 2100000, guid: 15021e944bea68d4f8e7a90fc0e2de0e, type: 2}

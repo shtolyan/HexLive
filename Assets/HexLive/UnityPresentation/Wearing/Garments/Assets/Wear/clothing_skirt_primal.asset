@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_primal
   prototypeId: 
   displayName: Hide Skirt
+  category: 3
   variantMaterials: []
   layer: 1
   covers: 0100000002000000

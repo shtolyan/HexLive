@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.dress_city_07_dress
   prototypeId: clothing.dress_city
   displayName: City Dress (07 Dress)
+  category: 4
   variantMaterials:
   - {fileID: 2100000, guid: bb222214f7478df408b057ad2f748101, type: 2}
   - {fileID: 2100000, guid: 347c9247fdcc1f349967cc55340fefec, type: 2}

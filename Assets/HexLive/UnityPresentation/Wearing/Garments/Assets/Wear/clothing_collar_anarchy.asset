@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.collar_anarchy
   prototypeId: 
   displayName: Strap Collar
+  category: 9
   variantMaterials: []
   layer: 1
   covers: 01000000

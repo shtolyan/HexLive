@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.collar_fur
   prototypeId: 
   displayName: Fur Collar
+  category: 9
   variantMaterials: []
   layer: 2
   covers: 01000000

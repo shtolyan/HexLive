@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer1_style_01_silver
   prototypeId: clothing.sandals_summer1
   displayName: Sandals, Style I (Style 01 Silver)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 2577159b97b7e1442a7048d538763933, type: 2}
   - {fileID: 2100000, guid: aa976c637f3c3e94fb83c1fe008e8921, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.briefs_teez_bt_panty_charcoal
   prototypeId: underwear.briefs_teez
   displayName: Cotton Briefs (BT Panty Charcoal)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 82baf57eb1473b24aa6ec13daad6c9bc, type: 2}
   - {fileID: 2100000, guid: 64db545ef405bdf4eb3502816c1d98bc, type: 2}

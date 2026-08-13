@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_top_pink
   prototypeId: underwear.swimsuit_top
   displayName: Strappy Swim Top (Pink)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: c4fafbc770cb5d84caaed9fb8c3c5540, type: 2}
   - {fileID: 2100000, guid: 9225f8852ebafcc46bfdf02197ab72df, type: 2}

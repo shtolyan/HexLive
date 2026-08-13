@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.slipons_fads_plaid
   prototypeId: clothing.slipons_fads
   displayName: Slip-Ons (Plaid)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: cb7766c3dc54dec4880c3a21998d7a7e, type: 2}
   - {fileID: 2100000, guid: aaa42b4f6de8cab4bbc96d043093504e, type: 2}

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.sandals_summer4_style_04_cherry
   prototypeId: clothing.sandals_summer4
   displayName: Sandals, Style IV (Style 04 Cherry)
+  category: 6
   variantMaterials:
   - {fileID: 2100000, guid: 63df5a4de16af664585c3d09885b4fc0, type: 2}
   - {fileID: 2100000, guid: 129d1827667c33241a6064cf32242741, type: 2}

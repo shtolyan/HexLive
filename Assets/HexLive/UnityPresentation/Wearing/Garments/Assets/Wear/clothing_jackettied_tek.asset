@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.jackettied_tek
   prototypeId: 
   displayName: Jacket Tied at the Waist
+  category: 3
   variantMaterials: []
   layer: 1
   covers: 020000000500000006000000

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.babydoll_tod
   prototypeId: 
   displayName: Lace Babydoll
+  category: 4
   variantMaterials: []
   layer: 1
   covers: 01000000

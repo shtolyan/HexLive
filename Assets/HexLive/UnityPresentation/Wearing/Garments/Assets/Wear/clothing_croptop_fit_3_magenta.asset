@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.croptop_fit_3_magenta
   prototypeId: clothing.croptop_fit
   displayName: Crop Top (3 Magenta)
+  category: 2
   variantMaterials:
   - {fileID: 2100000, guid: 75d317b1be37e9e41930d62904c1fe97, type: 2}
   layer: 1

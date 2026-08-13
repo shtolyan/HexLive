@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.cap_riot_denim
   prototypeId: clothing.cap_riot
   displayName: Pinned Cap (Denim)
+  category: 8
   variantMaterials:
   - {fileID: 2100000, guid: 607bc8cc56cca4c40b5dee8c3723b813, type: 2}
   - {fileID: 2100000, guid: 2facebd64ebb1d3479a7980dd1d6eb77, type: 2}

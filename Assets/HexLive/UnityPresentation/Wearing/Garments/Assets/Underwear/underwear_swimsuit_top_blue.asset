@@ -15,6 +15,7 @@ MonoBehaviour:
   id: underwear.swimsuit_top_blue
   prototypeId: underwear.swimsuit_top
   displayName: Strappy Swim Top (Blue)
+  category: 1
   variantMaterials:
   - {fileID: 2100000, guid: 6351236bf4e60764eb9fba4bfeb4713a, type: 2}
   - {fileID: 2100000, guid: c4f5a51dea34d7849b84f002c0c9cdfe, type: 2}

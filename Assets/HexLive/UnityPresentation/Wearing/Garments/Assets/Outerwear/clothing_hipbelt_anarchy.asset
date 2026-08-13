@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.hipbelt_anarchy
   prototypeId: 
   displayName: Hip Straps
+  category: 5
   variantMaterials: []
   layer: 2
   covers: 020000000500000006000000

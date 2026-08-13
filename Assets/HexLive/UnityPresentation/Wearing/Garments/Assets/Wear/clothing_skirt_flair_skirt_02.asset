@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_flair_skirt_02
   prototypeId: clothing.skirt_flair
   displayName: Pencil Skirt (Skirt-02)
+  category: 3
   variantMaterials:
   - {fileID: 2100000, guid: ebb44d3df6258d14e86dd75ce4b6039f, type: 2}
   - {fileID: 2100000, guid: aff8c448b4571ff469e192976dab9e6f, type: 2}

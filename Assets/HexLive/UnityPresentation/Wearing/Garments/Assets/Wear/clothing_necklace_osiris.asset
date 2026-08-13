@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.necklace_osiris
   prototypeId: 
   displayName: Chain Necklace
+  category: 10
   variantMaterials: []
   layer: 1
   covers: 01000000

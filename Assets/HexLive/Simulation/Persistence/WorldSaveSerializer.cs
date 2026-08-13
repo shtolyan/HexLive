@@ -86,7 +86,11 @@ public static class WorldSaveSerializer
     // носимое в карманах и лежащее на земле остаётся ничейным и обретает
     // владельца при первом надевании. Иначе пришлось бы гадать, какая палка в
     // рюкзаке «чья», а ничейное — ровно то состояние, которое умеет claim.
-    public const int BlobVersion = 42;
+    // v43 (§135): добыча в зубах зверя — чья конечность, какая, срок еды и
+    // сытость. Объекта `body.limb_severed` в мире на это время НЕТ (его забрали
+    // с земли), так что без этих полей загрузка молча уничтожала бы ногу вместе
+    // со сценой; старый блоб читается «пасть пуста, зверь не сыт».
+    public const int BlobVersion = 43;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -198,6 +202,14 @@ public static class WorldSaveSerializer
             w.Write((int)dog.Status);
             WriteNullableEntity(w, dog.TargetNpc);
             w.Write(dog.LeavesAtTick); // v38: гость рейда остаётся гостем
+            // v43 (§135): добыча в зубах. Объекта конечности в мире на это
+            // время нет — он живёт здесь, и без записи загрузка стирала бы его
+            // насовсем вместе с отходом и сытостью.
+            WriteNullableEntity(w, dog.CarriedLimbOwner);
+            w.Write(dog.CarriedLimbPart ?? string.Empty);
+            w.Write(dog.LimbTakenAtTick);
+            w.Write(dog.LimbEatenAtTick);
+            w.Write(dog.SatedUntilTick);
         }
 
         w.Write(world.Rabbits.Count);
@@ -466,6 +478,16 @@ public static class WorldSaveSerializer
             // в MobSystem.EnforceResidentCap (ровно так чинится сейв, в
             // котором стая накопилась по старому багу).
             dog.LeavesAtTick = version >= 38 ? r.ReadInt32() : 0;
+            // v43 (§135): добыча в зубах. Блобы до v43 её не знают — там зверь
+            // читается с пустой пастью и несытым, что и есть правда старого мира.
+            if (version >= 43)
+            {
+                dog.CarriedLimbOwner = ReadNullableEntity(r);
+                dog.CarriedLimbPart = r.ReadString();
+                dog.LimbTakenAtTick = r.ReadInt32();
+                dog.LimbEatenAtTick = r.ReadInt32();
+                dog.SatedUntilTick = r.ReadInt32();
+            }
             // The glide is a render-only smoothing; a loaded dog stands at its
             // saved position with no pending hop, so anchor the target there.
             dog.TargetPosition = dogPos;

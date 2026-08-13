@@ -254,7 +254,9 @@ public static class WorldSnapshotExporter
                 Status = dog.Status.ToString(),
                 TargetNpcId = dog.TargetNpc?.Value ?? -1,
                 IsAttacking = dog.AttackLandsAtTick > 0,
-                AttackStartTick = dog.AttackStartTick
+                AttackStartTick = dog.AttackStartTick,
+                CarriedLimbOwnerNpcId = dog.CarriedLimbOwner?.Value ?? -1,
+                CarriedLimbPart = dog.CarriedLimbPart ?? string.Empty
             });
         }
 
@@ -1116,8 +1118,12 @@ public static class WorldSnapshotExporter
             : "Upright";
 
         // §21.21B hex-step hop: signal the jump traversal to the view.
+        // §57.11: спуск без прыжка — не прыжок, а сползание-падение; вид
+        // играет его без отталкивания, клипом падения и с подъёмом после.
         npcSnapshot.HopKind = npc.Movement.HopTimer > 0f
-            ? (npc.Movement.HopUp ? "Up" : "Down")
+            ? (npc.Movement.HopUp ? "Up"
+                : !npc.Body.CanJump ? "Fall"
+                : "Down")
             : string.Empty;
         npcSnapshot.HopStartTick = npc.Movement.HopStartTick;
         npcSnapshot.HopTargetTile = npc.Movement.HopTargetTile;

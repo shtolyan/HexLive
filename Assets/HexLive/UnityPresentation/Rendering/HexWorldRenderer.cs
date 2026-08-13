@@ -3775,6 +3775,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 wolfView.SetFightTarget(fightTarget);
             }
 
+            // §135: добыча в зубах. Компонент появляется только у зверя, который
+            // хоть раз что-то нёс, — обычному волку он не нужен ни кадра.
+            if (!string.IsNullOrEmpty(dog.CarriedLimbPart))
+            {
+                if (!mobView.TryGetComponent<Wearing.MobCarriedLimbView>(out var carried))
+                {
+                    carried = mobView.AddComponent<Wearing.MobCarriedLimbView>();
+                    carried.Configure(ActorScale, HexRadius);
+                }
+
+                carried.SetCarried(dog.CarriedLimbOwnerNpcId, dog.CarriedLimbPart);
+            }
+            else if (mobView.TryGetComponent<Wearing.MobCarriedLimbView>(out var empty))
+            {
+                empty.SetCarried(-1, string.Empty);
+            }
+
             UpdateAnimalPose(key, dog.Position, dog.Tile);
         }
 

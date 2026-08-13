@@ -407,9 +407,19 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // сигнал «сейчас попали», и укус даёт его тем же штампом, что удар.
         MeleeSwing.StampHit(world, target, MeleeSwing.BiteWeaponId, bitPart, dog.Position);
         var partArmor = EquipmentMath.ArmorForPart(world, target, bitPart); // trace only
+        // §135: отрыв конечности случается ВНУТРИ резолвера урона (§50/§118), и
+        // резолвер ничего не знает о том, чьи это были зубы. Поэтому здесь —
+        // единственное место, где известны обе половины: считаем набор культей
+        // до укуса и сравниваем после.
+        var severedBefore = target.Body.Severed.Count;
         var result = BodyDamageResolver.Apply(world, target, bitPart,
             Stats(dog).AttackDamage, DamageProfile.ForMob(dog.MobId), $"Dog={dog.Id}");
         var damage = result.Landed;
+
+        if (target.Body.Severed.Count > severedBefore && target.Body.IsSevered(bitPart))
+        {
+            MobLimbPrize.TryTake(world, dog, target, bitPart);
+        }
 
         // Spec 35.6: the cloth gets chewed either way — every garment
         // covering the bitten part loses durability; rags fall apart.

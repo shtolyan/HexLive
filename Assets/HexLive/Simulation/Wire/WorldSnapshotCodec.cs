@@ -1164,6 +1164,8 @@ public static class WorldSnapshotCodec
         w.Write(m.TargetNpcId);
         w.Write(m.IsAttacking);
         w.Write(m.AttackStartTick);
+        w.Write(m.CarriedLimbOwnerNpcId);
+        WireIo.WriteString(w, m.CarriedLimbPart);
     }
 
     private static void ReadMobs(BinaryReader r, WorldSnapshot into)
@@ -1187,6 +1189,8 @@ public static class WorldSnapshotCodec
         m.TargetNpcId = r.ReadInt32();
         m.IsAttacking = r.ReadBoolean();
         m.AttackStartTick = r.ReadInt32();
+        m.CarriedLimbOwnerNpcId = r.ReadInt32();
+        m.CarriedLimbPart = r.ReadString();
     }
 
     private static void WriteCrabs(WorldSnapshot snapshot, BinaryWriter w)

@@ -74,6 +74,35 @@ public sealed class MobState
     // именно так, потому что рейд спавнил мимо потолка, и уйти собака могла
     // только смертью.
     public int LeavesAtTick { get; set; }
+
+    // §135: чья это конечность и какая — зверь несёт её В ЗУБАХ, поэтому в
+    // мире объекта `body.limb_severed` на это время НЕТ (его забрали с земли).
+    // Пустая строка = зубы свободны. ПЕРСИСТЕНТНО (blob v43): без записи в
+    // сейв загрузка стирала бы добычу вместе с отходом и сытостью, а
+    // конечность уже удалена из мира — она просто исчезала бы без сцены.
+    public EntityId? CarriedLimbOwner { get; set; }
+
+    public string CarriedLimbPart { get; set; } = string.Empty;
+
+    // Тик, когда добыча была взята — от него считается предохранитель отхода.
+    public int LimbTakenAtTick { get; set; }
+
+    // Тик, когда добыча будет доедена. 0 = зверь ЕЩЁ ОТХОДИТ; срок ставится в
+    // тот момент, когда он встал на безопасном расстоянии (или сдался отходить).
+    public int LimbEatenAtTick { get; set; }
+
+    // §135: сытость. До этого тика зверь не наводится на добычу вообще.
+    public int SatedUntilTick { get; set; }
+
+    // §135: за какой ЛЕЖАЩЕЙ конечностью он сейчас идёт (0 — ни за какой) и до
+    // какого тика вообще не смотрит на падаль (дороги не нашлось). Транзиентно
+    // намеренно — после загрузки зверь просто оглядится заново, как и с
+    // ChaseStallSinceTick.
+    public int PrizeObjectId { get; set; }
+
+    public int NextScentScanTick { get; set; }
+
+    public bool IsCarryingLimb => !string.IsNullOrEmpty(CarriedLimbPart);
 }
 
 public enum MobStatus

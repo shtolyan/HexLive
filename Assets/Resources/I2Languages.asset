@@ -16809,6 +16809,22 @@ MonoBehaviour:
       - '{0} потеряла конечность.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'history.MobTookLimb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A beast carried off the torn-away limb.'
+      - 'Зверь унёс оторванную конечность.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.MobAteLimb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The beast finished its prize and went off sated.'
+      - 'Зверь доел добычу и ушёл сытым.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'history.Fainted'
       TermType: 0
       Description: 

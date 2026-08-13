@@ -129,6 +129,13 @@ public sealed class MobSnapshot
     // frame that skips those ticks (fast-forward, or a decimated stream) never
     // sees it — the stamp does. 0 = never attacked.
     public int AttackStartTick { get; set; }
+
+    // §135: чью конечность зверь несёт в зубах (-1 — пасть пуста) и какую
+    // (имя BodyPart). Вид собирает ту же геометрию, что и упавшая конечность
+    // (§50.5), но привязывает её к пасти, а не к узлу земли.
+    public int CarriedLimbOwnerNpcId { get; set; } = -1;
+
+    public string CarriedLimbPart { get; set; } = string.Empty;
 }
 
 // Spec 40.18: a shark patrolling the water (presentation renders a fin/model).

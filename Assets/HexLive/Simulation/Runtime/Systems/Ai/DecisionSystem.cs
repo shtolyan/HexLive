@@ -1240,7 +1240,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var craftSplintAvail = Spec118.Enabled && Spec118.SplintsEnabled &&
             CountInventory(npc, ContentIds.Splint) == 0 &&
             HasAlliedLimbNeed(world, npc, arms: true, legs: true, severed: false) &&
+            // §120: счёт шины закрывается и КУЧАМИ НА ЗЕМЛЕ — тем же приёмом
+            // §84, что у верёвки, только для двух строк сразу. Требование
+            // нести весь счёт в руках держало эту цель недоступной всегда:
+            // подвоза верёвки нет ни у одной цели, а RescueSystem без готовой
+            // шины не стартует, так что молчала вся ветка лечения конечности.
             (HasRecipeInputs(npc, GoalType.CraftSplint) ||
+             BillCoveredByGroundPiles(npc, world, GoalType.CraftSplint) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSplint)) &&
             CraftPlaceOk(GoalType.CraftSplint);
         AddGoalScore(npc, world.Tick, GoalType.CraftSplint, 0.36f, craftSplintAvail);

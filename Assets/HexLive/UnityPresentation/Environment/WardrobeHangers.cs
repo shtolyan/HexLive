@@ -6,16 +6,14 @@ namespace HexLive.UnityPresentation.Environment
     public static class WardrobeHangers
     {
         public const int SlotCount = 12;
-        // These are the Unity-local coordinates of the named ClothingSlot_00
-        // exported by export_wardrobe_module.py.  Blender's forward axis is
-        // exported as Unity -Z: slot 00 therefore lands at +Z and the slot
-        // sequence proceeds toward -Z.  Do not mirror these values to make a
-        // particular house yaw look right — the common furniture root owns
-        // all six orientations.
-        private const float FirstAlong = 0.3575f;
-        private const float StepAlong = -0.065f;
+        // Fallback only: normal rendering reads the named ClothingSlot_00…11
+        // transforms directly from furniture.wardrobe.fbx through
+        // WardrobeAssembly. These values retain the last verified export basis
+        // for a missing/corrupt asset rather than becoming a second layout.
+        private const float FirstAlong = -0.3575f;
+        private const float StepAlong = 0.065f;
         private const float RailY = 1.32f;
-        private const float RoomSideX = 0.015f;
+        private const float RoomSideX = -0.015f;
 
         /// Centre of the garment on its hanger. Long garments are grounded by
         /// the renderer after their actual bounds are measured.

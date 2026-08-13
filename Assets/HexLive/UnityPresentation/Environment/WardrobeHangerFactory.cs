@@ -9,6 +9,10 @@ namespace HexLive.UnityPresentation.Environment
         public static GameObject Build()
         {
             var root = new GameObject("Occupied wardrobe hanger");
+            // Clothing now owns the shared wardrobe yaw and its authored socket
+            // position. The hanger is only its support geometry: its shoulder
+            // span must run across the rail (local X), not along it (local Z).
+            // This turns the hanger 90° without changing the garment root.
             AddTwig(root.transform, "shoulder L", new Vector3(0f, -.075f, 0f),
                 new Vector3(-0.12f, -.18f, 0f), .010f);
             AddTwig(root.transform, "shoulder R", new Vector3(0f, -.075f, 0f),

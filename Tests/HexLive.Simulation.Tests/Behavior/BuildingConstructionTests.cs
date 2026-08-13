@@ -355,6 +355,38 @@ public sealed class BuildingConstructionTests
     }
 
     [Test]
+    public void FreshPrototypeHutSeedsThreeDistinctDeterministicWardrobeGarments()
+    {
+        var first = TestWorld.CreateWorld(12345);
+        var second = TestWorld.CreateWorld(12345);
+        var firstWardrobe = first.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.Wardrobe);
+        var secondWardrobe = second.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.Wardrobe);
+
+        var firstGarments = first.Entities.Objects.Values
+            .Where(obj => obj.Tile.Equals(firstWardrobe.Tile) &&
+                          obj.Junctions.Count == 1 &&
+                          obj.Junctions[0].Equals(firstWardrobe.Junctions[0]) &&
+                          obj.DefinitionId.StartsWith("clothing.", StringComparison.Ordinal))
+            .OrderBy(obj => obj.Id.Value)
+            .ToArray();
+        var secondGarments = second.Entities.Objects.Values
+            .Where(obj => obj.Tile.Equals(secondWardrobe.Tile) &&
+                          obj.Junctions.Count == 1 &&
+                          obj.Junctions[0].Equals(secondWardrobe.Junctions[0]) &&
+                          obj.DefinitionId.StartsWith("clothing.", StringComparison.Ordinal))
+            .OrderBy(obj => obj.Id.Value)
+            .ToArray();
+
+        Assert.That(firstGarments, Has.Length.EqualTo(3));
+        Assert.That(firstGarments.Select(obj => obj.DefinitionId).Distinct(), Has.Count.EqualTo(3));
+        Assert.That(firstGarments.All(obj => obj.BlockedJunctions.Count == 0), Is.True,
+            "Стартовая одежда висит на гардеробе и не запирает проход в хижине.");
+        Assert.That(secondGarments.Select(obj => obj.DefinitionId),
+            Is.EqualTo(firstGarments.Select(obj => obj.DefinitionId)),
+            "Одна и та же seed-новая игра должна давать один и тот же набор вещей.");
+    }
+
+    [Test]
     public void DoorApiClosesOnePortalReopensItAndPersistsTheState()
     {
         var world = TestWorld.CreateWorld(12345);

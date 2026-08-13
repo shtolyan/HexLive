@@ -18,6 +18,21 @@ namespace HexLive.Simulation.Bootstrap
 /// </summary>
 public static class BuildingBootstrap
 {
+    // §133.2: the first finished hut in a fresh prototype world begins with a
+    // small, useful wardrobe. Keep this a curated native-art pool rather than
+    // sampling the whole catalog: every entry has a shipped wearable prefab and
+    // all three fit the real wardrobe hanger path.
+    private static readonly string[] StarterWardrobeGarmentPool =
+    {
+        "clothing.top_classic",
+        "clothing.shorts_classic",
+        "clothing.scarf_classic",
+        "clothing.skirt_alloy",
+        "clothing.gloves_classic"
+    };
+
+    private const int StarterWardrobeGarmentCount = 3;
+
     public static WorldObjectState SpawnCompletedTestHut(WorldState world, Faction faction)
     {
         var home = ColonyQueries.Home(world, faction) ?? new TileCoord(0, 4);
@@ -69,6 +84,7 @@ public static class BuildingBootstrap
         hut.RotationDegrees = StructurePlacement.QuantizeHexSymmetryYaw(
             desiredDoorYaw - localDoorYaw);
         CompleteHut(world, hut);
+        SeedStarterWardrobeGarments(world, hut);
         return hut;
     }
 
@@ -644,6 +660,36 @@ public static class BuildingBootstrap
         wardrobe.RotationDegrees = StructurePlacement.QuantizeHexYaw(
             hut.RotationDegrees + BuildingRules.HutWardrobeLocalYaw);
         WorldObjectMutations.SetObstacleBlocking(world, wardrobe, blocked: false);
+    }
+
+    /// <summary>
+    /// §133.2: provisions only the fresh-game hut with three distinct loose
+    /// garments. The sequence is a stateless world-seeded draw, so recreating
+    /// a seed produces the same starter wardrobe; save repair and normal hut
+    /// construction intentionally never call this method.
+    /// </summary>
+    private static void SeedStarterWardrobeGarments(WorldState world, WorldObjectState hut)
+    {
+        var wardrobe = FindWardrobe(world, hut);
+        if (wardrobe == null || wardrobe.Junctions.Count != 1) return;
+
+        var candidates = new List<string>(StarterWardrobeGarmentPool);
+        for (var slot = 0;
+             slot < StarterWardrobeGarmentCount && candidates.Count > 0;
+             slot++)
+        {
+            var roll = MathUtil.Hash01(world.Seed, hut.Id.Value, slot, 13302);
+            var index = Math.Min(candidates.Count - 1, (int)(roll * candidates.Count));
+            var definitionId = candidates[index];
+            candidates.RemoveAt(index);
+            if (!world.Content.ObjectDefinitions.ContainsKey(definitionId)) continue;
+
+            var garment = WorldObjectMutations.SpawnObject(
+                world, definitionId, wardrobe.Fragment, wardrobe.Tile, wardrobe.Junctions[0]);
+            // Hanging clothes are stored at the wardrobe's logical junction;
+            // they never add a navigation obstacle to the one-hex room.
+            WorldObjectMutations.SetObstacleBlocking(world, garment, blocked: false);
+        }
     }
 
     /// <summary>

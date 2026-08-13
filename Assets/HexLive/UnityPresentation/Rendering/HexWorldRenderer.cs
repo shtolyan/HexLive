@@ -15,6 +15,10 @@ namespace HexLive.UnityPresentation.Rendering
 
 public sealed class HexWorldRenderer : MonoBehaviour
 {
+    // The authored ClothingSlot marks the hook centre. Garments must sit at
+    // the shoulder apex below it rather than appearing to float from the hook.
+    private const float WardrobeGarmentShoulderDrop = 0.120f;
+
     [SerializeField] private SimulationRunnerBehaviour? _runner;
 
     // Spec 31.17: ~14k junction spheres are ~10M triangles — debug only.
@@ -1284,7 +1288,31 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var hungChild = objectView.transform.GetChild(0);
                 var inWardrobe = worldObject.Junctions.Count > 0 &&
                     _wardrobeJunctions.Contains(worldObject.Junctions[0]);
-                hungChild.localPosition = HangSlotOffset(hungChild, hangSlot, inWardrobe);
+                var wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(hangSlot);
+                if (inWardrobe)
+                {
+                    HexLive.UnityPresentation.Environment.WardrobeAssembly.TryGetClothingSlotLocal(
+                        hangSlot, out wardrobeSocket);
+                }
+                hungChild.localPosition = HangSlotOffset(hungChild, hangSlot, inWardrobe,
+                    wardrobeSocket);
+                // A rack ranks its garments by id every sync. The old code moved
+                // only the cloth when that rank changed, leaving the procedural
+                // hanger at its former socket. Move both children from the same
+                // authored socket, otherwise a reload or a neighbour dressing
+                // off the rail visibly splits a hanger from its garment.
+                if (inWardrobe)
+                {
+                    for (var childIndex = 1; childIndex < objectView.transform.childCount; childIndex++)
+                    {
+                        var child = objectView.transform.GetChild(childIndex);
+                        if (child.name == "Occupied wardrobe hanger")
+                        {
+                            child.localPosition = wardrobeSocket;
+                            child.localRotation = Quaternion.identity;
+                        }
+                    }
+                }
                 if (inWardrobe && _wardrobeYawByJunction.TryGetValue(
                         worldObject.Junctions[0], out var wardrobeYaw))
                     objectView.transform.rotation = Quaternion.Euler(0f, wardrobeYaw, 0f);
@@ -1303,7 +1331,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     worldObject.BuildProduct == ContentIds.Hut1Hex ||
                     IsIntegratedHutBed(worldObject) ||
                     IsIntegratedHutHearth(worldObject) ||
-                    worldObject.DefinitionId == ContentIds.Wardrobe;
+                    worldObject.DefinitionId == ContentIds.Wardrobe ||
+                    // A hung garment is spatially owned by the wardrobe, not
+                    // by its original loose-item yaw.  It must share the
+                    // wardrobe's six-way footprint basis with its socket and
+                    // procedural hanger; otherwise this generic §66 sync
+                    // overwrites the yaw assigned above by 90°.
+                    (_rackHangRank.ContainsKey(key) && worldObject.Junctions.Count > 0 &&
+                     _wardrobeJunctions.Contains(worldObject.Junctions[0]));
                 var builtRot = Quaternion.Euler(
                     0f, architectureFootprint
                         ? SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees)
@@ -3349,15 +3384,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var hungScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
                 hung.transform.localScale = Vector3.one * hungScale;
                 _rackHangRank.TryGetValue(worldObject.Id.Value, out var slot);
+                var inWardrobe = _wardrobeJunctions.Contains(worldObject.Junctions[0]);
+                var wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
+                if (inWardrobe)
+                {
+                    HexLive.UnityPresentation.Environment.WardrobeAssembly.TryGetClothingSlotLocal(
+                        slot, out wardrobeSocket);
+                }
                 hung.transform.localPosition = HangSlotOffset(hung.transform, slot,
-                    _wardrobeJunctions.Contains(worldObject.Junctions[0]));
+                    inWardrobe, wardrobeSocket);
                 // One slot owns one orientation. Garment categories (including
                 // underwear) must not add another 90° or random yaw here.
                 hung.transform.localRotation = Quaternion.identity;
                 var hungPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 hungRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     hungPos, GroundY(worldObject.Tile));
-                var inWardrobe = _wardrobeJunctions.Contains(worldObject.Junctions[0]);
                 if (inWardrobe && _wardrobeYawByJunction.TryGetValue(
                         worldObject.Junctions[0], out var wardrobeYaw))
                     hungRoot.transform.rotation = Quaternion.Euler(0f, wardrobeYaw, 0f);
@@ -3365,8 +3406,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 {
                     var hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build();
                     hanger.transform.SetParent(hungRoot.transform, false);
-                    hanger.transform.localPosition =
-                        HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
+                    hanger.transform.localPosition = wardrobeSocket;
                     hanger.transform.localRotation = Quaternion.identity;
                 }
                 AttachGarmentCondition(hungRoot, hung, worldObject);
@@ -3479,12 +3519,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // over the hanger slot's rail — dropped by the garment's own half-height
     // (bounds are translation-invariant, so this works before placement too),
     // clamped so a long garment on the low rail doesn't clip the ground.
-    private static Vector3 HangSlotOffset(Transform hung, int slot, bool inWardrobe)
+    private static Vector3 HangSlotOffset(Transform hung, int slot, bool inWardrobe,
+        Vector3 wardrobeSocket)
     {
         // §133: authored wardrobe hanger centres.
         if (inWardrobe)
         {
-            var wardrobeAttach = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
             var wardrobeHalf = 0.15f;
             var wardrobeRenderers = hung.GetComponentsInChildren<Renderer>();
             if (wardrobeRenderers.Length > 0)
@@ -3494,9 +3534,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     wardrobeBounds.Encapsulate(wardrobeRenderers[i].bounds);
                 wardrobeHalf = Mathf.Max(0.02f, wardrobeBounds.extents.y);
             }
-            return new Vector3(wardrobeAttach.x,
-                Mathf.Max(0.18f + wardrobeHalf, wardrobeAttach.y - wardrobeHalf),
-                wardrobeAttach.z);
+            return new Vector3(wardrobeSocket.x,
+                Mathf.Max(0.18f + wardrobeHalf,
+                    wardrobeSocket.y - wardrobeHalf - WardrobeGarmentShoulderDrop),
+                wardrobeSocket.z);
         }
 
         var attach = HexLive.UnityPresentation.Environment.DryingRackHangers.Slot(slot);

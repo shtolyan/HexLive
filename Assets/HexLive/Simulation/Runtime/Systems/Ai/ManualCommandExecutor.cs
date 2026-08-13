@@ -298,6 +298,13 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        // Приказ игрока тоже не поднимает ползущую на ноги.
+        if (carrier.Body.IsCrawling)
+        {
+            Reject(world, carrier.Id, "CarryPerson", "Crawling");
+            return;
+        }
+
         if (!KenshiRescueMath.TryGetPerson(
                 world, command.Target, out var person, out var dead) ||
             person.Id.Equals(carrier.Id))

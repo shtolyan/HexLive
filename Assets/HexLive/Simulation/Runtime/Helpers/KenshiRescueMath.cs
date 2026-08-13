@@ -723,6 +723,10 @@ internal static class KenshiRescueMath
             if (!TryGetPerson(world, patientId, out var patient, out var dead) ||
                 patient.CarriedByNpcId != carrier.Id || carrier.Health <= 0f ||
                 carrier.IsLyingDown(world.Tick) ||
+                // Ноги отказали ПОД ношей — положить, а не ползти с телом на
+                // руках. Это же чинит уже сохранённые миры, где переноска
+                // началась до появления гейта.
+                carrier.Body.IsCrawling ||
                 (!dead && patient.Health <= 0f) ||
                 carrier.Movement.Status == MovementStatus.Invalid)
             {

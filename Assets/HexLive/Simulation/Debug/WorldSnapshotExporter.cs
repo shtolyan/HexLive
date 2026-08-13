@@ -1107,7 +1107,9 @@ public static class WorldSnapshotExporter
         npcSnapshot.PostureHint =
             npcSnapshot.IsUnconscious ? "Faint" // §60: comatose lies limp too
             : npcSnapshot.IsFainted ? "Faint"
-            : npc.Body.IsProne || (legL < 0.4f && legR < 0.4f) ? "Crawl"
+            // Порог ползания живёт в BodyState (IsCrawling): на нём же теперь
+            // гейтится переноска, и разъехаться вид с симуляцией не может.
+            : npc.Body.IsCrawling ? "Crawl"
             : legLImpaired || legRImpaired ? "Limp"
             : Part(BodyPart.ArmL) < 0.4f || Part(BodyPart.ArmR) < 0.4f ? "ArmHang"
             : Part(BodyPart.Head) < 0.4f ? "HeadClutch"

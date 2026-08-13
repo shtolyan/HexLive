@@ -1,5 +1,5 @@
 {
-    "nextId": 112,
+    "nextId": 119,
     "unityMcpLease": {
         "status": "free",
         "ownerAgent": "",
@@ -134,7 +134,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -156,7 +156,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -183,7 +183,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -205,7 +205,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -271,7 +271,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -298,7 +298,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -335,7 +335,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -362,7 +362,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -391,7 +391,7 @@
             ],
             "fixCommit": "883fec091aae424e40c1fbe546184dfc3f784d6c",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -418,7 +418,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -445,7 +445,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -494,7 +494,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -521,7 +521,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -553,7 +553,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -580,7 +580,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -671,7 +671,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -700,7 +700,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -754,7 +754,7 @@
             ],
             "fixCommit": "6886e3f78466f8d6c059c0bef4a1a54aaa2cc43d",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -803,7 +803,7 @@
             ],
             "fixCommit": "8d827881ee88dba0e9a94a05e952fb1bc9b6db22",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -837,7 +837,7 @@
             ],
             "fixCommit": "883fec091aae424e40c1fbe546184dfc3f784d6c",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -920,7 +920,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.1",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1116,7 +1116,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1242,7 +1242,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1280,7 +1280,7 @@
             ],
             "fixCommit": "6b75a249d66f8637be959c0c28e4946edf628d8d",
             "reportedInVersion": "0.1.5",
-            "readyForTestInVersion": "0.1.37",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1349,7 +1349,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1379,7 +1379,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1418,7 +1418,7 @@
             ],
             "fixCommit": "2aedcbd261f4b782e4a72cebe378e6660dfa7699",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1448,7 +1448,7 @@
             ],
             "fixCommit": "a07c9237683f20210234acd760ec05c2e72526fb",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1487,7 +1487,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1529,7 +1529,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1553,7 +1553,7 @@
             ],
             "fixCommit": "e9d7908f7c8b84d64c24521f032dadca78a9c150",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1592,7 +1592,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1621,7 +1621,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1650,7 +1650,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1684,7 +1684,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1717,7 +1717,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1786,7 +1786,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1821,7 +1821,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1865,7 +1865,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1894,7 +1894,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1933,7 +1933,7 @@
             ],
             "fixCommit": "996c9868f304cc0bd297286b039e7fc8afbcc7b6",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -1967,7 +1967,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2001,7 +2001,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2035,7 +2035,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.7",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2069,7 +2069,7 @@
             ],
             "fixCommit": "6e863bfb1c395389921c17604bbd9b04ff6f164c",
             "reportedInVersion": "0.1.8",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2103,7 +2103,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.8",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2243,7 +2243,7 @@
             ],
             "fixCommit": "7cdb57b89c448ef36c8a1393a99900437a394686",
             "reportedInVersion": "0.1.10",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2311,7 +2311,7 @@
             ],
             "fixCommit": "56af9f2b1b4a6e5f5384661b19ca295db27a0dce",
             "reportedInVersion": "0.1.17",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2342,7 +2342,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.18",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2391,7 +2391,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.18",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2420,7 +2420,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.18",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2449,7 +2449,7 @@
             ],
             "fixCommit": "df876972b478a8636a44bc84e48b1ce35d40a4a2",
             "reportedInVersion": "0.1.18",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2478,7 +2478,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.18",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2508,7 +2508,7 @@
             ],
             "fixCommit": "910647caa8eb99e4ca33e6bd6883fc4cf19ba6f0",
             "reportedInVersion": "0.1.19",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2547,7 +2547,7 @@
             ],
             "fixCommit": "c13eedf0944627fcad59050d81ca27001fc07300",
             "reportedInVersion": "0.1.21",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2576,7 +2576,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.22",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2605,7 +2605,7 @@
             ],
             "fixCommit": "6d7850c50813a3e134e22b527af5cc84cb60cc04",
             "reportedInVersion": "0.1.22",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2639,7 +2639,7 @@
             ],
             "fixCommit": "fb9c2c891efd384d79e1a6d1d3fe0467aeaa4c3a",
             "reportedInVersion": "0.1.22",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2668,7 +2668,7 @@
             ],
             "fixCommit": "27b50ef363082e7e0db7ae21499549df93878e5a",
             "reportedInVersion": "0.1.22",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2703,7 +2703,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.22",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2737,7 +2737,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.24",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2771,7 +2771,7 @@
             ],
             "fixCommit": "1290a010bdc641c6fa52f542118e412e052418de",
             "reportedInVersion": "0.1.24",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2801,7 +2801,7 @@
             ],
             "fixCommit": "55358a508b4deb309330c938a94f8addb7024fb2",
             "reportedInVersion": "0.1.24",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2835,7 +2835,7 @@
             ],
             "fixCommit": "8a1efe19b405e4fef88d4258e40d035521f7853e",
             "reportedInVersion": "0.1.24",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2869,7 +2869,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.24",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2901,7 +2901,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2945,7 +2945,7 @@
             ],
             "fixCommit": "d7f4bffb4cf6099c9ef3ed9c60e331267f2d3791",
             "reportedInVersion": "0.1.29",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -2974,7 +2974,7 @@
             ],
             "fixCommit": "49d7ff99dad0c4ddc9c04761fe2131b9e7c59000",
             "reportedInVersion": "0.1.29",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -3003,7 +3003,7 @@
             ],
             "fixCommit": "ec39c64102a66e6869b0a57bd0fb95fc30381155",
             "reportedInVersion": "0.1.30",
-            "readyForTestInVersion": "0.1.38",
+            "readyForTestInVersion": "0.1.39",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -3016,6 +3016,190 @@
                     "whenUtc": "2026-08-10 20:24 UTC",
                     "author": "codex",
                     "text": "Готово к тестированию в следующем release: GPU Resident Drawer и camera occlusion возвращены в Off, а release builder теперь жёстко отклоняет PC pipeline с любым из этих флагов. Точечный gate прошёл 1/1. Коммит ec39c64102a66e6869b0a57bd0fb95fc30381155."
+                }
+            ]
+        },
+        {
+            "id": 112,
+            "createdUtc": "2026-08-12 22:19 UTC",
+            "status": "in_progress",
+            "text": "на  персонаже просвечивают трусы!  скрывай",
+            "context": "seed=63287937 tick=2454 npc=2",
+            "assignedAgent": "claude",
+            "agentHandoff": "",
+            "fixCommits": [],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.39",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-12 22:52 UTC",
+                    "author": "claude",
+                    "text": "Перенесён из sandbox-трекера Windows-билда (AppData\\LocalLow\\JuicyLove\\HexLive\\BUGS.json, исходный id 1 — перенумерован, чтобы не конфликтовать с существующими отчётами). Взят в работу."
+                }
+            ]
+        },
+        {
+            "id": 113,
+            "createdUtc": "2026-08-12 22:28 UTC",
+            "status": "ready_for_test",
+            "text": "скрол  мыши на   винде   очень медленный  зум",
+            "context": "seed=63287937 tick=4681 npc=2",
+            "assignedAgent": "claude",
+            "agentHandoff": "Причина не в Windows, а в единицах скролла: Unity 6 + Input System 1.19 по умолчанию держат ScrollDeltaBehavior.UniformAcrossAllPlatforms и нормируют скролл в [-1,1] на всех платформах, то есть щелчок колеса = 1.0, а не 120. Обе формулы зума (RtsCameraController.HandleZoom и HandleOrbitInput) умножали на 0.01, считая единицу большой: 0.015 wu за щелчок, 1420 щелчков на диапазон 0.7…22 wu в свободном режиме и ~740 в орбитальном. Заменено на общий пропорциональный шаг ZoomedDistance: distance *= exp(-ticks · 0.12) с потолком 1.5 щелчка за кадр (трекпад шлёт поток событий). Теперь ~29 щелчков на весь диапазон в обоих режимах. Компиляция HexLive.UnityPresentation: 0 errors. Коммит 949a9c95b7d0be480b9855f358993d90cab33809. Проверить: колесо мыши на Windows в свободном режиме и в follow, и отдельно трекпад на macOS — не стало ли там слишком резко (ручки _zoomPerScrollTick и _maxScrollTicksPerFrame в инспекторе камеры).",
+            "fixCommits": [
+                "949a9c95b7d0be480b9855f358993d90cab33809"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.39",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-12 22:52 UTC",
+                    "author": "claude",
+                    "text": "Перенесён из sandbox-трекера Windows-билда (AppData\\LocalLow\\JuicyLove\\HexLive\\BUGS.json, исходный id 2 — перенумерован, чтобы не конфликтовать с существующими отчётами). Взят в работу."
+                },
+                {
+                    "whenUtc": "2026-08-12 23:03 UTC",
+                    "author": "claude",
+                    "text": "Замер по константам, без догадок: Unity 6.4 + Input System 1.19 по умолчанию нормируют скролл в [-1,1] на ВСЕХ платформах (ScrollDeltaBehavior.UniformAcrossAllPlatforms), поэтому щелчок колеса даёт ровно 1.0, а не 120 как сырой WHEEL_DELTA. Обе формулы зума умножали это на 0.01 и давали 0.015 wu за щелчок — 1420 щелчков, чтобы пройти диапазон 0.7…22 wu в свободном режиме, и ~740 в орбитальном. На трекпаде под macOS это тонуло в потоке событий и выглядело нормально, на мыши под Windows превратилось в «зум не работает».\n\nСделано: единый пропорциональный шаг для обоих режимов — distance *= exp(-ticks · 0.12), то есть 12% за щелчок и ~29 щелчков на весь диапазон в любой его точке (вблизи шаг мелкий, вдали крупный). Накопленный за кадр скролл ограничен 1.5 щелчка, иначе поток событий трекпада перепрыгивает диапазон за пару кадров. Обе ручки вынесены в инспектор. Тот же дефект починен в OrbitCameraController (сцена CarryRescueTest; в игре он отключён). Спека обновлена (§123.1). Сборка HexLive.UnityPresentation: 0 errors.\n\nГотово к тестированию. Проверить колесом мыши в свободном режиме и в follow; отдельно посмотреть трекпад на маке — если станет слишком резко, крутится _zoomPerScrollTick на камере."
+                }
+            ]
+        },
+        {
+            "id": 114,
+            "createdUtc": "2026-08-12 22:31 UTC",
+            "status": "ready_for_test",
+            "text": "нужно   немного опустить персонажа лежащего   на   домашней  кровате дома",
+            "context": "seed=63287937 tick=5370 npc=3",
+            "assignedAgent": "claude",
+            "agentHandoff": "Разобрано по самому FBX, без Unity. bed_basic_final_native.fbx несёт авторский маркер сна, но он назван point.001 (блендеровский суффикс дубликата), а код искал ровно 'point' — маркер не находился, дописывался свой на константе SleepRootLocalY=0.37, а фактически работала запасная ветка FindBedAttachPoint по габаритам рендерера, где верх это КОНЧИК ЛИСТА плюс SleepBodyLift 0.12. Числа из ассета (Z над корнем): рама 0.138, слеги/вязки 0.314, листья 0.256…0.489 средн 0.386, маркер 0.540; кожа спящей на 0.10-0.13 ниже корня тела, то есть 0.540 кладёт её ровно на листья. Правка: маркер узнаётся по префиксу и переименовывается в каноническое 'point' (IsSleepMarker), сравнение продукта — по каноническому id (кровать из старого сейва с bed.leaf/building.hut_bed маркера не получала вовсе). Коммит bf9299999af92730bf7b0502207cbc37c85c8233. Проверять встроенным гейтом HutTest ValidateRenderedSleepPoses: печатает rootДельта и skin-leaves, требует зазор кожи к листьям -0.07…+0.15. Отдельно заведён #118 — потерянные группы стадий роста в том же FBX.",
+            "fixCommits": [
+                "bf9299999af92730bf7b0502207cbc37c85c8233",
+                "927ff3c42eb8c7ec42ac25e16cc0187582f9362e"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.39",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-12 22:52 UTC",
+                    "author": "claude",
+                    "text": "Перенесён из sandbox-трекера Windows-билда (AppData\\LocalLow\\JuicyLove\\HexLive\\BUGS.json, исходный id 3 — перенумерован, чтобы не конфликтовать с существующими отчётами). Взят в работу."
+                },
+                {
+                    "whenUtc": "2026-08-13 00:12 UTC",
+                    "author": "claude",
+                    "text": "Разобрал по самому ассету, без Unity — и причина не та, что казалась.\n\nВ bed_basic_final_native.fbx есть СОБСТВЕННЫЙ маркер высоты сна, поставленный автором. Но называется он point.001 — блендеровский суффикс дубликата, — а код искал ровно 'point'. Маркер не находился, поэтому дописывался свой на константе 0.37, а фактически работала третья, запасная ветка: высота бралась из габаритов рендерера, где верх — это КОНЧИК САМОГО ВЫСОКОГО ЛИСТА, плюс ещё 0.12. Отсюда и зазор на твоём скриншоте: она висела ровно на длину листа.\n\nЧисла прямо из модели (Z над корнем кровати): рама 0.138, слеги и вязки 0.314, листья 0.256…0.489 при среднем 0.386, авторский маркер 0.540. Кожа спящей уходит на 0.10-0.13 ниже корня тела — значит 0.540 кладёт её ровно на листья. Автор всё посчитал, код это просто не читал.\n\nСделано: маркер узнаётся по префиксу (point, point.001, point_01) и переименовывается в каноническое 'point', потому что это имя ищут рендер, гейт HutTest и BedSleepPoseTest; правило вынесено в один метод, чтобы три читателя не разошлись. Заодно сравнение продукта переведено на канонический идентификатор: кровать из старого сейва с bed.leaf или building.hut_bed вообще оставалась без маркера.\n\nПроверка твоя и она честная: в HutTest есть готовый гейт ValidateRenderedSleepPoses, он печатает rootДельта и skin-leaves и требует зазор кожи к листьям в -0.07…+0.15. Если после правки число попадёт в диапазон — закрываем. Если промахнётся, пришли его, и я подвину маркер в модели точным числом, а не на глаз.\n\nПро «это как будто другая кровать»: модель одна и та же — HutFurnitureFactory зовёт ту же BedAssembly.BuildFinished(bed.basic), и твой лог это подтвердил (bed.basic occupied by NPC1). Разница только в посадке: у хижины BedRootLift = HutAssembly.FloorSurfaceLift, это и есть та ручка, где «чуть выше на пол» — скажи насколько, поставлю.\n\nПро сломанные стадии роста ты права, и это отдельный дефект: в FBX НЕТ числовых групп стадий вовсе, поэтому кровать растёт в алфавитном порядке имён. Завёл как #118."
+                },
+                {
+                    "whenUtc": "2026-08-13 00:26 UTC",
+                    "author": "claude",
+                    "text": "Регресс моей же правки, пойман игроком: «стало только хуже, он повернулся, нужно было только Y взять».\n\nОна права полностью. Маркер сна — это не только «где лежать»: NpcActorView берёт у него и позицию по XZ, и ОРИЕНТАЦИЮ тела (_bodyRoot.rotation = _layingAttach.rotation). Пустышка, которую создаёт код, имеет единичный локальный поворот, поэтому тело наследует ориентацию самой кровати — это и есть работавшее поведение. Авторский point.001 — блендеровский Null, несущий конверсию осей экспорта; подменив им пустышку, я отдал телу чужой поворот.\n\nИсправлено: авторский узел теперь источник ОДНОГО числа. Высота снимается как мировая разница по Y с корнем сборки и подставляется в ту же пустышку с той же ориентацией; сам узел переименовывается, чтобы читатели продолжали находить пустышку. Ни один поворот не меняется — меняется только Y. Коммит 927ff3c42eb8c7ec42ac25e16cc0187582f9362e.\n\nУрок записан там же в коде, чтобы следующий не наступил: маркер отдаёт высоту, но НИКОГДА не отдаёт поворот."
+                }
+            ]
+        },
+        {
+            "id": 115,
+            "createdUtc": "2026-08-12 22:43 UTC",
+            "status": "ready_for_test",
+            "text": "персонаж не востанавливает  кровь   и   не умирает  от   голода   и  жажды",
+            "context": "seed=63287937 tick=26746 npc=3",
+            "assignedAgent": "claude",
+            "agentHandoff": "Оба симптома — одно состояние. На сейве игрока npc3 с тика 1728 заперта в окне умирания: Health=1.00, Blood=1.00, Hunger=1.00, Thirst=1.00, BloodDeficit=0.199, 21000 тиков без единого события. Круг: BloodDeficit гасит только KenshiMedicalMath.RestoreBlood, закрытый гейтом сытости (Hunger<0.6); открыть его лежащая не может; §29C.2 (голодный урон) гейтован через !IsDying и молчит; ResolveTrauma держит причину в BloodLoss, пока дефицит >0, поэтому §53.3 носил ей бинт (девять подходов Kind=Treat), а не воду. Депт-причины обратного отсчёта не имеют вовсе — застывшая глубина означает отсутствие часов. Правки: KenshiMedicalMath — умирающей кровь восстанавливается независимо от голода (она только ВЫХОДИТ из окна, дальше §29C.2 в силе); AidAssessment — нужда на StarveDeathThreshold обгоняет причину падения, вода и еда раньше бинта. Проверено прогоном его сейва: до — 4000 тиков без изменений, после — встала за 71 тик, напилась, через 3000 тиков живёт нормально. Коммит 22dd68bcde246b62e841319349ba4442c6684761. Проверить: старый сейв ЛЕЧИТСЯ на месте (девушка должна встать в первые ~100 тиков после загрузки), и что обычная раненая по-прежнему получает бинт, а не еду.",
+            "fixCommits": [
+                "22dd68bcde246b62e841319349ba4442c6684761"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.39",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-12 22:52 UTC",
+                    "author": "claude",
+                    "text": "Перенесён из sandbox-трекера Windows-билда (AppData\\LocalLow\\JuicyLove\\HexLive\\BUGS.json, исходный id 4 — перенумерован, чтобы не конфликтовать с существующими отчётами). Взят в работу."
+                },
+                {
+                    "whenUtc": "2026-08-12 23:32 UTC",
+                    "author": "claude",
+                    "text": "Разобрано по ТВОЕМУ сейву и истории колонии, а не по гипотезам. Оба симптома — одно состояние, и оно куда хуже, чем выглядело.\n\nЧто было на самом деле. В этом мире умерли трое из четверых, причём двое — именно от жажды (Kshishtof на тике 13172, Sana на 18884; Vera погибла от собаки на 23531). То есть смерть от жажды механически работает. А npc3, за которой ты смотрел, с тика 1728 лежит в окне умирания и не подаёт ни одного события 21000 тиков подряд. На тике 27082: Health=1.000, все семь зон 1.00, критических травм нет, Blood=1.000, Hunger=1.000, Thirst=1.000 — то есть она АБСОЛЮТНО здорова и при этом заперта в собственном теле. Держит её единственное ненулевое число: BloodDeficit=0.199.\n\nКруг из трёх звеньев. (1) BloodDeficit погашает только KenshiMedicalMath.RestoreBlood, а он закрыт гейтом сытости Hunger<0.6. (2) Открыть этот гейт лежащая без сознания не может — поесть ей нечем, а §29C.2, единственный штатный сторож от «нужда в максимуме, а смерти нет», сам гейтован через `&& !npc.IsDying` и на умирающую не смотрит. (3) Пока дефицит выше нуля, ResolveTrauma возвращает причину умирания в BloodLoss — а §53.3 выбирает вид помощи по причине падения. Отсюда ответ на твой вопрос «почему ей не помогали»: ПОМОГАЛИ, и много. Vera и Sana принесли ей бинты пять раз (тики 1313, 1395, 1702, 1783, 4691), а потом Vera собиралась лечить её ещё девять раз — 16244, 21056, 21300, 22348, 22420 — и каждый раз это Kind=Treat, бинт. Бинт даёт Needs.Blood +0.25 и НЕ трогает BloodDeficit. Её лечили ровно тем, что не могло её поднять, пока она умирала от жажды. Для сравнения: Sana в тиках 14160-14916 получила Hydrate и Feed и дважды встала (Rescued Reason=Recovered) — механика подъёма исправна, неверен был выбор помощи.\n\nИ ещё: у депт-причин (кровопотеря, разбитая витальная зона) обратного отсчёта НЕТ вообще — запас каждый тик пересчитывается из глубины. Застывшая глубина означает, что часов не идёт ни одних: ни выздоровления, ни смерти.\n\nСделано. KenshiMedicalMath: умирающей кровь восстанавливается независимо от голода — гейт сытости про выбор, а у лежащей выбора нет; она лишь ВЫХОДИТ из окна, а дальше голод и жажда спрашивают с неё обычным каналом §29C.2. AidAssessment: нужда, дошедшая до смертельной черты, обгоняет причину падения — вода и еда раньше бинта, жажда впереди голода; порог смертельный, поэтому обычная раненая по-прежнему получает перевязку. Спека §118.3 обновлена.\n\nПроверка на твоём сейве. До правки: 4000 тиков вперёд — Depth=0.199 на каждом шаге, не меняется ничего. После: Depth 0.199→0.159→0.119→0.039, на тике 27153 Rescued (Recovered) — встала через 71 тик; сразу закапал StarvationDamage при Hunger=1.00/Thirst=1.00; Goal=Drink; через 1000 тиков Hunger=0.24, Thirst=0.68; через 3000 живёт и работает (Goal=HarvestYucca).\n\nЧестно про то, что не доделано: первый мой заход (менять причину умирания на Dehydration) оказался фиктивным — он дрался с ResolveTrauma и давал спам Collapsed каждый slow-тик; отвергнут замером, а не рассуждением. Отдельно осталась незакрытой аномалия «AidRequested без AidStarted» после тика 4614 — девять подходов не дошли до начала взаимодействия; на этот баг не влияет (бинт всё равно не помог бы), но пахнет самостоятельной проблемой — скажи, заводить ли отдельный отчёт.\n\nГотово к тестированию. Старый сейв должен ЛЕЧИТЬСЯ на месте: загрузи его и смотри, встанет ли она в первые ~100 тиков."
+                }
+            ]
+        },
+        {
+            "id": 116,
+            "createdUtc": "2026-08-12 22:44 UTC",
+            "status": "in_progress",
+            "text": "в  анимации ползания персонаж  не касается  руками  земли  а машет  ими в воздухе",
+            "context": "seed=63287937 tick=27048 npc=3",
+            "assignedAgent": "claude",
+            "agentHandoff": "",
+            "fixCommits": [],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.39",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-12 22:52 UTC",
+                    "author": "claude",
+                    "text": "Перенесён из sandbox-трекера Windows-билда (AppData\\LocalLow\\JuicyLove\\HexLive\\BUGS.json, исходный id 5 — перенумерован, чтобы не конфликтовать с существующими отчётами). Взят в работу."
+                }
+            ]
+        },
+        {
+            "id": 117,
+            "createdUtc": "2026-08-12 23:51 UTC",
+            "status": "ready_for_test",
+            "text": "Помощь не доходит до лежащей: соседка выходит спасать (AidRequested), доходит и отменяет поход «Target out of aid range», после чего планирует его снова — вечный холостой круг. К умирающей npc3 так сходили девять раз за 6000 тиков. Замер: 28 из 59 походов за помощью (47%) не начинались вовсе.",
+            "context": "seed=63287937; найден агентом при разборе #115; замер hexsoak 27000 тиков",
+            "assignedAgent": "claude",
+            "agentHandoff": "Найден агентом при разборе #115, заведён по прямому указанию игрока. Причина: план помощи ПО ПАМЯТИ строится с partner=null, что отключает обе проверки досягаемости и станцию у ног лежащей (§111.9) — бронируется первый свободный сосед запомненного узла, который для лежащей почти никогда не проходит InteractionReach.Aid. Живая переоценка по прибытии это ловила и ОТМЕНЯЛА поход, после чего он планировался заново тем же способом. Правка: по прибытии сначала перецеливание по живому телу (та же общая формула, со станцией у ног для лежащей); не видно подопечную — забыть запомненный узел, чтобы память не тянула в пустой угол. Замер seed 63287937, 27000 тиков: «дошла и не дотянулась» 11->5, четыре похода спасены, все девять Treat (включая шесть с Suffering=1.00) доходят до AidStarted. Коммит e9d956e8221dc4f88f88e4df55c3bba91441dc66.",
+            "fixCommits": [
+                "e9d956e8221dc4f88f88e4df55c3bba91441dc66"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.39",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-12 23:51 UTC",
+                    "author": "claude",
+                    "text": "Заведён по твоему указанию: аномалию «AidRequested без AidStarted» нашёл при разборе #115 — к умирающей npc3 соседка выходила девять раз за 6000 тиков и ни разу не дошла до помощи.\n\nЗамерил на твоём сиде (63287937, 27000 тиков): 28 из 59 походов за помощью, 47%, не начинались вовсе. Самая частая причина — «Target out of aid range», 11 случаев.\n\nПричина оказалась структурной. План помощи по ПАМЯТИ строится без живой подопечной, и это сделано намеренно — «у памяти нет честного ответа про достижимость, проверит живая переоценка по прибытии». Но вместе с живым телом отключаются и обе проверки досягаемости, и станция у ног лежащей (§111.9): бронируется просто первый свободный сосед запомненного узла. Для ЛЕЖАЩЕЙ он почти никогда не проходит боевой порог дотягивания — а переоценка по прибытии, единственная, кто это замечал, поход просто отменяла. Дальше кулдаун, тот же план, тот же пустой угол. Вечный холостой круг, ровно как у npc3.\n\nСделано: по прибытии сначала ПЕРЕЦЕЛИВАНИЕ — подопечная уже перед глазами, значит подход можно пересчитать честно, той же общей формулой, но с живым телом, то есть со станцией у ног, если она лежит. Если её отсюда не видно — забыть запомненный УЗЕЛ (не страдание): «пришла, где помнила, там пусто, где она теперь — не знаю». Память без узла походов больше не притягивает и чинится при следующей встрече.\n\nПроверка: «дошла и не дотянулась» 11 -> 5, четыре похода спасены перецеливанием, и ВСЕ девять походов Treat, включая все шесть с Suffering=1.00, доходят до начала помощи.\n\nЧестно про то, что НЕ стал чинить. Осталось 16 срывов «бросила помощь ради другой цели», из них 8 ради болтовни — выглядит как дыра, и я написал было усиление замка цели. Замер его отверг: эти срывы бьют только лёгкие походы (утешение 0.47…0.60, еда/вода 0.56…0.74), а ни один поход с перевязкой не был брошен ни до правки, ни после. Правка оказалась побайтово инертной, я её снял и оставил наблюдение комментарием в коде, чтобы это не выясняли заново.\n\nГотово к тестированию: смотри, доходят ли соседки до лежащей и начинается ли помощь."
+                }
+            ]
+        }
+,
+        {
+            "id": 118,
+            "createdUtc": "2026-08-13 00:12 UTC",
+            "status": "in_progress",
+            "text": "Сломаны стадии роста кровати. BedAssembly ждёт у модели группы с ЧИСЛОВЫМИ именами — это и есть стадии сборки, — а в bed_basic_final_native.fbx их НОЛЬ. Код молча уходит в запасную ветку: собирает все куски плоским списком и сортирует по алфавиту имени, после чего ApplyBedStages включает 'первые N каждого материала' в алфавитном, а не в авторском порядке. Стройка кровати растёт как попало. Игрок помнит префаб, собранный по стадиям роста, — стадии потерялись при переезде на нативный FBX.",
+            "context": "Assets/Resources/HexLive/Objects/bed_basic_final_native.fbx; найден агентом при разборе #114 по указанию игрока",
+            "assignedAgent": "claude",
+            "agentHandoff": "Перепись узлов FBX: leaf_ x50, rope_ x10, stick_ x5, log_ x4, HexFitBed_root, point.001; числовых групп стадий — ни одной. Читатель: BedAssembly.CollectStageGroups (ищет int.TryParse по имени ребёнка) -> запасная ветка CollectLogicalPieces + AddSorted (сортировка string.CompareOrdinal). Порядок, который декларирует ApplyBedStages: брёвна -> слеги -> вязки -> листья. Чинится в АССЕТЕ: вернуть в FBX числовые группы-стадии вокруг кусков. Требует Blender и подтверждения игроком авторского порядка внутри каждой стадии. Высоты кусков (Z над корнем): log 0.138, stick/rope 0.314, leaf 0.256…0.489.",
+            "fixCommits": [],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.39",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-13 00:12 UTC",
+                    "author": "claude",
+                    "text": "Завёл по твоим словам «в той кровати сломаны стадии роста» — подтвердилось прямо в ассете, без Unity.\n\nBedAssembly ищет у модели группы с ЧИСЛОВЫМИ именами: это и есть стадии сборки. В bed_basic_final_native.fbx их ноль. Перепись узлов: 50 листьев, 10 верёвок, 5 слег, 4 бревна, корень фита и маркер point.001 — и ни одной группы-стадии. Код при этом не падает и не жалуется: он уходит в запасную ветку, собирает все куски плоским списком и сортирует ПО АЛФАВИТУ имени. Дальше ApplyBedStages честно включает «первые N каждого материала» — но «первые» теперь означает алфавитные, а не авторские. Поэтому кровать растёт как попало.\n\nТы права и в том, что это сломали давно: твой префаб со стадиями роста заменили нативным FBX, и стадии при этом не переехали. Логика их по-прежнему ждёт.\n\nЧинится это в АССЕТЕ, а не в коде: нужно вернуть в FBX числовые группы вокруг кусков. Порядок, который декларирует код: брёвна -> слеги -> вязки -> листья. Подтверди, что он верный (и нужен ли порядок ВНУТРИ стадии, например листья от изголовья), — тогда соберу группы в Blender и переэкспортирую. Правку кода делать не буду: она бы замаскировала потерю данных в модели."
                 }
             ]
         }

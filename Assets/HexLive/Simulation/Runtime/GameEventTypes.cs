@@ -124,6 +124,10 @@ public static class GameEventTypes
         // середине и почему следующие полдня никто не нападает.
         "MobTookLimb",
         "MobAteLimb",
+        // §46 v4: парная строка к NightRaid — стая пришла, стая ушла. Игрок
+        // иначе не узнаёт, почему давление спало. НЕ путать с "MobLeaving":
+        // то запись планировщика («уйдёт на тике N»), она осталась отладкой.
+        "MobLeft",
 
         // Injury and death
         // NOT "Bleeding": it fires on every slow tick while any bad wound is

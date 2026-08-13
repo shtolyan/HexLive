@@ -87,6 +87,7 @@ namespace HexLive.UnityPresentation.History
                 // §135: системные события зверя — актёра у них нет.
                 "MobTookLimb" => Loc.Get("history.MobTookLimb"),
                 "MobAteLimb" => Loc.Get("history.MobAteLimb"),
+                "MobLeft" => Loc.Get("history.MobLeft"), // §46 v4: стая ушла
                 "Preyed" => F("history.Preyed", actor),
                 "PreyFoughtBack" => F("history.PreyFoughtBack", actor),
                 "PreyFled" => F("history.PreyFled", actor),

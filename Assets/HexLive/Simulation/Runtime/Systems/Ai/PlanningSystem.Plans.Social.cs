@@ -484,9 +484,12 @@ public sealed partial class PlanningSystem
             Interaction = AidInteraction(AidAssessment.Assess(target, world.Tick, out _))
         });
 
-        Trace.Emit(world, npc.Id, "AidRetargeted",
-            $"NPC{target.Id.Value} was not at the remembered spot — " +
-            $"walking to her actual station (Junction={approach.Value})");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "AidRetargeted",
+                $"NPC{target.Id.Value} was not at the remembered spot — " +
+                $"walking to her actual station (Junction={approach.Value})");
+        }
         return true;
     }
 

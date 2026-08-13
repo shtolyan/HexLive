@@ -717,7 +717,7 @@ public sealed class MovementSystem : ISimulationSystem
                         npc.Movement.PostTurnTimer = SimBalance.PostTurnPauseSeconds;
                     }
 
-                    if (SimTrace.Verbose)
+                    if (SimTrace.Enabled)
                     {
                         if (SimTrace.Enabled)
                         {
@@ -1064,7 +1064,7 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.RotationDegrees,
                     npc.Movement.DesiredRotationDegrees,
                     turnPerTick);
-                if (SimTrace.Verbose)
+                if (SimTrace.Enabled)
                 {
                     if (SimTrace.Enabled)
                     {
@@ -1325,7 +1325,7 @@ public sealed class MovementSystem : ISimulationSystem
             }
 
             npc.Position += segmentDirection * reach;
-            if (SimTrace.Verbose && SimTrace.Enabled)
+            if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "MovementStepCarry",
                     $"Pos={Trace.FormatPos(npc.Position)} -> Junction={nextJunctionId.Value} " +

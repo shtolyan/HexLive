@@ -724,7 +724,7 @@ public sealed partial class ExecutionSystem
                     ApplyEffectsScaled(npc, interaction.Effects, 1f / total);
                 }
 
-                if (SimTrace.Verbose)
+                if (SimTrace.Enabled)
                 {
                     if (SimTrace.Enabled)
                     {

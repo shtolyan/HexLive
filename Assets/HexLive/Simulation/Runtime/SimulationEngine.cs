@@ -48,7 +48,7 @@ public sealed class SimulationEngine
         var isMedium = World.Tick % Settings.MediumInterval == 0;
         var isSlow = World.Tick % Settings.SlowInterval == 0;
 
-        if (SimTrace.Verbose)
+        if (SimTrace.Enabled)
         {
             World.Events.Add(new SimulationEvent
             {

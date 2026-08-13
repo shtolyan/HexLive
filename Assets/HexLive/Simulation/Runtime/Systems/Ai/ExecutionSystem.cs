@@ -811,7 +811,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         RunFurnitureSiteHandoff(world, npc, worldObject);
                     }
 
-                    if (SimTrace.Verbose)
+                    if (SimTrace.Enabled)
                     {
                         if (SimTrace.Enabled)
                         {
@@ -2481,7 +2481,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 npc.Body.MobilityTurnFactor();
             npc.RotationDegrees = MathUtil.RotateTowards(
                 npc.RotationDegrees, desired, turnPerTick);
-            if (SimTrace.Verbose)
+            if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "FurnitureApproachTurning",
                     $"Obj={worldObject.DefinitionId} Rot={npc.RotationDegrees:F1} " +

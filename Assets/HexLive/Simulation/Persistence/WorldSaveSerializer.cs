@@ -671,6 +671,11 @@ public static class WorldSaveSerializer
             npc.WornItems.RemoveAll(IsRetiredGarment);
             npc.Inventory.Items.RemoveAll(IsRetiredGarment);
             npc.Mind.RedressGarments.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
+            // §52.9 / баг #124: сейвы, сделанные до сужения стартового пула,
+            // несут пару, дерущуюся за один (слой, слот) — вид пересобирал обе
+            // каждый тик вечно. Чинить надо и старый мир, а не только новый:
+            // проигравшая уходит в рюкзак, надетой остаётся первая.
+            EquipmentMath.StripConflictingWorn(world, npc);
             EquipmentMath.Recalculate(world, npc);
         }
     }

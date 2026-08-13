@@ -124,7 +124,14 @@ public sealed class WorldStateFactory
         // каждая новая партия проходила бы мимо потерпевших молча — новую вещь
         // никто бы не увидел, пока её не впишут сюда руками.
         var startBottoms = StartPool(g => g.Layer == WearLayer.Underwear && g.Covers.Contains(BodyPart.Pelvis));
-        var startTops = StartPool(g => g.Layer == WearLayer.Underwear && g.Covers.Contains(BodyPart.Torso));
+        // §52.9 / баг #124: ВЕРХ — это то, что закрывает торс и НЕ претендует на
+        // таз. Без второго условия в пул «лифчиков» попадали трусы с завышенной
+        // талией (`briefs_strappy_mat03` = Belly+Pelvis, то есть Covers
+        // Torso+Pelvis), и розыгрыш выдавал девушке ДВА низа: 20.3% колонисток
+        // на 201 сиде выходили на берег в паре, дерущейся за один слот таза.
+        var startTops = StartPool(g => g.Layer == WearLayer.Underwear &&
+                                       g.Covers.Contains(BodyPart.Torso) &&
+                                       !g.Covers.Contains(BodyPart.Pelvis));
         // Верхний низ — только ЛЁГКИЙ: шорты и юбки проходят, джинсы (0.12) и
         // платья (0.10) нет. Никто не выходит на берег в шубе (§42).
         var startShorts = StartPool(g => g.Layer == WearLayer.Wear &&
@@ -151,6 +158,7 @@ public sealed class WorldStateFactory
                     npc.WornItems.Add(piece);
                 }
 
+                Runtime.EquipmentMath.StripConflictingWorn(world, npc);
                 Runtime.EquipmentMath.Recalculate(world, npc);
                 continue;
             }
@@ -166,6 +174,11 @@ public sealed class WorldStateFactory
                 Wear(npc, startShorts, MathUtil.Hash01(world.Seed, id, 15, 4205));
             }
 
+            // Пояс и подтяжки к сужению пула выше: розыгрыш кладёт вещи в
+            // WornItems НАПРЯМУЮ, мимо ResolveWearConflicts, поэтому единственное,
+            // что здесь удерживает §52.9, — эта проверка. Новая партия одежды с
+            // неожиданными Covers не должна снова уметь одеть девушку в два низа.
+            Runtime.EquipmentMath.StripConflictingWorn(world, npc);
             Runtime.EquipmentMath.Recalculate(world, npc);
         }
 

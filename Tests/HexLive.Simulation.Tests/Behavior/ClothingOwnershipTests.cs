@@ -42,6 +42,12 @@ public sealed class ClothingOwnershipTests
     {
         var world = TestWorld.CreateWorld(12345);
         var npc = world.Entities.Npcs.Values.First();
+        // §52.9 / баг #124: загрузка чинит тело, на котором две вещи дерутся за
+        // один (слой, слот) — проигравшая уходит в рюкзак. Девушка выходит на
+        // берег уже в лифчике, так что «надеть ВТОРОЙ поверх» проверяло бы не
+        // владение, а живучесть невозможного состояния. Тест про OwnerId, а не
+        // про гардероб: раздеваем, потом надеваем.
+        npc.WornItems.Clear();
         var worn = new ItemInstance("underwear.bra_riot") { OwnerId = npc.Id.Value };
         npc.WornItems.Add(worn);
         npc.Inventory.Items.Add(new ItemInstance("underwear.thong_anarchy") { OwnerId = npc.Id.Value });

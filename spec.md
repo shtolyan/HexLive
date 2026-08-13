@@ -11885,6 +11885,33 @@ a horizontal shin the 50° limit still leaves the toes ~40° below the shin line
 so the foot can never lie flat, and pulling that muscle toward its 0 neutral
 would point the toes straight down through the floor. The residual knee bend is
 what lifts the ankle joint clear so the toe tip lands on the ground instead.
+Nine more muscle curves came over the same way — `Left Shoulder Down-Up` to
+1.46, both `Thumb.1 Stretched` to 1.94, plus the arm twists, `Head Turn` and two
+ring spreads — and are now **clamped to ±1**, which is what the Animator was
+silently doing anyway, so nothing on screen moves. Clamping a key also zeroes
+its tangents: two keys pinned at −1 with their original slopes would let Hermite
+interpolation bulge back past the limit *between* them. Rescaling instead of
+clamping was rejected — the source avatar simply had wider limits, so our limit
+is the closest reachable pose, and compressing the whole curve to fit would
+undershoot the author's intent everywhere else.
+
+⚠️ **`RootT.y` still pops ~10.7 cm at every loop wrap** and is NOT fixed. The
+hips start at 0.175, sink to 0.068 over 2.5 s and snap back: the tail of a
+lie-down baked into a loop. All three curve-level fixes are ruled out **by
+measurement**, so do not re-derive them — (a) flattening it drags the hands
+~5 cm under the floor, because the arms come down *with* the body rather than
+staying planted; (b) trimming the settle off the front makes the seam WORSE —
+a search over cut points shows the total normalised discontinuity is already
+minimal at t=0 (26.7) and climbs to ~60 by t=2.5, since the animator did loop
+everything except the root; (c) lowering the hips only as far as the hands allow
+buys nothing, because the clip already puts a wrist ~2 cm *below* the floor at
+t≈9.7, leaving zero clearance budget. The real fix is re-authoring the loop, or
+the one-flag experiment nobody has run yet: the clip carries
+`m_LoopBlendPositionY: 1` with `m_KeepOriginalPositionY: 1` (Root Transform
+Position (Y) → Bake Into Pose, Based Upon **Original**), which by definition
+exempts Y from loop-pose blending; switching Based Upon off Original is a single
+Inspector toggle and wants a frame of verification, not a blind edit.
+
 The dropped limb is the **real posed geometry**. A fresh drop is deliberately
 one render beat behind the body: `SeveredLimbDropView` waits through
 `WaitForEndOfFrame`, after snapshot condition, Animator and

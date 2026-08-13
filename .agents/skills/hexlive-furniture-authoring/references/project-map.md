@@ -5,7 +5,7 @@ Use these as routing hints; inspect current code because names can evolve.
 | Concern | Canonical location |
 |---|---|
 | Project rules and spatial drawing requirement | `AGENTS.md`, `CLAUDE.md` |
-| Behavior and coordinate contract | `spec.md` |
+| Behavior and coordinate contract | `Spec/<N>.md` (`§N` → `Spec/N.md`; index in `spec.md`) |
 | Hex radius and world conversion | `Assets/HexLive/Simulation/Spatial/HexSpatialMath.cs` |
 | Junction templates and 0.375-wu grid | `Assets/HexLive/Simulation/Spatial/HexPointLayout.cs` |
 | Hut production layout data | `Assets/HexLive/Simulation/Runtime/BuildingRules.cs` |

@@ -528,32 +528,40 @@ namespace HexLive.UnityPresentation.Environment
                 return;
             }
 
-            // ⭐ Авторский маркер узнаётся ПО ПРЕФИКСУ, а не по точному имени.
+            // ⭐ У АВТОРСКОГО МАРКЕРА БЕРЁТСЯ ТОЛЬКО ВЫСОТА. НИКОГДА — ПОВОРОТ.
             //
-            // В bed_basic_final_native.fbx маркер называется `point.001` —
-            // блендеровский суффикс дубликата, который экспорт сохраняет. Точное
-            // сравнение с "point" его не видело, поэтому код считал, что модель
-            // без маркера, и дописывал свой на константе SleepRootLocalY. То
-            // есть высота, посчитанная автором в модели, не использовалась
-            // никогда, а §54.2 обещает ровно обратное — «у каждой кровати
-            // чтится её собственный подъём».
+            // Маркер — это не просто «где лежать»: NpcActorView берёт у него
+            // ЦЕЛИКОМ и позицию по XZ, и ОРИЕНТАЦИЮ тела
+            // (`_bodyRoot.rotation = _layingAttach.rotation`). Пустышка, которую
+            // создаёт код ниже, имеет единичный локальный поворот, поэтому тело
+            // наследует ориентацию самой кровати — это и есть работающее
+            // поведение. А авторский `point.001` — блендеровский Null, несущий
+            // конверсию осей экспорта; отдать его читателю как есть значит
+            // отдать телу чужой поворот, и девушка ложится развёрнутой.
+            // Проверено игроком: подмена узла «стала только хуже».
+            //
+            // Поэтому авторский узел здесь — ИСТОЧНИК ОДНОГО ЧИСЛА, высоты. Она
+            // снимается как мировая разница по Y с корнем сборки, то есть в тех
+            // же единицах, в которых её задаёт константа, и подставляется в ту
+            // же самую пустышку. Ни один поворот при этом не меняется.
             //
             // Числа из ассета (Blender Z-вверх, Z над корнем кровати): рама
             // 0.138, слеги и вязки 0.314, листья 0.256…0.489 при среднем 0.386,
-            // маркер 0.540. Кожа спящей уходит на 0.10-0.13 ниже корня тела,
-            // так что 0.540 кладёт её ровно на листья; константа 0.370 — на
-            // 0.17 ниже авторской. Переименовывать маркер в модели нельзя без
-            // повода: имя `point.001` валидно, а код обязан читать модель.
+            // маркер 0.540, константа 0.370. Модель считает, код читает.
+            var lift = SleepRootLocalY;
             foreach (var child in root.GetComponentsInChildren<Transform>(true))
             {
-                if (child != root.transform && IsSleepMarker(child.name))
+                if (child == root.transform || !IsSleepMarker(child.name))
                 {
-                    // Найден авторский — он и есть высота сна. Переименовать в
-                    // каноническое `point`, потому что читатели (рендер,
-                    // HutTest-гейт, BedSleepPoseTest) ищут именно это имя.
-                    child.name = "point";
-                    return;
+                    continue;
                 }
+
+                lift = child.position.y - root.transform.position.y;
+                // Убрать с дороги: читатели (рендер, гейт HutTest,
+                // BedSleepPoseTest) ищут имя `point`, и найти они должны
+                // пустышку с правильной ориентацией, а не этот узел.
+                child.name = "point_authored_height";
+                break;
             }
 
             // Native FBX files deliberately contain only renderable construction
@@ -564,7 +572,7 @@ namespace HexLive.UnityPresentation.Environment
             var point = new GameObject("point");
             point.transform.SetParent(root.transform, false);
             point.transform.localPosition = root.transform.InverseTransformVector(
-                Vector3.up * SleepRootLocalY);
+                Vector3.up * lift);
         }
 
         /// A build-site in progress — only the delivered pieces of each material.

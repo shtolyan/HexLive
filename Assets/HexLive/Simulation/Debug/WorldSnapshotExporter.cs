@@ -5,6 +5,7 @@ using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Debug
@@ -783,8 +784,8 @@ public static class WorldSnapshotExporter
             RescueDestinationObjectId = npc.RescueDestinationObjectId?.Value,
             TanLevel = npc.Needs.TanLevel,
             Sunburn = npc.Needs.Sunburn,
-            Bandages = npc.Needs.Bandages,
-            Pills = npc.Needs.Pills,
+            Bandages = MedicalSupplyMath.BandageCount(npc),
+            Pills = MedicalSupplyMath.PillCount(npc),
             // Spec §60 r3 (баг #8): ЛЮБАЯ кома — «без сознания». Раньше
             // энергетический крах читался как обычный СОН (r2), и вырубившаяся
             // мирно дышала в анимированной позе сна — неотличимо от здоровой.

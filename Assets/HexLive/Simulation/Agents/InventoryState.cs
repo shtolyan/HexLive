@@ -123,26 +123,35 @@ public sealed class InventoryState
         return false;
     }
 
-    // §54.10: bulk resources STACK — a bundle of identical leaves/sticks/logs/etc.
-    // rides in ONE pocket slot (up to the stack size). Items stays a flat list of
-    // instances so recipes, weapon checks and per-item removals keep working; slot
-    // counting and snapshot/UI presentation fold stackable resources together.
+    // §54.10: identical cargo stacks visually while Items stays a flat list of
+    // real instances, so recipes, durability, provenance and per-item removal
+    // keep working. Bulk resources use the large stack; medicines use ten.
     public const int StackSize = 20;
+
+    public const int MedicineStackSize = 10;
 
     // §54.2: leaves stack 3× deeper — a bed's mattress is ~46-50 leaves, so a
     // whole bed's worth of leaves rides in a single pocket instead of three.
     public const int LeafStackSize = 60;
 
-    // Per-item stack depth (leaves get the deep stack; everything else the default).
+    // Per-item stack depth: leaves are extra-deep, medicines use 10 and bulk
+    // resources use 20.
     public static int StackSizeFor(string definitionId) =>
-        definitionId == "resource.palm_leaf" ? LeafStackSize : StackSize;
+        definitionId == "resource.palm_leaf" ? LeafStackSize :
+        IsMedicineStack(definitionId) ? MedicineStackSize : StackSize;
 
     public static bool IsStackable(string definitionId) =>
         !string.IsNullOrEmpty(definitionId) &&
-        definitionId.StartsWith("resource.", System.StringComparison.Ordinal);
+        (definitionId.StartsWith("resource.", System.StringComparison.Ordinal) ||
+         IsMedicineStack(definitionId));
 
-    // Pocketed items only — personal effects (the bottle) ride free; stackable
-    // bulk resources fold into one slot per StackSize of the same definition.
+    private static bool IsMedicineStack(string definitionId) =>
+        definitionId == "item.bandage" ||
+        definitionId == "item.pill" ||
+        definitionId.StartsWith("med.", System.StringComparison.Ordinal);
+
+    // Pocketed items only — personal effects (the bottle) ride free; identical
+    // stackable cargo folds into cells using StackSizeFor.
     public int UsedSlots
     {
         get

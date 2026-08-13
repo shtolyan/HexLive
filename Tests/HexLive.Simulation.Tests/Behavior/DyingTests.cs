@@ -76,9 +76,8 @@ public sealed class DyingTests
         });
         npc.Health = npc.Body.Mean();
         npc.Needs.Blood = 0.001f;
-        npc.Needs.Bandages = 0;
-        npc.Needs.HerbalBandages = 0;
-        npc.Needs.Pills = 0;
+        npc.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Bandage);
+        npc.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Pill);
     }
 
     // Кольцо трассы подрезается на 2048 записях (≈11 тиков с подробной
@@ -167,9 +166,8 @@ public sealed class DyingTests
         // заявку, а собственный голод выше SelfHungerGate закрывает гейт §53.5.
         foreach (var other in world.Entities.Npcs.Values)
         {
-            other.Needs.Bandages = 0;
-            other.Needs.HerbalBandages = 0;
-            other.Needs.Pills = 0;
+            other.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Bandage);
+            other.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Pill);
             other.Needs.Hunger = 0.8f;
             other.CompassionTrait = 0f;
         }
@@ -211,8 +209,11 @@ public sealed class DyingTests
 
         // Помощница цела, сыта и с бинтами — гейт §53.5 «сначала выживи сама»
         // обязан её пропустить; иначе тест проверял бы этот гейт.
-        helper.Needs.Bandages = 4;
-        helper.Needs.HerbalBandages = 2;
+        helper.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Bandage);
+        helper.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: false));
+        helper.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: false));
+        helper.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: true));
+        helper.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: true));
         helper.Needs.Hunger = 0.1f;
         helper.Needs.Thirst = 0.1f;
         helper.Needs.Blood = 1f;
@@ -327,8 +328,6 @@ public sealed class DyingTests
         patient.Health = patient.Body.Mean();
         for (var i = 0; i < 40; i++)
         {
-            novice.Needs.Bandages = 4;
-            novice.Needs.HerbalBandages = 2;
             ExecutionSystem.ApplyAidRelief(world, novice, patient, AidKind.Treat,
                 new AidSupply.Spend(ContentIds.Bandage, 0f, herbal: true));
         }

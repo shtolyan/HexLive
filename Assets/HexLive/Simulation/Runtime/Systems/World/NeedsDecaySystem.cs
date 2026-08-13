@@ -672,16 +672,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 // so it saves a life without re-shuffling the colony over
                 // every scratch (every mauling survivor would otherwise shift
                 // the deterministic dog-dance and tip fragile seeds).
-                if (npc.Needs.Bandages > 0 && npc.Needs.Blood < SimBalance.BandageBloodThreshold)
+                if (MedicalSupplyMath.BandageCount(npc) > 0 &&
+                    npc.Needs.Blood < SimBalance.BandageBloodThreshold)
                 {
                     // Spec 44: spend the pre-made medkit bandages (spec 40.3)
                     // first; only a HERBAL dressing — crafted from gathered
                     // plantain leaves — leaves the leaf-wrap decal, so the
                     // plantain visual always means she actually gathered the
                     // leaves. When all remaining bandages are herbal, this one is.
-                    bool herbal = npc.Needs.HerbalBandages >= npc.Needs.Bandages;
-                    npc.Needs.Bandages--;
-                    if (herbal) npc.Needs.HerbalBandages--;
+                    MedicalSupplyMath.TrySpendBandage(npc, out var herbal);
                     foreach (var part in AllBodyParts)
                     {
                         if (npc.Body.IsSevered(part)) continue; // §50: a severed zone can't be dressed or healed
@@ -709,14 +708,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     Trace.Emit(world, npc.Id, "Bandaged",
                         $"Dressed the wounds (Health={npc.Health:F2})");
                 }
-                else if (npc.Needs.Pills > 0 && npc.Health < 0.3f)
+                else if (MedicalSupplyMath.PillCount(npc) > 0 && npc.Health < 0.3f)
                 {
                     // Spec 40.3: pills — the last-resort backup to the bandage.
                     // Only at the brink (Health < 0.3, no bandage fired): spend
                     // a pill to lift the wounded parts and HP a step and stem
                     // the blood a little. Fires only for an NPC about to die, so
                     // it can save a life without shifting the healthy colony.
-                    npc.Needs.Pills--;
+                    MedicalSupplyMath.TrySpendPill(npc);
                     foreach (var part in AllBodyParts)
                     {
                         if (npc.Body.IsSevered(part)) continue; // §50: a severed zone can't be healed

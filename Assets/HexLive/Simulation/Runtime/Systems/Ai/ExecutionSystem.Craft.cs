@@ -120,10 +120,10 @@ public sealed partial class ExecutionSystem
         switch (goal)
         {
             case GoalType.CraftBandage:
-                npc.Needs.Bandages++;
-                npc.Needs.HerbalBandages++; // spec 44: gathered plantain -> leaf-wrap decal
+                GiveOrDrop(world, npc, MedicalSupplyMath.CreateBandage(herbal: true));
                 Trace.Emit(world, npc.Id, "BandageCrafted",
-                    $"Bandages={npc.Needs.Bandages} Herbal={npc.Needs.HerbalBandages}");
+                    $"Inventory={MedicalSupplyMath.BandageCount(npc)} " +
+                    $"Herbal={MedicalSupplyMath.HerbalBandageCount(npc)}");
                 return true;
             case GoalType.CraftSpear:
                 GiveOrDrop(world, npc, ContentIds.Spear);
@@ -251,6 +251,11 @@ public sealed partial class ExecutionSystem
     // в одном файле, и все три надо было держать согласованными вручную.
     private static string[] CraftGroundOutputs(GoalType goal) =>
         AI.GoalCatalog.CraftGroundOutputs(goal);
+
+    private static ItemInstance CreateCraftYieldItem(WorldState world, string outputId) =>
+        outputId == ContentIds.Bandage
+            ? MedicalSupplyMath.CreateBandage(herbal: true)
+            : CreateYieldItem(world, outputId);
 
     // The legacy per-goal trace names, kept stable for soak metrics.
     private static string CraftedTraceName(GoalType goal) =>
@@ -422,7 +427,7 @@ public sealed partial class ExecutionSystem
         SkillTrace.Award(world, npc, InteractionType.Craft,
             npc.Execution.EndTick - npc.Execution.StartTick);
 
-        if (goal != GoalType.CraftBandage && completedProjectId is { } resultId &&
+        if (completedProjectId is { } resultId &&
             world.Entities.Objects.TryGetValue(resultId, out var result) &&
             !result.IsCraftProject)
         {
@@ -610,7 +615,7 @@ public sealed partial class ExecutionSystem
 
             foreach (var outputId in outputs)
             {
-                var crafted = DropItemAtFeet(world, npc, CreateYieldItem(world, outputId));
+                var crafted = DropItemAtFeet(world, npc, CreateCraftYieldItem(world, outputId));
                 if (crafted != null)
                 {
                     npc.Execution.CraftLayout.Add(crafted.Id);
@@ -618,7 +623,7 @@ public sealed partial class ExecutionSystem
                 else
                 {
                     // Nowhere to lay it — straight into the pack.
-                    GiveOrDrop(world, npc, CreateYieldItem(world, outputId));
+                    GiveOrDrop(world, npc, CreateCraftYieldItem(world, outputId));
                 }
             }
 

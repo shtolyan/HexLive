@@ -9444,9 +9444,10 @@ pass — order chosen to add robustness before difficulty.
 - New consumables: **bandages, pills** — treat wounds / stop bleeding /
   restore HP. New **Safety goal**: keep a reserve of food, water, medicine,
   supplies. NPCs stockpile against scarcity.
-- **Shipped v1 (medicine):** each NPC carries a small reserve of bandages
-  (`Needs.Bandages`, auto-dressed at `Blood < 0.35`, §40.2) and **pills**
-  (`Needs.Pills`, start 1). Pills are the last-resort backup to bandages:
+- **Shipped v1 (medicine):** each NPC carries a small reserve of physical
+  `item.bandage` instances (identical medicine stacks up to 10 per visible
+  inventory slot; auto-dressed at `Blood < 0.35`, §40.2) and one physical
+  **`item.pill`**. Pills are the last-resort backup to bandages:
   when a part is wounded (`worst < 0.4`) and no bandage fires yet `Health`
   has fallen near death (`< 0.3`), a pill is spent — the wounded parts and
   HP recover a step. Fires only at the brink, so it can pull a dying NPC
@@ -11178,25 +11179,26 @@ align the rendered light to the same path (visual shadows == sim shade).
   (stacking with fed) — a hurt girl who huddles and sleeps pulls through.
 - **Healing herb**: `herb.bush` (new Flora spawn, 3 across the island)
   produces `resource.herb_leaf` nearby (FruitProduction pattern, max 2).
-  Craft `CraftBandage` at the campfire: 2 leaves -> +1 bandage (available
+  Craft `CraftBandage` at the campfire: 2 leaves -> one physical
+  `item.bandage` (available
   when hurt or stock < 2). Bandage use now REMEMBERS the dressed zones
   (`NPCState.BandagedZones`, cleared when the zone heals past 0.7) and the
   snapshot exports them — presentation spawns a white-gauze dressing on the
   bandaged spot.
   - **Medkit vs herbal (supply provenance only):** the
     starting bandages (spec 40.3) are a pre-made medkit, NOT gathered
-    leaves. `NPCNeeds.HerbalBandages` tracks how many of the pouch's bandages
-    were crafted from gathered plantain; `CraftBandage` bumps it. Medkit
-    bandages are spent first. The kind remains in the save/snapshot for the
+    leaves. A persisted provenance marker on each `ItemInstance` distinguishes
+    a gathered plantain wrap from pre-made gauze. Medkit bandages are spent
+    first. The kind remains in the save/snapshot for the
     medical economy, but both kinds render as the same white gauze: a dressing
     must never appear to change into a flower or leaf ornament mid-life.
     Persisted in the save blob (BlobVersion 2).
-  - **Starting pouch (§44 r2, doubled):** `Bandages = 4` of which
-    `HerbalBandages = 2` — the med pouch holds twice the first aid it used to
-    (2 medkit + 2 herbal she brought with her), so a mauling survivor gets
+  - **Starting reserve (§44 r2, doubled):** four physical `item.bandage`
+    instances in one medicine stack — 2 medkit + 2 herbal she brought with her — so a
+    mauling survivor gets
     four dressings instead of two. The medkit-first order is unchanged; the
     kind affects the medical inventory, not the visible material. The
-    `Bandages < 2` gate on `GatherHerb`/`CraftBandage` is unchanged — the
+    physical bandage-count `< 2` gate on `GatherHerb`/`CraftBandage` is unchanged — the
     re-stock cap stays at 2, the pouch just starts above it.
 - **Presentation (shipped)**: `herb.bush` renders as a procedural low-poly
   medicinal shrub (`LowPolyToolFactory` — splayed stems, leaf blades, pale
@@ -12672,8 +12674,8 @@ the bid, the plan and the interaction can never disagree):
 |---|---|---|
 | **Feed** | one ready meal, else an open/pierced/whole coconut from the pack (whole needs her blade) | `Inventory` |
 | **Hydrate** | one water charge: a bottle gulp, a pierced coconut's water, else a whole nut she pierces | `BottleCharges` / `ItemInstance.ResourceAmount` |
-| **Treat** | one bandage, medkit before herbal (spec 44 order) | `Needs.Bandages` |
-| **Medicate** | one pill, else a **herbal** dressing (a medkit gauze is not medicine) | `Needs.Pills` / `HerbalBandages` |
+| **Treat** | one physical `item.bandage`, medkit before herbal (spec 44 order) | `Inventory.Items` |
+| **Medicate** | one physical `item.pill`, else a **herbal** physical dressing (a medkit gauze is not medicine) | `Inventory.Items` |
 | **Console** | nothing — words are free | — |
 
 A fed meal now heals by **its own nutrition** (the food definition's `Eat`
@@ -20457,6 +20459,10 @@ Blender X/Y, совпадающей с simulation X/Y и Unity X/Z, поэтом
 стойка, коллектор и верстак не получают промежуточного yaw и могут быть уложены
 вдоль любой из шести стен. В нулевой авторской позе окна занимают bays
 `2,3,10,11`, дверь — `7`, остальные семь пролётов являются стенами.
+Черновик `HutLayoutDesigner` считается валидным только при двенадцати стеновых
+элементах допустимых типов и ровно одной двери. Старый/оборванный черновик без
+двери не имеет права подменять утверждённый контур: при загрузке его пролёты
+мигрируют к этой канонической раскладке, а сохранённая мебель остаётся на месте.
 
 Внутри создаются два экземпляра единственного типа кровати `bed.basic` на
 точных центрах сеточного footprint: `(-0.974279, 0)` с yaw `0°` и
@@ -22041,13 +22047,18 @@ NPC оставили на потом). Локальные координаты �
 
 Тег `"Rack"` на гардеробе несущий: он бесплатно включает объект во всё, что уже умеет искать сушилку
 (`DryClothes`, `RackIsFull`), так что отдельной ветки «а ещё бывает гардероб» в системах нет. Ёмкость своя —
-`Spec133.WardrobeCapacity` = 8. Сушка: **×5 при горящем очаге** в том же доме и **×1.5 при потухшем** —
+`Spec133.WardrobeCapacity` = 12. Сушка: **×5 при горящем очаге** в том же доме и **×1.5 при потухшем** —
 тепло даёт очаг, а крышу и защиту от дождя уже даёт дом (§120). `MoistureSystem` принимает станцию числом,
 а не флагом «сушилка/нет».
 
-Презентация: модели пока нет, вещи складываются стопкой в одной точке (`WardrobeHangers` — тот же контракт,
-что у `DryingRackHangers`; приедет модель с плечиками — меняются только координаты), сам гардероб рисуется
-ящиком, а не загадочной сферой.
+Презентация использует авторский `Resources/HexLive/Objects/furniture.wardrobe.fbx` в масштабе junction-сетки.
+Он следует общему контракту мебели `bed.basic`: центральный занятый junction является pivot на полу,
+Blender `+Z` направлен вверх, а ось трёх занятых junction совпадает с локальной `+Y`. Импортный FBX остаётся
+дочерним объектом identity-root; и `HutLayoutDesigner`, и обычный `HexWorldRenderer` применяют к этому корню
+только общий footprint-yaw `0° + 60°k`. Индивидуальные поправки `X/Y/Z` для модели запрещены. Гардероб содержит
+12 мест одежды (`WardrobeHangers`): реальный предмет одежды создаётся штатным `GarmentDropFactory`, а
+плечики появляются только у занятого слота и исчезают вместе с предметом. Пустой гардероб не показывает
+тестовую одежду или пустые плечики; процедурный ящик остаётся только аварийным fallback при отсутствии FBX.
 
 ### 133.3 Раздеваются дома
 

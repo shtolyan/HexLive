@@ -630,7 +630,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // one is the separate GatherHerb→CraftBandage chain).
             if (npc.Mind.CurrentGoal == GoalType.TreatWounds)
             {
-                if (npc.Needs.Bandages <= 0)
+                if (MedicalSupplyMath.BandageCount(npc) <= 0)
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, GoalType.TreatWounds);
@@ -652,7 +652,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "PlanBuilt",
-                        $"Goal=TreatWounds Bandages={npc.Needs.Bandages} Steps=[TreatSelf]");
+                        $"Goal=TreatWounds Bandages={MedicalSupplyMath.BandageCount(npc)} Steps=[TreatSelf]");
                 }
                 continue;
             }

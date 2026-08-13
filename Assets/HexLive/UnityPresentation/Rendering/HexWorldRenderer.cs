@@ -290,9 +290,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // snapshot, and each hung garment's hanger rank (object id → slot index).
     private readonly HashSet<JunctionId> _rackJunctions = new();
 
-    // §133: подмножество _rackJunctions, принадлежащее гардеробам — у них своя
-    // раскладка мест (пока стопка в одной точке, до приезда модели).
+    // §133: wardrobe junctions and their furniture yaw. Hung garments share
+    // both the wardrobe's local slot coordinates and its six-way rotation.
     private readonly HashSet<JunctionId> _wardrobeJunctions = new();
+    private readonly Dictionary<JunctionId, float> _wardrobeYawByJunction = new();
     // §54.15: junctions occupied by water collectors — a tool.bottle sharing
     // one is PARKED in the vessel slot (drawn on the stone stand, not scattered).
     private readonly HashSet<JunctionId> _collectorJunctions = new();
@@ -1098,6 +1099,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // (sorted by object id) so every hung garment gets a stable hanger slot.
         _rackJunctions.Clear();
         _wardrobeJunctions.Clear();
+        _wardrobeYawByJunction.Clear();
         _rackHangRank.Clear();
         _collectorJunctions.Clear();
         foreach (var worldObject in snapshot.Objects)
@@ -1108,11 +1110,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             // §133: гардероб развешивает одежду тем же механизмом, что и
-            // сушилка, — отличается только раскладка мест (пока стопка).
+            // сушилка, но на двенадцати собственных плечиках.
             if (worldObject.DefinitionId == "furniture.wardrobe" && worldObject.Junctions.Count > 0)
             {
                 _rackJunctions.Add(worldObject.Junctions[0]);
                 _wardrobeJunctions.Add(worldObject.Junctions[0]);
+                _wardrobeYawByJunction[worldObject.Junctions[0]] =
+                    SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees);
             }
 
             if (worldObject.DefinitionId == "station.water_collector" && worldObject.Junctions.Count > 0)
@@ -1278,9 +1282,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (_rackHangRank.TryGetValue(key, out var hangSlot) && objectView.transform.childCount > 0)
             {
                 var hungChild = objectView.transform.GetChild(0);
-                hungChild.localPosition = HangSlotOffset(hungChild, hangSlot,
-                    worldObject.Junctions.Count > 0 &&
-                    _wardrobeJunctions.Contains(worldObject.Junctions[0]));
+                var inWardrobe = worldObject.Junctions.Count > 0 &&
+                    _wardrobeJunctions.Contains(worldObject.Junctions[0]);
+                hungChild.localPosition = HangSlotOffset(hungChild, hangSlot, inWardrobe);
+                if (inWardrobe && _wardrobeYawByJunction.TryGetValue(
+                        worldObject.Junctions[0], out var wardrobeYaw))
+                    objectView.transform.rotation = Quaternion.Euler(0f, wardrobeYaw, 0f);
             }
 
             // Spec §66: a BUILT piece stands at the yaw the sim staked it with —
@@ -1295,7 +1302,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     worldObject.DefinitionId == ContentIds.Hut1Hex ||
                     worldObject.BuildProduct == ContentIds.Hut1Hex ||
                     IsIntegratedHutBed(worldObject) ||
-                    IsIntegratedHutHearth(worldObject);
+                    IsIntegratedHutHearth(worldObject) ||
+                    worldObject.DefinitionId == ContentIds.Wardrobe;
                 var builtRot = Quaternion.Euler(
                     0f, architectureFootprint
                         ? SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees)
@@ -3234,6 +3242,29 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return prostheticRoot;
         }
 
+        // §133: the wardrobe is authored at the exact 0.375-wu junction scale.
+        // Keep its central-junction pivot and 1:1 size; generic ObjectFit would
+        // incorrectly shrink furniture to the default portable-prop size.
+        if (worldObject.DefinitionId == ContentIds.Wardrobe)
+        {
+            var wardrobe = HexLive.UnityPresentation.Environment.WardrobeAssembly.BuildFinished();
+            if (wardrobe != null && ObjectFit.HasRenderableGeometry(wardrobe))
+            {
+                var wardrobeRoot = new GameObject("Object furniture.wardrobe");
+                wardrobeRoot.transform.SetParent(_objectsRoot, false);
+                wardrobe.transform.SetParent(wardrobeRoot.transform, false);
+                // WardrobeAssembly follows the same identity-root contract as
+                // BedAssembly. Only seat its central-junction pivot here; the
+                // common footprint yaw is applied by SyncObjects.
+                wardrobe.transform.localPosition = Vector3.zero;
+                var wardrobePos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                wardrobeRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    wardrobePos, GroundY(worldObject.Tile));
+                return wardrobeRoot;
+            }
+            if (wardrobe != null) Destroy(wardrobe);
+        }
+
         // Spec 31C.3: real prefabs first (Resources/HexLive/Objects/<id>),
         // primitives as the eternal fallback.
         // The current rock GLBs are mirrored as native FBXs under Resources.
@@ -3310,13 +3341,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _rackHangRank.TryGetValue(worldObject.Id.Value, out var slot);
                 hung.transform.localPosition = HangSlotOffset(hung.transform, slot,
                     _wardrobeJunctions.Contains(worldObject.Junctions[0]));
-                // Face across the rail with a little per-item jitter so the row
-                // reads hand-hung, not machine-stamped.
-                hung.transform.localRotation =
-                    Quaternion.Euler(0f, (worldObject.Id.Value * 37) % 21 - 10f, 0f);
+                // One slot owns one orientation. Garment categories (including
+                // underwear) must not add another 90° or random yaw here.
+                hung.transform.localRotation = Quaternion.identity;
                 var hungPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 hungRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     hungPos, GroundY(worldObject.Tile));
+                var inWardrobe = _wardrobeJunctions.Contains(worldObject.Junctions[0]);
+                if (inWardrobe && _wardrobeYawByJunction.TryGetValue(
+                        worldObject.Junctions[0], out var wardrobeYaw))
+                    hungRoot.transform.rotation = Quaternion.Euler(0f, wardrobeYaw, 0f);
+                if (inWardrobe)
+                {
+                    var hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build();
+                    hanger.transform.SetParent(hungRoot.transform, false);
+                    hanger.transform.localPosition =
+                        HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
+                    hanger.transform.localRotation = Quaternion.identity;
+                }
                 AttachGarmentCondition(hungRoot, hung, worldObject);
                 return hungRoot;
             }
@@ -3429,11 +3471,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // clamped so a long garment on the low rail doesn't clip the ground.
     private static Vector3 HangSlotOffset(Transform hung, int slot, bool inWardrobe)
     {
-        // §133: в гардеробе вещи пока кладутся стопкой в одну точку — модели с
-        // плечиками ещё нет, и раскладка живёт в WardrobeHangers.
+        // §133: authored wardrobe hanger centres.
         if (inWardrobe)
         {
-            return HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
+            var wardrobeAttach = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
+            var wardrobeHalf = 0.15f;
+            var wardrobeRenderers = hung.GetComponentsInChildren<Renderer>();
+            if (wardrobeRenderers.Length > 0)
+            {
+                var wardrobeBounds = wardrobeRenderers[0].bounds;
+                for (var i = 1; i < wardrobeRenderers.Length; i++)
+                    wardrobeBounds.Encapsulate(wardrobeRenderers[i].bounds);
+                wardrobeHalf = Mathf.Max(0.02f, wardrobeBounds.extents.y);
+            }
+            return new Vector3(wardrobeAttach.x,
+                Mathf.Max(0.18f + wardrobeHalf, wardrobeAttach.y - wardrobeHalf),
+                wardrobeAttach.z);
         }
 
         var attach = HexLive.UnityPresentation.Environment.DryingRackHangers.Slot(slot);
@@ -4667,8 +4720,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         if (definitionId.StartsWith("tool.") || definitionId.StartsWith("resource.") ||
             definitionId == "construction.site" ||
-            // §133: модели гардероба ещё нет — до неё это честный ящик у стены,
-            // а не загадочная сфера (Spec 31C.5).
             definitionId == "furniture.wardrobe")
         {
             return PrimitiveType.Cube;

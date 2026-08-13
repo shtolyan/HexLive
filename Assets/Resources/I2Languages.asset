@@ -15489,6 +15489,22 @@ MonoBehaviour:
       - 'Марлевый бинт — перевязывает худшую рану и останавливает кровь.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.item_pill.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pill'
+      - 'Таблетка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.item_pill.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Emergency medicine used when a wound leaves someone near death.'
+      - 'Экстренное лекарство, которое принимают, когда ранение угрожает жизни.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: "history.empty"
       TermType: 0
       Description:

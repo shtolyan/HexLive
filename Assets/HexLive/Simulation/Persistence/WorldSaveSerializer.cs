@@ -1713,6 +1713,7 @@ public static class WorldSaveSerializer
 
         npc.Inventory.Capacity = r.ReadInt32();
         ReadItemList(r, npc.Inventory.Items, version);
+        MedicalSupplyMath.MaterializeLegacyPouch(npc);
 
         if (version >= 28)
         {

@@ -1207,6 +1207,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Spec 44: the herbal first-aid chain — gather leaves, craft a
         // bandage at the fire. Urgency scales with how hurt anyone is.
         var herbLeaves = CountInventory(npc, ContentIds.HerbLeaf);
+        var bandageCount = MedicalSupplyMath.BandageCount(npc);
         // §68: the resupply half of self first-aid. A flat 0.3 step at
         // Health < 0.7 barely moved the herb run, and now that she SPENDS
         // her own dressings the pouch has to be refilled — so how badly she
@@ -1225,10 +1226,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var bandageCraftPossible =
             (herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage)) ||
             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftBandage);
-        var gatherHerbAvail = herbFetchPossible && npc.Needs.Bandages < 2;
+        var gatherHerbAvail = herbFetchPossible && bandageCount < 2;
         AddGoalScore(npc, world.Tick, GoalType.GatherHerb,
             0.22f + hurtUrgency, gatherHerbAvail);
-        var craftBandageAvail = bandageCraftPossible && npc.Needs.Bandages < 2;
+        var craftBandageAvail = bandageCraftPossible && bandageCount < 2;
         AddGoalScore(npc, world.Tick, GoalType.CraftBandage,
             0.3f + hurtUrgency, craftBandageAvail);
 
@@ -1268,13 +1269,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // 0.55 / blood 0.48 carrying TWO unusable bandages, and the auction
         // gave the evening to laundry. Now the burden reads the WHOLE body,
         // and a bleeding girl treats before she does chores.
-        var treatBurdenGate = npc.Needs.Bandages > 1
+        var treatBurdenGate = bandageCount > 1
             ? Spec53.SelfTreatBurdenThreshold
             : Spec53.SelfTreatLastBandageBurden;
         var quietAftercare = Spec118.Enabled &&
             !MortalityHelpers.IsBleeding(npc) && WoundMath.NeedsAftercare(npc);
         var treatWoundsAvail = Spec53.SelfTreatEnabled &&
-            npc.Needs.Bandages > 0 &&
+            bandageCount > 0 &&
             (woundBurden >= treatBurdenGate || quietAftercare) &&
             // Light hand-work: a lost leg must not forbid winding a bandage.
             npc.Body.HasUsableHand &&

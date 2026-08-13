@@ -43,10 +43,11 @@ internal static class AidSupply
                 DecisionSystem.HasInventoryCoconutMeal(npc),
             // Bottle water, a watered pierced coconut, or a whole nut + blade.
             AidKind.Hydrate => DecisionSystem.HasInventoryCoconutWater(npc),
-            AidKind.Treat => npc.Needs.Bandages > 0,
+            AidKind.Treat => MedicalSupplyMath.BandageCount(npc) > 0,
             // Medicine is a pill or a HERBAL dressing (a medkit gauze is not a
             // remedy for sickness — that is what the herb chain is for).
-            AidKind.Medicate => npc.Needs.Pills > 0 || npc.Needs.HerbalBandages > 0,
+            AidKind.Medicate => MedicalSupplyMath.PillCount(npc) > 0 ||
+                MedicalSupplyMath.HerbalBandageCount(npc) > 0,
             _ => true
         };
     }
@@ -180,20 +181,13 @@ internal static class AidSupply
     private static bool TrySpendBandage(NPCState npc, out Spend spend)
     {
         spend = new Spend(string.Empty, 0f, false);
-        if (npc.Needs.Bandages <= 0)
+        if (!MedicalSupplyMath.TrySpendBandage(npc, out var herbal))
         {
             return false;
         }
 
         // Spec 44 order: medkit dressings first, so the leaf-wrap decal always
         // means someone actually went and gathered plantain.
-        var herbal = npc.Needs.HerbalBandages >= npc.Needs.Bandages;
-        npc.Needs.Bandages--;
-        if (herbal)
-        {
-            npc.Needs.HerbalBandages--;
-        }
-
         spend = new Spend(herbal ? ContentIds.Bandage : ContentIds.Medkit, 0f, herbal);
         return true;
     }
@@ -201,17 +195,14 @@ internal static class AidSupply
     private static bool TrySpendMedicine(NPCState npc, out Spend spend)
     {
         spend = new Spend(string.Empty, 0f, false);
-        if (npc.Needs.Pills > 0)
+        if (MedicalSupplyMath.TrySpendPill(npc))
         {
-            npc.Needs.Pills--;
-            spend = new Spend("pill", 0f, false);
+            spend = new Spend(ContentIds.Pill, 0f, false);
             return true;
         }
 
-        if (npc.Needs.HerbalBandages > 0 && npc.Needs.Bandages > 0)
+        if (MedicalSupplyMath.TrySpendHerbalBandage(npc))
         {
-            npc.Needs.HerbalBandages--;
-            npc.Needs.Bandages--;
             spend = new Spend(ContentIds.Bandage, 0f, true);
             return true;
         }

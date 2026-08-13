@@ -284,7 +284,9 @@ public static class GoalCatalog
         Add(GoalType.CraftCloth, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.Cloth },
             craftTrace: "CraftedCloth", craftNeedsHands: true);
-        Add(GoalType.CraftBandage, InteractionType.Craft);
+        Add(GoalType.CraftBandage, InteractionType.Craft,
+            craftOutputs: new[] { ContentIds.Bandage },
+            craftTrace: "BandageCrafted", craftNeedsHands: true);
         Add(GoalType.CraftSplint, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.Splint },
             craftTrace: "CraftedSplint", craftNeedsHands: true);

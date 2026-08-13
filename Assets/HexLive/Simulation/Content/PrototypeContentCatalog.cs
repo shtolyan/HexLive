@@ -919,6 +919,21 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
+            ["item.pill"] = new ObjectDefinition
+            {
+                Id = "item.pill",
+                DisplayName = "Pill",
+                Tags = { "Medicine" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.pill",
+                        Type = InteractionType.PickUp,
+                        DurationTicks = 4
+                    }
+                }
+            },
             // Spec 29H: the personal water bottle — a definition so it renders
             // and shows in the panel; the fill state lives on the NPC.
             ["tool.bottle"] = new ObjectDefinition

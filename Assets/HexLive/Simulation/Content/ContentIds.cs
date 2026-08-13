@@ -61,7 +61,8 @@ public static class ContentIds
     public const string Bow = "tool.bow";
     public const string Bottle = "tool.bottle";
 
-    public const string Bandage = "bandage.herbal";
+    public const string Bandage = "item.bandage";
+    public const string Pill = "item.pill";
     public const string Medkit = "bandage.medkit";
     public const string Splint = "med.splint";
     public const string WoodenArm = "prosthetic.arm.wood";

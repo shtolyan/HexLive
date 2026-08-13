@@ -119,6 +119,7 @@ namespace HexLive.Simulation.Content
             ["resource.palm_leaf"] = "🍃",
             ["resource.herb_leaf"] = "🌿",
             ["item.bandage"] = "🩹",
+            [ContentIds.Pill] = "💊",
             [ContentIds.Splint] = "🩼",
             [ContentIds.WoodenArm] = "🦾",
             [ContentIds.WoodenLeg] = "🦿",
@@ -276,7 +277,7 @@ namespace HexLive.Simulation.Content
             if (id.StartsWith("clothing.") || id.StartsWith("underwear.")) return ItemCategory.Clothing;
             if (id.StartsWith("food.")) return ItemCategory.Food;
             if (id.StartsWith("water.")) return ItemCategory.Water;
-            if (id == "item.bandage") return ItemCategory.Medicine;
+            if (id is "item.bandage" or "item.pill") return ItemCategory.Medicine;
             if (id.StartsWith("tool.")) return ItemCategory.Tool;
             if (id.StartsWith("resource.")) return ItemCategory.Resource;
 
@@ -777,9 +778,8 @@ namespace HexLive.Simulation.Content
                     Id = Bottle, Damage = 0.15f, MeleePriority = 0,
                     Capabilities = GearCapability.CarryWater,
                 },
-                // The medkit bandage as a catalogued item (stub sheet — the §44
-                // dressing mechanics still run on Needs counters; migrating the
-                // counters onto instances is the next step).
+                // §44: the physical dressing carried in ordinary inventory.
+                // ItemInstance.ResourceAmount retains medkit/herbal provenance.
                 [Bandage] = new GearStats
                 {
                     Id = Bandage, Damage = 0.15f, MeleePriority = 0,

@@ -200,7 +200,7 @@ internal static class CraftProjectMath
         // UpdateCycleProgress runs before this method and is allowed to expose
         // the final visual frame as exactly 100%. At that point IsCraftProject
         // is deliberately false, but this NPC still owns the active cycle and
-        // must run the completion adapter (notably CraftBandage's counters).
+        // must run the completion adapter.
 
         project.CraftWorkDone = System.Math.Min(project.CraftWorkRequired,
             System.Math.Max(project.CraftWorkDone,
@@ -220,19 +220,6 @@ internal static class CraftProjectMath
                     $"Project={project.Id.Value} Output={project.DefinitionId} Work={project.CraftWorkDone}");
             }
 
-            // Herbal dressings predate physical inventory and are still stored
-            // as the two medical counters consumed by every aid path. Keep the
-            // authored output object for the whole 0..99% craft, then stow the
-            // finished wrap immediately so existing treatment semantics remain
-            // atomic and no unusable item.bandage is left on the ground.
-            if (goal == GoalType.CraftBandage)
-            {
-                npc.Needs.Bandages++;
-                npc.Needs.HerbalBandages++;
-                WorldObjectMutations.DespawnObject(world, project.Id);
-                Trace.Emit(world, npc.Id, "BandageCrafted",
-                    $"Bandages={npc.Needs.Bandages} Herbal={npc.Needs.HerbalBandages}");
-            }
         }
         else
         {
@@ -360,6 +347,10 @@ internal static class CraftProjectMath
         project.CraftWorkRequired = recipe.BaseWorkTicks;
         project.CraftWorkDone = 0;
         project.CraftBatchCount = 1;
+        if (goal == GoalType.CraftBandage)
+        {
+            project.ResourceAmount = 1f; // persisted herbal provenance marker
+        }
 
         // Validation above makes this mutation atomic: either the whole bill
         // moves into the project, or no item and no project changes state.

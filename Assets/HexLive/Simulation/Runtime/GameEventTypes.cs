@@ -167,6 +167,9 @@ public static class GameEventTypes
         "DireStraits",
         "EmergencyUnload",
         "HelpCry",
+        // §57.10: слабый зов лежащей умирающей — раз в кулдаун крика, историю
+        // не заливает (в отличие от потикового "Dying" выше).
+        "HelpMoan",
         "HelpCryAnswered",
         "HelpCryAssistArrived",
         "HelpCryAssistExpired",

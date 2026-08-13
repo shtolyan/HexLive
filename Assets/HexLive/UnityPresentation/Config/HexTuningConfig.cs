@@ -40,6 +40,9 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.8f)] public float hopLipClearance = 0.2f;
         [Tooltip("НЫРОК: на сколько уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
         [Range(0f, 1.5f)] public float divePlungeDepth = 0.35f;
+        [Tooltip("§57.11 ПАДЕНИЕ: пауза после приземления спуска раненой — она поднимается на ноги (Standing Up), ползущая просто лежит, сек.")]
+        [MirrorField(typeof(HexHopTuning), "FallRecoverSeconds")]
+        [Range(0f, 4f)] public float fallRecoverSeconds = 1.6f;
 
         // Эти два — НАСТОЯЩИЕ симуляционные ручки (SwimSpeedFactor меняет тайминг
         // пути), а не презентационные, как утверждал старый комментарий. Они жили

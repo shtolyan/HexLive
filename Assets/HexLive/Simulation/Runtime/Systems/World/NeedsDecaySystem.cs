@@ -1131,6 +1131,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // кончился: Health падает в ноль, и свип MobSystem уносит тело.
             MortalityHelpers.TickDying(world, npc);
 
+            // §57.10: умирающая (или разбитая лежащая) в сознании стонет о
+            // помощи — после отсчёта, чтобы стонала живая, а не труп этого
+            // тика. Кулдаун и все гейты внутри.
+            CombatHelpSystem.TryMoanForHelp(world, npc);
+
             // §60.7: без сознания в глубокой воде — тонет. Стоит ПОСЛЕДНИМ,
             // рядом с TickDying, и по той же причине, что и пин крови выше:
             // ветки fed-heal/закрытия ран пересчитывают Health из зон тела, а

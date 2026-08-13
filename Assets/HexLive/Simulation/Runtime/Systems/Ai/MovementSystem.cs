@@ -268,6 +268,18 @@ public sealed class MovementSystem : ISimulationSystem
                 }
 
                 npc.Movement.PathIndex = nextIndex;
+
+                // §57.11: спуск-падение кончается не шагом, а подъёмом на ноги
+                // (ползущая — просто лежит). Пауза ставится на приземлении и
+                // начинает тикать после закрытия окна (см. гейт ClimbPauseTimer
+                // ниже по файлу) — и в середине маршрута тоже, не только на
+                // последнем узле: упала, отлежалась, поползла дальше.
+                if (!npc.Body.CanJump && !npc.Movement.HopUp)
+                {
+                    npc.Movement.ClimbPauseTimer = System.MathF.Max(
+                        npc.Movement.ClimbPauseTimer, HexHopTuning.FallRecoverSeconds);
+                }
+
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "HopLanded",

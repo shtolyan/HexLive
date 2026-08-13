@@ -684,6 +684,20 @@ Tired, Cold`) — значения едут в трейсах/снапшотах
 | `[angry] Hoo! Zada nuo heksa!` | Эй! Прочь с нашей земли! |
 | `[angry, shouting] Zada! Zada nip, bezheksa!` | Уходи! Сейчас же, чужак! |
 
+#### C17 · `help_answer` · P1 — откликнулась на крик и бежит выручать (§57.9 `HelpCryAnswer`)
+| Реплика | Русский |
+|---|---|
+| `[shouting, determined] Bego! Jani, beeego!` | Бегу! Подруга, бегуу! |
+| `[shouting] Pomi gulao! Bego nam!` | Помощь идёт! Бегу! |
+| `[determined, urgent] Jani! Bezmorishka! Bego!` | Подруга! Не помирай! Бегу! |
+
+#### C18 · `hurt_moan` · P1 — слабый стон умирающей, зовёт лёжа (§57.10 `HelpMoan`)
+| Реплика | Русский |
+|---|---|
+| `[whispering, weak] Pomi... jani... pomi...` | Помогите... подруги... помогите... |
+| `[weak, breathy] Sipa... nip sipa...` | Воды... хоть воды... |
+| `[whispering, fading] Fipa... jani... doma nam...` | Холодно... подруги... домой... |
+
 ### D. Разговор (темы `TalkTopic`)
 
 Реплика говорящей играется на её ход в диалоге (`_talkTurnOn`), тема — из

@@ -176,6 +176,19 @@ public sealed class RaidSystem : ISimulationSystem
                         $"Health={raider.Health:F2} Defenders={defenders} " +
                         $"Reason={(defenders >= Spec72.RaidBreakOffDefenders ? "Outnumbered" : "Wounded")}");
                 }
+
+                // §57.9: враг отступил при живой подмоге — спасение состоялось,
+                // обе стороны запоминают друг друга (взаимный подъём отношений).
+                foreach (var defender in world.Entities.Npcs.Values)
+                {
+                    if (defender.Health > 0f &&
+                        defender.Mind.CombatAssistAttackerNpcId is { } assistTarget &&
+                        assistTarget.Equals(raider.Id))
+                    {
+                        CombatHelpSystem.GrantRescueGratitude(world, defender, victim);
+                    }
+                }
+
                 BreakOff(world, raider, victim);
             }
         }

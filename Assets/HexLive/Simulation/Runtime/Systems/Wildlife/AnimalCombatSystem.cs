@@ -62,10 +62,23 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         foreach (var dead in _deadDogs)
         {
             world.Mobs.Remove(dead);
+            // §57.9: зверь мёртв, его жертву выручала подмога — спасение
+            // состоялось, обе запоминают друг друга. Награда стоит ПЕРЕД
+            // ClearAssist в обоих свипах смертей (этом, fast, — и зеркале в
+            // MobSystem): кто первым убрал зверя, тот и наградил; второй
+            // свип уже не найдёт ассистов и не удвоит.
+            world.Entities.Npcs.TryGetValue(
+                dead.TargetNpc ?? default, out var rescued);
             foreach (var npc in world.Entities.Npcs.Values)
             {
                 if (npc.Mind.CombatAssistDogId == dead.Id)
                 {
+                    if (rescued != null && rescued.Health > 0f &&
+                        !npc.Id.Equals(rescued.Id))
+                    {
+                        CombatHelpSystem.GrantRescueGratitude(world, npc, rescued);
+                    }
+
                     CombatHelpSystem.ClearAssist(npc);
                 }
             }
@@ -430,6 +443,20 @@ public sealed class AnimalCombatSystem : ISimulationSystem
             $"Dog={dog.Id} bit: {bitPart} -{damage:F3} (PartArmor={partArmor:F2}) " +
             $"Part={target.Body.Parts[bitPart]:F2} NpcHealth={target.Health:F2}" +
             $"{(target.IsFighting ? string.Empty : " (fleeing)")}");
+
+        // §57.9: крик о помощи издаёт сама беда, а не успешный старт бегства.
+        // Раньше крик жил в хвосте TryStartFlee, поэтому загнанная («некуда
+        // бежать — дерись») и калека без достижимого refuge молчали до смерти.
+        // Укус в уже плохой драке зовёт сам; кулдаун внутри CallForHelp держит
+        // частоту, так что затяжная травля кричит каждые ~240 тиков.
+        if (Spec57.HelpCryOnHitEnabled &&
+            (target.Health < Spec57.HelpCryHurtHealth ||
+             MobSystem.WorstPartHealth(target) < Spec57.HelpCryHurtPart ||
+             MobSystem.CountAdjacentDogs(world, target) >= 2))
+        {
+            CombatHelpSystem.CallForHelpFromDog(world, target, dog.Id,
+                MobSystem.CountAdjacentDogs(world, target));
+        }
     }
 
     private static bool InMelee(WorldState world, Wildlife.MobState dog, NPCState target)

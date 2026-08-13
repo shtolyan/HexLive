@@ -123,6 +123,27 @@ public sealed class MobSystem : ISimulationSystem
         foreach (var dead in _deadDogs)
         {
             world.Mobs.Remove(dead);
+
+            // §57.9: зверь мёртв, а его жертву выручала подмога — спасение
+            // состоялось, обе запоминают друг друга. Здесь, в едином свипе
+            // смертей, а не в medium-ветке ударов: при §104 timed-melee
+            // добивает fast-слой, и ветка со strike там мертва (замерено:
+            // 0 благодарностей за 5×16000 тиков, пока хук жил в ней).
+            if (dead.TargetNpc is { } quarryId &&
+                world.Entities.Npcs.TryGetValue(quarryId, out var rescued) &&
+                rescued.Health > 0f)
+            {
+                foreach (var defender in world.Entities.Npcs.Values)
+                {
+                    if (defender.Health > 0f &&
+                        defender.Mind.CombatAssistDogId == dead.Id &&
+                        !defender.Id.Equals(quarryId))
+                    {
+                        CombatHelpSystem.GrantRescueGratitude(world, defender, rescued);
+                    }
+                }
+            }
+
             // §135: зверя убили с добычей в зубах — конечность падает там, где
             // он упал, а не исчезает вместе с ним.
             MobLimbPrize.DropAtDeath(world, dead);
@@ -732,7 +753,7 @@ public sealed class MobSystem : ISimulationSystem
         (Spec106.WaterSanctuaryEnabled &&
          !CombatMedium.CanEngage(world, Stats(mob).AttackMediums, npc));
 
-    private static int CountAdjacentDogs(WorldState world, NPCState npc)
+    internal static int CountAdjacentDogs(WorldState world, NPCState npc)
     {
         if (npc.CurrentJunction is not { } npcJunction)
         {
@@ -823,6 +844,8 @@ public sealed class MobSystem : ISimulationSystem
                 {
                     if (npc.Mind.CombatAssistDogId == dog.Id)
                     {
+                        // §57.9: зверь мёртв, подмога дралась — обе запомнят.
+                        CombatHelpSystem.GrantRescueGratitude(world, npc, quarry);
                         CombatHelpSystem.ClearAssist(npc);
                     }
                 }

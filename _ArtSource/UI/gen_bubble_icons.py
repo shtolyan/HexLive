@@ -53,6 +53,8 @@ ICONS = {
     "Faint":  "\U0001F635",   # knocked out
     "Wet":    "\U0001F4A6",   # sweat droplets
     "Console":"\U0001FAC2",   # §110: people hugging — «ну не плачь»
+    "Ashamed":"\U0001F613",   # §57.9: слышала крик и не пошла — стыдно
+    "Wilt":   "\U0001F940",   # §57.10: слабый стон умирающей — увядший цветок
 }
 
 # Which icons to (re)write. Empty = all of ICONS. A run rewrites the .meta with

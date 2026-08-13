@@ -16689,9 +16689,17 @@ MonoBehaviour:
       - '{0} позвала на помощь.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'history.HelpMoan'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} is faintly calling for help.'
+      - "{0} слабо зовёт на помощь."
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'history.HelpCryAnswered'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - '{0} answered a call for help.'
       - '{0} откликнулась на клич о помощи.'

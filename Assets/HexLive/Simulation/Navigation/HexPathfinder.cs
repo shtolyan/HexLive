@@ -227,10 +227,13 @@ public static class HexPathfinder
 
                 var stepDelta = StepDelta(world, junction, n, neighborId);
 
-                // Spec §50: a survivor who can't jump can't take an elevation
-                // step (or dive water) — skip the edge entirely, even to the
-                // goal (that spot is genuinely unreachable to her, not a detour).
-                if (!canJump && stepDelta != 0)
+                // Spec §50 + §57.11: a survivor who can't jump can't CLIMB an
+                // elevation step — but she can lower herself DOWN one («вверх
+                // нельзя, а спрыгнуть-то можно»). Water stays barred in both
+                // directions: a controlled slide ends on land, never in a dive.
+                if (!canJump && (stepDelta > 0 ||
+                    (stepDelta < 0 && (world.SwimJunctions.Contains(neighborId) ||
+                                       world.StraitJunctions.Contains(neighborId)))))
                 {
                     continue;
                 }
@@ -354,7 +357,12 @@ public static class HexPathfinder
                 if (hardAvoid is not null && hardAvoid.Contains(neighborId) && !isGoal) continue;
 
                 var stepDelta = StepDelta(world, junction, n, neighborId);
-                if (!canJump && stepDelta != 0) continue;
+                // §57.11: то же правило, что в FindPath — вниз можно, вверх и
+                // в воду нельзя. Обе выборки обязаны совпадать, иначе мультицель
+                // и путь разойдутся в достижимости.
+                if (!canJump && (stepDelta > 0 ||
+                    (stepDelta < 0 && (world.SwimJunctions.Contains(neighborId) ||
+                                       world.StraitJunctions.Contains(neighborId))))) continue;
                 var next = score[current] + ClimbCost(
                     world, neighborId, stepDelta, weightClimb);
                 if (danger is not null && danger.Contains(neighborId)) next += dangerCost;

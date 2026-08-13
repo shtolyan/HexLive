@@ -53,8 +53,9 @@ internal static class Connectivity
 
     public static bool Reachable(WorldState world, JunctionId a, JunctionId b, bool canJump = true)
     {
-        // Spec §50: a legless survivor reads the graph WITHOUT elevation-step
-        // edges — a higher ledge or the water is a separate component to her.
+        // Spec §50 + §57.11: a survivor who can't jump reads the graph without
+        // CLIMB edges, but descents count (directed): a lower shelf is
+        // reachable, the way back is not. Water stays its own world.
         if (!canJump)
         {
             if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
@@ -63,8 +64,8 @@ internal static class Connectivity
             }
 
             return world.JunctionComponentsFlat.TryGetValue(a, out var fa) && fa >= 0 &&
-                   world.JunctionComponentsFlat.TryGetValue(b, out var fb) &&
-                   fa == fb;
+                   world.JunctionComponentsFlat.TryGetValue(b, out var fb) && fb >= 0 &&
+                   FlatReaches(world, fa, fb);
         }
 
         if (world.ComponentsBuiltVersion != world.TopologyVersion)
@@ -238,13 +239,141 @@ internal static class Connectivity
             }
         }
 
+        // §57.11: замыкание спусков. Ребро вниз (не в воду, не «шов→шов» —
+        // ровно правила пафйндера для canJump=false) соединяет компоненты
+        // НАПРАВЛЕННО: сползти на нижнюю полку можно, вернуться — нет. По
+        // высотам граф компонент ацикличен, но замыкание считается BFS-ом и
+        // само по себе устойчиво к любой форме.
+        world.FlatDescendClosure.Clear();
+        var descendEdges = new System.Collections.Generic.Dictionary<int,
+            System.Collections.Generic.HashSet<int>>();
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked ||
+                !world.JunctionComponentsFlat.TryGetValue(junction.Id, out var fromComp) ||
+                fromComp <= 0)
+            {
+                continue;
+            }
+
+            for (var n = 0; n < junction.Neighbors.Count; n++)
+            {
+                var neighborId = junction.Neighbors[n];
+                if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
+                    neighbor.Blocked ||
+                    world.SwimJunctions.Contains(neighborId) ||
+                    world.StraitJunctions.Contains(neighborId) ||
+                    (world.ClimbSeams.Contains(junction.Id) &&
+                     world.ClimbSeams.Contains(neighborId)) ||
+                    Navigation.HexPathfinder.StepDelta(world, junction, n, neighborId) >= 0 ||
+                    !world.JunctionComponentsFlat.TryGetValue(neighborId, out var toComp) ||
+                    toComp <= 0 || toComp == fromComp)
+                {
+                    continue;
+                }
+
+                if (!descendEdges.TryGetValue(fromComp, out var outs))
+                {
+                    outs = new System.Collections.Generic.HashSet<int>();
+                    descendEdges[fromComp] = outs;
+                }
+
+                outs.Add(toComp);
+            }
+        }
+
+        var descendEdgeCount = 0;
+        foreach (var pair in descendEdges)
+        {
+            descendEdgeCount += pair.Value.Count;
+            var closure = new System.Collections.Generic.HashSet<int>();
+            var frontier = new System.Collections.Generic.Queue<int>();
+            foreach (var direct in pair.Value)
+            {
+                if (closure.Add(direct))
+                {
+                    frontier.Enqueue(direct);
+                }
+            }
+
+            while (frontier.Count > 0)
+            {
+                var comp = frontier.Dequeue();
+                if (!descendEdges.TryGetValue(comp, out var next))
+                {
+                    continue;
+                }
+
+                foreach (var further in next)
+                {
+                    if (further != pair.Key && closure.Add(further))
+                    {
+                        frontier.Enqueue(further);
+                    }
+                }
+            }
+
+            world.FlatDescendClosure[pair.Key] = closure;
+        }
+
         world.ComponentsFlatBuiltVersion = world.TopologyVersion;
         if (SimTrace.Enabled)
         {
             Trace.DebugSystem(world, "ConnectivityFlatRebuilt",
                 $"Components={component} Junctions={world.Junctions.Items.Count} " +
-                $"Largest={world.LargestFlatComponentId}({largestSize})");
+                $"Largest={world.LargestFlatComponentId}({largestSize}) " +
+                $"DescendEdges={descendEdgeCount}");
         }
+    }
+
+    /// <summary>§57.11: достижима ли компонента b из компоненты a без прыжка,
+    /// СЧИТАЯ спуски (направленно). Та же компонента — тривиально да.</summary>
+    private static bool FlatReaches(WorldState world, int fa, int fb) =>
+        fa == fb ||
+        (world.FlatDescendClosure.TryGetValue(fa, out var closure) && closure.Contains(fb));
+
+    /// <summary>§57.11: есть ли отсюда БЕЗ ПРЫЖКА дорога (считая спуски) в
+    /// самую большую плоскую компоненту. Скоринг §50.9 обязан спросить это ДО
+    /// назначения цели: иначе запертая на бессходной полке крутит вечный цикл
+    /// PlanFailed NoRouteToMainland (замерено: 184 события на два сида).</summary>
+    public static bool FlatReachesMainland(WorldState world, JunctionId from)
+    {
+        if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
+        {
+            RebuildFlat(world);
+        }
+
+        return world.LargestFlatComponentId > 0 &&
+               world.JunctionComponentsFlat.TryGetValue(from, out var comp) && comp > 0 &&
+               FlatReaches(world, comp, world.LargestFlatComponentId);
+    }
+
+    /// <summary>§57.11: размер мира, доступного отсюда без прыжка, — своя
+    /// плоская компонента ПЛЮС всё, куда можно сползти. Именно этим числом
+    /// §50.9 меряет «я на крошечном уступе» против «подо мной материк».</summary>
+    public static int FlatWorldSizeAt(WorldState world, JunctionId junction)
+    {
+        if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
+        {
+            RebuildFlat(world);
+        }
+
+        if (!world.JunctionComponentsFlat.TryGetValue(junction, out var comp) || comp <= 0)
+        {
+            return 0;
+        }
+
+        world.JunctionComponentsFlatSizes.TryGetValue(comp, out var total);
+        if (world.FlatDescendClosure.TryGetValue(comp, out var closure))
+        {
+            foreach (var reachable in closure)
+            {
+                world.JunctionComponentsFlatSizes.TryGetValue(reachable, out var size);
+                total += size;
+            }
+        }
+
+        return total;
     }
 }
 

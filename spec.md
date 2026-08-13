@@ -5766,12 +5766,47 @@ same `Defend` goal (`CombatAssistDogId` / `CombatAssistAttackerNpcId` +
 goal lock; the planner paths to the aggressor via `BuildDefendPlan`, and
 the medium fight pass makes adjacent defenders strike):
 
-**The help cry (`CombatHelpSystem.CallForHelp`)** — fired when a victim
-*flees* (dog or NPC attacker). Radius `HelpCryRadiusTiles` (6), answered
-probabilistically: score = compassion trait 0.55 + affinity 0.35 +
-compassion-need pressure 0.10 vs a hash roll, gated by health/blood ≥ 0.65,
-not starving/dehydrated/fighting/fleeing; at most `MaxHelpCryResponders`
-(2) answer, cooldown 240 ticks.
+**The help cry (`CombatHelpSystem.CallForHelp`)** — §57.9 (Aug 2026): fired
+by the BITE, not by the flee. Замер до правки (5 сидов × 16 000 тиков): 10
+смертей, 7 криков, **0 отвеченных** — крик жил в хвосте успешного
+`TryStartFlee`, поэтому загнанная («некуда бежать»), калека без достижимого
+refuge и умирающая после боя молчали, а формула глушила отклик при
+нейтральной дружбе. Теперь:
+
+- **Триггер** — полученный удар в плохой драке (`AnimalCombatSystem.LandBite`:
+  здоровье < `HelpCryHurtHealth` 0.85, ИЛИ худшая часть < `HelpCryHurtPart`
+  0.7, ИЛИ атакующих ≥ 2), кулдаун прежний 240 тиков — затяжная травля кричит
+  каждые ~240. Старые вызовы из бегства/рейда остаются (кулдаун дедуплицирует).
+- **«Своих не бросают»**: член дружбы в счёте — `max(дружба01,
+  HelpCryAffinityFloor 0.5)`; вражда не причина не спасать от волка (прецедент
+  §72). Порог решения опущен 0.56 → 0.45 — со старым средняя девушка (черта
+  0.5) детерминированно игнорировала нейтральную знакомую (score 0.50).
+- **Смертельный крик громче**: жертва `IsDying`/prone/здоровье или часть <
+  `HelpCryMortalPlight` 0.35 → радиус 6→`HelpCryMortalRadiusTiles` 10,
+  потолок 2→`MaxMortalCryResponders` 4, `+HelpCryMortalBonus` 0.25 к счёту.
+- **Спасение — событие для обеих** (`GrantRescueGratitude`): зверь мёртв или
+  налётчик отступил при живой подмоге → взаимный подъём Affinity+Familiarity
+  на `RescueGratitudeAffinity` 0.2 (десять разговоров; перекрывает ссору
+  −0.18), «+»-поп над обеими головами, `RelationshipChanged Cause=[Rescue]`.
+- Подача: над помощницей — лицо жертвы + голос `help_answer` C17 («Bego!
+  Jani, beeego!»); жертве — лицо помощницы; игнор — молчаливый 😓 `Ashamed`.
+
+Score = compassion trait 0.55 + affinity(floored) 0.35 + pressure 0.10
+(+mortal bonus) vs hash roll, gated by health/blood ≥ 0.65, not
+starving/dehydrated/fighting/fleeing.
+
+**§57.10 Стон умирающей (`TryMoanForHelp`, `NeedsDecaySystem` после
+`TickDying`)** — вне боя. Лежащая в тяжести (`IsDying`, или prone с частью <
+`HelpCryMortalPlight`) И В СОЗНАНИИ раз в `HelpCryCooldownTicks` стонет: кью
+`HelpMoan` (🥀 `Wilt` + слабый голос `hurt_moan` C18 — исключение из
+речевого мьюта умирающей §105, как §110-рыдания), трейс `HelpMoan` (в
+whitelist, история «слабо зовёт на помощь», тон Danger). Каждой союзнице в
+`HelpCryMortalRadiusTiles` стон обновляет память о ней
+(`Memory.KnownAgents`: позиция+Suffering+AidKind+Helpless, LastSeenTick на
+тик позади живого взгляда) + тихий кью `MoanHeard` с её лицом — дальше
+обычная §53.8-помощь по памяти без дисконта ведёт их сама, новых целей ИИ
+нет. Без сознания стона нет (§60); в бою зовёт боевая ветка. Ручка
+`DyingMoanEnabled`.
 
 **The friend-guard (`CombatHelpSystem.RallyFriends`)** — no cry needed.
 Runs every medium fight pass (dog melee AND §56 predation), from the first
@@ -11994,8 +12029,9 @@ a "mauled" body that regenerated and stood up.
 
 ### §50.7 No jumping without leg support — terrain goes off-limits
 A survivor with a bare stump or a broken leg support (`BodyState.CanJump` false)
-can't hop an elevation step or dive water — the hex-step hop (§21.21B) needs two
-supporting legs. An installed functional wooden or mechanical leg restores jump
+can't CLIMB an elevation step or dive water — the hex-step hop (§21.21B) needs
+two supporting legs. **§57.11 (Aug 2026): спуск ей МОЖНО** — «вверх нельзя, а
+спрыгнуть-то можно»; см. блок §57.11 ниже. An installed functional wooden or mechanical leg restores jump
 access despite its reduced movement function; a destroyed prosthesis does not.
 `HexPathfinder.RequiresJump`
 marks an edge that changes elevation (the tile stepped onto, `junction.Tiles[0]`,
@@ -12050,6 +12086,38 @@ A higher ledge / the water simply becomes unreachable to her, not a failed detou
 Наблюдаемый эффект правок 1-3 на seed 987654: NPC2 (Лена) вместо смертельной
 спирали (голод 1.00/жажда 0.86 на тике 3400) — `Health 0.83, Hunger 0.44,
 Thirst 0.55` в той же точке времени.
+
+### §57.11 Спуск для раненых — мир калеки направленный (Aug 2026)
+
+«Вверх нельзя, а спрыгнуть-то можно» — раненая с `CanJump=false` теперь
+СПУСКАЕТСЯ с уступов (сползает/падает), но не забирается: с горы до лагеря
+доползёт.
+
+- **Пафйндер** (`HexPathfinder.FindPath`/`FindCostsCore`): для `canJump=false`
+  запрещён только `stepDelta > 0` (подъём); спуск разрешён, кроме спуска в
+  воду (`SwimJunctions`/`StraitJunctions`) — контролируемое сползание не
+  бывает нырком. Обе выборки совпадают по правилу.
+- **Достижимость направленная** (`Connectivity`): плоские компоненты остаются
+  неориентированными, поверх — `WorldState.FlatDescendClosure`: замыкание
+  «куда можно сползти» по down-рёбрам между компонентами (те же правила, что
+  у пафйндера; по высотам граф ацикличен). `Reachable(canJump=false)` = та же
+  компонента ИЛИ членство в замыкании. `FlatWorldSizeAt` = своя полка + всё
+  досягаемое спуском; `FlatReachesMainland` — есть ли сход в материк.
+- **§50.9 без `CanJump`-гейта**: цель `ReachSafeGround` больше не гаснет в
+  момент, когда обе ноги упали ниже порога в одном бою (прежний известный
+  провал §50.9); «ловушка» меряется `FlatWorldSizeAt`, а скоринг требует
+  `FlatReachesMainland` — иначе запертая крутила вечный `PlanFailed
+  NoRouteToMainland` (замерено: 184 события на два сида до гейта, 0 после).
+- **Подача — падение, не прыжок**: экспортёр шлёт `HopKind="Fall"` (спуск при
+  `!CanJump`). Вид (`NpcActorView`): БЕЗ отталкивания (takeoff-бит — шаг с
+  кромки в своей походке), на полётном бите — луп `Falling` (клип
+  `X Bot@Falling.fbx`, состояние в `HexNpcLocomotion`; фолбэк `JumpDown`,
+  если состояния нет), приземление без своего клипа, после — подъём
+  существующим §50 `StandUp` на сим-паузе `HexHopTuning.FallRecoverSeconds`
+  (1.6 с, `ClimbPauseTimer` и в середине маршрута тоже); ползущая не встаёт —
+  выходит из лупа обратно в `Crawl` и долёживает паузу (чинится и старый
+  вид-баг «ползущая прыгает стоячим клипом»). Тайминги окна — те же пять
+  ручек §21.21B.
 
 ## §51 Character inventory — the backpack window (iteration 48)
 

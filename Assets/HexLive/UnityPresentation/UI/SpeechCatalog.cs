@@ -117,6 +117,13 @@ public static class SpeechCatalog
         // звука за всю истерику. Action оставляет только MinGap: хнычет каждые
         // ~12 с, и рядом стоящая её слышит.
         ["cry_breakdown"] = new("Grief", Rank.Action, 12f),
+        // §57.9: «Иду!» — откликнулась на крик и бежит. Alarm: она врывается
+        // в драку, и реплика обязана перебить любой бытовой пузырь.
+        ["help_answer"] = new("Attack", Rank.Alarm, 8f),
+        // §57.10: слабый стон умирающей. Action, как cry_breakdown, — сцена,
+        // а не фон, но не Alarm: стон не перекрикивает настоящий бой рядом.
+        // MinGap 12 c при кулдауне стона 60 c — каждый стон слышен.
+        ["hurt_moan"] = new("Wilt", Rank.Action, 12f),
         ["angry_defend"] = new("Attack", Rank.Alarm, 10f),
         ["angry_expel"] = new("Attack", Rank.Alarm, 10f),
         ["fear_dark_alone"] = new("Warning", Rank.Ambient, 120f),
@@ -268,9 +275,19 @@ public static class SpeechCatalog
         ["HelpCryAssistArrived"] = new("Dogs", "angry_defend"),
         ["HelpCryDefended"] = new("Dogs", "angry_defend"),
 
-        ["HelpCryIgnored"] = new("Grumble", null, Rank.Talk),
-        ["HelpCryAnswer"] = new("Home", null, Rank.Action),
-        ["HelpCryAnswered"] = new("Home", null, Rank.Action),
+        // §57.9: игнор — молчаливый стыд (отвернулась, неловко), не злость:
+        // причина «не пошла» чаще страх/занятость, чем вражда.
+        ["HelpCryIgnored"] = new("Ashamed", null, Rank.Talk),
+        // §57.9: над помощницей — ЛИЦО той, кого бежит спасать (пир кьюшки),
+        // + голос «Иду!»; значок Attack — фолбэк, пока портрет не готов.
+        ["HelpCryAnswer"] = new("Attack", "help_answer"),
+        // Жертве — лицо той, кто откликнулась; без голоса (её сейчас грызут).
+        ["HelpCryAnswered"] = new("Help", null, Rank.Action),
+
+        // §57.10: стон умирающей и его эхо у слышавших. Над умирающей — 🥀 и
+        // слабый голос; над услышавшей — лицо умирающей (пир) с 🥀-фолбэком.
+        ["HelpMoan"] = new("Wilt", "hurt_moan"),
+        ["MoanHeard"] = new("Wilt", null, Rank.Talk),
 
         // ---- угроза замечена издалека (§62/§72) --------------------------
         // Над головой — жёлтый треугольник: это ещё не бой, это «вижу».

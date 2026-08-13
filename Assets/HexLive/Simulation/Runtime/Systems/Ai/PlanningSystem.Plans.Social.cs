@@ -121,7 +121,8 @@ public sealed partial class PlanningSystem
         }
 
         // Ближайший узел материка по миру-расстоянию; достижимость — с её
-        // РЕАЛЬНОЙ способностью (прыжок пока есть, иначе цель и не ставилась).
+        // РЕАЛЬНОЙ способностью. §57.11: без прыжка Reachable считает СПУСКИ
+        // (направленно), так что и полностью обезноженная планирует сход вниз.
         JunctionId? best = null;
         var bestDistance = float.MaxValue;
         foreach (var pair in world.JunctionComponentsFlat)

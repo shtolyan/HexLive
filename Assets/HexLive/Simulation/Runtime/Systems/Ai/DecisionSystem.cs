@@ -1307,14 +1307,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 ? Spec53.SelfTreatBleedEmergency
                 : 0f);
 
-        // §50.9: «спуститься, пока ноги держат». Мир без прыжка — половина
-        // острова, порог прыжка 0.75 на ногу; раненая на крошечном уступе
-        // обязана уйти на большую землю ДО того, как деградация ран отнимет
-        // прыжок. Ставка растёт с тем, насколько ноги близки к порогу; выше
-        // быта, ниже собственных смертельных кризисов (их надбавки ~1.0).
+        // §50.9 + §57.11: «спуститься, пока ноги держат» — и ПОСЛЕ того, как
+        // перестали. Мир калеки направленный: сползти вниз можно всегда, так
+        // что цель больше не требует CanJump (раньше она гасла ровно в момент,
+        // когда становилась нужна — обе ноги падали ниже порога в одном бою).
+        // «Ловушка» теперь меряется FlatWorldSizeAt — своей полкой ПЛЮС всем,
+        // куда есть спуск: уступ со сходом на материк ловушкой не считается.
         var safeGroundAvail = false;
         var safeGroundUrgency = 0f;
-        if (AiBalance.SafeGroundRetreatEnabled && npc.Body.CanJump &&
+        if (AiBalance.SafeGroundRetreatEnabled &&
             npc.CurrentJunction is { } safeGroundFrom)
         {
             var minLeg = System.MathF.Min(
@@ -1322,14 +1323,35 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 npc.Body.LimbFunction(BodyPart.LegR));
             if (minLeg < AiBalance.SafeGroundLegAlert)
             {
-                var isletSize = Connectivity.FlatComponentSizeAt(world, safeGroundFrom);
-                if (isletSize > 0 && isletSize < AiBalance.SafeGroundIsletMaxJunctions &&
+                var reachableWorld = Connectivity.FlatWorldSizeAt(world, safeGroundFrom);
+                var onMainland = Connectivity.ComponentOf(world, safeGroundFrom, canJump: false) ==
+                    world.LargestFlatComponentId;
+                // Дорога в материк обязана существовать С ЕЁ способностями:
+                // прыгающая дойдёт по полному графу, обезноженная — только
+                // если у полки есть сход. Без этого гейта запертая крутила
+                // вечный цикл PlanFailed NoRouteToMainland.
+                var mainlandInReach = npc.Body.CanJump ||
+                    Connectivity.FlatReachesMainland(world, safeGroundFrom);
+                if (!onMainland &&
+                    mainlandInReach &&
+                    reachableWorld > 0 &&
                     world.JunctionComponentsFlatSizes.TryGetValue(
                         world.LargestFlatComponentId, out var mainlandSize) &&
                     mainlandSize >= AiBalance.SafeGroundIsletMaxJunctions)
                 {
-                    safeGroundAvail = true;
-                    safeGroundUrgency = 0.65f + (AiBalance.SafeGroundLegAlert - minLeg);
+                    // Уступ мал сам по себе, но велик ли мир вместе со
+                    // спусками — если и он мал, уходить надо тем более.
+                    var isletSize = Connectivity.FlatComponentSizeAt(world, safeGroundFrom);
+                    if (isletSize < AiBalance.SafeGroundIsletMaxJunctions)
+                    {
+                        safeGroundAvail = true;
+                        safeGroundUrgency = 0.65f +
+                            (npc.Body.CanJump
+                                ? AiBalance.SafeGroundLegAlert - minLeg
+                                // Прыжка уже нет: срочность не зависит от ног —
+                                // каждый тик на полке проедает окно спуска.
+                                : AiBalance.SafeGroundLegAlert);
+                    }
                 }
             }
         }

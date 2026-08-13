@@ -862,6 +862,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _jumpDuration;
     private float _jumpTimer;
     private float _jumpRetriggerGuard; // swallows the pose-delta echo at hop end
+
+    // §57.11: спуск-падение раненой (HopKind="Fall"). Раскадровка своя: без
+    // отталкивания (takeoff-бит — просто шаг с кромки в текущей позе), клип
+    // падения включается на полётном бите, приземление без своего клипа, и
+    // после него — подъём Standing Up на сим-паузе FallRecoverSeconds
+    // (ползущая не встаёт: у неё crawl-оверрайд держит своё).
+    private bool _jumpIsFall;
+    private bool _fallClipStarted;
+    // Подъём — СУЩЕСТВУЮЩЕЕ состояние §50 StandUp (сам уходит в Idle по exit
+    // time), заводить своё не нужно. Новое здесь только состояние полёта.
+    private const string FallStateName = "Falling";
+    private static readonly int FallStateHash = Animator.StringToHash(FallStateName);
+    private static readonly int StandUpStateHash = Animator.StringToHash(StandUpStateName);
     private bool _jumpUp;
     // §21.21B v22, ВОЗВРАЩЁН после v23 — и это НЕ подпорка асимметрии, а
     // компенсация ЛАГА: часы дуги идут по последнему шагнутому тику, а
@@ -1030,6 +1043,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // directions, the flight fills the whole airborne beat — the arc, the
         // sim and the clip share the same three numbers.
         var up = hopKind == "Up";
+        // §57.11: "Fall" — тот же нижний ход дуги, своя раскадровка клипов.
+        _jumpIsFall = hopKind == "Fall";
+        _fallClipStarted = false;
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
         // §21.21B v22: a DROP's vertical follows the RENDERED root, which
         // interpolates one snapshot behind the arc clock — keep the clip and
@@ -1090,6 +1106,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // Water dives/climb-outs have no sim hop window — half the hop clock
         // covers the treading pause they play over; no takeoff/landing beats.
         // No takeoff tile either, so the live root Y is the only base available.
+        _jumpIsFall = false; // §57.11: водный путь — никогда не «падение»
         StartJumpArc(
             heightDeltaWorld > 0f,
             heightDeltaWorld,
@@ -1133,6 +1150,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // durationSimSeconds. Speed = clipLength / window (Unity multiplies this
         // by the global animator.speed, so fast-forward stays in sync with the
         // arc timer). Falls back to 1 if the clip length is unknown.
+        // §57.11: у падения нет отталкивания — на takeoff-бите она просто
+        // делает шаг с кромки в текущей позе. Клип (луп Falling) включит
+        // полётный бит из JumpOffsetWorld; поздний вход — сразу здесь.
+        if (_jumpIsFall)
+        {
+            _animator.SetFloat(JumpSpeedParam, 1f); // луп не сжимается к окну
+            if (elapsed / _jumpDuration >= _jumpTakeoffFrac)
+            {
+                StartFallClip();
+            }
+
+            return;
+        }
+
         var jumpClipLength = _jumpUp ? _jumpUpClipLength : _jumpDownClipLength;
         if (jumpClipLength > 0.001f)
         {
@@ -1150,6 +1181,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
         }
+    }
+
+    // §57.11: клип полёта падения. Состояния Falling/StandUp появляются в
+    // контроллере отдельной правкой; пока их нет, честный фолбэк — прежний
+    // JumpDown, чтобы падение никогда не выглядело Т-позой.
+    private void StartFallClip()
+    {
+        if (_fallClipStarted || _animator == null)
+        {
+            return;
+        }
+
+        _fallClipStarted = true;
+        _animator.CrossFade(
+            _animator.HasState(0, FallStateHash) ? FallStateName : "JumpDown",
+            0.08f, 0, 0f);
     }
 
     // Vertical arc height 0..1 over the FLIGHT fraction tf (0 at takeoff-end,
@@ -1246,11 +1293,39 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_jumpTimer <= 0f)
         {
             _jumpRetriggerGuard = 0.5f;
+
+            // §57.11: падение кончилось — подъём на ноги на сим-паузе
+            // FallRecoverSeconds. Ползущей вставать нечем: она выходит из лупа
+            // падения обратно в Crawl и долёживает паузу там (одно ребро
+            // смены состояния, не покадровый CrossFade — урок §109.16).
+            if (_jumpIsFall)
+            {
+                _jumpIsFall = false;
+                if (_animator != null && _fallClipStarted)
+                {
+                    var standing = !_legless && _posture != "Crawl";
+                    if (standing && _animator.HasState(0, StandUpStateHash))
+                    {
+                        _animator.CrossFade(StandUpStateName, 0.1f, 0, 0f);
+                    }
+                    else if (!standing)
+                    {
+                        _animator.CrossFade("Crawl", 0.15f, 0, 0f);
+                    }
+                }
+            }
         }
 
         // t over the whole window; map to the FLIGHT fraction tf so the arc
         // is flat during the takeoff beat and pinned at 1 during landing.
         var t = 1f - Mathf.Clamp01(_jumpTimer / Mathf.Max(0.0001f, _jumpDuration));
+
+        // §57.11: клип падения — ровно в момент, когда она уже летит (конец
+        // takeoff-бита), не раньше: до кромки она идёт своей походкой.
+        if (_jumpIsFall && t > _jumpTakeoffFrac)
+        {
+            StartFallClip();
+        }
         float arc; // 0 at stand level, 1 at target level (>1 = overshoot above)
         if (t <= _jumpTakeoffFrac)
         {

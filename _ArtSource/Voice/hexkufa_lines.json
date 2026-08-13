@@ -882,6 +882,46 @@
    ]
   },
   {
+   "code": "C17",
+   "id": "help_answer",
+   "priority": "P1",
+   "hook": "откликнулась на крик и бежит выручать (§57.9 `HelpCryAnswer`)",
+   "lines": [
+    {
+     "text": "[shouting, determined] Bego! Jani, beeego!",
+     "ru": "Бегу! Подруга, бегуу!"
+    },
+    {
+     "text": "[shouting] Pomi gulao! Bego nam!",
+     "ru": "Помощь идёт! Бегу!"
+    },
+    {
+     "text": "[determined, urgent] Jani! Bezmorishka! Bego!",
+     "ru": "Подруга! Не помирай! Бегу!"
+    }
+   ]
+  },
+  {
+   "code": "C18",
+   "id": "hurt_moan",
+   "priority": "P1",
+   "hook": "слабый стон умирающей, зовёт лёжа (§57.10 `HelpMoan`)",
+   "lines": [
+    {
+     "text": "[whispering, weak] Pomi... jani... pomi...",
+     "ru": "Помогите... подруги... помогите..."
+    },
+    {
+     "text": "[weak, breathy] Sipa... nip sipa...",
+     "ru": "Воды... хоть воды..."
+    },
+    {
+     "text": "[whispering, fading] Fipa... jani... doma nam...",
+     "ru": "Холодно... подруги... домой..."
+    }
+   ]
+  },
+  {
    "code": "D1",
    "id": "happy_topic_smalltalk",
    "priority": "P1",

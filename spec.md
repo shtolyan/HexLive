@@ -11874,6 +11874,17 @@ Gather/Talk/Dress, and **Eat/Drink** (raise-to-mouth suppressed, `X Bot@Drinking
 overridden) — swaps to the prone idle `NpcAnimSet.proneIdle`: the `LayingBelly`
 clip (belly-down laying loop ported from the molly project, time-stretched 10×
 to match its 0.1-speed Laying state); Sit/Sleep/LieDown keep their own clips.
+The port arrived with its **legs authored for a different avatar**: the knees sat
+at 75-80° of flexion (shins standing vertical, feet ~0.8 m in the air) and both
+`Foot Up-Down` curves ran to **1.23-1.33, outside Unity's legal ±1 muscle range**,
+so the Animator clamped the ankles to their limit. The six leg curves are now
+affine-remapped onto a flat-on-the-ground band — knee 4-7°, hip 1-3° (face-down,
+`Upper Leg Front-Back` is *extension*, and it lifts the whole leg), ankle
+44-47.5°. The ankle deliberately stays near its **maximum** plantarflexion: with
+a horizontal shin the 50° limit still leaves the toes ~40° below the shin line,
+so the foot can never lie flat, and pulling that muscle toward its 0 neutral
+would point the toes straight down through the floor. The residual knee bend is
+what lifts the ankle joint clear so the toe tip lands on the ground instead.
 The dropped limb is the **real posed geometry**. A fresh drop is deliberately
 one render beat behind the body: `SeveredLimbDropView` waits through
 `WaitForEndOfFrame`, after snapshot condition, Animator and

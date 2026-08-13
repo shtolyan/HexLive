@@ -60,7 +60,10 @@ public sealed class AmputationTestBootstrap : MonoBehaviour
     {
         if (!_started)
         {
-            _startDelayElapsed += Time.deltaTime;
+            // Мир стартует на паузе, а пауза держит Time.timeScale = 0 — на
+            // масштабированном времени задержка никогда не истекала и сцена
+            // висела на паузе вечно. Задержка тут реальная, ей и мерить.
+            _startDelayElapsed += Time.unscaledDeltaTime;
             if (_startDelayElapsed >= _startDelaySeconds && _runner != null)
             {
                 _started = true;

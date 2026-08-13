@@ -3087,6 +3087,81 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // offset: без этой привязки такой труп после падения «улетает» или висит
     // над склоном. Берём фактический нижний край скина, поэтому правило верно
     // для любой одежды, позы и высоты тайла.
+    // §114 баг #116: ПОЛЗУЩАЯ КАСАЕТСЯ ЗЕМЛИ РУКАМИ.
+    //
+    // Замер в AmputationTest (живая игра, 400 кадров ползания): самая нижняя
+    // точка ладони за весь цикл — +0.029 wu НАД землёй, таз +0.363; тот же клип,
+    // ретаргетнутый на тот же аватар в отрыве от игры, кладёт ладонь на -0.013.
+    // То есть тело в игре висит примерно на +0.04 wu (≈4 см в человеческий
+    // рост) — руки «машут по воздуху», как и написал игрок.
+    //
+    // Причину поднятия по одному слагаемому назвать честно не вышло (каблук —
+    // одно из них и снят отдельно, см. SyncHeelPoseTarget), поэтому здесь стоит
+    // ЗАМЕР, а не константа: берём фактическую позу этого кадра, ищем самую
+    // низкую опорную кость и опускаем корень тела ровно на её зазор. Пока хоть
+    // одна опора стоит на земле — а в ползании стоит всегда — это и есть контакт.
+    //
+    // ⚠️ Считается ПОСЛЕ всех позовых слоёв: до них поза ещё не та, которую
+    // увидит игрок. Оторванную конечность в опоры не берём — её кости
+    // схлопнуты и лежат где угодно.
+    private const float CrawlGroundClampMax = 0.25f;   // wu, предохранитель
+    private const float CrawlGroundEaseSpeed = 1.2f;   // wu/с, чтобы не дёргалось
+    private static readonly (string Bone, string Zone)[] CrawlContactBones =
+    {
+        ("lHand", "ArmL"),
+        ("rHand", "ArmR"),
+        ("lShin", "LegL"),
+        ("rShin", "LegR"),
+        ("lFoot", "LegL"),
+        ("rFoot", "LegR"),
+        ("chestUpper", null),
+        ("hip", null)
+    };
+
+    private float _crawlGroundLift;
+
+    private void PlantCrawlingBodyOnGround()
+    {
+        if (_bodyRoot == null || _bodyBones == null || _posture != "Crawl" ||
+            _laying || _swimming || _sitting || _dead || _ragdollActive || _jumpTimer > 0f)
+        {
+            _crawlGroundLift = 0f;
+            return;
+        }
+
+        var groundY = transform.position.y;
+        var lowest = float.MaxValue;
+        foreach (var (boneName, zone) in CrawlContactBones)
+        {
+            if (zone != null && _severedZones.Contains(zone))
+            {
+                continue;
+            }
+
+            var bone = _bodyBones.GetBone(boneName);
+            if (bone != null)
+            {
+                lowest = Mathf.Min(lowest, bone.position.y);
+            }
+        }
+
+        if (lowest >= float.MaxValue)
+        {
+            return;
+        }
+
+        // Корень каждый кадр сбрасывается в rest (см. LateUpdate), поэтому зазор
+        // меряется по НЕсдвинутой позе — обратной связи нет, накопления тоже.
+        var gap = Mathf.Clamp(lowest - groundY, -CrawlGroundClampMax, CrawlGroundClampMax);
+        _crawlGroundLift = Mathf.MoveTowards(
+            _crawlGroundLift, gap,
+            Time.deltaTime * Mathf.Max(1f, _simSpeed) * CrawlGroundEaseSpeed);
+        if (Mathf.Abs(_crawlGroundLift) > 0.0001f)
+        {
+            _bodyRoot.position -= new Vector3(0f, _crawlGroundLift, 0f);
+        }
+    }
+
     private void PlantDeadBodyOnSurface()
     {
         if (!_dead || _bodyRoot == null)
@@ -4981,6 +5056,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _posture = string.IsNullOrEmpty(postureHint) ? "Upright" : postureHint;
         _winded = winded;
         RefreshLeglessPresentation();
+        // §114 баг #116: поза решает и судьбу каблучного лифта — «легла/поползла»
+        // должно снимать его в тот же кадр, а не ждать смены сна/сидения.
+        SyncHeelPoseTarget();
 
         // Spec 40.9 r2: the dedicated limp pose was removed by player decision.
         // Damaged and prosthetic legs use ordinary authored locomotion;
@@ -6490,7 +6568,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         // Feed posture as soon as its state changes, before BodyBones applies
         // the post-Animator heel correction. Beds are covered by _laying.
-        _bodyBones?.SetHeelPoseSuppressed(_sitting || _laying || _swimming);
+        // §114 баг #116: ползание — тоже не «стоит на подушечке стопы». Каблук
+        // поднимает таз (BodyBones.LateUpdate), а у ползущей тело и так лежит
+        // на земле — лифт просто отрывал её от земли целиком.
+        _bodyBones?.SetHeelPoseSuppressed(
+            _sitting || _laying || _swimming || _posture == "Crawl");
     }
 
     private void LateUpdate()
@@ -6646,6 +6728,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // кадр, который игрок увидит. Так труп остаётся на земле и во время
         // падения, и после выключения Animator.
         PlantDeadBodyOnSurface();
+        // §114 баг #116: тем же местом кадра — прижать ползущую к земле.
+        PlantCrawlingBodyOnGround();
 
         if (_lookAtIK == null)
         {

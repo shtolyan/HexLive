@@ -858,11 +858,16 @@ PlayerSettings:
   platformArchitecture: {}
   scriptingBackend:
     Android: 1
-  il2cppCompilerConfiguration: {}
-  il2cppCodeGeneration: {}
+    Standalone: 1
+  il2cppCompilerConfiguration:
+    Standalone: 1
+  il2cppCodeGeneration:
+    Standalone: 0
   il2cppStacktraceInformation: {}
-  managedStrippingLevel: {}
-  incrementalIl2cppBuild: {}
+  managedStrippingLevel:
+    Standalone: 4
+  incrementalIl2cppBuild:
+    Standalone: 1
   suppressCommonWarnings: 1
   allowUnsafeCode: 0
   useDeterministicCompilation: 1

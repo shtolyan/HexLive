@@ -29,11 +29,16 @@ namespace HexLive.UnityPresentation.Bootstrap
         // Spec 41.3: real seconds -> game ticks at 1x (tick = 0.25 s).
         public const float TicksPerRealSecond = 4f;
 
-        // Spec 41.3: offline progression cap — 7200 ticks = 30 real minutes of
-        // catch-up, so a week away neither starves the colony nor stalls the
-        // load. This is a REAL-TIME compute budget, so it counts in event
-        // cycles, not in the (10x stretched) visual day.
-        public static int OfflineTicksCap => 3 * WorldBalance.EventCycleTicks;
+        // Spec 41.3: потолка офлайна БОЛЬШЕ НЕТ — по решению игрока мир живёт
+        // ровно столько, сколько его не запускали. Прежние 7200 тиков (3 цикла
+        // событий = 30 реальных минут) означали, что час отсутствия и неделя
+        // дают одинаковый результат: 0.3 визуального дня.
+        //
+        // Единственный оставшийся ограничитель — арифметический: `tick +
+        // offline` обязан остаться в int, иначе целевой тик уйдёт в минус и
+        // намотка не начнётся вовсе. Реальная остановка — не число, а условие:
+        // намотка прекращается, когда колония вымерла (см. LoadingScreen).
+        public static int OfflineTicksCap => int.MaxValue / 2;
 
         private const int Magic = 0x48584C56; // "HXLV"
         private const int Version = 2;
@@ -192,8 +197,12 @@ namespace HexLive.UnityPresentation.Bootstrap
                 return 0;
             }
 
+            // Потолка нет — но целевой тик у вызывающего это `data.tick +
+            // результат`, и он обязан остаться положительным int, иначе намотка
+            // не начнётся вообще. Так что вычитаем уже прожитое.
             var ticks = (long)(elapsed * TicksPerRealSecond);
-            return (int)Math.Min(ticks, OfflineTicksCap);
+            var headroom = Math.Max(0, OfflineTicksCap - Math.Max(0, data.tick));
+            return (int)Math.Min(ticks, headroom);
         }
     }
 }

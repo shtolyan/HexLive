@@ -38,6 +38,53 @@ public sealed class WardrobeTests
         Assert.That(wardrobe.BlockedJunctions, Is.Empty,
             "Гардероб занял джанкшен: комната в один гекс, так запирается дверь или койка.");
         Assert.That(world.Junctions.Items[wardrobe.Junctions[0]].Blocked, Is.False);
+
+        var center = HexSpatialMath.TileToWorld(hut.Tile);
+        var radians = hut.RotationDegrees * System.MathF.PI / 180f;
+        var expected = center + new Float2(
+            BuildingRules.HutWardrobeLocalX * System.MathF.Cos(radians) -
+                BuildingRules.HutWardrobeLocalZ * System.MathF.Sin(radians),
+            BuildingRules.HutWardrobeLocalX * System.MathF.Sin(radians) +
+                BuildingRules.HutWardrobeLocalZ * System.MathF.Cos(radians));
+        var actual = world.Junctions.Items[wardrobe.Junctions[0]].WorldPosition;
+        var delta = actual - expected;
+        Assert.That(delta.X * delta.X + delta.Y * delta.Y, Is.LessThan(0.0001f * 0.0001f),
+            "Production выбрал соседний junction вместо утверждённого pivot гардероба.");
+    }
+
+    [Test]
+    public void ApprovedWardrobeLayoutUsesJunctionFourAndTheNineFourZeroAxis()
+    {
+        var templates = HexPointLayout.GetInteriorTemplates();
+        var first = templates.Single(template => template.Slot == 9).Offset;
+        var pivot = templates.Single(template => template.Slot == 4).Offset;
+        var last = templates.Single(template => template.Slot == 0).Offset;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BuildingRules.HutWardrobeLocalX, Is.EqualTo(pivot.X).Within(0.000001f));
+            Assert.That(BuildingRules.HutWardrobeLocalZ, Is.EqualTo(pivot.Y).Within(0.000001f));
+            Assert.That(BuildingRules.HutWardrobeLocalYaw,
+                Is.EqualTo(StructurePlacement.QuantizeHexYaw(BuildingRules.HutWardrobeLocalYaw))
+                    .Within(0.000001f),
+                "Утверждённый yaw обязан быть одной из шести ориентаций.");
+        });
+
+        var toLast = last - pivot;
+        var toFirst = first - pivot;
+        var yawRadians = BuildingRules.HutWardrobeLocalYaw * System.MathF.PI / 180f;
+        var authoredPositiveY = new Float2(-System.MathF.Sin(yawRadians), System.MathF.Cos(yawRadians));
+        var length = System.MathF.Sqrt(toLast.X * toLast.X + toLast.Y * toLast.Y);
+        var projection = toLast.X * authoredPositiveY.X + toLast.Y * authoredPositiveY.Y;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(length, Is.EqualTo(0.375f).Within(0.000001f));
+            Assert.That(projection, Is.EqualTo(length).Within(0.000001f),
+                "Локальная +Y модели не направлена из junction 4 в junction 0.");
+            Assert.That(toFirst.X, Is.EqualTo(-toLast.X).Within(0.000001f));
+            Assert.That(toFirst.Y, Is.EqualTo(-toLast.Y).Within(0.000001f));
+        });
     }
 
     /// <summary>

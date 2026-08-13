@@ -51,11 +51,12 @@ public static class BuildingRules
     public const float HutBed1LocalX = 0.487139f;
     public const float HutBed1LocalZ = 0.84375f;
     public const float HutBed1LocalYaw = 60f;
-    // §133: гардероб у свободной стены. Эти данные будут заменены точным
-    // экспортом из HutLayoutDesigner после утверждения игроком.
-    public const float HutWardrobeLocalX = -0.487139f;
-    public const float HutWardrobeLocalZ = -0.84375f;
-    public const float HutWardrobeLocalYaw = 60f;
+    // §133: утверждённая игроком раскладка HutLayoutDesigner от 2026-08-13.
+    // Pivot стоит на junction 4; продольный трёхузловой footprint проходит
+    // через junction 9 -> 4 -> 0. Не добавлять model-specific rotation offset.
+    public const float HutWardrobeLocalX = -0.3247595f;
+    public const float HutWardrobeLocalZ = -0.9375f;
+    public const float HutWardrobeLocalYaw = 240f;
 
     public const float HutHearthLocalX = -0.3248f;
     public const float HutHearthLocalZ = 0.5625f;

@@ -4,6 +4,17 @@ The canonical project guide is `CLAUDE.md`; follow it for architecture,
 tooling, verification, and content-pipeline rules. The canonical behaviour
 spec is `spec.md` and must stay in sync with code.
 
+## Furniture art and hex placement
+
+Before editing a furniture Blender source/FBX, pivot, axes, scale, footprint,
+wall alignment, six-way yaw, construction hierarchy, or test-versus-production
+placement, use the project skill at
+`.agents/skills/hexlive-furniture-authoring/SKILL.md`.
+
+Do not repair a crooked asset with an asset-specific runtime angle or scene
+transform. Normalize its source/export basis, keep placement in committed data,
+and verify the test fixture through the same factory/loading path as the game.
+
 ## Unity MCP single-owner lease (mandatory)
 
 `BUGS.json` is also the source of truth for the one allowed Unity MCP user.

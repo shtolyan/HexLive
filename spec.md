@@ -10914,8 +10914,8 @@ time jump). New flow: the runner starts PAUSED; a full-screen loading
 overlay (UIDocument, top sorting order) drives phases:
 1. **World** — bootstrap the WorldState (synchronous, cheap).
 2. **Time passed** — if a save exists, restore the model blob (§41.2 v2),
-   then wind forward by `offlineTicks` (§41.3), chunked ~10 ms per frame
-   so the progress bar animates.
+   then wind forward by `offlineTicks` (§41.3), chunked ~120 ms per frame
+   so the progress bar still animates.
 3. **Island** — let `HexWorldRenderer` build all views (terrain mesh,
    actors, wardrobe) behind the overlay for a few frames. Addressables prewarm
    is scoped to content visible in that opening world (currently worn garments,
@@ -11030,9 +11030,25 @@ anyway.
 
 ### 41.3 Offline progression
 On load, elapsed real time becomes game time: `offlineTicks =
-(now − save.unixSeconds) × 4` (1 tick = 0.25 s at 1×), capped at
-**7200 ticks** (30 real minutes of catch-up, = 3 event cycles) so a week away
-doesn't starve the colony or stall the load. The wind starts from the
+(now − save.unixSeconds) × 4` (1 tick = 0.25 s at 1×), **uncapped** — the
+colony lives exactly as long as the game was closed. (Until iteration 2026-08
+this was clamped to 7200 ticks = 3 event cycles = 30 real minutes, which made
+an hour away and a week away identical: 0.3 of a visual day. The clamp is gone
+by player decision; the only remaining numeric limit is arithmetic — `save.tick
++ offlineTicks` must stay a positive `int`, so `OfflineTicks` subtracts the
+already-lived tick from its headroom.)
+
+The stop condition is therefore a STATE, not a number: the wind loop halts the
+moment **the colony is extinct** — no living NPC allied to `Faction.Colony`
+remains (`LoadingScreen.IsColonyExtinct`). Note this cannot ride on
+`World.Completed`, which means the raft launched (§40.15, currently disabled),
+and it cannot count `Entities.Npcs` bare: a dead girl does not vanish, she
+moves to `Entities.Corpses` (§28.15C v3), and a surviving hostile outsider
+(§72) must not keep an empty world winding. Winding also costs real seconds —
+so the per-frame simulation budget is **120 ms** (≈8 fps behind the curtain,
+the bar and the day clock still move), not the earlier 10 ms.
+
+The wind starts from the
 RESTORED state (v2: load first, then simulate the absence) and finishes
 BEFORE any view spawns — the player returns to "time really passed":
 resources regrown, needs drifted, maybe someone got bitten.
@@ -19986,6 +20002,14 @@ tick. Полностью свернувшаяся (`Clot01=1`) неперевя�
 перевязанной: это естественное рубцевание культи и источник затухания её
 визуального следа. Сначала погашается CriticalTrauma, затем обычная шкала;
 для отсечённой зоны оба возврата запрещены. Остальной открытый cut не заживает.
+**Критическая глубина затягивается и сама по себе**, тем же темпом 0.0033 за
+slow tick с теми же множителями отдыха, — но только в целой зоне, где не
+осталось открытых неперевязанных ран, и только до нуля: положительную шкалу
+по-прежнему поднимает сытый реген со своим гейтом голода. Без этого возврата
+зона, углублённая деградацией сверх severity своей раны, оставалась после
+закрытия раны с сиротской критической глубиной, которую нечем погасить: ни
+ушиба, ни записи раны, ни доступа к сытому регену (он пропускает всё, у чего
+`CriticalTrauma>0`) — конечность замирала на нуле навсегда (баг #119).
 Полностью свернувшийся cut целой зоны уже не теряет кровь, но остаётся тихой
 потребностью в послеобработке: свой или союзный медик продолжает искать для
 него повязку с меньшим приоритетом, чем для активного кровотечения. Одна
@@ -20508,8 +20532,9 @@ Blender X/Y, совпадающей с simulation X/Y и Unity X/Z, поэтом
 проходимым junction, а presentation и точка сна получают один общий
 детерминированный offset к точному центру. Домашний очаг занимает junction
 `(-0.3248, 0.5625)`, а домашний гардероб (§133, `furniture.wardrobe`) —
-`(-0.487139, -0.84375)` с yaw `60°`, зеркало второй кровати через центр: до
-двери 1.35 wu, до очага 1.13, до ближней койки 0.65. Это настоящие объекты с тегом `Bed` и действием
+утверждённый игроком junction 4 `(-0.3247595, -0.9375)` с yaw `240°`.
+Его продольный трёхузловой footprint проходит через junction `9 → 4 → 0` и
+лежит на линии сетки у стены. Это настоящие объекты с тегом `Bed` и действием
 `Sleep`, поэтому обычные память, планирование, занятость, энергия, комфорт и
 спасение раненой работают без особого сценария. Их obstacle-radius равен нулю:
 визуально компактные циновки помещаются вдвоём, а стены, а не мебель, задают
@@ -22075,9 +22100,10 @@ Unity-код §129 не трогает вовсе: вид уже читает `I
 ### 133.2 Гардероб — домашняя родня сушилки
 
 Новый объект `furniture.wardrobe` появляется готовым в достроенной хижине у свободной стены (стройку силами
-NPC оставили на потом). Локальные координаты в `BuildingRules`: `(-0.487139, -0.84375)`, yaw 60° — зеркало
-кровати-1 через центр. Замеренные клиренсы в прототипном мире: до двери **1.35 wu**, до очага **1.13**, до
-ближней койки **0.65**; obstacle-блокировки нет (идиома кроватей), все 37 свободных джанкшенов интерьера
+NPC оставили на потом). Утверждённая в `HutLayoutDesigner` раскладка хранится в `BuildingRules` как
+junction 4 `(-0.3247595, -0.9375)`, yaw `240°`; продольная ось занимает точки `9 → 4 → 0`.
+Это сохранённые данные конструктора, а не renderer-поправка или подгонка bounds.
+Obstacle-блокировки нет (идиома кроватей), все 37 свободных джанкшенов интерьера
 остаются свободными — комната в один гекс не прощает лишнего занятого узла. `RepairWardrobeAnchor` и
 пересаживает гардероб по канонической геометрии, и СТАВИТ его впервые, поэтому дома из старых сейвов
 получают мебель на загрузке. Схема (посчитана из констант кода, не нарисована на глаз):

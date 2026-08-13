@@ -16833,6 +16833,14 @@ MonoBehaviour:
       - 'Зверь доел добычу и ушёл сытым.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'history.MobLeft'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The pack left the island.'
+      - "Стая ушла с острова."
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'history.Fainted'
       TermType: 0
       Description: 

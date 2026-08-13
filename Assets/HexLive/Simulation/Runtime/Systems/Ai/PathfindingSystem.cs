@@ -317,7 +317,7 @@ public sealed class PathfindingSystem : ISimulationSystem
             if (npc.CurrentJunction.HasValue && npc.CurrentJunction.Value.Equals(npc.Plan.TargetJunctionId.Value))
             {
                 npc.Movement.BlockedWaitTicks = 0;
-                if (SimTrace.Verbose)
+                if (SimTrace.Enabled)
                 {
                     if (SimTrace.Enabled)
                     {
@@ -337,7 +337,7 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
-            if (SimTrace.Verbose)
+            if (SimTrace.Enabled)
             {
                 if (SimTrace.Enabled)
                 {

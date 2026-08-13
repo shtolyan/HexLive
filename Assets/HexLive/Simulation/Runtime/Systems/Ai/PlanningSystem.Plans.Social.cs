@@ -292,6 +292,18 @@ public sealed partial class PlanningSystem
     // back a junction a whole hex out and the talk/aid visibly runs at range.
     // Falls back to the partner junction's own passable neighbours (one
     // sub-grid step); null when nothing close is free.
+    /// <summary>⭐ Дойдёт ли ОНА до этой точки. Подход к подопечной выбирался
+    /// по одной геометрии — «рядом, свободно, забронировано», — и ни один из
+    /// трёх выборщиков подхода (помощь, спасение, Defend) не спрашивал
+    /// достижимость. Замер (seed 476005489, 16 000 тиков): 19 срывов
+    /// «Aid approach blocked (no route)» и 6 «patient approach blocked» —
+    /// помощница уходила к точке, куда пути нет, движение отвечало Blocked,
+    /// поход отменялся, назначался снова. Мир без прыжка — половина острова
+    /// (§50.7), так что раненой это стоило любой помощи вообще.</summary>
+    private static bool CanWalkTo(WorldState world, NPCState npc, JunctionId candidate) =>
+        npc.CurrentJunction is not { } from ||
+        Connectivity.Reachable(world, from, candidate, npc.Body.CanJump);
+
     private static JunctionId? TryReserveArmsLengthApproach(
         WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction)
     {
@@ -335,6 +347,7 @@ public sealed partial class PlanningSystem
                     world, armsLength, partnerJunction, InteractionReach.Aid) &&
                 !BlockedByActor(occupiedByActor, armsLength, armsJct, hasStation, stationSpot) &&
                 SpatialQueries.IsJunctionFree(world, armsLength) &&
+                CanWalkTo(world, npc, armsLength) &&
                 SpatialMutations.TryReserveJunction(world, armsLength, npc.Id, world.Tick, 48))
             {
                 return armsLength;
@@ -361,6 +374,7 @@ public sealed partial class PlanningSystem
 
             if (!BlockedByActor(occupiedByActor, neighbor, nJct, hasStation, stationSpot) &&
                 SpatialQueries.IsJunctionFree(world, neighbor) &&
+                CanWalkTo(world, npc, neighbor) &&
                 SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
             {
                 return neighbor;
@@ -484,9 +498,12 @@ public sealed partial class PlanningSystem
             Interaction = AidInteraction(AidAssessment.Assess(target, world.Tick, out _))
         });
 
-        Trace.Emit(world, npc.Id, "AidRetargeted",
-            $"NPC{target.Id.Value} was not at the remembered spot — " +
-            $"walking to her actual station (Junction={approach.Value})");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "AidRetargeted",
+                $"NPC{target.Id.Value} was not at the remembered spot — " +
+                $"walking to her actual station (Junction={approach.Value})");
+        }
         return true;
     }
 

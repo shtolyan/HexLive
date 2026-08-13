@@ -209,8 +209,15 @@ public sealed class MobSystem : ISimulationSystem
                 world.Tick + RaidLingerTicks + stagger * (RaidLingerTicks / 4));
             stagger++;
             residents--;
-            Trace.EmitSystem(world, "MobLeaving",
-                $"Dog={dog.Id} over resident cap, leaves at tick {dog.LeavesAtTick}");
+            // А вот ЭТО остаётся отладкой: не уход, а запись планировщика
+            // «зверь сверх потолка, уйдёт на тике N» — срабатывает пачкой на
+            // всех лишних сразу и в ленте была бы шумом. Игроку показывается
+            // сам уход (MobLeft выше).
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "MobLeaving",
+                    $"Dog={dog.Id} over resident cap, leaves at tick {dog.LeavesAtTick}");
+            }
         }
     }
 
@@ -244,6 +251,10 @@ public sealed class MobSystem : ISimulationSystem
         foreach (var dog in _departed)
         {
             world.Mobs.Remove(dog);
+            // §46 v4: УХОД СТАИ — строка хроники, а не отладка. Игрок видит,
+            // почему давление вдруг спало, и это парная строка к NightRaid
+            // («пришли» / «ушли»). Актёра у события нет — как у DogKilled и
+            // §135 MobTookLimb, оно системное.
             Trace.EmitSystem(world, "MobLeft",
                 $"Dog={dog.Id} at Tile={dog.Tile.Q},{dog.Tile.R}");
             ForgetDangerAround(world, dog.Tile, 1); // ушла — метка страха уходит с ней

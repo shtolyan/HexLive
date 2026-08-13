@@ -2,7 +2,16 @@
 
 The canonical project guide is `CLAUDE.md`; follow it for architecture,
 tooling, verification, and content-pipeline rules. The canonical behaviour
-spec is `spec.md` and must stay in sync with code.
+spec is `Spec/<N>.md` — one file per section — and must stay in sync with code.
+
+`§N` resolves to `Spec/N.md` mechanically: seeing `§105.14` in a C# comment,
+open `Spec/105.md` — no grep. Sub-points live inside their section's file.
+The root `spec.md` is a GENERATED index (`python3 Tools/spec_index.py`); read
+it whole, never edit it by hand. A new section is created only with
+`python3 Tools/spec_new.py "Название"`, which allocates the next free number —
+picking one by eye is how §84 ended up holding two different topics. Section
+numbers never change: 3773 C# references depend on them. `SpecStructureGate`
+in `dotnet test` guards all of this.
 
 ## Furniture art and hex placement
 

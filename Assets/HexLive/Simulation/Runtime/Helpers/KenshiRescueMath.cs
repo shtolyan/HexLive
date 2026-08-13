@@ -138,12 +138,30 @@ internal static class KenshiRescueMath
         }
 
         var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, helper);
+        var from = helper.CurrentJunction;
         var best = float.MaxValue;
         foreach (var candidate in SpatialQueries.GetPassableNeighbors(world, target))
         {
             if (occupiedByActor.Contains(candidate) ||
                 !SpatialQueries.IsJunctionFree(world, candidate) ||
                 !world.Junctions.Items.TryGetValue(candidate, out var junction))
+            {
+                continue;
+            }
+
+            // ⭐ Подход обязан быть достижим ИМЕННО ЭТОЙ спасательнице. Здесь
+            // проверки не было — в отличие от TryFindDestination и разбора
+            // маршрута переноски ниже, которые обе спрашивают Reachable с её
+            // CanJump. Выбор шёл по прямой дистанции, поэтому раненая без
+            // прыжка получала подход на приподнятой полке, куда можно только
+            // запрыгнуть: следующим тиком путь не строился, спасение
+            // отменялось, назначалось снова — и так по кругу.
+            // Замер (seed 476005489, тик 12440): NPC3 CanJump=false стоит на
+            // материке (плоская компонента 1, 3367 узлов), лежащая — на полке
+            // (компонента 995, 37 узлов), спуска между ними нет и быть не
+            // может (наверх без прыжка не залезть). 18 назначений, 0 доносов.
+            if (from is { } origin &&
+                !Connectivity.Reachable(world, origin, candidate, helper.Body.CanJump))
             {
                 continue;
             }

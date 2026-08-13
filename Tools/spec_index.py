@@ -75,19 +75,21 @@ def render() -> str:
         if not m:
             raise SystemExit(f"Spec/{key}.md начинается не с заголовка раздела: {first!r}")
         label, title = m.group(1), m.group(2).strip()
-        entries.append((key, label, title, text.count("\n")))
+        entries.append((key, label, title))
 
     for caption, belongs in GROUPS:
         rows = [e for e in entries if belongs(int(re.match(r"\d+", e[0]).group()))]
         if not rows:
             continue
-        out += ["", f"## {caption}", "", "| § | Раздел | Строк |", "|---|---|---|"]
-        for key, label, title, lines in rows:
-            title = title.replace("|", "\\|")
-            out.append(f"| [§{label}](Spec/{key}.md) | {title} | {lines} |")
+        out += ["", f"## {caption}", "", "| § | Раздел |", "|---|---|"]
+        for key, label, title in rows:
+            out.append(f"| [§{label}](Spec/{key}.md) | {title.replace('|', '\\|')} |")
 
-    total = sum(e[3] for e in entries)
-    out += ["", f"*Разделов: {len(entries)}. Строк всего: {total}.*", ""]
+    # Размеров разделов здесь намеренно НЕТ. С ними оглавление устаревало бы от
+    # каждой правки текста, и гейт требовал бы регенерации на каждый абзац —
+    # ровно та трения, из-за которой инструмент начинают обходить. Без них
+    # индекс меняется только когда раздел добавили, убрали или переименовали.
+    out += ["", f"*Разделов: {len(entries)}.*", ""]
     return "\n".join(out)
 
 

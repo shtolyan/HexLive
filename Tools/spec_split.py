@@ -32,6 +32,10 @@ SPEC_DIR = REPO / "Spec"
 ORDER = SPEC_DIR / "ORDER.txt"
 PREAMBLE = SPEC_DIR / "preamble.md"
 
+# Родитель коммита разреза — последний одноблочный spec.md. Якорь по умолчанию
+# для `--verify`: «покажи весь дифф текста спеки с момента разреза».
+SPLIT_COMMIT = "7b924ade6721bf828b28615e683f252387928bc8"
+
 # `## §135 Заголовок`, `## 21. Заголовок`, `## 29A. Заголовок`, `## §93-94 Заголовок`
 HEADING = re.compile(r"^## (?:§)?(\d+)([A-Z]?)(?:-(\d+))?[.\s]")
 
@@ -172,8 +176,19 @@ def rejoin() -> str:
     return "".join(parts)
 
 
-def do_verify(ref: str) -> int:
-    """Склейка Spec/ обязана совпасть с дореформенным spec.md БАЙТ В БАЙТ."""
+def do_verify(ref: str, strict: bool) -> int:
+    """Сравнивает склейку Spec/ с дореформенным одноблочным spec.md.
+
+    ⭐ Расхождение — это НОРМА, а не поломка. В момент разреза оно было нулевым,
+    и `--strict` доказывает именно тот факт (ревью коммита разреза). Дальше текст
+    спеки живёт: каждая легальная правка добавляет строк в этот дифф, и он
+    становится полезнее, а не хуже — это «всё, что изменилось в тексте спеки с
+    момента разреза», одним куском.
+
+    Поэтому обычный режим возвращает 0 при любом исходе. Инструмент, который
+    краснеет на нормальной работе, перестают запускать — и в день настоящей
+    потери байта его никто не читает.
+    """
     original = subprocess.run(
         ["git", "-C", str(REPO), "show", f"{ref}:spec.md"],
         capture_output=True, check=True,
@@ -185,29 +200,36 @@ def do_verify(ref: str) -> int:
               f"({len(original.splitlines())} строк, {len(original.encode())} байт)")
         return 0
 
-    print(f"❌ склейка РАСХОДИТСЯ с {ref}:spec.md")
-    print(f"   было {len(original.splitlines())} строк / {len(original.encode())} байт")
-    print(f"   стало {len(joined.splitlines())} строк / {len(joined.encode())} байт")
     import difflib
     diff = list(difflib.unified_diff(
         original.splitlines(keepends=True), joined.splitlines(keepends=True),
         fromfile=f"{ref}:spec.md", tofile="склейка Spec/", n=1))
+    changed = sum(1 for l in diff if l[:1] in "+-" and l[:3] not in ("+++", "---"))
+
+    if strict:
+        print(f"❌ --strict: склейка РАСХОДИТСЯ с {ref}:spec.md на {changed} строк")
+    else:
+        print(f"текст спеки изменился с {ref} на {changed} строк — это нормальная "
+              f"работа, а не потеря. Ниже — весь дифф с момента разреза.")
     sys.stdout.writelines(diff[:200])
     if len(diff) > 200:
         print(f"... ещё {len(diff) - 200} строк диффа")
-    return 1
+    return 1 if strict else 0
 
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--verify", metavar="REF",
-                   help="склеить Spec/ и сравнить с <REF>:spec.md байт в байт")
+    p.add_argument("--verify", metavar="REF", nargs="?", const=SPLIT_COMMIT,
+                   help="склеить Spec/ и сравнить с <REF>:spec.md; без REF — "
+                        f"с коммитом разреза ({SPLIT_COMMIT[:9]})")
+    p.add_argument("--strict", action="store_true",
+                   help="считать любое расхождение ошибкой (ревью коммита разреза)")
     p.add_argument("--dry-run", action="store_true",
                    help="показать разбиение, ничего не записывая")
     a = p.parse_args()
     if a.verify:
-        return do_verify(a.verify)
+        return do_verify(a.verify, a.strict)
     return do_split(a.dry_run)
 
 

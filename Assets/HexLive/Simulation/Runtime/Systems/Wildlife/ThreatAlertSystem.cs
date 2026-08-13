@@ -343,6 +343,26 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                 Trace.Debug(world, npc.Id, "HostileAvoid",
                     $"Npc={hostile.Id.Value} Tile={hostile.Tile.Q},{hostile.Tile.R} rerouting");
             }
+            // ⭐ НЕСУЩУЮ ЧЕЛОВЕКА НЕ СНОСИМ. Abort — это полный разбор плана, а
+            // его разбор КЛАДЁТ ношу на землю. Получалось: колонистка несёт
+            // подругу в кровать, её маршрут задевает кольцо вокруг чужака —
+            // она роняет подругу и планирует заново, на следующем тике
+            // поднимает и роняет опять. Замер (seed 476005489, 16 000 тиков):
+            // 4 переноски, 0 донесённых, и ДВЕ обронены этой строкой — ровно
+            // то «тупят на ровном месте у дома», на что жаловался игрок.
+            // Перестроить маршрут можно и не разбирая план: пустой
+            // JunctionPath — это и есть просьба к PathfindingSystem проложить
+            // путь заново, а обход чужака у него уже в цене (HostileRing как
+            // danger). Для не несущей поведение прежнее, байт-в-байт.
+            if (npc.IsCarryingPerson)
+            {
+                npc.Movement.JunctionPath.Clear();
+                npc.Movement.PathIndex = 0;
+                npc.Movement.IsMoving = false;
+                npc.Movement.SetStatus(MovementStatus.Idle);
+                return;
+            }
+
             PlanInterruption.Abort(world, npc,
                 $"Route passes the outsider NPC{hostile.Id.Value} — rerouting");
             return;

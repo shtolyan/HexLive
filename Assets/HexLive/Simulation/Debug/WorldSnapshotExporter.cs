@@ -13,6 +13,21 @@ namespace HexLive.Simulation.Debug
 
 public static class WorldSnapshotExporter
 {
+    // ⭐ Баг #123: КАЖДОЕ число, уезжающее в снапшот строкой, форматируется
+    // ЗДЕСЬ и только инвариантно.
+    //
+    // Интерполяция `$"{value:0.###}"` берёт ТЕКУЩУЮ культуру, а весь приём
+    // (CharacterPanel.ApplySheet, ParseKv, разбор эффектов) читает строго
+    // InvariantCulture. На русской машине производитель писал «0,7», а
+    // потребитель молча возвращал 0 — и лист персонажа показывал нули у всего,
+    // кроме атрибута, чьё значение оказалось целым. Ни ошибки, ни исключения:
+    // TryParse просто отвечает false.
+    //
+    // Это формат ОБМЕНА, а не текст для игрока: те же строки едут по проводу
+    // на сервер (Simulation/Wire), где культура машины вообще ни при чём.
+    private static string Num(float value, string format = "0.###") =>
+        value.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
+
     // Trace events, per-NPC memory dumps, relationship/cooldown strings and
     // goal scores are read only by the debug panel, but cost megabytes of
     // garbage per tick when exported unconditionally. The panel opts in
@@ -927,10 +942,10 @@ public static class WorldSnapshotExporter
             }
 
             npcSnapshot.InventoryItems.Add(item);
-            npcSnapshot.InventoryDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
-            npcSnapshot.InventoryWetness.Add($"{item.DefinitionId}\t{item.Wetness:0.###}");
-            npcSnapshot.InventoryDirtiness.Add($"{item.DefinitionId}\t{item.Dirtiness:0.###}");
-            npcSnapshot.InventoryBloodiness.Add($"{item.DefinitionId}\t{item.Bloodiness:0.###}");
+            npcSnapshot.InventoryDurability.Add($"{item.DefinitionId}\t{Num(item.Durability)}");
+            npcSnapshot.InventoryWetness.Add($"{item.DefinitionId}\t{Num(item.Wetness)}");
+            npcSnapshot.InventoryDirtiness.Add($"{item.DefinitionId}\t{Num(item.Dirtiness)}");
+            npcSnapshot.InventoryBloodiness.Add($"{item.DefinitionId}\t{Num(item.Bloodiness)}");
             if (item.DefinitionId == "tool.bottle")
             {
                 npcSnapshot.InventoryWater.Add(
@@ -954,12 +969,12 @@ public static class WorldSnapshotExporter
         {
             // Spec 40.11: per-garment durability for the character panel's
             // wear progress bars ("id\tdurability").
-            npcSnapshot.WornDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
+            npcSnapshot.WornDurability.Add($"{item.DefinitionId}\t{Num(item.Durability)}");
             // Spec 35.5: per-garment wetness — rain soaks, fire/rack dries;
             // presentation renders a wet sheen that fades as the cloth dries.
-            npcSnapshot.WornWetness.Add($"{item.DefinitionId}\t{item.Wetness:0.###}");
-            npcSnapshot.WornDirtiness.Add($"{item.DefinitionId}\t{item.Dirtiness:0.###}");
-            npcSnapshot.WornBloodiness.Add($"{item.DefinitionId}\t{item.Bloodiness:0.###}");
+            npcSnapshot.WornWetness.Add($"{item.DefinitionId}\t{Num(item.Wetness)}");
+            npcSnapshot.WornDirtiness.Add($"{item.DefinitionId}\t{Num(item.Dirtiness)}");
+            npcSnapshot.WornBloodiness.Add($"{item.DefinitionId}\t{Num(item.Bloodiness)}");
             npcSnapshot.WornItems.Add(item);
         }
 
@@ -984,7 +999,7 @@ public static class WorldSnapshotExporter
             // the mark and ends pain/wet-gloss cues without lying to typed
             // medical consumers: OpenWounds below keeps authoritative Heal01.
             var visualHeal = HexLive.Simulation.Runtime.WoundMath.VisualHeal01(wound);
-            npcSnapshot.Wounds.Add($"{wound.Zone}|{wound.Seed}|{visualHeal:0.###}");
+            npcSnapshot.Wounds.Add($"{wound.Zone}|{wound.Seed}|{Num(visualHeal)}");
             npcSnapshot.OpenWounds.Add(new WoundSnapshot
             {
                 Id = wound.Id,
@@ -1020,7 +1035,7 @@ public static class WorldSnapshotExporter
         EffectEvaluator.Collect(npc, world.Tick, npcSnapshot.EffectiveUv, nearLitFire, restingInBed, effects);
         foreach (var effect in effects)
         {
-            var encoded = $"{effect.Kind}\t{effect.Intensity:0.###}";
+            var encoded = $"{effect.Kind}\t{Num(effect.Intensity)}";
             if (!string.IsNullOrEmpty(effect.DetailKey))
             {
                 encoded += $"\t{effect.DetailKey}";
@@ -1032,13 +1047,13 @@ public static class WorldSnapshotExporter
         // adding a seventh attribute never means remembering this file.
         foreach (var kind in Agents.AttributeSet.All)
         {
-            npcSnapshot.Attributes.Add($"{kind}\t{npc.Attributes.Get(kind):0.###}");
+            npcSnapshot.Attributes.Add($"{kind}\t{Num(npc.Attributes.Get(kind))}");
         }
-        npcSnapshot.Attributes.Add($"CompassionTrait\t{npc.CompassionTrait:0.###}");
+        npcSnapshot.Attributes.Add($"CompassionTrait\t{Num(npc.CompassionTrait)}");
 
         foreach (var kind in Agents.SkillSet.All)
         {
-            npcSnapshot.Skills.Add($"{kind}\t{npc.Skills.Get(kind):0.###}");
+            npcSnapshot.Skills.Add($"{kind}\t{Num(npc.Skills.Get(kind))}");
         }
 
         Runtime.AttributeMath.CollectPerks(npc, npcSnapshot.Perks);
@@ -1053,9 +1068,9 @@ public static class WorldSnapshotExporter
         var worstPartName = "-";
         foreach (var part in npc.Body.Parts)
         {
-            npcSnapshot.BodyParts.Add($"{part.Key}={part.Value:F2}");
+            npcSnapshot.BodyParts.Add($"{part.Key}={Num(part.Value, "F2")}");
             var armor = Runtime.EquipmentMath.ArmorForPart(world, npc, part.Key);
-            npcSnapshot.PartArmor.Add($"{part.Key}={armor:F2}");
+            npcSnapshot.PartArmor.Add($"{part.Key}={Num(armor, "F2")}");
             var condition = npc.Body.Condition(part.Key);
             var conditionSnapshot = new BodyPartConditionSnapshot
             {
@@ -1117,7 +1132,7 @@ public static class WorldSnapshotExporter
         }
 
         npcSnapshot.WorstBodyPart = worstPartValue < 1f
-            ? $"{worstPartName} {worstPartValue:F2}"
+            ? $"{worstPartName} {Num(worstPartValue, "F2")}"
             : "OK";
 
         // Spec 40.9 / §50: one authoritative injury-locomotion hint for the
@@ -1231,7 +1246,8 @@ public static class WorldSnapshotExporter
             foreach (var relation in npc.Social.Relationships)
             {
                 npcSnapshot.Relationships.Add(
-                    $"NPC{relation.Key.Value}: T={relation.Value.Trust:F2} F={relation.Value.Familiarity:F2} A={relation.Value.Affinity:F2}");
+                    $"NPC{relation.Key.Value}: T={Num(relation.Value.Trust, "F2")} " +
+                    $"F={Num(relation.Value.Familiarity, "F2")} A={Num(relation.Value.Affinity, "F2")}");
             }
 
             foreach (var known in npc.Memory.KnownObjects.Values)

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Content;
 using NUnit.Framework;
 
@@ -162,6 +163,55 @@ public sealed class WearSlotGateTests
         Assert.That(drift, Is.Empty,
             "WearSlotCatalog разъехался с префабами. Править КАТАЛОГ под префаб, " +
             "не наоборот (§52.9):\n  " + string.Join("\n  ", drift));
+    }
+
+    /// <summary>
+    /// ⭐ Баг #124: гейты выше проверяют КАТАЛОГ, а мир одевает девушек САМ —
+    /// стартовый наряд пишет в <c>WornItems</c> напрямую, мимо
+    /// <c>ResolveWearConflicts</c>. Пара, дерущаяся за один (слой, слот), там и
+    /// заводилась: 20.3% колонисток на 201 сиде выходили на берег в ДВУХ низах
+    /// (пул «лифчиков» ловил трусы с завышенной талией — у них Covers = Torso +
+    /// Pelvis). Вид от этого не оправляется: вещи пересоздают друг друга каждый
+    /// тик вечно, кадр уезжает в 4-6 FPS. Проверять надо РОЖДЁННЫЙ МИР, а не
+    /// таблицу: таблица была верна всё это время.
+    /// </summary>
+    [Test]
+    public void NoColonistIsBornWearingAClashingPair()
+    {
+        var offenders = new List<string>();
+        var seeds = new List<int> { 476005489 }; // мир из отчёта #124
+        var rng = new System.Random(20260813);
+        for (var i = 0; i < 40; i++)
+        {
+            seeds.Add(rng.Next(1, int.MaxValue));
+        }
+
+        foreach (var seed in seeds)
+        {
+            var world = new WorldStateFactory().Create(PrototypeWorldDefinitionFactory.Create(seed));
+            foreach (var npc in world.Entities.Npcs.Values)
+            {
+                var worn = npc.WornItems.Select(w => w.DefinitionId).ToList();
+                for (var a = 0; a < worn.Count; a++)
+                for (var b = a + 1; b < worn.Count; b++)
+                {
+                    Defs.TryGetValue(worn[a], out var da);
+                    Defs.TryGetValue(worn[b], out var db);
+                    if (WearSlotCatalog.Occupies(da, db))
+                    {
+                        offenders.Add($"seed {seed} NPC {npc.Id.Value}: {worn[a]} <-> {worn[b]} " +
+                                      $"(слоты [{string.Join(",", WearSlotCatalog.For(worn[a]))}] / " +
+                                      $"[{string.Join(",", WearSlotCatalog.For(worn[b]))}])");
+                    }
+                }
+            }
+        }
+
+        Assert.That(offenders, Is.Empty,
+            "Мир рождает девушку в паре, которую тело носить не может (§52.9, баг #124). " +
+            "Это не опечатка в каталоге, а стартовый наряд: сузить пул в " +
+            "WorldStateFactory и/или довериться EquipmentMath.StripConflictingWorn:\n  " +
+            string.Join("\n  ", offenders));
     }
 
     /// <summary>

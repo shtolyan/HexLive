@@ -300,6 +300,61 @@ internal static class EquipmentMath
         var afterRaw = currentRaw - displacedRaw + candidateWarmth;
         return MathUtil.Clamp01(afterRaw) - MathUtil.Clamp01(currentRaw);
     }
+
+    // §52.9 / bug #124: НИ ОДНО тело не должно носить две вещи, дерущиеся за один
+    // (слой, слот). Штатный путь надевания (ResolveWearConflicts) это держит, но
+    // он не единственный, кто пишет в WornItems: стартовый наряд worldgen'а
+    // добавлял вещи напрямую, и каждая пятая колонистка выходила на берег в ДВУХ
+    // низах сразу. Вид от такой пары не оправляется вовсе — BodyBones.Equip
+    // отдаёт слот последнему, SyncWorn видит «в симе надето, на теле нет» и
+    // пересобирает обе ВЕЧНО (~57 костей + набор материалов на сторону, каждый
+    // тик), а открытый инвентарь добавляет сверху полную пересборку куклы.
+    //
+    // Побеждает ПЕРВАЯ по порядку надевания: список WornItems и есть порядок.
+    // Проигравшая не уничтожается — это имущество девушки, и молча испарить его
+    // при загрузке сейва было бы хуже исходной беды; она уходит в рюкзак.
+    // Возвращает число снятых вещей (0 = всё было в порядке).
+    public static int StripConflictingWorn(WorldState world, NPCState npc)
+    {
+        var stripped = 0;
+        for (var i = npc.WornItems.Count - 1; i >= 0; i--)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(
+                    npc.WornItems[i].DefinitionId, out var later) ||
+                later.Layer is null)
+            {
+                continue;
+            }
+
+            for (var j = 0; j < i; j++)
+            {
+                if (!world.Content.ObjectDefinitions.TryGetValue(
+                        npc.WornItems[j].DefinitionId, out var earlier) ||
+                    !WearSlotCatalog.Occupies(later, earlier))
+                {
+                    continue;
+                }
+
+                var loser = npc.WornItems[i];
+                npc.WornItems.RemoveAt(i);
+                npc.Inventory.Items.Add(loser);
+                stripped++;
+                break;
+            }
+        }
+
+        if (stripped > 0)
+        {
+            // Снятое отдало и свои карманы, поэтому вместимость пересчитывается
+            // ПЕРЕД разбором переполнения — иначе вещь просто уляжется сверх
+            // ёмкости и останется там навсегда. Что не влезло, падает под ноги
+            // (§52.3), а не исчезает.
+            Recalculate(world, npc);
+            InventoryMath.SpillOverflow(world, npc);
+        }
+
+        return stripped;
+    }
 }
 
 }

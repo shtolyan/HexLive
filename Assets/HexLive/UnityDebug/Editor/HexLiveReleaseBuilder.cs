@@ -38,25 +38,35 @@ namespace HexLive.UnityDebug.Editor
 
         public static void BuildMacOS()
         {
+            Run(BuildTarget.StandaloneOSX);
+        }
+
+        public static void BuildWindows()
+        {
+            Run(BuildTarget.StandaloneWindows64);
+        }
+
+        private static void Run(BuildTarget target)
+        {
             var exitCode = 1;
             try
             {
                 if (!Application.isBatchMode)
                 {
                     throw new InvalidOperationException(
-                        "HexLiveReleaseBuilder is a batch-mode entry point. Use Tools/build_release.py.");
+                        "HexLiveReleaseBuilder is a batch-mode entry point. Use Tools/build_release.py " +
+                        "(macOS) or Tools/build_release_windows.py (Windows).");
                 }
 
                 var outputPath = Path.GetFullPath(RequireArgument(OutputArgument));
                 var summaryPath = Path.GetFullPath(RequireArgument(SummaryArgument));
                 var development = !HasArgument(ReleaseArgument);
-                var target = BuildTarget.StandaloneOSX;
 
                 if (EditorUserBuildSettings.activeBuildTarget != target)
                 {
                     throw new InvalidOperationException(
                         $"Active build target is {EditorUserBuildSettings.activeBuildTarget}, expected {target}. " +
-                        "The release script must launch Unity with -buildTarget StandaloneOSX.");
+                        $"The release script must launch Unity with -buildTarget {target}.");
                 }
 
                 var scenes = EditorBuildSettings.scenes

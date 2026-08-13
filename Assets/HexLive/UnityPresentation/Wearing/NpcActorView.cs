@@ -2743,6 +2743,41 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 _clashedSimItems.Clear();
             }
         }
+
+        // Баг #124: ВЗАИМНОЕ вытеснение — A выгоняет B, B выгоняет A. Проверка
+        // внутри цикла его не видит В ПРИНЦИПЕ: каждая вещь ПОБЕЖДАЕТ в своём
+        // собственном Equip и проигрывает уже потом, чужому. Поэтому пара
+        // пересоздавала друг друга каждый тик ВЕЧНО, без единой строки в
+        // консоли: ~57 костей и набор материалов на сторону, а с открытым
+        // инвентарём сверху ложилась полная пересборка куклы (~21 мс), и кадр
+        // уезжал в 4-6 FPS. Приговор выносится ПОСЛЕ всего прохода, когда
+        // состав тела уже окончателен, — тем же одноразовым способом, что и
+        // выше: проигравшая помечается и больше не пытается.
+        foreach (var simId in wornDefinitionIds)
+        {
+            if (_clashedSimItems.Contains(simId) ||
+                !_equippedSimItems.TryGetValue(simId, out var equippedCount) ||
+                equippedCount == 0 ||
+                _bodyBones.IsEquipped($"{simId}#0"))
+            {
+                continue;
+            }
+
+            _clashedSimItems.Add(simId);
+            if (_slotClashWarned.Add(simId))
+            {
+                var rival = ActorWardrobe.GetVisuals(simId);
+                Debug.LogWarning(
+                    $"[Wear] '{simId}' and " +
+                    (rival.Count > 0 ? _bodyBones.DescribeSlotOwners(rival[0]) : "another garment") +
+                    " evict each other every tick — their visual (layer, slot) collide " +
+                    "while the sim allows both to be worn at once. The sim must not " +
+                    "produce such a pair: EquipmentMath.StripConflictingWorn keeps one " +
+                    "of them off the body (§52.9). Until the data is fixed this piece " +
+                    "stays MISSING instead of re-stitching ~57 bones every tick.",
+                    this);
+            }
+        }
     }
 
     // Spec §52.8: pin holstered tools to the leg. The worn holster prefab

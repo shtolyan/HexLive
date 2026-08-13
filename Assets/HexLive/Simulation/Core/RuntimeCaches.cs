@@ -57,6 +57,13 @@ public sealed class RuntimeCaches
     public List<ObjectId> SeveredLimbs { get; } = new();
 
     public bool SeveredLimbsIndexed { get; set; }
+
+    // §135.5: длина самого длинного ребра графа джанкшенов — знаменатель
+    // эвристики A* в HexPathfinder. Позиции узлов это вывод worldgen и после
+    // него не меняются (Blocked двигает проходимость, не геометрию), поэтому
+    // значение считается один раз на мир. 0 = ещё не считали, -1 = граф
+    // вырожденный, эвристика выключена.
+    public float LongestJunctionEdge { get; set; }
 }
 
 }

@@ -134,49 +134,84 @@ public static class HexPathfinder
         WorldState world, JunctionId start, JunctionId goal,
         HashSet<JunctionId> avoid, bool weightClimb = true, bool canJump = true,
         HashSet<JunctionId> danger = null, long dangerCost = 0L,
-        HashSet<JunctionId> hardAvoid = null)
+        HashSet<JunctionId> hardAvoid = null,
+        int maxExpansions = 0)
     {
         if (start.Equals(goal))
         {
             return new List<JunctionId> { start };
         }
 
-        // Spec 40.17: uniform-cost (Dijkstra) search. Frontier ordered by
-        // (gScore, seq): the seq term makes every priority unique, so a
-        // SortedDictionary is a stable min-priority queue — and, unlike .NET 6's
-        // PriorityQueue, it compiles under Unity's netstandard2.1. ClimbCost
-        // applies real per-edge weights (climb up 4.5x, down 2.5x, strait 2x,
-        // swim 4x — NOT uniform), so ordering is genuine cheapest-first.
+        // Spec 40.17: weighted shortest path. Frontier ordered by
+        // (priority, seq): the seq term makes every priority unique, so the
+        // queue is stable and the search is reproducible tick for tick.
+        // ClimbCost applies real per-edge weights (climb up 4.5x, down 2.5x,
+        // strait 2x, swim 4x — NOT uniform), so ordering is genuine
+        // cheapest-first.
         // §40.17 v2: with RELAXATION. The old loop closed a neighbour the first
         // time it was reached (`cameFrom.ContainsKey`) and never improved it, so
         // with a real cost spread a node first found through an expensive edge
         // kept that price forever — the search could return a route more
-        // expensive than one it had the data to find. Frontier holds at most one
-        // entry per node: an improvement removes the stale key before adding the
-        // new one, and `closed` keeps a popped node from being reopened.
+        // expensive than one it had the data to find. `closed` keeps a popped
+        // node from being reopened.
+        //
+        // §135.5 (perf): the frontier is a POOLED BINARY HEAP, not a
+        // SortedDictionary. The old queue allocated a red-black node per push
+        // and walked the tree with a fresh enumerator per pop (`foreach … break`
+        // to read the minimum) — five collections' worth of garbage on every
+        // single call, and calls are per chasing mob per medium tick. Pop order
+        // is unchanged because the key still carries the unique `seq`; an
+        // improved node is pushed again and its stale entry is skipped on pop
+        // (it is already closed), which is exactly what the old explicit
+        // Remove did.
+        //
+        // §135.5: and the priority is now g + h, i.e. A*, not plain Dijkstra.
+        // The heuristic is `floor(distance / longest edge) × FlatCost` — the
+        // cheapest conceivable remainder, so it is admissible AND consistent
+        // (each edge is at most one "longest edge" long and costs at least
+        // FlatCost), which is what makes closing a node on pop still optimal.
+        // Routes cost the same as before; among EQUAL-cost routes a different
+        // one can now win, and that shows up as a golden-trace diff.
         const long priorityScale = 100_000_000L;
-        var frontier = new SortedDictionary<long, JunctionId>();
-        var frontierKey = new Dictionary<JunctionId, long>();
-        var closed = new HashSet<JunctionId>();
-        var cameFrom = new Dictionary<JunctionId, JunctionId?>();
-        var gScore = new Dictionary<JunctionId, long>();
-        var seq = 0L;
-
-        frontier.Add(0L, start);
-        frontierKey[start] = 0L;
-        cameFrom[start] = null;
-        gScore[start] = 0L;
-
-        while (frontier.Count > 0)
+        var scratch = SearchScratch.Rent();
+        try
         {
-            var head = default(KeyValuePair<long, JunctionId>);
-            foreach (var kv in frontier) { head = kv; break; } // lowest priority
-            frontier.Remove(head.Key);
-            var current = head.Value;
-            frontierKey.Remove(current);
+            var closed = scratch.Closed;
+            var cameFrom = scratch.CameFrom;
+            var gScore = scratch.GScore;
+            var seq = 0L;
+            var expansions = 0;
+            var budgetHit = false;
+            var goalPosition = world.Junctions.Items.TryGetValue(goal, out var goalJunction)
+                ? goalJunction.WorldPosition
+                : default;
+            var heuristicScale = goalJunction is null ? 0f : 1f / LongestEdge(world);
+
+            scratch.Push(0L, start);
+            cameFrom[start] = null;
+            gScore[start] = 0L;
+
+        while (scratch.TryPop(out var current))
+        {
+            if (closed.Contains(current))
+            {
+                continue; // устаревшая запись улучшенного узла — он уже закрыт
+            }
+
             closed.Add(current);
             if (current.Equals(goal))
             {
+                break;
+            }
+
+            if (maxExpansions > 0 && ++expansions > maxExpansions)
+            {
+                // §135.5: бюджет узлов. Недостижимая цель разворачивала ВЕСЬ
+                // граф (~14 000 узлов) на каждом вызове — и звала вызывающего
+                // повторить это следующим тиком. Упёрлись в потолок — честно
+                // отвечаем «дороги нет»: ровно то, что делает §29C.3, только
+                // за миллисекунды.
+                budgetHit = true;
                 break;
             }
 
@@ -252,23 +287,23 @@ public static class HexPathfinder
 
                 gScore[neighborId] = cost;
                 cameFrom[neighborId] = current;
-                var priority = cost * priorityScale + seq++;
-                if (frontierKey.TryGetValue(neighborId, out var stalePriority))
-                {
-                    frontier.Remove(stalePriority);
-                }
-
-                frontierKey[neighborId] = priority;
-                frontier.Add(priority, neighborId);
+                // A* (§135.5): очередь ведёт ОЦЕНКА полного пути g + h. При
+                // h = 0 это ровно прежняя равноценная Дейкстра — свойство,
+                // на которое опирается запасной путь без цели-узла.
+                var estimate = cost + Heuristic(neighbor.WorldPosition, goalPosition, heuristicScale);
+                scratch.Push(estimate * priorityScale + seq++, neighborId);
             }
         }
 
-        if (!cameFrom.ContainsKey(goal))
+        if (budgetHit || !cameFrom.ContainsKey(goal))
         {
             // Fully enclosed by standing housemates: take the direct path.
             // hardAvoid stays — terrain bans are walls, not courtesies.
-            return avoid is not null
-                ? FindPath(world, start, goal, null, weightClimb, canJump, danger, dangerCost, hardAvoid)
+            // Бюджет узлов повторной попытки НЕ получает: она стоила бы ровно
+            // столько же и упёрлась бы в тот же потолок.
+            return !budgetHit && avoid is not null
+                ? FindPath(world, start, goal, null, weightClimb, canJump, danger, dangerCost,
+                    hardAvoid, maxExpansions)
                 : new List<JunctionId>();
         }
 
@@ -288,6 +323,191 @@ public static class HexPathfinder
 
         path.Reverse();
         return path;
+        }
+        finally
+        {
+            scratch.Return();
+        }
+    }
+
+    // §135.5: нижняя оценка остатка пути в тех же единицах, что gScore.
+    // `scale` = 1 / (длина самого длинного ребра графа), поэтому
+    // floor(расстояние × scale) — это заведомо не больше, чем шагов осталось,
+    // а каждый шаг стоит не меньше FlatCost. Отсюда и допустимость (оценка не
+    // завышена → маршрут остаётся оптимальным), и согласованность (соседи
+    // отличаются не больше чем на один шаг → закрывать узел при извлечении
+    // по-прежнему безопасно).
+    private static long Heuristic(Float2 from, Float2 goal, float scale)
+    {
+        if (scale <= 0f)
+        {
+            return 0L;
+        }
+
+        var steps = (long)(HexSpatialMath.Distance(from, goal) * scale);
+        return steps * FlatCost;
+    }
+
+    // Самое длинное ребро графа. Позиции джанкшенов — вывод worldgen и после
+    // него не меняются (Blocked двигает проходимость, не геометрию), поэтому
+    // считается один раз на мир и живёт в кэшах.
+    private static float LongestEdge(WorldState world)
+    {
+        if (world.Caches.LongestJunctionEdge > 0f)
+        {
+            return world.Caches.LongestJunctionEdge;
+        }
+
+        var longest = 0f;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            for (var i = 0; i < junction.Neighbors.Count; i++)
+            {
+                if (!world.Junctions.Items.TryGetValue(junction.Neighbors[i], out var neighbor))
+                {
+                    continue;
+                }
+
+                var length = HexSpatialMath.Distance(junction.WorldPosition, neighbor.WorldPosition);
+                if (length > longest)
+                {
+                    longest = length;
+                }
+            }
+        }
+
+        // Пустой/вырожденный граф: эвристика выключается, поиск остаётся
+        // прежней Дейкстрой. Лучше медленно, чем неверно.
+        world.Caches.LongestJunctionEdge = longest > 0f ? longest : -1f;
+        return world.Caches.LongestJunctionEdge;
+    }
+
+    /// <summary>
+    /// §135.5: фронтир поиска — двоичная куча на переиспользуемых массивах.
+    /// <para>
+    /// ⭐ Порядок извлечения ТОТ ЖЕ, что у прежнего <c>SortedDictionary</c>:
+    /// ключ несёт уникальный <c>seq</c>, так что равных ключей не бывает, а
+    /// улучшенный узел просто кладётся второй раз — устаревшая запись
+    /// отбрасывается при извлечении, потому что узел уже закрыт. Это ровно то,
+    /// что делал явный <c>Remove</c>, только без обхода дерева.
+    /// </para>
+    /// <para>
+    /// Буферы висят на потоке (<c>[ThreadStatic]</c>): симуляция крутится на
+    /// своём воркере, а редактор/сервер могут звать поиск из другого. Вложенный
+    /// вызов (запасной проход без <c>avoid</c>) берёт собственный экземпляр —
+    /// иначе он затёр бы данные внешнего поиска.
+    /// </para>
+    /// </summary>
+    private sealed class SearchScratch
+    {
+        [System.ThreadStatic]
+        private static SearchScratch _pooled;
+
+        private long[] _keys = new long[256];
+        private JunctionId[] _values = new JunctionId[256];
+        private int _count;
+        private bool _rented;
+
+        public HashSet<JunctionId> Closed { get; } = new();
+
+        public Dictionary<JunctionId, JunctionId?> CameFrom { get; } = new();
+
+        public Dictionary<JunctionId, long> GScore { get; } = new();
+
+        public static SearchScratch Rent()
+        {
+            var pooled = _pooled;
+            if (pooled is null)
+            {
+                _pooled = pooled = new SearchScratch();
+            }
+            else if (pooled._rented)
+            {
+                pooled = new SearchScratch(); // вложенный поиск — свой буфер
+            }
+
+            pooled._rented = true;
+            pooled._count = 0;
+            pooled.Closed.Clear();
+            pooled.CameFrom.Clear();
+            pooled.GScore.Clear();
+            return pooled;
+        }
+
+        public void Return()
+        {
+            _rented = false;
+            // Содержимое не чистим здесь: Rent сделает это перед следующим
+            // поиском, а держать ссылки до тех пор дешевле, чем чистить дважды.
+        }
+
+        public void Push(long key, JunctionId value)
+        {
+            if (_count == _keys.Length)
+            {
+                System.Array.Resize(ref _keys, _count * 2);
+                System.Array.Resize(ref _values, _count * 2);
+            }
+
+            var child = _count++;
+            while (child > 0)
+            {
+                var parent = (child - 1) / 2;
+                if (_keys[parent] <= key)
+                {
+                    break;
+                }
+
+                _keys[child] = _keys[parent];
+                _values[child] = _values[parent];
+                child = parent;
+            }
+
+            _keys[child] = key;
+            _values[child] = value;
+        }
+
+        public bool TryPop(out JunctionId value)
+        {
+            if (_count == 0)
+            {
+                value = default;
+                return false;
+            }
+
+            value = _values[0];
+            var lastKey = _keys[--_count];
+            var lastValue = _values[_count];
+            if (_count == 0)
+            {
+                return true;
+            }
+
+            var parent = 0;
+            while (true)
+            {
+                var left = parent * 2 + 1;
+                if (left >= _count)
+                {
+                    break;
+                }
+
+                var right = left + 1;
+                var best = right < _count && _keys[right] < _keys[left] ? right : left;
+                if (_keys[best] >= lastKey)
+                {
+                    break;
+                }
+
+                _keys[parent] = _keys[best];
+                _values[parent] = _values[best];
+                parent = best;
+            }
+
+            _keys[parent] = lastKey;
+            _values[parent] = lastValue;
+            return true;
+        }
     }
 
     /// <summary>

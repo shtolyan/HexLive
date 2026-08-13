@@ -1150,6 +1150,17 @@ public sealed class MobSystem : ISimulationSystem
     // После бюджета — тот же честный MarkFleeUnavailable, но за миллисекунды.
     private const int FleePathSearchBudget = 24;
 
+    // §135.5: потолок развёрнутых узлов на ОДИН поиск маршрута погони. Жертва
+    // стоит максимум в агр+3 гексах, то есть штатный маршрут укладывается в
+    // сотни узлов; тысячи означают одно — дороги нет, и поиск просто
+    // разворачивает весь остров (~14 000 узлов). Раньше он делал это КАЖДЫЙ
+    // средний тик все 200 тиков, пока §29C.3 не объявлял погоню безнадёжной.
+    // Теперь безнадёжность стоит миллисекунды, а решение принимает тот же
+    // stall-таймер: пустой путь = шага не было = часы тикают.
+    // Соседний по смыслу бюджет — FleePathSearchBudget выше (там счёт идёт
+    // по попыткам, здесь по узлам одного поиска).
+    private const int ChasePathNodeBudget = 1500;
+
     private static bool TryReserveReachableFleeTarget(
         WorldState world,
         NPCState npc,
@@ -1459,7 +1470,8 @@ public sealed class MobSystem : ISimulationSystem
         // future retunes of the seam prices, which is the class of change that
         // historically reshuffled the whole dog dance.
         var path = HexPathfinder.FindPath(world, dog.Junction, targetJunction, _mobPathAvoidScratch,
-            weightClimb: false, hardAvoid: EnsureMobForbidden(world));
+            weightClimb: false, hardAvoid: EnsureMobForbidden(world),
+            maxExpansions: ChasePathNodeBudget);
         if (path.Count < 2)
         {
             return false;

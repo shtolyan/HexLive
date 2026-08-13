@@ -103,7 +103,7 @@ namespace HexLive.UnityPresentation.UI
         private readonly List<Material> _materialScratch = new();
         private readonly List<Material> _cloneMaterialScratch = new();
         private readonly List<SurfaceBinding> _surfaceBindings = new();
-        private readonly MaterialPropertyBlock _surfaceBlock = new();
+        private MaterialPropertyBlock _surfaceBlock;
         private readonly List<SkinnedMeshRenderer> _cloneSkins = new();
         private readonly HashSet<int> _sourceMaterialIds = new();
         private readonly Dictionary<string, DollFraming> _framingByActor = new();
@@ -198,6 +198,10 @@ namespace HexLive.UnityPresentation.UI
 
         private void Awake()
         {
+            // MaterialPropertyBlock allocates a native Unity object, so it
+            // cannot be created by a MonoBehaviour field initializer. Doing
+            // that aborts construction and leaves every later field null.
+            _surfaceBlock = new MaterialPropertyBlock();
             transform.position = StagePosition;
             for (var i = 0; i < ZoneOrder.Length; i++)
             {

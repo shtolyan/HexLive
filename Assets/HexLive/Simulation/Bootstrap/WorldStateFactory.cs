@@ -1010,6 +1010,15 @@ public sealed class WorldStateFactory
         // it must be crafted (1 stick at the fire), like every other tool.
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
 
+        // §40.3 / §44: the starting first-aid reserve is real cargo. Every
+        // dressing remains a separate instance, while identical wraps share a
+        // visible ten-item stack (two medkit gauzes, then two herbal wraps).
+        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: false));
+        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: false));
+        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: true));
+        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: true));
+        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
+
         // §72 / §79: the authored opening outsider keeps his established
         // machete+knife loadout. §72.14 treats recurring arrivals as their own
         // escalation sequence (axe -> spear -> machete), so adding waves does
@@ -1020,9 +1029,6 @@ public sealed class WorldStateFactory
             npc.Inventory.Items.Add(new Agents.ItemInstance("tool.machete"));
             npc.Inventory.Items.Add(new Agents.ItemInstance("tool.knife"));
         }
-        // Spec 40.3 / §44 r2: four bandages start in the med pouch
-        // (Needs.Bandages — 2 medkit + 2 herbal), not the general pack.
-
         world.Entities.Npcs[npc.Id] = npc;
         world.Occupancy.EntitiesInTile[coord].Add(npc.Id);
 

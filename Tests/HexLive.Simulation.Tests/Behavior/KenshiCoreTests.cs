@@ -583,8 +583,9 @@ public sealed class KenshiCoreTests
             Stabilized = false,
             BleedFactor = 1.2f
         });
-        patient.Needs.Bandages = 2;
-        patient.Needs.HerbalBandages = 2;
+        patient.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Bandage);
+        patient.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: true));
+        patient.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: true));
         patient.Plan.Status = PlanStatus.Completed;
         patient.Execution.Status = ExecutionStatus.None;
         patient.Mind.CurrentGoal = GoalType.None;
@@ -649,7 +650,7 @@ public sealed class KenshiCoreTests
         healer.Inventory.Items.Add(ContentIds.Splint);
 
         var applied = KenshiProstheticMath.ApplySplint(
-            healer, patient, BodyPart.LegR);
+            world, healer, patient, BodyPart.LegR);
 
         Assert.Multiple(() =>
         {

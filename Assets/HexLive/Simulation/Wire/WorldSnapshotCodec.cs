@@ -699,6 +699,7 @@ public static class WorldSnapshotCodec
         w.Write(n.IsSadWalk); // §81.10
         w.Write(n.IsPlayingDead); // §105.14
         w.Write(n.AidTargetLyingDown);
+        w.Write(n.LyingStationSlot); // §111.13
         w.Write(n.IsLedgeSit);
         w.Write(n.LedgeSeatStepsUp);
         w.Write(n.IsWaking);
@@ -958,6 +959,7 @@ public static class WorldSnapshotCodec
         n.IsSadWalk = r.ReadBoolean(); // §81.10
         n.IsPlayingDead = r.ReadBoolean(); // §105.14
         n.AidTargetLyingDown = r.ReadBoolean();
+        n.LyingStationSlot = r.ReadInt32(); // §111.13
         n.IsLedgeSit = r.ReadBoolean();
         n.LedgeSeatStepsUp = r.ReadInt32();
         n.IsWaking = r.ReadBoolean();
@@ -1164,6 +1166,8 @@ public static class WorldSnapshotCodec
         w.Write(m.TargetNpcId);
         w.Write(m.IsAttacking);
         w.Write(m.AttackStartTick);
+        w.Write(m.CarriedLimbOwnerNpcId);
+        WireIo.WriteString(w, m.CarriedLimbPart);
     }
 
     private static void ReadMobs(BinaryReader r, WorldSnapshot into)
@@ -1187,6 +1191,8 @@ public static class WorldSnapshotCodec
         m.TargetNpcId = r.ReadInt32();
         m.IsAttacking = r.ReadBoolean();
         m.AttackStartTick = r.ReadInt32();
+        m.CarriedLimbOwnerNpcId = r.ReadInt32();
+        m.CarriedLimbPart = r.ReadString();
     }
 
     private static void WriteCrabs(WorldSnapshot snapshot, BinaryWriter w)

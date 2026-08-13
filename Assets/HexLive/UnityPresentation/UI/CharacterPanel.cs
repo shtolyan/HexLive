@@ -7,6 +7,7 @@ using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -117,10 +118,11 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _inventoryWindow;
         private Label _inventoryTitle;
         private Label _inventoryCapacity;
-        private VisualElement _invListView;   // strict 50/50 items + doll layout
+        private VisualElement _invListView;   // elastic flat grid + aspect-locked doll
         private VisualElement _invItemsPane;
         private VisualElement _invItemsContent;
         private VisualElement _invDollPane;
+        private VisualElement _invLayerBar;
         private VisualElement _invPreviewView;
         private VisualElement _invPreviewHoverAnchor;
         private CharacterDollStage _characterDollStage;
@@ -142,8 +144,6 @@ namespace HexLive.UnityPresentation.UI
         private bool _inventoryMutable;
         private string _invDraggedId;
         private bool _invDraggedWorn;
-        private VisualElement _invDropZone;
-        private Label _invDropZoneLabel;
         private bool _inventoryOpen;
         private string _invSig;               // rebuild the list only on change
         private string _invSelectedId;        // item shown in the detail view
@@ -160,32 +160,25 @@ namespace HexLive.UnityPresentation.UI
         private Vector2 _invPointerDownPosition;
         private bool _invPointerMoved;
         private string _invHoveredWornId;
+        private bool _invHoverDetailFocus;
+        private VisualWearLayer _invVisibleWearLayer = VisualWearLayer.Bags;
         private readonly Dictionary<string, VisualElement> _invItemAnchors = new();
-        private readonly Dictionary<string, VisualElement> _invWornCards = new();
-        private readonly List<VisualElement> _invContainerCards = new();
-        private readonly List<VisualElement> _invGarmentCards = new();
-        private readonly List<GarmentGridBinding> _invGarmentGrids = new();
-        private readonly List<VisualElement> _invGarmentHeroIcons = new();
-        private readonly List<Label> _invGarmentDescriptions = new();
-        private readonly List<Label> _invGarmentSecondaryLabels = new();
-        private readonly List<VisualElement> _invCompactRows = new();
+        private readonly Dictionary<VisualWearLayer, VisualElement> _invLayerButtons = new();
+        private readonly Dictionary<VisualWearLayer, VectorIcon> _invLayerIcons = new();
         private readonly List<VisualElement> _invSlotCells = new();
         private readonly List<VisualElement> _invSlotIcons = new();
         private readonly List<Label> _invSlotGlyphs = new();
         private readonly List<Label> _invSlotBadges = new();
-        private readonly List<Label> _invSecondaryLabels = new();
-        private readonly List<VisualElement> _invCompactIcons = new();
         private int _invDensityTier;
         private float _invFitPaneWidth = -1f;
         private float _invFitPaneHeight = -1f;
-        private static readonly float[] InventoryCellSizes = { 48f, 42f, 36f, 30f, 28f };
-        private static readonly float[] InventoryGaps = { 5f, 4f, 3f, 2f, 2f };
-        private static readonly float[] InventoryPaddings = { 9f, 8f, 6f, 5f, 4f };
-        // Garments use the exact same slot component and density ladder as
-        // carry/holster. Only card geometry differs: the clothing hero image
-        // deliberately owns most of the upper half.
-        private static readonly float[] GarmentCardHeights = { 224f, 204f, 184f, 166f, 152f };
-        private static readonly float[] GarmentHeroIconSizes = { 152f, 136f, 120f, 104f, 92f };
+        // The flat inventory grid deliberately leaves future headroom: every
+        // tier is 20% smaller than the first approved large-icon pass while
+        // preserving one shared cell component for every physical slot.
+        private static readonly float[] InventoryCellSizes = { 106f, 93f, 80f, 70f, 61f };
+        private static readonly float[] InventoryGaps = { 8f, 6f, 6f, 5f, 4f };
+        private const float InventoryLayerBarHeight = 48f;
+        private const float InventoryLayerBarGap = 8f;
         private const float InventoryDragThreshold = 6f;
         private Dictionary<string, float> _invWornDurability = new();
         private Dictionary<string, WaterContainerState> _invCarriedWater = new();
@@ -218,14 +211,6 @@ namespace HexLive.UnityPresentation.UI
         {
             public float Amount;
             public float Capacity;
-        }
-
-        private struct GarmentGridBinding
-        {
-            public VisualElement Grid;
-            public int Columns;
-            public int Rows;
-            public int SlotCount;
         }
 
         // Static (re-labeled on language change)
@@ -589,6 +574,9 @@ namespace HexLive.UnityPresentation.UI
             // deselects the NPC.
             NpcSelection.PointerOverUi = overBar || overRoster ||
                 PointerOverFloating(_inventoryOpen, _inventoryWindow, mousePos, scale) ||
+                PointerOverFloating(
+                    _inventoryOpen && _invSelectedId != null,
+                    _invDetailView, mousePos, scale) ||
                 PointerOverFloating(_healthOpen, _healthWindow, mousePos, scale);
         }
 
@@ -1524,7 +1512,10 @@ namespace HexLive.UnityPresentation.UI
             _invItemsContent.style.flexDirection = FlexDirection.Row;
             _invItemsContent.style.flexWrap = Wrap.Wrap;
             _invItemsContent.style.alignContent = Align.FlexStart;
+            _invItemsContent.style.justifyContent = Justify.FlexStart;
             _invItemsContent.style.width = Length.Percent(100f);
+            _invItemsContent.style.paddingTop = 2f;
+            _invItemsContent.style.paddingLeft = 2f;
             _invItemsPane.Add(_invItemsContent);
             _invListView.Add(_invItemsPane);
 
@@ -1533,12 +1524,28 @@ namespace HexLive.UnityPresentation.UI
             // portrait inside it, so there is no dead field to either side.
             _invDollPane.style.flexGrow = 0f;
             _invDollPane.style.flexShrink = 0f;
+            _invDollPane.style.flexDirection = FlexDirection.Column;
             _invDollPane.style.alignItems = Align.Center;
             _invDollPane.style.justifyContent = Justify.Center;
             _invDollPane.style.backgroundColor = InventoryDollBackdrop;
             _invDollPane.style.overflow = Overflow.Hidden;
             SetBorder(_invDollPane, Stroke, 1f);
             SetRadius(_invDollPane, 13f);
+
+            _invLayerBar = new VisualElement { name = "inventory-wear-layer-bar" };
+            _invLayerBar.style.height = InventoryLayerBarHeight;
+            _invLayerBar.style.flexShrink = 0f;
+            _invLayerBar.style.flexDirection = FlexDirection.Row;
+            _invLayerBar.style.alignItems = Align.Center;
+            _invLayerBar.style.justifyContent = Justify.Center;
+            _invLayerBar.style.marginBottom = InventoryLayerBarGap;
+            _invLayerBar.style.paddingLeft = 5f;
+            _invLayerBar.style.paddingRight = 5f;
+            _invLayerBar.style.backgroundColor = new Color(0.025f, 0.035f, 0.041f, 0.92f);
+            SetBorder(_invLayerBar, Stroke, 1f);
+            SetRadius(_invLayerBar, 11f);
+            BuildInventoryWearLayerButtons();
+            _invDollPane.Add(_invLayerBar);
 
             _invPreviewView = new VisualElement();
             _invPreviewView.style.position = Position.Relative;
@@ -1567,36 +1574,18 @@ namespace HexLive.UnityPresentation.UI
             _invListView.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryDollViewport());
             _inventoryWindow.Add(_invListView);
 
-            _invDropZone = new VisualElement();
-            _invDropZone.style.height = 34f;
-            _invDropZone.style.marginTop = 7f;
-            _invDropZone.style.alignItems = Align.Center;
-            _invDropZone.style.justifyContent = Justify.Center;
-            _invDropZone.style.backgroundColor = new Color(Crit.r, Crit.g, Crit.b, 0.09f);
-            SetBorder(_invDropZone, new Color(Crit.r, Crit.g, Crit.b, 0.45f), 1f);
-            SetRadius(_invDropZone, 8f);
-            _invDropZoneLabel = new Label(Loc.Get("inv.drop_zone"));
-            _invDropZoneLabel.style.color = Crit;
-            _invDropZoneLabel.style.fontSize = 11f;
-            _invDropZoneLabel.pickingMode = PickingMode.Ignore;
-            _invDropZone.Add(_invDropZoneLabel);
-            _invDropZone.RegisterCallback<PointerUpEvent>(evt =>
-            {
-                if (_invDraggedId == null) return;
-                CompleteInventoryDrag(InventoryAction.Drop);
-                evt.StopPropagation();
-            });
-            _inventoryWindow.Add(_invDropZone);
-
+            // Item removal is an explicit action inside the selected item's
+            // detail card. The old full-width drag target looked interactive
+            // but gave no clear affordance for how to begin or finish a drag.
+            // Cards now open on click; "Drop" is shown only for a real item.
+            // Wear/stow still keeps its compact drag gesture, so track it after
+            // the pointer leaves the originating card.
             _invItemsPane.RegisterCallback<PointerUpEvent>(evt =>
             {
                 if (_invDraggedId == null || !_invDraggedWorn) return;
                 CompleteInventoryDrag(InventoryAction.Stow);
                 evt.StopPropagation();
             });
-            // Track the prepared click/drag gesture across the whole screen. A
-            // fast move out of the inventory must still cross the six-unit
-            // threshold, while PointerUp keeps its real target for drop zones.
             _root.RegisterCallback<PointerMoveEvent>(UpdateInventoryPointerGesture);
             _root.RegisterCallback<PointerUpEvent>(_ => ClearInventoryDrag());
 
@@ -1629,17 +1618,28 @@ namespace HexLive.UnityPresentation.UI
             _invDetailView.style.paddingBottom = 14f;
             _invDetailView.style.display = DisplayStyle.None;
             BuildInventoryDetail(_invDetailView);
-            _inventoryWindow.Add(_invDetailView);
 
             // Standard popover dismissal: an ordinary click inside the card
             // stays inside it, while PointerUp on any uncovered part of the
             // inventory window closes it. A real drag is allowed to bubble to
             // the root cleanup so releasing over the popover cannot stick it.
             _invDetailView.RegisterCallback<PointerUpEvent>(KeepInventoryDetailOpen);
+            _invDetailView.RegisterCallback<PointerEnterEvent>(_ =>
+                _invHoverDetailFocus = true);
+            _invDetailView.RegisterCallback<PointerLeaveEvent>(_ =>
+            {
+                _invHoverDetailFocus = false;
+                ScheduleInventoryHoverDetailHide();
+            });
             _inventoryWindow.RegisterCallback<PointerUpEvent>(
                 DismissInventoryDetailOnBackgroundClick);
 
             _root.Add(_inventoryWindow);
+            // The item card intentionally lives on the root overlay instead
+            // of inside the clipped inventory window. This lets it occupy one
+            // stable place just beyond the doll-side edge without covering the
+            // RenderTexture or being cut off by the window's rounded bounds.
+            _root.Add(_invDetailView);
             _root.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryWindow());
             _invDetailView.RegisterCallback<GeometryChangedEvent>(_ =>
             {
@@ -1648,6 +1648,99 @@ namespace HexLive.UnityPresentation.UI
                     PositionInventoryDetail();
                 }
             });
+        }
+
+        private void BuildInventoryWearLayerButtons()
+        {
+            _invLayerButtons.Clear();
+            _invLayerIcons.Clear();
+            foreach (var layer in new[]
+                     {
+                         VisualWearLayer.Underwear,
+                         VisualWearLayer.Wear,
+                         VisualWearLayer.Outerwear,
+                         VisualWearLayer.Bags
+                     })
+            {
+                var button = new VisualElement { name = $"inventory-layer-{layer}" };
+                button.style.position = Position.Relative;
+                button.style.flexBasis = 0f;
+                button.style.flexGrow = 1f;
+                button.style.maxWidth = 54f;
+                button.style.minWidth = 0f;
+                button.style.height = 36f;
+                button.style.flexShrink = 1f;
+                button.style.marginLeft = 2f;
+                button.style.marginRight = 2f;
+                button.style.alignItems = Align.Center;
+                button.style.justifyContent = Justify.Center;
+                SetRadius(button, 9f);
+
+                var icon = new VectorIcon(InventoryLayerIconKind(layer), TextDim);
+                icon.style.width = 25f;
+                icon.style.height = 25f;
+                button.Add(icon);
+
+                button.tooltip = Loc.Get(InventoryLayerLocKey(layer));
+                button.RegisterCallback<MouseDownEvent>(evt =>
+                {
+                    SelectInventoryWearLayer(layer);
+                    evt.StopPropagation();
+                });
+                _invLayerButtons[layer] = button;
+                _invLayerIcons[layer] = icon;
+                _invLayerBar.Add(button);
+            }
+
+            RefreshInventoryWearLayerButtonStyle();
+        }
+
+        private static VectorIcon.Kind InventoryLayerIconKind(VisualWearLayer layer) => layer switch
+        {
+            VisualWearLayer.Underwear => VectorIcon.Kind.Underwear,
+            VisualWearLayer.Wear => VectorIcon.Kind.Shirt,
+            VisualWearLayer.Outerwear => VectorIcon.Kind.Coat,
+            _ => VectorIcon.Kind.Bag
+        };
+
+        private static string InventoryLayerLocKey(VisualWearLayer layer) => layer switch
+        {
+            VisualWearLayer.Underwear => "layer.underwear",
+            VisualWearLayer.Wear => "layer.wear",
+            VisualWearLayer.Outerwear => "layer.outerwear",
+            _ => "layer.bags"
+        };
+
+        private void SelectInventoryWearLayer(VisualWearLayer layer)
+        {
+            if (_invVisibleWearLayer == layer)
+            {
+                return;
+            }
+
+            _invVisibleWearLayer = layer;
+            HideItemDetail();
+            RefreshInventoryWearLayerButtonStyle();
+            _characterDollStage?.SetVisibleWearLayer(layer);
+        }
+
+        private void RefreshInventoryWearLayerButtonStyle()
+        {
+            foreach (var pair in _invLayerButtons)
+            {
+                var active = pair.Key == _invVisibleWearLayer;
+                pair.Value.style.backgroundColor = active
+                    ? new Color(0.10f, 0.36f, 0.39f, 0.94f)
+                    : new Color(0.035f, 0.055f, 0.064f, 0.82f);
+                pair.Value.style.opacity = active ? 1f : 0.72f;
+                SetBorder(pair.Value, active
+                    ? new Color(0.20f, 0.88f, 0.86f, 0.95f)
+                    : Stroke, active ? 1.5f : 1f);
+                if (_invLayerIcons.TryGetValue(pair.Key, out var icon))
+                {
+                    icon.SetColor(active ? Color.white : TextDim);
+                }
+            }
         }
 
         private void KeepInventoryDetailOpen(PointerUpEvent evt)
@@ -1816,6 +1909,13 @@ namespace HexLive.UnityPresentation.UI
                     return;
                 }
 
+                // Once the player starts manipulating the doll, the clothing
+                // hover card must get out of the way immediately.
+                if (_invSelectedWorn)
+                {
+                    _invHoverDetailFocus = false;
+                    HideItemDetail();
+                }
                 ClearInventoryDrag();
                 _invPreviewDragging = true;
                 _invPreviewPointerId = evt.pointerId;
@@ -1825,6 +1925,8 @@ namespace HexLive.UnityPresentation.UI
                 _invPreviewView.CapturePointer(evt.pointerId);
                 evt.StopPropagation();
             });
+            _invPreviewView.RegisterCallback<PointerEnterEvent>(_ =>
+                _invHoverDetailFocus = true);
             _invPreviewView.RegisterCallback<PointerMoveEvent>(evt =>
             {
                 if (_invPreviewDragging && evt.pointerId == _invPreviewPointerId &&
@@ -1864,26 +1966,14 @@ namespace HexLive.UnityPresentation.UI
                 if (!_invPreviewRotated)
                 {
                     var localPosition = new Vector2(evt.localPosition.x, evt.localPosition.y);
-                    if (_characterDollStage != null &&
-                        _characterDollStage.TryPickWorn(
+                    if (_characterDollStage == null ||
+                        !_characterDollStage.TryPickWorn(
                             localPosition,
                             new Vector2(
                                 _invPreviewView.resolvedStyle.width,
                                 _invPreviewView.resolvedStyle.height),
-                            out var wornId))
+                            out _))
                     {
-                        _invPreviewHoverAnchor.style.left = localPosition.x - 1f;
-                        _invPreviewHoverAnchor.style.top = localPosition.y - 1f;
-                        ShowItemDetail(
-                            wornId, true, _invWornDurability, _invCarriedWater,
-                            _invCarriedStacks, _invWornWetness, _invWornDirtiness,
-                            _invPreviewHoverAnchor);
-                    }
-                    else
-                    {
-                        // Preview captures its pointer for rotation and cannot
-                        // bubble to the window's background handler. A short
-                        // click that hit no garment is therefore dismissed here.
                         HideItemDetail();
                     }
                 }
@@ -1901,7 +1991,9 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (!_invPreviewDragging)
                 {
+                    _invHoverDetailFocus = false;
                     SetHoveredWorn(string.Empty);
+                    ScheduleInventoryHoverDetailHide();
                 }
             });
         }
@@ -1915,10 +2007,36 @@ namespace HexLive.UnityPresentation.UI
                     out var wornId))
             {
                 SetHoveredWorn(wornId);
+                _invHoverDetailFocus = true;
+                var changedItem = !string.Equals(
+                    _invSelectedId, wornId, StringComparison.Ordinal) || !_invSelectedWorn;
+                _invPreviewHoverAnchor.style.left = localPosition.x - 1f;
+                _invPreviewHoverAnchor.style.top = localPosition.y - 1f;
+                if (changedItem)
+                {
+                    ShowItemDetail(
+                        wornId, true, _invWornDurability, _invCarriedWater,
+                        _invCarriedStacks, _invWornWetness, _invWornDirtiness,
+                        _invPreviewHoverAnchor);
+                }
                 return;
             }
 
             SetHoveredWorn(string.Empty);
+            _invHoverDetailFocus = false;
+            ScheduleInventoryHoverDetailHide();
+        }
+
+        private void ScheduleInventoryHoverDetailHide()
+        {
+            _invDetailView?.schedule.Execute(() =>
+            {
+                if (!_invHoverDetailFocus && !_invPreviewDragging &&
+                    _invSelectedId != null && _invSelectedWorn)
+                {
+                    HideItemDetail();
+                }
+            }).StartingIn(80);
         }
 
         private void ToggleInventory()
@@ -1931,10 +2049,13 @@ namespace HexLive.UnityPresentation.UI
             {
                 CloseHealth(); // the two floating windows share the same spot
                 _inventoryOpen = true;
+                _invVisibleWearLayer = VisualWearLayer.Bags;
                 _invSig = null; // force a rebuild on the next refresh
                 FitInventoryWindow();
                 _inventoryWindow.style.display = DisplayStyle.Flex;
                 _characterDollStage?.SetMode(CharacterDollMode.Inventory);
+                _characterDollStage?.SetVisibleWearLayer(_invVisibleWearLayer);
+                RefreshInventoryWearLayerButtonStyle();
                 HideItemDetail();
                 _refreshedTick = -1; // pull a fresh snapshot into the window now
             }
@@ -1943,6 +2064,7 @@ namespace HexLive.UnityPresentation.UI
         private void CloseInventory()
         {
             _inventoryOpen = false;
+            _invHoverDetailFocus = false;
             _invSelectedId = null;
             _invDetailAnchor = null;
             if (!_healthOpen)
@@ -2002,19 +2124,25 @@ namespace HexLive.UnityPresentation.UI
             // its clipped parent, and the clipping takes the head and the feet.
             // The width cap keeps a very tall window from starving the item
             // list, since the portrait is otherwise sized by height alone.
+            var previewRoomHeight = Mathf.Max(
+                1f, room.height - InventoryLayerBarHeight - InventoryLayerBarGap);
             var width = Mathf.Min(
-                room.height / DollAspectHeight, room.width * MaxDollPaneWidthFraction);
+                previewRoomHeight / DollAspectHeight,
+                room.width * MaxDollPaneWidthFraction);
             var height = width * DollAspectHeight;
             // Writing a size from inside a geometry callback re-triggers that
             // callback; only an actual change may be written, or the window
             // relayouts itself forever.
-            if (Mathf.Abs(_invPreviewView.resolvedStyle.height - height) < 0.5f)
+            if (Mathf.Abs(_invPreviewView.resolvedStyle.height - height) < 0.5f &&
+                Mathf.Abs(_invPreviewView.resolvedStyle.width - width) < 0.5f)
             {
                 return;
             }
 
             _invPreviewView.style.height = height;
             _invPreviewView.style.width = width;
+            _invDollPane.style.width = width;
+            _invLayerBar.style.width = width;
         }
 
         private void ResetInventoryDensity()
@@ -2061,16 +2189,6 @@ namespace HexLive.UnityPresentation.UI
             var tier = Mathf.Clamp(_invDensityTier, 0, InventoryCellSizes.Length - 1);
             var size = InventoryCellSizes[tier];
             var gap = InventoryGaps[tier];
-            var padding = InventoryPaddings[tier];
-
-            foreach (var card in _invContainerCards)
-            {
-                card.style.paddingLeft = padding;
-                card.style.paddingRight = padding;
-                card.style.paddingTop = Mathf.Max(3f, padding - 1f);
-                card.style.paddingBottom = padding;
-                card.style.marginBottom = gap;
-            }
 
             foreach (var cell in _invSlotCells)
             {
@@ -2078,9 +2196,10 @@ namespace HexLive.UnityPresentation.UI
                 cell.style.height = size;
                 cell.style.marginRight = gap;
                 cell.style.marginBottom = gap;
+                SetRadius(cell, Mathf.Max(9f, 15f - tier));
             }
 
-            var iconSize = Mathf.Max(22f, size - 8f);
+            var iconSize = Mathf.Max(46f, size - 14f);
             foreach (var icon in _invSlotIcons)
             {
                 icon.style.width = iconSize;
@@ -2088,83 +2207,12 @@ namespace HexLive.UnityPresentation.UI
             }
             foreach (var glyph in _invSlotGlyphs)
             {
-                glyph.style.fontSize = Mathf.Max(14f, size * 0.48f);
+                glyph.style.fontSize = Mathf.Max(32f, size * 0.46f);
             }
             foreach (var badge in _invSlotBadges)
             {
-                badge.style.fontSize = Mathf.Max(5.5f, size * 0.16f);
-                badge.style.maxWidth = Mathf.Max(18f, size - 6f);
-            }
-            foreach (var secondary in _invSecondaryLabels)
-            {
-                secondary.style.fontSize = Mathf.Max(7.5f, 10.5f - tier * 0.75f);
-            }
-
-            var maxGarmentRows = 1;
-            foreach (var binding in _invGarmentGrids)
-            {
-                maxGarmentRows = Mathf.Max(maxGarmentRows, binding.Rows);
-            }
-            var garmentHeight = GarmentCardHeights[tier] +
-                                Mathf.Max(0, maxGarmentRows - 1) * (size + gap);
-            foreach (var card in _invGarmentCards)
-            {
-                card.style.height = garmentHeight;
-                card.style.paddingLeft = padding;
-                card.style.paddingRight = padding;
-                card.style.paddingTop = Mathf.Max(3f, padding - 1f);
-                card.style.paddingBottom = padding;
-                card.style.marginBottom = gap;
-            }
-            foreach (var icon in _invGarmentHeroIcons)
-            {
-                var heroSize = GarmentHeroIconSizes[tier];
-                icon.style.width = heroSize;
-                icon.style.height = heroSize;
-            }
-            foreach (var description in _invGarmentDescriptions)
-            {
-                description.style.fontSize = Mathf.Max(7.5f, 9f - tier * 0.35f);
-                description.style.maxHeight = Mathf.Max(17f, 23f - tier * 1.5f);
-            }
-            foreach (var secondary in _invGarmentSecondaryLabels)
-            {
-                secondary.style.fontSize = Mathf.Max(7.5f, 9.5f - tier * 0.5f);
-            }
-            foreach (var binding in _invGarmentGrids)
-            {
-                binding.Grid.style.width = binding.Columns * size +
-                                           Mathf.Max(0, binding.Columns - 1) * gap;
-                binding.Grid.style.height = binding.Rows * size +
-                                            Mathf.Max(0, binding.Rows - 1) * gap;
-                var cellIndex = 0;
-                foreach (var cell in binding.Grid.Children())
-                {
-                    cell.style.width = size;
-                    cell.style.height = size;
-                    cell.style.marginRight = (cellIndex + 1) % binding.Columns == 0 ||
-                                             cellIndex == binding.SlotCount - 1 ? 0f : gap;
-                    cell.style.marginBottom = cellIndex / binding.Columns >= binding.Rows - 1
-                        ? 0f : gap;
-                    cellIndex++;
-                }
-            }
-
-            var rowHeight = Mathf.Max(27f, 38f - tier * 2.75f);
-            foreach (var row in _invCompactRows)
-            {
-                row.style.minHeight = rowHeight;
-                row.style.paddingLeft = Mathf.Max(4f, 8f - tier);
-                row.style.paddingRight = Mathf.Max(4f, 8f - tier);
-                row.style.paddingTop = Mathf.Max(2f, 5f - tier * 0.75f);
-                row.style.paddingBottom = Mathf.Max(2f, 5f - tier * 0.75f);
-                row.style.marginBottom = gap;
-            }
-            foreach (var icon in _invCompactIcons)
-            {
-                var compactSize = Mathf.Max(20f, 28f - tier * 2f);
-                icon.style.width = compactSize;
-                icon.style.height = compactSize;
+                badge.style.fontSize = Mathf.Max(10f, size * 0.12f);
+                badge.style.maxWidth = Mathf.Max(42f, size - 12f);
             }
         }
 
@@ -2589,40 +2637,25 @@ namespace HexLive.UnityPresentation.UI
         private void SetHoveredWorn(string itemId)
         {
             itemId ??= string.Empty;
-            if (_invHoveredWornId == itemId)
-            {
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(_invHoveredWornId) &&
-                _invWornCards.TryGetValue(_invHoveredWornId, out var oldCard))
-            {
-                SetBorderColor(oldCard, Stroke);
-            }
-
             _invHoveredWornId = itemId;
-            if (itemId.Length > 0 && _invWornCards.TryGetValue(itemId, out var card))
-            {
-                SetBorderColor(card, Gold);
-            }
         }
 
         private void PositionInventoryDetail()
         {
-            if (_invDetailView == null || _inventoryWindow == null || _invDetailAnchor == null ||
+            if (_root == null || _invDetailView == null || _inventoryWindow == null ||
                 _invDetailView.resolvedStyle.display == DisplayStyle.None)
             {
                 return;
             }
 
+            var root = _root.worldBound;
             var window = _inventoryWindow.worldBound;
-            var anchor = _invDetailAnchor.worldBound;
-            if (window.width < 1f || anchor.width < 1f)
+            if (root.width < 1f || window.width < 1f)
             {
                 return;
             }
 
-            var allowedHeight = Mathf.Min(470f, Mathf.Max(1f, window.height - 58f));
+            var allowedHeight = Mathf.Min(470f, Mathf.Max(1f, root.height - 16f));
             _invDetailView.style.maxHeight = allowedHeight;
             var detailWidth = _invDetailView.resolvedStyle.width;
             var detailHeight = _invDetailView.resolvedStyle.height;
@@ -2630,15 +2663,17 @@ namespace HexLive.UnityPresentation.UI
             if (float.IsNaN(detailHeight) || detailHeight < 1f) detailHeight = 470f;
             detailHeight = Mathf.Min(detailHeight, allowedHeight);
 
-            var leftSpace = anchor.xMin - window.xMin;
-            var rightSpace = window.xMax - anchor.xMax;
-            var x = rightSpace >= leftSpace
-                ? anchor.xMax - window.xMin + 10f
-                : anchor.xMin - window.xMin - detailWidth - 10f;
-            x = Mathf.Clamp(x, 8f, Mathf.Max(8f, window.width - detailWidth - 8f));
+            // One predictable resting place for every item card: just beyond
+            // the inventory window's doll-side edge, vertically centred on the
+            // doll. On a narrow viewport the screen edge wins, so the card
+            // remains usable instead of rendering off-screen.
+            var x = window.xMax - root.xMin + 12f;
+            x = Mathf.Min(x, Mathf.Max(8f, root.width - detailWidth - 8f));
+            x = Mathf.Max(8f, x);
 
-            var y = anchor.center.y - window.yMin - detailHeight * 0.5f;
-            y = Mathf.Clamp(y, 48f, Mathf.Max(48f, window.height - detailHeight - 8f));
+            var doll = _invDollPane != null ? _invDollPane.worldBound : window;
+            var y = doll.center.y - root.yMin - detailHeight * 0.5f;
+            y = Mathf.Clamp(y, 8f, Mathf.Max(8f, root.height - detailHeight - 8f));
             _invDetailView.style.left = x;
             _invDetailView.style.top = y;
         }
@@ -2657,9 +2692,6 @@ namespace HexLive.UnityPresentation.UI
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
                 npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f;
-            if (_invDropZone != null)
-                _invDropZone.style.display = _inventoryMutable
-                    ? DisplayStyle.Flex : DisplayStyle.None;
             if (!_inventoryOpen)
             {
                 return;
@@ -2667,10 +2699,10 @@ namespace HexLive.UnityPresentation.UI
 
             var capacity = Mathf.Max(0, npc.InventoryCapacity);
             _inventoryCapacity.text = $"{npc.InventoryUsedSlots}/{capacity} {Loc.Get("inv.slots")}";
-
             if (_characterDollStage != null)
             {
                 _characterDollStage.SetTarget(npc.Id.Value, npc.ActorMesh, npc.WornItems);
+                _characterDollStage.SetVisibleWearLayer(_invVisibleWearLayer);
                 _characterDollStage.SetZones(
                     npc.BodyParts, npc.SeveredParts, npc.BandagedZones,
                     npc.BodyPartConditions);
@@ -2718,8 +2750,8 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _invSig = sig;
-            RebuildItemList(npc, wornDurability, carriedDurability, carriedWater, carriedStacks,
-                wornWetness, carriedWetness, wornDirtiness, carriedDirtiness);
+            RebuildItemList(npc, carriedDurability, carriedWater, carriedStacks,
+                carriedWetness, carriedDirtiness);
 
             // Keep the detail view coherent: if the shown item is still present,
             // re-render it (its wetness/durability may have moved); else drop back.
@@ -2748,149 +2780,38 @@ namespace HexLive.UnityPresentation.UI
 
         private void RebuildItemList(
             NpcSnapshot npc,
-            Dictionary<string, float> wornDurability,
             Dictionary<string, float> carriedDurability,
             Dictionary<string, WaterContainerState> carriedWater,
             Dictionary<string, int> carriedStacks,
-            Dictionary<string, float> wornWetness,
             Dictionary<string, float> carriedWetness,
-            Dictionary<string, float> wornDirtiness,
             Dictionary<string, float> carriedDirtiness)
         {
             _invItemsContent.Clear();
             _invItemAnchors.Clear();
-            _invWornCards.Clear();
-            _invContainerCards.Clear();
-            _invGarmentCards.Clear();
-            _invGarmentGrids.Clear();
-            _invGarmentHeroIcons.Clear();
-            _invGarmentDescriptions.Clear();
-            _invGarmentSecondaryLabels.Clear();
-            _invCompactRows.Clear();
             _invSlotCells.Clear();
             _invSlotIcons.Clear();
             _invSlotGlyphs.Clear();
             _invSlotBadges.Clear();
-            _invSecondaryLabels.Clear();
-            _invCompactIcons.Clear();
             _invHoveredWornId = string.Empty;
             _invHeldSlotMarked = false;
 
-            var hands = new List<InventoryContainerSnapshot>();
-            InventoryContainerSnapshot carry = null;
-            var garments = new List<InventoryContainerSnapshot>();
-            var holsters = new List<InventoryContainerSnapshot>();
-            var overflow = new List<InventoryContainerSnapshot>();
+            // The layout still owns the deterministic physical placement, but
+            // presentation deliberately flattens it. Every real slot appears
+            // exactly once, in snapshot order; the worn containers themselves
+            // never become inventory items or headings.
             foreach (var container in npc.InventoryContainers)
             {
-                if (container.Kind is InventoryContainerKind.HandLeft or
-                    InventoryContainerKind.HandRight)
+                foreach (var slot in container.Slots)
                 {
-                    hands.Add(container);
-                    continue;
-                }
-
-                switch (container.Kind)
-                {
-                    case InventoryContainerKind.Carry:
-                        carry = container;
-                        break;
-                    case InventoryContainerKind.Garment:
-                        garments.Add(container);
-                        break;
-                    case InventoryContainerKind.Holster:
-                        holsters.Add(container);
-                        break;
-                    case InventoryContainerKind.Overflow:
-                        overflow.Add(container);
-                        break;
-                }
-            }
-
-            // Carry keeps its specialized presentation, but no longer stretches
-            // across empty horizontal space. Functional hands stay typed in the
-            // snapshot and become its last cells.
-            if (carry == null && hands.Count > 0)
-            {
-                carry = new InventoryContainerSnapshot
-                {
-                    Id = "carry:ui",
-                    Kind = InventoryContainerKind.Carry,
-                    BodyAnchor = InventoryBodyAnchor.Pelvis
-                };
-            }
-
-            if (carry != null)
-            {
-                _invItemsContent.Add(BuildInventoryContainerCard(
-                    npc, carry, wornDurability, carriedDurability, carriedWater, carriedStacks,
-                    wornWetness, carriedWetness, wornDirtiness, carriedDirtiness, hands));
-            }
-
-            // Garment containers follow WornItems inside their own strict
-            // two-column card grid, not dictionary/hash order.
-            var garmentGrid = new VisualElement();
-            garmentGrid.name = "inventory-garment-grid";
-            garmentGrid.style.width = Length.Percent(100f);
-            garmentGrid.style.flexDirection = FlexDirection.Row;
-            garmentGrid.style.flexWrap = Wrap.Wrap;
-            garmentGrid.style.alignContent = Align.FlexStart;
-            var renderedGarments = new HashSet<string>();
-            foreach (var wornId in npc.WornItems)
-            {
-                foreach (var garment in garments)
-                {
-                    if (renderedGarments.Contains(garment.Id) ||
-                        garment.OwnerItemDefinitionId != wornId)
+                    var cell = BuildInventorySlotCell(
+                        npc, slot, carriedDurability, carriedWater, carriedStacks,
+                        carriedWetness, carriedDirtiness);
+                    if (container.Kind == InventoryContainerKind.Overflow)
                     {
-                        continue;
+                        SetBorder(cell, Warn, 2f);
                     }
-
-                    garmentGrid.Add(BuildGarmentInventoryCard(
-                        npc, garment, wornDurability, carriedDurability, carriedWater, carriedStacks,
-                        wornWetness, carriedWetness, wornDirtiness, carriedDirtiness));
-                    renderedGarments.Add(garment.Id);
-                    break;
+                    _invItemsContent.Add(cell);
                 }
-            }
-            foreach (var garment in garments)
-            {
-                if (renderedGarments.Add(garment.Id))
-                {
-                    garmentGrid.Add(BuildGarmentInventoryCard(
-                        npc, garment, wornDurability, carriedDurability, carriedWater, carriedStacks,
-                        wornWetness, carriedWetness, wornDirtiness, carriedDirtiness));
-                }
-            }
-            if (garmentGrid.childCount > 0)
-            {
-                _invItemsContent.Add(garmentGrid);
-            }
-
-            foreach (var holster in holsters)
-            {
-                _invItemsContent.Add(BuildInventoryContainerCard(
-                    npc, holster, wornDurability, carriedDurability, carriedWater, carriedStacks,
-                    wornWetness, carriedWetness, wornDirtiness, carriedDirtiness));
-            }
-
-            // Zero-capacity garments still need a real hover target in the
-            // clothing list even though they own no slot container.
-            foreach (var wornId in npc.WornItems)
-            {
-                if (!_invWornCards.ContainsKey(wornId))
-                {
-                    _invItemsContent.Add(BuildCompactWornRow(
-                        wornId, wornDurability, carriedWater, carriedStacks,
-                        wornWetness, wornDirtiness));
-                }
-            }
-
-            foreach (var diagnostic in overflow)
-            {
-                _invItemsContent.Add(BuildInventoryContainerCard(
-                    npc, diagnostic, wornDurability, carriedDurability, carriedWater, carriedStacks,
-                    wornWetness, carriedWetness, wornDirtiness, carriedDirtiness));
             }
 
             ResetInventoryDensity();
@@ -2918,295 +2839,6 @@ namespace HexLive.UnityPresentation.UI
             return result.ToString();
         }
 
-        private VisualElement BuildGarmentInventoryCard(
-            NpcSnapshot npc,
-            InventoryContainerSnapshot container,
-            Dictionary<string, float> wornDurability,
-            Dictionary<string, float> carriedDurability,
-            Dictionary<string, WaterContainerState> carriedWater,
-            Dictionary<string, int> carriedStacks,
-            Dictionary<string, float> wornWetness,
-            Dictionary<string, float> carriedWetness,
-            Dictionary<string, float> wornDirtiness,
-            Dictionary<string, float> carriedDirtiness)
-        {
-            var itemId = container.OwnerItemDefinitionId;
-            var def = ResolveDef(itemId);
-            var info = ResolveItemInfo(itemId, def);
-            var card = new VisualElement();
-            card.name = "inventory-garment-card";
-            card.style.width = Length.Percent(49f);
-            card.style.height = GarmentCardHeights[0];
-            card.style.flexShrink = 0f;
-            card.style.marginRight = Length.Percent(1f);
-            card.style.marginBottom = InventoryGaps[0];
-            card.style.backgroundColor = Raised;
-            card.style.paddingLeft = InventoryPaddings[0];
-            card.style.paddingRight = InventoryPaddings[0];
-            card.style.paddingTop = InventoryPaddings[0] - 1f;
-            card.style.paddingBottom = InventoryPaddings[0];
-            card.style.overflow = Overflow.Hidden;
-            SetBorder(card, Stroke, 1f);
-            SetRadius(card, 10f);
-            _invGarmentCards.Add(card);
-
-            var header = new VisualElement();
-            header.name = "inventory-garment-header";
-            header.style.flexDirection = FlexDirection.Row;
-            header.style.alignItems = Align.FlexStart;
-            header.style.flexShrink = 0f;
-            header.style.marginBottom = 5f;
-
-            var icon = LoadItemIcon(itemId);
-            VisualElement heroIcon;
-            if (icon != null)
-            {
-                var image = new Image { sprite = icon, scaleMode = ScaleMode.ScaleToFit };
-                heroIcon = image;
-            }
-            else
-            {
-                var glyph = new Label(info.Emoji);
-                glyph.style.fontSize = 24f;
-                glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
-                heroIcon = glyph;
-            }
-            heroIcon.style.width = GarmentHeroIconSizes[0];
-            heroIcon.style.height = GarmentHeroIconSizes[0];
-            heroIcon.style.flexShrink = 0f;
-            heroIcon.style.marginRight = 10f;
-            heroIcon.style.backgroundColor = Track;
-            heroIcon.pickingMode = PickingMode.Ignore;
-            SetBorder(heroIcon, StrokeStrong, 1f);
-            SetRadius(heroIcon, 10f);
-            header.Add(heroIcon);
-            _invGarmentHeroIcons.Add(heroIcon);
-
-            var text = new VisualElement();
-            text.style.flexGrow = 1f;
-            text.style.minWidth = 0f;
-            text.style.paddingTop = 4f;
-
-            var titleLine = new VisualElement();
-            titleLine.style.flexDirection = FlexDirection.Row;
-            titleLine.style.alignItems = Align.Center;
-            var title = new Label(ItemName(def, info));
-            title.style.color = Text;
-            title.style.fontSize = 10.5f;
-            title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            title.style.flexGrow = 1f;
-            title.style.whiteSpace = WhiteSpace.NoWrap;
-            title.style.overflow = Overflow.Hidden;
-            title.style.textOverflow = TextOverflow.Ellipsis;
-            title.pickingMode = PickingMode.Ignore;
-            titleLine.Add(title);
-
-            var filled = 0;
-            foreach (var slot in container.Slots)
-            {
-                if (!string.IsNullOrEmpty(slot.ItemDefinitionId)) filled++;
-            }
-            var capacity = new Label($"{filled}/{container.Capacity}");
-            capacity.style.color = TextMute;
-            capacity.style.fontSize = 9.5f;
-            capacity.style.marginLeft = 4f;
-            capacity.style.flexShrink = 0f;
-            capacity.pickingMode = PickingMode.Ignore;
-            titleLine.Add(capacity);
-            text.Add(titleLine);
-            _invGarmentSecondaryLabels.Add(capacity);
-
-            var anchor = new Label(
-                $"{InventoryBodyAnchorName(container.BodyAnchor)} · " +
-                $"{container.Capacity} {Loc.Get("inv.slots")}");
-            anchor.style.color = TextMute;
-            anchor.style.fontSize = 9f;
-            anchor.style.marginTop = 3f;
-            anchor.style.whiteSpace = WhiteSpace.NoWrap;
-            anchor.style.overflow = Overflow.Hidden;
-            anchor.style.textOverflow = TextOverflow.Ellipsis;
-            anchor.pickingMode = PickingMode.Ignore;
-            text.Add(anchor);
-            _invGarmentSecondaryLabels.Add(anchor);
-
-            var description = new Label(ItemDesc(def, info));
-            description.style.color = TextDim;
-            description.style.fontSize = 9f;
-            description.style.maxHeight = 23f;
-            description.style.marginTop = 9f;
-            description.style.whiteSpace = WhiteSpace.Normal;
-            description.style.overflow = Overflow.Hidden;
-            description.pickingMode = PickingMode.Ignore;
-            text.Add(description);
-            _invGarmentDescriptions.Add(description);
-            header.Add(text);
-            card.Add(header);
-
-            RememberItemAnchor(itemId, true, header);
-            _invWornCards[itemId] = card;
-            header.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(card, GoldDim));
-            header.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
-                card, _invHoveredWornId == itemId ? Gold : Stroke));
-            RegisterInventoryItemInteraction(
-                header, itemId, true, wornDurability, carriedWater, carriedStacks,
-                wornWetness, wornDirtiness);
-
-            var slotCount = container.Slots.Count;
-            var columns = slotCount <= 4 ? 2 : 3;
-            var rows = Mathf.Max(1, Mathf.CeilToInt(slotCount / (float)columns));
-            var slots = new VisualElement();
-            slots.name = columns == 2
-                ? "inventory-garment-slots-2-column"
-                : "inventory-garment-slots-3-column";
-            slots.style.flexDirection = FlexDirection.Row;
-            slots.style.flexWrap = Wrap.Wrap;
-            slots.style.justifyContent = Justify.Center;
-            slots.style.alignContent = Align.Center;
-            slots.style.alignSelf = Align.Center;
-            slots.style.flexShrink = 0f;
-            foreach (var slot in container.Slots)
-            {
-                slots.Add(BuildInventorySlotCell(
-                    npc, slot, carriedDurability, carriedWater, carriedStacks,
-                    carriedWetness, carriedDirtiness));
-            }
-            var slotArea = new VisualElement();
-            slotArea.name = "inventory-garment-slot-area";
-            slotArea.style.flexGrow = 1f;
-            slotArea.style.minHeight = 0f;
-            slotArea.style.alignItems = Align.Center;
-            slotArea.style.justifyContent = Justify.FlexEnd;
-            slotArea.Add(slots);
-            card.Add(slotArea);
-            _invGarmentGrids.Add(new GarmentGridBinding
-            {
-                Grid = slots,
-                Columns = columns,
-                Rows = rows,
-                SlotCount = slotCount
-            });
-            return card;
-        }
-
-        private VisualElement BuildInventoryContainerCard(
-            NpcSnapshot npc,
-            InventoryContainerSnapshot container,
-            Dictionary<string, float> wornDurability,
-            Dictionary<string, float> carriedDurability,
-            Dictionary<string, WaterContainerState> carriedWater,
-            Dictionary<string, int> carriedStacks,
-            Dictionary<string, float> wornWetness,
-            Dictionary<string, float> carriedWetness,
-            Dictionary<string, float> wornDirtiness,
-            Dictionary<string, float> carriedDirtiness,
-            IReadOnlyList<InventoryContainerSnapshot> mergedHands = null)
-        {
-            var card = new VisualElement();
-            card.style.width = Length.Percent(49f);
-            card.style.flexShrink = 0f;
-            card.style.marginRight = Length.Percent(1f);
-            card.style.backgroundColor = Raised;
-            card.style.paddingLeft = 9f;
-            card.style.paddingRight = 9f;
-            card.style.paddingTop = 8f;
-            card.style.paddingBottom = 9f;
-            card.style.marginBottom = 8f;
-            SetBorder(card, container.Kind == InventoryContainerKind.Overflow ? Warn : Stroke, 1f);
-            SetRadius(card, 10f);
-            _invContainerCards.Add(card);
-
-            var header = new VisualElement();
-            header.style.flexDirection = FlexDirection.Row;
-            header.style.alignItems = Align.Center;
-            header.style.marginBottom = 6f;
-
-            var title = new Label(InventoryContainerTitle(container));
-            title.style.color = Text;
-            title.style.fontSize = 12.5f;
-            title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            title.style.flexGrow = 1f;
-            title.style.whiteSpace = WhiteSpace.NoWrap;
-            title.style.overflow = Overflow.Hidden;
-            title.style.textOverflow = TextOverflow.Ellipsis;
-            header.Add(title);
-
-            var filled = 0;
-            foreach (var slot in container.Slots) if (!string.IsNullOrEmpty(slot.ItemDefinitionId)) filled++;
-            var mergedHandCapacity = 0;
-            if (mergedHands != null)
-            {
-                foreach (var hand in mergedHands)
-                {
-                    mergedHandCapacity += hand.Capacity;
-                    foreach (var slot in hand.Slots)
-                    {
-                        if (!string.IsNullOrEmpty(slot.ItemDefinitionId)) filled++;
-                    }
-                }
-            }
-            var capacity = new Label($"{filled}/{container.Capacity + mergedHandCapacity}");
-            capacity.style.color = TextMute;
-            capacity.style.fontSize = 10.5f;
-            capacity.style.marginLeft = 5f;
-            header.Add(capacity);
-            _invSecondaryLabels.Add(capacity);
-            card.Add(header);
-
-            if (!string.IsNullOrEmpty(container.OwnerItemDefinitionId))
-            {
-                RememberItemAnchor(container.OwnerItemDefinitionId, true, header);
-                _invWornCards[container.OwnerItemDefinitionId] = card;
-                header.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(card, GoldDim));
-                header.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
-                    card, _invHoveredWornId == container.OwnerItemDefinitionId ? Gold : Stroke));
-                RegisterInventoryItemInteraction(
-                    header, container.OwnerItemDefinitionId, true, wornDurability,
-                    carriedWater, carriedStacks, wornWetness, wornDirtiness);
-            }
-
-            if (container.Kind == InventoryContainerKind.Carry)
-            {
-                var breakdown = new Label(
-                    $"{Loc.Get("inv.capacity_base")} {container.BaseCapacity} · " +
-                    $"{Loc.Get("inv.capacity_strength")} +{container.StrengthBonus} · " +
-                    $"{Loc.Get("inv.capacity_backpack")} +{container.BackpackCapacity} · " +
-                    $"{Loc.Get("inv.capacity_hands")} +{mergedHandCapacity}");
-                breakdown.style.color = TextMute;
-                breakdown.style.fontSize = 9.5f;
-                breakdown.style.whiteSpace = WhiteSpace.Normal;
-                breakdown.style.marginBottom = 7f;
-                card.Add(breakdown);
-                _invSecondaryLabels.Add(breakdown);
-            }
-
-            var slots = new VisualElement();
-            slots.style.flexDirection = FlexDirection.Row;
-            slots.style.flexWrap = Wrap.Wrap;
-            foreach (var slot in container.Slots)
-            {
-                slots.Add(BuildInventorySlotCell(
-                    npc, slot, carriedDurability, carriedWater, carriedStacks,
-                    carriedWetness, carriedDirtiness));
-            }
-            if (mergedHands != null)
-            {
-                foreach (var hand in mergedHands)
-                {
-                    var handLabel = hand.Kind == InventoryContainerKind.HandLeft
-                        ? Loc.Get("inv.hand_left")
-                        : Loc.Get("inv.hand_right");
-                    foreach (var slot in hand.Slots)
-                    {
-                        slots.Add(BuildInventorySlotCell(
-                            npc, slot, carriedDurability, carriedWater, carriedStacks,
-                            carriedWetness, carriedDirtiness, handLabel));
-                    }
-                }
-            }
-            card.Add(slots);
-            return card;
-        }
-
         private VisualElement BuildInventorySlotCell(
             NpcSnapshot npc,
             InventorySlotSnapshot slot,
@@ -3214,54 +2846,32 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, WaterContainerState> carriedWater,
             Dictionary<string, int> carriedStacks,
             Dictionary<string, float> carriedWetness,
-            Dictionary<string, float> carriedDirtiness,
-            string slotBadge = null)
+            Dictionary<string, float> carriedDirtiness)
         {
-            var cell = new VisualElement();
-            cell.style.width = 48f;
-            cell.style.height = 48f;
-            cell.style.marginRight = 5f;
-            cell.style.marginBottom = 5f;
+            var cell = new VisualElement { name = "inventory-flat-slot" };
+            cell.style.width = InventoryCellSizes[0];
+            cell.style.height = InventoryCellSizes[0];
+            cell.style.marginRight = InventoryGaps[0];
+            cell.style.marginBottom = InventoryGaps[0];
             cell.style.alignItems = Align.Center;
             cell.style.justifyContent = Justify.Center;
             cell.style.position = Position.Relative;
             cell.style.backgroundColor = Track;
             SetBorder(cell, StrokeStrong, 1f);
-            SetRadius(cell, 8f);
+            SetRadius(cell, 12f);
             _invSlotCells.Add(cell);
 
-            if (!string.IsNullOrEmpty(slotBadge))
-            {
-                var badge = new Label(slotBadge);
-                badge.style.position = Position.Absolute;
-                badge.style.left = 2f;
-                badge.style.top = 1f;
-                badge.style.maxWidth = 42f;
-                badge.style.color = TextMute;
-                badge.style.fontSize = 6.5f;
-                badge.style.whiteSpace = WhiteSpace.NoWrap;
-                badge.style.overflow = Overflow.Hidden;
-                badge.style.textOverflow = TextOverflow.Ellipsis;
-                badge.pickingMode = PickingMode.Ignore;
-                badge.AddToClassList("inventory-slot-badge");
-                cell.Add(badge);
-                _invSlotBadges.Add(badge);
-                cell.tooltip = slotBadge;
-            }
-
             var itemId = slot.ItemDefinitionId;
-            var displayId = string.IsNullOrEmpty(itemId) ? slot.AcceptedItemDefinitionId : itemId;
-            if (!string.IsNullOrEmpty(displayId))
+            if (!string.IsNullOrEmpty(itemId))
             {
-                var def = ResolveDef(displayId);
-                var info = ResolveItemInfo(displayId, def);
-                var icon = LoadItemIcon(displayId);
+                var def = ResolveDef(itemId);
+                var info = ResolveItemInfo(itemId, def);
+                var icon = LoadItemIcon(itemId);
                 if (icon != null)
                 {
                     var image = new Image { sprite = icon, scaleMode = ScaleMode.ScaleToFit };
-                    image.style.width = 40f;
-                    image.style.height = 40f;
-                    image.style.opacity = string.IsNullOrEmpty(itemId) ? 0.22f : 1f;
+                    image.style.width = InventoryCellSizes[0] - 14f;
+                    image.style.height = InventoryCellSizes[0] - 14f;
                     image.pickingMode = PickingMode.Ignore;
                     image.AddToClassList("inventory-slot-icon");
                     cell.Add(image);
@@ -3270,17 +2880,14 @@ namespace HexLive.UnityPresentation.UI
                 else
                 {
                     var glyph = new Label(info.Emoji);
-                    glyph.style.fontSize = 23f;
-                    glyph.style.opacity = string.IsNullOrEmpty(itemId) ? 0.25f : 1f;
+                    glyph.style.fontSize = 58f;
                     glyph.pickingMode = PickingMode.Ignore;
                     glyph.AddToClassList("inventory-slot-glyph");
                     cell.Add(glyph);
                     _invSlotGlyphs.Add(glyph);
                 }
 
-                cell.tooltip = string.IsNullOrEmpty(itemId)
-                    ? $"{Loc.Get("inv.typed_slot")}: {ItemName(def, info)}"
-                    : ItemName(def, info);
+                cell.tooltip = ItemName(def, info);
             }
 
             if (slot.StackCount > 1)
@@ -3349,115 +2956,6 @@ namespace HexLive.UnityPresentation.UI
             }
 
             return cell;
-        }
-
-        private string InventoryContainerTitle(InventoryContainerSnapshot container)
-        {
-            if (!string.IsNullOrEmpty(container.OwnerItemDefinitionId))
-            {
-                var def = ResolveDef(container.OwnerItemDefinitionId);
-                var itemName = ItemName(def, ResolveItemInfo(container.OwnerItemDefinitionId, def));
-                return container.Kind == InventoryContainerKind.Holster
-                    ? $"{Loc.Get("inv.holster")} · {itemName}"
-                    : itemName;
-            }
-
-            return container.Kind switch
-            {
-                InventoryContainerKind.HandLeft => Loc.Get("inv.hand_left"),
-                InventoryContainerKind.HandRight => Loc.Get("inv.hand_right"),
-                InventoryContainerKind.Carry => Loc.Get("inv.carry"),
-                InventoryContainerKind.Holster => Loc.Get("inv.holster"),
-                InventoryContainerKind.Overflow => Loc.Get("inv.overflow"),
-                _ => Loc.Get("inv.carried")
-            };
-        }
-
-        private static string InventoryBodyAnchorName(InventoryBodyAnchor anchor) =>
-            Loc.Get(anchor switch
-            {
-                InventoryBodyAnchor.Head => "inv.anchor.head",
-                InventoryBodyAnchor.Chest => "inv.anchor.chest",
-                InventoryBodyAnchor.Back => "inv.anchor.back",
-                InventoryBodyAnchor.Pelvis => "inv.anchor.pelvis",
-                InventoryBodyAnchor.ArmLeft => "inv.anchor.arm_left",
-                InventoryBodyAnchor.ArmRight => "inv.anchor.arm_right",
-                InventoryBodyAnchor.ThighLeft => "inv.anchor.thigh_left",
-                InventoryBodyAnchor.ThighRight => "inv.anchor.thigh_right",
-                InventoryBodyAnchor.Legs => "inv.anchor.legs",
-                InventoryBodyAnchor.Feet => "inv.anchor.feet",
-                _ => "inv.anchor.none"
-            });
-
-        private VisualElement BuildCompactWornRow(
-            string itemId,
-            Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
-            Dictionary<string, int> stacks,
-            Dictionary<string, float> wetness,
-            Dictionary<string, float> dirtiness)
-        {
-            var def = ResolveDef(itemId);
-            var info = ResolveItemInfo(itemId, def);
-            var row = new VisualElement();
-            row.style.width = Length.Percent(49f);
-            row.style.flexShrink = 0f;
-            row.style.marginRight = Length.Percent(1f);
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-            row.style.minHeight = 38f;
-            row.style.backgroundColor = Raised;
-            row.style.paddingLeft = 8f;
-            row.style.paddingRight = 8f;
-            row.style.paddingTop = 5f;
-            row.style.paddingBottom = 5f;
-            row.style.marginBottom = 6f;
-            SetBorder(row, Stroke, 1f);
-            SetRadius(row, 8f);
-            _invCompactRows.Add(row);
-
-            var icon = LoadItemIcon(itemId);
-            if (icon != null)
-            {
-                var image = new Image { sprite = icon, scaleMode = ScaleMode.ScaleToFit };
-                image.style.width = 28f;
-                image.style.height = 28f;
-                image.style.marginRight = 8f;
-                image.pickingMode = PickingMode.Ignore;
-                row.Add(image);
-                _invCompactIcons.Add(image);
-            }
-            else
-            {
-                var glyph = new Label(info.Emoji);
-                glyph.style.width = 28f;
-                glyph.style.marginRight = 8f;
-                glyph.style.fontSize = 18f;
-                glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
-                glyph.pickingMode = PickingMode.Ignore;
-                row.Add(glyph);
-                _invCompactIcons.Add(glyph);
-            }
-
-            var name = new Label(ItemName(def, info));
-            name.style.color = TextDim;
-            name.style.fontSize = 11.5f;
-            name.style.unityFontStyleAndWeight = FontStyle.Bold;
-            name.style.flexGrow = 1f;
-            name.style.whiteSpace = WhiteSpace.NoWrap;
-            name.style.overflow = Overflow.Hidden;
-            name.style.textOverflow = TextOverflow.Ellipsis;
-            name.pickingMode = PickingMode.Ignore;
-            row.Add(name);
-
-            RememberItemAnchor(itemId, true, row);
-            _invWornCards[itemId] = row;
-            row.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(row, GoldDim));
-            row.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
-                row, _invHoveredWornId == itemId ? Gold : Stroke));
-            RegisterInventoryItemInteraction(
-                row, itemId, true, durability, water, stacks, wetness, dirtiness);
-            return row;
         }
 
         private void RememberItemAnchor(string itemId, bool worn, VisualElement anchor)
@@ -5587,8 +5085,9 @@ namespace HexLive.UnityPresentation.UI
             _portrait.pickingMode = PickingMode.Ignore;
             col.Add(_portrait);
 
-            // A glass scrim under the readouts. The actor remains visible to the
-            // left; text never fights bright skin or the animated grid.
+            // A quiet glass field behind the right-side instruments replaces
+            // the browser mock-up's unsupported blur/gradient. The portrait is
+            // still one uninterrupted RenderTexture across the whole card.
             var readoutScrim = new VisualElement();
             readoutScrim.style.position = Position.Absolute;
             readoutScrim.style.left = 178f;
@@ -5677,18 +5176,15 @@ namespace HexLive.UnityPresentation.UI
             _healthValue.pickingMode = PickingMode.Ignore;
             healthBadge.Add(_healthValue);
 
-            // Just the two letters: the badge already draws the value in the
-            // ring and the number. A heart glyph and a second percentage under
-            // it read as three competing HP readouts.
             var healthCaption = new Label("HP");
+            healthCaption.style.color = Health;
+            healthCaption.style.fontSize = 11f;
+            healthCaption.style.unityFontStyleAndWeight = FontStyle.Bold;
             healthCaption.style.position = Position.Absolute;
             healthCaption.style.left = 0f;
             healthCaption.style.right = 0f;
             healthCaption.style.top = 49f;
             healthCaption.style.height = 17f;
-            healthCaption.style.color = Health;
-            healthCaption.style.fontSize = 11f;
-            healthCaption.style.unityFontStyleAndWeight = FontStyle.Bold;
             healthCaption.style.unityTextAlign = TextAnchor.MiddleCenter;
             healthCaption.pickingMode = PickingMode.Ignore;
             healthBadge.Add(healthCaption);
@@ -6522,7 +6018,6 @@ namespace HexLive.UnityPresentation.UI
                 _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
             if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
-            if (_invDropZoneLabel != null) _invDropZoneLabel.text = Loc.Get("inv.drop_zone");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
                 _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn
                     ? "inv.action.stow" : "inv.action.wear");
@@ -6591,6 +6086,10 @@ namespace HexLive.UnityPresentation.UI
             if (_invBackLabel != null)
             {
                 _invBackLabel.text = Loc.Get("inv.back");
+            }
+            foreach (var pair in _invLayerButtons)
+            {
+                pair.Value.tooltip = Loc.Get(InventoryLayerLocKey(pair.Key));
             }
 
             _invSig = null;

@@ -99,7 +99,6 @@ namespace HexLive.Simulation.Content
             ["food.meat_cooked"] = "🍖",
             ["food.meat_raw"] = "🥩",
             ["tool.bottle"] = "🧴",
-            ["tool.pot"] = "🍲",
             ["tool.lighter"] = "🔥",
             ["tool.axe_stone"] = "🪓",
             ["tool.machete"] = "🗡️",
@@ -119,6 +118,7 @@ namespace HexLive.Simulation.Content
             ["resource.palm_leaf"] = "🍃",
             ["resource.herb_leaf"] = "🌿",
             ["item.bandage"] = "🩹",
+            [ContentIds.Pill] = "💊",
             [ContentIds.Splint] = "🩼",
             [ContentIds.WoodenArm] = "🦾",
             [ContentIds.WoodenLeg] = "🦿",
@@ -276,7 +276,7 @@ namespace HexLive.Simulation.Content
             if (id.StartsWith("clothing.") || id.StartsWith("underwear.")) return ItemCategory.Clothing;
             if (id.StartsWith("food.")) return ItemCategory.Food;
             if (id.StartsWith("water.")) return ItemCategory.Water;
-            if (id == "item.bandage") return ItemCategory.Medicine;
+            if (id is "item.bandage" or "item.pill") return ItemCategory.Medicine;
             if (id.StartsWith("tool.")) return ItemCategory.Tool;
             if (id.StartsWith("resource.")) return ItemCategory.Resource;
 
@@ -321,6 +321,20 @@ namespace HexLive.Simulation.Content
     // the rest of the clip is follow-through until AttackDurationSeconds, then
     // CooldownSeconds of standing recovery. Exchange cycle = duration + cooldown.
     //
+    // ⭐ §104.8: HitDelaySeconds — НЕ РУЧКА ВКУСА, а ЗАМЕР. Вид растягивает клип
+    // ровно на AttackDurationSeconds, значит кулак/клинок касается цели на доле
+    // `contactFraction` этого окна, и урон обязан лечь ТУДА ЖЕ:
+    //     HitDelaySeconds = contactFraction × AttackDurationSeconds
+    // Доля мерена по самому клипу (Tools/measure_strike_contact.py →
+    // Tools/strike_contacts.json), сверяется гейтом StrikeContactGate. Раньше
+    // она стояла «на глаз, ~75% замаха» — число от процедурного взмаха, которого
+    // в бою давно нет, — и кровь опаздывала за видимым ударом на 0.4-0.95 с.
+    //
+    // Длительности подобраны так, чтобы попадание село РОВНО на тик (0.25 с):
+    // сим квантует замах (SecondsToTicks), и остаток квантования — тот же
+    // рассинхрон, только мельче. Цикл (duration + cooldown) при этом сохранён
+    // до сотой, поэтому DPS и весь баланс §104.7 не сдвинулись.
+    //
     // Mirrors MobCatalog exactly: engine-free defaults below; the Unity layer
     // overrides entries at startup from per-item GearConfig ScriptableObjects
     // (Resources/HexLive/Gear/, via GearTuning). Adding a weapon or tool = one
@@ -342,7 +356,6 @@ namespace HexLive.Simulation.Content
         public const string Hammer = "tool.hammer";
         public const string Saw = "tool.saw";
         public const string Lighter = "tool.lighter";
-        public const string Pot = "tool.pot";
         public const string Bottle = "tool.bottle";
         public const string Bandage = "item.bandage";
 
@@ -531,14 +544,14 @@ namespace HexLive.Simulation.Content
         {
             GearCapability.Cut, GearCapability.Butcher, GearCapability.ChopWood,
             GearCapability.Mine, GearCapability.Hammer, GearCapability.Ignite,
-            GearCapability.Boil, GearCapability.Saw, GearCapability.Sew,
+            GearCapability.Saw, GearCapability.Sew,
             GearCapability.CarryWater, GearCapability.Dressing,
         };
 
         /// <summary>GOAP tool-pickup filter: does grabbing this gear ADD
         /// anything over what the inventory already covers — a verb she can't
         /// do yet, or a strictly better melee weapon her hands can wield?
-        /// Items outside the gear table (lighter, pot, bottle…) return true —
+        /// Items outside the gear table (lighter, bottle…) return true —
         /// they keep the legacy "any missing Tool is worth taking" rule.</summary>
         public static bool AddsValueOver(
             System.Collections.Generic.IEnumerable<Agents.ItemInstance> items,
@@ -626,9 +639,11 @@ namespace HexLive.Simulation.Content
                     Damage = 0.15f,
                     CutFraction = 0f,
                     BloodLossMultiplier = 0f,
-                    HitDelaySeconds = 1.1f,       // ~75% of the 1.5 s jab
-                    AttackDurationSeconds = 1.5f,
-                    CooldownSeconds = 1.5f,
+                    // §104.8: варианты кулака перебивают эти три числа —
+                    // здесь стоит средний удар для гейтов и карточки предмета.
+                    HitDelaySeconds = 0.5f,       // 33.9% клипа Punch A
+                    AttackDurationSeconds = 1.48f,
+                    CooldownSeconds = 1.52f,
                     AttackSpeed = 1f,
                     MeleePriority = 0,
                     // Рукопашка: 4 удара (левый/правый кулак, левая/правая
@@ -649,9 +664,9 @@ namespace HexLive.Simulation.Content
                     Damage = 0.1875f,             // 0.15 × 1.25
                     CutFraction = 0.90f,
                     BloodLossMultiplier = 1.10f,
-                    HitDelaySeconds = 1.5f,       // замах 1.5 s → hit → 0.5 s follow-through
-                    AttackDurationSeconds = 2.0f,
-                    CooldownSeconds = 1.0f,
+                    HitDelaySeconds = 0.75f,      // 40.3% клипа (§104.8)
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = 0.88f,       // цикл 2.74 с сохранён
                     AttackSpeed = 1f,
                     MeleePriority = 10,
                     Capabilities = GearCapability.Cut | GearCapability.Butcher,
@@ -666,9 +681,9 @@ namespace HexLive.Simulation.Content
                     Damage = 0.28125f,            // 0.15 × 1.875 (1.5× knife)
                     CutFraction = 0.70f,
                     BloodLossMultiplier = 0.90f,
-                    HitDelaySeconds = 1.65f,      // heavier windup
-                    AttackDurationSeconds = 2.2f,
-                    CooldownSeconds = 0.8f,
+                    HitDelaySeconds = 0.75f,      // 40.3% клипа (§104.8)
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = 1.14f,      // цикл 3.0 с сохранён
                     AttackSpeed = 0.8f,
                     MeleePriority = 20,
                     Capabilities = GearCapability.Cut | GearCapability.ChopWood,
@@ -686,9 +701,9 @@ namespace HexLive.Simulation.Content
                     Damage = 0.5625f,             // 2 × axe
                     CutFraction = 0.85f,
                     BloodLossMultiplier = 1.20f,
-                    HitDelaySeconds = 1.65f,
-                    AttackDurationSeconds = 2.2f,
-                    CooldownSeconds = 0.8f,
+                    HitDelaySeconds = 0.75f,
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = 1.14f,
                     AttackSpeed = 0.8f,
                     // Выше копья (30) — лучшее оружие на острове, и одноручное,
                     // так что BestMeleeWeapon берёт его даже с одной рукой.
@@ -705,9 +720,11 @@ namespace HexLive.Simulation.Content
                     Damage = 0.375f,              // 0.15 × 2.5 (2× knife), two-handed
                     CutFraction = 0.80f,
                     BloodLossMultiplier = 1.10f,
-                    HitDelaySeconds = 1.5f,
-                    AttackDurationSeconds = 2.0f,
-                    CooldownSeconds = 1.0f,
+                    // §104.8: выпад штыком касается на 28.6% клипа, а сам клип
+                    // длинный (3.27 с) — отсюда и длинное окно, и короткий добор.
+                    HitDelaySeconds = 0.75f,
+                    AttackDurationSeconds = 2.62f,
+                    CooldownSeconds = 0.38f,      // цикл 3.0 с сохранён
                     AttackSpeed = 0.6f,
                     MeleePriority = 30,
                     TwoHanded = true,
@@ -718,9 +735,9 @@ namespace HexLive.Simulation.Content
                     Damage = 0.24f,
                     CutFraction = 0.45f,
                     BloodLossMultiplier = 0.60f,
-                    HitDelaySeconds = 1.65f,
-                    AttackDurationSeconds = 2.2f,
-                    CooldownSeconds = 0.8f,
+                    HitDelaySeconds = 0.75f,
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = 1.14f,
                     AttackSpeed = 0.8f,
                     MeleePriority = 8,            // a desperate swing, below the knife
                     Capabilities = GearCapability.Mine,
@@ -731,9 +748,9 @@ namespace HexLive.Simulation.Content
                     Damage = 0.2f,
                     CutFraction = 0.10f,
                     BloodLossMultiplier = 0.20f,
-                    HitDelaySeconds = 1.3f,
-                    AttackDurationSeconds = 1.8f,
-                    CooldownSeconds = 1.2f,
+                    HitDelaySeconds = 0.75f,
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = 1.14f,
                     AttackSpeed = 0.9f,
                     MeleePriority = 6,
                     Capabilities = GearCapability.Hammer,
@@ -744,9 +761,9 @@ namespace HexLive.Simulation.Content
                     Damage = 0.21f,               // toothed edge — between hammer and pickaxe
                     CutFraction = 0.75f,
                     BloodLossMultiplier = 1.30f,
-                    HitDelaySeconds = 1.3f,
-                    AttackDurationSeconds = 1.8f,
-                    CooldownSeconds = 1.2f,
+                    HitDelaySeconds = 0.75f,
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = 1.14f,
                     AttackSpeed = 0.9f,
                     MeleePriority = 7,            // оружие-инструмент: a desperate but real swing
                     Capabilities = GearCapability.ChopWood | GearCapability.Saw,
@@ -762,13 +779,6 @@ namespace HexLive.Simulation.Content
                     MeleePriority = 0,
                     Capabilities = GearCapability.Ignite,
                 },
-                [Pot] = new GearStats
-                {
-                    Id = Pot,
-                    Damage = 0.15f,
-                    MeleePriority = 0,
-                    Capabilities = GearCapability.Boil,
-                },
                 // CarryWater/Dressing make the ex-personal items GOAP-fetchable:
                 // a girl WITHOUT a bottle walks over for a dropped one, a girl
                 // with one ignores duplicates (AddsValueOver).
@@ -777,9 +787,8 @@ namespace HexLive.Simulation.Content
                     Id = Bottle, Damage = 0.15f, MeleePriority = 0,
                     Capabilities = GearCapability.CarryWater,
                 },
-                // The medkit bandage as a catalogued item (stub sheet — the §44
-                // dressing mechanics still run on Needs counters; migrating the
-                // counters onto instances is the next step).
+                // §44: the physical dressing carried in ordinary inventory.
+                // ItemInstance.ResourceAmount retains medkit/herbal provenance.
                 [Bandage] = new GearStats
                 {
                     Id = Bandage, Damage = 0.15f, MeleePriority = 0,
@@ -802,7 +811,8 @@ namespace HexLive.Simulation.Content
         Mine = 1 << 3,      // boulder/rock mining
         Hammer = 1 << 4,    // raising build-sites
         Ignite = 1 << 5,    // start a fire without friction (the lighter)
-        Boil = 1 << 6,      // boil/cook in a vessel (the pot)
+        // 1 << 6 was Boil — the pot's verb. §55.2 retired boiling and the pot
+        // went with it; the bit stays vacant so the saved masks never shift.
         Saw = 1 << 7,       // fine sawing (boards from a log)
         Sew = 1 << 8,       // stitching (the needle, future)
         CarryWater = 1 << 9, // holds drinking water (the bottle)
@@ -923,12 +933,14 @@ namespace HexLive.Simulation.Content
         // Снаружи это выглядит как «начался замах и всё оборвалось» — сцена
         // абьюза на пять секунд читалась как одна.
         //
-        // Теперь по умолчанию столько же, сколько у базового кулака: замах
-        // 1.1 с, клип 1.5 с, восстановление 1.5 с. Ассет (fist.asset) вправе
-        // задать своё — но молчание ассета больше не означает «четверть
-        // секунды».
-        public float HitDelaySeconds = 1.1f;
-        public float AttackDurationSeconds = 1.5f;
-        public float CooldownSeconds = 1.5f;
+        // Теперь по умолчанию столько же, сколько у базового кулака. Ассет
+        // (fist.asset) вправе задать своё — но молчание ассета больше не
+        // означает «четверть секунды».
+        //
+        // §104.8: замах равен КАДРУ КОНТАКТА клипа Punch A (33.9% окна), а не
+        // «~75% на глаз»; цикл (1.48 + 1.52 = 3.0 с) прежний.
+        public float HitDelaySeconds = 0.5f;
+        public float AttackDurationSeconds = 1.48f;
+        public float CooldownSeconds = 1.52f;
     }
 }

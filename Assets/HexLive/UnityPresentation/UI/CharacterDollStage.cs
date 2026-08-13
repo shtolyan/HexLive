@@ -103,8 +103,10 @@ namespace HexLive.UnityPresentation.UI
         private readonly List<Material> _materialScratch = new();
         private readonly List<Material> _cloneMaterialScratch = new();
         private readonly List<SurfaceBinding> _surfaceBindings = new();
-        private readonly MaterialPropertyBlock _surfaceBlock = new();
+        private MaterialPropertyBlock _surfaceBlock;
         private readonly List<SkinnedMeshRenderer> _cloneSkins = new();
+        private Wear[] _cloneWears = Array.Empty<Wear>();
+        private readonly HashSet<Wear> _equippedCloneWears = new();
         private readonly HashSet<int> _sourceMaterialIds = new();
         private readonly Dictionary<string, DollFraming> _framingByActor = new();
         private readonly Dictionary<string, (Transform bone, Vector3 scale)> _distalBones = new();
@@ -129,6 +131,7 @@ namespace HexLive.UnityPresentation.UI
         private Color32[] _colorScratch;
 
         private CharacterDollMode _mode;
+        private VisualWearLayer _visibleWearLayer = VisualWearLayer.Bags;
         private int _npcId = -1;
         private string _actorMesh = string.Empty;
         private int _sourceRootId;
@@ -198,6 +201,10 @@ namespace HexLive.UnityPresentation.UI
 
         private void Awake()
         {
+            // MaterialPropertyBlock allocates a native Unity object, so it
+            // cannot be created by a MonoBehaviour field initializer. Doing
+            // that aborts construction and leaves every later field null.
+            _surfaceBlock = new MaterialPropertyBlock();
             transform.position = StagePosition;
             for (var i = 0; i < ZoneOrder.Length; i++)
             {
@@ -255,6 +262,27 @@ namespace HexLive.UnityPresentation.UI
             if (_clone != null)
             {
                 FrameClone();
+            }
+        }
+
+        /// <summary>
+        /// Changes only the presentation cut of the already-built inventory
+        /// doll. No source actor, equipment state or cloned hierarchy is
+        /// touched, so browsing the four clothing layers is allocation-free
+        /// after the small renderer pass below.
+        /// </summary>
+        public void SetVisibleWearLayer(VisualWearLayer layer)
+        {
+            if (_visibleWearLayer == layer)
+            {
+                return;
+            }
+
+            _visibleWearLayer = layer;
+            if (_clone != null && _mode == CharacterDollMode.Inventory)
+            {
+                ApplyWearLayerVisibility();
+                _renderDirty = true;
             }
         }
 
@@ -998,8 +1026,99 @@ namespace HexLive.UnityPresentation.UI
                 _healthBodyRenderer.enabled = useHealth;
             }
 
+            ApplyWearLayerVisibility();
+
             _renderDirty = true;
             SetStageEnabled(visible);
+        }
+
+        private void ApplyWearLayerVisibility()
+        {
+            if (_clone == null)
+            {
+                return;
+            }
+
+            // Health is a diagnostic view and always keeps the complete outfit.
+            // Inventory alone exposes a cumulative cut: underwear → clothes →
+            // outerwear → bags. The Wear enum order is the serialized contract.
+            var visibleLayer = _mode == CharacterDollMode.Inventory
+                ? _visibleWearLayer
+                : VisualWearLayer.Bags;
+            foreach (var wear in _cloneWears)
+            {
+                if (!_equippedCloneWears.Contains(wear))
+                {
+                    continue;
+                }
+
+                if ((int)wear.Layer <= (int)visibleLayer) wear.Show();
+                else wear.Hide();
+            }
+
+            // Reapply the same whole-garment underwear rule used by BodyBones.
+            // Bags deliberately do not participate: they sit over the outfit
+            // but do not make bras, briefs or socks disappear.
+            foreach (var underwear in _cloneWears)
+            {
+                if (!_equippedCloneWears.Contains(underwear) ||
+                    underwear.Layer != VisualWearLayer.Underwear ||
+                    (int)underwear.Layer > (int)visibleLayer)
+                {
+                    continue;
+                }
+
+                var hiddenByOuter = false;
+                foreach (var slot in underwear.Slots)
+                {
+                    foreach (var outer in _cloneWears)
+                    {
+                        if (!_equippedCloneWears.Contains(outer) ||
+                            (int)outer.Layer <= (int)VisualWearLayer.Underwear ||
+                            (int)outer.Layer > (int)VisualWearLayer.Outerwear ||
+                            (int)outer.Layer > (int)visibleLayer ||
+                            !outer.HeedHideUnderwearSlot(slot))
+                        {
+                            continue;
+                        }
+
+                        foreach (var outerSlot in outer.Slots)
+                        {
+                            if (outerSlot != slot) continue;
+                            hiddenByOuter = true;
+                            break;
+                        }
+                        if (hiddenByOuter) break;
+                    }
+                    if (hiddenByOuter) break;
+                }
+
+                if (hiddenByOuter) underwear.Hide();
+                else underwear.Show();
+            }
+
+            // Hair is also a Wear component, but it has no simulation item id.
+            // Reveal it when the layer cut hides the hat that normally covers it.
+            var hairCovered = false;
+            foreach (var wear in _cloneWears)
+            {
+                if (_equippedCloneWears.Contains(wear) &&
+                    (int)wear.Layer <= (int)visibleLayer && wear.HidesHair)
+                {
+                    hairCovered = true;
+                    break;
+                }
+            }
+            foreach (var hair in _cloneWears)
+            {
+                if (_equippedCloneWears.Contains(hair) || hair.Slots.Count != 0)
+                {
+                    continue;
+                }
+
+                if (hairCovered) hair.Hide();
+                else hair.Show();
+            }
         }
 
         private void SetStageEnabled(bool enabled)
@@ -1037,8 +1156,10 @@ namespace HexLive.UnityPresentation.UI
         private void MapWornRenderers(Transform source, Transform clone)
         {
             _wornByRenderer.Clear();
+            _equippedCloneWears.Clear();
             var sourceWears = source.GetComponentsInChildren<Wear>(true);
             var cloneWears = clone.GetComponentsInChildren<Wear>(true);
+            _cloneWears = cloneWears;
             var count = Mathf.Min(sourceWears.Length, cloneWears.Length);
             for (var i = 0; i < count; i++)
             {
@@ -1048,7 +1169,9 @@ namespace HexLive.UnityPresentation.UI
                     continue;
                 }
 
-                foreach (var renderer in cloneWears[i].GetComponentsInChildren<Renderer>(true))
+                var cloneWear = cloneWears[i];
+                _equippedCloneWears.Add(cloneWear);
+                foreach (var renderer in cloneWear.GetComponentsInChildren<Renderer>(true))
                 {
                     _wornByRenderer[renderer] = definitionId;
                 }
@@ -1431,6 +1554,8 @@ namespace HexLive.UnityPresentation.UI
         private void DestroyClone()
         {
             _wornByRenderer.Clear();
+            _cloneWears = Array.Empty<Wear>();
+            _equippedCloneWears.Clear();
             _surfaceBindings.Clear();
             _distalBones.Clear();
             _animator = null;

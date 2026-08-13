@@ -31,6 +31,35 @@ internal static class MortalityHelpers
         BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
     };
 
+    // ---- Подъём с земли: одно определение на всю симуляцию -------------------
+
+    // §50/§41.5: ВСТАВАНИЕ — ЭТО КЛИП, И ЕМУ НУЖНО ВРЕМЯ.
+    //
+    // Всё, что снова даёт ноге опору, поднимает тело из позы лёжа в стойку, а
+    // вид проигрывает на это подъём (StandUp — «X Bot@Standing Up», 50 кадров
+    // ≈ 1.67 с; из сна — GetUp, он длиннее). Без паузы сим повезёт её в тот же
+    // тик, и ноги поедут по земле, пока клип доигрывает: ровно баг #1, из-за
+    // которого §41.5 и вывел WakeGraceTicks ИЗ ДЛИНЫ КЛИПА. Поэтому число здесь
+    // то же — оно с запасом покрывает более короткую цепочку вставания.
+    //
+    // Зовут это ВСЕ поводы встать, а не только сон: протез, починка протеза,
+    // шина, заживление ноги до ненулевой функции. Сравнение «была лежачей —
+    // стала стоячей» делается вызывающей стороной, потому что только она знает
+    // состояние ДО правки.
+    //
+    // Max, а не присваивание: другая пауза (обморок, спасение, выздоровление)
+    // может быть длиннее, и укорачивать её нельзя.
+    internal static void GrantStandUpGrace(WorldState world, NPCState npc, bool wasProne)
+    {
+        if (!wasProne || npc.Body.IsProne)
+        {
+            return;
+        }
+
+        npc.Mind.WakeGraceUntilTick = System.Math.Max(
+            npc.Mind.WakeGraceUntilTick, world.Tick + AiBalance.WakeGraceTicks);
+    }
+
     // ---- Кровотечение: одно определение на всю симуляцию ---------------------
 
     // Spec 40.2/§50: худшая зона для расчёта кровотечения (у культи свой пол —
@@ -167,20 +196,36 @@ internal static class MortalityHelpers
         WorldState world, NPCState npc, bool allowNearbyBed = false,
         int restUntilTick = int.MaxValue)
     {
+        // ⭐ Баг #122: гард кровати стоит ДО укладки, а не после неё. Раньше он
+        // висел ниже и спасал только назначение джанкшена — тело к тому моменту
+        // уже переехало на землю (TryLieDownOnGround перезаписывает Position),
+        // а Execution оставался Sleep@bed. Так уложенная в кровать пациентка
+        // после комы/умирания оказывалась телом на земле при живой заявке на
+        // кровать, вид продолжал рисовать её в кровати, и рассинхрон уезжал в
+        // сейв: переставить его назад некому — MaintainPose зовёт
+        // ExecutionSystem, а тот пропускает NPC без активного плана, которого у
+        // принесённой пациентки нет. Кровать владеет позой; здесь её
+        // переутверждаем, а не решаем заново.
+        if (npc.Execution.CurrentInteraction == InteractionType.Sleep &&
+            npc.Execution.TargetObject is { } ownedBedId &&
+            world.Entities.Objects.TryGetValue(ownedBedId, out var ownedBed) &&
+            KenshiRescueMath.IsBed(ownedBed) && ownedBed.CurrentUser == npc.Id)
+        {
+            if (BedSleep.MaintainPose(world, npc, ownedBed))
+            {
+                return;
+            }
+
+            // Кровать перестала быть годной (снесена, перестроена, легаси-репэйр
+            // топологии): заявку снять — иначе тело ляжет на землю, а вид так и
+            // будет держаться за мёртвую цель, — и лечь обычным путём.
+            KenshiRescueMath.ReleasePatientBedOnWake(world, npc);
+        }
+
         var placed = allowNearbyBed
             ? ExecutionSystem.TryLieDownForCollapse(world, npc, restUntilTick)
             : ExecutionSystem.TryLieDownOnGround(world, npc);
         if (!placed)
-        {
-            return;
-        }
-
-        // A bed owns its authored pose and occupancy. Its old standing
-        // junction must not be replaced by an arbitrary anchor inside the bed.
-        if (npc.Execution.CurrentInteraction == InteractionType.Sleep &&
-            npc.Execution.TargetObject is { } bedId &&
-            world.Entities.Objects.TryGetValue(bedId, out var bed) &&
-            KenshiRescueMath.IsBed(bed) && bed.CurrentUser == npc.Id)
         {
             return;
         }

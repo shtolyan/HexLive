@@ -50,8 +50,6 @@ namespace HexLive.UnityPresentation.Config
         public bool ambientSocial = true;
         [Tooltip("Отложенная болезнь от сырой воды (DoT-бюджет).")]
         public bool sickDoT = true;
-        [Tooltip("Проактивное кипячение воды при некритичной жажде.")]
-        public bool proactiveBoil = true;
         [Tooltip("Выбирать место сна умно (костёр в холод / тень в жару).")]
         public bool smartSleepSpot = true;
         [Tooltip("§113: длина лежащего тела, доля HexRadius (0.88 = 1.32 wu).")]
@@ -116,10 +114,6 @@ namespace HexLive.UnityPresentation.Config
         [Header("§49 — вода / тень")]
         [Tooltip("Сдвиг эффективной температуры в тени, °C СО ЗНАКОМ (−7 = на 7° холоднее; щит от жары).")]
         [Range(-12f, 0f)] public float shadeCooling = -7f;
-        [Tooltip("Кипятить, пока жажда НЕ срочная: ниже этого порога готовит кипячёную, выше — пьёт сырую.")]
-        [Range(0.35f, 0.85f)] public float boilThirstCeiling = 0.6f;
-        [Tooltip("Насколько жажда толкает огне-цепочку ради кипячения. 0.1 = безопасно, 0.3 ≈ 20% кипячёной ценой стабильности.")]
-        [Range(0f, 0.5f)] public float boilChainWeight = 0.1f;
 
         [Header("§49.7 — мокрая одежда")]
         [Tooltip("Множитель скорости за КАЖДУЮ мокрую НАСТОЯЩУЮ вещь (бельё не считается). 0.9 = −10% за вещь.")]
@@ -171,6 +165,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 400)] public int consoleCryingReliefTicks = 120;
         [Tooltip("§110: утешала на коленях — столько тиков стоит после, пока играет вставание с колен (28 ≈ длина клипа). Иначе уезжает по земле в позе молитвы.")]
         [Range(0, 120)] public int consoleStandUpTicks = 28;
+        [Tooltip("§53.8: порог «тяжёлой» помощи (0..1). Страдание не ниже этого (или умирающая): поход к ней не бросают ради быта, память о ней не дисконтируется, а ползущую можно выбирать целью.")]
+        [Range(0.5f, 1f)] public float heavyAidSuffering = 0.9f;
+        [Tooltip("§53.8: с какого расстояния (wu; 3.0 = два гекса) ждущая помощи замирает и принимает её, даже если свой голод/жажда в красной зоне.")]
+        [Range(0.5f, 10f)] public float aidWardHoldDistance = 3.0f;
         [Tooltip("Прибавка к отношениям с ОБЕИХ сторон за помощь (у разговора 0.075 — доброта роднит сильнее).")]
         [Range(0f, 0.5f)] public float aidRelationshipGain = 0.18f;
         [Tooltip("Длительность действия помощи (тиков).")]

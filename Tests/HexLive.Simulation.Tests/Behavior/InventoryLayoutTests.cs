@@ -149,6 +149,44 @@ public sealed class InventoryLayoutTests
     }
 
     [Test]
+    public void Medicines_StackByTen_WithoutChangingToolsOrResourceStacks()
+    {
+        var (world, npc) = CleanNpc();
+        for (var i = 0; i < InventoryState.MedicineStackSize + 1; i++)
+        {
+            npc.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: i % 2 == 0));
+            npc.Inventory.Items.Add(ContentIds.Splint);
+        }
+        npc.Inventory.Items.Add(MedicalSupplyMath.CreatePill());
+        for (var i = 0; i < InventoryState.StackSize + 1; i++)
+        {
+            npc.Inventory.Items.Add(ContentIds.Rope);
+        }
+        npc.Inventory.Items.Add(ContentIds.Knife);
+        npc.Inventory.Items.Add(ContentIds.Knife);
+
+        var layout = InventoryLayoutBuilder.Build(world, npc);
+        var cells = layout.Containers.SelectMany(c => c.Slots).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cells.Where(c => c.ItemDefinitionId == ContentIds.Bandage)
+                .Select(c => c.StackCount),
+                Is.EqualTo(new[] { InventoryState.MedicineStackSize, 1 }));
+            Assert.That(cells.Where(c => c.ItemDefinitionId == ContentIds.Splint)
+                .Select(c => c.StackCount),
+                Is.EqualTo(new[] { InventoryState.MedicineStackSize, 1 }));
+            Assert.That(cells.Single(c => c.ItemDefinitionId == ContentIds.Pill).StackCount,
+                Is.EqualTo(1));
+            Assert.That(cells.Where(c => c.ItemDefinitionId == ContentIds.Rope)
+                .Select(c => c.StackCount), Is.EqualTo(new[] { InventoryState.StackSize, 1 }));
+            Assert.That(cells.Count(c => c.ItemDefinitionId == ContentIds.Knife), Is.EqualTo(2),
+                "Tools are outside the medicine stacking rule.");
+            Assert.That(npc.Inventory.UsedSlots, Is.EqualTo(9));
+        });
+    }
+
+    [Test]
     public void FavoriteWeapon_RemainsInARealCellAndAddsNoCapacity()
     {
         var (world, npc) = CleanNpc();

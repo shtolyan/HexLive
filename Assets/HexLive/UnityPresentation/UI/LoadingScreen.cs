@@ -30,7 +30,12 @@ namespace HexLive.UnityPresentation.UI
         /// afterward, in loading phase 3.</summary>
         public static bool IsReplaying { get; private set; }
 
-        private const float ReplayBudgetMsPerFrame = 10f;
+        // Spec 41.3: сколько миллисекунд кадра отдаётся намотке офлайна. Потолок
+        // офлайна снят (SaveGame.OfflineTicksCap), поэтому долгий перерыв — это
+        // миллионы тиков, и 10 мс на кадр превращали их в часы ожидания. 120 мс
+        // = ~8 fps на экране загрузки: полоса и часы ещё двигаются, но кадр
+        // почти целиком уходит на симуляцию.
+        private const float ReplayBudgetMsPerFrame = 120f;
         private const float FadeSeconds = 0.7f;
 
         private SimulationRunnerBehaviour _runner;
@@ -752,10 +757,13 @@ namespace HexLive.UnityPresentation.UI
                 _timeReadout.style.display = DisplayStyle.Flex;
                 var clock = System.Diagnostics.Stopwatch.StartNew();
                 var start = engine.World.Tick;
-                while (!engine.World.Completed && engine.World.Tick < _targetTick)
+                while (!engine.World.Completed &&
+                       !IsColonyExtinct(engine.World) &&
+                       engine.World.Tick < _targetTick)
                 {
                     var frame = System.Diagnostics.Stopwatch.StartNew();
                     while (!engine.World.Completed &&
+                           !IsColonyExtinct(engine.World) &&
                            engine.World.Tick < _targetTick &&
                            frame.ElapsedMilliseconds < ReplayBudgetMsPerFrame)
                     {
@@ -770,6 +778,13 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 _timeReadout.style.display = DisplayStyle.None;
+                if (IsColonyExtinct(engine.World) && engine.World.Tick < _targetTick)
+                {
+                    UnityEngine.Debug.Log(
+                        "[HexLive] Offline wind stopped early: the colony died out at tick " +
+                        $"{engine.World.Tick} (target was {_targetTick}).");
+                }
+
                 UnityEngine.Debug.Log(
                     $"[HexLive] Replayed to tick {engine.World.Tick} in {clock.ElapsedMilliseconds} ms");
             }
@@ -1021,6 +1036,27 @@ namespace HexLive.UnityPresentation.UI
                     Loc.Get(Wearing.Garments.ContentQueue.MessageKey));
                 yield return null;
             }
+        }
+
+        /// <summary>Spec 41.3: единственный стоп-кран снятого потолка офлайна —
+        /// колония вымерла. `World.Completed` этого не значит (это спуск плота,
+        /// §40.15, и он выключен), а мёртвая девушка не исчезает, а переезжает в
+        /// `Entities.Corpses` — то есть живые это ровно `Entities.Npcs`.
+        /// Чужак-враг (§70) в счёт не идёт: с ним одним мир мотался бы дальше
+        /// уже без колонии. Вопрос задан положительно (AreAllies), как требует
+        /// §72: «жива ли хоть одна СВОЯ», а не «не враг ли».</summary>
+        private static bool IsColonyExtinct(HexLive.Simulation.Core.WorldState world)
+        {
+            foreach (var pair in world.Entities.Npcs)
+            {
+                if (HexLive.Simulation.Runtime.FactionRelations.AreAllies(
+                        pair.Value.Faction, HexLive.Simulation.Agents.Faction.Colony))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private System.Collections.Generic.List<(int id, string name)> ListNpcIds()

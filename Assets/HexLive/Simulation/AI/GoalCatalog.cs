@@ -284,7 +284,9 @@ public static class GoalCatalog
         Add(GoalType.CraftCloth, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.Cloth },
             craftTrace: "CraftedCloth", craftNeedsHands: true);
-        Add(GoalType.CraftBandage, InteractionType.Craft);
+        Add(GoalType.CraftBandage, InteractionType.Craft,
+            craftOutputs: new[] { ContentIds.Bandage },
+            craftTrace: "BandageCrafted", craftNeedsHands: true);
         Add(GoalType.CraftSplint, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.Splint },
             craftTrace: "CraftedSplint", craftNeedsHands: true);
@@ -303,6 +305,10 @@ public static class GoalCatalog
         // ── Охота и бой ──────────────────────────────────────────────────
         // Hunt бежит: краб отпрыгивает на узел каждый Medium-тик, шагом
         // (Stroll) погоня вырождается в вечный пинг-понг «шаг к — шаг от».
+        // §50.9: «спуститься, пока ноги держат» — уход раненой с крошечного
+        // уступа на большую землю, пока прыжок ещё возможен. Спешит: каждая
+        // деградация ран приближает порог CanJump.
+        Add(GoalType.ReachSafeGround, urgency: UrgencyClass.Hurry);
         Add(GoalType.Hunt, urgency: UrgencyClass.Hurry, readiesMeleeWeapon: true);
         Add(GoalType.Prey, readiesMeleeWeapon: true);
         Add(GoalType.Flee, urgency: UrgencyClass.Flee,

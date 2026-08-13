@@ -1,9 +1,9 @@
 """Headless-Blender renderer for inventory item icons (ICON_GENERATION_SPEC.md).
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P Tools/render_item_icon.py -- \
-        <model.obj|model.glb> <out.png> [--install <itemId>] [--fit 1.25] [--samples 64]
+        <model.obj|model.glb|model.fbx> <out.png> [--install <itemId>] [--fit 1.25] [--samples 64]
 
-Takes a garment OBJ (from Tools/unity_mesh_to_obj.py) or a prop GLB (the ones
+Takes a garment OBJ (from Tools/unity_mesh_to_obj.py) or a prop GLB/FBX (the ones
 in Assets/Resources/HexLive/Objects) and renders the 512x512 RGBA icon the
 inventory expects. The numbers below are NOT free parameters — they reproduce
 the framing of the icons that shipped with the game (compare
@@ -174,8 +174,8 @@ TextureImporter:
 def parse_args():
     argv = sys.argv[sys.argv.index("--") + 1:]
     src, dst = argv[0], argv[1]
-    # OBJ comes from a garment mesh, GLB from a prop — override with --style
-    style = "tool" if src.lower().endswith((".glb", ".gltf")) else "cloth"
+    # OBJ comes from a garment mesh, GLB/FBX from a prop — override with --style
+    style = "tool" if src.lower().endswith((".glb", ".gltf", ".fbx")) else "cloth"
     if "--style" in argv:
         style = argv[argv.index("--style") + 1]
     opts = {"install": None, "style": style, "fit": None, "samples": SAMPLES}
@@ -192,6 +192,8 @@ def load(src):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     if src.lower().endswith(".glb") or src.lower().endswith(".gltf"):
         bpy.ops.import_scene.gltf(filepath=src)
+    elif src.lower().endswith(".fbx"):
+        bpy.ops.import_scene.fbx(filepath=src)
     else:
         # Unity Y-up / +Z-forward -> Blender Z-up, model front at -Y.
         # The legacy operator was REMOVED in Blender 4.0, so pick whichever this
@@ -242,6 +244,18 @@ def setup_materials(meshes, style):
             bsdf = next((n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
             if bsdf is None:
                 continue
+            # Native FBX mirrors can retain Unity-only texture references that
+            # Blender cannot resolve headlessly. Never ship the resulting
+            # magenta missing-texture icon: detach the unavailable image and
+            # render the real mesh as neutral warm-white material instead.
+            missing_image = any(
+                node.type == 'TEX_IMAGE' and
+                (node.image is None or not os.path.isfile(bpy.path.abspath(node.image.filepath)))
+                for node in mat.node_tree.nodes)
+            if missing_image and 'Base Color' in bsdf.inputs:
+                for link in list(bsdf.inputs['Base Color'].links):
+                    mat.node_tree.links.remove(link)
+                bsdf.inputs['Base Color'].default_value = (0.82, 0.76, 0.66, 1.0)
             # Blender 4.x renamed several Principled inputs, so address them by
             # whichever name this build knows. Missing ones are skipped rather
             # than fatal: an icon without sheen still matches the shipped set far

@@ -65,8 +65,6 @@ public sealed class BalanceKnobHygieneGateTests
     private static readonly Dictionary<string, string> KnownDead =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Spec49.ProactiveBoil"] = "кипячение впрок так и не завели",
-            ["Spec49.BoilThirstCeiling"] = "там же",
             ["Spec82.TerritoryScore"] = "территория чужака не даёт ставку",
             ["SpecDream.BedExclusive"] = "мечта о кровати не проверяет исключительность",
             ["SimBalance.ComaWakeThreshold"] = "§60 будит по своему порогу крови",

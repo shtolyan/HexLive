@@ -69,6 +69,11 @@ public static class PlanInterruption
 
         CraftProjectMath.ReleaseWorker(world, npc);
         ExecutionSystem.ReleaseClaims(world, npc);
+        // §111.13: место у лежащего освобождается там же, где освобождается всё
+        // остальное занятое планом. Предикат живости — страховка, а не замена
+        // этой строки: сорванный поход не должен занимать станцию до тех пор,
+        // пока кто-то не заметит, что заявка протухла.
+        LyingStations.ReleaseStation(npc);
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Plan.TargetObjectId is { } objId &&
             world.Entities.Objects.TryGetValue(objId, out var worldObject) &&

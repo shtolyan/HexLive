@@ -48,7 +48,7 @@ public sealed class HutLayoutDesigner : MonoBehaviour
         public float localZ;
         public float rotationDegrees;
     }
-    private enum Tool { Select, Move, Wall, Window, Door, Bed, Hearth, Delete }
+    private enum Tool { Select, Move, Wall, Window, Door, Bed, Hearth, Wardrobe, Delete }
 
     private void Start()
     {
@@ -75,7 +75,8 @@ public sealed class HutLayoutDesigner : MonoBehaviour
             if (!_painting) { _painting = true; _lastBay = -1; Paint(point); _status = "Ведём стену. Второй клик — закончить."; }
             else { Paint(point); _painting = false; _lastBay = -1; _status = "Линия завершена."; }
         }
-        else if (_tool is Tool.Bed or Tool.Hearth) Place(point, _tool == Tool.Bed ? "bed" : "hearth");
+        else if (_tool is Tool.Bed or Tool.Hearth or Tool.Wardrobe)
+            Place(point, _tool == Tool.Bed ? "bed" : _tool == Tool.Hearth ? "hearth" : "wardrobe");
         else if (_tool == Tool.Move) MoveSelected(point);
         else Select(point, _tool == Tool.Delete);
     }
@@ -103,11 +104,20 @@ public sealed class HutLayoutDesigner : MonoBehaviour
         _furnitureRoot.SetParent(_preview.transform, false);
         foreach (var item in _furniture)
         {
-            var go = item.type == "bed" ? HutFurnitureFactory.BuildBed() : HutFurnitureFactory.BuildHearth();
+            var go = item.type switch
+            {
+                "bed" => HutFurnitureFactory.BuildBed(),
+                "hearth" => HutFurnitureFactory.BuildHearth(),
+                "wardrobe" => WardrobeAssembly.BuildFinished(),
+                _ => null
+            };
             if (go == null) continue;
             go.name = $"Designer {item.type} junction {item.junction}";
             go.transform.SetParent(_furnitureRoot, false);
             go.transform.localPosition = new Vector3(item.localX, HutAssembly.FloorSurfaceLift, item.localZ);
+            // All authored furniture uses the same identity presentation root
+            // and the same footprint yaw. Asset-space corrections belong in
+            // the FBX import hierarchy, never in placement data.
             go.transform.localRotation = Quaternion.Euler(0f, -item.rotationDegrees, 0f);
         }
         BuildMarkers();
@@ -174,12 +184,12 @@ public sealed class HutLayoutDesigner : MonoBehaviour
     {
         var nearest = NearestNode(point);
         if (nearest == null) return;
-        if (type == "hearth") _furniture.RemoveAll(f => f.type == "hearth");
+        if (type is "hearth" or "wardrobe") _furniture.RemoveAll(f => f.type == type);
         var item = new FurnitureDraft { type = type, junction = nearest.Value.Slot,
             localX = nearest.Value.Offset.X, localZ = nearest.Value.Offset.Y };
         _furniture.Add(item); _selected = _furniture.Count - 1;
         Save(false); Rebuild();
-        _status = type == "bed" ? "Кровать поставлена. Поворот — ±60°." : "Очаг поставлен.";
+        _status = type == "hearth" ? "Очаг поставлен." : $"{(type == "bed" ? "Кровать" : "Гардероб")} поставлен. Поворот — ±60°.";
     }
 
     private static JunctionTemplate? NearestNode(Vector3 point)
@@ -226,16 +236,16 @@ public sealed class HutLayoutDesigner : MonoBehaviour
 
     private void Rotate(float delta)
     {
-        if (_selected < 0 || _selected >= _furniture.Count || _furniture[_selected].type != "bed") { _status = "Сначала выберите кровать."; return; }
+        if (_selected < 0 || _selected >= _furniture.Count) { _status = "Сначала выберите предмет."; return; }
         var f = _furniture[_selected]; f.rotationDegrees = (f.rotationDegrees + delta + 360f) % 360f;
-        Save(false); Rebuild(); _status = $"Поворот кровати: {f.rotationDegrees:0}°.";
+        Save(false); Rebuild(); _status = $"Поворот {f.type}: {f.rotationDegrees:0}°.";
     }
 
     private void SetTool(Tool tool)
     {
         _tool = tool; _painting = false; _lastBay = -1;
         _status = IsBayTool(tool) ? "Первый клик начинает линию по периметру."
-            : tool is Tool.Bed or Tool.Hearth ? "Кликните по зелёному junction."
+            : tool is Tool.Bed or Tool.Hearth or Tool.Wardrobe ? "Кликните по зелёному junction."
             : tool == Tool.Move ? "Кликните по новой junction-точке."
             : "Кликните по предмету.";
     }
@@ -251,8 +261,38 @@ public sealed class HutLayoutDesigner : MonoBehaviour
     {
         if (!PlayerPrefs.HasKey(DraftKey)) return;
         var data = JsonUtility.FromJson<DraftData>(PlayerPrefs.GetString(DraftKey));
-        if (data?.bayKinds?.Length == 12) for (var i = 0; i < 12; i++) _bays[i] = (BuildingElementKind)data.bayKinds[i];
+        var repairedBays = false;
+        if (IsValidBayLayout(data?.bayKinds))
+        {
+            for (var i = 0; i < BuildingRules.BayCount; i++)
+                _bays[i] = (BuildingElementKind)data!.bayKinds[i];
+        }
+        else
+        {
+            // A one-hex home must have exactly one portal. An interrupted
+            // paint gesture used to persist a draft with no door (and usually
+            // most windows painted over), which then looked like a different
+            // house on every reload. Keep the player's furniture, but restore
+            // the canonical bays from BuildingRules and immediately migrate
+            // the broken draft so subsequent loads are deterministic.
+            repairedBays = true;
+        }
         if (data?.furniture != null) _furniture.AddRange(data.furniture);
+        if (repairedBays) Save(false);
+    }
+
+    private static bool IsValidBayLayout(int[]? kinds)
+    {
+        if (kinds == null || kinds.Length != BuildingRules.BayCount) return false;
+        var doors = 0;
+        foreach (var value in kinds)
+        {
+            var kind = (BuildingElementKind)value;
+            if (kind is not (BuildingElementKind.Wall or BuildingElementKind.Window or BuildingElementKind.Door))
+                return false;
+            if (kind == BuildingElementKind.Door) doors++;
+        }
+        return doors == 1;
     }
 
     private string Export()
@@ -272,8 +312,9 @@ public sealed class HutLayoutDesigner : MonoBehaviour
         var y=86f; Button(Tool.Select,"Выбрать",28,y); Button(Tool.Move,"Переместить",156,y); y+=38;
         Button(Tool.Delete,"Удалить",28,y); y+=38;
         Button(Tool.Wall,"Стена",28,y); Button(Tool.Window,"Окно",156,y); y+=38;
-        Button(Tool.Door,"Дверь",28,y); Button(Tool.Bed,"Кровать",156,y); y+=38; Button(Tool.Hearth,"Очаг",28,y); y+=48;
-        GUI.Label(new Rect(28,y,240,22),"Выбранная кровать"); y+=25;
+        Button(Tool.Door,"Дверь",28,y); Button(Tool.Bed,"Кровать",156,y); y+=38;
+        Button(Tool.Hearth,"Очаг",28,y); Button(Tool.Wardrobe,"Гардероб",156,y); y+=48;
+        GUI.Label(new Rect(28,y,240,22),"Поворот выбранного предмета"); y+=25;
         if(GUI.Button(new Rect(28,y,116,30),"↶ 60°"))Rotate(-60); if(GUI.Button(new Rect(156,y,116,30),"↷ 60°"))Rotate(60); y+=44;
         GUI.Label(new Rect(28,y,240,44),"Пролёты: клик — вести,\nвторой клик — закончить."); y+=55;
         if(GUI.Button(new Rect(28,y,244,34),"СОХРАНИТЬ РАСКЛАДКУ"))Save(true);

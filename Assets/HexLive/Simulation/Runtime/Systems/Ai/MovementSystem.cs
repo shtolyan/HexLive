@@ -268,6 +268,18 @@ public sealed class MovementSystem : ISimulationSystem
                 }
 
                 npc.Movement.PathIndex = nextIndex;
+
+                // §57.11: спуск-падение кончается не шагом, а подъёмом на ноги
+                // (ползущая — просто лежит). Пауза ставится на приземлении и
+                // начинает тикать после закрытия окна (см. гейт ClimbPauseTimer
+                // ниже по файлу) — и в середине маршрута тоже, не только на
+                // последнем узле: упала, отлежалась, поползла дальше.
+                if (!npc.Body.CanJump && !npc.Movement.HopUp)
+                {
+                    npc.Movement.ClimbPauseTimer = System.MathF.Max(
+                        npc.Movement.ClimbPauseTimer, HexHopTuning.FallRecoverSeconds);
+                }
+
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "HopLanded",
@@ -646,7 +658,11 @@ public sealed class MovementSystem : ISimulationSystem
             // §76: a nimble girl also pivots faster (same reasoning as the pace
             // above — multiplied in, never stored on npc.TurnSpeed).
             var turnPerTick = npc.TurnSpeed * SimBalance.BaseTurnSpeedFactor *
-                AttributeMath.TurnSpeedMult(npc) * world.TickDeltaTime;
+                AttributeMath.TurnSpeedMult(npc) * world.TickDeltaTime *
+                // §50: ползущая и разворачивается по-ползучьи. Тем же множителем,
+                // что и шаг (CrawlSpeedFactor): на локтях тело не крутится вокруг
+                // оси со скоростью стоящей — оно перебирает руками.
+                npc.Body.MobilityTurnFactor();
 
             // §21.21B v6: while the hop window runs, the HOP owns rotation
             // and pacing — the walk aiming below would re-target the path

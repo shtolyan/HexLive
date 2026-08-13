@@ -318,6 +318,7 @@ public sealed class Wear : MonoBehaviour
 
     public void Hide()
     {
+        _meshRenderer ??= GetComponentInChildren<SkinnedMeshRenderer>(true);
         if (_meshRenderer != null)
         {
             _meshRenderer.enabled = false;
@@ -326,6 +327,7 @@ public sealed class Wear : MonoBehaviour
 
     public void Show()
     {
+        _meshRenderer ??= GetComponentInChildren<SkinnedMeshRenderer>(true);
         if (_meshRenderer != null)
         {
             _meshRenderer.enabled = true;

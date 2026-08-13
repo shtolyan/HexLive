@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
@@ -26,6 +28,7 @@ namespace HexLive.UnityPresentation.HutTest
 /// </summary>
 public sealed class HutTestBootstrap : MonoBehaviour
 {
+    [SerializeField] private bool _layoutDesignerMode = true;
     [SerializeField, Range(0f, 10f)] private float _startDelaySeconds = 2f;
     [SerializeField] private bool _startInAcceptancePose;
     private bool _forceRain;
@@ -101,6 +104,23 @@ public sealed class HutTestBootstrap : MonoBehaviour
         RunStaticAcceptanceChecks();
         _scenarioStartTick = _runner.Engine?.World.Tick ?? 0;
         if (_startInAcceptancePose) _started = true;
+
+        if (_layoutDesignerMode)
+        {
+            if (GetComponent<HutLayoutDesigner>() == null)
+                gameObject.AddComponent<HutLayoutDesigner>();
+            HideTestDebugOverlays();
+        }
+    }
+
+    private static void HideTestDebugOverlays()
+    {
+        // FMOD creates its overlay helper at runtime on a persistent object.
+        // Avoid a compile-time dependency on the plug-in assembly and disable
+        // only its OnGUI component for this authoring fixture.
+        foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+            if (behaviour != null && behaviour.GetType().Name == "FMODRuntimeManagerOnGUIHelper")
+                behaviour.enabled = false;
     }
 
     private void PrepareAutonomousSleepScenario()
@@ -134,11 +154,13 @@ public sealed class HutTestBootstrap : MonoBehaviour
         if (world == null) return;
         WorldObjectState hut = null;
         var beds = new List<WorldObjectState>();
+        WorldObjectState wardrobe = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (obj.DefinitionId == ContentIds.Hut1Hex) hut = obj;
             else if (obj.DefinitionId == ContentIds.BedBasic &&
                      obj.Variant == ContentIds.HutBedVariant) beds.Add(obj);
+            else if (obj.DefinitionId == ContentIds.Wardrobe) wardrobe = obj;
         }
 
         if (hut == null)
@@ -166,10 +188,12 @@ public sealed class HutTestBootstrap : MonoBehaviour
             if (!junction.Door) continue;
             portalCount++;
         }
+        var wardrobeOk = WardrobeMatchesProductionLayout(world, hut, wardrobe, out var wardrobeDetail);
         _geometryStatus = pieceCount == 30 && hut.ArchitectureElements.Count == 0 &&
-                          doorObjects == 1 && portalCount == 1
-            ? $"WAIT: data OK, checking rendered door bay {BuildingRules.HutDoorBay}"
-            : $"FAIL: pieces={pieceCount} ownerNested={hut.ArchitectureElements.Count} doorObj={doorObjects} portals={portalCount}";
+                          doorObjects == 1 && portalCount == 1 && wardrobeOk
+            ? $"WAIT: data OK, door bay {BuildingRules.HutDoorBay}; wardrobe {wardrobeDetail}"
+            : $"FAIL: pieces={pieceCount} ownerNested={hut.ArchitectureElements.Count} " +
+              $"doorObj={doorObjects} portals={portalCount}; wardrobe={wardrobeDetail}";
 
         var reachable = beds.Count == 2;
         foreach (var npc in world.Entities.Npcs.Values)
@@ -200,6 +224,45 @@ public sealed class HutTestBootstrap : MonoBehaviour
         }
         _pathStatus = reachable ? "PASS: обе девушки видят путь через дверь" : "FAIL: bed path unavailable";
         Debug.Log($"[HutTest] geometry={_geometryStatus}; path={_pathStatus}", this);
+    }
+
+    private static bool WardrobeMatchesProductionLayout(
+        WorldState world, WorldObjectState hut, WorldObjectState wardrobe, out string detail)
+    {
+        if (wardrobe == null)
+        {
+            detail = "missing";
+            return false;
+        }
+        if (wardrobe.Junctions.Count != 1 || wardrobe.BlockedJunctions.Count != 0)
+        {
+            detail = $"anchors={wardrobe.Junctions.Count} blocked={wardrobe.BlockedJunctions.Count}";
+            return false;
+        }
+        if (!world.Junctions.Items.TryGetValue(wardrobe.Junctions[0], out var anchor) || anchor.Blocked)
+        {
+            detail = "anchor blocked/missing";
+            return false;
+        }
+
+        var radians = hut.RotationDegrees * MathF.PI / 180f;
+        var local = new Float2(BuildingRules.HutWardrobeLocalX, BuildingRules.HutWardrobeLocalZ);
+        var desired = HexSpatialMath.TileToWorld(hut.Tile) + new Float2(
+            local.X * MathF.Cos(radians) - local.Y * MathF.Sin(radians),
+            local.X * MathF.Sin(radians) + local.Y * MathF.Cos(radians));
+        var delta = anchor.WorldPosition - desired;
+        var positionError = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
+        // Mirror StructurePlacement's public behaviour without referencing the
+        // simulation assembly's internal helper from this presentation fixture.
+        var rawYaw = MathUtil.NormalizeAngle(
+            hut.RotationDegrees + BuildingRules.HutWardrobeLocalYaw);
+        var expectedYaw = MathUtil.NormalizeAngle(
+            (float)Math.Floor((rawYaw + 30f) / 60f) * 60f);
+        var yawError = MathF.Abs(MathUtil.DeltaAngle(wardrobe.RotationDegrees, expectedYaw));
+        var ok = positionError <= 0.02f && yawError <= 0.01f;
+        detail = $"junction={wardrobe.Junctions[0].Value} posΔ={positionError:0.000} " +
+                 $"yaw={wardrobe.RotationDegrees:0}/{expectedYaw:0} free={!anchor.Blocked}";
+        return ok;
     }
 
     private void PrepareStandingAndSleepingAcceptancePose()
@@ -453,6 +516,7 @@ public sealed class HutTestBootstrap : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (_layoutDesignerMode) HideTestDebugOverlays();
         var world = _runner?.Engine?.World;
         if (world == null || !_forceRain) return;
         world.Environment.IsRaining = true;
@@ -461,6 +525,7 @@ public sealed class HutTestBootstrap : MonoBehaviour
 
     private void OnGUI()
     {
+        if (_layoutDesignerMode) return;
         var world = _runner?.Engine?.World;
         if (world == null) return;
 

@@ -114,13 +114,24 @@ internal static class CombatHelpSystem
         }
 
         victim.Mind.LastHelpCryTick = world.Tick;
+
+        // §57.9: смертельная беда кричит ГРОМЧЕ — дальше слышно, больше рук,
+        // надбавка к решению каждой. Порог тот же, что у §53.8-тяжести по
+        // духу: «при смерти, лежит или разбита» — это уже не потасовка.
+        var mortal = victim.IsDying ||
+            victim.Body.IsProne ||
+            victim.Health < Spec57.HelpCryMortalPlight ||
+            MobSystem.WorstPartHealth(victim) < Spec57.HelpCryMortalPlight;
+        var radius = mortal ? Spec57.HelpCryMortalRadiusTiles : Spec57.HelpCryRadiusTiles;
+        var maxResponders = mortal ? Spec57.MaxMortalCryResponders : Spec57.MaxHelpCryResponders;
+
         // Суффикс «:кто напал» — вид рисовал собаку на ЛЮБОЙ крик о помощи, в
         // том числе когда резал человек. Пир — АТАКУЮЩИЙ, а не сама жертва:
         // прежний victim.Id всплывал её же лицом над её же головой.
         SocialCueSignals.Stamp(world, victim, dogId.HasValue ? "HelpCry:dog" : "HelpCry:npc", attackerId);
         Trace.Emit(world, victim.Id, "HelpCry",
-            $"{attackerLabel} Radius={Spec57.HelpCryRadiusTiles} " +
-            $"Health={victim.Health:F2} Attackers={attackers}");
+            $"{attackerLabel} Radius={radius} " +
+            $"Health={victim.Health:F2} Attackers={attackers}{(mortal ? " Mortal" : "")}");
 
         var responders = 0;
         foreach (var helper in world.Entities.Npcs.Values)
@@ -140,17 +151,23 @@ internal static class CombatHelpSystem
                 helper.Execution.CurrentInteraction == InteractionType.Sleep ||
                 // §121: крик о помощи ручную не поднимает — см. выше.
                 ManualControlMath.IsManual(helper) ||
-                HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.HelpCryRadiusTiles)
+                HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > radius)
             {
                 continue;
             }
 
             var relationship = helper.Social.GetOrCreate(victim.Id);
-            var affinity01 = (relationship.Affinity + 1f) * 0.5f;
+            // §57.9: «своих в беде не бросают» — пол дружбы. Крик о помощи это
+            // всегда про жизнь, поэтому вражда больше не глушит отклик: злишься
+            // на неё — спасёшь и выскажешь. Дружба выше пола добавляет как
+            // прежде; личность (CompassionTrait) остаётся главным членом.
+            var affinity01 = System.Math.Max(
+                (relationship.Affinity + 1f) * 0.5f, Spec57.HelpCryAffinityFloor);
             var compassionPressure = 1f - helper.Needs.Compassion;
             var score = helper.CompassionTrait * 0.55f +
                 affinity01 * 0.35f +
-                compassionPressure * 0.10f;
+                compassionPressure * 0.10f +
+                (mortal ? Spec57.HelpCryMortalBonus : 0f);
             var roll = MathUtil.Hash01(world.Seed, world.Tick, victim.Id.Value, helper.Id.Value);
             var canHelp = helper.Health >= Spec57.HelpCryHealthGate &&
                 helper.Needs.Blood >= Spec57.HelpCryHealthGate &&
@@ -199,9 +216,82 @@ internal static class CombatHelpSystem
                 $"CompassionTrait={helper.CompassionTrait:F2}");
 
             responders++;
-            if (responders >= Spec57.MaxHelpCryResponders)
+            if (responders >= maxResponders)
             {
                 break;
+            }
+        }
+    }
+
+    // §57.10: стон умирающей ВНЕ боя. Боевой крик живёт в укусах и бегстве;
+    // но волки уходят, а она остаётся истекать — и раньше молчала навсегда:
+    // помощь §53 находила её только глазами или по устаревающей памяти.
+    // Теперь лежащая в тяжести И В СОЗНАНИИ раз в кулдаун крика стонет, и
+    // каждая союзница в смертельном радиусе запоминает её как только что
+    // увиденную (позиция + тяжесть + чем помочь). Дальше её ведёт обычная
+    // §53.8-помощь по памяти — без дисконта, потому что «подруга умирает» не
+    // слух. Целей и планов стон не назначает: решение остаётся за аукционом.
+    public static void TryMoanForHelp(WorldState world, NPCState victim)
+    {
+        if (!Spec57.DyingMoanEnabled || !Spec57.HelpCryEnabled ||
+            victim.Health <= 0f ||
+            victim.IsFighting || // в бою зовёт боевая ветка — со своим пиром
+            victim.IsUnconscious(world.Tick) || // §60: без сознания не стонут
+            victim.IsPlayingDead(world.Tick) || // §105.14: не выдаёт себя
+            world.Tick - victim.Mind.LastHelpCryTick < Spec57.HelpCryCooldownTicks)
+        {
+            return;
+        }
+
+        var mortal = victim.IsDying ||
+            (victim.Body.IsProne &&
+             MobSystem.WorstPartHealth(victim) < Spec57.HelpCryMortalPlight);
+        if (!mortal)
+        {
+            return;
+        }
+
+        victim.Mind.LastHelpCryTick = world.Tick;
+        SocialCueSignals.Stamp(world, victim, "HelpMoan", null);
+        Trace.Emit(world, victim.Id, "HelpMoan",
+            $"Radius={Spec57.HelpCryMortalRadiusTiles} Health={victim.Health:F2} " +
+            $"Dying={(victim.IsDying ? 1 : 0)} Prone={(victim.Body.IsProne ? 1 : 0)}");
+
+        var aidKind = AidAssessment.Assess(victim, world.Tick, out var severity);
+        foreach (var hearer in world.Entities.Npcs.Values)
+        {
+            if (hearer.Id.Equals(victim.Id) ||
+                hearer.Health <= 0f ||
+                hearer.IsUnconscious(world.Tick) ||
+                hearer.Execution.CurrentInteraction == InteractionType.Sleep || // §60: сон глух
+                !FactionRelations.AreAllies(hearer, victim) ||
+                HexSpatialMath.HexDistance(hearer.Tile, victim.Tile) >
+                    Spec57.HelpCryMortalRadiusTiles)
+            {
+                continue;
+            }
+
+            // Память, не взгляд: LastSeenTick на тик позади, иначе перцепция
+            // примет запись за «вижу сейчас» и выкинет из Remembered (см.
+            // BuildRememberedAgents). Поля — ровно как у живого взгляда §125.3.
+            if (!hearer.Memory.KnownAgents.TryGetValue(victim.Id, out var met))
+            {
+                met = new Memory.AgentMemory { Id = victim.Id };
+                hearer.Memory.KnownAgents[victim.Id] = met;
+            }
+
+            met.Faction = victim.Faction;
+            met.Tile = victim.Tile;
+            met.Junction = victim.CurrentJunction;
+            met.LastSeenTick = world.Tick - 1;
+            met.Suffering = severity;
+            met.AidKind = aidKind;
+            met.Helpless = true;
+            SocialCueSignals.Stamp(world, hearer, "MoanHeard", victim.Id);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, hearer.Id, "MoanHeard",
+                    $"Victim=NPC{victim.Id.Value} Suffering={severity:F2} Kind={aidKind}");
             }
         }
     }
@@ -346,6 +436,41 @@ internal static class CombatHelpSystem
                 $"Affinity={relationship.Affinity:F2} " +
                 $"Dist={HexSpatialMath.HexDistance(helper.Tile, victim.Tile)}");
         }
+    }
+
+    // §57.9: спасение — событие для ОБЕИХ. Взаимный подъём отношений в момент
+    // СНЯТОЙ угрозы: зверь мёртв или враг отступил, а подмога жива и дралась.
+    // Тот же протокол, что у Talk/§53-aid: обе стороны, клампы, штампы для
+    // «+»-попа над головами и RelationshipChanged в хронику (формат разбирает
+    // GameHistoryFormatter — «->NPC» обязателен).
+    public static void GrantRescueGratitude(WorldState world, NPCState rescuer, NPCState victim)
+    {
+        if (rescuer.Id.Equals(victim.Id))
+        {
+            return;
+        }
+
+        var delta = Spec57.RescueGratitudeAffinity;
+        var rescuerRel = rescuer.Social.GetOrCreate(victim.Id);
+        var victimRel = victim.Social.GetOrCreate(rescuer.Id);
+        rescuerRel.Affinity = MathUtil.Clamp(rescuerRel.Affinity + delta, -1f, 1f);
+        rescuerRel.Familiarity = MathUtil.Clamp01(rescuerRel.Familiarity + delta);
+        victimRel.Affinity = MathUtil.Clamp(victimRel.Affinity + delta, -1f, 1f);
+        victimRel.Familiarity = MathUtil.Clamp01(victimRel.Familiarity + delta);
+
+        rescuer.Execution.LastTalkResultTick = world.Tick;
+        rescuer.Execution.LastTalkAffinityDelta = delta;
+        victim.Execution.LastTalkResultTick = world.Tick;
+        victim.Execution.LastTalkAffinityDelta = delta;
+
+        Trace.Emit(world, rescuer.Id, "RelationshipChanged",
+            $"NPC{rescuer.Id.Value}->NPC{victim.Id.Value} " +
+            $"Fam={rescuerRel.Familiarity:F2} (+{delta:F2}) " +
+            $"Aff={rescuerRel.Affinity:F2} (+{delta:0.00}) Cause=[Rescue]");
+        Trace.Emit(world, victim.Id, "RelationshipChanged",
+            $"NPC{victim.Id.Value}->NPC{rescuer.Id.Value} " +
+            $"Fam={victimRel.Familiarity:F2} (+{delta:F2}) " +
+            $"Aff={victimRel.Affinity:F2} (+{delta:0.00}) Cause=[Rescue]");
     }
 
     public static void ClearAssist(NPCState npc)

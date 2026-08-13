@@ -452,6 +452,80 @@ public sealed partial class DecisionSystem
         return best;
     }
 
+    // ⭐ Баг #120: «материалы досягаемы» для МНОГОСОСТАВНОГО счёта.
+    //
+    // Однокомпонентный рецепт (верёвка из волокна) обходится одной проверкой
+    // кучи — §84 выше. У шины две строки, 2 палки + 1 верёвка, и гейт требовал
+    // нести ВЕСЬ счёт в руках: за палками подвоз есть, за верёвкой не было
+    // никакого, — и крафт шины не становился доступен НИ РАЗУ, хотя в колонии
+    // на земле лежало 8 верёвок и 20 палок. Вся ветка лечения конечности при
+    // этом молчала: RescueSystem стартует только с готовой шиной в руках.
+    //
+    // Проверка повторяет то, что дальше сделают планировщик и крафт, иначе
+    // цель стала бы пустой оценкой и завертелся бы ExecFailed-цикл:
+    //  • якорь выбирается ТЕМ ЖЕ правилом, что в PlanningSystem, — ближайшая
+    //    куча ПЕРВОЙ недостающей строки (планировщик уводит её именно туда);
+    //  • покрытие считается так же, как в CraftProjectMath.HasAtomicBill, —
+    //    несомое плюс лежащее в кольце 1 вокруг якоря, потому что ровно это
+    //    заберёт CreateProject.
+    // Материалы, разбросанные по разным углам, честно оставляют цель
+    // недоступной: тогда её добудут обычным сбором.
+    internal static bool BillCoveredByGroundPiles(
+        NPCState npc, WorldState world, GoalType goal)
+    {
+        if (!RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe))
+        {
+            return false;
+        }
+
+        var anchor = npc.Tile;
+        foreach (var ingredient in recipe.Inputs)
+        {
+            var missing = ingredient.Count - CountInventory(npc, ingredient.Id);
+            if (missing <= 0)
+            {
+                continue;
+            }
+
+            var pile = FindGroundInputPile(npc, world, ingredient.Id, missing);
+            if (pile is null)
+            {
+                return false;
+            }
+
+            anchor = pile.Tile;
+            break;
+        }
+
+        foreach (var ingredient in recipe.Inputs)
+        {
+            var missing = ingredient.Count - CountInventory(npc, ingredient.Id);
+            if (missing <= 0)
+            {
+                continue;
+            }
+
+            var nearby = 0;
+            foreach (var obj in npc.Perception.Objects)
+            {
+                if (obj.DefinitionId == ingredient.Id && obj.IsReachable &&
+                    ObjectUsableBy(obj, npc.Id) &&
+                    !npc.Memory.IsShunned(obj.Id, world.Tick) &&
+                    HexSpatialMath.HexDistance(obj.Tile, anchor) <= 1)
+                {
+                    nearby++;
+                }
+            }
+
+            if (nearby < missing)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     internal static bool HasReachableDefinition(NPCState npc, WorldState world, string definitionId)
     {
         foreach (var obj in npc.Perception.Objects)
@@ -518,8 +592,8 @@ public sealed partial class DecisionSystem
             if (known.Junction is { } j &&
                 world.Content.ObjectDefinitions.TryGetValue(known.DefinitionId, out var def) &&
                 def.Tags.Contains(tag) &&
-                (Connectivity.Reachable(world, from, j) ||
-                 Connectivity.ReachableBeside(world, from, j, true,
+                (Connectivity.Reachable(world, from, j, npc.Body.CanJump) ||
+                 Connectivity.ReachableBeside(world, from, j, npc.Body.CanJump,
                      world.Entities.Objects.TryGetValue(known.Id, out var live) ? live : null)))
             {
                 return true;
@@ -737,7 +811,7 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
-            if (Connectivity.Reachable(world, from, junction.Id))
+            if (Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
             {
                 return true;
             }

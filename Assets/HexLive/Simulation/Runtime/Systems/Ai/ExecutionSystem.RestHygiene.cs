@@ -560,7 +560,7 @@ public sealed partial class ExecutionSystem
             if (junction.Blocked || junction.Tiles.Count == 0 ||
                 !world.Tiles.Items.TryGetValue(junction.Tiles[0], out var tile) ||
                 !tile.Flags.HasFlag(TileFlags.Water) ||
-                !Connectivity.Reachable(world, shore, junction.Id))
+                !Connectivity.Reachable(world, shore, junction.Id, npc.Body.CanJump))
             {
                 continue;
             }

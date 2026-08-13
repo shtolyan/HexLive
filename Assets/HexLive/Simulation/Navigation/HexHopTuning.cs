@@ -37,6 +37,13 @@ public static class HexHopTuning
     public static float TakeoffSeconds = 0.25f;
     public static float LandingSeconds = 0.35f;
 
+    // §57.11: спуск-падение раненой (HopKind="Fall") — НЕ шестая ручка прыжка,
+    // а отдельный ход: без отталкивания, клип падения в полёте, и после
+    // приземления она ПОДНИМАЕТСЯ — эту паузу и задаёт ручка. Сим держит
+    // ClimbPauseTimer на это время, вид в ту же паузу играет Standing Up;
+    // ползущая не встаёт и просто лежит её до конца.
+    public static float FallRecoverSeconds = 1.6f;
+
     // Symmetric flight geometry: takeoff EdgePadding BEFORE the elevation
     // border, landing EdgePadding AFTER it — the same number both ends, both
     // directions, measured along the flight from the tile-centre crossing, so

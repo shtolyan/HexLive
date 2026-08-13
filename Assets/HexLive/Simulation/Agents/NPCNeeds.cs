@@ -60,30 +60,18 @@ public sealed class NPCNeeds
     // last chance before the death line, if the bleed can be outlasted.
     public float Blood { get; set; } = 1f;
 
-    // Spec 40.3: first-aid stock, held apart from the general inventory (a
-    // med pouch — it must not crowd food/materials out of the pack).
-    // Auto-spent to dress a serious wound.
-    // Spec 44 r2: the pouch is DOUBLED — 4 dressings (2 medkit + the 2 herbal
-    // below) instead of 2, so a mauling survivor gets four saves and the
-    // medkit-first order still leaves the leaf wrap reachable in one life.
-    public int Bandages { get; set; } = 4;
+    // Legacy blob field: v41 and older stored first aid outside Inventory.
+    // Current worlds keep physical, stackable item.bandage instances;
+    // WorldSaveSerializer materializes this count once when loading old data.
+    public int Bandages { get; set; }
 
-    // Spec 44: of the bandages in the pouch, how many are HERBAL — crafted from
-    // 2 gathered plantain leaves at the fire — as opposed to the pre-made
-    // medkit bandages every girl starts with (spec 40.3). Only a herbal dressing
-    // shows the leaf-wrap decal; medkit bandages patch the wound with no leaf
-    // visual (you never gathered them). Medkit bandages are spent first, so the
-    // plantain wrap appears only once the gauze is gone.
-    // Spec 44 r2: 2 of the 4 starting dressings are herbal (leaves she brought
-    // with her) — with the old 0 the wrap needed three maulings AND a
-    // gather-and-craft run in between, and was never seen in play.
-    public int HerbalBandages { get; set; } = 2;
+    // Legacy companion to Bandages: number of old pouch entries that were
+    // herbal. Current instances persist provenance in ResourceAmount.
+    public int HerbalBandages { get; set; }
 
-    // Spec 40.3: pills — the last-resort backup to the bandage. When a wound
-    // is open yet no bandage has fired and HP has fallen near death, a pill is
-    // spent to pull the body and HP back a step. One to start; kept in the med
-    // pouch beside the bandages.
-    public int Pills { get; set; } = 1;
+    // Legacy blob field for pre-physical pills. Current item.pill instances
+    // live in Inventory and this value is materialized once on old-save load.
+    public int Pills { get; set; }
 
     // Spec 40.7: tan (0 = pale, 1 = dark). Builds slowly from sun on bare
     // skin; the redness→tan look is painted from this on the skin texture

@@ -370,8 +370,19 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 // npc-ticks in 10 days on seed 31337 — 35% of all "standing
                 // around doing nothing" — and the 30-day soak killed girls at
                 // Thirst 1.00 who had no goal at all while they waited.
+                //
+                // §53.8: …но если помощница УЖЕ РЯДОМ (AidWardHoldDistance, два
+                // гекса), красная зона ожидания не рвёт: умирающая замирает и
+                // принимает помощь. Раньше IsDehydrated чистил заявку каждый
+                // тик, она уползала с места, и подход срывался вечно. Таймаут
+                // ниже по-прежнему действует — вечного стояния рядом с
+                // застрявшей помощницей не будет.
+                var helperNear = world.Entities.Npcs.TryGetValue(
+                        aidWaitingFor, out var incomingHelper) &&
+                    HexSpatialMath.Distance(npc.Position, incomingHelper.Position) <=
+                        Spec53.AidWardHoldDistance;
                 if (npc.IsFighting || npc.Mind.CurrentGoal == GoalType.Flee ||
-                    npc.Mind.IsStarving || npc.Mind.IsDehydrated)
+                    ((npc.Mind.IsStarving || npc.Mind.IsDehydrated) && !helperNear))
                 {
                     npc.Mind.PendingAidFrom = null;
                 }
@@ -974,12 +985,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             BuildSiteMath.IsStocked(buildSite) &&
             (siteWaivesHammer || (ctx.CanUseToolsOrWeapons && hasHammer));
 
-        // Spec 29E: the fire chain still needs these — a pot/lighter/wood
-        // and a seen campfire drive the fuel/craft goals further below.
+        // Spec 29E: the fire chain still needs these — a lighter/wood and a
+        // seen campfire drive the fuel/craft goals further below.
         var hasLighter = Content.GearCatalog.HasCapability(
             npc.Inventory.Items, Content.GearCapability.Ignite);
-        var hasPot = Content.GearCatalog.HasCapability(
-            npc.Inventory.Items, Content.GearCapability.Boil);
         // Spec §54: "wood in hand" for fire/craft now means a STICK.
         var hasWood = npc.Inventory.Items.Contains(ContentIds.Stick);
         var (campfireSeen, campfireFuel, campfireObj) = FindCampfire(npc, world);
@@ -1053,9 +1062,6 @@ public sealed partial class DecisionSystem : ISimulationSystem
              npc.Mind.IsStarving)
                 ? SimBalance.StarvingBoost
                 : 0f;
-        // §55: boiling water is retired — the fire chain no longer earns a
-        // "boil" bonus, only warmth/cooking motivate it now.
-        var wantsBoil = false;
         // Spec 35.2: any reachable Tool not carried (saw, dropped gear).
         var gatherToolsAvail = HasMissingToolReachable(npc, world);
         // §126/§49 r2: обычная хозяйственная черта в 600 единиц — и всё. Здесь
@@ -1152,19 +1158,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var coldChain = npc.Needs.ThermalComfort < -0.15f
             ? 0.4f * npc.Needs.ThermalDiscomfort
             : 0f;
-        // Spec §49 (Tier C): once she's decided to boil rather than gamble on
-        // raw, push the fire chain so the pit actually gets lit — otherwise
-        // the suppressed raw goal just leaves her thirsty by a dead fire.
-        var boilChain = wantsBoil ? Spec49.BoilChainWeight : 0f;
+        // §55.2 retired boiling (and §-this-pass the pot): the fire chain no
+        // longer carries a "she chose boiled over raw" push — warmth and
+        // cooking are the only reasons the pit gets lit now.
         AddGoalScore(npc, world.Tick, GoalType.GatherTools,
-            0.25f + 0.2f * npc.Needs.Thirst + coldChain + boilChain,
+            0.25f + 0.2f * npc.Needs.Thirst + coldChain,
             gatherToolsAvail, coconutEmergencyBoost);
         // The raft pull mirrors BuildRaft's weight: stocking logs for the
         // coast run must win the auction as often as the run itself, or
         // the demand flag never turns into wood in hand (soak: GatherWood
         // won 8-10 times in 15 days while the raft starved).
         AddGoalScore(npc, world.Tick, GoalType.GatherWood,
-            0.2f + 0.3f * npc.Needs.Thirst + coldChain + boilChain +
+            0.2f + 0.3f * npc.Needs.Thirst + coldChain +
             (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost + bedStickPull +
             bedLogPull + nightFireChain + (woodenBoardShortfall > 0 ? 0.35f : 0f),
             gatherWoodAvail, coconutEmergencyBoost);
@@ -1183,7 +1188,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // as re-dressing (which can't fix a 6C night) — clears Dress (~1.1)
         // and Sleep (~1.1) plus the 0.15 switch margin at full cold.
         AddGoalScore(npc, world.Tick, GoalType.TendFire,
-            0.25f + 0.3f * npc.Needs.Thirst + boilChain +
+            0.25f + 0.3f * npc.Needs.Thirst +
             (freezing ? 0.9f * npc.Needs.ThermalDiscomfort : 0f) + nightFireChain,
             tendFireAvail);
 
@@ -1207,6 +1212,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Spec 44: the herbal first-aid chain — gather leaves, craft a
         // bandage at the fire. Urgency scales with how hurt anyone is.
         var herbLeaves = CountInventory(npc, ContentIds.HerbLeaf);
+        var bandageCount = MedicalSupplyMath.BandageCount(npc);
         // §68: the resupply half of self first-aid. A flat 0.3 step at
         // Health < 0.7 barely moved the herb run, and now that she SPENDS
         // her own dressings the pouch has to be refilled — so how badly she
@@ -1225,10 +1231,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var bandageCraftPossible =
             (herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage)) ||
             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftBandage);
-        var gatherHerbAvail = herbFetchPossible && npc.Needs.Bandages < 2;
+        var gatherHerbAvail = herbFetchPossible && bandageCount < 2;
         AddGoalScore(npc, world.Tick, GoalType.GatherHerb,
             0.22f + hurtUrgency, gatherHerbAvail);
-        var craftBandageAvail = bandageCraftPossible && npc.Needs.Bandages < 2;
+        var craftBandageAvail = bandageCraftPossible && bandageCount < 2;
         AddGoalScore(npc, world.Tick, GoalType.CraftBandage,
             0.3f + hurtUrgency, craftBandageAvail);
 
@@ -1239,7 +1245,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var craftSplintAvail = Spec118.Enabled && Spec118.SplintsEnabled &&
             CountInventory(npc, ContentIds.Splint) == 0 &&
             HasAlliedLimbNeed(world, npc, arms: true, legs: true, severed: false) &&
+            // §120: счёт шины закрывается и КУЧАМИ НА ЗЕМЛЕ — тем же приёмом
+            // §84, что у верёвки, только для двух строк сразу. Требование
+            // нести весь счёт в руках держало эту цель недоступной всегда:
+            // подвоза верёвки нет ни у одной цели, а RescueSystem без готовой
+            // шины не стартует, так что молчала вся ветка лечения конечности.
             (HasRecipeInputs(npc, GoalType.CraftSplint) ||
+             BillCoveredByGroundPiles(npc, world, GoalType.CraftSplint) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSplint)) &&
             CraftPlaceOk(GoalType.CraftSplint);
         AddGoalScore(npc, world.Tick, GoalType.CraftSplint, 0.36f, craftSplintAvail);
@@ -1268,13 +1280,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // 0.55 / blood 0.48 carrying TWO unusable bandages, and the auction
         // gave the evening to laundry. Now the burden reads the WHOLE body,
         // and a bleeding girl treats before she does chores.
-        var treatBurdenGate = npc.Needs.Bandages > 1
+        var treatBurdenGate = bandageCount > 1
             ? Spec53.SelfTreatBurdenThreshold
             : Spec53.SelfTreatLastBandageBurden;
         var quietAftercare = Spec118.Enabled &&
             !MortalityHelpers.IsBleeding(npc) && WoundMath.NeedsAftercare(npc);
         var treatWoundsAvail = Spec53.SelfTreatEnabled &&
-            npc.Needs.Bandages > 0 &&
+            bandageCount > 0 &&
             (woundBurden >= treatBurdenGate || quietAftercare) &&
             // Light hand-work: a lost leg must not forbid winding a bandage.
             npc.Body.HasUsableHand &&
@@ -1288,6 +1300,58 @@ public sealed partial class DecisionSystem : ISimulationSystem
             emergency: npc.Needs.Blood < Spec53.SelfTreatBleedBlood
                 ? Spec53.SelfTreatBleedEmergency
                 : 0f);
+
+        // §50.9 + §57.11: «спуститься, пока ноги держат» — и ПОСЛЕ того, как
+        // перестали. Мир калеки направленный: сползти вниз можно всегда, так
+        // что цель больше не требует CanJump (раньше она гасла ровно в момент,
+        // когда становилась нужна — обе ноги падали ниже порога в одном бою).
+        // «Ловушка» теперь меряется FlatWorldSizeAt — своей полкой ПЛЮС всем,
+        // куда есть спуск: уступ со сходом на материк ловушкой не считается.
+        var safeGroundAvail = false;
+        var safeGroundUrgency = 0f;
+        if (AiBalance.SafeGroundRetreatEnabled &&
+            npc.CurrentJunction is { } safeGroundFrom)
+        {
+            var minLeg = System.MathF.Min(
+                npc.Body.LimbFunction(BodyPart.LegL),
+                npc.Body.LimbFunction(BodyPart.LegR));
+            if (minLeg < AiBalance.SafeGroundLegAlert)
+            {
+                var reachableWorld = Connectivity.FlatWorldSizeAt(world, safeGroundFrom);
+                var onMainland = Connectivity.ComponentOf(world, safeGroundFrom, canJump: false) ==
+                    world.LargestFlatComponentId;
+                // Дорога в материк обязана существовать С ЕЁ способностями:
+                // прыгающая дойдёт по полному графу, обезноженная — только
+                // если у полки есть сход. Без этого гейта запертая крутила
+                // вечный цикл PlanFailed NoRouteToMainland.
+                var mainlandInReach = npc.Body.CanJump ||
+                    Connectivity.FlatReachesMainland(world, safeGroundFrom);
+                if (!onMainland &&
+                    mainlandInReach &&
+                    reachableWorld > 0 &&
+                    world.JunctionComponentsFlatSizes.TryGetValue(
+                        world.LargestFlatComponentId, out var mainlandSize) &&
+                    mainlandSize >= AiBalance.SafeGroundIsletMaxJunctions)
+                {
+                    // Уступ мал сам по себе, но велик ли мир вместе со
+                    // спусками — если и он мал, уходить надо тем более.
+                    var isletSize = Connectivity.FlatComponentSizeAt(world, safeGroundFrom);
+                    if (isletSize < AiBalance.SafeGroundIsletMaxJunctions)
+                    {
+                        safeGroundAvail = true;
+                        safeGroundUrgency = 0.65f +
+                            (npc.Body.CanJump
+                                ? AiBalance.SafeGroundLegAlert - minLeg
+                                // Прыжка уже нет: срочность не зависит от ног —
+                                // каждый тик на полке проедает окно спуска.
+                                : AiBalance.SafeGroundLegAlert);
+                    }
+                }
+            }
+        }
+
+        AddGoalScore(npc, world.Tick, GoalType.ReachSafeGround,
+            safeGroundUrgency, safeGroundAvail);
 
         // Spec 29F: hunting & crafting.
         var hasSpear = npc.Inventory.Items.Contains(ContentIds.Spear);
@@ -2263,6 +2327,23 @@ public sealed partial class DecisionSystem : ISimulationSystem
         }
 
     }
+    /// <summary>§53.8: жив ли сейчас поход к «тяжёлой» подопечной — умирающей
+    /// или со страданием не ниже HeavyAidSuffering. Состояние читается заново
+    /// по миру, а не по снимку восприятия: пока помощница в пути, подопечная
+    /// могла умереть или оправиться, и оба исхода обязаны снимать защиту.</summary>
+    private static bool HeavyAidInFlight(WorldState world, NPCState npc)
+    {
+        if (npc.Plan.TargetAgentId is not { } wardId ||
+            !world.Entities.Npcs.TryGetValue(wardId, out var ward))
+        {
+            return false;
+        }
+
+        var kind = AidAssessment.Assess(ward, world.Tick, out var severity);
+        return kind != AidKind.None &&
+            (ward.IsDying || severity >= Spec53.HeavyAidSuffering);
+    }
+
     /// <summary>
     /// §53: сострадание. Кто рядом страдает, могу ли я помочь — и если помочь
     /// нечем, за чем идти.
@@ -2316,9 +2397,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
         {
             foreach (var agent in npc.Perception.Agents)
             {
+                // §53.8: идущая мимо соседка — не цель, а вот КРИТИЧЕСКАЯ
+                // (умирает / страдание за порогом) остаётся целью и в
+                // движении: обезвоженная с разбитой ногой как раз ПОЛЗЁТ к
+                // воде, и старый фильтр не давал планировать на неё вовсе.
                 if (agent.AidKind == AidKind.None ||
                     agent.Suffering < Spec53.SufferingThreshold ||
-                    !agent.IsReachable || agent.IsBusy || agent.IsMoving)
+                    !agent.IsReachable || agent.IsBusy ||
+                    (agent.IsMoving && !agent.IsDying &&
+                     agent.Suffering < Spec53.HeavyAidSuffering))
                 {
                     continue;
                 }
@@ -2365,7 +2452,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
                         continue;
                     }
 
-                    var believed = remembered.Suffering * Spec53.AidMemoryBidShare;
+                    // §53.8: память об УМИРАЮЩЕЙ не дисконтируется — «дома
+                    // осталась подруга при смерти» весит как увиденное. Скидка
+                    // осталась только лёгким случаям, чтобы колония не ходила
+                    // к призракам мимо живых.
+                    var share = remembered.Suffering >= Spec53.HeavyAidSuffering
+                        ? 1f
+                        : Spec53.AidMemoryBidShare;
+                    var believed = remembered.Suffering * share;
                     if (believed > bestSuffering)
                     {
                         bestSuffering = believed;
@@ -2551,7 +2645,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 npc.Execution.Status == ExecutionStatus.InProgress;
             var locked = npc.Mind.GoalLock is { } goalLock &&
                 goalLock.Goal == previousGoal && world.Tick < goalLock.EndTick;
-            var threshold = locked ? LockOverrideDelta : (hasActivePlan ? SwitchDelta : 0f);
+            // §53.8: поход к умирающей держится как замок ВСЮ дорогу. Замерено
+            // (seed 12345): дорога к дальней подопечной длиннее GoalLockTicks,
+            // и после замка Hydrate с Suffering=1.00 перебивался Socialize —
+            // 19 планов, 2 дошли. Порог LockOverrideDelta оставляет проход
+            // только собственным кризисам (их StarvingBoost-надбавки выше).
+            var heavyAid = !locked && hasActivePlan && previousGoal == GoalType.Aid &&
+                HeavyAidInFlight(world, npc);
+            var threshold = locked || heavyAid
+                ? LockOverrideDelta
+                : (hasActivePlan ? SwitchDelta : 0f);
 
             if (best.FinalScore - currentScore <= threshold)
             {
@@ -2560,7 +2663,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     Trace.Debug(world, npc.Id, "GoalHeld",
                         $"{previousGoal} kept over {best.Goal} " +
                         $"(lead={best.FinalScore - currentScore:F3} <= {threshold:F2}" +
-                        $"{(locked ? $", locked until {npc.Mind.GoalLock!.EndTick}" : "")})");
+                        $"{(locked ? $", locked until {npc.Mind.GoalLock!.EndTick}" : "")}" +
+                        $"{(heavyAid ? ", heavy aid in flight" : "")})");
                 }
                 return;
             }

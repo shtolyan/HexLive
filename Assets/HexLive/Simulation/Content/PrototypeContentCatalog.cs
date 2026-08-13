@@ -886,22 +886,6 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
-            ["tool.pot"] = new ObjectDefinition
-            {
-                Id = "tool.pot",
-                DisplayName = "Pot",
-                Tags = { "Tool" },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "pickup.pot",
-                        Type = InteractionType.PickUp,
-
-                        DurationTicks = 4
-                    }
-                }
-            },
             // Spec 40.3: a bandage — first aid. Auto-applied when bleeding to
             // dress the worst wound and stem blood loss. A carried consumable.
             ["item.bandage"] = new ObjectDefinition
@@ -914,6 +898,21 @@ public static class PrototypeContentCatalog
                     new InteractionDefinition
                     {
                         Id = "pickup.bandage",
+                        Type = InteractionType.PickUp,
+                        DurationTicks = 4
+                    }
+                }
+            },
+            ["item.pill"] = new ObjectDefinition
+            {
+                Id = "item.pill",
+                DisplayName = "Pill",
+                Tags = { "Medicine" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.pill",
                         Type = InteractionType.PickUp,
                         DurationTicks = 4
                     }

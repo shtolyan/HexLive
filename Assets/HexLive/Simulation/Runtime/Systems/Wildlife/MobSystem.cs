@@ -123,6 +123,30 @@ public sealed class MobSystem : ISimulationSystem
         foreach (var dead in _deadDogs)
         {
             world.Mobs.Remove(dead);
+
+            // §57.9: зверь мёртв, а его жертву выручала подмога — спасение
+            // состоялось, обе запоминают друг друга. Здесь, в едином свипе
+            // смертей, а не в medium-ветке ударов: при §104 timed-melee
+            // добивает fast-слой, и ветка со strike там мертва (замерено:
+            // 0 благодарностей за 5×16000 тиков, пока хук жил в ней).
+            if (dead.TargetNpc is { } quarryId &&
+                world.Entities.Npcs.TryGetValue(quarryId, out var rescued) &&
+                rescued.Health > 0f)
+            {
+                foreach (var defender in world.Entities.Npcs.Values)
+                {
+                    if (defender.Health > 0f &&
+                        defender.Mind.CombatAssistDogId == dead.Id &&
+                        !defender.Id.Equals(quarryId))
+                    {
+                        CombatHelpSystem.GrantRescueGratitude(world, defender, rescued);
+                    }
+                }
+            }
+
+            // §135: зверя убили с добычей в зубах — конечность падает там, где
+            // он упал, а не исчезает вместе с ним.
+            MobLimbPrize.DropAtDeath(world, dead);
             Trace.EmitSystem(world, "DogKilled",
                 $"Dog={dead.Id} at Tile={dead.Tile.Q},{dead.Tile.R}");
             // Spec §54: the fallen mob leaves a butcherable carcass; the
@@ -282,6 +306,23 @@ public sealed class MobSystem : ISimulationSystem
 
     private void RunDog(WorldState world, Wildlife.MobState dog)
     {
+        // §135: в зубах добыча — это ВСЯ его программа. Ни цели, ни погони, ни
+        // драки: отойти подальше, встать, доесть. Ветка стоит до захвата цели
+        // намеренно — иначе тот же проход снова навёл бы его на колонию.
+        if (dog.IsCarryingLimb)
+        {
+            RunLimbCarry(world, dog);
+            return;
+        }
+
+        // §135: лежащая конечность — готовая еда, за которую не надо драться.
+        // Зверь без цели идёт за ней и ест, была драка или нет. Стоит ДО
+        // захвата цели: голодный выбирает падаль, а не новую охоту.
+        if (dog.TargetNpc is null && RunScentForLimb(world, dog))
+        {
+            return;
+        }
+
         // Acquire/validate target.
         NPCState? target = null;
         if (dog.TargetNpc is { } targetId)
@@ -298,7 +339,8 @@ public sealed class MobSystem : ISimulationSystem
             // Spec 29C.3: after giving up a hopeless chase the dog ignores
             // prey for the hunt cooldown — otherwise it re-acquired the same
             // unreachable girl on the very next pass and never left the camp.
-            if (world.Tick >= dog.NextHuntAllowedTick)
+            // §135: сытый зверь не охотится вообще — он только что съел ногу.
+            if (world.Tick >= dog.NextHuntAllowedTick && !MobLimbPrize.IsSated(world, dog))
             {
                 foreach (var npc in world.Entities.Npcs.Values)
                 {
@@ -711,7 +753,7 @@ public sealed class MobSystem : ISimulationSystem
         (Spec106.WaterSanctuaryEnabled &&
          !CombatMedium.CanEngage(world, Stats(mob).AttackMediums, npc));
 
-    private static int CountAdjacentDogs(WorldState world, NPCState npc)
+    internal static int CountAdjacentDogs(WorldState world, NPCState npc)
     {
         if (npc.CurrentJunction is not { } npcJunction)
         {
@@ -802,6 +844,8 @@ public sealed class MobSystem : ISimulationSystem
                 {
                     if (npc.Mind.CombatAssistDogId == dog.Id)
                     {
+                        // §57.9: зверь мёртв, подмога дралась — обе запомнят.
+                        CombatHelpSystem.GrantRescueGratitude(world, npc, quarry);
                         CombatHelpSystem.ClearAssist(npc);
                     }
                 }
@@ -1106,6 +1150,17 @@ public sealed class MobSystem : ISimulationSystem
     // После бюджета — тот же честный MarkFleeUnavailable, но за миллисекунды.
     private const int FleePathSearchBudget = 24;
 
+    // §135.5: потолок развёрнутых узлов на ОДИН поиск маршрута погони. Жертва
+    // стоит максимум в агр+3 гексах, то есть штатный маршрут укладывается в
+    // сотни узлов; тысячи означают одно — дороги нет, и поиск просто
+    // разворачивает весь остров (~14 000 узлов). Раньше он делал это КАЖДЫЙ
+    // средний тик все 200 тиков, пока §29C.3 не объявлял погоню безнадёжной.
+    // Теперь безнадёжность стоит миллисекунды, а решение принимает тот же
+    // stall-таймер: пустой путь = шага не было = часы тикают.
+    // Соседний по смыслу бюджет — FleePathSearchBudget выше (там счёт идёт
+    // по попыткам, здесь по узлам одного поиска).
+    private const int ChasePathNodeBudget = 1500;
+
     private static bool TryReserveReachableFleeTarget(
         WorldState world,
         NPCState npc,
@@ -1152,6 +1207,185 @@ public sealed class MobSystem : ISimulationSystem
             Trace.Debug(world, npc.Id, "FleeUnavailable", reason);
 
         }
+    }
+
+    // §135: поход за ЛЕЖАЩЕЙ конечностью. Возвращает true, если этот проход
+    // зверя занят падалью, — тогда ни охоты, ни блужданий.
+    //
+    // ⭐ ЦЕНА. В обычной игре это одно сравнение счётчика с нулём: конечностей
+    // на острове нет почти всегда (индекс §135 в RuntimeCaches). Полный поиск
+    // пути запускается ТОЛЬКО когда падаль есть и она в радиусе чутья, а
+    // недостижимая — гасится кулдауном `ScentGiveUpTicks`, иначе зверь строил
+    // бы Дейкстру по 14 000 узлов каждый средний тик до самого гниения ноги.
+    private bool RunScentForLimb(WorldState world, Wildlife.MobState dog)
+    {
+        if (world.Tick < dog.NextScentScanTick || MobLimbPrize.IsSated(world, dog))
+        {
+            return false;
+        }
+
+        // Уже выбранная падаль главнее новой: без этого зверь на каждом проходе
+        // переприцеливался бы на «ближайшую сейчас» и ходил между двумя ногами.
+        Content.WorldObjectState prize = null;
+        if (dog.PrizeObjectId != 0 &&
+            world.Entities.Objects.TryGetValue(new ObjectId(dog.PrizeObjectId), out var held) &&
+            MobLimbPrize.IsSeveredLimb(held))
+        {
+            prize = held;
+        }
+
+        if (prize is null && !MobLimbPrize.TryFindNearby(world, dog, out prize))
+        {
+            dog.PrizeObjectId = 0;
+            return false;
+        }
+
+        dog.PrizeObjectId = prize.Id.Value;
+        dog.Status = Wildlife.MobStatus.Roaming;
+
+        var limbJunction = prize.Junctions.Count > 0 ? prize.Junctions[0] : dog.Junction;
+        var arrived = limbJunction.Equals(dog.Junction) ||
+            (world.Junctions.Items.TryGetValue(dog.Junction, out var at) &&
+             at.Neighbors.Contains(limbJunction));
+        if (arrived)
+        {
+            MobLimbPrize.TakeFromGround(world, dog, prize);
+            return true;
+        }
+
+        if (!StepTowardJunction(world, dog, limbJunction))
+        {
+            // Дороги нет (нога упала в хижине, за стеной, на скале). Не
+            // пересчитывать её каждый проход — вот ради чего кулдаун.
+            dog.PrizeObjectId = 0;
+            dog.NextScentScanTick = world.Tick + Spec135.ScentGiveUpTicks;
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "MobScentUnreachable",
+                    $"Dog={dog.Id} cannot reach limb Obj={prize.Id.Value}");
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    // §135: программа зверя с добычей в зубах. Три состояния подряд, и все три
+    // читаются с экрана: отходит → стоит и ест → уходит сытым.
+    private void RunLimbCarry(WorldState world, Wildlife.MobState dog)
+    {
+        // Ни цели, ни статуса драки — вид рисует спокойного зверя с ношей.
+        dog.TargetNpc = null;
+        dog.Status = Wildlife.MobStatus.Roaming;
+
+        if (dog.LimbEatenAtTick == 0)
+        {
+            if (MobLimbPrize.IsClearOfColony(world, dog))
+            {
+                MobLimbPrize.Settle(world, dog, "out of aggro range");
+                return;
+            }
+
+            // Предохранитель: на тесном острове уйти бывает НЕКУДА (лагерь
+            // поперёк единственного прохода, кольцо занято). Без него нога
+            // висела бы в зубах вечно, потому что условие «отошёл» никогда не
+            // выполняется, — та же болезнь, что stuck-chase у погони.
+            if (world.Tick - dog.LimbTakenAtTick >= Spec135.RetreatGiveUpTicks)
+            {
+                MobLimbPrize.Settle(world, dog, "nowhere left to go");
+                return;
+            }
+
+            RetreatStep(world, dog);
+            return;
+        }
+
+        // Ест: стоит на месте (Roam не вызывается намеренно — «стоит с ногой в
+        // зубах» это и есть сцена), пока срок не вышел.
+        if (world.Tick >= dog.LimbEatenAtTick)
+        {
+            MobLimbPrize.Finish(world, dog);
+        }
+    }
+
+    // §135: шаг ПРОЧЬ от ближайшей колонистки. Жадный подъём по расстоянию, а
+    // не путь к точке: «подальше» — это направление, а не адрес, и на острове
+    // из 285 тайлов любая выбранная точка через десяток тиков оказывалась бы не
+    // там, где стоит колония. Тупик локального максимума разбирает
+    // предохранитель RetreatGiveUpTicks выше.
+    private static void RetreatStep(WorldState world, Wildlife.MobState dog)
+    {
+        var steps = Stats(dog).ChaseStepsPerTick;
+        for (var step = 0; step < steps; step++)
+        {
+            if (!world.Junctions.Items.TryGetValue(dog.Junction, out var junction))
+            {
+                return;
+            }
+
+            var currentScore = RetreatScore(world, dog.Tile, junction.WorldPosition);
+            Junction? best = null;
+            var bestScore = currentScore;
+            foreach (var neighborId in junction.Neighbors)
+            {
+                if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
+                    neighbor.Blocked || neighbor.Door ||
+                    IsIndoorJunction(world, neighborId) ||
+                    SpatialQueries.IsAllWaterJunction(world, neighborId) ||
+                    IsJunctionOccupiedByActor(world, neighborId, dog) ||
+                    neighbor.Tiles.Count == 0)
+                {
+                    continue;
+                }
+
+                var score = RetreatScore(world, neighbor.Tiles[0], neighbor.WorldPosition);
+                // Строгое улучшение + разрыв по номеру узла: без него зверь
+                // ходил бы туда-сюда между двумя равноценными точками.
+                if (score > bestScore ||
+                    (best is not null && score == bestScore &&
+                     neighborId.Value < best.Id.Value))
+                {
+                    best = neighbor;
+                    bestScore = score;
+                }
+            }
+
+            if (best is null)
+            {
+                return; // локальный максимум — дальше решает предохранитель
+            }
+
+            if (!MoveDogTo(world, dog, best))
+            {
+                return;
+            }
+        }
+    }
+
+    // Чем дальше от ближайшей живой колонистки, тем лучше. Гексовое расстояние
+    // главнее (по нему считается и агр), метрическое — только разрыв ничьих,
+    // чтобы шаг внутри одного гекса всё-таки уводил в нужную сторону.
+    private static float RetreatScore(WorldState world, TileCoord tile, Float2 position)
+    {
+        var hexes = int.MaxValue;
+        var metric = float.MaxValue;
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health <= 0f)
+            {
+                continue;
+            }
+
+            hexes = System.Math.Min(hexes, HexSpatialMath.HexDistance(tile, npc.Tile));
+            metric = System.Math.Min(metric, HexSpatialMath.Distance(position, npc.Position));
+        }
+
+        if (hexes == int.MaxValue)
+        {
+            return 0f; // никого живого — любое место одинаково безопасно
+        }
+
+        return hexes * 1000f + metric;
     }
 
     private static void Roam(WorldState world, Wildlife.MobState dog)
@@ -1211,11 +1445,20 @@ public sealed class MobSystem : ISimulationSystem
 
     private static void ChaseStep(WorldState world, Wildlife.MobState dog, NPCState target)
     {
-        if (target.CurrentJunction is not { } targetJunction)
+        if (target.CurrentJunction is { } targetJunction)
         {
-            return;
+            StepTowardJunction(world, dog, targetJunction);
         }
+    }
 
+    // Один шаг маршрута к узлу. Общий для погони за колонисткой и похода за
+    // лежащей падалью (§135) — не копия: цена этого места это ПОЛНЫЙ поиск
+    // Дейкстры по ~14 000 узлов на каждого идущего зверя за средний тик, и
+    // второй экземпляр той же логики означал бы второй набор её граблей.
+    // Возвращает false, если дороги нет, — вызывающий решает, что это значит.
+    private static bool StepTowardJunction(
+        WorldState world, Wildlife.MobState dog, JunctionId targetJunction)
+    {
         _mobPathAvoidScratch.Clear();
         AddActorJunctions(world, _mobPathAvoidScratch, dog);
 
@@ -1227,10 +1470,11 @@ public sealed class MobSystem : ISimulationSystem
         // future retunes of the seam prices, which is the class of change that
         // historically reshuffled the whole dog dance.
         var path = HexPathfinder.FindPath(world, dog.Junction, targetJunction, _mobPathAvoidScratch,
-            weightClimb: false, hardAvoid: EnsureMobForbidden(world));
+            weightClimb: false, hardAvoid: EnsureMobForbidden(world),
+            maxExpansions: ChasePathNodeBudget);
         if (path.Count < 2)
         {
-            return;
+            return false;
         }
 
         // A chasing dog sprints several junctions per pass (roam stays one) —
@@ -1254,6 +1498,8 @@ public sealed class MobSystem : ISimulationSystem
                 break;
             }
         }
+
+        return true;
     }
 
     // Spec 35.6: the fear arc gains an answer — an archer housemate (not

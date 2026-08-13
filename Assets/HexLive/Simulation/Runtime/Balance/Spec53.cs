@@ -74,6 +74,23 @@ public static class Spec53
     // вспомненную — иначе колония ходила бы к призракам мимо живых.
     public static float AidMemoryBidShare = 0.6f;
 
+    // §53.8: порог «тяжёлой» помощи. Подопечная, чьё страдание не ниже этого
+    // (или помеченная IsDying), меняет три правила: поход к ней не бросают
+    // ради быта (перебить может только перевес LockOverrideDelta, как у
+    // замка), память о ней не дисконтируется AidMemoryBidShare («помнить, что
+    // подруга умирает» — не слух), и её можно выбирать целью, даже пока она
+    // ползёт. Замерено на seed 12345: 19 планов Hydrate к умирающей, 2 дошли,
+    // 7 походов брошены ради Socialize — она умерла с водой в трёх ходках.
+    public static float HeavyAidSuffering = 0.9f;
+
+    // §53.8: с какого расстояния (wu; 3.0 = два гекса) подопечная с заявкой
+    // PendingAidFrom замирает и принимает помощь, ДАЖЕ если её собственный
+    // голод/жажда в красной зоне. Раньше IsDehydrated рвал заявку мгновенно:
+    // умирающая уползала с запомненного места, помощница приходила в пустоту,
+    // и походы срывались вечно. Далёкая помощница ожидания по-прежнему не
+    // держит — ползти к воде самой лучше, чем стоять и ждать через полкарты.
+    public static float AidWardHoldDistance = 3.0f;
+
     // §53.7: the share of the FULL aid bid (suffering × trait × AidWeight +
     // compassion pressure + bleed-out emergency) that flows into the supply
     // chore. Just under 1: fetching is a notch less urgent than the helping

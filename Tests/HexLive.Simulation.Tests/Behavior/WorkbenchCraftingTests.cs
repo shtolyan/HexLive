@@ -151,14 +151,13 @@ public sealed class WorkbenchCraftingTests
     }
 
     [Test]
-    public void LegacyBandageAndLeatherRecipes_KeepTheirGameplayOutputs()
+    public void BandageAndLeatherRecipes_KeepPhysicalGameplayOutputs()
     {
         var world = TestWorld.CreateWorld(119065);
         var crafter = world.Entities.Npcs.Values.First();
         var anchor = crafter.CurrentJunction ?? world.Tiles.Items[crafter.Tile].Junctions[0];
         crafter.CurrentJunction = anchor;
-        var bandagesBefore = crafter.Needs.Bandages;
-        var herbalBefore = crafter.Needs.HerbalBandages;
+        var bandagesBefore = MedicalSupplyMath.BandageCount(crafter);
 
         Add(crafter, ContentIds.HerbLeaf, 2);
         Assert.That(CraftProjectMath.TryBeginCycle(
@@ -167,10 +166,14 @@ public sealed class WorkbenchCraftingTests
             world, crafter, GoalType.CraftBandage), Is.True);
         Assert.Multiple(() =>
         {
-            Assert.That(world.Entities.Objects.ContainsKey(bandage.Id), Is.False,
-                "The completed dressing is stowed in the existing medical counters.");
-            Assert.That(crafter.Needs.Bandages, Is.EqualTo(bandagesBefore + 1));
-            Assert.That(crafter.Needs.HerbalBandages, Is.EqualTo(herbalBefore + 1));
+            Assert.That(world.Entities.Objects.ContainsKey(bandage.Id), Is.True,
+                "A completed dressing stays a takeable physical world item.");
+            Assert.That(bandage.IsCraftProject, Is.False);
+            Assert.That(bandage.DefinitionId, Is.EqualTo(ContentIds.Bandage));
+            Assert.That(bandage.ResourceAmount, Is.EqualTo(1f),
+                "Crafted plantain wraps retain herbal provenance.");
+            Assert.That(MedicalSupplyMath.BandageCount(crafter), Is.EqualTo(bandagesBefore),
+                "Completing the project does not teleport the item into the pack.");
         });
 
         Add(crafter, ContentIds.Hide, 1);
@@ -192,13 +195,11 @@ public sealed class WorkbenchCraftingTests
     }
 
     [Test]
-    public void BandageCycle_FinalVisualTick_StillRunsCompletionAdapter()
+    public void BandageCycle_FinalVisualTick_LeavesTakeablePhysicalOutput()
     {
         var world = TestWorld.CreateWorld(119088);
         var crafter = world.Entities.Npcs.Values.First();
         crafter.CurrentJunction ??= world.Tiles.Items[crafter.Tile].Junctions[0];
-        var bandagesBefore = crafter.Needs.Bandages;
-        var herbalBefore = crafter.Needs.HerbalBandages;
 
         Add(crafter, ContentIds.HerbLeaf, 2);
         Assert.That(CraftProjectMath.TryBeginCycle(
@@ -215,10 +216,49 @@ public sealed class WorkbenchCraftingTests
             world, crafter, GoalType.CraftBandage), Is.True);
         Assert.Multiple(() =>
         {
-            Assert.That(world.Entities.Objects.ContainsKey(project.Id), Is.False);
-            Assert.That(crafter.Needs.Bandages, Is.EqualTo(bandagesBefore + 1));
-            Assert.That(crafter.Needs.HerbalBandages, Is.EqualTo(herbalBefore + 1));
+            Assert.That(world.Entities.Objects.ContainsKey(project.Id), Is.True);
+            Assert.That(project.IsCraftProject, Is.False);
+            Assert.That(project.DefinitionId, Is.EqualTo(ContentIds.Bandage));
+            Assert.That(project.ResourceAmount, Is.EqualTo(1f));
             Assert.That(crafter.Execution.CraftProjectId, Is.Null);
+        });
+    }
+
+    [Test]
+    public void LegacyMedicalPouch_MaterializesIntoPhysicalInventoryOnLoad()
+    {
+        var world = TestWorld.CreateWorld(119089);
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Bandage);
+        npc.Needs.Bandages = 3;
+        npc.Needs.HerbalBandages = 1;
+        npc.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Pill);
+        npc.Needs.Pills = 2;
+
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        stream.Position = 0;
+        var loaded = TestWorld.CreateWorld(119089);
+        using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(loaded, reader);
+        }
+
+        var restored = loaded.Entities.Npcs[npc.Id];
+        Assert.Multiple(() =>
+        {
+            Assert.That(MedicalSupplyMath.BandageCount(restored), Is.EqualTo(3));
+            Assert.That(MedicalSupplyMath.HerbalBandageCount(restored), Is.EqualTo(1));
+            Assert.That(restored.Needs.Bandages, Is.Zero);
+            Assert.That(restored.Needs.HerbalBandages, Is.Zero);
+            Assert.That(MedicalSupplyMath.PillCount(restored), Is.EqualTo(2));
+            Assert.That(restored.Needs.Pills, Is.Zero);
+            Assert.That(restored.Inventory.Items.Count(item =>
+                item.DefinitionId == ContentIds.Bandage), Is.EqualTo(3));
         });
     }
 

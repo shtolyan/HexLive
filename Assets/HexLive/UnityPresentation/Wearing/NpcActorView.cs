@@ -181,6 +181,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // §110: утешение над рыдающей — своя коленопреклонённая цепочка
     // (PrayDown → Pray → PrayUp), а не заимствованный крафтовый присед.
     private static readonly int PrayingParam = Animator.StringToHash("Praying");
+    // §111.13: сторона станции (−1 / 0 / +1) и «станция у головы».
+    private static readonly int StationSideParam = Animator.StringToHash("StationSide");
+    private static readonly int StationAtHeadParam = Animator.StringToHash("StationAtHead");
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     // Clip-based action states (built by the "HexLive ▸ Build NPC Action States"
     // editor menu). Clips are swapped in via an AnimatorOverrideController.
@@ -246,6 +249,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // FallenIdle остаётся на другом авторском Sleeping Idle.
     // Это ключи исходных клипов AnimatorOverrideController, не имена states.
     private const string SleepBaseClip = "Sleep";
+    // §50: имена СОСТОЯНИЙ контроллера (не клипов) — в них уходит лежачая,
+    // минуя переходные LieDown/GetUp. Совпадение с именами клипов случайно.
+    private const string SleepStateName = "Sleep";
+    private const string IdleStateName = "Idle";
+    private const string FallenIdleStateName = "FallenIdle";
+    // §50: подъём с земли — состояние StandUp (клип X Bot@Standing Up, 50
+    // кадров). Из него граф сам уходит в Idle по exit time.
+    private const string StandUpStateName = "StandUp";
+    // Вход в подъём смешиваем чуть дольше, чем смену лежачих поз: стартовый
+    // кадр клипа не совпадает с позой, в которой она лежала.
+    private const float StandUpBlendSeconds = 0.25f;
+    // Длина этого перехода, В СЕКУНДАХ (отсюда CrossFadeInFixedTime: у обычного
+    // CrossFade длительность нормализована по КЛИПУ-ЦЕЛИ, а Sleep играет на
+    // скорости 0.4 — те же «0.2» стали бы там секундами). Не ноль: обе позы
+    // наземные, смешивать безопасно, а щелчок кадра заметен.
+    private const float LyingPoseSwapSeconds = 0.2f;
+    // Какой цепочкой её положили в прошлый раз — чтобы отличить РЕБРО от
+    // ежетикового повтора (см. ApplyLying).
+    private bool _lyingChainFallen;
+    private bool _lyingChainSleepAfter;
     private const string FallenIdleBaseClip = "X Bot@Sleeping Idle";
 
     // Безделье: сколько молча простоять, прежде чем начать чудить; какой шанс
@@ -711,6 +734,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public static float WalkHoldSeconds = 0.3f;
     public static float MidJourneyWalkHoldSeconds = 0.8f;
     public static float PivotYawSpeed = 90f;
+    // §50: с какой угловой скорости (град/с) разворот ползущей уже считается
+    // движением и включает клип ползания. Порог низкий нарочно: сим крутит
+    // ползущую втрое медленнее ходячей (BodyState.MobilityTurnFactor), и
+    // «стоящий» порог пивота её разворот просто не заметил бы.
+    public static float CrawlTurnAnimYawSpeed = 5f;
     // §71: the three GaitBlend slots, keyed by CLIP name — these are the
     // AnimatorOverrideController keys. Overriding all three with one clip (the
     // §50 crawl) pins her to a single gait that can never blend into a run.
@@ -837,6 +865,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _jumpDuration;
     private float _jumpTimer;
     private float _jumpRetriggerGuard; // swallows the pose-delta echo at hop end
+
+    // §57.11: спуск-падение раненой (HopKind="Fall"). Раскадровка своя: без
+    // отталкивания (takeoff-бит — просто шаг с кромки в текущей позе), клип
+    // падения включается на полётном бите, приземление без своего клипа, и
+    // после него — подъём Standing Up на сим-паузе FallRecoverSeconds
+    // (ползущая не встаёт: у неё crawl-оверрайд держит своё).
+    private bool _jumpIsFall;
+    private bool _fallClipStarted;
+    // Подъём — СУЩЕСТВУЮЩЕЕ состояние §50 StandUp (сам уходит в Idle по exit
+    // time), заводить своё не нужно. Новое здесь только состояние полёта.
+    private const string FallStateName = "Falling";
+    private static readonly int FallStateHash = Animator.StringToHash(FallStateName);
+    private static readonly int StandUpStateHash = Animator.StringToHash(StandUpStateName);
     private bool _jumpUp;
     // §21.21B v22, ВОЗВРАЩЁН после v23 — и это НЕ подпорка асимметрии, а
     // компенсация ЛАГА: часы дуги идут по последнему шагнутому тику, а
@@ -920,6 +961,37 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : UnityEngine.AnimatorCullingMode.CullUpdateTransforms;
     }
 
+    // ⭐ Труп висел над землёй, потому что ЕГО МЕРИЛИ АВТОРСКОЙ КОРОБКОЙ.
+    //
+    // PlantDeadBodyOnSurface сажает тело по фактическому нижнему краю скина —
+    // и это верно ровно до тех пор, пока `bounds` описывают ТЕКУЩИЙ кадр.
+    // Скиннер пересчитывает их за кадр только при `updateWhenOffscreen`, а
+    // включался он единственной строкой в ApplyLying, по флагу лежания. У
+    // свежего трупа (клип смерти, `_laying` остаётся false) он не только не
+    // включался — ApplyLying зовётся КАЖДЫЙ ТИК и активно гасил его обратно.
+    // Мерка тогда бралась со стоячей авторской коробки: её низ у ступней
+    // стоящей, то есть примерно у корня, поправка выходила почти нулевой, и
+    // тело оставалось на запечённой в клипе высоте — висеть над поверхностью.
+    //
+    // Условие то же самое, что у отключения куллинга выше, и по той же
+    // причине: в этих позах авторским границам верить нельзя.
+    private void RefreshSkinBounds()
+    {
+        if (_bodySkins == null)
+        {
+            return;
+        }
+
+        var perFrameBounds = _laying || _dead || _ragdollActive;
+        foreach (var skin in _bodySkins)
+        {
+            if (skin != null)
+            {
+                skin.updateWhenOffscreen = perFrameBounds;
+            }
+        }
+    }
+
     // §21.21B: sim hop signal ("Up"/"Down"/""), fed every sync. Starts the
     // ballistic arc on a hop the sim began and we have not played yet.
     // heightDeltaWorld is the EXACT signed root-level difference
@@ -974,6 +1046,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // directions, the flight fills the whole airborne beat — the arc, the
         // sim and the clip share the same three numbers.
         var up = hopKind == "Up";
+        // §57.11: "Fall" — тот же нижний ход дуги, своя раскадровка клипов.
+        _jumpIsFall = hopKind == "Fall";
+        _fallClipStarted = false;
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
         // §21.21B v22: a DROP's vertical follows the RENDERED root, which
         // interpolates one snapshot behind the arc clock — keep the clip and
@@ -1034,6 +1109,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // Water dives/climb-outs have no sim hop window — half the hop clock
         // covers the treading pause they play over; no takeoff/landing beats.
         // No takeoff tile either, so the live root Y is the only base available.
+        _jumpIsFall = false; // §57.11: водный путь — никогда не «падение»
         StartJumpArc(
             heightDeltaWorld > 0f,
             heightDeltaWorld,
@@ -1077,6 +1153,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // durationSimSeconds. Speed = clipLength / window (Unity multiplies this
         // by the global animator.speed, so fast-forward stays in sync with the
         // arc timer). Falls back to 1 if the clip length is unknown.
+        // §57.11: у падения нет отталкивания — на takeoff-бите она просто
+        // делает шаг с кромки в текущей позе. Клип (луп Falling) включит
+        // полётный бит из JumpOffsetWorld; поздний вход — сразу здесь.
+        if (_jumpIsFall)
+        {
+            _animator.SetFloat(JumpSpeedParam, 1f); // луп не сжимается к окну
+            if (elapsed / _jumpDuration >= _jumpTakeoffFrac)
+            {
+                StartFallClip();
+            }
+
+            return;
+        }
+
         var jumpClipLength = _jumpUp ? _jumpUpClipLength : _jumpDownClipLength;
         if (jumpClipLength > 0.001f)
         {
@@ -1094,6 +1184,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
         }
+    }
+
+    // §57.11: клип полёта падения. Состояния Falling/StandUp появляются в
+    // контроллере отдельной правкой; пока их нет, честный фолбэк — прежний
+    // JumpDown, чтобы падение никогда не выглядело Т-позой.
+    private void StartFallClip()
+    {
+        if (_fallClipStarted || _animator == null)
+        {
+            return;
+        }
+
+        _fallClipStarted = true;
+        _animator.CrossFade(
+            _animator.HasState(0, FallStateHash) ? FallStateName : "JumpDown",
+            0.08f, 0, 0f);
     }
 
     // Vertical arc height 0..1 over the FLIGHT fraction tf (0 at takeoff-end,
@@ -1190,11 +1296,39 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_jumpTimer <= 0f)
         {
             _jumpRetriggerGuard = 0.5f;
+
+            // §57.11: падение кончилось — подъём на ноги на сим-паузе
+            // FallRecoverSeconds. Ползущей вставать нечем: она выходит из лупа
+            // падения обратно в Crawl и долёживает паузу там (одно ребро
+            // смены состояния, не покадровый CrossFade — урок §109.16).
+            if (_jumpIsFall)
+            {
+                _jumpIsFall = false;
+                if (_animator != null && _fallClipStarted)
+                {
+                    var standing = !_legless && _posture != "Crawl";
+                    if (standing && _animator.HasState(0, StandUpStateHash))
+                    {
+                        _animator.CrossFade(StandUpStateName, 0.1f, 0, 0f);
+                    }
+                    else if (!standing)
+                    {
+                        _animator.CrossFade("Crawl", 0.15f, 0, 0f);
+                    }
+                }
+            }
         }
 
         // t over the whole window; map to the FLIGHT fraction tf so the arc
         // is flat during the takeoff beat and pinned at 1 during landing.
         var t = 1f - Mathf.Clamp01(_jumpTimer / Mathf.Max(0.0001f, _jumpDuration));
+
+        // §57.11: клип падения — ровно в момент, когда она уже летит (конец
+        // takeoff-бита), не раньше: до кромки она идёт своей походкой.
+        if (_jumpIsFall && t > _jumpTakeoffFrac)
+        {
+            StartFallClip();
+        }
         float arc; // 0 at stand level, 1 at target level (>1 = overshoot above)
         if (t <= _jumpTakeoffFrac)
         {
@@ -2264,6 +2398,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             RestoreLeglessClipOverrides();
             ResolveLocomotionSlots();
+
+            // §50: С ЗЕМЛИ ВСТАЮТ, А НЕ ПОЯВЛЯЮТСЯ СТОЯ.
+            //
+            // Обратный переход — «нога снова держит» (поставили протез, зажила
+            // культя) — раньше просто подменял лежачий айдл на стоячий, и тело
+            // щёлкало из позы лёжа в стойку одним кадром. Теперь играем клип
+            // подъёма (состояние StandUp, X Bot@Standing Up); дальше граф сам
+            // уводит её в Idle по exit time, поэтому ничего доигрывать руками
+            // не нужно.
+            //
+            // ⚠️ Только по РЕБРУ: метод выходит выше, если _legless не менялся
+            // (см. ранний return), а рендерер зовёт SetPosture каждый тик —
+            // покадровый CrossFade это §109.15.
+            //
+            // Лежащую не поднимаем: она встанет своей цепочкой Sleep -> GetUp,
+            // когда сим её разбудит. Мёртвую и плывущую — тем более.
+            if (_animator != null && !_laying && !_swimming && !_dead && !_ragdollActive)
+            {
+                _animator.CrossFadeInFixedTime(StandUpStateName, StandUpBlendSeconds, 0);
+            }
         }
 
         // A repaired leg allows work/weapons again; a newly bare stump removes
@@ -2764,6 +2918,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void ApplyLying(
         bool laying, Transform attachPoint, float surfaceY, bool fallenChain, bool sleepAfterFall)
     {
+        // ⚠️ РЕНДЕРЕР ЗОВЁТ ЭТО КАЖДЫЙ ТИК, а не на смене позы: ветки
+        // SyncActorView разбирают позу заново на каждом снапшоте. Всё, что
+        // должно случиться ОДИН РАЗ (в первую очередь любая команда аниматору),
+        // обязано смотреть на этот флаг, иначе получится покадровый CrossFade
+        // из §109.15 — вечный переход с весом ~0.04 и таз под полом.
+        var chainChanged = _laying != laying ||
+            _lyingChainFallen != fallenChain ||
+            _lyingChainSleepAfter != sleepAfterFall;
+        _lyingChainFallen = fallenChain;
+        _lyingChainSleepAfter = sleepAfterFall;
+
         if (_laying && !laying && _bodyRoot != null)
         {
             // Getting up: remember where the body actually lay so LateUpdate
@@ -2784,16 +2949,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _layingSurfaceY = surfaceY;
         // Spec 31C.8: lying poses stretch outside the authored skin bounds and
         // get frustum-culled; per-frame bounds while sleeping keep her visible.
-        if (_bodySkins != null)
-        {
-            foreach (var skin in _bodySkins)
-            {
-                if (skin != null)
-                {
-                    skin.updateWhenOffscreen = laying;
-                }
-            }
-        }
+        // Труп держит их по своей причине (см. RefreshSkinBounds), поэтому
+        // решение принимается там, а не флагом лежания здесь.
+        RefreshSkinBounds();
 
         if (_animator != null)
         {
@@ -2805,6 +2963,34 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // аккуратное LieDown вместо падения.
             _animator.SetBool(LayingParam, laying && (!fallenChain || sleepAfterFall));
             _animator.SetBool(FallenParam, laying && fallenChain);
+
+            // §50: ПОЛЗУЩАЯ НЕ ВСТАЁТ, ЧТОБЫ ЛЕЧЬ.
+            //
+            // Сонная цепочка контроллера — LieDown -> Sleep -> GetUp — писана
+            // для ходячей: она опускается из стойки и поднимается обратно в
+            // стойку. У безногой стойки нет вовсе, поэтому эти два клипа
+            // читались как «встала на ноги, легла» и «встала с кровати»: ровно
+            // то, чего она физически не может. Она уже на земле — значит вход
+            // в сон и выход из него для неё не движение, а смена позы.
+            //
+            // Прыгаем сразу в конечное состояние, минуя переходный клип: в сон
+            // при укладывании, в Idle (у неё это лежачий айдл, §50-подмена) при
+            // подъёме. Переход короткий, но не мгновенный — обе позы наземные,
+            // так что смешивать их безопасно, а щелчок кадра в глаза бьёт.
+            //
+            // ⚠️ ТОЛЬКО ПО РЕБРУ (chainChanged). Рендерер зовёт ApplyLying
+            // каждый тик, а покадровый CrossFade (§109.15) навсегда застревает
+            // в переходе с весом ~0.04 и роняет таз под пол.
+            if (chainChanged && (_legless || _posture == "Crawl"))
+            {
+                // Куда именно — решает ТА ЖЕ пара флагов, что и цепочка выше,
+                // иначе §105 (кома/умирание) уехала бы в сон вместо лежачего
+                // FallenIdle: у неё Fallen поднят, а Laying нет.
+                var target = laying
+                    ? (fallenChain && !sleepAfterFall ? FallenIdleStateName : SleepStateName)
+                    : IdleStateName;
+                _animator.CrossFadeInFixedTime(target, LyingPoseSwapSeconds, 0);
+            }
         }
 
         if (_face != null)
@@ -2991,6 +3177,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _deadWasAlreadyLying = variant < 0;
         _deathSurfaceY = surfaceY;
         RefreshAnimatorCulling();
+        RefreshSkinBounds();
         // §50: a corpse never crawls — clear the flag so the Crawl loop yields
         // to the death/laying pose (the Crawl transition also guards on !Dead).
         if (_animator != null)
@@ -3311,6 +3498,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _ragdollActive = active;
         RefreshAnimatorCulling();
+        RefreshSkinBounds();
         if (_animator != null)
         {
             _animator.enabled = !active;
@@ -3355,10 +3543,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    // §111.13: слоты 1 и 3 стоят с одного борта тела, 2 и 4 — с другого.
+    // Таблица короткая нарочно: раскладка станций — правило симуляции, вид
+    // только читает её номер и не имеет права выводить сторону из позиций.
+    private static float LyingStationSide(int slot) => slot switch
+    {
+        1 or 3 => 1f,
+        2 or 4 => -1f,
+        _ => 0f
+    };
+
     // Spec 31C.6: interaction poses — crouch while gathering/working, sit
     // on Sit, and hold the relevant item in the currently functional hand.
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
-        float interactionSeconds = 0f)
+        float interactionSeconds = 0f, int lyingStationSlot = -1)
     {
         if ((_legless || !_hasUsableHand) && IsToolOrWeapon(heldItemId))
         {
@@ -3428,6 +3626,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 interaction is "Harvest" or "BuildRaft");
             _animator.SetBool(CraftingParam, kneelingCraft);
             _animator.SetBool(PrayingParam, praying); // §110
+            // §111.13: с какой станции лежащего тела она работает. Слот 0 (ноги)
+            // — прежнее поведение бит-в-бит: сторона 0, у головы нет. Боковые
+            // дают клипу зеркало и «поза у головы»; сам слот вид не вычисляет,
+            // он приезжает числом из симуляции.
+            _animator.SetFloat(StationSideParam, LyingStationSide(lyingStationSlot));
+            _animator.SetBool(StationAtHeadParam, lyingStationSlot is 3 or 4);
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
@@ -5738,7 +5942,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var holdSeconds = midJourney ? MidJourneyWalkHoldSeconds : WalkHoldSeconds;
         var filteredWalkContinuation = _wasWalking && midJourney &&
             _smoothedSpeed > threshold * 0.65f;
-        var walking = moving ||
+        // §50: ПОЛЗУЩАЯ, КОТОРАЯ ПОВОРАЧИВАЕТСЯ, ПРОДОЛЖАЕТ ГРЕСТИ.
+        //
+        // Разворот у всех остальных — планированный пивот: тело стоит, играет
+        // Idle либо turn-on-spot, и это честно, потому что стоящая переступает
+        // на месте. У лежащей «стоять на месте» = поза лёжа плашмя, и тело
+        // просто ПРОВОРАЧИВАЕТСЯ на земле как стрелка компаса. Поэтому в позе
+        // Crawl вращение само по себе считается движением: клип ползания идёт,
+        // руки перебирают, и разворот читается как разворот, а не как вращение
+        // бревна. Каденс при этом падает до MinGaitCadence (скорость по земле
+        // ~0), то есть гребёт она медленно — ровно то, что нужно.
+        var crawlTurning = _posture == "Crawl" &&
+            Mathf.Abs(motionYawSpeed) > CrawlTurnAnimYawSpeed;
+        var walking = moving || crawlTurning ||
             (_wasWalking &&
              (_stillTimer < holdSeconds || filteredWalkContinuation) &&
              Mathf.Abs(motionYawSpeed) <= PivotYawSpeed);
@@ -6687,7 +6903,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // связи нет. Глаза решают, голова доворачивает, корпус едва.
                 _lookAtIK.solver.headWeight = 0.7f;
                 _lookAtIK.solver.eyesWeight = 1f;
-                _lookAtIK.solver.bodyWeight = 0.15f;
+                // §114 баг #116: тот же корпус, та же беда — см. ниже.
+                _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.15f;
                 _lookAtIK.solver.clampWeight = 0.5f;
                 _lookAtIK.solver.clampWeightEyes = 0.3f;
                 return;
@@ -6695,7 +6912,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             _lookAtIK.solver.headWeight = 0.8f;
             _lookAtIK.solver.eyesWeight = 0.2f;
-            _lookAtIK.solver.bodyWeight = 0.3f;
+            // §114 баг #116: ПОЛЗУЩАЯ НЕ ДОВОРАЧИВАЕТ КОРПУС ЗА ВЗГЛЯДОМ.
+            //
+            // bodyWeight крутит ПОЗВОНОЧНИК, а таз оставляет на месте. Стоящей
+            // это ничего не стоит, а у ползущей на этом позвоночнике висят руки:
+            // замер на живой игре (Iris, posture=Crawl, один кадр, один клип) —
+            // ладонь на экране +0.317 wu над землёй, тот же клип напрямую кладёт
+            // её на 0.000, с выключенным LookAtIK экран сходится с клипом
+            // побайтово. Цель взгляда стоит (y≈2.13), поэтому корпус тянуло
+            // вверх, и руки «махали по воздуху» вместо опоры о землю.
+            //
+            // Голову и глаза оставляем: ползущая вполне может поднять взгляд.
+            _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.3f;
             _lookAtIK.solver.clampWeight = 0.5f;
             // Clamp eye rotation hard so a wide gaze never rolls the eyes back
             // to the whites (0 = free, 1 = fully clamped). The head carries the

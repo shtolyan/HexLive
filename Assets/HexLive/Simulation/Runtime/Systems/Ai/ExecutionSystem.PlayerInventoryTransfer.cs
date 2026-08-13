@@ -29,10 +29,11 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        var transferSlot = LyingStations.SlotFor(world, looter, other);
         if (looter.Movement.Status == MovementStatus.Blocked ||
             !InteractionReach.CheckPersonStart(
-                world, looter, other, LyingSpot.InteractionFeet(other),
-                LyingSpot.InteractionStationReach,
+                world, looter, other, LyingStations.Point(other, transferSlot),
+                LyingStations.Reach(transferSlot),
                 $"Player inventory transfer with NPC{other.Id.Value}"))
         {
             FailPlayerInventoryTransfer(world, looter, "OutOfReach");

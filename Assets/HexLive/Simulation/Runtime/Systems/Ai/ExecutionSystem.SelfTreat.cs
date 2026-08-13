@@ -17,7 +17,7 @@ public sealed partial class ExecutionSystem
     // the common case (a dozen shallow bites, low mean HP, every zone > 0.5).
     private static void RunTreatSelf(WorldState world, NPCState npc)
     {
-        if (npc.Needs.Bandages <= 0)
+        if (MedicalSupplyMath.BandageCount(npc) <= 0)
         {
             // Cooldown, or a decision layer that still believes she can treat
             // re-selects it every tick and she stands in an ExecFailed loop
@@ -49,7 +49,7 @@ public sealed partial class ExecutionSystem
                 Trace.Debug(world, npc.Id, "InteractionStarted",
                     $"TreatSelf Duration={treatTicks}ticks " +
                     $"Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} " +
-                    $"Bandages={npc.Needs.Bandages}");
+                    $"Bandages={MedicalSupplyMath.BandageCount(npc)}");
             }
             return;
         }
@@ -63,11 +63,13 @@ public sealed partial class ExecutionSystem
         // The dressing is spent. Spec 44: burn the pre-made medkit stock first;
         // only a HERBAL dressing leaves the plantain leaf-wrap decal, so the
         // leaf visual always means she actually gathered the leaves.
-        var herbal = npc.Needs.HerbalBandages >= npc.Needs.Bandages;
-        npc.Needs.Bandages--;
-        if (herbal)
+        if (!MedicalSupplyMath.TrySpendBandage(npc, out var herbal))
         {
-            npc.Needs.HerbalBandages--;
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.TreatWounds);
+            npc.Plan.Status = PlanStatus.Failed;
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Execution.CurrentInteraction = null;
+            return;
         }
 
         if (Spec118.Enabled)
@@ -132,7 +134,8 @@ public sealed partial class ExecutionSystem
 
         Trace.Emit(world, npc.Id, "Bandaged",
             $"Dressed her own wounds ({(herbal ? "herbal" : "gauze")}, zones={dressed}) " +
-            $"Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} Left={npc.Needs.Bandages}");
+            $"Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} " +
+            $"Left={MedicalSupplyMath.BandageCount(npc)}");
         }
 
         npc.Plan.Status = PlanStatus.Completed;

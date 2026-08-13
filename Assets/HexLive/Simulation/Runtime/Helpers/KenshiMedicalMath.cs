@@ -68,6 +68,7 @@ internal static class KenshiMedicalMath
 
             TickBluntRecovery(npc, part, healMultiplier);
             TickCutRecovery(world, npc, part, healMultiplier);
+            TickCriticalRecovery(npc, part, healMultiplier);
         }
 
         // ⭐ Гейт сытости — про ВЫБОР, а у лежащей в окне умирания выбора нет.
@@ -147,6 +148,56 @@ internal static class KenshiMedicalMath
         var amount = System.Math.Min(condition.BluntDamage,
             Spec118.BluntRecoveryPerSlowTick * restMultiplier);
         condition.BluntDamage -= amount;
+        BodyDamageResolver.RestorePart(npc, part, amount);
+    }
+
+    // ⭐ Баг #119: у критической глубины должен быть обратный ход САМ ПО СЕБЕ.
+    //
+    // Вниз CriticalTrauma двигает единственный метод — RestorePart, — а звали
+    // его только два тика выше: ушиб (нужен BluntDamage) и порез (нужна ЗАПИСЬ
+    // раны в этой зоне). Но TickDegeneration углубляет зону СВЕРХ severity
+    // самой раны, поэтому, когда рана закрывается и запись удаляется, остаток
+    // критической глубины остаётся сиротой: ни ушиба, ни раны — и гасить его
+    // больше нечем. Зона при этом навсегда пришпилена к нулю, потому что сытый
+    // реген NeedsDecaySystem пропускает всё, у чего crit > 0.
+    //
+    // Так и вышло у Ирис (seed=476005489, tick=74917): целая правая нога
+    // HP=0.000 при crit=0.536, ноль ран, ноль ушиба — и 4000 тиков вперёд без
+    // единой сотой изменения. Ни еда, ни сон, ни повязка (перевязывать нечего),
+    // ни шина (§118.5 даёт функцию, а не HP) её не поднимали.
+    //
+    // Темп берётся у рубцевания пореза — эта глубина им же и набрана, а
+    // отдельная ручка потребовала бы ре-экспорта simdata ради того же числа.
+    // Возврат ограничен ровно критической частью: положительную шкалу
+    // по-прежнему поднимает штатный сытый реген со своим гейтом голода.
+    private static void TickCriticalRecovery(
+        NPCState npc, BodyPart part, float restMultiplier)
+    {
+        // §50: культя не восстанавливается никогда — она не заживает, её нет.
+        if (npc.Body.IsSevered(part))
+        {
+            return;
+        }
+
+        var condition = npc.Body.Condition(part);
+        if (condition.CriticalTrauma <= 0f)
+        {
+            return;
+        }
+
+        // §118.2: открытый неперевязанный порез держит зону — пока он течёт,
+        // она углубляется, а не заживает. Лечение по-прежнему начинается с
+        // повязки; сюда попадает только то, что уже нечем перевязать.
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Zone == part && !wound.Stabilized && wound.Heal01 < 1f)
+            {
+                return;
+            }
+        }
+
+        var amount = System.Math.Min(condition.CriticalTrauma,
+            Spec118.CutRecoveryPerSlowTick * restMultiplier);
         BodyDamageResolver.RestorePart(npc, part, amount);
     }
 

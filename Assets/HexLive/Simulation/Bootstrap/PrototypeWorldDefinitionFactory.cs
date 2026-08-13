@@ -598,9 +598,9 @@ namespace HexLive.Simulation.Bootstrap
             Place("tool.knife", 1, 1451, 2); // spec §54: one findable knife bootstraps butchering
             Place("tool.hammer", 2, 1489, 1); // spec §54.2: findable hammers raise the bed build-sites
             // Spec §54 cold start: the home conveniences are no longer handed
-            // out — the pot (boiling) and lighter (a spark) are findable
-            // wilderness loot instead, so the wilds still reward exploring.
-            Place("tool.pot", 1, 1579, 2);
+            // out — the lighter (a spark) is findable wilderness loot instead,
+            // so the wilds still reward exploring. (The pot stood next to it
+            // until §55.2 retired boiling and left it a prop with no verb.)
             Place("tool.lighter", 1, 1663, 1);
 
             // §119 test hook: exactly two arms and two legs, one wooden and one

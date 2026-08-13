@@ -28,6 +28,10 @@ public sealed class RescueSystem : ISimulationSystem
                 helper.Health <= 0f || helper.IsLyingDown(world.Tick) ||
                 helper.IsBeingCarried ||
                 helper.IsCarryingPerson || helper.IsFighting ||
+                // Ползущая никого не поднимает: у неё руки — опора. Гейт
+                // стоял только на «лежит по своим часам», а ползание
+                // симуляция вообще не знала (BodyState.IsCrawling).
+                helper.Body.IsCrawling ||
                 helper.Mind.PendingAbuseFrom is not null ||
                 helper.Mind.PendingExpulsionFrom is not null ||
                 helper.Plan.Status == PlanStatus.Active ||

@@ -20,8 +20,51 @@ public static class Spec57
     public static int HelpCryRadiusTiles = 6;
     public static int HelpCryCooldownTicks = 240;
     public static int MaxHelpCryResponders = 2;
-    public static float HelpCryDecisionThreshold = 0.56f;
+    public static float HelpCryDecisionThreshold = 0.45f;
     public static float HelpCryHealthGate = 0.65f;
+
+    // §57.9: крик — ОТ БЕДЫ, а не от бегства. Замер (5 сидов × 16000 тиков):
+    // 10 смертей, 7 криков, 0 отвеченных — потому что крик жил в хвосте
+    // успешного TryStartFlee, и самые обречённые (загнанная, калека без
+    // достижимого refuge, умирающая после боя) молчали. Теперь крик издаёт
+    // сам укус/удар, когда драка уже плохая: здоровье ниже HurtHealth, худшая
+    // часть ниже HurtPart или противников двое+. Кулдаун прежний, так что
+    // загнанная кричит каждые ~240 тиков, пока её грызут, — и это правильно.
+    public static bool HelpCryOnHitEnabled = true;
+    public static float HelpCryHurtHealth = 0.85f;
+    public static float HelpCryHurtPart = 0.7f;
+
+    // §57.9: «СВОИХ В БЕДЕ НЕ БРОСАЮТ». Член дружбы в счёте отклика получает
+    // пол: вражда перестаёт быть причиной не спасать от волка (прецедент —
+    // §72, где против чужака гейт дружбы снят целиком). Близость по-прежнему
+    // добавляет сверху, а личность (CompassionTrait) остаётся главным рычагом.
+    // Порог решения опущен 0.56 → 0.45 той же правкой: со старым порогом
+    // средняя девушка (черта 0.5) детерминированно игнорировала нейтральную
+    // знакомую (score 0.50) — «лояльнее» не могло наступить ни при какой дружбе.
+    public static float HelpCryAffinityFloor = 0.5f;
+
+    // §57.9: смертельный крик ГРОМЧЕ. Жертва при смерти / лежащая / с
+    // здоровьем или частью ниже MortalPlight слышна дальше, собирает больше
+    // рук и получает надбавку к счёту каждой слышащей.
+    public static float HelpCryMortalPlight = 0.35f;
+    public static int HelpCryMortalRadiusTiles = 10;
+    public static int MaxMortalCryResponders = 4;
+    public static float HelpCryMortalBonus = 0.25f;
+
+    // §57.9: спасение — событие для ОБЕИХ. Отбитая от волка/налётчика помнит,
+    // КТО пришёл на крик, а пришедшая — за кого дралась: взаимный подъём
+    // отношений при снятой угрозе (зверь мёртв или враг отступил при живой
+    // подмоге). Калибр: разговор даёт 0.02, ссора отнимает 0.18 — спасённая
+    // жизнь весит больше ссоры, «она за меня дралась» не смывается перепалкой.
+    public static float RescueGratitudeAffinity = 0.2f;
+
+    // §57.10: стон умирающей ВНЕ боя. Волки ушли, она истекает — раньше
+    // молчала навсегда (крик жил только в боевых ветках), и помощь §53
+    // находила её лишь глазами. Теперь лежащая в тяжести и В СОЗНАНИИ раз в
+    // HelpCryCooldownTicks стонет: союзницы в смертельном радиусе обновляют
+    // память о ней (как будто видели только что), и §53.8-помощь по памяти
+    // без дисконта ведёт их сама. Без сознания стона нет — как и кью (§60).
+    public static bool DyingMoanEnabled = true;
 
     // 29C.4B friend-guard: no cry needed — a friend who is close enough to
     // see the fight drops everything and goes for the aggressor. Friendship

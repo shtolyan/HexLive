@@ -108,6 +108,28 @@ public sealed class SnapshotContractGateTests
             "Окно анимации истекло, а IsSwinging всё ещё поднят.");
     }
 
+    /// <summary>
+    /// §111.13: станция едет ЧИСЛОМ и реально меняется. Вид не имеет права
+    /// выводить её из позиций — рендер интерполирует кадры, и производная
+    /// станция мигала бы на границах.
+    /// </summary>
+    [Test]
+    public void ExporterCarriesTheLyingStationSlot()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+
+        var idle = Find(WorldSnapshotExporter.Export(world), npc.Id.Value);
+        Assert.That(idle.LyingStationSlot, Is.EqualTo(-1),
+            "Никакой станции не занято — слот обязан быть пустым.");
+
+        npc.Execution.LyingStationTargetId = npc.Id;
+        npc.Execution.LyingStationSlot = 3;
+        var working = Find(WorldSnapshotExporter.Export(world), npc.Id.Value);
+        Assert.That(working.LyingStationSlot, Is.EqualTo(3),
+            "Номер станции не доехал — вид сыграет клип у ног, стоя у плеча.");
+    }
+
     [Test]
     public void ExporterCarriesDerivedInventoryContainersWithoutCreatingASecondStore()
     {

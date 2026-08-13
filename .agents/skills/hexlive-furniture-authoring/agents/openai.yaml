@@ -1,0 +1,4 @@
+interface:
+  display_name: "HexLive Furniture Authoring"
+  short_description: "Blender-to-Unity furniture contract checks"
+  default_prompt: "Use $hexlive-furniture-authoring to author or repair a HexLive furniture asset and verify its placement contract."

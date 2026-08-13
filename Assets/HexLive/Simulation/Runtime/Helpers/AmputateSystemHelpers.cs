@@ -173,6 +173,9 @@ public static class AmputateSystemHelpers
             // an actual 0° facing as the equivalent 360° value.
             limb.RotationDegrees = NormalizeObjectFacing(npc.RotationDegrees);
             limb.ResourceAmount = Spec50.SeveredLimbDecayTicks;
+            // §135: зверь ищет падаль только по индексу — незанесённой ноги
+            // для него не существует.
+            MobLimbPrize.Register(world, limb.Id);
         }
 
         // Whatever she was mid-doing is over.

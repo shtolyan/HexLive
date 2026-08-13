@@ -5,6 +5,7 @@ using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Debug
@@ -253,7 +254,9 @@ public static class WorldSnapshotExporter
                 Status = dog.Status.ToString(),
                 TargetNpcId = dog.TargetNpc?.Value ?? -1,
                 IsAttacking = dog.AttackLandsAtTick > 0,
-                AttackStartTick = dog.AttackStartTick
+                AttackStartTick = dog.AttackStartTick,
+                CarriedLimbOwnerNpcId = dog.CarriedLimbOwner?.Value ?? -1,
+                CarriedLimbPart = dog.CarriedLimbPart ?? string.Empty
             });
         }
 
@@ -723,6 +726,10 @@ public static class WorldSnapshotExporter
             // same zero-guard as the ticks above.
             InteractionSeconds = hasTimedInteraction ? execTotal * world.TickDeltaTime : 0f,
             AidTargetLyingDown = aidTargetLying,
+            // §111.13: станция едет ЧИСЛОМ, а не выводится видом из геометрии —
+            // рендер интерполирует кадры, и производная станция мигала бы на
+            // границах (тот же урок, что §111.9 r2/r3: позицией владеет симуляция).
+            LyingStationSlot = npc.Execution.LyingStationSlot,
             HeldGarmentId = heldGarmentId,
             // §40.6 r2: live condition of the held piece — the hand prop shows
             // the dirt actually washing out during the scrub.
@@ -783,8 +790,8 @@ public static class WorldSnapshotExporter
             RescueDestinationObjectId = npc.RescueDestinationObjectId?.Value,
             TanLevel = npc.Needs.TanLevel,
             Sunburn = npc.Needs.Sunburn,
-            Bandages = npc.Needs.Bandages,
-            Pills = npc.Needs.Pills,
+            Bandages = MedicalSupplyMath.BandageCount(npc),
+            Pills = MedicalSupplyMath.PillCount(npc),
             // Spec §60 r3 (баг #8): ЛЮБАЯ кома — «без сознания». Раньше
             // энергетический крах читался как обычный СОН (r2), и вырубившаяся
             // мирно дышала в анимированной позе сна — неотличимо от здоровой.
@@ -1106,15 +1113,21 @@ public static class WorldSnapshotExporter
         npcSnapshot.PostureHint =
             npcSnapshot.IsUnconscious ? "Faint" // §60: comatose lies limp too
             : npcSnapshot.IsFainted ? "Faint"
-            : npc.Body.IsProne || (legL < 0.4f && legR < 0.4f) ? "Crawl"
+            // Порог ползания живёт в BodyState (IsCrawling): на нём же теперь
+            // гейтится переноска, и разъехаться вид с симуляцией не может.
+            : npc.Body.IsCrawling ? "Crawl"
             : legLImpaired || legRImpaired ? "Limp"
             : Part(BodyPart.ArmL) < 0.4f || Part(BodyPart.ArmR) < 0.4f ? "ArmHang"
             : Part(BodyPart.Head) < 0.4f ? "HeadClutch"
             : "Upright";
 
         // §21.21B hex-step hop: signal the jump traversal to the view.
+        // §57.11: спуск без прыжка — не прыжок, а сползание-падение; вид
+        // играет его без отталкивания, клипом падения и с подъёмом после.
         npcSnapshot.HopKind = npc.Movement.HopTimer > 0f
-            ? (npc.Movement.HopUp ? "Up" : "Down")
+            ? (npc.Movement.HopUp ? "Up"
+                : !npc.Body.CanJump ? "Fall"
+                : "Down")
             : string.Empty;
         npcSnapshot.HopStartTick = npc.Movement.HopStartTick;
         npcSnapshot.HopTargetTile = npc.Movement.HopTargetTile;

@@ -129,6 +129,13 @@ public sealed class MobSnapshot
     // frame that skips those ticks (fast-forward, or a decimated stream) never
     // sees it — the stamp does. 0 = never attacked.
     public int AttackStartTick { get; set; }
+
+    // §135: чью конечность зверь несёт в зубах (-1 — пасть пуста) и какую
+    // (имя BodyPart). Вид собирает ту же геометрию, что и упавшая конечность
+    // (§50.5), но привязывает её к пасти, а не к узлу земли.
+    public int CarriedLimbOwnerNpcId { get; set; } = -1;
+
+    public string CarriedLimbPart { get; set; } = string.Empty;
 }
 
 // Spec 40.18: a shark patrolling the water (presentation renders a fin/model).
@@ -556,6 +563,12 @@ public sealed class NpcSnapshot
     // craft pose only plays over a lying ward; over a standing ward the helper
     // just stands and shows the item in hand. False when not aiding.
     public bool AidTargetLyingDown { get; set; }
+
+    // §111.13: КАКУЮ станцию лежащего тела занимает этот персонаж (0 — ноги,
+    // 1..4 — бока, -1 — никакую). Вид не имеет права выводить её из позиций:
+    // рендер интерполирует кадры, и производная станция мигала бы на границах.
+    // Клип берёт отсюда сторону и «у головы ли она».
+    public int LyingStationSlot { get; set; } = -1;
 
     // Iter 28: sitting at a one-step ledge junction — the presentation
     // lifts the body so the butt rests on the upper step. Export-only.

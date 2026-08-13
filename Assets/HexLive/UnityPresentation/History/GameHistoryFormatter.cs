@@ -75,6 +75,7 @@ namespace HexLive.UnityPresentation.History
                 "DogKilled" => Loc.Get("history.DogKilled"),
                 "DogShot" => F("history.DogShot", actor),
                 "HelpCry" => F("history.HelpCry", actor),
+                "HelpMoan" => F("history.HelpMoan", actor), // §57.10
                 "HelpCryAnswered" => F("history.HelpCryAnswered", actor),
                 "HelpCryIgnored" => F("history.HelpCryIgnored", actor),
                 "HelpCryAssistStarted" => F("history.HelpCryAssistStarted", actor),
@@ -83,6 +84,9 @@ namespace HexLive.UnityPresentation.History
                 "HelpCryDefended" => F("history.HelpCryDefended", actor),
                 "FriendGuard" => F("history.FriendGuard", actor),
                 "NightRaid" => Loc.Get("history.NightRaid"),
+                // §135: системные события зверя — актёра у них нет.
+                "MobTookLimb" => Loc.Get("history.MobTookLimb"),
+                "MobAteLimb" => Loc.Get("history.MobAteLimb"),
                 "Preyed" => F("history.Preyed", actor),
                 "PreyFoughtBack" => F("history.PreyFoughtBack", actor),
                 "PreyFled" => F("history.PreyFled", actor),
@@ -253,8 +257,10 @@ namespace HexLive.UnityPresentation.History
 
             if (type is "NpcDied" or "BledOut" or "StarvedToDeath" or "VitalPartDestroyed" or "Drowned" or
                 "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "SharkBite" or "LimbSevered" or
+                "MobTookLimb" or // §135: добычу унесли в зубах — это красная строка
                 "Collapsed" or // §105: она при смерти — тревожнее этого в колонии ничего нет
-                "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
+                "HelpCry" or "HelpMoan" or // §57.10: слабый зов умирающей — красная строка
+                "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
                 // §108: расправа — это драка, и в ленте она должна быть красной.
                 "GroupHuntPactFormed" or "GroupHuntEngaged" or "GroupHuntStruck" or
                 "GroupHuntTargetFled" or "GroupHuntDone" or "GroupHuntFailed" or

@@ -19,7 +19,7 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <item>сцена вообще СЛУЧАЕТСЯ, в обе стороны (мачете рейдера должно доехать
 /// до колонии — до §111 оно попадало туда только с трупа);</item>
 /// <item>порядок добычи — оружие раньше барахла, иначе короткий обморок
-/// уносит котелок, а нож остаётся;</item>
+/// уносит зажигалку, а нож остаётся;</item>
 /// <item>в сознании — значит не жертва: спящую и плачущую §110 механика не
 /// трогает, и это граница, а не деталь.</item>
 /// </list>
@@ -267,7 +267,7 @@ public sealed class LootHelplessTests
         var victim = world.Entities.Npcs.Values.First();
         victim.Inventory.Items.Clear();
         victim.Inventory.Items.Add(new ItemInstance("resource.stick"));
-        victim.Inventory.Items.Add(new ItemInstance("tool.pot"));
+        victim.Inventory.Items.Add(new ItemInstance("tool.lighter"));
         victim.Inventory.Items.Add(new ItemInstance("tool.knife"));
         victim.Inventory.Items.Add(new ItemInstance("tool.machete"));
 
@@ -282,7 +282,7 @@ public sealed class LootHelplessTests
         Assert.That(taken[0], Is.EqualTo("tool.machete"),
             "Сперва САМОЕ мощное оружие: обезоружить важнее, чем набрать.");
         Assert.That(taken[1], Is.EqualTo("tool.knife"));
-        Assert.That(taken.IndexOf("tool.pot"), Is.LessThan(taken.IndexOf("resource.stick")),
+        Assert.That(taken.IndexOf("tool.lighter"), Is.LessThan(taken.IndexOf("resource.stick")),
             "Инструмент раньше барахла.");
     }
 

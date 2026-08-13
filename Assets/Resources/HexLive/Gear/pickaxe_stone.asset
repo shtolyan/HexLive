@@ -16,9 +16,9 @@ MonoBehaviour:
   prefab: {fileID: 7965743944733828513, guid: 30883eb21581f44f5a30bc5f1ebcd907, type: 3}
   prefabResourcePath: 
   damage: 0.24
-  hitDelaySeconds: 1.65
-  attackDurationSeconds: 2.2
-  cooldownSeconds: 0.8
+  hitDelaySeconds: 0.75
+  attackDurationSeconds: 1.86
+  cooldownSeconds: 1.14
   attackSpeed: 0.8
   harvestSpeedMult: 1
   meleePriority: 8

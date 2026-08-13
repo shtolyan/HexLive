@@ -13,6 +13,10 @@ namespace HexLive.Simulation.Runtime
 
 public sealed partial class PlanningSystem
 {
+    // §50.9/§29A: кольцо подхода к продюсеру (см. BuildForagePlan) — скретч,
+    // чтобы не аллоцировать на каждый план.
+    private readonly System.Collections.Generic.List<JunctionId> _forageRimScratch = new();
+
     private static bool BuildCoconutDrinkPlan(WorldState world, NPCState npc)
     {
         if (TryFindInventoryItem(npc, ContentIds.CoconutPierced, requireWater: true, out _))
@@ -334,7 +338,7 @@ public sealed partial class PlanningSystem
                 // the man who is hunting you.
                 !FactionRelations.AreAllies(npc, other) ||
                 other.CurrentJunction is not { } otherJunction ||
-                !Connectivity.Reachable(world, from, otherJunction))
+                !Connectivity.Reachable(world, from, otherJunction, npc.Body.CanJump))
             {
                 continue;
             }
@@ -364,7 +368,7 @@ public sealed partial class PlanningSystem
                 if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
                     neighbor.Blocked ||
                     !SpatialQueries.IsJunctionFree(world, neighborId) ||
-                    !Connectivity.Reachable(world, from, neighborId))
+                    !Connectivity.Reachable(world, from, neighborId, npc.Body.CanJump))
                 {
                     continue;
                 }
@@ -575,13 +579,28 @@ public sealed partial class PlanningSystem
             return;
         }
 
+        // ⭐ Подход — по КОЛЬЦУ STANDABLE-узлов вокруг якоря, не по прямым
+        // соседям: якорь продюсера стоит ВНУТРИ его же Obstacle-футпринта, и
+        // прямые соседи у пальмы заблокированы ВСЕ (замер, seed 987654, все
+        // tree.palm: neighbors=0). Ветка «подойти и потрясти» была мертва —
+        // колонии жили только на самопадающих плодах, а ползущая, выев падалицы
+        // рядом, умирала от жажды среди плодоносящих пальм. Кольцо считает та
+        // же геометрия, что у ReachableBeside; достижимость — с её реальной
+        // способностью прыгать.
         JunctionId? approach = null;
-        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, anchor))
+        _forageRimScratch.Clear();
+        SpatialQueries.CollectStandableAround(
+            world, anchor, _forageRimScratch, 96, float.MaxValue,
+            world.Entities.Objects.TryGetValue(flora.Id, out var floraOwner) ? floraOwner : null,
+            SpatialQueries.RimPurpose.Route);
+        foreach (var rim in _forageRimScratch)
         {
-            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
-                SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
+            if ((npc.CurrentJunction is not { } fromJunction ||
+                 Connectivity.Reachable(world, fromJunction, rim, npc.Body.CanJump)) &&
+                SpatialQueries.IsJunctionFree(world, rim) &&
+                SpatialMutations.TryReserveJunction(world, rim, npc.Id, world.Tick, 48))
             {
-                approach = neighbor;
+                approach = rim;
                 break;
             }
         }

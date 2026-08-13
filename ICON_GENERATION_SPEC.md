@@ -132,7 +132,7 @@ Never reuse an existing guid, and never let two icons share one.
 
 ## 7. Still icon-less (as of 2026-08-01)
 
-`item.bandage`, `tool.bottle`, `tool.pot`, `tool.saw`, `tool.spear` — bottle,
+`item.bandage`, `tool.bottle`, `tool.saw`, `tool.spear` — bottle,
 saw and bandage now have GLB models, so Path B covers them in one command each.
 
 ---

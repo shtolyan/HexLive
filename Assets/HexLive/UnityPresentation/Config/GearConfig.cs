@@ -77,7 +77,7 @@ namespace HexLive.UnityPresentation.Config
         [Range(0.25f, 4f)] public float harvestSpeedMult = 1f;
 
         [Header("Инструмент — способности (enum; сим гейтится на них, не на id)")]
-        [Tooltip("Что умеет предмет: Cut, Butcher, ChopWood, Mine, Hammer, Ignite, Boil, Saw, Sew, CarryWater, Dressing…")]
+        [Tooltip("Что умеет предмет: Cut, Butcher, ChopWood, Mine, Hammer, Ignite, Saw, Sew, CarryWater, Dressing…")]
         public GearCapability[] capabilities;
 
         [Header("Крафт (выкл = предмет не крафтится, а добывается)")]

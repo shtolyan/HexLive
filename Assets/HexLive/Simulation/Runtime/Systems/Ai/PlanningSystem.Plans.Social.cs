@@ -47,6 +47,15 @@ public sealed partial class PlanningSystem
 
             if (!dangerous)
             {
+                // §50.9: кандидат обязан быть достижим ЕЙ — иначе ползущая
+                // (полкарты вне её мира) проваливала 9 из 10 выборов и часами
+                // крутила PlanFailed вместо прогулки по своему берегу.
+                if (npc.CurrentJunction is { } exploreFrom &&
+                    !Connectivity.Reachable(world, exploreFrom, junction.Id, npc.Body.CanJump))
+                {
+                    continue;
+                }
+
                 _exploreCandidates.Add(junction);
             }
         }
@@ -69,7 +78,7 @@ public sealed partial class PlanningSystem
 
         // Reachability check: destination must connect to where we stand.
         if (npc.CurrentJunction is not { } startJunction ||
-            !Connectivity.Reachable(world, startJunction, destination.Id))
+            !Connectivity.Reachable(world, startJunction, destination.Id, npc.Body.CanJump))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Explore);
@@ -95,6 +104,73 @@ public sealed partial class PlanningSystem
             Trace.Debug(world, npc.Id, "ExplorePlanned",
                 $"To Junction={destination.Id.Value} " +
                 $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} Steps=[MoveToJunction]");
+        }
+    }
+
+    // §50.9: «спуститься, пока ноги держат» — дойти до ближайшего узла САМОЙ
+    // БОЛЬШОЙ плоской компоненты (большой земли), пока прыжок ещё возможен.
+    // Дальше обычная жизнь: еда/вода/лечение планируются уже с материка.
+    private void BuildReachSafeGroundPlan(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from ||
+            world.LargestFlatComponentId <= 0)
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.ReachSafeGround);
+            return;
+        }
+
+        // Ближайший узел материка по миру-расстоянию; достижимость — с её
+        // РЕАЛЬНОЙ способностью. §57.11: без прыжка Reachable считает СПУСКИ
+        // (направленно), так что и полностью обезноженная планирует сход вниз.
+        JunctionId? best = null;
+        var bestDistance = float.MaxValue;
+        foreach (var pair in world.JunctionComponentsFlat)
+        {
+            if (pair.Value != world.LargestFlatComponentId ||
+                !world.Junctions.Items.TryGetValue(pair.Key, out var junction) ||
+                junction.Blocked)
+            {
+                continue;
+            }
+
+            var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
+            if (d < bestDistance && SpatialQueries.IsJunctionFree(world, pair.Key))
+            {
+                bestDistance = d;
+                best = pair.Key;
+            }
+        }
+
+        if (best is not { } destination ||
+            !Connectivity.Reachable(world, from, destination, npc.Body.CanJump))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.ReachSafeGround);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    "Goal=ReachSafeGround NoRouteToMainland");
+            }
+            return;
+        }
+
+        npc.Plan.TargetJunctionId = destination;
+        npc.Plan.TargetTile = world.Junctions.Items[destination].Tiles.Count > 0
+            ? world.Junctions.Items[destination].Tiles[0]
+            : null;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = destination
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=ReachSafeGround To Junction={destination.Value} " +
+                $"Dist={bestDistance:F1} Steps=[MoveToJunction]");
         }
     }
 
@@ -224,12 +300,29 @@ public sealed partial class PlanningSystem
         // it reserves a point already held by a third person and MovementSystem
         // politely re-paths to that exact same point forever.
         var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
+        var stationSpot = default(Float2);
+        var hasStation = false;
         if (partner is not null)
         {
-            // §111.9: a lying ward has an absolute care/search station at her
-            // feet. Standing partners retain the old caller-side approach.
-            var spot = partner.IsLyingDown(world.Tick)
-                ? LyingSpot.InteractionFeet(partner)
+            // §111.13: у ЛЕЖАЩЕЙ подопечной место занимается ДО брони узла —
+            // порядок важен. Планировщик идёт по NPC последовательно, и запись
+            // первого видна второму в том же тике (на этом же свойстве стоит
+            // TryReserveJunction), поэтому двое в одном тике не выберут одну
+            // станцию. Свободных станций нет — поход не строится вовсе, а не
+            // строится «куда-нибудь рядом».
+            if (partner.IsLyingDown(world.Tick))
+            {
+                if (!LyingStations.TryClaim(world, npc, partner, out var slot))
+                {
+                    return null;
+                }
+
+                stationSpot = LyingStations.Point(partner, slot);
+                hasStation = true;
+            }
+
+            var spot = hasStation
+                ? stationSpot
                 : partner.Position + HexSpatialMath.Normalize(new Float2(
                     npc.Position.X - partner.Position.X,
                     npc.Position.Y - partner.Position.Y)) * HexSpatialMath.HexRadius * 0.9f;
@@ -240,7 +333,7 @@ public sealed partial class PlanningSystem
                     InteractionReach.Aid &&
                 InteractionReach.CanTouchPersonAcross(
                     world, armsLength, partnerJunction, InteractionReach.Aid) &&
-                !occupiedByActor.Contains(armsLength) &&
+                !BlockedByActor(occupiedByActor, armsLength, armsJct, hasStation, stationSpot) &&
                 SpatialQueries.IsJunctionFree(world, armsLength) &&
                 SpatialMutations.TryReserveJunction(world, armsLength, npc.Id, world.Tick, 48))
             {
@@ -250,12 +343,14 @@ public sealed partial class PlanningSystem
 
         foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, partnerJunction))
         {
+            world.Junctions.Items.TryGetValue(neighbor, out var nJct);
+
             // The partner's own resolved junction can itself sit far from her
             // body (she may lie inside a blocked footprint cluster), so its
             // neighbours must pass the same reach cap or the walk is doomed —
             // the execution gate would abort it on arrival anyway.
             if (partner is not null &&
-                (!world.Junctions.Items.TryGetValue(neighbor, out var nJct) ||
+                (nJct is null ||
                  HexSpatialMath.Distance(nJct.WorldPosition, partner.Position) >
                      InteractionReach.Aid ||
                  !InteractionReach.CanTouchPersonAcross(
@@ -264,7 +359,7 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
-            if (!occupiedByActor.Contains(neighbor) &&
+            if (!BlockedByActor(occupiedByActor, neighbor, nJct, hasStation, stationSpot) &&
                 SpatialQueries.IsJunctionFree(world, neighbor) &&
                 SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
             {
@@ -272,7 +367,47 @@ public sealed partial class PlanningSystem
             }
         }
 
+        if (hasStation)
+        {
+            LyingStations.ReleaseStation(npc);
+        }
+
         return null;
+    }
+
+    /// <summary>
+    /// ⭐ §111.13: СВОЯ БРОНЬ ЛЕЖАЩЕЙ НЕ МЕШАЕТ ТОМУ, КТО ПРИШЁЛ К НЕЙ.
+    ///
+    /// Узел под выбранной станцией почти всегда занят самим телом:
+    /// <c>ClaimLyingFootprint</c> раздувает прямоугольник на полшага «на обход»,
+    /// и все четыре боковые станции вместе с точкой у ног попадают в этот
+    /// список, а список целиком лежит в avoid-множестве пути. Без исключения ни
+    /// одна станция никогда не была бы забронирована — фича молча не работала бы.
+    ///
+    /// Исключение НАРОЧНО узкое: прощается ровно тот узел, на котором стоит моя
+    /// станция, а не весь футпринт. Иначе подход разрешили бы в центр тела.
+    /// Для всех прочих прохожих бронь остаётся стеной — лежащую не задевают.
+    /// Фильтруем на месте вызова: множество из OtherActorJunctions общее на весь
+    /// тик и мутировать его нельзя.
+    /// </summary>
+    private static bool BlockedByActor(
+        System.Collections.Generic.HashSet<JunctionId> occupiedByActor,
+        JunctionId candidate, Junction candidateJunction,
+        bool hasStation, Float2 stationSpot)
+    {
+        if (!occupiedByActor.Contains(candidate))
+        {
+            return false;
+        }
+
+        if (!hasStation || candidateJunction is null)
+        {
+            return true;
+        }
+
+        // Полшага суб-сетки: ближе этого к станции лежит только её собственный узел.
+        var tolerance = HexSpatialMath.HexRadius / HexPointLayout.BoundaryRadius * 0.5f;
+        return HexSpatialMath.Distance(candidateJunction.WorldPosition, stationSpot) > tolerance;
     }
 
     // ⭐ §53/§111.9: ПОХОД ЗА ПОМОЩЬЮ ДОВОДИТСЯ, А НЕ ВЫБРАСЫВАЕТСЯ.
@@ -424,8 +559,14 @@ public sealed partial class PlanningSystem
         PerceivedAgent? target = null;
         foreach (var agent in npc.Perception.Agents)
         {
+            // §53.8: тот же смягчённый фильтр, что в ставке решения (иначе
+            // цель выиграла бы аукцион и развалилась здесь): критическая
+            // подопечная выбирается и в движении — ползущую к воде умирающую
+            // догоняет живой ретаргет по прибытии.
             if (agent.AidKind == AidKind.None || agent.Suffering < Spec53.SufferingThreshold ||
-                !agent.IsReachable || agent.IsBusy || agent.IsMoving)
+                !agent.IsReachable || agent.IsBusy ||
+                (agent.IsMoving && !agent.IsDying &&
+                 agent.Suffering < Spec53.HeavyAidSuffering))
             {
                 continue;
             }

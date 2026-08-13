@@ -710,7 +710,14 @@ public static class BuildingBootstrap
             }
 
             var fromCenter = candidate.WorldPosition - center;
-            if (fromCenter.X * fromCenter.X + fromCenter.Y * fromCenter.Y > 0.9f * 0.9f) continue;
+            // The approved wall-side pivot is interior junction 4 at radius
+            // sqrt(0.3247595² + 0.9375²) ~= 0.992 wu. The former 0.9-wu
+            // cutoff silently rejected that exact designer point and snapped
+            // production inward. Radius 1.125 is the outer ring of the 37
+            // interior templates; boundary junctions remain excluded.
+            const float interiorTemplateRadius = 1.1251f;
+            if (fromCenter.X * fromCenter.X + fromCenter.Y * fromCenter.Y >
+                interiorTemplateRadius * interiorTemplateRadius) continue;
             var delta = candidate.WorldPosition - desired;
             var sq = delta.X * delta.X + delta.Y * delta.Y;
             if (sq < bestSq)

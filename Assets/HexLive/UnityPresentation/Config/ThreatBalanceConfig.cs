@@ -48,10 +48,28 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 1200)] public int helpCryCooldownTicks = 240;
         [Tooltip("Максимум откликнувшихся на один крик.")]
         [Range(1, 8)] public int maxHelpCryResponders = 2;
-        [Tooltip("Порог решения откликнуться (взвешенная оценка).")]
-        [Range(0f, 1f)] public float helpCryDecisionThreshold = 0.56f;
+        [Tooltip("Порог решения откликнуться (взвешенная оценка). §57.9: опущен 0.56→0.45 вместе с полом дружбы, иначе «лояльнее» не наступало.")]
+        [Range(0f, 1f)] public float helpCryDecisionThreshold = 0.45f;
         [Tooltip("Своё здоровье, ниже которого на помощь не бегут.")]
         [Range(0f, 1f)] public float helpCryHealthGate = 0.65f;
+        [Tooltip("§57.9: крик от самого укуса/удара в плохой драке, а не от старта бегства.")]
+        public bool helpCryOnHitEnabled = true;
+        [Tooltip("§57.9: кричит от удара, если здоровье ниже этого…")]
+        [Range(0f, 1f)] public float helpCryHurtHealth = 0.85f;
+        [Tooltip("§57.9: …или худшая часть тела ниже этого (или атакующих ≥2).")]
+        [Range(0f, 1f)] public float helpCryHurtPart = 0.7f;
+        [Tooltip("§57.9: «своих не бросают» — пол члена дружбы в счёте отклика (0.5 = нейтральная).")]
+        [Range(0f, 1f)] public float helpCryAffinityFloor = 0.5f;
+        [Tooltip("§57.9: беда смертельна (крик громче), если жертва при смерти/лежит/здоровье или часть ниже этого.")]
+        [Range(0f, 1f)] public float helpCryMortalPlight = 0.35f;
+        [Tooltip("§57.9: радиус смертельного крика, тайлы.")]
+        [Range(1, 20)] public int helpCryMortalRadiusTiles = 10;
+        [Tooltip("§57.9: максимум откликнувшихся на смертельный крик.")]
+        [Range(1, 8)] public int maxMortalCryResponders = 4;
+        [Tooltip("§57.9: надбавка к счёту отклика на смертельный крик.")]
+        [Range(0f, 1f)] public float helpCryMortalBonus = 0.25f;
+        [Tooltip("§57.10: стон умирающей вне боя — союзницы в радиусе запоминают, где она лежит.")]
+        public bool dyingMoanEnabled = true;
         [Tooltip("Включить защиту друга (guard рядом с близким).")]
         public bool friendGuardEnabled = true;
         [Tooltip("Радиус, в котором друг считается «рядом», тайлы.")]

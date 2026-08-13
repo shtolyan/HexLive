@@ -19,8 +19,8 @@ namespace HexLive.Simulation.Runtime
 public static class Spec133
 {
     // ── Гардероб ─────────────────────────────────────────────────────────
-    /// <summary>Сколько вещей помещается в гардероб (как у сушилки — 8 плечиков).</summary>
-    public const int WardrobeCapacity = 8;
+    /// <summary>Сколько вещей помещается в гардероб: двенадцать реальных плечиков.</summary>
+    public const int WardrobeCapacity = 12;
 
     /// <summary>
     /// Сушка в гардеробе при ГОРЯЩЕМ очаге в доме — вровень с уличной сушилкой

@@ -27,7 +27,11 @@ namespace HexLive.UnityPresentation.UI
             Sun,
             ChevronDown,
             ChevronUp,
-            Dream
+            Dream,
+            Underwear,
+            Shirt,
+            Coat,
+            Bag
         }
 
         private readonly Kind _kind;
@@ -86,7 +90,69 @@ namespace HexLive.UnityPresentation.UI
                 case Kind.ChevronDown: DrawChevron(p, P, true); break;
                 case Kind.ChevronUp: DrawChevron(p, P, false); break;
                 case Kind.Dream: DrawDream(p, P); break;
+                case Kind.Underwear: DrawUnderwear(p, P); break;
+                case Kind.Shirt: DrawShirt(p, P); break;
+                case Kind.Coat: DrawCoat(p, P); break;
+                case Kind.Bag: DrawBag(p, P); break;
             }
+        }
+
+        // Inventory layer tabs deliberately use simple filled silhouettes. At
+        // 24 px a recognisable mass reads better than seams and tiny details.
+        private static void DrawUnderwear(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(4f, 6.5f));
+            p.LineTo(P(20f, 6.5f));
+            p.LineTo(P(18.4f, 16.8f));
+            p.BezierCurveTo(P(16.3f, 16.8f), P(14.3f, 18.3f), P(12f, 20.5f));
+            p.BezierCurveTo(P(9.7f, 18.3f), P(7.7f, 16.8f), P(5.6f, 16.8f));
+            p.ClosePath();
+            p.Fill();
+        }
+
+        private static void DrawShirt(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(8.3f, 4.2f));
+            p.BezierCurveTo(P(9.2f, 6.2f), P(14.8f, 6.2f), P(15.7f, 4.2f));
+            p.LineTo(P(21.3f, 7.1f));
+            p.LineTo(P(18.7f, 12.1f));
+            p.LineTo(P(16.8f, 11.1f));
+            p.LineTo(P(16.8f, 20.2f));
+            p.LineTo(P(7.2f, 20.2f));
+            p.LineTo(P(7.2f, 11.1f));
+            p.LineTo(P(5.3f, 12.1f));
+            p.LineTo(P(2.7f, 7.1f));
+            p.ClosePath();
+            p.Fill();
+        }
+
+        private static void DrawCoat(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(8.2f, 3.3f));
+            p.LineTo(P(12f, 7.2f));
+            p.LineTo(P(15.8f, 3.3f));
+            p.LineTo(P(20.2f, 6.3f));
+            p.LineTo(P(18.1f, 13.1f));
+            p.LineTo(P(16.5f, 12.5f));
+            p.LineTo(P(17.6f, 21f));
+            p.LineTo(P(6.4f, 21f));
+            p.LineTo(P(7.5f, 12.5f));
+            p.LineTo(P(5.9f, 13.1f));
+            p.LineTo(P(3.8f, 6.3f));
+            p.ClosePath();
+            p.Fill();
+        }
+
+        private static void DrawBag(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(8f, 9f));
+            p.BezierCurveTo(P(8f, 4f), P(16f, 4f), P(16f, 9f));
+            p.Stroke();
+            FillRoundedRect(p, P, 4f, 8.5f, 16f, 11.8f);
         }
 
         // Spec §64: a filled five-point star — the colonist's aspiration.

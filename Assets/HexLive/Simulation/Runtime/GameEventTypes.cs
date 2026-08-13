@@ -119,6 +119,11 @@ public static class GameEventTypes
         "StandoffReleased",
         "NightRaid",
         "FriendGuard",
+        // §135: зверь унёс оторванную конечность и доел её. Обе строки нужны
+        // игроку по одной причине: они объясняют, почему бой оборвался на
+        // середине и почему следующие полдня никто не нападает.
+        "MobTookLimb",
+        "MobAteLimb",
 
         // Injury and death
         // NOT "Bleeding": it fires on every slow tick while any bad wound is
@@ -162,6 +167,9 @@ public static class GameEventTypes
         "DireStraits",
         "EmergencyUnload",
         "HelpCry",
+        // §57.10: слабый зов лежащей умирающей — раз в кулдаун крика, историю
+        // не заливает (в отличие от потикового "Dying" выше).
+        "HelpMoan",
         "HelpCryAnswered",
         "HelpCryAssistArrived",
         "HelpCryAssistExpired",

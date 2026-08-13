@@ -2217,6 +2217,14 @@ MonoBehaviour:
       - 'Просто существует'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'goal.ReachSafeGround'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Getting off the ledge'
+      - 'Спускается с уступа'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'goal.Idle'
       TermType: 0
       Description:
@@ -3489,6 +3497,14 @@ MonoBehaviour:
       - 'Переноска'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'inv.body_carry'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Body carry'
+      - 'Переноска тела'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'inv.hand_left'
       TermType: 0
       Description:
@@ -4015,6 +4031,14 @@ MonoBehaviour:
       Languages:
       - 'Outerwear'
       - 'Верхняя одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'layer.bags'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Backpack'
+      - 'Рюкзак'
       Flags: 0101
       Languages_Touch: []
     - Term: 'part.head'
@@ -15169,22 +15193,6 @@ MonoBehaviour:
       - 'Личная бутылка — наполняй у источника или кипяти воду перед питьём.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.tool_pot.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Pot'
-      - 'Котелок'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.tool_pot.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'A cooking pot — boils river water safe to drink over the campfire.'
-      - 'Котелок — кипятит речную воду на костре, делая её безопасной.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.tool_lighter.name'
       TermType: 0
       Description: 
@@ -15487,6 +15495,22 @@ MonoBehaviour:
       Languages:
       - 'A gauze bandage — dresses the worst wound and stops the bleeding.'
       - 'Марлевый бинт — перевязывает худшую рану и останавливает кровь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.item_pill.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pill'
+      - 'Таблетка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.item_pill.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Emergency medicine used when a wound leaves someone near death.'
+      - 'Экстренное лекарство, которое принимают, когда ранение угрожает жизни.'
       Flags: 0101
       Languages_Touch: []
     - Term: "history.empty"
@@ -16665,9 +16689,17 @@ MonoBehaviour:
       - '{0} позвала на помощь.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'history.HelpMoan'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} is faintly calling for help.'
+      - "{0} слабо зовёт на помощь."
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'history.HelpCryAnswered'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - '{0} answered a call for help.'
       - '{0} откликнулась на клич о помощи.'
@@ -16783,6 +16815,22 @@ MonoBehaviour:
       Languages:
       - '{0} lost a limb.'
       - '{0} потеряла конечность.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.MobTookLimb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A beast carried off the torn-away limb.'
+      - 'Зверь унёс оторванную конечность.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.MobAteLimb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The beast finished its prize and went off sated.'
+      - 'Зверь доел добычу и ушёл сытым.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'history.Fainted'

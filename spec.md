@@ -986,7 +986,7 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   fire is bound to the simulation — `SetLit(ResourceAmount > 0)` each tick,
   so it only burns while the campfire has fuel (starts cold).
 - **Tool/resource/food models** are procedural low-poly
-  (`LowPolyToolFactory`): axe, pickaxe, spear, bow, arrow, pot, saw,
+  (`LowPolyToolFactory`): axe, pickaxe, spear, bow, arrow, saw,
   lighter, firewood, stone, hide, palm leaf, coconut, meat — built from
   cubes / a pyramid / a small prism, flat-shaded. Used both on the ground
   (`CreateObjectView`, before the generic primitive) and in an NPC's hand
@@ -5766,12 +5766,47 @@ same `Defend` goal (`CombatAssistDogId` / `CombatAssistAttackerNpcId` +
 goal lock; the planner paths to the aggressor via `BuildDefendPlan`, and
 the medium fight pass makes adjacent defenders strike):
 
-**The help cry (`CombatHelpSystem.CallForHelp`)** — fired when a victim
-*flees* (dog or NPC attacker). Radius `HelpCryRadiusTiles` (6), answered
-probabilistically: score = compassion trait 0.55 + affinity 0.35 +
-compassion-need pressure 0.10 vs a hash roll, gated by health/blood ≥ 0.65,
-not starving/dehydrated/fighting/fleeing; at most `MaxHelpCryResponders`
-(2) answer, cooldown 240 ticks.
+**The help cry (`CombatHelpSystem.CallForHelp`)** — §57.9 (Aug 2026): fired
+by the BITE, not by the flee. Замер до правки (5 сидов × 16 000 тиков): 10
+смертей, 7 криков, **0 отвеченных** — крик жил в хвосте успешного
+`TryStartFlee`, поэтому загнанная («некуда бежать»), калека без достижимого
+refuge и умирающая после боя молчали, а формула глушила отклик при
+нейтральной дружбе. Теперь:
+
+- **Триггер** — полученный удар в плохой драке (`AnimalCombatSystem.LandBite`:
+  здоровье < `HelpCryHurtHealth` 0.85, ИЛИ худшая часть < `HelpCryHurtPart`
+  0.7, ИЛИ атакующих ≥ 2), кулдаун прежний 240 тиков — затяжная травля кричит
+  каждые ~240. Старые вызовы из бегства/рейда остаются (кулдаун дедуплицирует).
+- **«Своих не бросают»**: член дружбы в счёте — `max(дружба01,
+  HelpCryAffinityFloor 0.5)`; вражда не причина не спасать от волка (прецедент
+  §72). Порог решения опущен 0.56 → 0.45 — со старым средняя девушка (черта
+  0.5) детерминированно игнорировала нейтральную знакомую (score 0.50).
+- **Смертельный крик громче**: жертва `IsDying`/prone/здоровье или часть <
+  `HelpCryMortalPlight` 0.35 → радиус 6→`HelpCryMortalRadiusTiles` 10,
+  потолок 2→`MaxMortalCryResponders` 4, `+HelpCryMortalBonus` 0.25 к счёту.
+- **Спасение — событие для обеих** (`GrantRescueGratitude`): зверь мёртв или
+  налётчик отступил при живой подмоге → взаимный подъём Affinity+Familiarity
+  на `RescueGratitudeAffinity` 0.2 (десять разговоров; перекрывает ссору
+  −0.18), «+»-поп над обеими головами, `RelationshipChanged Cause=[Rescue]`.
+- Подача: над помощницей — лицо жертвы + голос `help_answer` C17 («Bego!
+  Jani, beeego!»); жертве — лицо помощницы; игнор — молчаливый 😓 `Ashamed`.
+
+Score = compassion trait 0.55 + affinity(floored) 0.35 + pressure 0.10
+(+mortal bonus) vs hash roll, gated by health/blood ≥ 0.65, not
+starving/dehydrated/fighting/fleeing.
+
+**§57.10 Стон умирающей (`TryMoanForHelp`, `NeedsDecaySystem` после
+`TickDying`)** — вне боя. Лежащая в тяжести (`IsDying`, или prone с частью <
+`HelpCryMortalPlight`) И В СОЗНАНИИ раз в `HelpCryCooldownTicks` стонет: кью
+`HelpMoan` (🥀 `Wilt` + слабый голос `hurt_moan` C18 — исключение из
+речевого мьюта умирающей §105, как §110-рыдания), трейс `HelpMoan` (в
+whitelist, история «слабо зовёт на помощь», тон Danger). Каждой союзнице в
+`HelpCryMortalRadiusTiles` стон обновляет память о ней
+(`Memory.KnownAgents`: позиция+Suffering+AidKind+Helpless, LastSeenTick на
+тик позади живого взгляда) + тихий кью `MoanHeard` с её лицом — дальше
+обычная §53.8-помощь по памяти без дисконта ведёт их сама, новых целей ИИ
+нет. Без сознания стона нет (§60); в бою зовёт боевая ветка. Ручка
+`DyingMoanEnabled`.
 
 **The friend-guard (`CombatHelpSystem.RallyFriends`)** — no cry needed.
 Runs every medium fight pass (dog melee AND §56 predation), from the first
@@ -9444,9 +9479,10 @@ pass — order chosen to add robustness before difficulty.
 - New consumables: **bandages, pills** — treat wounds / stop bleeding /
   restore HP. New **Safety goal**: keep a reserve of food, water, medicine,
   supplies. NPCs stockpile against scarcity.
-- **Shipped v1 (medicine):** each NPC carries a small reserve of bandages
-  (`Needs.Bandages`, auto-dressed at `Blood < 0.35`, §40.2) and **pills**
-  (`Needs.Pills`, start 1). Pills are the last-resort backup to bandages:
+- **Shipped v1 (medicine):** each NPC carries a small reserve of physical
+  `item.bandage` instances (identical medicine stacks up to 10 per visible
+  inventory slot; auto-dressed at `Blood < 0.35`, §40.2) and one physical
+  **`item.pill`**. Pills are the last-resort backup to bandages:
   when a part is wounded (`worst < 0.4`) and no bandage fires yet `Health`
   has fallen near death (`< 0.3`), a pill is spent — the wounded parts and
   HP recover a step. Fires only at the brink, so it can pull a dying NPC
@@ -10358,6 +10394,18 @@ pass — order chosen to add robustness before difficulty.
   `BodyState.IsProne`. View больше не выводит её только из голой культи: нога с
   нулевой функцией тоже включает уже существующие prone-idle/crawl clips, так
   что персонаж не идёт стоя вопреки данным симуляции.
+- **Вход и выход из лежания у ползущей — смена позы, а не движение.** Сонная
+  цепочка контроллера `LieDown → Sleep → GetUp` писана для ходячей: она
+  опускается из стойки и встаёт в стойку. У ползущей стойки нет, поэтому вид
+  прыгает сразу в конечное состояние — `Sleep` при укладывании и `Idle` (у неё
+  это лежачий айдл) при подъёме; кома и умирание (`Fallen`, а не `Laying`) так
+  же уходят прямо в `FallenIdle`. А вот ОБРАТНЫЙ переход — «нога снова держит»,
+  то есть поставили протез или зажила культя, — обязан играть подъём с земли:
+  состояние `StandUp` (`X Bot@Standing Up`, 50 кадров), из которого граф сам
+  уводит в `Idle` по exit time. Без него тело щёлкало из позы лёжа в стойку
+  одним кадром. Обе команды аниматору идут ТОЛЬКО ПО РЕБРУ: и `SetPosture`, и
+  `SetLaying` рендерер зовёт каждый тик, а покадровый `CrossFade` — это §109.15
+  (вечный переход с весом ~0.04 и таз под полом).
 
 ### 40.10 Clothing wear (verify + visual)
 - Verify durability actually works; **worn-out clothing turns to trash**
@@ -10913,8 +10961,8 @@ time jump). New flow: the runner starts PAUSED; a full-screen loading
 overlay (UIDocument, top sorting order) drives phases:
 1. **World** — bootstrap the WorldState (synchronous, cheap).
 2. **Time passed** — if a save exists, restore the model blob (§41.2 v2),
-   then wind forward by `offlineTicks` (§41.3), chunked ~10 ms per frame
-   so the progress bar animates.
+   then wind forward by `offlineTicks` (§41.3), chunked ~120 ms per frame
+   so the progress bar still animates.
 3. **Island** — let `HexWorldRenderer` build all views (terrain mesh,
    actors, wardrobe) behind the overlay for a few frames. Addressables prewarm
    is scoped to content visible in that opening world (currently worn garments,
@@ -11029,9 +11077,25 @@ anyway.
 
 ### 41.3 Offline progression
 On load, elapsed real time becomes game time: `offlineTicks =
-(now − save.unixSeconds) × 4` (1 tick = 0.25 s at 1×), capped at
-**7200 ticks** (30 real minutes of catch-up, = 3 event cycles) so a week away
-doesn't starve the colony or stall the load. The wind starts from the
+(now − save.unixSeconds) × 4` (1 tick = 0.25 s at 1×), **uncapped** — the
+colony lives exactly as long as the game was closed. (Until iteration 2026-08
+this was clamped to 7200 ticks = 3 event cycles = 30 real minutes, which made
+an hour away and a week away identical: 0.3 of a visual day. The clamp is gone
+by player decision; the only remaining numeric limit is arithmetic — `save.tick
++ offlineTicks` must stay a positive `int`, so `OfflineTicks` subtracts the
+already-lived tick from its headroom.)
+
+The stop condition is therefore a STATE, not a number: the wind loop halts the
+moment **the colony is extinct** — no living NPC allied to `Faction.Colony`
+remains (`LoadingScreen.IsColonyExtinct`). Note this cannot ride on
+`World.Completed`, which means the raft launched (§40.15, currently disabled),
+and it cannot count `Entities.Npcs` bare: a dead girl does not vanish, she
+moves to `Entities.Corpses` (§28.15C v3), and a surviving hostile outsider
+(§72) must not keep an empty world winding. Winding also costs real seconds —
+so the per-frame simulation budget is **120 ms** (≈8 fps behind the curtain,
+the bar and the day clock still move), not the earlier 10 ms.
+
+The wind starts from the
 RESTORED state (v2: load first, then simulate the absence) and finishes
 BEFORE any view spawns — the player returns to "time really passed":
 resources regrown, needs drifted, maybe someone got bitten.
@@ -11178,25 +11242,26 @@ align the rendered light to the same path (visual shadows == sim shade).
   (stacking with fed) — a hurt girl who huddles and sleeps pulls through.
 - **Healing herb**: `herb.bush` (new Flora spawn, 3 across the island)
   produces `resource.herb_leaf` nearby (FruitProduction pattern, max 2).
-  Craft `CraftBandage` at the campfire: 2 leaves -> +1 bandage (available
+  Craft `CraftBandage` at the campfire: 2 leaves -> one physical
+  `item.bandage` (available
   when hurt or stock < 2). Bandage use now REMEMBERS the dressed zones
   (`NPCState.BandagedZones`, cleared when the zone heals past 0.7) and the
   snapshot exports them — presentation spawns a white-gauze dressing on the
   bandaged spot.
   - **Medkit vs herbal (supply provenance only):** the
     starting bandages (spec 40.3) are a pre-made medkit, NOT gathered
-    leaves. `NPCNeeds.HerbalBandages` tracks how many of the pouch's bandages
-    were crafted from gathered plantain; `CraftBandage` bumps it. Medkit
-    bandages are spent first. The kind remains in the save/snapshot for the
+    leaves. A persisted provenance marker on each `ItemInstance` distinguishes
+    a gathered plantain wrap from pre-made gauze. Medkit bandages are spent
+    first. The kind remains in the save/snapshot for the
     medical economy, but both kinds render as the same white gauze: a dressing
     must never appear to change into a flower or leaf ornament mid-life.
     Persisted in the save blob (BlobVersion 2).
-  - **Starting pouch (§44 r2, doubled):** `Bandages = 4` of which
-    `HerbalBandages = 2` — the med pouch holds twice the first aid it used to
-    (2 medkit + 2 herbal she brought with her), so a mauling survivor gets
+  - **Starting reserve (§44 r2, doubled):** four physical `item.bandage`
+    instances in one medicine stack — 2 medkit + 2 herbal she brought with her — so a
+    mauling survivor gets
     four dressings instead of two. The medkit-first order is unchanged; the
     kind affects the medical inventory, not the visible material. The
-    `Bandages < 2` gate on `GatherHerb`/`CraftBandage` is unchanged — the
+    physical bandage-count `< 2` gate on `GatherHerb`/`CraftBandage` is unchanged — the
     re-stock cap stays at 2, the pouch just starts above it.
 - **Presentation (shipped)**: `herb.bush` renders as a procedural low-poly
   medicinal shrub (`LowPolyToolFactory` — splayed stems, leaf blades, pale
@@ -11964,8 +12029,9 @@ a "mauled" body that regenerated and stood up.
 
 ### §50.7 No jumping without leg support — terrain goes off-limits
 A survivor with a bare stump or a broken leg support (`BodyState.CanJump` false)
-can't hop an elevation step or dive water — the hex-step hop (§21.21B) needs two
-supporting legs. An installed functional wooden or mechanical leg restores jump
+can't CLIMB an elevation step or dive water — the hex-step hop (§21.21B) needs
+two supporting legs. **§57.11 (Aug 2026): спуск ей МОЖНО** — «вверх нельзя, а
+спрыгнуть-то можно»; см. блок §57.11 ниже. An installed functional wooden or mechanical leg restores jump
 access despite its reduced movement function; a destroyed prosthesis does not.
 `HexPathfinder.RequiresJump`
 marks an edge that changes elevation (the tile stepped onto, `junction.Tiles[0]`,
@@ -11978,6 +12044,80 @@ sites (so every goal-availability helper reading `PerceivedObject.IsReachable`
 inherits it — she never *plans* a route she can't crawl) and at the path search.
 A higher ledge / the water simply becomes unreachable to her, not a failed detour.
 
+### §50.9 Мир без прыжка — честный, и из ловушки уходят заранее
+
+Разбор смертей (5 сидов × 16 000 тиков, авг-2026): главный класс — раненые
+выжившие после волков, у которых голод И жажда докручивались до 1.00 при живой
+крови. Порог прыжка — 0.75 на КАЖДУЮ ногу, то есть пара укусов делает
+`CanJump=false`, и «мир без прыжка» — это примерно половина узлов острова.
+Дальше умирали не от ран, а от вранья модели мира. Пять правок:
+
+1. **Плоский граф — проекция правил пафйндера.** `RebuildFlat` не исключал
+   рёбра «шов→шов» (ходьба вдоль кромки), которые `FindPath` запрещает всем.
+   Замер (seed 987654, узлы 934→12294): одна плоская компонента, путь
+   `canJump=false` = NULL — и 37 циклов `PlanFailed Goal=GetFood` к одному
+   кокосу, пока NPC голодала. Теперь граф исключает те же рёбра.
+2. **`canJump` продет во все проверки достижимости планировщиков** — 17 мест
+   (Explore, Comfort-споты, побирушка воды, Stow/StrayGarment, купание,
+   `HasReachableWithTag`/`KnowsReachable*`), где `Connectivity.Reachable`
+   звался с дефолтным `canJump=true` даже для ползущей. Для здоровых поведение
+   байт-в-байт прежнее.
+3. **Кандидаты Explore фильтруются по её достижимости ДО выбора** — ползущая
+   гуляет по своему берегу, а не проваливает 9 из 10 бросков.
+4. **Подход к продюсеру — по кольцу standable-узлов** (`CollectStandableAround`,
+   как у `ReachableBeside`), а не по прямым соседям якоря: якорь пальмы стоит
+   внутри её же Obstacle-футпринта, и прямые соседи заблокированы ВСЕ (замер:
+   у каждой tree.palm neighbors=0) — ветка «подойти и потрясти» была мертва у
+   всех, колонии жили на самопадающих плодах, а ползущая, выев падалицы рядом,
+   умирала от жажды среди плодоносящих пальм. Достижимость кольца — с её
+   реальным `canJump`.
+5. **`GoalType.ReachSafeGround` — «спуститься, пока ноги держат»** (append-only
+   ординал, каталог: Hurry). Нога потрёпана (`минимум функции ниже
+   AiBalance.SafeGroundLegAlert`, 0.9), а плоская компонента под ней — уступ
+   меньше `SafeGroundIsletMaxJunctions` (96) при живом материке → уходит на
+   ближайший узел самой большой плоской компоненты, пока прыжок ещё возможен.
+   Размеры компонент считает `RebuildFlat`
+   (`WorldState.JunctionComponentsFlatSizes`/`LargestFlatComponentId`).
+   Известное ограничение: аукцион закрыт во время боя (`IsFighting`), поэтому
+   если обе ноги просели ЗА один бой на уступе — окно спуска не открывается
+   вовсе; такую спасает только §116-эвакуация. Ручки в `AiBalance` +
+   `simdata.json`; термин `goal.ReachSafeGround` в I2.
+
+Наблюдаемый эффект правок 1-3 на seed 987654: NPC2 (Лена) вместо смертельной
+спирали (голод 1.00/жажда 0.86 на тике 3400) — `Health 0.83, Hunger 0.44,
+Thirst 0.55` в той же точке времени.
+
+### §57.11 Спуск для раненых — мир калеки направленный (Aug 2026)
+
+«Вверх нельзя, а спрыгнуть-то можно» — раненая с `CanJump=false` теперь
+СПУСКАЕТСЯ с уступов (сползает/падает), но не забирается: с горы до лагеря
+доползёт.
+
+- **Пафйндер** (`HexPathfinder.FindPath`/`FindCostsCore`): для `canJump=false`
+  запрещён только `stepDelta > 0` (подъём); спуск разрешён, кроме спуска в
+  воду (`SwimJunctions`/`StraitJunctions`) — контролируемое сползание не
+  бывает нырком. Обе выборки совпадают по правилу.
+- **Достижимость направленная** (`Connectivity`): плоские компоненты остаются
+  неориентированными, поверх — `WorldState.FlatDescendClosure`: замыкание
+  «куда можно сползти» по down-рёбрам между компонентами (те же правила, что
+  у пафйндера; по высотам граф ацикличен). `Reachable(canJump=false)` = та же
+  компонента ИЛИ членство в замыкании. `FlatWorldSizeAt` = своя полка + всё
+  досягаемое спуском; `FlatReachesMainland` — есть ли сход в материк.
+- **§50.9 без `CanJump`-гейта**: цель `ReachSafeGround` больше не гаснет в
+  момент, когда обе ноги упали ниже порога в одном бою (прежний известный
+  провал §50.9); «ловушка» меряется `FlatWorldSizeAt`, а скоринг требует
+  `FlatReachesMainland` — иначе запертая крутила вечный `PlanFailed
+  NoRouteToMainland` (замерено: 184 события на два сида до гейта, 0 после).
+- **Подача — падение, не прыжок**: экспортёр шлёт `HopKind="Fall"` (спуск при
+  `!CanJump`). Вид (`NpcActorView`): БЕЗ отталкивания (takeoff-бит — шаг с
+  кромки в своей походке), на полётном бите — луп `Falling` (клип
+  `X Bot@Falling.fbx`, состояние в `HexNpcLocomotion`; фолбэк `JumpDown`,
+  если состояния нет), приземление без своего клипа, после — подъём
+  существующим §50 `StandUp` на сим-паузе `HexHopTuning.FallRecoverSeconds`
+  (1.6 с, `ClimbPauseTimer` и в середине маршрута тоже); ползущая не встаёт —
+  выходит из лупа обратно в `Crawl` и долёживает паузу (чинится и старый
+  вид-баг «ползущая прыгает стоячим клипом»). Тайминги окна — те же пять
+  ручек §21.21B.
 
 ## §51 Character inventory — the backpack window (iteration 48)
 
@@ -11996,66 +12136,62 @@ fall back to the definition DisplayName + a generic `itemcat.<cat>.desc` when a
 hand-authored string is absent. Real icons can replace the emoji per id later.
 
 ### §51.2 The window (CharacterPanel)
-Окно адаптивно вписывает утверждённый макет примерно в `940×620` проектных
-единиц. **Ширину задаёт портрет, а не половина окна:** карточка куклы ровно
-такой ширины, какой её портрет (высота строки → аспект текстуры), а список вещей
-забирает весь остаток (`flexGrow`). Прежнее строгое деление пополам оставляло по
-бокам узкого портрета высокие пустые поля — окно выглядело разбитым. Ширина
-карточки ограничена сверху `MaxDollPaneWidthFraction` (0.45), чтобы очень высокое
-окно не съело список. Список вещей содержит все группы в порядке:
-переноска/рюкзак отдельной специализированной карточкой на половину ширины;
-контейнеры одежды по `WornItems` ниже продолжают двухколоночную раскладку;
-затем кобура, компактные метки одежды без вместимости и диагностический
-`Overflow`. Карточка куклы целиком занята большим полноростовым preview общей
-`CharacterDollStage`. Она клонирует уже собранное живое тело мирового NPC вместе
-с одеждой, волосами, оружием и протезами, не меняя мирового актёра. Клон стоит в
-`Idle`, смотрит в камеру, освещён тёплым key-light и холодным rim-light; drag
-левой кнопкой вращает его вокруг вертикали. Схема, подписи вокруг тела и линии
-не рисуются. Вся правая половина оформляется одной студийной карточкой: фон,
-рамка, скругление и clipping принадлежат внешней doll-pane, а вписанный в точном
-аспекте RenderTexture не получает второй внутренней рамки. Боковое место,
-неизбежное при вписывании полноростового портрета без обрезки, продолжает тот же
-фон и не читается двумя пустыми панелями. Наведение на видимый mesh одежды только подсвечивает её группу
-слева. Короткий клик по mesh открывает карточку, а движение дальше 6 UI-единиц
-вращает куклу без открытия. Активный рабочий предмет остаётся в своей настоящей
-ячейке, помеченной `В РАБОТЕ`.
+Окно адаптивно вписывает макет примерно в `940×620` проектных единиц.
+**Ширину задаёт портрет, а не половина окна:** карточка куклы ровно такой
+ширины, какой её портрет (высота строки → аспект текстуры), а сетка вещей
+забирает весь остаток (`flexGrow`). Ширина куклы ограничена сверху
+`MaxDollPaneWidthFraction` (0.45), чтобы очень высокое окно не съело сетку.
 
-Контейнеры одежды живут в двухколоночной сетке одинаковых карточек. Карточка
-показывает крупный `ItemIcon` (152×152 на штатной плотности, примерно в 3.5 раза
-крупнее прежней миниатюры), а рядом компактно группирует локализованные название,
-короткое двухстрочное описание, основной телесный якорь, вместимость и
-`занято/всего`.
-Её нижняя фиксированная область рисует точное число настоящих ячеек: вместимость
-1–4 использует две колонки, 5–9 — три; неполная последняя строка центрируется,
-несуществующие слоты не подделываются пустыми. Все карточки уменьшаются одним
-density-tier и остаются равного размера. Внутренние ячейки одежды не имеют
-собственной уменьшенной шкалы: это ровно тот же компонент и тот же ступенчатый
-размер, что у переноски и кобуры. Будущая вместимость выше 9 добавляет
-строки трёхколоночной сетки и одинаково увеличивает все garment-card; содержимое
-никогда не скрывается. Одежда без карманов остаётся компактной меткой.
+Левая часть намеренно не объясняет внутреннюю автоукладку §52.1A. Она проходит
+все `InventoryContainerSnapshot.Slots` в их детерминированном snapshot-порядке
+и рисует **одну общую сетку: одна настоящая ячейка — один элемент UI**.
+Предметы из карманов одежды видны наравне с остальными, но заголовков контейнеров,
+подписей «в каком кармане», изображений самих надетых вещей и призрачных иконок
+типизированных пустых слотов здесь нет. Worn-вещь является владельцем ёмкости,
+но не дублируется как carried-item. `Overflow`, если нарушен инвариант,
+показывает свои реальные ячейки с предупреждающей рамкой.
 
-В окне, его группах и карточке нет `ScrollView`, `Scroller`, страниц или
-колёсной прокрутки. После размещения окна единый размер ячейки выбирается
-ступенчато `48 → 42 → 36 → 30 → 28`; вместе с ним компактно уменьшаются отступы,
-gap и вторичные подписи. Контейнеры, пустые слоты и нижние строки никогда не
-скрываются и не обрезаются намеренно. Штатный инвентарь должен помещаться на
-42–48, меньшие ступени — защита для расширенных тестовых данных.
+Ячейки используют один визуальный компонент во всей сетке и оставляют запас
+под будущее расширение инвентаря: `106 → 93 → 80 → 70 → 61` UI-единиц
+(на 20% компактнее исходного крупного варианта). Сначала выбирается самый большой
+размер; единый density-tier уменьшается только когда вся сетка не помещается.
+Штатные `ItemIcons`, локализованный tooltip, размер стопки, любимое оружие и
+метка активного предмета сохраняются. Контейнеры, пустые слоты и нижние строки
+не скрываются и не обрезаются намеренно.
 
-Ячейки используют штатные `ItemIcons`, локализованные имена и цвета панели.
-Карточка предмета существует в одном экземпляре: прежние
-`BuildInventoryDetail` / `ShowItemDetail` / `BuildItemStats` переиспользуются с исходной вёрсткой карточки один в один.
-Hover над занятой ячейкой, одеждой или preview никогда не открывает поповер —
-он лишь подсвечивает рамку/соответствующую garment-card. Короткий левый клик по
-занятой ячейке, заголовку одежды, компактной метке или mesh на preview открывает
-поповер рядом с точкой клика. Тот же порог 6 UI-единиц отделяет клик от
-wear/stow/drop drag-жеста. Поповер остаётся открытым после ухода мыши, но
-закрывается обычным левым кликом по любому свободному месту окна — фону,
-незанятой ячейке или пустой области preview. Клик внутри самого поповера не
-закрывает его; drag и вращение куклы тоже не считаются dismiss-жестом. Поповер
-также закрывается своим штатным контролом, заменяется другим кликом либо
-исчезает вместе с предметом, выбранным NPC или окном. Bounds всего окна по-прежнему входят в
-`NpcSelection.PointerOverUi`.
+Справа находится одна общая `CharacterDollStage`: уже собранное живое тело NPC
+клонируется вместе с одеждой, волосами, оружием и протезами, мировой актёр не
+меняется. Клон стоит в `Idle`, смотрит в камеру, освещён key/rim-light; drag
+левой кнопкой дальше 6 UI-единиц вращает его. Схема костей, подписи вокруг тела
+и линии не рисуются.
 
+Над RenderTexture расположены четыре одинаковых переключателя с плоскими
+векторными силуэтами: **бельё → одежда → верхняя одежда → рюкзак**. Это
+накопительный срез только клона: вкладка белья показывает слой `Underwear`,
+одежда — `Underwear + Wear`, верхняя — первые три слоя, рюкзак — полный образ
+вместе с `Bags`. При каждом срезе заново применяются штатные правила
+`HeedHideUnderwearSlot`, а скрывшаяся вместе с головным убором причина снова
+открывает волосы. В Health-режиме всегда показывается полный образ. Смена вкладки
+не переодевает мирового NPC, не меняет snapshot и не пересоздаёт clone — только
+переключает renderer уже существующих `Wear`.
+
+Наведение на видимый mesh одежды на кукле делает ray-pick и открывает
+**единственную существующую** карточку через `ShowItemDetail`; отдельной
+карточки или новой вёрстки для одежды нет. Карточка не следует за курсором:
+её постоянное предпочтительное место — за правой гранью inventory-window,
+по центру куклы; на узком экране она прижимается к границе общего UI-root, чтобы
+не уйти за экран. Уход с одежды и карточки автоматически скрывает hover-карточку,
+а начало вращения куклы убирает её сразу. Короткий клик по кукле ничего не
+открывает, а клик по пустому месту закрывает показанную карточку. В общей сетке
+предмет по-прежнему открывается осознанным кликом; drag-действия отделены тем же
+порогом 6 UI-единиц.
+
+В окне и карточке нет `ScrollView`, `Scroller`, страниц или колёсной
+прокрутки. Карточка предмета существует в одном экземпляре:
+`BuildInventoryDetail`, `ShowItemDetail` и `BuildItemStats`
+переиспользуются без второй реализации. Она ограничивается границами UI-root и
+также исчезает вместе с предметом, выбранным NPC или окном. Bounds всего окна
+и вынесенной карточки входят в `NpcSelection.PointerOverUi`.
 ## §52 Slot inventory, garment containers & build-sites (iteration 52)
 
 A survival overhaul in five interlocking parts: the pack is now made of the
@@ -12077,12 +12213,13 @@ Inventory.Capacity = min(IntactHands, HandSlots)
   не просто вычитает записи `Severed`. Naked, that gives two самостоятельные
   функциональные ячейки (1/0 после ампутации), включая восстановленную
   протезом руку и исключая изношенный ниже порога протез. В snapshot руки остаются типизированными
-  `HandLeft`/`HandRight`, но UI дорисовывает их последними ячейками в той же панели переноски/полевого
-  рюкзака, а не в отдельных панелях. Пара по-прежнему нужна двуручному оружию (§52.5).
+  `HandLeft`/`HandRight`, но плоская сетка §51.2 показывает их как обычные
+  настоящие ячейки без подписи контейнера. Пара по-прежнему нужна двуручному оружию (§52.5).
 - **Переноска без одежды** — при наличии хотя бы одной рабочей руки тело даёт
   `BaseCarrySlots` (2), а Сила выше §76-порога добавляет ещё одну ячейку. Это
-  отдельная панель «Переноска», а не невидимые карманы рук; полностью безрукий
-  персонаж не получает ни базу, ни бонус Силы.
+  самостоятельная часть модели вместимости, а не невидимые карманы рук;
+  полностью безрукий персонаж не получает ни базу, ни бонус Силы. UI не
+  выделяет её отдельной панелью.
 - **Pockets** — every worn garment grants slots via `GarmentParams.Capacity`
   (new field, mirrored on `ObjectDefinition.InventoryCapacity` and the Unity
   `GarmentDefinition` asset). Iron rule: **panties/bra 1, top 2, pants 4,
@@ -12092,9 +12229,9 @@ Inventory.Capacity = min(IntactHands, HandSlots)
   change (dress/undress/destroy/sever) and at bootstrap. The knob `SimBalance.HandSlots`
   (default 2) caps the hand contribution.
 - **Рюкзак** — любая надетая вещь слоя `Bags` не создаёт конкурирующую вторую
-  сетку: её `InventoryCapacity` прибавляется к той же панели переноски. Без
-  рюкзака заголовок — «Переноска»; с ним — локализованное имя вещи и строка
-  разбивки `база + Сила + рюкзак + руки`. Руки от рюкзака логически не меняются — UI лишь объединяет их в одной панели.
+  ёмкость: её `InventoryCapacity` прибавляется к переноске. Руки от рюкзака
+  логически не меняются. UI §51.2 намеренно не показывает ни имя контейнера,
+  ни арифметику вместимости: все реальные слоты входят в одну сетку.
 - `InventoryState.IsPersonalEffect` сейчас возвращает false: бутылка и оружие
   занимают обычные либо типизированные ячейки, скрытой личной вместимости нет.
 
@@ -12126,11 +12263,10 @@ Inventory.Capacity = min(IntactHands, HandSlots)
 существующей карточки. Save-формат не меняется; snapshot wire v17 перевозит
 производную раскладку.
 
-UI не создаёт отдельные панели рук: `HandLeft`/`HandRight` остаются
-типизированными контейнерами wire-контракта, но их существующие ячейки
-добавляются последними в сетку `Carry`. При нулевой базовой переноске и хотя бы
-одной функциональной руке создаётся только визуальная группа «Переноска» для
-hand-slot. Отсутствующая/нефункциональная рука удаляет лишь свою ячейку.
+UI не создаёт панелей по типам контейнеров: `Garment`, `Carry`, `Holster`,
+`HandLeft` и `HandRight` остаются типизированными частями wire-контракта, но их
+реальные слоты последовательно разворачиваются в одну плоскую сетку §51.2.
+Отсутствующая/нефункциональная рука удаляет лишь соответствующую ячейку.
 
 ### §52.2 Garments are containers
 
@@ -12710,8 +12846,8 @@ the bid, the plan and the interaction can never disagree):
 |---|---|---|
 | **Feed** | one ready meal, else an open/pierced/whole coconut from the pack (whole needs her blade) | `Inventory` |
 | **Hydrate** | one water charge: a bottle gulp, a pierced coconut's water, else a whole nut she pierces | `BottleCharges` / `ItemInstance.ResourceAmount` |
-| **Treat** | one bandage, medkit before herbal (spec 44 order) | `Needs.Bandages` |
-| **Medicate** | one pill, else a **herbal** dressing (a medkit gauze is not medicine) | `Needs.Pills` / `HerbalBandages` |
+| **Treat** | one physical `item.bandage`, medkit before herbal (spec 44 order) | `Inventory.Items` |
+| **Medicate** | one physical `item.pill`, else a **herbal** physical dressing (a medkit gauze is not medicine) | `Inventory.Items` |
 | **Console** | nothing — words are free | — |
 
 A fed meal now heals by **its own nutrition** (the food definition's `Eat`
@@ -12791,6 +12927,53 @@ runs), `SimData/simdata.json` (what headless probes run), the
 `CharacterBalanceConfig` field default and the `SimBalance` static fallback.
 The asset had drifted below the code defaults (0.0037 vs 0.0055) from an
 in-editor capture; all four are now aligned on the same halved numbers.
+
+### §53.8 Тяжёлая помощь доводится до конца
+
+Замер (6 сидов × 16 000 тиков): конверсия «собралась помочь → донесла» была
+Console 45%, Treat 56%, Feed 25%, **Hydrate 11%** — хуже всех именно тот вид
+помощи, от нехватки которого чаще всего умирают. Смерть на seed 12345 (Тесса,
+`Thirst=1.00, LegR=0.00`): 19 планов «отнести воду», 2 дошли, 7 брошены ради
+Socialize, остальные — ради одёжки/дров/сушки. Четыре сцепленные причины и
+четыре правки; «тяжёлая» = подопечная `IsDying` или её страдание ≥
+`Spec53.HeavyAidSuffering` (0.9):
+
+1. **Дорога длиннее замка.** Помощь у костра укладывается в `GoalLockTicks`
+   (24), поход через остров — нет: после замка цель переторговывалась с
+   порогом `SwitchDelta` (0.15) и проигрывала быту. Теперь живой поход
+   `GoalType.Aid` к тяжёлой подопечной держится порогом `LockOverrideDelta`
+   (0.5) всю дорогу — перебить его могут только собственные кризисы
+   (StarvingBoost-надбавки выше 0.5), не Socialize. Тяжесть при этом
+   перечитывается по миру каждый тик решения (`HeavyAidInFlight`): умерла или
+   оправилась — защита снимается сама. NB-комментарий у `BuildAidPlan`
+   («Treat с Suffering=1.00 не бросался ни разу») был прав только для ближних
+   подопечных — на дальних данные его опровергли.
+2. **Память о умирающей не дисконтируется.** Ставка по памяти шла с долей
+   `AidMemoryBidShare` (0.6) — ровно настолько, чтобы после замка проигрывать
+   болтовне. Для страдания ≥ порога доля теперь 1.0: «помнить, что подруга
+   умирает» — не слух. Лёгким случаям скидка осталась (иначе колония ходила бы
+   к призракам мимо живых). §105-надбавка по памяти по-прежнему не даётся —
+   она только по живому взгляду.
+3. **Ползущая — валидная цель.** Фильтр `agent.IsMoving` в ставке и в
+   `BuildAidPlan` отсекал движущихся — а обезвоженная с разбитой ногой как раз
+   ПОЛЗЁТ к воде, и планировать на неё было нельзя вовсе (оставалась только
+   память со скидкой из п.2). Тяжёлая теперь выбирается и в движении; догоняет
+   её живой ретаргет по прибытии (`TryRetargetAidOnArrival`, §111.9).
+4. **Она замирает, когда помощь уже рядом.** `IsDehydrated`/`IsStarving` рвали
+   заявку `PendingAidFrom` мгновенно (§64.9 — чтобы ждущие не умирали стоя):
+   умирающая уползала с запомненного места, помощница приходила в пустоту.
+   Теперь красная зона не рвёт ожидание, если помощница ближе
+   `AidWardHoldDistance` (3.0 wu = два гекса): подопечная останавливается и
+   принимает помощь. Далёкая помощница ожидания по-прежнему не держит — ползти
+   к воде самой лучше, чем ждать через полкарты; таймаут `TalkWaitTimeoutTicks`
+   тоже действует, вечного стояния рядом с застрявшей помощницей нет.
+
+Ручки: `Spec53.HeavyAidSuffering` (0.9), `Spec53.AidWardHoldDistance` (3.0) —
+в `SocialBalanceConfig` («Сострадание §53») и `simdata.json`.
+
+**Verify** (соак, те же 6 сидов): конверсия Hydrate и смерти от обезвоживания
+до/после — см. коммит правки; отдельный признак выздоровления — исчезновение
+серий `AidRequested` без единого `AidStarted` к одной и той же подопечной.
 
 ## §54 Stranded-Deep resource, processing & butchering loop (iteration 54)
 
@@ -16796,7 +16979,7 @@ YAML-меши `_AiGen/*_oriented.asset` и сравнил с экспортом 
 Модель лежит как `Resources/HexLive/Objects/tool.machete.glb`: и рука
 (`NpcActorView.SetHandProp`), и земля (`HexWorldRenderer.CreateObjectView`) грузят
 `HexLive/Objects/<id>` без расширения, так что GLB подхватывается так же, как
-подхватывался бы `.prefab` (прецедент — `tool.pot.fbx`). Иконка —
+подхватывался бы `.prefab` (прецедент — `tool.pot.fbx`, удалён в §134). Иконка —
 `Resources/HexLive/UI/Items/tool.machete.png` (Blender Cycles, ¾, прозрачный фон).
 Native bake мачете включает только одобренный retopo-mesh `lowpoly`: служебные
 `Cube`, `Camera` и `Light` из авторской сцены не входят в Player-ассет. Сам mesh
@@ -17976,6 +18159,59 @@ Golden-трасса: хеш состояния сдвинулся (два нов
 повторные A/B — до этого включённый таймлайн сознательно оплачивается
 жизнями колонии. Механизм для калибровки уже стоит: флаг, ключ
 `hexsoak --timed-melee` и метрики, которыми и получена таблица выше.
+
+**104.8 ⭐ КРОВЬ ОПАЗДЫВАЛА ЗА УДАРОМ, ПОТОМУ ЧТО МОМЕНТ УДАРА БЫЛ ПОСТАВЛЕН НА
+ГЛАЗ.** Жалоба игрока — «брызги выходят с опозданием, где-то не совпадает удар и
+анимация». Совпадать они и не могли: `hitDelaySeconds` обещает «через столько
+секунд от начала анимации ложится урон», а стоял он у ВСЕГО снаряжения на ~75%
+окна замаха — число, унаследованное от ПРОЦЕДУРНОГО взмаха, которого в бою давно
+нет (у каждого предмета есть клип). Настоящий кадр контакта у клипов живёт
+совсем не там:
+
+| клип | кадров | контакт | доля |
+|---|---|---|---|
+| Punch A | 65 | 22 | 33.9% |
+| Punch B | 52 | 15 | 28.8% |
+| Kick A | 48 | 18 | 37.5% |
+| Kick B | 45 | 19 | 42.2% |
+| Standing Melee Attack Horizontal (нож/топор/мачете/кирка/молоток/пила) | 72 | 29 | 40.3% |
+| X Bot@Bayonet Stab (копьё) | 98 | 28 | 28.6% |
+
+Вид растягивает клип ровно на `attackDurationSeconds` (§104.4), поэтому кулак
+касался цели на 0.43 с, а кровь, флинч и звук приходили на 1.0 с; тесаком —
+0.81 с против 1.5 с. **Опоздание 0.4-0.95 с, у каждого удара в игре.**
+
+Правило теперь одно, и оно проверяемое:
+
+```
+hitDelaySeconds = contactFraction × attackDurationSeconds
+```
+
+- **Доля мерена, а не назначена.** `Tools/measure_strike_contact.py` (Blender
+  `-b` как импортёр FBX) находит кадр контакта: бьющая конечность выносится
+  ВПЕРЁД, значит контакт — кадр максимума +Z в системе таза. Максимум ВЫНОСА
+  (расстояния от таза) для этого не годится: у горизонтального замаха он
+  приходится на отведение оружия НАЗАД — первая версия скрипта так и промахнулась
+  на клипе тесака (21% вместо 40%). Замер лежит в `Tools/strike_contacts.json`.
+- **Гейт.** `StrikeContactGate` сверяет каждый ассет снаряжения с этим замером и
+  требует, чтобы замах ещё и стоял на СЕТКЕ ТИКОВ (0.25 с): сим квантует момент
+  удара, и остаток квантования — тот же рассинхрон, только мельче. Все замахи
+  теперь ровно 0.5 с (кулак) или 0.75 с (оружие).
+- **Баланс не двинут.** Цикл обмена (`duration + cooldown`) сохранён до сотой у
+  каждого предмета: кулак 3.0 с, нож 2.74 с, топор/мачете/кирка/молоток/пила и
+  копьё 3.0 с. Урон за удар не тронут вовсе, так что DPS §104.7 прежний.
+  Единственный след — ловкость (`AttackCooldownMult`) считает цикл как
+  `hitDelay + (duration − hitDelay + cooldown) × m`, и при `m ≠ 1` сдвиг замаха
+  меняет цикл на несколько процентов.
+- **Заодно ушла запись из `ClipWindowGate.Known`:** окно копья стало 2.62 с, и
+  клип выпада (3.27 с) впервые влез в подгонку без клампа.
+
+Правки в C# не потребовалось ни строки — вид уже брал окно из того же
+`GearStats.StrikeTimings`, а `_animator.speed = _simSpeed` держит клип на
+скорости сима при любой перемотке. Врали ДАННЫЕ.
+
+⚠️ Укус зверя сюда не входит: у мобов своя анимация по `MobCatalog`
+(`AttackWindupSeconds`), и её кадр контакта не мерен.
 
 ## §105 На грани смерти: умирание вместо мгновенной смерти (iteration 105)
 
@@ -19290,6 +19526,91 @@ headless-Blender'ом по ключам (зеркалятся и ручки Бе
 `WorldObjectState.RotationDegrees`; свободный узел остаётся только маршрутной и
 occupancy-бронью. Это же чинит загруженный посреди сна старый сейв.
 
+**111.13 Кольцо станций: одна точка стала пятью.** §111.9 отменяется в части
+«единая точка»; его r3 (ноги по `+Forward`, курс `Rotation + 180°`) остаётся
+определением ПЕРВОЙ станции и ничего больше не теряет.
+
+Одна точка была верна ровно до тех пор, пока к телу подходил один человек. Но
+заявки на лежащую независимы по построению: сострадание §53 держит
+`PendingAidFrom`, обыск §111 — `PendingLootedBy`, и друг друга они не проверяют
+(и не должны: §111.8 превращает встречу лекаря и лутера в драку, а не в
+переговоры). Плюс протезирование §118, разговор со спящей и плачущей §110,
+ручные команды игрока. Все они звали `AlignInteractorAtFeet` без единой проверки
+занятости — и двое разных людей вставали в БАЙТ-В-БАЙТ одну позицию с одним
+курсом, и стояли так всю сцену.
+
+Ответ — пять станций в системе координат тела. Смещения выводятся из шага
+суб-сетки `SubStep = HexRadius / BoundaryRadius = 0.375 wu`, а не из литералов:
+
+| слот | станция | вдоль тела | вбок | курс |
+|---|---|---|---|---|
+| 0 | ноги | `+BodyHalfLength` = 0.66 | 0 | `Rotation + 180.0°` |
+| 1 | бедро + | `+SubStep·√3/2` = 0.3248 | `+SubStep/2` = 0.1875 | `Rotation + 190.8°` |
+| 2 | бедро − | то же | `−SubStep/2` | `Rotation + 169.2°` |
+| 3 | плечо + | `−SubStep·√3/2` | `+SubStep/2` | `Rotation + 209.2°` |
+| 4 | плечо − | то же | `−SubStep/2` | `Rotation + 150.8°` |
+
+**Курс — всегда на голову**, с любой станции: он не таблица, а следствие одной
+формулы `angle(HeadPoint − StationPoint)`, где `HeadPoint = Position −
+Forward × BodyHalfLength`. Углы в таблице — её посчитанный результат, а не
+независимые числа. У станции ног формула даёт в точности `Rotation + 180°`,
+потому что ноги, центр и голова коллинеарны, — то есть §111.9 r3 не исключение
+из правила, а его частный случай. Смотреть лежащей в лицо, а не в бок или в
+ноги, — единственный курс, который читается как участие в человеке, а не в теле.
+
+Четыре боковые — это ровно те узлы, которые `ClaimLyingFootprint` (§113.2) уже
+бронирует «на обход»: они лежат ВНЕ тела, край прямоугольника проходит в
+0.0075 wu от них, и в бронь они попали только из-за раздутия на полшага. Тело
+физически накрывает всего три узла — центр и две осевые опоры.
+
+Правила, каждое из которых оплачено конкретным дефектом:
+
+1. **Приоритет — ноги, достаются первому занявшему**, независимо от вида
+   действия. Порядок слотов фиксирован, выбор — первый свободный по списку;
+   никаких сортировок по расстоянию до вызывающего (иначе двое считают «свою»
+   очерёдность по-разному и одна и та же сцена расходится между прогонами).
+2. **Держатель хранится на АКТЁРЕ** (`Execution.LyingStationTargetId` + `Slot`),
+   а занятость ВЫВОДИТСЯ обходом актёров с предикатом живости: тело ещё лежит,
+   актёр жив, его план всё ещё указывает на это тело, глагол — лежачий. Пятое
+   протекающее поле-заявка на пациентке было бы повторением ошибки, про которую
+   в коде уже написано: забытый клейм делает тело занятым навсегда.
+3. **Мест нет — отказ**, а не разделение станции у ног и не ожидание на месте.
+   Ожидание рядом с занятым телом — это в точности сигнатура застоя §102.
+   Потолок одновременных участников у одного тела теперь пять; до §111.13 он
+   был не ограничен ничем.
+4. **Своя бронь телу не мешает.** Ближайший узел к боковой станции — сам этот
+   узел, а он лежит в `ClaimedJunctions` пациентки, то есть в avoid-множестве
+   пути. Для того, кто идёт К ЭТОМУ ЖЕ телу, собственная бронь пациентки
+   препятствием не считается; для всех остальных остаётся стеной, чтобы прохожие
+   не задевали лежащую. Фильтровать положено на месте вызова: множество из
+   `OtherActorJunctions` общее на весь тик.
+5. **Станция — смещение, а не узел.** На земле она совпадает с узлом, в кровати
+   тело вообще не выровнено по сетке и имеет произвольный курс, а ползущая §50
+   ещё и движется. Поэтому геометрия задана в системе тела и удерживается тем же
+   перетиковым снапом, что и раньше держал ноги, — а перетиковый снап теперь
+   обязан проверять дистанцию, иначе он превращается в телепорт за уползающей.
+6. **Станция внутри чужого тела, трупа или солида не предлагается** — та же
+   проверка, что у укладки §113.2. У кровати, придвинутой к стене, доступны две-
+   три станции, а не пять, и это честный ответ, а не сбой.
+7. Трупы вне области: у них свой якорь-объект, а не `LyingSpot`.
+
+**Замер (соак 12000 тиков, 4 сида, до = HEAD~1 чистым деревом).** Ни один из
+новых отказов и абортов станции не сработал НИ РАЗУ: сцены помощи никто не резал.
+Застой упал 8.9% → 6.2% NPC-тиков, провалы планов 2.9% → 3.7%, смена цели
+1111 → 1020. Выживших из четырёх: сиды 424242, 7 и 31337 — без изменений (3, 2,
+4), сид 12345 — было 4, стало 2. Это перетасовка мира, а не следствие гейта:
+другие узлы подхода и другая жизнь брони меняют пути, а значит и все броски
+дальше. Расхождение записано сюда СОЗНАТЕЛЬНО, как и требует правило про
+golden-трассу; если оно всплывёт ещё на сидах — искать причину в §105/§53,
+а не в станциях.
+
+**Известное ограничение, принятое сознательно:** боковой зазор 0.0075 wu — это
+«вплотную», помощница визуально задевает лежащую. Альтернатива с внешним кольцом
+0.65 wu (зазор 0.38, все пять станций на одном радиусе) рассмотрена и отклонена в
+пользу плотной посадки. Существующий коленный клип авторски тянется на ~0.66 wu
+вперёд — с боковой станции руки идут поперёк тела; отдельный боковой присед —
+следующая задача, а не часть этого правила.
+
 ## §112 Пальма не заслоняет кадр (iteration 112)
 
 **Проблема.** Камера §20 — орбита вокруг колонистки, и остров засажен пальмами
@@ -19984,6 +20305,14 @@ tick. Полностью свернувшаяся (`Clot01=1`) неперевя�
 перевязанной: это естественное рубцевание культи и источник затухания её
 визуального следа. Сначала погашается CriticalTrauma, затем обычная шкала;
 для отсечённой зоны оба возврата запрещены. Остальной открытый cut не заживает.
+**Критическая глубина затягивается и сама по себе**, тем же темпом 0.0033 за
+slow tick с теми же множителями отдыха, — но только в целой зоне, где не
+осталось открытых неперевязанных ран, и только до нуля: положительную шкалу
+по-прежнему поднимает сытый реген со своим гейтом голода. Без этого возврата
+зона, углублённая деградацией сверх severity своей раны, оставалась после
+закрытия раны с сиротской критической глубиной, которую нечем погасить: ни
+ушиба, ни записи раны, ни доступа к сытому регену (он пропускает всё, у чего
+`CriticalTrauma>0`) — конечность замирала на нуле навсегда (баг #119).
 Полностью свернувшийся cut целой зоны уже не теряет кровь, но остаётся тихой
 потребностью в послеобработке: свой или союзный медик продолжает искать для
 него повязку с меньшим приоритетом, чем для активного кровотечения. Одна
@@ -20035,6 +20364,14 @@ CriticalTrauma=1. Обрубок получает перевязываемую �
 лежит, пока собственный кризис не требует лечения. Опасный подъём ради
 союзника допускается при локальных шансах не ниже 50% и один раз за эпизод
 тренирует Toughness на 0.002. Сильное кровотечение остаётся заметным животным.
+
+**Ползущая никого не носит.** Носильщиком может быть только стоящая: у
+ползущей руки — опора, а не свободные конечности. «Ползёт» — это одно понятие
+на всю игру (`BodyState.IsCrawling`): потерянная нога ЛИБО обе ноги ниже 0.40
+функции. Раньше нижний порог знал только экспортёр снапшота, то есть вид, и
+симуляция считала ползущую обычной ходячей — девушка ползла по земле с другой
+на руках. Ноги, отказавшие уже под ношей, кладут пациента, а не продолжают
+переноску; приказ игрока подчиняется тому же запрету.
 
 Спасают только союзника; врага можно лишь обыскать. В безопасности сначала
 останавливают опасное кровотечение, затем несут бессознательного в безопасное
@@ -20115,7 +20452,12 @@ rescue-план завершается, а пациент кладётся в т
 
 `med.splint`: 2 палки + 1 верёвка, 40 тиков у костра. После перевязки шина на
 целой руке/ноге даёт функциональное здоровье
-`lerp(0.20,0.50,Medicine)`, не меняя настоящее HP.
+`lerp(0.20,0.50,Medicine)`, не меняя настоящее HP. Счёт шины закрывается не
+только рюкзаком: как и у верёвки (§84), он считается доступным, когда
+недостающие куски ЛЕЖАТ ДОСЯГАЕМО ОДНОЙ КУЧЕЙ — вокруг якоря в кольце 1, ровно
+там, откуда их заберёт крафт. Требование нести весь счёт в руках держало эту
+цель недоступной всегда, потому что подвоза верёвки нет ни у одной цели, и
+молчала вся ветка лечения конечности (баг #120).
 
 `resource.board` получается по 2 штуки действием `saw.log` над лежащим бревном.
 Это замыкает производственную цепочку рецептов; доски не заготавливаются впрок
@@ -20159,6 +20501,26 @@ rescue-план завершается, а пациент кладётся в т
 ступня продолжаются за `end`, как органическая геометрия за запястьем и
 голеностопом. Каждый FBX несёт custom-property landmarks `root`, `joint`,
 `end`, `grip`, хотя runtime по-прежнему создаёт собственный несжимаемый Grip.
+
+⭐ **Ось модели нормализуется НА ИМПОРТЕ, а не углом в рантайме.** Blender
+экспортирует объект с поворотом узла −90° по X (трансформ не применён при
+экспорте), и хотя меш авторен по конвенции выше, УЗЕЛ разворачивает его в Z.
+Крепление ставит устройство вдоль оси конечности по `+Y`, поэтому такая модель
+ложится ПОПЕРЁК: деревянная нога уходила от колена горизонтально назад, а вниз
+загибалась лишь стопа на конце — игрок читал это как «протез постоянно согнут»
+(баг №116-сосед, август 2026). Диагноз ставится за один замер: габарит модели
+при единичном повороте был `(0.44, 0.63, 1.20)`, после обнуления поворота узла —
+`(0.44, 1.20, 0.63)`, то есть длинная сторона встаёт по `+Y`; значит виноват
+узел, а не меш, и лечится это обнулением, а не докруткой на подобранный угол.
+`ProstheticImportPostprocessor` (Editor) обнуляет поворот дочерних узлов всему,
+что лежит в `HexLiveContent/Prosthetics`, идемпотентно и разом для всех восьми
+моделей. **Новый протез: проверь габарит — длинная сторона обязана быть по Y.**
+Две ловушки, оплаченные временем: `bakeAxisConversion` НЕ помогает (он лишь
+меняет знак поворота 270 ⇄ 90, потому что поворот сидит в самом FBX, а не в
+конвертации осей Unity), а постпроцессор работает только на импорте — после его
+появления папку с моделями надо один раз переимпортировать. Правильное «сделать
+хорошо» — применить трансформ при экспорте из Blender; постпроцессор чинит уже
+экспортированные файлы.
 
 Пропорции сняты с `Marta.new.fbx`: `ForearmBend→Hand = 0.263512 м`,
 `Shin→Foot = 0.435129 м`, полная кисть ≈0.1825 м, стопа ≈0.2396 м. Поэтому
@@ -20495,6 +20857,10 @@ Blender X/Y, совпадающей с simulation X/Y и Unity X/Z, поэтом
 стойка, коллектор и верстак не получают промежуточного yaw и могут быть уложены
 вдоль любой из шести стен. В нулевой авторской позе окна занимают bays
 `2,3,10,11`, дверь — `7`, остальные семь пролётов являются стенами.
+Черновик `HutLayoutDesigner` считается валидным только при двенадцати стеновых
+элементах допустимых типов и ровно одной двери. Старый/оборванный черновик без
+двери не имеет права подменять утверждённый контур: при загрузке его пролёты
+мигрируют к этой канонической раскладке, а сохранённая мебель остаётся на месте.
 
 Внутри создаются два экземпляра единственного типа кровати `bed.basic` на
 точных центрах сеточного footprint: `(-0.974279, 0)` с yaw `0°` и
@@ -20502,8 +20868,9 @@ Blender X/Y, совпадающей с simulation X/Y и Unity X/Z, поэтом
 проходимым junction, а presentation и точка сна получают один общий
 детерминированный offset к точному центру. Домашний очаг занимает junction
 `(-0.3248, 0.5625)`, а домашний гардероб (§133, `furniture.wardrobe`) —
-`(-0.487139, -0.84375)` с yaw `60°`, зеркало второй кровати через центр: до
-двери 1.35 wu, до очага 1.13, до ближней койки 0.65. Это настоящие объекты с тегом `Bed` и действием
+утверждённый игроком junction 4 `(-0.3247595, -0.9375)` с yaw `240°`.
+Его продольный трёхузловой footprint проходит через junction `9 → 4 → 0` и
+лежит на линии сетки у стены. Это настоящие объекты с тегом `Bed` и действием
 `Sleep`, поэтому обычные память, планирование, занятость, энергия, комфорт и
 спасение раненой работают без особого сценария. Их obstacle-radius равен нулю:
 визуально компактные циновки помещаются вдвоём, а стены, а не мебель, задают
@@ -20600,6 +20967,25 @@ blob: это данные blueprint, а не изменяемое состоян
 собирать спящего прямыми присваиваниями полей. `BedSleep.MaintainPose` во время
 уже активного сна и после загрузки legacy-сейва восстанавливает только геометрию,
 не перезапуская таймер и не меняя владельца кровати.
+
+Выход из кровати так же атомарен, и это парный инвариант ко входу: пока
+`Execution` — это `Sleep` с target-кроватью, чей `CurrentUser` — она сама, НИКТО
+не двигает её тело. Укладывание на землю (`MortalityHelpers.AnchorLyingBody`,
+общий примитив комы, умирания и обморока) обязано спрашивать это ПЕРЕД укладкой,
+а не после: спящую в кровати оно переутверждает через `BedSleep.MaintainPose`,
+и только негодная кровать (снесена, перестроена, легаси-репэйр) снимает заявку
+`ReleasePatientBedOnWake` и переводит тело на землю. Порядок здесь важен, потому
+что чинить рассинхрон некому: `MaintainPose` вызывается из `ExecutionSystem`, а
+тот пропускает NPC без активного плана — у принесённой и уложенной пациентки
+своего плана нет, и разъехавшиеся позиция и заявка уезжают в сейв (баг #122).
+
+Вид не имеет права прижимать тело к кровати, до которой дальше одного гекса.
+`FindBedAttachPoint` берёт кровать из `TargetObjectId` только вместе с проверкой
+`HexDistance(bed.Tile, npc.Tile) <= 1` — той же, что у поиска ближайшей. Иначе
+рассинхрон становится невидимым и читается как три разных бага: камера кадрирует
+КОРЕНЬ вида (он стоит на позиции симуляции), вырез крыш и намокание идут по
+`npc.Tile`, а фигура нарисована в кровати на другом конце острова. Инвариант:
+рассинхрон обязан быть виден — тело рисуется там, где оно есть.
 
 Следующая художественная версия кровати имеет логический footprint
 `0.649519 × 1.5 wu`: от внутреннего ряда `X=±0.649519` до вертикального ребра
@@ -22069,9 +22455,10 @@ Unity-код §129 не трогает вовсе: вид уже читает `I
 ### 133.2 Гардероб — домашняя родня сушилки
 
 Новый объект `furniture.wardrobe` появляется готовым в достроенной хижине у свободной стены (стройку силами
-NPC оставили на потом). Локальные координаты в `BuildingRules`: `(-0.487139, -0.84375)`, yaw 60° — зеркало
-кровати-1 через центр. Замеренные клиренсы в прототипном мире: до двери **1.35 wu**, до очага **1.13**, до
-ближней койки **0.65**; obstacle-блокировки нет (идиома кроватей), все 37 свободных джанкшенов интерьера
+NPC оставили на потом). Утверждённая в `HutLayoutDesigner` раскладка хранится в `BuildingRules` как
+junction 4 `(-0.3247595, -0.9375)`, yaw `240°`; продольная ось занимает точки `9 → 4 → 0`.
+Это сохранённые данные конструктора, а не renderer-поправка или подгонка bounds.
+Obstacle-блокировки нет (идиома кроватей), все 37 свободных джанкшенов интерьера
 остаются свободными — комната в один гекс не прощает лишнего занятого узла. `RepairWardrobeAnchor` и
 пересаживает гардероб по канонической геометрии, и СТАВИТ его впервые, поэтому дома из старых сейвов
 получают мебель на загрузке. Схема (посчитана из констант кода, не нарисована на глаз):
@@ -22079,13 +22466,18 @@ NPC оставили на потом). Локальные координаты �
 
 Тег `"Rack"` на гардеробе несущий: он бесплатно включает объект во всё, что уже умеет искать сушилку
 (`DryClothes`, `RackIsFull`), так что отдельной ветки «а ещё бывает гардероб» в системах нет. Ёмкость своя —
-`Spec133.WardrobeCapacity` = 8. Сушка: **×5 при горящем очаге** в том же доме и **×1.5 при потухшем** —
+`Spec133.WardrobeCapacity` = 12. Сушка: **×5 при горящем очаге** в том же доме и **×1.5 при потухшем** —
 тепло даёт очаг, а крышу и защиту от дождя уже даёт дом (§120). `MoistureSystem` принимает станцию числом,
 а не флагом «сушилка/нет».
 
-Презентация: модели пока нет, вещи складываются стопкой в одной точке (`WardrobeHangers` — тот же контракт,
-что у `DryingRackHangers`; приедет модель с плечиками — меняются только координаты), сам гардероб рисуется
-ящиком, а не загадочной сферой.
+Презентация использует авторский `Resources/HexLive/Objects/furniture.wardrobe.fbx` в масштабе junction-сетки.
+Он следует общему контракту мебели `bed.basic`: центральный занятый junction является pivot на полу,
+Blender `+Z` направлен вверх, а ось трёх занятых junction совпадает с локальной `+Y`. Импортный FBX остаётся
+дочерним объектом identity-root; и `HutLayoutDesigner`, и обычный `HexWorldRenderer` применяют к этому корню
+только общий footprint-yaw `0° + 60°k`. Индивидуальные поправки `X/Y/Z` для модели запрещены. Гардероб содержит
+12 мест одежды (`WardrobeHangers`): реальный предмет одежды создаётся штатным `GarmentDropFactory`, а
+плечики появляются только у занятого слота и исчезают вместе с предметом. Пустой гардероб не показывает
+тестовую одежду или пустые плечики; процедурный ящик остаётся только аварийным fallback при отсутствии FBX.
 
 ### 133.3 Раздеваются дома
 
@@ -22195,3 +22587,241 @@ BalanceParity/SimDataFreshness/BalanceKnobHygiene), а экспорт делае
 Осталось Unity-стороне (не блокирует симуляцию): реэкспорт Sim Data (добавит `furniture.wardrobe`),
 I2-термины (имя «Гардероб», строки истории разрешений), модель гардероба с точками подвеса вместо
 fallback-стопки.
+
+## §134 Котелок удалён
+
+`tool.pot` появился в §29E как второй конец водяной цепочки: костёр горит,
+в рюкзаке котелок — значит есть кипячёная вода, безопасная в отличие от
+сырой. **§55.2 отменил кипячение целиком** (сырой воды в мире не осталось,
+пить теперь только из кокоса), и с того дня котелок был предметом без
+единого глагола: его находили в глуши, поднимали целью `GatherTools`,
+носили в рюкзаке, отбирали у беспомощного по §111 — и никогда не применяли.
+Удалён и из логики, и как объект.
+
+Что ушло:
+
+- **Содержимое.** `ObjectDefinition["tool.pot"]` и его `pickup.pot`,
+  `GearStats[Pot]`, константа `GearIds.Pot`, эмодзи-строка `🍲`,
+  `Place("tool.pot", …)` в `PrototypeWorldDefinitionFactory` — котелок
+  больше не рождается в мире. Строка `simdata.json` (и вещь, и снаряжение)
+  снята вместе с ними.
+- **Способность `GearCapability.Boil`.** Её носил только котелок, а читал
+  только мёртвый `hasPot` в `DecisionSystem`. **Бит `1 << 6` оставлен
+  вакантным**: маска способностей лежит в `.asset`-ах числом, и сдвиг
+  соседей молча переименовал бы `Saw` в `Sew` у всего инвентаря.
+- **Ручки §49 Tier C** — `ProactiveBoil`, `BoilThirstCeiling`,
+  `BoilChainWeight` (и их зеркала в `SocialBalanceConfig` /
+  `SocialBalance.asset` / `simdata.json`). Первые две уже стояли в ратчете
+  мёртвых ручек `BalanceKnobHygieneGate`; третья читалась из
+  `wantsBoil = false`, то есть всегда давала ноль. Записи из ратчета сняты —
+  список обязан только уменьшаться.
+- **Вид.** `BuildPot` в `LowPolyToolFactory`, исключение котелка из
+  `LiesFlatOnGround` (стоять вертикально осталось только бутылке),
+  `Resources/HexLive/Objects/tool.pot.fbx`,
+  `Resources/HexLive/Gear/pot.asset`, термины I2 `item.tool_pot.*`.
+
+Одно последствие, за которым стоит следить: `Place` вычёркивает выбранный
+тайл из пула, поэтому исчезнувший вызов **сдвигает раскладку всего, что
+ставится после него** (зажигалка и далее) на новых картах. Старые сейвы не
+трогает — они несут свои объекты.
+
+Тест `LootHelplessTests.TakeOrder_WeaponsByPriority_ThenTools_ThenRest`
+проверял порядок добычи на котелке; вместо него теперь зажигалка — та же
+роль «инструмент без боевого приоритета».
+
+## §135 Волк уносит добычу (iteration 135)
+
+Оторванная в бою конечность (§50) — это **еда**, а не декорация под ногами.
+Зверь, чей укус её оторвал, берёт её в зубы, **бросает бой**, уходит за
+пределы своей зоны агра, там стоит с ношей, доедает — и после этого полдня
+не нападает ни на кого. Так укус, стоивший колонистке ноги, перестаёт быть
+началом бесконечной травли и становится **концом сцены**: у зверя есть
+причина уйти, а у калеки — время доползти до помощи (§53, §118).
+
+### §135.1 Одна вещь в одном месте
+
+Пока конечность в зубах, объекта `body.limb_severed` в мире **НЕТ**: §50.4
+роняет его к ногам жертвы, и тем же тиком зверь забирает его с земли
+(`WorldObjectMutations.DespawnObject`). Состояние живёт на `MobState`:
+`CarriedLimbOwner` (чья), `CarriedLimbPart` (какая), `LimbTakenAtTick`,
+`LimbEatenAtTick`, `SatedUntilTick`.
+
+Так сделано по двум причинам. Первая — конечность не может оказаться
+одновременно и в пасти, и на земле, и её нельзя подобрать «из зубов».
+Вторая инженерная и стоила бы кругов отладки: **вид не умеет двигать объекты
+мира** — `HexWorldRenderer` создаёт объект один раз на его якорном узле и
+больше не трогает его позицию. Объект, ползущий по джанкшенам вместе с
+волком, остался бы стоять на месте отрыва.
+
+### §135.2 Три состояния подряд
+
+- **Отходит.** `RunLimbCarry` в `MobSystem` перехватывает зверя ДО захвата
+  цели: ни погони, ни драки, `Status = Roaming`, `TargetNpc = null`. Шаг —
+  жадный подъём «прочь от ближайшей живой колонистки» (`RetreatStep`):
+  гексовое расстояние главное, метрическое разрывает ничьи внутри гекса,
+  ничья по номеру узла не даёт топтаться между двумя равноценными точками.
+  Не путь к точке, а направление: «подальше» — это не адрес, и выбранная
+  точка через десяток тиков всё равно оказалась бы не там, где колония.
+- **Ест.** Достаточно далеко — это `AggroRadiusTiles + RetreatMarginTiles`
+  (3): встав, зверь не должен снова видеть колонию как цель, иначе сцена
+  читается как «отбежал и вернулся». Встал — `LimbEatenAtTick` = сейчас +
+  `EatTicks` (1200 ≈ 5 реальных минут), и всё это время он **стоит**:
+  `Roam` в этой ветке не вызывается намеренно.
+- **Сыт.** Доел — конечность исчезает совсем, `SatedUntilTick` = сейчас +
+  `SatedTicks` (12000 = половина визуальных суток §19.7B). Ворота стоят в
+  захвате цели рядом с §29C.3-кулдауном: сытый зверь не наводится вообще.
+
+**Предохранитель отхода** (`RetreatGiveUpTicks`, 400): на тесном острове
+уйти бывает НЕКУДА — лагерь поперёк единственного прохода, кольцо занято,
+жадный шаг упёрся в локальный максимум. Без него условие «отошёл» не
+выполнялось бы никогда и нога висела бы в зубах вечно — та же болезнь, что
+stuck-chase у погони (§29C.3), и лечится тем же способом: по сроку зверь ест
+там, где стоит.
+
+### §135.3 Где стыкуется с уже написанным
+
+- **Отрыв случается ВНУТРИ резолвера урона** (`BodyDamageResolver.Apply` →
+  §50/§118), а резолвер не знает, чьи это были зубы. Поэтому захват висит в
+  `AnimalCombatSystem.LandBite` — единственном месте, где известны обе
+  половины: набор культей считается до укуса и сравнивается после.
+- **Зверя убили с ношей** — конечность возвращается в мир там, где он упал
+  (`MobLimbPrize.DropAtDeath`). Игрок видел, как её уносят; пропажа читалась
+  бы багом.
+- **Сейв, блоб v43.** Объекта конечности в мире нет, так что без записи
+  загрузка уничтожала бы ногу вместе со сценой. Старый блоб читается «пасть
+  пуста, зверь не сыт».
+- **Провод.** `MobSnapshot.CarriedLimbOwnerNpcId` + `CarriedLimbPart`.
+- **Лента.** `MobTookLimb` (красная) и `MobAteLimb` в `GameEventTypes` —
+  обе объясняют игроку то, чего иначе не видно: почему бой оборвался на
+  середине и почему следующие полдня тихо.
+
+### §135.4 Падаль — еда без драки
+
+Драка необязательна. Зверь БЕЗ цели, который замечает лежащую конечность в
+радиусе `AggroRadiusTiles + ScentRadiusBonusTiles` (2 + 2 = 4 гекса), идёт к
+ней, берёт в зубы и дальше проходит ту же программу §135.2 — отход, еда,
+сытость. Ветка стоит ДО захвата цели: готовая еда предпочтительнее новой
+охоты. Взявшийся за падаль зверь не блуждает и не наводится, пока не доест.
+
+⭐ **Цена — вот здесь всё дело.** Полный поиск пути стоит дорого (замер ниже),
+поэтому проверка устроена так, чтобы в обычной игре не стоить НИЧЕГО:
+
+- `RuntimeCaches.SeveredLimbs` — индекс лежащих конечностей. Пополняется в
+  момент появления (§50.4 `Sever`, §135 `DropAtDeath`), чистится **лениво** при
+  обходе (исчезнуть конечность может тремя путями — сгнила, съедена, забрана, —
+  и ловить каждый значило бы три места, которые можно забыть). Строится один
+  раз на загруженный мир.
+- Конечностей в мире нет почти всегда, поэтому вся проверка зверя — это
+  `index.Count == 0` и выход. Без индекса каждый зверь каждый средний тик
+  перебирал бы ~218 объектов мира ради пустого множества.
+- Недостижимая падаль (нога упала в хижине, за стеной) гасится кулдауном
+  `ScentGiveUpTicks` (300): иначе зверь строил бы Дейкстру по 14 000 узлов
+  каждый средний тик до самого гниения ноги. Прецедент — `FleePathSearchBudget`
+  и §29C.3.
+- Выбранная падаль главнее новой (`PrizeObjectId`, транзиентно): без этого
+  зверь переприцеливался бы на «ближайшую сейчас» и ходил между двумя ногами.
+
+Ход к падали и погоня делят один `StepTowardJunction` — не копия намеренно:
+цена этого места — полный поиск по всему графу, и второй экземпляр логики
+означал бы второй набор её граблей.
+
+### §135.5 Чего стоит зверь — замер и три хода (авг-2026)
+
+Попутный аудит: **мобы НЕ ходят через `PerceptionSystem`** (§125). У них нет ни
+радиуса восприятия, ни памяти, ни снимка — цель ищется прямым перебором живых
+NPC по `HexSpatialMath.HexDistance` за средний тик, O(мобы × NPC). Это самая
+дешёвая схема из возможных, и оптимизировать там нечего.
+
+Дорого другое — **погоня**. `ChaseStep` строил ПОЛНЫЙ путь заново каждый
+средний тик на каждого гонящегося зверя, а `FindPath` был равноценной
+Дейкстрой без эвристики по ~14 000 узлов. Замер на прототипе (300 средних
+проходов, `MobSystem.Run` целиком):
+
+| сцена | было | стало |
+|---|---|---|
+| 2 волка блуждают | 0.005 мс | 0.010 мс |
+| 8 волков блуждают | 0.017 мс | 0.026 мс |
+| 2 волка у колонии (1 гонится) | **7.3 мс** | **0.92 мс** |
+| 8 волков у колонии (2 гонятся) | 13.3 мс | 1.18 мс |
+| 16 волков у колонии (2 гонятся) | 14.2 мс | 1.41 мс |
+
+Цена была не в количестве волков, а в количестве ГОНЯЩИХСЯ — ~6.5 мс на
+каждого при ~1.5 мс на весь тик мира. Блуждающая стая была и осталась
+бесплатной. Сделаны три хода, все в `HexPathfinder`:
+
+**1. Фронтир — двоичная куча на переиспользуемых массивах.** Прежний
+`SortedDictionary` аллоцировал узел красно-чёрного дерева на каждую вставку и
+обходил дерево свежим энумератором на каждое извлечение (`foreach … break`
+ради минимума) — пять коллекций мусора на КАЖДЫЙ вызов. Порядок извлечения не
+изменился: ключ по-прежнему несёт уникальный `seq`, а улучшенный узел просто
+кладётся второй раз, и устаревшая запись отбрасывается при извлечении (он уже
+закрыт) — ровно то, что делал явный `Remove`. Буферы висят на потоке
+(`[ThreadStatic]`), вложенный вызов (запасной проход без `avoid`) берёт
+собственный экземпляр. **Поведение бит-в-бит прежнее.**
+
+**2. Бюджет узлов для погони** (`MobSystem.ChasePathNodeBudget`, 1500).
+Недостижимая жертва разворачивала ВЕСЬ остров на каждом вызове и повторяла это
+все 200 тиков, пока §29C.3 не объявлял погоню безнадёжной. Теперь безнадёжность
+стоит миллисекунды, а решает её тот же stall-таймер: пустой путь = шага не было
+= часы тикают. Исчерпанный бюджет отвечает «дороги нет» и **не получает
+повторной попытки без `avoid`** — она упёрлась бы в тот же потолок.
+
+**3. Эвристика A\*.** Приоритет стал `g + h`, где
+`h = floor(расстояние / самое длинное ребро графа) × FlatCost` — заведомо не
+больше настоящего остатка. Отсюда **допустимость** (маршрут остаётся
+кратчайшим) и **согласованность** (соседи отличаются не больше чем на один
+шаг, поэтому закрывать узел при извлечении по-прежнему безопасно). Знаменатель
+считается один раз на мир: позиции узлов — вывод worldgen, `Blocked` двигает
+проходимость, а не геометрию.
+
+⭐ **Что эвристика меняет — НИЧЬИ.** Несколько маршрутов часто стоят ровно
+одинаково (обойти камень слева или справа), и какой вернётся, решает порядок
+извлечения. Раньше ничью разрешал порядок вставки, теперь — оценка остатка.
+Цена маршрута та же, последовательность узлов другая: волк обходит камень с
+другой стороны, приходит на полтика раньше, укус ложится на другом тике — и
+дальше расходится вся сидовая цепочка. `golden_trace.sh` показывает это
+диффом по всем трём сидам; **расхождение принято сознательно**, это и есть та
+запись в спеке, которой гейт требует.
+
+Что расхождение НЕ означает — ухудшения мира. Соак 12 000 тиков, три сида,
+метрика «застой» (цель есть, дела нет, не идёт):
+
+| сид | без эвристики | с A\* |
+|---|---|---|
+| 12345 | 6.0% | 14.8% |
+| 424242 | 8.8% | 13.7% |
+| 7 | 28.3% | 7.3% |
+| среднее | 14.4% | 11.9% |
+
+Разброс метрики ПО СИДАМ на одной и той же сборке (6% против 28%) больше, чем
+разница между сборками, а среднее даже чуть лучше. Вывод ровно один: мир стал
+другим, не худшим. Оптимальность маршрутов сторожит отдельный гейт
+`PathfinderOptimalityGateTests` — он сравнивает цену пути от `FindPath` с
+`FindCosts`, который намеренно остался ЧИСТОЙ Дейкстрой без эвристики и служит
+оракулом. Завышенная эвристика не падает и не логируется, она просто тихо
+возит мир по чуть более длинным дорогам.
+
+### §135.6 Вид
+
+`MobCarriedLimbView` берёт ту же геометрию, что и упавшая конечность
+(`SeveredLimbFactory.BuildReference`, §50.5) — срез с канонического FBX
+хозяйки, — и вешает её у пасти. Держатель висит на **корне** вида зверя, а
+не на кости морды: позиция каждый кадр берётся от кости (голова покачивается
+— ноша с ней), а поворот от корня, потому что локальные оси кости после
+импорта FBX переставлены как угодно (та же грабля, что у каблуков,
+`HEEL_POSE_SPEC` §2). Кость ищется по имени: челюсть/пасть → голова → шея →
+корень. FBX хозяйки не читается — ноша невидима, поведение не меняется.
+
+**Не проверено глазами:** посадка ноши в пасти (смещение
+`MouthOffsetSizeUnits`) и то, какая именно кость находится у волчьего рига.
+Числа выбраны из размера тела, а не измерены в кадре.
+
+### §135.7 Ручки
+
+`Runtime/Balance/Spec135.cs`: `Enabled`, `RetreatMarginTiles` (3),
+`RetreatGiveUpTicks` (400), `EatTicks` (1200), `SatedTicks` (12000),
+`ScentRadiusBonusTiles` (2), `ScentGiveUpTicks` (300).
+Класс намеренно **не** внесён в `BalanceReflection.BalanceClasses`: тюнимый
+ноб обязан иметь зеркало в Unity-ассете и строку в `simdata.json`, а экспорт
+делается только из редактора (та же развилка, что у §133). Пока это ручки
+кода, а не ползунки.

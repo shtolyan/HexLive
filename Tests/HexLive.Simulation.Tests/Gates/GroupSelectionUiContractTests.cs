@@ -42,8 +42,8 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(panel, Does.Contain("panel.control.mixed"));
                 Assert.That(panel, Does.Contain("inv.readonly"));
                 Assert.That(panel, Does.Contain("ManageInventoryCommand"));
-                Assert.That(panel, Does.Contain("BeginInventoryDrag"));
-                Assert.That(panel, Does.Contain("inv.drop_zone"));
+                Assert.That(panel, Does.Contain("_invDropActionLabel"));
+                Assert.That(panel, Does.Not.Contain("_invDropZone"));
                 Assert.That(adapter, Does.Contain("new GroupMoveCommand"));
                 Assert.That(adapter, Does.Contain("menu.select_one_character"));
             });

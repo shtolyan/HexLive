@@ -27,7 +27,6 @@ MonoBehaviour:
   sleepComfort: 1
   ambientSocial: 1
   sickDoT: 1
-  proactiveBoil: 1
   smartSleepSpot: 1
   coolOffDwellTicks: 40
   coolOffMaxRearms: 6
@@ -48,8 +47,6 @@ MonoBehaviour:
   sleepSpotShadeWeight: 1.5
   thermalSleepFactor: 0.5
   shadeCooling: -7
-  boilThirstCeiling: 0.6
-  boilChainWeight: 0.1
   wetDragPerGarment: 0.9
   wetDragFloor: 0.8
   wetComfortPenalty: 0.004

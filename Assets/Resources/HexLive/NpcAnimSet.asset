@@ -18,7 +18,7 @@ MonoBehaviour:
   - {fileID: -203655887218126122, guid: a70f9cdf8d6dc458eb3ccdd25844a0b7, type: 3}
   gather: {fileID: 0}
   drink: {fileID: 0}
-  proneIdle: {fileID: 7400000, guid: 6be58dd19dbe47869b6a09e45dec1f55, type: 2}
+  proneIdle: {fileID: -203655887218126122, guid: 62743c6218c1c4c2689cf529834c1ff4, type: 3}
   crawl: {fileID: -203655887218126122, guid: 9e887064e713543448bcfb7248e4c981, type: 3}
   dress: {fileID: 0}
   undress: {fileID: 0}

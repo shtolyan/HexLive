@@ -214,6 +214,16 @@ whole garment set came from there.**
 
 ## Conventions
 
+### Furniture art and placement
+
+Before changing a furniture Blender source/FBX, pivot, axes, footprint, wall
+alignment, six-way rotation, construction hierarchy, or test-versus-production
+placement, read and follow
+`.agents/skills/hexlive-furniture-authoring/SKILL.md`. Normalize crooked axes in
+the source/exported asset; never add a per-model runtime angle. Placement lives
+in committed simulation/blueprint data, and fixtures must use the same factory
+and loading path as the ordinary game.
+
 - **Desktop Player display contract:** every macOS/desktop Player launch must
   request `1920×1080` with `FullScreenMode.FullScreenWindow` before the first
   scene renders. Keep `ProjectSettings` defaults at the same Full HD values;

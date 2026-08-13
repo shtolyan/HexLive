@@ -4475,7 +4475,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _lyingTiles.Clear();
         foreach (var npc in snapshot.Npcs)
         {
-            if (IsLyingDown(npc))
+            // Баг #125: несомая на руках НЕ приминает траву. Её несут именно
+            // потому, что она в обмороке или коме, так что IsLyingDown для неё
+            // истинно, а Tile у неё — тайл носильщика. Без этой проверки за
+            // парой тянулся след гаснущей травы по всему маршруту, хотя тело
+            // ни одного из этих гексов не касалось.
+            if (IsLyingDown(npc) && npc.CarriedByNpcId is null)
             {
                 _lyingTiles.Add(npc.Tile);
             }

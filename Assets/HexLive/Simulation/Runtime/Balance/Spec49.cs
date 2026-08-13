@@ -131,7 +131,16 @@ public static class Spec49
     // danger tile every sighting (RememberDangerAt), so while it lingers the
     // memory stays "recent" and still blocks — the risk is the wolf that returns
     // AFTER the window lapses. Spec §65.
-    public static int SleepDangerRecencyTicks = 0;
+    // ⭐ §49.10 (Aug 2026): ВКЛЮЧЕНО, 600 тиков. Эксперимент выше описывал
+    // ровно ту болезнь, что убивала колонию на seed 476005489: спали 3-8%
+    // времени, вставали с энергией 0.45, доводили себя до нуля и вырубались
+    // 31 раз за пять суток, потому что сон запрещало ЛЮБОЕ воспоминание о
+    // звере, а память живёт сутки. Замер по окну (5 суток, тот же сид):
+    // 0 -> 3 мёртвых колонистки, 600 -> 2, 900 -> 2, 1200 -> 3; вместе с
+    // §49.10 «дома спят крепко» окно 600 даёт 0 мёртвых и 4 вырубания.
+    // Дестабилизации боя, которой боялась исходная заметка, на пяти
+    // контрольных сидах не видно: колонисток гибнет 5 -> 3, вырубаний 50 -> 12.
+    public static int SleepDangerRecencyTicks = 600;
 
     // Tier C ("prefer boiled while only mildly thirsty") lived here as
     // ProactiveBoil / BoilThirstCeiling / BoilChainWeight. §55.2 retired

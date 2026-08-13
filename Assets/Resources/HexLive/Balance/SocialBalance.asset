@@ -22,6 +22,7 @@ MonoBehaviour:
   rejectionAffinityPenalty: 0.075
   ambientSocialCap: 0.6
   sleepComfortNightSlowTicks: 75
+  sleepDangerRecencyTicks: 600
   rearm: 1
   coolRearm: 1
   sleepComfort: 1

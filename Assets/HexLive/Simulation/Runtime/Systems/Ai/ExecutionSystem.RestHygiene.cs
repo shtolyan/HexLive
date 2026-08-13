@@ -287,7 +287,23 @@ public sealed partial class ExecutionSystem
         // default ANY remembered danger blocks (HasRecentDanger with the window
         // OFF); the optional recency window (SleepDangerRecencyTicks > 0) would
         // let a stale memory age out, but it ships off — see the knob's note.
-        if (world.Tick < npc.Mind.AdrenalineUntilTick || HasRecentDanger(world, npc))
+        // ⭐ §49.10 ДОМА СПЯТ КРЕПКО. Под крышей воспоминание о звере не будит и
+        // не мешает лечь: зверь в дом не заходит, и бояться там нечего. Это не
+        // поблажка миру — волки, урон и голод не тронуты; тронуто только то,
+        // ЧТО СЧИТАТЬ УГРОЗОЙ, когда она за стеной.
+        //
+        // Замер (seed 476005489, 5 суток): спали 3-8% времени, просыпались с
+        // энергией 0.45-0.49, доводили себя до энергии 0.00 и вырубались 31 раз
+        // — а в самом §65 записано, что ~60% обмороков это те, кого держал на
+        // ногах волк, ушедший треть дня назад. Под крышей этого больше нет.
+        //
+        // ЖИВОЙ зверь рядом будит и в доме (HasRecentDanger смотрит и на
+        // перцепцию, и на свежий адреналин от укуса) — иначе спящую доедали бы
+        // прямо в кровати. Голод и жажда тоже будят: потолки ниже нетронуты.
+        var roofed = world.Tiles.Items.TryGetValue(npc.Tile, out var restTile) &&
+            restTile.Flags.HasFlag(TileFlags.Indoor);
+        var scared = world.Tick < npc.Mind.AdrenalineUntilTick;
+        if (scared || (HasRecentDanger(world, npc) && !roofed))
         {
             return true;
         }

@@ -222,7 +222,7 @@
     "Spec49.SleepComfortLeafNight": 0.300000012,
     "Spec49.SleepComfortRainPenaltyNight": 0.150000006,
     "Spec49.SleepComfortSunPenaltyNight": 0.150000006,
-    "Spec49.SleepDangerRecencyTicks": 0,
+    "Spec49.SleepDangerRecencyTicks": 600,
     "Spec49.SleepSpotFireWeight": 1.5,
     "Spec49.SleepSpotShadeWeight": 1.5,
     "Spec49.SmartSleepSpot": true,

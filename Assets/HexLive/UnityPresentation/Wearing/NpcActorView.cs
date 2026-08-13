@@ -246,6 +246,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // FallenIdle остаётся на другом авторском Sleeping Idle.
     // Это ключи исходных клипов AnimatorOverrideController, не имена states.
     private const string SleepBaseClip = "Sleep";
+    // §50: имена СОСТОЯНИЙ контроллера (не клипов) — в них уходит лежачая,
+    // минуя переходные LieDown/GetUp. Совпадение с именами клипов случайно.
+    private const string SleepStateName = "Sleep";
+    private const string IdleStateName = "Idle";
+    private const string FallenIdleStateName = "FallenIdle";
+    // Длина этого перехода, В СЕКУНДАХ (отсюда CrossFadeInFixedTime: у обычного
+    // CrossFade длительность нормализована по КЛИПУ-ЦЕЛИ, а Sleep играет на
+    // скорости 0.4 — те же «0.2» стали бы там секундами). Не ноль: обе позы
+    // наземные, смешивать безопасно, а щелчок кадра заметен.
+    private const float LyingPoseSwapSeconds = 0.2f;
+    // Какой цепочкой её положили в прошлый раз — чтобы отличить РЕБРО от
+    // ежетикового повтора (см. ApplyLying).
+    private bool _lyingChainFallen;
+    private bool _lyingChainSleepAfter;
     private const string FallenIdleBaseClip = "X Bot@Sleeping Idle";
 
     // Безделье: сколько молча простоять, прежде чем начать чудить; какой шанс
@@ -2769,6 +2783,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void ApplyLying(
         bool laying, Transform attachPoint, float surfaceY, bool fallenChain, bool sleepAfterFall)
     {
+        // ⚠️ РЕНДЕРЕР ЗОВЁТ ЭТО КАЖДЫЙ ТИК, а не на смене позы: ветки
+        // SyncActorView разбирают позу заново на каждом снапшоте. Всё, что
+        // должно случиться ОДИН РАЗ (в первую очередь любая команда аниматору),
+        // обязано смотреть на этот флаг, иначе получится покадровый CrossFade
+        // из §109.15 — вечный переход с весом ~0.04 и таз под полом.
+        var chainChanged = _laying != laying ||
+            _lyingChainFallen != fallenChain ||
+            _lyingChainSleepAfter != sleepAfterFall;
+        _lyingChainFallen = fallenChain;
+        _lyingChainSleepAfter = sleepAfterFall;
+
         if (_laying && !laying && _bodyRoot != null)
         {
             // Getting up: remember where the body actually lay so LateUpdate
@@ -2810,6 +2835,34 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // аккуратное LieDown вместо падения.
             _animator.SetBool(LayingParam, laying && (!fallenChain || sleepAfterFall));
             _animator.SetBool(FallenParam, laying && fallenChain);
+
+            // §50: ПОЛЗУЩАЯ НЕ ВСТАЁТ, ЧТОБЫ ЛЕЧЬ.
+            //
+            // Сонная цепочка контроллера — LieDown -> Sleep -> GetUp — писана
+            // для ходячей: она опускается из стойки и поднимается обратно в
+            // стойку. У безногой стойки нет вовсе, поэтому эти два клипа
+            // читались как «встала на ноги, легла» и «встала с кровати»: ровно
+            // то, чего она физически не может. Она уже на земле — значит вход
+            // в сон и выход из него для неё не движение, а смена позы.
+            //
+            // Прыгаем сразу в конечное состояние, минуя переходный клип: в сон
+            // при укладывании, в Idle (у неё это лежачий айдл, §50-подмена) при
+            // подъёме. Переход короткий, но не мгновенный — обе позы наземные,
+            // так что смешивать их безопасно, а щелчок кадра в глаза бьёт.
+            //
+            // ⚠️ ТОЛЬКО ПО РЕБРУ (chainChanged). Рендерер зовёт ApplyLying
+            // каждый тик, а покадровый CrossFade (§109.15) навсегда застревает
+            // в переходе с весом ~0.04 и роняет таз под пол.
+            if (chainChanged && (_legless || _posture == "Crawl"))
+            {
+                // Куда именно — решает ТА ЖЕ пара флагов, что и цепочка выше,
+                // иначе §105 (кома/умирание) уехала бы в сон вместо лежачего
+                // FallenIdle: у неё Fallen поднят, а Laying нет.
+                var target = laying
+                    ? (fallenChain && !sleepAfterFall ? FallenIdleStateName : SleepStateName)
+                    : IdleStateName;
+                _animator.CrossFadeInFixedTime(target, LyingPoseSwapSeconds, 0);
+            }
         }
 
         if (_face != null)

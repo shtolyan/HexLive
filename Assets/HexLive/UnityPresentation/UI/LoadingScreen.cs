@@ -751,30 +751,55 @@ namespace HexLive.UnityPresentation.UI
             yield return null;
 
             // Spec 41.3: wind the loaded world forward by the offline ticks,
-            // ~10 ms of stepping per frame so the bar visibly moves.
+            // ReplayBudgetMsPerFrame of stepping per frame so the bar moves.
             if (hasReplay && _runner.Engine is { } engine)
             {
                 _timeReadout.style.display = DisplayStyle.Flex;
                 var clock = System.Diagnostics.Stopwatch.StartNew();
+                // Сколько из этого времени реально ушло в Step, а не в кадр
+                // Unity вокруг него — иначе «намотка медленная» неотличимо от
+                // «намотке не дают кадра» (подгрузка одежды идёт параллельно).
+                var stepping = new System.Diagnostics.Stopwatch();
                 var start = engine.World.Tick;
-                while (!engine.World.Completed &&
-                       !IsColonyExtinct(engine.World) &&
-                       engine.World.Tick < _targetTick)
+
+                // §41.3 + §30.14/30.17: намотку никто не разбирает — самописец
+                // и трасса на ней только жгут время. Замер (Mono, edit mode,
+                // сид 12345): 6.51 мс/тик без самописца против 12.07 с ним.
+                // Гасим на время намотки и возвращаем ровно как было.
+                var recorder = engine.World.FlightRecorder;
+                var trace = HexLive.Simulation.Runtime.SimTrace.Enabled;
+                engine.World.FlightRecorder = null;
+                HexLive.Simulation.Runtime.SimTrace.Enabled = false;
+
+                try
                 {
-                    var frame = System.Diagnostics.Stopwatch.StartNew();
                     while (!engine.World.Completed &&
                            !IsColonyExtinct(engine.World) &&
-                           engine.World.Tick < _targetTick &&
-                           frame.ElapsedMilliseconds < ReplayBudgetMsPerFrame)
+                           engine.World.Tick < _targetTick)
                     {
-                        engine.Step();
-                    }
+                        var frame = System.Diagnostics.Stopwatch.StartNew();
+                        stepping.Start();
+                        while (!engine.World.Completed &&
+                               !IsColonyExtinct(engine.World) &&
+                               engine.World.Tick < _targetTick &&
+                               frame.ElapsedMilliseconds < ReplayBudgetMsPerFrame)
+                        {
+                            engine.Step();
+                        }
 
-                    var done = (engine.World.Tick - start) /
-                        (float)Mathf.Max(1, _targetTick - start);
-                    _timeReadout.text = FormatDayTime(engine.World.Tick);
-                    SetProgress(0.05f + done * 0.6f, Loc.Get("loading.time"));
-                    yield return null;
+                        stepping.Stop();
+
+                        var done = (engine.World.Tick - start) /
+                            (float)Mathf.Max(1, _targetTick - start);
+                        _timeReadout.text = FormatDayTime(engine.World.Tick);
+                        SetProgress(0.05f + done * 0.6f, Loc.Get("loading.time"));
+                        yield return null;
+                    }
+                }
+                finally
+                {
+                    engine.World.FlightRecorder = recorder;
+                    HexLive.Simulation.Runtime.SimTrace.Enabled = trace;
                 }
 
                 _timeReadout.style.display = DisplayStyle.None;
@@ -785,8 +810,14 @@ namespace HexLive.UnityPresentation.UI
                         $"{engine.World.Tick} (target was {_targetTick}).");
                 }
 
+                var wound = engine.World.Tick - start;
+                var wallMs = System.Math.Max(1L, clock.ElapsedMilliseconds);
+                var stepMs = System.Math.Max(1.0, stepping.Elapsed.TotalMilliseconds);
                 UnityEngine.Debug.Log(
-                    $"[HexLive] Replayed to tick {engine.World.Tick} in {clock.ElapsedMilliseconds} ms");
+                    $"[HexLive] Replayed {wound} ticks to {engine.World.Tick} in {wallMs} ms — " +
+                    $"{wound * 1000.0 / wallMs:0} tick/s, {stepMs / System.Math.Max(1, wound):0.00} ms/tick in Step, " +
+                    $"{stepMs * 100.0 / wallMs:0}% of wall clock stepping " +
+                    $"(the rest is the Unity frame: asset prewarm, UI, GC)");
             }
 
             // The world now stands at its final tick — drop the curtain so the

@@ -370,8 +370,19 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 // npc-ticks in 10 days on seed 31337 — 35% of all "standing
                 // around doing nothing" — and the 30-day soak killed girls at
                 // Thirst 1.00 who had no goal at all while they waited.
+                //
+                // §53.8: …но если помощница УЖЕ РЯДОМ (AidWardHoldDistance, два
+                // гекса), красная зона ожидания не рвёт: умирающая замирает и
+                // принимает помощь. Раньше IsDehydrated чистил заявку каждый
+                // тик, она уползала с места, и подход срывался вечно. Таймаут
+                // ниже по-прежнему действует — вечного стояния рядом с
+                // застрявшей помощницей не будет.
+                var helperNear = world.Entities.Npcs.TryGetValue(
+                        aidWaitingFor, out var incomingHelper) &&
+                    HexSpatialMath.Distance(npc.Position, incomingHelper.Position) <=
+                        Spec53.AidWardHoldDistance;
                 if (npc.IsFighting || npc.Mind.CurrentGoal == GoalType.Flee ||
-                    npc.Mind.IsStarving || npc.Mind.IsDehydrated)
+                    ((npc.Mind.IsStarving || npc.Mind.IsDehydrated) && !helperNear))
                 {
                     npc.Mind.PendingAidFrom = null;
                 }
@@ -2270,6 +2281,23 @@ public sealed partial class DecisionSystem : ISimulationSystem
         }
 
     }
+    /// <summary>§53.8: жив ли сейчас поход к «тяжёлой» подопечной — умирающей
+    /// или со страданием не ниже HeavyAidSuffering. Состояние читается заново
+    /// по миру, а не по снимку восприятия: пока помощница в пути, подопечная
+    /// могла умереть или оправиться, и оба исхода обязаны снимать защиту.</summary>
+    private static bool HeavyAidInFlight(WorldState world, NPCState npc)
+    {
+        if (npc.Plan.TargetAgentId is not { } wardId ||
+            !world.Entities.Npcs.TryGetValue(wardId, out var ward))
+        {
+            return false;
+        }
+
+        var kind = AidAssessment.Assess(ward, world.Tick, out var severity);
+        return kind != AidKind.None &&
+            (ward.IsDying || severity >= Spec53.HeavyAidSuffering);
+    }
+
     /// <summary>
     /// §53: сострадание. Кто рядом страдает, могу ли я помочь — и если помочь
     /// нечем, за чем идти.
@@ -2323,9 +2351,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
         {
             foreach (var agent in npc.Perception.Agents)
             {
+                // §53.8: идущая мимо соседка — не цель, а вот КРИТИЧЕСКАЯ
+                // (умирает / страдание за порогом) остаётся целью и в
+                // движении: обезвоженная с разбитой ногой как раз ПОЛЗЁТ к
+                // воде, и старый фильтр не давал планировать на неё вовсе.
                 if (agent.AidKind == AidKind.None ||
                     agent.Suffering < Spec53.SufferingThreshold ||
-                    !agent.IsReachable || agent.IsBusy || agent.IsMoving)
+                    !agent.IsReachable || agent.IsBusy ||
+                    (agent.IsMoving && !agent.IsDying &&
+                     agent.Suffering < Spec53.HeavyAidSuffering))
                 {
                     continue;
                 }
@@ -2372,7 +2406,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
                         continue;
                     }
 
-                    var believed = remembered.Suffering * Spec53.AidMemoryBidShare;
+                    // §53.8: память об УМИРАЮЩЕЙ не дисконтируется — «дома
+                    // осталась подруга при смерти» весит как увиденное. Скидка
+                    // осталась только лёгким случаям, чтобы колония не ходила
+                    // к призракам мимо живых.
+                    var share = remembered.Suffering >= Spec53.HeavyAidSuffering
+                        ? 1f
+                        : Spec53.AidMemoryBidShare;
+                    var believed = remembered.Suffering * share;
                     if (believed > bestSuffering)
                     {
                         bestSuffering = believed;
@@ -2558,7 +2599,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 npc.Execution.Status == ExecutionStatus.InProgress;
             var locked = npc.Mind.GoalLock is { } goalLock &&
                 goalLock.Goal == previousGoal && world.Tick < goalLock.EndTick;
-            var threshold = locked ? LockOverrideDelta : (hasActivePlan ? SwitchDelta : 0f);
+            // §53.8: поход к умирающей держится как замок ВСЮ дорогу. Замерено
+            // (seed 12345): дорога к дальней подопечной длиннее GoalLockTicks,
+            // и после замка Hydrate с Suffering=1.00 перебивался Socialize —
+            // 19 планов, 2 дошли. Порог LockOverrideDelta оставляет проход
+            // только собственным кризисам (их StarvingBoost-надбавки выше).
+            var heavyAid = !locked && hasActivePlan && previousGoal == GoalType.Aid &&
+                HeavyAidInFlight(world, npc);
+            var threshold = locked || heavyAid
+                ? LockOverrideDelta
+                : (hasActivePlan ? SwitchDelta : 0f);
 
             if (best.FinalScore - currentScore <= threshold)
             {
@@ -2567,7 +2617,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     Trace.Debug(world, npc.Id, "GoalHeld",
                         $"{previousGoal} kept over {best.Goal} " +
                         $"(lead={best.FinalScore - currentScore:F3} <= {threshold:F2}" +
-                        $"{(locked ? $", locked until {npc.Mind.GoalLock!.EndTick}" : "")})");
+                        $"{(locked ? $", locked until {npc.Mind.GoalLock!.EndTick}" : "")}" +
+                        $"{(heavyAid ? ", heavy aid in flight" : "")})");
                 }
                 return;
             }

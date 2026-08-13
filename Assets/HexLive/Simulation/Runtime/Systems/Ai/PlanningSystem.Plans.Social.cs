@@ -424,8 +424,14 @@ public sealed partial class PlanningSystem
         PerceivedAgent? target = null;
         foreach (var agent in npc.Perception.Agents)
         {
+            // §53.8: тот же смягчённый фильтр, что в ставке решения (иначе
+            // цель выиграла бы аукцион и развалилась здесь): критическая
+            // подопечная выбирается и в движении — ползущую к воде умирающую
+            // догоняет живой ретаргет по прибытии.
             if (agent.AidKind == AidKind.None || agent.Suffering < Spec53.SufferingThreshold ||
-                !agent.IsReachable || agent.IsBusy || agent.IsMoving)
+                !agent.IsReachable || agent.IsBusy ||
+                (agent.IsMoving && !agent.IsDying &&
+                 agent.Suffering < Spec53.HeavyAidSuffering))
             {
                 continue;
             }

@@ -133,12 +133,9 @@ public static class Spec49
     // AFTER the window lapses. Spec §65.
     public static int SleepDangerRecencyTicks = 0;
 
-    // Tier C: when only mildly thirsty, prefer to set up / drink BOILED water
-    // rather than gamble on raw (which the fire being dead 90% of the time makes
-    // the default). Only urgent thirst reaches for raw.
-    public static bool ProactiveBoil = true;
-    public static float BoilThirstCeiling = 0.6f; // above this, raw is fine (urgent)
-    public static float BoilChainWeight = 0.1f;   // fire/tool-chain push while boiling. 0.1 = safe (10W/0L/3d); raise toward 0.3 for more boiled water at a survival cost (0.2→13% boiled/3L, 0.3→20%/8W)
+    // Tier C ("prefer boiled while only mildly thirsty") lived here as
+    // ProactiveBoil / BoilThirstCeiling / BoilChainWeight. §55.2 retired
+    // boiling; the pot itself is gone now, so the three knobs went with it.
 
     // §49.7: soggy REAL garments (pants/vest — not bra/panties/bikini) drag on
     // the move; a soaked body is a little less comfortable (wet underwear too,

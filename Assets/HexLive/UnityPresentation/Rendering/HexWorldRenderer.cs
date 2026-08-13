@@ -4708,11 +4708,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     // Spec tools are authored standing (handle +Y). On the ground they should lie
-    // on their side like a dropped tool; the pot is a container that rests upright.
+    // on their side like a dropped tool; the bottle is a container that rests
+    // upright.
     private static bool LiesFlatOnGround(string definitionId)
     {
-        return definitionId.StartsWith("tool.") &&
-            definitionId != "tool.pot" && definitionId != "tool.bottle";
+        return definitionId.StartsWith("tool.") && definitionId != "tool.bottle";
     }
 
     // Ground the model: bottom of its renderer bounds sits on the tile top

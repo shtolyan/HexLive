@@ -15,6 +15,19 @@ Do not repair a crooked asset with an asset-specific runtime angle or scene
 transform. Normalize its source/export basis, keep placement in committed data,
 and verify the test fixture through the same factory/loading path as the game.
 
+## Unity UI Toolkit
+
+Before inspecting, editing, or generating Unity interface layouts, controls,
+styles, inventory screens, HUDs, `UIDocument`/`PanelSettings` setup, UXML, USS,
+Painter2D visuals, or UI pointer interactions, use the official Unity router at
+`.agents/skills/ui/SKILL.md`. HexLive's runtime interface uses UI Toolkit, so
+route that work to `.agents/skills/ui-uitk/SKILL.md` and follow its relevant
+references before changing code or assets.
+
+The UI skills do not grant permission to call Unity MCP. The single-owner lease
+below remains mandatory for every Unity MCP operation, including read-only
+inspection and validation.
+
 ## Unity MCP single-owner lease (mandatory)
 
 `BUGS.json` is also the source of truth for the one allowed Unity MCP user.

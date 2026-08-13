@@ -985,12 +985,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             BuildSiteMath.IsStocked(buildSite) &&
             (siteWaivesHammer || (ctx.CanUseToolsOrWeapons && hasHammer));
 
-        // Spec 29E: the fire chain still needs these — a pot/lighter/wood
-        // and a seen campfire drive the fuel/craft goals further below.
+        // Spec 29E: the fire chain still needs these — a lighter/wood and a
+        // seen campfire drive the fuel/craft goals further below.
         var hasLighter = Content.GearCatalog.HasCapability(
             npc.Inventory.Items, Content.GearCapability.Ignite);
-        var hasPot = Content.GearCatalog.HasCapability(
-            npc.Inventory.Items, Content.GearCapability.Boil);
         // Spec §54: "wood in hand" for fire/craft now means a STICK.
         var hasWood = npc.Inventory.Items.Contains(ContentIds.Stick);
         var (campfireSeen, campfireFuel, campfireObj) = FindCampfire(npc, world);
@@ -1064,9 +1062,6 @@ public sealed partial class DecisionSystem : ISimulationSystem
              npc.Mind.IsStarving)
                 ? SimBalance.StarvingBoost
                 : 0f;
-        // §55: boiling water is retired — the fire chain no longer earns a
-        // "boil" bonus, only warmth/cooking motivate it now.
-        var wantsBoil = false;
         // Spec 35.2: any reachable Tool not carried (saw, dropped gear).
         var gatherToolsAvail = HasMissingToolReachable(npc, world);
         // §126/§49 r2: обычная хозяйственная черта в 600 единиц — и всё. Здесь
@@ -1163,19 +1158,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var coldChain = npc.Needs.ThermalComfort < -0.15f
             ? 0.4f * npc.Needs.ThermalDiscomfort
             : 0f;
-        // Spec §49 (Tier C): once she's decided to boil rather than gamble on
-        // raw, push the fire chain so the pit actually gets lit — otherwise
-        // the suppressed raw goal just leaves her thirsty by a dead fire.
-        var boilChain = wantsBoil ? Spec49.BoilChainWeight : 0f;
+        // §55.2 retired boiling (and §-this-pass the pot): the fire chain no
+        // longer carries a "she chose boiled over raw" push — warmth and
+        // cooking are the only reasons the pit gets lit now.
         AddGoalScore(npc, world.Tick, GoalType.GatherTools,
-            0.25f + 0.2f * npc.Needs.Thirst + coldChain + boilChain,
+            0.25f + 0.2f * npc.Needs.Thirst + coldChain,
             gatherToolsAvail, coconutEmergencyBoost);
         // The raft pull mirrors BuildRaft's weight: stocking logs for the
         // coast run must win the auction as often as the run itself, or
         // the demand flag never turns into wood in hand (soak: GatherWood
         // won 8-10 times in 15 days while the raft starved).
         AddGoalScore(npc, world.Tick, GoalType.GatherWood,
-            0.2f + 0.3f * npc.Needs.Thirst + coldChain + boilChain +
+            0.2f + 0.3f * npc.Needs.Thirst + coldChain +
             (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost + bedStickPull +
             bedLogPull + nightFireChain + (woodenBoardShortfall > 0 ? 0.35f : 0f),
             gatherWoodAvail, coconutEmergencyBoost);
@@ -1194,7 +1188,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // as re-dressing (which can't fix a 6C night) — clears Dress (~1.1)
         // and Sleep (~1.1) plus the 0.15 switch margin at full cold.
         AddGoalScore(npc, world.Tick, GoalType.TendFire,
-            0.25f + 0.3f * npc.Needs.Thirst + boilChain +
+            0.25f + 0.3f * npc.Needs.Thirst +
             (freezing ? 0.9f * npc.Needs.ThermalDiscomfort : 0f) + nightFireChain,
             tendFireAvail);
 

@@ -3497,6 +3497,14 @@ MonoBehaviour:
       - 'Переноска'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'inv.body_carry'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Body carry'
+      - 'Переноска тела'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'inv.hand_left'
       TermType: 0
       Description:
@@ -4023,6 +4031,14 @@ MonoBehaviour:
       Languages:
       - 'Outerwear'
       - 'Верхняя одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'layer.bags'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Backpack'
+      - 'Рюкзак'
       Flags: 0101
       Languages_Touch: []
     - Term: 'part.head'
@@ -15175,22 +15191,6 @@ MonoBehaviour:
       Languages:
       - 'A personal bottle — fill it at a spring or boil water in it before drinking.'
       - 'Личная бутылка — наполняй у источника или кипяти воду перед питьём.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.tool_pot.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Pot'
-      - 'Котелок'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.tool_pot.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'A cooking pot — boils river water safe to drink over the campfire.'
-      - 'Котелок — кипятит речную воду на костре, делая её безопасной.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.tool_lighter.name'

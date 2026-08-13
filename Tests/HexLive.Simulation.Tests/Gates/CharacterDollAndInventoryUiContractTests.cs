@@ -21,7 +21,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         }.Concat(parts).ToArray());
 
     [Test]
-    public void CharacterPanelGivesThePortraitItsOwnWidthAndContainsNoScroller()
+    public void CharacterPanelUsesOneLargeFlatGridAndContainsNoScroller()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
 
@@ -38,11 +38,14 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Not.Contain("_invLeftColumn"));
             Assert.That(source, Does.Not.Contain("_invCenterColumn"));
             Assert.That(source, Does.Not.Contain("_invRightColumn"));
-            Assert.That(source, Does.Contain("48f, 42f, 36f, 30f, 28f"));
-            Assert.That(source, Does.Contain("mergedHands"));
-            Assert.That(source, Does.Contain("slots.Add(BuildInventorySlotCell"));
-            Assert.That(source, Does.Contain("inventory-garment-grid"));
-            Assert.That(source, Does.Contain("BuildGarmentInventoryCard"));
+            Assert.That(source, Does.Contain("106f, 93f, 80f, 70f, 61f"));
+            Assert.That(source, Does.Contain("BuildInventorySlotCell("));
+            Assert.That(source, Does.Contain("name = \"inventory-flat-slot\""));
+            Assert.That(source, Does.Contain("foreach (var container in npc.InventoryContainers)"));
+            Assert.That(source, Does.Contain("foreach (var slot in container.Slots)"));
+            Assert.That(source, Does.Not.Contain("BuildUnifiedInventoryCard"));
+            Assert.That(source, Does.Not.Contain("BuildGarmentInventoryCard"));
+            Assert.That(source, Does.Not.Contain("inventory-garment-grid"));
         });
     }
 
@@ -53,10 +56,14 @@ public sealed class CharacterDollAndInventoryUiContractTests
         Assert.That(Regex.Matches(source, @"void\s+BuildInventoryDetail\s*\(").Count, Is.EqualTo(1));
         Assert.That(Regex.Matches(source, @"void\s+ShowItemDetail\s*\(").Count, Is.EqualTo(1));
         Assert.That(Regex.Matches(source, @"void\s+BuildItemStats\s*\(").Count, Is.EqualTo(1));
-        Assert.That(source, Does.Not.Contain("ScheduleItemDetailHide"));
-        Assert.That(source, Does.Not.Contain("CancelItemDetailHide"));
+        Assert.That(source, Does.Contain("ScheduleInventoryHoverDetailHide"));
         Assert.That(source, Does.Contain("RegisterInventoryItemInteraction"));
         Assert.That(source, Does.Contain("FinishInventoryClick"));
+        Assert.That(source, Does.Contain("_root.Add(_invDetailView)"));
+        Assert.That(source, Does.Not.Contain("_inventoryWindow.Add(_invDetailView)"));
+        Assert.That(source, Does.Contain(
+            "_inventoryOpen && _invSelectedId != null"),
+            "The root-level card must still block world picking while visible.");
     }
 
     [Test]
@@ -86,71 +93,63 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(dismissal, Does.Contain("HideItemDetail()"));
             Assert.That(dismissal, Does.Contain("evt.StopPropagation()"),
                 "A normal click inside the detail card must not reach window dismissal.");
-            Assert.That(source, Does.Contain("click that hit no garment is therefore dismissed here"));
-            Assert.That(source, Does.Contain("else\n                    {\n" +
-                "                        // Preview captures its pointer for rotation"));
+            Assert.That(source, Does.Contain("if (!_invPreviewRotated)"));
+            Assert.That(source, Does.Contain("TryPickWorn("));
         });
     }
 
     [Test]
-    public void GarmentCardsUseUniformTwoByTwoOrThreeByThreeGrids()
+    public void InventoryFlattensEveryRealSlotWithoutRenderingContainerOwners()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var localization = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
-        var columnsRule = Regex.Match(
-            source,
-            @"var columns = slotCount <= (?<limit>\d+) \? (?<small>\d+) : (?<large>\d+);");
-        Assert.That(columnsRule.Success, Is.True);
-        var limit = int.Parse(columnsRule.Groups["limit"].Value);
-        var smallColumns = int.Parse(columnsRule.Groups["small"].Value);
-        var largeColumns = int.Parse(columnsRule.Groups["large"].Value);
-        int ColumnsFor(int capacity) => capacity <= limit ? smallColumns : largeColumns;
+        var rebuildStart = source.IndexOf(
+            "private void RebuildItemList", StringComparison.Ordinal);
+        var signatureStart = source.IndexOf(
+            "private static string InventoryLayoutSignature", rebuildStart,
+            StringComparison.Ordinal);
+        var slotStart = source.IndexOf(
+            "private VisualElement BuildInventorySlotCell", signatureStart,
+            StringComparison.Ordinal);
+        var anchorStart = source.IndexOf(
+            "private void RememberItemAnchor", slotStart, StringComparison.Ordinal);
+        Assert.That(rebuildStart, Is.GreaterThanOrEqualTo(0));
+        Assert.That(signatureStart, Is.GreaterThan(rebuildStart));
+        Assert.That(slotStart, Is.GreaterThan(signatureStart));
+        Assert.That(anchorStart, Is.GreaterThan(slotStart));
+        var rebuild = source[rebuildStart..signatureStart];
+        var slot = source[slotStart..anchorStart];
 
         Assert.Multiple(() =>
         {
-            Assert.That(source, Does.Contain("card.name = \"inventory-garment-card\""));
-            Assert.That(source, Does.Contain("card.style.width = Length.Percent(49f)"));
-            Assert.That(source, Does.Contain("GarmentCardHeights"));
-            Assert.That(source, Does.Contain("GarmentHeroIconSizes"));
-            Assert.That(source, Does.Contain("152f, 136f, 120f, 104f, 92f"),
-                "The clothing image must own the card instead of staying a 44px thumbnail.");
-            Assert.That(source, Does.Contain("slotCount <= 4 ? 2 : 3"));
-            Assert.That(source, Does.Contain("inventory-garment-slots-2-column"));
-            Assert.That(source, Does.Contain("inventory-garment-slots-3-column"));
-            Assert.That(source, Does.Contain("slots.style.justifyContent = Justify.Center"));
-            Assert.That(source, Does.Contain("inventory-garment-slot-area"));
-            Assert.That(source, Does.Contain("slotArea.style.justifyContent = Justify.FlexEnd"),
-                "Every card must pin its real slot grid to the same lower area.");
-            Assert.That(source, Does.Contain("foreach (var slot in container.Slots)"),
-                "Only real snapshot slots may be drawn; placeholder cells are forbidden.");
-            Assert.That(ColumnsFor(1), Is.EqualTo(2));
-            Assert.That(ColumnsFor(4), Is.EqualTo(2));
-            Assert.That(ColumnsFor(5), Is.EqualTo(3));
-            Assert.That(ColumnsFor(9), Is.EqualTo(3));
-            Assert.That(source, Does.Contain("Mathf.Max(0, maxGarmentRows - 1)"),
-                "Future capacities above nine must add rows without clipping any slots.");
-            Assert.That(source, Does.Contain("binding.Grid.style.width = binding.Columns * size"));
-            Assert.That(source, Does.Contain("cell.style.width = size"));
-            Assert.That(source, Does.Not.Contain("GarmentTwoColumnCellSizes"));
-            Assert.That(source, Does.Not.Contain("GarmentThreeColumnCellSizes"));
-            Assert.That(source, Does.Not.Contain("trackGenericDensity"),
-                "Every inventory cell must use the one shared density component.");
-            Assert.That(source, Does.Contain("card.style.width = Length.Percent(49f)"),
-                "Carry and garment cards use half-width visual columns.");
-            Assert.That(source, Does.Not.Contain(
-                "container.Kind == InventoryContainerKind.Carry\n                ? Length.Percent(100f)"));
-            Assert.That(source, Does.Contain("BuildCompactWornRow"),
-                "Zero-capacity garments stay compact.");
-            Assert.That(localization, Does.Contain("Term: 'inv.anchor.head'"));
-            Assert.That(localization, Does.Contain("Term: 'inv.anchor.back'"));
-            Assert.That(localization, Does.Contain("Term: 'inv.anchor.thigh_left'"));
-            Assert.That(localization, Does.Contain("Term: 'inv.anchor.feet'"));
+            Assert.That(rebuild, Does.Contain("foreach (var container in npc.InventoryContainers)"));
+            Assert.That(rebuild, Does.Contain("foreach (var slot in container.Slots)"));
+            Assert.That(rebuild, Does.Contain("_invItemsContent.Add(cell)"));
+            Assert.That(rebuild, Does.Not.Contain("OwnerItemDefinitionId"));
+            Assert.That(rebuild, Does.Not.Contain("WornItems"));
+            Assert.That(slot, Does.Not.Contain("AcceptedItemDefinitionId"),
+                "Typed empty cells must not leak holster/container semantics into the flat grid.");
+            Assert.That(slot, Does.Not.Contain("InventoryContainerTitle"));
+            Assert.That(source, Does.Not.Contain("inventory-card-hero"));
+            Assert.That(source, Does.Not.Contain("inventory-unified-card"));
         });
     }
 
     [Test]
-    public void InventoryHoverOnlyHighlightsAndClickIsSeparatedFromDrag()
+    public void DroppingIsAnExplicitDetailActionWithoutBottomDragZone()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("EnqueueInventoryAction(InventoryAction.Drop)"));
+            Assert.That(source, Does.Contain("_invDropActionLabel"));
+            Assert.That(source, Does.Not.Contain("_invDropZone"));
+            Assert.That(source, Does.Not.Contain("Loc.Get(\"inv.drop_zone\")"));
+        });
+    }
+
+    [Test]
+    public void DollHoverOpensTheExistingDetailAndClickIsSeparatedFromRotation()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
         var hoverStart = source.IndexOf(
@@ -162,9 +161,14 @@ public sealed class CharacterDollAndInventoryUiContractTests
         Assert.Multiple(() =>
         {
             Assert.That(previewHover, Does.Contain("SetHoveredWorn(wornId)"));
-            Assert.That(previewHover, Does.Not.Contain("ShowItemDetail("));
+            Assert.That(previewHover, Does.Contain("ShowItemDetail("));
             Assert.That(source, Does.Not.Contain(
                 "RegisterCallback<MouseEnterEvent>(_ => ShowItemDetail"));
+            Assert.That(previewHover, Does.Contain("ScheduleInventoryHoverDetailHide"));
+            Assert.That(previewHover, Does.Contain("StartingIn(80)"));
+            Assert.That(source, Does.Contain("window.xMax - root.xMin + 12f"));
+            Assert.That(source, Does.Contain("doll.center.y - root.yMin"));
+            Assert.That(source, Does.Contain("if (_invSelectedWorn)"));
             Assert.That(source, Does.Contain("private const float InventoryDragThreshold = 6f"));
             Assert.That(source, Does.Contain("UpdateInventoryPointerGesture"));
             Assert.That(source, Does.Contain("FinishInventoryClick"));
@@ -172,6 +176,56 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Contain("if (!_invPreviewRotated)"));
             Assert.That(source, Does.Contain("_root.RegisterCallback<PointerMoveEvent>"),
                 "The threshold must still be observed after the pointer leaves a card.");
+        });
+    }
+
+    [Test]
+    public void InventoryLayerTabsFilterThePersistentCloneWithoutRebuildingIt()
+    {
+        var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var icons = File.ReadAllText(Presentation("UI", "VectorIcon.cs"));
+        var localization = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+        var selectStart = stage.IndexOf(
+            "public void SetVisibleWearLayer", StringComparison.Ordinal);
+        var targetStart = stage.IndexOf(
+            "public void SetTarget", selectStart, StringComparison.Ordinal);
+        var selection = stage[selectStart..targetStart];
+        var filterStart = stage.IndexOf(
+            "private void ApplyWearLayerVisibility", StringComparison.Ordinal);
+        var enableStart = stage.IndexOf(
+            "private void SetStageEnabled", filterStart, StringComparison.Ordinal);
+        var filtering = stage[filterStart..enableStart];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel, Does.Contain("BuildInventoryWearLayerButtons"));
+            Assert.That(panel, Does.Contain("VisualWearLayer.Underwear"));
+            Assert.That(panel, Does.Contain("VisualWearLayer.Wear"));
+            Assert.That(panel, Does.Contain("VisualWearLayer.Outerwear"));
+            Assert.That(panel, Does.Contain("VisualWearLayer.Bags"));
+            Assert.That(panel, Does.Contain("VectorIcon.Kind.Underwear"));
+            Assert.That(panel, Does.Contain("VectorIcon.Kind.Shirt"));
+            Assert.That(panel, Does.Contain("VectorIcon.Kind.Coat"));
+            Assert.That(panel, Does.Contain("VectorIcon.Kind.Bag"));
+            Assert.That(selection, Does.Contain("ApplyWearLayerVisibility()"));
+            Assert.That(selection, Does.Not.Contain("Instantiate("));
+            Assert.That(selection, Does.Not.Contain("DestroyClone("));
+            Assert.That(filtering, Does.Contain("_cloneWears"));
+            Assert.That(filtering, Does.Contain("_equippedCloneWears"),
+                "Clone-only runtime ids are not serialized; equipped Wears need an explicit cache.");
+            Assert.That(filtering, Does.Not.Contain("GetComponentsInChildren"),
+                "Layer browsing must reuse the clone-time Wear cache.");
+            Assert.That(stage, Does.Contain("(int)wear.Layer <= (int)visibleLayer"));
+            Assert.That(stage, Does.Contain("outer.HeedHideUnderwearSlot(slot)"));
+            Assert.That(stage, Does.Contain("_mode == CharacterDollMode.Inventory"));
+            Assert.That(icons, Does.Contain("private static void DrawUnderwear"));
+            Assert.That(icons, Does.Contain("private static void DrawShirt"));
+            Assert.That(icons, Does.Contain("private static void DrawCoat"));
+            Assert.That(icons, Does.Contain("private static void DrawBag"));
+            Assert.That(localization, Does.Contain("Term: 'layer.bags'"));
+            Assert.That(localization, Does.Contain("'Рюкзак'"));
         });
     }
 
@@ -392,7 +446,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
                 "_healthDollImage.style.height = DollViewportWidth * DollAspectHeight"));
             Assert.That(panel, Does.Contain("private void FitInventoryDollViewport()"),
                 "The elastic inventory pane needs an explicit 2:3 lock.");
-            Assert.That(panel, Does.Contain("room.height / DollAspectHeight"),
+            Assert.That(panel, Does.Contain("previewRoomHeight / DollAspectHeight"),
                 "The portrait is sized by the row's height; its pane's width follows it.");
             Assert.That(panel, Does.Not.Contain("_healthDollImage.style.height = 260f"),
                 "195x260 is 3:4 and pillarboxes the 2:3 portrait.");

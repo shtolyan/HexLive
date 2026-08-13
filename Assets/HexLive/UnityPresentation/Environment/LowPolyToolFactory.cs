@@ -6,7 +6,7 @@ namespace HexLive.UnityPresentation.Environment
 {
     /// <summary>
     /// Spec 20.16: procedural low-poly models for tools, resources and food, so
-    /// the simulation's items (axe, pickaxe, bow, arrow, spear, pot, saw, …) are
+    /// the simulation's items (axe, pickaxe, bow, arrow, spear, saw, …) are
     /// visible both on the ground and in an NPC's hand — no external assets, no
     /// prefab wiring. Built from cubes / a pyramid / a small prism, flat-shaded
     /// to match the terrain style. Returns null for ids it doesn't model, so the
@@ -38,7 +38,6 @@ namespace HexLive.UnityPresentation.Environment
                 case "tool.pickaxe_stone": BuildPickaxe(root.transform); break;
                 case "tool.spear": BuildSpear(root.transform); break;
                 case "tool.bow": BuildBow(root.transform); break;
-                case "tool.pot": BuildPot(root.transform); break;
                 case "tool.bottle": BuildBottle(root.transform); break;
                 case "tool.saw": BuildSaw(root.transform); break;
                 case "tool.lighter": BuildLighter(root.transform); break;
@@ -150,20 +149,6 @@ namespace HexLive.UnityPresentation.Environment
             AddPyramid(p, 0.05f, 0.10f, new Vector3(0f, 0.7f, 0f), Vector3.zero, Stone);
             AddBox(p, new Vector3(0.09f, 0.14f, 0.006f), new Vector3(0f, 0.06f, 0f), new Vector3(0f, 0f, 30f), StringCol);
             AddBox(p, new Vector3(0.09f, 0.14f, 0.006f), new Vector3(0f, 0.06f, 0f), new Vector3(0f, 90f, 30f), StringCol);
-        }
-
-        private static void BuildPot(Transform p)
-        {
-            var body = new GameObject("body");
-            body.transform.SetParent(p, false);
-            body.AddComponent<MeshFilter>().sharedMesh = PrismMesh(8, 0.35f, 0.42f);
-            body.AddComponent<MeshRenderer>().sharedMaterial = FlatMat(new Color(0.28f, 0.28f, 0.30f));
-
-            var rim = new GameObject("rim");
-            rim.transform.SetParent(p, false);
-            rim.transform.localPosition = new Vector3(0f, 0.40f, 0f);
-            rim.AddComponent<MeshFilter>().sharedMesh = PrismMesh(8, 0.39f, 0.07f);
-            rim.AddComponent<MeshRenderer>().sharedMaterial = FlatMat(Metal);
         }
 
         private static void BuildBottle(Transform p)

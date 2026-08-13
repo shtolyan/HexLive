@@ -17,9 +17,9 @@ MonoBehaviour:
   prefabResourcePath:
   usableAsWeapon: 1
   damage: 0.5625
-  hitDelaySeconds: 1.65
-  attackDurationSeconds: 2.2
-  cooldownSeconds: 0.8
+  hitDelaySeconds: 0.75
+  attackDurationSeconds: 1.86
+  cooldownSeconds: 1.14
   meleePriority: 35
   twoHanded: 0
   attackSpeed: 0.8

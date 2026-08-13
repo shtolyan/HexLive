@@ -50,8 +50,6 @@ namespace HexLive.UnityPresentation.Config
         public bool ambientSocial = true;
         [Tooltip("Отложенная болезнь от сырой воды (DoT-бюджет).")]
         public bool sickDoT = true;
-        [Tooltip("Проактивное кипячение воды при некритичной жажде.")]
-        public bool proactiveBoil = true;
         [Tooltip("Выбирать место сна умно (костёр в холод / тень в жару).")]
         public bool smartSleepSpot = true;
         [Tooltip("§113: длина лежащего тела, доля HexRadius (0.88 = 1.32 wu).")]
@@ -116,10 +114,6 @@ namespace HexLive.UnityPresentation.Config
         [Header("§49 — вода / тень")]
         [Tooltip("Сдвиг эффективной температуры в тени, °C СО ЗНАКОМ (−7 = на 7° холоднее; щит от жары).")]
         [Range(-12f, 0f)] public float shadeCooling = -7f;
-        [Tooltip("Кипятить, пока жажда НЕ срочная: ниже этого порога готовит кипячёную, выше — пьёт сырую.")]
-        [Range(0.35f, 0.85f)] public float boilThirstCeiling = 0.6f;
-        [Tooltip("Насколько жажда толкает огне-цепочку ради кипячения. 0.1 = безопасно, 0.3 ≈ 20% кипячёной ценой стабильности.")]
-        [Range(0f, 0.5f)] public float boilChainWeight = 0.1f;
 
         [Header("§49.7 — мокрая одежда")]
         [Tooltip("Множитель скорости за КАЖДУЮ мокрую НАСТОЯЩУЮ вещь (бельё не считается). 0.9 = −10% за вещь.")]

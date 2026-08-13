@@ -43,15 +43,14 @@ public sealed class ClipWindowGateTests
     /// терпимо. Список — ратчет: новое расхождение обязано либо чиниться, либо
     /// попадать сюда с объяснением, а не проскакивать молча.
     /// </summary>
+    /// <remarks>
+    /// Сейчас список ПУСТ, и это состояние по умолчанию: §104.8 выровнял окна
+    /// по кадру контакта клипа, и последняя запись (копьё: 3.27 с против окна
+    /// 2.0, подгонка 1.63 за клампом) ушла вместе с ней — окно копья стало
+    /// 2.62 с, подгонка 1.25.
+    /// </remarks>
     private static readonly Dictionary<string, string> Known =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["spear.attack[0]"] =
-                "X Bot@Bayonet Stab 3.27 с против окна 2.0 (fit 1.63): выпад копьём " +
-                "длиннее любого другого клипа библиотеки. Кламп срежет до 1.6 — " +
-                "хвост в 0.09 с. Чинится либо своим коротким клипом выпада, либо " +
-                "правкой attackDurationSeconds копья до ~2.1 (баланс: §29C.3 темп).",
-        };
+        new Dictionary<string, string>(StringComparer.Ordinal);
 
     [Test]
     public void EveryAttackClipFitsItsSimWindow()

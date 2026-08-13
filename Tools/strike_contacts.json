@@ -1,0 +1,82 @@
+{
+  "_comment": "Кадр контакта в клипах удара — мерено Tools/measure_strike_contact.py (spec §104.8). Правится ТОЛЬКО перезапуском скрипта.",
+  "clips": [
+    {
+      "clip": "Kick A_once_to48",
+      "frames": 48,
+      "fps": 30.0,
+      "seconds": 1.6,
+      "contactFrame": 18,
+      "contactFraction": 0.375,
+      "strikingLimb": "mixamorig:RightFoot",
+      "usedBy": [
+        "fist.strike[2]"
+      ]
+    },
+    {
+      "clip": "Kick B_once_to45",
+      "frames": 45,
+      "fps": 30.0,
+      "seconds": 1.5,
+      "contactFrame": 19,
+      "contactFraction": 0.4222,
+      "strikingLimb": "mixamorig:RightFoot",
+      "usedBy": [
+        "fist.strike[3]"
+      ]
+    },
+    {
+      "clip": "Punch A_once_to65",
+      "frames": 65,
+      "fps": 30.0,
+      "seconds": 2.1667,
+      "contactFrame": 22,
+      "contactFraction": 0.3385,
+      "strikingLimb": "mixamorig:RightHand",
+      "usedBy": [
+        "fist.strike[0]"
+      ]
+    },
+    {
+      "clip": "Punch B_once_to52",
+      "frames": 52,
+      "fps": 30.0,
+      "seconds": 1.7333,
+      "contactFrame": 15,
+      "contactFraction": 0.2885,
+      "strikingLimb": "mixamorig:LeftHand",
+      "usedBy": [
+        "fist.strike[1]"
+      ]
+    },
+    {
+      "clip": "Standing Melee Attack Horizontal",
+      "frames": 72,
+      "fps": 30.0,
+      "seconds": 2.4,
+      "contactFrame": 29,
+      "contactFraction": 0.4028,
+      "strikingLimb": "mixamorig:RightHand",
+      "usedBy": [
+        "axe_stone.attack[0]",
+        "hammer.attack[0]",
+        "knife.attack[0]",
+        "machete.attack[0]",
+        "pickaxe_stone.attack[0]",
+        "saw.attack[0]"
+      ]
+    },
+    {
+      "clip": "X Bot@Bayonet Stab",
+      "frames": 98,
+      "fps": 30.0,
+      "seconds": 3.2667,
+      "contactFrame": 28,
+      "contactFraction": 0.2857,
+      "strikingLimb": "mixamorig:LeftHand",
+      "usedBy": [
+        "spear.attack[0]"
+      ]
+    }
+  ]
+}

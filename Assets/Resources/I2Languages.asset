@@ -3281,9 +3281,25 @@ MonoBehaviour:
       - 'Забрать флягу'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.order_rejected.NoDropSpot'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No room to drop it here'
+      - 'Здесь некуда положить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.manual_expired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No orders for a while — back under AI'
+      - 'Долго без приказов — вернулась под ИИ'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'toast.order_rejected.Unreachable'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Can't get there'
       - 'Туда не добраться'

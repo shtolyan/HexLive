@@ -14,14 +14,16 @@ namespace HexLive.Simulation.Tests.Behavior
 {
 
 /// <summary>
-/// §121: ручное управление. Проверяется не «есть флаг», а четыре обещания,
-/// данные игроку:
+/// §121: ручное управление. Проверяется не «есть флаг», а обещания, данные
+/// игроку:
 /// <list type="number">
-/// <item>под ручным управлением НИКТО, кроме игрока, целей ей не ставит;</item>
+/// <item>под ручным управлением никто, кроме игрока, целей ей не ставит —
+/// кроме узкого аукциона авто-нужд §121.6 (еда и питьё без приказа);</item>
 /// <item>приказ доходит до штатных систем и исполняется ими, а не второй
 /// копией симуляции;</item>
-/// <item>правило Кенши: стоящая отвечает на удары, идущая по приказу — нет;</item>
-/// <item>выключили тумблер — автономия вернулась целиком.</item>
+/// <item>самозащита §121.2: атакованная бросает приказ и дерётся — всегда;</item>
+/// <item>выключили тумблер — автономия вернулась целиком; забытая на
+/// §121.7-таймауте возвращается сама.</item>
 /// </list>
 /// </summary>
 public sealed class ManualControlTests
@@ -41,6 +43,11 @@ public sealed class ManualControlTests
 
     private static void TakeControl(SimulationEngine engine, NPCState npc)
     {
+        // §121.6: голодная ручная сама берёт цель еды прямо на тике включения
+        // режима. Тестам, которые проверяют НЕ авто-нужды, нужен сытый
+        // персонаж — иначе каждый ассерт «цель None» ловит законный GetFood.
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
         engine.Commands.Enqueue(new SetManualControlCommand(npc.Id, true));
         engine.Step();
     }
@@ -101,10 +108,10 @@ public sealed class ManualControlTests
         var npc = Colonist(engine.World);
         TakeControl(engine, npc);
 
-        // Голод и жажда на пределе: обычная колонистка бросилась бы за едой
-        // в первый же средний проход.
-        npc.Needs.Hunger = 0.98f;
-        npc.Needs.Thirst = 0.98f;
+        // Нужды удовлетворены: даже узкий аукцион §121.6 обязан молчать, а
+        // большой закрыт совсем — никакие стирки, стройки и разговоры.
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
 
         Step(engine, MediumTicks * 8);
 
@@ -113,6 +120,65 @@ public sealed class ManualControlTests
             "игрок им на самом деле не управляет.");
         Assert.That(npc.Plan.Status, Is.Not.EqualTo(PlanStatus.Active),
             "Планировщик построил план ручной колонистке.");
+    }
+
+    [Test]
+    public void HungryManualNpcAutoEatsButTakesNothingElse()
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonist(engine.World);
+        TakeControl(engine, npc);
+
+        // §121.6: еда в рюкзаке + сильный голод → без приказа сама ест.
+        npc.Inventory.Items.Add(new ItemInstance("food.meat_cooked"));
+        npc.Needs.Hunger = 0.95f;
+        npc.Needs.Thirst = 0f;
+
+        var sawEat = false;
+        for (var i = 0; i < MediumTicks * 12; i++)
+        {
+            engine.Step();
+            var goal = npc.Mind.CurrentGoal;
+            sawEat |= goal == GoalType.Eat;
+            Assert.That(
+                goal is GoalType.None or GoalType.Eat or GoalType.Drink
+                     or GoalType.GetFood or GoalType.GetWater,
+                Is.True,
+                $"Ручной без приказа взял цель {goal} — авто-аукцион §121.6 " +
+                "разрешает только еду и питьё.");
+        }
+
+        Assert.That(sawEat, Is.True,
+            "Голодная ручная с едой в рюкзаке так и не поела — авто-нужды " +
+            "§121.6 не работают.");
+        Assert.That(npc.Needs.Hunger, Is.LessThan(0.95f),
+            "Цель Eat была, а голод не снизился — план не исполнился.");
+    }
+
+    [Test]
+    public void PlayerOrderOverridesAutoNeedGoal()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        npc.Inventory.Items.Add(new ItemInstance("food.meat_cooked"));
+        npc.Needs.Hunger = 0.95f;
+        npc.Needs.Thirst = 0f;
+
+        // Один средний проход — авто-аукцион выбирает еду. Больше не шагаем:
+        // короткая еда успела бы доиграться, и прекондиция стала бы гонкой.
+        Step(engine, 5);
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Eat),
+            "Прекондиция: авто-цель еды не выбралась.");
+
+        var destination = NearbyFreeJunction(world, npc, minTiles: 3);
+        engine.Commands.Enqueue(new MoveToCommand(npc.Id, destination.WorldPosition));
+        engine.Step();
+
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder),
+            "Приказ игрока обязан перебивать авто-цель §121.6 немедленно.");
     }
 
     [Test]
@@ -165,6 +231,10 @@ public sealed class ManualControlTests
         helper.Plan.TargetAgentId = patient.Id;
         patient.Mind.PendingAidFrom = helper.Id;
 
+        // Сытая: иначе авто-нужды §121.6 тут же поставят GetFood, и ассерты
+        // «цель None, плана нет» ловят не отмену помощи, а законную еду.
+        helper.Needs.Hunger = 0f;
+        helper.Needs.Thirst = 0f;
         engine.Commands.Enqueue(new SetManualControlCommand(helper.Id, true));
         engine.Step();
 
@@ -184,10 +254,12 @@ public sealed class ManualControlTests
         var engine = TestWorld.CreateEngine();
         var npc = Colonist(engine.World);
         TakeControl(engine, npc);
-        npc.Needs.Hunger = 0.98f;
         Step(engine, MediumTicks * 4);
         Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
 
+        // Голод ставится ПЕРЕД возвратом ИИ: под ручным §121.6 сам взял бы
+        // цель еды, и «аукцион вернулся» перестало бы отличаться от «авто-нужды».
+        npc.Needs.Hunger = 0.98f;
         engine.Commands.Enqueue(new SetManualControlCommand(npc.Id, false));
         Step(engine, MediumTicks * 4);
 
@@ -561,30 +633,143 @@ public sealed class ManualControlTests
     }
 
     [Test]
-    public void ManualNpcUnderOrdersWalksThroughTheBeating()
+    public void ManualNpcUnderOrdersDropsThemAndFightsBack()
     {
+        // §121.2 (правило Кенши ОТМЕНЕНО решением игрока): атакованная ручная
+        // бросает текущий приказ и отвечает боем — независимо от того, стояла
+        // она или шла. «Идёт и терпит побои» читалось как поломка.
         var engine = TestWorld.CreateEngine();
         var world = engine.World;
         var target = Colonist(world);
         TakeControl(engine, target);
 
-        // Далёкая цель: приказ обязан быть ЕЩЁ НЕ ДОИГРАН к концу теста,
-        // иначе «цель None» читалось бы как срыв, а это просто «дошла».
+        // Далёкая цель: к моменту ударов приказ ещё активен.
         var destination = NearbyFreeJunction(world, target, minTiles: 4);
         engine.Commands.Enqueue(new MoveToCommand(target.Id, destination.WorldPosition));
         engine.Step();
         Assert.That(target.Plan.Status, Is.EqualTo(PlanStatus.Active));
 
         AttackerNextTo(engine, target);
-        Step(engine, MediumTicks * 2);
+        Step(engine, MediumTicks * 3);
 
-        Assert.That(target.Mind.CombatOpponentNpcId, Is.Null,
-            "⭐ Правило Кенши: с активным приказом она НЕ оборачивается на " +
-            "удары — идёт и терпит. Иначе игрок не может вывести раненую из боя.");
-        Assert.That(target.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder),
-            "Удары отобрали у неё приказ игрока.");
-        Assert.That(target.IsFighting, Is.False,
-            "Идущая по приказу не встаёт в боевую стойку.");
+        Assert.That(target.Mind.CombatOpponentNpcId, Is.Not.Null,
+            "§121.2: атакованная ручная обязана ОТВЕТИТЬ — даже посреди приказа.");
+        Assert.That(target.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.PlayerOrder),
+            "Приказ обязан быть брошен: самозащита сносит его причиной CombatVictim.");
+        Assert.That(target.IsFighting, Is.True,
+            "Атакованная не встала в боевую стойку.");
+    }
+
+    // ── 4b. Политика §121.5: причины-«выборы» не сносят приказ ───────────
+
+    [Test]
+    public void ChoiceInterruptionsAreDeniedForOrderedManual()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        var destination = NearbyFreeJunction(world, npc, minTiles: 3);
+        engine.Commands.Enqueue(new MoveToCommand(npc.Id, destination.WorldPosition));
+        engine.Step();
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active));
+
+        // Обход угрозы — «выбор»: политика обязана отказать и оставить план.
+        Assert.That(
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ThreatReroute, "test"),
+            Is.False,
+            "ThreatReroute снёс приказ ручной — дыра «обход зверя рвёт приказ» вернулась.");
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active),
+            "Отказ политики обязан оставлять план нетронутым.");
+
+        // Самозащита и игрок проходят всегда.
+        Assert.That(
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.CombatVictim, "test"),
+            Is.True,
+            "Самозащита §121.2 обязана проходить у ручной.");
+    }
+
+    // ── 4c. §121.7: таймаут бездействия ──────────────────────────────────
+
+    [Test]
+    public void IdleManualNpcReturnsToAiAfterTimeout()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+
+        // Окно истекло — следующий средний проход обязан отпустить её под ИИ
+        // с player-visible событием (молчаливый возврат читается как поломка).
+        // Шагов ровно на один Medium-проход: кольцо событий держит ~11 тиков,
+        // и лишние шаги вытесняют ManualControlExpired до ассерта.
+        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks;
+        Step(engine, 5);
+
+        Assert.That(npc.Mind.ManualControl, Is.False,
+            "§121.7: брошенная ручная обязана вернуться под ИИ по таймауту.");
+        Assert.That(HasTrace(world, npc.Id, "ManualControlExpired", ""), Is.True,
+            "Возврат по таймауту обязан быть виден игроку (ManualControlExpired).");
+    }
+
+    [Test]
+    public void ActiveOrderBlocksTheIdleTimeout()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        var destination = NearbyFreeJunction(world, npc, minTiles: 4);
+        engine.Commands.Enqueue(new MoveToCommand(npc.Id, destination.WorldPosition));
+        engine.Step();
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active));
+
+        // Даже с «протухшим» окном активный приказ держит ручной режим:
+        // таймер §121.7 стартует только ПОСЛЕ завершения приказа.
+        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks * 2;
+        engine.Step();
+
+        Assert.That(npc.Mind.ManualControl, Is.True,
+            "Таймаут отпустил ручную ПОСРЕДИ приказа — а обязан ждать его конца.");
+    }
+
+    [Test]
+    public void OrderCompletionRestartsTheIdleWindow()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+
+        var destination = NearbyFreeJunction(world, npc, minTiles: 2);
+        engine.Commands.Enqueue(new MoveToCommand(npc.Id, destination.WorldPosition));
+        engine.Step();
+        // Окно «протухает» во время похода — завершение приказа обязано
+        // перезапустить его, а не отпустить её в момент прибытия.
+        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks * 2;
+
+        var arrived = false;
+        for (var i = 0; i < 600 && !arrived; i++)
+        {
+            engine.Step();
+            arrived = npc.Mind.CurrentGoal == GoalType.None &&
+                npc.Plan.Status != PlanStatus.Active;
+        }
+
+        Assert.That(arrived, Is.True, "Прекондиция: приказ так и не доигрался.");
+        Assert.That(npc.Mind.ManualControl, Is.True,
+            "Поход длиннее таймаута «истёк» в момент прибытия — окно обязано " +
+            "перезапускаться завершением приказа.");
+        Assert.That(
+            world.Tick - npc.Mind.LastManualInputTick,
+            Is.LessThan(Spec121.ManualIdleReleaseTicks),
+            "Отметка окна не перезапустилась на завершении приказа.");
     }
 
     [Test]
@@ -690,6 +875,10 @@ public sealed class ManualControlTests
             "Недошедший приказ обязан продолжиться после загрузки: план едет в " +
             "блобе целиком, складывать цель незачем.");
         Assert.That(reloaded.Plan.TargetJunctionId, Is.EqualTo(destination.Id));
+        Assert.That(reloaded.Mind.LastManualInputTick,
+            Is.EqualTo(npc.Mind.LastManualInputTick),
+            "§121.7 (v46): окно внимания игрока обязано пережить сохранение — " +
+            "иначе загрузка сдвигает таймаут возврата под ИИ.");
     }
 
     [Test]

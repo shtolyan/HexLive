@@ -843,7 +843,7 @@ internal static class KenshiRescueMath
             carrier.Plan.Goal == GoalType.Rescue)
         {
             PlanningSystem.SetGoalCooldown(world, carrier, GoalType.Rescue);
-            PlanInterruption.Abort(world, carrier, $"Rescue drop: {reason}");
+            PlanInterruption.TryAbort(world, carrier, InterruptionCause.RescueDrop, $"Rescue drop: {reason}");
         }
         carrier.Mind.CurrentGoal = GoalType.None;
         if (!hadCarry)

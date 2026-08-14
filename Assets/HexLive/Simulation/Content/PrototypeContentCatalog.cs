@@ -1111,6 +1111,21 @@ public static class PrototypeContentCatalog
                 IntervalTicks = 240,
                 MaxConcurrent = 2,
                 MaxDistanceTiles = 1
+            },
+            // §121.1: куст — легальная цель ручного приказа. Обдирается
+            // руками (без capability-гейта) и УНИЧТОЖАЕТСЯ, рассыпав листья:
+            // мгновенная добыча против возобновляемого источника — осознанный
+            // размен, который решает игрок. ИИ этой интеракцией не пользуется
+            // (ни одна цель аукциона не строит план на Harvest куста).
+            Interactions =
+            {
+                new InteractionDefinition
+                {
+                    Id = "strip.herb",
+                    Type = InteractionType.Harvest,
+                    DurationTicks = 8,
+                    Yields = { new HarvestDrop { DefinitionId = "resource.herb_leaf", Count = 3, Scatter = true } }
+                }
             }
         };
         defs["resource.herb_leaf"] = new ObjectDefinition

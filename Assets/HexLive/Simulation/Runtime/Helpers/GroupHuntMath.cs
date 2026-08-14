@@ -234,7 +234,7 @@ public static class GroupHuntMath
                 girl.Execution.Status == ExecutionStatus.InProgress ||
                 girl.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(world, girl,
+                PlanInterruption.TryAbortForCombat(world, girl, InterruptionCause.ScenePact,
                     $"Going after NPC{stranger.Id.Value} with the others");
             }
 

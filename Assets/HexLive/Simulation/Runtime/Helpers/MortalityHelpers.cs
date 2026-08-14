@@ -296,7 +296,7 @@ internal static class MortalityHelpers
         {
             PinVitals(npc);
         }
-        PlanInterruption.Abort(world, npc, "Collapsed — dying");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.Dying, "Collapsed — dying");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // тело, которое только что выключилось, не держит стойку
         AnchorLyingBody(world, npc, allowNearbyBed: true);
@@ -631,7 +631,7 @@ internal static class MortalityHelpers
         // Порядок обязателен: Abort освобождает джанкшны и брони плана, а
         // AnchorLyingBody ниже занимает лежачий след — поменяй местами, и она
         // сама себе освободит только что застолблённое место.
-        PlanInterruption.Abort(world, npc, "Playing dead");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayDead, "Playing dead");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // притворяющаяся не держит боевую стойку
         AnchorLyingBody(world, npc);

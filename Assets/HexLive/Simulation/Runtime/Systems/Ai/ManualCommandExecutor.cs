@@ -144,11 +144,11 @@ internal static class ManualCommandExecutor
         {
             if (keepCarriedPerson && npc.IsCarryingPerson)
             {
-                PlanInterruption.AbortKeepingCarriedPerson(world, npc, reason);
+                PlanInterruption.TryAbortKeepingCarriedPerson(world, npc, InterruptionCause.PlayerCommand, reason);
             }
             else
             {
-                PlanInterruption.Abort(world, npc, reason);
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, reason);
             }
         }
 
@@ -161,6 +161,9 @@ internal static class ManualCommandExecutor
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
         npc.Mind.GoalLock = null;
+        // §121.7: любая принятая команда перезапускает окно внимания игрока
+        // (сюда приходят только принятые — TryTakeOrder уже отработал).
+        npc.Mind.LastManualInputTick = world.Tick;
     }
 
     private static void ApplySetManual(WorldState world, SetManualControlCommand command)
@@ -175,28 +178,54 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        ClearForNewOrder(world, npc, command.Enabled
-            ? "Игрок взял управление"
-            : "Игрок вернул управление ИИ");
+        if (!command.Enabled)
+        {
+            ReleaseToAi(world, npc, "Игрок вернул управление ИИ", expired: false);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Игрок взял управление");
 
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Mind.ManualAttackNpcId = null;
         npc.Mind.ManualAttackMobId = null;
 
-        if (command.Enabled)
-        {
-            // Приглашения снимаются вместе с автономией: ждать разговора или
-            // помощи она больше не станет, и оставленная заявка подвесила бы
-            // ЗВАВШУЮ — та стоит и ждёт ответа, которого уже не будет.
-            npc.Mind.PendingTalkFrom = null;
-            npc.Mind.PendingAidFrom = null;
-        }
+        // Приглашения снимаются вместе с автономией: ждать разговора или
+        // помощи она больше не станет, и оставленная заявка подвесила бы
+        // ЗВАВШУЮ — та стоит и ждёт ответа, которого уже не будет.
+        npc.Mind.PendingTalkFrom = null;
+        npc.Mind.PendingAidFrom = null;
 
-        npc.Mind.ManualControl = command.Enabled;
+        npc.Mind.ManualControl = true;
         if (SimTrace.Enabled)
         {
-            Trace.Debug(world, npc.Id, "ManualControlChanged",
-                $"Enabled={(command.Enabled ? 1 : 0)}");
+            Trace.Debug(world, npc.Id, "ManualControlChanged", "Enabled=1");
+        }
+    }
+
+    // §121.7: единственный владелец перехода 🎮→🧠 — и тумблер игрока, и
+    // таймаут бездействия идут через него, чтобы «вернуть под ИИ» всегда
+    // значило одно и то же. expired=true добавляет player-visible событие:
+    // молчаливое «она вдруг зажила своей жизнью» читалось бы как поломка.
+    internal static void ReleaseToAi(
+        WorldState world, NPCState npc, string reason, bool expired)
+    {
+        // keepCarriedPerson НЕ ставим: как и прежний тумблер off, возврат под
+        // ИИ безопасно кладёт ношу — дальше RescueSystem сам решит поднять.
+        ClearForNewOrder(world, npc, reason);
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Mind.ManualAttackNpcId = null;
+        npc.Mind.ManualAttackMobId = null;
+        npc.Mind.ManualControl = false;
+        if (expired)
+        {
+            Trace.Emit(world, npc.Id, "ManualControlExpired",
+                $"IdleTicks={Spec121.ManualIdleReleaseTicks}");
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualControlChanged", "Enabled=0");
         }
     }
 
@@ -369,8 +398,10 @@ internal static class ManualCommandExecutor
         }
 
         var carried = carrier.CarriedNpcId;
-        PlanInterruption.Abort(world, carrier, "Игрок положил переносимого человека");
+        PlanInterruption.TryAbort(world, carrier, InterruptionCause.PlayerCommand, "Игрок положил переносимого человека");
         carrier.Mind.CurrentGoal = GoalType.None;
+        // §121.7: PutDown идёт мимо ClearForNewOrder — окно штампуется здесь.
+        carrier.Mind.LastManualInputTick = world.Tick;
         ClearAttackOrder(world, carrier);
         if (SimTrace.Enabled)
         {

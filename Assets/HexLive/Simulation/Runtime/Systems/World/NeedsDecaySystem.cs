@@ -151,7 +151,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         // §105.14: и глубже притворства — WakeFromComa переспросит на выходе.
         npc.Mind.PlayDeadUntilTick = 0;
         npc.Mind.PlayDeadSinceTick = 0;
-        PlanInterruption.Abort(world, npc, "Collapsed — coma");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.BodyComa, "Collapsed — coma");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // a body that just switched off holds no stance
 
@@ -568,7 +568,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Health > 0f)
             {
                 var faintedUntilTick = world.Tick + 80;
-                PlanInterruption.Abort(world, npc, "Collapsed — unconscious");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.Faint, "Collapsed — unconscious");
                 npc.Mind.CurrentGoal = GoalType.None;
                 // §113 r2: choose the nearest sub-grid pose whose whole body is
                 // supported; a furnished tile may fall back to a free bed that
@@ -602,7 +602,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 !npc.IsFighting && !DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
             {
                 var cryingUntilTick = world.Tick + SimBalance.CryingBreakdownTicks;
-                PlanInterruption.Abort(world, npc, "Broke down crying");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.Crying, "Broke down crying");
                 npc.Mind.CurrentGoal = GoalType.None;
                 if (ExecutionSystem.TryLieDownForCrying(
                         world, npc, cryingUntilTick))

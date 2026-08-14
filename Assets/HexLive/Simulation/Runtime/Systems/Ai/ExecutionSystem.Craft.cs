@@ -351,7 +351,7 @@ public sealed partial class ExecutionSystem
             if (npc.Movement.Status == MovementStatus.Blocked)
             {
                 PlanningSystem.SetGoalCooldown(world, npc, goal);
-                PlanInterruption.Abort(world, npc,
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                     $"CraftInPlace {goal}: project point unreachable");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
@@ -479,7 +479,7 @@ public sealed partial class ExecutionSystem
             if (npc.Movement.Status == MovementStatus.Blocked)
             {
                 PlanningSystem.SetGoalCooldown(world, npc, goal);
-                PlanInterruption.Abort(world, npc,
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                     $"CraftInPlace {goal}: ground pile unreachable (path blocked)");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;

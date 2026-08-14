@@ -171,14 +171,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue; // грация подъёма всё равно гейтит этот тик
             }
 
-            // ⭐ §121: ЕЮ УПРАВЛЯЕТ ИГРОК — аукцион для неё закрыт совсем.
+            // ⭐ §121: ЕЮ УПРАВЛЯЕТ ИГРОК — большой аукцион для неё закрыт.
             // Граница проведена ровно здесь, а не выше и не ниже: всё, что
             // выше, — ТЕЛО (кома, обморок, слёзы, притворство, спад стресса),
             // и оно живёт у ручной так же, как у любой другой; всё, что ниже, —
             // ВЫБОР (страхи, приглашения, ставки целей), и выбор теперь за
-            // игроком. Цели ей ставит ManualCommandExecutor из очереди команд.
+            // игроком. Цели ей ставит ManualCommandExecutor из очереди команд —
+            // кроме §121.6: без активного приказа узкий аукцион авто-нужд
+            // разрешает ей еду и питьё. Путь ИИ не тронут ни на инструкцию.
             if (Spec121.ManualControlEnabled && npc.Mind.ManualControl)
             {
+                RunManualNeedsAuction(world, npc);
                 continue;
             }
 
@@ -338,7 +341,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     if (npc.Plan.Status == PlanStatus.Active ||
                         npc.Execution.Status == ExecutionStatus.InProgress)
                     {
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.Auction,
                             $"Accepting talk from NPC{waitingFor.Value}, waiting in place");
                     }
 
@@ -396,7 +399,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 {
                     if (npc.Plan.Status == PlanStatus.Active)
                     {
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.Auction,
                             $"Awaiting help from NPC{aidWaitingFor.Value}, waiting in place");
                     }
 
@@ -2729,7 +2732,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         if (changed &&
             (npc.Plan.Status == PlanStatus.Active || npc.Execution.Status == ExecutionStatus.InProgress))
         {
-            PlanInterruption.Abort(world, npc,
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.Auction,
                 $"Goal changed {previousGoal}->{best.Goal} over active plan " +
                 $"(Starving={npc.Mind.IsStarving})");
         }

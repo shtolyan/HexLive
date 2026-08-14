@@ -904,7 +904,7 @@ public sealed class KenshiCoreTests
         abuser.Tile = carrier.Tile;
         abuser.Position = carrier.Position;
 
-        PlanInterruption.AbortForCombat(world, carrier,
+        PlanInterruption.TryAbortForCombat(world, carrier, InterruptionCause.CombatVictim,
             $"Abused by NPC{abuser.Id.Value}");
         carrier.Mind.CurrentGoal = GoalType.None; // mirrors the abuse call site
 
@@ -966,7 +966,7 @@ public sealed class KenshiCoreTests
         carrier.Plan.Status = PlanStatus.Active;
         carrier.Plan.TargetAgentId = patient.Id;
 
-        PlanInterruption.Abort(world, carrier, "test replacement plan");
+        PlanInterruption.TryAbort(world, carrier, InterruptionCause.Auction, "test replacement plan");
 
         Assert.Multiple(() =>
         {
@@ -1016,7 +1016,7 @@ public sealed class KenshiCoreTests
             Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Active));
         });
 
-        PlanInterruption.Abort(world, carrier, "path retry limit reached");
+        PlanInterruption.TryAbort(world, carrier, InterruptionCause.PathFailure, "path retry limit reached");
         Assert.Multiple(() =>
         {
             Assert.That(carrier.CarriedNpcId, Is.Null);

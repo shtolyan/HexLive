@@ -25,6 +25,7 @@ namespace HexLive.UnityPresentation.Wearing
         }
 
         private readonly List<Piece> _pieces = new();
+        private Views.WorldObjectView _view;
         private static readonly int TearAmountId = Shader.PropertyToID("_TearAmount");
         private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -95,6 +96,17 @@ namespace HexLive.UnityPresentation.Wearing
 
         public void Sync(float durability, float dirtiness, float bloodiness, float wetness)
         {
+            // §121.4: пока вид под курсором, per-index блоки принадлежат
+            // подсветке — Sync каждый тик перезаписывал их и «hover» на
+            // одежде не проявлялся никогда. Состояние тряпки за время
+            // наведения не убежит; снятие подсветки восстановит блоки, и
+            // следующий Sync перепишет их заново.
+            _view ??= GetComponentInParent<Views.WorldObjectView>();
+            if (_view != null && _view.Highlighted)
+            {
+                return;
+            }
+
             var rawTear = Mathf.InverseLerp(TearBiteDurability, 0f, Mathf.Clamp01(durability));
             var tear = Mathf.Pow(rawTear, TearProgressGamma);
             var wet = Mathf.Clamp01(wetness);

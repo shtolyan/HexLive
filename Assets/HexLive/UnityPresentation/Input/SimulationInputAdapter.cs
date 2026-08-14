@@ -40,6 +40,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     // Тот же радиус, которым камера выбирает NPC: два разных числа значили бы,
     // что подсветилось одно, а кликнулось другое.
     private const float PickRadiusPixels = 70f;
+
+    // §121.1: узкий радиус, в котором человек/зверь всё же выигрывает у
+    // объекта, в чей AABB попал луч, — чтобы зверь вплотную к кокосу оставался
+    // кликабельным, а широкие 70 px не гасили предметы вокруг толпы.
+    private const float TightPickRadiusPixels = 24f;
     private const float DoubleClickSeconds = 0.30f;
     private const float DoubleClickRadiusPixels = 18f;
 
@@ -159,14 +164,43 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var mousePos = mouse.position.ReadValue();
         var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
 
-        // Живое — вперёд неживого: промахнуться по человеку, попав в куст за
-        // его спиной, обиднее, чем наоборот.
-        _hoveredNpcId = PickNpcUnderCursor(snapshot, mousePos);
-        _hoveredMobId = _hoveredNpcId >= 0 ? -1 : PickMobUnderCursor(snapshot, mousePos);
+        _hoveredNpcId = -1;
+        _hoveredMobId = -1;
+        var objectHit = PickObjectUnderCursor(mousePos, out var objectDistance);
 
-        var objectHit = _hoveredNpcId < 0 && _hoveredMobId < 0
-            ? PickObjectUnderCursor(mousePos)
-            : null;
+        // §121.1: живое больше НЕ съедает объект безусловно — точное попадание
+        // луча в тело человека соревнуется с объектом ПО ГЛУБИНЕ. Раньше труп,
+        // лежащий на одежде, и колонистка рядом с кокосом делали их
+        // некликабельными: любое пересечение с телом гасило объект.
+        if (TryRaycastNpc(snapshot, mousePos, out var rayNpcId, out var npcDistance) &&
+            (objectHit == null || npcDistance <= objectDistance))
+        {
+            _hoveredNpcId = rayNpcId;
+            objectHit = null;
+        }
+        else
+        {
+            // Экранные радиусы — запасной путь. Широкий (70 px) работает только
+            // когда луч не попал ни в один объект; узкий (24 px) сохраняет
+            // кликабельность человека/зверя, стоящего вплотную к предмету.
+            var fallbackNpcId = PickNpcByScreenRadius(snapshot, mousePos, out var npcScreenDist);
+            var mobId = PickMobUnderCursor(snapshot, mousePos, out var mobScreenDist);
+            if (objectHit == null)
+            {
+                _hoveredNpcId = fallbackNpcId;
+                _hoveredMobId = fallbackNpcId >= 0 ? -1 : mobId;
+            }
+            else if (fallbackNpcId >= 0 && npcScreenDist <= TightPickRadiusPixels)
+            {
+                _hoveredNpcId = fallbackNpcId;
+                objectHit = null;
+            }
+            else if (mobId >= 0 && mobScreenDist <= TightPickRadiusPixels)
+            {
+                _hoveredMobId = mobId;
+                objectHit = null;
+            }
+        }
 
         if (!ReferenceEquals(objectHit, _hovered))
         {
@@ -184,8 +218,9 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         _hoveredMobId = -1;
     }
 
-    private WorldObjectView? PickObjectUnderCursor(Vector2 mousePos)
+    private WorldObjectView? PickObjectUnderCursor(Vector2 mousePos, out float bestDistance)
     {
+        bestDistance = float.MaxValue;
         if (_camera == null)
         {
             return null;
@@ -193,13 +228,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         var ray = _camera.ScreenPointToRay(mousePos);
         WorldObjectView? best = null;
-        var bestDistance = float.MaxValue;
 
         var all = WorldObjectView.All;
         for (var i = 0; i < all.Count; i++)
         {
             var view = all[i];
-            if (view == null || view.ObjectId < 0 || !HasContextActions(view))
+            if (view == null || view.ObjectId < 0 || !HasContextActions(view) ||
+                IsBeyondSmallPropCull(view))
             {
                 continue;
             }
@@ -214,6 +249,29 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         return best;
     }
 
+    // §121.4: SmallProps-слой отсекается камерой за layerCullDistances — проп
+    // там НЕ РИСУЕТСЯ, но его bounds остаются валидными, и пикинг «подсвечивал»
+    // невидимое. Невидимое не кликается.
+    private bool IsBeyondSmallPropCull(WorldObjectView view)
+    {
+        if (_camera == null)
+        {
+            return false;
+        }
+
+        var layer = view.gameObject.layer;
+        var cull = _camera.layerCullDistances[layer];
+        if (cull <= 0f)
+        {
+            return false;
+        }
+
+        // Камера режет этот слой сферически (layerCullSpherical) — меряем той
+        // же метрикой, дистанцией до позиции камеры.
+        var offset = view.transform.position - _camera.transform.position;
+        return offset.sqrMagnitude > cull * cull;
+    }
+
     // Decorative/resource producers can visually enclose a real ground item:
     // a herb bush encloses its shed leaf, and furniture can overlap dropped
     // clothes. Such a view has no contextual action of its own and must not
@@ -225,11 +283,16 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         _runner.TryGetObjectDefinition(view.DefinitionId, out var definition) &&
         definition != null && definition.Interactions.Count > 0;
 
-    private int PickNpcUnderCursor(WorldSnapshot? snapshot, Vector2 mousePos)
+    // Точное попадание луча в видимую геометрию тела — с ДИСТАНЦИЕЙ, чтобы
+    // UpdateHover мог сравнить человека и объект по глубине (§121.1).
+    private bool TryRaycastNpc(
+        WorldSnapshot? snapshot, Vector2 mousePos, out int npcId, out float distance)
     {
+        npcId = -1;
+        distance = float.PositiveInfinity;
         if (snapshot == null || _camera == null)
         {
-            return -1;
+            return false;
         }
 
         if (_worldRenderer == null)
@@ -237,32 +300,38 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
         }
 
-        if (_worldRenderer != null)
+        if (_worldRenderer == null)
         {
-            var ray = _camera.ScreenPointToRay(mousePos);
-            var bestRayDistance = float.PositiveInfinity;
-            var rayHitId = -1;
-            foreach (var person in People(snapshot))
-            {
-                if (NpcSelection.Contains(person.Id.Value) ||
-                    !_worldRenderer.TryGetActorView(person.Id.Value, out var view) ||
-                    !view.TryRaycastVisibleGeometry(ray, bestRayDistance, out var hitDistance))
-                {
-                    continue;
-                }
+            return false;
+        }
 
-                bestRayDistance = hitDistance;
-                rayHitId = person.Id.Value;
+        var ray = _camera.ScreenPointToRay(mousePos);
+        foreach (var person in People(snapshot))
+        {
+            if (NpcSelection.Contains(person.Id.Value) ||
+                !_worldRenderer.TryGetActorView(person.Id.Value, out var view) ||
+                !view.TryRaycastVisibleGeometry(ray, distance, out var hitDistance))
+            {
+                continue;
             }
 
-            if (rayHitId >= 0)
-            {
-                return rayHitId;
-            }
+            distance = hitDistance;
+            npcId = person.Id.Value;
+        }
+
+        return npcId >= 0;
+    }
+
+    private int PickNpcByScreenRadius(
+        WorldSnapshot? snapshot, Vector2 mousePos, out float bestDistance)
+    {
+        bestDistance = PickRadiusPixels;
+        if (snapshot == null || _camera == null)
+        {
+            return -1;
         }
 
         var bestId = -1;
-        var bestDistance = PickRadiusPixels;
         foreach (var npc in People(snapshot))
         {
             if (NpcSelection.Contains(npc.Id.Value))
@@ -295,15 +364,16 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         foreach (var corpse in snapshot.Corpses) yield return corpse;
     }
 
-    private int PickMobUnderCursor(WorldSnapshot? snapshot, Vector2 mousePos)
+    private int PickMobUnderCursor(
+        WorldSnapshot? snapshot, Vector2 mousePos, out float bestDistance)
     {
+        bestDistance = PickRadiusPixels;
         if (snapshot == null || _camera == null)
         {
             return -1;
         }
 
         var bestId = -1;
-        var bestDistance = PickRadiusPixels;
         foreach (var mob in snapshot.Mobs)
         {
             var world = SimulationUnityMapper.ToUnityPosition(

@@ -78,6 +78,9 @@ namespace HexLive.Simulation.Runtime
                 return;
             }
 
+            // §123.5: спавн у ног проверяется ДО удаления из инвентаря —
+            // DropItemAtFeet возвращает null, когда рядом нет свободной точки,
+            // и порядок «сначала RemoveAt, потом спавн» тихо УНИЧТОЖАЛ предмет.
             switch (step.Type)
             {
                 case PlanStepType.PlayerWearInventory:
@@ -89,13 +92,23 @@ namespace HexLive.Simulation.Runtime
                     EquipmentMath.Recalculate(world, npc);
                     break;
                 case PlanStepType.PlayerDropCarried:
+                    if (DropItemAtFeet(world, npc, item) is null)
+                    {
+                        FailPlayerInventory(world, npc, "NoDropSpot");
+                        return;
+                    }
+
                     npc.Inventory.Items.RemoveAt(index);
-                    DropItemAtFeet(world, npc, item);
                     break;
                 case PlanStepType.PlayerDropWorn:
+                    if (DropItemAtFeet(world, npc, item) is null)
+                    {
+                        FailPlayerInventory(world, npc, "NoDropSpot");
+                        return;
+                    }
+
                     npc.WornItems.RemoveAt(index);
                     EquipmentMath.Recalculate(world, npc);
-                    DropItemAtFeet(world, npc, item);
                     break;
             }
 

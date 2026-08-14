@@ -155,8 +155,8 @@ public sealed class RaidSystem : ISimulationSystem
                         victim.Execution.Status == ExecutionStatus.InProgress ||
                         victim.IsCarryingPerson)
                     {
-                        PlanInterruption.AbortForCombat(
-                            world, victim, $"Fighting off NPC{raider.Id.Value}");
+                        PlanInterruption.TryAbortForCombat(
+                            world, victim, InterruptionCause.CombatVictim, $"Fighting off NPC{raider.Id.Value}");
                         victim.Mind.CurrentGoal = GoalType.None;
                     }
 
@@ -277,7 +277,7 @@ public sealed class RaidSystem : ISimulationSystem
                 mark.Execution.Status == ExecutionStatus.InProgress ||
                 mark.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(world, mark,
+                PlanInterruption.TryAbortForCombat(world, mark, InterruptionCause.AbuseMark,
                     $"Braces for NPC{claimer.Id.Value}");
                 mark.Mind.CurrentGoal = GoalType.None;
                 if (SimTrace.Enabled)
@@ -391,14 +391,9 @@ public sealed class RaidSystem : ISimulationSystem
                 target.Mind.CurrentGoal == GoalType.GroupHunt ||
                 target.Mind.CurrentGoal == GoalType.Expel ||
                 // §121: свой бой по приказу уже идёт — им правит ManualOrderSystem.
+                // §121.2: правило Кенши отменено — ручная С приказом теперь
+                // отвечает на удары как стоящая, гейта IsOrderedManual нет.
                 target.Mind.CurrentGoal == GoalType.PlayerAttack ||
-                // ⭐ §121 ПРАВИЛО КЕНШИ: у ручной колонистки есть приказ —
-                // значит, она его ВЫПОЛНЯЕТ, а не оборачивается на удары. Ни
-                // пары, ни стойки: идёт и терпит. Это и есть способ вывести
-                // раненую из драки пешком, и он же — единственная причина, по
-                // которой «приказ» отличается от «работы» (работу §109
-                // прерывает, приказ — нет).
-                ManualControlMath.IsOrderedManual(target) ||
                 // Сценой абьюза правит сцена — с обеих сторон: он в такте,
                 // она приняла решение в AnswersBack, и «не отвечает» — тоже
                 // решение.
@@ -496,7 +491,7 @@ public sealed class RaidSystem : ISimulationSystem
             // которого игрок его и взял.
             if (target.Health < Spec72.RaidFleeHealth &&
                 target.Mind.CurrentGoal != GoalType.Abuse &&
-                !ManualControlMath.IsManual(target) &&
+                NpcControlPolicy.MayFlee(target) &&
                 MobSystem.TryFleeToCamp(world, target,
                     $"Beaten by NPC{nearest.Id.Value}"))
             {
@@ -552,7 +547,7 @@ public sealed class RaidSystem : ISimulationSystem
                 }
                 else
                 {
-                    PlanInterruption.AbortForCombat(world, target,
+                    PlanInterruption.TryAbortForCombat(world, target, InterruptionCause.CombatVictim,
                         $"Attacked by NPC{nearest.Id.Value}");
                 }
                 target.Mind.CurrentGoal = GoalType.None;
@@ -852,7 +847,7 @@ public sealed class RaidSystem : ISimulationSystem
             if (abuser.Plan.Status == PlanStatus.Active ||
                 abuser.Execution.Status == ExecutionStatus.InProgress)
             {
-                PlanInterruption.Abort(world, abuser, $"Abusing NPC{mark.Id.Value}");
+                PlanInterruption.TryAbort(world, abuser, InterruptionCause.SceneInitiator, $"Abusing NPC{mark.Id.Value}");
             }
 
             abuser.Mind.CurrentGoal = GoalType.Abuse;
@@ -898,7 +893,7 @@ public sealed class RaidSystem : ISimulationSystem
             if (abuser.Plan.Status == PlanStatus.Active &&
                 AbuseMath.BestMark(world, abuser, out _) is { } spotted)
             {
-                PlanInterruption.Abort(world, abuser, $"Spotted NPC{spotted.Id.Value}");
+                PlanInterruption.TryAbort(world, abuser, InterruptionCause.SceneInitiator, $"Spotted NPC{spotted.Id.Value}");
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, abuser.Id, "AbuseSpotted",
@@ -941,7 +936,7 @@ public sealed class RaidSystem : ISimulationSystem
 
         if (abuser.Plan.Status == PlanStatus.Active)
         {
-            PlanInterruption.Abort(world, abuser, $"Retarget NPC{best.Id.Value}");
+            PlanInterruption.TryAbort(world, abuser, InterruptionCause.SceneInitiator, $"Retarget NPC{best.Id.Value}");
         }
 
         if (SimTrace.Enabled)
@@ -964,7 +959,7 @@ public sealed class RaidSystem : ISimulationSystem
         if (raider.Plan.Status == PlanStatus.Active ||
             raider.Execution.Status == ExecutionStatus.InProgress)
         {
-            PlanInterruption.Abort(world, raider, $"Hunting NPC{victim.Id.Value}");
+            PlanInterruption.TryAbort(world, raider, InterruptionCause.SceneInitiator, $"Hunting NPC{victim.Id.Value}");
         }
 
         raider.Mind.CurrentGoal = GoalType.Raid;

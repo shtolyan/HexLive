@@ -25,7 +25,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // ManualCommandExecutor строит их сразу при получении команды, а
             // ManualOrderSystem пересобирает погоню. Планировщику здесь делать
             // нечего: он бы «вылечил» приказ, подставив ему свою цель.
-            if (Spec121.ManualControlEnabled && npc.Mind.ManualControl)
+            // §121.6 — исключение: авто-нужды (еда/питьё) планируются штатно,
+            // теми же ветками, что у ИИ.
+            if (Spec121.ManualControlEnabled && npc.Mind.ManualControl &&
+                !NpcControlPolicy.MayPlanGoal(npc, npc.Mind.CurrentGoal))
             {
                 continue;
             }
@@ -141,7 +144,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // держало занятость объекта и резервы — Abort отдаёт и их.
             if (npc.Execution.Status == ExecutionStatus.InProgress)
             {
-                PlanInterruption.Abort(world, npc,
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.Replan,
                     $"Replan over a live {npc.Execution.CurrentInteraction} " +
                     $"(Goal={npc.Mind.CurrentGoal} PrevStatus={prevStatus})");
             }

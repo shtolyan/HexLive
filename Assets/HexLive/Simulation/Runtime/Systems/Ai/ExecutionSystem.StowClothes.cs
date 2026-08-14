@@ -31,7 +31,7 @@ public sealed partial class ExecutionSystem
             {
                 if (npc.Movement.Status == MovementStatus.Blocked)
                 {
-                    PlanInterruption.Abort(world, npc, "StowClothes: route to the garment blocked");
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: route to the garment blocked");
                     npc.Mind.CurrentGoal = GoalType.None;
                 }
 
@@ -42,7 +42,7 @@ public sealed partial class ExecutionSystem
                 !TryPickGarmentIntoHand(world, npc, garmentId))
             {
                 // Кто-то успел раньше — это не беда и не провал.
-                PlanInterruption.Abort(world, npc, "StowClothes: garment gone");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: garment gone");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -52,7 +52,7 @@ public sealed partial class ExecutionSystem
                 // Дома не стало (или до него не дойти): вещь в руке, и класть её
                 // обратно посреди поля бессмысленно — прерывание положит её под
                 // ноги штатным путём.
-                PlanInterruption.Abort(world, npc, "StowClothes: no home spot");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: no home spot");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -77,7 +77,7 @@ public sealed partial class ExecutionSystem
         {
             if (npc.Movement.Status == MovementStatus.Blocked)
             {
-                PlanInterruption.Abort(world, npc, "StowClothes: route home blocked");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: route home blocked");
                 npc.Mind.CurrentGoal = GoalType.None;
             }
 

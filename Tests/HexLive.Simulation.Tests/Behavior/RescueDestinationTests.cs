@@ -295,7 +295,7 @@ public sealed class RescueDestinationTests
         bed.CurrentUser = patient.Id;
         helper.RescueDestinationObjectId = bed.Id;
 
-        PlanInterruption.Abort(world, helper, "test interruption while carrying patient");
+        PlanInterruption.TryAbort(world, helper, InterruptionCause.Auction, "test interruption while carrying patient");
 
         Assert.Multiple(() =>
         {

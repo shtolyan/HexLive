@@ -95,7 +95,7 @@ public static class WorldSaveSerializer
     // Старый блоб читается «дневник пуст», и это не потеря: до v45 его никто не
     // вёл, а первая запись появится через игровой час. Кандидат текущего часа
     // не пишется намеренно — он черновик, а не состояние мира.
-    public const int BlobVersion = 45;
+    public const int BlobVersion = 46;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -443,6 +443,14 @@ public static class WorldSaveSerializer
         for (var i = 0; i < npcCount; i++)
         {
             var npc = ReadNpc(r, version);
+            // §121.7: в сейве до v46 отметки внимания не было — считаем, что
+            // игрок «только что» был тут, иначе загрузка мгновенно отпустила
+            // бы всех ручных по таймауту.
+            if (version < 46 && npc.Mind.ManualControl)
+            {
+                npc.Mind.LastManualInputTick = world.Tick;
+            }
+
             world.Entities.Npcs[npc.Id] = npc;
         }
 
@@ -1063,6 +1071,9 @@ public static class WorldSaveSerializer
         // режима в блобе — цель приказа едет своим ходом (план сериализуется
         // целиком), а сцепка PlayerAttack складывается в SaveGoal.
         w.Write(mind.ManualControl);
+        // §121.7 (v46): окно внимания игрока — без него загрузка обнуляла бы
+        // отметку и таймаут отпускал бы ручных мгновенно.
+        w.Write(mind.LastManualInputTick);
         w.Write(mind.WakeGraceUntilTick);
         w.Write(mind.AdrenalineUntilTick);
         w.Write(mind.PendingTalkSinceTick);
@@ -1579,6 +1590,9 @@ public static class WorldSaveSerializer
         mind.SadWalkUntilTick = version >= 26 ? r.ReadInt32() : 0;
         // §121: в старом сейве ручного режима не было — все под ИИ.
         mind.ManualControl = version >= 31 && r.ReadBoolean();
+        // §121.7: у старого сейва окно нормализуется после загрузки NPC —
+        // world.Tick здесь ещё недоступен.
+        mind.LastManualInputTick = version >= 46 ? r.ReadInt32() : 0;
 
         mind.WakeGraceUntilTick = r.ReadInt32();
         mind.AdrenalineUntilTick = version >= 9 ? r.ReadInt32() : 0;

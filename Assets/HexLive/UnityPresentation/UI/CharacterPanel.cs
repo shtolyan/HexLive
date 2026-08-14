@@ -115,6 +115,10 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _controlAiIcon;
         private VisualElement _controlPlayerIcon;
         private Label _orderToast;
+        // §123.5: дубль тоста отказа ВНУТРИ окна инвентаря — карточка
+        // персонажа с основным тостом закрыта этим окном (940×620), и отказ
+        // «выбросить нельзя» был игроку не виден вовсе.
+        private Label _invOrderToast;
         private bool _manualControlNow;
         private bool _controlAvailable;
         private VisualElement _inventoryWindow;
@@ -150,6 +154,12 @@ namespace HexLive.UnityPresentation.UI
         private string _invSig;               // rebuild the list only on change
         private string _invSelectedId;        // item shown in the detail view
         private bool _invSelectedWorn;
+        // §123.5: авторитетный индекс выбранного carried-предмета в
+        // npc.Inventory.Items — приходит из InventorySlotSnapshot.SourceIndex.
+        // Легаси-поиск по npc.InventoryItems давал НЕВЕРНЫЙ индекс: экспортер
+        // снапшота переупорядочивает стаки, и симуляция молча отвечала
+        // StaleItem — «выбросить из рюкзака» не работало вовсе.
+        private int _invSelectedSourceIndex = -1;
         private bool _invHeldSlotMarked;
         private bool _invPreviewDragging;
         private int _invPreviewPointerId = -1;
@@ -1530,6 +1540,32 @@ namespace HexLive.UnityPresentation.UI
             _invItemsPane.Add(_invItemsContent);
             _invListView.Add(_invItemsPane);
 
+            // §123.5: тост отказа внутри окна — основной живёт в карточке
+            // персонажа, которую это окно закрывает собой.
+            _invOrderToast = new Label
+            {
+                style =
+                {
+                    color = Warn,
+                    fontSize = 11f,
+                    position = Position.Absolute,
+                    left = 200f,
+                    right = 200f,
+                    bottom = 10f,
+                    paddingLeft = 8f,
+                    paddingRight = 8f,
+                    paddingTop = 5f,
+                    paddingBottom = 5f,
+                    backgroundColor = Panel,
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                    whiteSpace = WhiteSpace.Normal,
+                    display = DisplayStyle.None,
+                }
+            };
+            SetRadius(_invOrderToast, 7f);
+            SetBorder(_invOrderToast, new Color(Warn.r, Warn.g, Warn.b, 0.32f), 1f);
+            _invOrderToast.pickingMode = PickingMode.Ignore;
+
             _invDollPane = new VisualElement();
             // Width is AUTO on purpose: the card is exactly as wide as the
             // portrait inside it, so there is no dead field to either side.
@@ -1584,6 +1620,8 @@ namespace HexLive.UnityPresentation.UI
             // other around the layout.
             _invListView.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryDollViewport());
             _inventoryWindow.Add(_invListView);
+            // Поверх листа, чтобы тост не тонул под сеткой слотов.
+            _inventoryWindow.Add(_invOrderToast);
 
             // Item removal is an explicit action inside the selected item's
             // detail card. The old full-width drag target looked interactive
@@ -2716,6 +2754,19 @@ namespace HexLive.UnityPresentation.UI
 
             var capacity = Mathf.Max(0, npc.InventoryCapacity);
             _inventoryCapacity.text = $"{npc.InventoryUsedSlots}/{capacity} {Loc.Get("inv.slots")}";
+
+            // §123.5: отказ симуляции (StaleItem/InsufficientSpace/NoDropSpot)
+            // виден прямо в окне — основной тост карточки этим окном закрыт.
+            if (_invOrderToast != null)
+            {
+                var toastFresh = ManualOrderFeedback.IsFresh(npc.Id.Value);
+                _invOrderToast.style.display =
+                    toastFresh ? DisplayStyle.Flex : DisplayStyle.None;
+                if (toastFresh)
+                {
+                    _invOrderToast.text = Loc.Get(ManualOrderFeedback.ReasonKey);
+                }
+            }
             if (_characterDollStage != null)
             {
                 _characterDollStage.SetTarget(npc.Id.Value, npc.ActorMesh, npc.WornItems);
@@ -2785,8 +2836,25 @@ namespace HexLive.UnityPresentation.UI
                     var selectedDirtiness = _invSelectedWorn ? wornDirtiness : carriedDirtiness;
                     _invItemAnchors.TryGetValue(ItemAnchorKey(_invSelectedId, _invSelectedWorn),
                         out var selectedAnchor);
+                    // §123.5: инвентарь пересобрался — SourceIndex мог уехать.
+                    // Если старый индекс больше не указывает на этот предмет,
+                    // перечитать его из layout, а не тащить протухший.
+                    var refreshedIndex = _invSelectedSourceIndex;
+                    if (!_invSelectedWorn)
+                    {
+                        var stillValid = refreshedIndex >= 0 &&
+                            npc.InventoryContainers.Exists(c => c.Slots.Exists(s =>
+                                s.SourceIndex == refreshedIndex &&
+                                s.ItemDefinitionId == _invSelectedId));
+                        if (!stillValid)
+                        {
+                            refreshedIndex = FindCarriedSourceIndex(npc, _invSelectedId);
+                        }
+                    }
+
                     ShowItemDetail(_invSelectedId, _invSelectedWorn, selectedDurability,
-                        carriedWater, carriedStacks, selectedWetness, selectedDirtiness, selectedAnchor);
+                        carriedWater, carriedStacks, selectedWetness, selectedDirtiness,
+                        selectedAnchor, refreshedIndex);
                 }
                 else
                 {
@@ -2969,7 +3037,8 @@ namespace HexLive.UnityPresentation.UI
                 });
                 RegisterInventoryItemInteraction(
                     cell, itemId, false, carriedDurability, carriedWater,
-                    carriedStacks, carriedWetness, carriedDirtiness);
+                    carriedStacks, carriedWetness, carriedDirtiness,
+                    slot.SourceIndex);
             }
 
             return cell;
@@ -3007,10 +3076,12 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
-            VisualElement anchor = null)
+            VisualElement anchor = null,
+            int sourceIndex = -1)
         {
             _invSelectedId = id;
             _invSelectedWorn = worn;
+            _invSelectedSourceIndex = worn ? -1 : sourceIndex;
             SetHoveredWorn(worn ? id : string.Empty);
             if (anchor != null)
             {
@@ -3066,15 +3137,29 @@ namespace HexLive.UnityPresentation.UI
             var snapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
             var npc = snapshot != null ? FindNpc(snapshot, _inventoryActorId) : null;
             if (npc == null) return;
-            var sourceItems = _invSelectedWorn ? npc.WornItems : npc.InventoryItems;
-            var index = -1;
-            for (var i = 0; i < sourceItems.Count; i++)
+            int index;
+            if (_invSelectedWorn)
             {
-                if (sourceItems[i] == _invSelectedId)
+                // WornItems снапшота параллелен симовому списку — индекс по
+                // нему честный.
+                index = -1;
+                for (var i = 0; i < npc.WornItems.Count; i++)
                 {
-                    index = i;
-                    break;
+                    if (npc.WornItems[i] == _invSelectedId)
+                    {
+                        index = i;
+                        break;
+                    }
                 }
+            }
+            else
+            {
+                // §123.5: carried-индекс берётся ТОЛЬКО из SourceIndex слота
+                // (как LootTransferPanel) — npc.InventoryItems переупорядочен
+                // стаками и врёт.
+                index = _invSelectedSourceIndex >= 0
+                    ? _invSelectedSourceIndex
+                    : FindCarriedSourceIndex(npc, _invSelectedId);
             }
             if (index < 0) return;
             var itemRef = new InventoryItemRef(
@@ -3094,7 +3179,8 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
-            Dictionary<string, float> dirtiness)
+            Dictionary<string, float> dirtiness,
+            int sourceIndex = -1)
         {
             element.RegisterCallback<PointerDownEvent>(evt =>
                 BeginInventoryPointerGesture(itemId, worn, evt));
@@ -3106,9 +3192,30 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 ShowItemDetail(
-                    itemId, worn, durability, water, stacks, wetness, dirtiness, element);
+                    itemId, worn, durability, water, stacks, wetness, dirtiness,
+                    element, sourceIndex);
                 evt.StopPropagation();
             });
+        }
+
+        // §123.5: запасной поиск авторитетного индекса, когда карточка открыта
+        // не с ячейки (например, пере-показ после rebuild): первый слот layout
+        // с этим definitionId. Дубликаты неразличимы — но это честный индекс в
+        // npc.Inventory.Items, а не легаси-перебор по переупорядоченному списку.
+        private static int FindCarriedSourceIndex(NpcSnapshot npc, string itemId)
+        {
+            foreach (var container in npc.InventoryContainers)
+            {
+                foreach (var slot in container.Slots)
+                {
+                    if (slot.ItemDefinitionId == itemId && slot.SourceIndex >= 0)
+                    {
+                        return slot.SourceIndex;
+                    }
+                }
+            }
+
+            return -1;
         }
 
         private void BeginInventoryPointerGesture(string itemId, bool worn, PointerDownEvent evt)

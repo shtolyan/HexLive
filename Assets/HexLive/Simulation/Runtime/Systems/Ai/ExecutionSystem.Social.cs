@@ -313,7 +313,7 @@ public sealed partial class ExecutionSystem
         npc.Execution.CurrentTalkTopic = null;
         npc.Execution.CurrentTalkTopicPeerId = null;
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Socialize);
-        PlanInterruption.Abort(world, npc, reason);
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, reason);
         npc.Mind.CurrentGoal = GoalType.None;
     }
 
@@ -801,7 +801,7 @@ public sealed partial class ExecutionSystem
             t.Mind.PendingAidFrom = null;
         }
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Aid);
-        PlanInterruption.Abort(world, npc, reason);
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, reason);
         npc.Mind.CurrentGoal = GoalType.None;
     }
 

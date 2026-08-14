@@ -459,7 +459,7 @@ public sealed class PathfindingSystem : ISimulationSystem
                 $"{target?.Value.ToString() ?? "-"} TargetObject=" +
                 $"{failedTargetObject?.Value.ToString() ?? "-"}");
         }
-        PlanInterruption.Abort(world, npc,
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.PathFailure,
             $"Path retry limit reached for {failedGoal}");
         npc.Movement.BlockedWaitTicks = 0;
         npc.Mind.CurrentGoal = GoalType.None;

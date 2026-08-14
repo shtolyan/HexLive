@@ -103,6 +103,10 @@ public sealed class WorldObjectView : MonoBehaviour
         return hit;
     }
 
+    /// <summary>§121.4: вид под курсором. Читает GarmentWorldCondition, чтобы
+    /// его покадровый Sync не затирал property block подсветки.</summary>
+    public bool Highlighted => _highlighted;
+
     public void SetHighlighted(bool on)
     {
         if (_highlighted == on)

@@ -61,7 +61,7 @@ internal static class CombatHelpSystem
                 helper.Execution.Status == ExecutionStatus.InProgress ||
                 helper.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(world, helper,
+                PlanInterruption.TryAbortForCombat(world, helper, InterruptionCause.HelpFriend,
                     $"Witnessed looting of NPC{victim.Id.Value}");
             }
 
@@ -193,7 +193,7 @@ internal static class CombatHelpSystem
                 helper.Execution.Status == ExecutionStatus.InProgress ||
                 helper.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(world, helper,
+                PlanInterruption.TryAbortForCombat(world, helper, InterruptionCause.HelpFriend,
                     $"Answering help cry from NPC{victim.Id.Value}");
             }
 
@@ -413,7 +413,7 @@ internal static class CombatHelpSystem
                 helper.Execution.Status == ExecutionStatus.InProgress ||
                 helper.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(world, helper,
+                PlanInterruption.TryAbortForCombat(world, helper, InterruptionCause.HelpFriend,
                     $"Rushing to defend friend NPC{victim.Id.Value}");
             }
 

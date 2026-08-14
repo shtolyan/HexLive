@@ -72,7 +72,7 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         if (owner.Plan.Status == PlanStatus.Active ||
             owner.Execution.Status == ExecutionStatus.InProgress)
         {
-            PlanInterruption.Abort(world, owner, $"Expelling NPC{intruder.Id.Value}");
+            PlanInterruption.TryAbort(world, owner, InterruptionCause.SceneInitiator, $"Expelling NPC{intruder.Id.Value}");
         }
 
         owner.Mind.CurrentGoal = GoalType.Expel;
@@ -331,8 +331,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             npc.Movement.IsMoving ||
             npc.IsCarryingPerson)
         {
-            PlanInterruption.AbortForCombat(
-                world, npc, $"Camp expulsion with NPC{peerId.Value}");
+            PlanInterruption.TryAbortForCombat(
+                world, npc, InterruptionCause.ScenePact, $"Camp expulsion with NPC{peerId.Value}");
         }
 
         npc.Plan.Goal = GoalType.Expel;
@@ -378,7 +378,7 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         {
             if (owner.Plan.Status == PlanStatus.Active || owner.Movement.IsMoving)
             {
-                PlanInterruption.Abort(world, owner, $"Expulsion ended: {reason}");
+                PlanInterruption.TryAbort(world, owner, InterruptionCause.SceneInitiator, $"Expulsion ended: {reason}");
             }
             else if (owner.Plan.TargetJunctionId is { } reserved)
             {

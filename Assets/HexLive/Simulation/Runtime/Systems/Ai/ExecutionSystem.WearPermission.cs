@@ -162,7 +162,7 @@ public sealed partial class ExecutionSystem
         }
 
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Dress);
-        PlanInterruption.Abort(world, npc, reason);
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, reason);
         npc.Mind.CurrentGoal = GoalType.None;
     }
 }

@@ -344,6 +344,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             {
                 Input.GroupOrderFeedback.Report(e.Message);
             }
+            // §121.7: возврат под ИИ по таймауту обязан быть виден — молчаливое
+            // «она вдруг зажила своей жизнью» читается как поломка.
+            else if (e.Type == "ManualControlExpired" && e.EntityId is { } expiredNpc)
+            {
+                Input.ManualOrderFeedback.ReportTerm(expiredNpc, "toast.manual_expired");
+            }
 
             if (!logAllTrace && !(logImportant && isGameHistoryEvent))
             {

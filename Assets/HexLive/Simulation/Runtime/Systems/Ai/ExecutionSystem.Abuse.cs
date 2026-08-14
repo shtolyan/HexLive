@@ -51,7 +51,7 @@ public sealed partial class ExecutionSystem
             npc.Execution.CurrentInteraction == InteractionType.Abuse &&
             mark.IsCarryingPerson)
         {
-            PlanInterruption.AbortForCombat(world, mark,
+            PlanInterruption.TryAbortForCombat(world, mark, InterruptionCause.AbuseMark,
                 $"Active abuse by NPC{npc.Id.Value}");
             mark.Mind.CurrentGoal = GoalType.None;
         }
@@ -220,7 +220,7 @@ public sealed partial class ExecutionSystem
                 mark.Execution.Status == ExecutionStatus.InProgress ||
                 mark.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(world, mark,
+                PlanInterruption.TryAbortForCombat(world, mark, InterruptionCause.AbuseMark,
                     $"Abused by NPC{npc.Id.Value}");
                 mark.Mind.CurrentGoal = GoalType.None;
             }
@@ -665,7 +665,7 @@ public sealed partial class ExecutionSystem
         // приглашение к разговору, брони оставшихся шагов и несомую вещь.
         // Дубль перед вызовом создавал ложное впечатление, будто демонтаж тут
         // свой.
-        PlanInterruption.Abort(world, npc, $"Abuse aborted: {reason}");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, $"Abuse aborted: {reason}");
         PlanningSystem.AbandonAbuse(world, npc, reason);
     }
 }

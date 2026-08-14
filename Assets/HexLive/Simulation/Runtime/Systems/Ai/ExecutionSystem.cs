@@ -39,7 +39,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 (npc.Inventory.FindFirstFood(world.Content) is not null ||
                  DecisionSystem.HasInventoryCoconutMeal(npc)))
             {
-                PlanInterruption.Abort(world, npc, "Food already available in inventory");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Food already available in inventory");
                 npc.Mind.CurrentGoal = GoalType.None;
                 if (SimTrace.Enabled)
                 {
@@ -52,7 +52,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             if (npc.Mind.CurrentGoal == GoalType.GetWater &&
                 DecisionSystem.HasInventoryCoconutWater(npc))
             {
-                PlanInterruption.Abort(world, npc, "Water already available in inventory");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Water already available in inventory");
                 npc.Mind.CurrentGoal = GoalType.None;
                 if (SimTrace.Enabled)
                 {
@@ -257,7 +257,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     Trace.Debug(world, npc.Id, "ExecFailed",
                         $"TargetObject={npc.Plan.TargetObjectId.Value.Value} not found in world (despawned?)");
                 }
-                PlanInterruption.Abort(world, npc, "Target object despawned mid-plan");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Target object despawned mid-plan");
                 npc.Mind.CurrentGoal = GoalType.None;
                 continue;
             }
@@ -303,7 +303,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     npc.Memory.Shun(worldObject.Id, world.Tick + AiBalance.ShunTicks);
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                    PlanInterruption.Abort(world, npc,
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Target {worldObject.DefinitionId} unreachable (path blocked)");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
@@ -333,7 +333,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     npc.Memory.Shun(worldObject.Id, world.Tick + AiBalance.ShunTicks);
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                    PlanInterruption.Abort(world, npc,
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Target {worldObject.DefinitionId} not adjacently reachable (too far to interact)");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
@@ -364,7 +364,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // fresh coconut) instead of re-targeting this one forever.
                     npc.Memory.Shun(worldObject.Id, world.Tick + AiBalance.ShunTicks);
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                    PlanInterruption.Abort(world, npc,
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Target {worldObject.DefinitionId} occupied on arrival");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
@@ -390,7 +390,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (wetWorn is null || wetWorn.Wetness <= 0.5f || RackIsFull(world, worldObject))
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             "Cannot hang (nothing wet or rack full)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -403,7 +403,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (!npc.Body.CanUseToolsOrWeapons && CraftNeedsToolsOrWeapons(npc.Plan.Goal))
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot craft {npc.Plan.Goal} (no legs)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -436,7 +436,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (!craftOk)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot craft ({npc.Plan.Goal}: ingredients or fire missing)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -461,7 +461,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (!billOk)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc, "Cannot build (materials missing or hut done)");
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Cannot build (materials missing or hut done)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
                     }
@@ -473,7 +473,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (!npc.Body.CanUseToolsOrWeapons)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot harvest {worldObject.DefinitionId} (no legs)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -497,7 +497,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (!toolOk)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot harvest {worldObject.DefinitionId} (missing tool)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -514,7 +514,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         (!isLightCoconutWork && !npc.Body.CanUseToolsOrWeapons))
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot process {worldObject.DefinitionId} " +
                             (npc.Body.HasUsableHand ? "(cannot stand)" : "(no usable hand)"));
                         npc.Mind.CurrentGoal = GoalType.None;
@@ -531,7 +531,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     !DecisionSystem.HasAnyCapability(npc, interaction.RequiredCapabilities))
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                    PlanInterruption.Abort(world, npc,
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Cannot {interaction.Id} on {worldObject.DefinitionId} " +
                         $"(no gear with any of [{string.Join("/", interaction.RequiredCapabilities)}])");
                     npc.Mind.CurrentGoal = GoalType.None;
@@ -551,7 +551,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (isCoconut ? !hasCoconutBlade : !hasChopTool)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot split {worldObject.DefinitionId} (missing tool)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -563,7 +563,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     worldObject.ResourceAmount <= 0f)
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                    PlanInterruption.Abort(world, npc,
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Cannot drink {worldObject.DefinitionId} (already drained)");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
@@ -578,7 +578,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                          npc.Inventory.Items, Content.GearCapability.Butcher)))
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                    PlanInterruption.Abort(world, npc,
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Cannot butcher {worldObject.DefinitionId} (no knife)");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
@@ -615,7 +615,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (!hasWoodNow || missingLighter)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot fuel fire (wood={hasWoodNow} lighterMissing={missingLighter})");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -652,7 +652,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         world, npc, npc.Plan.Goal, worldObject, out _))
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                    PlanInterruption.Abort(world, npc,
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Cannot begin persistent craft project ({npc.Plan.Goal})");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
@@ -685,7 +685,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                             npc.CurrentJunction))
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot enter bed {worldObject.Id.Value}");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -746,7 +746,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     if (!BedSleep.MaintainPose(world, npc, worldObject))
                     {
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Bed pose unavailable for {worldObject.Id.Value}");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
@@ -765,7 +765,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                                 $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
                                 $"Danger={npc.Memory.Dangers.Count}");
                         }
-                        PlanInterruption.Abort(world, npc, "Critical need interrupted sleep");
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Critical need interrupted sleep");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
                     }
@@ -779,7 +779,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     definition.Tags.Contains("Campfire") &&
                     worldObject.ResourceAmount <= 0f)
                 {
-                    PlanInterruption.Abort(world, npc, "Fire went out mid-interaction");
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Fire went out mid-interaction");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
                 }
@@ -1879,6 +1879,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // §121: приказ ИДТИ, наоборот, здесь и заканчивается — «дошла» и есть
         // его исполнение. Цель гасится общим путём ниже, а ManualOrderSystem
         // на следующем среднем проходе только подтвердит, что приказ доигран.
+        //
+        // §121.7: завершение приказа перезапускает окно внимания ЗДЕСЬ ЖЕ —
+        // этот путь минует SweepFinishedOrder (цель уже None), и без штампа
+        // поход длиннее таймаута «истекал» в момент прибытия: два тика спустя
+        // её отпускало под ИИ.
+        if (npc.Mind.CurrentGoal == GoalType.PlayerOrder)
+        {
+            npc.Mind.LastManualInputTick = world.Tick;
+        }
+
         npc.Mind.CurrentGoal = GoalType.None;
         if (SimTrace.Enabled)
         {

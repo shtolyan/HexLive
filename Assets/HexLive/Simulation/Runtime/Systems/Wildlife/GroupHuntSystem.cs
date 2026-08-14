@@ -322,8 +322,8 @@ public sealed class GroupHuntSystem : ISimulationSystem
                     quarry.Execution.Status == ExecutionStatus.InProgress ||
                     quarry.IsCarryingPerson)
                 {
-                    PlanInterruption.AbortForCombat(
-                        world, quarry, $"Cornered by NPC{nearest.Id.Value}");
+                    PlanInterruption.TryAbortForCombat(
+                        world, quarry, InterruptionCause.CorneredFight, $"Cornered by NPC{nearest.Id.Value}");
                     quarry.Mind.CurrentGoal = GoalType.None;
                 }
 
@@ -360,10 +360,10 @@ public sealed class GroupHuntSystem : ISimulationSystem
     // от троих в их же двор было бы не побегом.
     private static bool TryFleeHome(WorldState world, NPCState quarry, int hunters)
     {
-        // §121: ручная не убегает сама — отступление приказывает игрок.
+        // §121.5: ручная не убегает сама — отступление приказывает игрок.
         // Возврат false отправляет её в ветку «бежать некуда»: она встаёт и
         // дерётся, что и есть верное поведение для оставленной без приказа.
-        if (ManualControlMath.IsManual(quarry))
+        if (!NpcControlPolicy.MayFlee(quarry))
         {
             return false;
         }
@@ -410,7 +410,7 @@ public sealed class GroupHuntSystem : ISimulationSystem
             return false;
         }
 
-        PlanInterruption.Abort(world, quarry, $"Run home — {hunters} of them");
+        PlanInterruption.TryAbort(world, quarry, InterruptionCause.Flee, $"Run home — {hunters} of them");
         quarry.IsFighting = false;
         quarry.Mind.CombatOpponentNpcId = null;
         quarry.Mind.FleeContactSinceTick = 0;

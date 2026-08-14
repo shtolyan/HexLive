@@ -14,28 +14,71 @@ namespace HexLive.Simulation.Runtime
 // Spec 23.17 interrupt semantics: abort an active plan cleanly, releasing
 // everything the plan owns (object occupancy, junction occupancy/reservation)
 // so the next decision pass can replan without leaks.
+//
+// §121.5: с введением политики управления снос плана обязан назвать причину.
+// Публичны только TryAbort*-входы; охрана NpcControlPolicy решает, проходит
+// ли причина у ручного персонажа. Вернувшийся false означает «план жив» —
+// вызывающий обязан не трогать ни цель, ни IsFighting, ни сцепку жертвы.
 public static class PlanInterruption
 {
-    public static void Abort(WorldState world, NPCState npc, string reason)
+    public static bool TryAbort(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
-        CancelInterruptedRescue(world, npc);
-        AbortCore(world, npc, reason, keepCarriedPerson: false);
+        if (!AllowedBy(world, npc, cause, reason)) return false;
+        Abort(world, npc, reason);
+        return true;
     }
 
     /// <summary>§124: новый приказ движения/остановки не роняет тело из рук.
     /// Все владения старого плана освобождаются, но двусторонняя carry-ссылка
     /// остаётся до явного PutDown или опасного прерывания.</summary>
-    public static void AbortKeepingCarriedPerson(WorldState world, NPCState npc, string reason)
+    public static bool TryAbortKeepingCarriedPerson(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
-        CancelInterruptedRescue(world, npc);
-        AbortCore(world, npc, reason, keepCarriedPerson: true);
+        if (!AllowedBy(world, npc, cause, reason)) return false;
+        AbortKeepingCarriedPerson(world, npc, reason);
+        return true;
     }
 
     // §118.4: combat is a temporary interruption, not permission to keep a
     // patient glued to the fighter or to forget her. Put her down before any
     // swing can start, reserve that same patient, then let RescueSystem resume
     // the evacuation once the fight/scene releases the rescuer.
-    public static void AbortForCombat(WorldState world, NPCState npc, string reason)
+    public static bool TryAbortForCombat(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
+    {
+        if (!AllowedBy(world, npc, cause, reason)) return false;
+        AbortForCombat(world, npc, reason);
+        return true;
+    }
+
+    // §121.5: путь не-ручного персонажа обязан быть байт-в-байт прежним —
+    // здесь два булевых чтения и ни одной трассы на разрешённом пути.
+    private static bool AllowedBy(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
+    {
+        if (NpcControlPolicy.MayInterruptPlan(npc, cause)) return true;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InterruptDenied", $"Cause={cause} {reason}");
+        }
+
+        return false;
+    }
+
+    private static void Abort(WorldState world, NPCState npc, string reason)
+    {
+        CancelInterruptedRescue(world, npc);
+        AbortCore(world, npc, reason, keepCarriedPerson: false);
+    }
+
+    private static void AbortKeepingCarriedPerson(WorldState world, NPCState npc, string reason)
+    {
+        CancelInterruptedRescue(world, npc);
+        AbortCore(world, npc, reason, keepCarriedPerson: true);
+    }
+
+    private static void AbortForCombat(WorldState world, NPCState npc, string reason)
     {
         var remembered = npc.Mind.InterruptedRescuePatientId;
         var dropped = AbortCore(world, npc, reason, keepCarriedPerson: false);

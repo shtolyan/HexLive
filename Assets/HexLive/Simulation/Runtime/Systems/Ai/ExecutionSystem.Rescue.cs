@@ -35,7 +35,7 @@ public sealed partial class ExecutionSystem
             helper.Movement.IsMoving && helper.Movement.BlockedWaitTicks >= 40)
         {
             PlanningSystem.SetGoalCooldown(world, helper, GoalType.Rescue);
-            PlanInterruption.Abort(world, helper,
+            PlanInterruption.TryAbort(world, helper, InterruptionCause.RescueDrop,
                 $"patient approach occupied too long (Junction={helper.Plan.TargetJunctionId?.Value.ToString() ?? "-"})");
             helper.Mind.CurrentGoal = GoalType.None;
             patient.Mind.PendingAidFrom = null;
@@ -75,7 +75,7 @@ public sealed partial class ExecutionSystem
                 world, helper, patient, out _, out var prostheticItemId);
         if (!KenshiRescueMath.NeedsRescue(world, patient) && !prostheticBedTransport)
         {
-            PlanInterruption.Abort(world, helper, "patient recovered before pickup");
+            PlanInterruption.TryAbort(world, helper, InterruptionCause.RescueDrop, "patient recovered before pickup");
             helper.Mind.CurrentGoal = GoalType.None;
             patient.Mind.PendingAidFrom = null;
             return;
@@ -91,7 +91,7 @@ public sealed partial class ExecutionSystem
         if (helper.Movement.Status == MovementStatus.Blocked)
         {
             PlanningSystem.SetGoalCooldown(world, helper, GoalType.Rescue);
-            PlanInterruption.Abort(world, helper, "patient approach blocked");
+            PlanInterruption.TryAbort(world, helper, InterruptionCause.RescueDrop, "patient approach blocked");
             helper.Mind.CurrentGoal = GoalType.None;
             patient.Mind.PendingAidFrom = null;
             return;
@@ -146,7 +146,7 @@ public sealed partial class ExecutionSystem
                         : null))
         {
             PlanningSystem.SetGoalCooldown(world, helper, GoalType.Rescue);
-            PlanInterruption.Abort(world, helper,
+            PlanInterruption.TryAbort(world, helper, InterruptionCause.RescueDrop,
                 "no safe bed or camp ground route " +
                 $"(searches={KenshiRescueMath.DestinationPathSearchesLastCall})");
             helper.Mind.CurrentGoal = GoalType.None;

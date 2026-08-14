@@ -27,7 +27,7 @@ public sealed partial class ExecutionSystem
             if (npc.Movement.Status == MovementStatus.Blocked)
             {
                 PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                PlanInterruption.Abort(world, npc, "Ground rest spot unreachable");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Ground rest spot unreachable");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -75,7 +75,7 @@ public sealed partial class ExecutionSystem
                 !SpatialMutations.TryReserveJunction(
                     world, reserved, npc.Id, world.Tick, durationTicks + 8))
             {
-                PlanInterruption.Abort(world, npc, "Ground rest edge was claimed");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Ground rest edge was claimed");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -106,7 +106,7 @@ public sealed partial class ExecutionSystem
                     {
                         SpatialMutations.FreeJunction(world, spot, npc.Id);
                         SpatialMutations.ReleaseJunctionReservation(world, spot, npc.Id);
-                        PlanInterruption.Abort(world, npc, "No safe ground-lying footprint");
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "No safe ground-lying footprint");
                         npc.Mind.CurrentGoal = GoalType.None;
                         return;
                     }
@@ -503,7 +503,7 @@ public sealed partial class ExecutionSystem
 
             if (garment is null)
             {
-                PlanInterruption.Abort(world, npc, "Bathe: active garment disappeared");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Bathe: active garment disappeared");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -591,7 +591,7 @@ public sealed partial class ExecutionSystem
 
         if (swim is null)
         {
-            PlanInterruption.Abort(world, npc, "Bathe: no reachable water junction");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Bathe: no reachable water junction");
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
@@ -622,7 +622,7 @@ public sealed partial class ExecutionSystem
 
         if (npc.WornItems.Count > 0)
         {
-            PlanInterruption.Abort(world, npc, "Bathe requires complete undressing");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Bathe requires complete undressing");
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
@@ -715,7 +715,7 @@ public sealed partial class ExecutionSystem
         {
             npc.Mind.RedressGarments.Clear();
             npc.Mind.RedressShore = null;
-            PlanInterruption.Abort(world, npc, "PostBatheRedress: shore unreachable");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "PostBatheRedress: shore unreachable");
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
@@ -826,7 +826,7 @@ public sealed partial class ExecutionSystem
 
             if (!world.Entities.Objects.TryGetValue(fetchId, out var pile))
             {
-                PlanInterruption.Abort(world, npc, "WashClothes garment disappeared");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "WashClothes garment disappeared");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -841,14 +841,14 @@ public sealed partial class ExecutionSystem
             {
                 npc.Memory.Shun(pile.Id, world.Tick + AiBalance.ShunTicks);
                 PlanningSystem.SetGoalCooldown(world, npc, GoalType.WashClothes);
-                PlanInterruption.Abort(world, npc, "WashClothes garment not adjacently reachable");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "WashClothes garment not adjacently reachable");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
 
             if (!TryPickGarmentIntoHand(world, npc, fetchId))
             {
-                PlanInterruption.Abort(world, npc, "WashClothes garment disappeared");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "WashClothes garment disappeared");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -876,7 +876,7 @@ public sealed partial class ExecutionSystem
         {
             SpatialMutations.FreeJunction(world, target, npc.Id);
             SpatialMutations.ReleaseJunctionReservation(world, target, npc.Id);
-            PlanInterruption.Abort(world, npc, "WashClothes edge disappeared");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "WashClothes edge disappeared");
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
@@ -890,7 +890,7 @@ public sealed partial class ExecutionSystem
             if (!SpatialMutations.TryReserveJunction(world, target, npc.Id, world.Tick,
                     UndressDurationTicks + SimBalance.WashClothesDurationTicks + 8))
             {
-                PlanInterruption.Abort(world, npc, "WashClothes edge was claimed");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "WashClothes edge was claimed");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -910,7 +910,7 @@ public sealed partial class ExecutionSystem
                 !npc.WornItems.Contains(wornId))
             {
                 SpatialMutations.FreeJunction(world, target, npc.Id);
-                PlanInterruption.Abort(world, npc, "WashClothes worn piece disappeared");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "WashClothes worn piece disappeared");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -936,7 +936,7 @@ public sealed partial class ExecutionSystem
             if (garment is null)
             {
                 SpatialMutations.FreeJunction(world, target, npc.Id);
-                PlanInterruption.Abort(world, npc, "WashClothes worn piece disappeared");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "WashClothes worn piece disappeared");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -975,7 +975,7 @@ public sealed partial class ExecutionSystem
         if (npc.Execution.HeldGarment is not { } held)
         {
             SpatialMutations.FreeJunction(world, target, npc.Id);
-            PlanInterruption.Abort(world, npc, "WashClothes lost the held garment");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "WashClothes lost the held garment");
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }

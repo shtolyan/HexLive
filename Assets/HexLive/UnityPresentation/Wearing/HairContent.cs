@@ -50,6 +50,38 @@ public static class HairContent
     public static string WearAddress(string artId) => $"wear/{artId}";
 
     /// <summary>
+    /// §41.3: заказать причёску заранее, НЕ дожидаясь. Кладёт хэндл в тот же
+    /// кэш, из которого читает <see cref="LoadHair"/>, — поэтому актриса,
+    /// собранная позже, подхватит уже приехавший префаб вместо своей загрузки.
+    ///
+    /// Учёт в очереди обязателен: без Begin/End занавес не знал бы, что ждёт
+    /// причёску, и упал бы раньше — с лысой головой на кадр.
+    /// </summary>
+    public static void Prewarm(string hairId)
+    {
+        if (string.IsNullOrEmpty(hairId))
+        {
+            return;
+        }
+
+        var address = HairAddress(hairId);
+        if (Hair.TryGetValue(address, out var cached))
+        {
+            if (cached.IsValid())
+            {
+                return;
+            }
+
+            Hair.Remove(address);
+        }
+
+        var handle = Addressables.LoadAssetAsync<GameObject>(address);
+        Hair[address] = handle;
+        Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Hair);
+        handle.Completed += _ => Garments.ContentQueue.End(Garments.ContentQueue.Kind.Hair);
+    }
+
+    /// <summary>
     /// Префаб причёски. Корутина, а не async/await: вызывающий — MonoBehaviour,
     /// которому надо просто дождаться и продолжить, а исключения в async void
     /// в Unity теряются молча.

@@ -62,10 +62,6 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     /// греет всё сам, ровно как раньше.</summary>
     public static bool DeferContentPrewarm { get; set; }
 
-    // Что именно греть — СОБИРАЕТСЯ в Bootstrap, на главном потоке, до первого
-    // шага мира. Отложить можно загрузку, но не этот обход: он читает
-    // Entities.Npcs/Corpses/Objects, а их в это время уже мотает воркер.
-    private readonly List<string> _pendingWear = new();
     private bool _contentWarmed;
 
     /// <summary>
@@ -440,8 +436,14 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // «Trace» в дебаг-панели прямо во время игры.
         HexLive.Simulation.Runtime.SimTrace.Enabled = TraceRequestedOnCommandLine();
 
-        _pendingWear.Clear();
-        CollectWornWear(world, _pendingWear);
+        // Контент, ЗАВИСЯЩИЙ от мира (одежда, причёски, протезы), заказывается
+        // здесь всегда: обход Entities.* возможен только пока мир на главном
+        // потоке, а заявки не блокируют — они лишь уходят в Addressables. Так
+        // гардероб едет параллельно намотке офлайна, а не после неё.
+        Wearing.ScenePrewarm.ForWorld(world);
+
+        // Блокирующая часть (Resources, FMOD, префабы мобов) может подождать:
+        // экран загрузки позовёт её сам, уже на фоне работающего воркера.
         _contentWarmed = false;
         if (!DeferContentPrewarm)
         {
@@ -474,81 +476,23 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     }
 
     /// <summary>
-    /// Кто из гардероба нужен ЭТОМУ миру прямо сейчас: надетое на живых и на
-    /// мёртвых плюс одежда, валяющаяся на земле.
-    ///
-    /// Спрашивать каталог целиком нельзя — это 712 бандлов и 1.99 ГБ, и занавес
-    /// честно ждал бы весь гардероб ради четырёх видимых девушек. Всё остальное
-    /// остаётся ленивым: ради этого арт и уехал из Resources.
-    ///
-    /// ⚠️ Читает Entities.* — значит, только с главного потока и только когда
-    /// мир не мотается воркером (§41.3).
-    /// </summary>
-    private static void CollectWornWear(
-        HexLive.Simulation.Core.WorldState world, ICollection<string> into)
-    {
-        var seen = new HashSet<string>();
-
-        foreach (var npc in world.Entities.Npcs.Values)
-        {
-            foreach (var item in npc.WornItems)
-            {
-                seen.Add(item.DefinitionId);
-            }
-        }
-
-        foreach (var corpse in world.Entities.Corpses.Values)
-        {
-            foreach (var item in corpse.WornItems)
-            {
-                seen.Add(item.DefinitionId);
-            }
-        }
-
-        var garmentIds = new HashSet<string>();
-        foreach (var garment in GarmentLibrary.Active)
-        {
-            garmentIds.Add(garment.Id);
-        }
-
-        foreach (var worldObject in world.Entities.Objects.Values)
-        {
-            if (garmentIds.Contains(worldObject.DefinitionId))
-            {
-                seen.Add(worldObject.DefinitionId);
-            }
-        }
-
-        foreach (var id in seen)
-        {
-            into.Add(id);
-        }
-    }
-
-    /// <summary>
-    /// §41.3: догреть гардероб ПОСЛЕ намотки офлайна.
+    /// §41.3: догреть контент мира ПОСЛЕ намотки офлайна.
     ///
     /// Список, собранный до намотки, к её концу устарел: за игровые сутки
-    /// колонистка могла переодеться, раздеться, умереть в другом, а на землю —
-    /// выпасть то, чего в мире не было вовсе. Прогрев по старому списку оставил
-    /// бы такую вещь на ленивом пути, то есть на блокирующем GetVisuals внутри
-    /// первого же кадра игры.
+    /// колонистка успевает переодеться, умереть в другом, лишиться руки и
+    /// получить протез, а в колонию — прийти новая девушка со своей причёской.
+    /// Прогрев по старому списку оставил бы всё это на ленивом пути, то есть на
+    /// блокирующем чтении в первом же кадре игры.
     ///
-    /// Повторный проход дешёвый: <c>PrewarmAsync</c> молча выходит на всём, что
-    /// уже в кэше, так что заявки уходят только на разницу.
+    /// Что именно греть — знает <see cref="Wearing.ScenePrewarm"/>, и это
+    /// единственное место, куда добавляется новая семья контента. Повторный
+    /// проход дешёвый: каждая дверь молчит на уже приехавшем.
     /// </summary>
-    public void WarmWornWear()
+    public void WarmForWorld()
     {
-        if (Engine is not { } engine)
+        if (Engine is { } engine)
         {
-            return;
-        }
-
-        var ids = new List<string>();
-        CollectWornWear(engine.World, ids);
-        foreach (var id in ids)
-        {
-            Wearing.GarmentDropFactory.Prewarm(id);
+            Wearing.ScenePrewarm.ForWorld(engine.World);
         }
     }
 
@@ -603,19 +547,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // a prefab (8.3 MB / 64 assets, so there is nothing to ration).
         _objectPrefabPin = Resources.LoadAll<GameObject>("HexLive/Objects");
 
-        // Одежда — асинхронная: заявки уходят в Addressables и учитываются
-        // ContentQueue, ждать их здесь НЕЛЬЗЯ (WaitForCompletion из корутины —
-        // тот самый тупик из 105199ce). Экран загрузки дожидается очереди.
+        // Иконки — все и сразу: один бандл на 0.73 МБ, разбираться, какие
+        // понадобятся, дороже, чем взять их целиком. От состояния мира не
+        // зависят, поэтому живут здесь, а не в ScenePrewarm.
         //
-        // Список собран ДО намотки офлайна; то, что появилось за неё, догревает
-        // WarmWornWear, когда мир возвращается на главный поток.
-        foreach (var id in _pendingWear)
-        {
-            Wearing.GarmentDropFactory.Prewarm(id);
-        }
-
-        // Иконки — наоборот, все и сразу: один бандл на 0.73 МБ, разбираться,
-        // какие понадобятся, дороже, чем взять их целиком.
+        // Заявка асинхронная и учитывается ContentQueue; ждать её здесь НЕЛЬЗЯ
+        // (WaitForCompletion из корутины — тот самый тупик из 105199ce).
         Wearing.Garments.ItemIcons.PrewarmAll();
     }
 

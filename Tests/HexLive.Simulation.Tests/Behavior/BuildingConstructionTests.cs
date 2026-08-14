@@ -528,12 +528,11 @@ public sealed class BuildingConstructionTests
         var tile = world.Tiles.Items[hut.Tile];
         var portals = tile.Junctions.Select(id => world.Junctions.Items[id])
             .Where(junction => junction.Door).ToArray();
-        Assert.That(portals, Has.Length.EqualTo(3));
+        Assert.That(portals, Has.Length.EqualTo(1),
+            "§120: door bay has exactly one junction portal; its other edge nodes stay blocked.");
 
         var center = HexSpatialMath.TileToWorld(hut.Tile);
-        var portalCenter = new Float2(
-            portals.Average(junction => junction.WorldPosition.X),
-            portals.Average(junction => junction.WorldPosition.Y));
+        var portalCenter = portals[0].WorldPosition;
         var portalDelta = HexSpatialMath.Normalize(portalCenter - center);
         var doorRadians = BuildingRules.DoorOutwardYaw(hut) * MathF.PI / 180f;
         var doorDirection = new Float2(MathF.Cos(doorRadians), MathF.Sin(doorRadians));

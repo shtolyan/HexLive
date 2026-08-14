@@ -1,328 +1,1122 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Text;
-using HexLive.Simulation.Runtime;
+using System.Linq;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Environment;
+using HexLive.UnityPresentation.HutTest.BlueprintEditor;
+using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Views;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.HutTest
 {
-
-/// <summary>Player-facing in-scene authoring fixture for the one-hex blueprint.</summary>
-public sealed class HutLayoutDesigner : MonoBehaviour
-{
-    private const string DraftKey = "HexLive.HutLayoutDraft.v1";
-    private const float PanelWidth = 286f;
-    private const float PanelHeight = 500f;
-    private const float PanelMargin = 12f;
-    private readonly BuildingElementKind[] _bays = new BuildingElementKind[12];
-    private readonly List<FurnitureDraft> _furniture = new();
-    private readonly List<GameObject> _markers = new();
-    private SimulationRunnerBehaviour? _runner;
-    private Camera? _camera;
-    private Transform? _source;
-    private GameObject? _preview;
-    private Transform? _furnitureRoot;
-    private Material? _markerMaterial;
-    private Tool _tool;
-    private bool _painting;
-    private int _lastBay = -1;
-    private int _selected = -1;
-    private string _status = "Выберите инструмент.";
-
-    [Serializable] private sealed class DraftData
+    /// <summary>
+    /// Sims-style multi-hex constructor. The editor owns gestures and UI only;
+    /// every mutation goes through BlueprintEditorCommands and the preview
+    /// reads the resulting production-ready integer blueprint.
+    /// </summary>
+    [RequireComponent(typeof(UIDocument))]
+    public sealed class HutLayoutDesigner : MonoBehaviour
     {
-        public int[] bayKinds = Array.Empty<int>();
-        public FurnitureDraft[] furniture = Array.Empty<FurnitureDraft>();
-    }
-    [Serializable] private sealed class FurnitureDraft
-    {
-        public string type = "bed";
-        public int junction;
-        public float localX;
-        public float localZ;
-        public float rotationDegrees;
-    }
-    private enum Tool { Select, Move, Wall, Window, Door, Bed, Hearth, Wardrobe, Delete }
-
-    private void Start()
-    {
-        _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
-        _camera = Camera.main;
-        for (var i = 0; i < 12; i++) _bays[i] = BuildingRules.HutBayKind(i);
-        Load();
-    }
-
-    private void Update()
-    {
-        if (_preview == null) Initialize();
-        if (_preview == null || _camera == null) return;
-        if (_runner != null && !_runner.IsPaused) _runner.TogglePause();
-        var mouse = Mouse.current;
-        if (mouse == null) return;
-        var screen = mouse.position.ReadValue();
-        if (screen.x < PanelWidth + PanelMargin * 2f && screen.y < PanelHeight + PanelMargin * 2f) return;
-        if (!TryPoint(screen, out var point)) return;
-        if (_painting && IsBayTool(_tool)) Paint(point);
-        if (!mouse.leftButton.wasPressedThisFrame) return;
-        if (IsBayTool(_tool))
+        private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
+        private const string DraftId = "hut_constructor_autosave";
+        private const float PickRadius = 0.34f;
+        private readonly BlueprintCommandHistory _history = new();
+        private readonly BlueprintDraftStore _store = new();
+        private readonly HashSet<string> _selectedIds = new();
+        private readonly Dictionary<Tool, string> _toolButtonNames = new()
         {
-            if (!_painting) { _painting = true; _lastBay = -1; Paint(point); _status = "Ведём стену. Второй клик — закончить."; }
-            else { Paint(point); _painting = false; _lastBay = -1; _status = "Линия завершена."; }
+            [Tool.Select] = "tool-select",
+            [Tool.Room] = "tool-room",
+            [Tool.Wall] = "tool-wall",
+            [Tool.Window] = "tool-window",
+            [Tool.Door] = "tool-door",
+            [Tool.Support] = "tool-support",
+            [Tool.Floor] = "tool-floor",
+            [Tool.Roof] = "tool-roof",
+            [Tool.Bed] = "tool-bed",
+            [Tool.Hearth] = "tool-hearth",
+            [Tool.Wardrobe] = "tool-wardrobe"
+        };
+
+        private UIDocument? _document;
+        private VisualElement? _panel;
+        private Label? _statusLabel;
+        private Label? _selectionLabel;
+        private SimulationRunnerBehaviour? _runner;
+        private Camera? _camera;
+        private Transform? _source;
+        private BlueprintPreviewRenderer? _preview;
+        private Transform? _handles;
+        private BuildingBlueprintDraft _draft = null!;
+        private BlueprintEditorMode _mode = BlueprintEditorMode.Rooms;
+        private Tool _tool = Tool.Select;
+        private string _selectedId = string.Empty;
+        private int _selectedRoomId;
+        private bool _gestureActive;
+        private HexBuildNodeKey _wallStart;
+        private FloorSectorKey _roomStart;
+        private string _dragFurnitureId = string.Empty;
+        private string _dragOpeningId = string.Empty;
+        private BlueprintRoomResizeHandle? _roomResizeHandle;
+        private BuildingBlueprintDraft? _gesturePreview;
+        private bool _initialized;
+        private float _autosaveDeadline;
+        private string _statusKey = "blueprint.status.ready";
+
+        private enum Tool
+        {
+            Select,
+            Room,
+            Wall,
+            Window,
+            Door,
+            Support,
+            Floor,
+            Roof,
+            Bed,
+            Hearth,
+            Wardrobe
         }
-        else if (_tool is Tool.Bed or Tool.Hearth or Tool.Wardrobe)
-            Place(point, _tool == Tool.Bed ? "bed" : _tool == Tool.Hearth ? "hearth" : "wardrobe");
-        else if (_tool == Tool.Move) MoveSelected(point);
-        else Select(point, _tool == Tool.Delete);
-    }
 
-    private void Initialize()
-    {
-        foreach (var hut in FindObjectsByType<HutAssembly>(FindObjectsSortMode.None))
-            if (!hut.name.Contains("designer preview")) { _source = hut.transform; break; }
-        if (_source == null) return;
-        foreach (var r in _source.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
-        foreach (var view in WorldObjectView.All)
-            if (view != null && Vector3.Distance(view.transform.position, _source.position) < 2f)
-                foreach (var r in view.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
-        Rebuild();
-        _status = "Конструктор включён. Симуляция на паузе.";
-    }
-
-    private void Rebuild()
-    {
-        if (_source == null) return;
-        if (_preview != null) Destroy(_preview);
-        _preview = HutAssembly.BuildDesignerPreview(_bays);
-        _preview.transform.SetPositionAndRotation(_source.position, _source.rotation);
-        _furnitureRoot = new GameObject("Designer furniture").transform;
-        _furnitureRoot.SetParent(_preview.transform, false);
-        foreach (var item in _furniture)
+        private void Awake()
         {
-            var go = item.type switch
+            _document = GetComponent<UIDocument>();
+            ConfigurePanelSettings();
+            BuildUi();
+            Loc.LanguageChanged += ApplyLanguage;
+        }
+
+        private void Start()
+        {
+            _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
+            _camera = Camera.main;
+            if (!_store.TryLoad(DraftId, out _draft, out var error))
             {
-                "bed" => HutFurnitureFactory.BuildBed(),
-                "hearth" => HutFurnitureFactory.BuildHearth(),
-                "wardrobe" => WardrobeAssembly.BuildFinished(),
-                _ => null
+                _draft = BuiltInBuildingBlueprints.Hut1Hex();
+                _draft.BlueprintId = DraftId;
+                if (!string.IsNullOrEmpty(error)) Debug.LogWarning($"[BlueprintEditor] {error}", this);
+            }
+            ApplyLanguage();
+        }
+
+        private void OnDestroy()
+        {
+            Loc.LanguageChanged -= ApplyLanguage;
+        }
+
+        private void Update()
+        {
+            if (!_initialized) InitializePreview();
+            if (!_initialized || _preview == null || _camera == null) return;
+            if (_runner != null && !_runner.IsPaused) _runner.TogglePause();
+            HandleKeyboard();
+            HandlePointer();
+            _preview.UpdateCutaway(_camera);
+            if (_autosaveDeadline > 0f && Time.unscaledTime >= _autosaveDeadline)
+            {
+                _autosaveDeadline = 0f;
+                SaveDraft(false);
+            }
+        }
+
+        private void InitializePreview()
+        {
+            foreach (var hut in FindObjectsByType<HutAssembly>(FindObjectsSortMode.None))
+            {
+                if (hut.name.Contains("Blueprint", StringComparison.OrdinalIgnoreCase)) continue;
+                _source = hut.transform;
+                break;
+            }
+            if (_source == null || _draft == null) return;
+
+            foreach (var renderer in _source.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+            foreach (var view in WorldObjectView.All)
+            {
+                if (view == null || Vector3.Distance(view.transform.position, _source.position) >= 2f) continue;
+                foreach (var renderer in view.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+            }
+
+            var root = new GameObject("Blueprint constructor preview");
+            root.transform.SetPositionAndRotation(_source.position, _source.rotation);
+            _preview = root.AddComponent<BlueprintPreviewRenderer>();
+            RebuildPreview();
+            _initialized = true;
+        }
+
+        private void ConfigurePanelSettings()
+        {
+            if (_document == null) return;
+            var baseSettings = Resources.Load<PanelSettings>("HexLive/DebugPanelSettings");
+            if (baseSettings == null) return;
+            var settings = Instantiate(baseSettings);
+            settings.name = "HutConstructorPanelSettings";
+            settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+            settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
+            settings.referenceResolution = new Vector2Int(1920, 1080);
+            settings.match = 1f;
+            settings.sortingOrder = 175;
+            _document.panelSettings = settings;
+        }
+
+        private void BuildUi()
+        {
+            if (_document == null) return;
+            var root = _document.rootVisualElement;
+            root.Clear();
+            root.style.flexGrow = 1f;
+            root.pickingMode = PickingMode.Ignore;
+            var tree = Resources.Load<VisualTreeAsset>(PanelResource);
+            var sheet = Resources.Load<StyleSheet>(PanelResource);
+            if (tree == null || sheet == null)
+            {
+                Debug.LogError("[BlueprintEditor] UI Toolkit resources are missing.", this);
+                return;
+            }
+            tree.CloneTree(root);
+            root.styleSheets.Add(sheet);
+            _panel = root.Q("constructor-panel");
+            if (_panel != null) _panel.pickingMode = PickingMode.Position;
+            _statusLabel = root.Q<Label>("status-label");
+            _selectionLabel = root.Q<Label>("selection-label");
+
+            BindMode(root, "mode-rooms", BlueprintEditorMode.Rooms);
+            BindMode(root, "mode-architecture", BlueprintEditorMode.Architecture);
+            BindMode(root, "mode-furniture", BlueprintEditorMode.Furniture);
+            BindMode(root, "mode-roof", BlueprintEditorMode.Roof);
+            foreach (var pair in _toolButtonNames)
+            {
+                var captured = pair.Key;
+                root.Q<Button>(pair.Value).clicked += () => SetTool(captured);
+            }
+            root.Q<Button>("rotate-left").clicked += () => RotateSelected(-1);
+            root.Q<Button>("rotate-right").clicked += () => RotateSelected(1);
+            root.Q<Button>("delete-selection").clicked += DeleteSelected;
+            root.Q<Button>("undo").clicked += Undo;
+            root.Q<Button>("redo").clicked += Redo;
+            root.Q<Button>("save").clicked += () => SaveDraft(true);
+            root.Q<Button>("export").clicked += ExportDraft;
+            RefreshUiState();
+        }
+
+        private void HandleKeyboard()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+            var command = keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed ||
+                          keyboard.leftMetaKey.isPressed || keyboard.rightMetaKey.isPressed;
+            if (command && keyboard.zKey.wasPressedThisFrame)
+            {
+                if (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed) Redo();
+                else Undo();
+            }
+            else if (keyboard.qKey.wasPressedThisFrame) RotateSelected(-1);
+            else if (keyboard.eKey.wasPressedThisFrame) RotateSelected(1);
+            else if (keyboard.deleteKey.wasPressedThisFrame || keyboard.backspaceKey.wasPressedThisFrame) DeleteSelected();
+            else if (keyboard.escapeKey.wasPressedThisFrame) CancelGesture();
+        }
+
+        private void HandlePointer()
+        {
+            var mouse = Mouse.current;
+            if (mouse == null) return;
+            if (mouse.rightButton.wasPressedThisFrame)
+            {
+                CancelGesture();
+                return;
+            }
+            var screen = mouse.position.ReadValue();
+            if (PointerOverPanel(screen)) return;
+            if (!TryLocalPoint(screen, out var local)) return;
+
+            if (mouse.leftButton.wasPressedThisFrame) PointerDown(local, screen);
+            if (_gestureActive && mouse.leftButton.isPressed) UpdateGesturePreview(local);
+            if (_gestureActive && mouse.leftButton.wasReleasedThisFrame) PointerUp(local);
+        }
+
+        private void PointerDown(Vector3 local, Vector2 screen)
+        {
+            if (TryHandleClick(screen)) return;
+            switch (_tool)
+            {
+                case Tool.Wall:
+                    _wallStart = NearestBuildNode(local);
+                    _gestureActive = true;
+                    break;
+                case Tool.Room:
+                    _roomStart = NearestSector(local);
+                    _gestureActive = true;
+                    break;
+                case Tool.Select:
+                    var keyboard = Keyboard.current;
+                    var additive = keyboard != null &&
+                        (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
+                    SelectNearest(local, additive);
+                    if (_selectedIds.Count <= 1 && _mode == BlueprintEditorMode.Furniture &&
+                        _draft.Furniture.Any(item => item.Id == _selectedId))
+                    {
+                        _dragFurnitureId = _selectedId;
+                        _gestureActive = true;
+                    }
+                    else if (_mode == BlueprintEditorMode.Architecture &&
+                             _draft.Elements.Any(element => element.Id == _selectedId &&
+                                 element.Kind is BlueprintElementKind.Window or BlueprintElementKind.Door))
+                    {
+                        _dragOpeningId = _selectedId;
+                        _gestureActive = true;
+                    }
+                    break;
+                default:
+                    ExecuteSingleClick(local);
+                    break;
+            }
+        }
+
+        private void UpdateGesturePreview(Vector3 local)
+        {
+            if (_preview == null) return;
+            _gesturePreview = _draft.Clone();
+            BlueprintCommandResult result;
+            if (_roomResizeHandle != null)
+            {
+                result = BlueprintEditorCommands.ResizeRoom(_gesturePreview,
+                    _roomResizeHandle.RoomId, ResizeSectors(_roomResizeHandle, local));
+            }
+            else if (_tool == Tool.Wall)
+            {
+                var target = SnapLineEnd(_wallStart, NearestBuildNode(local));
+                result = BlueprintEditorCommands.DrawWall(_gesturePreview, _wallStart, target);
+            }
+            else if (_tool == Tool.Room)
+            {
+                var end = NearestSector(local);
+                result = BlueprintEditorCommands.CreateRoom(_gesturePreview,
+                    RoomDragSectors(_roomStart, end, WholeHexTarget(local, end.Hex)));
+            }
+            else if (!string.IsNullOrEmpty(_dragFurnitureId))
+            {
+                var (tile, slot) = NearestJunction(local);
+                result = BlueprintEditorCommands.Move(_gesturePreview, _dragFurnitureId, tile, slot);
+            }
+            else if (!string.IsNullOrEmpty(_dragOpeningId))
+            {
+                result = BlueprintEditorCommands.MoveOpening(
+                    _gesturePreview, _dragOpeningId, NearestSegment(local));
+            }
+            else return;
+
+            ShowCommandPreview(result);
+            if (_tool == Tool.Wall)
+            {
+                var target = SnapLineEnd(_wallStart, NearestBuildNode(local));
+                _preview.ShowWallGuide(_wallStart, target,
+                    result.Succeeded || WallLineAlreadyCompatible(_wallStart, target));
+                if (BlueprintGeometry.TryLine(_wallStart, target, out _, out var sectionCount))
+                    SetStatus($"{sectionCount} × 0,5 = {sectionCount * BlueprintGeometry.BuildStep:0.0} wu");
+            }
+        }
+
+        private void PointerUp(Vector3 local)
+        {
+            BlueprintCommandResult? result = null;
+            if (_roomResizeHandle != null)
+            {
+                var handle = _roomResizeHandle;
+                result = Execute(working => BlueprintEditorCommands.ResizeRoom(
+                    working, handle.RoomId, ResizeSectors(handle, local)));
+            }
+            else if (_tool == Tool.Wall)
+            {
+                var target = SnapLineEnd(_wallStart, NearestBuildNode(local));
+                result = Execute(working => BlueprintEditorCommands.DrawWall(working, _wallStart, target));
+            }
+            else if (_tool == Tool.Room)
+            {
+                var end = NearestSector(local);
+                var sectors = RoomDragSectors(_roomStart, end, WholeHexTarget(local, end.Hex));
+                result = Execute(working => BlueprintEditorCommands.CreateRoom(working, sectors));
+            }
+            else if (!string.IsNullOrEmpty(_dragFurnitureId))
+            {
+                var id = _dragFurnitureId;
+                var (tile, slot) = NearestJunction(local);
+                result = Execute(working => BlueprintEditorCommands.Move(working, id, tile, slot));
+            }
+            else if (!string.IsNullOrEmpty(_dragOpeningId))
+            {
+                var id = _dragOpeningId;
+                result = Execute(working => BlueprintEditorCommands.MoveOpening(
+                    working, id, NearestSegment(local)));
+            }
+            _gestureActive = false;
+            _dragFurnitureId = string.Empty;
+            _dragOpeningId = string.Empty;
+            _roomResizeHandle = null;
+            _gesturePreview = null;
+            RebuildPreview();
+            if (result != null) SetStatus(result.Message);
+        }
+
+        private void ExecuteSingleClick(Vector3 local)
+        {
+            BlueprintCommandResult? result = null;
+            if (_tool is Tool.Window or Tool.Door)
+            {
+                var segment = NearestSegment(local);
+                result = Execute(working => BlueprintEditorCommands.PlaceOpening(working, segment,
+                    _tool == Tool.Door ? BlueprintElementKind.Door : BlueprintElementKind.Window));
+            }
+            else if (_tool == Tool.Support)
+            {
+                var node = NearestBuildNode(local);
+                result = Execute(working => BlueprintEditorCommands.AddSupport(working, node));
+            }
+            else if (_tool == Tool.Floor)
+            {
+                var sector = NearestSector(local);
+                result = Execute(working => BlueprintEditorCommands.AddFloorSector(working, sector));
+            }
+            else if (_tool == Tool.Roof)
+            {
+                var floor = NearestSector(local);
+                var sector = new RoofSectorKey(floor.Hex, floor.Sector);
+                result = Execute(working => BlueprintEditorCommands.AddRoofSector(working, sector));
+            }
+            else if (_tool is Tool.Bed or Tool.Hearth or Tool.Wardrobe)
+            {
+                var (tile, slot) = NearestJunction(local);
+                var definition = _tool == Tool.Bed ? ContentIds.BedBasic :
+                    _tool == Tool.Hearth ? "furniture.hearth" : "furniture.wardrobe";
+                result = Execute(working => BlueprintEditorCommands.PlaceFurniture(working, definition, tile, slot));
+                if (result.Succeeded)
+                {
+                    _selectedId = _draft.Furniture.Last().Id;
+                    _selectedIds.Clear();
+                    _selectedIds.Add(_selectedId);
+                    RebuildPreview();
+                }
+            }
+            if (result != null)
+            {
+                if (!result.Succeeded) ShowCommandPreview(result);
+                SetStatus(result.Message);
+            }
+        }
+
+        private BlueprintCommandResult Execute(Func<BuildingBlueprintDraft, BlueprintCommandResult> gesture)
+        {
+            var result = _history.Execute(_draft, gesture);
+            if (result.Succeeded)
+            {
+                _autosaveDeadline = Time.unscaledTime + 0.35f;
+                RebuildPreview();
+            }
+            RefreshUiState();
+            return result;
+        }
+
+        private void SelectNearest(Vector3 local, bool additive)
+        {
+            var candidateId = string.Empty;
+            var candidateRoomId = 0;
+            var best = PickRadius * PickRadius;
+            foreach (var item in _draft.Furniture)
+            {
+                var point = BlueprintGeometry.JunctionToWorld(item.PrimaryJunction);
+                var sq = Sqr(local.x - point.X, local.z - point.Y);
+                if (sq >= best) continue;
+                best = sq;
+                candidateId = item.Id;
+            }
+            foreach (var element in _draft.Elements)
+            {
+                var point = ElementCenter(element);
+                var sq = Sqr(local.x - point.x, local.z - point.z);
+                if (sq >= best) continue;
+                best = sq;
+                candidateId = element.Id;
+                candidateRoomId = element.Kind == BlueprintElementKind.FloorSector ? element.RoomId : 0;
+            }
+            if (!additive || candidateRoomId > 0)
+            {
+                _selectedIds.Clear();
+                _selectedRoomId = 0;
+            }
+            if (!string.IsNullOrEmpty(candidateId))
+            {
+                _selectedId = candidateId;
+                _selectedIds.Add(candidateId);
+                _selectedRoomId = candidateRoomId;
+            }
+            else if (!additive)
+            {
+                _selectedId = string.Empty;
+            }
+            RebuildPreview();
+            RefreshUiState();
+        }
+
+        private void RotateSelected(int delta)
+        {
+            if (_selectedIds.Count > 1 || !_draft.Furniture.Any(item => item.Id == _selectedId)) return;
+            var result = Execute(working => BlueprintEditorCommands.Rotate(working, _selectedId, delta));
+            SetStatus(result.Message);
+        }
+
+        private void DeleteSelected()
+        {
+            if (string.IsNullOrEmpty(_selectedId)) return;
+            var result = _selectedRoomId > 0
+                ? Execute(working => BlueprintEditorCommands.DeleteRoom(working, _selectedRoomId))
+                : _selectedIds.Count > 1
+                    ? Execute(working => BlueprintEditorCommands.DeleteMany(working, _selectedIds))
+                    : Execute(working => BlueprintEditorCommands.Delete(working, _selectedId));
+            if (result.Succeeded)
+            {
+                _selectedId = string.Empty;
+                _selectedRoomId = 0;
+                _selectedIds.Clear();
+            }
+            SetStatus(result.Message);
+        }
+
+        private void Undo()
+        {
+            if (!_history.Undo(_draft)) return;
+            _selectedId = string.Empty;
+            _selectedIds.Clear();
+            _autosaveDeadline = Time.unscaledTime + 0.2f;
+            RebuildPreview();
+            RefreshUiState();
+            SetStatus("blueprint.status.undo", true);
+        }
+
+        private void Redo()
+        {
+            if (!_history.Redo(_draft)) return;
+            _selectedId = string.Empty;
+            _selectedIds.Clear();
+            _autosaveDeadline = Time.unscaledTime + 0.2f;
+            RebuildPreview();
+            RefreshUiState();
+            SetStatus("blueprint.status.redo", true);
+        }
+
+        private void CancelGesture()
+        {
+            _gestureActive = false;
+            _dragFurnitureId = string.Empty;
+            _dragOpeningId = string.Empty;
+            _roomResizeHandle = null;
+            _gesturePreview = null;
+            RebuildPreview();
+            SetStatus("blueprint.status.cancelled", true);
+        }
+
+        private void SaveDraft(bool announce)
+        {
+            try
+            {
+                var path = _store.Save(_draft);
+                if (announce)
+                {
+                    Debug.Log($"[BlueprintEditor][SAVED] {path}", this);
+                    SetStatus("blueprint.status.saved", true);
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+                SetStatus("blueprint.status.save_failed", true);
+            }
+        }
+
+        private void ExportDraft()
+        {
+            var json = BuildingBlueprintJson.Serialize(_draft);
+            GUIUtility.systemCopyBuffer = json;
+            SaveDraft(false);
+            Debug.Log($"[BlueprintEditor][EXPORT]\n{json}", this);
+            SetStatus("blueprint.status.exported", true);
+        }
+
+        private void RebuildPreview()
+        {
+            if (_preview == null) return;
+            _preview.Rebuild(_draft, _mode, _selectedId, selectedIds: _selectedIds);
+            RebuildHandles();
+        }
+
+        private void ShowCommandPreview(BlueprintCommandResult result)
+        {
+            if (_preview == null) return;
+            var candidate = result.Candidate ?? _draft;
+            var changed = ChangedIds(_draft, candidate);
+            if (result.Candidate != null && !string.IsNullOrEmpty(_dragFurnitureId)) changed.Add(_dragFurnitureId);
+            if (result.Candidate != null && !string.IsNullOrEmpty(_dragOpeningId)) changed.Add(_dragOpeningId);
+            var junctionConflicts = FurnitureConflicts(candidate);
+            var buildConflicts = MissingRoofSupports(candidate);
+            var invalid = result.Candidate != null && !result.Validation.IsValid;
+            _preview.Rebuild(candidate, _mode, _selectedId,
+                junctionConflicts, buildConflicts, changed, invalid, _selectedIds);
+        }
+
+        private static HashSet<string> ChangedIds(
+            BuildingBlueprintDraft before, BuildingBlueprintDraft after)
+        {
+            var changed = new HashSet<string>();
+            var beforeElements = before.Elements.ToDictionary(element => element.Id);
+            foreach (var element in after.Elements)
+            {
+                if (!beforeElements.TryGetValue(element.Id, out var old) ||
+                    old.Kind != element.Kind || old.Origin != element.Origin || old.RoomId != element.RoomId ||
+                    old.Node != element.Node || old.Segment != element.Segment ||
+                    old.FloorSector != element.FloorSector || old.RoofSector != element.RoofSector)
+                    changed.Add(element.Id);
+            }
+            var beforeFurniture = before.Furniture.ToDictionary(item => item.Id);
+            foreach (var item in after.Furniture)
+            {
+                if (!beforeFurniture.TryGetValue(item.Id, out var old) ||
+                    old.DefinitionId != item.DefinitionId || old.TileQ != item.TileQ || old.TileR != item.TileR ||
+                    old.JunctionSlot != item.JunctionSlot || old.YawStep != item.YawStep)
+                    changed.Add(item.Id);
+            }
+            return changed;
+        }
+
+        private static JunctionKey[] FurnitureConflicts(BuildingBlueprintDraft draft) =>
+            draft.Furniture.SelectMany(item => BlueprintFurnitureFootprints.OccupiedJunctions(item))
+                .GroupBy(key => key).Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+
+        private static HexBuildNodeKey[] MissingRoofSupports(BuildingBlueprintDraft draft)
+        {
+            var supports = draft.Elements.Where(element => element.Kind == BlueprintElementKind.Support)
+                .Select(element => element.Node).ToHashSet();
+            return draft.Elements.Where(element => element.Kind == BlueprintElementKind.RoofSector)
+                .SelectMany(element => BlueprintGeometry.RoofSupports(element.RoofSector))
+                .Where(node => !supports.Contains(node)).Distinct().ToArray();
+        }
+
+        private void RebuildHandles()
+        {
+            if (_preview == null) return;
+            if (_handles != null) Destroy(_handles.gameObject);
+            if (string.IsNullOrEmpty(_selectedId)) return;
+            var selectedFurniture = _draft.Furniture.FirstOrDefault(item => item.Id == _selectedId);
+            if (selectedFurniture == null)
+            {
+                if (_selectedRoomId > 0) BuildRoomResizeHandles();
+                return;
+            }
+            var point = BlueprintGeometry.JunctionToWorld(selectedFurniture.PrimaryJunction);
+            _handles = new GameObject("Selection handles").transform;
+            _handles.SetParent(_preview.transform, false);
+            _handles.localPosition = new Vector3(point.X, HutAssembly.FloorSurfaceLift + 0.08f, point.Y);
+            AddHandle("drag-handle", Vector3.zero, new Color(1f, 0.63f, 0.20f), 0.11f);
+            AddRotationArc("rotate-left-handle", -1, -155f, -25f);
+            AddRotationArc("rotate-right-handle", 1, 25f, 155f);
+        }
+
+        private void BuildRoomResizeHandles()
+        {
+            if (_preview == null) return;
+            var floors = _draft.Elements.Where(element =>
+                    element.Kind == BlueprintElementKind.FloorSector && element.RoomId == _selectedRoomId)
+                .Select(element => element.FloorSector).ToArray();
+            if (floors.Length == 0) return;
+            var floorSet = floors.ToHashSet();
+            var boundary = BlueprintGeometry.BoundaryOf(floors);
+            var centroid = floors.Select(sector => SectorCenter(sector.Hex, sector.Sector))
+                .Aggregate(Vector3.zero, (sum, point) => sum + point) / floors.Length;
+            _handles = new GameObject("Room resize handles").transform;
+            _handles.SetParent(_preview.transform, false);
+
+            foreach (var side in boundary.GroupBy(LineKey))
+            {
+                var segments = side.ToArray();
+                var owners = floors.Where(sector =>
+                    BlueprintGeometry.SectorBoundary(sector).Any(segments.Contains)).Distinct().ToArray();
+                var candidates = new HashSet<FloorSectorKey>();
+                foreach (var owner in owners)
+                {
+                    for (var q = owner.Hex.Q - 1; q <= owner.Hex.Q + 1; q++)
+                    for (var r = owner.Hex.R - 1; r <= owner.Hex.R + 1; r++)
+                    for (var sector = 0; sector < 6; sector++)
+                    {
+                        var candidate = new FloorSectorKey(new TileCoord(q, r), sector);
+                        if (floorSet.Contains(candidate)) continue;
+                        if (BlueprintGeometry.SectorBoundary(candidate).Any(segments.Contains))
+                            candidates.Add(candidate);
+                    }
+                }
+
+                var midpoint = segments.Select(segment =>
+                {
+                    var a = BlueprintGeometry.ToWorld(segment.A);
+                    var b = BlueprintGeometry.ToWorld(segment.B);
+                    return new Vector3((a.X + b.X) * 0.5f, 0f, (a.Y + b.Y) * 0.5f);
+                }).Aggregate(Vector3.zero, (sum, point) => sum + point) / segments.Length;
+                var outward = midpoint - centroid;
+                outward.y = 0f;
+                if (outward.sqrMagnitude < 0.001f) continue;
+                outward.Normalize();
+
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = $"room-resize-{side.Key}";
+                go.transform.SetParent(_handles, false);
+                go.transform.localPosition = midpoint + outward * 0.14f + Vector3.up *
+                    (HutAssembly.FloorSurfaceLift + 0.07f);
+                go.transform.localRotation = Quaternion.LookRotation(outward, Vector3.up);
+                go.transform.localScale = new Vector3(0.15f, 0.08f, 0.28f);
+                go.GetComponent<Renderer>().material.color = new Color(1f, 0.63f, 0.20f);
+                var handle = go.AddComponent<BlueprintRoomResizeHandle>();
+                handle.RoomId = _selectedRoomId;
+                handle.Outward = outward;
+                handle.AddSectors = candidates.ToArray();
+                handle.RemoveSectors = owners;
+            }
+        }
+
+        private IReadOnlyList<FloorSectorKey> ResizeSectors(BlueprintRoomResizeHandle handle, Vector3 local)
+        {
+            var floors = _draft.Elements.Where(element =>
+                    element.Kind == BlueprintElementKind.FloorSector && element.RoomId == handle.RoomId)
+                .Select(element => element.FloorSector).ToHashSet();
+            var fromHandle = local - handle.transform.localPosition;
+            if (Vector3.Dot(fromHandle, handle.Outward) >= 0f)
+                floors.UnionWith(handle.AddSectors);
+            else
+                floors.ExceptWith(handle.RemoveSectors);
+            return floors.ToArray();
+        }
+
+        private static string LineKey(BuildSegmentKey segment)
+        {
+            if (segment.A.Q == segment.B.Q) return $"q{segment.A.Q}";
+            if (segment.A.R == segment.B.R) return $"r{segment.A.R}";
+            return $"s{segment.A.Q + segment.A.R}";
+        }
+
+        private void AddHandle(string name, Vector3 localPosition, Color color, float scale)
+        {
+            if (_handles == null) return;
+            var handle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            handle.name = name;
+            handle.transform.SetParent(_handles, false);
+            handle.transform.localPosition = localPosition;
+            handle.transform.localScale = Vector3.one * scale;
+            handle.GetComponent<Renderer>().material.color = color;
+        }
+
+        private void AddRotationArc(string name, int direction, float from, float to)
+        {
+            if (_handles == null) return;
+            var go = new GameObject(name);
+            go.transform.SetParent(_handles, false);
+            var line = go.AddComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.positionCount = 14;
+            line.startWidth = 0.025f;
+            line.endWidth = 0.025f;
+            line.material = new Material(Shader.Find("Sprites/Default"));
+            line.startColor = line.endColor = new Color(1f, 0.63f, 0.20f);
+            for (var index = 0; index < line.positionCount; index++)
+            {
+                var t = index / (line.positionCount - 1f);
+                var radians = Mathf.Lerp(from, to, t) * Mathf.Deg2Rad;
+                line.SetPosition(index, new Vector3(Mathf.Cos(radians) * 0.38f, 0f, Mathf.Sin(radians) * 0.38f));
+            }
+            AddHandle(name + "-tip", line.GetPosition(line.positionCount - 1),
+                new Color(1f, 0.63f, 0.20f), 0.09f);
+            go.AddComponent<BlueprintRotationHandle>().Direction = direction;
+        }
+
+        private bool TryHandleClick(Vector2 screen)
+        {
+            if (_camera == null || _handles == null) return false;
+            foreach (var roomHandle in _handles.GetComponentsInChildren<BlueprintRoomResizeHandle>())
+            {
+                var markerScreen = _camera.WorldToScreenPoint(roomHandle.transform.position);
+                if ((new Vector2(markerScreen.x, markerScreen.y) - screen).sqrMagnitude > 34f * 34f) continue;
+                _roomResizeHandle = roomHandle;
+                _gestureActive = true;
+                return true;
+            }
+            foreach (var marker in _handles.GetComponentsInChildren<Transform>())
+            {
+                var name = marker.name;
+                if (name == "drag-handle" && _selectedIds.Count <= 1 &&
+                    _draft.Furniture.Any(item => item.Id == _selectedId))
+                {
+                    var dragScreen = _camera.WorldToScreenPoint(marker.position);
+                    if ((new Vector2(dragScreen.x, dragScreen.y) - screen).sqrMagnitude <= 28f * 28f)
+                    {
+                        _dragFurnitureId = _selectedId;
+                        _gestureActive = true;
+                        return true;
+                    }
+                }
+                var direction = name.Contains("rotate-left", StringComparison.Ordinal) ? -1 :
+                    name.Contains("rotate-right", StringComparison.Ordinal) ? 1 : 0;
+                if (direction == 0) continue;
+                var markerScreen = _camera.WorldToScreenPoint(marker.position);
+                if ((new Vector2(markerScreen.x, markerScreen.y) - screen).sqrMagnitude > 28f * 28f) continue;
+                RotateSelected(direction);
+                return true;
+            }
+            return false;
+        }
+
+        private bool PointerOverPanel(Vector2 screen)
+        {
+            if (_document?.rootVisualElement.panel == null || _panel == null) return false;
+            var panelPosition = RuntimePanelUtils.ScreenToPanel(
+                _document.rootVisualElement.panel, new Vector2(screen.x, Screen.height - screen.y));
+            return _panel.worldBound.Contains(panelPosition);
+        }
+
+        private bool TryLocalPoint(Vector2 screen, out Vector3 local)
+        {
+            local = default;
+            if (_camera == null || _preview == null) return false;
+            var plane = new Plane(Vector3.up,
+                _preview.transform.position + Vector3.up * HutAssembly.FloorSurfaceLift);
+            var ray = _camera.ScreenPointToRay(screen);
+            if (!plane.Raycast(ray, out var distance)) return false;
+            local = _preview.transform.InverseTransformPoint(ray.GetPoint(distance));
+            return true;
+        }
+
+        private void BindMode(VisualElement root, string name, BlueprintEditorMode mode)
+        {
+            root.Q<Button>(name).clicked += () =>
+            {
+                _mode = mode;
+                _tool = mode switch
+                {
+                    BlueprintEditorMode.Rooms => Tool.Room,
+                    BlueprintEditorMode.Architecture => Tool.Wall,
+                    BlueprintEditorMode.Furniture => Tool.Select,
+                    BlueprintEditorMode.Roof => Tool.Roof,
+                    _ => Tool.Select
+                };
+                CancelGesture();
+                RefreshUiState();
             };
-            if (go == null) continue;
-            go.name = $"Designer {item.type} junction {item.junction}";
-            go.transform.SetParent(_furnitureRoot, false);
-            go.transform.localPosition = new Vector3(item.localX, HutAssembly.FloorSurfaceLift, item.localZ);
-            // All authored furniture uses the same identity presentation root
-            // and the same footprint yaw. Asset-space corrections belong in
-            // the FBX import hierarchy, never in placement data.
-            go.transform.localRotation = Quaternion.Euler(0f, -item.rotationDegrees, 0f);
         }
-        BuildMarkers();
-    }
 
-    private void BuildMarkers()
-    {
-        if (_preview == null) return;
-        _markers.Clear();
-        if (_markerMaterial == null)
+        private void SetTool(Tool tool)
         {
-            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            _markerMaterial = new Material(shader) { color = new Color(0.20f, 0.78f, 0.53f, 0.72f) };
+            _tool = tool;
+            _mode = tool switch
+            {
+                Tool.Room or Tool.Floor => BlueprintEditorMode.Rooms,
+                Tool.Wall or Tool.Window or Tool.Door or Tool.Support => BlueprintEditorMode.Architecture,
+                Tool.Bed or Tool.Hearth or Tool.Wardrobe => BlueprintEditorMode.Furniture,
+                Tool.Select => _mode,
+                Tool.Roof => BlueprintEditorMode.Roof,
+                _ => _mode
+            };
+            CancelGesture();
+            RefreshUiState();
         }
-        foreach (var node in HexPointLayout.GetInteriorTemplates())
+
+        private void RefreshUiState()
         {
-            var marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            marker.name = $"junction {node.Slot}";
-            marker.transform.SetParent(_preview.transform, false);
-            marker.transform.localPosition = new Vector3(node.Offset.X, HutAssembly.FloorSurfaceLift + .02f, node.Offset.Y);
-            marker.transform.localScale = Vector3.one * .055f;
-            marker.GetComponent<Renderer>().sharedMaterial = _markerMaterial;
-            Destroy(marker.GetComponent<Collider>());
-            _markers.Add(marker);
+            if (_document == null) return;
+            var root = _document.rootVisualElement;
+            SetActive(root.Q("mode-rooms"), _mode == BlueprintEditorMode.Rooms);
+            SetActive(root.Q("mode-architecture"), _mode == BlueprintEditorMode.Architecture);
+            SetActive(root.Q("mode-furniture"), _mode == BlueprintEditorMode.Furniture);
+            SetActive(root.Q("mode-roof"), _mode == BlueprintEditorMode.Roof);
+            foreach (var pair in _toolButtonNames) SetActive(root.Q(pair.Value), pair.Key == _tool);
+
+            root.Q("tool-room").style.display = _mode == BlueprintEditorMode.Rooms ? DisplayStyle.Flex : DisplayStyle.None;
+            root.Q("tool-floor").style.display = _mode == BlueprintEditorMode.Rooms ? DisplayStyle.Flex : DisplayStyle.None;
+            foreach (var name in new[] { "tool-wall", "tool-window", "tool-door", "tool-support" })
+                root.Q(name).style.display = _mode == BlueprintEditorMode.Architecture ? DisplayStyle.Flex : DisplayStyle.None;
+            root.Q("tool-select").style.display = DisplayStyle.Flex;
+            foreach (var name in new[] { "tool-bed", "tool-hearth", "tool-wardrobe" })
+                root.Q(name).style.display = _mode == BlueprintEditorMode.Furniture ? DisplayStyle.Flex : DisplayStyle.None;
+            root.Q("tool-roof").style.display = _mode == BlueprintEditorMode.Roof ? DisplayStyle.Flex : DisplayStyle.None;
+
+            root.Q<Button>("undo").SetEnabled(_history.CanUndo);
+            root.Q<Button>("redo").SetEnabled(_history.CanRedo);
+            var selected = _draft?.Furniture.FirstOrDefault(item => item.Id == _selectedId);
+            if (_selectionLabel != null)
+                _selectionLabel.text = _selectedIds.Count > 1
+                    ? $"{Loc.Get("blueprint.selection")}: {_selectedIds.Count}"
+                    : selected != null
+                    ? $"{Loc.Get("blueprint.selection")}: {Loc.Get("blueprint.item." + ItemToken(selected.DefinitionId))} · {selected.YawStep * 60}°"
+                    : _selectedRoomId > 0
+                        ? $"{Loc.Get("blueprint.room")} #{_selectedRoomId} · " +
+                          Loc.Get(BlueprintValidator.IsIndoorRoom(_draft, _selectedRoomId)
+                              ? "blueprint.indoor.ready"
+                              : "blueprint.indoor.incomplete")
+                        : Loc.Get("blueprint.selection.none");
+            root.Q<Button>("rotate-left").SetEnabled(selected != null && _selectedIds.Count <= 1);
+            root.Q<Button>("rotate-right").SetEnabled(selected != null && _selectedIds.Count <= 1);
+            root.Q<Button>("delete-selection").SetEnabled(!string.IsNullOrEmpty(_selectedId));
         }
-    }
 
-    private bool TryPoint(Vector2 screen, out Vector3 local)
-    {
-        local = default;
-        if (_camera == null || _preview == null) return false;
-        var plane = new Plane(Vector3.up, _preview.transform.position + Vector3.up * HutAssembly.FloorSurfaceLift);
-        var ray = _camera.ScreenPointToRay(screen);
-        if (!plane.Raycast(ray, out var distance)) return false;
-        local = _preview.transform.InverseTransformPoint(ray.GetPoint(distance));
-        return true;
-    }
-
-    private void Paint(Vector3 point)
-    {
-        var bay = NearestBay(point);
-        if (bay < 0 || bay == _lastBay) return;
-        _lastBay = bay;
-        var kind = _tool == Tool.Window ? BuildingElementKind.Window : _tool == Tool.Door ? BuildingElementKind.Door : BuildingElementKind.Wall;
-        if (kind == BuildingElementKind.Door)
-            for (var i = 0; i < 12; i++) if (_bays[i] == BuildingElementKind.Door) _bays[i] = BuildingElementKind.Wall;
-        _bays[bay] = kind;
-        Save(false); Rebuild();
-    }
-
-    private static int NearestBay(Vector3 point)
-    {
-        var best = -1; var bestSq = float.MaxValue;
-        for (var bay = 0; bay < 12; bay++)
+        private void ApplyLanguage()
         {
-            BayCenter(bay, out var center);
-            var sq = (new Vector2(point.x - center.x, point.z - center.z)).sqrMagnitude;
-            if (sq < bestSq) { bestSq = sq; best = bay; }
+            if (_document == null) return;
+            var root = _document.rootVisualElement;
+            Text<Label>(root, "title-label", "blueprint.title");
+            Text<Button>(root, "mode-rooms", "blueprint.mode.rooms");
+            Text<Button>(root, "mode-architecture", "blueprint.mode.architecture");
+            Text<Button>(root, "mode-furniture", "blueprint.mode.furniture");
+            Text<Button>(root, "mode-roof", "blueprint.mode.roof");
+            foreach (var pair in _toolButtonNames)
+                Text<Button>(root, pair.Value, "blueprint.tool." + pair.Key.ToString().ToLowerInvariant());
+            Text<Button>(root, "delete-selection", "blueprint.action.delete");
+            Text<Button>(root, "undo", "blueprint.action.undo");
+            Text<Button>(root, "redo", "blueprint.action.redo");
+            Text<Button>(root, "save", "blueprint.action.save");
+            Text<Button>(root, "export", "blueprint.action.export");
+            Text<Label>(root, "shortcut-label", "blueprint.shortcuts");
+            SetStatus(_statusKey, true);
+            RefreshUiState();
         }
-        return bestSq < .49f ? best : -1;
-    }
 
-    private void Place(Vector3 point, string type)
-    {
-        var nearest = NearestNode(point);
-        if (nearest == null) return;
-        if (type is "hearth" or "wardrobe") _furniture.RemoveAll(f => f.type == type);
-        var item = new FurnitureDraft { type = type, junction = nearest.Value.Slot,
-            localX = nearest.Value.Offset.X, localZ = nearest.Value.Offset.Y };
-        _furniture.Add(item); _selected = _furniture.Count - 1;
-        Save(false); Rebuild();
-        _status = type == "hearth" ? "Очаг поставлен." : $"{(type == "bed" ? "Кровать" : "Гардероб")} поставлен. Поворот — ±60°.";
-    }
-
-    private static JunctionTemplate? NearestNode(Vector3 point)
-    {
-        JunctionTemplate? best = null; var bestSq = float.MaxValue;
-        foreach (var node in HexPointLayout.GetInteriorTemplates())
+        private void SetStatus(string value, bool localizationKey = false)
         {
-            var sq = (point.x - node.Offset.X) * (point.x - node.Offset.X) + (point.z - node.Offset.Y) * (point.z - node.Offset.Y);
-            if (sq < bestSq) { bestSq = sq; best = node; }
+            if (localizationKey) _statusKey = value;
+            else _statusKey = string.Empty;
+            if (_statusLabel != null) _statusLabel.text = localizationKey ? Loc.Get(value) : value;
         }
-        return bestSq < .11f ? best : null;
-    }
 
-    private void Select(Vector3 point, bool delete)
-    {
-        var best = -1; var bestSq = float.MaxValue;
-        for (var i = 0; i < _furniture.Count; i++)
+        private static void Text<T>(VisualElement root, string name, string key) where T : TextElement
         {
-            var f = _furniture[i]; var sq = (point.x-f.localX)*(point.x-f.localX)+(point.z-f.localZ)*(point.z-f.localZ);
-            if (sq < bestSq) { bestSq = sq; best = i; }
+            var element = root.Q<T>(name);
+            if (element != null) element.text = Loc.Get(key);
         }
-        if (best < 0 || bestSq > .43f) return;
-        if (delete) { _furniture.RemoveAt(best); _selected = -1; Save(false); Rebuild(); }
-        else { _selected = best; _status = $"Выбрано: {_furniture[best].type}, {_furniture[best].rotationDegrees:0}°."; }
-    }
 
-    private void MoveSelected(Vector3 point)
-    {
-        if (_selected < 0 || _selected >= _furniture.Count)
+        private static void SetActive(VisualElement? element, bool active)
         {
-            _status = "Сначала выберите предмет.";
-            return;
+            if (element == null) return;
+            if (active) element.AddToClassList("active");
+            else element.RemoveFromClassList("active");
         }
-        var nearest = NearestNode(point);
-        if (nearest == null) return;
-        var item = _furniture[_selected];
-        item.junction = nearest.Value.Slot;
-        item.localX = nearest.Value.Offset.X;
-        item.localZ = nearest.Value.Offset.Y;
-        Save(false);
-        Rebuild();
-        _status = $"{item.type} перемещён в junction {item.junction}. Можно двигать дальше.";
-    }
 
-    private void Rotate(float delta)
-    {
-        if (_selected < 0 || _selected >= _furniture.Count) { _status = "Сначала выберите предмет."; return; }
-        var f = _furniture[_selected]; f.rotationDegrees = (f.rotationDegrees + delta + 360f) % 360f;
-        Save(false); Rebuild(); _status = $"Поворот {f.type}: {f.rotationDegrees:0}°.";
-    }
-
-    private void SetTool(Tool tool)
-    {
-        _tool = tool; _painting = false; _lastBay = -1;
-        _status = IsBayTool(tool) ? "Первый клик начинает линию по периметру."
-            : tool is Tool.Bed or Tool.Hearth or Tool.Wardrobe ? "Кликните по зелёному junction."
-            : tool == Tool.Move ? "Кликните по новой junction-точке."
-            : "Кликните по предмету.";
-    }
-
-    private void Save(bool announce)
-    {
-        var data = new DraftData { bayKinds = Array.ConvertAll(_bays, k => (int)k), furniture = _furniture.ToArray() };
-        PlayerPrefs.SetString(DraftKey, JsonUtility.ToJson(data, true)); PlayerPrefs.Save();
-        if (announce) { Debug.Log($"[HutDesigner][SAVED]\n{Export()}", this); _status = "Сохранено. Скажи Codex, что закончила."; }
-    }
-
-    private void Load()
-    {
-        if (!PlayerPrefs.HasKey(DraftKey)) return;
-        var data = JsonUtility.FromJson<DraftData>(PlayerPrefs.GetString(DraftKey));
-        var repairedBays = false;
-        if (IsValidBayLayout(data?.bayKinds))
+        private static string ItemToken(string definitionId) => definitionId switch
         {
-            for (var i = 0; i < BuildingRules.BayCount; i++)
-                _bays[i] = (BuildingElementKind)data!.bayKinds[i];
-        }
-        else
+            ContentIds.BedBasic => "bed",
+            "furniture.hearth" => "hearth",
+            "furniture.wardrobe" => "wardrobe",
+            _ => "furniture"
+        };
+
+        private static HexBuildNodeKey NearestBuildNode(Vector3 point)
         {
-            // A one-hex home must have exactly one portal. An interrupted
-            // paint gesture used to persist a draft with no door (and usually
-            // most windows painted over), which then looked like a different
-            // house on every reload. Keep the player's furniture, but restore
-            // the canonical bays from BuildingRules and immediately migrate
-            // the broken draft so subsequent loads are deterministic.
-            repairedBays = true;
+            var q = 2f * point.x / (BlueprintGeometry.BuildStep * HexSpatialMath.Sqrt3);
+            var r = point.z / BlueprintGeometry.BuildStep - q * 0.5f;
+            return RoundAxial(q, r);
         }
-        if (data?.furniture != null) _furniture.AddRange(data.furniture);
-        if (repairedBays) Save(false);
-    }
 
-    private static bool IsValidBayLayout(int[]? kinds)
-    {
-        if (kinds == null || kinds.Length != BuildingRules.BayCount) return false;
-        var doors = 0;
-        foreach (var value in kinds)
+        private static HexBuildNodeKey RoundAxial(float q, float r)
         {
-            var kind = (BuildingElementKind)value;
-            if (kind is not (BuildingElementKind.Wall or BuildingElementKind.Window or BuildingElementKind.Door))
-                return false;
-            if (kind == BuildingElementKind.Door) doors++;
+            var x = q;
+            var z = r;
+            var y = -x - z;
+            var rx = Mathf.RoundToInt(x);
+            var ry = Mathf.RoundToInt(y);
+            var rz = Mathf.RoundToInt(z);
+            var dx = Mathf.Abs(rx - x);
+            var dy = Mathf.Abs(ry - y);
+            var dz = Mathf.Abs(rz - z);
+            if (dx > dy && dx > dz) rx = -ry - rz;
+            else if (dy > dz) ry = -rx - rz;
+            else rz = -rx - ry;
+            return new HexBuildNodeKey(rx, rz);
         }
-        return doors == 1;
+
+        private static HexBuildNodeKey SnapLineEnd(HexBuildNodeKey start, HexBuildNodeKey target)
+        {
+            var dq = target.Q - start.Q;
+            var dr = target.R - start.R;
+            var candidates = new[]
+            {
+                new HexBuildNodeKey(0, dr),
+                new HexBuildNodeKey(dq, 0),
+                new HexBuildNodeKey(dq, -dq)
+            };
+            return candidates.Select(candidate => new
+                {
+                    Node = start + candidate,
+                    Error = Sqr(target.Q - start.Q - candidate.Q, target.R - start.R - candidate.R)
+                })
+                .OrderBy(candidate => candidate.Error).First().Node;
+        }
+
+        private bool WallLineAlreadyCompatible(HexBuildNodeKey start, HexBuildNodeKey end)
+        {
+            if (!BlueprintGeometry.TryLine(start, end, out _, out _)) return false;
+            var occupied = _draft.Elements.Where(element =>
+                    element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window or BlueprintElementKind.Door)
+                .Select(element => element.Segment).ToHashSet();
+            return BlueprintGeometry.SplitLine(start, end).All(occupied.Contains);
+        }
+
+        private static FloorSectorKey NearestSector(Vector3 local)
+        {
+            var tile = WorldToTile(local.x, local.z);
+            var center = HexSpatialMath.TileToWorld(tile);
+            var angle = Mathf.Atan2(local.z - center.Y, local.x - center.X) * Mathf.Rad2Deg;
+            var cornerAngle = 90f;
+            var sector = Mathf.FloorToInt(Mathf.Repeat(cornerAngle - angle, 360f) / 60f);
+            return new FloorSectorKey(tile, sector);
+        }
+
+        private static TileCoord WorldToTile(float x, float z)
+        {
+            var q = (HexSpatialMath.Sqrt3 / 3f * x - z / 3f) / HexSpatialMath.HexRadius;
+            var r = (2f / 3f * z) / HexSpatialMath.HexRadius;
+            var rounded = RoundAxial(q, r);
+            return new TileCoord(rounded.Q, rounded.R);
+        }
+
+        private static (TileCoord tile, int slot) NearestJunction(Vector3 local)
+        {
+            var tile = WorldToTile(local.x, local.z);
+            var center = HexSpatialMath.TileToWorld(tile);
+            var bestSlot = 0;
+            var bestSq = float.MaxValue;
+            foreach (var node in HexPointLayout.GetInteriorTemplates())
+            {
+                var sq = Sqr(local.x - center.X - node.Offset.X, local.z - center.Y - node.Offset.Y);
+                if (sq >= bestSq) continue;
+                bestSq = sq;
+                bestSlot = node.Slot;
+            }
+            return (tile, bestSlot);
+        }
+
+        private static BuildSegmentKey NearestSegment(Vector3 local)
+        {
+            var node = NearestBuildNode(local);
+            BuildSegmentKey best = default;
+            var bestSq = float.MaxValue;
+            foreach (var direction in BlueprintGeometry.NeighborDirections)
+            {
+                var segment = new BuildSegmentKey(node, node + direction);
+                var a = BlueprintGeometry.ToWorld(segment.A);
+                var b = BlueprintGeometry.ToWorld(segment.B);
+                var sq = PointSegmentDistanceSquared(new Vector2(local.x, local.z),
+                    new Vector2(a.X, a.Y), new Vector2(b.X, b.Y));
+                if (sq >= bestSq) continue;
+                bestSq = sq;
+                best = segment;
+            }
+            return best;
+        }
+
+        private static IReadOnlyList<FloorSectorKey> RoomDragSectors(
+            FloorSectorKey start, FloorSectorKey end, bool wholeEndHex)
+        {
+            if (start.Hex == end.Hex)
+            {
+                if (wholeEndHex)
+                    return Enumerable.Range(0, 6)
+                        .Select(sector => new FloorSectorKey(start.Hex, sector)).ToArray();
+                var clockwise = (end.Sector - start.Sector + 6) % 6;
+                var counter = (start.Sector - end.Sector + 6) % 6;
+                var direction = clockwise <= counter ? 1 : -1;
+                var count = Math.Min(clockwise, counter) + 1;
+                return Enumerable.Range(0, count)
+                    .Select(index => new FloorSectorKey(start.Hex, start.Sector + direction * index)).ToArray();
+            }
+
+            var qMin = Math.Min(start.Hex.Q, end.Hex.Q);
+            var qMax = Math.Max(start.Hex.Q, end.Hex.Q);
+            var rMin = Math.Min(start.Hex.R, end.Hex.R);
+            var rMax = Math.Max(start.Hex.R, end.Hex.R);
+            var sectors = new List<FloorSectorKey>();
+            for (var q = qMin; q <= qMax; q++)
+            for (var r = rMin; r <= rMax; r++)
+            for (var sector = 0; sector < 6; sector++)
+                sectors.Add(new FloorSectorKey(new TileCoord(q, r), sector));
+            if (!wholeEndHex)
+            {
+                var startWorld = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(start.Hex));
+                var endWorld = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(end.Hex));
+                var towardStart = new Vector2(startWorld.X - endWorld.X, startWorld.Y - endWorld.Y).normalized;
+                var kept = Enumerable.Range(0, 6).Select(sector =>
+                {
+                    var center = SectorCenter(end.Hex, sector);
+                    var hexCenter = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(end.Hex));
+                    var direction = new Vector2(center.x - hexCenter.X, center.z - hexCenter.Y).normalized;
+                    return (sector, dot: Vector2.Dot(direction, towardStart));
+                }).OrderByDescending(candidate => candidate.dot).Take(3)
+                  .Select(candidate => candidate.sector).ToHashSet();
+                sectors.RemoveAll(sector => sector.Hex == end.Hex && !kept.Contains(sector.Sector));
+            }
+            return sectors;
+        }
+
+        private static bool WholeHexTarget(Vector3 local, TileCoord hex)
+        {
+            var center = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(hex));
+            return Sqr(local.x - center.X, local.z - center.Y) <= 0.30f * 0.30f;
+        }
+
+        private Vector3 ElementCenter(BlueprintElementData element)
+        {
+            switch (element.Kind)
+            {
+                case BlueprintElementKind.Support:
+                    var node = BlueprintGeometry.ToWorld(element.Node);
+                    return new Vector3(node.X, 0f, node.Y);
+                case BlueprintElementKind.FloorSector:
+                    return SectorCenter(element.FloorSector.Hex, element.FloorSector.Sector);
+                case BlueprintElementKind.RoofSector:
+                    return SectorCenter(element.RoofSector.Hex, element.RoofSector.Sector);
+                default:
+                    var a = BlueprintGeometry.ToWorld(element.Segment.A);
+                    var b = BlueprintGeometry.ToWorld(element.Segment.B);
+                    return new Vector3((a.X + b.X) * 0.5f, 0f, (a.Y + b.Y) * 0.5f);
+            }
+        }
+
+        private static Vector3 SectorCenter(TileCoord hex, int sector)
+        {
+            var center = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(hex));
+            var a = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(hex, sector));
+            var b = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(hex, sector + 1));
+            return new Vector3((center.X + a.X + b.X) / 3f, 0f, (center.Y + a.Y + b.Y) / 3f);
+        }
+
+        private static float PointSegmentDistanceSquared(Vector2 point, Vector2 a, Vector2 b)
+        {
+            var delta = b - a;
+            var denominator = delta.sqrMagnitude;
+            if (denominator < 0.0001f) return (point - a).sqrMagnitude;
+            var t = Mathf.Clamp01(Vector2.Dot(point - a, delta) / denominator);
+            return (point - (a + delta * t)).sqrMagnitude;
+        }
+
+        private static float Sqr(float x, float y) => x * x + y * y;
     }
 
-    private string Export()
+    public sealed class BlueprintRotationHandle : MonoBehaviour
     {
-        var sb = new StringBuilder("{\n  \"version\": 2,\n  \"bays\": [");
-        for (var i=0;i<12;i++) { if(i>0) sb.Append(','); sb.Append($"\n    {{\"index\":{i},\"edge\":{i/2},\"half\":{i%2},\"kind\":\"{_bays[i].ToString().ToLowerInvariant()}\"}}"); }
-        sb.Append("\n  ],\n  \"furniture\": [");
-        for(var i=0;i<_furniture.Count;i++){var f=_furniture[i];if(i>0)sb.Append(',');sb.Append($"\n    {{\"type\":\"{f.type}\",\"junction\":{f.junction},\"localX\":{f.localX:0.####},\"localZ\":{f.localZ:0.####},\"rotationDegrees\":{f.rotationDegrees:0}}}");}
-        return sb.Append("\n  ]\n}").ToString();
+        public int Direction;
     }
 
-    private void OnGUI()
+    public sealed class BlueprintRoomResizeHandle : MonoBehaviour
     {
-        var panelTop = Mathf.Max(PanelMargin, Screen.height - PanelHeight - PanelMargin);
-        GUI.BeginGroup(new Rect(0f, panelTop, PanelWidth + PanelMargin * 2f, PanelHeight));
-        GUI.Box(new Rect(12,0,PanelWidth,PanelHeight),""); GUI.Label(new Rect(28,12,250,24),"КОНСТРУКТОР ХИЖИНЫ 1×1"); GUI.Label(new Rect(28,38,250,42),_status);
-        var y=86f; Button(Tool.Select,"Выбрать",28,y); Button(Tool.Move,"Переместить",156,y); y+=38;
-        Button(Tool.Delete,"Удалить",28,y); y+=38;
-        Button(Tool.Wall,"Стена",28,y); Button(Tool.Window,"Окно",156,y); y+=38;
-        Button(Tool.Door,"Дверь",28,y); Button(Tool.Bed,"Кровать",156,y); y+=38;
-        Button(Tool.Hearth,"Очаг",28,y); Button(Tool.Wardrobe,"Гардероб",156,y); y+=48;
-        GUI.Label(new Rect(28,y,240,22),"Поворот выбранного предмета"); y+=25;
-        if(GUI.Button(new Rect(28,y,116,30),"↶ 60°"))Rotate(-60); if(GUI.Button(new Rect(156,y,116,30),"↷ 60°"))Rotate(60); y+=44;
-        GUI.Label(new Rect(28,y,240,44),"Пролёты: клик — вести,\nвторой клик — закончить."); y+=55;
-        if(GUI.Button(new Rect(28,y,244,34),"СОХРАНИТЬ РАСКЛАДКУ"))Save(true);
-        GUI.EndGroup();
+        public int RoomId;
+        public Vector3 Outward;
+        public FloorSectorKey[] AddSectors = Array.Empty<FloorSectorKey>();
+        public FloorSectorKey[] RemoveSectors = Array.Empty<FloorSectorKey>();
     }
-
-    private void Button(Tool tool,string label,float x,float y){var old=GUI.color;if(_tool==tool)GUI.color=new Color(.48f,.85f,.62f);if(GUI.Button(new Rect(x,y,116,30),label))SetTool(tool);GUI.color=old;}
-    private static bool IsBayTool(Tool t)=>t is Tool.Wall or Tool.Window or Tool.Door;
-    private static void BayCenter(int bay,out Vector3 center){var edge=bay/2;var half=bay%2;var a0=(90+edge*60)*Mathf.Deg2Rad;var a1=(90+(edge+1)*60)*Mathf.Deg2Rad;var p0=new Vector3(Mathf.Cos(a0)*1.5f,0,Mathf.Sin(a0)*1.5f);var p1=new Vector3(Mathf.Cos(a1)*1.5f,0,Mathf.Sin(a1)*1.5f);center=Vector3.Lerp(p0,p1,half==0?.25f:.75f);}
-}
 }

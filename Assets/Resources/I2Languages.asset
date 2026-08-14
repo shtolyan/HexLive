@@ -19889,6 +19889,310 @@ MonoBehaviour:
       - 'Этот рецепт уже в работе'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'blueprint.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'BUILDING CONSTRUCTOR'
+      - 'КОНСТРУКТОР ПОСТРОЕК'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.rooms'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rooms'
+      - 'Комнаты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.architecture'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Walls'
+      - 'Стены'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.furniture'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Furniture'
+      - 'Мебель'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.roof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Roof'
+      - 'Крыша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.select'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Select / Move'
+      - 'Выбрать / Двигать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.room'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Room'
+      - 'Комната'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.wall'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wall'
+      - 'Стена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.window'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Window'
+      - 'Окно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.door'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Door'
+      - 'Дверь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.support'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Support'
+      - 'Опора'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.floor'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Floor sector'
+      - 'Сектор пола'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.roof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Roof sector'
+      - 'Сектор крыши'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.bed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bed'
+      - 'Кровать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.hearth'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hearth'
+      - 'Очаг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.wardrobe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wardrobe'
+      - 'Гардероб'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.delete'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Delete'
+      - 'Удалить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.undo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Undo'
+      - 'Отменить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.redo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Redo'
+      - 'Повторить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.save'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Save'
+      - 'Сохранить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.export'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Export JSON'
+      - 'Экспорт JSON'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.shortcuts'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drag to build · Q/E rotate · Del delete · Cmd/Ctrl+Z undo · RMB/Esc cancel'
+      - 'Тянуть — строить · Q/E — поворот · Del — удалить · Cmd/Ctrl+Z — отмена · ПКМ/Esc — выход'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.selection'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Selected'
+      - 'Выбрано'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.selection.none'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Nothing selected'
+      - 'Ничего не выбрано'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.room'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Room'
+      - 'Комната'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.item.bed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bed'
+      - 'Кровать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.item.hearth'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hearth'
+      - 'Очаг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.item.wardrobe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wardrobe'
+      - 'Гардероб'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.item.furniture'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Furniture'
+      - 'Мебель'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose a mode and drag directly in the world.'
+      - 'Выберите режим и тяните прямо в мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.undo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gesture undone.'
+      - 'Жест отменён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.redo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gesture restored.'
+      - 'Жест повторён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.cancelled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Preview cancelled.'
+      - 'Предпросмотр отменён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.saved'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Draft saved atomically.'
+      - 'Черновик атомарно сохранён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.save_failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not save the draft. See Console.'
+      - 'Не удалось сохранить черновик. Смотрите Console.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.exported'
+      TermType: 0
+      Description:
+      Languages:
+      - 'JSON saved and copied to clipboard.'
+      - 'JSON сохранён и скопирован в буфер.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.indoor.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Indoor ready'
+      - 'Indoor готов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.indoor.incomplete'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Indoor incomplete'
+      - 'Indoor не готов'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

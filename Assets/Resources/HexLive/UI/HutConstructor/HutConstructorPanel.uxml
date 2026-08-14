@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="hut-constructor-root" class="hut-constructor-root">
+        <ui:VisualElement name="constructor-panel" class="constructor-panel">
+            <ui:VisualElement class="panel-header">
+                <ui:Label name="title-label" class="panel-title" />
+                <ui:Label name="status-label" class="panel-status" />
+            </ui:VisualElement>
+            <ui:VisualElement class="mode-tabs">
+                <ui:Button name="mode-rooms" class="mode-tab" />
+                <ui:Button name="mode-architecture" class="mode-tab" />
+                <ui:Button name="mode-furniture" class="mode-tab" />
+                <ui:Button name="mode-roof" class="mode-tab" />
+            </ui:VisualElement>
+            <ui:ScrollView name="palette-scroll" class="palette-scroll">
+                <ui:VisualElement name="palette" class="palette-grid">
+                    <ui:Button name="tool-select" class="tool-button" />
+                    <ui:Button name="tool-room" class="tool-button" />
+                    <ui:Button name="tool-wall" class="tool-button" />
+                    <ui:Button name="tool-window" class="tool-button" />
+                    <ui:Button name="tool-door" class="tool-button" />
+                    <ui:Button name="tool-support" class="tool-button" />
+                    <ui:Button name="tool-floor" class="tool-button" />
+                    <ui:Button name="tool-roof" class="tool-button" />
+                    <ui:Button name="tool-bed" class="tool-button" />
+                    <ui:Button name="tool-hearth" class="tool-button" />
+                    <ui:Button name="tool-wardrobe" class="tool-button" />
+                </ui:VisualElement>
+            </ui:ScrollView>
+            <ui:VisualElement class="selection-card">
+                <ui:Label name="selection-label" class="selection-label" />
+                <ui:VisualElement class="selection-actions">
+                    <ui:Button name="rotate-left" class="compact-button" text="−60°" />
+                    <ui:Button name="rotate-right" class="compact-button" text="+60°" />
+                    <ui:Button name="delete-selection" class="compact-button danger" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="history-row">
+                <ui:Button name="undo" class="history-button" />
+                <ui:Button name="redo" class="history-button" />
+            </ui:VisualElement>
+            <ui:VisualElement class="save-row">
+                <ui:Button name="save" class="save-button" />
+                <ui:Button name="export" class="save-button accent" />
+            </ui:VisualElement>
+            <ui:Label name="shortcut-label" class="shortcut-label" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

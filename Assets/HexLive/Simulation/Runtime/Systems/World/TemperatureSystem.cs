@@ -53,12 +53,10 @@ public sealed class TemperatureSystem : ISimulationSystem
             // colder it is, the more worth huddling by the fire), but only
             // chases away COLD — it never overheats a warm body.
             var fireWarmth = NearbyFireWarmth(world, npc.Tile, out var onFire);
-            // Spec 42 (WarmUp era): the campfire is a REAL heat source now —
-            // +8° at range 1, +4° at range 2, clamped so it only chases away
-            // cold, never overheats. The girls start near-naked and the
-            // wardrobe is scarce; the designed loop is light the fire, huddle
-            // by it, and let rain douse it (iter-31's display-only caution is
-            // retired together with the knife-edge balance).
+            // Spec 42 / §120.4: the campfire is a REAL heat source. Outdoor
+            // fires retain their two-ring profile; a fire under a completed
+            // roof uses the room-confined 100/75/50 % profile. Both are
+            // clamped so they only chase away cold, never overheat.
             var baseTemp = world.Environment.GlobalTemperature + npc.EquippedWarmth * 10f +
                 indoorBonus + coolBonus;
             var fireRelief = System.Math.Min(fireWarmth, System.Math.Max(0f, SimBalance.HotBandTemp - baseTemp));
@@ -350,44 +348,96 @@ public sealed class TemperatureSystem : ISimulationSystem
         signed < 0f ? 16f + signed * 12f :
         signed > 0f ? 22f + signed * 12f : 19f;
 
-    // Spec 29C.10: warmth radiated by nearby LIT campfires. The fire's OWN hex
-    // warms at full ring-1 strength: the ~1.1 wu huddle rim sits INSIDE the
-    // 1.3 wu hex apothem, and the last directed step toward the flames books
-    // the arriver onto the fire's tile — a dist==0 "no warmth" hole froze the
-    // girl who lit the fire while her neighbour on the adjacent hex thawed
-    // (same physical spot, different tile bookkeeping). onFire still flags the
-    // same-tile stand for the deferred FireBurn mechanic — flames themselves
-    // are unreachable by construction (the 0.825 wu obstacle blocks them).
+    internal const float IndoorFireOwnHexFactor = 1f;
+    internal const float IndoorFireAdjacentFactor = 0.75f;
+    internal const float IndoorFireOuterFactor = 0.50f;
+    private const int FireSearchRadius = 2;
+
+    // Spec 29C.10 / §120.4: warmth radiated by nearby LIT campfires. Search is
+    // bounded to the nineteen tiles inside radius two through ObjectsByTile;
+    // it never scans every object on the island. Max aggregation is order-free,
+    // so no sorting or per-call allocation is required.
+    //
+    // A fire whose own tile is Indoor is room-confined: 100 % on its own hex,
+    // 75 % on the adjacent ring and 50 % on the outer ring. Every tile in the
+    // shortest chain must be Indoor, so heat cannot cross the street or jump
+    // from one roofed island to another over an outdoor gap. Outdoor fires keep
+    // their legacy +18/+11 profile.
+    //
+    // onFire still flags the same-tile stand for the deferred FireBurn
+    // mechanic — flames themselves are unreachable by construction.
     internal static float NearbyFireWarmth(WorldState world, TileCoord tile, out bool onFire)
     {
         onFire = false;
         var warmth = 0f;
-        foreach (var obj in world.Entities.Objects.Values)
+        for (var dq = -FireSearchRadius; dq <= FireSearchRadius; dq++)
         {
-            if (obj.ResourceAmount <= 0f ||
-                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                !definition.Tags.Contains("Campfire"))
+            var minDr = System.Math.Max(-FireSearchRadius, -dq - FireSearchRadius);
+            var maxDr = System.Math.Min(FireSearchRadius, -dq + FireSearchRadius);
+            for (var dr = minDr; dr <= maxDr; dr++)
             {
-                continue;
-            }
+                var sourceTile = new TileCoord(tile.Q + dq, tile.R + dr);
+                if (!world.Caches.ObjectsByTile.TryGetValue(sourceTile, out var objects)) continue;
+                foreach (var objectId in objects)
+                {
+                    if (!world.Entities.Objects.TryGetValue(objectId, out var obj) ||
+                        obj.ResourceAmount <= 0f ||
+                        !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
+                        !definition.Tags.Contains("Campfire"))
+                    {
+                        continue;
+                    }
 
-            var dist = HexSpatialMath.HexDistance(tile, obj.Tile);
-            if (dist == 0)
-            {
-                onFire = true;
-            }
+                    var distance = HexSpatialMath.HexDistance(tile, obj.Tile);
+                    if (distance == 0) onFire = true;
 
-            if (dist <= 1)
-            {
-                warmth = System.Math.Max(warmth, SimBalance.FireWarmthRange1);
-            }
-            else if (dist == 2)
-            {
-                warmth = System.Math.Max(warmth, SimBalance.FireWarmthRange2);
+                    var candidate = ShelterMath.IsIndoor(world, obj.Tile)
+                        ? IndoorFireWarmth(world, obj.Tile, tile, distance)
+                        : OutdoorFireWarmth(distance);
+                    warmth = System.Math.Max(warmth, candidate);
+                }
             }
         }
 
         return warmth;
+    }
+
+    private static float OutdoorFireWarmth(int distance) => distance switch
+    {
+        <= 1 => SimBalance.FireWarmthRange1,
+        2 => SimBalance.FireWarmthRange2,
+        _ => 0f
+    };
+
+    private static float IndoorFireWarmth(
+        WorldState world, TileCoord source, TileCoord target, int distance)
+    {
+        if (distance > FireSearchRadius || !ShelterMath.IsIndoor(world, target)) return 0f;
+        if (distance == 2 && !HasIndoorBridge(world, source, target)) return 0f;
+
+        var factor = distance switch
+        {
+            0 => IndoorFireOwnHexFactor,
+            1 => IndoorFireAdjacentFactor,
+            2 => IndoorFireOuterFactor,
+            _ => 0f
+        };
+        return SimBalance.FireWarmthRange1 * factor;
+    }
+
+    private static bool HasIndoorBridge(WorldState world, TileCoord source, TileCoord target)
+    {
+        foreach (var direction in HexDirection.All)
+        {
+            var bridge = new TileCoord(source.Q + direction.DQ, source.R + direction.DR);
+            if (HexSpatialMath.HexDistance(bridge, target) == 1 &&
+                ShelterMath.IsIndoor(world, bridge))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Spec 35.4: within 1 tile of a Shade-tagged object (big tree / palm).

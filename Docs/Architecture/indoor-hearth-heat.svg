@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="720" viewBox="0 0 1040 720" role="img" aria-labelledby="title desc">
+  <title id="title">Тепло домашнего очага HexLive</title>
+  <desc id="desc">Домашний очаг греет свой Indoor-гекс на 100 процентов, соседнее кольцо на 75, второе кольцо на 50 и не передаёт тепло через улицу.</desc>
+  <defs>
+    <style>
+      .bg{fill:#171a1d}.hex{stroke:#e8d9be;stroke-width:2}.outer{fill:#8f673f}.adjacent{fill:#c68b45}.own{fill:#f17b35}.street{fill:#30363b;stroke:#707981;stroke-width:2}.cold{fill:#263c42;stroke:#62b8c7;stroke-width:2;stroke-dasharray:7 5}.heading{fill:#f4ead9;font:700 28px system-ui,sans-serif}.label{fill:#f4ead9;font:600 17px system-ui,sans-serif}.small{fill:#c9d0d4;font:15px system-ui,sans-serif}.percent{fill:#fff8eb;font:700 15px system-ui,sans-serif;text-anchor:middle}.path{fill:none;stroke:#ef5b55;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.ok{fill:none;stroke:#65d69b;stroke-width:5;stroke-linecap:round}.boundary{fill:none;stroke:#69aeca;stroke-width:3;stroke-dasharray:10 7}.cross{stroke:#ef5b55;stroke-width:6;stroke-linecap:round}
+    </style>
+    <path id="tile" d="M0,-43 L37.239,-21.5 L37.239,21.5 L0,43 L-37.239,21.5 L-37.239,-21.5 Z"/>
+  </defs>
+  <rect class="bg" width="1040" height="720" rx="18"/>
+  <text class="heading" x="48" y="55">Домашний очаг: тепло остаётся под крышей</text>
+
+  <!-- Axial centres use the production pointy-top formula: x=R√3(q+r/2), y=1.5Rr. -->
+  <g transform="translate(300 335)">
+    <!-- distance 2: 12 tiles, 50% -->
+    <g class="hex outer">
+      <use href="#tile" transform="translate(155.885 0)"/><use href="#tile" transform="translate(116.913 -67.5)"/>
+      <use href="#tile" transform="translate(77.942 -135)"/><use href="#tile" transform="translate(0 -135)"/>
+      <use href="#tile" transform="translate(-77.942 -135)"/><use href="#tile" transform="translate(-116.913 -67.5)"/>
+      <use href="#tile" transform="translate(-155.885 0)"/><use href="#tile" transform="translate(-116.913 67.5)"/>
+      <use href="#tile" transform="translate(-77.942 135)"/><use href="#tile" transform="translate(0 135)"/>
+      <use href="#tile" transform="translate(77.942 135)"/><use href="#tile" transform="translate(116.913 67.5)"/>
+    </g>
+    <!-- distance 1: 6 tiles, 75% -->
+    <g class="hex adjacent">
+      <use href="#tile" transform="translate(77.942 0)"/><use href="#tile" transform="translate(38.971 -67.5)"/>
+      <use href="#tile" transform="translate(-38.971 -67.5)"/><use href="#tile" transform="translate(-77.942 0)"/>
+      <use href="#tile" transform="translate(-38.971 67.5)"/><use href="#tile" transform="translate(38.971 67.5)"/>
+    </g>
+    <use href="#tile" class="hex own"/>
+    <text class="percent" x="0" y="-6">100%</text><text class="percent" x="0" y="13">+18°</text>
+    <text class="percent" x="78" y="5">75%</text>
+    <text class="percent" x="156" y="5">50%</text>
+    <circle cx="0" cy="0" r="10" fill="#ffd56a" stroke="#4f2b18" stroke-width="4"/>
+    <path d="M-7,4 Q0,-16 7,4 Q1,13 -7,4 Z" fill="#ff4b32"/>
+  </g>
+
+  <g transform="translate(75 548)">
+    <use href="#tile" class="hex own" transform="translate(0 0)"/>
+    <text class="label" x="55" y="-12">1-й гекс · 100% · +18°C</text>
+    <use href="#tile" class="hex adjacent" transform="translate(0 67)"/>
+    <text class="label" x="55" y="73">2-е кольцо · 75% · +13,5°C</text>
+    <use href="#tile" class="hex outer" transform="translate(390 0)"/>
+    <text class="label" x="445" y="6">3-е кольцо · 50% · +9°C</text>
+    <use href="#tile" class="street" transform="translate(390 67)"/>
+    <text class="label" x="445" y="73">Улица · 0%</text>
+  </g>
+
+  <g transform="translate(650 175)">
+    <text class="label" x="0" y="0">Граница Indoor обрезает тепло</text>
+    <path class="boundary" d="M-30,30 L70,30 L70,255 L-30,255 Z"/>
+    <use href="#tile" class="hex own" transform="translate(18 105)"/>
+    <use href="#tile" class="street" transform="translate(95 105)"/>
+    <use href="#tile" class="cold" transform="translate(173 105)"/>
+    <text class="percent" x="18" y="110">100%</text>
+    <text class="percent" x="95" y="110">0%</text>
+    <text class="percent" x="173" y="110">0%</text>
+    <path class="path" d="M45,65 L132,65 L191,65"/>
+    <line class="cross" x1="102" y1="48" x2="126" y2="82"/>
+    <line class="cross" x1="126" y1="48" x2="102" y2="82"/>
+    <text class="small" x="0" y="180">Indoor</text>
+    <text class="small" x="78" y="180">улица</text>
+    <text class="small" x="145" y="180">Indoor за разрывом</text>
+    <text class="small" x="0" y="225">Через outdoor-гекс тепло не перепрыгивает.</text>
+
+    <text class="label" x="0" y="310">Производительность</text>
+    <text class="small" x="0" y="342">Фиксированный обход: 19 гексов радиуса 2.</text>
+    <text class="small" x="0" y="368">Объекты берутся из ObjectsByTile.</text>
+    <text class="small" x="0" y="394">Проверка моста: максимум 6 соседей, 0 аллокаций.</text>
+  </g>
+
+  <text class="small" x="48" y="688">Геометрия: pointy-top R=1,5 wu; кольца считаются HexSpatialMath.HexDistance.</text>
+</svg>

@@ -604,6 +604,82 @@ public sealed class BuildingConstructionTests
         Assert.That(outdoorRainBurn, Is.EqualTo(bestOutdoorBurn * 4f).Within(0.0001f));
     }
 
+    [Test]
+    public void IndoorHearthHeatFadesAcrossConnectedRoomAndNeverWarmsTheStreet()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        foreach (var fire in world.Entities.Objects.Values.Where(obj =>
+                     obj.DefinitionId == ContentIds.Campfire))
+        {
+            fire.ResourceAmount = 0f;
+        }
+
+        var hearth = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.Campfire &&
+            obj.Variant == BuildingRules.HutHearthVariant);
+        hearth.ResourceAmount = 100f;
+
+        var own = hearth.Tile;
+        var adjacent = new TileCoord(own.Q + HexDirection.East.DQ, own.R + HexDirection.East.DR);
+        var outer = new TileCoord(own.Q + 2 * HexDirection.East.DQ, own.R + 2 * HexDirection.East.DR);
+        var beyond = new TileCoord(own.Q + 3 * HexDirection.East.DQ, own.R + 3 * HexDirection.East.DR);
+        var street = new TileCoord(
+            own.Q + HexDirection.SouthEast.DQ,
+            own.R + HexDirection.SouthEast.DR);
+        SetIndoor(world, own, true);
+        SetIndoor(world, adjacent, true);
+        SetIndoor(world, outer, true);
+        SetIndoor(world, beyond, true);
+        SetIndoor(world, street, false);
+
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, own, out var onFire),
+            Is.EqualTo(SimBalance.FireWarmthRange1).Within(0.0001f));
+        Assert.That(onFire, Is.True);
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, adjacent, out _),
+            Is.EqualTo(SimBalance.FireWarmthRange1 * 0.75f).Within(0.0001f));
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, outer, out _),
+            Is.EqualTo(SimBalance.FireWarmthRange1 * 0.50f).Within(0.0001f));
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, beyond, out _), Is.Zero);
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, street, out _), Is.Zero,
+            "An indoor hearth must not warm an adjacent outdoor tile.");
+
+        SetIndoor(world, adjacent, false);
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, outer, out _), Is.Zero,
+            "Heat must not jump across an outdoor gap between roofed tiles.");
+    }
+
+    [Test]
+    public void OutdoorFireKeepsItsLegacyTwoRingHeatProfile()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        foreach (var candidate in world.Entities.Objects.Values.Where(obj =>
+                     obj.DefinitionId == ContentIds.Campfire))
+        {
+            candidate.ResourceAmount = 0f;
+        }
+
+        var hut = world.Entities.Objects.Values.Single(
+            obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var fire = SpawnPickup(
+            world, ContentIds.Campfire, FindDryOutdoorTile(world, hut.Tile));
+        fire.ResourceAmount = 100f;
+
+        var own = fire.Tile;
+        var adjacent = new TileCoord(own.Q + HexDirection.East.DQ, own.R + HexDirection.East.DR);
+        var outer = new TileCoord(own.Q + 2 * HexDirection.East.DQ, own.R + 2 * HexDirection.East.DR);
+        SetIndoor(world, own, false);
+        SetIndoor(world, adjacent, false);
+        SetIndoor(world, outer, false);
+
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, own, out var onFire),
+            Is.EqualTo(SimBalance.FireWarmthRange1).Within(0.0001f));
+        Assert.That(onFire, Is.True);
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, adjacent, out _),
+            Is.EqualTo(SimBalance.FireWarmthRange1).Within(0.0001f));
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, outer, out _),
+            Is.EqualTo(SimBalance.FireWarmthRange2).Within(0.0001f));
+    }
+
     private static WorldObjectState NewHutSite() => new()
     {
         DefinitionId = ContentIds.BuildSite,
@@ -613,6 +689,19 @@ public sealed class BuildingConstructionTests
         BillRope = BuildingRules.TotalRope,
         BillLeaves = BuildingRules.TotalLeaves
     };
+
+    private static void SetIndoor(WorldState world, TileCoord coord, bool indoor)
+    {
+        if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+        {
+            tile = new Tile { Coord = coord, Flags = TileFlags.Walkable };
+            world.Tiles.Items[coord] = tile;
+        }
+
+        tile.Flags = indoor
+            ? tile.Flags | TileFlags.Indoor
+            : tile.Flags & ~TileFlags.Indoor;
+    }
 
     private static void Deliver(WorldObjectState site, string material, int count)
     {

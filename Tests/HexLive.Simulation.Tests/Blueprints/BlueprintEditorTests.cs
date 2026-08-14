@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Runtime.Blueprints;
@@ -272,6 +273,16 @@ namespace HexLive.Simulation.Tests.Blueprints
             var regions = BlueprintValidator.CalculateRoomRegions(draft);
             Assert.That(regions, Has.Count.EqualTo(2));
             Assert.That(regions.All(region => region.Count == 3), Is.True);
+        }
+
+        [Test]
+        public void HutTestSceneStartsWithBlueprintConstructorEnabled()
+        {
+            var scene = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "Scenes", "HutTest.unity"));
+
+            Assert.That(scene, Does.Contain("_layoutDesignerMode: 1"),
+                "HutTest must add HutLayoutDesigner; otherwise it silently shows the legacy hut without the constructor UI.");
         }
     }
 }

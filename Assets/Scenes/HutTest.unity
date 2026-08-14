@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b82406160cc44ca7bed5a04e9af89bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.HutTest.HutTestBootstrap
-  _layoutDesignerMode: 0
+  _layoutDesignerMode: 1
   _startDelaySeconds: 2
   _forceRain: 1
 --- !u!4 &61372088

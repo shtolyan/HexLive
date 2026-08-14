@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
@@ -70,6 +71,9 @@ public sealed class LocalEngineBackend : ISimulationBackend
     public bool SupportsClientSave => true;
 
     public bool SupportsNpcCommands => true;
+
+    public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into) =>
+        CraftingOptions.TryFill(_engine.World, npc, into);
 
     // §121: очередь опустошается в начале Step, то есть тем же главным потоком,
     // который сюда кладёт. Замка нет и не нужно.

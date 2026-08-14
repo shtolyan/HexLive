@@ -50,6 +50,54 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
+    public void ManualCraftingTabUsesAuthoritativeOptionsAndHasNoIngredientDragging()
+    {
+        var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var sourceApi = File.ReadAllText(Presentation("Bootstrap", "ISimulationSource.cs"));
+        var local = File.ReadAllText(Presentation("Bootstrap", "LocalEngineBackend.cs"));
+        var loopback = File.ReadAllText(Presentation("Bootstrap", "LoopbackBackend.cs"));
+        var remote = File.ReadAllText(Presentation(
+            "Bootstrap", "Remote", "RemoteSocketBackend.cs"));
+        var localization = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+        var craftStart = panel.IndexOf(
+            "private void BuildCraftingView", StringComparison.Ordinal);
+        var craftEnd = panel.IndexOf(
+            "private void BuildInventoryWearLayerButtons", craftStart,
+            StringComparison.Ordinal);
+        Assert.That(craftStart, Is.GreaterThanOrEqualTo(0));
+        Assert.That(craftEnd, Is.GreaterThan(craftStart));
+        var craft = panel[craftStart..craftEnd];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel, Does.Contain("inventory-tab-backpack"));
+            Assert.That(panel, Does.Contain("inventory-tab-craft"));
+            Assert.That(panel, Does.Contain("craft-recipe-grid"));
+            Assert.That(panel, Does.Contain("craft-ingredient-row"));
+            Assert.That(panel, Does.Contain("ingredient.Available >= ingredient.Required"));
+            Assert.That(panel, Does.Contain("LoadItemIcon(option.OutputDefinitionId)"));
+            Assert.That(panel, Does.Contain("Wearing.Garments.ItemIcons.Load(id)"));
+            Assert.That(craft, Does.Not.Contain("Drag"));
+            Assert.That(craft, Does.Not.Contain("PointerMoveEvent"));
+            Assert.That(craft, Does.Not.Contain("PointerUpEvent"));
+            Assert.That(panel, Does.Contain("NpcSelection.Count == 1"));
+            Assert.That(panel, Does.Contain("npc.IsManualControl"));
+            Assert.That(panel, Does.Contain("_runner.SupportsNpcCommands"));
+            Assert.That(sourceApi, Does.Contain("TryGetCraftingOptions"));
+            Assert.That(local, Does.Contain("CraftingOptions.TryFill"));
+            Assert.That(loopback, Does.Contain("return false"));
+            Assert.That(remote, Does.Contain("return false"));
+            Assert.That(localization, Does.Contain("Term: 'craft.tab.craft'"));
+            Assert.That(localization, Does.Contain("'Craft'"));
+            Assert.That(localization, Does.Contain("'Крафт'"));
+            Assert.That(localization, Does.Contain("Term: 'craft.create'"));
+            Assert.That(localization, Does.Contain("Term: 'craft.continue'"));
+            Assert.That(localization, Does.Contain("Term: 'craft.working'"));
+        });
+    }
+
+    [Test]
     public void InventoryDetailRemainsSingleUnscrolledCard()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));

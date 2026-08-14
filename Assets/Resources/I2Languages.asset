@@ -19681,6 +19681,214 @@ MonoBehaviour:
       - 'мне'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'craft.tab.backpack'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Backpack'
+      - 'Рюкзак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.tab.craft'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Craft'
+      - 'Крафт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.resources'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Resources'
+      - 'Ресурсы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.place'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Workplace'
+      - 'Место работы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.place.in_place'
+      TermType: 0
+      Description:
+      Languages:
+      - 'On the spot'
+      - 'На месте'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.station.campfire'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Campfire'
+      - 'Костёр'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.station.workbench'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Workbench'
+      - 'Верстак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.progress'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Project progress'
+      - 'Готовность проекта'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.create'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Create'
+      - 'Создать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.continue'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Continue'
+      - 'Продолжить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.working'
+      TermType: 0
+      Description:
+      Languages:
+      - 'In progress'
+      - 'В работе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.InvalidRecipe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This recipe is unavailable'
+      - 'Этот рецепт недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.NotManual'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Switch this colonist to manual control'
+      - 'Переключите колонистку на ручное управление'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.Incapacitated'
+      TermType: 0
+      Description:
+      Languages:
+      - 'She cannot work right now'
+      - 'Сейчас она не может работать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.MissingHands'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Working hands or prostheses are required'
+      - 'Нужны рабочие руки или протезы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.NoStation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No reachable suitable workplace'
+      - 'Нет доступного подходящего места работы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.StationBusy'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The workplace is occupied or not ready'
+      - 'Место работы занято или не готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.MissingResources'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Not enough resources at this workplace'
+      - 'У этого места не хватает ресурсов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.Unreachable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The workplace cannot be reached'
+      - 'До места работы не добраться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.Active'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This recipe is already in progress'
+      - 'Этот рецепт уже в работе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.InvalidRecipe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This recipe is unavailable'
+      - 'Этот рецепт недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.MissingHands'
+      TermType: 0
+      Description:
+      Languages:
+      - 'She cannot craft without working hands'
+      - 'Без рабочих рук она не может крафтить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoStation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No suitable workplace'
+      - 'Нет подходящего места работы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.StationBusy'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The workplace is occupied or not ready'
+      - 'Место работы занято или не готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.MissingResources'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The resources changed; check the recipe again'
+      - 'Ресурсы изменились — проверьте рецепт ещё раз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.Active'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This recipe is already in progress'
+      - 'Этот рецепт уже в работе'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

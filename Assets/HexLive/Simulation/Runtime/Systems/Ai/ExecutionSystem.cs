@@ -786,7 +786,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 if (npc.Execution.CurrentInteraction is InteractionType.Observe
                         or InteractionType.FillBottle &&
                     definition.Tags.Contains("Campfire") &&
-                    worldObject.ResourceAmount <= 0f)
+                    worldObject.ResourceAmount <= 0f &&
+                    npc.Plan.Goal != GoalType.HaulToFire)
                 {
                     PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Fire went out mid-interaction");
                     npc.Mind.CurrentGoal = GoalType.None;
@@ -896,6 +897,32 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
+                // §138: one click owns ONE whole persistent item, not one
+                // 24-tick work slice. Autonomous workers still return to the
+                // auction between slices; a manual craft repeats the same
+                // ordinary plan until its project reaches 100%, then enters
+                // the same short physical take beat as in-place crafting.
+                if (completedInteraction.Type == InteractionType.Craft &&
+                    npc.Mind.ManualControl &&
+                    RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
+                {
+                    SkillTrace.Award(world, npc, completedInteraction.Type,
+                        npc.Execution.EndTick - npc.Execution.StartTick);
+                    if (npc.Execution.CraftLayout.Count > 0)
+                    {
+                        BeginManualCraftTake(world, npc);
+                        continue;
+                    }
+
+                    var unfinished = CraftProjectMath.FindReachableProject(
+                        world, npc, npc.Plan.Goal);
+                    if (unfinished != null)
+                    {
+                        ResetManualCraftCycle(npc);
+                        continue;
+                    }
+                }
+
                 // §49.9 / bug #25: beds and ground sleep obey the SAME re-arm
                 // rule. The ground path already continued in place; object
                 // sleep used to complete here, stand up and re-plan after each
@@ -918,6 +945,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
                 SkillTrace.Award(world, npc, completedInteraction.Type,
                     npc.Execution.EndTick - npc.Execution.StartTick);
+
+                if (npc.Mind.ManualControl &&
+                    completedInteraction.Type == InteractionType.Craft &&
+                    RecipeCatalog.IsItemOutputGoal(npc.Plan.Goal))
+                {
+                    npc.Mind.LastManualInputTick = world.Tick;
+                }
 
                 // Spec 41.5: waking from a bed = stand and come to your
                 // senses for a beat before the next errand.
@@ -1073,7 +1107,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         else if (completedInteraction.Type == InteractionType.Craft &&
                  RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
         {
+            var projectId = npc.Execution.CraftProjectId;
             CraftProjectMath.CompleteCycle(world, npc, npc.Plan.Goal);
+            if (npc.Mind.ManualControl && projectId is { } completedId &&
+                world.Entities.Objects.TryGetValue(completedId, out var completedProject) &&
+                !completedProject.IsCraftProject)
+            {
+                npc.Execution.CraftLayout.Clear();
+                npc.Execution.CraftLayout.Add(completedId);
+            }
             worldObject.IsOccupied = false;
             worldObject.CurrentUser = null;
         }

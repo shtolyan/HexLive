@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 
@@ -189,6 +190,24 @@ public sealed class StopCommand : ISimulationCommand
     }
 
     public EntityId Npc { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>§138: craft one authored item recipe through the normal plan and
+/// execution pipeline. The goal is revalidated against RecipeCatalog when the
+/// queue is drained; presentation cannot smuggle an arbitrary output.</summary>
+public sealed class CraftItemCommand : ISimulationCommand
+{
+    public CraftItemCommand(EntityId npc, GoalType recipeGoal)
+    {
+        Npc = npc;
+        RecipeGoal = recipeGoal;
+    }
+
+    public EntityId Npc { get; }
+
+    public GoalType RecipeGoal { get; }
 
     public EntityId? TargetEntity => Npc;
 }

@@ -62,6 +62,9 @@ internal static class ManualCommandExecutor
             case StopCommand stop:
                 ApplyStop(world, stop);
                 break;
+            case CraftItemCommand craft:
+                ApplyCraft(world, craft);
+                break;
             case GroupMoveCommand groupMove:
                 ApplyGroupMove(world, groupMove);
                 break;
@@ -951,6 +954,129 @@ internal static class ManualCommandExecutor
                 $"Order=Interact Obj={worldObject.Id.Value} Def={worldObject.DefinitionId} " +
                 $"Action={command.Interaction} Junction={target.Value}");
         }
+    }
+
+    private static void ApplyCraft(WorldState world, CraftItemCommand command)
+    {
+        if (!TryTakeOrder(world, command.Npc, "Craft", requireManual: true, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "Craft", "Incapacitated");
+            return;
+        }
+
+        var option = CraftingOptions.Resolve(world, npc, command.RecipeGoal);
+        if (!option.CanCraft)
+        {
+            Reject(world, npc.Id, "Craft", option.BlockReason.ToString());
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Ручной заказ крафта");
+        ClearAttackOrder(world, npc);
+
+        npc.Plan.Goal = command.RecipeGoal;
+        npc.Plan.TargetTile = option.WorkTile;
+        npc.Plan.TargetJunctionId = option.WorkJunction;
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetItemDefinitionId = option.OutputDefinitionId;
+
+        if (string.IsNullOrEmpty(option.StationTag))
+        {
+            npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.CraftInPlace });
+        }
+        else
+        {
+            if (option.StationObjectId is not { } stationId ||
+                !world.Entities.Objects.TryGetValue(stationId, out var station) ||
+                station.Junctions.Count == 0)
+            {
+                Reject(world, npc.Id, "Craft", "NoStation");
+                ResetRejectedPlan(npc);
+                return;
+            }
+
+            JunctionId target;
+            if (station.CraftJunction is { } authoredWorkPoint)
+            {
+                target = authoredWorkPoint;
+                if (!SpatialMutations.TryReserveJunction(
+                        world, target, npc.Id, world.Tick, Spec121.ManualReserveTicks))
+                {
+                    Reject(world, npc.Id, "Craft", "StationBusy");
+                    ResetRejectedPlan(npc);
+                    return;
+                }
+            }
+            else
+            {
+                var anchor = station.Junctions[0];
+                var besideReach = world.Content.ObjectDefinitions.TryGetValue(
+                        station.DefinitionId, out var stationDefinition)
+                    ? SpatialQueries.BesideReach(stationDefinition.ObstacleRadius)
+                    : float.MaxValue;
+                if (!PlanningSystem.TryReserveBesideJunction(
+                        world, npc, anchor, Spec121.ManualReserveTicks,
+                        out target, besideReach, station))
+                {
+                    Reject(world, npc.Id, "Craft", "StationBusy");
+                    ResetRejectedPlan(npc);
+                    return;
+                }
+            }
+
+            if (npc.CurrentJunction is not { } start ||
+                !Connectivity.Reachable(world, start, target, npc.Body.CanJump))
+            {
+                SpatialMutations.ReleaseJunctionReservation(world, target, npc.Id);
+                Reject(world, npc.Id, "Craft", "Unreachable");
+                ResetRejectedPlan(npc);
+                return;
+            }
+
+            npc.Plan.TargetObjectId = station.Id;
+            npc.Plan.TargetJunctionId = target;
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.MoveToJunction,
+                TargetJunction = target,
+                TargetObject = station.Id
+            });
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.Interact,
+                TargetObject = station.Id,
+                TargetJunction = target,
+                Interaction = InteractionType.Craft
+            });
+        }
+
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Mind.CurrentGoal = command.RecipeGoal;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=Craft Goal={command.RecipeGoal} Output={option.OutputDefinitionId} " +
+                $"Station={option.StationObjectId?.Value.ToString() ?? "ground"} " +
+                $"Tile={option.WorkTile.Q},{option.WorkTile.R} Resume={(option.IsResume ? 1 : 0)}");
+        }
+    }
+
+    private static void ResetRejectedPlan(NPCState npc)
+    {
+        npc.Plan.Goal = GoalType.None;
+        npc.Plan.Status = PlanStatus.Failed;
+        npc.Plan.Steps.Clear();
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetJunctionId = null;
+        npc.Plan.TargetTile = null;
+        npc.Plan.TargetItemDefinitionId = null;
+        npc.Mind.CurrentGoal = GoalType.None;
     }
 
     private static void ApplyAttackNpc(WorldState world, AttackNpcCommand command)

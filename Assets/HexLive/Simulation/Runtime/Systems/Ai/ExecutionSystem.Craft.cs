@@ -371,14 +371,37 @@ public sealed partial class ExecutionSystem
             foreach (var craftedId in npc.Execution.CraftLayout)
             {
                 if (!world.Entities.Objects.TryGetValue(craftedId, out var crafted)) continue;
-                GiveOrDrop(world, npc, new ItemInstance(crafted.DefinitionId)
+                if (goal == GoalType.CraftLeather &&
+                    crafted.DefinitionId == ContentIds.LeatherPants)
                 {
-                    Wetness = crafted.Wetness,
-                    Durability = crafted.Durability,
-                    ResourceAmount = crafted.ResourceAmount,
-                    Dirtiness = crafted.Dirtiness,
-                    Bloodiness = crafted.Bloodiness
-                });
+                    // Preserve the authored specialized result: leather craft
+                    // has always been worn immediately, not packed first.
+                    ResolveWearConflicts(world, npc, ContentIds.LeatherPants);
+                    npc.WornItems.Add(ContentIds.LeatherPants);
+                }
+                else
+                {
+                    if (!npc.Inventory.HasSpace)
+                    {
+                        // The finished project already IS the physical output
+                        // at the workplace. A full backpack leaves that exact
+                        // object there; cloning through GiveOrDrop could fail
+                        // to find a second free point and then despawn the only
+                        // result.
+                        crafted.IsOccupied = false;
+                        crafted.CurrentUser = null;
+                        continue;
+                    }
+
+                    npc.Inventory.Items.Add(new ItemInstance(crafted.DefinitionId)
+                    {
+                        Wetness = crafted.Wetness,
+                        Durability = crafted.Durability,
+                        ResourceAmount = crafted.ResourceAmount,
+                        Dirtiness = crafted.Dirtiness,
+                        Bloodiness = crafted.Bloodiness
+                    });
+                }
                 WorldObjectMutations.DespawnObject(world, craftedId);
             }
 
@@ -428,9 +451,20 @@ public sealed partial class ExecutionSystem
             npc.Execution.EndTick - npc.Execution.StartTick);
 
         if (completedProjectId is { } resultId &&
-            world.Entities.Objects.TryGetValue(resultId, out var result) &&
-            !result.IsCraftProject)
+            world.Entities.Objects.TryGetValue(resultId, out var result))
         {
+            if (result.IsCraftProject && npc.Mind.ManualControl)
+            {
+                ResetManualCraftCycle(npc);
+                return;
+            }
+
+            if (result.IsCraftProject)
+            {
+                FinishCraftInPlace(world, npc, goal);
+                return;
+            }
+
             npc.Execution.CraftLayout.Clear();
             npc.Execution.CraftLayout.Add(resultId);
             npc.Execution.Status = ExecutionStatus.InProgress;
@@ -448,6 +482,43 @@ public sealed partial class ExecutionSystem
         }
 
         FinishCraftInPlace(world, npc, goal);
+    }
+
+    private static void ResetManualCraftCycle(NPCState npc)
+    {
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+    }
+
+    private static void BeginManualCraftTake(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.CraftLayout.Count == 0)
+        {
+            return;
+        }
+
+        var resultId = npc.Execution.CraftLayout[0];
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.CraftInPlace });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetObjectId = resultId;
+        npc.Execution.Status = ExecutionStatus.InProgress;
+        npc.Execution.CurrentInteraction = InteractionType.PickUp;
+        npc.Execution.TargetObject = resultId;
+        npc.Execution.StartTick = world.Tick;
+        npc.Execution.EndTick = world.Tick + CraftTakeDurationTicks;
+        FaceCraftLayout(world, npc);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CraftOutputReady",
+                $"{npc.Plan.Goal} Project={resultId.Value}; take in {CraftTakeDurationTicks}ticks");
+        }
     }
 
     private static void RunLegacyCraftInPlace(WorldState world, NPCState npc)
@@ -683,6 +754,10 @@ public sealed partial class ExecutionSystem
         npc.Execution.CurrentInteraction = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
+        if (npc.Mind.ManualControl)
+        {
+            npc.Mind.LastManualInputTick = world.Tick;
+        }
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "CycleReset",

@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
@@ -104,6 +105,17 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public bool SupportsClientSave => _backend?.SupportsClientSave ?? false;
 
     public bool SupportsNpcCommands => _backend?.SupportsNpcCommands ?? false;
+
+    public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
+    {
+        if (_backend is not null)
+        {
+            return _backend.TryGetCraftingOptions(npc, into);
+        }
+
+        into.Clear();
+        return false;
+    }
 
     public void EnqueueCommand(ISimulationCommand command) => _backend?.EnqueueCommand(command);
 

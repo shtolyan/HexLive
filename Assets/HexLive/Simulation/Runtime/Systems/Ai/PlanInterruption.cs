@@ -82,6 +82,11 @@ public static class PlanInterruption
     {
         var remembered = npc.Mind.InterruptedRescuePatientId;
         var dropped = AbortCore(world, npc, reason, keepCarriedPerson: false);
+        // A fight is an external interruption, not evidence that the previous
+        // target is a Sisyphus loop. Keeping pre-combat Aid/Gather attempts in
+        // the ledger made two legitimate friend-guard reactions trip the loop
+        // ladder and impose a 900-tick cooldown on medical help.
+        world.IntentLedger.Forget(npc.Id.Value);
         var resumePatientId = dropped ?? remembered;
         if (resumePatientId is not { } patientId ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
@@ -105,6 +110,16 @@ public static class PlanInterruption
     private static EntityId? AbortCore(
         WorldState world, NPCState npc, string reason, bool keepCarriedPerson)
     {
+        // §138/§121.7: an interrupted long manual craft is still player
+        // activity. Restart the idle-release window before the plan fields are
+        // cleared, otherwise a prosthetic order older than five minutes would
+        // drop straight back to AI on the interruption tick.
+        if (npc.Mind.ManualControl &&
+            Content.RecipeCatalog.IsItemOutputGoal(npc.Plan.Goal))
+        {
+            npc.Mind.LastManualInputTick = world.Tick;
+        }
+
         var droppedPatientId = keepCarriedPerson
             ? KenshiRescueMath.DetachRescueDestinationForManualCarry(world, npc)
             : KenshiRescueMath.PutDownForPlanInterruption(

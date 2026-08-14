@@ -242,51 +242,55 @@ for index, (x, y) in enumerate(((EDGE_X - 0.03, -EDGE_Y + 0.05),
                                       tube=0.0055),
                          s3, loc=(x, y, BIND_Z),
                          rot=(0, 0, math.radians(-30 if index == 1 else 60))))
-join(binds, "FLR_rope")
+# each lashing stays a separate object (see arch_elements_lib.fit_rope)
 
 
-FROND_SCALE = 0.45          # shipped frond is 1.066 long; 0.45 -> 0.48 wu
+FROND_SCALE = 0.80          # shipped frond is 1.066 long -> 0.85 wu on the roof
 FROND_LENGTH = 1.066 * FROND_SCALE
 
 
-def lay_fronds(stage, prefix, rng, sloped, rows=3):
-    """Lay the kit's own palm fronds over a sector, three overlapping wreaths.
-    The meshes are the shipped FrondPinnate.* from HL_BUILDING_HUT_1HEX — the
-    same leaves the finished hut roof uses — so nothing new is generated; they
-    are only arranged. Each wreath is joined into ONE object, matching the three
-    delivered leaf bundles of a roof sector."""
-    fronds = [m for m in bpy.data.meshes if m.name.startswith("FrondPinnate")]
-    fronds.sort(key=lambda m: m.name)
+def lay_fronds(stage, prefix, rng, sloped):
+    """Thatch a sector with the kit's OWN palm fronds, one object per leaf.
+
+    There is no panel underneath: the roof is sticks and leaves, exactly as it
+    is built — every frond is a separate delivered resource, so a colonist
+    carries them up one leaf at a time and the sector fills in visibly. The
+    leaves are large and heavily overlapped so the wreaths close the surface
+    on their own; each one is turned and tilted a little, so no two read alike.
+    """
+    fronds = sorted((m for m in bpy.data.meshes if m.name.startswith("FrondPinnate")),
+                    key=lambda m: m.name)
     if not fronds:
         raise RuntimeError("kit palm fronds (FrondPinnate.*) not found")
     pitch = math.atan2(ROOF_RISE, ROOF_EDGE_X) if sloped else 0.0
-    # Row starts chosen so each wreath's tips reach the next row and the outer
-    # one stops just past the wall, at the authored overhang.
-    bands = ((0.18, 0.62, 2), (0.56, 1.02, 3), (0.96, ROOF_EDGE_X + ROOF_OVERHANG, 4))
+    # Row bases chosen so each wreath's tips reach well past the next row and
+    # the outer one stops at the authored overhang.
+    rows = ((0.02, 4), (0.18, 5), (0.34, 6), (0.50, 6), (0.66, 6))
     made = []
-    for row, (x0, x1, count) in enumerate(bands[:rows]):
-        group = []
+    for row, (x_base, count) in enumerate(rows):
         for index in range(count):
-            # The frond mesh runs from its ORIGIN toward +X, so the origin is
-            # its base: seat it at the row start and the tip lands at the row
-            # end. Placing it by the centre threw the tips 0.46 wu past the eave.
-            x = x0 + rng.uniform(-0.02, 0.02)
-            half = (x + FROND_LENGTH * 0.5) * TAN30 * 0.82
-            y = -half + (2 * half) * ((index + 0.5) / count) + rng.uniform(-0.03, 0.03)
-            z = (ROOF_RISE * (1.0 - x / ROOF_EDGE_X) if sloped else 0.0) + THATCH_T + 0.012
-            mesh = fronds[(row * 5 + index) % len(fronds)]
-            obj = bpy.data.objects.new(f"{prefix}_frond_{row}{index}", mesh)
+            x = x_base + rng.uniform(-0.02, 0.02)
+            reach = x + FROND_LENGTH * 0.55
+            half = reach * TAN30 * 0.92
+            y = -half + (2 * half) * ((index + 0.5) / count) + rng.uniform(-0.04, 0.04)
+            z = (ROOF_RISE * (1.0 - x / ROOF_EDGE_X) if sloped else 0.0) + 0.012 + row * 0.010
+            obj = bpy.data.objects.new(f"{prefix}_leaf_{row}{index}",
+                                       fronds[(row * 5 + index) % len(fronds)])
             ensure_collection().objects.link(obj)
             obj.parent = stage
             obj.location = (x, y, z)
             obj.rotation_mode = "XYZ"
-            obj.rotation_euler = Euler((rng.uniform(-0.14, 0.14),
-                                        -pitch + rng.uniform(-0.05, 0.05),
-                                        rng.uniform(-0.22, 0.22)))
-            obj.scale = (FROND_SCALE, FROND_SCALE, FROND_SCALE)
-            group.append(obj)
-        made.append(join(group, f"{prefix}_leaves_{row}"))
+            # Each frond is rolled along its own spine and dips its tip, so the
+            # blades stand at an angle instead of lying flat on the beam.
+            roll = rng.choice((-1.0, 1.0)) * rng.uniform(0.35, 0.62)
+            obj.rotation_euler = Euler((roll,
+                                        -pitch - rng.uniform(0.10, 0.22),
+                                        rng.uniform(-0.38, 0.38)))
+            scale = FROND_SCALE * rng.uniform(0.92, 1.08)
+            obj.scale = (scale, scale, scale)
+            made.append(obj)
     return made
+
 
 # --------------------------------------------------------------------------- #
 # roof sector — one triangle per floor sector, so a room roofs itself
@@ -349,10 +353,6 @@ new_obj("ROOF_rafter",
         rot=(0, math.radians(90) + math.atan2(ROOF_RISE, rafter_len), math.radians(-30)))
 
 # Stage 2 — three thatch bands, one per delivered leaf bundle.
-# One woven underlay so no daylight comes through, then the kit's own fronds.
-new_obj("ROOF_deco_underlay",
-        roof_panel("ROOF_deco_underlay", 0.02, ROOF_EDGE_X + ROOF_OVERHANG, "ARCH_Leaf"),
-        s2, loc=(0, 0, 0))
 lay_fronds(s2, "ROOF", rng, sloped=True)
 
 # Stage 3 — one rope: lashings where the rafter meets the eave and the peak.
@@ -363,7 +363,7 @@ for index, (x, y, z) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08, -
                          axis_lashing(f"ROOF_bind_{index}", rng, 0.020, squash=0.75,
                                       tube=0.0058),
                          s3, loc=(x, y, z), rot=(0, 0, math.radians(60 if index == 0 else -30))))
-join(binds, "ROOF_rope")
+
 
 # --------------------------------------------------------------------------- #
 # roof sector, FLAT variant — used wherever the sector's outer edge is INSIDE
@@ -412,9 +412,6 @@ new_obj("ROOFFLAT_edge_beam",
 new_obj("ROOFFLAT_rafter",
         bowed_stick("ROOFFLAT_rafter", rafter_len, 0.020, rng, bow=0.005), s1,
         loc=(0.04, -0.03, -0.022), rot=(0, math.radians(90), math.radians(-30)))
-new_obj("ROOFFLAT_deco_underlay",
-        roof_panel_flat("ROOFFLAT_deco_underlay", 0.02, ROOF_EDGE_X + ROOF_OVERHANG, "ARCH_Leaf"),
-        s2, loc=(0, 0, 0))
 lay_fronds(s2, "ROOFFLAT", rng, sloped=False)
 binds = []
 for index, (x, y) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08), (0.10, -0.055))):
@@ -423,7 +420,7 @@ for index, (x, y) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08), (0.
                                       tube=0.0058),
                          s3, loc=(x, y, -0.022),
                          rot=(0, 0, math.radians(60 if index == 0 else -30))))
-join(binds, "ROOFFLAT_rope")
+
 
 
 # --------------------------------------------------------------------------- #
@@ -504,7 +501,7 @@ for index, x in enumerate((-SPIT_X, SPIT_X)):
                          axis_lashing(f"HEARTH_bind_{index}", rng, 0.019, squash=1.0,
                                       loops=3, tube=0.0055),
                          s3, loc=(x, 0, SPIT_TOP - 0.012), rot=(0, 0, math.radians(90))))
-join(binds, "HEARTH_rope")
+
 
 # The renderer attaches CampfireEffect to this marker (Spec 120.2), so it must
 # stay named exactly fire_point and sit at the flame centre, not at the origin.

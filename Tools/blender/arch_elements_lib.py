@@ -467,5 +467,7 @@ def fit_rope(root, prefix, seed, plan, sep_axis="x"):
         parts.append(new_obj(f"{prefix}_bind_{index}", mesh, stage,
                              loc=(cx, cy, z), rot=(math.radians(tilt), 0, 0)))
         report.append((z, cx, cy, half_x, half_y, count))
-    join(parts, f"{prefix}_rope")
+    # Every lashing stays its own object: the game switches pieces on one by
+    # one and counts resources from them, so a joined rope could never be
+    # revealed a turn at a time.
     return report

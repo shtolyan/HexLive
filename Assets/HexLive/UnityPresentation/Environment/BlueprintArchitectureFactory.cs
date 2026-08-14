@@ -222,6 +222,7 @@ namespace HexLive.UnityPresentation.Environment
             var authored = InstantiateModel(definitionId, midpoint, yaw);
             if (authored != null)
             {
+                DropPostsOwnedByASupport(authored, element, draft);
                 if (kind == BlueprintElementKind.Door)
                     ConfigureDoorPivot(authored, element, draft, midpoint, direction.normalized);
                 return authored;
@@ -268,6 +269,29 @@ namespace HexLive.UnityPresentation.Environment
             var visual = pivot.gameObject.AddComponent<BlueprintDoorVisual>();
             visual.Configure(openAngle, true);
             return root;
+        }
+
+        /// <summary>
+        /// A bay authors its post pair on its far (+Z) node. When a standalone
+        /// Support element already owns that node — every hex corner has one —
+        /// the bay must not build a second pair on top of it, or each corner
+        /// grows two overlapping sets of posts. The corner post is the Support.
+        /// </summary>
+        private static void DropPostsOwnedByASupport(
+            GameObject authored, BlueprintElementData element, BuildingBlueprintDraft draft)
+        {
+            var node = element.Segment.B;
+            var owned = draft.Elements.Any(other =>
+                other.Kind == BlueprintElementKind.Support && other.Node == node);
+            if (!owned) return;
+
+            var stage = FindStage(authored.transform, 1);
+            if (stage == null) return;
+            foreach (var child in stage.Cast<Transform>().ToArray())
+            {
+                if (!child.name.Contains("_stick_")) continue;
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
         }
 
         private static void ConfigureDoorPivot(

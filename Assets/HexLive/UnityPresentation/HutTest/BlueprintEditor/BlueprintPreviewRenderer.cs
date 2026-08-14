@@ -27,7 +27,10 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
     {
         private const float FloorY = HutAssembly.FloorSurfaceLift;
         private readonly Dictionary<string, GameObject> _objects = new();
-        private readonly List<(BlueprintElementData element, Renderer[] renderers)> _walls = new();
+        // Everything the cutaway may hide, with the plan position it is scored
+        // by. Corner supports belong here too: they are full-height posts, and
+        // leaving them out left one standing in front of the selected colonist.
+        private readonly List<(Vector2 position, Renderer[] renderers)> _walls = new();
         private readonly List<Transform> _conflictMarkers = new();
         private Transform? _elementRoot;
         private Transform? _overlayRoot;
@@ -132,11 +135,9 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             var localCamera = transform.InverseTransformPoint(camera.transform.position);
             var ordered = _walls.Select(wall =>
             {
-                var a = BlueprintGeometry.ToWorld(wall.element.Segment.A);
-                var b = BlueprintGeometry.ToWorld(wall.element.Segment.B);
-                var midpoint = new Vector2((a.X + b.X) * 0.5f, (a.Y + b.Y) * 0.5f);
-                var cameraDirection = new Vector2(localCamera.x - midpoint.x, localCamera.z - midpoint.y).normalized;
-                var outward = midpoint.sqrMagnitude > 0.001f ? midpoint.normalized : cameraDirection;
+                var position = wall.position;
+                var cameraDirection = new Vector2(localCamera.x - position.x, localCamera.z - position.y).normalized;
+                var outward = position.sqrMagnitude > 0.001f ? position.normalized : cameraDirection;
                 return (wall, score: Vector2.Dot(outward, cameraDirection));
             }).OrderByDescending(entry => entry.score).ToArray();
 
@@ -161,7 +162,18 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             root.transform.SetParent(_elementRoot, false);
             _objects[element.Id] = root;
             if (element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window or BlueprintElementKind.Door)
-                _walls.Add((element, root.GetComponentsInChildren<Renderer>(true)));
+            {
+                var a = BlueprintGeometry.ToWorld(element.Segment.A);
+                var b = BlueprintGeometry.ToWorld(element.Segment.B);
+                _walls.Add((new Vector2((a.X + b.X) * 0.5f, (a.Y + b.Y) * 0.5f),
+                            root.GetComponentsInChildren<Renderer>(true)));
+            }
+            else if (element.Kind == BlueprintElementKind.Support)
+            {
+                var node = BlueprintGeometry.ToWorld(element.Node);
+                _walls.Add((new Vector2(node.X, node.Y),
+                            root.GetComponentsInChildren<Renderer>(true)));
+            }
         }
 
         private void BuildFurniture(FurniturePlacementData item)
@@ -176,8 +188,19 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             if (root == null) return;
             root.name = $"Blueprint furniture {item.DefinitionId} {item.Id}";
             root.transform.SetParent(_elementRoot, false);
-            var point = BlueprintGeometry.JunctionToWorld(item.PrimaryJunction);
-            root.transform.localPosition = new Vector3(point.X, FloorY, point.Y);
+            // Draw the model on the CENTRE of its occupied junctions, not on the
+            // anchor junction. A bed's logical footprint runs from -0.5625 to
+            // +0.9375 along its length, so the anchor sits 0.1875 wu off centre
+            // and placing the mesh there slid every bed away from its wall.
+            var occupied = BlueprintFurnitureFootprints.OccupiedJunctions(item);
+            var centre = Vector2.zero;
+            foreach (var junction in occupied)
+            {
+                var world = BlueprintGeometry.JunctionToWorld(junction);
+                centre += new Vector2(world.X, world.Y);
+            }
+            centre /= Mathf.Max(1, occupied.Count);
+            root.transform.localPosition = new Vector3(centre.x, FloorY, centre.y);
             root.transform.localRotation = Quaternion.Euler(0f, -item.YawStep * 60f, 0f);
             _objects[item.Id] = root;
         }

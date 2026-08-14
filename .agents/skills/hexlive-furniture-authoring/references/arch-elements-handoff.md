@@ -45,8 +45,27 @@ Numbers that were verified, not eyeballed:
 - Roof tiling: outer eave 0.000, centre peak +0.133…+0.178, eave height 2.271.
 - Wardrobe footprint vs model: 0.0° (was 60°). Bed flush to wall: 0.0000.
 - Corner supports: pair within 6–25° of radial (was unrotated/random).
+- Roof support rule: a sector needs BOTH corners of its own outer edge (was
+  three of the parent hex's six corners). On the original six posts that allows
+  8 sectors of 10 instead of 6, and the two refusals are honest — one edge post
+  really is missing, and the message names it.
+- `RoofHex` roofs a whole hex in one all-or-nothing transaction; repeating it
+  changes nothing. Nothing stands at the hex centre: six panels meet there.
+- Furniture overlay draws the r=4 boundary ring as well as the r=3 interior set,
+  deduplicated by JunctionKey: 169 points on a three-hex room versus 111.
 
 ## Open
+
+0. **Rain falls through the roof.** Measured: the scene has 25 colliders and
+   NONE on tiles or roofs — `HexWorldRenderer.UpdateRain` kills drops with a
+   single infinite `Planes` collider at ground level, so nothing can stop them
+   higher up. The fix is a change of collision scheme, not a one-liner:
+   add a `RainBlocker` layer (only layer 8 `SmallProps` is currently defined),
+   switch the system to `collision.type = World` with `collidesWith` = that
+   layer, give each finished roof sector a collider on it, and replace the
+   ground plane with one large thin ground box collider on the same layer so
+   the splash sub-emitter still fires. Verify with rain on (`R` in HutTest)
+   from inside a finished hut.
 
 1. **Room stretching does not fill floor or roof.** Dragging a room leaves one
    sector instead of the full set. Start in `BlueprintEditorCommands`

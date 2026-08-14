@@ -188,15 +188,33 @@ namespace HexLive.UnityPresentation.Environment
                 HutAssembly.FloorSurfaceLift, Wood, 0.055f);
         }
 
+        /// <summary>
+        /// Height of the roof eave: the top of a finished wall board (2.164 in
+        /// the authored wall) above the walkable deck.
+        /// </summary>
+        public const float RoofEaveHeight = HutAssembly.FloorSurfaceLift + 2.164f;
+
         private static GameObject BuildRoof(BlueprintElementData element)
         {
             var sector = element.RoofSector;
+            var center = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(sector.Hex));
+            var a = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(sector.Hex, sector.Sector));
+            var b = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(sector.Hex, sector.Sector + 1));
+            var bisector = new Vector3(
+                (a.X + b.X) * 0.5f - center.X, 0f, (a.Y + b.Y) * 0.5f - center.Y);
+            // The authored panel rises from the outer hex edge to the hex centre,
+            // so neighbouring hexes always meet along a shared edge at each
+            // one's LOW point — the same height whatever shape the room is.
+            // That is what lets a stretched room roof itself with no joiner.
+            var model = InstantiateModel(
+                "architecture.roof.palm",
+                new Vector3(center.X, RoofEaveHeight, center.Y),
+                Quaternion.Euler(0f, Mathf.Atan2(-bisector.z, bisector.x) * Mathf.Rad2Deg, 0f));
+            if (model != null) return model;
+
             return Triangle(
-                $"Roof sector {sector}",
-                BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(sector.Hex)),
-                BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(sector.Hex, sector.Sector)),
-                BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(sector.Hex, sector.Sector + 1)),
-                SupportHeight + HutAssembly.FloorSurfaceLift, Leaf, 0.025f, 0.22f);
+                $"Roof sector {sector}", center, a, b,
+                RoofEaveHeight, Leaf, 0.025f, 0.22f);
         }
 
         private static GameObject BuildBay(

@@ -243,6 +243,81 @@ for index, (x, y) in enumerate(((EDGE_X - 0.03, -EDGE_Y + 0.05),
 join(binds, "FLR_rope")
 
 # --------------------------------------------------------------------------- #
+# roof sector — one triangle per floor sector, so a room roofs itself
+# --------------------------------------------------------------------------- #
+# The slope lives INSIDE a hex: every panel rises from the outer hex edge to
+# the hex centre. Two neighbouring hexes therefore meet along their shared edge
+# at each one's LOW point, at the same height, whatever shape the room has — so
+# panels tile by construction and no separate joiner element is needed. The
+# frame repeats the floor's trick: each sector carries its own radial rafter
+# plus the outer eave beam, so a finished hex closes the frame without doubles.
+rng = random.Random(808)
+root, (s1, s2, s3) = element_root("HL_ARCH_ROOF", 18.0)
+ROOF_RISE = 0.135          # centre peak above the eave
+ROOF_EDGE_X = 1.299        # hex apothem: the eave line
+ROOF_CORNER_Y = 0.75
+THATCH_T = 0.045
+
+
+def roof_panel(name, x0, x1, tone):
+    """One delivered leaf bundle: a thatch band across the sector, tilted so the
+    inner end sits ROOF_RISE above the eave."""
+    import bmesh
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+
+    def height(x):
+        return ROOF_RISE * (1.0 - x / ROOF_EDGE_X)
+
+    ya, yb = x0 * TAN30 * 0.995, x1 * TAN30 * 0.995
+    za, zb = height(x0), height(x1)
+    bottom = [bm.verts.new(p) for p in ((x0, -ya, za), (x1, -yb, zb),
+                                        (x1, yb, zb), (x0, ya, za))]
+    top = [bm.verts.new(p) for p in ((x0, -ya, za + THATCH_T), (x1, -yb, zb + THATCH_T),
+                                     (x1, yb, zb + THATCH_T), (x0, ya, za + THATCH_T))]
+    bm.faces.new(list(reversed(bottom)))
+    bm.faces.new(top)
+    for a in range(4):
+        b = (a + 1) % 4
+        bm.faces.new((bottom[a], bottom[b], top[b], top[a]))
+    bm.normal_update()
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.materials.append(bpy.data.materials[tone])
+    for polygon in mesh.polygons:
+        polygon.use_smooth = False
+    return mesh
+
+
+# Stage 1 — two sticks: the radial rafter and the eave beam, under the thatch.
+new_obj("ROOF_eave_beam",
+        bowed_stick("ROOF_eave_beam", ROOF_CORNER_Y * 2 - 0.05, 0.019, rng, bow=0.005), s1,
+        loc=(ROOF_EDGE_X - 0.03, -ROOF_CORNER_Y + 0.025, -0.022),
+        rot=(math.radians(-90), 0, 0))
+rafter_len = math.hypot(ROOF_EDGE_X - 0.04, ROOF_CORNER_Y - 0.03)
+new_obj("ROOF_rafter",
+        bowed_stick("ROOF_rafter", rafter_len, 0.020, rng, bow=0.005), s1,
+        loc=(0.04, -0.03, ROOF_RISE - 0.030),
+        rot=(0, math.radians(90) + math.atan2(ROOF_RISE, rafter_len), math.radians(-30)))
+
+# Stage 2 — three thatch bands, one per delivered leaf bundle.
+for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88), (0.87, ROOF_EDGE_X))):
+    tone = "ARCH_Leaf" if index % 2 == 0 else "ARCH_LeafLight"
+    new_obj(f"ROOF_thatch_{index}", roof_panel(f"ROOF_thatch_{index}", x0, x1, tone),
+            s2, loc=(0, 0, 0))
+
+# Stage 3 — one rope: lashings where the rafter meets the eave and the peak.
+binds = []
+for index, (x, y, z) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08, -0.012),
+                                   (0.10, -0.055, ROOF_RISE - 0.020))):
+    binds.append(new_obj(f"ROOF_bind_{index}",
+                         axis_lashing(f"ROOF_bind_{index}", rng, 0.020, squash=0.75,
+                                      tube=0.0058),
+                         s3, loc=(x, y, z), rot=(0, 0, math.radians(60 if index == 0 else -30))))
+join(binds, "ROOF_rope")
+
+
+# --------------------------------------------------------------------------- #
 # indoor hearth — one junction, the colony's small fire
 # --------------------------------------------------------------------------- #
 # It must stay inside a single junction cell (0.375 wu spacing), so the stone
@@ -328,7 +403,7 @@ new_empty("fire_point", root, loc=(0, 0, 0.055))
 
 print("=== architecture elements rebuilt ===")
 for name in ("HL_ARCH_WALL", "HL_ARCH_WINDOW", "HL_ARCH_DOOR",
-             "HL_ARCH_SUPPORT", "HL_ARCH_FLOOR", "HL_ARCH_HEARTH"):
+             "HL_ARCH_SUPPORT", "HL_ARCH_FLOOR", "HL_ARCH_ROOF", "HL_ARCH_HEARTH"):
     root = bpy.data.objects[name]
     counts = []
     for stage in sorted(root.children, key=lambda c: c.name):

@@ -35,6 +35,7 @@ ELEMENTS = {
     "HL_ARCH_DOOR": "architecture.door.wood",
     "HL_ARCH_SUPPORT": "architecture.support.wood",
     "HL_ARCH_FLOOR": "architecture.floor.board",
+    "HL_ARCH_ROOF": "architecture.roof.palm",
     "HL_ARCH_HEARTH": "furniture.hearth",
 }
 

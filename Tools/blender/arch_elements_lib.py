@@ -50,6 +50,9 @@ PALETTE = {
     "ARCH_Ash": (0.105, 0.090, 0.074),
     "ARCH_Ember": (0.400, 0.025, 0.006),
     "ARCH_Charcoal": (0.090, 0.075, 0.062),
+    # Palm thatch, matched to the kit roof so the new panels sit with the old.
+    "ARCH_Leaf": (0.180, 0.380, 0.160),
+    "ARCH_LeafLight": (0.245, 0.450, 0.195),
 }
 
 EMISSIVE = {"ARCH_Ember"}

@@ -196,6 +196,7 @@ def sector_boards(name, x0, x1, tones, wedge=False):
             b = (a + 1) % 4
             face = bm.faces.new((bottom[a], bottom[b], top[b], top[a]))
             face.material_index = heart
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()
@@ -280,6 +281,7 @@ def roof_panel(name, x0, x1, tone):
     for a in range(4):
         b = (a + 1) % 4
         bm.faces.new((bottom[a], bottom[b], top[b], top[a]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()

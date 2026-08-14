@@ -166,6 +166,7 @@ def bowed_stick(name, length, radius, rng, bow=0.008, facets=7):
     for ring, flip in ((rings[0], True), (rings[-1], False)):
         face = bm.faces.new(ring if flip else list(reversed(ring)))
         face.material_index = 1
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()
@@ -223,6 +224,7 @@ def plank_slab(name, length, height, thick, rng, tones, planks=2, overlap=0.013)
         for ring, flip in ((rings[0], True), (rings[1], False)):
             face = bm.faces.new(ring if flip else list(reversed(ring)))
             face.material_index = heart
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()
@@ -303,6 +305,7 @@ def pair_lashing(name, rng, half_x, half_y, sep_axis="x", turns=3,
         rx * 0.62 if sep_axis == "y" else 0.0,
         ry * 0.62 if sep_axis == "x" else 0.0,
         stack_half + tube * 1.2))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()
@@ -322,6 +325,7 @@ def faceted_stone(name, rng, radius, flatten=0.62, material="ARCH_Stone"):
         vert.co.x *= rng.uniform(0.82, 1.18)
         vert.co.y *= rng.uniform(0.82, 1.18)
         vert.co.z *= flatten * rng.uniform(0.86, 1.14)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()
@@ -347,6 +351,7 @@ def disc(name, radius, height, sides, material, rng=None, dip=0.0):
         b = (k + 1) % sides
         bm.faces.new((rim[k], rim[b], centre_top))
         bm.faces.new((rim[b], rim[k], floor))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()
@@ -389,6 +394,7 @@ def axis_lashing(name, rng, axis_radius, squash=1.0, loops=3, tube=0.0062):
             previous = quad
         for e in range(4):
             bm.faces.new((previous[e], previous[(e + 1) % 4], first[(e + 1) % 4], first[e]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()

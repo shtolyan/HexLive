@@ -30,13 +30,19 @@ namespace HexLive.UnityPresentation.UI
         /// afterward, in loading phase 3.</summary>
         public static bool IsReplaying { get; private set; }
 
-        // Spec 41.3: сколько миллисекунд кадра отдаётся намотке офлайна. Потолок
-        // офлайна снят (SaveGame.OfflineTicksCap), поэтому долгий перерыв — это
-        // миллионы тиков, и 10 мс на кадр превращали их в часы ожидания. 120 мс
-        // = ~8 fps на экране загрузки: полоса и часы ещё двигаются, но кадр
-        // почти целиком уходит на симуляцию.
-        private const float ReplayBudgetMsPerFrame = 120f;
+        // Бюджета кадра у намотки больше НЕТ и он не нужен: она крутится на
+        // своём потоке, а главный в это время грузит арт и рисует полосу. Был
+        // ReplayBudgetMsPerFrame = 120 мс — компромисс между «мотать быстро» и
+        // «не морозить экран», который стоил и того и другого.
         private const float FadeSeconds = 0.7f;
+
+        // §41.3: единственные две ячейки, которые главный поток делит с
+        // воркером намотки. Тик — только на чтение (полоса и часы), стоп-флаг —
+        // только на запись. volatile здесь не для атомарности (int и bool
+        // атомарны и так), а чтобы значение не осело в регистре: цикл воркера
+        // не трогает ничего, что заставило бы JIT перечитать флаг.
+        private volatile int _windTick;
+        private volatile bool _windAbort;
 
         private SimulationRunnerBehaviour _runner;
         private int _targetTick;
@@ -78,6 +84,10 @@ namespace HexLive.UnityPresentation.UI
         private void OnDestroy()
         {
             IsActive = false;
+            // Корутина умирает молча (domain reload в игре), а воркер намотки —
+            // нет: он крутил бы мёртвый мир в фоне. Флаг он проверяет каждый
+            // тик, так что остановка занимает один шаг.
+            _windAbort = true;
             // Safety: if the coroutine died mid-wind (an in-play domain reload
             // kills coroutines silently), don't leave the renderer muted.
             IsReplaying = false;
@@ -717,32 +727,45 @@ namespace HexLive.UnityPresentation.UI
 
             // Spec 41.1: bootstrap PAUSED; the loader unpauses after the fade.
             var speed = _continueChosen && _save is { speed: > 0f } ? _save.speed : 1f;
-            _runner.Configure(
-                HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed),
-                startPaused: true, initialSpeed: speed);
 
-            // Spec 41.2 v2: apply the saved MODEL onto the freshly built
-            // world (static topology comes from the seed, everything mutable
-            // from the blob). A corrupt save falls back to a new world.
-            if (_continueChosen && _save != null && _runner.Engine is { } restoreEngine)
+            // §41.3: прогрев арта забираем у Configure себе — он поедет рядом с
+            // намоткой, а не перед ней. Флаг снимаем сразу: он статический, и
+            // остальные вызывающие Configure (dev-сцены, подключение к серверу)
+            // обязаны прогреться сами, как раньше.
+            SimulationRunnerBehaviour.DeferContentPrewarm = true;
+            try
             {
-                SetProgress(0.05f, Loc.Get("loading.world"));
-                yield return null;
+                _runner.Configure(
+                    HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed),
+                    startPaused: true, initialSpeed: speed);
 
-                if (!SaveGame.TryRestore(restoreEngine.World))
+                // Spec 41.2 v2: apply the saved MODEL onto the freshly built
+                // world (static topology comes from the seed, everything mutable
+                // from the blob). A corrupt save falls back to a new world.
+                if (_continueChosen && _save != null && _runner.Engine is { } restoreEngine)
                 {
-                    Debug.LogWarning("[HexLive] Save restore failed — starting a new world.");
-                    SaveGame.Delete();
-                    seed = System.Environment.TickCount;
-                    _targetTick = 0;
-                    _runner.Configure(
-                        HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed),
-                        startPaused: true, initialSpeed: 1f);
+                    SetProgress(0.05f, Loc.Get("loading.world"));
+                    yield return null;
+
+                    if (!SaveGame.TryRestore(restoreEngine.World))
+                    {
+                        Debug.LogWarning("[HexLive] Save restore failed — starting a new world.");
+                        SaveGame.Delete();
+                        seed = System.Environment.TickCount;
+                        _targetTick = 0;
+                        _runner.Configure(
+                            HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed),
+                            startPaused: true, initialSpeed: 1f);
+                    }
+                    else if (restoreEngine.World.Completed)
+                    {
+                        _targetTick = restoreEngine.World.Tick;
+                    }
                 }
-                else if (restoreEngine.World.Completed)
-                {
-                    _targetTick = restoreEngine.World.Tick;
-                }
+            }
+            finally
+            {
+                SimulationRunnerBehaviour.DeferContentPrewarm = false;
             }
 
             var hasReplay = _runner.Engine is { } configured &&
@@ -750,74 +773,154 @@ namespace HexLive.UnityPresentation.UI
                 configured.World.Tick < _targetTick;
             yield return null;
 
-            // Spec 41.3: wind the loaded world forward by the offline ticks,
-            // ReplayBudgetMsPerFrame of stepping per frame so the bar moves.
+            // §41.3: намотка офлайна уходит НА ВОРКЕР, а главный поток в это
+            // время тянет арт. Раньше и то и другое стояло в очереди к одному
+            // потоку: сначала Configure читал с диска 8.3 МБ префабов и все
+            // сэмплы FMOD, и только потом начинался первый тик — а сама намотка
+            // шла порциями по ReplayBudgetMsPerFrame, отдавая кадр Unity.
+            //
+            // Почему это безопасно, хотя мир один на двоих:
+            //  • симуляция не знает про UnityEngine вовсе (та же сборка
+            //    собирается headless под .NET 9), так что с воркера ей нечего
+            //    трогать из запретного, а буферы патфайндера уже [ThreadStatic];
+            //  • на время намотки мир принадлежит воркеру ИСКЛЮЧИТЕЛЬНО:
+            //    CreateSnapshot отдаёт null, пока IsReplaying (это перекрывает
+            //    всех потребителей разом), рендер и звук выходят первой строкой
+            //    Update, а LocalEngineBackend.Tick на паузе не делает ничего и
+            //    не сливает события;
+            //  • главный поток читает у воркера ровно один int — номер тика.
+            System.Threading.Tasks.Task windTask = null;
+            System.Exception windError = null;
+            HexLive.Simulation.Runtime.SimulationEngine windEngine = null;
+            HexLive.Simulation.Runtime.FlightRecorder windRecorder = null;
+            var windTrace = HexLive.Simulation.Runtime.SimTrace.Enabled;
+            var windStart = 0;
+            var windTarget = _targetTick;
+            var windClock = System.Diagnostics.Stopwatch.StartNew();
+            var windStepMs = 0.0;
+
             if (hasReplay && _runner.Engine is { } engine)
             {
+                windEngine = engine;
+                windStart = engine.World.Tick;
+                _windTick = windStart;
+                _windAbort = false;
                 _timeReadout.style.display = DisplayStyle.Flex;
-                var clock = System.Diagnostics.Stopwatch.StartNew();
-                // Сколько из этого времени реально ушло в Step, а не в кадр
-                // Unity вокруг него — иначе «намотка медленная» неотличимо от
-                // «намотке не дают кадра» (подгрузка одежды идёт параллельно).
-                var stepping = new System.Diagnostics.Stopwatch();
-                var start = engine.World.Tick;
 
-                // §41.3 + §30.14/30.17: намотку никто не разбирает — самописец
-                // и трасса на ней только жгут время. Замер (Mono, edit mode,
-                // сид 12345): 6.51 мс/тик без самописца против 12.07 с ним.
-                // Гасим на время намотки и возвращаем ровно как было.
-                var recorder = engine.World.FlightRecorder;
-                var trace = HexLive.Simulation.Runtime.SimTrace.Enabled;
+                // §30.14/30.17: намотку никто не разбирает — самописец и трасса
+                // на ней только жгут время. Замер (Mono, edit mode, сид 12345):
+                // 6.51 мс/тик без самописца против 12.07 с ним.
+                windRecorder = engine.World.FlightRecorder;
                 engine.World.FlightRecorder = null;
                 HexLive.Simulation.Runtime.SimTrace.Enabled = false;
 
-                try
+                windTask = System.Threading.Tasks.Task.Run(() =>
                 {
-                    while (!engine.World.Completed &&
-                           !IsColonyExtinct(engine.World) &&
-                           engine.World.Tick < _targetTick)
+                    var stepping = System.Diagnostics.Stopwatch.StartNew();
+                    try
                     {
-                        var frame = System.Diagnostics.Stopwatch.StartNew();
-                        stepping.Start();
-                        while (!engine.World.Completed &&
+                        while (!_windAbort &&
+                               !engine.World.Completed &&
                                !IsColonyExtinct(engine.World) &&
-                               engine.World.Tick < _targetTick &&
-                               frame.ElapsedMilliseconds < ReplayBudgetMsPerFrame)
+                               engine.World.Tick < windTarget)
                         {
                             engine.Step();
+                            _windTick = engine.World.Tick;
                         }
-
-                        stepping.Stop();
-
-                        var done = (engine.World.Tick - start) /
-                            (float)Mathf.Max(1, _targetTick - start);
-                        _timeReadout.text = FormatDayTime(engine.World.Tick);
-                        SetProgress(0.05f + done * 0.6f, Loc.Get("loading.time"));
-                        yield return null;
                     }
-                }
-                finally
+                    catch (System.Exception e)
+                    {
+                        // Молча упасть здесь нельзя: Task проглотит исключение,
+                        // а экран останется ждать вечно. Причина уезжает на
+                        // главный поток и печатается там.
+                        windError = e;
+                    }
+
+                    windStepMs = stepping.Elapsed.TotalMilliseconds;
+                });
+            }
+
+            // Пока мир мотается — тянем арт. Вызов блокирующий (это чтения с
+            // диска), но блокирует он теперь только КАДР, а не намотку.
+            _runner.WarmContent();
+
+            try
+            {
+                // Ждём намотку. Бандлы в это время едут сами — их дождёмся ниже,
+                // но только ПОСЛЕ того, как домотанный мир скажет, что ему
+                // вообще нужно.
+                while (windTask is { IsCompleted: false })
                 {
-                    engine.World.FlightRecorder = recorder;
-                    HexLive.Simulation.Runtime.SimTrace.Enabled = trace;
+                    var tick = _windTick;
+                    var done = (tick - windStart) /
+                        (float)Mathf.Max(1, windTarget - windStart);
+                    _timeReadout.text = FormatDayTime(tick);
+                    SetProgress(0.05f + done * 0.5f, Loc.Get("loading.time"));
+                    yield return null;
+                }
+            }
+            finally
+            {
+                // Корутину убивает domain reload — тогда воркер обязан
+                // остановиться сам, а самописец вернуться на место, иначе он
+                // останется выключенным на всю игровую сессию.
+                _windAbort = true;
+                windTask?.Wait(2000);
+                if (windEngine != null)
+                {
+                    windEngine.World.FlightRecorder = windRecorder;
                 }
 
+                HexLive.Simulation.Runtime.SimTrace.Enabled = windTrace;
                 _timeReadout.style.display = DisplayStyle.None;
-                if (IsColonyExtinct(engine.World) && engine.World.Tick < _targetTick)
+            }
+
+            if (windEngine != null)
+            {
+                if (windError != null)
+                {
+                    UnityEngine.Debug.LogError(
+                        "[HexLive] Offline wind threw and stopped at tick " +
+                        $"{windEngine.World.Tick}: {windError}");
+                }
+
+                if (IsColonyExtinct(windEngine.World) && windEngine.World.Tick < windTarget)
                 {
                     UnityEngine.Debug.Log(
                         "[HexLive] Offline wind stopped early: the colony died out at tick " +
-                        $"{engine.World.Tick} (target was {_targetTick}).");
+                        $"{windEngine.World.Tick} (target was {windTarget}).");
                 }
 
-                var wound = engine.World.Tick - start;
-                var wallMs = System.Math.Max(1L, clock.ElapsedMilliseconds);
-                var stepMs = System.Math.Max(1.0, stepping.Elapsed.TotalMilliseconds);
+                // Две РАЗНЫЕ величины, и путать их нельзя: скорость намотки
+                // считается по времени воркера, а не по всему окну загрузки —
+                // иначе долгая подгрузка бандлов «замедлит» намотку в отчёте.
+                // Отношение одного к другому и говорит, кто кого ждал.
+                var wound = windEngine.World.Tick - windStart;
+                var windowMs = System.Math.Max(1L, windClock.ElapsedMilliseconds);
+                var workerMs = System.Math.Max(1.0, windStepMs);
                 UnityEngine.Debug.Log(
-                    $"[HexLive] Replayed {wound} ticks to {engine.World.Tick} in {wallMs} ms — " +
-                    $"{wound * 1000.0 / wallMs:0} tick/s, {stepMs / System.Math.Max(1, wound):0.00} ms/tick in Step, " +
-                    $"{stepMs * 100.0 / wallMs:0}% of wall clock stepping " +
-                    $"(the rest is the Unity frame: asset prewarm, UI, GC)");
+                    $"[HexLive] Replayed {wound} ticks to {windEngine.World.Tick} on a worker in {workerMs:0} ms — " +
+                    $"{wound * 1000.0 / workerMs:0} tick/s, {workerMs / System.Math.Max(1, wound):0.00} ms/tick; " +
+                    $"the load window was {windowMs} ms, the wind {workerMs * 100.0 / windowMs:0}% of it " +
+                    $"(the rest is content: bundles, prefabs, FMOD)");
+            }
+
+            // Мир домотан и снова наш — теперь и только теперь известно, ЧТО на
+            // колонистках надето. За игровые сутки они могли переодеться,
+            // раздеться и умереть в другом, а на землю выпасть то, чего в мире
+            // не было. Заявка уходит на разницу; уже приехавшее молчит.
+            if (hasReplay)
+            {
+                _runner.WarmWornWear();
+            }
+
+            // Шторка ждёт бандлы: одежду по итоговому миру и иконки.
+            while (hasReplay && !Wearing.Garments.ContentQueue.IsIdle)
+            {
+                SetProgress(
+                    0.55f + 0.1f * Wearing.Garments.ContentQueue.Progress,
+                    Loc.Get(Wearing.Garments.ContentQueue.MessageKey));
+                yield return null;
             }
 
             // The world now stands at its final tick — drop the curtain so the

@@ -54,6 +54,20 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     private readonly List<SimulationEvent> _drainedEvents = new();
     private readonly GameHistoryLog _gameHistory = new();
 
+    /// <summary>§41.3: экран загрузки берёт прогрев арта СЕБЕ, чтобы крутить
+    /// его параллельно намотке офлайна — иначе восемь мегабайт префабов и все
+    /// сэмплы FMOD читаются с диска ДО первого тика, и намотка ждёт их зря.
+    /// Все остальные вызывающие (dev-сцены, мир из JSON) ничего не замечают:
+    /// при выключенном флаге <see cref="Bootstrap(WorldBootstrapDefinition)"/>
+    /// греет всё сам, ровно как раньше.</summary>
+    public static bool DeferContentPrewarm { get; set; }
+
+    // Что именно греть — СОБИРАЕТСЯ в Bootstrap, на главном потоке, до первого
+    // шага мира. Отложить можно загрузку, но не этот обход: он читает
+    // Entities.Npcs/Corpses/Objects, а их в это время уже мотает воркер.
+    private readonly List<string> _pendingWear = new();
+    private bool _contentWarmed;
+
     /// <summary>
     /// The live engine — LOCAL MODE ONLY, null otherwise.
     /// <para>
@@ -97,7 +111,14 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 
     public void EnqueueCommand(ISimulationCommand command) => _backend?.EnqueueCommand(command);
 
-    public WorldSnapshot? CreateSnapshot() => _backend?.CreateSnapshot();
+    /// <summary>§41.3: пока идёт намотка офлайна, мир принадлежит воркеру, и
+    /// экспорт снапшота — обход КАЖДОЙ сущности — споткнулся бы о правку на
+    /// полушаге. Отказ ровно здесь закрывает вопрос для всех потребителей
+    /// сразу: снапшот и так бывает null (до Configure мира ещё нет), и это все
+    /// уже умеют. Гейт по IsReplaying в каждой панели пришлось бы помнить в
+    /// каждой новой панели.</summary>
+    public WorldSnapshot? CreateSnapshot() =>
+        UI.LoadingScreen.IsReplaying ? null : _backend?.CreateSnapshot();
 
     public bool TryGetObjectDefinition(string id, out ObjectDefinition? definition)
     {
@@ -419,6 +440,141 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // «Trace» в дебаг-панели прямо во время игры.
         HexLive.Simulation.Runtime.SimTrace.Enabled = TraceRequestedOnCommandLine();
 
+        _pendingWear.Clear();
+        CollectWornWear(world, _pendingWear);
+        _contentWarmed = false;
+        if (!DeferContentPrewarm)
+        {
+            WarmContent();
+        }
+
+        // Loopback runs the local world through the wire codec, which interns
+        // definition ids — build the table here so that path works too.
+        HexLive.Simulation.Wire.DefinitionIdTable.Build(world.Content);
+
+        var engine = new SimulationEngine(world, settings, clock);
+        // The list itself lives in the simulation assembly so the game, the server
+        // and headless probes cannot drift apart — see SimulationSystemRegistry.
+        SimulationSystemRegistry.RegisterDefaults(engine);
+
+        // §30.14: бортовой самописец — по кольцу последних событий на каждого
+        // NPC, чтобы дебаг-панель могла показать, ЧТО эта делала до того, как
+        // застряла. Общее кольцо на 2048 записей на такой вопрос не отвечает:
+        // при ~200 событиях в тик оно живёт около одиннадцати тиков. Только в
+        // редакторе и development-сборках — там же, где включён полный трейс.
+        if (Application.isEditor || UnityEngine.Debug.isDebugBuild)
+        {
+            engine.World.FlightRecorder = HexLive.Simulation.Runtime.FlightRecorder.ForBehavior();
+        }
+
+        _backend?.Shutdown();
+        _backend = CreateBackend(new LocalEngineBackend(engine, clock, settings));
+        SimulationSource.Current = this;
+        _lastLoggedSeq = 0;
+    }
+
+    /// <summary>
+    /// Кто из гардероба нужен ЭТОМУ миру прямо сейчас: надетое на живых и на
+    /// мёртвых плюс одежда, валяющаяся на земле.
+    ///
+    /// Спрашивать каталог целиком нельзя — это 712 бандлов и 1.99 ГБ, и занавес
+    /// честно ждал бы весь гардероб ради четырёх видимых девушек. Всё остальное
+    /// остаётся ленивым: ради этого арт и уехал из Resources.
+    ///
+    /// ⚠️ Читает Entities.* — значит, только с главного потока и только когда
+    /// мир не мотается воркером (§41.3).
+    /// </summary>
+    private static void CollectWornWear(
+        HexLive.Simulation.Core.WorldState world, ICollection<string> into)
+    {
+        var seen = new HashSet<string>();
+
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            foreach (var item in npc.WornItems)
+            {
+                seen.Add(item.DefinitionId);
+            }
+        }
+
+        foreach (var corpse in world.Entities.Corpses.Values)
+        {
+            foreach (var item in corpse.WornItems)
+            {
+                seen.Add(item.DefinitionId);
+            }
+        }
+
+        var garmentIds = new HashSet<string>();
+        foreach (var garment in GarmentLibrary.Active)
+        {
+            garmentIds.Add(garment.Id);
+        }
+
+        foreach (var worldObject in world.Entities.Objects.Values)
+        {
+            if (garmentIds.Contains(worldObject.DefinitionId))
+            {
+                seen.Add(worldObject.DefinitionId);
+            }
+        }
+
+        foreach (var id in seen)
+        {
+            into.Add(id);
+        }
+    }
+
+    /// <summary>
+    /// §41.3: догреть гардероб ПОСЛЕ намотки офлайна.
+    ///
+    /// Список, собранный до намотки, к её концу устарел: за игровые сутки
+    /// колонистка могла переодеться, раздеться, умереть в другом, а на землю —
+    /// выпасть то, чего в мире не было вовсе. Прогрев по старому списку оставил
+    /// бы такую вещь на ленивом пути, то есть на блокирующем GetVisuals внутри
+    /// первого же кадра игры.
+    ///
+    /// Повторный проход дешёвый: <c>PrewarmAsync</c> молча выходит на всём, что
+    /// уже в кэше, так что заявки уходят только на разницу.
+    /// </summary>
+    public void WarmWornWear()
+    {
+        if (Engine is not { } engine)
+        {
+            return;
+        }
+
+        var ids = new List<string>();
+        CollectWornWear(engine.World, ids);
+        foreach (var id in ids)
+        {
+            Wearing.GarmentDropFactory.Prewarm(id);
+        }
+    }
+
+    /// <summary>
+    /// Прогрев арта: всё, что иначе прочиталось бы с диска в первый раз посреди
+    /// игры, внутри тика, на главном потоке. Вызывается либо из
+    /// <c>Bootstrap</c> (обычный путь), либо экраном загрузки параллельно
+    /// намотке офлайна (<see cref="DeferContentPrewarm"/>).
+    ///
+    /// Главный поток блокируется — это чтения с диска, и они блокировали его и
+    /// раньше. Смысл переноса в том, ЧТО происходит в это время: не «намотка
+    /// ждёт», а «намотка идёт на воркере». Идемпотентен: второй вызов молчит.
+    ///
+    /// ⚠️ Ничего из этого не читает состояние мира — только каталоги и диск.
+    /// Список одежды собран заранее, в <c>Bootstrap</c>. Так и должно остаться:
+    /// в момент вызова мир может принадлежать другому потоку.
+    /// </summary>
+    public void WarmContent()
+    {
+        if (_contentWarmed)
+        {
+            return;
+        }
+
+        _contentWarmed = true;
+
         // Spec 40.8-G: pull all wound/blood art into memory NOW, behind the
         // loading curtain — lazily loading it on the first landed bite cost a
         // ~2.4 s File.Read burst mid-combat (frame #20 of the deep capture).
@@ -446,73 +602,21 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // purpose: a hand-kept id list here would drift the moment someone adds
         // a prefab (8.3 MB / 64 assets, so there is nothing to ration).
         _objectPrefabPin = Resources.LoadAll<GameObject>("HexLive/Objects");
-        // Addressable clothing is the other lazy path. Warm ONLY what the
-        // opening scene can render: garments currently worn by a living/dead
-        // actor and objects actually lying in this world. The old loop used
-        // ObjectDefinitions.Keys, i.e. the entire catalog — 195 bundles / about
-        // 2.5 GB — so the curtain honestly waited for the whole wardrobe even
-        // though the four visible girls had been ready for a long time.
-        // Future drops stay lazy, which is the point of moving them out of
-        // Resources in the first place.
-        var openingWear = new HashSet<string>();
-        foreach (var npc in world.Entities.Npcs.Values)
-        {
-            foreach (var item in npc.WornItems)
-            {
-                openingWear.Add(item.DefinitionId);
-            }
-        }
 
-        foreach (var corpse in world.Entities.Corpses.Values)
-        {
-            foreach (var item in corpse.WornItems)
-            {
-                openingWear.Add(item.DefinitionId);
-            }
-        }
-
-        var garmentIds = new HashSet<string>();
-        foreach (var garment in GarmentLibrary.Active)
-        {
-            garmentIds.Add(garment.Id);
-        }
-
-        foreach (var worldObject in world.Entities.Objects.Values)
-        {
-            if (garmentIds.Contains(worldObject.DefinitionId))
-            {
-                openingWear.Add(worldObject.DefinitionId);
-            }
-        }
-
-        foreach (var id in openingWear)
+        // Одежда — асинхронная: заявки уходят в Addressables и учитываются
+        // ContentQueue, ждать их здесь НЕЛЬЗЯ (WaitForCompletion из корутины —
+        // тот самый тупик из 105199ce). Экран загрузки дожидается очереди.
+        //
+        // Список собран ДО намотки офлайна; то, что появилось за неё, догревает
+        // WarmWornWear, когда мир возвращается на главный поток.
+        foreach (var id in _pendingWear)
         {
             Wearing.GarmentDropFactory.Prewarm(id);
         }
 
-        // Loopback runs the local world through the wire codec, which interns
-        // definition ids — build the table here so that path works too.
-        HexLive.Simulation.Wire.DefinitionIdTable.Build(world.Content);
-
-        var engine = new SimulationEngine(world, settings, clock);
-        // The list itself lives in the simulation assembly so the game, the server
-        // and headless probes cannot drift apart — see SimulationSystemRegistry.
-        SimulationSystemRegistry.RegisterDefaults(engine);
-
-        // §30.14: бортовой самописец — по кольцу последних событий на каждого
-        // NPC, чтобы дебаг-панель могла показать, ЧТО эта делала до того, как
-        // застряла. Общее кольцо на 2048 записей на такой вопрос не отвечает:
-        // при ~200 событиях в тик оно живёт около одиннадцати тиков. Только в
-        // редакторе и development-сборках — там же, где включён полный трейс.
-        if (Application.isEditor || UnityEngine.Debug.isDebugBuild)
-        {
-            engine.World.FlightRecorder = HexLive.Simulation.Runtime.FlightRecorder.ForBehavior();
-        }
-
-        _backend?.Shutdown();
-        _backend = CreateBackend(new LocalEngineBackend(engine, clock, settings));
-        SimulationSource.Current = this;
-        _lastLoggedSeq = 0;
+        // Иконки — наоборот, все и сразу: один бандл на 0.73 МБ, разбираться,
+        // какие понадобятся, дороже, чем взять их целиком.
+        Wearing.Garments.ItemIcons.PrewarmAll();
     }
 
     /// <summary>

@@ -28,8 +28,80 @@ public static class ItemIcons
 {
     private static readonly Dictionary<string, Sprite> Cache = new();
     private static readonly HashSet<string> Loading = new();
+    private static bool _prewarmedAll;
 
     public static string Address(string id) => $"icon/{id}";
+
+    /// <summary>
+    /// §41.3: ВСЕ иконки сразу, за занавесом загрузки.
+    ///
+    /// В отличие от одежды, «какие понадобятся» тут спрашивать не нужно и
+    /// вредно: иконки собраны в ОДИН бандл на 0.73 МБ (одежда — 712 бандлов и
+    /// 1.99 ГБ, поэтому её греют строго по надетому). Как только он смонтирован,
+    /// каждая следующая иконка достаётся почти бесплатно, зато список вещей,
+    /// добыча и рюкзак открываются сразу нарисованными, а не досоздают спрайты
+    /// по одному на первой перерисовке.
+    ///
+    /// Адреса берутся прямо из каталога Addressables, а не собираются из id, —
+    /// поэтому промаха по несуществующему адресу здесь быть не может (тот самый
+    /// InvalidKeyException, из-за которого Load сначала спрашивает локации).
+    /// Обратная сторона: если файл назван слагом, а не id, в кэш попадёт слаг —
+    /// такую иконку допросит обычный ленивый путь, он умеет оба имени.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        if (_prewarmedAll)
+        {
+            return;
+        }
+
+        _prewarmedAll = true;
+
+        // ⚠️ Каталог поднимается ЛЕНИВО, и на непроинициализированных
+        // Addressables список ключей пуст — скан «успешно» не нашёл бы ни одной
+        // иконки и больше не повторился. InitializeAsync идемпотентен и уже
+        // поднятый каталог отдаёт сразу.
+        //
+        // Пара Begin/End оборачивает сам скан не для красоты: без неё очередь
+        // между вызовом и первым ответом каталога выглядит ПУСТОЙ, и занавес
+        // успел бы упасть раньше, чем в неё легла хоть одна иконка.
+        ContentQueue.Begin(ContentQueue.Kind.Icon);
+        Addressables.InitializeAsync().Completed += _ =>
+        {
+            ScanCatalogForIcons();
+            ContentQueue.End(ContentQueue.Kind.Icon);
+        };
+    }
+
+    private static void ScanCatalogForIcons()
+    {
+        foreach (var locator in Addressables.ResourceLocators)
+        {
+            foreach (var key in locator.Keys)
+            {
+                if (key is not string address ||
+                    !address.StartsWith("icon/", System.StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var id = address.Substring("icon/".Length);
+                if (id.Length == 0 || Cache.ContainsKey(id) || !Loading.Add(id))
+                {
+                    continue;
+                }
+
+                ContentQueue.Begin(ContentQueue.Kind.Icon);
+                Addressables.LoadAssetAsync<Sprite>(address).Completed += loaded =>
+                {
+                    Cache[id] = loaded.Status == AsyncOperationStatus.Succeeded
+                        ? loaded.Result
+                        : null;
+                    ContentQueue.End(ContentQueue.Kind.Icon);
+                };
+            }
+        }
+    }
 
     /// <summary>
     /// Иконка вещи, если она уже в памяти. Иначе null — и запуск фоновой

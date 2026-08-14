@@ -789,6 +789,21 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // §40.6 r11: hygiene may only advance while the authoritative body tile
+        // is actually water. Previously the final-edge arrival guard could
+        // leave her on dry land while this timer silently washed her anyway,
+        // making the presentation truthfully show a dry actor at the bank.
+        if (!world.Tiles.Items.TryGetValue(npc.Tile, out var bathingTile) ||
+            !bathingTile.Flags.HasFlag(TileFlags.Water))
+        {
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.Bathe);
+            PlanInterruption.TryAbort(world, npc,
+                InterruptionCause.ExecutionFailure,
+                "Bathe requires entering the selected water tile");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
         if (npc.Execution.Status == ExecutionStatus.None)
         {
             npc.Execution.Status = ExecutionStatus.InProgress;

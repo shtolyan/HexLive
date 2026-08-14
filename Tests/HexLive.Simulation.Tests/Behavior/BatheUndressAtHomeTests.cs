@@ -6,6 +6,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -296,6 +297,84 @@ public sealed class BatheUndressAtHomeTests
                 "После домашнего раздевания надо идти к сохранённому берегу.");
             Assert.That(npc.Mind.RedressShore, Is.EqualTo(home.Id),
                 "Возвращаться за одеждой надо домой, а не к воде.");
+        });
+    }
+
+    [Test]
+    public void FinalBathStepCrossesFromTheShoreIntoTheSelectedWaterTile()
+    {
+        // Seed 1104 is the stable bathing fixture already used above: its
+        // colony has a physically reachable shore and a reversible water dip.
+        var world = SettledWorld(1104);
+        var npc = world.Entities.Npcs.Values.First(candidate =>
+            candidate.Faction == Faction.Colony &&
+            HygieneMath.FindReachableBathShore(world, candidate) is not null);
+
+        // Keep the fixture about terrain, not actor yielding.
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id != npc.Id)
+            {
+                other.CurrentJunction = null;
+            }
+        }
+        world.Mobs.Clear();
+
+        var shore = HygieneMath.FindReachableBathShore(world, npc)!;
+        var water = HygieneMath.FindRoundTripBathWater(world, npc, shore.Id)!;
+        var route = HexPathfinder.FindPath(world, shore.Id, water.Id);
+        var dryTile = shore.Tiles.First(coord =>
+            world.Tiles.Items.TryGetValue(coord, out var tile) &&
+            !tile.Flags.HasFlag(TileFlags.Water));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(route, Has.Count.GreaterThan(1));
+            Assert.That(world.Tiles.Items[water.Tiles[0]].Flags.HasFlag(TileFlags.Water),
+                Is.True, "Фикстура должна выбрать настоящую водную сторону.");
+            Assert.That(SpatialQueries.IsSwimTile(world, water.Tiles[0]), Is.True,
+                "Фикстура должна проверять именно глубокую воду и прыжок, а не мелководье.");
+        });
+
+        npc.CurrentJunction = shore.Id;
+        npc.Tile = dryTile;
+        npc.Position = shore.WorldPosition;
+        npc.Mind.CurrentGoal = GoalType.Bathe;
+        npc.Plan.Goal = GoalType.Bathe;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetJunctionId = water.Id;
+        npc.Plan.TargetTile = water.Tiles[0];
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.JunctionPath.AddRange(route);
+        npc.Movement.PathIndex = 1;
+        npc.Movement.IsMoving = true;
+        npc.Movement.SetStatus(MovementStatus.Moving);
+        npc.Movement.PostTurnTimer = 0f;
+        npc.Movement.ClimbPauseTimer = 0f;
+        npc.Movement.HopTimer = 0f;
+        npc.Movement.HopArmed = false;
+        npc.Movement.HopPathIndex = -1;
+
+        var movement = new MovementSystem();
+        var sawJump = false;
+        var sawSwimEntry = false;
+        for (var tick = 0; tick < 240 && npc.Movement.IsMoving; tick++)
+        {
+            movement.Run(world);
+            sawJump |= npc.Movement.HopTimer > 0f;
+            sawSwimEntry |= npc.Movement.ClimbPauseTimer > 0f;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Movement.IsMoving, Is.False,
+                "Короткий заход в воду должен завершиться за бюджет фикстуры.");
+            Assert.That(npc.CurrentJunction, Is.EqualTo(water.Id));
+            Assert.That(npc.Tile, Is.EqualTo(water.Tiles[0]),
+                "Финальный береговой узел не должен оставлять купальщицу на сухой стороне.");
+            Assert.That(world.Tiles.Items[npc.Tile].Flags.HasFlag(TileFlags.Water), Is.True);
+            Assert.That(sawJump, Is.True, "Вход в глубокую воду должен проиграть штатный прыжок вниз.");
+            Assert.That(sawSwimEntry, Is.True, "После прыжка должен начаться штатный tread-переход.");
         });
     }
 }

@@ -75,6 +75,25 @@ public sealed class MovementSystem : ISimulationSystem
         }
     }
 
+    // §21.21B v25 / §40.6 r11: a final shoreline junction normally means
+    // "stand on the near side" (§21 v24). Bathe is the deliberate exception:
+    // RunPrepareBathe records the exact water side in Plan.TargetTile, so the
+    // last node is an instruction to cross the edge, not merely approach it.
+    // Keep this narrowly tied to Bathe; TargetTile is also used by object and
+    // patient interactions whose actors must remain beside their target.
+    private static bool TryGetExplicitBathWaterArrival(
+        WorldState world, NPCState npc, int targetIndex,
+        Junction targetJunction, out Tile waterTile)
+    {
+        waterTile = default;
+        return targetIndex == npc.Movement.JunctionPath.Count - 1 &&
+            npc.Plan.Goal == GoalType.Bathe &&
+            npc.Plan.TargetTile is { } targetTile &&
+            targetJunction.Tiles.Contains(targetTile) &&
+            world.Tiles.Items.TryGetValue(targetTile, out waterTile) &&
+            waterTile.Flags.HasFlag(TileFlags.Water);
+    }
+
     // §71.2: она стоит НЕ ПО СВОЕЙ ВОЛЕ — упёрлась в товарку, планово
     // разворачивается на месте (только около-разворот, §71.3), переводит дух
     // после него, вылезает из воды. Все эти ветки уходят через `continue`
@@ -691,7 +710,9 @@ public sealed class MovementSystem : ISimulationSystem
                 if (wallIndex == npc.Movement.JunctionPath.Count - 1 &&
                     world.Junctions.Items.TryGetValue(
                         npc.Movement.JunctionPath[wallIndex], out var arrivalJunction) &&
-                    arrivalJunction.Tiles.Contains(wallNearTile.Coord))
+                    arrivalJunction.Tiles.Contains(wallNearTile.Coord) &&
+                    !TryGetExplicitBathWaterArrival(
+                        world, npc, wallIndex, arrivalJunction, out _))
                 {
                     wallIndex = -1;
                 }
@@ -1211,12 +1232,21 @@ public sealed class MovementSystem : ISimulationSystem
         // котором останавливаются: иначе стирающая, дойдя до кромки,
         // числилась бы в воде (мокрая, барахтается), и её приходилось
         // бы вытаскивать назад.
+        var entersBathWater = TryGetExplicitBathWaterArrival(
+            world, npc, targetIndex, targetJunction, out var bathWaterTile);
         var arrivalStep = targetIndex == npc.Movement.JunctionPath.Count - 1 &&
-            targetJunction.Tiles.Contains(previousTile);
-        if (!arrivalStep && HexPathfinder.TryGetDirectedStepTile(
-            world, previousJunctionId, targetJunctionId, out var targetTile))
+            targetJunction.Tiles.Contains(previousTile) && !entersBathWater;
+
+        TileCoord? enteredTile = entersBathWater ? bathWaterTile.Coord : null;
+        if (enteredTile is null && !arrivalStep &&
+            HexPathfinder.TryGetDirectedStepTile(
+                world, previousJunctionId, targetJunctionId, out var targetTile))
         {
-            var newTile = targetTile.Coord;
+            enteredTile = targetTile.Coord;
+        }
+
+        if (enteredTile is { } newTile)
+        {
             if (newTile != previousTile)
             {
                 npc.Tile = newTile;

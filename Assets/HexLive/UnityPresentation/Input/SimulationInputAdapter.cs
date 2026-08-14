@@ -140,7 +140,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private static bool PointerBlocked() =>
         NpcSelection.PointerOverUi ||
         HexInspectorPanel.PointerOverPanel ||
-        ContextMenuPanel.PointerOverPanel ||
+        ContextMenuPanel.BlocksWorldPointer ||
         LootTransferPanel.IsOpen ||
         GameMenu.IsOpen ||
         EndSummaryPanel.IsOpen;

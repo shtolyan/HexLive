@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using HexLive.UnityPresentation.Localization;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
@@ -57,12 +58,26 @@ public sealed class ContextMenuPanel : MonoBehaviour
     /// <summary>Курсор над меню — мировой клик обязан его пропустить.</summary>
     public static bool PointerOverPanel { get; private set; }
 
+    // UI Toolkit и мировой Input System обрабатывают одно нажатие независимо.
+    // Пункт меню закрывает карточку уже на MouseDown, поэтому одного
+    // PointerOverPanel недостаточно: поздний Update камеры увидит скрытое меню
+    // и примет тот же press за начало приказа. Защёлка держит всю физическую
+    // pointer-последовательность до кадра после отпускания кнопки.
+    private static bool _worldPointerSuppressed;
+    private static int _worldPointerReleaseFrame = -1;
+
+    /// <summary>Меню владеет текущим pointer-жестом; миру его видеть нельзя.</summary>
+    public static bool BlocksWorldPointer =>
+        IsOpen || PointerOverPanel || _worldPointerSuppressed;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
         _instance = null;
         IsOpen = false;
         PointerOverPanel = false;
+        _worldPointerSuppressed = false;
+        _worldPointerReleaseFrame = -1;
     }
 
     private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
@@ -95,7 +110,34 @@ public sealed class ContextMenuPanel : MonoBehaviour
         }
 
         BuildUi();
-        Hide();
+        Hide(suppressWorldPointer: false);
+    }
+
+    private void Update()
+    {
+        if (!_worldPointerSuppressed)
+        {
+            return;
+        }
+
+        var mouse = Mouse.current;
+        if (mouse != null && (mouse.leftButton.isPressed || mouse.rightButton.isPressed))
+        {
+            _worldPointerReleaseFrame = -1;
+            return;
+        }
+
+        if (_worldPointerReleaseFrame < 0)
+        {
+            _worldPointerReleaseFrame = Time.frameCount;
+            return;
+        }
+
+        if (Time.frameCount > _worldPointerReleaseFrame)
+        {
+            _worldPointerSuppressed = false;
+            _worldPointerReleaseFrame = -1;
+        }
     }
 
     private void OnDestroy()
@@ -105,6 +147,8 @@ public sealed class ContextMenuPanel : MonoBehaviour
             _instance = null;
             IsOpen = false;
             PointerOverPanel = false;
+            _worldPointerSuppressed = false;
+            _worldPointerReleaseFrame = -1;
         }
     }
 
@@ -265,8 +309,14 @@ public sealed class ContextMenuPanel : MonoBehaviour
         return row;
     }
 
-    private void Hide()
+    private void Hide(bool suppressWorldPointer = true)
     {
+        if (suppressWorldPointer && IsOpen)
+        {
+            _worldPointerSuppressed = true;
+            _worldPointerReleaseFrame = -1;
+        }
+
         _root.style.display = DisplayStyle.None;
         _items.Clear();
         IsOpen = false;

@@ -304,6 +304,25 @@ public sealed partial class ExecutionSystem
     internal static WorldObjectState DropGarmentWithContents(
         WorldState world, NPCState npc, ItemInstance garment)
     {
+        // Spawn before mutating the pack.  A missing ground point must leave
+        // the authoritative carried instances untouched rather than stranded
+        // in the shared scratch list.
+        var dropped = DropItemAtFeet(world, npc, garment, underFoot: true);
+        if (dropped is null)
+        {
+            return null;
+        }
+
+        StashOverflowInDroppedGarment(world, npc, garment, dropped);
+        return dropped;
+    }
+
+    internal static void StashOverflowInDroppedGarment(
+        WorldState world,
+        NPCState npc,
+        ItemInstance garment,
+        WorldObjectState dropped)
+    {
         _garmentSpillScratch.Clear();
         var inv = npc.Inventory;
         var guard = 0;
@@ -319,10 +338,7 @@ public sealed partial class ExecutionSystem
             _garmentSpillScratch.Add(victim);
         }
 
-        // §31A.5A: a doffed garment lands in the SAME cell she stands in, right
-        // under her — not scattered a cell over (user request).
-        var dropped = DropItemAtFeet(world, npc, garment, underFoot: true);
-        if (dropped != null && _garmentSpillScratch.Count > 0)
+        if (_garmentSpillScratch.Count > 0)
         {
             dropped.Contents.AddRange(_garmentSpillScratch);
             if (SimTrace.Enabled)
@@ -331,8 +347,6 @@ public sealed partial class ExecutionSystem
                     $"{garment.DefinitionId} holds [{string.Join(",", _garmentSpillScratch)}]");
             }
         }
-
-        return dropped;
     }
 
     /// <summary>

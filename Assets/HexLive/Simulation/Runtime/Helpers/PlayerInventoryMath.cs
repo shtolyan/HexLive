@@ -21,7 +21,11 @@ namespace HexLive.Simulation.Runtime
                 if (item.DefinitionId != itemRef.ExpectedDefinitionId) return false;
                 if (action == InventoryAction.Drop)
                 {
-                    carried.RemoveAt(itemRef.Index);
+                    // Explicit disposal can only improve carried capacity.  In
+                    // particular, keep it available as the repair action for a
+                    // legacy/diagnostic Overflow layout instead of demanding
+                    // that ONE click make the whole pack valid again.
+                    return true;
                 }
                 else if (action == InventoryAction.Wear)
                 {
@@ -51,6 +55,14 @@ namespace HexLive.Simulation.Runtime
                 if (itemRef.Index < 0 || itemRef.Index >= worn.Count) return false;
                 var item = worn[itemRef.Index];
                 if (item.DefinitionId != itemRef.ExpectedDefinitionId) return false;
+                if (action == InventoryAction.Drop)
+                {
+                    // Dropping a pocket garment is allowed even when its lost
+                    // capacity creates overflow: §52 moves that overflow into
+                    // the garment on the ground.  Only Stow/Wear need a strict
+                    // projected-capacity preflight.
+                    return true;
+                }
                 if (action == InventoryAction.Stow &&
                     (!InventoryLayoutBuilder.TryCollectOwnedContents(
                          world, npc, itemRef.Index, out var pocketContents) ||
@@ -63,7 +75,7 @@ namespace HexLive.Simulation.Runtime
                 }
                 worn.RemoveAt(itemRef.Index);
                 if (action == InventoryAction.Stow) carried.Add(item);
-                else if (action != InventoryAction.Drop) return false;
+                else return false;
             }
 
             return FitsProjected(world, npc, carried, worn);

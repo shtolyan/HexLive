@@ -101,7 +101,12 @@ namespace HexLive.Simulation.Runtime
                     npc.Inventory.Items.RemoveAt(index);
                     break;
                 case PlanStepType.PlayerDropWorn:
-                    if (DropItemAtFeet(world, npc, item) is null)
+                    // Spawn first so a failed ground placement leaves both the
+                    // garment and its pockets untouched.  Once it exists, the
+                    // lost pocket capacity becomes live and the true overflow
+                    // rides down inside this exact garment (§52.2).
+                    var droppedGarment = DropItemAtFeet(world, npc, item, underFoot: true);
+                    if (droppedGarment is null)
                     {
                         FailPlayerInventory(world, npc, "NoDropSpot");
                         return;
@@ -109,6 +114,7 @@ namespace HexLive.Simulation.Runtime
 
                     npc.WornItems.RemoveAt(index);
                     EquipmentMath.Recalculate(world, npc);
+                    StashOverflowInDroppedGarment(world, npc, item, droppedGarment);
                     break;
             }
 

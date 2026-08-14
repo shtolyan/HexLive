@@ -134,6 +134,11 @@ public static class PlanInterruption
             : KenshiRescueMath.PutDownForPlanInterruption(
                 world, npc, $"Plan interrupted: {reason}");
 
+        // A bed pose is not just an animation flag: TryEnter moved the body to
+        // the furniture centre while retaining a legal wake junction. Clearing
+        // Sleep without using that junction leaves a standing actor inside the
+        // bed until some later movement happens to pull her out.
+        LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
         CraftProjectMath.ReleaseWorker(world, npc);
         ExecutionSystem.ReleaseClaims(world, npc);
         // §111.13: место у лежащего освобождается там же, где освобождается всё

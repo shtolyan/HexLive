@@ -20,6 +20,9 @@ public static class SimulationSystemRegistry
     /// </summary>
     public static void RegisterDefaults(SimulationEngine engine)
     {
+        // §23.17: repair a saved split-brain Sleep/non-Sleep plan before path,
+        // movement or execution can consume either half of the contradiction.
+        engine.Register(new SleepPlanConsistencySystem());
         engine.Register(new PathfindingSystem());
         engine.Register(new MovementSystem());
         engine.Register(new ExecutionSystem());

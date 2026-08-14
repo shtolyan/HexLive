@@ -194,13 +194,39 @@ namespace HexLive.UnityDebug.Editor
 
         private static void ValidatePackedBuildingResource(BuildReport report, string assetPath)
         {
+            // ⭐ Отсутствие УЛИК — не улика отсутствия.
+            //
+            // Проверка читает report.packedAssets. На IL2CPP этот список
+            // приходит ПУСТЫМ (замер: 0 контейнеров, 0 записей при
+            // result=Succeeded), тогда как на Mono он заполнялся — и первый же
+            // виндовый IL2CPP-билд упал здесь, хотя ассет был на месте:
+            // data.unity3d отличался от заведомо рабочего билда на 6 КБ из 719
+            // МБ, то есть содержимое то же.
+            //
+            // Поэтому пустой отчёт больше не считается пропажей: сказать по
+            // нему нечего, и билд из-за этого валить нельзя. Как только записи
+            // есть — проверка снова строгая, ради чего §41.1/баг #111 её и
+            // заводили. Заодно печатаем размер выборки: если однажды список
+            // опустеет и на Mono, это будет видно, а не молча пропущено.
+            var containers = report.packedAssets.Length;
+            var entries = report.packedAssets.Sum(container => container.contents.Length);
+            if (entries == 0)
+            {
+                Debug.LogWarning(
+                    $"[BuildGate] packedAssets пуст ({containers} контейнеров) — проверить упаковку " +
+                    $"{assetPath} по отчёту невозможно. Ассет проверен до сборки " +
+                    "(загружается из Resources с ожидаемым числом рендереров).");
+                return;
+            }
+
             var packed = report.packedAssets.Any(container =>
                 container.contents.Any(item =>
                     string.Equals(item.sourceAssetPath, assetPath, StringComparison.Ordinal)));
             if (!packed)
             {
                 throw new InvalidOperationException(
-                    $"Player build succeeded but omitted required Resources asset: {assetPath}.");
+                    $"Player build succeeded but omitted required Resources asset: {assetPath}. " +
+                    $"packedAssets: {containers} контейнеров, {entries} записей.");
             }
 
             Debug.Log($"[BuildGate] Player contains building resource: {assetPath}.");

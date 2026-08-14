@@ -218,19 +218,22 @@ namespace HexLive.UnityPresentation.Environment
         public const float RoofEaveHeight = HutAssembly.FloorSurfaceLift + 2.164f;
 
         /// <summary>
-        /// True when the sector across this sector's outer hex edge is also
-        /// roofed, i.e. the edge is interior to the room rather than eave.
+        /// A hex keeps its dome only when all six of its sectors are roofed.
+        /// A hex the room merely reaches into is roofed flat and low instead:
+        /// a half-built dome is the shape that produced the visible gaps, and
+        /// the player wants the finished hex to stay a dome while the annex
+        /// reads as a lower flat roof beside it.
         /// </summary>
-        private static bool HasRoofAcrossOuterEdge(RoofSectorKey sector, BuildingBlueprintDraft draft)
+        private static bool IsHexFullyRoofed(RoofSectorKey sector, BuildingBlueprintDraft draft)
         {
-            var step = BlueprintGeometry.NeighborDirections[
-                BlueprintGeometry.NormalizeSector(sector.Sector)];
-            var neighbourHex = new HexLive.Simulation.Common.TileCoord(
-                sector.Hex.Q + step.Q, sector.Hex.R + step.R);
-            var opposite = new RoofSectorKey(
-                neighbourHex, BlueprintGeometry.NormalizeSector(sector.Sector + 3));
-            return draft.Elements.Any(other =>
-                other.Kind == BlueprintElementKind.RoofSector && other.RoofSector == opposite);
+            for (var index = 0; index < 6; index++)
+            {
+                var key = new RoofSectorKey(sector.Hex, index);
+                if (!draft.Elements.Any(other =>
+                        other.Kind == BlueprintElementKind.RoofSector && other.RoofSector == key))
+                    return false;
+            }
+            return true;
         }
 
         private static GameObject BuildRoof(BlueprintElementData element, BuildingBlueprintDraft draft)
@@ -251,9 +254,9 @@ namespace HexLive.UnityPresentation.Environment
             // saw gaps. A sector whose outer edge faces another roofed sector is
             // inside the room, so it stays flat at ridge height; only the outer
             // ring keeps its skirt.
-            var interior = HasRoofAcrossOuterEdge(element.RoofSector, draft);
+            var whole = IsHexFullyRoofed(element.RoofSector, draft);
             var model = InstantiateModel(
-                interior ? "architecture.roof.palm.flat" : "architecture.roof.palm",
+                whole ? "architecture.roof.palm" : "architecture.roof.palm.flat",
                 new Vector3(center.X, RoofEaveHeight, center.Y),
                 SectorYaw(bisector));
             if (model != null) return model;

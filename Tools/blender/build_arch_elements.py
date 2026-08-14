@@ -13,6 +13,7 @@ import random
 import sys
 
 import bpy
+from mathutils import Euler
 
 _here = os.path.dirname(bpy.data.filepath)
 _tools = os.path.abspath(os.path.join(_here, "../../..", "Tools", "blender"))
@@ -25,8 +26,8 @@ importlib.reload(lib)
 from arch_elements_lib import (  # noqa: E402
     DECK_TOP, SEAM, SECTION, SLAB_LENGTH, SPLICE_OVERLAP, STICK_R, STICK_X,
     TAN30, TOTAL_HEIGHT, axis_lashing, bowed_stick, clear_collection,
-    element_root, ensure_materials, fit_rope, join, new_empty, new_obj,
-    plank_slab,
+    element_root, ensure_collection, ensure_materials, fit_rope, join, new_empty,
+    new_obj, plank_slab,
 )
 
 ensure_materials()
@@ -243,6 +244,50 @@ for index, (x, y) in enumerate(((EDGE_X - 0.03, -EDGE_Y + 0.05),
                          rot=(0, 0, math.radians(-30 if index == 1 else 60))))
 join(binds, "FLR_rope")
 
+
+FROND_SCALE = 0.45          # shipped frond is 1.066 long; 0.45 -> 0.48 wu
+FROND_LENGTH = 1.066 * FROND_SCALE
+
+
+def lay_fronds(stage, prefix, rng, sloped, rows=3):
+    """Lay the kit's own palm fronds over a sector, three overlapping wreaths.
+    The meshes are the shipped FrondPinnate.* from HL_BUILDING_HUT_1HEX — the
+    same leaves the finished hut roof uses — so nothing new is generated; they
+    are only arranged. Each wreath is joined into ONE object, matching the three
+    delivered leaf bundles of a roof sector."""
+    fronds = [m for m in bpy.data.meshes if m.name.startswith("FrondPinnate")]
+    fronds.sort(key=lambda m: m.name)
+    if not fronds:
+        raise RuntimeError("kit palm fronds (FrondPinnate.*) not found")
+    pitch = math.atan2(ROOF_RISE, ROOF_EDGE_X) if sloped else 0.0
+    # Row starts chosen so each wreath's tips reach the next row and the outer
+    # one stops just past the wall, at the authored overhang.
+    bands = ((0.18, 0.62, 2), (0.56, 1.02, 3), (0.96, ROOF_EDGE_X + ROOF_OVERHANG, 4))
+    made = []
+    for row, (x0, x1, count) in enumerate(bands[:rows]):
+        group = []
+        for index in range(count):
+            # The frond mesh runs from its ORIGIN toward +X, so the origin is
+            # its base: seat it at the row start and the tip lands at the row
+            # end. Placing it by the centre threw the tips 0.46 wu past the eave.
+            x = x0 + rng.uniform(-0.02, 0.02)
+            half = (x + FROND_LENGTH * 0.5) * TAN30 * 0.82
+            y = -half + (2 * half) * ((index + 0.5) / count) + rng.uniform(-0.03, 0.03)
+            z = (ROOF_RISE * (1.0 - x / ROOF_EDGE_X) if sloped else 0.0) + THATCH_T + 0.012
+            mesh = fronds[(row * 5 + index) % len(fronds)]
+            obj = bpy.data.objects.new(f"{prefix}_frond_{row}{index}", mesh)
+            ensure_collection().objects.link(obj)
+            obj.parent = stage
+            obj.location = (x, y, z)
+            obj.rotation_mode = "XYZ"
+            obj.rotation_euler = Euler((rng.uniform(-0.14, 0.14),
+                                        -pitch + rng.uniform(-0.05, 0.05),
+                                        rng.uniform(-0.22, 0.22)))
+            obj.scale = (FROND_SCALE, FROND_SCALE, FROND_SCALE)
+            group.append(obj)
+        made.append(join(group, f"{prefix}_leaves_{row}"))
+    return made
+
 # --------------------------------------------------------------------------- #
 # roof sector — one triangle per floor sector, so a room roofs itself
 # --------------------------------------------------------------------------- #
@@ -304,11 +349,11 @@ new_obj("ROOF_rafter",
         rot=(0, math.radians(90) + math.atan2(ROOF_RISE, rafter_len), math.radians(-30)))
 
 # Stage 2 — three thatch bands, one per delivered leaf bundle.
-for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88),
-                                  (0.87, ROOF_EDGE_X + ROOF_OVERHANG))):
-    tone = "ARCH_Leaf" if index % 2 == 0 else "ARCH_LeafLight"
-    new_obj(f"ROOF_thatch_{index}", roof_panel(f"ROOF_thatch_{index}", x0, x1, tone),
-            s2, loc=(0, 0, 0))
+# One woven underlay so no daylight comes through, then the kit's own fronds.
+new_obj("ROOF_deco_underlay",
+        roof_panel("ROOF_deco_underlay", 0.02, ROOF_EDGE_X + ROOF_OVERHANG, "ARCH_Leaf"),
+        s2, loc=(0, 0, 0))
+lay_fronds(s2, "ROOF", rng, sloped=True)
 
 # Stage 3 — one rope: lashings where the rafter meets the eave and the peak.
 binds = []
@@ -367,11 +412,10 @@ new_obj("ROOFFLAT_edge_beam",
 new_obj("ROOFFLAT_rafter",
         bowed_stick("ROOFFLAT_rafter", rafter_len, 0.020, rng, bow=0.005), s1,
         loc=(0.04, -0.03, -0.022), rot=(0, math.radians(90), math.radians(-30)))
-for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88),
-                                  (0.87, ROOF_EDGE_X + ROOF_OVERHANG))):
-    tone = "ARCH_Leaf" if index % 2 == 0 else "ARCH_LeafLight"
-    new_obj(f"ROOFFLAT_thatch_{index}",
-            roof_panel_flat(f"ROOFFLAT_thatch_{index}", x0, x1, tone), s2, loc=(0, 0, 0))
+new_obj("ROOFFLAT_deco_underlay",
+        roof_panel_flat("ROOFFLAT_deco_underlay", 0.02, ROOF_EDGE_X + ROOF_OVERHANG, "ARCH_Leaf"),
+        s2, loc=(0, 0, 0))
+lay_fronds(s2, "ROOFFLAT", rng, sloped=False)
 binds = []
 for index, (x, y) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08), (0.10, -0.055))):
     binds.append(new_obj(f"ROOFFLAT_bind_{index}",

@@ -73,9 +73,12 @@ def stage_index_of(obj):
 
 
 def is_door_leaf_member(obj):
+    """The leaf hangs under the pivot. The source pivot is parked as
+    __src_HL_Door_Pivot during export, so accept both spellings or the leaf
+    silently lands on the stage instead and the door stops swinging."""
     node = obj
     while node is not None:
-        if node.name.startswith("HL_Door_Pivot"):
+        if node.name.startswith("HL_Door_Pivot") or node.name.startswith("__src_HL_Door_Pivot"):
             return True
         node = node.parent
     return False
@@ -105,6 +108,10 @@ for root_name, definition_id in ELEMENTS.items():
         source_pivot = next(o for o in root.children_recursive
                             if o.name.startswith("HL_Door_Pivot"))
         pivot_world = to_origin @ source_pivot.matrix_world
+        # Park the source out of the way or Blender hands the export copy
+        # "HL_Door_Pivot.001", and the exact name is a runtime contract.
+        source_pivot_name = source_pivot.name
+        source_pivot.name = "__src_" + source_pivot_name
         for marker in DOOR_PIVOT_CHILD_MARKERS:
             src = bpy.data.objects.get(marker)
             if src is not None:
@@ -214,6 +221,10 @@ for root_name, definition_id in ELEMENTS.items():
         holder = bpy.data.objects.get(f"__src_BuildStage_{stage}")
         if holder is not None:
             holder.name = f"BuildStage_{stage}"
+    if root_name == "HL_ARCH_DOOR":
+        parked = bpy.data.objects.get("__src_" + source_pivot_name)
+        if parked is not None:
+            parked.name = source_pivot_name
     for marker in DOOR_PIVOT_CHILD_MARKERS + ROOT_MARKERS:
         src = bpy.data.objects.get("__src_" + marker)
         if src is not None:

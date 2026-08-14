@@ -132,6 +132,7 @@ namespace HexLive.UnityPresentation.Input
         private bool _selectionDragging;
         private Vector2 _leftPressPosition;
         private Vector2 _selectionDragPosition;
+        private readonly HashSet<UnityEngine.Object> _selectionInputSuppressors = new();
 
         private Camera _camera;
         private HexWorldRenderer _worldRenderer;
@@ -171,6 +172,34 @@ namespace HexLive.UnityPresentation.Input
         public void SetRunner(SimulationRunnerBehaviour runner)
         {
             _runner = runner;
+        }
+
+        /// <summary>
+        /// Temporarily gives the primary world pointer to an editor-style tool.
+        /// Camera pan/orbit/zoom remain available, while click selection, manual
+        /// orders and the marquee are disabled until the same owner releases it.
+        /// Multiple tools may hold the suppression independently.
+        /// </summary>
+        public void SetSelectionInputSuppressed(UnityEngine.Object owner, bool suppressed)
+        {
+            if (owner == null) return;
+            if (suppressed)
+            {
+                _selectionInputSuppressors.Add(owner);
+                CancelPointerGesture();
+            }
+            else
+            {
+                _selectionInputSuppressors.Remove(owner);
+            }
+        }
+
+        public bool SelectionInputSuppressed => _selectionInputSuppressors.Count > 0;
+
+        private void CancelPointerGesture()
+        {
+            _leftPressActive = false;
+            _selectionDragging = false;
         }
 
         private void Start()
@@ -577,6 +606,12 @@ namespace HexLive.UnityPresentation.Input
 
         private void HandlePointerGesture(WorldSnapshot snapshot)
         {
+            if (SelectionInputSuppressed)
+            {
+                CancelPointerGesture();
+                return;
+            }
+
             var mouse = Mouse.current;
             if (mouse == null) return;
 
@@ -667,7 +702,7 @@ namespace HexLive.UnityPresentation.Input
 
         private void OnGUI()
         {
-            if (!_selectionDragging) return;
+            if (SelectionInputSuppressed || !_selectionDragging) return;
             var x = Mathf.Min(_leftPressPosition.x, _selectionDragPosition.x);
             var width = Mathf.Abs(_selectionDragPosition.x - _leftPressPosition.x);
             var bottom = Mathf.Min(_leftPressPosition.y, _selectionDragPosition.y);

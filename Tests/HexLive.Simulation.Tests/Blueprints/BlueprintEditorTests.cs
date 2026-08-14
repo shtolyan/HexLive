@@ -196,6 +196,27 @@ namespace HexLive.Simulation.Tests.Blueprints
         }
 
         [Test]
+        public void ConstructorOwnsWorldPointerWithoutRtsSelectionMarquee()
+        {
+            var designer = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "HutTest",
+                "HutLayoutDesigner.cs"));
+            var camera = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Input",
+                "RtsCameraController.cs"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(designer, Does.Contain("SetSelectionInputSuppressed(this, true)"));
+                Assert.That(designer, Does.Contain("SetSelectionInputSuppressed(this, false)"));
+                Assert.That(camera, Does.Contain("if (SelectionInputSuppressed)"));
+                Assert.That(camera, Does.Contain(
+                    "if (SelectionInputSuppressed || !_selectionDragging) return;"));
+                Assert.That(camera, Does.Contain("CancelPointerGesture();"));
+            });
+        }
+
+        [Test]
         public void UndoRedoTreatsWholeWallDragAsOneGesture()
         {
             var draft = new BuildingBlueprintDraft();

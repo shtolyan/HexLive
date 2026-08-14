@@ -9,6 +9,7 @@ using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.HutTest.BlueprintEditor;
+using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Views;
 using UnityEngine;
@@ -52,6 +53,8 @@ namespace HexLive.UnityPresentation.HutTest
         private Label? _selectionLabel;
         private SimulationRunnerBehaviour? _runner;
         private Camera? _camera;
+        private RtsCameraController? _rtsCamera;
+        private bool _worldSelectionSuppressed;
         private Transform? _source;
         private BlueprintPreviewRenderer? _preview;
         private Transform? _handles;
@@ -103,6 +106,7 @@ namespace HexLive.UnityPresentation.HutTest
         {
             _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
             _camera = Camera.main;
+            SuppressWorldSelection();
             if (!_store.TryLoad(DraftId, out _draft, out var error))
             {
                 _draft = BuiltInBuildingBlueprints.Hut1Hex();
@@ -114,6 +118,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void OnDestroy()
         {
+            RestoreWorldSelection();
             Loc.LanguageChanged -= ApplyLanguage;
             if (_rotationButtonMaterial != null) Destroy(_rotationButtonMaterial);
             if (_rotationGlyphMaterial != null) Destroy(_rotationGlyphMaterial);
@@ -121,6 +126,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void Update()
         {
+            SuppressWorldSelection();
             if (!_initialized) InitializePreview();
             if (!_initialized || _preview == null || _camera == null) return;
             if (_runner != null && !_runner.IsPaused) _runner.TogglePause();
@@ -133,6 +139,38 @@ namespace HexLive.UnityPresentation.HutTest
                 _autosaveDeadline = 0f;
                 SaveDraft(false);
             }
+        }
+
+        private void OnDisable()
+        {
+            RestoreWorldSelection();
+        }
+
+        private void OnEnable()
+        {
+            SuppressWorldSelection();
+        }
+
+        private void SuppressWorldSelection()
+        {
+            if (_worldSelectionSuppressed && _rtsCamera != null) return;
+            _worldSelectionSuppressed = false;
+            var mainCamera = Camera.main;
+            _rtsCamera = mainCamera != null ? mainCamera.GetComponent<RtsCameraController>() : null;
+            if (_rtsCamera == null) _rtsCamera = FindAnyObjectByType<RtsCameraController>();
+            if (_rtsCamera == null) return;
+            _rtsCamera.SetSelectionInputSuppressed(this, true);
+            _worldSelectionSuppressed = true;
+        }
+
+        private void RestoreWorldSelection()
+        {
+            if (_worldSelectionSuppressed && _rtsCamera != null)
+            {
+                _rtsCamera.SetSelectionInputSuppressed(this, false);
+            }
+            _worldSelectionSuppressed = false;
+            _rtsCamera = null;
         }
 
         private void InitializePreview()

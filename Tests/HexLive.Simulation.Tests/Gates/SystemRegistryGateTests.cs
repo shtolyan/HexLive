@@ -47,6 +47,10 @@ public sealed class SystemRegistryGateTests
         // §118: rescue claims patients before the ordinary decision auction,
         // so the same medium pass cannot send the free helper to a chore.
         "RescueSystem",
+        // §32.15: disabled and selection-empty in the shipped registry. An
+        // explicit host puts it before Decision/Planning so an idle selected NPC
+        // can enter the existing manual-command path without replacing either.
+        "LlmControlSystem",
         "DecisionSystem",
         "ProstheticAidSystem",
         "PlanningSystem",

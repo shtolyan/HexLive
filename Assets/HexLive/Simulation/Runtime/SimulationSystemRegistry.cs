@@ -25,6 +25,12 @@ public static class SimulationSystemRegistry
         engine.Register(new ExecutionSystem());
         engine.Register(new PerceptionSystem());
         engine.Register(new RescueSystem());
+        // §32.15: opt-in LLM adapter. The shipped constructor is double-safe:
+        // SpecLlmControl.Enabled defaults false and its selected-id set is empty,
+        // so registration has zero world, trace, provider, or ordering effects.
+        // When explicitly constructed, it runs after rescue claims work and
+        // before the ordinary decision/planning pipeline claims an idle NPC.
+        engine.Register(new LlmControlSystem());
         engine.Register(new DecisionSystem());
         engine.Register(new ProstheticAidSystem()); // §119: persistent compassion chain
         engine.Register(new PlanningSystem());

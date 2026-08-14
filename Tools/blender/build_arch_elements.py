@@ -256,6 +256,7 @@ rng = random.Random(808)
 root, (s1, s2, s3) = element_root("HL_ARCH_ROOF", 18.0)
 ROOF_RISE = 0.135          # centre peak above the eave
 ROOF_EDGE_X = 1.299        # hex apothem: the eave line
+ROOF_OVERHANG = 0.14       # thatch reaches past the wall so rain drips clear
 ROOF_CORNER_Y = 0.75
 THATCH_T = 0.045
 
@@ -303,7 +304,8 @@ new_obj("ROOF_rafter",
         rot=(0, math.radians(90) + math.atan2(ROOF_RISE, rafter_len), math.radians(-30)))
 
 # Stage 2 — three thatch bands, one per delivered leaf bundle.
-for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88), (0.87, ROOF_EDGE_X))):
+for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88),
+                                  (0.87, ROOF_EDGE_X + ROOF_OVERHANG))):
     tone = "ARCH_Leaf" if index % 2 == 0 else "ARCH_LeafLight"
     new_obj(f"ROOF_thatch_{index}", roof_panel(f"ROOF_thatch_{index}", x0, x1, tone),
             s2, loc=(0, 0, 0))
@@ -365,7 +367,8 @@ new_obj("ROOFFLAT_edge_beam",
 new_obj("ROOFFLAT_rafter",
         bowed_stick("ROOFFLAT_rafter", rafter_len, 0.020, rng, bow=0.005), s1,
         loc=(0.04, -0.03, -0.022), rot=(0, math.radians(90), math.radians(-30)))
-for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88), (0.87, ROOF_EDGE_X))):
+for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88),
+                                  (0.87, ROOF_EDGE_X + ROOF_OVERHANG))):
     tone = "ARCH_Leaf" if index % 2 == 0 else "ARCH_LeafLight"
     new_obj(f"ROOFFLAT_thatch_{index}",
             roof_panel_flat(f"ROOFFLAT_thatch_{index}", x0, x1, tone), s2, loc=(0, 0, 0))

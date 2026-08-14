@@ -335,7 +335,10 @@ def roof_panel_flat(name, x0, x1, tone):
     mesh = bpy.data.meshes.new(name)
     bm = bmesh.new()
     ya, yb = x0 * TAN30 * 0.995, x1 * TAN30 * 0.995
-    z = ROOF_RISE
+    # At the EAVE, not the ridge: the flat part is the lower annex roof beside
+    # the main dome. Sitting it at ridge height raised the added hex into a
+    # plateau and put a step at the seam.
+    z = 0.0
     bottom = [bm.verts.new(p) for p in ((x0, -ya, z), (x1, -yb, z),
                                         (x1, yb, z), (x0, ya, z))]
     top = [bm.verts.new(p) for p in ((x0, -ya, z + THATCH_T), (x1, -yb, z + THATCH_T),
@@ -357,11 +360,11 @@ def roof_panel_flat(name, x0, x1, tone):
 
 new_obj("ROOFFLAT_edge_beam",
         bowed_stick("ROOFFLAT_edge_beam", ROOF_CORNER_Y * 2 - 0.05, 0.019, rng, bow=0.005), s1,
-        loc=(ROOF_EDGE_X - 0.03, -ROOF_CORNER_Y + 0.025, ROOF_RISE - 0.022),
+        loc=(ROOF_EDGE_X - 0.03, -ROOF_CORNER_Y + 0.025, -0.022),
         rot=(math.radians(-90), 0, 0))
 new_obj("ROOFFLAT_rafter",
         bowed_stick("ROOFFLAT_rafter", rafter_len, 0.020, rng, bow=0.005), s1,
-        loc=(0.04, -0.03, ROOF_RISE - 0.022), rot=(0, math.radians(90), math.radians(-30)))
+        loc=(0.04, -0.03, -0.022), rot=(0, math.radians(90), math.radians(-30)))
 for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88), (0.87, ROOF_EDGE_X))):
     tone = "ARCH_Leaf" if index % 2 == 0 else "ARCH_LeafLight"
     new_obj(f"ROOFFLAT_thatch_{index}",
@@ -371,7 +374,7 @@ for index, (x, y) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08), (0.
     binds.append(new_obj(f"ROOFFLAT_bind_{index}",
                          axis_lashing(f"ROOFFLAT_bind_{index}", rng, 0.020, squash=0.75,
                                       tube=0.0058),
-                         s3, loc=(x, y, ROOF_RISE - 0.022),
+                         s3, loc=(x, y, -0.022),
                          rot=(0, 0, math.radians(60 if index == 0 else -30))))
 join(binds, "ROOFFLAT_rope")
 

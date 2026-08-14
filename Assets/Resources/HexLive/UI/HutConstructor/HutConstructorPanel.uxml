@@ -30,8 +30,6 @@
             <ui:VisualElement class="selection-card">
                 <ui:Label name="selection-label" class="selection-label" />
                 <ui:VisualElement class="selection-actions">
-                    <ui:Button name="rotate-left" class="compact-button" text="−60°" />
-                    <ui:Button name="rotate-right" class="compact-button" text="+60°" />
                     <ui:Button name="delete-selection" class="compact-button danger" />
                 </ui:VisualElement>
             </ui:VisualElement>

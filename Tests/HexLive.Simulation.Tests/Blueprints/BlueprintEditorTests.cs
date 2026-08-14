@@ -142,6 +142,60 @@ namespace HexLive.Simulation.Tests.Blueprints
         }
 
         [Test]
+        public void RotationPreviewCanCrossInvalidSixtyAndOneTwentyToCommitOneEighty()
+        {
+            var draft = new BuildingBlueprintDraft();
+            Assert.That(BlueprintEditorCommands.PlaceFurniture(
+                draft, "bed.basic", TileCoord.Zero, 18).Succeeded, Is.True);
+            var bedId = draft.Furniture.Single().Id;
+            Assert.That(BlueprintEditorCommands.PlaceFurniture(
+                draft, "test.single", TileCoord.Zero, 13).Succeeded, Is.True);
+            var committedBefore = BuildingBlueprintJson.Serialize(draft);
+
+            var sixty = BlueprintEditorCommands.Rotate(draft, bedId, 1);
+            Assert.That(sixty.Succeeded, Is.False);
+            Assert.That(sixty.Candidate, Is.Not.Null);
+            Assert.That(sixty.Candidate.Furniture.Single(item => item.Id == bedId).YawStep, Is.EqualTo(1));
+            Assert.That(BuildingBlueprintJson.Serialize(draft), Is.EqualTo(committedBefore));
+
+            var oneTwenty = BlueprintEditorCommands.Rotate(sixty.Candidate, bedId, 1);
+            Assert.That(oneTwenty.Succeeded, Is.False);
+            Assert.That(oneTwenty.Candidate, Is.Not.Null);
+            Assert.That(oneTwenty.Candidate.Furniture.Single(item => item.Id == bedId).YawStep, Is.EqualTo(2));
+            Assert.That(BuildingBlueprintJson.Serialize(draft), Is.EqualTo(committedBefore));
+
+            var oneEighty = BlueprintEditorCommands.Rotate(oneTwenty.Candidate, bedId, 1);
+            Assert.That(oneEighty.Succeeded, Is.True, oneEighty.Message);
+            Assert.That(oneEighty.Candidate.Furniture.Single(item => item.Id == bedId).YawStep, Is.EqualTo(3));
+            Assert.That(BuildingBlueprintJson.Serialize(draft), Is.EqualTo(committedBefore),
+                "Preview candidates must never mutate the committed draft.");
+
+            var history = new BlueprintCommandHistory();
+            Assert.That(history.Execute(draft,
+                working => BlueprintEditorCommands.Rotate(working, bedId, 3)).Succeeded, Is.True);
+            Assert.That(draft.Furniture.Single(item => item.Id == bedId).YawStep, Is.EqualTo(3));
+            Assert.That(history.Undo(draft), Is.True);
+            Assert.That(draft.Furniture.Single(item => item.Id == bedId).YawStep, Is.Zero,
+                "The whole preview sequence commits as one undo gesture.");
+        }
+
+        [Test]
+        public void ConstructorPanelLeavesFurnitureRotationToWorldHandles()
+        {
+            var uxml = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "Resources", "HexLive", "UI", "HutConstructor",
+                "HutConstructorPanel.uxml"));
+            var designer = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "HutTest",
+                "HutLayoutDesigner.cs"));
+
+            Assert.That(uxml, Does.Not.Contain("name=\"rotate-left\""));
+            Assert.That(uxml, Does.Not.Contain("name=\"rotate-right\""));
+            Assert.That(designer, Does.Contain("AddRotationButton(\"rotate-left-handle\", -1)"));
+            Assert.That(designer, Does.Contain("AddRotationButton(\"rotate-right-handle\", 1)"));
+        }
+
+        [Test]
         public void UndoRedoTreatsWholeWallDragAsOneGesture()
         {
             var draft = new BuildingBlueprintDraft();

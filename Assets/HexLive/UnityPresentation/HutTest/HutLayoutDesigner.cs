@@ -67,6 +67,11 @@ namespace HexLive.UnityPresentation.HutTest
         private string _dragOpeningId = string.Empty;
         private BlueprintRoomResizeHandle? _roomResizeHandle;
         private BuildingBlueprintDraft? _gesturePreview;
+        private BuildingBlueprintDraft? _rotationPreview;
+        private string _rotationPreviewId = string.Empty;
+        private float _rotationHandleRadius = 0.48f;
+        private Material? _rotationButtonMaterial;
+        private Material? _rotationGlyphMaterial;
         private bool _initialized;
         private float _autosaveDeadline;
         private string _statusKey = "blueprint.status.ready";
@@ -110,6 +115,8 @@ namespace HexLive.UnityPresentation.HutTest
         private void OnDestroy()
         {
             Loc.LanguageChanged -= ApplyLanguage;
+            if (_rotationButtonMaterial != null) Destroy(_rotationButtonMaterial);
+            if (_rotationGlyphMaterial != null) Destroy(_rotationGlyphMaterial);
         }
 
         private void Update()
@@ -120,6 +127,7 @@ namespace HexLive.UnityPresentation.HutTest
             HandleKeyboard();
             HandlePointer();
             _preview.UpdateCutaway(_camera);
+            UpdateRotationHandlePresentation();
             if (_autosaveDeadline > 0f && Time.unscaledTime >= _autosaveDeadline)
             {
                 _autosaveDeadline = 0f;
@@ -196,8 +204,6 @@ namespace HexLive.UnityPresentation.HutTest
                 var captured = pair.Key;
                 root.Q<Button>(pair.Value).clicked += () => SetTool(captured);
             }
-            root.Q<Button>("rotate-left").clicked += () => RotateSelected(-1);
-            root.Q<Button>("rotate-right").clicked += () => RotateSelected(1);
             root.Q<Button>("delete-selection").clicked += DeleteSelected;
             root.Q<Button>("undo").clicked += Undo;
             root.Q<Button>("redo").clicked += Redo;
@@ -255,6 +261,7 @@ namespace HexLive.UnityPresentation.HutTest
                     _gestureActive = true;
                     break;
                 case Tool.Select:
+                    ClearRotationPreview();
                     var keyboard = Keyboard.current;
                     var additive = keyboard != null &&
                         (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
@@ -412,6 +419,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private BlueprintCommandResult Execute(Func<BuildingBlueprintDraft, BlueprintCommandResult> gesture)
         {
+            ClearRotationPreview();
             var result = _history.Execute(_draft, gesture);
             if (result.Succeeded)
             {
@@ -424,6 +432,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void SelectNearest(Vector3 local, bool additive)
         {
+            ClearRotationPreview();
             var candidateId = string.Empty;
             var candidateRoomId = 0;
             var best = PickRadius * PickRadius;
@@ -466,13 +475,49 @@ namespace HexLive.UnityPresentation.HutTest
         private void RotateSelected(int delta)
         {
             if (_selectedIds.Count > 1 || !_draft.Furniture.Any(item => item.Id == _selectedId)) return;
-            var result = Execute(working => BlueprintEditorCommands.Rotate(working, _selectedId, delta));
+            if (_rotationPreview == null || _rotationPreviewId != _selectedId)
+            {
+                _rotationPreview = _draft.Clone();
+                _rotationPreviewId = _selectedId;
+            }
+
+            var previewResult = BlueprintEditorCommands.Rotate(_rotationPreview, _selectedId, delta);
+            if (previewResult.Candidate == null)
+            {
+                SetStatus(previewResult.Message);
+                return;
+            }
+
+            _rotationPreview = previewResult.Candidate;
+            var previewItem = _rotationPreview.Furniture.First(item => item.Id == _selectedId);
+            var committedItem = _draft.Furniture.First(item => item.Id == _selectedId);
+            if (!previewResult.Validation.IsValid)
+            {
+                ShowCommandPreview(previewResult);
+                RebuildHandles(_rotationPreview);
+                RefreshUiState();
+                SetStatus(previewResult.Message);
+                return;
+            }
+
+            var totalDelta = previewItem.YawStep - committedItem.YawStep;
+            ClearRotationPreview();
+            if (BlueprintGeometry.NormalizeSector(totalDelta) == 0)
+            {
+                RebuildPreview();
+                RefreshUiState();
+                SetStatus("blueprint.status.cancelled", true);
+                return;
+            }
+
+            var result = Execute(working => BlueprintEditorCommands.Rotate(working, _selectedId, totalDelta));
             SetStatus(result.Message);
         }
 
         private void DeleteSelected()
         {
             if (string.IsNullOrEmpty(_selectedId)) return;
+            ClearRotationPreview();
             var result = _selectedRoomId > 0
                 ? Execute(working => BlueprintEditorCommands.DeleteRoom(working, _selectedRoomId))
                 : _selectedIds.Count > 1
@@ -489,6 +534,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void Undo()
         {
+            ClearRotationPreview();
             if (!_history.Undo(_draft)) return;
             _selectedId = string.Empty;
             _selectedIds.Clear();
@@ -500,6 +546,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void Redo()
         {
+            ClearRotationPreview();
             if (!_history.Redo(_draft)) return;
             _selectedId = string.Empty;
             _selectedIds.Clear();
@@ -516,6 +563,7 @@ namespace HexLive.UnityPresentation.HutTest
             _dragOpeningId = string.Empty;
             _roomResizeHandle = null;
             _gesturePreview = null;
+            ClearRotationPreview();
             RebuildPreview();
             SetStatus("blueprint.status.cancelled", true);
         }
@@ -614,24 +662,35 @@ namespace HexLive.UnityPresentation.HutTest
                 .ToArray();
         }
 
-        private void RebuildHandles()
+        private void RebuildHandles(BuildingBlueprintDraft? displayDraft = null)
         {
             if (_preview == null) return;
-            if (_handles != null) Destroy(_handles.gameObject);
+            if (_handles != null)
+            {
+                _handles.gameObject.SetActive(false);
+                Destroy(_handles.gameObject);
+            }
             if (string.IsNullOrEmpty(_selectedId)) return;
-            var selectedFurniture = _draft.Furniture.FirstOrDefault(item => item.Id == _selectedId);
+            var handleDraft = displayDraft ?? _draft;
+            var selectedFurniture = handleDraft.Furniture.FirstOrDefault(item => item.Id == _selectedId);
             if (selectedFurniture == null)
             {
                 if (_selectedRoomId > 0) BuildRoomResizeHandles();
                 return;
             }
-            var point = BlueprintGeometry.JunctionToWorld(selectedFurniture.PrimaryJunction);
+            var footprint = BlueprintFurnitureFootprints.OccupiedJunctions(selectedFurniture)
+                .Select(BlueprintGeometry.JunctionToWorld).ToArray();
+            var centre = footprint.Aggregate(Vector2.zero,
+                (sum, point) => sum + new Vector2(point.X, point.Y)) / Mathf.Max(1, footprint.Length);
+            _rotationHandleRadius = Mathf.Max(0.48f, footprint.Max(point =>
+                Vector2.Distance(centre, new Vector2(point.X, point.Y))) + 0.26f);
             _handles = new GameObject("Selection handles").transform;
             _handles.SetParent(_preview.transform, false);
-            _handles.localPosition = new Vector3(point.X, HutAssembly.FloorSurfaceLift + 0.08f, point.Y);
+            _handles.localPosition = new Vector3(centre.x, HutAssembly.FloorSurfaceLift + 0.08f, centre.y);
             AddHandle("drag-handle", Vector3.zero, new Color(1f, 0.63f, 0.20f), 0.11f);
-            AddRotationArc("rotate-left-handle", -1, -155f, -25f);
-            AddRotationArc("rotate-right-handle", 1, 25f, 155f);
+            AddRotationButton("rotate-left-handle", -1);
+            AddRotationButton("rotate-right-handle", 1);
+            UpdateRotationHandlePresentation();
         }
 
         private void BuildRoomResizeHandles()
@@ -725,27 +784,69 @@ namespace HexLive.UnityPresentation.HutTest
             handle.GetComponent<Renderer>().material.color = color;
         }
 
-        private void AddRotationArc(string name, int direction, float from, float to)
+        private void AddRotationButton(string name, int direction)
         {
             if (_handles == null) return;
-            var go = new GameObject(name);
-            go.transform.SetParent(_handles, false);
-            var line = go.AddComponent<LineRenderer>();
+            var button = new GameObject(name);
+            button.transform.SetParent(_handles, false);
+            button.AddComponent<BlueprintRotationHandle>().Direction = direction;
+
+            var disc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            disc.name = "button";
+            disc.transform.SetParent(button.transform, false);
+            disc.transform.localScale = new Vector3(0.13f, 0.018f, 0.13f);
+            disc.GetComponent<Renderer>().sharedMaterial = RotationButtonMaterial;
+            Destroy(disc.GetComponent<Collider>());
+
+            var arcObject = new GameObject("curved-arrow");
+            arcObject.transform.SetParent(button.transform, false);
+            var line = arcObject.AddComponent<LineRenderer>();
             line.useWorldSpace = false;
-            line.positionCount = 14;
-            line.startWidth = 0.025f;
-            line.endWidth = 0.025f;
-            line.material = new Material(Shader.Find("Sprites/Default"));
-            line.startColor = line.endColor = new Color(1f, 0.63f, 0.20f);
+            line.positionCount = 11;
+            line.startWidth = 0.018f;
+            line.endWidth = 0.018f;
+            line.sharedMaterial = RotationGlyphMaterial;
+            line.startColor = line.endColor = new Color(0.10f, 0.14f, 0.16f);
             for (var index = 0; index < line.positionCount; index++)
             {
                 var t = index / (line.positionCount - 1f);
-                var radians = Mathf.Lerp(from, to, t) * Mathf.Deg2Rad;
-                line.SetPosition(index, new Vector3(Mathf.Cos(radians) * 0.38f, 0f, Mathf.Sin(radians) * 0.38f));
+                var degrees = direction > 0 ? Mathf.Lerp(145f, -75f, t) : Mathf.Lerp(35f, 255f, t);
+                var radians = degrees * Mathf.Deg2Rad;
+                line.SetPosition(index, new Vector3(
+                    Mathf.Cos(radians) * 0.073f, 0.031f, Mathf.Sin(radians) * 0.073f));
             }
-            AddHandle(name + "-tip", line.GetPosition(line.positionCount - 1),
-                new Color(1f, 0.63f, 0.20f), 0.09f);
-            go.AddComponent<BlueprintRotationHandle>().Direction = direction;
+
+            var end = line.GetPosition(line.positionCount - 1);
+            var previous = line.GetPosition(line.positionCount - 2);
+            var tangent = (end - previous).normalized;
+            var normal = new Vector3(-tangent.z, 0f, tangent.x);
+            var head = new GameObject("arrow-head");
+            head.transform.SetParent(button.transform, false);
+            var headLine = head.AddComponent<LineRenderer>();
+            headLine.useWorldSpace = false;
+            headLine.positionCount = 3;
+            headLine.startWidth = headLine.endWidth = 0.018f;
+            headLine.sharedMaterial = RotationGlyphMaterial;
+            headLine.startColor = headLine.endColor = new Color(0.10f, 0.14f, 0.16f);
+            var back = end - tangent * 0.037f;
+            headLine.SetPosition(0, back + normal * 0.022f);
+            headLine.SetPosition(1, end);
+            headLine.SetPosition(2, back - normal * 0.022f);
+        }
+
+        private void UpdateRotationHandlePresentation()
+        {
+            if (_camera == null || _preview == null || _handles == null) return;
+            var right = _preview.transform.InverseTransformDirection(_camera.transform.right);
+            right.y = 0f;
+            if (right.sqrMagnitude < 0.001f) right = Vector3.right;
+            else right.Normalize();
+            var forward = Vector3.Cross(right, Vector3.up).normalized;
+            foreach (var handle in _handles.GetComponentsInChildren<BlueprintRotationHandle>())
+            {
+                handle.transform.localPosition = right * (_rotationHandleRadius * handle.Direction);
+                handle.transform.localRotation = Quaternion.LookRotation(forward, Vector3.up);
+            }
         }
 
         private bool TryHandleClick(Vector2 screen)
@@ -773,12 +874,13 @@ namespace HexLive.UnityPresentation.HutTest
                         return true;
                     }
                 }
-                var direction = name.Contains("rotate-left", StringComparison.Ordinal) ? -1 :
-                    name.Contains("rotate-right", StringComparison.Ordinal) ? 1 : 0;
-                if (direction == 0) continue;
-                var markerScreen = _camera.WorldToScreenPoint(marker.position);
-                if ((new Vector2(markerScreen.x, markerScreen.y) - screen).sqrMagnitude > 28f * 28f) continue;
-                RotateSelected(direction);
+            }
+            foreach (var handle in _handles.GetComponentsInChildren<BlueprintRotationHandle>())
+            {
+                var markerScreen = _camera.WorldToScreenPoint(handle.transform.position);
+                if (markerScreen.z <= 0f ||
+                    (new Vector2(markerScreen.x, markerScreen.y) - screen).sqrMagnitude > 30f * 30f) continue;
+                RotateSelected(handle.Direction);
                 return true;
             }
             return false;
@@ -859,7 +961,8 @@ namespace HexLive.UnityPresentation.HutTest
 
             root.Q<Button>("undo").SetEnabled(_history.CanUndo);
             root.Q<Button>("redo").SetEnabled(_history.CanRedo);
-            var selected = _draft?.Furniture.FirstOrDefault(item => item.Id == _selectedId);
+            var displayedDraft = _rotationPreviewId == _selectedId ? _rotationPreview : _draft;
+            var selected = displayedDraft?.Furniture.FirstOrDefault(item => item.Id == _selectedId);
             if (_selectionLabel != null)
                 _selectionLabel.text = _selectedIds.Count > 1
                     ? $"{Loc.Get("blueprint.selection")}: {_selectedIds.Count}"
@@ -871,9 +974,30 @@ namespace HexLive.UnityPresentation.HutTest
                               ? "blueprint.indoor.ready"
                               : "blueprint.indoor.incomplete")
                         : Loc.Get("blueprint.selection.none");
-            root.Q<Button>("rotate-left").SetEnabled(selected != null && _selectedIds.Count <= 1);
-            root.Q<Button>("rotate-right").SetEnabled(selected != null && _selectedIds.Count <= 1);
             root.Q<Button>("delete-selection").SetEnabled(!string.IsNullOrEmpty(_selectedId));
+        }
+
+        private void ClearRotationPreview()
+        {
+            _rotationPreview = null;
+            _rotationPreviewId = string.Empty;
+        }
+
+        private Material RotationButtonMaterial => _rotationButtonMaterial ??= HandleMaterial(
+            "BlueprintRotationButton", new Color(1f, 0.63f, 0.20f, 0.98f));
+
+        private Material RotationGlyphMaterial => _rotationGlyphMaterial ??= HandleMaterial(
+            "BlueprintRotationGlyph", new Color(0.10f, 0.14f, 0.16f, 1f));
+
+        private static Material HandleMaterial(string name, Color color)
+        {
+            var shader = Shader.Find("HexLive/BlueprintOverlay")
+                         ?? Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Unlit/Color")
+                         ?? Shader.Find("Standard");
+            var material = new Material(shader) { name = name, color = color, renderQueue = 5000 };
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            return material;
         }
 
         private void ApplyLanguage()

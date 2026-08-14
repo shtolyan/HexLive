@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720" role="img" aria-labelledby="title desc">
+  <title id="title">Непрерывный поворот мебели в конструкторе HexLive</title>
+  <desc id="desc">Мировые кнопки поворачивают preview шагами по 60 градусов. Невалидные 60 и 120 градусов остаются красными кандидатами, следующий шаг достигает валидных 180 градусов и только тогда записывается в чертёж.</desc>
+  <defs>
+    <style>
+      .bg{fill:#171a1d}.panel{fill:#20262b;stroke:#3b464e;stroke-width:2}.hex{fill:#22292e;stroke:#73808a;stroke-width:2}.grid{stroke:#3d484f;stroke-width:1.5}.heading{fill:#f5ead8;font:700 28px system-ui,sans-serif}.label{fill:#f5ead8;font:600 17px system-ui,sans-serif}.small{fill:#c9d1d6;font:15px system-ui,sans-serif}.muted{fill:#8e999f;font:14px system-ui,sans-serif}.green{fill:#36c58a;stroke:#a9f2d3;stroke-width:3}.red{fill:#e74853;stroke:#ffadb2;stroke-width:3}.amber{fill:#f2a13b;stroke:#ffe0a3;stroke-width:3}.bed{fill:#c79a5a;stroke:#f2d19c;stroke-width:3}.arrow{fill:none;stroke:#f2a13b;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}.flow{fill:none;stroke:#71808a;stroke-width:4;marker-end:url(#end)}.cancel{fill:none;stroke:#62b7c8;stroke-width:4;stroke-dasharray:9 6;marker-end:url(#blueEnd)}.cross{stroke:#f5ead8;stroke-width:5;stroke-linecap:round}
+    </style>
+    <marker id="end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#71808a"/></marker>
+    <marker id="blueEnd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#62b7c8"/></marker>
+    <path id="hex" d="M0,-92 L79.67,-46 L79.67,46 L0,92 L-79.67,46 L-79.67,-46 Z"/>
+    <g id="nodes"><circle cx="0" cy="0" r="6"/><circle cx="0" cy="-46" r="6"/><circle cx="39.84" cy="-23" r="6"/><circle cx="39.84" cy="23" r="6"/><circle cx="0" cy="46" r="6"/><circle cx="-39.84" cy="23" r="6"/><circle cx="-39.84" cy="-23" r="6"/></g>
+  </defs>
+  <rect class="bg" width="1120" height="720" rx="18"/>
+  <text class="heading" x="48" y="55">Поворот мебели: preview проходит через конфликт</text>
+
+  <g transform="translate(180 245)">
+    <use href="#hex" class="hex"/>
+    <path class="grid" d="M0,-92V92M-79.67,-46L79.67,46M79.67,-46L-79.67,46"/>
+    <use href="#nodes" fill="#55c995"/>
+    <rect class="bed" x="-24" y="-72" width="48" height="144" rx="12"/>
+    <circle class="amber" cx="-112" cy="0" r="25"/><circle class="amber" cx="112" cy="0" r="25"/>
+    <path class="arrow" d="M-123 5A14 14 0 1 0-104-14M-104-14L-115-14M-104-14L-104-3"/>
+    <path class="arrow" d="M123 5A14 14 0 1 1 104-14M104-14L115-14M104-14L104-3"/>
+    <text class="label" x="0" y="132" text-anchor="middle">0° · подтверждено</text>
+    <text class="small" x="0" y="159" text-anchor="middle">две мировые кнопки возле предмета</text>
+  </g>
+
+  <path class="flow" d="M305 245H400"/>
+  <g transform="translate(500 245)">
+    <use href="#hex" class="hex"/>
+    <path class="grid" d="M0,-92V92M-79.67,-46L79.67,46M79.67,-46L-79.67,46"/>
+    <use href="#nodes" fill="#e74853"/>
+    <g transform="rotate(60)"><rect class="red" x="-24" y="-72" width="48" height="144" rx="12"/></g>
+    <circle class="red" cx="40" cy="0" r="10"/>
+    <text class="label" x="0" y="132" text-anchor="middle">60° · конфликт</text>
+    <text class="small" x="0" y="159" text-anchor="middle">кандидат остаётся красным</text>
+  </g>
+
+  <path class="flow" d="M625 245H720"/>
+  <g transform="translate(820 245)">
+    <use href="#hex" class="hex"/>
+    <path class="grid" d="M0,-92V92M-79.67,-46L79.67,46M79.67,-46L-79.67,46"/>
+    <use href="#nodes" fill="#e74853"/>
+    <g transform="rotate(120)"><rect class="red" x="-24" y="-72" width="48" height="144" rx="12"/></g>
+    <circle class="red" cx="40" cy="0" r="10"/>
+    <text class="label" x="0" y="132" text-anchor="middle">120° · конфликт</text>
+    <text class="small" x="0" y="159" text-anchor="middle">следующий клик считается от 120°</text>
+  </g>
+
+  <path class="flow" d="M820 420V482H500V445"/>
+  <g transform="translate(500 555)">
+    <use href="#hex" class="hex"/>
+    <path class="grid" d="M0,-92V92M-79.67,-46L79.67,46M79.67,-46L-79.67,46"/>
+    <use href="#nodes" fill="#36c58a"/>
+    <g transform="rotate(180)"><rect class="green" x="-24" y="-72" width="48" height="144" rx="12"/></g>
+    <text class="label" x="0" y="128" text-anchor="middle">180° · валидно → commit</text>
+  </g>
+
+  <path class="cancel" d="M404 555H250V445"/>
+  <text class="small" x="85" y="530">Esc / ПКМ / другой выбор</text>
+  <text class="label" x="85" y="558">возврат к 0°</text>
+
+  <g transform="translate(730 500)">
+    <rect class="panel" width="330" height="150" rx="14"/>
+    <text class="label" x="22" y="35">Транзакция</text>
+    <text class="small" x="22" y="66">• 60° и 120° не меняют draft</text>
+    <text class="small" x="22" y="94">• 180° записывается одним жестом</text>
+    <text class="small" x="22" y="122">• Undo возвращает сразу к 0°</text>
+  </g>
+
+  <text class="muted" x="48" y="690">Все углы — канонические yawStep 0…5 с шагом ровно 60°. Красный цвет означает только preview, не сохранённые данные.</text>
+</svg>

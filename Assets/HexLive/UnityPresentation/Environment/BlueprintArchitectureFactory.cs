@@ -32,7 +32,7 @@ namespace HexLive.UnityPresentation.Environment
                 BlueprintElementKind.Wall => BuildBay(element, draft, BlueprintElementKind.Wall),
                 BlueprintElementKind.Window => BuildBay(element, draft, BlueprintElementKind.Window),
                 BlueprintElementKind.Door => BuildBay(element, draft, BlueprintElementKind.Door),
-                BlueprintElementKind.RoofSector => BuildRoof(element),
+                BlueprintElementKind.RoofSector => BuildRoof(element, draft),
                 _ => new GameObject($"Unsupported blueprint element {element.Kind}")
             };
         }
@@ -217,7 +217,23 @@ namespace HexLive.UnityPresentation.Environment
         /// </summary>
         public const float RoofEaveHeight = HutAssembly.FloorSurfaceLift + 2.164f;
 
-        private static GameObject BuildRoof(BlueprintElementData element)
+        /// <summary>
+        /// True when the sector across this sector's outer hex edge is also
+        /// roofed, i.e. the edge is interior to the room rather than eave.
+        /// </summary>
+        private static bool HasRoofAcrossOuterEdge(RoofSectorKey sector, BuildingBlueprintDraft draft)
+        {
+            var step = BlueprintGeometry.NeighborDirections[
+                BlueprintGeometry.NormalizeSector(sector.Sector)];
+            var neighbourHex = new HexLive.Simulation.Common.TileCoord(
+                sector.Hex.Q + step.Q, sector.Hex.R + step.R);
+            var opposite = new RoofSectorKey(
+                neighbourHex, BlueprintGeometry.NormalizeSector(sector.Sector + 3));
+            return draft.Elements.Any(other =>
+                other.Kind == BlueprintElementKind.RoofSector && other.RoofSector == opposite);
+        }
+
+        private static GameObject BuildRoof(BlueprintElementData element, BuildingBlueprintDraft draft)
         {
             var sector = element.RoofSector;
             var center = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(sector.Hex));
@@ -229,8 +245,15 @@ namespace HexLive.UnityPresentation.Environment
             // so neighbouring hexes always meet along a shared edge at each
             // one's LOW point — the same height whatever shape the room is.
             // That is what lets a stretched room roof itself with no joiner.
+            // Sloping EVERY sector down to its own hex edge tiles perfectly but
+            // digs a valley along every shared edge — a gutter through the
+            // middle of the house, and that crease is exactly where the player
+            // saw gaps. A sector whose outer edge faces another roofed sector is
+            // inside the room, so it stays flat at ridge height; only the outer
+            // ring keeps its skirt.
+            var interior = HasRoofAcrossOuterEdge(element.RoofSector, draft);
             var model = InstantiateModel(
-                "architecture.roof.palm",
+                interior ? "architecture.roof.palm.flat" : "architecture.roof.palm",
                 new Vector3(center.X, RoofEaveHeight, center.Y),
                 SectorYaw(bisector));
             if (model != null) return model;

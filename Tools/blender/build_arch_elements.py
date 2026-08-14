@@ -318,6 +318,63 @@ for index, (x, y, z) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08, -
                          s3, loc=(x, y, z), rot=(0, 0, math.radians(60 if index == 0 else -30))))
 join(binds, "ROOF_rope")
 
+# --------------------------------------------------------------------------- #
+# roof sector, FLAT variant — used wherever the sector's outer edge is INSIDE
+# the room. Sloping every sector down to its own hex edge tiles perfectly but
+# digs a valley along every shared edge: a gutter through the middle of the
+# house, and the crease is exactly where the player saw gaps. Inside the room
+# the panel stays at ridge height, so the roof reads as one surface and only
+# the outer ring keeps its skirt.
+# --------------------------------------------------------------------------- #
+rng = random.Random(809)
+root, (s1, s2, s3) = element_root("HL_ARCH_ROOF_FLAT", 22.0)
+
+
+def roof_panel_flat(name, x0, x1, tone):
+    import bmesh
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    ya, yb = x0 * TAN30 * 0.995, x1 * TAN30 * 0.995
+    z = ROOF_RISE
+    bottom = [bm.verts.new(p) for p in ((x0, -ya, z), (x1, -yb, z),
+                                        (x1, yb, z), (x0, ya, z))]
+    top = [bm.verts.new(p) for p in ((x0, -ya, z + THATCH_T), (x1, -yb, z + THATCH_T),
+                                     (x1, yb, z + THATCH_T), (x0, ya, z + THATCH_T))]
+    bm.faces.new(list(reversed(bottom)))
+    bm.faces.new(top)
+    for a in range(4):
+        b = (a + 1) % 4
+        bm.faces.new((bottom[a], bottom[b], top[b], top[a]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.normal_update()
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.materials.append(bpy.data.materials[tone])
+    for polygon in mesh.polygons:
+        polygon.use_smooth = False
+    return mesh
+
+
+new_obj("ROOFFLAT_edge_beam",
+        bowed_stick("ROOFFLAT_edge_beam", ROOF_CORNER_Y * 2 - 0.05, 0.019, rng, bow=0.005), s1,
+        loc=(ROOF_EDGE_X - 0.03, -ROOF_CORNER_Y + 0.025, ROOF_RISE - 0.022),
+        rot=(math.radians(-90), 0, 0))
+new_obj("ROOFFLAT_rafter",
+        bowed_stick("ROOFFLAT_rafter", rafter_len, 0.020, rng, bow=0.005), s1,
+        loc=(0.04, -0.03, ROOF_RISE - 0.022), rot=(0, math.radians(90), math.radians(-30)))
+for index, (x0, x1) in enumerate(((0.02, 0.45), (0.44, 0.88), (0.87, ROOF_EDGE_X))):
+    tone = "ARCH_Leaf" if index % 2 == 0 else "ARCH_LeafLight"
+    new_obj(f"ROOFFLAT_thatch_{index}",
+            roof_panel_flat(f"ROOFFLAT_thatch_{index}", x0, x1, tone), s2, loc=(0, 0, 0))
+binds = []
+for index, (x, y) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08), (0.10, -0.055))):
+    binds.append(new_obj(f"ROOFFLAT_bind_{index}",
+                         axis_lashing(f"ROOFFLAT_bind_{index}", rng, 0.020, squash=0.75,
+                                      tube=0.0058),
+                         s3, loc=(x, y, ROOF_RISE - 0.022),
+                         rot=(0, 0, math.radians(60 if index == 0 else -30))))
+join(binds, "ROOFFLAT_rope")
+
 
 # --------------------------------------------------------------------------- #
 # indoor hearth — one junction, the colony's small fire
@@ -405,7 +462,8 @@ new_empty("fire_point", root, loc=(0, 0, 0.055))
 
 print("=== architecture elements rebuilt ===")
 for name in ("HL_ARCH_WALL", "HL_ARCH_WINDOW", "HL_ARCH_DOOR",
-             "HL_ARCH_SUPPORT", "HL_ARCH_FLOOR", "HL_ARCH_ROOF", "HL_ARCH_HEARTH"):
+             "HL_ARCH_SUPPORT", "HL_ARCH_FLOOR", "HL_ARCH_ROOF", "HL_ARCH_ROOF_FLAT",
+             "HL_ARCH_HEARTH"):
     root = bpy.data.objects[name]
     counts = []
     for stage in sorted(root.children, key=lambda c: c.name):

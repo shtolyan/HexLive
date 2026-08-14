@@ -430,9 +430,12 @@ namespace HexLive.UnityPresentation.HutTest
             }
             else if (_tool == Tool.Roof)
             {
+                // One click roofs the whole hex. The dome is still six sector
+                // elements — that is what the save format, Indoor and staged
+                // construction speak — but the player never leaves a hex half
+                // covered, and nothing is ever needed at the hex centre.
                 var floor = NearestSector(local);
-                var sector = new RoofSectorKey(floor.Hex, floor.Sector);
-                result = Execute(working => BlueprintEditorCommands.AddRoofSector(working, sector));
+                result = Execute(working => BlueprintEditorCommands.RoofHex(working, floor.Hex));
             }
             else if (_tool is Tool.Bed or Tool.Hearth or Tool.Wardrobe)
             {

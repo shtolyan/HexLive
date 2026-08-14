@@ -116,6 +116,40 @@ namespace HexLive.Simulation.Runtime.Blueprints
             }, "Сектор крыши создан.");
         }
 
+        /// <summary>
+        /// Roofs a whole hex in one gesture: all six sectors in one transaction,
+        /// all or nothing. The dome is still six sector elements, because that is
+        /// what the save format, the Indoor rule, staged construction and the
+        /// per-sector support check already speak — but the player places it as
+        /// one roof and never ends up with a half-covered hex. Nothing stands at
+        /// the hex centre: six panels rise from their own outer edges and meet
+        /// there, so the apex is a joint, not a column (Spec 120).
+        /// </summary>
+        public static BlueprintCommandResult RoofHex(BuildingBlueprintDraft draft, TileCoord hex)
+        {
+            return Transact(draft, working =>
+            {
+                var existing = new HashSet<RoofSectorKey>(working.Elements
+                    .Where(element => element.Kind == BlueprintElementKind.RoofSector)
+                    .Select(element => element.RoofSector));
+                var added = false;
+                for (var sector = 0; sector < 6; sector++)
+                {
+                    var key = new RoofSectorKey(hex, sector);
+                    if (!existing.Add(key)) continue;
+                    working.Elements.Add(new BlueprintElementData
+                    {
+                        Id = working.AllocateElementId(),
+                        Kind = BlueprintElementKind.RoofSector,
+                        Origin = BlueprintElementOrigin.Manual,
+                        RoofSector = key
+                    });
+                    added = true;
+                }
+                return added;
+            }, "Крыша гекса построена.");
+        }
+
         public static BlueprintCommandResult CreateRoom(
             BuildingBlueprintDraft draft, IEnumerable<FloorSectorKey> sectors)
         {

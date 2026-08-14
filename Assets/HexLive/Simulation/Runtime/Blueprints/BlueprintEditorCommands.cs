@@ -141,6 +141,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     });
                 }
                 RebuildRoomBoundary(working, roomId);
+                EnsureRoomSupports(working, roomId);
                 return true;
             }, "Комната создана.");
         }
@@ -181,6 +182,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     });
                 }
                 RebuildRoomBoundary(working, roomId);
+                EnsureRoomSupports(working, roomId);
                 return true;
             }, "Размер комнаты изменён.");
         }
@@ -380,6 +382,42 @@ namespace HexLive.Simulation.Runtime.Blueprints
             RoomId = roomId,
             Segment = segment
         };
+
+        /// <summary>
+        /// Every hex a room covers gets a corner post on all six of its corners.
+        /// A roof sector needs three of the six corners of ITS OWN hex, and hexes
+        /// gained by stretching a room only share two corners with the hex the
+        /// room started on — so without this the player sees supports standing
+        /// right there and still cannot roof the new part, forever. Corner nodes
+        /// are shared, so one post serves every hex that touches it and the
+        /// beams of neighbouring sectors land on the same node.
+        /// </summary>
+        private static void EnsureRoomSupports(BuildingBlueprintDraft draft, int roomId)
+        {
+            var hexes = new HashSet<TileCoord>(draft.Elements
+                .Where(element => element.Kind == BlueprintElementKind.FloorSector &&
+                                  element.RoomId == roomId)
+                .Select(element => element.FloorSector.Hex));
+            var existing = new HashSet<HexBuildNodeKey>(draft.Elements
+                .Where(element => element.Kind == BlueprintElementKind.Support)
+                .Select(element => element.Node));
+            foreach (var hex in hexes)
+            {
+                for (var corner = 0; corner < 6; corner++)
+                {
+                    var node = BlueprintGeometry.HexCorner(hex, corner);
+                    if (!existing.Add(node)) continue;
+                    draft.Elements.Add(new BlueprintElementData
+                    {
+                        Id = draft.AllocateElementId(),
+                        Kind = BlueprintElementKind.Support,
+                        Origin = BlueprintElementOrigin.RoomBoundary,
+                        RoomId = roomId,
+                        Node = node
+                    });
+                }
+            }
+        }
 
         private static void RebuildRoomBoundary(BuildingBlueprintDraft draft, int roomId)
         {

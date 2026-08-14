@@ -1,4 +1,5 @@
 using System.Linq;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
@@ -83,6 +84,100 @@ public sealed class FoodMathTests
         // (IsValidTargetFor), поэтому его перспектива = жареный кусок.
         Assert.That(FoodMath.ProspectiveNutrition(world, "campfire.spot", fireUsable: false),
             Is.EqualTo(SimBalance.CookedMeatHunger).Within(0.001f));
+    }
+
+    [Test]
+    public void DryProducerIsShunnedSoForagingMovesOn()
+    {
+        var world = TestWorld.CreateWorld();
+        world.Mobs.Clear();
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Inventory.Items.Add(new ItemInstance("tool.knife"));
+        var producer = world.Entities.Objects.Values.First(obj =>
+            world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+            DecisionSystem.ProducesUsableFood(npc, world, definition));
+
+        npc.Tile = producer.Tile;
+        npc.Perception.Objects.Clear();
+        npc.Perception.Objects.Add(new PerceivedObject
+        {
+            Id = producer.Id,
+            DefinitionId = producer.DefinitionId,
+            Tile = producer.Tile,
+            Distance = 0f,
+            IsReachable = true
+        });
+        npc.Mind.CurrentGoal = GoalType.GetFood;
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Execution.Status = ExecutionStatus.None;
+
+        new PlanningSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Memory.IsShunned(producer.Id, world.Tick), Is.True);
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+        });
+    }
+
+    [Test]
+    public void DeadfallProducerDoesNotMakeGetFoodAvailable()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        var deadfall = world.Entities.Objects.Values.First(obj =>
+            obj.DefinitionId == "forest.deadfall");
+        npc.Perception.Objects.Clear();
+        npc.Perception.Objects.Add(new PerceivedObject
+        {
+            Id = deadfall.Id,
+            DefinitionId = deadfall.DefinitionId,
+            Tile = deadfall.Tile,
+            IsReachable = true
+        });
+
+        Assert.That(DecisionSystem.KnowsReachableProducer(npc, world), Is.False,
+            "A stick producer must not keep the food-foraging lane open.");
+    }
+
+    [Test]
+    public void StarvingNpcDoesNotForageAtProducerCampedByLiveMob()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Inventory.Items.Add(new ItemInstance("tool.knife"));
+        var producer = world.Entities.Objects.Values.First(obj =>
+            world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+            DecisionSystem.ProducesUsableFood(npc, world, definition));
+
+        npc.Tile = producer.Tile;
+        npc.Mind.IsStarving = true;
+        npc.Perception.Objects.Clear();
+        npc.Perception.Objects.Add(new PerceivedObject
+        {
+            Id = producer.Id,
+            DefinitionId = producer.DefinitionId,
+            Tile = producer.Tile,
+            Distance = 0f,
+            IsReachable = true
+        });
+        npc.Mind.CurrentGoal = GoalType.GetFood;
+        npc.Plan.Status = PlanStatus.Completed;
+        world.Mobs.Add(new HexLive.Simulation.Wildlife.MobState
+        {
+            Id = world.NextMobId++,
+            Tile = producer.Tile
+        });
+
+        new PlanningSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Failed));
+            Assert.That(npc.Mind.Cooldowns.Any(c =>
+                c.Goal == GoalType.GetFood && c.EndTick > world.Tick), Is.True);
+        });
     }
 }
 

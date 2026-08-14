@@ -27,7 +27,7 @@ namespace HexLive.UnityPresentation.Environment
         {
             return element.Kind switch
             {
-                BlueprintElementKind.Support => BuildSupport(element),
+                BlueprintElementKind.Support => BuildSupport(element, draft),
                 BlueprintElementKind.FloorSector => BuildFloor(element),
                 BlueprintElementKind.Wall => BuildBay(element, draft, BlueprintElementKind.Wall),
                 BlueprintElementKind.Window => BuildBay(element, draft, BlueprintElementKind.Window),
@@ -152,11 +152,18 @@ namespace HexLive.UnityPresentation.Environment
             return material;
         }
 
-        private static GameObject BuildSupport(BlueprintElementData element)
+        private static GameObject BuildSupport(BlueprintElementData element, BuildingBlueprintDraft draft)
         {
             var point = BlueprintGeometry.ToWorld(element.Node);
             var position = new Vector3(point.X, HutAssembly.FloorSurfaceLift, point.Y);
-            var model = InstantiateModel("architecture.support.wood", position, Quaternion.identity);
+            // A corner post owns the joint where a bay drops its own pair, so it
+            // has to READ as that same post. Its two sticks separate along local
+            // +Z, and it used to be placed unrotated — the pair then pointed a
+            // random way and the corner looked like a beam was simply missing.
+            // Aim it outward along the radius, which bisects the two walls.
+            var outward = DoorOutward(element, draft, position);
+            var model = InstantiateModel("architecture.support.wood", position,
+                Quaternion.LookRotation(outward, Vector3.up));
             if (model != null) return model;
 
             var root = GameObject.CreatePrimitive(PrimitiveType.Cylinder);

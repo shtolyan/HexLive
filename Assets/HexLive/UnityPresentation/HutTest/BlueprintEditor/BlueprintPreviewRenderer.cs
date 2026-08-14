@@ -225,11 +225,19 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
                 var tiles = _draft.Elements.Where(element => element.Kind == BlueprintElementKind.FloorSector)
                     .Select(element => element.FloorSector.Hex).Distinct().ToArray();
                 if (tiles.Length == 0) tiles = new[] { HexLive.Simulation.Common.TileCoord.Zero };
+                // The interior set stops at r=3. The r=4 boundary ring is where
+                // two hexes MEET, so a room spanning several hexes had no points
+                // at all along its inner seams: the player could neither build
+                // nor place furniture there. Those nodes are shared by both
+                // hexes, hence the dedupe by JunctionKey.
+                var drawn = new HashSet<JunctionKey>();
                 foreach (var tile in tiles)
-                foreach (var template in HexLive.Simulation.Spatial.HexPointLayout.GetInteriorTemplates())
+                foreach (var template in HexLive.Simulation.Spatial.HexPointLayout.GetInteriorTemplates()
+                             .Concat(HexLive.Simulation.Spatial.HexPointLayout.GetBoundaryTemplates()))
                 {
                     var pair = HexLive.Simulation.Spatial.HexPointLayout.GetJunctionKeyPair(tile, template.SubAxial);
                     var key = new JunctionKey(pair.xKey, pair.yKey);
+                    if (!drawn.Add(key)) continue;
                     var conflict = _conflicts.Contains(key) ||
                         occupants.TryGetValue(key, out var owners) && owners.Count > 1;
                     var material = conflict ? Red :

@@ -809,13 +809,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SetRunning(bool running) => _running = running;
     private bool _wasWalking;
     private float _animSpeed = 1f;
-    // Fast-forward: the sim's speed multiplier scales every clip's playback
-    // (walk cadence, sleep, limp — all of it), fed per-sync by the renderer.
+    // Fast-forward: the PRESENTATION speed scales every clip's playback. MAX
+    // simulation uses +Infinity as an uncapped sentinel, so SetSimSpeed must
+    // normalize it before it can reach Animator.speed or any phase accumulator.
     private float _simSpeed = 1f;
 
     public void SetSimSpeed(float multiplier)
     {
-        _simSpeed = Mathf.Max(0.01f, multiplier);
+        _simSpeed = PresentationSpeed.Normalize(multiplier);
     }
 
     /// <summary>Feed the ground speed calculated from two simulation poses.

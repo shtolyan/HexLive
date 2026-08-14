@@ -495,14 +495,15 @@ public sealed partial class PlanningSystem
             if (!obj.IsReachable ||
                 npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                definition.Produce is null)
+                !DecisionSystem.ProducesUsableFood(npc, world, definition))
             {
                 continue;
             }
 
-            // Spec 29C.4A food avoidance: skip producers near fresh danger
-            // unless starving.
-            if (!npc.Mind.IsStarving && IsNearDanger(npc, obj.Tile, 2))
+            // Spec 29C.4A: starvation may override stale danger memory, but a
+            // live predator beside the producer is never a valid food route.
+            if (MobSystem.MobNear(world, obj.Tile, 2) ||
+                (!npc.Mind.IsStarving && IsNearDanger(npc, obj.Tile, 2)))
             {
                 continue;
             }
@@ -544,14 +545,20 @@ public sealed partial class PlanningSystem
 
         if (HexSpatialMath.HexDistance(npc.Tile, flora.Tile) <= 1)
         {
-            // Already by the tree and still no fruit in sight: wait it out.
+            // Already checked this tree and there is still no fruit in sight.
+            // Treat that as fresh negative evidence: revisiting the same dry
+            // producer every cooldown is not foraging. Temporarily shun it so
+            // the next GetFood/GetWater walks to another known producer; if
+            // none remains, availability falls through to Explore and expands
+            // knowledge instead of waiting here until death.
+            npc.Memory.Shun(flora.Id, world.Tick + AiBalance.ShunTicks);
             npc.Plan.Status = PlanStatus.Completed;
             npc.Mind.CurrentGoal = GoalType.None;
-            SetGoalCooldown(world, npc, forageGoal);
             if (SimTrace.Enabled)
             {
-                Trace.Debug(world, npc.Id, "ForageWaiting",
-                    $"At producer {flora.DefinitionId} Tile={flora.Tile.Q},{flora.Tile.R}, no fruit visible");
+                Trace.Debug(world, npc.Id, "ForageDryProducer",
+                    $"Shunned {flora.DefinitionId}#{flora.Id.Value} until " +
+                    $"{world.Tick + AiBalance.ShunTicks}; seeking another producer");
             }
             return;
         }

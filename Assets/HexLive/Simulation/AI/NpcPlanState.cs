@@ -84,7 +84,9 @@ public enum PlanStepType
     // §133 append-only: подойти к хозяйке вещи и спросить разрешения надеть её.
     AskWearPermission,
     // §133 append-only: поднять валяющуюся одежду и отнести её к дому.
-    StowCarriedGarment
+    StowCarriedGarment,
+    // §137 append-only: сесть на землю там, где стоишь, и отдохнуть.
+    IdleRest
 }
 
 public enum PlanStatus

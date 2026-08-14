@@ -583,6 +583,17 @@ namespace HexLive.UnityPresentation.Input
             var pointer = mouse.position.ReadValue();
             if (mouse.leftButton.wasPressedThisFrame)
             {
+                // Клик мимо открытого меню только закрывает его. Клик по самому
+                // меню обрабатывает UI Toolkit; в обоих случаях этот physical
+                // press не имеет права стать началом выделения или приказа.
+                if (UI.ContextMenuPanel.IsOpen && !UI.ContextMenuPanel.PointerOverPanel)
+                {
+                    UI.ContextMenuPanel.Close();
+                    _leftPressActive = false;
+                    _selectionDragging = false;
+                    return;
+                }
+
                 _leftPressActive = !PointerBlockedForWorld();
                 _selectionDragging = false;
                 _leftPressPosition = pointer;
@@ -618,7 +629,7 @@ namespace HexLive.UnityPresentation.Input
 
         private static bool PointerBlockedForWorld() =>
             NpcSelection.PointerOverUi || UI.HexInspectorPanel.PointerOverPanel ||
-            UI.ContextMenuPanel.PointerOverPanel || UI.LootTransferPanel.IsOpen ||
+            UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen ||
             UI.GameMenu.IsOpen ||
             UI.EndSummaryPanel.IsOpen;
 

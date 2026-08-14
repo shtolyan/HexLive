@@ -42,6 +42,15 @@ public sealed class NPCMind
     // fallback tile that never cools). Reset when CoolOff is (re)selected.
     public int CoolRearmCount { get; set; }
 
+    // §137: праздный отдых сидя. Оба поля ТРАНЗИЕНТНЫ и намеренно не пишутся в
+    // сейв (как PlayDeadUntilTick): после загрузки она просто стоит и сядет
+    // заново — это безобидно, а блоб трогать не приходится.
+    /// <summary>Сколько раз такт отдыха перевзвёлся, не поднимая её на ноги.</summary>
+    public int RestRearmCount { get; set; }
+
+    /// <summary>Встала с отдыха — до этого тика снова не садится (§137).</summary>
+    public int RestCooldownUntilTick { get; set; }
+
     // Spec 28.15C: mourning period and which bodies were already grieved for.
     public int GrievingUntilTick { get; set; }
 

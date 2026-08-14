@@ -59,9 +59,12 @@ public sealed class IdentityPortraitUiContractTests
             Assert.That(identity, Does.Contain("BackgroundSizeType.Cover"));
             Assert.That(identity, Does.Not.Contain("portraitSize"));
             Assert.That(identity, Does.Not.Contain("wrap.Add(_healthRing)"));
-            Assert.That(identity, Does.Contain("vitalsCluster.style.right = 12f"));
+            Assert.That(identity, Does.Contain("vitalsCluster.style.right = 4f"));
             Assert.That(identity, Does.Contain("vitalsCluster.style.bottom = 12f"));
             Assert.That(identity, Does.Contain("vitalsCluster.style.width = 218f"));
+            Assert.That(identity, Does.Contain("vitalsRail.style.right = 68f"));
+            Assert.That(identity, Does.Not.Contain("readoutScrim"),
+                "The full RenderTexture must not be covered by a half-card dimmer.");
             Assert.That(identity, Does.Contain("healthBadge.style.right = 0f"));
             Assert.That(identity, Does.Contain("healthBadge.style.bottom = 0f"));
             Assert.That(identity, Does.Contain("healthBadge.style.width = 96f"));
@@ -81,6 +84,8 @@ public sealed class IdentityPortraitUiContractTests
             Assert.That(identity, Does.Contain("vitalsRail.Add(uvRow)"));
             Assert.That(identity, Does.Contain("vitalsCluster.Add(vitalsRail)"));
             Assert.That(identity, Does.Contain("vitalsCluster.Add(healthBadge)"));
+            Assert.That(identity, Does.Contain("right = 80f"),
+                "Transient order feedback must not cover the journal button column.");
             Assert.That(identity, Does.Not.Contain("statusRow.style.backgroundColor"));
             Assert.That(identity, Does.Not.Contain("uvRow.style.backgroundColor"));
         });
@@ -108,6 +113,27 @@ public sealed class IdentityPortraitUiContractTests
             Assert.That(backpack, Does.Contain("inventoryButtonAccent"));
             Assert.That(backpack, Does.Contain("SetBorder(button, NeonCyanDim, 1.5f)"));
             Assert.That(backpack, Does.Contain("Resources.Load<Texture2D>(\"HexLive/UI/IdentityBackpackIcon\")"));
+        });
+    }
+
+    [Test]
+    public void JournalSitsDirectlyBelowTheBackpackAtTheRightEdge()
+    {
+        var journal = File.ReadAllText(Presentation("UI", "CharacterPanel.Journal.cs"));
+        var start = journal.IndexOf("private VisualElement BuildJournalButton()",
+            StringComparison.Ordinal);
+        var end = journal.IndexOf("private void BuildJournalWindow()", start,
+            StringComparison.Ordinal);
+        Assert.That(start, Is.GreaterThanOrEqualTo(0));
+        Assert.That(end, Is.GreaterThan(start));
+        var button = journal[start..end];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(button, Does.Contain("button.style.right = 12f"));
+            Assert.That(button, Does.Contain("button.style.top = 78f"));
+            Assert.That(button, Does.Contain("button.style.width = 58f"));
+            Assert.That(button, Does.Contain("button.style.height = 58f"));
         });
     }
 

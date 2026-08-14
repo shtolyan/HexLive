@@ -180,7 +180,20 @@ public sealed partial class PlanningSystem
         var undressStand = best.Id;
         ObjectId? stowObject = null;
         if (StowMath.FindUndressSpot(world, npc) is { } spot &&
-            Connectivity.Reachable(world, spot.Stand, best.Id, npc.Body.CanJump))
+            Connectivity.Reachable(world, spot.Stand, best.Id, npc.Body.CanJump) &&
+            // ⭐ ...НО ТОЛЬКО ЕСЛИ ДОМ РЯДОМ С ВОДОЙ. Здесь стояла одна лишь
+            // достижимость, и «дом» подходил любой, хоть через весь остров.
+            // Получалось: разделась догола у гардероба, пошла к воде за 181
+            // узел, на четвёртом шаге её перебила жажда, вернулась, ОДЕЛАСЬ
+            // обратно — и всё сначала. Замер (seed 476005489, тик 5617): четыре
+            // круга «разделась, плыву» подряд, в воду не вошла ни разу.
+            // Порог тот же, которым выше отбирался сам берег (12 радиусов от
+            // неё): дальше этого голый переход через остров — не купание, а
+            // петля, и раздеваться тогда надо у воды (ветка ниже, она же
+            // запасная по §133).
+            HexSpatialMath.Distance(
+                world.Junctions.Items[spot.Stand].WorldPosition,
+                best.WorldPosition) < HexSpatialMath.HexRadius * 12f)
         {
             undressStand = spot.Stand;
             stowObject = spot.StowObject;
@@ -527,6 +540,44 @@ public sealed partial class PlanningSystem
         {
             Trace.Debug(world, npc.Id, "GroundSitPlanned",
                 $"Junction={sitSpot.Value} Ledge={IsLedgeId(world, sitSpot)}");
+        }
+    }
+
+    // §137: аукцион не нашёл дела. План на «ничего» — сесть на землю ТАМ, ГДЕ
+    // СТОИШЬ: ни шага, ни цели, ни объекта. Тем он и отличается от посиделок
+    // §29G (GoalType.Sit), которые ищут настоящее сиденье — уступ или мебель —
+    // и ради него идут; сюда же попадает та, кому идти некуда и незачем.
+    //
+    // Не сложилось — план просто Completed, ровно как раньше у Idle
+    // (PlanNoInteraction). Кулдаун на Idle не вешается: SetGoalCooldown его
+    // намеренно не берёт, а обнулять ставку запасной цели нельзя — без неё
+    // аукцион остаётся вовсе без победителя.
+    private void BuildIdleRestPlan(WorldState world, NPCState npc)
+    {
+        if (!IdleRestMath.CanStart(world, npc))
+        {
+            npc.Plan.Status = PlanStatus.Completed;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanNoInteraction",
+                    $"Goal=Idle rest unavailable (cooldown until {npc.Mind.RestCooldownUntilTick})");
+            }
+            return;
+        }
+
+        npc.Mind.RestRearmCount = 0;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.IdleRest,
+            Interaction = InteractionType.Rest,
+            TargetJunction = npc.CurrentJunction
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "IdleRestPlanned",
+                $"Tile={npc.Tile.Q},{npc.Tile.R} Block={Spec137.RestBlockTicks}ticks");
         }
     }
 

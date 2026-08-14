@@ -453,6 +453,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.05f)] public float degenerationPerStep = 0.0015f;
         [Range(0f, 0.1f)] public float bluntRecoveryPerSlowTick = 0.010f;
         [Range(0f, 0.1f)] public float cutRecoveryPerSlowTick = 0.0033f;
+        [Tooltip("§118.7: во сколько раз медленнее рубцуется НЕперевязанная (но свернувшаяся) рана. 0.25 = вчетверо дольше, чем с бинтом. 0 = как раньше, без повязки не заживает вовсе.")]
+        [Range(0f, 1f)] public float naturalScarringFactor = 0.25f;
         [Range(1f, 16f)] public float groundRestHealMultiplier = 2f;
         [Range(1f, 16f)] public float leafBedHealMultiplier = 4f;
         [Range(1f, 16f)] public float basicBedHealMultiplier = 8f;

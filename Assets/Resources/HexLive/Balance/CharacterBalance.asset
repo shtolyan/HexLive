@@ -111,7 +111,7 @@ MonoBehaviour:
   coolOffClearThreshold: 0.2
   coolOffSunClear: 0.45
   coolOffSettleTicks: 120
-  tanRate: 0.00003
+  tanRate: 0.00001
   tanStrength: 0.8
   sunburnRate: 0.0012
   sunExposureRate: 0.04
@@ -202,6 +202,7 @@ MonoBehaviour:
   degenerationPerStep: 0.0015
   bluntRecoveryPerSlowTick: 0.01
   cutRecoveryPerSlowTick: 0.0033
+  naturalScarringFactor: 0.25
   groundRestHealMultiplier: 2
   leafBedHealMultiplier: 4
   basicBedHealMultiplier: 8

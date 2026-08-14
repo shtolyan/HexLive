@@ -1056,20 +1056,32 @@ public sealed partial class DecisionSystem
     // (an apple tree), even when no food item itself is known.
     internal static bool KnowsReachableProducer(NPCState npc, WorldState world)
     {
-        var hasBlade = HasCoconutBlade(npc);
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable &&
                 !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Produce != null &&
-                (definition.Produce.ProducedDefinitionId != ContentIds.Coconut || hasBlade))
+                ProducesUsableFood(npc, world, definition))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    internal static bool ProducesUsableFood(
+        NPCState npc, WorldState world, ObjectDefinition producer)
+    {
+        if (producer.Produce is not { } produce ||
+            !world.Content.ObjectDefinitions.TryGetValue(
+                produce.ProducedDefinitionId, out var product) ||
+            !product.Tags.Contains("Food"))
+        {
+            return false;
+        }
+
+        return !product.Tags.Contains("Coconut") || HasCoconutBlade(npc);
     }
 
     // §54.15: the nearest finished collector whose parked bottle this NPC may

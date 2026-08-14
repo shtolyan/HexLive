@@ -664,6 +664,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 SuppressPeacetimeDuringBleeding(npc);
             }
 
+            // A critical food/water response is a lane, not merely another
+            // additive bid. Real colony scores are not bounded by 1.1: site,
+            // raft and supply pulls can lift a peacetime chore above 2.0. In
+            // seed 12349 GatherWood=2.600 therefore interrupted an available
+            // GetFood=2.100 sixteen ticks before death. If at least one actual
+            // emergency response is available, keep only responses carrying
+            // an emergency modifier (direct eat/drink and the knife/coconut
+            // acquisition chain). When no response is currently possible we
+            // deliberately leave Explore alive: discovering a new grove is the
+            // last-resort survival behaviour, not leisure.
+            if (npc.Mind.IsStarving || npc.Mind.IsDehydrated)
+            {
+                SuppressPeacetimeDuringCriticalNeeds(npc);
+            }
+
             // Jul 2026: the starving/dehydrated exception that reopens the
             // auction mid-fight is for SURVIVAL moves only — without this
             // filter cold-Dress (1.1 at night, near-naked) kept winning the
@@ -2101,6 +2116,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
              // ПОРОГУ — ставку она потом выигрывает по общей формуле).
              (batheNeed >= SimBalance.BatheNeedThreshold * TraitMath.GroomingThresholdMult(npc) &&
               npc.Needs.Blood >= 0.6f &&
+              // ⭐ §49.11: В ВОДУ НЕ ЛЕЗУТ НА ПУСТЫХ СИЛАХ. Купание — это заплыв,
+              // а вымотанная в воде теряет сознание и ТОНЕТ (§60.7: без сознания
+              // в глубокой воде DrownDeathTicks — и всё). Смерть тем более
+              // нелепая, что вытащить её нельзя: спасение не заходит в воду.
+              // Порог — тот же, по которому она идёт спать: если сил уже нет на
+              // «поспать», их нет и на «поплавать».
+              npc.Needs.Energy >= TraitMath.EffectiveSleepThreshold(npc) &&
               HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons));
         if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
         {
@@ -2916,6 +2938,44 @@ public sealed partial class DecisionSystem : ISimulationSystem
             score.FinalScore = 0f;
         }
     }
+
+    internal static void SuppressPeacetimeDuringCriticalNeeds(NPCState npc)
+    {
+        var hasDirectResponse = false;
+        var hasAvailableEmergencyResponse = false;
+        foreach (var score in npc.Mind.LastScores)
+        {
+            if (score.FinalScore > 0f && score.EmergencyModifier > 0f)
+            {
+                hasAvailableEmergencyResponse = true;
+                if (IsDirectCriticalNeedGoal(npc, score.Goal))
+                {
+                    hasDirectResponse = true;
+                }
+            }
+        }
+
+        if (!hasAvailableEmergencyResponse)
+        {
+            return;
+        }
+
+        foreach (var score in npc.Mind.LastScores)
+        {
+            var allowed = hasDirectResponse
+                ? IsDirectCriticalNeedGoal(npc, score.Goal)
+                : score.EmergencyModifier > 0f;
+            if (!allowed &&
+                score.Goal is not GoalType.Idle and not GoalType.None)
+            {
+                score.FinalScore = 0f;
+            }
+        }
+    }
+
+    private static bool IsDirectCriticalNeedGoal(NPCState npc, GoalType goal) =>
+        (npc.Mind.IsStarving && goal is GoalType.Eat or GoalType.GetFood) ||
+        (npc.Mind.IsDehydrated && goal is GoalType.Drink or GoalType.GetWater);
 
     private static bool IsBleedingCrisisGoal(GoalType goal, NPCState npc)
     {

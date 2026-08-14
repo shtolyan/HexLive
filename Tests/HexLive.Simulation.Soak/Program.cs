@@ -121,7 +121,11 @@ public static class Program
 
         // §30.14: в headless-прогоне самописец включён всегда — здесь он ничего
         // не стоит, а без него событие застоя сообщает только ЧТО, но не ПОЧЕМУ.
-        world.FlightRecorder = FlightRecorder.ForBehavior();
+        // A dying window can last hundreds of medium ticks. Keep enough
+        // per-NPC history to retain the fight/flee decisions which preceded
+        // it when the caller explicitly asks for death explanations.
+        world.FlightRecorder = FlightRecorder.ForBehavior(
+            options.ExplainDeaths > 0 ? 512 : 64);
 
         // Раскадровка копится в статике: без сброса отчёт этого сида включал бы
         // строки предыдущего.
@@ -150,12 +154,13 @@ public static class Program
 
         var explained = 0;
         var explainedLoops = 0;
+        var explainedDeaths = 0;
 
         for (var i = 0; i < options.Ticks && !world.Completed; i++)
         {
             engine.Step();
             watermark = Drain(world, watermark, metrics, trace, options.TraceTypes,
-                options, ref explained, ref explainedLoops);
+                options, ref explained, ref explainedLoops, ref explainedDeaths);
             metrics.SampleTick(world);
 
             if (options.CombatFrames)
@@ -197,7 +202,7 @@ public static class Program
     /// </summary>
     private static long Drain(WorldState world, long watermark, SoakMetrics metrics,
         StreamWriter trace, HashSet<string> traceTypes, SoakOptions options,
-        ref int explained, ref int explainedLoops)
+        ref int explained, ref int explainedLoops, ref int explainedDeaths)
     {
         var items = world.Events.Items;
         var lowest = world.Events.LowestSeq;
@@ -237,6 +242,13 @@ public static class Program
             {
                 explainedLoops++;
                 ExplainWithTail(world, simulationEvent, "петля");
+            }
+
+            if (explainedDeaths < options.ExplainDeaths && !options.Quiet &&
+                simulationEvent.Type == "NpcDied")
+            {
+                explainedDeaths++;
+                ExplainWithTail(world, simulationEvent, "смерть", death: true);
             }
 
             if (trace == null || traceTypes == null || !traceTypes.Contains(simulationEvent.Type))
@@ -316,7 +328,8 @@ public static class Program
     /// поэтому там так и лежат последние решения перед остановкой.
     /// </para>
     /// </summary>
-    private static void ExplainWithTail(WorldState world, SimulationEvent stuck, string label)
+    private static void ExplainWithTail(
+        WorldState world, SimulationEvent stuck, string label, bool death = false)
     {
         Console.WriteLine();
         Console.WriteLine("  ── " + label + ": тик " + stuck.Tick + ", NPC " +
@@ -328,7 +341,18 @@ public static class Program
             return;
         }
 
-        var tail = world.FlightRecorder.Tail(stuck.EntityId.Value, 12);
+        var tail = world.FlightRecorder.Tail(stuck.EntityId.Value, death ? 512 : 12);
+        if (death)
+        {
+            // Once she is down, PlanningSystem's harmless None pass can emit
+            // one identical PlanStarted every medium tick. It must not erase
+            // the attack, flight or aid failure that actually explains death.
+            tail = tail
+                .Where(entry => !(entry.Type == "PlanStarted" &&
+                                  entry.Message.Contains("Goal=None")))
+                .TakeLast(20)
+                .ToList();
+        }
         if (tail.Count == 0)
         {
             Console.WriteLine("     (самописец пуст — она не эмитила вообще ничего)");

@@ -186,6 +186,24 @@ public static class PlanInterruption
 
         npc.Execution.HeldGarmentContents.Clear();
 
+        // §137: отдых сидя обрывают И ОТСЮДА — например, ThreatAlertSystem,
+        // когда в поле зрения появился зверь. Взять с собой надо ровно одно:
+        // колдаун, чтобы она не плюхнулась обратно на первом же тике, когда
+        // повод встать исчезнет.
+        //
+        // ⭐ Грация подъёма здесь НЕ выдаётся, и это осознанно. Через Abort
+        // проходит срочное — бой, испуг, приказ, — а держать тело на месте
+        // четыре с половиной секунды ради красивого клипа значит скормить её
+        // волку. Вид от этого не ломается: у всех трёх состояний отдыха есть
+        // клапан «Speed > 0.1 → Idle», так что пошедшая просто встаёт рывком —
+        // это и есть подскочить. Спокойный выход живёт в FinishIdleRest, и
+        // грацию выдаёт он.
+        if (npc.Execution.CurrentInteraction == InteractionType.Rest)
+        {
+            npc.Mind.RestCooldownUntilTick = world.Tick + Spec137.CooldownTicks;
+            npc.Mind.RestRearmCount = 0;
+        }
+
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
         npc.Execution.TargetObject = null;

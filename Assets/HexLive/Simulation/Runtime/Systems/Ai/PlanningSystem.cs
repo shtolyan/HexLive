@@ -687,6 +687,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            // §137: аукцион выбрал «ничего» — значит, самое время присесть.
+            // Стоит ПЕРЕД проверкой на отсутствие взаимодействия ниже: у Idle
+            // его нет и не будет (в GoalCatalog он не заведён нарочно, иначе
+            // общий путь пошёл бы искать под этот глагол объект в мире).
+            if (npc.Mind.CurrentGoal == GoalType.Idle)
+            {
+                BuildIdleRestPlan(world, npc);
+                continue;
+            }
+
             var interactionType = GoalToInteraction(npc.Mind.CurrentGoal);
             if (interactionType is null)
             {
@@ -784,7 +794,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
 
                 // Spec 29C.4A food avoidance: don't shop for food where the
-                // dogs are — unless starving (desperation overrides caution).
+                // dogs are. Starvation may override an old danger MEMORY, but
+                // never the presence of a live predator at the target: that
+                // was not desperation, it was a deterministic feeding loop.
                 // §54.16: butchered meat is EXEMPT while no beast is actually
                 // there. The kill site is stamped dangerous for 2400 ticks and
                 // the meat rots in 1800 — the ban outlived the meal, so every
@@ -792,10 +804,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // butcherings / 0 chunks cooked in the day-34 save). A stale
                 // mark must not fence off the catch they just fought for; a
                 // LIVE mob on the spot still does.
-                if (interactionType == InteractionType.PickUp && !npc.Mind.IsStarving &&
-                    IsNearDanger(npc, perceived.Tile, 2) &&
-                    !(IsMeatSource(world, perceived) &&
-                      !MobSystem.MobNear(world, perceived.Tile, 2)))
+                var liveMobNearPickup = interactionType == InteractionType.PickUp &&
+                    MobSystem.MobNear(world, perceived.Tile, 2);
+                if (interactionType == InteractionType.PickUp &&
+                    (liveMobNearPickup ||
+                     (!npc.Mind.IsStarving && IsNearDanger(npc, perceived.Tile, 2) &&
+                      !IsMeatSource(world, perceived))))
                 {
                     continue;
                 }

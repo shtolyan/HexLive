@@ -178,6 +178,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // §gear-craft v2: the staged in-place craft kneels her into the planting-
     // style work clip (state "CraftWork") instead of the generic crouch.
     private static readonly int CraftingParam = Animator.StringToHash("Crafting");
+    // §137: праздный отдых — своя цепочка RestDown → RestIdle → RestUp.
+    private static readonly int RestingParam = Animator.StringToHash("Resting");
+    // §68/§53: перевязка СТОЯ (клип «шарит по карманам»). Отдельно от
+    // Crafting: тот кладёт её на колени работать с землёй.
+    private static readonly int TreatingParam = Animator.StringToHash("Treating");
     // §110: утешение над рыдающей — своя коленопреклонённая цепочка
     // (PrayDown → Pray → PrayUp), а не заимствованный крафтовый присед.
     private static readonly int PrayingParam = Animator.StringToHash("Praying");
@@ -2899,6 +2904,34 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         return null;
     }
 
+    // §137: ей нечем заняться — она садится на землю там, где стоит, и встаёт,
+    // когда появляется дело. Позу и обе переходные ноги держит контроллер
+    // (RestDown → RestIdle → RestUp); отсюда идёт ровно один bool.
+    //
+    // ⭐ По РЕБРУ, как и лежание: рендерер зовёт это каждый тик, а покадровая
+    // запись в аниматор — тот самый капкан §109.15.
+    //
+    // Ползущая и безногая не садятся вовсе: стойки у них нет, а значит нет и
+    // того движения, которое эти клипы изображают. Симуляция их и не сажает
+    // (IdleRestMath.Blocked), но вид обязан быть верен сам по себе — он тот же
+    // и в тестовых сценах, где симуляции нет.
+    private bool _resting;
+
+    public void SetResting(bool resting)
+    {
+        resting = resting && !_legless && _posture != "Crawl" && !_laying;
+        if (_resting == resting)
+        {
+            return;
+        }
+
+        _resting = resting;
+        if (_animator != null)
+        {
+            _animator.SetBool(RestingParam, resting);
+        }
+    }
+
     // Spec 31C.2: sleeping snaps the view to the bed's attach point and
     // plays the Laying state; waking releases back to the renderer's flow.
     public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f) =>
@@ -2978,6 +3011,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _laying = laying;
+        // §137: легла — значит уже не сидит. Снимается ЗДЕСЬ, а не в
+        // рендерере: лежачих веток четыре, и забыть флаг в одной из них
+        // означало бы цепочку отдыха, спорящую с цепочкой сна за одно тело.
+        if (laying && _resting)
+        {
+            _resting = false;
+            if (_animator != null)
+            {
+                _animator.SetBool(RestingParam, false);
+            }
+        }
+
         SyncHeelPoseTarget();
         RefreshAnimatorCulling();
         _layingAttach = attachPoint;
@@ -3634,13 +3679,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // The solo craft always kneels; an aid kneels only over a lying ward.
         var kneelingCraft = crafting || looting ||
             (aidingOther && aidTargetLying && !praying);
+        // §68/§53: ПЕРЕВЯЗКА. Раньше и своя (TreatSelf), и чужая над стоячей
+        // не играли ничего вовсе — ActionFromInteraction возвращал на них
+        // None, и бинт наматывался в позе покоя. Клип «шарит по карманам»
+        // читается ровно как «достала бинт и мотает».
+        //
+        // ⭐ ТОЛЬКО СТОЯ, как просил игрок. Лежачая, ползущая и безногая
+        // остаются на прежнем поведении: клип писан из стойки, и в лежачей
+        // цепочке он не «перевязывает», а поднимает тело с земли. Над ЛЕЖАЩЕЙ
+        // подопечной перевязка тоже не сюда — там свой присед (kneelingCraft).
+        var treating = !_legless && !_laying && _posture != "Crawl" &&
+            !kneelingCraft && !praying &&
+            interaction is "TreatSelf" or "TreatOther";
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
         _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
         SyncHeelPoseTarget();
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
-        var actionKind = (gathering || drinking || kneelingCraft || praying || _wantsTalk)
+        var actionKind = (gathering || drinking || kneelingCraft || praying || treating || _wantsTalk)
             ? ActionKind.None
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
@@ -3661,6 +3718,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 interaction is "Harvest" or "BuildRaft");
             _animator.SetBool(CraftingParam, kneelingCraft);
             _animator.SetBool(PrayingParam, praying); // §110
+            _animator.SetBool(TreatingParam, treating); // §68/§53
             // §111.13: с какой станции лежащего тела она работает. Слот 0 (ноги)
             // — прежнее поведение бит-в-бит: сторона 0, у головы нет. Боковые
             // дают клипу зеркало и «поза у головы»; сам слот вид не вычисляет,

@@ -39,6 +39,11 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(panel, Does.Contain("BuildRoster()"));
                 Assert.That(panel, Does.Contain("BuildGroupCard()"));
                 Assert.That(panel, Does.Contain("Time.unscaledTime * Mathf.PI * 4f"));
+                Assert.That(panel, Does.Contain("name = \"roster-health-ring\""));
+                Assert.That(panel, Does.Contain("var hp = Mathf.Clamp01(npc.DisplayHealth)"));
+                Assert.That(panel, Does.Contain(
+                    "hp, CharacterDollStage.StatusColor(hp, false)"));
+                Assert.That(panel, Does.Contain("healthRing.Add(face)"));
                 Assert.That(panel, Does.Contain("panel.control.mixed"));
                 Assert.That(panel, Does.Contain("inv.readonly"));
                 Assert.That(panel, Does.Contain("ManageInventoryCommand"));

@@ -25,6 +25,7 @@ Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#2
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#3
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#4
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#5
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#6
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.SelfTreat.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#2

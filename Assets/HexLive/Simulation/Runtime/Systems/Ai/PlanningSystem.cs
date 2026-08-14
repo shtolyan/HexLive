@@ -684,6 +684,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            // §137: аукцион выбрал «ничего» — значит, самое время присесть.
+            // Стоит ПЕРЕД проверкой на отсутствие взаимодействия ниже: у Idle
+            // его нет и не будет (в GoalCatalog он не заведён нарочно, иначе
+            // общий путь пошёл бы искать под этот глагол объект в мире).
+            if (npc.Mind.CurrentGoal == GoalType.Idle)
+            {
+                BuildIdleRestPlan(world, npc);
+                continue;
+            }
+
             var interactionType = GoalToInteraction(npc.Mind.CurrentGoal);
             if (interactionType is null)
             {

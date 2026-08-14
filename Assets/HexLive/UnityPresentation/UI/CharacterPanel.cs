@@ -4793,12 +4793,31 @@ namespace HexLive.UnityPresentation.UI
             SetRadius(card, 8f);
             SetBorder(card, NpcSelection.Contains(npc.Id.Value) ? GoldDim : Stroke, 1f);
 
+            // §123: the portrait uses the same health truth and colour scale as
+            // the large §105 instrument. Fighting keeps pulsing the card/dot;
+            // the ring remains an unambiguous body-health signal.
+            var hp = Mathf.Clamp01(npc.DisplayHealth);
+            var healthRing = new RingMeter(
+                hp, CharacterDollStage.StatusColor(hp, false))
+            {
+                name = "roster-health-ring",
+                LineWidth = 3.5f
+            };
+            healthRing.style.width = 51f;
+            healthRing.style.height = 51f;
+            healthRing.style.marginRight = 7f;
+            healthRing.style.flexShrink = 0f;
+            healthRing.style.position = Position.Relative;
+
             var face = new VisualElement();
+            face.style.position = Position.Absolute;
+            face.style.left = 6f;
+            face.style.top = 6f;
             face.style.width = 39f;
             face.style.height = 39f;
-            face.style.marginRight = 7f;
             face.style.backgroundColor = PortraitBackdrop;
-            SetRadius(face, 20f);
+            face.pickingMode = PickingMode.Ignore;
+            SetRadius(face, 19.5f);
             if (_portraitCache != null && _portraitCache.TryGet(npc.Id.Value, out var texture))
                 face.style.backgroundImage = new StyleBackground(texture);
             else
@@ -4812,7 +4831,8 @@ namespace HexLive.UnityPresentation.UI
                 initial.pickingMode = PickingMode.Ignore;
                 face.Add(initial);
             }
-            card.Add(face);
+            healthRing.Add(face);
+            card.Add(healthRing);
 
             var text = new VisualElement();
             text.style.flexGrow = 1f;
@@ -5103,19 +5123,6 @@ namespace HexLive.UnityPresentation.UI
             _portrait.pickingMode = PickingMode.Ignore;
             col.Add(_portrait);
 
-            // A quiet glass field behind the right-side instruments replaces
-            // the browser mock-up's unsupported blur/gradient. The portrait is
-            // still one uninterrupted RenderTexture across the whole card.
-            var readoutScrim = new VisualElement();
-            readoutScrim.style.position = Position.Absolute;
-            readoutScrim.style.left = 178f;
-            readoutScrim.style.right = 0f;
-            readoutScrim.style.top = 0f;
-            readoutScrim.style.bottom = 0f;
-            readoutScrim.style.backgroundColor = new Color(0.018f, 0.035f, 0.050f, 0.62f);
-            readoutScrim.pickingMode = PickingMode.Ignore;
-            col.Add(readoutScrim);
-
             _nameLabel = new Label("—");
             _nameLabel.style.color = Text;
             _nameLabel.style.fontSize = 22f;
@@ -5151,7 +5158,7 @@ namespace HexLive.UnityPresentation.UI
             // when the identity card is resized or restyled.
             var vitalsCluster = new VisualElement();
             vitalsCluster.style.position = Position.Absolute;
-            vitalsCluster.style.right = 12f;
+            vitalsCluster.style.right = 4f;
             vitalsCluster.style.bottom = 12f;
             vitalsCluster.style.width = 218f;
             vitalsCluster.style.height = 96f;
@@ -5223,7 +5230,7 @@ namespace HexLive.UnityPresentation.UI
             var vitalsRail = new VisualElement();
             vitalsRail.style.position = Position.Absolute;
             vitalsRail.style.left = 0f;
-            vitalsRail.style.right = 76f;
+            vitalsRail.style.right = 68f;
             vitalsRail.style.top = 9f;
             vitalsRail.style.bottom = 9f;
             vitalsRail.style.backgroundColor = IdentityGlass;
@@ -5338,7 +5345,7 @@ namespace HexLive.UnityPresentation.UI
 
             col.Add(BuildControlToggle());
             col.Add(BuildInventoryButton());
-            col.Add(BuildJournalButton()); // §136: слева от рюкзака
+            col.Add(BuildJournalButton()); // §136: под рюкзаком у правого края
 
             // Why a manual order failed: a transient note above the combined
             // vitals module, never over the actor's face or the readouts.
@@ -5350,7 +5357,9 @@ namespace HexLive.UnityPresentation.UI
                     fontSize = 10f,
                     position = Position.Absolute,
                     left = 190f,
-                    right = 14f,
+                    // Leave the right-side button column unobstructed: the
+                    // journal now occupies the place directly below backpack.
+                    right = 80f,
                     top = 78f,
                     paddingLeft = 7f,
                     paddingRight = 7f,

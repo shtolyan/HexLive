@@ -26,6 +26,13 @@ public class Spec118
     public static float DegenerationPerStep = 0.0015f;
     public static float BluntRecoveryPerSlowTick = 0.010f;
     public static float CutRecoveryPerSlowTick = 0.0033f;
+
+    // ⭐ §118.7: во сколько раз МЕДЛЕННЕЕ рубцуется рана, которую никто не
+    // перевязал. Свернувшаяся сама рана теперь тоже заживает (иначе разбитая в
+    // ноль конечность стоит в нуле вечно и колонистка умирает от жажды, не в
+    // силах открыть кокос), но повязка обязана оставаться заметно лучше — иначе
+    // бинты перестают быть нужны. 0.25 = вчетверо дольше.
+    public static float NaturalScarringFactor = 0.25f;
     public static float GroundRestHealMultiplier = 2f;
     public static float LeafBedHealMultiplier = 4f;
     public static float BasicBedHealMultiplier = 8f;

@@ -543,6 +543,44 @@ public sealed partial class PlanningSystem
         }
     }
 
+    // §137: аукцион не нашёл дела. План на «ничего» — сесть на землю ТАМ, ГДЕ
+    // СТОИШЬ: ни шага, ни цели, ни объекта. Тем он и отличается от посиделок
+    // §29G (GoalType.Sit), которые ищут настоящее сиденье — уступ или мебель —
+    // и ради него идут; сюда же попадает та, кому идти некуда и незачем.
+    //
+    // Не сложилось — план просто Completed, ровно как раньше у Idle
+    // (PlanNoInteraction). Кулдаун на Idle не вешается: SetGoalCooldown его
+    // намеренно не берёт, а обнулять ставку запасной цели нельзя — без неё
+    // аукцион остаётся вовсе без победителя.
+    private void BuildIdleRestPlan(WorldState world, NPCState npc)
+    {
+        if (!IdleRestMath.CanStart(world, npc))
+        {
+            npc.Plan.Status = PlanStatus.Completed;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanNoInteraction",
+                    $"Goal=Idle rest unavailable (cooldown until {npc.Mind.RestCooldownUntilTick})");
+            }
+            return;
+        }
+
+        npc.Mind.RestRearmCount = 0;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.IdleRest,
+            Interaction = InteractionType.Rest,
+            TargetJunction = npc.CurrentJunction
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "IdleRestPlanned",
+                $"Tile={npc.Tile.Q},{npc.Tile.R} Block={Spec137.RestBlockTicks}ticks");
+        }
+    }
+
     // Spec 29G: lie at the center of a free hexagon — walkable, dry, no
     // objects, nobody else lying there. The spot is anchored to HOME (the
     // campfire), not to wherever the night caught the NPC: the first soak

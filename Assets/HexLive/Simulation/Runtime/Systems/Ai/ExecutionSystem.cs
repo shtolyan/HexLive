@@ -168,6 +168,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §137: праздный отдых — сесть там, где стоишь. Ходьбы у плана нет
+            // вовсе, поэтому он не идёт через RunGroundRestPlan (тот сначала
+            // ждёт прибытия на забронированный узел).
+            if (lastStep is { Type: PlanStepType.IdleRest })
+            {
+                RunIdleRest(world, npc);
+                continue;
+            }
+
             if (lastStep is { Type: PlanStepType.PickUpPerson } &&
                 npc.Mind.CurrentGoal == GoalType.PlayerOrder)
             {

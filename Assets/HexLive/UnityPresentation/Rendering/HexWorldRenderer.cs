@@ -2175,6 +2175,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             actorView.SetLaying(false, null);
         }
 
+        // §137: «просто отдыхает» — теперь это поза, а не пустая строка
+        // состояния. Стоит ПОСЛЕ разбора лежачих веток намеренно: сидение
+        // взаимоисключается с лежанием, и NpcActorView сверяется со своим
+        // свежим флагом лежания, а не с тем, что было тиком раньше.
+        actorView.SetResting(
+            npc.CurrentInteraction == "Rest" && npc.ExecutionStatus == "InProgress");
+
         var hasTargetObject = TryGetTargetObject(snapshot, npc, out var targetObject);
         if (TryGetActionTargetPoint(snapshot, npc, hasTargetObject, targetObject, out var actionTarget))
         {

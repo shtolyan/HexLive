@@ -56,6 +56,13 @@ namespace HexLive.UnityDebug.Editor
             // §gear-craft v2: the staged in-place craft — kneeling over the
             // laid-out ingredients, working the ground (planting-style clip).
             AddParam(ac, "Crafting", AnimatorControllerParameterType.Bool);
+            // §137: праздный отдых — незанятая колонистка садится на землю.
+            // Своя цепочка RestDown → RestIdle → RestUp, как у сна и молитвы.
+            AddParam(ac, "Resting", AnimatorControllerParameterType.Bool);
+            // §68/§53: перевязка. Отдельный bool, а не общий Crafting: бинт
+            // мотают СТОЯ (клип «шарит по карманам»), а крафтовый присед —
+            // это работа с землёй.
+            AddParam(ac, "Treating", AnimatorControllerParameterType.Bool);
             // §71: gait blend — 0 walk, 0.5 slow run, 1 run. Separate from
             // "Speed" (which stays the Idle<->Walk switch) so the two never
             // fight: Speed decides WHETHER she moves, Gait decides HOW.
@@ -125,6 +132,18 @@ namespace HexLive.UnityDebug.Editor
             var prayDown = AddState(sm, "PrayDown", Clip("X Bot@Praying Down_once"));
             var pray = AddState(sm, "Pray", Clip("Praying Idle"));
             var prayUp = AddState(sm, "PrayUp", Clip("X Bot@Praying Up_once"));
+            // §137: праздный отдых сидя. Клип позы — «X Bot@Sitting Idle»
+            // (сидит на земле, hips ≈ 0.14 м). Входа в неё Mixamo не даёт, а
+            // выход есть: «Situp To Idle» именно с земли и встаёт. Поэтому
+            // обе переходные ноги — один и тот же такт: RestUp = его хвост от
+            // 36-го кадра (там поза ближе всего к сидячему лупу, сверено по
+            // костям), RestDown = тот же хвост, развёрнутый Tools/reverse_anim_clip.py.
+            // Так вход и выход стыкуются с лупом ОДНОЙ И ТОЙ ЖЕ позой.
+            var restDown = AddState(sm, "RestDown", Clip("X Bot@Stand To Sit"));
+            var restIdle = AddState(sm, "RestIdle", Clip("X Bot@Sitting Idle"));
+            var restUp = AddState(sm, "RestUp", Clip("X Bot@Sit To Stand"));
+            // §68/§53: перевязка стоя — руки у пояса, достаёт и мотает бинт.
+            var treat = AddState(sm, "Treat", Clip("X Bot@Searching Pockets"));
             var fallDown = AddState(sm, "FallDown", Clip("X Bot@Falling Down_once"));
             var fallenIdle = AddState(sm, "FallenIdle", Clip("X Bot@Sleeping Idle"));
             var standUp = AddState(sm, "StandUp", Clip("X Bot@Standing Up_once"));
@@ -145,6 +164,10 @@ namespace HexLive.UnityDebug.Editor
             // loop the swing, return to Idle when it clears.
             Loopy(sm, chop, idle, "Chopping");
             Loopy(sm, craft, idle, "Crafting");
+            // §68/§53: перевязка — обычный луп по флагу. Вход через AnyState
+            // здесь безопасен (одно состояние, не цепочка), а «только стоя»
+            // держит вид: NpcActorView не поднимает Treating у лежачей.
+            Loopy(sm, treat, idle, "Treating");
 
             // §77.5: the two one-gesture work states play their clip exactly
             // once per interaction (see FitClipToWindow).
@@ -302,6 +325,76 @@ namespace HexLive.UnityDebug.Editor
                 }
             }
 
+            // §137: RestDown → RestIdle → RestUp. Устроено ровно как молитва
+            // выше и по тем же причинам: вход ЯВНЫМИ переходами из стоячих
+            // состояний, а не через AnyState (условие «Resting == true» истинно
+            // всё время отдыха и дёргало бы её из лупа обратно во вход), и
+            // клапан «пошла — значит отдых кончился», чтобы тело никогда не
+            // ехало по земле сидя.
+            {
+                ClearAny(sm, restDown);
+                ClearAny(sm, restIdle);
+                ClearAny(sm, restUp);
+                ClearInbound(sm, restDown);
+                ClearInbound(sm, restIdle);
+                ClearInbound(sm, restUp);
+                ClearOut(restDown);
+                ClearOut(restIdle);
+                ClearOut(restUp);
+
+                var notStanding = new[]
+                {
+                    "Sleep", "LieDown", "GetUp", "FallDown", "FallenIdle", "StandUp",
+                    "Death", "Crawl", "PrayDown", "Pray", "PrayUp",
+                };
+                foreach (var cs in sm.states)
+                {
+                    var s = cs.state;
+                    if (s == restDown || s == restIdle || s == restUp ||
+                        System.Array.IndexOf(notStanding, s.name) >= 0)
+                    {
+                        continue;
+                    }
+
+                    var sit = s.AddTransition(restDown);
+                    sit.AddCondition(AnimatorConditionMode.If, 0, "Resting");
+                    sit.hasExitTime = false;
+                    sit.duration = 0.2f;
+                }
+
+                // Села — сидит, пока флаг держат. Стык такта и лупа — те самые
+                // 0.35 с, за которые поза досаживается: кадр 36 «Situp To Idle»
+                // и первый кадр «Sitting Idle» это два РАЗНЫХ сидения (высота
+                // таза сходится до 3 см, руки и ноги разложены иначе).
+                var rd = restDown.AddTransition(restIdle);
+                rd.AddCondition(AnimatorConditionMode.If, 0, "Resting");
+                rd.hasExitTime = true; rd.exitTime = 0.95f; rd.duration = 0.35f;
+
+                // Подняли досрочно — вставать прямо со входа, не досматривая,
+                // как она садится.
+                var rdu = restDown.AddTransition(restUp);
+                rdu.AddCondition(AnimatorConditionMode.IfNot, 0, "Resting");
+                rdu.hasExitTime = false; rdu.duration = 0.2f;
+
+                var ru = restIdle.AddTransition(restUp);
+                ru.AddCondition(AnimatorConditionMode.IfNot, 0, "Resting");
+                ru.hasExitTime = false; ru.duration = 0.35f;
+
+                var rui = restUp.AddTransition(idle);
+                rui.hasExitTime = true; rui.exitTime = 0.9f; rui.duration = 0.25f;
+
+                // Тот же страховочный клапан, что у молитвы: пошла — значит
+                // сидение кончилось, чем бы её ни подняло. Симуляция держит её
+                // на месте грацией §41.5, это — на все нештатные случаи.
+                foreach (var restState in new[] { restDown, restIdle, restUp })
+                {
+                    var bolt = restState.AddTransition(idle);
+                    bolt.AddCondition(AnimatorConditionMode.Greater, 0.1f, "Speed");
+                    bolt.hasExitTime = false;
+                    bolt.duration = 0.15f;
+                }
+            }
+
             // §105: FallDown → (FallenIdle | Sleep) → подъём.
             //
             // ⭐ Вход НЕ через AnyState, и это главное. Первая редакция вешала
@@ -374,13 +467,21 @@ namespace HexLive.UnityDebug.Editor
             //   → GetUp:   он срабатывает на «Laying == false», а ровно это и
             //     значит «спящую накрыла кома» — она бы ВСТАЛА, чтобы тут же
             //     рухнуть, вместо того чтобы обмякнуть на месте.
+            //
+            // §137: у отдыха сидя ровно та же пара капканов, поэтому его вход
+            // и выход попадают в этот же список. Обморок посреди сидения
+            // снимает Resting и поднимает Fallen В ОДНОМ КАДРЕ: без «Fallen ==
+            // false» переход RestIdle → RestUp объявлен раньше и выигрывает —
+            // она бы ВСТАЛА, чтобы тут же рухнуть.
             var getUp = Find(sm, "GetUp");
             foreach (var cs in sm.states)
             {
                 foreach (var t in cs.state.transitions)
                 {
                     if ((lieDown != null && t.destinationState == lieDown) ||
-                        (getUp != null && t.destinationState == getUp))
+                        (getUp != null && t.destinationState == getUp) ||
+                        t.destinationState == restDown ||
+                        t.destinationState == restUp)
                     {
                         EnsureCondition(t, AnimatorConditionMode.IfNot, "Fallen");
                     }

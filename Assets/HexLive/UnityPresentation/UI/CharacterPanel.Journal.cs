@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// Spec §136: дневник колонистки — кнопка рядом с рюкзаком и страница.
+    /// Spec §136: дневник колонистки — кнопка под рюкзаком и страница.
     ///
     /// <para>
     /// Живёт отдельным файлом того же класса, а не своим MonoBehaviour: окно
@@ -41,6 +41,7 @@ namespace HexLive.UnityPresentation.UI
         private Label _journalSubtitle;
         private Label _journalEmpty;
         private ScrollView _journalScroll;
+        private JournalDragScrollManipulator _journalDragScroll;
         private VisualElement _journalEntries;
         private Font _journalFont;
         private bool _journalFontLoaded;
@@ -70,15 +71,15 @@ namespace HexLive.UnityPresentation.UI
         // ── кнопка ──────────────────────────────────────────────────────────
 
         /// <summary>
-        /// §136.9: клон кнопки рюкзака, сдвинутый левее. Рюкзак остаётся в углу
-        /// — он там был всегда, и переучивать руку ради новой фичи нельзя.
+        /// §136.9: клон кнопки рюкзака прямо под ним. Оба действия образуют
+        /// одну правую колонку, а рюкзак остаётся на привычном верхнем месте.
         /// </summary>
         private VisualElement BuildJournalButton()
         {
             var button = new VisualElement();
             button.style.position = Position.Absolute;
-            button.style.right = 78f;
-            button.style.top = 12f;
+            button.style.right = 12f;
+            button.style.top = 78f;
             button.style.width = 58f;
             button.style.height = 58f;
             button.style.alignItems = Align.Center;
@@ -270,6 +271,13 @@ namespace HexLive.UnityPresentation.UI
 
             _journalScroll = new ScrollView(ScrollViewMode.Vertical);
             _journalScroll.style.flexGrow = 1f;
+            _journalScroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+            _journalScroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+            _journalScroll.touchScrollBehavior = ScrollView.TouchScrollBehavior.Elastic;
+            _journalScroll.scrollDecelerationRate = 0.135f;
+            _journalScroll.elasticity = 0.1f;
+            _journalDragScroll = new JournalDragScrollManipulator(_journalScroll);
+            _journalScroll.contentViewport.AddManipulator(_journalDragScroll);
             _journalEntries = new VisualElement();
             _journalEntries.style.flexDirection = FlexDirection.Column;
             _journalScroll.Add(_journalEntries);
@@ -330,6 +338,7 @@ namespace HexLive.UnityPresentation.UI
         private void CloseJournal()
         {
             _journalOpen = false;
+            _journalDragScroll?.Cancel();
             if (_journalWindow != null)
             {
                 _journalWindow.style.display = DisplayStyle.None;
@@ -392,6 +401,7 @@ namespace HexLive.UnityPresentation.UI
                 _journalEntries.Add(MakeJournalEntry(entries[i], entries[i].Tick > readTo));
             }
 
+            _journalDragScroll?.Cancel();
             _journalScroll.scrollOffset = Vector2.zero;
 
             if (entries.Count > 0)
@@ -533,6 +543,222 @@ namespace HexLive.UnityPresentation.UI
 
             // Записи собраны из терминов — на другом языке их надо пересобрать.
             _journalSig = int.MinValue;
+        }
+
+        /// <summary>
+        /// Мышиный аналог штатного touch-scroll у UI Toolkit. Сам ScrollView
+        /// продолжает владеть viewport, клампом и тач-инерцией; этот manipulator
+        /// добавляет привычный «схватить страницу» для десктопной мыши.
+        /// </summary>
+        private sealed class JournalDragScrollManipulator : PointerManipulator
+        {
+            private const float DragThreshold = 6f;
+            private const float StopVelocity = 12f;
+            private const float DecelerationPerSecond = 0.135f;
+
+            private readonly ScrollView _scroll;
+            private bool _tracking;
+            private bool _dragging;
+            private int _pointerId = -1;
+            private Vector2 _pressPosition;
+            private Vector2 _lastPosition;
+            private float _lastMoveTime;
+            private float _velocity;
+            private float _lastInertiaTime;
+            private IVisualElementScheduledItem _inertia;
+
+            public JournalDragScrollManipulator(ScrollView scroll)
+            {
+                _scroll = scroll;
+            }
+
+            protected override void RegisterCallbacksOnTarget()
+            {
+                target.RegisterCallback<PointerDownEvent>(OnPointerDown);
+                target.RegisterCallback<PointerMoveEvent>(OnPointerMove);
+                target.RegisterCallback<PointerUpEvent>(OnPointerUp);
+                target.RegisterCallback<PointerCancelEvent>(OnPointerCancel);
+                target.RegisterCallback<PointerCaptureOutEvent>(OnPointerCaptureOut);
+                target.RegisterCallback<WheelEvent>(OnWheel);
+            }
+
+            protected override void UnregisterCallbacksFromTarget()
+            {
+                Cancel();
+                target.UnregisterCallback<PointerDownEvent>(OnPointerDown);
+                target.UnregisterCallback<PointerMoveEvent>(OnPointerMove);
+                target.UnregisterCallback<PointerUpEvent>(OnPointerUp);
+                target.UnregisterCallback<PointerCancelEvent>(OnPointerCancel);
+                target.UnregisterCallback<PointerCaptureOutEvent>(OnPointerCaptureOut);
+                target.UnregisterCallback<WheelEvent>(OnWheel);
+            }
+
+            public void Cancel()
+            {
+                StopInertia();
+                if (_tracking && target != null && target.HasPointerCapture(_pointerId))
+                {
+                    target.ReleasePointer(_pointerId);
+                }
+
+                _tracking = false;
+                _dragging = false;
+                _pointerId = -1;
+                _velocity = 0f;
+            }
+
+            private void OnPointerDown(PointerDownEvent evt)
+            {
+                // Тач уже реализован самим ScrollView вместе с elastic/inertia.
+                // Здесь нужен только такой же жест для основной кнопки мыши.
+                if (_tracking ||
+                    evt.pointerType != UnityEngine.UIElements.PointerType.mouse || evt.button != 0)
+                {
+                    return;
+                }
+
+                StopInertia();
+                _tracking = true;
+                _dragging = false;
+                _pointerId = evt.pointerId;
+                _pressPosition = evt.position;
+                _lastPosition = evt.position;
+                _lastMoveTime = Time.unscaledTime;
+                _velocity = 0f;
+            }
+
+            private void OnPointerMove(PointerMoveEvent evt)
+            {
+                if (!_tracking || evt.pointerId != _pointerId)
+                {
+                    return;
+                }
+
+                var position = (Vector2)evt.position;
+                if (!_dragging)
+                {
+                    if (Vector2.Distance(_pressPosition, position) < DragThreshold)
+                    {
+                        return;
+                    }
+
+                    _dragging = true;
+                    target.CapturePointer(_pointerId);
+                    _lastPosition = position;
+                    _lastMoveTime = Time.unscaledTime;
+                    evt.StopPropagation();
+                    evt.PreventDefault();
+                    return;
+                }
+
+                var now = Time.unscaledTime;
+                var elapsed = Mathf.Max(0.001f, now - _lastMoveTime);
+                var requested = _lastPosition.y - position.y;
+                var applied = MoveBy(requested);
+                var instantVelocity = applied / elapsed;
+                _velocity = Mathf.Lerp(_velocity, instantVelocity, 0.45f);
+                _lastPosition = position;
+                _lastMoveTime = now;
+
+                evt.StopPropagation();
+                evt.PreventDefault();
+            }
+
+            private void OnPointerUp(PointerUpEvent evt)
+            {
+                if (!_tracking || evt.pointerId != _pointerId)
+                {
+                    return;
+                }
+
+                var glide = _dragging && Mathf.Abs(_velocity) >= StopVelocity;
+                var velocity = _velocity;
+                _tracking = false;
+                _dragging = false;
+                _pointerId = -1;
+                if (target.HasPointerCapture(evt.pointerId))
+                {
+                    target.ReleasePointer(evt.pointerId);
+                }
+
+                if (glide)
+                {
+                    StartInertia(velocity);
+                    evt.StopPropagation();
+                    evt.PreventDefault();
+                }
+            }
+
+            private void OnPointerCancel(PointerCancelEvent evt)
+            {
+                if (_tracking && evt.pointerId == _pointerId)
+                {
+                    Cancel();
+                }
+            }
+
+            private void OnPointerCaptureOut(PointerCaptureOutEvent evt)
+            {
+                if (_tracking && evt.pointerId == _pointerId)
+                {
+                    _tracking = false;
+                    _dragging = false;
+                    _pointerId = -1;
+                    _velocity = 0f;
+                }
+            }
+
+            private static void OnWheel(WheelEvent evt)
+            {
+                // WheelEvent до родительского ScrollView не доходит, поэтому
+                // страница не двигается колесом или двухпальцевым scroll-жестом.
+                // Камера читает тот же ввод напрямую из Input System и сохраняет
+                // своё исключительное управление zoom/yaw.
+                evt.StopPropagation();
+            }
+
+            private float MoveBy(float delta)
+            {
+                var before = _scroll.scrollOffset.y;
+                var maximum = Mathf.Max(0f, _scroll.verticalScroller.highValue);
+                var after = Mathf.Clamp(before + delta, 0f, maximum);
+                _scroll.scrollOffset = new Vector2(_scroll.scrollOffset.x, after);
+                return after - before;
+            }
+
+            private void StartInertia(float velocity)
+            {
+                _velocity = velocity;
+                _lastInertiaTime = Time.unscaledTime;
+                if (_inertia == null)
+                {
+                    _inertia = target.schedule.Execute(TickInertia).Every(16);
+                }
+                else
+                {
+                    _inertia.Resume();
+                }
+            }
+
+            private void TickInertia()
+            {
+                var now = Time.unscaledTime;
+                var elapsed = Mathf.Clamp(now - _lastInertiaTime, 0.001f, 0.05f);
+                _lastInertiaTime = now;
+                _velocity *= Mathf.Pow(DecelerationPerSecond, elapsed);
+
+                var moved = MoveBy(_velocity * elapsed);
+                if (Mathf.Abs(_velocity) < StopVelocity || Mathf.Abs(moved) < 0.01f)
+                {
+                    StopInertia();
+                }
+            }
+
+            private void StopInertia()
+            {
+                _inertia?.Pause();
+                _velocity = 0f;
+            }
         }
     }
 }

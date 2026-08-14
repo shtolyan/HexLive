@@ -222,6 +222,124 @@ public sealed partial class ExecutionSystem
         }
     }
 
+    // §137: ПРАЗДНЫЙ ОТДЫХ. Взаимодействие без объекта, без цели и без шага —
+    // она просто сидит на земле, пока аукциону нечего ей предложить.
+    //
+    // Пространственно это НИЧЕГО не занимает и намеренно: сидящая помещается в
+    // свой узел ровно так же, как стоящая, поэтому ни брони узла, ни лежачего
+    // футпринта §113 здесь нет. Тем отдых сидя и дёшев по сравнению со сном.
+    //
+    // Подъём стоит времени: на выходе выдаётся та же грация §41.5, что после
+    // сна (WakeGraceTicks выведен ИЗ ДЛИНЫ КЛИПА вставания), а сверху ложится
+    // колдаун §137, чтобы «встала — села» не превратилось в дрожание.
+    private static void RunIdleRest(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            // Между планированием и первым тиком исполнения могло случиться
+            // что угодно (её позвали, укусили, столкнули в воду) — спрашиваем
+            // ещё раз, а не садимся по вчерашнему решению.
+            if (IdleRestMath.Blocked(world, npc))
+            {
+                FinishIdleRest(world, npc, "Blocked", stoodUp: false);
+                return;
+            }
+
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.Rest;
+            npc.Execution.TargetObject = null;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + Spec137.RestBlockTicks;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"Rest on the ground Duration={Spec137.RestBlockTicks}ticks");
+            }
+            return;
+        }
+
+        if (npc.Execution.Status != ExecutionStatus.InProgress)
+        {
+            return;
+        }
+
+        // ⭐ Прерывание спрашивается КАЖДЫЙ ТИК, а не на границе такта. Такт
+        // закрывает аукцион (общее правило «идёт взаимодействие — не решаем»),
+        // так что граница такта — это не «когда она заметит волка», а всего
+        // лишь шаг счётчика перевзводов. Заметить обязана сразу.
+        if (IdleRestMath.Blocked(world, npc))
+        {
+            FinishIdleRest(world, npc, "Interrupted", stoodUp: true);
+            return;
+        }
+
+        if (npc.Execution.EndTick - world.Tick > 0)
+        {
+            return;
+        }
+
+        // Такт вышел, а вставать всё ещё не за чем — перевзвести НА МЕСТЕ, не
+        // поднимая её на ноги (тот же приём, что у сна §49 и остывания §35.4:
+        // «пустое вставание» было самым частым источником дрожания). Потолок
+        // перевзводов — единственное, что заставляет её всё-таки встать и
+        // спросить аукцион заново.
+        if (npc.Mind.RestRearmCount < Spec137.MaxRearms)
+        {
+            npc.Mind.RestRearmCount++;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + Spec137.RestBlockTicks;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "RestContinued",
+                    $"Rearm={npc.Mind.RestRearmCount}/{Spec137.MaxRearms}");
+            }
+            return;
+        }
+
+        FinishIdleRest(world, npc, "Rested", stoodUp: true);
+    }
+
+    /// <param name="stoodUp">
+    /// Успела ли она сесть. Если да — вид сейчас играет подъём, и симуляции
+    /// нельзя её везти, пока клип не доиграет (§41.5, баг #1: ноги скользят по
+    /// земле). Если отдых сорвался ещё до посадки, вставать не с чего, и
+    /// красть у неё эти тики было бы враньём.
+    /// </param>
+    private static void FinishIdleRest(WorldState world, NPCState npc, string reason, bool stoodUp)
+    {
+        if (stoodUp)
+        {
+            npc.Mind.WakeGraceUntilTick = System.Math.Max(
+                npc.Mind.WakeGraceUntilTick, world.Tick + AiBalance.WakeGraceTicks);
+        }
+
+        npc.Mind.RestCooldownUntilTick = world.Tick + Spec137.CooldownTicks;
+        npc.Mind.RestRearmCount = 0;
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "RestEnded",
+                $"Reason={reason} StoodUp={stoodUp} CooldownUntil={npc.Mind.RestCooldownUntilTick}");
+        }
+
+        // Канонический сброс цикла — тот же, что у RunGroundRest / RunGroundCool.
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Plan.Steps.Clear();
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetJunctionId = null;
+        npc.Plan.TargetTile = null;
+        npc.Plan.TargetItemDefinitionId = null;
+        npc.Plan.TargetAgentId = null;
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.PathIndex = 0;
+    }
+
     // Spec §49/§65.2: should a finished sleep block re-arm in place (keep
     // lying) rather than stand and re-plan? Yes until the energy bar is FULL
     // (day and night alike — one long sleep, not a series of naps) AND no real

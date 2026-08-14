@@ -15,7 +15,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
         public const float BuildStep = 0.5f;
         public const int SectionsPerHexEdge = 3;
         public const int PerimeterSectionCount = 18;
-        public const int RequiredRoofSupportCount = 3;
+        public const int RequiredRoofSupportCount = 2;
 
         public static readonly HexBuildNodeKey[] NeighborDirections =
         {
@@ -65,10 +65,22 @@ namespace HexLive.Simulation.Runtime.Blueprints
             return result;
         }
 
+        /// <summary>
+        /// The posts a roof sector actually stands on: the two corners of its
+        /// OWN outer hex edge. The panel spans from that edge up to the hex
+        /// centre, where it meets its neighbours, so those two posts carry it.
+        /// Counting three of the parent hex's six corners instead made a sector
+        /// unbuildable whenever a room was stretched: a hex gained by stretching
+        /// shares only two corners with the hex the room started on, and the
+        /// player was left staring at the posts holding the very edge he was
+        /// trying to roof.
+        /// </summary>
         public static IReadOnlyList<HexBuildNodeKey> RoofSupports(RoofSectorKey sector) =>
-            Enumerable.Range(0, 6)
-                .Select(corner => HexCorner(sector.Hex, corner))
-                .ToArray();
+            new[]
+            {
+                HexCorner(sector.Hex, sector.Sector),
+                HexCorner(sector.Hex, sector.Sector + 1)
+            };
 
         public static IReadOnlyList<BuildSegmentKey> SectorBoundary(FloorSectorKey sector)
         {

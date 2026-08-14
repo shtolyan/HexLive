@@ -151,7 +151,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 var missing = System.Math.Max(0, BlueprintGeometry.RequiredRoofSupportCount - present);
                 if (missing > 0)
                     result.Add("roof.support",
-                        $"Сектору крыши не хватает периметральных опор: {missing}; требуется 3 из 6.", roof.Id);
+                        $"Сектору крыши не хватает опор на его внешнем ребре: {missing}; нужны обе.", roof.Id);
             }
         }
 

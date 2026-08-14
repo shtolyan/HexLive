@@ -180,7 +180,20 @@ public sealed partial class PlanningSystem
         var undressStand = best.Id;
         ObjectId? stowObject = null;
         if (StowMath.FindUndressSpot(world, npc) is { } spot &&
-            Connectivity.Reachable(world, spot.Stand, best.Id, npc.Body.CanJump))
+            Connectivity.Reachable(world, spot.Stand, best.Id, npc.Body.CanJump) &&
+            // ⭐ ...НО ТОЛЬКО ЕСЛИ ДОМ РЯДОМ С ВОДОЙ. Здесь стояла одна лишь
+            // достижимость, и «дом» подходил любой, хоть через весь остров.
+            // Получалось: разделась догола у гардероба, пошла к воде за 181
+            // узел, на четвёртом шаге её перебила жажда, вернулась, ОДЕЛАСЬ
+            // обратно — и всё сначала. Замер (seed 476005489, тик 5617): четыре
+            // круга «разделась, плыву» подряд, в воду не вошла ни разу.
+            // Порог тот же, которым выше отбирался сам берег (12 радиусов от
+            // неё): дальше этого голый переход через остров — не купание, а
+            // петля, и раздеваться тогда надо у воды (ветка ниже, она же
+            // запасная по §133).
+            HexSpatialMath.Distance(
+                world.Junctions.Items[spot.Stand].WorldPosition,
+                best.WorldPosition) < HexSpatialMath.HexRadius * 12f)
         {
             undressStand = spot.Stand;
             stowObject = spot.StowObject;

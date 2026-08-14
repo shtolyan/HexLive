@@ -2098,6 +2098,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
              // ПОРОГУ — ставку она потом выигрывает по общей формуле).
              (batheNeed >= SimBalance.BatheNeedThreshold * TraitMath.GroomingThresholdMult(npc) &&
               npc.Needs.Blood >= 0.6f &&
+              // ⭐ §49.11: В ВОДУ НЕ ЛЕЗУТ НА ПУСТЫХ СИЛАХ. Купание — это заплыв,
+              // а вымотанная в воде теряет сознание и ТОНЕТ (§60.7: без сознания
+              // в глубокой воде DrownDeathTicks — и всё). Смерть тем более
+              // нелепая, что вытащить её нельзя: спасение не заходит в воду.
+              // Порог — тот же, по которому она идёт спать: если сил уже нет на
+              // «поспать», их нет и на «поплавать».
+              npc.Needs.Energy >= TraitMath.EffectiveSleepThreshold(npc) &&
               HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons));
         if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
         {

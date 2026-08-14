@@ -643,7 +643,19 @@ public sealed partial class ExecutionSystem
 
         npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
             1f / SimBalance.BatheDurationTicks);
-        if (world.Tick < npc.Execution.EndTick)
+
+        // ⭐ §49.11: ВЫМОТАЛАСЬ В ВОДЕ — НА БЕРЕГ, не домываться. Вырубиться на
+        // глубине значит утонуть (§60.7), и вытащить её оттуда нельзя: спасение
+        // в воду не заходит. Купание обрывается ровно как по таймеру — ниже
+        // тот же путь на берег за одеждой, — так что недомытая, но живая.
+        var spent = npc.Needs.Energy < Spec49.DeadTiredEnergy;
+        if (spent && SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "BatheCutShort",
+                $"Выдохлась в воде: энергия={npc.Needs.Energy:F2} — на берег");
+        }
+
+        if (!spent && world.Tick < npc.Execution.EndTick)
         {
             return;
         }

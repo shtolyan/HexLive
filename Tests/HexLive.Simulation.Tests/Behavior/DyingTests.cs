@@ -142,6 +142,33 @@ public sealed class DyingTests
             "Запас тает по фактически прошедшим тикам.");
     }
 
+    [Test]
+    public void DehydrationThatZerosEveryPartStillEntersTheDyingWindow()
+    {
+        var world = TestWorld.CreateWorld();
+        var girl = world.Entities.Npcs.Values.First();
+        foreach (var part in girl.Body.Parts.Keys.ToArray())
+        {
+            girl.Body.Parts[part] = 0.001f;
+        }
+
+        girl.Health = girl.Body.Mean();
+        girl.Needs.Hunger = 0f;
+        girl.Needs.Thirst = 1f;
+
+        new NeedsDecaySystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(girl.IsDying, Is.True,
+                "Simultaneous attrition must not skip the rescue window.");
+            Assert.That(girl.Mind.DyingCause, Is.EqualTo(DyingCause.Dehydration));
+            Assert.That(girl.Health, Is.GreaterThan(0f),
+                "A dying NPC remains a live aid target until the reserve expires.");
+            Assert.That(world.Entities.Npcs.ContainsKey(girl.Id), Is.True);
+        });
+    }
+
     /// <summary>
     /// Никто не дотянулся — запас кончается, и она умирает.
     ///

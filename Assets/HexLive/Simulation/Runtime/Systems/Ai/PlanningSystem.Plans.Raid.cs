@@ -186,7 +186,7 @@ public sealed partial class PlanningSystem
                 }
 
                 if (npc.CurrentJunction is { } from &&
-                    !Connectivity.Reachable(world, from, junctionId, npc.Body.CanJump))
+                    !Connectivity.Reachable(world, from, junctionId, CanUseRoutineTraversal(npc)))
                 {
                     continue;
                 }
@@ -246,16 +246,42 @@ public sealed partial class PlanningSystem
     // способом, что налёт и групповая охота.
     internal static JunctionId? PickApproachJunction(WorldState world, NPCState npc, JunctionId target)
     {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return null;
+        }
+
+        var occupied = PathfindingSystem.OtherActorJunctions(world, npc);
+        JunctionId? best = null;
+        var bestLength = int.MaxValue;
         foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, target))
         {
-            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
-                SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
+            if (!SpatialQueries.IsJunctionFree(world, neighbor) ||
+                occupied.Contains(neighbor) ||
+                (world.Reservations.Junctions.TryGetValue(neighbor, out var reservation) &&
+                 reservation.Owner != npc.Id && reservation.EndTick >= world.Tick))
             {
-                return neighbor;
+                continue;
+            }
+
+            var route = HexPathfinder.FindPath(
+                world, from, neighbor, occupied,
+                weightClimb: true, canJump: CanUseRoutineTraversal(npc),
+                danger: null, dangerCost: 0L,
+                hardAvoid: DoorTopology.ForbiddenFor(world, npc.Faction),
+                maxExpansions: 2000);
+            if (route.Count > 0 && route.Count < bestLength)
+            {
+                best = neighbor;
+                bestLength = route.Count;
             }
         }
 
-        return null;
+        return best is { } approach &&
+               SpatialMutations.TryReserveJunction(
+                   world, approach, npc.Id, world.Tick, 48)
+            ? approach
+            : null;
     }
 }
 

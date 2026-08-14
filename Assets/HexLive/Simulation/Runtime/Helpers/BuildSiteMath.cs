@@ -31,6 +31,14 @@ internal static class BuildSiteMath
         MaterialLogs, MaterialStones, MaterialLeaves, MaterialSticks, MaterialRope, MaterialBoards
     };
 
+    /// <summary>Authored construction method shared by bidding and execution.
+    /// A missing/unknown product is conservative and still requires a hammer.</summary>
+    public static bool NeedsHammer(WorldState world, WorldObjectState site) =>
+        string.IsNullOrEmpty(site.BuildProduct) ||
+        !world.Content.ObjectDefinitions.TryGetValue(
+            site.BuildProduct, out var definition) ||
+        !definition.Tags.Contains(ObjectTags.HandBuilt);
+
     public static int Delivered(WorldObjectState site, string materialId)
     {
         var n = 0;
@@ -181,6 +189,16 @@ internal static class BuildSiteMath
 
     public static bool Needs(WorldObjectState site, string materialId) =>
         Remaining(site, materialId) > 0;
+
+    /// <summary>May this site store the carried material on this visit?
+    /// Collector visuals remain stage ordered, but its future-stage bundles
+    /// may be pre-stocked in the frame. Otherwise prepared sticks/rope sit in
+    /// a pack until their stage opens and are consumed as fire fuel in the
+    /// meantime, defeating the whole-bill gathering contract.</summary>
+    public static bool AcceptsDelivery(WorldObjectState site, string materialId) =>
+        site.BuildProduct == ContentIds.WaterCollector
+            ? TotalRemaining(site, materialId) > 0
+            : Needs(site, materialId);
 
     public static bool IsStocked(WorldObjectState site)
     {

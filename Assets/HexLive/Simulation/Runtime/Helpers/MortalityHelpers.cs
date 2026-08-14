@@ -51,7 +51,12 @@ internal static class MortalityHelpers
     // может быть длиннее, и укорачивать её нельзя.
     internal static void GrantStandUpGrace(WorldState world, NPCState npc, bool wasProne)
     {
-        if (!wasProne || npc.Body.IsProne)
+        // Crossing 0 HP by a few thousandths is not standing up while both
+        // legs are still below the shared crawling threshold.  A survivor on
+        // a damaging tile can otherwise alternate 0 -> tiny regen every Slow
+        // tick and extend WakeGrace forever, freezing a completed route.  The
+        // grace belongs to the real crawl-to-stand transition.
+        if (!wasProne || npc.Body.IsCrawling)
         {
             return;
         }

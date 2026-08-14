@@ -153,8 +153,8 @@ namespace HexLive.UnityPresentation.Input
         // §130: камера почти вплотную (мин. зум 0.7) — NPC на несколько
         // секунд смотрит в объектив. Вход/выход с гистерезисом, метры от
         // объектива до лица; пере-взгляд той же NPC не раньше кулдауна.
-        private const float CloseUpGazeEnterDistance = 2.0f;
-        private const float CloseUpGazeExitDistance = 2.6f;
+        private const float CloseUpGazeEnterDistance = 3.0f;
+        private const float CloseUpGazeExitDistance = 3.8f;
         private const float CloseUpGazeSeconds = 5f;
         private const float CloseUpGazeCooldownSeconds = 30f;
 

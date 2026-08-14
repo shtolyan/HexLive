@@ -39,6 +39,19 @@ public sealed class MovementSystem : ISimulationSystem
     // точно, так что это один-два тика доворота, а не вечное ожидание.
     private const float LaunchAlignDegrees = 1f;
 
+    // §24.16 r3: autonomous errands must yield quickly to congestion. The
+    // global stuck detector calls 64 unchanged ticks a stall, so the old
+    // 41+40 actor-wait windows could diagnose a perfectly known obstruction
+    // before movement finally abandoned it. Seventeen ticks gives a brief
+    // courtesy pause; thirty-three bounds one repath plus the second wait well
+    // below the detector. Manual routes and plans following a live patient or
+    // opponent retain the longer windows because their destination carries
+    // player/reactive intent and has separate recovery rules.
+    private const int AutonomousOccupiedRepathTicks = 17;
+    private const int AutonomousOccupiedAbortTicks = 33;
+    private const int DirectedOccupiedRepathTicks = 41;
+    private const int DirectedOccupiedAbortTicks = 81;
+
 
     // Deep water = swim tile; the definition moved to SpatialQueries.IsSwimTile
     // (§106) so combat gates and movement can never disagree about who swims.
@@ -459,9 +472,64 @@ public sealed class MovementSystem : ISimulationSystem
             if (stepOccupied)
             {
                 npc.Movement.BlockedWaitTicks++;
-                if (npc.Movement.BlockedWaitTicks > 40)
+                npc.Movement.StopReason =
+                    $"Occupied actor at junction {targetJunctionId.Value}";
+                var quickAutonomousWait =
+                    !ManualControlMath.IsManual(npc) &&
+                    npc.Plan.TargetAgentId is null;
+                var repathTicks = quickAutonomousWait
+                    ? AutonomousOccupiedRepathTicks
+                    : DirectedOccupiedRepathTicks;
+                var abortTicks = quickAutonomousWait
+                    ? AutonomousOccupiedAbortTicks
+                    : DirectedOccupiedAbortTicks;
+                if (npc.Movement.BlockedWaitTicks == repathTicks)
                 {
-                    npc.Movement.BlockedWaitTicks = 0;
+                    // §24.16 r2: there is no alternate route around an
+                    // occupied FINAL ground-work point.  CraftInPlace owns no
+                    // station or patient whose approach must be preserved, so
+                    // keeping the same target and rebuilding [from->target]
+                    // only repeats the identical wait for another 40 ticks.
+                    // Return to the auction now; FindGroundInputPile will pick
+                    // another free cluster (or withhold the bid until this one
+                    // is free).  Congestion is external to the craft intent,
+                    // therefore it is not a failed-attempt rung in the loop
+                    // ledger and does not impose a medical-craft cooldown.
+                    var finalCraftPoint =
+                        targetIndex == npc.Movement.JunctionPath.Count - 1 &&
+                        npc.Plan.Steps.Exists(step =>
+                            step.Type == PlanStepType.CraftInPlace);
+                    var finalAutonomousDestination =
+                        !ManualControlMath.IsManual(npc) &&
+                        targetIndex == npc.Movement.JunctionPath.Count - 1 &&
+                        npc.Plan.TargetAgentId is null;
+                    if (finalCraftPoint || finalAutonomousDestination)
+                    {
+                        var pointKind = finalCraftPoint
+                            ? "ground-work point"
+                            : npc.Plan.TargetObjectId.HasValue
+                                ? "object-work point"
+                                : "autonomous destination";
+                        if (SimTrace.Enabled)
+                        {
+                            Trace.Debug(world, npc.Id, "PathOccupied",
+                                $"Goal={npc.Plan.Goal} Junction={targetJunctionId.Value} " +
+                                $"replan occupied {pointKind}");
+                        }
+                        if (PlanInterruption.TryAbort(
+                                world, npc, InterruptionCause.PathFailure,
+                                $"{pointKind} junction {targetJunctionId.Value} occupied"))
+                        {
+                            npc.Mind.CurrentGoal = GoalType.None;
+                            npc.Movement.BlockedWaitTicks = 0;
+                            npc.Movement.StopReason = string.Empty;
+                            world.IntentLedger.Forget(npc.Id.Value);
+                        }
+
+                        PauseGaitAndBreath(npc);
+                        continue;
+                    }
+
                     npc.Movement.JunctionPath.Clear();
                     npc.Movement.IsMoving = false;
                     npc.Movement.SetStatus(MovementStatus.Waiting);
@@ -483,12 +551,49 @@ public sealed class MovementSystem : ISimulationSystem
                             $"Junction={targetJunctionId.Value} held by a housemate");
                     }
                 }
+                else if (npc.Movement.BlockedWaitTicks >= abortTicks)
+                {
+                    // A successful graph search to an actor-occupied FINAL
+                    // node is not progress. Previously every rebuild reset the
+                    // wait counter, so two actors exchanging targets could
+                    // repeat the same valid-looking path forever. After one
+                    // alternate-route attempt and another full wait window,
+                    // fail this concrete intent and shun its object.
+                    var failedGoal = npc.Plan.Goal != GoalType.None
+                        ? npc.Plan.Goal
+                        : npc.Mind.CurrentGoal;
+                    if (npc.Plan.TargetObjectId is { } occupiedTarget)
+                    {
+                        npc.Memory.Shun(
+                            occupiedTarget, world.Tick + AiBalance.ShunTicks);
+                    }
+
+                    PlanningSystem.SetGoalCooldown(world, npc, failedGoal);
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PathOccupied",
+                            $"Goal={failedGoal} Junction={targetJunctionId.Value} " +
+                            $"TargetObject={npc.Plan.TargetObjectId?.Value.ToString() ?? "-"} " +
+                            "gave up after alternate route");
+                    }
+                    PlanInterruption.TryAbort(
+                        world, npc, InterruptionCause.PathFailure,
+                        $"Actor occupied junction {targetJunctionId.Value} after repath");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    npc.Movement.BlockedWaitTicks = 0;
+                    npc.Movement.StopReason = string.Empty;
+                }
 
                 PauseGaitAndBreath(npc);
                 continue;
             }
 
             npc.Movement.BlockedWaitTicks = 0;
+            if (npc.Movement.StopReason.StartsWith(
+                    "Occupied actor at junction ", System.StringComparison.Ordinal))
+            {
+                npc.Movement.StopReason = string.Empty;
+            }
 
             var target = targetJunction.WorldPosition;
 

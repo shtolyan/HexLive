@@ -2,6 +2,7 @@ using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
@@ -65,6 +66,64 @@ public sealed class CampExpulsionTests
         Assert.That(campOwner.Mind.CurrentGoal, Is.EqualTo(GoalType.Expel));
         Assert.That(campOwner.Mind.ExpulsionTargetNpcId, Is.EqualTo(visitingColonist.Id));
         Assert.That(visitingColonist.Mind.PendingExpulsionFrom, Is.EqualTo(campOwner.Id));
+    }
+
+    [Test]
+    public void OrdinaryAuctionCannotStealAnActiveExpulsionScene()
+    {
+        var (world, owner, intruder) = Pair();
+        PutAtCamp(world, owner, intruder);
+        CampExpulsionSystem.BeginChallenge(world, owner, intruder);
+
+        // Give the auction plenty of ordinary work to prefer.  The scene owns
+        // this interval and must be ended by CampExpulsionSystem, not by scores.
+        owner.Needs.Hunger = 0.7f;
+        owner.Needs.Thirst = 0.7f;
+        new DecisionSystem().Run(world);
+
+        Assert.That(owner.Mind.CurrentGoal, Is.EqualTo(GoalType.Expel));
+        Assert.That(owner.Mind.ExpulsionTargetNpcId, Is.EqualTo(intruder.Id));
+    }
+
+    [Test]
+    public void CriticalOwnerDoesNotStartTerritorialScene()
+    {
+        var (world, owner, intruder) = Pair();
+        PutAtCamp(world, owner, intruder);
+        owner.Mind.IsStarving = true;
+
+        CampExpulsionSystem.BeginChallenge(world, owner, intruder);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(owner.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Expel));
+            Assert.That(owner.Mind.ExpulsionTargetNpcId, Is.Null,
+                "A survival emergency keeps ownership of the actor.");
+            Assert.That(intruder.Mind.PendingExpulsionFrom, Is.Null);
+        });
+    }
+
+    [Test]
+    public void ScenePhaseDoesNotRebuildACompletedExpelPlanEveryMediumTick()
+    {
+        var (world, owner, intruder) = Pair();
+        PutAtCamp(world, owner, intruder);
+        CampExpulsionSystem.BeginChallenge(world, owner, intruder);
+        owner.Mind.ExpulsionPhase = 1;
+        owner.Plan.Goal = GoalType.Expel;
+        owner.Plan.Status = PlanStatus.Completed;
+        owner.Plan.CurrentStepIndex = 37; // sentinel: Planning resets/rebuilds this state
+        owner.Plan.Steps.Clear();
+        owner.Plan.Steps.Add(new PlanStep { Type = PlanStepType.Wait });
+
+        new PlanningSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(owner.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+            Assert.That(owner.Plan.CurrentStepIndex, Is.EqualTo(37));
+            Assert.That(owner.Plan.Steps, Has.Count.EqualTo(1));
+        });
     }
 
     [Test]
@@ -156,13 +215,34 @@ public sealed class CampExpulsionTests
         {
             Assert.That(intruder.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
             Assert.That(intruder.Mind.ExpulsionProtectedUntilTick,
-                Is.EqualTo(world.Tick + Spec82.TerritoryCooldownTicks));
+                Is.EqualTo(world.Tick + (ownerHealth < intruderHealth
+                    ? Spec82.TerritoryDefeatCooldownTicks
+                    : Spec82.TerritoryCooldownTicks)));
         }
 
         Assert.That(owner.Mind.ExpulsionTargetNpcId, Is.Null);
         Assert.That(intruder.Mind.PendingExpulsionFrom, Is.Null);
         Assert.That(owner.Mind.CombatOpponentNpcId, Is.Null);
         Assert.That(intruder.Mind.CombatOpponentNpcId, Is.Null);
+    }
+
+    [Test]
+    public void InjuredOwnerDoesNotStartAnotherSerialExpulsionFight()
+    {
+        var (world, owner, intruder) = Pair();
+        PutAtCamp(world, owner, intruder);
+        owner.Body.Parts[BodyPart.Head] =
+            Spec82.TerritoryChallengeWorstPartHealth - 0.01f;
+
+        CampExpulsionSystem.BeginChallenge(world, owner, intruder);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(owner.Mind.ExpulsionTargetNpcId, Is.Null);
+            Assert.That(owner.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Expel));
+            Assert.That(intruder.Mind.PendingExpulsionFrom, Is.Null,
+                "После проигранного боя раненая должна лечиться, а не немедленно реваншироваться.");
+        });
     }
 }
 

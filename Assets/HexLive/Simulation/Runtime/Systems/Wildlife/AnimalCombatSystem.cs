@@ -450,7 +450,8 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // Укус в уже плохой драке зовёт сам; кулдаун внутри CallForHelp держит
         // частоту, так что затяжная травля кричит каждые ~240 тиков.
         if (Spec57.HelpCryOnHitEnabled &&
-            (target.Health < Spec57.HelpCryHurtHealth ||
+            (target.Mind.CurrentGoal == GoalType.Flee ||
+             target.Health < Spec57.HelpCryHurtHealth ||
              MobSystem.WorstPartHealth(target) < Spec57.HelpCryHurtPart ||
              MobSystem.CountAdjacentDogs(world, target) >= 2))
         {

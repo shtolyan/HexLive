@@ -1205,7 +1205,7 @@ public sealed class MobSystem : ISimulationSystem
             var path = HexPathfinder.FindPath(
                 world, start, candidate.Id, avoid,
                 weightClimb: false,
-                canJump: npc.Body.CanJump);
+                canJump: PlanningSystem.CanUseCriticalTraversal(npc));
             if (path.Count == 0 ||
                 !SpatialMutations.TryReserveJunction(
                     world, candidate.Id, npc.Id, world.Tick, 48))

@@ -616,6 +616,17 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     Trace.Debug(world, npc.Id, "LieDownSpot",
                         "State=Crying Outcome=Deferred no collision-free ground rectangle or nearby free bed");
                 }
+
+                // The posture solver may legitimately find no free rectangle
+                // in a crowded furnished room. The breakdown still happened:
+                // hold the conscious crying state while standing instead of
+                // reselecting and re-aborting Socialize/Aid every slow tick.
+                if (npc.Mind.CryingUntilTick < cryingUntilTick)
+                {
+                    npc.Mind.CryingUntilTick = cryingUntilTick;
+                    Trace.Emit(world, npc.Id, "CryingBreakdown",
+                        $"Stamina={npc.Needs.Stamina:F2} Stress={npc.Needs.Stress:F2} Surface=Standing");
+                }
             }
 
             // §40.6 r10 (bug #18): water itself washes the body, regardless of
@@ -839,7 +850,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // logs/sticks blocks GetWater/forage exactly like it blocked
             // GetFood, and the girl stood at Goal=None x362 cycles until the
             // thirst threshold death (seed 42 d5-6, whole colony at one tile).
-            // Same last-resort construction, same junk order.
+            // Same last-resort construction, same junk order.  §63: the one
+            // stick + one stone reserved for an emergency coconut knife are
+            // excluded.  Dropping either created a literal pick-up/drop loop;
+            // the goal-aware pickup path may instead shed an ordinary tool.
             var packStarved = npc.Needs.Hunger >= 0.8f &&
                 npc.Inventory.FindFirstFood(world.Content) is null;
             var packParched = npc.Needs.Thirst >= 0.8f &&
@@ -849,6 +863,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             {
                 foreach (var junk in new[] { ContentIds.Log, ContentIds.Stick, ContentIds.PalmLeaf, ContentIds.Stone })
                 {
+                    if (InventoryMath.IsReservedEmergencyKnifeMaterial(world, npc, junk))
+                    {
+                        continue;
+                    }
+
                     var idx = npc.Inventory.Items.FindIndex(i => i.DefinitionId == junk);
                     if (idx >= 0)
                     {
@@ -998,6 +1017,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     // голову» от голода был бы бессмыслицей.
                     if (Spec105.DyingEnabled)
                     {
+                        // §105.3 r2: attrition subtracts from every body part
+                        // at once. When the last small remainder reached zero
+                        // on all seven parts in this very pass, Mean() became
+                        // zero before EnterDying and its corpse guard rejected
+                        // the transition. Keep the entity structurally alive
+                        // for the entry call; EnterDying immediately pins the
+                        // actual vital parts to BodyFloor and owns the normal
+                        // starvation/dehydration window from there.
+                        npc.Health = System.Math.Max(npc.Health, Spec105.BodyFloor);
                         MortalityHelpers.EnterDying(world, npc,
                             starved ? DyingCause.Starvation : DyingCause.Dehydration);
                     }

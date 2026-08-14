@@ -160,6 +160,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _portraitGaze; // §80: взгляд отдан камере портрета
     private bool _cameraGaze;   // §130: на пару секунд смотрит в объектив игрока
     private float _cameraGazeUntil;
+    // §130 r2: 0..1 — плавный переход НАБОРА весов (глаза/голова/корпус)
+    // между обычным взглядом и «в объектив». IKPositionWeight и так едет
+    // MoveTowards'ом, а вот сами веса солвера раньше щёлкали за один кадр.
+    private float _cameraGazeBlend;
     private Transform _bodyRoot;
 
     // Spec 31B.5: animation follows measured view motion, not sim status —
@@ -7015,22 +7019,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 return;
             }
 
-            if (_cameraGaze)
-            {
-                // §130: здесь, в отличие от портрета (§80 r2), голову вести
-                // МОЖНО — игровая камера не прибита к кости головы, обратной
-                // связи нет. Глаза решают, голова доворачивает, корпус едва.
-                _lookAtIK.solver.headWeight = 0.7f;
-                _lookAtIK.solver.eyesWeight = 1f;
-                // §114 баг #116: тот же корпус, та же беда — см. ниже.
-                _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.15f;
-                _lookAtIK.solver.clampWeight = 0.5f;
-                _lookAtIK.solver.clampWeightEyes = 0.3f;
-                return;
-            }
+            // §130 r2: набор весов не щёлкает — блендер плавно ведёт его от
+            // обычного взгляда к «в объектив» и так же плавно возвращает.
+            _cameraGazeBlend = Mathf.MoveTowards(
+                _cameraGazeBlend, _cameraGaze ? 1f : 0f, Time.deltaTime * 1.5f);
 
-            _lookAtIK.solver.headWeight = 0.8f;
-            _lookAtIK.solver.eyesWeight = 0.2f;
+            // Обычный взгляд (мировая цель): голова решает, глаза слегка.
+            var headWeight = 0.8f;
+            var eyesWeight = 0.2f;
             // §114 баг #116: ПОЛЗУЩАЯ НЕ ДОВОРАЧИВАЕТ КОРПУС ЗА ВЗГЛЯДОМ.
             //
             // bodyWeight крутит ПОЗВОНОЧНИК, а таз оставляет на месте. Стоящей
@@ -7042,12 +7038,32 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // вверх, и руки «махали по воздуху» вместо опоры о землю.
             //
             // Голову и глаза оставляем: ползущая вполне может поднять взгляд.
-            _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.3f;
-            _lookAtIK.solver.clampWeight = 0.5f;
+            var bodyWeight = _posture == "Crawl" ? 0f : 0.3f;
             // Clamp eye rotation hard so a wide gaze never rolls the eyes back
             // to the whites (0 = free, 1 = fully clamped). The head carries the
             // rest of the turn.
-            _lookAtIK.solver.clampWeightEyes = 0.4f;
+            var clampEyes = 0.4f;
+
+            if (_cameraGazeBlend > 0f)
+            {
+                // §130: здесь, в отличие от портрета (§80 r2), голову вести
+                // МОЖНО — игровая камера не прибита к кости головы, обратной
+                // связи нет. Голова доворачивает, глаза лишь чуть помогают
+                // (сильный вес глаз на близкой камере даёт «бешеные зрачки»),
+                // спина едва участвует.
+                headWeight = Mathf.Lerp(headWeight, 0.85f, _cameraGazeBlend);
+                eyesWeight = Mathf.Lerp(eyesWeight, 0.3f, _cameraGazeBlend);
+                // §114 баг #116: тот же корпус, та же беда — см. выше.
+                bodyWeight = Mathf.Lerp(
+                    bodyWeight, _posture == "Crawl" ? 0f : 0.2f, _cameraGazeBlend);
+                clampEyes = Mathf.Lerp(clampEyes, 0.3f, _cameraGazeBlend);
+            }
+
+            _lookAtIK.solver.headWeight = headWeight;
+            _lookAtIK.solver.eyesWeight = eyesWeight;
+            _lookAtIK.solver.bodyWeight = bodyWeight;
+            _lookAtIK.solver.clampWeight = 0.5f;
+            _lookAtIK.solver.clampWeightEyes = clampEyes;
         }
     }
 

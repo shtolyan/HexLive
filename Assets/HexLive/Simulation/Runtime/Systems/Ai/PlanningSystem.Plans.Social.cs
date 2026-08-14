@@ -17,45 +17,207 @@ public sealed partial class PlanningSystem
     // Discoveries along the way land in spatial memory.
     private readonly System.Collections.Generic.List<Junction> _exploreCandidates = new();
 
+    private enum ExploreRejection
+    {
+        None,
+        NoStartOrBlocked,
+        DeepWater,
+        Distance,
+        LiveMob,
+        VisibleHostile,
+        DangerMemory,
+        Unreachable
+    }
+
+    /// <summary>One source of truth for the Explore auction and planner.
+    /// An exploration bid is invalid when there is no junction the same
+    /// planner could actually use; bidding first and discovering that only
+    /// after selection produced a permanent Explore/PlanFailed loop.</summary>
+    internal static bool HasExploreCandidate(WorldState world, NPCState npc)
+    {
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (ExploreRejectionFor(world, npc, junction) == ExploreRejection.None)
+            {
+                return true;
+            }
+        }
+
+        // Low-rate headless diagnosis for the exact "FleeUnavailable -> Idle"
+        // class. This is trace-only and allocates only once per 200 ticks while
+        // a critical NPC has literally no legal discovery destination.
+        if (SimTrace.Enabled && ExploreMustAvoidDeepWater(npc) && world.Tick % 200 == 0)
+        {
+            var counts = new int[System.Enum.GetValues(typeof(ExploreRejection)).Length];
+            foreach (var junction in world.Junctions.Items.Values)
+            {
+                counts[(int)ExploreRejectionFor(world, npc, junction)]++;
+            }
+
+            Trace.Debug(world, npc.Id, "CriticalExploreUnavailable",
+                $"Tile={npc.Tile.Q},{npc.Tile.R} " +
+                $"Junction={(npc.CurrentJunction is { } at ? at.Value.ToString() : "none")} " +
+                $"CanJump={npc.Body.CanJump} " +
+                $"LegL={npc.Body.LimbFunction(BodyPart.LegL):F2} " +
+                $"LegR={npc.Body.LimbFunction(BodyPart.LegR):F2} " +
+                $"BlockedOrNoStart={counts[(int)ExploreRejection.NoStartOrBlocked]} " +
+                $"DeepWater={counts[(int)ExploreRejection.DeepWater]} " +
+                $"Distance={counts[(int)ExploreRejection.Distance]} " +
+                $"LiveMob={counts[(int)ExploreRejection.LiveMob]} " +
+                $"VisibleHostile={counts[(int)ExploreRejection.VisibleHostile]} " +
+                $"Danger={counts[(int)ExploreRejection.DangerMemory]} " +
+                $"Unreachable={counts[(int)ExploreRejection.Unreachable]}");
+        }
+
+        return false;
+    }
+
+    internal static bool ExploreMustAvoidDeepWater(NPCState npc) =>
+        npc.Mind.IsDehydrated || npc.Mind.IsStarving ||
+        npc.Needs.Energy <= Spec49.DeadTiredEnergy;
+
+    /// <summary>Last-resort ledge traversal for a survival route. The ordinary
+    /// jump threshold is deliberately strict (both legs at 0.75), but treating
+    /// 0.68/0.79 as absolute immobility stranded a dehydrated exile on one
+    /// ledge until death. A conscious body with both legs still supporting a
+    /// crawl may make the risky scramble only while food/water is critical;
+    /// ordinary travel and a lost/fully collapsed leg remain no-jump.</summary>
+    internal static bool CanUseCriticalTraversal(NPCState npc) =>
+        npc.Body.CanJump ||
+        ((npc.Mind.IsDehydrated || npc.Mind.IsStarving) &&
+         npc.Body.LimbFunction(BodyPart.LegL) >= BodyState.CrawlLegFunctionThreshold &&
+         npc.Body.LimbFunction(BodyPart.LegR) >= BodyState.CrawlLegFunctionThreshold);
+
+    /// <summary>A critical swimmer needs an actual dry graph destination
+    /// before ReachSafeGround may bid. The target is deliberately stricter
+    /// than a mixed shore junction: every represented tile must be walkable
+    /// dry land, so arriving cannot still leave the body in deep water.</summary>
+    internal static JunctionId? FindCriticalSwimExit(
+        WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return null;
+        }
+
+        JunctionId? best = null;
+        var bestDistance = float.MaxValue;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Id.Equals(from) || junction.Blocked ||
+                junction.Tiles.Count == 0 ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id))
+            {
+                continue;
+            }
+
+            var allDry = true;
+            foreach (var coord in junction.Tiles)
+            {
+                if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
+                    !tile.Flags.HasFlag(TileFlags.Walkable) ||
+                    SpatialQueries.IsSwimTile(tile))
+                {
+                    allDry = false;
+                    break;
+                }
+            }
+
+            if (!allDry || !Connectivity.Reachable(
+                    world, from, junction.Id, CanUseCriticalTraversal(npc)))
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.Distance(
+                npc.Position, junction.WorldPosition);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = junction.Id;
+            }
+        }
+
+        return best;
+    }
+
+    internal static bool IsExploreCandidate(
+        WorldState world, NPCState npc, Junction junction) =>
+        ExploreRejectionFor(world, npc, junction) == ExploreRejection.None;
+
+    private static ExploreRejection ExploreRejectionFor(
+        WorldState world, NPCState npc, Junction junction)
+    {
+        if (junction.Blocked || npc.CurrentJunction is not { } exploreFrom ||
+            junction.Id.Equals(exploreFrom))
+        {
+            return ExploreRejection.NoStartOrBlocked;
+        }
+
+        var tile = junction.Tiles.Count > 0 ? junction.Tiles[0] : npc.Tile;
+        if (ExploreMustAvoidDeepWater(npc) &&
+            SpatialQueries.IsSwimTile(world, tile))
+        {
+            return ExploreRejection.DeepWater;
+        }
+        var criticalDiscovery = ExploreMustAvoidDeepWater(npc);
+        var distance = HexSpatialMath.HexDistance(npc.Tile, tile);
+        if ((!criticalDiscovery && distance is < 3 or > 8) ||
+            (criticalDiscovery && distance is < 2 or > 12))
+        {
+            return ExploreRejection.Distance;
+        }
+
+        // Ordinary wandering respects the whole remembered danger map. A
+        // starving/dehydrated last-resort search cannot: an expelled NPC in
+        // seed 8675309 had no route to her faction camp, every nearby route was
+        // covered by old dog memories, and she idled at Thirst=1.00 for 2,000
+        // ticks. During a crisis, avoid the PRESENT threat instead — live mobs,
+        // visible hostiles and only the fresh edge of a remembered attack — but
+        // permit a route through yesterday's fear when the alternative is a
+        // deterministic death in place.
+        if (criticalDiscovery && MobSystem.MobNear(world, tile, 3))
+        {
+            return ExploreRejection.LiveMob;
+        }
+
+        foreach (var hostile in npc.Perception.Hostiles)
+        {
+            if (criticalDiscovery &&
+                HexSpatialMath.HexDistance(tile, hostile.Tile) <= 3)
+            {
+                return ExploreRejection.VisibleHostile;
+            }
+        }
+
+        foreach (var danger in npc.Memory.Dangers)
+        {
+            if ((!criticalDiscovery ||
+                 world.Tick - danger.Tick <= SimBalance.BuildDangerFreshTicks) &&
+                HexSpatialMath.HexDistance(tile, danger.Tile) <= 3)
+            {
+                return ExploreRejection.DangerMemory;
+            }
+        }
+
+        // §50.9: the candidate must be reachable with this NPC's present
+        // body capabilities, including the directed no-jump graph.
+        return Connectivity.Reachable(
+                world, exploreFrom, junction.Id,
+                criticalDiscovery
+                    ? CanUseCriticalTraversal(npc)
+                    : CanUseRoutineTraversal(npc))
+            ? ExploreRejection.None
+            : ExploreRejection.Unreachable;
+    }
+
     private void BuildExplorePlan(WorldState world, NPCState npc)
     {
         _exploreCandidates.Clear();
         foreach (var junction in world.Junctions.Items.Values)
         {
-            if (junction.Blocked)
+            if (IsExploreCandidate(world, npc, junction))
             {
-                continue;
-            }
-
-            var tile = junction.Tiles.Count > 0 ? junction.Tiles[0] : npc.Tile;
-            var distance = HexSpatialMath.HexDistance(npc.Tile, tile);
-            if (distance is < 3 or > 8)
-            {
-                continue;
-            }
-
-            // Spec 29C.4A: avoid places where we were recently attacked.
-            var dangerous = false;
-            foreach (var danger in npc.Memory.Dangers)
-            {
-                if (HexSpatialMath.HexDistance(tile, danger.Tile) <= 3)
-                {
-                    dangerous = true;
-                    break;
-                }
-            }
-
-            if (!dangerous)
-            {
-                // §50.9: кандидат обязан быть достижим ЕЙ — иначе ползущая
-                // (полкарты вне её мира) проваливала 9 из 10 выборов и часами
-                // крутила PlanFailed вместо прогулки по своему берегу.
-                if (npc.CurrentJunction is { } exploreFrom &&
-                    !Connectivity.Reachable(world, exploreFrom, junction.Id, npc.Body.CanJump))
-                {
-                    continue;
-                }
-
                 _exploreCandidates.Add(junction);
             }
         }
@@ -78,7 +240,11 @@ public sealed partial class PlanningSystem
 
         // Reachability check: destination must connect to where we stand.
         if (npc.CurrentJunction is not { } startJunction ||
-            !Connectivity.Reachable(world, startJunction, destination.Id, npc.Body.CanJump))
+            !Connectivity.Reachable(
+                world, startJunction, destination.Id,
+                ExploreMustAvoidDeepWater(npc)
+                    ? CanUseCriticalTraversal(npc)
+                    : CanUseRoutineTraversal(npc)))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Explore);
@@ -123,27 +289,43 @@ public sealed partial class PlanningSystem
         // Ближайший узел материка по миру-расстоянию; достижимость — с её
         // РЕАЛЬНОЙ способностью. §57.11: без прыжка Reachable считает СПУСКИ
         // (направленно), так что и полностью обезноженная планирует сход вниз.
-        JunctionId? best = null;
+        var criticalSwimmer = SpatialQueries.IsSwimTile(world, npc.Tile) &&
+            ExploreMustAvoidDeepWater(npc);
+        JunctionId? best = criticalSwimmer
+            ? FindCriticalSwimExit(world, npc)
+            : null;
         var bestDistance = float.MaxValue;
-        foreach (var pair in world.JunctionComponentsFlat)
+        if (best is { } swimExit &&
+            world.Junctions.Items.TryGetValue(swimExit, out var exitJunction))
         {
-            if (pair.Value != world.LargestFlatComponentId ||
-                !world.Junctions.Items.TryGetValue(pair.Key, out var junction) ||
-                junction.Blocked)
-            {
-                continue;
-            }
+            bestDistance = HexSpatialMath.Distance(
+                exitJunction.WorldPosition, npc.Position);
+        }
 
-            var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
-            if (d < bestDistance && SpatialQueries.IsJunctionFree(world, pair.Key))
+        if (!criticalSwimmer)
+        {
+            foreach (var pair in world.JunctionComponentsFlat)
             {
-                bestDistance = d;
-                best = pair.Key;
+                if (pair.Value != world.LargestFlatComponentId ||
+                    !world.Junctions.Items.TryGetValue(pair.Key, out var junction) ||
+                    junction.Blocked)
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
+                if (d < bestDistance && SpatialQueries.IsJunctionFree(world, pair.Key))
+                {
+                    bestDistance = d;
+                    best = pair.Key;
+                }
             }
         }
 
         if (best is not { } destination ||
-            !Connectivity.Reachable(world, from, destination, npc.Body.CanJump))
+            !Connectivity.Reachable(
+                world, from, destination,
+                CanUseCriticalTraversal(npc)))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.ReachSafeGround);
@@ -174,6 +356,22 @@ public sealed partial class PlanningSystem
         }
     }
 
+    private static bool HasTalkPartnerClaimedByOther(
+        WorldState world, NPCState npc)
+    {
+        foreach (var perceived in npc.Perception.Agents)
+        {
+            if (world.Entities.Npcs.TryGetValue(perceived.Id, out var partner) &&
+                partner.Mind.PendingTalkFrom is { } claimedBy &&
+                !claimedBy.Equals(npc.Id))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // Spec 28.15A: walk to a free neighbor junction of the target agent, then Talk.
     private void BuildTalkPlan(WorldState world, NPCState npc)
     {
@@ -202,6 +400,14 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
+            if (agent.Junction is not { } candidateJunction ||
+                !world.Entities.Npcs.TryGetValue(agent.Id, out var candidatePartner) ||
+                !HasAvailableArmsLengthApproach(
+                    world, npc, candidatePartner, candidateJunction))
+            {
+                continue;
+            }
+
             // Skip targets already claimed by another initiator.
             if (world.Entities.Npcs.TryGetValue(agent.Id, out var agentState) &&
                 agentState.Mind.PendingTalkFrom is { } claimedBy &&
@@ -221,6 +427,18 @@ public sealed partial class PlanningSystem
 
         if (target?.Junction is not { } targetJunction)
         {
+            if (HasTalkPartnerClaimedByOther(world, npc))
+            {
+                npc.Plan.Status = PlanStatus.Completed;
+                npc.Mind.CurrentGoal = GoalType.None;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanNoInteraction",
+                        "Goal=Socialize PartnerAlreadyClaimed");
+                }
+                return;
+            }
+
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Socialize);
             if (SimTrace.Enabled)
@@ -300,55 +518,102 @@ public sealed partial class PlanningSystem
     /// помощница уходила к точке, куда пути нет, движение отвечало Blocked,
     /// поход отменялся, назначался снова. Мир без прыжка — половина острова
     /// (§50.7), так что раненой это стоило любой помощи вообще.</summary>
-    private static bool CanWalkTo(WorldState world, NPCState npc, JunctionId candidate) =>
-        npc.CurrentJunction is not { } from ||
-        Connectivity.Reachable(world, from, candidate, npc.Body.CanJump);
+    private const int AidApproachExpansionBudget = 1500;
+
+    private static bool CanWalkTo(
+        WorldState world, NPCState npc, JunctionId candidate,
+        System.Collections.Generic.HashSet<JunctionId> occupiedByActor)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        var route = HexPathfinder.FindPath(
+            world, from, candidate, occupiedByActor,
+            weightClimb: true, canJump: CanUseRoutineTraversal(npc),
+            danger: null, dangerCost: 0L,
+            hardAvoid: DoorTopology.ForbiddenFor(world, npc.Faction),
+            maxExpansions: AidApproachExpansionBudget);
+        return route.Count > 0;
+    }
+
+    /// <summary>
+    /// §53 r4: dry availability and the reserving planner use the same station,
+    /// reach, occupancy and physical-route predicate. This prevents a visible
+    /// bed-bound ward with no usable side from winning Aid every cooldown and
+    /// failing immediately with NoFreeApproachJunction.
+    /// </summary>
+    internal static bool HasAvailableArmsLengthApproach(
+        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction) =>
+        FindArmsLengthApproach(world, npc, partner, partnerJunction, reserve: false)
+            is not null;
 
     private static JunctionId? TryReserveArmsLengthApproach(
-        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction)
+        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction) =>
+        FindArmsLengthApproach(world, npc, partner, partnerJunction, reserve: true);
+
+    private static JunctionId? FindArmsLengthApproach(
+        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction,
+        bool reserve)
     {
         // IsJunctionFree covers explicit interaction occupancy, not the live
         // CurrentJunction of a walking/standing actor. Aid needs both: otherwise
         // it reserves a point already held by a third person and MovementSystem
         // politely re-paths to that exact same point forever.
         var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
-        var stationSpot = default(Float2);
-        var hasStation = false;
-        if (partner is not null)
+        if (partner is not null && partner.IsLyingDown(world.Tick))
         {
-            // §111.13: у ЛЕЖАЩЕЙ подопечной место занимается ДО брони узла —
-            // порядок важен. Планировщик идёт по NPC последовательно, и запись
-            // первого видна второму в том же тике (на этом же свойстве стоит
-            // TryReserveJunction), поэтому двое в одном тике не выберут одну
-            // станцию. Свободных станций нет — поход не строится вовсе, а не
-            // строится «куда-нибудь рядом».
-            if (partner.IsLyingDown(world.Tick))
+            // Do not claim the first geometrically usable slot and only then
+            // discover that its snapped node is blocked. Prove each station in
+            // priority order; a chair at the feet must not hide a reachable
+            // side station.
+            for (var slot = 0; slot < LyingStations.Count; slot++)
             {
-                if (!LyingStations.TryClaim(world, npc, partner, out var slot))
+                if (!LyingStations.IsFree(world, partner, slot, npc) ||
+                    !LyingStations.IsUsable(world, partner, slot))
                 {
-                    return null;
+                    continue;
                 }
 
-                stationSpot = LyingStations.Point(partner, slot);
-                hasStation = true;
+                var stationSpot = LyingStations.Point(partner, slot);
+                if (SpatialQueries.FindNearestJunction(world, stationSpot) is not { } station ||
+                    !IsArmsLengthCandidate(
+                        world, npc, partner, partnerJunction, station,
+                        occupiedByActor, hasStation: true, stationSpot))
+                {
+                    continue;
+                }
+
+                if (!reserve)
+                {
+                    return station;
+                }
+
+                if (LyingStations.TryClaimSlot(world, npc, partner, slot) &&
+                    SpatialMutations.TryReserveJunction(
+                        world, station, npc.Id, world.Tick, 48))
+                {
+                    return station;
+                }
+
+                LyingStations.ReleaseStation(npc);
             }
 
-            var spot = hasStation
-                ? stationSpot
-                : partner.Position + HexSpatialMath.Normalize(new Float2(
-                    npc.Position.X - partner.Position.X,
-                    npc.Position.Y - partner.Position.Y)) * HexSpatialMath.HexRadius * 0.9f;
+            return null;
+        }
+
+        if (partner is not null)
+        {
+            var spot = partner.Position + HexSpatialMath.Normalize(new Float2(
+                npc.Position.X - partner.Position.X,
+                npc.Position.Y - partner.Position.Y)) * HexSpatialMath.HexRadius * 0.9f;
             if (SpatialQueries.FindNearestJunction(world, spot) is { } armsLength &&
-                !armsLength.Equals(partnerJunction) &&
-                world.Junctions.Items.TryGetValue(armsLength, out var armsJct) &&
-                HexSpatialMath.Distance(armsJct.WorldPosition, partner.Position) <=
-                    InteractionReach.Aid &&
-                InteractionReach.CanTouchPersonAcross(
-                    world, armsLength, partnerJunction, InteractionReach.Aid) &&
-                !BlockedByActor(occupiedByActor, armsLength, armsJct, hasStation, stationSpot) &&
-                SpatialQueries.IsJunctionFree(world, armsLength) &&
-                CanWalkTo(world, npc, armsLength) &&
-                SpatialMutations.TryReserveJunction(world, armsLength, npc.Id, world.Tick, 48))
+                IsArmsLengthCandidate(
+                    world, npc, partner, partnerJunction, armsLength,
+                    occupiedByActor, hasStation: false, default) &&
+                (!reserve || SpatialMutations.TryReserveJunction(
+                    world, armsLength, npc.Id, world.Tick, 48)))
             {
                 return armsLength;
             }
@@ -356,37 +621,45 @@ public sealed partial class PlanningSystem
 
         foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, partnerJunction))
         {
-            world.Junctions.Items.TryGetValue(neighbor, out var nJct);
-
-            // The partner's own resolved junction can itself sit far from her
-            // body (she may lie inside a blocked footprint cluster), so its
-            // neighbours must pass the same reach cap or the walk is doomed —
-            // the execution gate would abort it on arrival anyway.
-            if (partner is not null &&
-                (nJct is null ||
-                 HexSpatialMath.Distance(nJct.WorldPosition, partner.Position) >
-                     InteractionReach.Aid ||
-                 !InteractionReach.CanTouchPersonAcross(
-                     world, neighbor, partnerJunction, InteractionReach.Aid)))
-            {
-                continue;
-            }
-
-            if (!BlockedByActor(occupiedByActor, neighbor, nJct, hasStation, stationSpot) &&
-                SpatialQueries.IsJunctionFree(world, neighbor) &&
-                CanWalkTo(world, npc, neighbor) &&
-                SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
+            if (IsArmsLengthCandidate(
+                    world, npc, partner, partnerJunction, neighbor,
+                    occupiedByActor, hasStation: false, default) &&
+                (!reserve || SpatialMutations.TryReserveJunction(
+                    world, neighbor, npc.Id, world.Tick, 48)))
             {
                 return neighbor;
             }
         }
 
-        if (hasStation)
+        return null;
+    }
+
+    private static bool IsArmsLengthCandidate(
+        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction,
+        JunctionId candidate,
+        System.Collections.Generic.HashSet<JunctionId> occupiedByActor,
+        bool hasStation, Float2 stationSpot)
+    {
+        if (candidate.Equals(partnerJunction) ||
+            !world.Junctions.Items.TryGetValue(candidate, out var candidateJunction))
         {
-            LyingStations.ReleaseStation(npc);
+            return false;
         }
 
-        return null;
+        if (partner is not null &&
+            (HexSpatialMath.Distance(candidateJunction.WorldPosition, partner.Position) >
+                 InteractionReach.Aid ||
+             !InteractionReach.CanTouchPersonAcross(
+                 world, candidate, partnerJunction, InteractionReach.Aid)))
+        {
+            return false;
+        }
+
+        return !BlockedByActor(
+                   occupiedByActor, candidate, candidateJunction,
+                   hasStation, stationSpot) &&
+               SpatialQueries.IsJunctionFree(world, candidate) &&
+               CanWalkTo(world, npc, candidate, occupiedByActor);
     }
 
     /// <summary>
@@ -539,6 +812,14 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
+            if (world.Entities.Npcs.TryGetValue(remembered.Id, out var liveWard) &&
+                remembered.Junction is { } rememberedJunction &&
+                !HasAvailableArmsLengthApproach(
+                    world, npc, liveWard, rememberedJunction))
+            {
+                continue;
+            }
+
             // Уже идёт другая — не ходить вдвоём по одной вере.
             if (world.Entities.Npcs.TryGetValue(remembered.Id, out var wardState) &&
                 wardState.Mind.PendingAidFrom is { } claimedBy &&
@@ -556,6 +837,33 @@ public sealed partial class PlanningSystem
         }
 
         return best is not null;
+    }
+
+    private static bool HasWardClaimedByOther(WorldState world, NPCState npc)
+    {
+        foreach (var perceived in npc.Perception.Agents)
+        {
+            if (perceived.AidKind != AidKind.None &&
+                world.Entities.Npcs.TryGetValue(perceived.Id, out var ward) &&
+                ward.Mind.PendingAidFrom is { } claimedBy &&
+                !claimedBy.Equals(npc.Id))
+            {
+                return true;
+            }
+        }
+
+        foreach (var remembered in npc.Perception.Remembered)
+        {
+            if (remembered.AidKind != AidKind.None &&
+                world.Entities.Npcs.TryGetValue(remembered.Id, out var ward) &&
+                ward.Mind.PendingAidFrom is { } claimedBy &&
+                !claimedBy.Equals(npc.Id))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void BuildAidPlan(WorldState world, NPCState npc)
@@ -581,9 +889,17 @@ public sealed partial class PlanningSystem
             // подопечная выбирается и в движении — ползущую к воде умирающую
             // догоняет живой ретаргет по прибытии.
             if (agent.AidKind == AidKind.None || agent.Suffering < Spec53.SufferingThreshold ||
-                !agent.IsReachable || agent.IsBusy ||
+                !agent.IsReachable || (agent.IsBusy && !agent.IsDying) ||
                 (agent.IsMoving && !agent.IsDying &&
                  agent.Suffering < Spec53.HeavyAidSuffering))
+            {
+                continue;
+            }
+
+            if (agent.Junction is not { } candidateJunction ||
+                !world.Entities.Npcs.TryGetValue(agent.Id, out var candidateWard) ||
+                !HasAvailableArmsLengthApproach(
+                    world, npc, candidateWard, candidateJunction))
             {
                 continue;
             }
@@ -643,6 +959,23 @@ public sealed partial class PlanningSystem
         }
         else
         {
+            // Decision evaluates all NPCs before Planning reserves targets.
+            // Two helpers can therefore honestly choose the same ward in one
+            // auction pass; the first planner claims her and the second sees
+            // no candidate. That is a resolved race, not a path/planning
+            // failure and must not become a 40-tick Aid retry rhythm.
+            if (HasWardClaimedByOther(world, npc))
+            {
+                npc.Plan.Status = PlanStatus.Completed;
+                npc.Mind.CurrentGoal = GoalType.None;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanNoInteraction",
+                        "Goal=Aid WardAlreadyClaimed");
+                }
+                return;
+            }
+
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Aid);
             if (SimTrace.Enabled)
@@ -820,13 +1153,29 @@ public sealed partial class PlanningSystem
 
         if (humanCanAct)
         {
-            npc.Plan.Status = PlanStatus.Completed;
             npc.Mind.AssistHoldSinceTick = 0;
             HumanCombatPairing.EngageAssist(world, npc, humanAttacker);
+            // EngageAssist installs the combat pairing; it is not a completed
+            // movement job that needs rebuilding next medium tick. Keep one
+            // bounded active hold while HumanCombatSystem owns the exchange.
+            // Seed 632 otherwise emitted Engaged + a new empty Defend plan on
+            // five consecutive passes before the first scene resolved.
+            var holdUntil = npc.Mind.GoalLock is { } humanLock &&
+                humanLock.Goal == GoalType.Defend
+                    ? System.Math.Max(world.Tick + 4, humanLock.EndTick)
+                    : world.Tick + 4;
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.Wait,
+                TimeoutEndTick = holdUntil
+            });
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Plan.Status = PlanStatus.Active;
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "HelpCryAssistEngaged",
-                    $"{label} Reach=Act Reply=NPC{humanAttacker.Mind.CombatOpponentNpcId?.Value ?? -1}");
+                    $"{label} Reach=Act Reply=NPC{humanAttacker.Mind.CombatOpponentNpcId?.Value ?? -1} " +
+                    $"HoldUntil={holdUntil}");
             }
             return;
         }
@@ -839,7 +1188,17 @@ public sealed partial class PlanningSystem
         // adjacency — so the right plan here is NO plan: stand and wait.
         if (dogOnStation)
         {
-            npc.Plan.Status = PlanStatus.Completed;
+            var holdUntil = npc.Mind.GoalLock is { } dogLock &&
+                dogLock.Goal == GoalType.Defend
+                    ? System.Math.Max(world.Tick + 4, dogLock.EndTick)
+                    : world.Tick + 4;
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.Wait,
+                TimeoutEndTick = holdUntil
+            });
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Plan.Status = PlanStatus.Active;
             if (npc.Mind.AssistHoldSinceTick == 0)
             {
                 npc.Mind.AssistHoldSinceTick = world.Tick;
@@ -851,25 +1210,20 @@ public sealed partial class PlanningSystem
 
         npc.Mind.AssistHoldSinceTick = 0;
 
-        JunctionId? approach = null;
-        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, target))
-        {
-            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
-                SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
-            {
-                approach = neighbor;
-                break;
-            }
-        }
+        var approach = FindDefendApproach(world, npc, target, reserve: true);
 
         if (approach is not { } approachJunction)
         {
+            // The attacker can move after the help event. Do not keep the
+            // assist latch alive when the exact route has disappeared: while
+            // CombatAssist* is present DecisionSystem deliberately skips its
+            // auction, and RallyFriends runs again every medium pass.
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.Defend);
+            HumanCombatPairing.ClearFor(world, npc);
+            CombatHelpSystem.ClearAssist(npc);
             npc.Plan.Status = PlanStatus.Failed;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "PlanFailed",
-                    $"Goal=Defend {label} Reach=Approach NoFreeApproachJunction — will replan");
-            }
+            Trace.Emit(world, npc.Id, "HelpCryAssistLost",
+                $"{label} has no reachable free approach — standing down");
             return;
         }
 
@@ -887,6 +1241,51 @@ public sealed partial class PlanningSystem
             null);
         Trace.Emit(world, npc.Id, "HelpCryAssistStarted",
             $"{label} ApproachJunction={approachJunction.Value} Tile={attackerTile.Q},{attackerTile.R}");
+    }
+
+    /// <summary>Exact non-mutating availability shared by combat event
+    /// assignment and the reserving planner. A coarse hex radius is not a
+    /// route: cliffs and occupied sub-grid junctions can separate actors that
+    /// are visually close.</summary>
+    internal static bool HasReachableDefendApproach(
+        WorldState world, NPCState npc, JunctionId attackerJunction)
+    {
+        if (npc.CurrentJunction is not { } current)
+        {
+            return false;
+        }
+
+        if (current.Equals(attackerJunction) ||
+            (world.Junctions.Items.TryGetValue(attackerJunction, out var target) &&
+             target.Neighbors.Contains(current)))
+        {
+            return true;
+        }
+
+        return FindDefendApproach(world, npc, attackerJunction, reserve: false) is not null;
+    }
+
+    private static JunctionId? FindDefendApproach(
+        WorldState world, NPCState npc, JunctionId attackerJunction, bool reserve)
+    {
+        var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
+        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, attackerJunction))
+        {
+            if (occupiedByActor.Contains(neighbor) ||
+                !SpatialQueries.IsJunctionFree(world, neighbor) ||
+                !CanWalkTo(world, npc, neighbor, occupiedByActor))
+            {
+                continue;
+            }
+
+            if (!reserve || SpatialMutations.TryReserveJunction(
+                    world, neighbor, npc.Id, world.Tick, 48))
+            {
+                return neighbor;
+            }
+        }
+
+        return null;
     }
 }
 

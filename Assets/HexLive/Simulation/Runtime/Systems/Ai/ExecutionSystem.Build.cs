@@ -29,7 +29,7 @@ public sealed partial class ExecutionSystem
         var moved = 0;
         foreach (var mat in BuildSiteMath.AllMaterials)
         {
-            while (BuildSiteMath.Needs(site, mat))
+            while (BuildSiteMath.AcceptsDelivery(site, mat))
             {
                 var carried = npc.Inventory.Items.Find(i => i.DefinitionId == mat);
                 if (carried is null)
@@ -163,7 +163,7 @@ public sealed partial class ExecutionSystem
         // идентификаторов через отрицание, то есть свойство вещи хранилось в
         // исполнителе: новая постройка молча получала «нужен молоток» и узнать
         // об этом можно было только по тому, что её никто не строит.
-        var needsHammer = !HasTag(world, site.BuildProduct, Content.ObjectTags.HandBuilt);
+        var needsHammer = BuildSiteMath.NeedsHammer(world, site);
         if (BuildSiteMath.IsStocked(site) &&
             (!needsHammer ||
              Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Hammer) ||
@@ -335,15 +335,6 @@ public sealed partial class ExecutionSystem
         }
     }
 
-    /// <summary>
-    /// Несёт ли определение с таким id указанный тег. Неизвестный id — это
-    /// «нет»: спрашивать про свойство несуществующей вещи бессмысленно, а
-    /// бросать тут значило бы ронять симуляцию из-за опечатки в контенте.
-    /// </summary>
-    private static bool HasTag(WorldState world, string definitionId, string tag) =>
-        !string.IsNullOrEmpty(definitionId) &&
-        world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
-        definition.Tags.Contains(tag);
 }
 
 }

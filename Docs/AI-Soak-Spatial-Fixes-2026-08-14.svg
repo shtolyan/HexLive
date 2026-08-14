@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="620" viewBox="0 0 1000 620">
+  <defs>
+    <style>
+      .bg { fill: #11161d; }
+      .panel { fill: #19212b; stroke: #405064; stroke-width: 2; }
+      .title { fill: #f2f5f8; font: 700 22px system-ui, sans-serif; }
+      .label { fill: #cbd5df; font: 15px system-ui, sans-serif; }
+      .small { fill: #9fb0c2; font: 13px system-ui, sans-serif; }
+      .hex { fill: #223328; stroke: #79b881; stroke-width: 3; }
+      .node { fill: #b8c5d1; stroke: #11161d; stroke-width: 1; }
+      .support { fill: #ffd166; stroke: #11161d; stroke-width: 2; }
+      .body { fill: #ef6f6c; fill-opacity: .78; stroke: #ffaaa7; stroke-width: 2; }
+      .solid { fill: #6c7480; stroke: #a6afba; stroke-width: 2; }
+      .land { fill: #2b4935; stroke: #79b881; stroke-width: 2; }
+      .water { fill: #173d5c; stroke: #4aa3df; stroke-width: 2; }
+      .route { fill: none; stroke: #74d680; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+      .rejected { fill: none; stroke: #f36b6b; stroke-width: 5; stroke-dasharray: 9 7; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#74d680"/>
+    </marker>
+    <marker id="badArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f36b6b"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1000" height="620"/>
+  <text class="title" x="32" y="40">Пространственные исправления AI — фактические константы</text>
+
+  <rect class="panel" x="28" y="62" width="456" height="438" rx="14"/>
+  <text class="title" x="50" y="98">1. Укладка тела на земле</text>
+  <polygon class="hex" points="260,120 372.6,185 372.6,315 260,380 147.4,315 147.4,185"/>
+
+  <!-- 37 interior nodes: axial radius 3, rows 4/5/6/7/6/5/4. -->
+  <g>
+    <circle class="node" cx="230" cy="160" r="5"/><circle class="node" cx="260" cy="160" r="5"/><circle class="node" cx="290" cy="160" r="5"/><circle class="node" cx="320" cy="160" r="5"/>
+    <circle class="node" cx="200" cy="190" r="5"/><circle class="node" cx="230" cy="190" r="5"/><circle class="node" cx="260" cy="190" r="5"/><circle class="node" cx="290" cy="190" r="5"/><circle class="node" cx="320" cy="190" r="5"/>
+    <circle class="node" cx="185" cy="220" r="5"/><circle class="node" cx="215" cy="220" r="5"/><circle class="node" cx="245" cy="220" r="5"/><circle class="node" cx="275" cy="220" r="5"/><circle class="node" cx="305" cy="220" r="5"/><circle class="node" cx="335" cy="220" r="5"/>
+    <circle class="node" cx="170" cy="250" r="5"/><circle class="node" cx="200" cy="250" r="5"/><circle class="support" cx="230" cy="250" r="7"/><circle class="support" cx="260" cy="250" r="7"/><circle class="support" cx="290" cy="250" r="7"/><circle class="node" cx="320" cy="250" r="5"/><circle class="node" cx="350" cy="250" r="5"/>
+    <circle class="node" cx="185" cy="280" r="5"/><circle class="node" cx="215" cy="280" r="5"/><circle class="node" cx="245" cy="280" r="5"/><circle class="node" cx="275" cy="280" r="5"/><circle class="node" cx="305" cy="280" r="5"/><circle class="node" cx="335" cy="280" r="5"/>
+    <circle class="node" cx="200" cy="310" r="5"/><circle class="node" cx="230" cy="310" r="5"/><circle class="node" cx="260" cy="310" r="5"/><circle class="node" cx="290" cy="310" r="5"/><circle class="node" cx="320" cy="310" r="5"/>
+    <circle class="node" cx="230" cy="340" r="5"/><circle class="node" cx="260" cy="340" r="5"/><circle class="node" cx="290" cy="340" r="5"/><circle class="node" cx="320" cy="340" r="5"/>
+  </g>
+
+  <rect class="solid" x="154" y="132" width="58" height="72" rx="8"/>
+  <text class="small" x="157" y="151">мебель</text>
+  <rect class="body" x="194" y="232" width="132" height="36" rx="18"/>
+  <text class="small" x="206" y="255">тело 1.32 × 0.36 wu</text>
+  <text class="label" x="50" y="414">Проверяются все 37 узлов, а не центр гекса.</text>
+  <text class="small" x="50" y="439">Жёлтые точки — три опоры принятой позы.</text>
+  <text class="small" x="50" y="460">Слоты мебели не запрещают весь гекс: запрещают только пересечение.</text>
+
+  <rect class="panel" x="508" y="62" width="464" height="438" rx="14"/>
+  <text class="title" x="530" y="98">2. Критический маршрут остаётся сухим</text>
+
+  <polygon class="land" points="550,150 600,120 650,150 650,208 600,238 550,208"/>
+  <polygon class="land" points="650,150 700,120 750,150 750,208 700,238 650,208"/>
+  <polygon class="water" points="750,150 800,120 850,150 850,208 800,238 750,208"/>
+  <polygon class="water" points="850,150 900,120 950,150 950,208 900,238 850,208"/>
+  <polygon class="land" points="650,238 700,208 750,238 750,296 700,326 650,296"/>
+  <polygon class="land" points="750,296 800,266 850,296 850,354 800,384 750,354"/>
+  <polygon class="land" points="850,296 900,266 950,296 950,354 900,384 850,354"/>
+
+  <path class="rejected" d="M600 179 L700 179 L800 179 L900 179" marker-end="url(#badArrow)"/>
+  <path class="route" d="M600 190 L700 267 L800 325 L900 325" marker-end="url(#arrow)"/>
+  <text class="small" x="770" y="137">глубокая вода</text>
+  <text class="small" x="560" y="340">сухая альтернатива</text>
+  <text class="label" x="530" y="414">Проверяется фактический directed-step tile.</text>
+  <text class="small" x="530" y="439">До 24 опасных junction последовательно запрещаются.</text>
+  <text class="small" x="530" y="460">Уже плывущий может выйти; стоящий на суше в кризис воду не входит.</text>
+
+  <rect x="28" y="520" width="944" height="74" rx="12" fill="#202a35" stroke="#405064"/>
+  <text class="label" x="48" y="548">Легенда: R гекса = 1.5 wu · interior radius = 3 · boundary radius = 4 · шаг сетки = R/4 = 0.375 wu.</text>
+  <text class="label" x="48" y="574">Полное тело = 0.88R × 0.24R = 1.32 × 0.36 wu · бюджет сухого поиска = 24 отклонённых junction.</text>
+</svg>

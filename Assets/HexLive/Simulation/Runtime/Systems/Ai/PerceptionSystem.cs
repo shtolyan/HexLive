@@ -24,7 +24,7 @@ public sealed class PerceptionSystem : ISimulationSystem
     private readonly System.Collections.Generic.List<ObjectId> _forgottenScratch = new();
 
     // Живой скан идёт по гекс-кольцу через ObjectsByTile, а не по всем
-    // объектам острова: кольцо радиуса r — это 1+3r(r+1) тайлов (19 при r=2)
+    // объектам острова: кольцо радиуса r — это 1+3r(r+1) тайлов (37 при r=3)
     // против ~2 300 проверок дистанции на карте 16x. Порядок обхода фиксируем
     // сортировкой по id: словарный порядок Entities.Objects зависит от
     // переиспользования слотов после despawn и не воспроизводим по смыслу.

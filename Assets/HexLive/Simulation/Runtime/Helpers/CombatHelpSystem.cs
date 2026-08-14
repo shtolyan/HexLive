@@ -57,6 +57,11 @@ internal static class CombatHelpSystem
                 continue; // already answering this exact assault
             }
 
+            if (!CanReachAttacker(world, helper, null, looterId))
+            {
+                continue;
+            }
+
             if (helper.Plan.Status == PlanStatus.Active ||
                 helper.Execution.Status == ExecutionStatus.InProgress ||
                 helper.IsCarryingPerson)
@@ -178,7 +183,7 @@ internal static class CombatHelpSystem
                 helper.Mind.CurrentGoal != GoalType.Defend &&
                 helper.Mind.CurrentGoal != GoalType.GroupHunt && // §108: она уже идёт бить
 
-                (dogId.HasValue || attackerId.HasValue);
+                CanReachAttacker(world, helper, dogId, attackerId);
 
             if (!canHelp || score < Spec57.HelpCryDecisionThreshold || roll > score)
             {
@@ -409,6 +414,11 @@ internal static class CombatHelpSystem
                 continue;
             }
 
+            if (!CanReachAttacker(world, helper, dogId, attackerId))
+            {
+                continue;
+            }
+
             if (helper.Plan.Status == PlanStatus.Active ||
                 helper.Execution.Status == ExecutionStatus.InProgress ||
                 helper.IsCarryingPerson)
@@ -436,6 +446,40 @@ internal static class CombatHelpSystem
                 $"Affinity={relationship.Affinity:F2} " +
                 $"Dist={HexSpatialMath.HexDistance(helper.Tile, victim.Tile)}");
         }
+    }
+
+    /// <summary>Combat events are outside the ordinary goal auction, so they
+    /// must explicitly honour both its cooldown and the planner's exact
+    /// availability contract.</summary>
+    internal static bool CanReachAttacker(
+        WorldState world, NPCState helper, int? dogId, EntityId? attackerId)
+    {
+        if (PlanningSystem.IsGoalOnCooldown(helper, GoalType.Defend, world.Tick))
+        {
+            return false;
+        }
+
+        JunctionId? attackerJunction = null;
+        if (dogId is { } wantedDog)
+        {
+            foreach (var dog in world.Mobs)
+            {
+                if (dog.Id == wantedDog && dog.Health > 0f)
+                {
+                    attackerJunction = dog.Junction;
+                    break;
+                }
+            }
+        }
+        else if (attackerId is { } wantedAttacker &&
+                 world.Entities.Npcs.TryGetValue(wantedAttacker, out var attacker) &&
+                 attacker.Health > 0f)
+        {
+            attackerJunction = attacker.CurrentJunction;
+        }
+
+        return attackerJunction is { } target &&
+            PlanningSystem.HasReachableDefendApproach(world, helper, target);
     }
 
     // §57.9: спасение — событие для ОБЕИХ. Взаимный подъём отношений в момент

@@ -150,7 +150,15 @@ internal static class Connectivity
                 foreach (var neighborId in current.Neighbors)
                 {
                     if (world.JunctionComponents.TryGetValue(neighborId, out var mark) && mark == 0 &&
-                        world.Junctions.Items.TryGetValue(neighborId, out var neighbor) && !neighbor.Blocked)
+                        world.Junctions.Items.TryGetValue(neighborId, out var neighbor) && !neighbor.Blocked &&
+                        // §40.6 r5 / §40.17: the live pathfinder forbids
+                        // seam->seam travel (it is walking along a vertical
+                        // lip, not crossing one). The optimistic component
+                        // graph used to include that edge for jump-capable
+                        // actors, so planning could approve two laundry legs
+                        // that FindPath could never connect.
+                        !(world.ClimbSeams.Contains(currentId) &&
+                          world.ClimbSeams.Contains(neighborId)))
                     {
                         world.JunctionComponents[neighborId] = component;
                         _queue.Enqueue(neighborId);

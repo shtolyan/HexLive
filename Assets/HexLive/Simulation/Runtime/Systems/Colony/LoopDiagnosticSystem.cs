@@ -148,7 +148,8 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         var goal = npc.Plan.Goal;
         var target = npc.Plan.TargetObjectId;
         var agent = npc.Plan.TargetAgentId;
-        var counts = GoalCatalog.LoopFor(goal) != LoopPolicy.Ambient;
+        var counts = GoalCatalog.LoopFor(goal) != LoopPolicy.Ambient &&
+            !IsProductiveToolStash(world, npc, goal, target);
 
         if (!watch.Seen)
         {
@@ -162,6 +163,16 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
 
             if (!wasActive)
             {
+                // A completed intervening plan is real progress in the chain.
+                // Example from the soak: TendFire failed for lack of fuel,
+                // GatherWood completed, then the first new TendFire step was
+                // immediately labelled attempt five because yesterday's four
+                // failures survived.  Keep consecutive failures, but start a
+                // fresh diagnostic episode after any completed errand.
+                if (watch.Status == PlanStatus.Completed)
+                {
+                    world.IntentLedger.Forget(id);
+                }
                 // План только что ожил — новая попытка.
                 world.IntentLedger.Open(id, world.Tick, goal, target, agent);
             }
@@ -190,6 +201,20 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
 
         UpdateCrisisClocks(world, npc, ref watch);
         _watch[id] = watch;
+    }
+
+    /// <summary>A dropped garment can contain several different missing
+    /// tools. Repeated visits have the same container ObjectId, but each one
+    /// removes a useful tool and is real progress; treating the stable box id
+    /// as a Sisyphus aim made the escape ladder shun the colony's tool cache.</summary>
+    private static bool IsProductiveToolStash(
+        WorldState world, NPCState npc, GoalType goal, ObjectId? target)
+    {
+        return goal == GoalType.GatherTools &&
+            target is { } targetId &&
+            world.Entities.Objects.TryGetValue(targetId, out var stash) &&
+            stash.Contents.Count > 0 &&
+            InventoryMath.StashHoldsWantedTool(world, npc, stash);
     }
 
     /// <summary>
@@ -238,8 +263,11 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         if (WatchdogExclusions.IsAuthoredStillness(world, npc) ||
             WatchdogExclusions.IsPlayerDriven(npc))
         {
-            world.IntentLedger.ClearLooping(id);
-            Forget(id, world.Tick);
+            // A coma/cry/manual handoff is a hard boundary between conscious
+            // intentions. Keeping the closed tail made an old Drink aim fire a
+            // Sisyphus alarm while the NPC's current goal was already None.
+            world.IntentLedger.Forget(id);
+            _watch.Remove(id);
             return;
         }
 

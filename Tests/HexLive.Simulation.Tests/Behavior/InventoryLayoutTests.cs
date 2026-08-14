@@ -1,6 +1,8 @@
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -226,8 +228,9 @@ public sealed class InventoryLayoutTests
         npc.Inventory.Items.Add(ContentIds.Knife);
 
         Assert.That(InventoryMath.Importance(world, ContentIds.PickaxeStone),
-            Is.LessThan(InventoryMath.Importance(world, ContentIds.Knife)),
-            "Regression setup requires the missing tool to lose the ordinary importance comparison.");
+            Is.LessThanOrEqualTo(InventoryMath.Importance(world, ContentIds.Knife)),
+            "Regression setup requires the missing tool not to win the ordinary " +
+            "strict-less-than replacement comparison.");
         Assert.That(InventoryMath.CanMakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.True,
             "A missing capability must be able to displace redundant gear.");
 
@@ -278,6 +281,62 @@ public sealed class InventoryLayoutTests
 
         Assert.That(InventoryMath.CanMakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.False,
             "The duplicate exception must not sacrifice the sole favorite weapon.");
+    }
+
+    [Test]
+    public void CoconutEmergency_ReservesKnifeStoneFromGenericUnload()
+    {
+        var (world, npc) = CleanNpc();
+        MakeCoconutVisible(world, npc);
+        npc.Inventory.Capacity = 5;
+        npc.Inventory.Items.Add(ContentIds.Bottle);
+        npc.Inventory.Items.Add(ContentIds.Pill);
+        npc.Inventory.Items.Add(ContentIds.PickaxeStone);
+        npc.Inventory.Items.Add(GearCatalog.Hammer);
+        npc.Inventory.Items.Add(ContentIds.Stone);
+        npc.Needs.Hunger = 0.4f;
+        npc.Needs.Thirst = 0.81f;
+
+        new NeedsDecaySystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Stone),
+                Is.EqualTo(1),
+                "The only knife stone must not be unloaded and gathered forever.");
+            Assert.That(world.Events.Items.Any(e =>
+                e.Type == "EmergencyUnload" && e.Message.Contains(ContentIds.Stone)), Is.False);
+        });
+    }
+
+    [Test]
+    public void CoconutEmergency_KnifeStickMayDisplaceOrdinaryTool()
+    {
+        var (world, npc) = CleanNpc();
+        MakeCoconutVisible(world, npc);
+        npc.Inventory.Capacity = 5;
+        npc.Inventory.Items.Add(ContentIds.Bottle);
+        npc.Inventory.Items.Add(ContentIds.Pill);
+        npc.Inventory.Items.Add(ContentIds.PickaxeStone);
+        npc.Inventory.Items.Add(GearCatalog.Hammer);
+        npc.Inventory.Items.Add(ContentIds.Stone);
+        npc.Needs.Thirst = 0.9f;
+
+        Assert.That(InventoryMath.CanMakeRoomForGoal(
+            world, npc, GoalType.GatherWood, ContentIds.Stick), Is.True);
+        Assert.That(InventoryMath.MakeRoomForGoal(
+            world, npc, GoalType.GatherWood, ContentIds.Stick), Is.True);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Contains(ContentIds.Stone), Is.True,
+                "The first half of the recipe must survive while room is made for the second.");
+            Assert.That(npc.Inventory.Items.Contains(ContentIds.Bottle), Is.True);
+            Assert.That(npc.Inventory.Items.Contains(ContentIds.Pill), Is.True);
+            Assert.That(npc.Inventory.Items.Contains(GearCatalog.Hammer), Is.False,
+                "The least useful ordinary tool yields before water or medicine.");
+            Assert.That(npc.Inventory.HasSpace, Is.True);
+        });
     }
 
     [Test]
@@ -340,6 +399,24 @@ public sealed class InventoryLayoutTests
         };
         definition.Covers.Add(bodyPart);
         world.Content.ObjectDefinitions[id] = definition;
+    }
+
+    private static void MakeCoconutVisible(
+        HexLive.Simulation.Core.WorldState world, NPCState npc)
+    {
+        var junction = world.Junctions.Items.Values.First(j =>
+            !j.Blocked && j.Tiles.Count > 0);
+        var coconut = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Coconut, npc.Fragment, junction.Tiles[0], junction.Id);
+        npc.Perception.Objects.Clear();
+        npc.Perception.Objects.Add(new PerceivedObject
+        {
+            Id = coconut.Id,
+            DefinitionId = coconut.DefinitionId,
+            Tile = coconut.Tile,
+            IsReachable = true,
+            Distance = 1f
+        });
     }
 
     private static bool IsRegular(InventoryContainerLayout container) =>

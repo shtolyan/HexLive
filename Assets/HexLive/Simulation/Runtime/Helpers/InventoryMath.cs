@@ -40,6 +40,27 @@ internal static class InventoryMath
         return ReplacementVictim(world, npc, incomingDefinitionId) is not null;
     }
 
+    // §63: the emergency coconut-blade chain is allowed to sacrifice an
+    // ordinary tool for its ONE stick and ONE stone.  The generic importance
+    // order cannot express this: Tool(60) quite reasonably beats Resource(20)
+    // in normal life, but that made a full pack of hammer/pickaxe/bottle/pill
+    // fatal.  NeedsDecay would throw away the newly gathered stone every slow
+    // tick and GatherStone picked it straight back up forever (seed 104729).
+    //
+    // Keep this goal-aware and emergency-only.  Ordinary hauling still never
+    // swaps a useful tool for a pebble.
+    public static bool CanMakeRoomForGoal(
+        WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
+    {
+        if (CanMakeRoomFor(world, npc, incomingDefinitionId))
+        {
+            return true;
+        }
+
+        return SurvivalKnifeMaterialVictim(
+            world, npc, goal, incomingDefinitionId) is not null;
+    }
+
     public static bool MakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
     {
         if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
@@ -71,6 +92,83 @@ internal static class InventoryMath
         }
 
         return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
+    }
+
+    public static bool MakeRoomForGoal(
+        WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
+    {
+        if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
+        {
+            return true;
+        }
+
+        // Preserve the ordinary replacement order whenever it can solve the
+        // pack.  The survival exception is only the final fallback.
+        if (ReplacementVictim(world, npc, incomingDefinitionId) is not null)
+        {
+            return MakeRoomFor(world, npc, incomingDefinitionId);
+        }
+
+        var victim = SurvivalKnifeMaterialVictim(
+            world, npc, goal, incomingDefinitionId);
+        if (victim is null)
+        {
+            return false;
+        }
+
+        var victimImportance = Importance(world, victim);
+        npc.Inventory.Items.Remove(victim);
+        ExecutionSystem.DropItemAtFeet(world, npc, victim);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InventoryMadeRoom",
+                $"Dropped {victim.DefinitionId}({victimImportance}) for " +
+                $"emergency knife material {incomingDefinitionId}");
+        }
+
+        return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
+    }
+
+    internal static bool NeedsEmergencyCoconutBlade(WorldState world, NPCState npc) =>
+        npc.Body.HasUsableHand &&
+        !DecisionSystem.HasCoconutBlade(npc) &&
+        (npc.Needs.Thirst >= 0.8f || npc.Needs.Hunger >= 0.8f) &&
+        DecisionSystem.HasCoconutOpportunity(npc, world);
+
+    // While the emergency knife is unfinished, the material pair is survival
+    // cargo, not generic stockpile junk.  NeedsDecay uses this when deciding
+    // which resources it may unload from a full pack.
+    internal static bool IsReservedEmergencyKnifeMaterial(
+        WorldState world, NPCState npc, string definitionId)
+    {
+        if (!NeedsEmergencyCoconutBlade(world, npc))
+        {
+            return false;
+        }
+
+        var required = definitionId switch
+        {
+            ContentIds.Stick => RecipeCatalog.InputCount(
+                GoalType.CraftKnife, ContentIds.Stick),
+            ContentIds.Stone => RecipeCatalog.InputCount(
+                GoalType.CraftKnife, ContentIds.Stone),
+            _ => 0
+        };
+        if (required <= 0)
+        {
+            return false;
+        }
+
+        var carried = 0;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == definitionId)
+            {
+                carried++;
+            }
+        }
+
+        return carried <= required;
     }
 
     private static bool FitsExistingStack(NPCState npc, string definitionId)
@@ -204,6 +302,49 @@ internal static class InventoryMath
         }
 
         return redundantVictim;
+    }
+
+    private static ItemInstance SurvivalKnifeMaterialVictim(
+        WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
+    {
+        var exactMaterial =
+            goal == GoalType.GatherWood && incomingDefinitionId == ContentIds.Stick ||
+            goal == GoalType.GatherStone && incomingDefinitionId == ContentIds.Stone;
+        if (!exactMaterial || !NeedsEmergencyCoconutBlade(world, npc))
+        {
+            return null;
+        }
+
+        ItemInstance victim = null;
+        var victimImportance = int.MaxValue;
+        var victimWeaponPriority = int.MaxValue;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (npc.Inventory.IsHolstered(item) ||
+                IsReservedEmergencyKnifeMaterial(world, npc, item.DefinitionId))
+            {
+                continue;
+            }
+
+            // Food, water, medicine and weapons remain protected.  Resources,
+            // clothing and ordinary tools may yield to the life-saving recipe.
+            var importance = Importance(world, item);
+            if (importance > ItemCatalog.Importance(ItemCategory.Tool))
+            {
+                continue;
+            }
+
+            var weaponPriority = Content.GearCatalog.For(item.DefinitionId).MeleePriority;
+            if (importance < victimImportance ||
+                importance == victimImportance && weaponPriority < victimWeaponPriority)
+            {
+                victim = item;
+                victimImportance = importance;
+                victimWeaponPriority = weaponPriority;
+            }
+        }
+
+        return victim;
     }
 
     private static bool IsUsefulMissingTool(

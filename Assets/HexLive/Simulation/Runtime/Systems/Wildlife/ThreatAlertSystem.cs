@@ -225,6 +225,12 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             return;
         }
 
+        if (!CombatHelpSystem.CanReachAttacker(world, npc, threat.Id, null))
+        {
+            AvoidThreat(world, npc, threat);
+            return;
+        }
+
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress ||
             npc.IsCarryingPerson)

@@ -45,6 +45,17 @@ public static class WatchdogExclusions
             return true;
         }
 
+        // §29C.4B: a defender already beside the attacker is deliberately
+        // stationary; the fast combat system owns her strikes while the
+        // bounded Wait plan keeps the assist intent alive.
+        if (npc.Mind.CurrentGoal == GoalType.Defend &&
+            npc.Mind.AssistHoldSinceTick > 0 &&
+            (npc.Mind.CombatAssistDogId.HasValue ||
+             npc.Mind.CombatAssistAttackerNpcId.HasValue))
+        {
+            return true;
+        }
+
         if (npc.Mind.PendingTalkFrom is { } talkerId &&
             world.Entities.Npcs.TryGetValue(talkerId, out var talker) &&
             talker.Plan.TargetAgentId == npc.Id)
@@ -66,6 +77,17 @@ public static class WatchdogExclusions
             (abuser.Execution.CurrentInteraction == InteractionType.Abuse ||
              HexSpatialMath.HexDistance(npc.Tile, abuser.Tile) <=
                 Spec57.AnswerReadyRadiusTiles))
+        {
+            return true;
+        }
+
+        // §117: the challenged outsider waits through the demand, and the
+        // owner holds once approach phase has ended.  Both are authored scene
+        // roles.  The phase-0 owner is deliberately NOT excluded: she must
+        // really close the distance, so a broken approach remains visible.
+        if (npc.Mind.CurrentGoal == GoalType.Expel &&
+            (npc.Mind.PendingExpulsionFrom.HasValue ||
+             (npc.Mind.ExpulsionTargetNpcId.HasValue && npc.Mind.ExpulsionPhase > 0)))
         {
             return true;
         }

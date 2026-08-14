@@ -601,7 +601,9 @@ public sealed partial class ExecutionSystem
 
         // §40.6: remember where she is undressing so she can come back for the
         // pile after her swim (the list is filled as each piece drops below).
-        npc.Mind.RedressShore = shore;
+        // If §133 undresses at home, this is the home return point. A second
+        // PrepareBathe at the real shore must not overwrite it.
+        npc.Mind.RedressShore ??= shore;
 
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Execution.CurrentInteraction == InteractionType.Undress)
@@ -621,6 +623,7 @@ public sealed partial class ExecutionSystem
 
             if (garment is null)
             {
+                PlanningSystem.SetGoalCooldown(world, npc, GoalType.Bathe);
                 PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Bathe: active garment disappeared");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
@@ -687,34 +690,74 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        Junction swim = null;
-        var bestDistance = float.MaxValue;
-        foreach (var junction in world.Junctions.Items.Values)
+        var bathShore = step.TimeoutEndTick is { } encodedShore &&
+                        world.Junctions.Items.ContainsKey(new JunctionId(encodedShore))
+            ? new JunctionId(encodedShore)
+            : npc.Plan.TargetJunctionId ?? shore;
+        if (!current.Equals(bathShore))
         {
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
-                !world.Tiles.Items.TryGetValue(junction.Tiles[0], out var tile) ||
-                !tile.Flags.HasFlag(TileFlags.Water) ||
-                !Connectivity.Reachable(world, shore, junction.Id, npc.Body.CanJump))
+            // Undressing happened at home. Release that work point, claim the
+            // shore selected by planning (or a fresh exact shore if it became
+            // occupied), then perform the ordinary shore preparation there.
+            SpatialMutations.ReleaseJunctionReservation(world, shore, npc.Id);
+            if (!SpatialMutations.TryReserveJunction(
+                    world, bathShore, npc.Id, world.Tick, 96))
             {
-                continue;
+                var replacement = HygieneMath.FindReachableBathShore(world, npc);
+                if (replacement is null ||
+                    !SpatialMutations.TryReserveJunction(
+                        world, replacement.Id, npc.Id, world.Tick, 96))
+                {
+                    PlanningSystem.SetGoalCooldown(world, npc, GoalType.Bathe);
+                    PlanInterruption.TryAbort(world, npc,
+                        InterruptionCause.ExecutionFailure,
+                        "Bathe: shore became occupied after undressing");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    return;
+                }
+                bathShore = replacement.Id;
+                npc.Plan.TargetJunctionId = replacement.Id;
+                npc.Plan.TargetTile = replacement.Tiles[0];
             }
 
-            var distance = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
-            if (distance < bestDistance)
+            npc.Plan.Steps.Clear();
+            npc.Plan.Steps.Add(new PlanStep
             {
-                bestDistance = distance;
-                swim = junction;
-            }
+                Type = PlanStepType.MoveToJunction,
+                TargetJunction = bathShore
+            });
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.PrepareBathe,
+                TargetJunction = bathShore
+            });
+            npc.Plan.TargetJunctionId = bathShore;
+            npc.Plan.TargetTile = world.Junctions.Items[bathShore].Tiles.Count > 0
+                ? world.Junctions.Items[bathShore].Tiles[0]
+                : null;
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Movement.JunctionPath.Clear();
+            npc.Movement.PathIndex = 0;
+            npc.Movement.IsMoving = false;
+            return;
         }
+
+        var swim = HygieneMath.FindRoundTripBathWater(world, npc, bathShore);
 
         if (swim is null)
         {
+            // Planning proved a reversible dip when it chose this shore, but
+            // topology may change while the NPC walks/undresses. Treat that as
+            // a real failed attempt: without the shared cooldown Decision
+            // selected Bathe again on the very next medium pass and rebuilt
+            // the same impossible plan every four ticks (seed 1104, t28123+).
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.Bathe);
             PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Bathe: no reachable water junction");
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
 
-        SpatialMutations.ReleaseJunctionReservation(world, shore, npc.Id);
+        SpatialMutations.ReleaseJunctionReservation(world, bathShore, npc.Id);
         npc.Plan.TargetJunctionId = swim.Id;
         npc.Plan.TargetTile = swim.Tiles[0];
         npc.Plan.Steps.Clear();
@@ -740,6 +783,7 @@ public sealed partial class ExecutionSystem
 
         if (npc.WornItems.Count > 0)
         {
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.Bathe);
             PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Bathe requires complete undressing");
             npc.Mind.CurrentGoal = GoalType.None;
             return;
@@ -835,18 +879,17 @@ public sealed partial class ExecutionSystem
     // still-present remembered garment back on (the same clothes she took off).
     private static void RunRedressAfterBathe(WorldState world, NPCState npc, PlanStep step)
     {
-        // Can't get back to the pile (someone took the spot, route blocked):
-        // give up the guided return — she is naked, so the ordinary Dress goal
-        // takes over and re-dresses her from the nearest garment (her pile).
+        // A blocked search is only one of PathfindingSystem's four transient
+        // attempts (an actor may be sealing a one-junction passage).  Do not
+        // abort the redress on attempt one: that used to strand the bather in
+        // deep water, clear her shore memory and leave Idle as the only bid.
+        // PathfindingSystem owns the retry budget and aborts after attempt four;
+        // until then the exact shore plan and garment ids remain intact.
         if (!npc.Movement.IsMoving &&
             npc.Movement.Status == MovementStatus.Blocked &&
             (npc.CurrentJunction is not { } atShore || step.TargetJunction is not { } wantShore ||
              !atShore.Equals(wantShore)))
         {
-            npc.Mind.RedressGarments.Clear();
-            npc.Mind.RedressShore = null;
-            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "PostBatheRedress: shore unreachable");
-            npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
 

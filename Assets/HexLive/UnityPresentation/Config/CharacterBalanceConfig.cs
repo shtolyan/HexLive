@@ -21,8 +21,8 @@ namespace HexLive.UnityPresentation.Config
     public sealed class CharacterBalanceConfig : ScriptableObject
     {
         [Header("Восприятие и решения (AiBalance)")]
-        [Tooltip("Радиус восприятия в тайлах.")]
-        [Range(1, 6)] public int perceptionRadiusTiles = 2;
+        [Tooltip("Радиус живого восприятия предметов в тайлах. Минимум 3: еда, вода и инструменты не должны теряться сразу за соседним кольцом.")]
+        [Range(3, 8)] public int perceptionRadiusTiles = 3;
         [Tooltip("Сколько тиков живёт пространственная память (виденные объекты/опасности).")]
         [Range(300, 9600)] public int memoryTtlTicks = 2400;
         [Tooltip("Свежевыигранная цель заперта столько тиков (анти-дребезг аукциона).")]

@@ -59,9 +59,9 @@ public sealed partial class PlanningSystem
             return false; // the pack already holds a meal at least as good
         }
 
-        if (!npc.Inventory.HasSpace)
+        if (!InventoryMath.CanMakeRoomFor(world, npc, ContentIds.MeatCooked))
         {
-            return false; // take.from.spit lands the chunk in the pack
+            return false; // take.from.spit must be able to make a real slot
         }
 
         foreach (var perceived in npc.Perception.Objects)
@@ -71,6 +71,8 @@ public sealed partial class PlanningSystem
                 !world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) ||
                 !definition.Tags.Contains("Campfire") ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var fire) ||
+                npc.Memory.IsShunned(fire.Id, world.Tick) ||
+                (fire.IsOccupied && fire.CurrentUser != npc.Id) ||
                 fire.Junctions.Count == 0 ||
                 BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) == 0)
             {
@@ -338,7 +340,7 @@ public sealed partial class PlanningSystem
                 // the man who is hunting you.
                 !FactionRelations.AreAllies(npc, other) ||
                 other.CurrentJunction is not { } otherJunction ||
-                !Connectivity.Reachable(world, from, otherJunction, npc.Body.CanJump))
+                !Connectivity.Reachable(world, from, otherJunction, CanUseRoutineTraversal(npc)))
             {
                 continue;
             }
@@ -368,7 +370,7 @@ public sealed partial class PlanningSystem
                 if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
                     neighbor.Blocked ||
                     !SpatialQueries.IsJunctionFree(world, neighborId) ||
-                    !Connectivity.Reachable(world, from, neighborId, npc.Body.CanJump))
+                    !Connectivity.Reachable(world, from, neighborId, CanUseRoutineTraversal(npc)))
                 {
                     continue;
                 }
@@ -603,7 +605,7 @@ public sealed partial class PlanningSystem
         foreach (var rim in _forageRimScratch)
         {
             if ((npc.CurrentJunction is not { } fromJunction ||
-                 Connectivity.Reachable(world, fromJunction, rim, npc.Body.CanJump)) &&
+                 Connectivity.Reachable(world, fromJunction, rim, CanUseRoutineTraversal(npc))) &&
                 SpatialQueries.IsJunctionFree(world, rim) &&
                 SpatialMutations.TryReserveJunction(world, rim, npc.Id, world.Tick, 48))
             {
@@ -626,11 +628,16 @@ public sealed partial class PlanningSystem
         }
 
         npc.Plan.TargetTile = flora.Tile;
+        // Path failure must shun the PRODUCER, not only its temporary rim
+        // junction. Without this identity GetWater retried the same proven
+        // unreachable palm after every short goal cooldown.
+        npc.Plan.TargetObjectId = flora.Id;
         npc.Plan.TargetJunctionId = approachJunction;
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.MoveToJunction,
-            TargetJunction = approachJunction
+            TargetJunction = approachJunction,
+            TargetObject = flora.Id
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;

@@ -481,9 +481,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     if (!npc.Body.CanUseToolsOrWeapons)
                     {
+                        if (npc.Plan.TargetObjectId is { } producer)
+                        {
+                            npc.Memory.Shun(producer, world.Tick + AiBalance.ShunTicks);
+                        }
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                         PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
-                            $"Cannot harvest {worldObject.DefinitionId} (no legs)");
+                            $"Cannot harvest {worldObject.DefinitionId} (cannot use harvesting tools)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
                     }
@@ -1434,7 +1438,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             RecoverStashedTools(world, npc, worldObject);
         }
-        else if (!InventoryMath.MakeRoomFor(world, npc, worldObject.DefinitionId))
+        else if (!InventoryMath.MakeRoomForGoal(
+            world, npc, npc.Plan.Goal, worldObject.DefinitionId))
         {
             worldObject.IsOccupied = false;
             worldObject.CurrentUser = null;

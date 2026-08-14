@@ -67,7 +67,8 @@ public static class StowMath
                 : obj.DefinitionId == ContentIds.DryingRack ? 1
                 : -1;
             if (rank < 0 || ExecutionSystem.RackIsFull(world, obj) ||
-                !Connectivity.Reachable(world, from, obj.Junctions[0], npc.Body.CanJump))
+                !Connectivity.Reachable(
+                    world, from, obj.Junctions[0], PlanningSystem.CanUseRoutineTraversal(npc)))
             {
                 continue;
             }
@@ -159,7 +160,8 @@ public static class StowMath
         {
             if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
                 junction.Blocked || !SpatialQueries.IsJunctionFree(world, junctionId) ||
-                !Connectivity.Reachable(world, from, junctionId, npc.Body.CanJump))
+                !Connectivity.Reachable(
+                    world, from, junctionId, PlanningSystem.CanUseRoutineTraversal(npc)))
             {
                 continue;
             }

@@ -15,7 +15,7 @@ public sealed class PathfindingSystem : ISimulationSystem
 {
     public string Name => nameof(PathfindingSystem);
 
-    private static readonly System.Collections.Generic.HashSet<JunctionId> _avoidScratch = new();
+    private readonly System.Collections.Generic.HashSet<JunctionId> _hardAvoidScratch = new();
 
     // Spec 24.3: the junctions other living actors currently stand on.
     // NOTE (spec 34, climb): soft-avoiding elevation-step "climb seams" here
@@ -27,7 +27,8 @@ public sealed class PathfindingSystem : ISimulationSystem
     internal static System.Collections.Generic.HashSet<JunctionId> OtherActorJunctions(
         WorldState world, NPCState self)
     {
-        _avoidScratch.Clear();
+        var avoidScratch = world.Caches.OtherActorJunctionsScratch;
+        avoidScratch.Clear();
         foreach (var other in world.Entities.Npcs.Values)
         {
             if (other.Id.Value == self.Id.Value)
@@ -37,12 +38,12 @@ public sealed class PathfindingSystem : ISimulationSystem
 
             if (other.CurrentJunction is { } standing)
             {
-                _avoidScratch.Add(standing);
+                avoidScratch.Add(standing);
             }
 
             foreach (var claimed in other.ClaimedJunctions)
             {
-                _avoidScratch.Add(claimed);
+                avoidScratch.Add(claimed);
             }
         }
 
@@ -50,29 +51,27 @@ public sealed class PathfindingSystem : ISimulationSystem
         {
             if (mob.Health > 0f)
             {
-                _avoidScratch.Add(mob.Junction);
+                avoidScratch.Add(mob.Junction);
             }
         }
 
-        return _avoidScratch;
+        return avoidScratch;
     }
 
     // Spec §62: the junctions within DangerRingTiles of any live mob — the
     // soft-cost ring an unfit girl's routes detour around. Grown by BFS from
     // each mob's junction (tile-distance gated), cached for the tick.
-    private static readonly System.Collections.Generic.HashSet<JunctionId> _dangerScratch = new();
-    private static readonly System.Collections.Generic.Queue<JunctionId> _dangerQueue = new();
-    private static int _dangerScratchTick = -1;
-
     public static System.Collections.Generic.HashSet<JunctionId> DangerRing(WorldState world)
     {
-        if (_dangerScratchTick == world.Tick)
+        var dangerScratch = world.Caches.DangerRingJunctions;
+        var dangerQueue = world.Caches.DangerRingQueue;
+        if (world.Caches.DangerRingBuiltTick == world.Tick)
         {
-            return _dangerScratch;
+            return dangerScratch;
         }
 
-        _dangerScratchTick = world.Tick;
-        _dangerScratch.Clear();
+        world.Caches.DangerRingBuiltTick = world.Tick;
+        dangerScratch.Clear();
         foreach (var mob in world.Mobs)
         {
             if (mob.Health <= 0f)
@@ -80,15 +79,15 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
-            _dangerQueue.Clear();
-            if (_dangerScratch.Add(mob.Junction))
+            dangerQueue.Clear();
+            if (dangerScratch.Add(mob.Junction))
             {
-                _dangerQueue.Enqueue(mob.Junction);
+                dangerQueue.Enqueue(mob.Junction);
             }
 
-            while (_dangerQueue.Count > 0)
+            while (dangerQueue.Count > 0)
             {
-                var currentId = _dangerQueue.Dequeue();
+                var currentId = dangerQueue.Dequeue();
                 if (!world.Junctions.Items.TryGetValue(currentId, out var junction))
                 {
                     continue;
@@ -96,7 +95,7 @@ public sealed class PathfindingSystem : ISimulationSystem
 
                 foreach (var neighborId in junction.Neighbors)
                 {
-                    if (_dangerScratch.Contains(neighborId) ||
+                    if (dangerScratch.Contains(neighborId) ||
                         !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
                     {
                         continue;
@@ -117,39 +116,37 @@ public sealed class PathfindingSystem : ISimulationSystem
                         continue;
                     }
 
-                    _dangerScratch.Add(neighborId);
-                    _dangerQueue.Enqueue(neighborId);
+                    dangerScratch.Add(neighborId);
+                    dangerQueue.Enqueue(neighborId);
                 }
             }
         }
 
-        return _dangerScratch;
+        return dangerScratch;
     }
 
     // §72: the same soft ring, grown around hostile PEOPLE instead of mobs —
     // and per faction, because the ring is cached per tick and a single shared
     // set would make the raider detour around himself.
-    private static readonly System.Collections.Generic.Dictionary<Faction,
-        System.Collections.Generic.HashSet<JunctionId>> _hostileRings = new();
-    private static readonly System.Collections.Generic.Dictionary<Faction, int> _hostileRingTick = new();
-    private static readonly System.Collections.Generic.Queue<JunctionId> _hostileQueue = new();
-
     public static System.Collections.Generic.HashSet<JunctionId> HostileRing(
         WorldState world, Faction forFaction)
     {
-        if (!_hostileRings.TryGetValue(forFaction, out var ring))
+        var hostileRings = world.Caches.HostileRings;
+        var hostileRingTicks = world.Caches.HostileRingBuiltTicks;
+        var hostileQueue = world.Caches.HostileRingQueue;
+        if (!hostileRings.TryGetValue(forFaction, out var ring))
         {
             ring = new System.Collections.Generic.HashSet<JunctionId>();
-            _hostileRings[forFaction] = ring;
-            _hostileRingTick[forFaction] = -1;
+            hostileRings[forFaction] = ring;
+            hostileRingTicks[forFaction] = -1;
         }
 
-        if (_hostileRingTick[forFaction] == world.Tick)
+        if (hostileRingTicks[forFaction] == world.Tick)
         {
             return ring;
         }
 
-        _hostileRingTick[forFaction] = world.Tick;
+        hostileRingTicks[forFaction] = world.Tick;
         ring.Clear();
         if (!Spec72.Enabled)
         {
@@ -165,15 +162,15 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
-            _hostileQueue.Clear();
+            hostileQueue.Clear();
             if (ring.Add(hostileJunction))
             {
-                _hostileQueue.Enqueue(hostileJunction);
+                hostileQueue.Enqueue(hostileJunction);
             }
 
-            while (_hostileQueue.Count > 0)
+            while (hostileQueue.Count > 0)
             {
-                var currentId = _hostileQueue.Dequeue();
+                var currentId = hostileQueue.Dequeue();
                 if (!world.Junctions.Items.TryGetValue(currentId, out var junction))
                 {
                     continue;
@@ -203,7 +200,7 @@ public sealed class PathfindingSystem : ISimulationSystem
                     }
 
                     ring.Add(neighborId);
-                    _hostileQueue.Enqueue(neighborId);
+                    hostileQueue.Enqueue(neighborId);
                 }
             }
         }
@@ -213,8 +210,6 @@ public sealed class PathfindingSystem : ISimulationSystem
 
     // §72: the ring an NPC actually routes around — mobs plus hostile people.
     // Unioned into one set so HexPathfinder keeps its single-set signature.
-    private static readonly System.Collections.Generic.HashSet<JunctionId> _combinedRing = new();
-
     internal static System.Collections.Generic.HashSet<JunctionId> RouteAvoidRing(
         WorldState world, NPCState npc)
     {
@@ -231,18 +226,19 @@ public sealed class PathfindingSystem : ISimulationSystem
             return people;
         }
 
-        _combinedRing.Clear();
+        var combinedRing = world.Caches.CombinedDangerRingScratch;
+        combinedRing.Clear();
         foreach (var id in mobs)
         {
-            _combinedRing.Add(id);
+            combinedRing.Add(id);
         }
 
         foreach (var id in people)
         {
-            _combinedRing.Add(id);
+            combinedRing.Add(id);
         }
 
-        return _combinedRing;
+        return combinedRing;
     }
 
     // §72: who walks around the outsider. Unlike a wolf ring this is NOT gated
@@ -356,15 +352,58 @@ public sealed class PathfindingSystem : ISimulationSystem
             // so their routes bend around a spotted wolf instead of past it.
             // §72: …and around a hostile person, on the same soft terms.
             var danger = RouteAvoidRing(world, npc);
-            var canJump = npc.Body.CanJump;
+            // Critical Explore/Flee/ReachSafeGround may use the deliberately
+            // narrow §63 emergency scramble (both legs still crawl-capable).
+            // The planner used that same permission to choose the target, so
+            // pathfinding must not reject the promised route one tick later.
+            var emergencyTraversal = npc.Mind.CurrentGoal is GoalType.Flee or
+                    GoalType.ReachSafeGround ||
+                (npc.Mind.CurrentGoal == GoalType.Explore &&
+                 PlanningSystem.ExploreMustAvoidDeepWater(npc));
+            var canJump = emergencyTraversal
+                ? PlanningSystem.CanUseCriticalTraversal(npc)
+                : PlanningSystem.CanUseRoutineTraversal(npc);
             // §129: закрытые ЧУЖИЕ дверные порталы — жёсткий запрет (hardAvoid
             // переживает enclosed-fallback ретрай). У колонисток набор пуст →
             // null → путь бит-в-бит как до §129.
+            var actorAvoid = OtherActorJunctions(world, npc);
+            var hardAvoid = HardAvoidFor(world, npc);
             var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value,
-                OtherActorJunctions(world, npc), preferFlat,
+                actorAvoid, preferFlat,
                 canJump,
                 danger, TraitMath.DangerStepCost(npc),
-                DoorTopology.ForbiddenFor(world, npc.Faction));
+                hardAvoid);
+
+            // A junction at the shore may represent both land and water, so
+            // junction-level hardAvoid alone cannot prove which directed tile
+            // this particular route crosses. For any critical land route, inspect
+            // the actual step tiles and iteratively forbid the first unsafe
+            // destination. Twenty-four retries matches the bounded flee search;
+            // if all alternatives swim, fail the plan instead of gambling.
+            if (CriticalRouteMustStayDry(world, npc))
+            {
+                const int safeRouteBudget = 24;
+                for (var attempt = 0; attempt < safeRouteBudget; attempt++)
+                {
+                    var unsafeJunction = FirstDeepWaterStep(world, path);
+                    if (unsafeJunction is null)
+                    {
+                        break;
+                    }
+
+                    _hardAvoidScratch.Add(unsafeJunction.Value);
+                    path = HexPathfinder.FindPath(
+                        world, startJunction.Value,
+                        npc.Plan.TargetJunctionId.Value, actorAvoid,
+                        preferFlat, canJump, danger,
+                        TraitMath.DangerStepCost(npc), _hardAvoidScratch);
+                }
+
+                if (FirstDeepWaterStep(world, path) is not null)
+                {
+                    path.Clear();
+                }
+            }
             if (path.Count == 0)
             {
                 HandlePathFailure(world, npc, "PathFailed",
@@ -373,7 +412,13 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
-            npc.Movement.BlockedWaitTicks = 0;
+            var preservesActorWait = npc.Movement.Status == MovementStatus.Waiting &&
+                npc.Movement.StopReason.StartsWith("Occupied actor at junction ",
+                    System.StringComparison.Ordinal);
+            if (!preservesActorWait)
+            {
+                npc.Movement.BlockedWaitTicks = 0;
+            }
             npc.Movement.JunctionPath.Clear();
             foreach (var step in path)
             {
@@ -392,7 +437,10 @@ public sealed class PathfindingSystem : ISimulationSystem
             npc.Movement.HopPathIndex = -1;
             npc.Movement.IsMoving = path.Count > 1;
             npc.Movement.SetStatus(npc.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived);
-            npc.Movement.StopReason = string.Empty;
+            if (!preservesActorWait)
+            {
+                npc.Movement.StopReason = string.Empty;
+            }
 
             var pathJunctions = new System.Text.StringBuilder();
             for (var i = 0; i < path.Count; i++)
@@ -406,6 +454,79 @@ public sealed class PathfindingSystem : ISimulationSystem
                     $"Length={path.Count} Route=[{pathJunctions}] IsMoving={npc.Movement.IsMoving}");
             }
         }
+    }
+
+    /// <summary>Doors are always hard terrain. During any critical route from
+    /// land, deep-water-only junctions join that set: an exhausted or
+    /// dehydrated NPC may still seek resources, but never chooses a route that
+    /// can turn the next faint into drowning.</summary>
+    private System.Collections.Generic.HashSet<JunctionId> HardAvoidFor(
+        WorldState world, NPCState npc)
+    {
+        var doors = DoorTopology.ForbiddenFor(world, npc.Faction);
+        if (!CriticalRouteMustStayDry(world, npc))
+        {
+            return doors;
+        }
+
+        _hardAvoidScratch.Clear();
+        if (doors is not null)
+        {
+            foreach (var door in doors)
+            {
+                _hardAvoidScratch.Add(door);
+            }
+        }
+
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Tiles.Count == 0)
+            {
+                continue;
+            }
+
+            var allDeepWater = true;
+            foreach (var tile in junction.Tiles)
+            {
+                if (!SpatialQueries.IsSwimTile(world, tile))
+                {
+                    allDeepWater = false;
+                    break;
+                }
+            }
+
+            if (allDeepWater)
+            {
+                _hardAvoidScratch.Add(junction.Id);
+            }
+        }
+
+        return _hardAvoidScratch;
+    }
+
+    /// <summary>Once safely on land, someone close to dehydration,
+    /// starvation or exhaustion may not re-enter deep water for ANY errand.
+    /// While already swimming we keep routing enabled: ReachSafeGround must be
+    /// able to cross the remaining water on its way out.</summary>
+    private static bool CriticalRouteMustStayDry(
+        WorldState world, NPCState npc) =>
+        PlanningSystem.ExploreMustAvoidDeepWater(npc) &&
+        !SpatialQueries.IsSwimTile(world, npc.Tile);
+
+    private static JunctionId? FirstDeepWaterStep(
+        WorldState world, System.Collections.Generic.IReadOnlyList<JunctionId> path)
+    {
+        for (var i = 1; i < path.Count; i++)
+        {
+            if (HexPathfinder.TryGetDirectedStepTile(
+                    world, path[i - 1], path[i], out var stepTile) &&
+                SpatialQueries.IsSwimTile(stepTile))
+            {
+                return path[i];
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

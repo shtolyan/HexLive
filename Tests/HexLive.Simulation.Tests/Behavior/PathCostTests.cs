@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
@@ -98,6 +99,55 @@ public sealed class PathCostTests
             "ребро ничего бы не поменял, и тест ниже проверяет фантазию.");
         Assert.That(crossingEdgesAtSeams, Is.GreaterThan(0),
             "У шов-узлов нет ни одного ребра с перепадом — предпосчёт врёт.");
+    }
+
+    [Test]
+    public void ReachabilityRejectsTheSameSeamWalkAsThePathfinder()
+    {
+        var world = TestWorld.CreateWorld(104729);
+        JunctionId from = default;
+        JunctionId to = default;
+        var found = false;
+        foreach (var seamId in world.ClimbSeams)
+        {
+            if (!world.Junctions.Items.TryGetValue(seamId, out var seam))
+            {
+                continue;
+            }
+
+            foreach (var neighbor in seam.Neighbors)
+            {
+                if (!world.ClimbSeams.Contains(neighbor))
+                {
+                    continue;
+                }
+
+                from = seamId;
+                to = neighbor;
+                found = true;
+                break;
+            }
+
+            if (found)
+            {
+                break;
+            }
+        }
+
+        Assert.That(found, Is.True, "Fixture needs one adjacent seam pair.");
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            junction.Blocked = !junction.Id.Equals(from) && !junction.Id.Equals(to);
+        }
+        world.TopologyVersion++;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(HexPathfinder.FindPath(world, from, to), Is.Empty,
+                "Walking seam-to-seam is forbidden by the live router.");
+            Assert.That(Connectivity.Reachable(world, from, to), Is.False,
+                "Planning reachability must be a projection of the live router.");
+        });
     }
 
     [Test]

@@ -765,6 +765,28 @@ public sealed class RaidSystem : ISimulationSystem
                 continue;
             }
 
+            // The latch runs after Decision+Planning. If the auction has just
+            // released an obsession to Drink/Eat/Treat/CoolOff/Sleep, do not
+            // overwrite that survival plan with Abuse again on the same
+            // medium pass. Seed 1104 otherwise rebuilt Drink and immediately
+            // aborted it as "Abusing NPC1" every four ticks for 300+ ticks.
+            var survivalEmergency = abuser.Mind.IsStarving ||
+                abuser.Mind.IsDehydrated ||
+                abuser.Mind.IsOverheated ||
+                DecisionSystem.IsBleedingCrisis(abuser) ||
+                abuser.Needs.Energy < Spec49.DeadTiredEnergy;
+            if (survivalEmergency)
+            {
+                if (explain && SimTrace.Enabled)
+                {
+                    Trace.Debug(world, abuser.Id, "AbuseBlocked",
+                        $"Reason=CriticalNeed Goal={abuser.Mind.CurrentGoal} " +
+                        $"H={abuser.Needs.Hunger:F2} W={abuser.Needs.Thirst:F2} " +
+                        $"E={abuser.Needs.Energy:F2}");
+                }
+                continue;
+            }
+
             if (abuser.IsUnconscious(world.Tick) ||
                 abuser.Body.IsProne ||
                 !abuser.Body.CanUseToolsOrWeapons)
@@ -801,6 +823,12 @@ public sealed class RaidSystem : ISimulationSystem
 
             if (abuser.IsFighting ||
                 abuser.Mind.CurrentGoal == GoalType.Raid ||
+                // The previous medium pass may already have triggered this
+                // exact scene. Planning runs before RaidSystem and has just
+                // built its approach; aborting that active Abuse plan here
+                // and assigning Abuse again left Plan=Invalid forever
+                // (seed 867: three 48-tick stuck onsets in one prowl).
+                abuser.Mind.CurrentGoal == GoalType.Abuse ||
                 abuser.Mind.CurrentGoal == GoalType.Flee ||
                 abuser.Mind.CurrentGoal == GoalType.Expel)
             {

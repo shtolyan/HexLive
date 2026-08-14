@@ -340,6 +340,12 @@ public sealed class LootHelplessTests
         var far = allies[1];
         near.Tile = new TileCoord(victim.Tile.Q + Spec111.LootWitnessRadiusTiles, victim.Tile.R);
         far.Tile = new TileCoord(victim.Tile.Q + Spec111.LootWitnessRadiusTiles + 1, victim.Tile.R);
+        // This test isolates the coarse witness radius. Keep the near witness
+        // on the already-adjacent scene graph; changing Tile alone otherwise
+        // leaves her old random prototype junction behind a cliff and turns
+        // the fixture into an accidental exact-route test.
+        near.CurrentJunction = victim.CurrentJunction;
+        near.Position = victim.Position;
 
         var responders = CombatHelpSystem.RallyLootWitnesses(world, victim, outsider.Id);
 

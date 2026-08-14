@@ -59,7 +59,8 @@ public static class StrayGarmentMath
                 OnAStation(world, obj) || AwaitedByABather(world, perceived.Id) ||
                 obj.Junctions.Count == 0 ||
                 npc.CurrentJunction is not { } from ||
-                !Connectivity.Reachable(world, from, obj.Junctions[0], npc.Body.CanJump))
+                !Connectivity.Reachable(
+                    world, from, obj.Junctions[0], PlanningSystem.CanUseRoutineTraversal(npc)))
             {
                 continue;
             }

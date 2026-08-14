@@ -5,6 +5,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -73,6 +74,33 @@ public sealed class StuckDiagnosticTests
 
         Assert.That(StuckEvents(engine.World, "IdleWithGoal"), Is.Zero,
             "Детектор сработал на нормальной паузе — такой шум обесценивает его.");
+    }
+
+    [Test]
+    public void RepeatedCompletedWorkAtOnePileIsProgressNotStall()
+    {
+        var (engine, npc) = Arena();
+        npc.Mind.CurrentGoal = GoalType.GatherLeaves;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Movement.IsMoving = false;
+
+        for (var i = 0; i < AiBalance.StuckIdleTicks * 3; i++)
+        {
+            if (i % 8 == 0)
+            {
+                npc.Execution.LastCompletedTick = engine.World.Tick;
+            }
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(StuckEvents(engine.World, "IdleWithGoal"), Is.Zero,
+                "Successful pickups at one junction must reset the stationary watch.");
+            Assert.That(StuckDiagnosticSystem.CountsAsIdleWithGoal(
+                engine.World, npc), Is.False,
+                "The soak metric must use the same recent-progress grace.");
+        });
     }
 
     [Test]
@@ -182,6 +210,57 @@ public sealed class StuckDiagnosticTests
         Assert.That(StuckEvents(engine.World, "PositionFrozen"), Is.Zero,
             "A planted turn and advancing path index are movement progress, " +
             "even while the world position has not changed yet.");
+    }
+
+    [Test]
+    public void NewGoalStartsANewFrozenWindow()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        var diagnostic = new StuckDiagnosticSystem();
+        npc.Mind.CurrentGoal = GoalType.WashClothes;
+        npc.Plan.Goal = GoalType.WashClothes;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Movement.IsMoving = true;
+        npc.Movement.SetStatus(MovementStatus.Blocked);
+
+        diagnostic.Run(world);
+        world.Tick = AiBalance.StuckFrozenTicks;
+
+        npc.Mind.CurrentGoal = GoalType.CoolOff;
+        npc.Plan.Goal = GoalType.CoolOff;
+        diagnostic.Run(world);
+
+        Assert.That(StuckEvents(world, "PositionFrozen"), Is.Zero,
+            "A freshly selected route must not inherit the previous goal's " +
+            "stationary time and be reported four ticks after it starts.");
+    }
+
+    [Test]
+    public void ReplanSampleDoesNotHideRealPositionProgress()
+    {
+        var (engine, npc) = Arena();
+        npc.Mind.CurrentGoal = GoalType.Expel;
+        npc.Plan.Goal = GoalType.Expel;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Movement.IsMoving = false;
+
+        // A moving-target chase rebuilds on Medium ticks.  The Slow observer
+        // can see IsMoving=false at every sample even though the actor covered
+        // ground between samples; coordinates are the authoritative progress.
+        for (var i = 0; i < AiBalance.StuckIdleTicks * 3; i++)
+        {
+            if (i % 16 == 0)
+            {
+                npc.Position = new HexLive.Simulation.Common.Float2(
+                    npc.Position.X + HexSpatialMath.HexRadius, npc.Position.Y);
+            }
+            engine.Step();
+        }
+
+        Assert.That(StuckEvents(engine.World, "IdleWithGoal"), Is.Zero,
+            "A chase which changes world position is not idle just because each " +
+            "diagnostic sample lands on its replan tick.");
     }
 
     [Test]

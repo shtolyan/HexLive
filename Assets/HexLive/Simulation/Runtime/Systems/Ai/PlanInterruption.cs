@@ -26,6 +26,15 @@ public static class PlanInterruption
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
         Abort(world, npc, reason);
+        // A hostile crossing the route or a scene taking ownership is not a
+        // failed attempt at the route's target.  Retaining it made five valid
+        // external reroutes look like a Sisyphus target and the escape ladder
+        // then shunned the unrelated wardrobe/fire/patient.
+        if (cause is InterruptionCause.ThreatReroute or
+            InterruptionCause.SceneInitiator or InterruptionCause.ScenePact)
+        {
+            world.IntentLedger.Forget(npc.Id.Value);
+        }
         return true;
     }
 

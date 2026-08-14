@@ -348,6 +348,17 @@ internal static class LyingSpot
             world, npc, tile, HexSpatialMath.TileToWorld(tile), npc.RotationDegrees, out _);
     }
 
+    /// <summary>Exact non-mutating placement used by the autonomous sleep
+    /// planner. Returning the chosen interior node keeps its route and the
+    /// eventual full-body solver on the same 37-node geometry.</summary>
+    internal static bool TrySolveOnTile(
+        WorldState world, NPCState npc, TileCoord tile, out Placement placement)
+    {
+        return TrySolveOnTile(
+            world, npc, tile, HexSpatialMath.TileToWorld(tile),
+            npc.RotationDegrees, out placement);
+    }
+
     private static bool TrySolveOnTile(
         WorldState world, NPCState npc, TileCoord tileCoord,
         Float2 preferredPosition, float preferredHeading, out Placement placement)

@@ -57,10 +57,10 @@ public static class Spec76
     // sign inside the helper (more grit = LESS damage taken).
 
     // §125: гексов радиуса восприятия людей на единицу характеристики.
-    // 10 = «число с листа персонажа и есть радиус»: attr 0.8 читается как
-    // «Восприятие 8» и даёт ровно 8 гексов. Не Gain-множитель нарочно —
-    // радиус целочисленный и абсолютный, а не поправка к среднему.
-    public static float PerceptionRadiusPerAttribute = 10f;
+    // 16 даёт среднему телу 8 гексов вместо прежних 5 (+60% радиуса), не
+    // меняя сам ролл характеристики. Не Gain-множитель нарочно — радиус
+    // целочисленный и абсолютный, а не поправка к среднему.
+    public static float PerceptionRadiusPerAttribute = 16f;
 
     public static float MeleeDamageGain = 0.3f;
     public static float IncomingDamageGain = 0.3f;

@@ -7,6 +7,7 @@ run export_arch_elements.py to ship the five FBX files to Unity.
 """
 
 import importlib
+import json
 import math
 import os
 import random
@@ -249,7 +250,24 @@ FROND_SCALE = 0.80          # shipped frond is 1.066 long -> 0.85 wu on the roof
 FROND_LENGTH = 1.066 * FROND_SCALE
 
 
-def lay_fronds(stage, prefix, rng, sloped):
+LEAF_OVERRIDES_PATH = os.path.join(_tools, "arch_roof_leaves.json")
+
+
+def _leaf_overrides(root_name):
+    """Hand-placed leaves win over the generator.
+
+    The player arranges fronds by hand in Blender; a plain rebuild would wipe
+    that. Whatever is in arch_roof_leaves.json is re-applied instead, so the
+    pipeline stays reproducible AND keeps the authored look. Re-capture after
+    moving leaves; delete the entry to fall back to the generated layout."""
+    try:
+        with open(LEAF_OVERRIDES_PATH) as handle:
+            return json.load(handle).get(root_name) or []
+    except (OSError, ValueError):
+        return []
+
+
+def lay_fronds(stage, prefix, rng, sloped, root_name=None):
     """Thatch a sector with the kit's OWN palm fronds, one object per leaf.
 
     There is no panel underneath: the roof is sticks and leaves, exactly as it
@@ -262,6 +280,21 @@ def lay_fronds(stage, prefix, rng, sloped):
                     key=lambda m: m.name)
     if not fronds:
         raise RuntimeError("kit palm fronds (FrondPinnate.*) not found")
+
+    saved = _leaf_overrides(root_name) if root_name else []
+    if saved:
+        made = []
+        for item in saved:
+            mesh = bpy.data.meshes.get(item["mesh"]) or fronds[0]
+            obj = bpy.data.objects.new(item["name"], mesh)
+            ensure_collection().objects.link(obj)
+            obj.parent = stage
+            obj.location = item["loc"]
+            obj.rotation_mode = "XYZ"
+            obj.rotation_euler = Euler(item["rot"])
+            obj.scale = item["scale"]
+            made.append(obj)
+        return made
     pitch = math.atan2(ROOF_RISE, ROOF_EDGE_X) if sloped else 0.0
     # Row bases chosen so each wreath's tips reach well past the next row and
     # the outer one stops at the authored overhang.
@@ -353,7 +386,7 @@ new_obj("ROOF_rafter",
         rot=(0, math.radians(90) + math.atan2(ROOF_RISE, rafter_len), math.radians(-30)))
 
 # Stage 2 — three thatch bands, one per delivered leaf bundle.
-lay_fronds(s2, "ROOF", rng, sloped=True)
+lay_fronds(s2, "ROOF", rng, sloped=True, root_name="HL_ARCH_ROOF")
 
 # Stage 3 — one rope: lashings where the rafter meets the eave and the peak.
 binds = []
@@ -412,7 +445,7 @@ new_obj("ROOFFLAT_edge_beam",
 new_obj("ROOFFLAT_rafter",
         bowed_stick("ROOFFLAT_rafter", rafter_len, 0.020, rng, bow=0.005), s1,
         loc=(0.04, -0.03, -0.022), rot=(0, math.radians(90), math.radians(-30)))
-lay_fronds(s2, "ROOFFLAT", rng, sloped=False)
+lay_fronds(s2, "ROOFFLAT", rng, sloped=False, root_name="HL_ARCH_ROOF_FLAT")
 binds = []
 for index, (x, y) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08), (0.10, -0.055))):
     binds.append(new_obj(f"ROOFFLAT_bind_{index}",

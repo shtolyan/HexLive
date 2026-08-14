@@ -11,6 +11,14 @@ public static class SpecLlmControl
     // Even an idle selected NPC is not reconsidered every simulation tick.
     // At the default 4 Hz this is sixteen seconds between provider decisions.
     public const int DecisionCooldownTicks = 64;
+
+    // Provider work older than this is canceled and any late result is dropped
+    // by its issued tick. At 4 Hz this is a sixteen-second response budget.
+    public const int RequestTimeoutTicks = 64;
+
+    // Bound external work independently of colony size. Round-robin selection
+    // ensures a full cap cannot permanently favor low entity ids.
+    public const int MaxInFlightRequests = 2;
 }
 
 }

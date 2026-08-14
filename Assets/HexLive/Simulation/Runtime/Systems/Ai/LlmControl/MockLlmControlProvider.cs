@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -7,7 +9,7 @@ namespace HexLive.Simulation.Runtime
 /// Deterministic offline provider for tests and future integration work.
 /// It never invents a target: danger signals produce Stop and all other input produces None.
 /// </summary>
-public sealed class MockLlmControlProvider : ILlmControlProvider
+public sealed class MockLlmControlProvider : QueuedLlmControlProvider
 {
     private static readonly string[] DangerSignals =
     {
@@ -17,22 +19,24 @@ public sealed class MockLlmControlProvider : ILlmControlProvider
         "combat"
     };
 
-    public LlmDecision Decide(LlmDecisionContext context)
+    protected override Task<LlmDecision> DecideAsync(
+        LlmDecisionContext context, CancellationToken cancellationToken)
     {
         if (context is null) throw new ArgumentNullException(nameof(context));
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (ContainsDangerSignal(context.StateSummary) ||
             ContainsDangerSignal(context.PerceptionSummary) ||
             ContainsDangerSignal(context.MemorySummary))
         {
-            return new LlmDecision(
+            return Task.FromResult(new LlmDecision(
                 LlmCommandKind.Stop,
-                reason: "Mock safety rule stopped the NPC because context reported danger.");
+                reason: "Mock safety rule stopped the NPC because context reported danger."));
         }
 
-        return new LlmDecision(
+        return Task.FromResult(new LlmDecision(
             LlmCommandKind.None,
-            reason: "Mock provider found no safe action in the context summaries.");
+            reason: "Mock provider found no safe action in the context summaries."));
     }
 
     private static bool ContainsDangerSignal(string summary)

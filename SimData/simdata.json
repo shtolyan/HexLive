@@ -536,7 +536,6 @@
     "Spec118.ComaThresholdMin": 0.100000001,
     "Spec118.ComaThresholdToughnessGain": 0.75,
     "Spec118.CutRecoveryPerSlowTick": 0.0033,
-    "Spec118.NaturalScarringFactor": 0.25,
     "Spec118.DamageTypesEnabled": true,
     "Spec118.DangerousRiseToughnessTraining": 0.00200000009,
     "Spec118.DegenerationCutThreshold": 0.200000003,

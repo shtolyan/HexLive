@@ -7,6 +7,7 @@ using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.History;
 using UnityEngine;
+using EntityId = HexLive.Simulation.Common.EntityId;
 
 namespace HexLive.UnityPresentation.Bootstrap
 {

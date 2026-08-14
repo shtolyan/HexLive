@@ -8,6 +8,7 @@ using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using UnityEngine;
+using EntityId = HexLive.Simulation.Common.EntityId;
 
 namespace HexLive.UnityPresentation.Bootstrap
 {

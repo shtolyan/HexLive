@@ -29,7 +29,23 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        var options = ServerOptions.Parse(args);
+        ServerOptions? options;
+        try
+        {
+            options = ServerOptions.Parse(args);
+        }
+        catch (Exception ex) when (
+            ex is ArgumentException ||
+            ex is FormatException ||
+            ex is OverflowException ||
+            ex is InvalidOperationException)
+        {
+            // Configuration errors must be concise and must never echo the
+            // environment value that may contain the provider secret.
+            Console.Error.WriteLine($"[config] {ex.Message}");
+            return 1;
+        }
+
         if (options is null)
         {
             return 1;
@@ -247,6 +263,7 @@ public sealed class ServerOptions
     public static ServerOptions? Parse(string[] args)
     {
         var options = new ServerOptions();
+        options.Llm.ApplyEnvironment(Environment.GetEnvironmentVariable);
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -275,9 +292,6 @@ public sealed class ServerOptions
                 case "--llm-endpoint" when i + 1 < args.Length:
                     options.Llm.SetEndpoint(args[++i]);
                     break;
-                case "--llm-api-key" when i + 1 < args.Length:
-                    options.Llm.SetApiKey(args[++i]);
-                    break;
                 case "--llm-model" when i + 1 < args.Length:
                     options.Llm.SetModel(args[++i]);
                     break;
@@ -289,6 +303,12 @@ public sealed class ServerOptions
                     break;
                 case "--llm-backoff" when i + 1 < args.Length:
                     options.Llm.SetBackoffSeconds(args[++i]);
+                    break;
+                case "--llm-max-queued" when i + 1 < args.Length:
+                    options.Llm.SetMaxQueuedRequests(args[++i]);
+                    break;
+                case "--llm-max-concurrent" when i + 1 < args.Length:
+                    options.Llm.SetMaxConcurrentRequests(args[++i]);
                     break;
                 case "--help":
                 case "-h":
@@ -304,7 +324,12 @@ public sealed class ServerOptions
                         "  --llm-endpoint URL  enable host-side HTTP LLM provider endpoint\n" +
                         "  --llm-npcs IDS      comma-separated selected NPC ids for LLM control\n" +
                         "  --llm-model NAME    optional provider model hint\n" +
-                        "  --llm-timeout N     HTTP request timeout seconds (default 12)\n");
+                        "  --llm-timeout N     HTTP request timeout seconds (default 12)\n" +
+                        "  --llm-backoff N     delay after provider failures (default 8)\n" +
+                        "  --llm-max-queued N  queued provider requests (default 2)\n" +
+                        "  --llm-max-concurrent N  concurrent HTTP requests (default 2)\n" +
+                        "  HEXLIVE_LLM_* environment variables provide the same settings;\n" +
+                        "  HEXLIVE_LLM_API_KEY is the only accepted source for the bearer secret.\n");
                     return null;
                 default:
                     Console.Error.WriteLine($"Unknown option '{args[i]}' — try --help.");
@@ -312,6 +337,7 @@ public sealed class ServerOptions
             }
         }
 
+        options.Llm.Validate();
         return options;
     }
 }

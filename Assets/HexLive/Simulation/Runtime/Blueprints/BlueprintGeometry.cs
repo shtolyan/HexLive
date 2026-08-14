@@ -15,6 +15,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
         public const float BuildStep = 0.5f;
         public const int SectionsPerHexEdge = 3;
         public const int PerimeterSectionCount = 18;
+        public const int RequiredRoofSupportCount = 3;
 
         public static readonly HexBuildNodeKey[] NeighborDirections =
         {
@@ -65,12 +66,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
         }
 
         public static IReadOnlyList<HexBuildNodeKey> RoofSupports(RoofSectorKey sector) =>
-            new[]
-            {
-                HexCenter(sector.Hex),
-                HexCorner(sector.Hex, sector.Sector),
-                HexCorner(sector.Hex, sector.Sector + 1)
-            };
+            Enumerable.Range(0, 6)
+                .Select(corner => HexCorner(sector.Hex, corner))
+                .ToArray();
 
         public static IReadOnlyList<BuildSegmentKey> SectorBoundary(FloorSectorKey sector)
         {

@@ -97,15 +97,31 @@ namespace HexLive.Simulation.Tests.Blueprints
         }
 
         [Test]
-        public void RoofSectorRequiresItsThreeSupports()
+        public void RoofSectorRequiresAnyThreePerimeterSupportsAndNeverTheCentrePost()
         {
             var draft = new BuildingBlueprintDraft();
             var sector = new RoofSectorKey(TileCoord.Zero, 0);
+            var candidates = BlueprintGeometry.RoofSupports(sector);
+            Assert.That(candidates, Has.Count.EqualTo(6));
+            Assert.That(candidates, Does.Not.Contain(BlueprintGeometry.HexCenter(TileCoord.Zero)));
             Assert.That(BlueprintEditorCommands.AddRoofSector(draft, sector).Succeeded, Is.False);
             Assert.That(draft.Elements, Is.Empty);
-            foreach (var support in BlueprintGeometry.RoofSupports(sector))
+
+            Assert.That(BlueprintEditorCommands.AddSupport(
+                draft, BlueprintGeometry.HexCenter(TileCoord.Zero)).Succeeded, Is.True);
+            foreach (var support in candidates.Take(2))
                 Assert.That(BlueprintEditorCommands.AddSupport(draft, support).Succeeded, Is.True);
+            Assert.That(BlueprintEditorCommands.AddRoofSector(draft, sector).Succeeded, Is.False,
+                "The legacy centre post must not count as a roof support.");
+
+            Assert.That(BlueprintEditorCommands.AddSupport(draft, candidates[2]).Succeeded, Is.True);
             Assert.That(BlueprintEditorCommands.AddRoofSector(draft, sector).Succeeded, Is.True);
+            var centreId = draft.Elements.Single(element =>
+                element.Kind == BlueprintElementKind.Support &&
+                element.Node == BlueprintGeometry.HexCenter(TileCoord.Zero)).Id;
+            Assert.That(BlueprintEditorCommands.Delete(draft, centreId).Succeeded, Is.True);
+            Assert.That(draft.Elements.Any(element => element.Id == centreId), Is.False);
+            Assert.That(draft.Elements.Any(element => element.Kind == BlueprintElementKind.RoofSector), Is.True);
         }
 
         [Test]
@@ -153,6 +169,35 @@ namespace HexLive.Simulation.Tests.Blueprints
         }
 
         [Test]
+        public void VersionOneDraftMigratesLegacyCentrePostToPerimeterSupports()
+        {
+            var legacy = new BuildingBlueprintDraft { BlueprintId = "legacy_centre_support" };
+            var sector = new RoofSectorKey(TileCoord.Zero, 0);
+            Assert.That(BlueprintEditorCommands.AddSupport(
+                legacy, BlueprintGeometry.HexCenter(TileCoord.Zero)).Succeeded, Is.True);
+            foreach (var support in BlueprintGeometry.RoofSupports(sector).Take(2))
+                Assert.That(BlueprintEditorCommands.AddSupport(legacy, support).Succeeded, Is.True);
+            legacy.Elements.Add(new BlueprintElementData
+            {
+                Id = legacy.AllocateElementId(),
+                Kind = BlueprintElementKind.RoofSector,
+                Origin = BlueprintElementOrigin.Manual,
+                RoofSector = sector
+            });
+
+            var json = BuildingBlueprintJson.Serialize(legacy)
+                .Replace("\"version\": 2", "\"version\": 1");
+            Assert.That(BuildingBlueprintJson.TryDeserialize(json, out var migrated, out var error), Is.True, error);
+            Assert.That(migrated.Version, Is.EqualTo(BuildingBlueprintDraft.CurrentVersion));
+            Assert.That(migrated.Elements.Any(element =>
+                element.Kind == BlueprintElementKind.Support &&
+                element.Node == BlueprintGeometry.HexCenter(TileCoord.Zero)), Is.False);
+            Assert.That(migrated.Elements.Count(element =>
+                element.Kind == BlueprintElementKind.Support &&
+                BlueprintGeometry.RoofSupports(sector).Contains(element.Node)), Is.EqualTo(3));
+        }
+
+        [Test]
         public void BuiltInHutUsesIntegerKeysAndIsValid()
         {
             var draft = BuiltInBuildingBlueprints.Hut1Hex();
@@ -164,6 +209,9 @@ namespace HexLive.Simulation.Tests.Blueprints
                 element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window or BlueprintElementKind.Door),
                 Is.EqualTo(18));
             Assert.That(draft.Elements.Count(element => element.Kind == BlueprintElementKind.Door), Is.EqualTo(1));
+            Assert.That(draft.Elements.Count(element => element.Kind == BlueprintElementKind.Support), Is.EqualTo(6));
+            Assert.That(draft.Elements.Any(element => element.Kind == BlueprintElementKind.Support &&
+                element.Node == BlueprintGeometry.HexCenter(TileCoord.Zero)), Is.False);
             var roomId = draft.Elements.First(element => element.Kind == BlueprintElementKind.FloorSector).RoomId;
             Assert.That(BlueprintValidator.IsIndoorRoom(draft, roomId), Is.True);
         }

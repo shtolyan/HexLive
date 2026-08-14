@@ -147,9 +147,11 @@ namespace HexLive.Simulation.Runtime.Blueprints
             {
                 if (!roofs.Add(roof.RoofSector))
                     result.Add("roof.duplicate", "Сектор крыши занят дважды.", roof.Id);
-                var missing = BlueprintGeometry.RoofSupports(roof.RoofSector).Count(node => !supports.Contains(node));
+                var present = BlueprintGeometry.RoofSupports(roof.RoofSector).Count(supports.Contains);
+                var missing = System.Math.Max(0, BlueprintGeometry.RequiredRoofSupportCount - present);
                 if (missing > 0)
-                    result.Add("roof.support", $"Сектору крыши не хватает опор: {missing} из 3.", roof.Id);
+                    result.Add("roof.support",
+                        $"Сектору крыши не хватает периметральных опор: {missing}; требуется 3 из 6.", roof.Id);
             }
         }
 

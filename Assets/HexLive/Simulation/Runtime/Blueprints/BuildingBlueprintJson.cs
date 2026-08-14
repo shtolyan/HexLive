@@ -86,17 +86,19 @@ namespace HexLive.Simulation.Runtime.Blueprints
             }
             try
             {
+                var sourceVersion = Int(root, "version");
                 draft = new BuildingBlueprintDraft
                 {
-                    Version = Int(root, "version"),
+                    Version = sourceVersion,
                     BlueprintId = String(root, "blueprintId"),
                     NextElementId = Int(root, "nextElementId"),
                     NextRoomId = Int(root, "nextRoomId")
                 };
-                if (draft.Version != BuildingBlueprintDraft.CurrentVersion)
-                    throw new FormatException($"Версия {draft.Version} не поддерживается.");
+                if (sourceVersion < 1 || sourceVersion > BuildingBlueprintDraft.CurrentVersion)
+                    throw new FormatException($"Версия {sourceVersion} не поддерживается.");
                 foreach (var map in Objects(root, "elements")) draft.Elements.Add(ParseElement(map));
                 foreach (var map in Objects(root, "furniture")) draft.Furniture.Add(ParseFurniture(map));
+                Upgrade(draft, sourceVersion);
                 draft.Normalize();
                 var validation = BlueprintValidator.Validate(draft);
                 if (!validation.IsValid) throw new FormatException(validation.Issues[0].Message);
@@ -107,6 +109,51 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 error = exception.Message;
                 draft = null;
                 return false;
+            }
+        }
+
+        private static void Upgrade(BuildingBlueprintDraft draft, int sourceVersion)
+        {
+            if (sourceVersion >= 2) return;
+
+            // Draft v1 mistook the geometric centre of every triangular roof
+            // sector for a physical floor-to-roof post. V2 uses the six corner
+            // posts as the support contour and requires any three of them.
+            var roofHexes = draft.Elements
+                .Where(element => element.Kind == BlueprintElementKind.RoofSector)
+                .Select(element => element.RoofSector.Hex)
+                .Distinct()
+                .ToArray();
+            var legacyCenters = roofHexes.Select(BlueprintGeometry.HexCenter).ToHashSet();
+            draft.Elements.RemoveAll(element =>
+                element.Kind == BlueprintElementKind.Support && legacyCenters.Contains(element.Node));
+
+            var ids = draft.Elements.Select(element => element.Id)
+                .Concat(draft.Furniture.Select(item => item.Id))
+                .ToHashSet(StringComparer.Ordinal);
+            var supports = draft.Elements
+                .Where(element => element.Kind == BlueprintElementKind.Support)
+                .Select(element => element.Node)
+                .ToHashSet();
+            foreach (var hex in roofHexes)
+            {
+                var candidates = BlueprintGeometry.RoofSupports(new RoofSectorKey(hex, 0));
+                var present = candidates.Count(supports.Contains);
+                foreach (var node in candidates.Where(node => !supports.Contains(node)))
+                {
+                    if (present >= BlueprintGeometry.RequiredRoofSupportCount) break;
+                    string id;
+                    do id = draft.AllocateElementId(); while (!ids.Add(id));
+                    draft.Elements.Add(new BlueprintElementData
+                    {
+                        Id = id,
+                        Kind = BlueprintElementKind.Support,
+                        Origin = BlueprintElementOrigin.Manual,
+                        Node = node
+                    });
+                    supports.Add(node);
+                    present++;
+                }
             }
         }
 

@@ -221,7 +221,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
 
     public sealed class BuildingBlueprintDraft
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public int Version = CurrentVersion;
         public string BlueprintId = "draft";

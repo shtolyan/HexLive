@@ -44,10 +44,13 @@
     </g>
     <circle class="portal" cx="-207.846" cy="0" r="10"/>
 
-    <!-- supports for one roof sector -->
-    <circle class="support" cx="0" cy="0" r="9"/>
+    <!-- six perimeter supports; the roof needs any three -->
     <circle class="support" cx="0" cy="-240" r="9"/>
     <circle class="support" cx="207.846" cy="-120" r="9"/>
+    <circle class="support" cx="207.846" cy="120" r="9"/>
+    <circle class="support" cx="0" cy="240" r="9"/>
+    <circle class="support" cx="-207.846" cy="120" r="9"/>
+    <circle class="support" cx="-207.846" cy="-120" r="9"/>
     <path d="M0,0 L0,-240 L207.846,-120 Z" fill="#f0b45c" opacity=".10" stroke="#f0b45c" stroke-width="2" stroke-dasharray="8 7"/>
   </g>
 
@@ -59,8 +62,8 @@
     <text class="legend" x="98" y="98">один BuildSegmentKey</text>
     <path d="M0,150 L70,110 L140,150 Z" fill="#f0b45c" opacity=".12" stroke="#f0b45c" stroke-width="2"/>
     <text class="legend" x="165" y="137">пол / крыша:</text>
-    <text class="small" x="165" y="162">центр + 2 вершины</text>
-    <text class="small" x="165" y="184">крыше нужны все 3 опоры</text>
+    <text class="small" x="165" y="162">сектор: центр + 2 вершины</text>
+    <text class="small" x="165" y="184">опоры: любые 3 из 6 угловых</text>
 
     <text class="label" x="0" y="245">Навигация и мебель</text>
     <text class="small" x="0" y="275">junction-шаг = 0,375 wu</text>

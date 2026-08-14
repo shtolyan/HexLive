@@ -601,8 +601,17 @@ namespace HexLive.UnityPresentation.HutTest
             var supports = draft.Elements.Where(element => element.Kind == BlueprintElementKind.Support)
                 .Select(element => element.Node).ToHashSet();
             return draft.Elements.Where(element => element.Kind == BlueprintElementKind.RoofSector)
-                .SelectMany(element => BlueprintGeometry.RoofSupports(element.RoofSector))
-                .Where(node => !supports.Contains(node)).Distinct().ToArray();
+                .Select(element => element.RoofSector.Hex)
+                .Distinct()
+                .SelectMany(hex =>
+                {
+                    var candidates = BlueprintGeometry.RoofSupports(new RoofSectorKey(hex, 0));
+                    return candidates.Count(supports.Contains) >= BlueprintGeometry.RequiredRoofSupportCount
+                        ? Array.Empty<HexBuildNodeKey>()
+                        : candidates.Where(node => !supports.Contains(node));
+                })
+                .Distinct()
+                .ToArray();
         }
 
         private void RebuildHandles()

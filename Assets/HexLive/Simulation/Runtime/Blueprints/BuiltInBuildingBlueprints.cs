@@ -26,7 +26,6 @@ namespace HexLive.Simulation.Runtime.Blueprints
             Require(BlueprintEditorCommands.PlaceOpening(
                 draft, EdgeSegments(TileCoord.Zero, 3)[1], BlueprintElementKind.Door));
 
-            Require(BlueprintEditorCommands.AddSupport(draft, BlueprintGeometry.HexCenter(TileCoord.Zero)));
             for (var corner = 0; corner < 6; corner++)
                 Require(BlueprintEditorCommands.AddSupport(draft, BlueprintGeometry.HexCorner(TileCoord.Zero, corner)));
             for (var sector = 0; sector < 6; sector++)

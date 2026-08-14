@@ -139,9 +139,16 @@ namespace HexLive.UnityDebug.Editor
             // 36-го кадра (там поза ближе всего к сидячему лупу, сверено по
             // костям), RestDown = тот же хвост, развёрнутый Tools/reverse_anim_clip.py.
             // Так вход и выход стыкуются с лупом ОДНОЙ И ТОЙ ЖЕ позой.
-            var restDown = AddState(sm, "RestDown", Clip("X Bot@Stand To Sit"));
+            //
+            // ⚠️ Clip() берёт ИМЯ ФАЙЛА, а не имя клипа: суффиксы «_once» и
+            // «_from36» постпроцессор снимает с КЛИПА, но файл-то называется с
+            // ними. Первый прогон был сделан по именам клипов — файлы не
+            // нашлись, оба переходных состояния остались БЕЗ движения, и это
+            // молчаливый отказ: меню отработало, в графе три состояния, а
+            // садиться и вставать нечем.
+            var restDown = AddState(sm, "RestDown", Clip("X Bot@Stand To Sit_once"));
             var restIdle = AddState(sm, "RestIdle", Clip("X Bot@Sitting Idle"));
-            var restUp = AddState(sm, "RestUp", Clip("X Bot@Sit To Stand"));
+            var restUp = AddState(sm, "RestUp", Clip("X Bot@Sit To Stand_once_from36"));
             // §68/§53: перевязка стоя — руки у пояса, достаёт и мотает бинт.
             var treat = AddState(sm, "Treat", Clip("X Bot@Searching Pockets"));
             var fallDown = AddState(sm, "FallDown", Clip("X Bot@Falling Down_once"));

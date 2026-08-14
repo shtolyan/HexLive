@@ -552,6 +552,21 @@ public sealed class NpcSnapshot
     // Limp, ArmHang, HeadClutch, Upright.
     public string PostureHint { get; set; } = "Upright";
 
+    // §50: НОГИ В НОЛЬ — <c>BodyState.IsProne</c>, то есть функция хотя бы
+    // одной ноги ≤ 0 (оторвана ИЛИ разбита в ноль). Отдельным полем, а не
+    // через PostureHint, по двум причинам, и обе — про правду вида.
+    //
+    // Первая: подсказка позы РАНЖИРОВАНА, и обморок в ней стоит выше ползания.
+    // Стоило такой упасть, как PostureHint становился «Faint», признак ползания
+    // пропадал, и вид переставал знать, что вставать ей нечем: разбитая в ноль,
+    // но целая нога получала обычный клип падения, а оторванная — нет, потому
+    // что про неё вид узнавал из другого места (зоны ампутации).
+    //
+    // Вторая: «ползёт» и «ноги нет» — РАЗНЫЕ вопросы. Ползание начинается
+    // раньше (обе ноги ниже CrawlLegFunctionThreshold = 0.40, §50.9), и это
+    // про подвижность. Здесь же — про опору: есть ли на чём вставать.
+    public bool LegsLost { get; set; }
+
     // Spec 40.1: winded — stamina spent to the floor. Drives the panting
     // pose/breath in presentation. Derived (Stamina < 0.15), export-only.
     public bool Winded { get; set; }

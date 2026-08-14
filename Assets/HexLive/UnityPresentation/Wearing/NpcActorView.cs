@@ -545,9 +545,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Spec §50: a body with no support on either side cannot stand. Every
     // standing/idle clip is swapped for the existing prone idle (and walking
     // for crawl) via the override controller; no extra leg/knee pose is layered.
-    // Driven by PostureHint=Crawl — the snapshot form of BodyState.IsProne —
+    // Driven by the snapshot's LegsLost (BodyState.IsProne — функция ноги в
+    // нуле, оторвана она или разбита) плюс PostureHint=Crawl и зоны ампутации,
     // rather than re-deriving it from amputation visuals in this view.
     private bool _legless;
+
+    // §50: «ноги в ноль» прямо из снапшота. Отдельно от _posture, потому что
+    // подсказка позы ранжирована и обморок перебивает в ней ползание — см.
+    // RefreshLeglessPresentation.
+    private bool _legsLost;
 
     private AnimationClip ProneClip => _animSet != null ? _animSet.proneIdle : null;
 
@@ -1501,6 +1507,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 return r * 0.24f;
             }
 
+            // §137: праздный отдых — сидение НА ЗЕМЛЕ, и оно заметно ниже
+            // сидения на мебели ниже. Число не на глаз: в клипе «X Bot@Sitting
+            // Idle» голова стоит на 0.642 м против 1.421 м в стоячей позе того
+            // же скелета, то есть 0.45 от стоячей — отсюда 0.62 × 0.45 ≈ 0.28.
+            // Оказывается между плаванием и стулом, как и должно быть.
+            if (_resting)
+            {
+                return r * 0.28f;
+            }
+
             if (_sitting)
             {
                 return r * 0.44f;
@@ -2386,7 +2402,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void RefreshLeglessPresentation()
     {
-        var missingLeg = _posture == "Crawl" ||
+        // §50: «вставать нечем» — это ФУНКЦИЯ НОГИ В НУЛЕ, а не подсказка позы.
+        //
+        // Подсказка ранжирована, и обморок в ней стоит выше ползания: стоило
+        // упасть, как PostureHint становился «Faint», и вид забывал про ноги.
+        // Оторванную он всё равно узнавал по зонам ампутации, а РАЗБИТУЮ В НОЛЬ,
+        // но целую — нет. Получалось, что одна и та же беспомощность падает
+        // двумя разными способами в зависимости от того, оторвало ногу или
+        // просто добило до нуля. Теперь факт едет своим полем (LegsLost) и
+        // обморок его не стирает.
+        var missingLeg = _legsLost || _posture == "Crawl" ||
             (_severedZones.Contains("LegL") && !_prostheticZones.Contains(BodyPart.LegL)) ||
             (_severedZones.Contains("LegR") && !_prostheticZones.Contains(BodyPart.LegR));
         if (_legless == missingLeg)
@@ -5273,10 +5298,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 40.9/40.1: the renderer feeds the injury-locomotion hint
     // (Faint/Crawl/Limp/ArmHang/HeadClutch/Upright) and the winded flag.
-    public void SetPosture(string postureHint, bool winded)
+    public void SetPosture(string postureHint, bool winded, bool legsLost = false)
     {
         _posture = string.IsNullOrEmpty(postureHint) ? "Upright" : postureHint;
         _winded = winded;
+        _legsLost = legsLost; // §50: до RefreshLeglessPresentation — он это читает
         RefreshLeglessPresentation();
 
         // Spec 40.9 r2: the dedicated limp pose was removed by player decision.

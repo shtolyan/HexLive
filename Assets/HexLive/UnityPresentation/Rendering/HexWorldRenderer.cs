@@ -2043,7 +2043,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SetFacePain(pain);
         // Spec 40.9 / 40.1: injury posture (limp/crawl/arm-hang/head-clutch)
         // and the winded panting, both derived sim-side and exported.
-        actorView.SetPosture(npc.PostureHint, npc.Winded);
+        actorView.SetPosture(npc.PostureHint, npc.Winded, npc.LegsLost);
         actorView.SetCarryingPerson(npc.CarriedNpcId is not null);
         // §118.4: the carried body follows the carrier's HANDS, posed by the
         // imported BeingCarried clip — bind/unbind the follower off the same

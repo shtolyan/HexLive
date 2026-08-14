@@ -167,6 +167,22 @@ namespace HexLive.UnityPresentation.Environment
             return root;
         }
 
+        /// <summary>
+        /// Aims the sector model at its bisector. The FBX axis conversion lands
+        /// the authored +X on Unity's -X, so the triangle came out pointing
+        /// exactly 180 deg the wrong way: measured in the preview root's own
+        /// space the error was 178.3-179.6 deg on every sector, which is why a
+        /// click resolved one sector and highlighted the one opposite it.
+        /// Deriving this by hand got the sign wrong and drew every floor and
+        /// roof triangle mirrored about the X axis — 1.34 wu away from the
+        /// sector the click resolved to, so selection and deletion looked
+        /// broken. LookRotation takes the direction itself, so there is no
+        /// hand-rolled convention left to get backwards.
+        /// </summary>
+        private static Quaternion SectorYaw(Vector3 bisector) =>
+            Quaternion.LookRotation(bisector.normalized, Vector3.up) *
+            Quaternion.Euler(0f, 90f, 0f);
+
         private static GameObject BuildFloor(BlueprintElementData element)
         {
             var sector = element.FloorSector;
@@ -179,7 +195,7 @@ namespace HexLive.UnityPresentation.Environment
             var model = InstantiateModel(
                 "architecture.floor.board",
                 new Vector3(center.X, 0f, center.Y),
-                Quaternion.Euler(0f, Mathf.Atan2(-bisector.z, bisector.x) * Mathf.Rad2Deg, 0f));
+                SectorYaw(bisector));
             if (model != null) return model;
 
             return Triangle(
@@ -209,7 +225,7 @@ namespace HexLive.UnityPresentation.Environment
             var model = InstantiateModel(
                 "architecture.roof.palm",
                 new Vector3(center.X, RoofEaveHeight, center.Y),
-                Quaternion.Euler(0f, Mathf.Atan2(-bisector.z, bisector.x) * Mathf.Rad2Deg, 0f));
+                SectorYaw(bisector));
             if (model != null) return model;
 
             return Triangle(

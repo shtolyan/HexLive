@@ -11,11 +11,20 @@ namespace HexLive.Simulation.Runtime.Blueprints
     public static class BlueprintFurnitureFootprints
     {
         private static readonly JunctionKey[] Bed = BuildBed();
+        // Three junctions in a row along the SAME base axis the models are
+        // authored on (+Y at yawStep 0), like the bed. The old axial row ran at
+        // 30 deg instead, so a wardrobe blocked a line of junctions rotated a
+        // full hex step away from the cabinet the player could see.
         private static readonly JunctionKey[] Wardrobe =
         {
-            FromAxial(-1, 0), FromAxial(0, 0), FromAxial(1, 0)
+            new JunctionKey(0, -2), new JunctionKey(0, 0), new JunctionKey(0, 2)
         };
-        private static readonly JunctionKey[] Hearth =
+        // The indoor hearth is a single-junction fire: its authored ring is
+        // 0.32 wu across against the 0.375 lattice, so it never reaches a
+        // neighbouring point. The old seven-junction disc was the outdoor
+        // campfire's reach and blocked the whole middle of the hut.
+        private static readonly JunctionKey[] Hearth = { FromAxial(0, 0) };
+        private static readonly JunctionKey[] OutdoorCampfire =
         {
             FromAxial(0, 0), FromAxial(1, 0), FromAxial(1, -1), FromAxial(0, -1),
             FromAxial(-1, 0), FromAxial(-1, 1), FromAxial(0, 1)
@@ -26,8 +35,8 @@ namespace HexLive.Simulation.Runtime.Blueprints
         {
             if (string.Equals(definitionId, ContentIds.BedBasic, StringComparison.Ordinal)) return Bed;
             if (string.Equals(definitionId, "furniture.wardrobe", StringComparison.Ordinal)) return Wardrobe;
-            if (string.Equals(definitionId, ContentIds.Campfire, StringComparison.Ordinal) ||
-                string.Equals(definitionId, "furniture.hearth", StringComparison.Ordinal)) return Hearth;
+            if (string.Equals(definitionId, "furniture.hearth", StringComparison.Ordinal)) return Hearth;
+            if (string.Equals(definitionId, ContentIds.Campfire, StringComparison.Ordinal)) return OutdoorCampfire;
             return Single;
         }
 

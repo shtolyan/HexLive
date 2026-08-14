@@ -212,26 +212,123 @@ for index, (x0, x1) in enumerate(((0.19, 0.57), (0.566, 0.93), (0.926, 1.292))):
     new_obj(f"FLR_board_{index}",
             sector_boards(f"FLR_board_{index}", x0, x1, tones, wedge=(index == 0)), s2,
             loc=(0, 0, DECK_BOTTOM))
-for index, y in ((0, -0.40), (1, 0.40)):
-    new_obj(f"FLR_joist_{index}",
-            bowed_stick(f"FLR_joist_{index}", 1.19, JOIST_R, rng, bow=0.005), s1,
-            loc=(0.07, y, JOIST_Z), rot=(0, math.radians(90), rng.uniform(0, 3.0)))
-# One radial edge beam per sector: every sector carries its own -30 deg edge, so
-# each of the six seams between sectors is covered exactly once.
-new_obj("FLR_seam_beam",
-        bowed_stick("FLR_seam_beam", 1.47, JOIST_R * 1.05, rng, bow=0.004), s1,
-        loc=(0.02, -0.012, JOIST_Z), rot=(0, math.radians(90), math.radians(-30)))
+# The frame follows the SECTOR TRIANGLE itself: one beam down the radial edge
+# and one along the outer hex edge. Straight bars at constant y used to poke out
+# through the slanted sides, because a sector only exists from x = |y|/tan30
+# outwards. Each sector carries its own -30 deg radial edge, so on a finished
+# hex the six sectors close the whole frame without ever doubling a beam.
+EDGE_X = 1.272           # hex edge, inset a hair so the beam hides under the deck
+EDGE_Y = 0.716           # corner, likewise
+new_obj("FLR_edge_beam",
+        bowed_stick("FLR_edge_beam", EDGE_Y * 2, JOIST_R, rng, bow=0.005), s1,
+        loc=(EDGE_X, -EDGE_Y, JOIST_Z), rot=(math.radians(-90), 0, 0))
+radial_length = math.hypot(EDGE_X - 0.03, EDGE_Y - 0.02)
+new_obj("FLR_radial_beam",
+        bowed_stick("FLR_radial_beam", radial_length, JOIST_R * 1.05, rng, bow=0.004), s1,
+        loc=(0.03, -0.02, JOIST_Z - 0.0016), rot=(0, math.radians(90), math.radians(-30)))
+# Lashed where the beams actually meet: the outer corner, the hex centre, and
+# the far corner where the neighbouring sector's radial beam lands.
+# Everything under the deck must STAY under it: the lashings are flattened and
+# dropped so their top clears the board underside at 0.0465.
+BIND_Z = 0.0255
 binds = []
-for index, y in ((0, -0.40), (1, 0.40)):
-    for step, x in ((0, 0.34), (1, 0.94)):
-        binds.append(new_obj(f"FLR_bind_{index}{step}",
-                             axis_lashing(f"FLR_bind_{index}{step}", rng, JOIST_R, squash=0.55),
-                             s3, loc=(x, y, JOIST_Z)))
+for index, (x, y) in enumerate(((EDGE_X - 0.03, -EDGE_Y + 0.05),
+                                (0.075, -0.042),
+                                (EDGE_X - 0.03, EDGE_Y - 0.05))):
+    binds.append(new_obj(f"FLR_bind_{index}",
+                         axis_lashing(f"FLR_bind_{index}", rng, JOIST_R, squash=0.5,
+                                      tube=0.0055),
+                         s3, loc=(x, y, BIND_Z),
+                         rot=(0, 0, math.radians(-30 if index == 1 else 60))))
 join(binds, "FLR_rope")
+
+# --------------------------------------------------------------------------- #
+# indoor hearth — one junction, the colony's small fire
+# --------------------------------------------------------------------------- #
+# It must stay inside a single junction cell (0.375 wu spacing), so the stone
+# ring is 0.235 wu and the spit posts tuck just inside 0.30. It is the same
+# craft as the outdoor campfire, built smaller: 7 ring stones instead of 18 and
+# 4 sticks instead of 12, with a real spit so meat can roast on it.
+from arch_elements_lib import disc, faceted_stone  # noqa: E402
+
+rng = random.Random(807)
+root, (s1, s2, s3) = element_root("HL_ARCH_HEARTH", 16.0)
+RING_R = 0.232
+RING_STONES = 12
+SPIT_X = 0.285
+SPIT_TOP = 0.30
+
+# Stage 1 — eight sticks: two forked posts, ONE cross bar (the roasting spit)
+# and a five-stick pile, the same tepee the outdoor campfire has.
+# The bar MUST stay named stick_bar: CampfireSpitMeat finds it by exact node
+# name and hangs the six meat slots along its rendered span.
+for side, x in (("l", -SPIT_X), ("r", SPIT_X)):
+    new_obj(f"HEARTH_post_{side}",
+            bowed_stick(f"HEARTH_post_{side}", SPIT_TOP, 0.019, rng, bow=0.004), s1,
+            loc=(x, 0, 0.0), rot=(math.radians(rng.uniform(-2, 2)), 0, rng.uniform(0, 3.0)))
+new_obj("stick_bar",
+        bowed_stick("stick_bar", SPIT_X * 2 + 0.07, 0.017, rng, bow=0.004), s1,
+        loc=(-SPIT_X - 0.035, 0, SPIT_TOP - 0.012), rot=(0, math.radians(90), 0))
+for index in range(5):
+    angle = 2 * math.pi * index / 5 + 0.4
+    lean = math.radians(58)
+    new_obj(f"HEARTH_pile_{index}",
+            bowed_stick(f"HEARTH_pile_{index}", 0.215, 0.017, rng, bow=0.005, facets=6), s1,
+            loc=(math.cos(angle) * 0.115, math.sin(angle) * 0.115, 0.018),
+            rot=(math.sin(angle) * lean, -math.cos(angle) * lean,
+                 rng.uniform(0, 3.0)))
+
+# Stage 2 — a tight ring of stones, one per delivered stone. The arc each stone
+# owns is 2*pi*R/12 = 0.121 wu, so radii of 0.062..0.078 make neighbours touch
+# or slightly overlap: the joints read as a laid ring, not scattered pebbles.
+for index in range(RING_STONES):
+    angle = 2 * math.pi * index / RING_STONES + 0.22
+    radius = RING_R + rng.uniform(-0.004, 0.004)
+    stone = rng.uniform(0.071, 0.086)
+    new_obj(f"HEARTH_stone_{index}",
+            faceted_stone(f"HEARTH_stone_{index}", rng, stone,
+                          flatten=rng.uniform(0.55, 0.72),
+                          material="ARCH_StoneLight" if index % 3 == 0 else "ARCH_Stone"),
+            s2, loc=(math.cos(angle) * radius, math.sin(angle) * radius,
+                     0.036 + rng.uniform(-0.004, 0.006)),
+            rot=(rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25),
+                 rng.uniform(0, 6.28)))
+# Ash, coals and charred logs ship with the ring and cost nothing: "_deco_"
+# keeps them out of the per-resource stage reveal.
+new_obj("HEARTH_deco_ash", disc("HEARTH_deco_ash", 0.175, 0.030, 9, "ARCH_Ash", rng, dip=0.014),
+        s2, loc=(0, 0, 0.0))
+for index in range(3):
+    angle = 2 * math.pi * index / 3 + 0.6
+    new_obj(f"HEARTH_deco_ember_{index}",
+            faceted_stone(f"HEARTH_deco_ember_{index}", rng, 0.036, flatten=0.5,
+                          material="ARCH_Ember"),
+            s2, loc=(math.cos(angle) * 0.062, math.sin(angle) * 0.062, 0.030))
+for index, angle in enumerate((0.5, 2.3)):
+    new_obj(f"HEARTH_deco_log_{index}",
+            bowed_stick(f"HEARTH_deco_log_{index}", 0.26, 0.026, rng, bow=0.004,
+                        facets=6), s2,
+            loc=(-math.cos(angle) * 0.13, -math.sin(angle) * 0.13, 0.052),
+            rot=(0, math.radians(90), angle))
+for stone in [c for c in s2.children if "_deco_log_" in c.name]:
+    for slot, material in enumerate(stone.data.materials):
+        stone.data.materials[slot] = bpy.data.materials["ARCH_Charcoal"]
+
+# Stage 3 — one rope: a lashing where each post meets the bar.
+binds = []
+for index, x in enumerate((-SPIT_X, SPIT_X)):
+    binds.append(new_obj(f"HEARTH_bind_{index}",
+                         axis_lashing(f"HEARTH_bind_{index}", rng, 0.019, squash=1.0,
+                                      loops=3, tube=0.0055),
+                         s3, loc=(x, 0, SPIT_TOP - 0.012), rot=(0, 0, math.radians(90))))
+join(binds, "HEARTH_rope")
+
+# The renderer attaches CampfireEffect to this marker (Spec 120.2), so it must
+# stay named exactly fire_point and sit at the flame centre, not at the origin.
+new_empty("fire_point", root, loc=(0, 0, 0.055))
 
 print("=== architecture elements rebuilt ===")
 for name in ("HL_ARCH_WALL", "HL_ARCH_WINDOW", "HL_ARCH_DOOR",
-             "HL_ARCH_SUPPORT", "HL_ARCH_FLOOR"):
+             "HL_ARCH_SUPPORT", "HL_ARCH_FLOOR", "HL_ARCH_HEARTH"):
     root = bpy.data.objects[name]
     counts = []
     for stage in sorted(root.children, key=lambda c: c.name):

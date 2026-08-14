@@ -35,7 +35,12 @@ ELEMENTS = {
     "HL_ARCH_DOOR": "architecture.door.wood",
     "HL_ARCH_SUPPORT": "architecture.support.wood",
     "HL_ARCH_FLOOR": "architecture.floor.board",
+    "HL_ARCH_HEARTH": "furniture.hearth",
 }
+
+# Empties that must survive export as direct children of the element root, not
+# as stage members: the renderer looks the hearth flame up by this exact name.
+ROOT_MARKERS = ("fire_point",)
 
 DOOR_PIVOT_CHILD_MARKERS = ("HL_Door_State_Closed", "HL_Door_State_Open")
 
@@ -116,7 +121,21 @@ for root_name, definition_id in ELEMENTS.items():
             empty.parent = stage_roots["2"]
         door_pivot.matrix_world = pivot_world
 
+    root_markers = []
+    for marker_name in ROOT_MARKERS:
+        source = next((o for o in root.children_recursive
+                       if o.name.split(".")[0] == marker_name), None)
+        if source is None:
+            continue
+        pose = to_origin @ source.matrix_world
+        source.name = "__src_" + source.name
+        marker = bpy.data.objects.new(marker_name, None)
+        temp.objects.link(marker)
+        marker.matrix_world = pose
+        root_markers.append(marker)
+
     exported = []
+    renamed_sources = []
     stage_counts = {"1": 0, "2": 0, "3": 0}
     for source in [o for o in root.children_recursive if o.type == "MESH"]:
         stage = stage_index_of(source)
@@ -125,7 +144,14 @@ for root_name, definition_id in ELEMENTS.items():
         duplicate = source.copy()
         duplicate.data = source.data.copy()
         duplicate.animation_data_clear()
-        duplicate.name = source.name + "__EXPORT"
+        # Ship the AUTHORED name, not a suffixed one: presentation matches some
+        # pieces by exact node name (CampfireSpitMeat looks for "stick_bar", and
+        # a "stick_bar__EXPORT" silently loses every meat slot). The source is
+        # parked under __src_ for the duration so Blender cannot add ".001".
+        authored_name = source.name
+        source.name = "__src_" + authored_name
+        renamed_sources.append((source, authored_name))
+        duplicate.name = authored_name
         if root_name == "HL_ARCH_DOOR" and is_door_leaf_member(source):
             duplicate.data.transform(door_pivot.matrix_world.inverted()
                                      @ to_origin @ source.matrix_world)
@@ -142,7 +168,7 @@ for root_name, definition_id in ELEMENTS.items():
 
     for obj in bpy.context.selected_objects:
         obj.select_set(False)
-    selection = [*stage_roots.values(), *exported]
+    selection = [*stage_roots.values(), *exported, *root_markers]
     if door_pivot is not None:
         selection += [door_pivot, door_closed, door_open]
     for obj in selection:
@@ -176,15 +202,17 @@ for root_name, definition_id in ELEMENTS.items():
         bpy.data.objects.remove(duplicate, do_unlink=True)
         if mesh.users == 0:
             bpy.data.meshes.remove(mesh)
+    for source, authored_name in renamed_sources:
+        source.name = authored_name
     extra = [door_pivot, door_closed, door_open] if door_pivot is not None else []
-    for empty in [*extra, *stage_roots.values()]:
+    for empty in [*extra, *stage_roots.values(), *root_markers]:
         bpy.data.objects.remove(empty, do_unlink=True)
     bpy.data.collections.remove(temp)
     for stage in ("1", "2", "3"):
         holder = bpy.data.objects.get(f"__src_BuildStage_{stage}")
         if holder is not None:
             holder.name = f"BuildStage_{stage}"
-    for marker in DOOR_PIVOT_CHILD_MARKERS:
+    for marker in DOOR_PIVOT_CHILD_MARKERS + ROOT_MARKERS:
         src = bpy.data.objects.get("__src_" + marker)
         if src is not None:
             src.name = marker

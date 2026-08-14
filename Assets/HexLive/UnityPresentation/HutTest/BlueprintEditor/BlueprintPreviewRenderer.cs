@@ -380,7 +380,13 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
 
         private static Material OverlayMaterial(string name, Color color)
         {
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
+            // HexLive/BlueprintOverlay bakes ZTest Always into the pass. The URP
+            // Unlit fallback cannot do that — its ZTest is hardcoded — so the
+            // dots would hide behind walls exactly when they matter most.
+            var shader = Shader.Find("HexLive/BlueprintOverlay")
+                         ?? Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Unlit/Color")
+                         ?? Shader.Find("Standard");
             var material = new Material(shader) { name = name, color = color, renderQueue = 5000 };
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
             if (material.HasProperty("_ZTest")) material.SetInt("_ZTest", (int)CompareFunction.Always);

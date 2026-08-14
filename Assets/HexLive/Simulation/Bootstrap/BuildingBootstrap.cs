@@ -532,9 +532,9 @@ public static class BuildingBootstrap
         hearth.Variant = BuildingRules.HutHearthVariant;
         hearth.RotationDegrees = hut.RotationDegrees;
         hearth.ResourceAmount = 0f;
-        AddContents(hearth, ContentIds.Stick, SimBalance.CampfireBillSticks);
-        AddContents(hearth, ContentIds.Rope, SimBalance.CampfireBillRope);
-        AddContents(hearth, ContentIds.Stone, SimBalance.CampfireBillStones);
+        AddContents(hearth, ContentIds.Stick, SimBalance.HutHearthBillSticks);
+        AddContents(hearth, ContentIds.Rope, SimBalance.HutHearthBillRope);
+        AddContents(hearth, ContentIds.Stone, SimBalance.HutHearthBillStones);
 
         // A normal outdoor campfire blocks its full visual radius. The compact
         // household hearth owns only its stone-lined anchor, leaving routes to

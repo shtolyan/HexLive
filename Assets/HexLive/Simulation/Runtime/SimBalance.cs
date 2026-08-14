@@ -114,22 +114,28 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Rest / sleep restore.
         // ─────────────────────────────────────────────────────────────
-        public static float GroundSleepEnergy = 0.12f;      // energy per night sleeping on the ground
+        // §54.11 r2: timed Sleep interactions no longer add a second energy
+        // stream. Recovery is owned by the slow-tick bonuses below, where its
+        // game-hour duration is explicit and identical for voluntary sleep and
+        // exhaustion coma.
+        public static float GroundSleepEnergy = 0f;
         public static float GroundSitEnergy = 0.05f;        // energy per ground-sit
         public static float GroundSitComfort = 0.15f;       // comfort per ground-sit
         public static float GroundSitComfortLedge = 0.25f;  // ...more on a ledge (nice view)
-        public static float BedEnergy = 0.18f;              // energy per night in a real bed
+        public static float BedEnergy = 0f;
         public static float LeafBedEnergy = 0.15f;          // energy per night on a leaf mat
 
-        // §54.11: sleep recovers ENERGY faster — a base lift so nights are shorter
-        // by DEFAULT (they slept ~45% of the time), plus a fireside bonus and a bed
-        // bonus. This is the payoff for building a bed and camping by the fire: you
-        // recover faster ⇒ sleep less ⇒ more time on your feet to build/gather.
-        // Added once per slow tick while asleep, on top of the base restore.
-        public static float SleepEnergyBaseBonus = 0.026f;    // always while asleep (was 0.020 — faster recovery to cut exhaustion comas)
-        public static float SleepEnergyFireBonus = 0.005f;    // + by a lit fire
+        // §54.11 r2: one slow tick is 16 game ticks; a game hour is 1000.
+        // +0.002/tick therefore fills 0→1 in 500 slow ticks = 8000 game
+        // ticks = 8 h on the ground. A real bed adds another +0.002, so it
+        // fills in 250 slow ticks = 4000 game ticks = 4 h. Sleeping no longer
+        // pays EnergyRate at the same time, and the old interaction/fire
+        // channels are zero, so these are NET durations rather than an
+        // approximation produced by several stacked systems.
+        public static float SleepEnergyBaseBonus = 0.002f;
+        public static float SleepEnergyFireBonus = 0f;
         public static float SleepEnergyLeafBedBonus = 0.006f; // + on a leaf mat
-        public static float SleepEnergyBasicBedBonus = 0.010f;// + on a premium bedroll
+        public static float SleepEnergyBasicBedBonus = 0.002f;
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
         public static float ChairEnergy = 0.1f;             // energy per sit in a chair
 
@@ -523,6 +529,17 @@ namespace HexLive.Simulation.Runtime
         public static int CampfireBillSticks = 12; // 9 pile + 2 posts + 1 crossbar
         public static int CampfireBillStones = 18; // the dense ring
         public static int CampfireBillRope = 2;    // one lashing per post joint
+
+        // §120.2: the indoor hearth is the same craft built small, and its bill
+        // matches its authored art piece for piece — 2 spit posts, the cross bar
+        // and the skewer, a 7-stone ring, one lashing. A household fire must be
+        // cheaper to raise again than the outdoor ring, not the same price.
+        // These are const, not tuning dials: each number counts real pieces in
+        // furniture.hearth.fbx, so moving one without re-authoring the model
+        // would just desync the bill from the art it pays for.
+        public const int HutHearthBillSticks = 8;  // 2 posts + spit bar + 5 pile
+        public const int HutHearthBillStones = 12; // the tight little ring
+        public const int HutHearthBillRope = 1;    // one lashing for the spit
 
         // §54.14 (r2): the stages are FUNCTIONAL, not only visual.
         // Stage 1 (stick pile) = a working fire: warmth, comfort, crafting.

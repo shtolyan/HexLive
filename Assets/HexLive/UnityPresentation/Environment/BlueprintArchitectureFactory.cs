@@ -285,11 +285,22 @@ namespace HexLive.UnityPresentation.Environment
                 other.Kind == BlueprintElementKind.Support && other.Node == node);
             if (!owned) return;
 
-            var stage = FindStage(authored.transform, 1);
-            if (stage == null) return;
-            foreach (var child in stage.Cast<Transform>().ToArray())
+            // Drop the whole bundle, posts AND their lashing. Removing only the
+            // posts left the rope rings hanging in mid-air over the joint.
+            var posts = FindStage(authored.transform, 1);
+            if (posts != null)
             {
-                if (!child.name.Contains("_stick_")) continue;
+                foreach (var child in posts.Cast<Transform>().ToArray())
+                {
+                    if (!child.name.Contains("_stick_")) continue;
+                    UnityEngine.Object.DestroyImmediate(child.gameObject);
+                }
+            }
+            var lashing = FindStage(authored.transform, 3);
+            if (lashing == null) return;
+            foreach (var child in lashing.Cast<Transform>().ToArray())
+            {
+                if (!child.name.Contains("_rope")) continue;
                 UnityEngine.Object.DestroyImmediate(child.gameObject);
             }
         }

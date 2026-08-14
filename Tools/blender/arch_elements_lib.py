@@ -43,7 +43,16 @@ PALETTE = {
     "ARCH_Bark": (0.300, 0.170, 0.075),
     "ARCH_BarkLight": (0.430, 0.270, 0.130),
     "ARCH_Rope": (0.740, 0.620, 0.390),
+    # Hearth palette, matched to the outdoor campfire so both fires read as the
+    # same colony craft (HearthStone / HearthStoneLight / HL_Hearth_Ash / Ember).
+    "ARCH_Stone": (0.300, 0.275, 0.235),
+    "ARCH_StoneLight": (0.430, 0.390, 0.320),
+    "ARCH_Ash": (0.105, 0.090, 0.074),
+    "ARCH_Ember": (0.400, 0.025, 0.006),
+    "ARCH_Charcoal": (0.090, 0.075, 0.062),
 }
+
+EMISSIVE = {"ARCH_Ember"}
 
 
 # --------------------------------------------------------------------------- #
@@ -59,6 +68,9 @@ def ensure_materials():
         bsdf.inputs["Roughness"].default_value = 0.85
         if "Specular IOR Level" in bsdf.inputs:
             bsdf.inputs["Specular IOR Level"].default_value = 0.1
+        if name in EMISSIVE and "Emission Color" in bsdf.inputs:
+            bsdf.inputs["Emission Color"].default_value = (r, g, b, 1.0)
+            bsdf.inputs["Emission Strength"].default_value = 1.6
 
 
 def mat(name):
@@ -292,6 +304,50 @@ def pair_lashing(name, rng, half_x, half_y, sep_axis="x", turns=3,
     bm.to_mesh(mesh)
     bm.free()
     mesh.materials.append(mat("ARCH_Rope"))
+    for polygon in mesh.polygons:
+        polygon.use_smooth = False
+    return mesh
+
+
+def faceted_stone(name, rng, radius, flatten=0.62, material="ARCH_Stone"):
+    """A colony stone: low-poly boulder with jittered facets, flat shaded.
+    Same read as the outdoor campfire ring, one stone per delivered resource."""
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=1, radius=radius)
+    for vert in bm.verts:
+        vert.co.x *= rng.uniform(0.82, 1.18)
+        vert.co.y *= rng.uniform(0.82, 1.18)
+        vert.co.z *= flatten * rng.uniform(0.86, 1.14)
+    bm.normal_update()
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.materials.append(mat(material))
+    for polygon in mesh.polygons:
+        polygon.use_smooth = False
+    return mesh
+
+
+def disc(name, radius, height, sides, material, rng=None, dip=0.0):
+    """Flat-shaded ash bed / coal pan; `dip` sinks the centre into a bowl."""
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    rim = []
+    for k in range(sides):
+        a = 2 * math.pi * k / sides
+        jitter = rng.uniform(0.94, 1.06) if rng else 1.0
+        rim.append(bm.verts.new((math.cos(a) * radius * jitter,
+                                 math.sin(a) * radius * jitter, height)))
+    centre_top = bm.verts.new((0, 0, height - dip))
+    floor = bm.verts.new((0, 0, 0.0))
+    for k in range(sides):
+        b = (k + 1) % sides
+        bm.faces.new((rim[k], rim[b], centre_top))
+        bm.faces.new((rim[b], rim[k], floor))
+    bm.normal_update()
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.materials.append(mat(material))
     for polygon in mesh.polygons:
         polygon.use_smooth = False
     return mesh

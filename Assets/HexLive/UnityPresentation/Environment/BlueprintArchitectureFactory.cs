@@ -20,6 +20,8 @@ namespace HexLive.UnityPresentation.Environment
         private static Material? _woodLight;
         private static Material? _bark;
         private static Material? _leaf;
+        private static readonly System.Collections.Generic.Dictionary<string, GameObject?> ModelPrefabs = new();
+        private static readonly System.Collections.Generic.Dictionary<Material, Material> UrpMaterialVariants = new();
 
         public static GameObject Build(BlueprintElementData element, BuildingBlueprintDraft draft)
         {
@@ -35,9 +37,128 @@ namespace HexLive.UnityPresentation.Environment
             };
         }
 
+        /// <summary>
+        /// Stage-by-stage reveal: every direct mesh child of BuildStage_1/2/3 is
+        /// one delivered resource, so a partially built element shows exactly the
+        /// pieces its materials paid for (§120.1). Stage order is sticks, boards,
+        /// rope; a stage stays fully hidden until the previous one is complete.
+        /// </summary>
+        public static void ApplyStageProgress(
+            GameObject element, int deliveredSticks, int deliveredBoards, int deliveredRope)
+        {
+            var delivered = new[] { deliveredSticks, deliveredBoards, deliveredRope };
+            for (var stage = 0; stage < 3; stage++)
+            {
+                var root = FindStage(element.transform, stage + 1);
+                if (root == null) continue;
+                var previousComplete = true;
+                for (var earlier = 0; earlier < stage && previousComplete; earlier++)
+                {
+                    var earlierRoot = FindStage(element.transform, earlier + 1);
+                    if (earlierRoot == null) continue;
+                    previousComplete = delivered[earlier] >= ResourceUnits(earlierRoot).Count;
+                }
+                var visible = previousComplete ? delivered[stage] : 0;
+                var units = ResourceUnits(root);
+                for (var i = 0; i < units.Count; i++)
+                    units[i].gameObject.SetActive(i < visible);
+                foreach (Transform child in root)
+                    if (IsContainer(child.name)) child.gameObject.SetActive(previousComplete);
+            }
+        }
+
+        public static int ResourceCount(GameObject element, int stage)
+        {
+            var root = FindStage(element.transform, stage);
+            return root == null ? 0 : ResourceUnits(root).Count;
+        }
+
+        /// <summary>
+        /// One entry per delivered resource. The door pivot is a transparent
+        /// container: its leaf boards are ordinary stage-2 board resources, while
+        /// hinge hardware and state markers cost nothing and follow their stage.
+        /// </summary>
+        private static System.Collections.Generic.List<Transform> ResourceUnits(Transform stageRoot)
+        {
+            var units = new System.Collections.Generic.List<Transform>();
+            foreach (Transform child in stageRoot)
+            {
+                if (IsContainer(child.name))
+                {
+                    foreach (Transform nested in child)
+                        if (!IsHardware(nested.name)) units.Add(nested);
+                    continue;
+                }
+                if (!IsHardware(child.name)) units.Add(child);
+            }
+            return units;
+        }
+
+        private static bool IsContainer(string name) =>
+            name.StartsWith("HL_Door_Pivot", System.StringComparison.Ordinal);
+
+        private static bool IsHardware(string name) =>
+            name.Contains("_deco_") ||
+            name.StartsWith("HL_Door_State_", System.StringComparison.Ordinal);
+
+        private static Transform? FindStage(Transform root, int stage)
+        {
+            var suffix = "BuildStage_" + stage;
+            foreach (var child in root.GetComponentsInChildren<Transform>(true))
+                if (child.name.StartsWith(suffix, System.StringComparison.Ordinal)) return child;
+            return null;
+        }
+
+        /// <summary>
+        /// Authored §120 element models (Blender kit, export_arch_elements.py):
+        /// BuildStage_1/2/3 children are single delivered resources, section
+        /// length runs along local +Z, origin is the section centre on the floor.
+        /// </summary>
+        private static GameObject? InstantiateModel(string definitionId, Vector3 position, Quaternion yaw)
+        {
+            if (!ModelPrefabs.TryGetValue(definitionId, out var prefab))
+            {
+                prefab = Resources.Load<GameObject>("HexLive/Objects/" + definitionId);
+                ModelPrefabs[definitionId] = prefab;
+            }
+            if (prefab == null) return null;
+
+            var root = new GameObject(definitionId);
+            root.transform.SetPositionAndRotation(position, yaw);
+            var model = UnityEngine.Object.Instantiate(prefab, root.transform, false);
+            model.name = definitionId + " (model)";
+            foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
+            {
+                var sourceMaterials = renderer.sharedMaterials;
+                var remapped = new Material[sourceMaterials.Length];
+                for (var i = 0; i < sourceMaterials.Length; i++)
+                    remapped[i] = UrpVariant(sourceMaterials[i]);
+                renderer.sharedMaterials = remapped;
+            }
+            return root;
+        }
+
+        private static Material UrpVariant(Material? source)
+        {
+            if (source == null) return Wood;
+            if (UrpMaterialVariants.TryGetValue(source, out var cached) && cached != null) return cached;
+            var material = new Material(source) { name = source.name + " (arch URP)" };
+            material.doubleSidedGI = true;
+            if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.08f);
+            if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0f);
+            material.enableInstancing = true;
+            UrpMaterialVariants[source] = material;
+            return material;
+        }
+
         private static GameObject BuildSupport(BlueprintElementData element)
         {
             var point = BlueprintGeometry.ToWorld(element.Node);
+            var position = new Vector3(point.X, HutAssembly.FloorSurfaceLift, point.Y);
+            var model = InstantiateModel("architecture.support.wood", position, Quaternion.identity);
+            if (model != null) return model;
+
             var root = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             root.transform.localPosition = new Vector3(
                 point.X, HutAssembly.FloorSurfaceLift + SupportHeight * 0.5f, point.Y);
@@ -49,11 +170,21 @@ namespace HexLive.UnityPresentation.Environment
         private static GameObject BuildFloor(BlueprintElementData element)
         {
             var sector = element.FloorSector;
+            var center = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(sector.Hex));
+            var a = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(sector.Hex, sector.Sector));
+            var b = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(sector.Hex, sector.Sector + 1));
+            // Authored floor triangle spans local +X; aim it along the sector bisector.
+            var bisector = new Vector3(
+                (a.X + b.X) * 0.5f - center.X, 0f, (a.Y + b.Y) * 0.5f - center.Y);
+            var model = InstantiateModel(
+                "architecture.floor.board",
+                new Vector3(center.X, 0f, center.Y),
+                Quaternion.Euler(0f, Mathf.Atan2(-bisector.z, bisector.x) * Mathf.Rad2Deg, 0f));
+            if (model != null) return model;
+
             return Triangle(
                 $"Floor sector {sector}",
-                BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(sector.Hex)),
-                BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(sector.Hex, sector.Sector)),
-                BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(sector.Hex, sector.Sector + 1)),
+                center, a, b,
                 HutAssembly.FloorSurfaceLift, Wood, 0.055f);
         }
 
@@ -81,6 +212,20 @@ namespace HexLive.UnityPresentation.Environment
             var direction = b - a;
             var yaw = Quaternion.LookRotation(direction.normalized, Vector3.up);
             var midpoint = (a + b) * 0.5f;
+
+            var definitionId = kind switch
+            {
+                BlueprintElementKind.Wall => "architecture.wall.wood",
+                BlueprintElementKind.Window => "architecture.window.wood",
+                _ => "architecture.door.wood"
+            };
+            var authored = InstantiateModel(definitionId, midpoint, yaw);
+            if (authored != null)
+            {
+                if (kind == BlueprintElementKind.Door)
+                    ConfigureDoorPivot(authored, element, draft, midpoint, direction.normalized);
+                return authored;
+            }
 
             if (kind == BlueprintElementKind.Wall)
             {
@@ -123,6 +268,50 @@ namespace HexLive.UnityPresentation.Environment
             var visual = pivot.gameObject.AddComponent<BlueprintDoorVisual>();
             visual.Configure(openAngle, true);
             return root;
+        }
+
+        private static void ConfigureDoorPivot(
+            GameObject authored, BlueprintElementData element, BuildingBlueprintDraft draft,
+            Vector3 midpoint, Vector3 along)
+        {
+            Transform? pivot = null;
+            Transform? openMarker = null;
+            Transform? closedMarker = null;
+            foreach (var child in authored.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name.StartsWith("HL_Door_Pivot", System.StringComparison.Ordinal)) pivot = child;
+                else if (child.name.StartsWith("HL_Door_State_Open", System.StringComparison.Ordinal)) openMarker = child;
+                else if (child.name.StartsWith("HL_Door_State_Closed", System.StringComparison.Ordinal)) closedMarker = child;
+            }
+            if (pivot == null) return;
+
+            var visual = pivot.gameObject.AddComponent<BlueprintDoorVisual>();
+            if (openMarker != null && closedMarker != null)
+            {
+                // The FBX import conversion means the pivot's local Y is not the
+                // world vertical; the authored state markers carry the correct
+                // local poses, so open/close interpolates between them (§120.3).
+                var closed = closedMarker.localRotation;
+                var open = openMarker.localRotation;
+                // Mirror the swing when the colony floor lies on the authored
+                // open side, so the leaf always opens outward.
+                var outward = DoorOutward(element, draft, midpoint);
+                var openWorld = pivot.parent == null
+                    ? open
+                    : pivot.parent.rotation * open;
+                var closedWorld = pivot.parent == null
+                    ? closed
+                    : pivot.parent.rotation * closed;
+                var swingWorld = openWorld * Quaternion.Inverse(closedWorld);
+                var swingLocal = open * Quaternion.Inverse(closed);
+                if (Vector3.Dot(swingWorld * along - along, outward) < 0f)
+                    open = Quaternion.Inverse(swingLocal) * closed;
+                visual.ConfigurePoses(closed, open, true);
+            }
+            else
+            {
+                visual.Configure(72f, true);
+            }
         }
 
         private static Vector3 DoorOutward(
@@ -213,23 +402,31 @@ namespace HexLive.UnityPresentation.Environment
 
     public sealed class BlueprintDoorVisual : MonoBehaviour
     {
-        private float _openAngle;
         private bool _open;
         private Quaternion _closedRotation;
+        private Quaternion _openRotation;
 
         public bool IsOpen => _open;
 
         public void Configure(float openAngle, bool startOpen)
         {
-            _openAngle = openAngle;
             _closedRotation = transform.localRotation;
+            _openRotation = _closedRotation * Quaternion.Euler(0f, openAngle, 0f);
+            SetOpen(startOpen);
+        }
+
+        /// <summary>Authored FBX doors carry explicit closed/open local poses.</summary>
+        public void ConfigurePoses(Quaternion closed, Quaternion open, bool startOpen)
+        {
+            _closedRotation = closed;
+            _openRotation = open;
             SetOpen(startOpen);
         }
 
         public void SetOpen(bool open)
         {
             _open = open;
-            transform.localRotation = _closedRotation * Quaternion.Euler(0f, open ? _openAngle : 0f, 0f);
+            transform.localRotation = open ? _openRotation : _closedRotation;
         }
     }
 }

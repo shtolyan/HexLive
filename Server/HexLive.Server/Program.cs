@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using HexLive.Server.Llm;
 
 namespace HexLive.Server
 {
@@ -42,7 +43,7 @@ public static class Program
             // The supervisor owns the world AND its tick thread, so the admin
             // panel can start a fresh colony without restarting the process.
             worlds = new WorldSupervisor(options.Seed, options.SavePath, options.SimDataPath,
-                options.VerboseTrace, options.IncludeDebugDetails, lifetime.Token);
+                options.VerboseTrace, options.IncludeDebugDetails, options.Llm, lifetime.Token);
         }
         catch (Exception ex)
         {
@@ -241,6 +242,8 @@ public sealed class ServerOptions
     /// </summary>
     public bool VerboseTrace { get; private set; }
 
+    public LlmHostOptions Llm { get; } = new();
+
     public static ServerOptions? Parse(string[] args)
     {
         var options = new ServerOptions();
@@ -269,6 +272,24 @@ public sealed class ServerOptions
                 case "--verbose-trace":
                     options.VerboseTrace = true;
                     break;
+                case "--llm-endpoint" when i + 1 < args.Length:
+                    options.Llm.SetEndpoint(args[++i]);
+                    break;
+                case "--llm-api-key" when i + 1 < args.Length:
+                    options.Llm.SetApiKey(args[++i]);
+                    break;
+                case "--llm-model" when i + 1 < args.Length:
+                    options.Llm.SetModel(args[++i]);
+                    break;
+                case "--llm-npcs" when i + 1 < args.Length:
+                    options.Llm.SetSelectedNpcIds(args[++i]);
+                    break;
+                case "--llm-timeout" when i + 1 < args.Length:
+                    options.Llm.SetRequestTimeoutSeconds(args[++i]);
+                    break;
+                case "--llm-backoff" when i + 1 < args.Length:
+                    options.Llm.SetBackoffSeconds(args[++i]);
+                    break;
                 case "--help":
                 case "-h":
                     Console.WriteLine(
@@ -279,7 +300,11 @@ public sealed class ServerOptions
                         "  --simdata PATH   exported catalogs (default SimData/simdata.json)\n" +
                         "  --autosave N     seconds between saves, 0 to disable (default 60)\n" +
                         "  --debug-details  include per-NPC debug dumps in every frame\n" +
-                        "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n");
+                        "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n" +
+                        "  --llm-endpoint URL  enable host-side HTTP LLM provider endpoint\n" +
+                        "  --llm-npcs IDS      comma-separated selected NPC ids for LLM control\n" +
+                        "  --llm-model NAME    optional provider model hint\n" +
+                        "  --llm-timeout N     HTTP request timeout seconds (default 12)\n");
                     return null;
                 default:
                     Console.Error.WriteLine($"Unknown option '{args[i]}' — try --help.");

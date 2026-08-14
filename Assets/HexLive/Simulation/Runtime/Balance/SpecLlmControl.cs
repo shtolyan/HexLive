@@ -19,6 +19,12 @@ public static class SpecLlmControl
     // Bound external work independently of colony size. Round-robin selection
     // ensures a full cap cannot permanently favor low entity ids.
     public const int MaxInFlightRequests = 2;
+
+    // Provider-side bounds are independent of the system cap. They protect a
+    // provider reused by another host caller and include completed results that
+    // have not yet been drained, so its owned queues cannot grow without bound.
+    public const int MaxProviderQueuedRequests = 2;
+    public const int MaxProviderConcurrentRequests = 2;
 }
 
 }

@@ -18,7 +18,11 @@ public static class SimulationSystemRegistry
     /// Effective per-<see cref="SimulationEngine.Step"/> order is Fast → Medium →
     /// Slow; within a layer, the order below.
     /// </summary>
-    public static void RegisterDefaults(SimulationEngine engine)
+    public static void RegisterDefaults(SimulationEngine engine) =>
+        RegisterDefaults(engine, null);
+
+    public static void RegisterDefaults(
+        SimulationEngine engine, LlmControlSystem llmControlSystem)
     {
         engine.Register(new PathfindingSystem());
         engine.Register(new MovementSystem());
@@ -30,7 +34,7 @@ public static class SimulationSystemRegistry
         // so registration has zero world, trace, provider, or ordering effects.
         // When explicitly constructed, it runs after rescue claims work and
         // before the ordinary decision/planning pipeline claims an idle NPC.
-        engine.Register(new LlmControlSystem());
+        engine.Register(llmControlSystem ?? new LlmControlSystem());
         engine.Register(new DecisionSystem());
         engine.Register(new ProstheticAidSystem()); // §119: persistent compassion chain
         engine.Register(new PlanningSystem());

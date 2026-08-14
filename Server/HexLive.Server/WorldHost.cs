@@ -10,6 +10,7 @@ using HexLive.Simulation.Debug;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Wire;
+using HexLive.Server.Llm;
 
 namespace HexLive.Server
 {
@@ -25,7 +26,7 @@ namespace HexLive.Server
 /// a half-stepped world.
 /// </para>
 /// </summary>
-public sealed class WorldHost
+public sealed class WorldHost : IDisposable
 {
     /// <summary>
     /// The one lock in the process. The tick thread holds it while stepping;
@@ -39,6 +40,7 @@ public sealed class WorldHost
     private readonly SimulationClock _clock;
     private readonly SimulationSettings _settings;
     private readonly string _savePath;
+    private readonly LlmControlSystem? _llmControlSystem;
 
     private WorldSnapshot? _snapshot;
     private int _snapshotTick = -1;
@@ -47,7 +49,7 @@ public sealed class WorldHost
     private double _busyMs;
 
     public WorldHost(int seed, string savePath, string simDataPath, bool verboseTrace,
-        bool includeDebugDetails = false)
+        bool includeDebugDetails = false, LlmHostOptions? llmOptions = null)
     {
         // The codec flag alone is not enough: the EXPORTER only fills the per-NPC
         // debug lists (relationships, goal scores, known objects) behind this
@@ -91,7 +93,20 @@ public sealed class WorldHost
         _clock.Resume();
 
         _engine = new SimulationEngine(world, _settings, _clock);
-        SimulationSystemRegistry.RegisterDefaults(_engine);
+        if (llmOptions is { Enabled: true })
+        {
+            _llmControlSystem = new LlmControlSystem(
+                enabled: true,
+                eligibleNpcIds: llmOptions.SelectedNpcIds,
+                provider: new LlmHttpControlProvider(llmOptions),
+                decisionCooldownTicks: SpecLlmControl.DecisionCooldownTicks,
+                requestTimeoutTicks: SpecLlmControl.RequestTimeoutTicks,
+                maxInFlightRequests: SpecLlmControl.MaxInFlightRequests);
+            Console.WriteLine(
+                $"[llm] enabled for {llmOptions.SelectedNpcIds.Count} NPC(s), endpoint {llmOptions.Endpoint}");
+        }
+
+        SimulationSystemRegistry.RegisterDefaults(_engine, _llmControlSystem);
 
         // §30.14: самописец едет вместе с остальной отладкой — за тем же флагом,
         // что и per-NPC дампы в снапшоте. По проводу он пока не ездит: смотреть
@@ -521,6 +536,7 @@ public sealed class WorldHost
             Console.WriteLine($"[world] save could not be read ({ex.Message}) — starting fresh");
         }
     }
+    public void Dispose() => _llmControlSystem?.Dispose();
 }
 
 }

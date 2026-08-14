@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using HexLive.Server.Llm;
 
 namespace HexLive.Server
 {
@@ -22,6 +23,7 @@ public sealed class WorldSupervisor : IDisposable
     private readonly string _simDataPath;
     private readonly bool _verboseTrace;
     private readonly bool _includeDebugDetails;
+    private readonly LlmHostOptions _llmOptions;
     private readonly CancellationToken _appShutdown;
 
     private readonly object _swap = new();
@@ -32,15 +34,16 @@ public sealed class WorldSupervisor : IDisposable
     private string _simData;
 
     public WorldSupervisor(int seed, string savePath, string simDataPath, bool verboseTrace,
-        bool includeDebugDetails, CancellationToken appShutdown)
+        bool includeDebugDetails, LlmHostOptions llmOptions, CancellationToken appShutdown)
     {
         _savePath = savePath;
         _simDataPath = simDataPath;
         _verboseTrace = verboseTrace;
         _includeDebugDetails = includeDebugDetails;
+        _llmOptions = llmOptions;
         _appShutdown = appShutdown;
 
-        _host = new WorldHost(seed, savePath, simDataPath, verboseTrace, includeDebugDetails);
+        _host = new WorldHost(seed, savePath, simDataPath, verboseTrace, includeDebugDetails, llmOptions);
         _hostLifetime = CancellationTokenSource.CreateLinkedTokenSource(appShutdown);
         _viewerLifetime = CancellationTokenSource.CreateLinkedTokenSource(appShutdown);
         _thread = StartThread(_host, _hostLifetime.Token);
@@ -115,6 +118,7 @@ public sealed class WorldSupervisor : IDisposable
             // Stop the old world first so nothing steps it while we swap.
             _hostLifetime.Cancel();
             _thread.Join(TimeSpan.FromSeconds(5));
+            _host.Dispose();
             _hostLifetime.Dispose();
 
             // Disconnect everyone watching the old world. Their connections
@@ -127,7 +131,7 @@ public sealed class WorldSupervisor : IDisposable
 
             ArchiveSave();
 
-            _host = new WorldHost(seed, _savePath, _simDataPath, _verboseTrace, _includeDebugDetails);
+            _host = new WorldHost(seed, _savePath, _simDataPath, _verboseTrace, _includeDebugDetails, _llmOptions);
             _hostLifetime = CancellationTokenSource.CreateLinkedTokenSource(_appShutdown);
             _thread = StartThread(_host, _hostLifetime.Token);
             _simData = File.ReadAllText(_simDataPath);
@@ -180,6 +184,7 @@ public sealed class WorldSupervisor : IDisposable
             _hostLifetime.Cancel();
             _viewerLifetime.Cancel();
             _thread.Join(TimeSpan.FromSeconds(5));
+            _host.Dispose();
             _hostLifetime.Dispose();
             _viewerLifetime.Dispose();
         }

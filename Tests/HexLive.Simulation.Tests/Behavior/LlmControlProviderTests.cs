@@ -116,6 +116,32 @@ public sealed class LlmControlProviderTests
         });
     }
 
+
+    [Test]
+    public void QueuedProvider_RejectsWhenProviderBudgetIsFullUntilResultIsDrained()
+    {
+        using var provider = new BoundedAsyncProvider(maxQueuedRequests: 0, maxConcurrentRequests: 1);
+        using var cancellation = new CancellationTokenSource();
+        var first = new LlmControlRequest(
+            11,
+            new LlmDecisionContext(new EntityId(8), tick: 30, Float2.Zero),
+            cancellation.Token);
+        var second = Request(12, new LlmDecisionContext(new EntityId(9), tick: 30, Float2.Zero));
+
+        Assert.That(provider.TryRequest(first), Is.True);
+        Assert.That(provider.Started.Wait(TimeSpan.FromSeconds(2)), Is.True);
+        Assert.That(provider.TryRequest(second), Is.False);
+
+        cancellation.Cancel();
+        var result = WaitForResult(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Canceled));
+            Assert.That(provider.TryRequest(second), Is.True);
+        });
+    }
+
     [Test]
     public void Decision_PreservesOptionalCommandPayload()
     {
@@ -184,6 +210,25 @@ public sealed class LlmControlProviderTests
             return new LlmDecision(LlmCommandKind.None);
         }
     }
+
+    private sealed class BoundedAsyncProvider : QueuedLlmControlProvider
+    {
+        public BoundedAsyncProvider(int maxQueuedRequests, int maxConcurrentRequests)
+            : base(maxQueuedRequests, maxConcurrentRequests)
+        {
+        }
+
+        public ManualResetEventSlim Started { get; } = new(false);
+
+        protected override async Task<LlmDecision> DecideAsync(
+            LlmDecisionContext context, CancellationToken cancellationToken)
+        {
+            Started.Set();
+            await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
+            return new LlmDecision(LlmCommandKind.None);
+        }
+    }
 }
+
 
 }

@@ -385,6 +385,10 @@ new_obj("ROOF_rafter",
         loc=(0.04, -0.03, ROOF_RISE - 0.030),
         rot=(0, math.radians(90) + math.atan2(ROOF_RISE, rafter_len), math.radians(-30)))
 
+new_obj("ROOF_purlin",
+        bowed_stick("ROOF_purlin", ROOF_CORNER_Y * 1.15, 0.018, rng, bow=0.005), s1,
+        loc=(ROOF_EDGE_X * 0.58, -ROOF_CORNER_Y * 0.575, ROOF_RISE * (1.0 - 0.58) - 0.020),
+        rot=(math.radians(-90), 0, 0))
 # Stage 2 — three thatch bands, one per delivered leaf bundle.
 lay_fronds(s2, "ROOF", rng, sloped=True, root_name="HL_ARCH_ROOF")
 
@@ -445,6 +449,10 @@ new_obj("ROOFFLAT_edge_beam",
 new_obj("ROOFFLAT_rafter",
         bowed_stick("ROOFFLAT_rafter", rafter_len, 0.020, rng, bow=0.005), s1,
         loc=(0.04, -0.03, -0.022), rot=(0, math.radians(90), math.radians(-30)))
+new_obj("ROOFFLAT_purlin",
+        bowed_stick("ROOFFLAT_purlin", ROOF_CORNER_Y * 1.15, 0.018, rng, bow=0.005), s1,
+        loc=(ROOF_EDGE_X * 0.58, -ROOF_CORNER_Y * 0.575, -0.020),
+        rot=(math.radians(-90), 0, 0))
 lay_fronds(s2, "ROOFFLAT", rng, sloped=False, root_name="HL_ARCH_ROOF_FLAT")
 binds = []
 for index, (x, y) in enumerate(((ROOF_EDGE_X - 0.06, -ROOF_CORNER_Y + 0.08), (0.10, -0.055))):

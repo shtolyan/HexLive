@@ -371,7 +371,7 @@ public static class BuildingBootstrap
             piece.Junctions.Add(portalId);
             portals.Add(portalId);
             var portal = world.Junctions.Items[portalId];
-            portal.Blocked = false;
+            WorldObjectMutations.ClearBlockingOwnershipAt(world, portalId);
             portal.Door = element.DeliveredTotal > 0;
             changed = true;
         }
@@ -389,15 +389,16 @@ public static class BuildingBootstrap
             {
                 if (!index.TryGetValue(key, out var junctionId) ||
                     portals.Contains(junctionId) ||
-                    !world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
-                    junction.Blocked)
+                    !world.Junctions.Items.TryGetValue(junctionId, out var junction))
                 {
                     continue;
                 }
 
+                var newlyBlocked = !junction.Blocked;
                 junction.Blocked = true;
-                piece.BlockedJunctions.Add(junctionId);
-                changed = true;
+                if (!piece.BlockedJunctions.Contains(junctionId))
+                    piece.BlockedJunctions.Add(junctionId);
+                changed |= newlyBlocked;
                 // §45 r5 / SealPerimeter: a girl left standing ON a junction that
                 // just went solid keeps a still-valid key, so perception never
                 // re-anchors her and every route reads unreachable. She is nudged
@@ -420,18 +421,7 @@ public static class BuildingBootstrap
 
     private static bool ReleaseBlocked(WorldState world, WorldObjectState holder)
     {
-        var changed = false;
-        foreach (var junctionId in holder.BlockedJunctions)
-        {
-            if (world.Junctions.Items.TryGetValue(junctionId, out var junction) && junction.Blocked)
-            {
-                junction.Blocked = false;
-                changed = true;
-            }
-        }
-
-        holder.BlockedJunctions.Clear();
-        return changed;
+        return WorldObjectMutations.ReleaseOwnedBlocking(world, holder);
     }
 
     private static int HexSymmetrySteps(float rotationDegrees) =>
@@ -527,7 +517,17 @@ public static class BuildingBootstrap
                 placement.PrimaryJunction, planAnchorTile, hut.Tile, steps);
             if (!index.TryGetValue(anchorKey, out var anchorId)) continue;
             if (!claimed.Add(anchorId)) continue;
-            if (PlanFurnitureExists(world, tile, product, anchorId)) continue;
+            var existing = FindPlanFurniture(world, tile, product, anchorId);
+            if (existing != null)
+            {
+                // Save/load repair: early constructor builds persisted finished
+                // indoor furniture with an empty footprint. Re-derive it from
+                // the same placement anchor/yaw instead of trusting the blob.
+                if (existing.DefinitionId != ContentIds.BuildSite)
+                    WorldObjectMutations.SetAuthoredFurnitureBlocking(
+                        world, existing, blocked: true);
+                continue;
+            }
 
             var site = WorldObjectMutations.SpawnObject(
                 world, ContentIds.BuildSite, hut.Fragment, tile, anchorId);
@@ -621,19 +621,19 @@ public static class BuildingBootstrap
         }
     }
 
-    private static bool PlanFurnitureExists(
+    private static WorldObjectState FindPlanFurniture(
         WorldState world, TileCoord tile, string product, JunctionId anchor)
     {
-        if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var objects)) return false;
+        if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var objects)) return null;
         foreach (var id in objects)
         {
             if (!world.Entities.Objects.TryGetValue(id, out var candidate)) continue;
             var isProduct = candidate.DefinitionId == product ||
                             candidate.BuildProduct == product;
-            if (isProduct && candidate.Junctions.Contains(anchor)) return true;
+            if (isProduct && candidate.Junctions.Contains(anchor)) return candidate;
         }
 
-        return false;
+        return null;
     }
 
     /// <summary>
@@ -699,19 +699,11 @@ public static class BuildingBootstrap
         if (hut == null || hut.DefinitionId != ContentIds.Hut1Hex ||
             !world.Tiles.Items.TryGetValue(hut.Tile, out var tile)) return;
 
-        foreach (var blockedId in hut.BlockedJunctions)
-        {
-            if (world.Junctions.Items.TryGetValue(blockedId, out var blocked))
-                blocked.Blocked = false;
-        }
-        hut.BlockedJunctions.Clear();
+        WorldObjectMutations.ReleaseOwnedBlocking(world, hut);
         var architecture = BuildingRules.ArchitectureObjects(world, hut).ToArray();
         foreach (var piece in architecture)
         {
-            foreach (var blockedId in piece.BlockedJunctions)
-                if (world.Junctions.Items.TryGetValue(blockedId, out var blocked))
-                    blocked.Blocked = false;
-            piece.BlockedJunctions.Clear();
+            WorldObjectMutations.ReleaseOwnedBlocking(world, piece);
             AnchorArchitecturePiece(world, hut, piece);
         }
         foreach (var junctionId in tile.Junctions)
@@ -750,8 +742,7 @@ public static class BuildingBootstrap
                 foreach (var junctionId in tile.Junctions)
                 {
                     if (world.Junctions.Items.TryGetValue(junctionId, out var candidate) &&
-                        candidate.Tiles.Count >= 2 && candidate.Tiles.Contains(neighbor) &&
-                        !candidate.Blocked)
+                        candidate.Tiles.Count >= 2 && candidate.Tiles.Contains(neighbor))
                     {
                         candidates.Add(junctionId);
                     }
@@ -780,8 +771,8 @@ public static class BuildingBootstrap
                     var portalId = candidates[i];
                     portals.Add(portalId);
                     var portal = world.Junctions.Items[portalId];
+                    WorldObjectMutations.ClearBlockingOwnershipAt(world, portalId);
                     portal.Door = true;
-                    portal.Blocked = false;
                 }
                 var doorPiece = architecture.FirstOrDefault(piece =>
                     piece.DefinitionId == "architecture.door.wood");
@@ -796,15 +787,17 @@ public static class BuildingBootstrap
             {
                 if (portals.Contains(junctionId)) continue;
                 if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
-                    junction.Tiles.Count < 2 || !junction.Tiles.Contains(neighbor) || junction.Blocked)
+                    junction.Tiles.Count < 2 || !junction.Tiles.Contains(neighbor))
                 {
                     continue;
                 }
 
+                var newlyBlocked = !junction.Blocked;
                 junction.Blocked = true;
                 var blocker = NearestBlockingPiece(world, hut, architecture, junction.WorldPosition);
                 if (blocker != null && !blocker.BlockedJunctions.Contains(junctionId))
                     blocker.BlockedJunctions.Add(junctionId);
+                if (!newlyBlocked) continue;
                 foreach (var npc in world.Entities.Npcs.Values)
                 {
                     if (npc.CurrentJunction is { } current && current.Equals(junctionId))
@@ -881,9 +874,11 @@ public static class BuildingBootstrap
         cot.Variant = ContentIds.HutBedVariant;
         cot.RotationDegrees = StructurePlacement.QuantizeHexYaw(
             hut.RotationDegrees + CotLocalYaw(slot));
-        // Architecture owns the room topology. Integrated beds reserve their
-        // furniture footprint but must not seal the one-hex interior corridor.
-        WorldObjectMutations.SetObstacleBlocking(world, cot, blocked: false);
+        // The route/interaction anchor is not the visible bed centre. Apply the
+        // authored rectangle around the committed centre so NPCs can approach
+        // from the corridor but can never stand inside the frame (#154).
+        WorldObjectMutations.SetAuthoredFurnitureBlocking(
+            world, cot, blocked: true, FurnitureWorldPosition(hut, CotLocalPosition(slot)));
     }
 
     private static JunctionId? FindCotJunction(WorldState world, WorldObjectState hut, Float2 local)
@@ -971,7 +966,7 @@ public static class BuildingBootstrap
                     obj.DefinitionId == ContentIds.BedBasic &&
                     obj.Variant == ContentIds.HutBedVariant)
                 {
-                    WorldObjectMutations.SetObstacleBlocking(world, obj, blocked: false);
+                    WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: false);
                     cots.Add(obj);
                 }
             }
@@ -986,6 +981,9 @@ public static class BuildingBootstrap
                 cots[i].Junctions.Add(anchor);
                 cots[i].RotationDegrees = StructurePlacement.QuantizeHexYaw(
                     hut.RotationDegrees + CotLocalYaw(i));
+                WorldObjectMutations.SetAuthoredFurnitureBlocking(
+                    world, cots[i], blocked: true,
+                    FurnitureWorldPosition(hut, CotLocalPosition(i)));
                 used.Add(anchor);
             }
         }
@@ -1045,6 +1043,12 @@ public static class BuildingBootstrap
         local.X * MathF.Cos(radians) - local.Y * MathF.Sin(radians),
         local.X * MathF.Sin(radians) + local.Y * MathF.Cos(radians));
 
+    private static Float2 FurnitureWorldPosition(WorldObjectState hut, Float2 local)
+    {
+        var radians = hut.RotationDegrees * MathF.PI / 180f;
+        return HexSpatialMath.TileToWorld(hut.Tile) + RotateLocal(local, radians);
+    }
+
     private static void SpawnHearth(WorldState world, WorldObjectState hut)
     {
         if (world.Caches.ObjectsByTile.TryGetValue(hut.Tile, out var objects))
@@ -1070,24 +1074,9 @@ public static class BuildingBootstrap
         AddContents(hearth, ContentIds.Rope, SimBalance.HutHearthBillRope);
         AddContents(hearth, ContentIds.Stone, SimBalance.HutHearthBillStones);
 
-        // A normal outdoor campfire blocks its full visual radius. The compact
-        // household hearth owns only its stone-lined anchor, leaving routes to
-        // both beds and the door open inside this very small room.
-        WorldObjectMutations.SetObstacleBlocking(world, hearth, blocked: false);
-        if (world.Junctions.Items.TryGetValue(junctionId, out var anchor) && !anchor.Blocked)
-        {
-            anchor.Blocked = true;
-            hearth.BlockedJunctions.Add(junctionId);
-            foreach (var npc in world.Entities.Npcs.Values)
-            {
-                if (npc.CurrentJunction is { } current && current.Equals(junctionId))
-                {
-                    npc.CurrentJunction = null;
-                }
-            }
-
-            world.TopologyVersion++;
-        }
+        // A normal outdoor campfire owns a seven-node disc. The authored
+        // household hearth owns exactly its single physical anchor.
+        WorldObjectMutations.SetAuthoredFurnitureBlocking(world, hearth, blocked: true);
     }
 
     /// <summary>
@@ -1117,24 +1106,14 @@ public static class BuildingBootstrap
             return;
         }
 
-        foreach (var blockedId in hearth.BlockedJunctions)
-        {
-            if (world.Junctions.Items.TryGetValue(blockedId, out var blocked)) blocked.Blocked = false;
-        }
-        hearth.BlockedJunctions.Clear();
+        WorldObjectMutations.SetAuthoredFurnitureBlocking(world, hearth, blocked: false);
         hearth.Junctions.Clear();
         hearth.Variant = BuildingRules.HutHearthVariant;
         hearth.RotationDegrees = hut.RotationDegrees;
-        WorldObjectMutations.SetObstacleBlocking(world, hearth, blocked: false);
 
         if (FindHearthJunction(world, hut) is not { } junctionId) return;
         hearth.Junctions.Add(junctionId);
-        if (world.Junctions.Items.TryGetValue(junctionId, out var anchor))
-        {
-            anchor.Blocked = true;
-            hearth.BlockedJunctions.Add(junctionId);
-        }
-        world.TopologyVersion++;
+        WorldObjectMutations.SetAuthoredFurnitureBlocking(world, hearth, blocked: true);
     }
 
     private static JunctionId? FindHearthJunction(WorldState world, WorldObjectState hut)
@@ -1169,9 +1148,8 @@ public static class BuildingBootstrap
     }
 
     /// <summary>
-    /// §133: домашний гардероб у свободной стены. Ставится как кровати — без
-    /// obstacle-блокировки: комната в один гекс, и любой лишний занятый
-    /// джанкшен запирает дверь или койку.
+    /// §133: домашний гардероб у свободной стены. Его authored line блокирует
+    /// только три физических узла; дверной коридор остаётся снаружи footprint.
     /// </summary>
     private static void SpawnWardrobe(WorldState world, WorldObjectState hut)
     {
@@ -1182,7 +1160,7 @@ public static class BuildingBootstrap
             world, ContentIds.Wardrobe, hut.Fragment, hut.Tile, junctionId);
         wardrobe.RotationDegrees = StructurePlacement.QuantizeHexYaw(
             hut.RotationDegrees + BuildingRules.HutWardrobeLocalYaw);
-        WorldObjectMutations.SetObstacleBlocking(world, wardrobe, blocked: false);
+        WorldObjectMutations.SetAuthoredFurnitureBlocking(world, wardrobe, blocked: true);
 
         SpawnMedkit(world, hut, wardrobe);
     }
@@ -1386,18 +1364,14 @@ public static class BuildingBootstrap
             }
         }
 
-        foreach (var blockedId in wardrobe.BlockedJunctions)
-        {
-            if (world.Junctions.Items.TryGetValue(blockedId, out var blocked)) blocked.Blocked = false;
-        }
-        wardrobe.BlockedJunctions.Clear();
+        WorldObjectMutations.SetAuthoredFurnitureBlocking(world, wardrobe, blocked: false);
         wardrobe.Junctions.Clear();
         wardrobe.RotationDegrees = StructurePlacement.QuantizeHexYaw(
             hut.RotationDegrees + BuildingRules.HutWardrobeLocalYaw);
-        WorldObjectMutations.SetObstacleBlocking(world, wardrobe, blocked: false);
 
         if (FindWardrobeJunction(world, hut, storedGarmentIds) is not { } junctionId) return;
         wardrobe.Junctions.Add(junctionId);
+        WorldObjectMutations.SetAuthoredFurnitureBlocking(world, wardrobe, blocked: true);
         foreach (var garment in storedGarments)
         {
             garment.Junctions.Clear();

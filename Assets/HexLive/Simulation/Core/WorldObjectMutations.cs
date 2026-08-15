@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Runtime.Blueprints;
 
 namespace HexLive.Simulation.Core
 {
@@ -100,13 +101,7 @@ public static class WorldObjectMutations
             // must reopen only that bay, not rebuild or erase the whole hut.
             if (!blocked)
             {
-                var architectureChanged = false;
-                foreach (var junctionId in worldObject.BlockedJunctions)
-                {
-                    if (!world.Junctions.Items.TryGetValue(junctionId, out var junction)) continue;
-                    junction.Blocked = false;
-                    architectureChanged = true;
-                }
+                var architectureChanged = ReleaseOwnedBlocking(world, worldObject);
                 if (worldObject.DefinitionId == "architecture.door.wood")
                 {
                     foreach (var junctionId in worldObject.Junctions)
@@ -116,7 +111,6 @@ public static class WorldObjectMutations
                         architectureChanged = true;
                     }
                 }
-                worldObject.BlockedJunctions.Clear();
                 if (architectureChanged) world.TopologyVersion++;
             }
             return;
@@ -162,11 +156,15 @@ public static class WorldObjectMutations
             worldObject.BlockedJunctions.Clear();
             foreach (var junctionId in CollectObstacleJunctions(world, worldObject, definition.ObstacleRadius))
             {
-                if (world.Junctions.Items.TryGetValue(junctionId, out var junction) && !junction.Blocked)
+                if (world.Junctions.Items.TryGetValue(junctionId, out var junction))
                 {
-                    junction.Blocked = true;
-                    worldObject.BlockedJunctions.Add(junctionId);
-                    changed = true;
+                    if (!worldObject.BlockedJunctions.Contains(junctionId))
+                        worldObject.BlockedJunctions.Add(junctionId);
+                    if (!junction.Blocked)
+                    {
+                        junction.Blocked = true;
+                        changed = true;
+                    }
 
                     // §45 r5: nudge anyone standing where the obstacle lands —
                     // same as the hut-wall builder. An NPC left standing ON a
@@ -189,22 +187,152 @@ public static class WorldObjectMutations
         {
             // Spec 31C.7: unblock exactly what this object blocked —
             // overlapping obstacles and walls stay intact.
-            foreach (var junctionId in worldObject.BlockedJunctions)
-            {
-                if (world.Junctions.Items.TryGetValue(junctionId, out var junction) && junction.Blocked)
-                {
-                    junction.Blocked = false;
-                    changed = true;
-                }
-            }
-
-            worldObject.BlockedJunctions.Clear();
+            changed = ReleaseOwnedBlocking(world, worldObject);
         }
 
         if (changed)
         {
             world.TopologyVersion++;
         }
+    }
+
+    /// <summary>
+    /// Applies the exact authored junction footprint around the piece's visible
+    /// centre. This is the indoor-furniture path: beds, wardrobes and the small
+    /// hearth are not radial obstacles, and an integrated bed's route anchor is
+    /// deliberately different from its mesh/lying centre (§120, #154).
+    /// </summary>
+    internal static void SetAuthoredFurnitureBlocking(
+        WorldState world,
+        WorldObjectState worldObject,
+        bool blocked,
+        Float2? authoredCenter = null)
+    {
+        if (world == null || worldObject == null) return;
+
+        var footprintId = worldObject.DefinitionId == ContentIds.Campfire &&
+            worldObject.Variant == BuildingRules.HutHearthVariant
+                ? "furniture.hearth"
+                : worldObject.DefinitionId;
+        if (!BlueprintFurnitureFootprints.HasFootprint(footprintId))
+        {
+            SetObstacleBlocking(world, worldObject, blocked);
+            return;
+        }
+
+        var changed = ReleaseOwnedBlocking(world, worldObject);
+        if (!blocked)
+        {
+            if (changed) world.TopologyVersion++;
+            return;
+        }
+
+        if (worldObject.Junctions.Count == 0 ||
+            !world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var anchor))
+        {
+            if (changed) world.TopologyVersion++;
+            return;
+        }
+
+        var yawStep = ((int)System.MathF.Round(worldObject.RotationDegrees / 60f) % 6 + 6) % 6;
+        var center = authoredCenter ??
+            anchor.WorldPosition + BlueprintFurnitureFootprints.CentroidOffset(footprintId, yawStep);
+        const float exactLatticeToleranceSq = 0.001f * 0.001f;
+        foreach (var offset in BlueprintFurnitureFootprints.CenteredWorldOffsets(footprintId, yawStep))
+        {
+            var point = center + offset;
+            if (FindExactJunction(world, point, exactLatticeToleranceSq) is not { } junctionId ||
+                !world.Junctions.Items.TryGetValue(junctionId, out var junction))
+            {
+                continue;
+            }
+
+            if (junction.Door)
+            {
+                continue;
+            }
+
+            // Record shared ownership too. The approved canonical layout has
+            // one bed-corner/wardrobe-end junction in common; removing either
+            // piece must not open a point still occupied by the other.
+            if (!worldObject.BlockedJunctions.Contains(junctionId))
+                worldObject.BlockedJunctions.Add(junctionId);
+            if (!junction.Blocked)
+            {
+                junction.Blocked = true;
+                changed = true;
+            }
+
+            foreach (var bystander in world.Entities.Npcs.Values)
+            {
+                if (bystander.CurrentJunction is { } current && current.Equals(junctionId))
+                    bystander.CurrentJunction = null;
+            }
+        }
+
+        if (worldObject.BlockedJunctions.Count > 0) changed = true;
+        if (changed) world.TopologyVersion++;
+    }
+
+    private static JunctionId? FindExactJunction(
+        WorldState world, Float2 point, float toleranceSq)
+    {
+        foreach (var pair in world.Junctions.Items)
+        {
+            var delta = pair.Value.WorldPosition - point;
+            if (delta.X * delta.X + delta.Y * delta.Y <= toleranceSq)
+                return pair.Key;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Releases only this object's ownership. Kept internal for architecture
+    /// repair, which rebuilds wall and furniture topology in separate passes.
+    /// The caller increments TopologyVersion once after its whole transaction.
+    /// </summary>
+    internal static bool ReleaseOwnedBlocking(
+        WorldState world, WorldObjectState worldObject)
+    {
+        var changed = false;
+        foreach (var junctionId in worldObject.BlockedJunctions)
+        {
+            var heldByOther = false;
+            foreach (var other in world.Entities.Objects.Values)
+            {
+                if (other.Id.Equals(worldObject.Id)) continue;
+                if (other.BlockedJunctions.Contains(junctionId))
+                {
+                    heldByOther = true;
+                    break;
+                }
+            }
+
+            if (!heldByOther &&
+                world.Junctions.Items.TryGetValue(junctionId, out var junction) &&
+                junction.Blocked)
+            {
+                junction.Blocked = false;
+                changed = true;
+            }
+        }
+
+        worldObject.BlockedJunctions.Clear();
+        return changed;
+    }
+
+    /// <summary>
+    /// A completed door throat outranks every stale obstacle owner. Topology
+    /// repair calls this before rebuilding walls/furniture so a rotated or old
+    /// save cannot retain a furniture footprint across the corridor (§120).
+    /// </summary>
+    internal static void ClearBlockingOwnershipAt(WorldState world, JunctionId junctionId)
+    {
+        foreach (var worldObject in world.Entities.Objects.Values)
+            worldObject.BlockedJunctions.Remove(junctionId);
+        if (world.Junctions.Items.TryGetValue(junctionId, out var junction))
+            junction.Blocked = false;
     }
 
     // Anchor junctions plus, for solid furniture, every junction of the

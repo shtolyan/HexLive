@@ -15,7 +15,7 @@ namespace HexLive.Simulation.Tests.Behavior
 
 /// <summary>
 /// §133: гардероб — домашняя родня сушилки. Стоит у свободной стены хижины,
-/// ничего не перегораживает и сушит вещи от очага.
+/// блокирует только свою физическую линию и сушит вещи от очага.
 /// </summary>
 public sealed class WardrobeTests
 {
@@ -28,7 +28,7 @@ public sealed class WardrobeTests
         world.Entities.Objects.Values.First(o => o.DefinitionId == ContentIds.Hut1Hex);
 
     [Test]
-    public void CompletedHutGetsAWardrobeThatBlocksNothing()
+    public void CompletedHutWardrobeBlocksItsAuthoredLineButKeepsSharedOwnership()
     {
         var world = TestWorld.CreateWorld(12345);
         var hut = Hut(world);
@@ -36,9 +36,9 @@ public sealed class WardrobeTests
 
         Assert.That(wardrobe, Is.Not.Null, "В достроенной хижине нет гардероба.");
         Assert.That(wardrobe.Junctions.Count, Is.EqualTo(1), "Гардероб без якоря — вешать некуда.");
-        Assert.That(wardrobe.BlockedJunctions, Is.Empty,
-            "Гардероб занял джанкшен: комната в один гекс, так запирается дверь или койка.");
-        Assert.That(world.Junctions.Items[wardrobe.Junctions[0]].Blocked, Is.False);
+        Assert.That(wardrobe.BlockedJunctions, Has.Count.EqualTo(3),
+            "Гардероб должен закрывать ровно authored junction 9 → 4 → 0.");
+        Assert.That(world.Junctions.Items[wardrobe.Junctions[0]].Blocked, Is.True);
 
         var center = HexSpatialMath.TileToWorld(hut.Tile);
         var radians = hut.RotationDegrees * System.MathF.PI / 180f;
@@ -51,6 +51,16 @@ public sealed class WardrobeTests
         var delta = actual - expected;
         Assert.That(delta.X * delta.X + delta.Y * delta.Y, Is.LessThan(0.0001f * 0.0001f),
             "Production выбрал соседний junction вместо утверждённого pivot гардероба.");
+
+        var beds = world.Caches.ObjectsByTile[hut.Tile]
+            .Select(id => world.Entities.Objects[id])
+            .Where(obj => obj.DefinitionId == ContentIds.BedBasic)
+            .ToArray();
+        var shared = wardrobe.BlockedJunctions
+            .Single(id => beds.Any(bed => bed.BlockedJunctions.Contains(id)));
+        Assert.That(WorldObjectMutations.DespawnObject(world, wardrobe.Id), Is.True);
+        Assert.That(world.Junctions.Items[shared].Blocked, Is.True,
+            "Удаление шкафа не должно открыть общий угол всё ещё стоящей кровати.");
     }
 
     [Test]

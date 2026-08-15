@@ -213,8 +213,7 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
                 $"Unsupported LLM response contractVersion: {wire.ContractVersion}.");
         }
 
-        if (!Enum.TryParse(wire.CommandKind, ignoreCase: false, out LlmCommandKind kind) ||
-            !Enum.IsDefined(typeof(LlmCommandKind), kind))
+        if (!TryParseExactEnumName(wire.CommandKind, out LlmCommandKind kind))
         {
             throw new InvalidOperationException("Unsupported LLM commandKind: " + wire.CommandKind);
         }
@@ -248,18 +247,29 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
 
     private static InteractionType? ParseInteraction(string? interaction)
     {
-        if (string.IsNullOrWhiteSpace(interaction))
+        if (interaction is null)
         {
             return null;
         }
 
-        if (!Enum.TryParse(interaction, ignoreCase: false, out InteractionType parsed) ||
-            !Enum.IsDefined(typeof(InteractionType), parsed))
+        if (!TryParseExactEnumName(interaction, out InteractionType parsed))
         {
             throw new InvalidOperationException("Unsupported LLM interaction: " + interaction);
         }
 
         return parsed;
+    }
+
+    private static bool TryParseExactEnumName<TEnum>(string? value, out TEnum parsed)
+        where TEnum : struct, Enum
+    {
+        if (value is null || !Enum.IsDefined(typeof(TEnum), value))
+        {
+            parsed = default;
+            return false;
+        }
+
+        return Enum.TryParse(value, ignoreCase: false, out parsed);
     }
 
     private static void ValidateContentType(MediaTypeHeaderValue? contentType)

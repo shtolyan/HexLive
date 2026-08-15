@@ -96,6 +96,42 @@ public sealed class LlmHttpControlProviderTests
         nameof(InvalidOperationException),
         TestName = "Response enum values are case-sensitive")]
     [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\"1\"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects a numeric command ordinal")]
+    [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\"None, Stop\"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects a comma-combined command")]
+    [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\" None\"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects leading command whitespace")]
+    [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\"None \"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects trailing command whitespace")]
+    [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\"NotAnInteraction\"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects an unsupported interaction")]
+    [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\"0\"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects a numeric interaction ordinal")]
+    [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\"Eat, Drink\"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects a comma-combined interaction")]
+    [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\" Harvest\"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects leading interaction whitespace")]
+    [TestCase(
+        "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\"Harvest \"}",
+        nameof(InvalidOperationException),
+        TestName = "Response rejects trailing interaction whitespace")]
+    [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"None\",\"extra\":true}",
         nameof(JsonException),
         TestName = "Response rejects unknown fields")]

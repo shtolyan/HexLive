@@ -50,7 +50,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "PrDr_furNO.jpg"
         }
       ],
       "_measured": {
@@ -254,7 +255,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "PrDr_furNO.jpg"
         },
         {
           "source": "fur_plain",
@@ -458,8 +460,8 @@
           "source": "rings",
           "texture": null,
           "color": "#D3CFC9",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.786,
+          "metallic": 0.856,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -475,8 +477,8 @@
         {
           "source": "straps",
           "texture": "CruX Wild Bra.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -535,8 +537,8 @@
         {
           "source": "straps",
           "texture": "CruX Wild Panty.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -596,8 +598,8 @@
           "source": "studs",
           "texture": null,
           "color": "#D3CFC9",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -694,32 +696,32 @@
         {
           "source": "Shoes",
           "texture": "shoes_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Zipper Handle",
           "texture": "zip_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Zipper",
           "texture": "zip_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Buttons",
           "texture": "buttons_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -1021,7 +1023,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Top_Normal.jpg"
         },
         {
           "source": "Band",
@@ -1029,7 +1032,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Top_Normal.jpg"
         }
       ],
       "_measured": {
@@ -1369,7 +1373,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Bottom_Normal.jpg"
         },
         {
           "source": "Fabric",
@@ -1377,7 +1382,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Bottom_Normal.jpg"
         }
       ],
       "_measured": {
@@ -4360,8 +4366,8 @@
           "source": "Clasp",
           "texture": null,
           "color": "#FFE29B",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -4499,8 +4505,8 @@
           "source": "Metal",
           "texture": null,
           "color": "#FFE29B",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }

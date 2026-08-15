@@ -45,7 +45,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         },
         {
           "source": "M1Rope02",
@@ -53,7 +54,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         },
         {
           "source": "M1BaseBag",
@@ -61,7 +63,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         }
       ],
       "_measured": {
@@ -172,13 +175,14 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM2_Square_normal.jpg"
         },
         {
           "source": "M1Buttons",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -188,7 +192,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         }
       ],
       "_measured": {
@@ -291,7 +296,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         },
         {
           "source": "M1BaseBlouseWear",
@@ -299,13 +305,14 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         },
         {
           "source": "M1Buttons",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -419,7 +426,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM2_Square_normal.jpg"
         },
         {
           "source": "M2Soles",
@@ -427,15 +435,17 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM2_Square_normal.jpg"
         },
         {
           "source": "M2Straps",
           "texture": "LNA_RiotM2_Square_albedo.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM2_Square_normal.jpg"
         },
         {
           "source": "M2Laces",
@@ -443,7 +453,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM2_Square_normal.jpg"
         }
       ],
       "_measured": {
@@ -495,7 +506,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         },
         {
           "source": "M1BaseBra",
@@ -503,7 +515,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         }
       ],
       "_measured": {
@@ -597,7 +610,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         },
         {
           "source": "M1Pin",
@@ -605,7 +619,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         },
         {
           "source": "M1PinMetal",
@@ -709,13 +724,14 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM1_Square_normal.jpg"
         },
         {
           "source": "M1Button",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -801,10 +817,11 @@
         {
           "source": "M2Buttons",
           "texture": "LNA_RiotM2_Square_albedo.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM2_Square_normal.jpg"
         },
         {
           "source": "M2BaseShirt",
@@ -812,7 +829,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "LNA_RiotM2_Square_normal.jpg"
         }
       ],
       "_measured": {
@@ -1198,8 +1216,8 @@
         {
           "source": "MaterialZip",
           "texture": "jacket-Map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }

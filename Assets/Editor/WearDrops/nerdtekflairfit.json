@@ -41,8 +41,8 @@
         {
           "source": "frame",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -57,8 +57,8 @@
         {
           "source": "metal",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -253,8 +253,8 @@
         {
           "source": "eyelet",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -269,16 +269,16 @@
         {
           "source": "shoe_R",
           "texture": "NCSneakersPink.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "shoe_L",
           "texture": "NCSneakersPurple.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -542,7 +542,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekSportsBra01_Normal.png"
         },
         {
           "source": "Sportsbra",
@@ -550,7 +551,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekSportsBra01_Normal.png"
         },
         {
           "source": "BraBottomSpandex",
@@ -558,7 +560,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekSportsBra01_Normal.png"
         }
       ],
       "_measured": {
@@ -779,77 +782,80 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "ZipperCover",
           "texture": "TekTrainingJacket01_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "ZipperZone02",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperCoverCollar",
           "texture": "TekTrainingJacket01_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "ZipperZone08",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone10",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone01",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone04",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone05",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone03",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
@@ -859,29 +865,30 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "ZipperZone09",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone06",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone07",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
@@ -891,15 +898,17 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "Collar",
           "texture": "TekTrainingJacket01_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "Fabric",
@@ -907,15 +916,17 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "Cuffs",
           "texture": "TekTrainingJacket01_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         }
       ],
       "_measured": {
@@ -971,50 +982,52 @@
         {
           "source": "ZipperZone06",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone10",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperPull01",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "ZipperPull02",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Collar",
           "texture": "TekTrainingJacket01_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "Cuffs",
           "texture": "TekTrainingJacket01_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "Sleeves",
@@ -1022,7 +1035,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "BottomTrim",
@@ -1030,7 +1044,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "SidePanels",
@@ -1038,45 +1053,48 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "ZipperCover",
           "texture": "TekTrainingJacket01_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "ZipperCoverCollar",
           "texture": "TekTrainingJacket01_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "ZipperPull03",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "ZipperZone09",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone01",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
@@ -1086,53 +1104,54 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekTrainingJacket01_Normal.png"
         },
         {
           "source": "ZipperZone07",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone04",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone05",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone02",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone03",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "ZipperZone08",
           "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         }
@@ -1197,7 +1216,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekYogaPants01_Normal.png"
         },
         {
           "source": "Pants",
@@ -1205,7 +1225,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "TekYogaPants01_Normal.png"
         },
         {
           "source": "SidePanels",
@@ -1415,7 +1436,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "flair-panty-01-nl.jpg"
         }
       ],
       "_measured": {
@@ -1511,8 +1533,8 @@
         {
           "source": "shoe",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -1586,7 +1608,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "flair-skirt-01-nl.jpg"
         },
         {
           "source": "waistband",
@@ -1594,7 +1617,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "flair-skirt-01-nl.jpg"
         }
       ],
       "_measured": {
@@ -1681,7 +1705,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "flair-sweat-01-nl.jpg"
         },
         {
           "source": "Sleeves",
@@ -1689,7 +1714,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "flair-sweat-01-nl.jpg"
         }
       ],
       "_measured": {
@@ -1777,7 +1803,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "DMFnSgloves1N.jpg"
         }
       ],
       "_measured": {
@@ -1851,7 +1878,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "DMFnStop1N.jpg"
         }
       ],
       "_measured": {
@@ -2134,7 +2162,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "DMFnSshorts1N.jpg"
         }
       ],
       "_measured": {
@@ -2379,7 +2408,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "DMFnSsocks1N.jpg"
         }
       ],
       "_measured": {

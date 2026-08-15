@@ -33,8 +33,8 @@
         {
           "source": "button",
           "texture": "i13SW_Shorts_Diffuse.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -98,7 +98,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "i13SW_TShirt_Normal.png"
         },
         {
           "source": "shirt",
@@ -106,7 +107,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "i13SW_TShirt_Normal.png"
         }
       ],
       "_measured": {
@@ -220,7 +222,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "i13sw_tank_normal.png"
         },
         {
           "source": "tank",
@@ -228,7 +231,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "i13sw_tank_normal.png"
         }
       ],
       "_measured": {
@@ -339,7 +343,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "FITop_Normal.png"
         },
         {
           "source": "Boundary",
@@ -347,7 +352,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "FITop_Normal.png"
         }
       ],
       "_measured": {
@@ -418,7 +424,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "FILeg_Normal.png"
         },
         {
           "source": "Leggings",
@@ -426,15 +433,17 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "FILeg_Normal.png"
         },
         {
           "source": "Belt",
           "texture": "FILeg_ORN_BaseColor.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "FILeg_Normal.png"
         }
       ],
       "_measured": {
@@ -513,7 +522,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "FITop_Normal.png"
         }
       ],
       "_measured": {
@@ -570,10 +580,11 @@
         {
           "source": "Glove_Zipper_Tape_SG",
           "texture": "ChRO_jacket-gloves-u1v1_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_jacket-gloves-u1v1_normal.png"
         },
         {
           "source": "Glove_Body_SG",
@@ -581,7 +592,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_jacket-gloves-u1v1_normal.png"
         },
         {
           "source": "Glove_Inner_SG",
@@ -589,23 +601,26 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_outfit-u2v2_normal.png"
         },
         {
           "source": "Glove_Button_SG",
           "texture": "ChRO_outfit-u1v2_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_outfit-u1v2_normal.png"
         },
         {
           "source": "Glove_Zipper_Slider_SG",
           "texture": "ChRO_outfit-u1v2_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_outfit-u1v2_normal.png"
         }
       ],
       "_measured": {
@@ -671,10 +686,11 @@
         {
           "source": "Jacket_Buckles_SG",
           "texture": "ChRO_outfit-u1v2_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_outfit-u1v2_normal.png"
         },
         {
           "source": "Jacket_Body_SG",
@@ -682,15 +698,17 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_jacket-gloves-u1v1_normal.png"
         },
         {
           "source": "Jacket_Zipper_Tape_SG",
           "texture": "ChRO_jacket-gloves-u1v1_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_jacket-gloves-u1v1_normal.png"
         },
         {
           "source": "Jacket_Inner_SG",
@@ -698,23 +716,26 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_outfit-u2v2_normal.png"
         },
         {
           "source": "Jacket_Buttons_SG",
           "texture": "ChRO_outfit-u1v2_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_outfit-u1v2_normal.png"
         },
         {
           "source": "Jacket_Zipper_Sliders_SG",
           "texture": "ChRO_outfit-u1v2_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_outfit-u1v2_normal.png"
         }
       ],
       "_measured": {
@@ -787,18 +808,20 @@
         {
           "source": "Belt_Buckle_SG",
           "texture": "ChRO_pants_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_pants_normal.png"
         },
         {
           "source": "Belt_Panel_SG",
           "texture": "ChRO_pants_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_pants_normal.png"
         },
         {
           "source": "Pants_Body_SG",
@@ -806,31 +829,35 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_pants_normal.png"
         },
         {
           "source": "Pants_Zipper_Tape_SG",
           "texture": "ChRO_pants_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_pants_normal.png"
         },
         {
           "source": "Pants_Zipper_Slider_SG",
           "texture": "ChRO_pants_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_pants_normal.png"
         },
         {
           "source": "Pants_Button_SG",
           "texture": "ChRO_pants_color.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "ChRO_pants_normal.png"
         }
       ],
       "_measured": {
@@ -894,24 +921,24 @@
         {
           "source": "Leather",
           "texture": "Black4096_x_4096_Texture.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Leather Straps",
           "texture": "Black4096_x_4096_Texture.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Metal Buckles",
           "texture": "Black4096_x_4096_Texture.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -1572,8 +1599,8 @@
         {
           "source": "brassiere",
           "texture": "Dreamlace3_Bra_Dreamlace3_Bra_tr.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
@@ -1588,8 +1615,8 @@
         {
           "source": "strap",
           "texture": "Dreamlace3_Bra_Dreamlace3_Bra_tr.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": true
         },
@@ -1788,8 +1815,8 @@
         {
           "source": "Material02",
           "texture": "guard-map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.349,
+          "metallic": 0.607,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -1844,8 +1871,8 @@
         {
           "source": "Material-belt",
           "texture": "belt-map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         }

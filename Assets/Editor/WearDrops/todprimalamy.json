@@ -192,16 +192,16 @@
         {
           "source": "Belt",
           "texture": "p3dToD_Greaves_TX.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Metal",
           "texture": "p3dToD_Greaves_TX.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -1491,16 +1491,16 @@
         {
           "source": "AmyNL_Chain",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "AmyNL_Metal",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -1663,16 +1663,16 @@
         {
           "source": "AmySkirt_BeltOut",
           "texture": "Amy Skirt Texture A.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "AmySkirt_BeltIn",
           "texture": "Amy Skirt Texture A.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },

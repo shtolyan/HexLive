@@ -58,24 +58,24 @@
         {
           "source": "Strap_Outer",
           "texture": "Style 01.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Strap_inner",
           "texture": "Style 01.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Strap_edge",
           "texture": "Style 01.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -83,8 +83,8 @@
           "source": "Metals",
           "texture": null,
           "color": "#050505",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -712,24 +712,24 @@
         {
           "source": "Strap_Outer",
           "texture": "Style 02.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Strap_inner",
           "texture": "Style 02.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Strap_edge",
           "texture": "Style 02.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -737,8 +737,8 @@
           "source": "Metals",
           "texture": null,
           "color": "#050505",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -1366,24 +1366,24 @@
         {
           "source": "Strap_Outer",
           "texture": "Style 03.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Strap_inner",
           "texture": "Style 03.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Strap_edge",
           "texture": "Style 03.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -1391,8 +1391,8 @@
           "source": "Metals",
           "texture": null,
           "color": "#050505",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -2020,24 +2020,24 @@
         {
           "source": "Strap_Outer",
           "texture": "Style 04.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Strap_inner",
           "texture": "Style 04.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Strap_edge",
           "texture": "Style 04.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -2045,8 +2045,8 @@
           "source": "Toe_Clip",
           "texture": null,
           "color": "#050505",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -2054,8 +2054,8 @@
           "source": "Metals",
           "texture": null,
           "color": "#050505",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -2698,7 +2698,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "fabric_Normal.tif"
         },
         {
           "source": "sole",
@@ -2706,15 +2707,17 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "sole_Normal.tif"
         },
         {
           "source": "leather",
           "texture": "leather_Diffuse.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "leather_Normal.tif"
         },
         {
           "source": "inner",
@@ -2722,7 +2725,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "inner_Normal.tif"
         },
         {
           "source": "lace",
@@ -2730,7 +2734,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "lace_Normal.tif"
         }
       ],
       "_measured": {
@@ -2892,7 +2897,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_inner_normal.tif"
         },
         {
           "source": "inner_right",
@@ -2900,7 +2906,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_inner_normal.tif"
         },
         {
           "source": "lace2_left",
@@ -2908,7 +2915,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_lace_normal.tif"
         },
         {
           "source": "lace2_right",
@@ -2916,7 +2924,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_lace_normal.tif"
         },
         {
           "source": "lace1_left",
@@ -2924,7 +2933,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_lace_normal.tif"
         },
         {
           "source": "lace1_right",
@@ -2932,7 +2942,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_lace_normal.tif"
         },
         {
           "source": "sole_left",
@@ -2940,7 +2951,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_sole_normal.tif"
         },
         {
           "source": "sole_right",
@@ -2948,7 +2960,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_sole_normal.tif"
         },
         {
           "source": "main_left",
@@ -2956,7 +2969,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_main_normal.tif"
         },
         {
           "source": "main_right",
@@ -2964,7 +2978,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_SportSneakers_main_normal.tif"
         }
       ],
       "_measured": {
@@ -3303,7 +3318,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Skirt_normal.jpg"
         },
         {
           "source": "Front Center Panel",
@@ -3311,7 +3327,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Skirt_normal.jpg"
         },
         {
           "source": "Back Center Panel",
@@ -3319,7 +3336,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Skirt_normal.jpg"
         },
         {
           "source": "Waist Band",
@@ -3327,7 +3345,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Skirt_normal.jpg"
         }
       ],
       "_measured": {
@@ -3385,7 +3404,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Boots_normal.jpg"
         },
         {
           "source": "Body",
@@ -3393,7 +3413,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Boots_normal.jpg"
         },
         {
           "source": "Top Trim",
@@ -3401,7 +3422,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Boots_normal.jpg"
         },
         {
           "source": "Sole",
@@ -3409,7 +3431,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Boots_normal.jpg"
         },
         {
           "source": "Heel Base",
@@ -3417,7 +3440,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Boots_normal.jpg"
         },
         {
           "source": "Heels",
@@ -3425,7 +3449,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "AlloyFDark_Boots_normal.jpg"
         }
       ],
       "_measured": {
@@ -3486,8 +3511,8 @@
         {
           "source": "Buttons",
           "texture": "buttons_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -3569,8 +3594,8 @@
         {
           "source": "Buttons",
           "texture": "buttons_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -3655,8 +3680,8 @@
         {
           "source": "Shoes",
           "texture": "shoes_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -3664,24 +3689,24 @@
           "source": "Zipper_Handle",
           "texture": null,
           "color": "#FFFFFF",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Zipper",
           "texture": "zip_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Buttons",
           "texture": "buttons_diffuse.tga",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },

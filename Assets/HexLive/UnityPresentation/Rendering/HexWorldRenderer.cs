@@ -602,7 +602,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             foreach (var npc in snapshot.Npcs)
             {
                 if (npc.Id.Value != selectedId) continue;
-                selectedTile = npc.Tile;
+                // §141: «она в доме» — про ТЕЛО, а не про поле тайла. Дом
+                // раскрывался не в тот момент, когда она входит: поле
+                // догоняет тело, и на пороге получалось «и в доме, и не в
+                // доме» — при том, что высоту вид брал оттуда же.
+                selectedTile = GroundTileUnder(npc);
                 hasInteriorSelection = _indoorCoords.Contains(selectedTile);
                 break;
             }
@@ -1428,7 +1432,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 : TryGetFurnitureSeatPose(snapshot, npc, targetRot, out var furnitureSeatPose)
                     ? furnitureSeatPose
                     : new Pose(
-                        SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)),
+                        // §141: земля берётся из-под ТЕЛА, а не из отстающего
+                        // поля тайла — см. GroundTileUnder.
+                        SimulationUnityMapper.ToUnityPosition(
+                            npc.Position, ActorGroundY(GroundTileUnder(npc))),
                         targetRot);
             var targetPos = targetPose.Position;
 
@@ -2883,6 +2890,52 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // ground; in deep water she hangs SinkDepth below the water surface; in
     // walkable shallows (the river) she wades WadeDepth under it — knee-deep,
     // not walking ON the water.
+    // §141: КАКОЙ ТАЙЛ ПОД ТЕЛОМ — а не какой записан в снапшоте.
+    //
+    // Вид рисует её по непрерывной Position, а высоту и «в доме ли она» брал
+    // из дискретного npc.Tile. Поле ОТСТАЁТ от тела: замер на трёх сидах
+    // (18 000 NPC-тиков) — в 944 переездах тайла из 955 тело уже находится
+    // внутри нового гекса к моменту, когда поле только щёлкает. Стоя
+    // расхождения нет ни разу, оно живёт только на ходу.
+    //
+    // На ровном месте это незаметно. На пороге хижины — нет: пол поднят на
+    // HutAssembly.FloorSurfaceLift, а в модели мира этой ступеньки не
+    // существует вовсе (те же замеры: все 21 переходов «земля ↔ пол» идут
+    // между тайлами ОДИНАКОВОЙ высоты). Пока поле догоняет, тело уже стоит над
+    // полом, а высота ему считается по уличному тайлу — она проходит сквозь
+    // ступеньку. Крыша по той же причине раскрывалась не в тот момент, когда
+    // она вошла.
+    //
+    // ⭐ ПРЫЖОК ИСКЛЮЧЁН НАМЕРЕННО. Там тело обязано быть между тайлами, и
+    // дугой правит своя выверенная машина (§21.21B v15/v23), которая держит
+    // базу на тайле ВЗЛЁТА. Сэмплировать под телом в полёте значило бы спорить
+    // с ней за одну и ту же величину.
+    private TileCoord GroundTileUnder(NpcSnapshot npc)
+    {
+        if (npc.HopKind.Length > 0)
+        {
+            return npc.Tile;
+        }
+
+        var under = HexSpatialMath.WorldToTile(npc.Position);
+        if (!_tileElevations.ContainsKey(under))
+        {
+            return npc.Tile;
+        }
+
+        // ⭐ ВОДА ТОЖЕ ИСКЛЮЧЕНА. У берега высота считается не по тайлу, а по
+        // отдельной привязке (SurfaceStepOffset/ShoreLevelSteps, глубина
+        // погружения), и она выверялась отдельно. Менять там ИСТОЧНИК тайла
+        // ради порога хижины значит чинить одно и трогать другое: суша под
+        // ногами и уровень воды — разные вопросы к одному методу.
+        if (_waterCoords.Contains(under) || _waterCoords.Contains(npc.Tile))
+        {
+            return npc.Tile;
+        }
+
+        return under;
+    }
+
     private float ActorGroundY(TileCoord coord)
     {
         if (!_waterCoords.Contains(coord))

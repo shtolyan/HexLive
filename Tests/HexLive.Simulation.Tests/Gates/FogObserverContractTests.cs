@@ -11,6 +11,9 @@ namespace HexLive.Simulation.Tests.Gates
             var renderer = File.ReadAllText(Path.Combine(
                 RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
                 "Rendering", "HexWorldRenderer.cs"));
+            var camera = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
+                "Input", "RtsCameraController.cs"));
             var spec = File.ReadAllText(Path.Combine(RepoPaths.Root, "Spec", "125.md"));
 
             Assert.Multiple(() =>
@@ -24,6 +27,9 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(renderer, Does.Contain("var selectedId = _fogObserverNpcId;"),
                     "The perception ring must follow the validated observer, not the relation target.");
                 Assert.That(renderer, Does.Not.Contain("_fogHidesNpcs = selectedId >= 0;"));
+                Assert.That(renderer, Does.Contain("public bool IsNpcHiddenByFog(int npcId)"));
+                Assert.That(camera, Does.Contain("_worldRenderer.IsNpcHiddenByFog(npcId)"));
+                Assert.That(camera, Does.Contain("target = Vector3.zero;"));
                 Assert.That(spec, Does.Contain("Карточка отношений может выбрать скрытого чужака"));
             });
         }

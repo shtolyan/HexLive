@@ -389,6 +389,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
+    // Bug #146: UI may keep a hidden relation target selected so its card can
+    // stay open. Camera code must ask the same authoritative fog state before
+    // using the still-alive (but inactive) actor transform as a framing target.
+    public bool IsNpcHiddenByFog(int npcId) =>
+        _fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(npcId);
+
     // §67.10: the actor itself, so a sim event (death cry, "it's built!") can
     // be spoken by the right mouth instead of a disembodied sfx.
     public bool TryGetActorView(int npcId, out NpcActorView view)

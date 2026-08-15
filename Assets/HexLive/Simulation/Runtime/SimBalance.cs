@@ -122,15 +122,11 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Rest / sleep restore.
         // ─────────────────────────────────────────────────────────────
-        // §54.11 r2: timed Sleep interactions no longer add a second energy
-        // stream. Recovery is owned by the slow-tick bonuses below, where its
-        // game-hour duration is explicit and identical for voluntary sleep and
-        // exhaustion coma.
-        public static float GroundSleepEnergy = 0f;
+        // §54.11 r2 / bug #150: timed interactions own no Energy knobs at all.
+        // Recovery is owned by the slow-tick bonuses below, where its game-hour
+        // duration is explicit and identical for voluntary sleep and coma.
         public static float GroundSitComfort = 0.15f;       // comfort per ground-sit
         public static float GroundSitComfortLedge = 0.25f;  // ...more on a ledge (nice view)
-        public static float BedEnergy = 0f;
-        public static float LeafBedEnergy = 0.15f;          // energy per night on a leaf mat
 
         // §54.11 r2: one slow tick is 16 game ticks; a game hour is 1000.
         // +0.002/tick therefore fills 0→1 in 500 slow ticks = 8000 game

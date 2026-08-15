@@ -36,12 +36,13 @@ public sealed class SleepRecoveryTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(SimBalance.GroundSleepEnergy, Is.Zero,
-                "Ground interaction must not add a hidden second recovery stream.");
-            Assert.That(SimBalance.BedEnergy, Is.Zero,
-                "Bed interaction must not add a hidden second recovery stream.");
             Assert.That(SimBalance.SleepEnergyFireBonus, Is.Zero,
                 "A nearby fire must not silently shorten the hour contract.");
+            Assert.That(groundWorld.Content.ObjectDefinitions[ContentIds.BedBasic]
+                    .Interactions.Single(i => i.Type == InteractionType.Sleep)
+                    .Effects.EnergyDelta,
+                Is.Zero,
+                "The timed bed interaction must not own a second recovery stream.");
             Assert.That(groundPerSlowTick, Is.EqualTo(0.002f).Within(0.000001f));
             Assert.That(bedPerSlowTick, Is.EqualTo(0.004f).Within(0.000001f));
             Assert.That(1f / groundPerSlowTick / SlowTicksPerGameHour,

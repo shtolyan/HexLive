@@ -1074,13 +1074,10 @@ public static class PrototypeContentCatalog
 
                         // Spec 31C.7A: real sleep blocks, not catnaps.
                         DurationTicks = 100,
-                        // Spec §49: comfort no longer lives on the interaction —
-                        // it's the unified sleep-comfort formula in NeedsDecaySystem
-                        // (surface + fire + sun + rain). Energy still lands here.
-                        // §54.11 r2: kept as a data hook for compatibility,
-                        // but live balance sets it to zero. NeedsDecaySystem
-                        // owns the single 4-hour bed clock.
-                        Effects = { EnergyDelta = SimBalance.BedEnergy }
+                        // §49/§54.11 r2: comfort and Energy no longer live on
+                        // the timed interaction. NeedsDecaySystem owns both the
+                        // unified sleep-comfort formula and the single 4-hour
+                        // bed Energy clock.
                     }
                 },
                 Tags = { "Bed", "Obstacle" }

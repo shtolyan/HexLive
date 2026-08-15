@@ -78,11 +78,8 @@ MonoBehaviour:
   coconutWaterCapacity: 4
   handSlots: 2
   baseCarrySlots: 2
-  groundSleepEnergy: 0
   groundSitComfort: 0.15
   groundSitComfortLedge: 0.25
-  bedEnergy: 0
-  leafBedEnergy: 0.348
   chairComfort: 0.4
   sleepEnergyBaseBonus: 0.002
   sleepEnergyFireBonus: 0

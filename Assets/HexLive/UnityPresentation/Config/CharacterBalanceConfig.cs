@@ -207,16 +207,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 6)] public int baseCarrySlots = 2;
 
         [Header("Отдых / сон — сколько восстанавливает")]
-        [Tooltip("Устаревший второй канал энергии timed-взаимодействия. Должен быть 0: темп сна задаётся ниже одной slow-tick ручкой.")]
-        [Range(0f, 0.5f)] public float groundSleepEnergy = 0f;
         [Tooltip("Комфорт за присест на земле.")]
         [Range(0f, 0.5f)] public float groundSitComfort = 0.15f;
         [Tooltip("Комфорт за присест на кромке-уступе (с видом — больше).")]
         [Range(0f, 0.5f)] public float groundSitComfortLedge = 0.25f;
-        [Tooltip("Устаревший второй канал энергии кровати. Должен быть 0: кроватный бонус задаётся ниже.")]
-        [Range(0f, 0.5f)] public float bedEnergy = 0f;
-        [Tooltip("Энергия за ночь на листовом коврике.")]
-        [Range(0f, 0.5f)] public float leafBedEnergy = 0.15f;
         [Tooltip("Комфорт за сидение на стуле.")]
         [Range(0f, 1f)] public float chairComfort = 0.4f;
 

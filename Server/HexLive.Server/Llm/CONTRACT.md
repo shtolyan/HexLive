@@ -112,8 +112,8 @@ not appear in process listings or shell history.
 | `HEXLIVE_LLM_NPCS` | `--llm-npcs` | required to opt in; unique, positive comma-separated ids |
 | `HEXLIVE_LLM_MODEL` | `--llm-model` | optional gateway routing hint, at most 200 characters |
 | `HEXLIVE_LLM_API_KEY` | none | optional bearer secret, environment only |
-| `HEXLIVE_LLM_TIMEOUT_SECONDS` | `--llm-timeout` | 12; range 1–120 |
-| `HEXLIVE_LLM_BACKOFF_SECONDS` | `--llm-backoff` | 8; range 0–300 |
+| `HEXLIVE_LLM_TIMEOUT_SECONDS` | `--llm-timeout` | 12; range 1–15 |
+| `HEXLIVE_LLM_BACKOFF_SECONDS` | `--llm-backoff` | 3; range 0–15 |
 | `HEXLIVE_LLM_MAX_QUEUED_REQUESTS` | `--llm-max-queued` | 2; range 0–2 |
 | `HEXLIVE_LLM_MAX_CONCURRENT_REQUESTS` | `--llm-max-concurrent` | 2; range 1–2 |
 
@@ -126,3 +126,13 @@ secret value. Queue plus concurrency must cover the simulation's two-request
 in-flight budget, so provider admission cannot silently reject a request that the
 simulation was allowed to issue. Neither individual limit may exceed that budget;
 the queue also bounds completed or canceled results until the next simulation drain.
+
+At normal 1x speed the simulation advances at four base ticks per second. The LLM
+pump runs on every fourth (Medium) tick, a request becomes stale at age 64 ticks,
+and therefore age 60 ticks / 15 seconds is the last pass that can apply its result.
+Configuration must satisfy
+`ceil(2 / max-concurrent) * (timeout + backoff) <= 15 seconds`: each concurrency
+wave includes the maximum remaining provider backoff followed by its HTTP timeout.
+This keeps every admitted wave inside the final applicable pump instead of allowing
+a nominally valid host configuration whose configured waits already outlive the
+decision. Operator fast-forward intentionally shortens this wall-clock window.

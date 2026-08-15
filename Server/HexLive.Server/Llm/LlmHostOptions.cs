@@ -22,8 +22,8 @@ public sealed class LlmHostOptions
     public const string MaxQueuedEnvironmentVariable = "HEXLIVE_LLM_MAX_QUEUED_REQUESTS";
     public const string MaxConcurrentEnvironmentVariable = "HEXLIVE_LLM_MAX_CONCURRENT_REQUESTS";
 
-    private const int MaxTimeoutSeconds = 120;
-    private const int MaxBackoffSeconds = 300;
+    private const int MaxTimeoutSeconds = SpecLlmControl.MaxProviderDelaySeconds;
+    private const int MaxBackoffSeconds = SpecLlmControl.MaxProviderDelaySeconds;
     private const int MaxQueuedRequestsLimit = SpecLlmControl.MaxInFlightRequests;
     private const int MaxConcurrentRequestsLimit = SpecLlmControl.MaxInFlightRequests;
 
@@ -31,7 +31,7 @@ public sealed class LlmHostOptions
     public string ApiKey { get; private set; } = string.Empty;
     public string Model { get; private set; } = string.Empty;
     public TimeSpan RequestTimeout { get; private set; } = TimeSpan.FromSeconds(12);
-    public TimeSpan Backoff { get; private set; } = TimeSpan.FromSeconds(8);
+    public TimeSpan Backoff { get; private set; } = TimeSpan.FromSeconds(3);
     public int MaxQueuedRequests { get; private set; } = SpecLlmControl.MaxProviderQueuedRequests;
     public int MaxConcurrentRequests { get; private set; } = SpecLlmControl.MaxProviderConcurrentRequests;
     public IReadOnlyList<EntityId> SelectedNpcIds => _selectedNpcIds;
@@ -200,6 +200,18 @@ public sealed class LlmHostOptions
             throw new InvalidOperationException(
                 "LLM queue and concurrency must cover the simulation in-flight " +
                 $"request budget of {SpecLlmControl.MaxInFlightRequests}.");
+        }
+
+        var requestWaves =
+            (SpecLlmControl.MaxInFlightRequests + MaxConcurrentRequests - 1) /
+            MaxConcurrentRequests;
+        var configuredDelay = requestWaves * (RequestTimeout + Backoff);
+        if (configuredDelay > TimeSpan.FromSeconds(SpecLlmControl.MaxProviderDelaySeconds))
+        {
+            throw new InvalidOperationException(
+                "LLM timeout and backoff exceed the last applicable simulation " +
+                $"result window of {SpecLlmControl.MaxProviderDelaySeconds} seconds " +
+                $"across {requestWaves} provider request wave(s).");
         }
     }
 

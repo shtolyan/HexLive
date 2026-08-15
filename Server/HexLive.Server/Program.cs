@@ -329,7 +329,7 @@ public sealed class ServerOptions
                         "  --llm-npcs IDS      comma-separated selected NPC ids for LLM control\n" +
                         "  --llm-model NAME    optional provider model hint\n" +
                         "  --llm-timeout N     HTTP request timeout seconds (default 12)\n" +
-                        "  --llm-backoff N     delay after provider failures (default 8)\n" +
+                        "  --llm-backoff N     delay after provider failures (default 3)\n" +
                         "  --llm-max-queued N  queued provider requests (default 2)\n" +
                         "  --llm-max-concurrent N  concurrent HTTP requests (default 2)\n" +
                         "  HEXLIVE_LLM_* environment variables provide the same settings;\n" +

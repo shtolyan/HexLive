@@ -55,6 +55,26 @@ public sealed class LlmControlSystemTests
     }
 
     [Test]
+    public void HostDelayBudgetEndsAtLastNonStaleMediumPump()
+    {
+        var settings = new SimulationSettings();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.TickDeltaTime,
+                Is.EqualTo(1f / SpecLlmControl.SimulationTicksPerSecond));
+            Assert.That(settings.MediumInterval,
+                Is.EqualTo(SpecLlmControl.ResultDrainIntervalTicks));
+            Assert.That(SpecLlmControl.RequestTimeoutTicks, Is.EqualTo(64));
+            Assert.That(SpecLlmControl.LastApplicableResultAgeTicks, Is.EqualTo(60));
+            Assert.That(SpecLlmControl.RequestTimeoutTicks * settings.TickDeltaTime,
+                Is.EqualTo(16f));
+            Assert.That(SpecLlmControl.LastApplicableResultAgeTicks * settings.TickDeltaTime,
+                Is.EqualTo(SpecLlmControl.MaxProviderDelaySeconds));
+        });
+    }
+
+    [Test]
     public void ExplicitlyDisabledSystemDoesNotRequestProviderWork()
     {
         var (world, npc) = Arena(tick: 23);

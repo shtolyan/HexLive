@@ -8,6 +8,12 @@ public static class SpecLlmControl
 {
     public static bool Enabled = false;
 
+    // The server's default world advances four base ticks per real second and
+    // runs this system on every fourth (Medium) tick. Provider results can only
+    // be drained on those Medium passes.
+    public const int SimulationTicksPerSecond = 4;
+    public const int ResultDrainIntervalTicks = 4;
+
     // Even an idle selected NPC is not reconsidered every simulation tick.
     // At the default 4 Hz this is sixteen seconds between provider decisions.
     public const int DecisionCooldownTicks = 64;
@@ -15,6 +21,14 @@ public static class SpecLlmControl
     // Provider work older than this is canceled and any late result is dropped
     // by its issued tick. At 4 Hz this is a sixteen-second response budget.
     public const int RequestTimeoutTicks = 64;
+
+    // Age 64 is already stale, so age 60 is the final production Medium pass
+    // that can apply a result: (64 - 4) / 4 = 15 real seconds at normal 1x.
+    // Host timeout/backoff validation derives its wall-clock ceiling from here.
+    public const int LastApplicableResultAgeTicks =
+        RequestTimeoutTicks - ResultDrainIntervalTicks;
+    public const int MaxProviderDelaySeconds =
+        LastApplicableResultAgeTicks / SimulationTicksPerSecond;
 
     // Bound external work independently of colony size. Round-robin selection
     // ensures a full cap cannot permanently favor low entity ids.

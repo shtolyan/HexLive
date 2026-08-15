@@ -19,10 +19,10 @@ public sealed class LlmHostOptionsTests
             [LlmHostOptions.ApiKeyEnvironmentVariable] = "fixture-secret",
             [LlmHostOptions.ModelEnvironmentVariable] = "fixture-model",
             [LlmHostOptions.NpcsEnvironmentVariable] = "7, 9",
-            [LlmHostOptions.TimeoutEnvironmentVariable] = "20",
+            [LlmHostOptions.TimeoutEnvironmentVariable] = "12",
             [LlmHostOptions.BackoffEnvironmentVariable] = "3",
-            [LlmHostOptions.MaxQueuedEnvironmentVariable] = "1",
-            [LlmHostOptions.MaxConcurrentEnvironmentVariable] = "1",
+            [LlmHostOptions.MaxQueuedEnvironmentVariable] = "0",
+            [LlmHostOptions.MaxConcurrentEnvironmentVariable] = "2",
         };
         var options = new LlmHostOptions();
 
@@ -39,10 +39,10 @@ public sealed class LlmHostOptionsTests
             Assert.That(options.SelectedNpcIds, Has.Count.EqualTo(2));
             Assert.That(options.SelectedNpcIds[0].Value, Is.EqualTo(7));
             Assert.That(options.SelectedNpcIds[1].Value, Is.EqualTo(9));
-            Assert.That(options.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(20)));
+            Assert.That(options.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(12)));
             Assert.That(options.Backoff, Is.EqualTo(TimeSpan.FromSeconds(3)));
-            Assert.That(options.MaxQueuedRequests, Is.EqualTo(1));
-            Assert.That(options.MaxConcurrentRequests, Is.EqualTo(1));
+            Assert.That(options.MaxQueuedRequests, Is.Zero);
+            Assert.That(options.MaxConcurrentRequests, Is.EqualTo(2));
         });
     }
 
@@ -87,7 +87,7 @@ public sealed class LlmHostOptionsTests
             Assert.That(options.ApiKey, Is.Empty);
             Assert.That(options.Model, Is.Empty);
             Assert.That(options.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(12)));
-            Assert.That(options.Backoff, Is.EqualTo(TimeSpan.FromSeconds(8)));
+            Assert.That(options.Backoff, Is.EqualTo(TimeSpan.FromSeconds(3)));
             Assert.That(options.MaxQueuedRequests, Is.EqualTo(2));
             Assert.That(options.MaxConcurrentRequests, Is.EqualTo(2));
         });
@@ -103,6 +103,8 @@ public sealed class LlmHostOptionsTests
         var serial = EnabledOptions();
         serial.SetMaxQueuedRequests("1");
         serial.SetMaxConcurrentRequests("1");
+        serial.SetRequestTimeoutSeconds("5");
+        serial.SetBackoffSeconds("2");
 
         var parallelWithoutQueue = EnabledOptions();
         parallelWithoutQueue.SetMaxQueuedRequests("0");
@@ -121,12 +123,50 @@ public sealed class LlmHostOptionsTests
     }
 
     [Test]
+    public void TimeoutAndBackoff_FitLastApplicableSimulationPump()
+    {
+        var defaults = EnabledOptions();
+
+        var parallelBoundary = EnabledOptions();
+        parallelBoundary.SetRequestTimeoutSeconds("12");
+        parallelBoundary.SetBackoffSeconds("3");
+
+        var parallelOverBudget = EnabledOptions();
+        parallelOverBudget.SetRequestTimeoutSeconds("13");
+        parallelOverBudget.SetBackoffSeconds("3");
+
+        var serialBoundary = EnabledOptions();
+        serialBoundary.SetMaxQueuedRequests("1");
+        serialBoundary.SetMaxConcurrentRequests("1");
+        serialBoundary.SetRequestTimeoutSeconds("5");
+        serialBoundary.SetBackoffSeconds("2");
+
+        var serialOverBudget = EnabledOptions();
+        serialOverBudget.SetMaxQueuedRequests("1");
+        serialOverBudget.SetMaxConcurrentRequests("1");
+        serialOverBudget.SetRequestTimeoutSeconds("6");
+        serialOverBudget.SetBackoffSeconds("2");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SpecLlmControl.MaxProviderDelaySeconds, Is.EqualTo(15));
+            Assert.That(() => defaults.Validate(), Throws.Nothing);
+            Assert.That(() => parallelBoundary.Validate(), Throws.Nothing);
+            Assert.That(() => parallelOverBudget.Validate(),
+                Throws.InvalidOperationException.With.Message.Contains("15 seconds"));
+            Assert.That(() => serialBoundary.Validate(), Throws.Nothing);
+            Assert.That(() => serialOverBudget.Validate(),
+                Throws.InvalidOperationException.With.Message.Contains("2 provider request wave"));
+        });
+    }
+
+    [Test]
     public void AuxiliaryEnvironment_IsAppliedAfterCommandLineOptIn()
     {
         var environment = new Dictionary<string, string?>
         {
             [LlmHostOptions.ApiKeyEnvironmentVariable] = "fixture-secret",
-            [LlmHostOptions.TimeoutEnvironmentVariable] = "20",
+            [LlmHostOptions.TimeoutEnvironmentVariable] = "10",
         };
         var options = ServerOptions.Parse(
             new[]
@@ -141,7 +181,7 @@ public sealed class LlmHostOptionsTests
             Assert.That(options, Is.Not.Null);
             Assert.That(options!.Llm.Enabled, Is.True);
             Assert.That(options.Llm.ApiKey, Is.EqualTo("fixture-secret"));
-            Assert.That(options.Llm.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(20)));
+            Assert.That(options.Llm.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(10)));
         });
     }
 
@@ -186,6 +226,10 @@ public sealed class LlmHostOptionsTests
             Assert.That(() => options.SetApiKey("not a bearer token"),
                 Throws.ArgumentException.With.Message.Contains("bearer"));
             Assert.That(() => options.SetRequestTimeoutSeconds("0"),
+                Throws.InstanceOf<ArgumentOutOfRangeException>());
+            Assert.That(() => options.SetRequestTimeoutSeconds("16"),
+                Throws.InstanceOf<ArgumentOutOfRangeException>());
+            Assert.That(() => options.SetBackoffSeconds("16"),
                 Throws.InstanceOf<ArgumentOutOfRangeException>());
             Assert.That(() => options.SetMaxQueuedRequests("3"),
                 Throws.InstanceOf<ArgumentOutOfRangeException>());

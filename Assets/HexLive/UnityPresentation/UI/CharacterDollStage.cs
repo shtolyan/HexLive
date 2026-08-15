@@ -607,6 +607,16 @@ namespace HexLive.UnityPresentation.UI
             _modelPivot.gameObject.SetActive(false);
             CacheSourceMaterials(source);
 
+            // §31.10A / bug #132: BodyBones applies heel lift directly to the
+            // live hip in LateUpdate. Instantiate therefore copies a skeleton
+            // already raised above its neutral photo point. Remember the exact
+            // blended offset before cloning; the portrait removes it before
+            // evaluating the fixed studio pose.
+            var sourceBodyBones = source.GetComponentInChildren<BodyBones>(true);
+            var copiedHeelLift = sourceBodyBones != null
+                ? sourceBodyBones.AppliedHeelLift
+                : 0f;
+
             _clone = Instantiate(source.gameObject, _modelPivot, false);
             _clone.name = $"Character Doll NPC {_npcId}";
             _clone.transform.localPosition = Vector3.zero;
@@ -641,6 +651,11 @@ namespace HexLive.UnityPresentation.UI
                 _animator.enabled = true;
                 _animator.applyRootMotion = false;
                 _animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                var clonedHips = _animator.GetBoneTransform(HumanBodyBones.Hips);
+                if (clonedHips != null && Mathf.Abs(copiedHeelLift) > 0.0001f)
+                {
+                    clonedHips.position -= _clone.transform.up * copiedHeelLift;
+                }
                 _animator.Rebind();
                 _animator.SetFloat(SpeedParam, 0f);
                 _animator.speed = 0f;

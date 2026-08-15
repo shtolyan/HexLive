@@ -152,6 +152,12 @@ public sealed class BodyBones : MonoBehaviour
 
     public float HeelPoseWeight => _heelPoseWeight;
 
+    // §31.10A: the live skeleton owns this world-space lift, but portrait
+    // clones must remove the copied offset before evaluating their neutral
+    // studio pose. Expose the actual blended value, not the authored maximum:
+    // a clone captured while sitting/lying can be midway through suppression.
+    public float AppliedHeelLift => _heel.Any ? _heel.lift * _heelPoseWeight : 0f;
+
     public void SetHeelPoseSuppressed(bool suppressed)
     {
         _heelPoseTarget = suppressed ? 0f : 1f;

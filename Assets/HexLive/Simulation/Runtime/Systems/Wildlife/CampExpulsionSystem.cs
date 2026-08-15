@@ -65,7 +65,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         // чужака сцена держит на месте). Есть ручной — сцены нет; выгонять
         // чужака игрок волен приказом атаки.
         if (ManualControlMath.IsManual(owner) || ManualControlMath.IsManual(intruder) ||
-            HasCriticalNeed(owner) || HasChallengeInjury(owner))
+            HasCriticalNeed(owner) || HasChallengeInjury(owner) ||
+            !HasSafeChallengeOdds(world, owner, intruder))
         {
             return;
         }
@@ -205,6 +206,15 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             return;
         }
 
+        // §117: the walk and answer beat take time. Re-read the actual loadout
+        // and condition immediately before a refusal becomes a fight: the
+        // intruder may have armed up, or the owner may have weakened meanwhile.
+        if (!HasSafeChallengeOdds(world, owner, intruder))
+        {
+            Finish(world, owner, intruder, "UnsafeOdds", protectIntruder: true);
+            return;
+        }
+
         SocialCueSignals.Stamp(world, intruder, "CampExpelRefused", owner.Id);
         StopForScene(world, intruder, owner.Id);
         owner.Mind.SceneStartHealth = owner.Health;
@@ -299,7 +309,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
                 npc.Execution.CurrentInteraction == InteractionType.Sleep ||
                 world.Tick < npc.Mind.ExpulsionProtectedUntilTick ||
                 !FactionRelations.AreHostile(owner.Faction, npc.Faction) ||
-                !ColonyQueries.InCamp(world, npc.Tile, owner.Faction))
+                !ColonyQueries.InCamp(world, npc.Tile, owner.Faction) ||
+                !HasSafeChallengeOdds(world, owner, npc))
             {
                 continue;
             }
@@ -346,6 +357,13 @@ public sealed class CampExpulsionSystem : ISimulationSystem
     private static bool HasChallengeInjury(NPCState npc) =>
         npc.IsDying ||
         MobSystem.WorstPartHealth(npc) < Spec82.TerritoryChallengeWorstPartHealth;
+
+    // §117: voluntary camp enforcement uses the same visible force estimate as
+    // §81's intimidation decision. It includes current HP / worst body part,
+    // worn armor and the best weapon the remaining hands can actually wield.
+    internal static bool HasSafeChallengeOdds(
+        WorldState world, NPCState owner, NPCState intruder) =>
+        AbuseMath.Force(world, owner) >= AbuseMath.Force(world, intruder);
 
     private static void StopForScene(WorldState world, NPCState npc, EntityId peerId)
     {

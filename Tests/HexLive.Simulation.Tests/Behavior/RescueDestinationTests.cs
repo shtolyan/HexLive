@@ -17,6 +17,32 @@ namespace HexLive.Simulation.Tests.Behavior
 public sealed class RescueDestinationTests
 {
     [Test]
+    public void RescueDoesNotOverwriteAnInvalidDefendBeat()
+    {
+        var world = TestWorld.CreateWorld(8675309);
+        var (helper, patient) = RescuePair(world);
+        patient.Mind.ComaCause = ComaCause.BloodLoss;
+        helper.Mind.CurrentGoal = GoalType.Defend;
+        helper.Mind.CombatAssistDogId = 77;
+        helper.Plan.Goal = GoalType.Defend;
+        helper.Plan.Status = PlanStatus.Invalid;
+        helper.Execution.Status = ExecutionStatus.None;
+
+        Assert.That(KenshiRescueMath.NeedsRescue(world, patient), Is.True,
+            "Fixture must offer the rescue that used to overwrite Defend.");
+
+        new RescueSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.Defend));
+            Assert.That(helper.Plan.Goal, Is.EqualTo(GoalType.Defend));
+            Assert.That(helper.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+            Assert.That(patient.Mind.PendingAidFrom, Is.Not.EqualTo(helper.Id));
+        });
+    }
+
+    [Test]
     public void PatientWithoutBed_UsesHelpersBedBeforeSharedBed_Bug91()
     {
         var world = TestWorld.CreateWorld(251173145);
@@ -295,7 +321,7 @@ public sealed class RescueDestinationTests
         bed.CurrentUser = patient.Id;
         helper.RescueDestinationObjectId = bed.Id;
 
-        PlanInterruption.Abort(world, helper, "test interruption while carrying patient");
+        PlanInterruption.TryAbort(world, helper, InterruptionCause.Auction, "test interruption while carrying patient");
 
         Assert.Multiple(() =>
         {

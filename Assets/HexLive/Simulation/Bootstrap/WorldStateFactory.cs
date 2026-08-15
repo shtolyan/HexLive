@@ -93,6 +93,17 @@ public sealed class WorldStateFactory
         {
             BuildingBootstrap.SpawnCompletedTestHut(world, Faction.Colony);
         }
+        if (bootstrap.Simulation.StakePlayerHutPlan)
+        {
+            // §120: staked at the plan's own authored facing — passing the
+            // door's local outward yaw makes the building rotation exactly 0.
+            BuildingBootstrap.CreateHutPlanSite(
+                world,
+                new TileCoord(
+                    bootstrap.Simulation.PlayerHutPlanTileQ,
+                    bootstrap.Simulation.PlayerHutPlanTileR),
+                BuildingRules.DoorLocalOutwardYaw(ContentIds.HutPlan));
+        }
         // §54.2: beds are woven at the campfire (CraftBed tiers) — the §52 bed
         // build-site is retired, so it's no longer seeded here.
         SeedHomeKnowledge(world);

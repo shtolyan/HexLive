@@ -24,7 +24,8 @@ namespace HexLive.Simulation.Content
         // headless harness ran on code-default balance despite §59.3.
         // v3: Kenshi damage profiles on gear and mobs.
         // v4 (§119): every item recipe exports persistent base work and station.
-        public const int SchemaVersion = 4;
+        // v5 (§52): per-definition MaxCarriedInstances inventory invariant.
+        public const int SchemaVersion = 5;
 
         /// <summary>§59.3: the MANDATORY form for probes/soaks — throws when
         /// the export is missing, unparseable or a STALE schema version (a v1
@@ -60,7 +61,7 @@ namespace HexLive.Simulation.Content
             {
                 throw new System.InvalidOperationException(
                     $"SimData export at '{path}' is schema v{version}, need v{SchemaVersion} " +
-                    "(no balance/garments sections — the probe would run on code-default balance). " +
+                    "(the export is missing fields required by current simulation code). " +
                     "Re-export via Unity menu 'HexLive ▸ Export Sim Data (JSON)'.");
             }
 
@@ -425,6 +426,7 @@ namespace HexLive.Simulation.Content
                     {
                         Id = Str(o, "id"),
                         DisplayName = Str(o, "displayName"),
+                        MaxCarriedInstances = I(o, "maxCarriedInstances", 0),
                     };
                     foreach (var tag in Strings(o, "tags"))
                     {
@@ -705,15 +707,21 @@ namespace HexLive.Simulation.Content
                     sb.Append(Q(def.Tags[i]));
                 }
 
+                sb.Append("]");
+                if (def.MaxCarriedInstances > 0)
+                {
+                    sb.Append($", \"maxCarriedInstances\": {def.MaxCarriedInstances}");
+                }
+
                 if (def.Produce != null)
                 {
-                    sb.Append($"], \"produce\": {{\"item\": {Q(def.Produce.ProducedDefinitionId)}, ")
+                    sb.Append($", \"produce\": {{\"item\": {Q(def.Produce.ProducedDefinitionId)}, ")
                       .Append($"\"intervalTicks\": {def.Produce.IntervalTicks}, \"maxConcurrent\": {def.Produce.MaxConcurrent}, ")
                       .Append($"\"radiusTiles\": {def.Produce.MaxDistanceTiles}}}, \"storage\": [");
                 }
                 else
                 {
-                    sb.Append("], \"storage\": [");
+                    sb.Append(", \"storage\": [");
                 }
                 for (var i = 0; i < def.Storage.Count; i++)
                 {

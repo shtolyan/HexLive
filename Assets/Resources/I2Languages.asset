@@ -3281,9 +3281,25 @@ MonoBehaviour:
       - 'Забрать флягу'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.order_rejected.NoDropSpot'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No room to drop it here'
+      - 'Здесь некуда положить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.manual_expired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No orders for a while — back under AI'
+      - 'Долго без приказов — вернулась под ИИ'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'toast.order_rejected.Unreachable'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Can't get there'
       - 'Туда не добраться'
@@ -19663,6 +19679,854 @@ MonoBehaviour:
       Languages:
       - 'me'
       - 'мне'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.tab.backpack'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Backpack'
+      - 'Рюкзак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.tab.craft'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Craft'
+      - 'Крафт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.resources'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Resources'
+      - 'Ресурсы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.place'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Workplace'
+      - 'Место работы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.place.in_place'
+      TermType: 0
+      Description:
+      Languages:
+      - 'On the spot'
+      - 'На месте'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.station.campfire'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Campfire'
+      - 'Костёр'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.station.workbench'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Workbench'
+      - 'Верстак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.progress'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Project progress'
+      - 'Готовность проекта'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.create'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Create'
+      - 'Создать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.continue'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Continue'
+      - 'Продолжить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.working'
+      TermType: 0
+      Description:
+      Languages:
+      - 'In progress'
+      - 'В работе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.InvalidRecipe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This recipe is unavailable'
+      - 'Этот рецепт недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.NotManual'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Switch this colonist to manual control'
+      - 'Переключите колонистку на ручное управление'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.Incapacitated'
+      TermType: 0
+      Description:
+      Languages:
+      - 'She cannot work right now'
+      - 'Сейчас она не может работать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.MissingHands'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Working hands or prostheses are required'
+      - 'Нужны рабочие руки или протезы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.NoStation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No reachable suitable workplace'
+      - 'Нет доступного подходящего места работы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.StationBusy'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The workplace is occupied or not ready'
+      - 'Место работы занято или не готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.MissingResources'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Not enough resources at this workplace'
+      - 'У этого места не хватает ресурсов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.Unreachable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The workplace cannot be reached'
+      - 'До места работы не добраться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.block.Active'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This recipe is already in progress'
+      - 'Этот рецепт уже в работе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.InvalidRecipe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This recipe is unavailable'
+      - 'Этот рецепт недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.MissingHands'
+      TermType: 0
+      Description:
+      Languages:
+      - 'She cannot craft without working hands'
+      - 'Без рабочих рук она не может крафтить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoStation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No suitable workplace'
+      - 'Нет подходящего места работы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.StationBusy'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The workplace is occupied or not ready'
+      - 'Место работы занято или не готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.MissingResources'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The resources changed; check the recipe again'
+      - 'Ресурсы изменились — проверьте рецепт ещё раз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.Active'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This recipe is already in progress'
+      - 'Этот рецепт уже в работе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'BUILDING CONSTRUCTOR'
+      - 'КОНСТРУКТОР ПОСТРОЕК'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.rooms'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rooms'
+      - 'Комнаты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.architecture'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Walls'
+      - 'Стены'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.furniture'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Furniture'
+      - 'Мебель'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.roof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Roof'
+      - 'Крыша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.select'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Select / Move'
+      - 'Выбрать / Двигать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.room'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Room'
+      - 'Комната'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.wall'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wall'
+      - 'Стена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.window'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Window'
+      - 'Окно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.door'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Door'
+      - 'Дверь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.support'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Support'
+      - 'Опора'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.floor'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Floor sector'
+      - 'Сектор пола'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.roof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Roof sector'
+      - 'Сектор крыши'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.bed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bed'
+      - 'Кровать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.hearth'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hearth'
+      - 'Очаг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.tool.wardrobe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wardrobe'
+      - 'Гардероб'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.delete'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Delete'
+      - 'Удалить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.undo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Undo'
+      - 'Отменить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.redo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Redo'
+      - 'Повторить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.save'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Save'
+      - 'Сохранить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.export'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Export JSON'
+      - 'Экспорт JSON'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.shortcuts'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drag to build · Q/E rotate · Del delete · Cmd/Ctrl+Z undo · RMB/Esc cancel'
+      - 'Тянуть — строить · Q/E — поворот · Del — удалить · Cmd/Ctrl+Z — отмена · ПКМ/Esc — выход'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.selection'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Selected'
+      - 'Выбрано'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.selection.none'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Nothing selected'
+      - 'Ничего не выбрано'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.room'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Room'
+      - 'Комната'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.item.bed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bed'
+      - 'Кровать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.item.hearth'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hearth'
+      - 'Очаг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.item.wardrobe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wardrobe'
+      - 'Гардероб'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.item.furniture'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Furniture'
+      - 'Мебель'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose a mode and drag directly in the world.'
+      - 'Выберите режим и тяните прямо в мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.undo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gesture undone.'
+      - 'Жест отменён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.redo'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gesture restored.'
+      - 'Жест повторён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.cancelled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Preview cancelled.'
+      - 'Предпросмотр отменён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.saved'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Draft saved atomically.'
+      - 'Черновик атомарно сохранён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.save_failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not save the draft. See Console.'
+      - 'Не удалось сохранить черновик. Смотрите Console.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.status.exported'
+      TermType: 0
+      Description:
+      Languages:
+      - 'JSON saved and copied to clipboard.'
+      - 'JSON сохранён и скопирован в буфер.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.indoor.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Indoor ready'
+      - 'Indoor готов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.indoor.incomplete'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Indoor incomplete'
+      - 'Indoor не готов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.mode.construction'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Build'
+      - 'Строительство'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.selection.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'SELECTION'
+      - 'ВЫБРАНО'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.finish'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Done'
+      - 'Готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.help'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose a catalog card or click an existing object directly in the world.'
+      - 'Выберите карточку каталога или кликните по существующему объекту прямо в мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.availability.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'READY TO PLAN'
+      - 'МОЖНО РАЗМЕСТИТЬ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.availability.floor'
+      TermType: 0
+      Description:
+      Languages:
+      - 'WAITING FOR FLOOR'
+      - 'ОЖИДАЕТ ПОЛА'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.floor'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Floor & outline'
+      - 'Пол и контур'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.walls'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Walls'
+      - 'Стены'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.openings'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Openings'
+      - 'Проёмы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.roof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Supports & roof'
+      - 'Опоры и крыша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.comfort'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Comfort'
+      - 'Комфорт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.heating'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Heating'
+      - 'Обогрев'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.storage'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Storage'
+      - 'Хранение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.workstations'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Workstations'
+      - 'Рабочие места'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.outdoor'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outdoor'
+      - 'Улица'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.other'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Other'
+      - 'Другое'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.floor.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Floor region'
+      - 'Область пола'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.floor.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drag a connected floor outline'
+      - 'Протяните связный контур пола'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.wall.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wood wall'
+      - 'Деревянная стена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.wall.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drag 0.5 wu wall sections'
+      - 'Протяните секции стены по 0,5 wu'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.window.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Window'
+      - 'Окно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.window.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Replace one existing wall section'
+      - 'Заменяет одну готовую секцию стены'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.door.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Door'
+      - 'Дверь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.door.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'One section and one junction portal'
+      - 'Одна секция и один junction-портал'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.support.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Roof support'
+      - 'Опора крыши'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.support.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Two lashed sticks at a build node'
+      - 'Две связанные палки в build-узле'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.roof.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Palm roof'
+      - 'Пальмовая крыша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.roof.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Covers one hex after its supports'
+      - 'Накрывает один гекс после опор'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.bed.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Palm bed'
+      - 'Пальмовая кровать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.bed.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A comfortable sleeping place'
+      - 'Удобное место для сна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.hearth.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Indoor hearth'
+      - 'Домашний очаг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.hearth.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Compact indoor warmth source'
+      - 'Компактный источник тепла в доме'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.wardrobe.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wardrobe rack'
+      - 'Гардероб'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.wardrobe.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Stores clothes and footwear'
+      - 'Хранит одежду и обувь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.workbench.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Prosthetics workbench'
+      - 'Верстак протезов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.workbench.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Craft limbs and mechanical parts'
+      - 'Создание конечностей и механизмов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.campfire.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outdoor campfire'
+      - 'Уличный костёр'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.campfire.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cooking, warmth and a future spit'
+      - 'Готовка, тепло и будущий вертел'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.drying_rack.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outdoor drying rack'
+      - 'Уличная сушилка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.drying_rack.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dries clothes in the open air'
+      - 'Сушит одежду на открытом воздухе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.water_collector.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rain collector'
+      - 'Сборщик дождевой воды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.water_collector.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Collects rain outside'
+      - 'Собирает дождь под открытым небом'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

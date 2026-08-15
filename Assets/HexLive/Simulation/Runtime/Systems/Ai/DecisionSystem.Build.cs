@@ -107,7 +107,9 @@ public sealed partial class DecisionSystem
             activeDream == DreamType.OwnBed &&
             IsDreamBuilder(npc, world);
         WorldObjectState firstSite = null;
+        WorldObjectState houseSite = null;
         WorldObjectState dreamSite = null;
+        WorldObjectState collectorSite = null;
         WorldObjectState furnitureSite = null;
         WorldObjectState hearthUpgrade = null;
         foreach (var obj in npc.Perception.Objects)
@@ -145,7 +147,32 @@ public sealed partial class DecisionSystem
                 }
             }
             else if (site.DefinitionId == ContentIds.BuildSite &&
-                site.BuildProduct is ContentIds.DryingRack or ContentIds.WaterCollector or ContentIds.Workbench)
+                BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct))
+            {
+                // §120: a HOUSE is the colony's shelter, not a comfort upgrade.
+                // Left as the unranked `firstSite` fallback it is starved
+                // outright: the single buildSite slot goes to whatever else is
+                // staked, and a personal bed waiting on logs that this island
+                // does not have holds that slot forever. Measured in the §120
+                // sandbox (seed 12345, 40 000 ticks): the staked house took
+                // 0 of 151 sticks while a bed.basic site sat at 0/4 logs.
+                //
+                // This lane is inert in the shipped game — nothing stakes an
+                // architectural site there — so it can only change worlds that
+                // deliberately put a house up.
+                houseSite ??= site;
+            }
+            else if (site.DefinitionId == ContentIds.BuildSite &&
+                site.BuildProduct == ContentIds.WaterCollector)
+            {
+                // §54.15: survival infrastructure has a bounded queue. The
+                // first collector must not sit behind every personal bed or
+                // the hearth's comfort upgrades; without it the renewable
+                // water branch never exists at all.
+                collectorSite ??= site;
+            }
+            else if (site.DefinitionId == ContentIds.BuildSite &&
+                site.BuildProduct is ContentIds.DryingRack or ContentIds.Workbench)
             {
                 furnitureSite ??= site;
             }
@@ -153,10 +180,17 @@ public sealed partial class DecisionSystem
             firstSite ??= site;
         }
 
-        // A dream builder goes to the bed if she can see one; everyone else (and
-        // she, once the beds are done) keeps the §63 r2 queue exactly as it was:
-        // bare hearth > hearth upgrade > furniture/stations > the rest.
-        return dreamSite ?? hearthUpgrade ?? furnitureSite ?? firstSite;
+        // The bare first hearth returned immediately above. Once fire exists,
+        // finish the one renewable-water station before comfort upgrades and
+        // personal dreams; after it is raised it is no longer a site and the
+        // established queue resumes unchanged.
+        // A fresh carcass is a perishable survival opportunity: if someone is
+        // already carrying raw meat, finish the hearth's spit before the
+        // collector queue so the butchered calories do not stall in a pack.
+        var needsSpitNow = npc.Inventory.Items.Contains(ContentIds.MeatRaw);
+        return needsSpitNow && hearthUpgrade != null
+            ? hearthUpgrade
+            : collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ?? firstSite;
     }
 
     // §80: своя ли это стройка. §72 развёл лагеря, но очередь построек — нет:
@@ -223,7 +257,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var mat in BuildSiteMath.AllMaterials)
         {
-            if (BuildSiteMath.Needs(site, mat) && npc.Inventory.Items.Contains(mat))
+            if (BuildSiteMath.AcceptsDelivery(site, mat) && npc.Inventory.Items.Contains(mat))
             {
                 return true;
             }

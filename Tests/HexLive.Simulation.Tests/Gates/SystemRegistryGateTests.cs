@@ -40,6 +40,7 @@ public sealed class SystemRegistryGateTests
     /// </summary>
     private static readonly string[] ExpectedOrder =
     {
+        "SleepPlanConsistencySystem",
         "PathfindingSystem",
         "MovementSystem",
         "ExecutionSystem",

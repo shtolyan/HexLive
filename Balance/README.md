@@ -53,3 +53,21 @@ global cap and the relevant faction quota must both have room.
 Start with [`population.example.json`](population.example.json), rename/copy it
 to `HexLiveContent/balance.json`, and keep only the knobs needed for that
 deployment.
+
+## Sleep recovery knobs (§54.11 r2)
+
+| Key | Default | Meaning |
+|---|---:|---|
+| `SimBalance.SleepEnergyBaseBonus` | 0.002 | Net energy restored per slow tick on the ground. At the current 16-tick slow interval, 0.002 means 0→100% in 8 game hours. |
+| `SimBalance.SleepEnergyBasicBedBonus` | 0.002 | Extra recovery on `bed.basic`. Base + bed = 0.004, so 0→100% takes 4 game hours. |
+| `SimBalance.SleepEnergyFireBonus` | 0 | Optional extra recovery near fire. Keep at 0 when the 4 h / 8 h timing must stay exact; fire still supplies warmth and comfort. |
+| `SimBalance.GroundSleepEnergy` | 0 | Legacy timed-interaction recovery channel. Keep at 0 to avoid double recovery. |
+| `SimBalance.BedEnergy` | 0 | Legacy bed-interaction recovery channel. Keep at 0 to avoid double recovery. |
+
+The exact hour formulas are `groundHours = 0.016 / baseBonus` and
+`bedHours = 0.016 / (baseBonus + bedBonus)`. Sleeping already advances hunger
+and thirst at 0.1× the awake rate; these energy knobs do not alter metabolism.
+
+Start with [`sleep.example.json`](sleep.example.json) for the current 4 h / 8 h
+experiment. It is intentionally complete: leaving both legacy channels at zero
+is part of the timing contract.

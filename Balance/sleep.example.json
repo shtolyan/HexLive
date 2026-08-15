@@ -1,0 +1,7 @@
+{
+    "SimBalance.GroundSleepEnergy": 0,
+    "SimBalance.BedEnergy": 0,
+    "SimBalance.SleepEnergyBaseBonus": 0.002,
+    "SimBalance.SleepEnergyBasicBedBonus": 0.002,
+    "SimBalance.SleepEnergyFireBonus": 0
+}

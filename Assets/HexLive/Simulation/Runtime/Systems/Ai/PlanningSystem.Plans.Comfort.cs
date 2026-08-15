@@ -29,6 +29,74 @@ public sealed partial class PlanningSystem
             t.Flags.HasFlag(TileFlags.Water);
     }
 
+    /// <summary>Exact shared answer for the CoolOff bid and its plan. The old
+    /// bid merely saw an object tagged Shade/Water, while the plan needs a free
+    /// cooling junction with a physical route; injured seed 1104 therefore
+    /// selected and failed CoolOff every 64 ticks.</summary>
+    internal static Junction FindCoolingJunction(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return null;
+        }
+
+        const int candidateBudget = 12;
+        var candidates = world.Caches.CoolingCandidatesScratch;
+        candidates.Clear();
+        var siteJunctions = CollectBuildSiteJunctions(world);
+        var maxDistance = HexSpatialMath.HexRadius * 12f;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            var isCurrent = junction.Id.Equals(from);
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                (!isCurrent && !SpatialQueries.IsJunctionFree(world, junction.Id)) ||
+                siteJunctions.Contains(junction.Id) ||
+                !IsCoolingTile(world, junction.Tiles[0]))
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
+            if (distance >= maxDistance)
+            {
+                continue;
+            }
+
+            var insert = 0;
+            while (insert < candidates.Count && candidates[insert].Distance <= distance)
+            {
+                insert++;
+            }
+            if (insert >= candidateBudget)
+            {
+                continue;
+            }
+            candidates.Insert(insert, (junction.Id, distance));
+            if (candidates.Count > candidateBudget)
+            {
+                candidates.RemoveAt(candidates.Count - 1);
+            }
+        }
+
+        var occupied = PathfindingSystem.OtherActorJunctions(world, npc);
+        foreach (var candidate in candidates)
+        {
+            var route = HexPathfinder.FindPath(
+                world, from, candidate.Junction, occupied,
+                weightClimb: true,
+                canJump: CanUseRoutineTraversal(npc),
+                danger: null, dangerCost: 0L,
+                hardAvoid: DoorTopology.ForbiddenFor(world, npc.Faction),
+                maxExpansions: 2000);
+            if (route.Count > 0)
+            {
+                return world.Junctions.Items[candidate.Junction];
+            }
+        }
+
+        return null;
+    }
+
     // Spec 35.4: walk to the nearest genuinely cool tile (real shade or the
     // shallows) and DWELL there until cooled. Mirrors BuildGroundSitPlan — a
     // move + an in-place GroundCool step — rather than the old move-only trip
@@ -47,38 +115,32 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        // Nearest reachable, free junction whose standing tile actually cools.
-        // §54.12: never dwell ON a build-site (the half-built fireside bed).
-        var siteJunctions = CollectBuildSiteJunctions(world);
-        Junction best = null;
-        var bestDist = float.MaxValue;
-        foreach (var junction in world.Junctions.Items.Values)
-        {
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
-                !SpatialQueries.IsJunctionFree(world, junction.Id) ||
-                siteJunctions.Contains(junction.Id) ||
-                !IsCoolingTile(world, junction.Tiles[0]))
-            {
-                continue;
-            }
-
-            var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
-            if (d < bestDist && d < HexSpatialMath.HexRadius * 12f &&
-                Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
-            {
-                bestDist = d;
-                best = junction;
-            }
-        }
+        // Nearest free cooling tile with the same exact route Decision used.
+        // §54.12: FindCoolingJunction also excludes build-site junctions.
+        var best = FindCoolingJunction(world, npc);
 
         if (best is null ||
             !SpatialMutations.TryReserveJunction(world, best.Id, npc.Id, world.Tick, 96))
         {
-            npc.Plan.Status = PlanStatus.Failed;
-            SetGoalCooldown(world, npc, GoalType.CoolOff);
+            // Decision and Planning are separate passes. Two overheated actors
+            // may both see the last free shade, then the earlier planner owns
+            // it. That is resource contention, not a broken route: reporting
+            // PlanFailed every generic 40-tick cooldown produced twenty false
+            // failures in seed 632. Defer for the longest possible dwell so
+            // the waiter checks again when the occupant can actually leave.
+            var retryTicks = System.Math.Max(
+                SimBalance.CoolOffSettleTicks,
+                Spec49.CoolOffDwellTicks * (Spec49.CoolOffMaxRearms + 1));
+            npc.Plan.Status = PlanStatus.Completed;
+            npc.Plan.Steps.Clear();
+            npc.Plan.TargetJunctionId = null;
+            npc.Plan.TargetTile = null;
+            npc.Mind.CurrentGoal = GoalType.None;
+            SetGoalCooldown(world, npc, GoalType.CoolOff, retryTicks);
             if (SimTrace.Enabled)
             {
-                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=CoolOff NoCoolTile");
+                Trace.Debug(world, npc.Id, "CoolOffDeferred",
+                    $"No free cooling tile; retry after tick {world.Tick + retryTicks}");
 
             }
             return;
@@ -141,25 +203,7 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        Junction best = null;
-        var bestDist = float.MaxValue;
-        foreach (var junction in world.Junctions.Items.Values)
-        {
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
-                !SpatialQueries.IsJunctionFree(world, junction.Id) ||
-                !HygieneMath.IsShoreTile(world, junction.Tiles[0]) ||
-                !Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
-            {
-                continue;
-            }
-
-            var distance = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
-            if (distance < bestDist && distance < HexSpatialMath.HexRadius * 12f)
-            {
-                bestDist = distance;
-                best = junction;
-            }
-        }
+        var best = HygieneMath.FindReachableBathShore(world, npc);
 
         if (best is null ||
             !SpatialMutations.TryReserveJunction(world, best.Id, npc.Id, world.Tick, 96))
@@ -180,7 +224,8 @@ public sealed partial class PlanningSystem
         var undressStand = best.Id;
         ObjectId? stowObject = null;
         if (StowMath.FindUndressSpot(world, npc) is { } spot &&
-            Connectivity.Reachable(world, spot.Stand, best.Id, npc.Body.CanJump) &&
+            HygieneMath.HasBathApproachRoute(world, npc, from, spot.Stand) &&
+            HygieneMath.HasBathApproachRoute(world, npc, spot.Stand, best.Id) &&
             // ⭐ ...НО ТОЛЬКО ЕСЛИ ДОМ РЯДОМ С ВОДОЙ. Здесь стояла одна лишь
             // достижимость, и «дом» подходил любой, хоть через весь остров.
             // Получалось: разделась догола у гардероба, пошла к воде за 181
@@ -213,6 +258,13 @@ public sealed partial class PlanningSystem
         }
 
         npc.Plan.TargetObjectId = stowObject;
+        // Pathfinding consumes Plan.TargetJunctionId, so while the first leg
+        // goes home it must remain the home work point. Preserve the ACTUAL
+        // shore on PrepareBathe.TimeoutEndTick (an integer payload, as used by
+        // the player-inventory steps) until undressing is complete. Previously
+        // the shore was forgotten and execution searched for water beside the
+        // wardrobe; storing it directly in Plan.TargetJunctionId instead made
+        // the inverse bug — pathfinding skipped the home leg and stood forever.
         npc.Plan.TargetJunctionId = undressStand;
         npc.Plan.TargetTile = world.Junctions.Items[undressStand].Tiles.Count > 0
             ? world.Junctions.Items[undressStand].Tiles[0]
@@ -222,7 +274,8 @@ public sealed partial class PlanningSystem
         {
             Type = PlanStepType.PrepareBathe,
             TargetJunction = undressStand,
-            TargetObject = stowObject
+            TargetObject = stowObject,
+            TimeoutEndTick = best.Id.Value
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
@@ -287,7 +340,7 @@ public sealed partial class PlanningSystem
                 if (!TryGetEdgeSeatGeometry(world, junction, waterOnly: true,
                         out var standTile, out _) ||
                     !JunctionAvailableFor(world, junction.Id, npc.Id) ||
-                    !Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
+                    !Connectivity.Reachable(world, from, junction.Id, CanUseRoutineTraversal(npc)))
                 {
                     continue;
                 }
@@ -323,7 +376,7 @@ public sealed partial class PlanningSystem
                 if (!TryGetEdgeSeatGeometry(world, junction, waterOnly: true,
                         out var standTile, out _) ||
                     !JunctionAvailableFor(world, junction.Id, npc.Id) ||
-                    !Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
+                    !Connectivity.Reachable(world, from, junction.Id, CanUseRoutineTraversal(npc)))
                 {
                     continue;
                 }
@@ -384,9 +437,10 @@ public sealed partial class PlanningSystem
         var besideReach = SpatialQueries.BesideReach(
             world.Content.ObjectDefinitions.TryGetValue(best.DefinitionId, out var besideDef)
                 ? besideDef.ObstacleRadius : 0f);
-        SpatialQueries.CollectStandableAround(world, best.Junctions[0], _rimScratch, 96, besideReach, best,
+        var rimScratch = world.Caches.ObjectApproachJunctionsScratch;
+        SpatialQueries.CollectStandableAround(world, best.Junctions[0], rimScratch, 96, besideReach, best,
             InteractionReach.RimMode);
-        _rimScratch.Sort((a, b) =>
+        rimScratch.Sort((a, b) =>
         {
             var da = world.Junctions.Items.TryGetValue(a, out var ja)
                 ? HexSpatialMath.Distance(ja.WorldPosition, npc.Position) : float.MaxValue;
@@ -394,9 +448,9 @@ public sealed partial class PlanningSystem
                 ? HexSpatialMath.Distance(jb.WorldPosition, npc.Position) : float.MaxValue;
             return da.CompareTo(db);
         });
-        foreach (var rim in _rimScratch)
+        foreach (var rim in rimScratch)
         {
-            if (Connectivity.Reachable(world, from, rim, npc.Body.CanJump) &&
+            if (Connectivity.Reachable(world, from, rim, CanUseRoutineTraversal(npc)) &&
                 SpatialQueries.IsJunctionFree(world, rim) &&
                 SpatialMutations.TryReserveJunction(world, rim, npc.Id, world.Tick, 48))
             {
@@ -444,17 +498,17 @@ public sealed partial class PlanningSystem
     // Spec 29G: does perception offer real furniture for this interaction?
     private static bool HasFurnitureCandidate(WorldState world, NPCState npc, InteractionType interaction)
     {
-        foreach (var perceived in npc.Perception.Objects)
-        {
-            if (perceived.IsReachable && !perceived.IsOccupied &&
-                perceived.AvailableInteractions.Contains(interaction))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        var goal = interaction == InteractionType.Sleep
+            ? GoalType.Sleep
+            : GoalType.Sit;
+        return HasObjectCandidateForGoal(world, npc, goal);
     }
+
+    /// <summary>Exact shared sleep availability: either a usable bed or the
+    /// same full-body ground placement BuildGroundSleepPlan will reserve.</summary>
+    internal static bool HasSleepSurface(WorldState world, NPCState npc) =>
+        HasFurnitureCandidate(world, npc, InteractionType.Sleep) ||
+        FindGroundSleepSpot(world, npc, out _) is not null;
 
     // §54.12: junctions occupied by a build-site (the half-built bed by the
     // fire). Never chosen as a ground-sit / cool-off spot — she'd plop down
@@ -478,6 +532,21 @@ public sealed partial class PlanningSystem
         }
 
         return _siteJunctionsScratch;
+    }
+
+    /// <summary>Shared decision/planner gate: an unfinished furniture footprint
+    /// is occupied space, not a scenic ledge seat.</summary>
+    internal static bool IsBuildSiteJunction(WorldState world, JunctionId junctionId)
+    {
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (BuildSiteMath.IsSite(obj) && obj.Junctions.Contains(junctionId))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Spec 29G: sit on the land — a ledge with the legs over the edge when
@@ -505,7 +574,7 @@ public sealed partial class PlanningSystem
                 // Only a ledge she's basically beside — walk up to it, don't trek
                 // across the island to a scenic edge (user: sit close, not afar).
                 if (d < bestDist && d < HexSpatialMath.HexRadius * 2f &&
-                    Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
+                    Connectivity.Reachable(world, from, junction.Id, CanUseRoutineTraversal(npc)))
                 {
                     bestDist = d;
                     spot = junction.Id;
@@ -586,9 +655,10 @@ public sealed partial class PlanningSystem
     // campfire), not to wherever the night caught the NPC: the first soak
     // with self-anchored sleep had the colony bedding down in dog country
     // and getting eaten (fights=215, 5 deaths).
-    private void BuildGroundSleepPlan(WorldState world, NPCState npc)
+    private static JunctionId? FindGroundSleepSpot(
+        WorldState world, NPCState npc, out TileCoord anchor)
     {
-        var anchor = npc.Tile;
+        anchor = npc.Tile;
         WorldObjectState hearth = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
@@ -635,11 +705,6 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
-            if (world.Caches.ObjectsByTile.TryGetValue(tile.Coord, out var objects) && objects.Count > 0)
-            {
-                continue;
-            }
-
             var d = (float)HexSpatialMath.HexDistance(tile.Coord, anchor);
             if (d > 6f)
             {
@@ -679,36 +744,27 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
-            // center junction: nearest to the tile's world center
-            var center = HexSpatialMath.TileToWorld(tile.Coord);
-            JunctionId? centerJunction = null;
-            var centerDist = float.MaxValue;
-            foreach (var junctionId in tile.Junctions)
-            {
-                if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) || junction.Blocked)
-                {
-                    continue;
-                }
-
-                var cd = HexSpatialMath.Distance(junction.WorldPosition, center);
-                if (cd < centerDist)
-                {
-                    centerDist = cd;
-                    centerJunction = junctionId;
-                }
-            }
-
-            if (centerJunction is { } cj &&
-                world.Junctions.Items.TryGetValue(cj, out var sleepJunction) &&
-                SpatialQueries.IsJunctionFree(world, cj) &&
-                SpatialQueries.LyingBodyClear(world, sleepJunction) &&
-                npc.CurrentJunction is { } from2 && Connectivity.Reachable(world, from2, cj, npc.Body.CanJump))
+            // Ask the SAME 37-node full-body solver that will place the body
+            // after arrival. The former centre-only + "tile has no objects"
+            // approximation rejected furnished rooms and harmless loose items,
+            // even when a legal rectangle existed beside them.
+            if (LyingSpot.TrySolveOnTile(world, npc, tile.Coord, out var placement) &&
+                SpatialQueries.IsJunctionFree(world, placement.Node) &&
+                npc.CurrentJunction is { } from2 &&
+                Connectivity.Reachable(
+                    world, from2, placement.Node, CanUseRoutineTraversal(npc)))
             {
                 bestDist = d;
-                spot = cj;
+                spot = placement.Node;
             }
         }
 
+        return spot;
+    }
+
+    private void BuildGroundSleepPlan(WorldState world, NPCState npc)
+    {
+        var spot = FindGroundSleepSpot(world, npc, out var anchor);
         if (spot is not { } lieSpot ||
             !SpatialMutations.TryReserveJunction(world, lieSpot, npc.Id, world.Tick, 96))
         {
@@ -734,88 +790,124 @@ public sealed partial class PlanningSystem
         }
     }
 
-    // Spec 35.5: is a free drying rack within reach?
+    // Spec 35.5: the rack half is the exact generic-planner predicate, not a
+    // loose tag lookup. In seed 31337 the old helper saw a non-full rack and
+    // entered the generic planner, which then rejected the same rack because
+    // its Hang offer/claim/approach was unavailable (Candidates=0, repeatedly).
     private static bool HasFreeRackCandidate(WorldState world, NPCState npc)
     {
+        return HasObjectCandidateForGoal(world, npc, GoalType.DryClothes);
+    }
+
+    internal static bool HasDryingDestination(WorldState world, NPCState npc)
+    {
+        return HasFreeRackCandidate(world, npc) ||
+            TryFindFireDryApproach(world, npc, out _, out _);
+    }
+
+    // Drying is peacetime work; a route which needs to expand more than this
+    // is not worth blocking the simulation for. Typical camp trips are in the
+    // low hundreds, while a missing/forbidden door used to fan across the
+    // whole island on every re-selection.
+    private const int DryingRouteExpansionBudget = 1500;
+
+    private static bool HasExactFireDryRoute(
+        WorldState world,
+        NPCState npc,
+        JunctionId destination,
+        System.Collections.Generic.HashSet<JunctionId> occupiedByActor)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        if (from.Equals(destination))
+        {
+            return true;
+        }
+
+        var route = HexPathfinder.FindPath(
+            world, from, destination, occupiedByActor,
+            weightClimb: PathfindingSystem.ShouldWeightClimbs(npc),
+            canJump: CanUseRoutineTraversal(npc),
+            danger: PathfindingSystem.RouteAvoidRing(world, npc),
+            dangerCost: TraitMath.DangerStepCost(npc),
+            hardAvoid: DoorTopology.ForbiddenFor(world, npc.Faction),
+            maxExpansions: DryingRouteExpansionBudget);
+        return route.Count > 0;
+    }
+
+    private static bool TryFindFireDryApproach(
+        WorldState world,
+        NPCState npc,
+        out PerceivedObject fire,
+        out JunctionId approach)
+    {
+        fire = null;
+        approach = default;
+        var bestDistance = float.MaxValue;
+        var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
         foreach (var perceived in npc.Perception.Objects)
         {
-            if (perceived.IsReachable &&
-                world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) &&
-                definition.Tags.Contains("Rack") &&
-                world.Entities.Objects.TryGetValue(perceived.Id, out var rack) &&
-                !ExecutionSystem.RackIsFull(world, rack))
+            if (!perceived.IsReachable || perceived.Distance >= bestDistance ||
+                perceived.DefinitionId != ContentIds.Campfire ||
+                npc.Memory.IsShunned(perceived.Id, world.Tick) ||
+                !world.Entities.Objects.TryGetValue(perceived.Id, out var campfire) ||
+                campfire.ResourceAmount <= 0f || campfire.Junctions.Count == 0)
             {
-                return true;
+                continue;
+            }
+
+            var anchor = campfire.Junctions[0];
+            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, anchor))
+            {
+                var isCurrent = npc.CurrentJunction is { } current && current.Equals(neighbor);
+                if (occupiedByActor.Contains(neighbor) ||
+                    (!isCurrent && !CanUseApproachJunction(world, npc, neighbor)) ||
+                    (world.Reservations.Junctions.TryGetValue(neighbor, out var reservation) &&
+                     reservation.Owner != npc.Id && reservation.EndTick >= world.Tick) ||
+                    !HasExactFireDryRoute(
+                        world, npc, neighbor, occupiedByActor))
+                {
+                    continue;
+                }
+
+                fire = perceived;
+                approach = neighbor;
+                bestDistance = perceived.Distance;
+                break;
             }
         }
 
-        return false;
+        return fire is not null;
     }
 
     // Spec 35.5: a move-only trip to the lit campfire — standing within a
     // tile dries the whole outfit at x4 (MoistureSystem does the rest).
     private void BuildFireDryPlan(WorldState world, NPCState npc)
     {
-        PerceivedObject? fire = null;
-        foreach (var perceived in npc.Perception.Objects)
-        {
-            if (perceived.IsReachable &&
-                perceived.DefinitionId == ContentIds.Campfire &&
-                world.Entities.Objects.TryGetValue(perceived.Id, out var campfire) &&
-                campfire.ResourceAmount > 0f &&
-                (fire is null || perceived.Distance < fire.Distance))
-            {
-                fire = perceived;
-            }
-        }
-
-        JunctionId? anchor = null;
-        if (fire is not null && world.Entities.Objects.TryGetValue(fire.Id, out var fireObject))
-        {
-            anchor = fireObject.Junctions.Count > 0 ? fireObject.Junctions[0] : null;
-        }
-
-        if (anchor is not { } target)
+        if (!TryFindFireDryApproach(world, npc, out var fire, out var approach) ||
+            !SpatialMutations.TryReserveJunction(
+                world, approach, npc.Id, world.Tick, 48))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.DryClothes);
             if (SimTrace.Enabled)
             {
-                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=DryClothes NoLitFire");
+                Trace.Debug(world, npc.Id, "PlanFailed",
+                    "Goal=DryClothes NoReachableDryingDestination");
 
             }
             return;
         }
 
-        JunctionId? approach = null;
-        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, target))
-        {
-            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
-                SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
-            {
-                approach = neighbor;
-                break;
-            }
-        }
-
-        if (approach is not { } approachJunction)
-        {
-            npc.Plan.Status = PlanStatus.Failed;
-            SetGoalCooldown(world, npc, GoalType.DryClothes);
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=DryClothes NoFreeApproach");
-
-            }
-            return;
-        }
-
-        npc.Plan.TargetJunctionId = approachJunction;
-        npc.Plan.TargetTile = fire!.Tile;
+        npc.Plan.TargetJunctionId = approach;
+        npc.Plan.TargetTile = fire.Tile;
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.MoveToJunction,
-            TargetJunction = approachJunction
+            TargetJunction = approach
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
@@ -825,8 +917,6 @@ public sealed partial class PlanningSystem
                 $"To campfire Tile={fire.Tile.Q},{fire.Tile.R}");
         }
     }
-
-    private static readonly System.Collections.Generic.List<JunctionId> _rimScratch = new();
 }
 
 }

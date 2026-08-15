@@ -225,12 +225,18 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             return;
         }
 
+        if (!CombatHelpSystem.CanReachAttacker(world, npc, threat.Id, null))
+        {
+            AvoidThreat(world, npc, threat);
+            return;
+        }
+
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress ||
             npc.IsCarryingPerson)
         {
-            PlanInterruption.AbortForCombat(
-                world, npc, $"Attacking spotted dog {threat.Id} first");
+            PlanInterruption.TryAbortForCombat(
+                world, npc, InterruptionCause.ThreatFirstStrike, $"Attacking spotted dog {threat.Id} first");
         }
 
         npc.Mind.CurrentGoal = GoalType.Defend;
@@ -285,8 +291,19 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                 Trace.Debug(world, npc.Id, "ThreatAvoid",
                     $"Mob={threat.Id} Tile={threat.Tile.Q},{threat.Tile.R} rerouting");
             }
-            PlanInterruption.Abort(world, npc,
-                $"Route passes spotted dog {threat.Id} — rerouting");
+            // §121.5: у ручной обход угрозы не смеет рвать приказ — политика
+            // откажет. Перестраиваем маршрут мягко, как у несущей человека
+            // (§124): пустой JunctionPath — просьба к PathfindingSystem
+            // проложить путь заново, обход зверя у него уже в цене (§62).
+            if (!PlanInterruption.TryAbort(world, npc, InterruptionCause.ThreatReroute,
+                    $"Route passes spotted dog {threat.Id} — rerouting"))
+            {
+                npc.Movement.JunctionPath.Clear();
+                npc.Movement.PathIndex = 0;
+                npc.Movement.IsMoving = false;
+                npc.Movement.SetStatus(MovementStatus.Idle);
+            }
+
             return;
         }
     }
@@ -363,8 +380,17 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                 return;
             }
 
-            PlanInterruption.Abort(world, npc,
-                $"Route passes the outsider NPC{hostile.Id.Value} — rerouting");
+            // §121.5: и у ручной без ноши приказ не рвём — тот же мягкий
+            // перепроклад, что строкой выше у несущей.
+            if (!PlanInterruption.TryAbort(world, npc, InterruptionCause.ThreatReroute,
+                    $"Route passes the outsider NPC{hostile.Id.Value} — rerouting"))
+            {
+                npc.Movement.JunctionPath.Clear();
+                npc.Movement.PathIndex = 0;
+                npc.Movement.IsMoving = false;
+                npc.Movement.SetStatus(MovementStatus.Idle);
+            }
+
             return;
         }
     }

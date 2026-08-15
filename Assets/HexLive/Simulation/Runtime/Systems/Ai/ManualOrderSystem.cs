@@ -48,6 +48,20 @@ public sealed class ManualOrderSystem : ISimulationSystem
                     KeepAttacking(world, npc);
                     break;
             }
+
+            // §121.7: приказ завершён (цель None, сцепки нет) и окно внимания
+            // игрока истекло — возврат под ИИ. Авто-цель §121.6 (Eat/Drink)
+            // держит CurrentGoal != None и потому отсрочивает релиз до своего
+            // завершения; sweep выше в этом же проходе уже мог снять цель.
+            if (npc.Mind.CurrentGoal == GoalType.None &&
+                npc.Mind.ManualAttackNpcId is null &&
+                npc.Mind.ManualAttackMobId is null &&
+                !ManualControlMath.HasActiveOrder(npc) &&
+                world.Tick - npc.Mind.LastManualInputTick >= Spec121.ManualIdleReleaseTicks)
+            {
+                ManualCommandExecutor.ReleaseToAi(
+                    world, npc, "Таймаут ручного управления", expired: true);
+            }
         }
     }
 
@@ -78,6 +92,9 @@ public sealed class ManualOrderSystem : ISimulationSystem
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Plan.Status = PlanStatus.None;
         npc.Plan.RunRequested = false;
+        // §121.7: завершение приказа перезапускает окно — поход длиной больше
+        // таймаута не должен «истечь» в момент прибытия.
+        npc.Mind.LastManualInputTick = world.Tick;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerOrder Outcome={outcome}");
@@ -123,7 +140,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
             // свою зарезервированную клетку посреди размена.
             if (npc.Plan.Status == PlanStatus.Active)
             {
-                PlanInterruption.Abort(world, npc, "Дошла до цели приказа");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Дошла до цели приказа");
                 npc.Mind.CurrentGoal = GoalType.PlayerAttack;
             }
 
@@ -162,7 +179,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
         if (npc.Plan.Status == PlanStatus.Active)
         {
-            PlanInterruption.Abort(world, npc, "Цель приказа сместилась");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Цель приказа сместилась");
             npc.Mind.CurrentGoal = GoalType.PlayerAttack;
         }
 
@@ -205,7 +222,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
         {
             if (npc.Plan.Status == PlanStatus.Active)
             {
-                PlanInterruption.Abort(world, npc, "Дошла до зверя");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Дошла до зверя");
                 npc.Mind.CurrentGoal = GoalType.PlayerAttack;
                 npc.Mind.CombatAssistDogId = mobId;
             }
@@ -224,7 +241,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
         if (npc.Plan.Status == PlanStatus.Active)
         {
-            PlanInterruption.Abort(world, npc, "Зверь сместился");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Зверь сместился");
             npc.Mind.CurrentGoal = GoalType.PlayerAttack;
             npc.Mind.CombatAssistDogId = mobId;
         }
@@ -256,12 +273,14 @@ public sealed class ManualOrderSystem : ISimulationSystem
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {
-            PlanInterruption.Abort(world, npc, $"Приказ атаки окончен: {reason}");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, $"Приказ атаки окончен: {reason}");
         }
 
         ManualCommandExecutor.ClearAttackOrder(world, npc);
         npc.IsFighting = false;
         npc.Mind.CurrentGoal = GoalType.None;
+        // §121.7: конец сцепки = завершение приказа — окно перезапускается.
+        npc.Mind.LastManualInputTick = world.Tick;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerAttack Outcome={reason}");

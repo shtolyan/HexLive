@@ -341,7 +341,8 @@ public sealed partial class DecisionSystem
             }
 
             if (!from.Equals(otherJunction) &&
-                !Connectivity.Reachable(world, from, otherJunction, npc.Body.CanJump))
+                !Connectivity.Reachable(
+                    world, from, otherJunction, PlanningSystem.CanUseRoutineTraversal(npc)))
             {
                 continue;
             }
@@ -417,11 +418,20 @@ public sealed partial class DecisionSystem
         }
 
         PerceivedObject? best = null;
+        // The pile's first junction is not merely an object anchor: the
+        // in-place craft plan walks the crafter onto that exact point and
+        // kneels there.  A route may legally end on an actor-occupied goal
+        // node, so leaving this to pathfinding produced an 81-tick polite
+        // wait followed by an abort instead of choosing the next pile.
+        var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.DefinitionId != definitionId || !obj.IsReachable ||
                 !ObjectUsableBy(obj, npc.Id) ||
-                npc.Memory.IsShunned(obj.Id, world.Tick))
+                npc.Memory.IsShunned(obj.Id, world.Tick) ||
+                !world.Entities.Objects.TryGetValue(obj.Id, out var groundPiece) ||
+                groundPiece.Junctions.Count == 0 ||
+                occupiedByActor.Contains(groundPiece.Junctions[0]))
             {
                 continue;
             }
@@ -592,8 +602,10 @@ public sealed partial class DecisionSystem
             if (known.Junction is { } j &&
                 world.Content.ObjectDefinitions.TryGetValue(known.DefinitionId, out var def) &&
                 def.Tags.Contains(tag) &&
-                (Connectivity.Reachable(world, from, j, npc.Body.CanJump) ||
-                 Connectivity.ReachableBeside(world, from, j, npc.Body.CanJump,
+                (Connectivity.Reachable(
+                     world, from, j, PlanningSystem.CanUseRoutineTraversal(npc)) ||
+                 Connectivity.ReachableBeside(
+                     world, from, j, PlanningSystem.CanUseRoutineTraversal(npc),
                      world.Entities.Objects.TryGetValue(known.Id, out var live) ? live : null)))
             {
                 return true;
@@ -748,46 +760,49 @@ public sealed partial class DecisionSystem
 
     // Does the NPC carry at least one material this site still needs?
     // §54.12: a perceived object she could actually sit ON (stump/chair/bed).
-    private static bool HasPerceivedSeat(NPCState npc)
+    private static bool HasPerceivedSeat(NPCState npc, WorldState world)
     {
-        foreach (var perceived in npc.Perception.Objects)
-        {
-            if (perceived.IsReachable && !perceived.IsOccupied &&
-                perceived.AvailableInteractions.Contains(InteractionType.Sit))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return PlanningSystem.HasObjectCandidateForGoal(
+            world, npc, GoalType.Sit);
     }
 
-    // §54.12: any ledge junction within the sit-plan search radius. Ledges only
-    // change with terrain, so the junction list is cached per TopologyVersion —
-    // the per-decision cost is a distance sweep over the (short) ledge list.
-    private static int _ledgeCacheTopology = -1;
-
-    private static readonly System.Collections.Generic.List<Junction> _ledgeCache = new();
-
-    private static bool AnyLedgeNear(WorldState world, NPCState npc, float radius)
+    // §54.12 / §30.16: any ledge junction within the sit-plan search radius.
+    // Ledges change with topology, but the cache itself MUST be world-owned:
+    // TopologyVersion=1 is shared by every freshly created island. A static
+    // list keyed only by that number leaked Junction objects from the previous
+    // seed and made batch order change survival after ~3400 ticks.
+    internal static bool AnyLedgeNear(WorldState world, NPCState npc, float radius)
     {
-        if (_ledgeCacheTopology != world.TopologyVersion)
+        if (npc.CurrentJunction is not { } from)
         {
-            _ledgeCacheTopology = world.TopologyVersion;
-            _ledgeCache.Clear();
+            return false;
+        }
+
+        var cache = world.Caches;
+        if (cache.LedgeJunctionsBuiltVersion != world.TopologyVersion)
+        {
+            cache.LedgeJunctionsBuiltVersion = world.TopologyVersion;
+            cache.LedgeJunctions.Clear();
             foreach (var junction in world.Junctions.Items.Values)
             {
                 if (PlanningSystem.IsLedge(world, junction))
                 {
-                    _ledgeCache.Add(junction);
+                    cache.LedgeJunctions.Add(junction.Id);
                 }
             }
         }
 
-        foreach (var junction in _ledgeCache)
+        foreach (var id in cache.LedgeJunctions)
         {
-            if (!junction.Blocked &&
-                HexSpatialMath.Distance(junction.WorldPosition, npc.Position) < radius)
+            if (world.Junctions.Items.TryGetValue(id, out var junction) &&
+                !junction.Blocked &&
+                HexSpatialMath.Distance(junction.WorldPosition, npc.Position) < radius &&
+                PlanningSystem.TryGetEdgeSeatGeometry(
+                    world, junction, waterOnly: false, out _, out _) &&
+                SpatialQueries.IsJunctionFree(world, id) &&
+                !PlanningSystem.IsBuildSiteJunction(world, id) &&
+                Connectivity.Reachable(
+                    world, from, id, PlanningSystem.CanUseRoutineTraversal(npc)))
             {
                 return true;
             }
@@ -798,26 +813,7 @@ public sealed partial class DecisionSystem
 
     private static bool HasReachableBathTile(WorldState world, NPCState npc)
     {
-        if (npc.CurrentJunction is not { } from)
-        {
-            return false;
-        }
-
-        foreach (var junction in world.Junctions.Items.Values)
-        {
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
-                !HygieneMath.IsShoreTile(world, junction.Tiles[0]))
-            {
-                continue;
-            }
-
-            if (Connectivity.Reachable(world, from, junction.Id, npc.Body.CanJump))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return HygieneMath.FindReachableBathShore(world, npc) is not null;
     }
 
     private static float DirtyGarmentWashNeed(WorldState world, NPCState npc)
@@ -891,6 +887,27 @@ public sealed partial class DecisionSystem
 
         var burden = System.MathF.Max(1f - npc.Health, 1f - worstPart);
         return MathUtil.Clamp01(System.MathF.Max(burden, 1f - npc.Needs.Blood));
+    }
+
+    // One predicate shared by the auction and the craft-output adapter. A
+    // freshly crafted dressing can therefore flow straight into treatment
+    // without duplicating (and eventually drifting from) the last-bandage
+    // reserve rule here.
+    internal static bool SelfTreatmentIndicated(NPCState npc, int availableBandages)
+    {
+        if (!Spec53.SelfTreatEnabled || availableBandages <= 0 ||
+            !npc.Body.HasUsableHand || npc.IsFighting)
+        {
+            return false;
+        }
+
+        var burden = SelfTreatBurden(npc);
+        var burdenGate = availableBandages > 1
+            ? Spec53.SelfTreatBurdenThreshold
+            : Spec53.SelfTreatLastBandageBurden;
+        var quietAftercare = Spec118.Enabled &&
+            !MortalityHelpers.IsBleeding(npc) && WoundMath.NeedsAftercare(npc);
+        return burden >= burdenGate || quietAftercare;
     }
 
     private static bool HasInteraction(NPCState npc, InteractionType interactionType)
@@ -968,7 +985,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+            if (IsDressCandidateCommon(npc, world, obj) &&
                 CandidateArmor(world, obj, npc.Sex) > npc.EquippedArmor)
             {
                 return true;
@@ -988,8 +1005,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
-                !Content.GarmentLibrary.FitsSex(npc.Sex, obj.DefinitionId) ||
+            if (!IsDressCandidateCommon(npc, world, obj) ||
                 ModestyMath.CoverGainFromWearing(world, npc, obj.DefinitionId) <= 0)
             {
                 continue;
@@ -1041,7 +1057,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+            if (IsDressCandidateCommon(npc, world, obj) &&
                 EquipmentMath.WarmthGainFromWearing(world, npc, obj.DefinitionId) >=
                     SimBalance.DressWarmthGainMin)
             {
@@ -1052,24 +1068,55 @@ public sealed partial class DecisionSystem
         return false;
     }
 
+    /// <summary>The decision-side wardrobe probes use the planner's common
+    /// gates too. A shunned, busy, non-wearable or permission-locked garment
+    /// is not evidence that Dress can currently produce a plan.</summary>
+    private static bool IsDressCandidateCommon(
+        NPCState npc, WorldState world, PerceivedObject obj)
+    {
+        if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
+            npc.Memory.IsShunned(obj.Id, world.Tick) ||
+            !obj.AvailableInteractions.Contains(InteractionType.Dress) ||
+            !Content.GarmentLibrary.FitsSex(npc.Sex, obj.DefinitionId))
+        {
+            return false;
+        }
+
+        return !world.Entities.Objects.TryGetValue(obj.Id, out var live) ||
+            ClothingOwnership.FellowOwner(world, npc, live) == null ||
+            PlanningSystem.HasWearGrant(npc, obj.Id, world.Tick);
+    }
+
     // Spec 27.18A foraging: food can also be sought at a known producer
     // (an apple tree), even when no food item itself is known.
     internal static bool KnowsReachableProducer(NPCState npc, WorldState world)
     {
-        var hasBlade = HasCoconutBlade(npc);
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable &&
                 !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Produce != null &&
-                (definition.Produce.ProducedDefinitionId != ContentIds.Coconut || hasBlade))
+                ProducesUsableFood(npc, world, definition))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    internal static bool ProducesUsableFood(
+        NPCState npc, WorldState world, ObjectDefinition producer)
+    {
+        if (producer.Produce is not { } produce ||
+            !world.Content.ObjectDefinitions.TryGetValue(
+                produce.ProducedDefinitionId, out var product) ||
+            !product.Tags.Contains("Food"))
+        {
+            return false;
+        }
+
+        return !product.Tags.Contains("Coconut") || HasCoconutBlade(npc);
     }
 
     // §54.15: the nearest finished collector whose parked bottle this NPC may

@@ -32,6 +32,12 @@ public sealed class ObjectDefinition
 
     public List<string> Tags { get; } = new();
 
+    // 0 = no per-NPC limit. A positive value is a content-authored carrying
+    // invariant enforced by the shared inventory admission path. This belongs
+    // to the item definition rather than AI goal-specific lists: any current
+    // or future way of acquiring the item sees the same rule.
+    public int MaxCarriedInstances { get; set; }
+
     // Spec 43: height of this object's shade blocker in ELEVATION steps
     // (0.55 wu each), read only for "Shade"-tagged objects. Must roughly match
     // the rendered mesh so the sim shadow lands where the player sees one

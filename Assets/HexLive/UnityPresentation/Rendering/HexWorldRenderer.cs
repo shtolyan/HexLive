@@ -68,6 +68,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, GameObject> _seamMarkers = new();
     private readonly Dictionary<int, GameObject> _objectViews = new();
 
+    // §120: one drawn module per architecture world object, keyed by that
+    // object's id and parented to its BUILDING's view. A building raised from a
+    // plan has no single mesh — it is exactly these pieces.
+    private readonly Dictionary<int, HexLive.UnityPresentation.Environment.ArchitectureModuleView>
+        _architectureModules = new();
+    private readonly HashSet<int> _liveArchitectureModules = new();
+    private readonly List<int> _staleArchitectureModules = new();
+
     // PERF: the per-tick object loop used to re-ask every view for the same
     // handful of components (campfire, assembly, spit, garment, build pile).
     // ~5 GetComponent × ~218 objects × 4 Hz, and the MISSES are the expensive
@@ -1197,8 +1205,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // §121: тот же приём для наведения мышью — маркер несёт номер
                 // объекта, и ввод находит его по статическому списку, а не
                 // поиском по сцене.
+                // §120: a building is not clickable as a lump — its modules are
+                // the objects the player picks, and the aggregate owns no mesh
+                // of its own to pick anyway.
                 var selectableAggregate = worldObject.DefinitionId != ContentIds.Hut1Hex &&
-                    worldObject.BuildProduct != ContentIds.Hut1Hex;
+                    worldObject.BuildProduct != ContentIds.Hut1Hex &&
+                    worldObject.DefinitionId != ContentIds.HutPlan &&
+                    worldObject.BuildProduct != ContentIds.HutPlan;
                 if (!selectableAggregate && objectView.TryGetComponent<Views.WorldObjectView>(out var aggregateView))
                     aggregateView.enabled = false;
                 if (selectableAggregate && objectView.GetComponent<Views.WorldObjectView>() == null)
@@ -1340,6 +1353,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var architectureFootprint =
                     worldObject.DefinitionId == ContentIds.Hut1Hex ||
                     worldObject.BuildProduct == ContentIds.Hut1Hex ||
+                    // §120: a plan-built house is geometry authored directly in
+                    // the simulation X/Y footprint plane, exactly like the hut —
+                    // its modules hang off this frame and would all be mirrored
+                    // by the character-forward yaw.
+                    worldObject.DefinitionId == ContentIds.HutPlan ||
+                    worldObject.BuildProduct == ContentIds.HutPlan ||
                     IsIntegratedHutBed(worldObject) ||
                     IsIntegratedHutHearth(worldObject) ||
                     worldObject.DefinitionId == ContentIds.Wardrobe ||
@@ -1638,11 +1657,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
             list.Add(piece);
         }
 
+        _liveArchitectureModules.Clear();
         foreach (var pair in byOwner)
         {
-            if (!_objectViews.TryGetValue(pair.Key, out var ownerView)) continue;
+            if (!_objectViews.TryGetValue(pair.Key, out var ownerView) || ownerView == null) continue;
             var assembly = ownerView.GetComponentInChildren<HexLive.UnityPresentation.Environment.HutAssembly>(true);
-            if (assembly == null) continue;
+            if (assembly == null)
+            {
+                // §120: a building with no monolithic assembly (a house raised
+                // from a player plan) IS its modules — each one draws itself.
+                BindArchitectureModules(ownerView.transform, pair.Value);
+                continue;
+            }
 
             var components = new List<ArchitectureElementSnapshot>(pair.Value.Count);
             foreach (var piece in pair.Value) components.Add(piece.ArchitectureElements[0]);
@@ -1660,6 +1686,73 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 view.Init(piece.Id.Value, piece.DefinitionId,
                     assembly.RenderersForElement(component.SlotKey));
             }
+        }
+
+        SweepArchitectureModules();
+    }
+
+    /// <summary>
+    /// §120: draws one building as its independent modules. The owner's view is
+    /// the building FRAME — already at the site anchor and already turned to the
+    /// footprint yaw — so a module only adds its own local offset and yaw, and
+    /// a module that completes, or whose building is raised into a new object,
+    /// needs no repositioning here at all.
+    /// </summary>
+    private void BindArchitectureModules(Transform buildingFrame, List<ObjectSnapshot> pieces)
+    {
+        foreach (var piece in pieces)
+        {
+            var key = piece.Id.Value;
+            _liveArchitectureModules.Add(key);
+
+            var fresh = false;
+            if (!_architectureModules.TryGetValue(key, out var module) || module == null ||
+                !module.StandsIn(buildingFrame))
+            {
+                if (module != null) Destroy(module.gameObject);
+                module = HexLive.UnityPresentation.Environment.ArchitectureModuleView.Create(
+                    buildingFrame, key);
+                _architectureModules[key] = module;
+                fresh = true;
+            }
+
+            module.Sync(piece.ArchitectureElements[0]);
+            module.SetDoorOpen(piece.IsDoorOpen);
+
+            // §121: the module stays a real, separately selectable object. Its
+            // marker keeps the simulation id and points at the module's own
+            // renderers — bound once, when the model behind them is built.
+            if (!fresh || !_objectViews.TryGetValue(key, out var marker) || marker == null) continue;
+            var view = marker.GetComponent<Views.WorldObjectView>() ??
+                marker.AddComponent<Views.WorldObjectView>();
+            view.Init(key, piece.DefinitionId, module.Renderers);
+        }
+    }
+
+    /// <summary>
+    /// Drops module views whose piece left the world — a demolished element, a
+    /// world swap, or a building whose owner view was destroyed under them.
+    /// </summary>
+    private void SweepArchitectureModules()
+    {
+        if (_architectureModules.Count == 0) return;
+        _staleArchitectureModules.Clear();
+        foreach (var pair in _architectureModules)
+        {
+            if (!_liveArchitectureModules.Contains(pair.Key))
+            {
+                _staleArchitectureModules.Add(pair.Key);
+            }
+        }
+
+        foreach (var key in _staleArchitectureModules)
+        {
+            if (_architectureModules.TryGetValue(key, out var module) && module != null)
+            {
+                Destroy(module.gameObject);
+            }
+
+            _architectureModules.Remove(key);
         }
     }
 
@@ -2043,7 +2136,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SetFacePain(pain);
         // Spec 40.9 / 40.1: injury posture (limp/crawl/arm-hang/head-clutch)
         // and the winded panting, both derived sim-side and exported.
-        actorView.SetPosture(npc.PostureHint, npc.Winded);
+        actorView.SetPosture(npc.PostureHint, npc.Winded, npc.LegsLost);
         actorView.SetCarryingPerson(npc.CarriedNpcId is not null);
         // §118.4: the carried body follows the carrier's HANDS, posed by the
         // imported BeingCarried clip — bind/unbind the follower off the same
@@ -3051,9 +3144,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // hauled in it takes the assembling-pile / staged-prefab path below, which
         // shows the delivered resources — never an abstract site marker. Do NOT
         // re-add a visual here; this has regressed repeatedly.
+        // §120: a RAISED plan-built house owns no mesh either. It is the
+        // footprint aggregate its modules hang off — every board, post and palm
+        // panel is a separate world object with its own ArchitectureModuleView —
+        // so it must not fall through to a prefab lookup or the grey sphere.
         if (worldObject.DefinitionId.StartsWith("water.") ||
             worldObject.DefinitionId == "corpse.npc" ||
             worldObject.DefinitionId == "grave.npc" ||
+            worldObject.DefinitionId == ContentIds.HutPlan ||
             (worldObject.DefinitionId == "build.site" && string.IsNullOrEmpty(worldObject.BuildProduct)))
         {
             var invisible = new GameObject($"Object {worldObject.DefinitionId} (anchor)");

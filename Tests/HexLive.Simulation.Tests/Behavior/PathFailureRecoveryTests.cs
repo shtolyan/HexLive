@@ -145,6 +145,191 @@ public sealed class PathFailureRecoveryTests
         Assert.That(DecisionSystem.HasMissingToolReachable(npc, world), Is.True,
             "GatherTools must replace a redundant knife instead of looping on a full pack.");
     }
+
+    [Test]
+    public void OccupiedFinalGroundCraftPointReplansAfterOneWaitWindow()
+    {
+        var world = TestWorld.CreateWorld();
+        var npcs = world.Entities.Npcs.Values.Take(2).ToArray();
+        var crafter = npcs[0];
+        var blocker = npcs[1];
+        var junctions = world.Junctions.Items.Values
+            .Where(j => !j.Blocked && j.Tiles.Count > 0)
+            .Take(2)
+            .ToArray();
+        Assert.That(junctions, Has.Length.EqualTo(2));
+
+        crafter.CurrentJunction = junctions[0].Id;
+        crafter.Tile = junctions[0].Tiles[0];
+        crafter.Position = junctions[0].WorldPosition;
+        blocker.CurrentJunction = junctions[1].Id;
+        blocker.Tile = junctions[1].Tiles[0];
+        blocker.Position = junctions[1].WorldPosition;
+        crafter.Mind.CurrentGoal = GoalType.CraftBandage;
+        crafter.Plan.Goal = GoalType.CraftBandage;
+        crafter.Plan.Status = PlanStatus.Active;
+        crafter.Plan.TargetJunctionId = junctions[1].Id;
+        crafter.Plan.Steps.Clear();
+        crafter.Plan.Steps.Add(new PlanStep { Type = PlanStepType.CraftInPlace });
+        crafter.Movement.JunctionPath.Clear();
+        crafter.Movement.JunctionPath.Add(junctions[0].Id);
+        crafter.Movement.JunctionPath.Add(junctions[1].Id);
+        crafter.Movement.PathIndex = 1;
+        crafter.Movement.IsMoving = true;
+        crafter.Movement.SetStatus(MovementStatus.Moving);
+
+        var engine = new SimulationEngine(
+            world, new SimulationSettings(), new SimulationClock());
+        engine.Clock.Resume();
+        engine.Register(new MovementSystem());
+        for (var i = 0; i < 17; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(crafter.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(crafter.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+            Assert.That(crafter.Movement.IsMoving, Is.False);
+            Assert.That(crafter.Mind.Cooldowns.Any(c =>
+                c.Goal == GoalType.CraftBandage), Is.False,
+                "Transient congestion must not lock out medical crafting.");
+            Assert.That(world.Events.Items.Any(e =>
+                e.Type == "PathOccupied" &&
+                e.Message.Contains("ground-work point")), Is.True);
+        });
+    }
+
+    [Test]
+    public void OccupiedFinalAutonomousObjectPointReplansAfterOneWaitWindow()
+    {
+        var world = TestWorld.CreateWorld();
+        var npcs = world.Entities.Npcs.Values.Take(2).ToArray();
+        var worker = npcs[0];
+        var blocker = npcs[1];
+        var junctions = world.Junctions.Items.Values
+            .Where(j => !j.Blocked && j.Tiles.Count > 0)
+            .Take(2)
+            .ToArray();
+        var log = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Log, worker.Fragment,
+            junctions[1].Tiles[0], junctions[1].Id);
+        worker.CurrentJunction = junctions[0].Id;
+        worker.Tile = junctions[0].Tiles[0];
+        worker.Position = junctions[0].WorldPosition;
+        blocker.CurrentJunction = junctions[1].Id;
+        blocker.Tile = junctions[1].Tiles[0];
+        blocker.Position = junctions[1].WorldPosition;
+        worker.Mind.CurrentGoal = GoalType.SplitLog;
+        worker.Plan.Goal = GoalType.SplitLog;
+        worker.Plan.Status = PlanStatus.Active;
+        worker.Plan.TargetObjectId = log.Id;
+        worker.Plan.TargetJunctionId = junctions[1].Id;
+        worker.Plan.Steps.Clear();
+        worker.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = junctions[1].Id,
+            TargetObject = log.Id
+        });
+        worker.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            TargetJunction = junctions[1].Id,
+            TargetObject = log.Id
+        });
+        worker.Movement.JunctionPath.Clear();
+        worker.Movement.JunctionPath.Add(junctions[0].Id);
+        worker.Movement.JunctionPath.Add(junctions[1].Id);
+        worker.Movement.PathIndex = 1;
+        worker.Movement.IsMoving = true;
+        worker.Movement.SetStatus(MovementStatus.Moving);
+
+        var engine = new SimulationEngine(
+            world, new SimulationSettings(), new SimulationClock());
+        engine.Clock.Resume();
+        engine.Register(new MovementSystem());
+        for (var i = 0; i < 17; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(worker.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(worker.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+            Assert.That(worker.Memory.IsShunned(log.Id, world.Tick), Is.False,
+                "A housemate on one work point does not make the log itself bad.");
+            Assert.That(worker.Mind.Cooldowns.Any(c =>
+                c.Goal == GoalType.SplitLog), Is.False);
+            Assert.That(world.Events.Items.Any(e =>
+                e.Type == "PathOccupied" &&
+                e.Message.Contains("object-work point")), Is.True);
+        });
+    }
+
+    [Test]
+    public void OccupiedFinalAutonomousLocationReplansAfterOneWaitWindow()
+    {
+        var world = TestWorld.CreateWorld();
+        var npcs = world.Entities.Npcs.Values.Take(2).ToArray();
+        var worker = npcs[0];
+        var blocker = npcs[1];
+        var junctions = world.Junctions.Items.Values
+            .Where(j => !j.Blocked && j.Tiles.Count > 0)
+            .Take(2)
+            .ToArray();
+        worker.CurrentJunction = junctions[0].Id;
+        worker.Tile = junctions[0].Tiles[0];
+        worker.Position = junctions[0].WorldPosition;
+        blocker.CurrentJunction = junctions[1].Id;
+        blocker.Tile = junctions[1].Tiles[0];
+        blocker.Position = junctions[1].WorldPosition;
+        worker.Mind.CurrentGoal = GoalType.CoolOff;
+        worker.Plan.Goal = GoalType.CoolOff;
+        worker.Plan.Status = PlanStatus.Active;
+        worker.Plan.TargetObjectId = null;
+        worker.Plan.TargetAgentId = null;
+        worker.Plan.TargetJunctionId = junctions[1].Id;
+        worker.Plan.Steps.Clear();
+        worker.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = junctions[1].Id
+        });
+        worker.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.GroundCool,
+            TargetJunction = junctions[1].Id
+        });
+        worker.Movement.JunctionPath.Clear();
+        worker.Movement.JunctionPath.Add(junctions[0].Id);
+        worker.Movement.JunctionPath.Add(junctions[1].Id);
+        worker.Movement.PathIndex = 1;
+        worker.Movement.IsMoving = true;
+        worker.Movement.SetStatus(MovementStatus.Moving);
+
+        var engine = new SimulationEngine(
+            world, new SimulationSettings(), new SimulationClock());
+        engine.Clock.Resume();
+        engine.Register(new MovementSystem());
+        for (var i = 0; i < 17; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(worker.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(worker.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+            Assert.That(worker.Mind.Cooldowns.Any(c =>
+                c.Goal == GoalType.CoolOff), Is.False);
+            Assert.That(world.Events.Items.Any(e =>
+                e.Type == "PathOccupied" &&
+                e.Message.Contains("autonomous destination")), Is.True);
+        });
+    }
 }
 
 }

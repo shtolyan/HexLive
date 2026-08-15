@@ -42,7 +42,7 @@ public static class LootHelplessMath
             // плачущая §110 в сознании, и тихий грабёж спящей — кража §40.5.
             !victim.IsUnconscious(world.Tick) ||
             !FactionRelations.AreHostile(looter.Faction, victim.Faction) ||
-            !HasLoot(victim))
+            !HasLootFor(world, looter, victim))
         {
             return false;
         }
@@ -80,7 +80,7 @@ public static class LootHelplessMath
 
         // Влезет ли ХОТЬ ПЕРВАЯ вещь. Без этого он доходит до тела и
         // разворачивается ни с чем — каждый проход заново (урок HasSpace в §28.15F).
-        var spoil = NextSpoil(world, victim);
+        var spoil = NextSpoil(world, looter, victim);
         return spoil is not null &&
             InventoryMath.CanMakeRoomFor(world, looter, spoil.DefinitionId);
     }
@@ -124,6 +124,10 @@ public static class LootHelplessMath
     public static bool HasLoot(NPCState victim) =>
         victim is not null && victim.Inventory.Items.Count > 0;
 
+    /// <summary>Does this victim still carry anything this looter may acquire?</summary>
+    public static bool HasLootFor(WorldState world, NPCState looter, NPCState victim) =>
+        NextSpoil(world, looter, victim) is not null;
+
     /// <summary>
     /// Что снимут следующим: сперва оружие по убыванию боевого приоритета,
     /// затем инструменты, затем всё прочее.
@@ -140,11 +144,22 @@ public static class LootHelplessMath
         return index < 0 ? null : victim.Inventory.Items[index];
     }
 
+    public static ItemInstance NextSpoil(
+        WorldState world, NPCState looter, NPCState victim)
+    {
+        var index = NextSpoilIndex(world, looter, victim);
+        return index < 0 ? null : victim.Inventory.Items[index];
+    }
+
     /// <summary>Индекс той же вещи. Вещь снимается ПО ИНДЕКСУ, потому что
     /// равенство <see cref="ItemInstance"/> — по <c>DefinitionId</c>: удаление
     /// «по значению» сняло бы первую одноимённую и потеряло бы заряды и износ
     /// той, что выбрали (ловушка, описанная в AbuseMath).</summary>
     internal static int NextSpoilIndex(WorldState world, NPCState victim)
+        => NextSpoilIndex(world, null, victim);
+
+    private static int NextSpoilIndex(
+        WorldState world, NPCState looter, NPCState victim)
     {
         if (!HasLoot(victim))
         {
@@ -155,10 +170,22 @@ public static class LootHelplessMath
         var bestWeapon = -1;
         var bestPriority = 0;
         var firstTool = -1;
+        var firstOther = -1;
 
         for (var i = 0; i < items.Count; i++)
         {
             var id = items[i].DefinitionId;
+            if (looter is not null &&
+                !InventoryMath.CanAcquireAdditional(world, looter, id))
+            {
+                continue;
+            }
+
+            if (firstOther < 0)
+            {
+                firstOther = i;
+            }
+
             var priority = GearCatalog.For(id).MeleePriority;
             if (priority > bestPriority)
             {
@@ -178,7 +205,7 @@ public static class LootHelplessMath
             return bestWeapon;
         }
 
-        return firstTool >= 0 ? firstTool : 0;
+        return firstTool >= 0 ? firstTool : firstOther;
     }
 
     /// <summary>
@@ -188,7 +215,7 @@ public static class LootHelplessMath
     public static bool TryTake(WorldState world, NPCState looter, NPCState victim, out string takenId)
     {
         takenId = null;
-        var index = NextSpoilIndex(world, victim);
+        var index = NextSpoilIndex(world, looter, victim);
         if (index >= 0)
         {
             var spoil = victim.Inventory.Items[index];

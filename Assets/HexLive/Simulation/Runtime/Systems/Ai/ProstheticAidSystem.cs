@@ -70,7 +70,7 @@ public sealed class ProstheticAidSystem : ISimulationSystem
             if (CraftProjectMath.HasReachableProject(world, helper, craftGoal) ||
                 HasRecipeInputs(helper, craftGoal))
             {
-                AssignGoal(helper, craftGoal);
+                TryAssignGoal(world, helper, craftGoal);
                 continue;
             }
 
@@ -79,11 +79,11 @@ public sealed class ProstheticAidSystem : ISimulationSystem
             {
                 if (!GearCatalog.HasCapability(helper.Inventory.Items, GearCapability.Saw))
                 {
-                    AssignGoal(helper, GoalType.GatherTools);
+                    TryAssignGoal(world, helper, GoalType.GatherTools);
                 }
                 else
                 {
-                    AssignGoal(helper, GoalType.GatherWood);
+                    TryAssignGoal(world, helper, GoalType.GatherWood);
                 }
                 continue;
             }
@@ -93,7 +93,7 @@ public sealed class ProstheticAidSystem : ISimulationSystem
             {
                 var ropeCost = System.Math.Max(1, RecipeCatalog.InputCount(
                     GoalType.CraftRope, ContentIds.Fiber));
-                AssignGoal(helper,
+                TryAssignGoal(world, helper,
                     DecisionSystem.CountInventory(helper, ContentIds.Fiber) >= ropeCost
                         ? GoalType.CraftRope
                         : GoalType.GatherFiber);
@@ -102,7 +102,7 @@ public sealed class ProstheticAidSystem : ISimulationSystem
 
             if (DecisionSystem.CountInventory(helper, ContentIds.Hide) == 0)
             {
-                AssignGoal(helper, GoalType.Butcher);
+                TryAssignGoal(world, helper, GoalType.Butcher);
             }
         }
     }
@@ -115,12 +115,22 @@ public sealed class ProstheticAidSystem : ISimulationSystem
         helper.Plan.Status != PlanStatus.Active &&
         world.Tick >= helper.Mind.ProstheticAidRetryAfterTick;
 
-    private static void AssignGoal(NPCState helper, GoalType goal)
+    private static bool TryAssignGoal(WorldState world, NPCState helper, GoalType goal)
     {
+        // This system is an external goal producer, just like a help cry. It
+        // must not resurrect a route Planning/Execution has just rejected.
+        // Seed 31337 showed GatherTools being reassigned every four ticks to
+        // the same boxed-in prosthetic despite a fresh failure cooldown.
+        if (PlanningSystem.IsGoalOnCooldown(helper, goal, world.Tick))
+        {
+            return false;
+        }
+
         helper.Mind.CurrentGoal = goal;
         helper.Plan.Status = PlanStatus.Invalid;
         helper.Plan.Goal = GoalType.None;
         helper.Plan.Steps.Clear();
+        return true;
     }
 
     private static bool HasRecipeInputs(NPCState helper, GoalType goal)
@@ -234,41 +244,63 @@ public sealed class ProstheticAidSystem : ISimulationSystem
     private static bool TryAssignPickup(
         WorldState world, NPCState helper, params string[] acceptableIds)
     {
+        if (PlanningSystem.IsGoalOnCooldown(
+                helper, GoalType.GatherTools, world.Tick) ||
+            helper.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
         WorldObjectState target = null;
+        JunctionId? targetApproach = null;
         var bestDistance = float.MaxValue;
+        var occupied = PathfindingSystem.OtherActorJunctions(world, helper);
         foreach (var perceived in helper.Perception.Objects)
         {
             if (!perceived.IsReachable || System.Array.IndexOf(acceptableIds, perceived.DefinitionId) < 0 ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var candidate) ||
                 candidate.IsCraftProject || candidate.IsOccupied || candidate.Junctions.Count == 0)
                 continue;
-            if (perceived.Distance < bestDistance)
+            var anchor = candidate.Junctions[0];
+            ApproachScratch.Clear();
+            SpatialQueries.CollectStandableAround(
+                world, anchor, ApproachScratch, 32, SpatialQueries.BesideReach(0f), candidate,
+                InteractionReach.RimMode);
+            foreach (var junction in ApproachScratch)
             {
-                bestDistance = perceived.Distance;
-                target = candidate;
-            }
-        }
-        if (target is null) return false;
+                var isCurrent = junction.Equals(from);
+                if ((!isCurrent && !SpatialQueries.IsJunctionFree(world, junction)) ||
+                    occupied.Contains(junction) ||
+                    (world.Reservations.Junctions.TryGetValue(junction, out var reservation) &&
+                     reservation.Owner != helper.Id && reservation.EndTick >= world.Tick))
+                {
+                    continue;
+                }
 
-        var anchor = target.Junctions[0];
-        ApproachScratch.Clear();
-        SpatialQueries.CollectStandableAround(
-            world, anchor, ApproachScratch, 32, SpatialQueries.BesideReach(0f), target,
-            InteractionReach.RimMode);
-        JunctionId? approach = null;
-        var best = float.MaxValue;
-        foreach (var junction in ApproachScratch)
-        {
-            if (!SpatialQueries.IsJunctionFree(world, junction) ||
-                !world.Junctions.Items.TryGetValue(junction, out var state)) continue;
-            var distance = HexSpatialMath.Distance(state.WorldPosition, helper.Position);
-            if (distance < best)
-            {
-                best = distance;
-                approach = junction;
+                var route = HexPathfinder.FindPath(
+                    world, from, junction, occupied,
+                    weightClimb: true,
+                    canJump: PlanningSystem.CanUseRoutineTraversal(helper),
+                    danger: null, dangerCost: 0L,
+                    hardAvoid: DoorTopology.ForbiddenFor(world, helper.Faction),
+                    maxExpansions: 2000);
+                if (route.Count == 0)
+                {
+                    continue;
+                }
+
+                // Exact route length is the real cost; perceived Euclidean
+                // distance can choose a prop across an uncrossable ledge.
+                var distance = route.Count;
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    target = candidate;
+                    targetApproach = junction;
+                }
             }
         }
-        if (approach is not { } workPoint ||
+        if (target is null || targetApproach is not { } workPoint ||
             !SpatialMutations.TryReserveJunction(world, workPoint, helper.Id, world.Tick, 48))
             return false;
 

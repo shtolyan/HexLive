@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
@@ -169,6 +170,11 @@ public interface ISimulationSource
     /// колонистку; вид просто прячет тумблер.
     /// </summary>
     bool SupportsNpcCommands { get; }
+
+    /// <summary>§138 local-only read model for the backpack crafting tab.
+    /// Returns false when this client does not own authoritative command
+    /// execution; remote and wire-rehearsal UIs hide the tab.</summary>
+    bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into);
 
     /// <summary>
     /// §121: единственная дорога от интерфейса к симуляции. Приказ кладётся в

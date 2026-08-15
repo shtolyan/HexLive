@@ -73,7 +73,9 @@ public static class WorldSnapshotCodec
     /// v24: §136 дневники — СВОЯ секция, а не поле в записи NPC: она меняется
     /// раз в игровой час, тогда как запись NPC переписывается каждый тик, и
     /// внутри неё дневник стоил бы втрое больше всего остального трафика.
-    public const int WireVersion = 24;
+    /// v25: §50 LegsLost — «ноги в ноль» едет отдельно от PostureHint, иначе
+    /// обморок стирал этот факт и вид ронял разбитую в ноль как здоровую.
+    public const int WireVersion = 25;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -703,6 +705,7 @@ public static class WorldSnapshotCodec
         w.Write(n.IsCrying); // §110
         w.Write(n.IsSadWalk); // §81.10
         w.Write(n.IsPlayingDead); // §105.14
+        w.Write(n.LegsLost); // §50: ноги в ноль — вставать нечем
         w.Write(n.AidTargetLyingDown);
         w.Write(n.LyingStationSlot); // §111.13
         w.Write(n.IsLedgeSit);
@@ -963,6 +966,7 @@ public static class WorldSnapshotCodec
         n.IsCrying = r.ReadBoolean(); // §110
         n.IsSadWalk = r.ReadBoolean(); // §81.10
         n.IsPlayingDead = r.ReadBoolean(); // §105.14
+        n.LegsLost = r.ReadBoolean(); // §50
         n.AidTargetLyingDown = r.ReadBoolean();
         n.LyingStationSlot = r.ReadInt32(); // §111.13
         n.IsLedgeSit = r.ReadBoolean();

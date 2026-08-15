@@ -32,6 +32,8 @@ namespace HexLive.UnityPresentation.Config
         public string displayName = "";
         [Tooltip("Теги (добавляются к существующим): Wood, Resource, Carcass…")]
         public string[] tags;
+        [Tooltip("Максимум экземпляров у одного NPC. 0 = без ограничения.")]
+        [Min(0)] public int maxCarriedInstances;
 
         [System.Serializable]
         public sealed class ActionRow
@@ -157,6 +159,7 @@ namespace HexLive.UnityPresentation.Config
             {
                 Id = objectId ?? string.Empty,
                 DisplayName = string.IsNullOrEmpty(displayName) ? objectId : displayName,
+                MaxCarriedInstances = Mathf.Max(0, maxCarriedInstances),
             };
             if (tags != null)
             {

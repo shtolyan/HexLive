@@ -2,6 +2,7 @@ using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
@@ -241,6 +242,72 @@ public sealed class LyingStationTests
 
         Assert.That(LyingStations.IsUsable(world, girl, 1), Is.False);
         Assert.That(LyingStations.IsUsable(world, girl, LyingStations.FeetSlot), Is.True);
+    }
+
+    [Test]
+    public void ReactiveLimbCareClaimsAStationBeforeInstallingTheRoute()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = LyingGirl(world, out var others);
+        var helper = others[0];
+        PrepareSplintAssignment(world, patient, helper);
+
+        new RescueSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.Splint));
+            Assert.That(helper.Plan.TargetAgentId, Is.EqualTo(patient.Id));
+            Assert.That(LyingStations.Held(world, helper, patient), Is.Not.Null,
+                "A route to a lying patient must own its station at assignment time.");
+        });
+    }
+
+    [Test]
+    public void ReactiveLimbCareWithNoUsableStationIsNotAssignedAgain()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = LyingGirl(world, out var others);
+        var helper = others[0];
+        PrepareSplintAssignment(world, patient, helper);
+
+        var definition = world.Content.ObjectDefinitions["rock.boulder"];
+        definition.SolidRadius = HexSpatialMath.HexRadius * 2f;
+        var centre = StructurePlacement.CenterJunction(world, patient.Tile);
+        Assert.That(centre, Is.Not.Null);
+        WorldObjectMutations.SpawnObject(
+            world, "rock.boulder", patient.Fragment, patient.Tile, centre.Value);
+        Assert.That(Enumerable.Range(0, LyingStations.Count)
+            .All(slot => !LyingStations.IsUsable(world, patient, slot)), Is.True,
+            "Fixture must physically close every treatment station.");
+
+        new RescueSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Splint));
+            Assert.That(helper.Plan.TargetAgentId, Is.Not.EqualTo(patient.Id));
+            Assert.That(LyingStations.Held(world, helper, patient), Is.Null);
+            Assert.That(patient.Mind.PendingAidFrom, Is.Null,
+                "A refused station must not leave an aid promise behind.");
+        });
+    }
+
+    private static void PrepareSplintAssignment(
+        WorldState world, NPCState patient, NPCState helper)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Inventory.Items.Clear();
+            npc.Plan.Status = PlanStatus.Completed;
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Mind.CurrentGoal = GoalType.None;
+            npc.Mind.PendingAidFrom = null;
+        }
+
+        patient.Body.Parts[BodyPart.LegR] = 0.05f;
+        patient.Body.Condition(BodyPart.LegR).BluntDamage = 0.95f;
+        helper.Inventory.Items.Add(ContentIds.Splint);
     }
 }
 

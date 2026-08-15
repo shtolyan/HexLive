@@ -351,7 +351,7 @@ public sealed partial class ExecutionSystem
             if (npc.Movement.Status == MovementStatus.Blocked)
             {
                 PlanningSystem.SetGoalCooldown(world, npc, goal);
-                PlanInterruption.Abort(world, npc,
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                     $"CraftInPlace {goal}: project point unreachable");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
@@ -371,15 +371,7 @@ public sealed partial class ExecutionSystem
             foreach (var craftedId in npc.Execution.CraftLayout)
             {
                 if (!world.Entities.Objects.TryGetValue(craftedId, out var crafted)) continue;
-                GiveOrDrop(world, npc, new ItemInstance(crafted.DefinitionId)
-                {
-                    Wetness = crafted.Wetness,
-                    Durability = crafted.Durability,
-                    ResourceAmount = crafted.ResourceAmount,
-                    Dirtiness = crafted.Dirtiness,
-                    Bloodiness = crafted.Bloodiness
-                });
-                WorldObjectMutations.DespawnObject(world, craftedId);
+                TakeCompletedProjectOutput(world, npc, goal, crafted);
             }
 
             npc.Execution.CraftLayout.Clear();
@@ -428,9 +420,25 @@ public sealed partial class ExecutionSystem
             npc.Execution.EndTick - npc.Execution.StartTick);
 
         if (completedProjectId is { } resultId &&
-            world.Entities.Objects.TryGetValue(resultId, out var result) &&
-            !result.IsCraftProject)
+            world.Entities.Objects.TryGetValue(resultId, out var result))
         {
+            if (result.IsCraftProject && npc.Mind.ManualControl)
+            {
+                ResetCraftCycleExecution(npc);
+                return;
+            }
+
+            if (result.IsCraftProject)
+            {
+                FinishCraftInPlace(world, npc, goal);
+                return;
+            }
+
+            if (TryContinueCraftedBandageAsSelfTreatment(world, npc, goal, result))
+            {
+                return;
+            }
+
             npc.Execution.CraftLayout.Clear();
             npc.Execution.CraftLayout.Add(resultId);
             npc.Execution.Status = ExecutionStatus.InProgress;
@@ -448,6 +456,137 @@ public sealed partial class ExecutionSystem
         }
 
         FinishCraftInPlace(world, npc, goal);
+    }
+
+    /// <summary>Final physical take shared by ground and station persistent
+    /// crafts. False means the exact ready object stays where it was because
+    /// the pack is genuinely full.</summary>
+    private static bool TakeCompletedProjectOutput(
+        WorldState world, NPCState npc, GoalType goal, WorldObjectState crafted)
+    {
+        if (goal == GoalType.CraftLeather &&
+            crafted.DefinitionId == ContentIds.LeatherPants)
+        {
+            // Leather's one authored output adapter: it is worn immediately.
+            ResolveWearConflicts(world, npc, ContentIds.LeatherPants);
+            npc.WornItems.Add(new ItemInstance(ContentIds.LeatherPants)
+            {
+                Wetness = crafted.Wetness,
+                Durability = crafted.Durability,
+                ResourceAmount = crafted.ResourceAmount,
+                Dirtiness = crafted.Dirtiness,
+                Bloodiness = crafted.Bloodiness
+            });
+            WorldObjectMutations.DespawnObject(world, crafted.Id);
+            EquipmentMath.Recalculate(world, npc);
+            StowDisplacedGarments(world, npc);
+            return true;
+        }
+
+        if (!InventoryMath.FitsWithoutEviction(world, npc, crafted.DefinitionId))
+        {
+            crafted.IsOccupied = false;
+            crafted.CurrentUser = null;
+            return false;
+        }
+
+        npc.Inventory.Items.Add(new ItemInstance(crafted.DefinitionId)
+        {
+            Wetness = crafted.Wetness,
+            Durability = crafted.Durability,
+            ResourceAmount = crafted.ResourceAmount,
+            Dirtiness = crafted.Dirtiness,
+            Bloodiness = crafted.Bloodiness
+        });
+        WorldObjectMutations.DespawnObject(world, crafted.Id);
+        return true;
+    }
+
+    // §68 r2: once the physical bandage reaches 100%, a wounded crafter can
+    // apply that exact object without a PickUp round-trip. This is keyed to the
+    // treatment predicate, not current free slots: paying two herb leaves may
+    // itself open a slot even though the pack was full when the chain began.
+    private static bool TryContinueCraftedBandageAsSelfTreatment(
+        WorldState world, NPCState npc, GoalType goal, WorldObjectState result)
+    {
+        if (goal != GoalType.CraftBandage ||
+            result.DefinitionId != ContentIds.Bandage ||
+            !DecisionSystem.SelfTreatmentIndicated(
+                npc, MedicalSupplyMath.BandageCount(npc) + 1))
+        {
+            return false;
+        }
+
+        npc.Execution.CraftLayout.Clear();
+        npc.Plan.Goal = GoalType.TreatWounds;
+        npc.Mind.CurrentGoal = GoalType.TreatWounds;
+        npc.Plan.TargetObjectId = result.Id;
+        npc.Plan.TargetItemDefinitionId = ContentIds.Bandage;
+        npc.Plan.TargetTile = result.Tile;
+        npc.Plan.TargetJunctionId = null; // output lies in the crafter's ring
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.TreatSelf,
+            TargetObject = result.Id,
+            Interaction = InteractionType.TreatSelf
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        ResetCraftCycleExecution(npc);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CraftBandageDirectTreatment",
+                $"Project={result.Id.Value} InventoryBandages={MedicalSupplyMath.BandageCount(npc)}");
+        }
+
+        // Claim immediately in the same execution turn: no other planner can
+        // steal the output in the one-tick seam between Craft and TreatSelf.
+        RunTreatSelf(world, npc);
+        return true;
+    }
+
+    private static void ResetCraftCycleExecution(NPCState npc)
+    {
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+    }
+
+    private static void BeginCraftOutputTake(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.CraftLayout.Count == 0)
+        {
+            return;
+        }
+
+        var resultId = npc.Execution.CraftLayout[0];
+        if (world.Entities.Objects.TryGetValue(resultId, out var result) &&
+            TryContinueCraftedBandageAsSelfTreatment(
+                world, npc, npc.Plan.Goal, result))
+        {
+            return;
+        }
+
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.CraftInPlace });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetObjectId = resultId;
+        npc.Execution.Status = ExecutionStatus.InProgress;
+        npc.Execution.CurrentInteraction = InteractionType.PickUp;
+        npc.Execution.TargetObject = resultId;
+        npc.Execution.StartTick = world.Tick;
+        npc.Execution.EndTick = world.Tick + CraftTakeDurationTicks;
+        FaceCraftLayout(world, npc);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CraftOutputReady",
+                $"{npc.Plan.Goal} Project={resultId.Value}; take in {CraftTakeDurationTicks}ticks");
+        }
     }
 
     private static void RunLegacyCraftInPlace(WorldState world, NPCState npc)
@@ -479,7 +618,7 @@ public sealed partial class ExecutionSystem
             if (npc.Movement.Status == MovementStatus.Blocked)
             {
                 PlanningSystem.SetGoalCooldown(world, npc, goal);
-                PlanInterruption.Abort(world, npc,
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                     $"CraftInPlace {goal}: ground pile unreachable (path blocked)");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
@@ -648,15 +787,7 @@ public sealed partial class ExecutionSystem
                 continue; // somebody took it first — the craft still ends
             }
 
-            GiveOrDrop(world, npc, new ItemInstance(crafted.DefinitionId)
-            {
-                Wetness = crafted.Wetness,
-                Durability = crafted.Durability,
-                ResourceAmount = crafted.ResourceAmount,
-                Dirtiness = crafted.Dirtiness,
-                Bloodiness = crafted.Bloodiness
-            });
-            WorldObjectMutations.DespawnObject(world, craftedId);
+            TakeCompletedProjectOutput(world, npc, goal, crafted);
         }
 
         npc.Execution.CraftLayout.Clear();
@@ -683,6 +814,10 @@ public sealed partial class ExecutionSystem
         npc.Execution.CurrentInteraction = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
+        if (npc.Mind.ManualControl)
+        {
+            npc.Mind.LastManualInputTick = world.Tick;
+        }
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "CycleReset",

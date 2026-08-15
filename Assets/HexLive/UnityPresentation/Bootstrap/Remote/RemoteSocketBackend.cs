@@ -8,12 +8,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Wire;
 using UnityEngine;
+using EntityId = HexLive.Simulation.Common.EntityId;
 // `using System.Diagnostics` above (Stopwatch) collides with UnityEngine over
 // the name `Debug`. Aliased once here rather than qualifying every call site:
 // in a MonoBehaviour-adjacent file Debug always means Unity's.
@@ -126,6 +128,12 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     // кадра в протоколе; когда он решится, кадр появится ЗДЕСЬ, и ни одна
     // кнопка интерфейса об этом не узнает.
     public bool SupportsNpcCommands => false;
+
+    public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
+    {
+        into.Clear();
+        return false;
+    }
 
     public void EnqueueCommand(ISimulationCommand command)
     {

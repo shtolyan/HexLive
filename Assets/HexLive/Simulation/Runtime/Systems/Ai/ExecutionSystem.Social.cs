@@ -313,7 +313,7 @@ public sealed partial class ExecutionSystem
         npc.Execution.CurrentTalkTopic = null;
         npc.Execution.CurrentTalkTopicPeerId = null;
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Socialize);
-        PlanInterruption.Abort(world, npc, reason);
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, reason);
         npc.Mind.CurrentGoal = GoalType.None;
     }
 
@@ -516,8 +516,15 @@ public sealed partial class ExecutionSystem
             // planner caps the reserved junction at the same reach — this is
             // the belt-and-braces re-check at start (was 2*R, a full hex:
             // visibly kneeling and feeding from across the clearing).
-            if (!InteractionReach.CheckPersonStart(world, npc, target, target.Position,
-                    InteractionReach.Aid, $"Aid NPC{targetId.Value}"))
+            var targetOnBed = BedSleep.TryGetOccupiedBed(
+                world, target, out var supportBed);
+            var inReach = targetOnBed
+                ? InteractionReach.CheckBedOccupantStart(
+                    world, npc, target, supportBed, $"Aid NPC{targetId.Value}")
+                : InteractionReach.CheckPersonStart(
+                    world, npc, target, target.Position,
+                    InteractionReach.Aid, $"Aid NPC{targetId.Value}");
+            if (!inReach)
             {
                 // §53: дошла по памяти и не дотянулась — это ещё не повод
                 // бросать подопечную. Пересчитать подход по живому телу и
@@ -563,17 +570,27 @@ public sealed partial class ExecutionSystem
             // молча отменила бы станционный курс.
             if (target.IsLyingDown(world.Tick))
             {
-                // Поход по памяти (§125.7) строится без живого тела и станции не
-                // берёт — она берётся здесь, когда подопечная уже перед глазами.
-                // Идемпотентно: занятая по плану станция возвращается как есть.
-                if (!LyingStations.TryClaim(world, npc, target, out var startSlot))
+                if (targetOnBed)
                 {
-                    AbortAid(world, npc,
-                        $"No free station at NPC{targetId.Value}");
-                    return;
+                    // §53.4 r6: remain on the reserved furniture rim. Snapping
+                    // to a body-local station would put the helper on the mattress.
+                    LyingStations.ReleaseStation(npc);
+                    FaceHelperToward(npc, target);
                 }
+                else
+                {
+                    // Поход по памяти (§125.7) строится без живого тела и станции не
+                    // берёт — она берётся здесь, когда подопечная уже перед глазами.
+                    // Идемпотентно: занятая по плану станция возвращается как есть.
+                    if (!LyingStations.TryClaim(world, npc, target, out var startSlot))
+                    {
+                        AbortAid(world, npc,
+                            $"No free station at NPC{targetId.Value}");
+                        return;
+                    }
 
-                LyingStations.Align(npc, target, startSlot);
+                    LyingStations.Align(npc, target, startSlot);
+                }
             }
             else
             {
@@ -625,20 +642,36 @@ public sealed partial class ExecutionSystem
             HoldSceneJunction(world, npc);
             if (target.IsLyingDown(world.Tick))
             {
-                // §111.13: снап держит позу, но он не имеет права ДОГОНЯТЬ.
-                // Мерить надо до того, как поза приложена, иначе дистанция
-                // всегда нулевая по построению, а уползающая §50 подопечная
-                // утаскивает помощницу за собой телепортом.
-                var slot = LyingStations.SlotFor(world, npc, target);
-                if (!InteractionReach.CheckPersonStart(world, npc, target,
-                        LyingStations.Point(target, slot), LyingStations.Reach(slot),
-                        $"AidHold NPC{targetId.Value}"))
+                if (BedSleep.TryGetOccupiedBed(world, target, out var occupiedBed))
                 {
-                    AbortAid(world, npc, $"Target NPC{targetId.Value} left the aid station");
-                    return;
-                }
+                    if (!InteractionReach.CheckBedOccupantStart(
+                            world, npc, target, occupiedBed,
+                            $"AidHold NPC{targetId.Value}"))
+                    {
+                        AbortAid(world, npc,
+                            $"Target NPC{targetId.Value} left the bedside reach");
+                        return;
+                    }
 
-                LyingStations.Align(npc, target, slot);
+                    FaceHelperToward(npc, target);
+                }
+                else
+                {
+                    // §111.13: снап держит позу, но он не имеет права ДОГОНЯТЬ.
+                    // Мерить надо до того, как поза приложена, иначе дистанция
+                    // всегда нулевая по построению, а уползающая §50 подопечная
+                    // утаскивает помощницу за собой телепортом.
+                    var slot = LyingStations.SlotFor(world, npc, target);
+                    if (!InteractionReach.CheckPersonStart(world, npc, target,
+                            LyingStations.Point(target, slot), LyingStations.Reach(slot),
+                            $"AidHold NPC{targetId.Value}"))
+                    {
+                        AbortAid(world, npc, $"Target NPC{targetId.Value} left the aid station");
+                        return;
+                    }
+
+                    LyingStations.Align(npc, target, slot);
+                }
             }
 
             var remaining = npc.Execution.EndTick - world.Tick;
@@ -761,6 +794,23 @@ public sealed partial class ExecutionSystem
         }
     }
 
+    private static void FaceHelperToward(NPCState helper, NPCState target)
+    {
+        var delta = new Float2(
+            target.Position.X - helper.Position.X,
+            target.Position.Y - helper.Position.Y);
+        if (delta.X * delta.X + delta.Y * delta.Y < 1e-8f)
+        {
+            return;
+        }
+
+        var direction = HexSpatialMath.Normalize(delta);
+        var heading = HexSpatialMath.AngleDegrees(direction);
+        helper.RotationDegrees = heading;
+        helper.Movement.DesiredRotationDegrees = heading;
+        helper.Movement.DesiredDirection = direction;
+    }
+
     private static void StabilizeBleedingOnAidStart(WorldState world, NPCState helper, NPCState target)
     {
         if (Spec118.Enabled)
@@ -801,7 +851,7 @@ public sealed partial class ExecutionSystem
             t.Mind.PendingAidFrom = null;
         }
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Aid);
-        PlanInterruption.Abort(world, npc, reason);
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, reason);
         npc.Mind.CurrentGoal = GoalType.None;
     }
 

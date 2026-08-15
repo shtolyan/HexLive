@@ -35,10 +35,10 @@ public static class HoverHighlight
 }
 
 /// <summary>
-/// Дешёвая подсветка «пока нет аутлайнера»: осветляет базовый цвет через
+/// Дешёвая подсветка «пока нет аутлайнера»: поднимает базовый цвет через
 /// <see cref="MaterialPropertyBlock"/>.
 ///
-/// Три решения, за каждым — грабли:
+/// Решения, за каждым — грабли:
 /// <list type="bullet">
 /// <item>БЛОК, а не смена материала: материал общий на все кокосы острова, и
 /// подмена засветила бы разом все.</item>
@@ -46,6 +46,14 @@ public static class HoverHighlight
 /// МАТЕРИАЛЕ, и включить его пришлось бы через <c>renderer.material</c> — то
 /// есть породить копию материала на каждый подсвеченный объект и потерять
 /// батчинг. Блоку же <c>_BaseColor</c> URP/Lit подчиняется как есть.</item>
+/// <item>⭐ Подъём — «умножить и добавить», НЕ лерп к белому: у половины
+/// каталога (_AiGen-группа, FBX с цветом в текстуре) <c>_BaseColor</c> белый,
+/// и лерп белого к белому давал НЕВИДИМУЮ подсветку при работающем клике
+/// (юка). URP/Lit умножает текстуру на цвет, так что множитель &gt; 1
+/// осветляет и белые текстурированные материалы.</item>
+/// <item>Блоки пишутся ПО ИНДЕКСУ материала: одежда на земле держит свои
+/// per-index блоки (GarmentWorldCondition), которые перекрывают общий блок
+/// рендерера — общий тинт на ней не проявлялся вовсе.</item>
 /// <item>Восстанавливается ИСХОДНЫЙ блок, а не «белый»: у части видов в блоке
 /// уже что-то лежит (мокрая одежда, кровь), и сброс в умолчание стёр бы это.</item>
 /// </list>
@@ -57,9 +65,10 @@ public sealed class EmissionHoverHighlighter : IHoverHighlighter
 
     // Осветление, не перекраска: предмет обязан остаться собой, просто
     // «поднятым» — иначе подсветка читается как другой объект.
-    private const float Lift = 0.45f;
+    private const float LiftScale = 1.25f;
+    private const float LiftAdd = 0.18f;
 
-    private readonly Dictionary<Renderer, MaterialPropertyBlock> _saved = new();
+    private readonly Dictionary<Renderer, MaterialPropertyBlock[]> _saved = new();
     private readonly MaterialPropertyBlock _scratch = new();
 
     public void Apply(IReadOnlyList<Renderer> renderers)
@@ -72,24 +81,42 @@ public sealed class EmissionHoverHighlighter : IHoverHighlighter
                 continue;
             }
 
+            var materials = renderer.sharedMaterials;
             if (!_saved.ContainsKey(renderer))
             {
-                var before = new MaterialPropertyBlock();
-                renderer.GetPropertyBlock(before);
+                var before = new MaterialPropertyBlock[materials.Length];
+                for (var m = 0; m < materials.Length; m++)
+                {
+                    before[m] = new MaterialPropertyBlock();
+                    renderer.GetPropertyBlock(before[m], m);
+                }
+
                 _saved[renderer] = before;
             }
 
-            var material = renderer.sharedMaterial;
-            var property = material != null && material.HasProperty(BaseColor)
-                ? BaseColor
-                : LegacyColor;
-            var tint = material != null && material.HasProperty(property)
-                ? material.GetColor(property)
-                : Color.white;
+            for (var m = 0; m < materials.Length; m++)
+            {
+                var material = materials[m];
+                var property = material != null && material.HasProperty(BaseColor)
+                    ? BaseColor
+                    : LegacyColor;
 
-            renderer.GetPropertyBlock(_scratch);
-            _scratch.SetColor(property, Color.Lerp(tint, Color.white, Lift));
-            renderer.SetPropertyBlock(_scratch);
+                renderer.GetPropertyBlock(_scratch, m);
+                // Цвет мог уже лежать в блоке (мокрая одежда) — он и есть
+                // текущая правда; материал — только запасной источник.
+                var tint = _scratch.HasColor(property)
+                    ? _scratch.GetColor(property)
+                    : material != null && material.HasProperty(property)
+                        ? material.GetColor(property)
+                        : Color.white;
+                var lifted = new Color(
+                    tint.r * LiftScale + LiftAdd,
+                    tint.g * LiftScale + LiftAdd,
+                    tint.b * LiftScale + LiftAdd,
+                    tint.a);
+                _scratch.SetColor(property, lifted);
+                renderer.SetPropertyBlock(_scratch, m);
+            }
         }
     }
 
@@ -105,7 +132,12 @@ public sealed class EmissionHoverHighlighter : IHoverHighlighter
 
             if (_saved.TryGetValue(renderer, out var before))
             {
-                renderer.SetPropertyBlock(before);
+                var count = Mathf.Min(before.Length, renderer.sharedMaterials.Length);
+                for (var m = 0; m < count; m++)
+                {
+                    renderer.SetPropertyBlock(before[m], m);
+                }
+
                 _saved.Remove(renderer);
             }
             else

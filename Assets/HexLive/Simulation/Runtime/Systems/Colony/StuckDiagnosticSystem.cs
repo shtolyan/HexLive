@@ -44,6 +44,7 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
     private struct Watch
     {
         public string Reason;
+        public GoalType Goal;
         public int SinceTick;
         public int LastEmitTick;
 
@@ -53,6 +54,7 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
         public int MovementPathIndex;
         public int PlanStepIndex;
         public JunctionId? TargetJunction;
+        public int LastCompletedTick;
     }
 
     private readonly Dictionary<int, Watch> _watch = new Dictionary<int, Watch>();
@@ -110,7 +112,9 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
             return;
         }
 
-        if (!_watch.TryGetValue(id, out var watch) || watch.Reason != reason)
+        if (!_watch.TryGetValue(id, out var watch) ||
+            watch.Reason != reason ||
+            watch.Goal != npc.Mind.CurrentGoal)
         {
             StartWatch(world, npc, reason);
             return;
@@ -122,7 +126,10 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
         // начинается заново. Раньше сторож помнил только Anchor: несколько
         // честных маршрутов подряд возле одной точки складывались в одно окно и
         // давали ложный PositionFrozen.
-        if (reason == ReasonFrozen && MadeMovementProgress(watch, npc))
+        if ((reason == ReasonFrozen && MadeMovementProgress(watch, npc)) ||
+            (reason == ReasonIdle &&
+             (Moved(watch.Anchor, npc.Position) ||
+              watch.LastCompletedTick != npc.Execution.LastCompletedTick)))
         {
             StartWatch(world, npc, reason);
             return;
@@ -229,6 +236,22 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
         return null;
     }
 
+    /// <summary>
+    /// §30.16: the exact sample counted by the soak's stuck-time metric. This
+    /// is public so diagnostics and the headless runner cannot grow two subtly
+    /// different definitions again. Authored stillness, manual control,
+    /// reactive holds and the deliberate Idle goal are never a broken stall.
+    /// </summary>
+    public static bool CountsAsIdleWithGoal(WorldState world, NPCState npc) =>
+        !WatchdogExclusions.IsPlayerDriven(npc) &&
+        !WatchdogExclusions.IsAuthoredStillness(world, npc) &&
+        !WatchdogExclusions.IsIntentionalHold(world, npc) &&
+        npc.Mind.CurrentGoal is not (GoalType.None or GoalType.Idle) &&
+        npc.Execution.Status == ExecutionStatus.None &&
+        !npc.Movement.IsMoving &&
+        (npc.Execution.LastCompletedTick < 0 ||
+         world.Tick - npc.Execution.LastCompletedTick >= AiBalance.StuckIdleTicks);
+
     private static int Threshold(string reason)
     {
         if (reason == ReasonIdle)
@@ -264,6 +287,7 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
         _watch[npc.Id.Value] = new Watch
         {
             Reason = reason,
+            Goal = npc.Mind.CurrentGoal,
             SinceTick = world.Tick,
             LastEmitTick = 0,
             Anchor = npc.Position,
@@ -271,6 +295,7 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
             MovementPathIndex = npc.Movement.PathIndex,
             PlanStepIndex = npc.Plan.CurrentStepIndex,
             TargetJunction = npc.Plan.TargetJunctionId,
+            LastCompletedTick = npc.Execution.LastCompletedTick,
         };
     }
 

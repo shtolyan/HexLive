@@ -28,7 +28,15 @@ public static class Spec82
     // Пауза между выгонами, чтобы он не молотил одну и ту же без передышки.
     public static int TerritoryCooldownTicks = 300;
 
+    // Проигранный бой — не короткая перепалка. Пока лагерь не успел перевязать
+    // раненых и перегруппироваться, жители не выходят к победителю по одному.
+    public const int TerritoryDefeatCooldownTicks = 2400;
+
     public static float TerritorySubmitHealth = 0.5f;
+
+    // Владелец с уже разбитой частью тела не начинает добровольную сцену из
+    // трёх новых ударов. Текущий бой это не обрывает — порог только для подхода.
+    public const float TerritoryChallengeWorstPartHealth = 0.55f;
 
     public static int TerritoryResponseDelayTicks = 8;
 

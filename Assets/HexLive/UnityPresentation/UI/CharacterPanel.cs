@@ -115,11 +115,41 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _controlAiIcon;
         private VisualElement _controlPlayerIcon;
         private Label _orderToast;
+        // §123.5: дубль тоста отказа ВНУТРИ окна инвентаря — карточка
+        // персонажа с основным тостом закрыта этим окном (940×620), и отказ
+        // «выбросить нельзя» был игроку не виден вовсе.
+        private Label _invOrderToast;
         private bool _manualControlNow;
         private bool _controlAvailable;
         private VisualElement _inventoryWindow;
         private Label _inventoryTitle;
         private Label _inventoryCapacity;
+        // §138: the backpack and manual recipe browser share one floating
+        // window. Crafting is local-only and never exists for group/AI views.
+        private VisualElement _inventoryTabs;
+        private VisualElement _inventoryBackpackTab;
+        private VisualElement _inventoryCraftTab;
+        private Label _inventoryBackpackTabLabel;
+        private Label _inventoryCraftTabLabel;
+        private VisualElement _craftView;
+        private VisualElement _craftRecipeGrid;
+        private VisualElement _craftDetail;
+        private Image _craftDetailIcon;
+        private Label _craftDetailEmoji;
+        private Label _craftDetailName;
+        private Label _craftResourcesTitle;
+        private VisualElement _craftIngredients;
+        private Label _craftStation;
+        private Label _craftProgress;
+        private Label _craftReason;
+        private VisualElement _craftAction;
+        private Label _craftActionLabel;
+        private readonly List<CraftRecipeOption> _craftOptions = new();
+        private readonly Dictionary<int, int> _selectedCraftGoalByNpc = new();
+        private int _selectedCraftGoal = -1;
+        private string _craftSig;
+        private bool _craftPage;
+        private bool _craftAvailable;
         private VisualElement _invListView;   // elastic flat grid + aspect-locked doll
         private VisualElement _invItemsPane;
         private VisualElement _invItemsContent;
@@ -130,6 +160,7 @@ namespace HexLive.UnityPresentation.UI
         private CharacterDollStage _characterDollStage;
         private VisualElement _invDetailView; // one reused item-card popover
         private VisualElement _invDetailAnchor;
+        private InventoryDetailPlacement _invDetailPlacement = InventoryDetailPlacement.Item;
         private Label _invBackLabel;
         private Label _invDetailEmoji;
         private Image _invDetailIcon;
@@ -150,6 +181,12 @@ namespace HexLive.UnityPresentation.UI
         private string _invSig;               // rebuild the list only on change
         private string _invSelectedId;        // item shown in the detail view
         private bool _invSelectedWorn;
+        // §123.5: авторитетный индекс выбранного carried-предмета в
+        // npc.Inventory.Items — приходит из InventorySlotSnapshot.SourceIndex.
+        // Легаси-поиск по npc.InventoryItems давал НЕВЕРНЫЙ индекс: экспортер
+        // снапшота переупорядочивает стаки, и симуляция молча отвечала
+        // StaleItem — «выбросить из рюкзака» не работало вовсе.
+        private int _invSelectedSourceIndex = -1;
         private bool _invHeldSlotMarked;
         private bool _invPreviewDragging;
         private int _invPreviewPointerId = -1;
@@ -417,6 +454,13 @@ namespace HexLive.UnityPresentation.UI
         // рядом с «Природой» (что может тело) и «Умениями» (что умеют руки),
         // но своей страницей, потому что черта это не число на шкале.
         private enum SheetTab { Needs, Nature, Skills, Character }
+
+        private enum InventoryDetailPlacement
+        {
+            Preserve,
+            Item,
+            Doll
+        }
 
         private static readonly NeedConfig[] Needs =
         {
@@ -1503,6 +1547,8 @@ namespace HexLive.UnityPresentation.UI
             header.Add(close);
             _inventoryWindow.Add(header);
 
+            BuildInventoryTabs();
+
             // ── approved strict 50/50 layout ───────────────────────────
             _invListView = new VisualElement();
             _invListView.style.flexDirection = FlexDirection.Row;
@@ -1529,6 +1575,32 @@ namespace HexLive.UnityPresentation.UI
             _invItemsContent.style.paddingLeft = 2f;
             _invItemsPane.Add(_invItemsContent);
             _invListView.Add(_invItemsPane);
+
+            // §123.5: тост отказа внутри окна — основной живёт в карточке
+            // персонажа, которую это окно закрывает собой.
+            _invOrderToast = new Label
+            {
+                style =
+                {
+                    color = Warn,
+                    fontSize = 11f,
+                    position = Position.Absolute,
+                    left = 200f,
+                    right = 200f,
+                    bottom = 10f,
+                    paddingLeft = 8f,
+                    paddingRight = 8f,
+                    paddingTop = 5f,
+                    paddingBottom = 5f,
+                    backgroundColor = Panel,
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                    whiteSpace = WhiteSpace.Normal,
+                    display = DisplayStyle.None,
+                }
+            };
+            SetRadius(_invOrderToast, 7f);
+            SetBorder(_invOrderToast, new Color(Warn.r, Warn.g, Warn.b, 0.32f), 1f);
+            _invOrderToast.pickingMode = PickingMode.Ignore;
 
             _invDollPane = new VisualElement();
             // Width is AUTO on purpose: the card is exactly as wide as the
@@ -1584,6 +1656,10 @@ namespace HexLive.UnityPresentation.UI
             // other around the layout.
             _invListView.RegisterCallback<GeometryChangedEvent>(_ => FitInventoryDollViewport());
             _inventoryWindow.Add(_invListView);
+            BuildCraftingView();
+            _inventoryWindow.Add(_craftView);
+            // Поверх листа, чтобы тост не тонул под сеткой слотов.
+            _inventoryWindow.Add(_invOrderToast);
 
             // Item removal is an explicit action inside the selected item's
             // detail card. The old full-width drag target looked interactive
@@ -1663,6 +1739,542 @@ namespace HexLive.UnityPresentation.UI
                     PositionInventoryDetail();
                 }
             });
+        }
+
+        private void BuildInventoryTabs()
+        {
+            _inventoryTabs = new VisualElement { name = "inventory-tabs" };
+            _inventoryTabs.style.flexDirection = FlexDirection.Row;
+            _inventoryTabs.style.height = 38f;
+            _inventoryTabs.style.flexShrink = 0f;
+            _inventoryTabs.style.marginBottom = 10f;
+            _inventoryTabs.style.backgroundColor = Track;
+            _inventoryTabs.style.paddingLeft = 3f;
+            _inventoryTabs.style.paddingRight = 3f;
+            _inventoryTabs.style.paddingTop = 3f;
+            _inventoryTabs.style.paddingBottom = 3f;
+            SetRadius(_inventoryTabs, 10f);
+
+            _inventoryBackpackTab = BuildInventoryTab(
+                "inventory-tab-backpack", "🎒", out _inventoryBackpackTabLabel);
+            _inventoryBackpackTabLabel.text = Loc.Get("craft.tab.backpack");
+            _inventoryBackpackTab.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                SelectInventoryPage(craft: false);
+                evt.StopPropagation();
+            });
+            _inventoryTabs.Add(_inventoryBackpackTab);
+
+            _inventoryCraftTab = BuildInventoryTab(
+                "inventory-tab-craft", "🛠", out _inventoryCraftTabLabel);
+            _inventoryCraftTabLabel.text = Loc.Get("craft.tab.craft");
+            _inventoryCraftTab.style.display = DisplayStyle.None;
+            _inventoryCraftTab.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                if (_craftAvailable) SelectInventoryPage(craft: true);
+                evt.StopPropagation();
+            });
+            _inventoryTabs.Add(_inventoryCraftTab);
+            _inventoryWindow.Add(_inventoryTabs);
+            RefreshInventoryTabStyle();
+        }
+
+        private static VisualElement BuildInventoryTab(
+            string name, string glyph, out Label text)
+        {
+            var tab = new VisualElement { name = name };
+            tab.style.flexBasis = 0f;
+            tab.style.flexGrow = 1f;
+            tab.style.height = 32f;
+            tab.style.flexDirection = FlexDirection.Row;
+            tab.style.alignItems = Align.Center;
+            tab.style.justifyContent = Justify.Center;
+            tab.style.marginLeft = 2f;
+            tab.style.marginRight = 2f;
+            SetRadius(tab, 8f);
+
+            var icon = new Label(glyph);
+            icon.style.fontSize = 14f;
+            icon.style.marginRight = 7f;
+            icon.pickingMode = PickingMode.Ignore;
+            tab.Add(icon);
+
+            text = new Label();
+            text.style.fontSize = 12.5f;
+            text.style.unityFontStyleAndWeight = FontStyle.Bold;
+            text.pickingMode = PickingMode.Ignore;
+            tab.Add(text);
+            return tab;
+        }
+
+        private void BuildCraftingView()
+        {
+            _craftView = new VisualElement { name = "manual-crafting-view" };
+            _craftView.style.flexDirection = FlexDirection.Row;
+            _craftView.style.flexGrow = 1f;
+            _craftView.style.minHeight = 0f;
+            _craftView.style.display = DisplayStyle.None;
+
+            _craftRecipeGrid = new VisualElement { name = "craft-recipe-grid" };
+            _craftRecipeGrid.style.flexDirection = FlexDirection.Row;
+            _craftRecipeGrid.style.flexWrap = Wrap.Wrap;
+            _craftRecipeGrid.style.alignContent = Align.FlexStart;
+            _craftRecipeGrid.style.flexGrow = 1f;
+            _craftRecipeGrid.style.flexShrink = 1f;
+            _craftRecipeGrid.style.minWidth = 0f;
+            _craftRecipeGrid.style.paddingTop = 2f;
+            _craftRecipeGrid.style.paddingLeft = 2f;
+            _craftRecipeGrid.style.paddingRight = 8f;
+            _craftRecipeGrid.style.overflow = Overflow.Hidden;
+            _craftView.Add(_craftRecipeGrid);
+
+            _craftDetail = new VisualElement { name = "craft-recipe-detail" };
+            _craftDetail.style.width = 326f;
+            _craftDetail.style.flexShrink = 0f;
+            _craftDetail.style.paddingLeft = 14f;
+            _craftDetail.style.paddingRight = 14f;
+            _craftDetail.style.paddingTop = 13f;
+            _craftDetail.style.paddingBottom = 13f;
+            _craftDetail.style.backgroundColor = PanelMid;
+            SetBorder(_craftDetail, StrokeStrong, 1f);
+            SetRadius(_craftDetail, 13f);
+
+            var hero = new VisualElement();
+            hero.style.height = 82f;
+            hero.style.flexShrink = 0f;
+            hero.style.flexDirection = FlexDirection.Row;
+            hero.style.alignItems = Align.Center;
+
+            var iconFrame = new VisualElement();
+            iconFrame.style.width = 72f;
+            iconFrame.style.height = 72f;
+            iconFrame.style.flexShrink = 0f;
+            iconFrame.style.alignItems = Align.Center;
+            iconFrame.style.justifyContent = Justify.Center;
+            iconFrame.style.backgroundColor = Track;
+            SetRadius(iconFrame, 11f);
+
+            _craftDetailIcon = new Image { scaleMode = ScaleMode.ScaleToFit };
+            _craftDetailIcon.style.width = 62f;
+            _craftDetailIcon.style.height = 62f;
+            _craftDetailIcon.pickingMode = PickingMode.Ignore;
+            iconFrame.Add(_craftDetailIcon);
+
+            _craftDetailEmoji = new Label();
+            _craftDetailEmoji.style.fontSize = 42f;
+            _craftDetailEmoji.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _craftDetailEmoji.pickingMode = PickingMode.Ignore;
+            iconFrame.Add(_craftDetailEmoji);
+            hero.Add(iconFrame);
+
+            _craftDetailName = new Label();
+            _craftDetailName.style.flexGrow = 1f;
+            _craftDetailName.style.marginLeft = 13f;
+            _craftDetailName.style.color = Text;
+            _craftDetailName.style.fontSize = 17f;
+            _craftDetailName.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _craftDetailName.style.whiteSpace = WhiteSpace.Normal;
+            hero.Add(_craftDetailName);
+            _craftDetail.Add(hero);
+
+            _craftResourcesTitle = MakeInvSectionHeader(Loc.Get("craft.resources"));
+            _craftResourcesTitle.style.marginTop = 8f;
+            _craftDetail.Add(_craftResourcesTitle);
+
+            _craftIngredients = new VisualElement { name = "craft-ingredients" };
+            _craftIngredients.style.flexShrink = 0f;
+            _craftDetail.Add(_craftIngredients);
+
+            _craftStation = new Label();
+            _craftStation.style.color = TextDim;
+            _craftStation.style.fontSize = 12f;
+            _craftStation.style.marginTop = 10f;
+            _craftStation.style.whiteSpace = WhiteSpace.Normal;
+            _craftDetail.Add(_craftStation);
+
+            _craftProgress = new Label();
+            _craftProgress.style.color = Gold;
+            _craftProgress.style.fontSize = 11.5f;
+            _craftProgress.style.marginTop = 5f;
+            _craftDetail.Add(_craftProgress);
+
+            _craftReason = new Label();
+            _craftReason.style.color = Crit;
+            _craftReason.style.fontSize = 11.5f;
+            _craftReason.style.marginTop = 7f;
+            _craftReason.style.whiteSpace = WhiteSpace.Normal;
+            _craftReason.style.flexGrow = 1f;
+            _craftDetail.Add(_craftReason);
+
+            _craftAction = new VisualElement { name = "craft-action" };
+            _craftAction.style.height = 42f;
+            _craftAction.style.flexShrink = 0f;
+            _craftAction.style.alignItems = Align.Center;
+            _craftAction.style.justifyContent = Justify.Center;
+            _craftAction.style.backgroundColor = GoldDim;
+            SetBorder(_craftAction, Gold, 1f);
+            SetRadius(_craftAction, 10f);
+            _craftAction.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                EnqueueSelectedCraft();
+                evt.StopPropagation();
+            });
+            _craftActionLabel = new Label();
+            _craftActionLabel.style.color = Text;
+            _craftActionLabel.style.fontSize = 13f;
+            _craftActionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _craftActionLabel.pickingMode = PickingMode.Ignore;
+            _craftAction.Add(_craftActionLabel);
+            _craftDetail.Add(_craftAction);
+            _craftView.Add(_craftDetail);
+        }
+
+        private void SelectInventoryPage(bool craft)
+        {
+            _craftPage = craft && _craftAvailable;
+            if (_invListView != null)
+            {
+                _invListView.style.display = _craftPage
+                    ? DisplayStyle.None : DisplayStyle.Flex;
+            }
+            if (_craftView != null)
+            {
+                _craftView.style.display = _craftPage
+                    ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+            if (_inventoryCapacity != null)
+            {
+                _inventoryCapacity.style.display = _craftPage
+                    ? DisplayStyle.None : DisplayStyle.Flex;
+            }
+
+            HideItemDetail();
+            _characterDollStage?.SetMode(_craftPage
+                ? CharacterDollMode.Hidden : CharacterDollMode.Inventory);
+            RefreshInventoryTabStyle();
+            if (_craftPage)
+            {
+                RebuildCraftRecipeGrid();
+                RefreshCraftDetail();
+            }
+        }
+
+        private void RefreshInventoryTabStyle()
+        {
+            if (_inventoryBackpackTab == null || _inventoryCraftTab == null)
+            {
+                return;
+            }
+
+            _inventoryBackpackTab.style.backgroundColor = _craftPage
+                ? Color.clear : Raised;
+            _inventoryCraftTab.style.backgroundColor = _craftPage
+                ? Raised : Color.clear;
+            _inventoryBackpackTabLabel.style.color = _craftPage ? TextDim : Text;
+            _inventoryCraftTabLabel.style.color = _craftPage ? Text : TextDim;
+            SetBorder(_inventoryBackpackTab, _craftPage ? Color.clear : StrokeStrong, 1f);
+            SetBorder(_inventoryCraftTab, _craftPage ? GoldDim : Color.clear, 1f);
+        }
+
+        private void RefreshCrafting(NpcSnapshot npc)
+        {
+            var eligible = _runner != null && _runner.SupportsNpcCommands &&
+                NpcSelection.Count == 1 && npc.IsManualControl && npc.Health > 0f &&
+                npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+            _craftOptions.Clear();
+            _craftAvailable = eligible && _runner.TryGetCraftingOptions(
+                new HexLive.Simulation.Common.EntityId(npc.Id.Value), _craftOptions);
+            _inventoryCraftTab.style.display = _craftAvailable
+                ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (!_craftAvailable)
+            {
+                _craftSig = null;
+                if (_craftPage) SelectInventoryPage(craft: false);
+                return;
+            }
+
+            if (_selectedCraftGoal < 0 &&
+                _selectedCraftGoalByNpc.TryGetValue(npc.Id.Value, out var remembered))
+            {
+                _selectedCraftGoal = remembered;
+            }
+            if (FindSelectedCraft() == null && _craftOptions.Count > 0)
+            {
+                _selectedCraftGoal = (int)_craftOptions[0].Goal;
+                _selectedCraftGoalByNpc[npc.Id.Value] = _selectedCraftGoal;
+            }
+
+            var sig = CraftingSignature();
+            if (sig == _craftSig)
+            {
+                return;
+            }
+
+            _craftSig = sig;
+            if (_craftPage)
+            {
+                RebuildCraftRecipeGrid();
+                RefreshCraftDetail();
+            }
+        }
+
+        private string CraftingSignature()
+        {
+            var result = new System.Text.StringBuilder();
+            result.Append(_selectedCraftGoal).Append('|');
+            foreach (var option in _craftOptions)
+            {
+                result.Append((int)option.Goal).Append(':')
+                    .Append(option.OutputDefinitionId).Append(':')
+                    .Append(option.StationTag).Append(':')
+                    .Append(option.StationObjectId?.Value ?? -1).Append(':')
+                    .Append(option.ProjectObjectId?.Value ?? -1).Append(':')
+                    .Append(option.WorkDone).Append('/').Append(option.WorkRequired).Append(':')
+                    .Append(option.CanCraft ? '1' : '0')
+                    .Append(option.IsActive ? '1' : '0')
+                    .Append(option.IsResume ? '1' : '0').Append(':')
+                    .Append((int)option.BlockReason);
+                foreach (var ingredient in option.Ingredients)
+                {
+                    result.Append('[').Append(ingredient.DefinitionId).Append(':')
+                        .Append(ingredient.Available).Append('/')
+                        .Append(ingredient.Required).Append(']');
+                }
+                result.Append('|');
+            }
+            return result.ToString();
+        }
+
+        private void RebuildCraftRecipeGrid()
+        {
+            if (_craftRecipeGrid == null) return;
+            _craftRecipeGrid.Clear();
+            foreach (var option in _craftOptions)
+            {
+                var selected = (int)option.Goal == _selectedCraftGoal;
+                var card = new VisualElement { name = "craft-recipe-card" };
+                card.style.width = 104f;
+                card.style.height = 122f;
+                card.style.marginRight = 7f;
+                card.style.marginBottom = 7f;
+                card.style.paddingLeft = 6f;
+                card.style.paddingRight = 6f;
+                card.style.paddingTop = 6f;
+                card.style.paddingBottom = 5f;
+                card.style.alignItems = Align.Center;
+                card.style.backgroundColor = selected ? Raised : Track;
+                SetBorder(card, selected ? Gold : StrokeStrong, selected ? 2f : 1f);
+                SetRadius(card, 11f);
+
+                var sprite = LoadItemIcon(option.OutputDefinitionId);
+                if (sprite != null)
+                {
+                    var image = new Image { sprite = sprite, scaleMode = ScaleMode.ScaleToFit };
+                    image.style.width = 64f;
+                    image.style.height = 64f;
+                    image.pickingMode = PickingMode.Ignore;
+                    card.Add(image);
+                }
+                else
+                {
+                    var outputDef = ResolveDef(option.OutputDefinitionId);
+                    var outputInfo = ResolveItemInfo(option.OutputDefinitionId, outputDef);
+                    var glyph = new Label(outputInfo.Emoji);
+                    glyph.style.height = 64f;
+                    glyph.style.fontSize = 40f;
+                    glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
+                    glyph.pickingMode = PickingMode.Ignore;
+                    card.Add(glyph);
+                }
+
+                var definition = ResolveDef(option.OutputDefinitionId);
+                var info = ResolveItemInfo(option.OutputDefinitionId, definition);
+                var name = new Label(ItemName(definition, info));
+                name.style.height = 38f;
+                name.style.width = Length.Percent(100f);
+                name.style.color = Text;
+                name.style.fontSize = 10.5f;
+                name.style.unityFontStyleAndWeight = FontStyle.Bold;
+                name.style.unityTextAlign = TextAnchor.MiddleCenter;
+                name.style.whiteSpace = WhiteSpace.Normal;
+                name.pickingMode = PickingMode.Ignore;
+                card.Add(name);
+
+                if (option.IsActive)
+                {
+                    var active = new Label(Loc.Get("craft.working"));
+                    active.style.position = Position.Absolute;
+                    active.style.left = 4f;
+                    active.style.right = 4f;
+                    active.style.top = 4f;
+                    active.style.height = 17f;
+                    active.style.color = Text;
+                    active.style.backgroundColor = GoldDim;
+                    active.style.fontSize = 8.5f;
+                    active.style.unityFontStyleAndWeight = FontStyle.Bold;
+                    active.style.unityTextAlign = TextAnchor.MiddleCenter;
+                    active.pickingMode = PickingMode.Ignore;
+                    SetRadius(active, 5f);
+                    card.Add(active);
+                }
+
+                card.RegisterCallback<MouseDownEvent>(evt =>
+                {
+                    _selectedCraftGoal = (int)option.Goal;
+                    if (_inventoryActorId >= 0)
+                    {
+                        _selectedCraftGoalByNpc[_inventoryActorId] = _selectedCraftGoal;
+                    }
+                    _craftSig = CraftingSignature();
+                    RebuildCraftRecipeGrid();
+                    RefreshCraftDetail();
+                    evt.StopPropagation();
+                });
+                _craftRecipeGrid.Add(card);
+            }
+        }
+
+        private CraftRecipeOption FindSelectedCraft()
+        {
+            foreach (var option in _craftOptions)
+            {
+                if ((int)option.Goal == _selectedCraftGoal) return option;
+            }
+            return null;
+        }
+
+        private void RefreshCraftDetail()
+        {
+            var option = FindSelectedCraft();
+            if (option == null || _craftDetail == null)
+            {
+                if (_craftDetail != null) _craftDetail.style.display = DisplayStyle.None;
+                return;
+            }
+            _craftDetail.style.display = DisplayStyle.Flex;
+
+            var definition = ResolveDef(option.OutputDefinitionId);
+            var info = ResolveItemInfo(option.OutputDefinitionId, definition);
+            var sprite = LoadItemIcon(option.OutputDefinitionId);
+            _craftDetailIcon.sprite = sprite;
+            _craftDetailIcon.style.display = sprite != null
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            _craftDetailEmoji.text = info.Emoji;
+            _craftDetailEmoji.style.display = sprite == null
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            _craftDetailName.text = ItemName(definition, info);
+
+            _craftIngredients.Clear();
+            foreach (var ingredient in option.Ingredients)
+            {
+                _craftIngredients.Add(BuildCraftIngredientRow(ingredient));
+            }
+
+            var place = string.IsNullOrEmpty(option.StationTag)
+                ? Loc.Get("craft.place.in_place")
+                : Loc.Get("craft.station." + option.StationTag.ToLowerInvariant());
+            _craftStation.text = $"{Loc.Get("craft.place")}: {place}";
+
+            var hasProgress = option.IsResume && option.WorkRequired > 0;
+            _craftProgress.style.display = hasProgress
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            if (hasProgress)
+            {
+                var percent = Mathf.Clamp(Mathf.RoundToInt(
+                    option.WorkDone * 100f / option.WorkRequired), 0, 100);
+                _craftProgress.text = $"{Loc.Get("craft.progress")}: {percent}%";
+            }
+
+            var blocked = !option.CanCraft && !option.IsActive;
+            _craftReason.style.display = blocked ? DisplayStyle.Flex : DisplayStyle.None;
+            _craftReason.text = blocked
+                ? Loc.Get("craft.block." + option.BlockReason) : string.Empty;
+
+            _craftActionLabel.text = option.IsActive
+                ? Loc.Get("craft.working")
+                : option.IsResume ? Loc.Get("craft.continue") : Loc.Get("craft.create");
+            _craftAction.style.opacity = option.CanCraft ? 1f : 0.46f;
+            _craftAction.pickingMode = option.CanCraft
+                ? PickingMode.Position : PickingMode.Ignore;
+            _craftAction.style.backgroundColor = option.CanCraft ? GoldDim : Track;
+            SetBorder(_craftAction, option.CanCraft ? Gold : Stroke, 1f);
+        }
+
+        private VisualElement BuildCraftIngredientRow(CraftIngredientOption ingredient)
+        {
+            var enough = ingredient.Available >= ingredient.Required;
+            var row = new VisualElement { name = "craft-ingredient-row" };
+            row.style.height = 42f;
+            row.style.flexShrink = 0f;
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.marginBottom = 5f;
+            row.style.paddingLeft = 7f;
+            row.style.paddingRight = 8f;
+            row.style.backgroundColor = Track;
+            SetBorder(row, enough
+                ? new Color(Good.r, Good.g, Good.b, 0.32f)
+                : new Color(Crit.r, Crit.g, Crit.b, 0.38f), 1f);
+            SetRadius(row, 8f);
+
+            var sprite = LoadItemIcon(ingredient.DefinitionId);
+            if (sprite != null)
+            {
+                var image = new Image { sprite = sprite, scaleMode = ScaleMode.ScaleToFit };
+                image.style.width = 30f;
+                image.style.height = 30f;
+                image.style.flexShrink = 0f;
+                image.pickingMode = PickingMode.Ignore;
+                row.Add(image);
+            }
+            else
+            {
+                var ingredientDef = ResolveDef(ingredient.DefinitionId);
+                var ingredientInfo = ResolveItemInfo(ingredient.DefinitionId, ingredientDef);
+                var glyph = new Label(ingredientInfo.Emoji);
+                glyph.style.width = 30f;
+                glyph.style.fontSize = 21f;
+                glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
+                glyph.pickingMode = PickingMode.Ignore;
+                row.Add(glyph);
+            }
+
+            var def = ResolveDef(ingredient.DefinitionId);
+            var info = ResolveItemInfo(ingredient.DefinitionId, def);
+            var name = new Label(ItemName(def, info));
+            name.style.flexGrow = 1f;
+            name.style.marginLeft = 8f;
+            name.style.color = TextDim;
+            name.style.fontSize = 11.5f;
+            name.style.whiteSpace = WhiteSpace.Normal;
+            row.Add(name);
+
+            var count = new Label(
+                $"{(enough ? "✓" : "✕")} {ingredient.Available} / {ingredient.Required}");
+            count.style.flexShrink = 0f;
+            count.style.marginLeft = 8f;
+            count.style.color = enough ? Good : Crit;
+            count.style.fontSize = 12.5f;
+            count.style.unityFontStyleAndWeight = FontStyle.Bold;
+            count.pickingMode = PickingMode.Ignore;
+            row.Add(count);
+            return row;
+        }
+
+        private void EnqueueSelectedCraft()
+        {
+            var option = FindSelectedCraft();
+            if (!(_craftAvailable && option?.CanCraft == true) ||
+                _runner == null || _inventoryActorId < 0)
+            {
+                return;
+            }
+
+            _runner.EnqueueCommand(new CraftItemCommand(
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId), option.Goal));
+            _craftSig = null;
+            _refreshedTick = -1;
         }
 
         private void BuildInventoryWearLayerButtons()
@@ -2032,7 +2644,7 @@ namespace HexLive.UnityPresentation.UI
                     ShowItemDetail(
                         wornId, true, _invWornDurability, _invCarriedWater,
                         _invCarriedStacks, _invWornWetness, _invWornDirtiness,
-                        _invPreviewHoverAnchor);
+                        _invPreviewHoverAnchor, -1, InventoryDetailPlacement.Doll);
                 }
                 return;
             }
@@ -2067,8 +2679,11 @@ namespace HexLive.UnityPresentation.UI
                 _inventoryOpen = true;
                 _invVisibleWearLayer = VisualWearLayer.Bags;
                 _invSig = null; // force a rebuild on the next refresh
+                _craftSig = null;
+                _craftPage = false;
                 FitInventoryWindow();
                 _inventoryWindow.style.display = DisplayStyle.Flex;
+                SelectInventoryPage(craft: false);
                 _characterDollStage?.SetMode(CharacterDollMode.Inventory);
                 _characterDollStage?.SetVisibleWearLayer(_invVisibleWearLayer);
                 RefreshInventoryWearLayerButtonStyle();
@@ -2080,6 +2695,7 @@ namespace HexLive.UnityPresentation.UI
         private void CloseInventory()
         {
             _inventoryOpen = false;
+            _craftPage = false;
             _invHoverDetailFocus = false;
             _invSelectedId = null;
             _invDetailAnchor = null;
@@ -2092,6 +2708,12 @@ namespace HexLive.UnityPresentation.UI
             {
                 _inventoryWindow.style.display = DisplayStyle.None;
             }
+
+            if (_invListView != null) _invListView.style.display = DisplayStyle.Flex;
+            if (_craftView != null) _craftView.style.display = DisplayStyle.None;
+            if (_inventoryCapacity != null)
+                _inventoryCapacity.style.display = DisplayStyle.Flex;
+            RefreshInventoryTabStyle();
 
             if (_invDetailView != null)
             {
@@ -2644,6 +3266,7 @@ namespace HexLive.UnityPresentation.UI
         {
             _invSelectedId = null;
             _invDetailAnchor = null;
+            _invDetailPlacement = InventoryDetailPlacement.Item;
             SetHoveredWorn(string.Empty);
             if (_invDetailView != null)
             {
@@ -2680,16 +3303,50 @@ namespace HexLive.UnityPresentation.UI
             if (float.IsNaN(detailHeight) || detailHeight < 1f) detailHeight = 470f;
             detailHeight = Mathf.Min(detailHeight, allowedHeight);
 
-            // One predictable resting place for every item card: just beyond
-            // the inventory window's doll-side edge, vertically centred on the
-            // doll. On a narrow viewport the screen edge wins, so the card
-            // remains usable instead of rendering off-screen.
-            var x = window.xMax - root.xMin + 12f;
-            x = Mathf.Min(x, Mathf.Max(8f, root.width - detailWidth - 8f));
-            x = Mathf.Max(8f, x);
+            float x;
+            float y;
+            if (_invDetailPlacement == InventoryDetailPlacement.Item &&
+                _invDetailAnchor != null)
+            {
+                // A clicked grid item owns the card spatially. Prefer its right
+                // edge, fall back to the left, then clamp only when neither side
+                // can contain the legacy card (small resolutions).
+                var anchor = _invDetailAnchor.worldBound;
+                var right = anchor.xMax - root.xMin + 10f;
+                var left = anchor.xMin - root.xMin - detailWidth - 10f;
+                var rightFits = right + detailWidth <= root.width - 8f;
+                var leftFits = left >= 8f;
+                if (rightFits)
+                {
+                    x = right;
+                }
+                else if (leftFits)
+                {
+                    x = left;
+                }
+                else
+                {
+                    var roomRight = root.xMax - anchor.xMax;
+                    var roomLeft = anchor.xMin - root.xMin;
+                    x = roomRight >= roomLeft ? right : left;
+                    x = Mathf.Clamp(x, 8f, Mathf.Max(8f, root.width - detailWidth - 8f));
+                }
 
-            var doll = _invDollPane != null ? _invDollPane.worldBound : window;
-            var y = doll.center.y - root.yMin - detailHeight * 0.5f;
+                y = anchor.center.y - root.yMin - detailHeight * 0.5f;
+            }
+            else
+            {
+                // A doll hover has one predictable resting place: just beyond
+                // the inventory window's doll-side edge. It never chases the
+                // pointer across the body and therefore does not obstruct drag.
+                x = window.xMax - root.xMin + 12f;
+                x = Mathf.Min(x, Mathf.Max(8f, root.width - detailWidth - 8f));
+                x = Mathf.Max(8f, x);
+
+                var doll = _invDollPane != null ? _invDollPane.worldBound : window;
+                y = doll.center.y - root.yMin - detailHeight * 0.5f;
+            }
+
             y = Mathf.Clamp(y, 8f, Mathf.Max(8f, root.height - detailHeight - 8f));
             _invDetailView.style.left = x;
             _invDetailView.style.top = y;
@@ -2701,9 +3358,15 @@ namespace HexLive.UnityPresentation.UI
         {
             if (_inventoryActorId >= 0 && _inventoryActorId != npc.Id.Value)
             {
+                if (_selectedCraftGoal >= 0)
+                {
+                    _selectedCraftGoalByNpc[_inventoryActorId] = _selectedCraftGoal;
+                }
+                _selectedCraftGoal = -1;
                 ClearInventoryDrag();
                 HideItemDetail();
                 _invSig = null;
+                _craftSig = null;
             }
             _inventoryActorId = npc.Id.Value;
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
@@ -2714,8 +3377,23 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            RefreshCrafting(npc);
+
             var capacity = Mathf.Max(0, npc.InventoryCapacity);
             _inventoryCapacity.text = $"{npc.InventoryUsedSlots}/{capacity} {Loc.Get("inv.slots")}";
+
+            // §123.5: отказ симуляции (StaleItem/InsufficientSpace/NoDropSpot)
+            // виден прямо в окне — основной тост карточки этим окном закрыт.
+            if (_invOrderToast != null)
+            {
+                var toastFresh = ManualOrderFeedback.IsFresh(npc.Id.Value);
+                _invOrderToast.style.display =
+                    toastFresh ? DisplayStyle.Flex : DisplayStyle.None;
+                if (toastFresh)
+                {
+                    _invOrderToast.text = Loc.Get(ManualOrderFeedback.ReasonKey);
+                }
+            }
             if (_characterDollStage != null)
             {
                 _characterDollStage.SetTarget(npc.Id.Value, npc.ActorMesh, npc.WornItems);
@@ -2785,8 +3463,25 @@ namespace HexLive.UnityPresentation.UI
                     var selectedDirtiness = _invSelectedWorn ? wornDirtiness : carriedDirtiness;
                     _invItemAnchors.TryGetValue(ItemAnchorKey(_invSelectedId, _invSelectedWorn),
                         out var selectedAnchor);
+                    // §123.5: инвентарь пересобрался — SourceIndex мог уехать.
+                    // Если старый индекс больше не указывает на этот предмет,
+                    // перечитать его из layout, а не тащить протухший.
+                    var refreshedIndex = _invSelectedSourceIndex;
+                    if (!_invSelectedWorn)
+                    {
+                        var stillValid = refreshedIndex >= 0 &&
+                            npc.InventoryContainers.Exists(c => c.Slots.Exists(s =>
+                                s.SourceIndex == refreshedIndex &&
+                                s.ItemDefinitionId == _invSelectedId));
+                        if (!stillValid)
+                        {
+                            refreshedIndex = FindCarriedSourceIndex(npc, _invSelectedId);
+                        }
+                    }
+
                     ShowItemDetail(_invSelectedId, _invSelectedWorn, selectedDurability,
-                        carriedWater, carriedStacks, selectedWetness, selectedDirtiness, selectedAnchor);
+                        carriedWater, carriedStacks, selectedWetness, selectedDirtiness,
+                        selectedAnchor, refreshedIndex);
                 }
                 else
                 {
@@ -2969,7 +3664,8 @@ namespace HexLive.UnityPresentation.UI
                 });
                 RegisterInventoryItemInteraction(
                     cell, itemId, false, carriedDurability, carriedWater,
-                    carriedStacks, carriedWetness, carriedDirtiness);
+                    carriedStacks, carriedWetness, carriedDirtiness,
+                    slot.SourceIndex);
             }
 
             return cell;
@@ -3007,11 +3703,18 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
-            VisualElement anchor = null)
+            VisualElement anchor = null,
+            int sourceIndex = -1,
+            InventoryDetailPlacement placement = InventoryDetailPlacement.Preserve)
         {
             _invSelectedId = id;
             _invSelectedWorn = worn;
+            _invSelectedSourceIndex = worn ? -1 : sourceIndex;
             SetHoveredWorn(worn ? id : string.Empty);
+            if (placement != InventoryDetailPlacement.Preserve)
+            {
+                _invDetailPlacement = placement;
+            }
             if (anchor != null)
             {
                 _invDetailAnchor = anchor;
@@ -3066,15 +3769,29 @@ namespace HexLive.UnityPresentation.UI
             var snapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
             var npc = snapshot != null ? FindNpc(snapshot, _inventoryActorId) : null;
             if (npc == null) return;
-            var sourceItems = _invSelectedWorn ? npc.WornItems : npc.InventoryItems;
-            var index = -1;
-            for (var i = 0; i < sourceItems.Count; i++)
+            int index;
+            if (_invSelectedWorn)
             {
-                if (sourceItems[i] == _invSelectedId)
+                // WornItems снапшота параллелен симовому списку — индекс по
+                // нему честный.
+                index = -1;
+                for (var i = 0; i < npc.WornItems.Count; i++)
                 {
-                    index = i;
-                    break;
+                    if (npc.WornItems[i] == _invSelectedId)
+                    {
+                        index = i;
+                        break;
+                    }
                 }
+            }
+            else
+            {
+                // §123.5: carried-индекс берётся ТОЛЬКО из SourceIndex слота
+                // (как LootTransferPanel) — npc.InventoryItems переупорядочен
+                // стаками и врёт.
+                index = _invSelectedSourceIndex >= 0
+                    ? _invSelectedSourceIndex
+                    : FindCarriedSourceIndex(npc, _invSelectedId);
             }
             if (index < 0) return;
             var itemRef = new InventoryItemRef(
@@ -3094,7 +3811,8 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
-            Dictionary<string, float> dirtiness)
+            Dictionary<string, float> dirtiness,
+            int sourceIndex = -1)
         {
             element.RegisterCallback<PointerDownEvent>(evt =>
                 BeginInventoryPointerGesture(itemId, worn, evt));
@@ -3106,9 +3824,30 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 ShowItemDetail(
-                    itemId, worn, durability, water, stacks, wetness, dirtiness, element);
+                    itemId, worn, durability, water, stacks, wetness, dirtiness,
+                    element, sourceIndex, InventoryDetailPlacement.Item);
                 evt.StopPropagation();
             });
+        }
+
+        // §123.5: запасной поиск авторитетного индекса, когда карточка открыта
+        // не с ячейки (например, пере-показ после rebuild): первый слот layout
+        // с этим definitionId. Дубликаты неразличимы — но это честный индекс в
+        // npc.Inventory.Items, а не легаси-перебор по переупорядоченному списку.
+        private static int FindCarriedSourceIndex(NpcSnapshot npc, string itemId)
+        {
+            foreach (var container in npc.InventoryContainers)
+            {
+                foreach (var slot in container.Slots)
+                {
+                    if (slot.ItemDefinitionId == itemId && slot.SourceIndex >= 0)
+                    {
+                        return slot.SourceIndex;
+                    }
+                }
+            }
+
+            return -1;
         }
 
         private void BeginInventoryPointerGesture(string itemId, bool worn, PointerDownEvent evt)
@@ -6113,6 +6852,19 @@ namespace HexLive.UnityPresentation.UI
                 _inventoryTitle.text = Loc.Get("panel.inventory");
             }
 
+            if (_inventoryBackpackTabLabel != null)
+            {
+                _inventoryBackpackTabLabel.text = Loc.Get("craft.tab.backpack");
+            }
+            if (_inventoryCraftTabLabel != null)
+            {
+                _inventoryCraftTabLabel.text = Loc.Get("craft.tab.craft");
+            }
+            if (_craftResourcesTitle != null)
+            {
+                _craftResourcesTitle.text = Loc.Get("craft.resources").ToUpperInvariant();
+            }
+
             if (_invBackLabel != null)
             {
                 _invBackLabel.text = Loc.Get("inv.back");
@@ -6123,6 +6875,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _invSig = null;
+            _craftSig = null;
 
             // Limb-health window (spec §57) — rows re-localize on the next
             // refresh (the tick gate above is already invalidated).

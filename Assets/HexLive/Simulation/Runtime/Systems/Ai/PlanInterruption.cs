@@ -14,31 +14,88 @@ namespace HexLive.Simulation.Runtime
 // Spec 23.17 interrupt semantics: abort an active plan cleanly, releasing
 // everything the plan owns (object occupancy, junction occupancy/reservation)
 // so the next decision pass can replan without leaks.
+//
+// §121.5: с введением политики управления снос плана обязан назвать причину.
+// Публичны только TryAbort*-входы; охрана NpcControlPolicy решает, проходит
+// ли причина у ручного персонажа. Вернувшийся false означает «план жив» —
+// вызывающий обязан не трогать ни цель, ни IsFighting, ни сцепку жертвы.
 public static class PlanInterruption
 {
-    public static void Abort(WorldState world, NPCState npc, string reason)
+    public static bool TryAbort(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
-        CancelInterruptedRescue(world, npc);
-        AbortCore(world, npc, reason, keepCarriedPerson: false);
+        if (!AllowedBy(world, npc, cause, reason)) return false;
+        Abort(world, npc, reason);
+        // A hostile crossing the route or a scene taking ownership is not a
+        // failed attempt at the route's target.  Retaining it made five valid
+        // external reroutes look like a Sisyphus target and the escape ladder
+        // then shunned the unrelated wardrobe/fire/patient.
+        if (cause is InterruptionCause.ThreatReroute or
+            InterruptionCause.SceneInitiator or InterruptionCause.ScenePact)
+        {
+            world.IntentLedger.Forget(npc.Id.Value);
+        }
+        return true;
     }
 
     /// <summary>§124: новый приказ движения/остановки не роняет тело из рук.
     /// Все владения старого плана освобождаются, но двусторонняя carry-ссылка
     /// остаётся до явного PutDown или опасного прерывания.</summary>
-    public static void AbortKeepingCarriedPerson(WorldState world, NPCState npc, string reason)
+    public static bool TryAbortKeepingCarriedPerson(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
-        CancelInterruptedRescue(world, npc);
-        AbortCore(world, npc, reason, keepCarriedPerson: true);
+        if (!AllowedBy(world, npc, cause, reason)) return false;
+        AbortKeepingCarriedPerson(world, npc, reason);
+        return true;
     }
 
     // §118.4: combat is a temporary interruption, not permission to keep a
     // patient glued to the fighter or to forget her. Put her down before any
     // swing can start, reserve that same patient, then let RescueSystem resume
     // the evacuation once the fight/scene releases the rescuer.
-    public static void AbortForCombat(WorldState world, NPCState npc, string reason)
+    public static bool TryAbortForCombat(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
+    {
+        if (!AllowedBy(world, npc, cause, reason)) return false;
+        AbortForCombat(world, npc, reason);
+        return true;
+    }
+
+    // §121.5: путь не-ручного персонажа обязан быть байт-в-байт прежним —
+    // здесь два булевых чтения и ни одной трассы на разрешённом пути.
+    private static bool AllowedBy(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
+    {
+        if (NpcControlPolicy.MayInterruptPlan(npc, cause)) return true;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InterruptDenied", $"Cause={cause} {reason}");
+        }
+
+        return false;
+    }
+
+    private static void Abort(WorldState world, NPCState npc, string reason)
+    {
+        CancelInterruptedRescue(world, npc);
+        AbortCore(world, npc, reason, keepCarriedPerson: false);
+    }
+
+    private static void AbortKeepingCarriedPerson(WorldState world, NPCState npc, string reason)
+    {
+        CancelInterruptedRescue(world, npc);
+        AbortCore(world, npc, reason, keepCarriedPerson: true);
+    }
+
+    private static void AbortForCombat(WorldState world, NPCState npc, string reason)
     {
         var remembered = npc.Mind.InterruptedRescuePatientId;
         var dropped = AbortCore(world, npc, reason, keepCarriedPerson: false);
+        // A fight is an external interruption, not evidence that the previous
+        // target is a Sisyphus loop. Keeping pre-combat Aid/Gather attempts in
+        // the ledger made two legitimate friend-guard reactions trip the loop
+        // ladder and impose a 900-tick cooldown on medical help.
+        world.IntentLedger.Forget(npc.Id.Value);
         var resumePatientId = dropped ?? remembered;
         if (resumePatientId is not { } patientId ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
@@ -62,11 +119,26 @@ public static class PlanInterruption
     private static EntityId? AbortCore(
         WorldState world, NPCState npc, string reason, bool keepCarriedPerson)
     {
+        // §138/§121.7: an interrupted long manual craft is still player
+        // activity. Restart the idle-release window before the plan fields are
+        // cleared, otherwise a prosthetic order older than five minutes would
+        // drop straight back to AI on the interruption tick.
+        if (npc.Mind.ManualControl &&
+            Content.RecipeCatalog.IsItemOutputGoal(npc.Plan.Goal))
+        {
+            npc.Mind.LastManualInputTick = world.Tick;
+        }
+
         var droppedPatientId = keepCarriedPerson
             ? KenshiRescueMath.DetachRescueDestinationForManualCarry(world, npc)
             : KenshiRescueMath.PutDownForPlanInterruption(
                 world, npc, $"Plan interrupted: {reason}");
 
+        // A bed pose is not just an animation flag: TryEnter moved the body to
+        // the furniture centre while retaining a legal wake junction. Clearing
+        // Sleep without using that junction leaves a standing actor inside the
+        // bed until some later movement happens to pull her out.
+        LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
         CraftProjectMath.ReleaseWorker(world, npc);
         ExecutionSystem.ReleaseClaims(world, npc);
         // §111.13: место у лежащего освобождается там же, где освобождается всё

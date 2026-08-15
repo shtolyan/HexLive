@@ -64,7 +64,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         // она бы отобрала управление на обеих сторонах (хозяин идёт сам,
         // чужака сцена держит на месте). Есть ручной — сцены нет; выгонять
         // чужака игрок волен приказом атаки.
-        if (ManualControlMath.IsManual(owner) || ManualControlMath.IsManual(intruder))
+        if (ManualControlMath.IsManual(owner) || ManualControlMath.IsManual(intruder) ||
+            HasCriticalNeed(owner) || HasChallengeInjury(owner))
         {
             return;
         }
@@ -72,7 +73,7 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         if (owner.Plan.Status == PlanStatus.Active ||
             owner.Execution.Status == ExecutionStatus.InProgress)
         {
-            PlanInterruption.Abort(world, owner, $"Expelling NPC{intruder.Id.Value}");
+            PlanInterruption.TryAbort(world, owner, InterruptionCause.SceneInitiator, $"Expelling NPC{intruder.Id.Value}");
         }
 
         owner.Mind.CurrentGoal = GoalType.Expel;
@@ -106,6 +107,19 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         if (owner.Health <= 0f || owner.IsUnconscious(world.Tick) || owner.Body.IsProne)
         {
             Finish(world, owner, intruder, "OwnerDown", protectIntruder: true);
+            return;
+        }
+
+        // A territorial warning is voluntary peacetime behaviour until the
+        // fight actually begins. Do not keep marching a starving/dehydrated
+        // owner through an approach scene while food or water is the only
+        // remaining survival window.
+        if (owner.Mind.ExpulsionPhase < FightPhase &&
+            (HasCriticalNeed(owner) || HasChallengeInjury(owner)))
+        {
+            Finish(world, owner, intruder,
+                HasCriticalNeed(owner) ? "OwnerCriticalNeed" : "OwnerTooInjured",
+                protectIntruder: true);
             return;
         }
 
@@ -175,7 +189,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
 
         // Не только «хочет уступить», но и реально может уйти: нет пути домой —
         // нет ложного «окей», остаётся драться.
-        if (intruder.Health < Spec82.TerritorySubmitHealth &&
+        if ((intruder.Health < Spec82.TerritorySubmitHealth ||
+             HasCriticalNeed(intruder)) &&
             MobSystem.TryFleeToCamp(world, intruder,
                 $"Agreed to leave NPC{owner.Id.Value}'s camp"))
         {
@@ -313,6 +328,7 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         return world.FactionHomes.ContainsKey(owner.Faction) &&
             owner.Health > 0f && !owner.IsUnconscious(world.Tick) &&
             !owner.IsPlayingDead(world.Tick) && !owner.Body.IsProne &&
+            !HasCriticalNeed(owner) && !HasChallengeInjury(owner) &&
             owner.Execution.CurrentInteraction != InteractionType.Sleep &&
             !owner.IsFighting && world.Tick >= owner.Mind.TerritoryCooldownUntilTick &&
             owner.Mind.PendingExpulsionFrom is null &&
@@ -324,6 +340,13 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             ColonyQueries.InCamp(world, owner.Tile, owner.Faction);
     }
 
+    private static bool HasCriticalNeed(NPCState npc) =>
+        npc.Mind.IsStarving || npc.Mind.IsDehydrated;
+
+    private static bool HasChallengeInjury(NPCState npc) =>
+        npc.IsDying ||
+        MobSystem.WorstPartHealth(npc) < Spec82.TerritoryChallengeWorstPartHealth;
+
     private static void StopForScene(WorldState world, NPCState npc, EntityId peerId)
     {
         if (npc.Plan.Status == PlanStatus.Active ||
@@ -331,8 +354,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             npc.Movement.IsMoving ||
             npc.IsCarryingPerson)
         {
-            PlanInterruption.AbortForCombat(
-                world, npc, $"Camp expulsion with NPC{peerId.Value}");
+            PlanInterruption.TryAbortForCombat(
+                world, npc, InterruptionCause.ScenePact, $"Camp expulsion with NPC{peerId.Value}");
         }
 
         npc.Plan.Goal = GoalType.Expel;
@@ -378,7 +401,7 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         {
             if (owner.Plan.Status == PlanStatus.Active || owner.Movement.IsMoving)
             {
-                PlanInterruption.Abort(world, owner, $"Expulsion ended: {reason}");
+                PlanInterruption.TryAbort(world, owner, InterruptionCause.SceneInitiator, $"Expulsion ended: {reason}");
             }
             else if (owner.Plan.TargetJunctionId is { } reserved)
             {
@@ -410,7 +433,9 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             if (protectIntruder)
             {
                 intruder.Mind.ExpulsionProtectedUntilTick =
-                    world.Tick + Spec82.TerritoryCooldownTicks;
+                    world.Tick + (reason == "IntruderWon"
+                        ? Spec82.TerritoryDefeatCooldownTicks
+                        : Spec82.TerritoryCooldownTicks);
             }
             intruder.Mind.CombatOpponentNpcId = null;
             intruder.IsFighting = false;

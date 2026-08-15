@@ -90,6 +90,85 @@ public sealed class AbuseRealWorldTests
             e.EntityId == npc.Id.Value && e.Type == "AbuseProwlContinues"), Is.True);
     }
 
+    [Test]
+    public void RaidLatchDoesNotAbortAnAbuseApproachBuiltThisPass()
+    {
+        var world = TestWorld.CreateWorld(867);
+        var abuser = world.Entities.Npcs.Values.First(n => n.Faction != Faction.Colony);
+        var mark = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        abuser.Needs.Social = 0f;
+        abuser.Mind.CurrentGoal = GoalType.Abuse;
+        abuser.Mind.AbuseTargetNpcId = mark.Id;
+        abuser.Plan.Goal = GoalType.Abuse;
+        abuser.Plan.Status = PlanStatus.Active;
+        abuser.Plan.TargetAgentId = mark.Id;
+        abuser.Plan.Steps.Clear();
+        abuser.Plan.Steps.Add(new PlanStep { Type = PlanStepType.Wait });
+
+        new RaidSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(abuser.Mind.CurrentGoal, Is.EqualTo(GoalType.Abuse));
+            Assert.That(abuser.Plan.Status, Is.EqualTo(PlanStatus.Active),
+                "RaidSystem идёт после Planning и не должен стирать только что построенный Abuse-подход.");
+            Assert.That(abuser.Plan.Steps, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void RaidLatchDoesNotOverwriteACriticalDrinkPlanWithAbuse()
+    {
+        var world = TestWorld.CreateWorld(1104);
+        world.Tick = Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks + 1;
+        var abuser = world.Entities.Npcs.Values.First(n => n.Faction != Faction.Colony);
+        var mark = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        var stand = world.Junctions.Items.Values.First(j =>
+            !j.Blocked && j.Tiles.Count > 0 &&
+            world.Tiles.Items.TryGetValue(j.Tiles[0], out var tile) &&
+            tile.Flags.HasFlag(HexLive.Simulation.Spatial.TileFlags.Walkable) &&
+            !tile.Flags.HasFlag(HexLive.Simulation.Spatial.TileFlags.Indoor) &&
+            !tile.Flags.HasFlag(HexLive.Simulation.Spatial.TileFlags.Water)).Id;
+        abuser.CurrentJunction = stand;
+        abuser.Tile = world.Junctions.Items[stand].Tiles[0];
+        abuser.Position = world.Junctions.Items[stand].WorldPosition;
+        mark.CurrentJunction = stand;
+        mark.Tile = abuser.Tile;
+        mark.Position = abuser.Position;
+        mark.Plan.Status = PlanStatus.Completed;
+        mark.Execution.Status = ExecutionStatus.None;
+        mark.IsFighting = false;
+        abuser.Perception.Hostiles.Clear();
+        abuser.Perception.Hostiles.Add(new PerceivedAgent
+        {
+            Id = mark.Id,
+            Tile = mark.Tile,
+            Junction = mark.CurrentJunction,
+            Distance = 0f,
+            CanSee = true,
+            IsReachable = true
+        });
+        abuser.Needs.Social = 0f;
+        abuser.Mind.IsDehydrated = true;
+        abuser.Mind.CurrentGoal = GoalType.Drink;
+        abuser.Plan.Goal = GoalType.Drink;
+        abuser.Plan.Status = PlanStatus.Active;
+        abuser.Plan.Steps.Clear();
+        abuser.Plan.Steps.Add(new PlanStep { Type = PlanStepType.Wait });
+
+        Assert.That(AbuseMath.BestMark(world, abuser, out _, out _), Is.Not.Null,
+            "Фикстура должна иметь реальную цель абьюза, иначе гейт ничего не доказывает.");
+
+        new RaidSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(abuser.Mind.CurrentGoal, Is.EqualTo(GoalType.Drink));
+            Assert.That(abuser.Plan.Status, Is.EqualTo(PlanStatus.Active));
+            Assert.That(abuser.Mind.AbuseTargetNpcId, Is.Null);
+        });
+    }
+
     // §118 Kenshi-core переписал путь урона: чужак теперь ходит по острову
     // раненым (Reason=Wounded, Vital ниже Floor), и одержимость пробивается
     // заметно реже. Это НЕ поломка §81.11 — эмерджентная частота просто

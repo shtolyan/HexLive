@@ -63,7 +63,7 @@ public sealed class HopAtomicityTests
             var takeoffTile = flying.Tile;
 
             // Ровно то, что делает игра, когда цель меняется на ходу.
-            PlanInterruption.Abort(world, flying, "test: turned around mid-flight");
+            PlanInterruption.TryAbort(world, flying, InterruptionCause.Auction, "test: turned around mid-flight");
             interruptions++;
 
             // Окно обязано закрыться само. Раньше оно висело вечно: путь пуст,

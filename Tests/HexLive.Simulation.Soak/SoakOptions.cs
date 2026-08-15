@@ -43,6 +43,13 @@ public sealed class SoakOptions
     /// </summary>
     public int ExplainLoops = 3;
 
+    /// <summary>
+    /// Сколько смертей разобрать вместе с персональным хвостом самописца.
+    /// Причина в DeathRecord отвечает только на «от чего»; хвост нужен для
+    /// поведенческого вопроса «какие решения довели её до этого».
+    /// </summary>
+    public int ExplainDeaths;
+
     /// <summary>Какой мир строить: прототипный остров или арена абьюза (§91).</summary>
     public string Arena = "prototype";
 
@@ -189,6 +196,9 @@ public sealed class SoakOptions
                     case "--explain-loops":
                         options.ExplainLoops = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--explain-deaths":
+                        options.ExplainDeaths = int.Parse(Next(arg), CultureInfo.InvariantCulture);
+                        break;
                     case "--arena":
                         options.Arena = Next(arg);
                         break;
@@ -259,6 +269,8 @@ public sealed class SoakOptions
                           зависшего NPC (по умолчанию 3, 0 — выключить)
   --explain-loops N       §122: то же для ПЕТЕЛЬ — «двигается и не продвигается»
                           (по умолчанию 3, 0 — выключить)
+  --explain-deaths N      §30: разобрать первые N смертей вместе с последними
+                          решениями погибшей (по умолчанию 0)
   --loop-escape on|off    §122: автовыход из петель поверх simdata (A/B-ключ)
   --loop-max-rung N       §122: докуда поднимать лестницу (0 доклад .. 3 глушение)
   --quiet                 без человекочитаемого вывода

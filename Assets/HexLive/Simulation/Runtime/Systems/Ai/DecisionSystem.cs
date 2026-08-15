@@ -171,20 +171,36 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue; // грация подъёма всё равно гейтит этот тик
             }
 
-            // ⭐ §121: ЕЮ УПРАВЛЯЕТ ИГРОК — аукцион для неё закрыт совсем.
+            // ⭐ §121: ЕЮ УПРАВЛЯЕТ ИГРОК — большой аукцион для неё закрыт.
             // Граница проведена ровно здесь, а не выше и не ниже: всё, что
             // выше, — ТЕЛО (кома, обморок, слёзы, притворство, спад стресса),
             // и оно живёт у ручной так же, как у любой другой; всё, что ниже, —
             // ВЫБОР (страхи, приглашения, ставки целей), и выбор теперь за
-            // игроком. Цели ей ставит ManualCommandExecutor из очереди команд.
+            // игроком. Цели ей ставит ManualCommandExecutor из очереди команд —
+            // кроме §121.6: без активного приказа узкий аукцион авто-нужд
+            // разрешает ей еду и питьё. Путь ИИ не тронут ни на инструкцию.
             if (Spec121.ManualControlEnabled && npc.Mind.ManualControl)
             {
+                RunManualNeedsAuction(world, npc);
                 continue;
             }
 
             // Spec 41.5: just woke up — stand where you slept and come to
             // your senses; goals wait out the grace.
             if (world.Tick < npc.Mind.WakeGraceUntilTick)
+            {
+                continue;
+            }
+
+            // §115: expulsion is an authored two-person scene.  The scene
+            // system assigns it outside the auction and owns its approach,
+            // demand and possible fight until Finish clears the state.  Letting
+            // the ordinary scores run in the one-tick gap before its plan was
+            // built replaced Expel with DryClothes, after which the scene
+            // started it again and both routes churned forever.
+            if (npc.Mind.CurrentGoal == GoalType.Expel &&
+                (npc.Mind.ExpulsionTargetNpcId.HasValue ||
+                 npc.Mind.PendingExpulsionFrom.HasValue))
             {
                 continue;
             }
@@ -272,7 +288,6 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // (UpdateStarvingStatus/UpdateDehydratedStatus now run at the top of
             // the loop — see the besieged-starve fix — so the IsFighting escape
             // valve reads fresh flags.)
-            UpdateOverheatedStatus(world, npc);
             var bleedingCrisis = IsBleedingCrisis(npc);
             var emergencyBoost = npc.Mind.IsStarving ? StarvingBoost : 0f;
             var drinkBoost = npc.Mind.IsDehydrated ? StarvingBoost : 0f;
@@ -338,7 +353,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     if (npc.Plan.Status == PlanStatus.Active ||
                         npc.Execution.Status == ExecutionStatus.InProgress)
                     {
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.Auction,
                             $"Accepting talk from NPC{waitingFor.Value}, waiting in place");
                     }
 
@@ -396,7 +411,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 {
                     if (npc.Plan.Status == PlanStatus.Active)
                     {
-                        PlanInterruption.Abort(world, npc,
+                        PlanInterruption.TryAbort(world, npc, InterruptionCause.Auction,
                             $"Awaiting help from NPC{aidWaitingFor.Value}, waiting in place");
                     }
 
@@ -422,8 +437,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // neither the helper's own (satisfied) hunger nor a coconut lying
             // on the ground beside her may veto it. What matters for an errand
             // is what she can HAND OVER, i.e. what is in the pack.
+            // A prone/crawling NPC may still pick up and open a coconut with
+            // one usable hand, but execution deliberately forbids harvesting
+            // a standing producer. Do not promise a palm route that can only
+            // end in "Cannot harvest" and then repeat forever.
             var foodSourceReachable =
-                HasReachableFoodForCurrentTools(npc, world) || KnowsReachableProducer(npc, world);
+                HasReachableFoodForCurrentTools(npc, world) ||
+                (canUseToolsOrWeapons && KnowsReachableProducer(npc, world));
             var getFoodAvail = !hasFoodInInventory && !hasCoconutMeal &&
                 npc.Needs.Hunger >= getFoodHungerThreshold && foodSourceReachable;
             var foodFetchPossible = !hasFoodInInventory &&
@@ -444,7 +464,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // человек, который валится с ног.
             var sleepAvail =
                 npc.Needs.Energy < TraitMath.EffectiveSleepThreshold(npc) &&
-                !ExecutionSystem.HasSleepInterrupt(world, npc);
+                !ExecutionSystem.HasSleepInterrupt(world, npc) &&
+                PlanningSystem.HasSleepSurface(world, npc);
             // Spec 31C.7A: sit because you need it — and never settle into a
             // chair on an empty stomach. Sitting yields to sleep hours (the
             // Sit->Sleep churn was 47 interrupts/soak before this gate).
@@ -459,11 +480,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 // Sitting is worth it only for a seat she's essentially next to —
                 // a ledge within ~2 hexes, not one hiked to across the map (user:
                 // walk right up to it, never sit "from afar"). Was 8R.
-                (HasPerceivedSeat(npc) || AnyLedgeNear(world, npc, HexSpatialMath.HexRadius * 2f));
+                (HasPerceivedSeat(npc, world) ||
+                 AnyLedgeNear(world, npc, HexSpatialMath.HexRadius * 2f));
             // Spec 29C.4 restraint: dress only against cold — an overheated
             // NPC reaching for more clothes is a doom loop.
             // Spec 29C.4A: fresh danger overrides the weather — arm up.
             var effectiveTemp = world.Environment.GlobalTemperature + npc.EquippedWarmth * 10f;
+            UpdateOverheatedStatus(world, npc, effectiveTemp);
             // Jul 2026: never reach for the wardrobe while a mob is actively
             // hunting her — armor-up is for the lull AFTER the scare, not
             // mid-chase (iter-5: Flee↔Dress churn under bites, seed 12345).
@@ -577,6 +600,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     continue;
                 }
 
+                if (agent.Junction is not { } talkJunction ||
+                    !world.Entities.Npcs.TryGetValue(agent.Id, out var talkTarget) ||
+                    (talkTarget.Mind.PendingTalkFrom is { } talkClaim &&
+                     !talkClaim.Equals(npc.Id)) ||
+                    !PlanningSystem.HasAvailableArmsLengthApproach(
+                        world, npc, talkTarget, talkJunction))
+                {
+                    continue;
+                }
+
                 socializeAvail = true;
                 if (bestAffinity is null || agent.Relationship.Affinity > bestAffinity)
                 {
@@ -661,6 +694,24 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 SuppressPeacetimeDuringBleeding(npc);
             }
 
+            // A critical food/water response is a lane, not merely another
+            // additive bid. Real colony scores are not bounded by 1.1: site,
+            // raft and supply pulls can lift a peacetime chore above 2.0. In
+            // seed 12349 GatherWood=2.600 therefore interrupted an available
+            // GetFood=2.100 sixteen ticks before death. If at least one actual
+            // emergency response is available, keep only responses carrying
+            // an emergency modifier (direct eat/drink and the knife/coconut
+            // acquisition chain). When no response is currently possible we
+            // keep only Explore (plus the inert fallback): discovering a new
+            // grove is the last-resort survival behaviour, while carrying on
+            // with GatherTools/Build/Socialize is not. Seed 104729 exposed the
+            // old early-return here: Nika reached Thirst=1.00 and kept her
+            // GatherTools goal until she collapsed beside the camp.
+            if (npc.Mind.IsStarving || npc.Mind.IsDehydrated)
+            {
+                SuppressPeacetimeDuringCriticalNeeds(npc);
+            }
+
             // Jul 2026: the starving/dehydrated exception that reopens the
             // auction mid-fight is for SURVIVAL moves only — without this
             // filter cold-Dress (1.1 at night, near-naked) kept winning the
@@ -673,6 +724,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 {
                     var allowed = score.Goal is GoalType.Drink or GoalType.GetWater
                         or GoalType.Eat or GoalType.GetFood or GoalType.Idle or GoalType.None;
+                    // If flee-to-camp has no physical route and no direct
+                    // food/water answer exists, critical Explore is the local
+                    // reachable-component fallback. Its planner rejects live
+                    // predators and fresh attack tiles; zeroing it here left a
+                    // dehydrated hunted exile standing still until collapse.
+                    allowed |= score.Goal == GoalType.Explore &&
+                        (npc.Mind.IsStarving || npc.Mind.IsDehydrated);
                     if (!allowed)
                     {
                         score.FinalScore = 0f;
@@ -930,32 +988,58 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // pack (probe: Marta dead at hunger 1.0 carrying 8/9 sticks).
         var hearthUrgent = siteIsHearth && noCampfireYet &&
             npc.Needs.Hunger < 0.8f && npc.Needs.Thirst < 0.8f;
-        var buildWindow = buildPeacetime || hearthUrgent;
+        // A collector is not comfort construction.  Once no drink/get-water
+        // action exists, closing its whole gather/deliver chain merely because
+        // thirst crossed the generic peacetime bar leaves Idle as the only bid
+        // and guarantees dehydration.  Keep renewable-water work available;
+        // actual food/drink emergencies still beat its ordinary score whenever
+        // they have a real candidate. Fresh danger remains a hard stop.
+        var collectorUrgent = buildSite?.BuildProduct == ContentIds.WaterCollector &&
+            !freshDanger;
+        // Raw meat already in hand is another survival construction chain:
+        // the live fire needs posts/crossbar/rope before CookMeat can exist.
+        // If generic peacetime closes here, the food can rot in the pack while
+        // the hungry owner has no legal cooking action.
+        var spitUrgent = buildSite?.DefinitionId == ContentIds.Campfire &&
+            !BuildSiteMath.CampfireSpitComplete(buildSite) &&
+            npc.Inventory.Items.Contains(ContentIds.MeatRaw) && !freshDanger;
+        var buildWindow = buildPeacetime || hearthUrgent || collectorUrgent || spitUrgent;
+        // The collector is survival infrastructure with five sequential
+        // visual stages. Waiting for each stage to open before even gathering
+        // the next material made the 8-rope funnel start on day four, after
+        // the first dehydration death. Stacks let the colony prepare future
+        // stages without delivering them out of order; other furniture keeps
+        // its current-stage-only anti-hoarding rule.
+        int PlannedSiteRemaining(string material) => buildSite == null
+            ? 0
+            : buildSite.BuildProduct == ContentIds.WaterCollector
+                ? BuildSiteMath.TotalRemaining(buildSite, material)
+                : BuildSiteMath.Remaining(buildSite, material);
         // §64.9: two readings of the same bill. siteWantsLogs = "the site's
         // current stage is short of logs" (drives the pulls and the
         // don't-split reservation, and must NOT lapse the moment she picks
         // one up); siteNeedsLogs adds "…and my hands are empty of them",
         // which is the gather-availability half it always was.
         var siteWantsLogs = buildSite != null && buildWindow &&
-            BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialLogs);
+            PlannedSiteRemaining(BuildSiteMath.MaterialLogs) > 0;
         var siteNeedsLogs = siteWantsLogs && carriedLogs < 1;
         var siteNeedsStones = buildSite != null && buildWindow &&
-            BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialStones);
+            PlannedSiteRemaining(BuildSiteMath.MaterialStones) > 0;
         // Spec §54.2: a bed build-site also pulls leaves + sticks — the gather
         // feeders (ChopCrown/GatherLeaves, SplitLog) fetch them so BuildFurniture
         // can haul each piece over to the growing mat.
         var siteNeedsLeaves = buildSite != null && buildWindow &&
-            BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialLeaves);
+            PlannedSiteRemaining(BuildSiteMath.MaterialLeaves) > 0;
         var siteNeedsSticks = buildSite != null && buildWindow &&
-            BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialSticks);
+            PlannedSiteRemaining(BuildSiteMath.MaterialSticks) > 0;
         var siteNeedsRope = buildSite != null && buildWindow &&
-            BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialRope);
+            PlannedSiteRemaining(BuildSiteMath.MaterialRope) > 0;
         var siteNeedsBoards = buildSite != null && buildWindow &&
-            BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialBoards);
+            PlannedSiteRemaining(BuildSiteMath.MaterialBoards) > 0;
         if (siteNeedsBoards)
         {
             woodenBoardShortfall = System.Math.Max(woodenBoardShortfall,
-                BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialBoards) - carriedBoards);
+                PlannedSiteRemaining(BuildSiteMath.MaterialBoards) - carriedBoards);
         }
         // §54.10: when a staked bed site is waiting on materials, its gather +
         // deliver chain outranks peacetime leisure (Sit/Socialize/idle) so the
@@ -976,8 +1060,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §54 campfire (piled from stones) and the leaf mat (hand-lashed).
         var siteIsBed = buildSite?.BuildProduct == ContentIds.BedBasic;
         // §35.5B: the rack is lashed sticks like the leaf mat — no hammer.
-        var siteWaivesHammer = siteIsHearth ||
-            buildSite?.BuildProduct is ContentIds.BedBasic or ContentIds.DryingRack or ContentIds.Hut1Hex;
+        // Execution reads the authored HandBuilt tag. Decision must read the
+        // same fact: a duplicated product list omitted the water collector,
+        // so a fully stocked collector could never bid for its final raise.
+        var siteWaivesHammer = buildSite != null &&
+            !BuildSiteMath.NeedsHammer(world, buildSite);
         // §54.13: this is only the RAISE half. The deliver half is decided
         // next to the BuildFurniture score, where the gather flags exist —
         // staged sites take bundles, not single pieces (see below).
@@ -1035,7 +1122,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var waterSourceReachable = collectorDrawSeen ||
             (ctx.HasCoconutBlade &&
              (HasReachableDefinitionWorthCarrying(npc, world, ContentIds.Coconut) ||
-              KnowsReachableProducer(npc, world)));
+              (ctx.CanUseToolsOrWeapons && KnowsReachableProducer(npc, world))));
         var getWaterAvail = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold && !ctx.HasCoconutWater && !hasBottleWater &&
             waterSourceReachable;
         // §53.7: the errand half — fetching water to CARRY to a parched
@@ -1063,7 +1150,20 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 ? SimBalance.StarvingBoost
                 : 0f;
         // Spec 35.2: any reachable Tool not carried (saw, dropped gear).
-        var gatherToolsAvail = HasMissingToolReachable(npc, world);
+        var gatherToolsAvail = PlanningSystem.HasObjectCandidateForGoal(
+            world, npc, GoalType.GatherTools);
+        // A coconut emergency asks for a BLADE, not vaguely for "some tool".
+        // Seed 632: the old shared boost sent a starving NPC on a 660-tick
+        // trip for a lighter and then a saw; neither has Cut, while coconuts
+        // passed through her sight and she eventually collapsed. Ordinary
+        // GatherTools remains broad, but only an exact reachable Cut upgrade
+        // may carry the survival modifier.
+        var reachableCoconutBlade = coconutToolPressure &&
+            PlanningSystem.HasToolCandidateWithCapability(
+                world, npc, Content.GearCapability.Cut);
+        var gatherToolsEmergencyBoost = reachableCoconutBlade
+            ? coconutEmergencyBoost
+            : 0f;
         // §126/§49 r2: обычная хозяйственная черта в 600 единиц — и всё. Здесь
         // же стояла надбавка ночного затвора («перед сном запаси больше, дождь
         // жрёт вчетверо»), снятая вместе с ним: у костра свои причины гореть, и
@@ -1105,20 +1205,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §54.12: a site's stick stage pulls loose ground sticks too — SplitLog
         // only covers the log-rich camp; with a fed fire and no logs around,
         // nothing else ever picked a scattered stick up for the bed.
-        var gatherWoodTargetReachable = HasReachableWithTag(npc, world, "Wood");
+        var gatherWoodTargetReachable = PlanningSystem.HasObjectCandidateForGoal(
+            world, npc, GoalType.GatherWood);
         var gatherWoodAvail = ((fuelLow && carriedSticks == 0 && carriedLogs == 0) ||
                 (piece is { } pLog && carriedLogs < pLog.Logs) ||
                 siteNeedsLogs ||
                 (siteNeedsSticks &&
-                 carriedSticks < BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialSticks)) ||
+                 carriedSticks < PlannedSiteRemaining(BuildSiteMath.MaterialSticks)) ||
                 (siteNeedsBoards &&
-                 carriedBoards < BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialBoards)) ||
+                 carriedBoards < PlannedSiteRemaining(BuildSiteMath.MaterialBoards)) ||
                 (splintSupplyNeeded && carriedSticks < 2) ||
                 (woodenBoardShortfall > 0 &&
                  HasReachableDefinition(npc, world, ContentIds.Board)) ||
                 raftWoodDemand ||
                 (coconutToolPressure && carriedSticks < knifeStickCost)) &&
-            npc.Inventory.HasSpace && gatherWoodTargetReachable;
+            gatherWoodTargetReachable;
         // §45 r5: a genuinely cold girl can start the fire WITHOUT the
         // lighter (friction/hand-drill). The freeze probe showed 60-75%
         // of all freezing npc-ticks were "dead fire + wood in hand + no
@@ -1145,7 +1246,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Needs.ThermalComfort < AiBalance.FreezingComfortThreshold ||
             world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
         var tendFireAvail = hasWood && fuelLow &&
-            (campfireFuel > 0f || canFrictionLight || (ctx.CanUseToolsOrWeapons && hasLighter));
+            (campfireFuel > 0f || canFrictionLight || (ctx.CanUseToolsOrWeapons && hasLighter)) &&
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.TendFire);
 
         var drinkNeedScore = npc.Needs.Thirst +
             (npc.Needs.Thirst >= npc.Needs.Hunger ? 0.05f : 0f);
@@ -1163,7 +1265,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // cooking are the only reasons the pit gets lit now.
         AddGoalScore(npc, world.Tick, GoalType.GatherTools,
             0.25f + 0.2f * npc.Needs.Thirst + coldChain,
-            gatherToolsAvail, coconutEmergencyBoost);
+            gatherToolsAvail, gatherToolsEmergencyBoost);
         // The raft pull mirrors BuildRaft's weight: stocking logs for the
         // coast run must win the auction as often as the run itself, or
         // the demand flag never turns into wood in hand (soak: GatherWood
@@ -1213,6 +1315,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // bandage at the fire. Urgency scales with how hurt anyone is.
         var herbLeaves = CountInventory(npc, ContentIds.HerbLeaf);
         var bandageCount = MedicalSupplyMath.BandageCount(npc);
+        var hasReachableBandage = MedicalSupplyMath.TryFindReachableBandageSource(
+            world, npc, out _);
+        // A loose/stashed source is deliberately counted as one available
+        // dressing, even when the pack is full. The exact object is selected
+        // and claimed by Planning/Execution rather than teleported into cargo.
+        var usableBandageCount = bandageCount + (hasReachableBandage ? 1 : 0);
+        var selfTreatmentReady = SelfTreatmentIndicated(npc, usableBandageCount);
         // §68: the resupply half of self first-aid. A flat 0.3 step at
         // Health < 0.7 barely moved the herb run, and now that she SPENDS
         // her own dressings the pouch has to be refilled — so how badly she
@@ -1227,14 +1336,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // wound, so a full med pouch of her own must not veto it.
         var herbFetchPossible = herbLeaves < 2 &&
             InventoryMath.CanMakeRoomFor(world, npc, ContentIds.HerbLeaf) &&
-            HasReachableWithTag(npc, world, "Herb");
-        var bandageCraftPossible =
-            (herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage)) ||
-            CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftBandage);
-        var gatherHerbAvail = herbFetchPossible && bandageCount < 2;
+            PlanningSystem.HasObjectCandidateForGoal(
+                world, npc, GoalType.GatherHerb);
+        var bandageCraftPossible = CraftProjectMath.CanSatisfyItemCraftDemand(
+            world, npc, GoalType.CraftBandage,
+            herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage));
+        var gatherHerbAvail = herbFetchPossible && usableBandageCount < 2;
         AddGoalScore(npc, world.Tick, GoalType.GatherHerb,
             0.22f + hurtUrgency, gatherHerbAvail);
-        var craftBandageAvail = bandageCraftPossible && bandageCount < 2;
+        var craftBandageAvail = bandageCraftPossible && usableBandageCount < 2 &&
+            !selfTreatmentReady;
         AddGoalScore(npc, world.Tick, GoalType.CraftBandage,
             0.3f + hurtUrgency, craftBandageAvail);
 
@@ -1242,6 +1353,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // quiet preparedness bid only when an allied patient actually needs
         // that exact support and this NPC already carries the complete bill;
         // rescue/first aid remains the urgent layer above manufacturing.
+        var canManufactureSplint =
+            (HasRecipeInputs(npc, GoalType.CraftSplint) ||
+             BillCoveredByGroundPiles(npc, world, GoalType.CraftSplint)) &&
+            CraftPlaceOk(GoalType.CraftSplint);
         var craftSplintAvail = Spec118.Enabled && Spec118.SplintsEnabled &&
             CountInventory(npc, ContentIds.Splint) == 0 &&
             HasAlliedLimbNeed(world, npc, arms: true, legs: true, severed: false) &&
@@ -1250,26 +1365,26 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // нести весь счёт в руках держало эту цель недоступной всегда:
             // подвоза верёвки нет ни у одной цели, а RescueSystem без готовой
             // шины не стартует, так что молчала вся ветка лечения конечности.
-            (HasRecipeInputs(npc, GoalType.CraftSplint) ||
-             BillCoveredByGroundPiles(npc, world, GoalType.CraftSplint) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSplint)) &&
-            CraftPlaceOk(GoalType.CraftSplint);
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftSplint, canManufactureSplint);
         AddGoalScore(npc, world.Tick, GoalType.CraftSplint, 0.36f, craftSplintAvail);
 
         var craftWoodenArmAvail = Spec118.Enabled && Spec118.ProstheticsEnabled &&
             CountInventory(npc, ContentIds.WoodenArm) == 0 &&
             HasAlliedLimbNeed(world, npc, arms: true, legs: false, severed: true) &&
-            (HasRecipeInputs(npc, GoalType.CraftWoodenArm) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftWoodenArm)) &&
-            CraftPlaceOk(GoalType.CraftWoodenArm);
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftWoodenArm,
+                HasRecipeInputs(npc, GoalType.CraftWoodenArm) &&
+                CraftPlaceOk(GoalType.CraftWoodenArm));
         AddGoalScore(npc, world.Tick, GoalType.CraftWoodenArm, 0.34f, craftWoodenArmAvail);
 
         var craftWoodenLegAvail = Spec118.Enabled && Spec118.ProstheticsEnabled &&
             CountInventory(npc, ContentIds.WoodenLeg) == 0 &&
             HasAlliedLimbNeed(world, npc, arms: false, legs: true, severed: true) &&
-            (HasRecipeInputs(npc, GoalType.CraftWoodenLeg) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftWoodenLeg)) &&
-            CraftPlaceOk(GoalType.CraftWoodenLeg);
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftWoodenLeg,
+                HasRecipeInputs(npc, GoalType.CraftWoodenLeg) &&
+                CraftPlaceOk(GoalType.CraftWoodenLeg));
         AddGoalScore(npc, world.Tick, GoalType.CraftWoodenLeg, 0.34f, craftWoodenLegAvail);
 
         // §68: patch YOURSELF up. Until now the only active wound care was
@@ -1280,17 +1395,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // 0.55 / blood 0.48 carrying TWO unusable bandages, and the auction
         // gave the evening to laundry. Now the burden reads the WHOLE body,
         // and a bleeding girl treats before she does chores.
-        var treatBurdenGate = bandageCount > 1
-            ? Spec53.SelfTreatBurdenThreshold
-            : Spec53.SelfTreatLastBandageBurden;
-        var quietAftercare = Spec118.Enabled &&
-            !MortalityHelpers.IsBleeding(npc) && WoundMath.NeedsAftercare(npc);
-        var treatWoundsAvail = Spec53.SelfTreatEnabled &&
-            bandageCount > 0 &&
-            (woundBurden >= treatBurdenGate || quietAftercare) &&
-            // Light hand-work: a lost leg must not forbid winding a bandage.
-            npc.Body.HasUsableHand &&
-            !npc.IsFighting; // not mid-bite: fight or flee first
+        var treatWoundsAvail = selfTreatmentReady;
         // Deliberately NOT gated on remembered danger: that is the §65 trap
         // that already forbids sleep for a day after a wolf walks past, and a
         // dressing is exactly what she needs AFTER the fight.
@@ -1309,9 +1414,20 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // куда есть спуск: уступ со сходом на материк ловушкой не считается.
         var safeGroundAvail = false;
         var safeGroundUrgency = 0f;
+        var criticalSwimmer = SpatialQueries.IsSwimTile(world, npc.Tile) &&
+            PlanningSystem.ExploreMustAvoidDeepWater(npc);
         if (AiBalance.SafeGroundRetreatEnabled &&
             npc.CurrentJunction is { } safeGroundFrom)
         {
+            if (criticalSwimmer &&
+                PlanningSystem.FindCriticalSwimExit(world, npc) is not null)
+            {
+                // Before any food/water errand, leave the tile on which the
+                // next exhaustion faint becomes a deterministic drowning.
+                safeGroundAvail = true;
+                safeGroundUrgency = 1f;
+            }
+
             var minLeg = System.MathF.Min(
                 npc.Body.LimbFunction(BodyPart.LegL),
                 npc.Body.LimbFunction(BodyPart.LegR));
@@ -1324,7 +1440,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 // прыгающая дойдёт по полному графу, обезноженная — только
                 // если у полки есть сход. Без этого гейта запертая крутила
                 // вечный цикл PlanFailed NoRouteToMainland.
-                var mainlandInReach = npc.Body.CanJump ||
+                var mainlandInReach = PlanningSystem.CanUseCriticalTraversal(npc) ||
                     Connectivity.FlatReachesMainland(world, safeGroundFrom);
                 if (!onMainland &&
                     mainlandInReach &&
@@ -1351,7 +1467,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         }
 
         AddGoalScore(npc, world.Tick, GoalType.ReachSafeGround,
-            safeGroundUrgency, safeGroundAvail);
+            safeGroundUrgency, safeGroundAvail,
+            criticalSwimmer && safeGroundAvail ? StarvingBoost : 0f);
 
         // Spec 29F: hunting & crafting.
         var hasSpear = npc.Inventory.Items.Contains(ContentIds.Spear);
@@ -1375,23 +1492,30 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // fruit — hunting must stay available as the real meat/hide source
         // rather than ceding to a starve.
         var prostheticHideNeeded = woodenBoardsRequired > 0 && hideCount < 1;
+        var noSureMeal = !ctx.EatAvail && !ctx.GetFoodAvail;
+        var visibleRabbit = NearestVisibleRabbit(npc, world);
         var huntAvail = armed && !hasRawMeat &&
-            ((npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.8f) ||
+            ((npc.Needs.Hunger >= 0.3f &&
+              (npc.Needs.Hunger < 0.8f || noSureMeal)) ||
              prostheticHideNeeded) &&
-            NearestVisibleRabbit(npc, world) is not null;
+            visibleRabbit is not null;
         var finishedSpearReachable = CraftProjectMath.HasReachableCompletedOutput(
             world, npc, GoalType.CraftSpear);
         var craftSpearAvail = ctx.CanUseToolsOrWeapons && !hasSpear &&
             !finishedSpearReachable &&
             ((hasWood && CraftPlaceOk(GoalType.CraftSpear)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSpear));
+        var spearIsImmediateFoodResponse = noSureMeal && npc.Mind.IsStarving &&
+            visibleRabbit is not null && !coconutToolPressure;
         // §54.14 (r2): cooking is the SPIT's job — CookMeat now
         // HANGS a raw chunk on the crossbar of a lit fire; the roast itself
         // runs in FireSystem over ~MeatRoastDurationTicks. No spit (or a
         // full crossbar) = no cooking, whatever else the fire can do.
         var cookingFire = FindCookingFire(npc, world);
-        var cookAvail = hasRawMeat && cookingFire != null;
+        var cookAvail = hasRawMeat && cookingFire != null &&
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.CookMeat);
         var craftLeatherAvail = !npc.WornItems.Contains(ContentIds.LeatherPants) &&
+            !npc.Inventory.Items.Contains(ContentIds.LeatherPants) &&
             ((hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftLeather));
 
@@ -1399,10 +1523,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // (0.3+0.5h > h for h < 0.6); the availability window above is
         // what protects mealtimes, not the curve.
         AddGoalScore(npc, world.Tick, GoalType.Hunt,
-            0.3f + 0.5f * npc.Needs.Hunger + (prostheticHideNeeded ? 0.25f : 0f),
+            0.3f + 0.5f * npc.Needs.Hunger +
+            (noSureMeal ? 0.35f : 0f) +
+            (prostheticHideNeeded ? 0.25f : 0f),
             huntAvail, ctx.EmergencyBoost);
         AddGoalScore(npc, world.Tick, GoalType.CraftSpear,
-            0.2f + 0.2f * npc.Needs.Hunger, craftSpearAvail);
+            0.2f + 0.2f * npc.Needs.Hunger +
+            (noSureMeal && npc.Needs.Hunger >= 0.45f ? 0.45f : 0f),
+            craftSpearAvail,
+            spearIsImmediateFoodResponse ? SimBalance.StarvingBoost : 0f);
         // §54.17: when cooking is actually possible, hanging the chunk must
         // outbid GetFood (= Hunger) at EVERY hunger level — the old
         // 0.3 + 0.4·H curve lost to GetFood on the whole domain where both
@@ -1485,13 +1614,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §63 r2: a stone-hungry site (the fire's 18-stone ring) is worth
         // a real armful, not one pebble per round trip — carry up to 3.
         var siteStoneWant = siteNeedsStones
-            ? System.Math.Min(3, BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialStones))
+            ? System.Math.Min(3, PlannedSiteRemaining(BuildSiteMath.MaterialStones))
             : 0;
         var gatherStoneAvail = (stoneCount < stonesNeeded ||
                 (coconutToolPressure && stoneCount < knifeStoneCost) ||
                 (piece is { } pStone && stoneCount < pStone.Stones) ||
                 (siteNeedsStones && stoneCount < siteStoneWant)) &&
-            npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Stone");
+            PlanningSystem.HasObjectCandidateForGoal(
+                world, npc, GoalType.GatherStone);
         var finishedAxeReachable = CraftProjectMath.HasReachableCompletedOutput(
             world, npc, GoalType.CraftAxe);
         var finishedPickaxeReachable = CraftProjectMath.HasReachableCompletedOutput(
@@ -1530,9 +1660,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // colony by chopping the last seven palms for bed rails.
         var groveHasSurplus =
             CountReachableWithTag(npc, world, "Palm") > SimBalance.PalmGroveReserve;
-        var harvestTreeAvail = canChop && npc.Inventory.HasSpace &&
+        var harvestTreeAvail = canChop &&
             ((fuelLow && !HasReachableWithTag(npc, world, "Wood") &&
-              HasReachableWithTag(npc, world, "Palm")) ||
+              PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HarvestTree)) ||
              // §64.9: a build's LOG bill deliberately does NOT fell a palm.
              // It was tried (bed.basic's four side rails were otherwise
              // unobtainable once the camp's loose logs ran out) and it cost
@@ -1546,7 +1676,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
               (CountInventory(npc, ContentIds.PalmLeaf) == 0 ||
                (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves) ||
                (bedDeficit && carriedLeaves < 3)) &&
-              HasReachableWithTag(npc, world, "Palm")));
+              PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HarvestTree)));
         // §63 r2: with a stone-hungry site open the miner keeps swinging
         // until she carries a real load (3), not the old 2-stone stop.
         //
@@ -1568,9 +1698,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
             (siteNeedsStones && buildSite != null &&
              HasNearbyWithTag(npc, world, "Stone", buildSite.Tile, SimBalance.PickUpFirstRadiusTiles));
         var mineBoulderAvail = ctx.CanUseToolsOrWeapons && hasPickaxe &&
-            stoneCount < System.Math.Max(2, siteStoneWant) && npc.Inventory.HasSpace &&
+            stoneCount < System.Math.Max(2, siteStoneWant) &&
             !stonesUnderfoot &&
-            HasReachableWithTag(npc, world, "Boulder");
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.MineBoulder);
 
         // Spec 45: FREE HANDS — needs handled, no danger => the surplus
         // goes into progress. Static 0.25-0.3 scores never beat the
@@ -1644,7 +1774,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // 25-day soak; boulders sat unbroken while the ring starved).
         var pickaxeChainPull = siteNeedsStones && !hasPickaxe &&
             buildSite != null &&
-            BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialStones) > pickaxeStoneCost
+            PlannedSiteRemaining(BuildSiteMath.MaterialStones) > pickaxeStoneCost
                 ? 0.5f
                 : 0f;
         AddGoalScore(npc, world.Tick, GoalType.CraftPickaxe,
@@ -1678,7 +1808,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // site needs them, not just the 2-stick fuel reserve (§54.12: toward
         // the CURRENT stage's shortfall).
         var stickCap = siteNeedsSticks
-            ? BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialSticks)
+            ? PlannedSiteRemaining(BuildSiteMath.MaterialSticks)
             : 2;
         // §gear-data: the log's own declaration decides the tool (axe OR
         // knife OR whatever the asset lists) — canChop is only the legacy
@@ -1687,8 +1817,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                              boardSawAvailable) &&
             CanPerformDeclared(world, npc, ContentIds.Log, InteractionType.Process,
                 legacyOk: canChop) &&
-            npc.Inventory.HasSpace &&
-            HasReachableWithTag(npc, world, "Log");
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.SplitLog);
         AddGoalScore(npc, world.Tick, GoalType.SplitLog,
             (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull + dreamPull + nightFireChain +
             (boardSawAvailable ? 0.35f : 0f),
@@ -1707,15 +1836,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // churn loop with HaulToFire while the stick stage rejected them).
         var wantsLeaves = (bedDeficit && !siteIsBed && carriedLeaves < 3) ||
             (siteNeedsLeaves &&
-             carriedLeaves < BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialLeaves)) ||
+             carriedLeaves < PlannedSiteRemaining(BuildSiteMath.MaterialLeaves)) ||
             (piece is { } pcrown && carriedLeaves < pcrown.Leaves) ||
             (world.Environment.UvIndex > 0.4f && carriedLeaves < 4);
         var chopCrownAvail = wantsLeaves && canChop &&
-            npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "PalmCrown");
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.ChopCrown);
         AddGoalScore(npc, world.Tick, GoalType.ChopCrown, 0.3f + freeHands + bedLeafPull + dreamPull, chopCrownAvail);
         // Spec §54.2: pick scattered palm leaves off the ground when wanted.
-        var gatherLeavesAvail = wantsLeaves && npc.Inventory.HasSpace &&
-            HasReachableWithTag(npc, world, "PalmLeaf");
+        var gatherLeavesAvail = wantsLeaves &&
+            PlanningSystem.HasObjectCandidateForGoal(
+                world, npc, GoalType.GatherLeaves);
         AddGoalScore(npc, world.Tick, GoalType.GatherLeaves, 0.28f + freeHands + bedLeafPull + dreamPull, gatherLeavesAvail);
 
         // Spec §54: the cordage & knife chain. Rope is wanted for bowstrings
@@ -1723,7 +1853,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // a survival tool (no butchering without it). Gather fiber to feed
         // rope/cloth, then craft at the fire.
         var siteRopeTarget = siteNeedsRope && buildSite != null
-            ? BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialRope)
+            ? PlannedSiteRemaining(BuildSiteMath.MaterialRope)
             : 1;
         var medicalRopeTarget = woodenBoardsRequired > 0 ? 2 : (splintSupplyNeeded ? 1 : 0);
         var ropeTarget = System.Math.Max(siteRopeTarget, medicalRopeTarget);
@@ -1746,11 +1876,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // (0.24) until every yucca on the island was felled — 32 fibers lay
         // scattered while the site waited. Cutting is only available while
         // no loose fiber is reachable; yuccas are consumed, don't waste them.
-        var harvestYuccaAvail = ctx.CanUseToolsOrWeapons && carriedFiber < fiberNeed && npc.Inventory.HasSpace &&
+        var harvestYuccaAvail = ctx.CanUseToolsOrWeapons && carriedFiber < fiberNeed &&
             (hasKnife || hasAxe) && !HasReachableWithTag(npc, world, "Fiber") &&
-            HasReachableWithTag(npc, world, "Yucca");
-        var gatherFiberAvail = carriedFiber < fiberNeed && npc.Inventory.HasSpace &&
-            HasReachableWithTag(npc, world, "Fiber");
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HarvestYucca);
+        var gatherFiberAvail = carriedFiber < fiberNeed &&
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.GatherFiber);
         // §84: fibers already lying by the stump ARE the recipe — the craft
         // fires on carried + ground pile and happens AT the pile (planning
         // walks her there; the craft-start beat takes the pieces off the
@@ -1765,13 +1895,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             FindGroundInputPile(npc, world, ContentIds.Fiber,
                 SimBalance.ClothFiberCost - carriedFiber) is not null;
         var craftRopeAvail = ctx.CanUseToolsOrWeapons && wantRope &&
-            (((carriedFiber >= SimBalance.RopeFiberCost || ropeGroundPileOk) &&
-              CraftPlaceOk(GoalType.CraftRope)) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftRope));
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftRope,
+                (carriedFiber >= SimBalance.RopeFiberCost || ropeGroundPileOk) &&
+                CraftPlaceOk(GoalType.CraftRope));
         var craftClothAvail = ctx.CanUseToolsOrWeapons && wantCloth &&
-            (((carriedFiber >= SimBalance.ClothFiberCost || clothGroundPileOk) &&
-              CraftPlaceOk(GoalType.CraftCloth)) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftCloth));
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftCloth,
+                (carriedFiber >= SimBalance.ClothFiberCost || clothGroundPileOk) &&
+                CraftPlaceOk(GoalType.CraftCloth));
         var finishedKnifeReachable = CraftProjectMath.HasReachableCompletedOutput(
             world, npc, GoalType.CraftKnife);
         var craftKnifeAvail = ctx.CanUseToolsOrWeapons &&
@@ -1789,10 +1921,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Spec §54: butcher a carcass (or, starving, a housemate's body) with
         // a knife — hunger-driven, since the payoff is meat.
         var butcherAvail = ctx.CanUseToolsOrWeapons && hasButcherTool &&
-            (HasReachableWithTag(npc, world, "Carcass") ||
-             (SimBalance.CannibalismEnabled &&
-              npc.Needs.Hunger >= SimBalance.CannibalizeHungerGate &&
-              HasReachableWithTag(npc, world, "Corpse")));
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.Butcher);
         AddGoalScore(npc, world.Tick, GoalType.Butcher,
             0.3f + 0.5f * npc.Needs.Hunger, butcherAvail);
 
@@ -1948,9 +2077,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // (soak: leaf deliveries 1/46, 2/46, 3/46… spaced ~50-200 ticks).
         // A girl now keeps gathering until she carries the stage's shortfall
         // (capped at half a stack) — or until nothing more can be produced —
-        // and only then walks the pile over. Non-bed sites (the campfire's
-        // stone/spit upgrades §54.14, hut pieces) still take any piece:
-        // stones don't stack.
+        // and only then walks the pile over. The water collector follows the
+        // same rule: its 8 ropes and 11 leaves are stackable bundles, and
+        // single-piece coast/camp round trips otherwise postpone renewable
+        // water until after the first dehydration death. Other non-bed sites
+        // (the campfire's stone/spit upgrades §54.14, hut pieces) still take
+        // any piece; their chief material is unstacked stone.
         var deliverWorthwhile = buildSite != null && buildWindow &&
             CarriesSiteMaterial(npc, buildSite);
         // §63 r2: the pickaxe's own 2-stone budget is RESERVED — while the
@@ -1980,7 +2112,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
             }
         }
 
-        if (deliverWorthwhile && siteIsBed)
+        var siteUsesBundleDelivery = siteIsBed ||
+            buildSite?.BuildProduct == ContentIds.WaterCollector;
+        if (deliverWorthwhile && siteUsesBundleDelivery)
         {
             foreach (var mat in BuildSiteMath.AllMaterials)
             {
@@ -2016,7 +2150,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             }
         }
 
-        var buildFurnitureAvail = buildFurnitureRaise || deliverWorthwhile;
+        var buildFurnitureAvail = (buildFurnitureRaise || deliverWorthwhile) &&
+            buildSite != null &&
+            PlanningSystem.HasObjectCandidateForGoal(
+                world, npc, GoalType.BuildFurniture, buildSite.Id);
         // §64.9: logs join the delivery pull — the raise half was the only
         // way a log stage could ever be advanced, and it was unweighted.
         var buildFurniturePull =
@@ -2027,7 +2164,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // drives the rest of the fire chain (there is no fire to tend yet).
         AddGoalScore(npc, world.Tick, GoalType.BuildFurniture,
             (hearthUrgent ? 0.95f : 0.55f) + freeHands + buildFurniturePull + dreamPull +
-            (siteIsHearth ? coldChain : 0f), buildFurnitureAvail);
+            (siteIsHearth ? coldChain : 0f), buildFurnitureAvail,
+            emergency: spitUrgent ? ctx.EmergencyBoost
+                : collectorUrgent ? ctx.DrinkBoost
+                : 0f);
 
         // Spec §52: free a slot by carrying a low-value item to the fireside
         // stockpile — but only in peace. Life-threatening pressure (a dog, a
@@ -2038,7 +2178,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var haulVictim = InventoryMath.LowestImportanceDroppable(world, npc);
         var haulToFireAvail = !npc.Inventory.HasSpace && !lifeThreatened && campfireSeen &&
             haulVictim != null &&
-            InventoryMath.Importance(world, haulVictim) <= 25;
+            InventoryMath.Importance(world, haulVictim) <= 25 &&
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HaulToFire);
         AddGoalScore(npc, world.Tick, GoalType.HaulToFire, 0.28f, haulToFireAvail);
 
         // §133: одежда не должна лежать по всей карте. Скучная фоновая работа
@@ -2065,7 +2206,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var coolOffUrge = System.MathF.Max(npc.Needs.ThermalDiscomfort, npc.SunExposure - 0.4f);
         var coolOffAvail = ((ctx.EffectiveTemp > 20f && npc.Mind.IsOverheated) ||
                 npc.SunExposure >= 0.6f) &&
-            (HasReachableWithTag(npc, world, "Shade") || HasReachableWithTag(npc, world, "Water"));
+            PlanningSystem.FindCoolingJunction(world, npc) is not null;
         AddGoalScore(npc, world.Tick, GoalType.CoolOff,
             0.1f + 0.5f * coolOffUrge, coolOffAvail);
 
@@ -2092,7 +2233,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // конфликта: колонистка не могла быть неряхой в принципе, а чужак
         // чистюлей. Теперь это характер, и он ездит с человеком.
         var caresAboutGrooming = !npc.Traits.Has(TraitKind.Slob);
-        var batheAvail = caresAboutGrooming &&
+        // §40.6 r6: the state which makes the router reject renewed water
+        // travel also closes voluntary grooming. Seed 104729 had a dehydrated
+        // washer fetch a garment, fail the dry second leg, eat briefly and
+        // restore the same active WashClothes plan forever.
+        var groomingSurvivalSafe = !PlanningSystem.ExploreMustAvoidDeepWater(npc);
+        var batheAvail = caresAboutGrooming && groomingSurvivalSafe &&
             (ctx.PendingRedress ||
              // §126: чистюле хватает меньшей грязи, чтобы взяться (множитель к
              // ПОРОГУ — ставку она потом выигрывает по общей формуле).
@@ -2106,7 +2252,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
               // «поспать», их нет и на «поплавать».
               npc.Needs.Energy >= TraitMath.EffectiveSleepThreshold(npc) &&
               HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons));
-        if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
+        if (groomingSurvivalSafe &&
+            npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
         {
             batheAvail = true;
         }
@@ -2141,12 +2288,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Гейт по фракции, а не по ставке: понижать вес бесполезно, он
         // всё равно всплывёт, когда остальные дела кончатся, и человек
         // опять пойдёт полоскать чистую рубаху вместо дела.
-        var washAvail = caresAboutGrooming &&
+        var washAvail = caresAboutGrooming && groomingSurvivalSafe &&
             washNeed >= SimBalance.WashClothesNeedThreshold * TraitMath.GroomingThresholdMult(npc) &&
             npc.Needs.Blood >= 0.6f;
         var washActive = npc.Mind.CurrentGoal == GoalType.WashClothes &&
             npc.Plan.Status == PlanStatus.Active;
-        if (washActive)
+        if (washActive && groomingSurvivalSafe)
         {
             washAvail = true;
         }
@@ -2228,8 +2375,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // that actually wins the auction right after a wash or a soaking.
         var dryAvail = wornWetness > SimBalance.DryClothesWetThreshold &&
             !world.Environment.IsRaining &&
-            (HasReachableWithTag(npc, world, "Rack") ||
-             (campfireSeen && campfireFuel > 0f));
+            PlanningSystem.HasDryingDestination(world, npc);
         AddGoalScore(npc, world.Tick, GoalType.DryClothes,
             0.2f + 0.6f * wornWetness, dryAvail);
 
@@ -2258,7 +2404,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // unreachable and the outings gate starved (777: explores=0).
         var wellRested = npc.Needs.Hunger < 0.5f && npc.Needs.Thirst < 0.5f &&
             npc.Needs.Energy > 0.5f && npc.Needs.Comfort > 0.35f && !fuelLow ? 0.15f : 0f;
-        AddGoalScore(npc, world.Tick, GoalType.Explore, 0.05f + exploreJitter + wellRested, true);
+        var exploreAvail = PlanningSystem.HasExploreCandidate(world, npc);
+        AddGoalScore(npc, world.Tick, GoalType.Explore,
+            0.05f + exploreJitter + wellRested, exploreAvail);
 
         AddGoalScore(npc, world.Tick, GoalType.Idle, 0.05f, true);
 
@@ -2410,9 +2558,19 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 // воде, и старый фильтр не давал планировать на неё вовсе.
                 if (agent.AidKind == AidKind.None ||
                     agent.Suffering < Spec53.SufferingThreshold ||
-                    !agent.IsReachable || agent.IsBusy ||
+                    !agent.IsReachable || (agent.IsBusy && !agent.IsDying) ||
                     (agent.IsMoving && !agent.IsDying &&
                      agent.Suffering < Spec53.HeavyAidSuffering))
+                {
+                    continue;
+                }
+
+                if (agent.Junction is not { } aidJunction ||
+                    !world.Entities.Npcs.TryGetValue(agent.Id, out var aidTarget) ||
+                    (aidTarget.Mind.PendingAidFrom is { } claimedBy &&
+                     !claimedBy.Equals(npc.Id)) ||
+                    !PlanningSystem.HasAvailableArmsLengthApproach(
+                        world, npc, aidTarget, aidJunction))
                 {
                     continue;
                 }
@@ -2455,6 +2613,19 @@ public sealed partial class DecisionSystem : ISimulationSystem
                         remembered.Age > Spec53.AidMemoryMaxAgeTicks ||
                         remembered.Suffering < Spec53.SufferingThreshold ||
                         !AidSupply.Has(world, npc, remembered.AidKind))
+                    {
+                        continue;
+                    }
+
+                    // A current body turns remembered geometry into known
+                    // geometry. Do not let memory re-introduce the exact
+                    // bed-side target the live scan just rejected.
+                    if (world.Entities.Npcs.TryGetValue(remembered.Id, out var rememberedWard) &&
+                        ((rememberedWard.Mind.PendingAidFrom is { } rememberedClaim &&
+                          !rememberedClaim.Equals(npc.Id)) ||
+                         (remembered.Junction is { } rememberedJunction &&
+                          !PlanningSystem.HasAvailableArmsLengthApproach(
+                              world, npc, rememberedWard, rememberedJunction))))
                     {
                         continue;
                     }
@@ -2650,6 +2821,24 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             var hasActivePlan = npc.Plan.Status == PlanStatus.Active ||
                 npc.Execution.Status == ExecutionStatus.InProgress;
+            // Availability is sampled again while a concrete route is already
+            // in flight. Perception/reservations can make that sample flicker
+            // to zero even though the planner still owns a valid target; using
+            // literal zero made Sleep↔Drink and Aid↔Dress tear up each other's
+            // active routes every 8–12 ticks. Preserve the score on which this
+            // exact goal was adopted until the plan itself reports failure.
+            if (hasActivePlan && currentScore <= 0f &&
+                npc.Mind.LastDecision.SelectedGoal == previousGoal)
+            {
+                foreach (var adopted in npc.Mind.LastDecision.Scores)
+                {
+                    if (adopted.Goal == previousGoal && adopted.FinalScore > 0f)
+                    {
+                        currentScore = adopted.FinalScore;
+                        break;
+                    }
+                }
+            }
             var locked = npc.Mind.GoalLock is { } goalLock &&
                 goalLock.Goal == previousGoal && world.Tick < goalLock.EndTick;
             // §53.8: поход к умирающей держится как замок ВСЮ дорогу. Замерено
@@ -2659,7 +2848,39 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // только собственным кризисам (их StarvingBoost-надбавки выше).
             var heavyAid = !locked && hasActivePlan && previousGoal == GoalType.Aid &&
                 HeavyAidInFlight(world, npc);
-            var threshold = locked || heavyAid
+            // A supply run must reach its target before another visible pile
+            // becomes tempting. While walking, perception exposes a new stick
+            // or stone every few metres; those candidates used to outbid a
+            // freshly chosen GatherTools route by LockOverrideDelta and produce
+            // GatherTools<->GatherWood churn without completing either trip.
+            // A failed/invalid route still releases the hold normally, while
+            // survival, combat and care goals remain outside this class and can
+            // interrupt it through the ordinary emergency score path.
+            var sameSupplyRun = hasActivePlan &&
+                IsSupplyRun(previousGoal) && IsSupplyRun(best.Goal);
+            // Going to a hurt friend is one errand, not a low-priority mood
+            // that Socialize may replace halfway there.  Only the helper's own
+            // live crisis releases this hold; combat/flee are reactive and do
+            // not rely on the auction.  This removes Aid->Socialize->failed
+            // churn without making a thirsty/bleeding helper sacrifice herself.
+            // A live self-crisis releases an aid trip only TO the action that
+            // serves that crisis. Previously the boolean gate merely removed
+            // the hold, so an overheated helper could abandon Aid for
+            // DryClothes, or a dead-tired one for Sit: neither solves the
+            // reason the commitment was released. Seed 1104 then alternated
+            // Aid<->DryClothes while the patient kept moving away.
+            var aidReleaseToSelfCare =
+                (npc.Mind.IsStarving && best.Goal is GoalType.Eat or GoalType.GetFood) ||
+                (npc.Mind.IsDehydrated && best.Goal is GoalType.Drink or GoalType.GetWater) ||
+                (npc.Mind.IsOverheated && best.Goal == GoalType.CoolOff) ||
+                (IsBleedingCrisis(npc) && best.Goal is GoalType.TreatWounds or
+                    GoalType.GatherHerb or GoalType.CraftBandage) ||
+                (npc.Needs.Energy < Spec49.DeadTiredEnergy && best.Goal == GoalType.Sleep);
+            var aidCommitment = hasActivePlan && previousGoal == GoalType.Aid &&
+                !aidReleaseToSelfCare;
+            var threshold = sameSupplyRun || aidCommitment
+                ? float.PositiveInfinity
+                : locked || heavyAid
                 ? LockOverrideDelta
                 : (hasActivePlan ? SwitchDelta : 0f);
 
@@ -2736,11 +2957,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
         if (changed &&
             (npc.Plan.Status == PlanStatus.Active || npc.Execution.Status == ExecutionStatus.InProgress))
         {
-            PlanInterruption.Abort(world, npc,
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.Auction,
                 $"Goal changed {previousGoal}->{best.Goal} over active plan " +
                 $"(Starving={npc.Mind.IsStarving})");
         }
     }
+
+    private static bool IsSupplyRun(GoalType goal) => goal is
+        GoalType.GatherTools or GoalType.GatherWood or GoalType.GatherStone or
+        GoalType.GatherHerb or GoalType.GatherLeaves or GoalType.GatherFiber or
+        GoalType.HarvestTree or GoalType.MineBoulder or GoalType.SplitLog or
+        GoalType.ChopCrown or GoalType.HarvestYucca;
 
     // internal, а не private: §122 спрашивает ровно этот вопрос перед тем, как
     // заглушить цель — заглушить лечение у истекающей кровью значит намеренно
@@ -2896,11 +3123,30 @@ public sealed partial class DecisionSystem : ISimulationSystem
         return false;
     }
 
-    private static void SuppressPeacetimeDuringBleeding(NPCState npc)
+    internal static void SuppressPeacetimeDuringBleeding(NPCState npc)
     {
+        var hasActionableCrisisResponse = false;
         foreach (var score in npc.Mind.LastScores)
         {
-            if (IsBleedingCrisisGoal(score.Goal, npc))
+            if (score.FinalScore <= 0f ||
+                score.Goal is GoalType.Idle or GoalType.None or GoalType.Explore)
+            {
+                continue;
+            }
+
+            if (IsBleedingCrisisGoal(score.Goal, npc) ||
+                score.Goal == GoalType.ReachSafeGround)
+            {
+                hasActionableCrisisResponse = true;
+                break;
+            }
+        }
+
+        foreach (var score in npc.Mind.LastScores)
+        {
+            if (IsBleedingCrisisGoal(score.Goal, npc) ||
+                score.Goal == GoalType.ReachSafeGround ||
+                (!hasActionableCrisisResponse && score.Goal == GoalType.Explore))
             {
                 // Behavior audit (Jul 2026): the boost used to resurrect an
                 // UNAVAILABLE CraftBandage (no herbs carried → FinalScore 0 →
@@ -2921,6 +3167,81 @@ public sealed partial class DecisionSystem : ISimulationSystem
         }
     }
 
+    internal static void SuppressPeacetimeDuringCriticalNeeds(NPCState npc)
+    {
+        var hasDirectResponse = false;
+        var hasAvailableEmergencyResponse = false;
+        var mustLeaveWaterFirst = false;
+        foreach (var score in npc.Mind.LastScores)
+        {
+            if (score.FinalScore > 0f && score.EmergencyModifier > 0f)
+            {
+                hasAvailableEmergencyResponse = true;
+                if (score.Goal == GoalType.ReachSafeGround)
+                {
+                    mustLeaveWaterFirst = true;
+                }
+                if (IsDirectCriticalNeedGoal(npc, score.Goal))
+                {
+                    hasDirectResponse = true;
+                }
+            }
+        }
+
+        if (!hasAvailableEmergencyResponse)
+        {
+            foreach (var score in npc.Mind.LastScores)
+            {
+                if (score.Goal is not GoalType.Explore and
+                    not GoalType.Idle and not GoalType.None)
+                {
+                    score.FinalScore = 0f;
+                }
+            }
+            return;
+        }
+
+        // In deep water the next dehydration/exhaustion collapse is itself a
+        // lethal hazard.  Drinking or fetching remains the ultimate need, but
+        // it cannot outrank the prerequisite dry landing by a few hundredths
+        // of utility and send the swimmer along another water route.  Once the
+        // dry plan completes this emergency bid disappears and the ordinary
+        // food/water auction resumes immediately.
+        if (mustLeaveWaterFirst)
+        {
+            foreach (var score in npc.Mind.LastScores)
+            {
+                if (score.Goal != GoalType.ReachSafeGround &&
+                    score.Goal is not GoalType.Idle and not GoalType.None)
+                {
+                    score.FinalScore = 0f;
+                }
+            }
+            return;
+        }
+
+        foreach (var score in npc.Mind.LastScores)
+        {
+            var allowed = hasDirectResponse
+                ? IsDirectCriticalNeedGoal(npc, score.Goal)
+                : score.EmergencyModifier > 0f;
+            // A critical swimmer's ReachSafeGround bid carries an emergency
+            // modifier. It is the prerequisite for drinking/eating safely,
+            // not a peacetime detour, so direct-response suppression keeps it.
+            allowed |= score.Goal == GoalType.ReachSafeGround &&
+                score.EmergencyModifier > 0f;
+            if (!allowed &&
+                score.Goal is not GoalType.Idle and not GoalType.None)
+            {
+                score.FinalScore = 0f;
+            }
+        }
+    }
+
+    private static bool IsDirectCriticalNeedGoal(NPCState npc, GoalType goal) =>
+        (npc.Mind.IsStarving && goal is GoalType.Eat or GoalType.GetFood) ||
+        (npc.Mind.IsDehydrated && goal is GoalType.Drink or GoalType.GetWater);
+
     private static bool IsBleedingCrisisGoal(GoalType goal, NPCState npc)
     {
         return goal switch
@@ -2928,9 +3249,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             GoalType.Idle or GoalType.None => true,
             GoalType.Eat or GoalType.GetFood => npc.Mind.IsStarving,
             GoalType.Drink or GoalType.GetWater => npc.Mind.IsDehydrated,
-            // Fetching the bandage's herbs IS the crisis response — zeroing it
-            // left a herbless bleeder with literally nothing to do (Jul 2026).
-            GoalType.CraftBandage or GoalType.GatherHerb => true,
+            // Applying an available bandage is the direct response; fetching
+            // herbs/crafting one is the fallback. Omitting TreatWounds here
+            // made the bleeding-crisis suppressor zero the newly available
+            // nearby-bandage bid and leave Explore as the only survivor.
+            GoalType.TreatWounds or GoalType.CraftBandage or GoalType.GatherHerb => true,
             _ => false
         };
     }
@@ -2970,19 +3293,30 @@ public sealed partial class DecisionSystem : ISimulationSystem
     // Spec 35.4: overheating latch. Enter at CoolOffEnterThreshold, clear at
     // CoolOffClearThreshold — the hysteresis stops CoolOff's availability from
     // flickering around the entry edge (the tight None→CoolOff→None churn loop).
-    private static void UpdateOverheatedStatus(WorldState world, NPCState npc)
+    private static void UpdateOverheatedStatus(
+        WorldState world, NPCState npc, float effectiveTemperature)
     {
-        if (!npc.Mind.IsOverheated && npc.Needs.ThermalDiscomfort >= SimBalance.CoolOffEnterThreshold)
+        // ThermalDiscomfort is symmetric: 1.0 can mean freezing or roasting.
+        // The old latch ignored direction, marked a freezing NPC overheated,
+        // and then released her Aid commitment so cold Dress could interrupt
+        // it every eight ticks. CoolOff already defines heat as >20 C; the
+        // latch must use the same side of the scale.
+        var genuinelyHot = effectiveTemperature > 20f;
+        if (!npc.Mind.IsOverheated && genuinelyHot &&
+            npc.Needs.ThermalDiscomfort >= SimBalance.CoolOffEnterThreshold)
         {
             npc.Mind.IsOverheated = true;
             Trace.Emit(world, npc.Id, "StatusOverheated",
-                $"Entered (Thermal={npc.Needs.ThermalDiscomfort:F2} >= {SimBalance.CoolOffEnterThreshold})");
+                $"Entered (Effective={effectiveTemperature:F1}C " +
+                $"Thermal={npc.Needs.ThermalDiscomfort:F2} >= {SimBalance.CoolOffEnterThreshold})");
         }
-        else if (npc.Mind.IsOverheated && npc.Needs.ThermalDiscomfort < SimBalance.CoolOffClearThreshold)
+        else if (npc.Mind.IsOverheated && (!genuinelyHot ||
+                 npc.Needs.ThermalDiscomfort < SimBalance.CoolOffClearThreshold))
         {
             npc.Mind.IsOverheated = false;
             Trace.Emit(world, npc.Id, "StatusOverheated",
-                $"Cleared (Thermal={npc.Needs.ThermalDiscomfort:F2} < {SimBalance.CoolOffClearThreshold})");
+                $"Cleared (Effective={effectiveTemperature:F1}C " +
+                $"Thermal={npc.Needs.ThermalDiscomfort:F2})");
         }
     }
 

@@ -30,9 +30,42 @@ internal static class InventoryMath
             ? ItemCatalog.Importance(ItemCategory.Resource)
             : Importance(world, item.DefinitionId);
 
+    /// <summary>
+    /// Content-authored per-NPC carry limit. This is deliberately independent
+    /// of capacity: a second unique item does not become valid merely because
+    /// another pocket is free. Definitions with the default zero are unlimited.
+    /// </summary>
+    public static bool CanAcquireAdditional(
+        WorldState world, NPCState npc, string incomingDefinitionId)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(
+                incomingDefinitionId, out var definition) ||
+            definition.MaxCarriedInstances <= 0)
+        {
+            return true;
+        }
+
+        var carried = 0;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == incomingDefinitionId &&
+                ++carried >= definition.MaxCarriedInstances)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static bool CanMakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
     {
-        if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
+        {
+            return false;
+        }
+
+        if (FitsWithoutEviction(world, npc, incomingDefinitionId))
         {
             return true;
         }
@@ -40,8 +73,47 @@ internal static class InventoryMath
         return ReplacementVictim(world, npc, incomingDefinitionId) is not null;
     }
 
+    /// <summary>A physical instance can enter without displacing anything.
+    /// Used by completion paths which must distinguish a truly full pack from
+    /// free capacity inside an existing stack.</summary>
+    internal static bool FitsWithoutEviction(
+        WorldState world, NPCState npc, string incomingDefinitionId) =>
+        CanAcquireAdditional(world, npc, incomingDefinitionId) &&
+        (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId));
+
+    // §63: the emergency coconut-blade chain is allowed to sacrifice an
+    // ordinary tool for its ONE stick and ONE stone.  The generic importance
+    // order cannot express this: Tool(60) quite reasonably beats Resource(20)
+    // in normal life, but that made a full pack of hammer/pickaxe/bottle/pill
+    // fatal.  NeedsDecay would throw away the newly gathered stone every slow
+    // tick and GatherStone picked it straight back up forever (seed 104729).
+    //
+    // Keep this goal-aware and emergency-only.  Ordinary hauling still never
+    // swaps a useful tool for a pebble.
+    public static bool CanMakeRoomForGoal(
+        WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
+    {
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
+        {
+            return false;
+        }
+
+        if (CanMakeRoomFor(world, npc, incomingDefinitionId))
+        {
+            return true;
+        }
+
+        return SurvivalKnifeMaterialVictim(
+            world, npc, goal, incomingDefinitionId) is not null;
+    }
+
     public static bool MakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
     {
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
+        {
+            return false;
+        }
+
         if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
         {
             return true;
@@ -71,6 +143,127 @@ internal static class InventoryMath
         }
 
         return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
+    }
+
+    public static bool MakeRoomForGoal(
+        WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
+    {
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
+        {
+            return false;
+        }
+
+        if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
+        {
+            return true;
+        }
+
+        // Preserve the ordinary replacement order whenever it can solve the
+        // pack.  The survival exception is only the final fallback.
+        if (ReplacementVictim(world, npc, incomingDefinitionId) is not null)
+        {
+            return MakeRoomFor(world, npc, incomingDefinitionId);
+        }
+
+        var victim = SurvivalKnifeMaterialVictim(
+            world, npc, goal, incomingDefinitionId);
+        if (victim is null)
+        {
+            return false;
+        }
+
+        var victimImportance = Importance(world, victim);
+        npc.Inventory.Items.Remove(victim);
+        ExecutionSystem.DropItemAtFeet(world, npc, victim);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InventoryMadeRoom",
+                $"Dropped {victim.DefinitionId}({victimImportance}) for " +
+                $"emergency knife material {incomingDefinitionId}");
+        }
+
+        return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
+    }
+
+    /// <summary>
+    /// Repairs older saves (and any legacy direct-add path) which already
+    /// contain more instances than the definition permits. Extras are dropped,
+    /// never deleted, so another NPC who actually lacks the item may recover one.
+    /// </summary>
+    public static void SpillCarriedLimitExcess(WorldState world, NPCState npc)
+    {
+        System.Collections.Generic.Dictionary<string, int>? counts = null;
+        for (var i = 0; i < npc.Inventory.Items.Count;)
+        {
+            var item = npc.Inventory.Items[i];
+            if (!world.Content.ObjectDefinitions.TryGetValue(
+                    item.DefinitionId, out var definition) ||
+                definition.MaxCarriedInstances <= 0)
+            {
+                i++;
+                continue;
+            }
+
+            counts ??= new System.Collections.Generic.Dictionary<string, int>();
+            counts.TryGetValue(item.DefinitionId, out var carried);
+            if (carried < definition.MaxCarriedInstances)
+            {
+                counts[item.DefinitionId] = carried + 1;
+                i++;
+                continue;
+            }
+
+            npc.Inventory.Items.RemoveAt(i);
+            ExecutionSystem.DropItemAtFeet(world, npc, item);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CarryLimitSpill",
+                    $"Dropped excess {item.DefinitionId}; " +
+                    $"limit={definition.MaxCarriedInstances}");
+            }
+        }
+    }
+
+    internal static bool NeedsEmergencyCoconutBlade(WorldState world, NPCState npc) =>
+        npc.Body.HasUsableHand &&
+        !DecisionSystem.HasCoconutBlade(npc) &&
+        (npc.Needs.Thirst >= 0.8f || npc.Needs.Hunger >= 0.8f) &&
+        DecisionSystem.HasCoconutOpportunity(npc, world);
+
+    // While the emergency knife is unfinished, the material pair is survival
+    // cargo, not generic stockpile junk.  NeedsDecay uses this when deciding
+    // which resources it may unload from a full pack.
+    internal static bool IsReservedEmergencyKnifeMaterial(
+        WorldState world, NPCState npc, string definitionId)
+    {
+        if (!NeedsEmergencyCoconutBlade(world, npc))
+        {
+            return false;
+        }
+
+        var required = definitionId switch
+        {
+            ContentIds.Stick => RecipeCatalog.InputCount(
+                GoalType.CraftKnife, ContentIds.Stick),
+            ContentIds.Stone => RecipeCatalog.InputCount(
+                GoalType.CraftKnife, ContentIds.Stone),
+            _ => 0
+        };
+        if (required <= 0)
+        {
+            return false;
+        }
+
+        var carried = 0;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == definitionId)
+            {
+                carried++;
+            }
+        }
+
+        return carried <= required;
     }
 
     private static bool FitsExistingStack(NPCState npc, string definitionId)
@@ -204,6 +397,49 @@ internal static class InventoryMath
         }
 
         return redundantVictim;
+    }
+
+    private static ItemInstance SurvivalKnifeMaterialVictim(
+        WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
+    {
+        var exactMaterial =
+            goal == GoalType.GatherWood && incomingDefinitionId == ContentIds.Stick ||
+            goal == GoalType.GatherStone && incomingDefinitionId == ContentIds.Stone;
+        if (!exactMaterial || !NeedsEmergencyCoconutBlade(world, npc))
+        {
+            return null;
+        }
+
+        ItemInstance victim = null;
+        var victimImportance = int.MaxValue;
+        var victimWeaponPriority = int.MaxValue;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (npc.Inventory.IsHolstered(item) ||
+                IsReservedEmergencyKnifeMaterial(world, npc, item.DefinitionId))
+            {
+                continue;
+            }
+
+            // Food, water, medicine and weapons remain protected.  Resources,
+            // clothing and ordinary tools may yield to the life-saving recipe.
+            var importance = Importance(world, item);
+            if (importance > ItemCatalog.Importance(ItemCategory.Tool))
+            {
+                continue;
+            }
+
+            var weaponPriority = Content.GearCatalog.For(item.DefinitionId).MeleePriority;
+            if (importance < victimImportance ||
+                importance == victimImportance && weaponPriority < victimWeaponPriority)
+            {
+                victim = item;
+                victimImportance = importance;
+                victimWeaponPriority = weaponPriority;
+            }
+        }
+
+        return victim;
     }
 
     private static bool IsUsefulMissingTool(

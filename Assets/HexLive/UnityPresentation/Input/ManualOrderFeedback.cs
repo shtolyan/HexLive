@@ -59,6 +59,15 @@ public static class ManualOrderFeedback
         _stampedAt = Time.unscaledTime;
     }
 
+    /// <summary>§121.7: тост с готовым ключом локализации — для событий, у
+    /// которых нет формы <c>Reason=…</c> (возврат под ИИ по таймауту).</summary>
+    public static void ReportTerm(int npcId, string term)
+    {
+        NpcId = npcId;
+        ReasonKey = term;
+        _stampedAt = Time.unscaledTime;
+    }
+
     public static void Clear()
     {
         ReasonKey = string.Empty;

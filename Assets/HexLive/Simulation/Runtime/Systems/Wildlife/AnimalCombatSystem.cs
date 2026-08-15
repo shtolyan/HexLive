@@ -331,11 +331,11 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         if (target.Health <= 0f || target.IsFighting ||
             target.Body.IsProne ||  // §50-prone: lying — never pinned standing
             target.IsUnconscious(world.Tick) || // §60: out cold — can't stand to fight
-            target.Mind.CurrentGoal == GoalType.Flee ||
-            // §121: приказ сильнее самозащиты — идущая по приказу не встаёт в
-            // стойку от укуса (правило Кенши). Стоящая без приказа встаёт.
-            ManualControlMath.IsOrderedManual(target))
+            target.Mind.CurrentGoal == GoalType.Flee)
         {
+            // §121.2: правило Кенши отменено — атакованная ручная бросает
+            // приказ и дерётся, как стоящая. Гейта IsOrderedManual здесь
+            // больше нет намеренно.
             return;
         }
 
@@ -344,7 +344,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
             target.Execution.Status == ExecutionStatus.InProgress ||
             target.IsCarryingPerson)
         {
-            PlanInterruption.AbortForCombat(world, target, $"Attacked by dog {dog.Id}");
+            PlanInterruption.TryAbortForCombat(world, target, InterruptionCause.CombatVictim, $"Attacked by dog {dog.Id}");
             target.Mind.CurrentGoal = GoalType.None;
         }
     }
@@ -450,7 +450,8 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // Укус в уже плохой драке зовёт сам; кулдаун внутри CallForHelp держит
         // частоту, так что затяжная травля кричит каждые ~240 тиков.
         if (Spec57.HelpCryOnHitEnabled &&
-            (target.Health < Spec57.HelpCryHurtHealth ||
+            (target.Mind.CurrentGoal == GoalType.Flee ||
+             target.Health < Spec57.HelpCryHurtHealth ||
              MobSystem.WorstPartHealth(target) < Spec57.HelpCryHurtPart ||
              MobSystem.CountAdjacentDogs(world, target) >= 2))
         {

@@ -110,6 +110,51 @@ public sealed class LoopDiagnosticTests
             "материалом десятки раз и обязана оставаться незамеченной.");
     }
 
+    [Test]
+    public void CompletedPrerequisiteStartsAFreshLoopEpisode()
+    {
+        var (engine, npc) = Arena();
+
+        for (var i = 0; i < AiBalance.LoopRepeatAttempts - 1; i++)
+        {
+            Attempt(engine, npc, GoalType.TendFire, 77, PlanStatus.Failed);
+        }
+
+        Attempt(engine, npc, GoalType.GatherWood, 42, PlanStatus.Completed);
+
+        for (var i = 0; i < AiBalance.LoopRepeatAttempts - 1; i++)
+        {
+            Attempt(engine, npc, GoalType.TendFire, 77, PlanStatus.Failed);
+        }
+
+        Assert.That(Loops(engine.World, LoopDiagnosticSystem.ReasonSisyphus), Is.Zero,
+            "A successful prerequisite is progress: old pre-supply failures must not " +
+            "make the first post-supply attempt look like attempt five.");
+    }
+
+    [Test]
+    public void ToolStashWithAnotherWantedToolIsProgressNotSisyphus()
+    {
+        var (engine, npc) = Arena();
+        npc.Inventory.Items.Clear();
+        var stash = engine.World.Entities.Objects.Values.First(obj =>
+            engine.World.Content.ObjectDefinitions.TryGetValue(
+                obj.DefinitionId, out var definition) &&
+            !definition.Tags.Contains("Tool"));
+        stash.Contents.Clear();
+        stash.Contents.Add(new ItemInstance(ContentIds.PickaxeStone));
+
+        for (var i = 0; i < AiBalance.LoopRepeatAttempts + 2; i++)
+        {
+            Attempt(engine, npc, GoalType.GatherTools,
+                stash.Id.Value, PlanStatus.Failed);
+        }
+
+        Assert.That(Loops(engine.World, LoopDiagnosticSystem.ReasonSisyphus),
+            Is.Zero,
+            "One container can yield several distinct tools; its stable id is not stalled work.");
+    }
+
     /// <summary>Меньше порога — молчим: одна временная пробка не тупик.</summary>
     [Test]
     public void FewRetriesStaySilent()

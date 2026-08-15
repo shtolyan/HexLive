@@ -8,7 +8,7 @@ namespace HexLive.Simulation.Runtime
 // systems read them through `=> AiBalance.X` shims at the old const names.
 public static class AiBalance
 {
-    public static int PerceptionRadiusTiles = 2;
+    public static int PerceptionRadiusTiles = 3;
     // How long a seen object / danger mark lingers in memory. 2400 ticks =
     // 10 real minutes; MeatRawSpoilTicks (12000, §54.17) comfortably
     // outlives it. Plain ticks, so it does NOT follow the visual clock.

@@ -64,6 +64,56 @@ public sealed class RuntimeCaches
     // значение считается один раз на мир. 0 = ещё не считали, -1 = граф
     // вырожденный, эвристика выключена.
     public float LongestJunctionEdge { get; set; }
+
+    // §54.12 / §30.16: ledges belong to ONE world. The first implementation
+    // cached Junction object references in a static DecisionSystem list keyed
+    // only by the numeric TopologyVersion. Fresh worlds normally all start at
+    // version 1, so a multi-seed soak silently queried the previous island's
+    // junctions. Keep ids in the existing per-world derived-cache container;
+    // no cross-world reference can survive, even when versions are equal.
+    public List<JunctionId> LedgeJunctions { get; } = new();
+
+    public int LedgeJunctionsBuiltVersion { get; set; } = -1;
+
+    // §30.16 r2: path-derived scratch and tick caches are world-owned for the
+    // same reason as ledges. A static tick key can make a second world reuse
+    // another island's danger/hostile ring at an equal simulation tick.
+    public HashSet<JunctionId> OtherActorJunctionsScratch { get; } = new();
+
+    public HashSet<JunctionId> DangerRingJunctions { get; } = new();
+
+    public Queue<JunctionId> DangerRingQueue { get; } = new();
+
+    public int DangerRingBuiltTick { get; set; } = -1;
+
+    public Dictionary<Faction, HashSet<JunctionId>> HostileRings { get; } = new();
+
+    public Dictionary<Faction, int> HostileRingBuiltTicks { get; } = new();
+
+    public Queue<JunctionId> HostileRingQueue { get; } = new();
+
+    public HashSet<JunctionId> CombinedDangerRingScratch { get; } = new();
+
+    // §30.16 r3: generic object-planning and its availability mirror walk
+    // exactly the same interaction rim.  The scratch list must belong to the
+    // world: parallel/multi-seed soaks may plan two islands on the same process,
+    // and a static list lets one planner clear the other's candidates.
+    public List<JunctionId> ObjectApproachJunctionsScratch { get; } = new();
+
+    // §40.6 r7: voluntary swimming is allowed only when the bather has a
+    // short, door-independent round trip.  These are per-world because a
+    // multi-seed soak runs several islands in one process; shared scratch
+    // would mix numeric junction ids from unrelated graphs.
+    public List<(JunctionId Junction, float Distance)> BathWaterCandidatesScratch { get; } = new();
+
+    public List<(JunctionId Junction, float Distance)> BathShoreCandidatesScratch { get; } = new();
+
+    // §35.4: exact cool-off availability and planning share the same bounded
+    // nearest-candidate buffer. World-owned for the same multi-seed isolation
+    // reason as the bathing buffers above.
+    public List<(JunctionId Junction, float Distance)> CoolingCandidatesScratch { get; } = new();
+
+    public HashSet<JunctionId> VoluntaryWaterDoorAvoidScratch { get; } = new();
 }
 
 }

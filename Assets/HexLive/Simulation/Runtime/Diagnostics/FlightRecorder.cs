@@ -100,6 +100,22 @@ public sealed class FlightRecorder
         // ещё одна строка шума. Без неё читающий хвост видит десять PlanFailed
         // подряд и должен сам догадаться, что это один и тот же круг.
         "LoopDetected",
+        // §30.15: death analysis needs the decisions around danger, not only
+        // the terminal cause. Deliberately omit the per-tick "Dying" pulse —
+        // it would evict the fight it is meant to explain.
+        "DogFight",
+        "FleeStarted",
+        "FleeUnavailable",
+        "FleeStalled",
+        "Collapsed",
+        "BledOut",
+        "VitalPartDestroyed",
+        "Drowned",
+        "Bandaged",
+        "Medicated",
+        "Rescued",
+        "FriendGuard",
+        "HelpMoan",
     };
 
     public FlightRecorder(int capacityPerNpc = 64) => _capacity = capacityPerNpc;

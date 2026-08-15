@@ -151,7 +151,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         // §105.14: и глубже притворства — WakeFromComa переспросит на выходе.
         npc.Mind.PlayDeadUntilTick = 0;
         npc.Mind.PlayDeadSinceTick = 0;
-        PlanInterruption.Abort(world, npc, "Collapsed — coma");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.BodyComa, "Collapsed — coma");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // a body that just switched off holds no stance
 
@@ -274,6 +274,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 continue;
             }
 
+            // §52: definitions may cap how many physical instances one NPC can
+            // carry. Normal acquisition enforces this before pickup; this pass
+            // repairs old saves and legacy direct-add paths without deleting
+            // property — extras land at the owner's feet.
+            InventoryMath.SpillCarriedLimitExcess(world, npc);
+
             var prevHunger = npc.Needs.Hunger;
             var prevEnergy = npc.Needs.Energy;
             var prevComfort = npc.Needs.Comfort;
@@ -332,7 +338,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // §76: Endurance is the "can stay up" half of the stat — she runs
             // down toward sleep slower. (Fighting still suspends the drain
             // entirely, as before.)
-            var energyDrain = npc.IsFighting ? 0f : EnergyRate * AttributeMath.EnergyDrainMult(npc);
+            // §54.11 r2: sleep recovery is a NET game-hour contract. Charging
+            // awake EnergyRate while simultaneously adding a sleep bonus made
+            // the duration depend on two unrelated dials and hid a second
+            // restore stream in the timed interaction. An asleep body neither
+            // spends waking energy nor fights; the single recovery block below
+            // owns the clock.
+            var energyDrain = sleeping || npc.IsFighting
+                ? 0f
+                : EnergyRate * AttributeMath.EnergyDrainMult(npc);
 
             // §76.13: Hardiness has only one teacher — going without. Counted
             // while she is genuinely in the red on food, water or temperature,
@@ -346,10 +360,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             }
             npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - energyDrain);
 
-            // §54.11: faster sleep recovery — a base lift (shorter nights) plus a
-            // fireside bonus and a bed bonus, so a bed built by the fire pays off
-            // in time awake. One place, both sleep paths (ground + bed) — `sleeping`
-            // is true for either; the bed bonus keys off the slept-on object.
+            // §54.11 r2: the ONE sleep-energy channel. Ground/coma use the
+            // 8-hour base; bed.basic adds the matching increment for 4 hours.
+            // Legacy interaction and fire energy are zeroed in live balance;
+            // fire still improves warmth and comfort, just not this clock.
             if (sleeping)
             {
                 var wake = SimBalance.SleepEnergyBaseBonus;
@@ -568,7 +582,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Health > 0f)
             {
                 var faintedUntilTick = world.Tick + 80;
-                PlanInterruption.Abort(world, npc, "Collapsed — unconscious");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.Faint, "Collapsed — unconscious");
                 npc.Mind.CurrentGoal = GoalType.None;
                 // §113 r2: choose the nearest sub-grid pose whose whole body is
                 // supported; a furnished tile may fall back to a free bed that
@@ -602,7 +616,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 !npc.IsFighting && !DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
             {
                 var cryingUntilTick = world.Tick + SimBalance.CryingBreakdownTicks;
-                PlanInterruption.Abort(world, npc, "Broke down crying");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.Crying, "Broke down crying");
                 npc.Mind.CurrentGoal = GoalType.None;
                 if (ExecutionSystem.TryLieDownForCrying(
                         world, npc, cryingUntilTick))
@@ -615,6 +629,17 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 {
                     Trace.Debug(world, npc.Id, "LieDownSpot",
                         "State=Crying Outcome=Deferred no collision-free ground rectangle or nearby free bed");
+                }
+
+                // The posture solver may legitimately find no free rectangle
+                // in a crowded furnished room. The breakdown still happened:
+                // hold the conscious crying state while standing instead of
+                // reselecting and re-aborting Socialize/Aid every slow tick.
+                if (npc.Mind.CryingUntilTick < cryingUntilTick)
+                {
+                    npc.Mind.CryingUntilTick = cryingUntilTick;
+                    Trace.Emit(world, npc.Id, "CryingBreakdown",
+                        $"Stamina={npc.Needs.Stamina:F2} Stress={npc.Needs.Stress:F2} Surface=Standing");
                 }
             }
 
@@ -839,7 +864,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // logs/sticks blocks GetWater/forage exactly like it blocked
             // GetFood, and the girl stood at Goal=None x362 cycles until the
             // thirst threshold death (seed 42 d5-6, whole colony at one tile).
-            // Same last-resort construction, same junk order.
+            // Same last-resort construction, same junk order.  §63: the one
+            // stick + one stone reserved for an emergency coconut knife are
+            // excluded.  Dropping either created a literal pick-up/drop loop;
+            // the goal-aware pickup path may instead shed an ordinary tool.
             var packStarved = npc.Needs.Hunger >= 0.8f &&
                 npc.Inventory.FindFirstFood(world.Content) is null;
             var packParched = npc.Needs.Thirst >= 0.8f &&
@@ -849,6 +877,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             {
                 foreach (var junk in new[] { ContentIds.Log, ContentIds.Stick, ContentIds.PalmLeaf, ContentIds.Stone })
                 {
+                    if (InventoryMath.IsReservedEmergencyKnifeMaterial(world, npc, junk))
+                    {
+                        continue;
+                    }
+
                     var idx = npc.Inventory.Items.FindIndex(i => i.DefinitionId == junk);
                     if (idx >= 0)
                     {
@@ -998,6 +1031,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     // голову» от голода был бы бессмыслицей.
                     if (Spec105.DyingEnabled)
                     {
+                        // §105.3 r2: attrition subtracts from every body part
+                        // at once. When the last small remainder reached zero
+                        // on all seven parts in this very pass, Mean() became
+                        // zero before EnterDying and its corpse guard rejected
+                        // the transition. Keep the entity structurally alive
+                        // for the entry call; EnterDying immediately pins the
+                        // actual vital parts to BodyFloor and owns the normal
+                        // starvation/dehydration window from there.
+                        npc.Health = System.Math.Max(npc.Health, Spec105.BodyFloor);
                         MortalityHelpers.EnterDying(world, npc,
                             starved ? DyingCause.Starvation : DyingCause.Dehydration);
                     }

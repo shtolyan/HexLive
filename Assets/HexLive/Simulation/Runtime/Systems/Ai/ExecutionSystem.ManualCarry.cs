@@ -17,7 +17,7 @@ public sealed partial class ExecutionSystem
             person.Id.Equals(carrier.Id) || person.IsBeingCarried ||
             (!dead && !person.IsLyingDown(world.Tick)))
         {
-            PlanInterruption.Abort(world, carrier, "цель ручного переноса недоступна");
+            PlanInterruption.TryAbort(world, carrier, InterruptionCause.ExecutionFailure, "цель ручного переноса недоступна");
             carrier.Mind.CurrentGoal = GoalType.None;
             return;
         }
@@ -33,7 +33,7 @@ public sealed partial class ExecutionSystem
             (carrier.Plan.TargetJunctionId is { } wanted &&
              carrier.CurrentJunction != wanted))
         {
-            PlanInterruption.Abort(world, carrier, "не удалось подойти к лежащему человеку");
+            PlanInterruption.TryAbort(world, carrier, InterruptionCause.ExecutionFailure, "не удалось подойти к лежащему человеку");
             carrier.Mind.CurrentGoal = GoalType.None;
             return;
         }

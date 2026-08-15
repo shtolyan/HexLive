@@ -49,12 +49,18 @@ namespace HexLive.UnityPresentation.Wearing
             // across the four separate skin textures alike.
             public Vector3 BindPos;
             public Vector3 BindNormal;
-            // Spec 40.8-H r8: how far this point's UV sits from the nearest
-            // edge of its UV island, in UV units. The damage speckles are
-            // drawn as plain RECTANGLES, so a blot whose centre sits closer to
-            // an edge than its own radius is cut in half by the seam — visible
-            // even WITHIN one limb, where the arm's or the back's island ends.
-            // Placement uses this to keep clear of the edges instead.
+            // Spec 40.8-H r8: distance from this point's UV to the nearest
+            // edge of its UV island, in UV units.
+            //
+            // ⚠️ CURRENTLY UNUSED, on purpose. Placement tried to keep blots
+            // this far from an edge so a seam could not slice them; the
+            // forbidden cells turned out to be a ring along every island
+            // border, and that ring is a different share of every zone — 0% of
+            // the torso against 45% of an arm — so blood bunched into the
+            // middle of each limb while the torso stayed even. An uneven body
+            // reads worse than a sliced blot, so the walk went back to plain.
+            // The field stays baked because it is cheap and correct; wire it
+            // to anything only with that measurement in hand.
             public float UvEdgeDistance;
         }
 

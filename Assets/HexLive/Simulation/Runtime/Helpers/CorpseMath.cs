@@ -209,6 +209,65 @@ public static class CorpseMath
         return null;
     }
 
+    /// <summary>
+    /// The next spoil this particular looter may actually carry. A body can
+    /// still contain property which is redundant for one NPC (for example her
+    /// own bottle is already present) but useful to a bottleless housemate.
+    /// Selection and availability share this method so such leftovers do not
+    /// create a LootCorpse plan loop.
+    /// </summary>
+    public static ItemInstance NextSpoil(
+        WorldState world, NPCState looter, WorldObjectState anchor,
+        out SpoilSource source)
+    {
+        source = SpoilSource.None;
+        var body = BodyOf(world, anchor);
+        if (body is not null)
+        {
+            foreach (var item in body.Inventory.Items)
+            {
+                if (InventoryMath.CanAcquireAdditional(
+                        world, looter, item.DefinitionId))
+                {
+                    source = SpoilSource.Pockets;
+                    return item;
+                }
+            }
+
+            foreach (var item in body.WornItems)
+            {
+                if (InventoryMath.CanAcquireAdditional(
+                        world, looter, item.DefinitionId))
+                {
+                    source = SpoilSource.Worn;
+                    return item;
+                }
+            }
+
+            return null;
+        }
+
+        if (anchor is not null &&
+            anchor.DefinitionId == ContentIds.HumanRemains)
+        {
+            foreach (var item in anchor.Contents)
+            {
+                if (InventoryMath.CanAcquireAdditional(
+                        world, looter, item.DefinitionId))
+                {
+                    source = SpoilSource.Bag;
+                    return item;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static bool HasLootableSpoils(
+        WorldState world, NPCState looter, WorldObjectState anchor) =>
+        NextSpoil(world, looter, anchor, out _) is not null;
+
     public static bool TakeSpoil(
         WorldState world, WorldObjectState anchor, ItemInstance item, SpoilSource source)
     {
@@ -239,7 +298,7 @@ public static class CorpseMath
                 continue;
             }
 
-            if (HasSpoils(world, anchor))
+            if (HasLootableSpoils(world, npc, anchor))
             {
                 return true;
             }

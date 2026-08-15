@@ -48,6 +48,21 @@ public sealed class SimulationBootstrapSettings
     // islands start with one complete, usable 1-hex hut beside the colony
     // hearth. Small test bootstraps keep the old empty default.
     public bool SpawnCompletedTestHut { get; set; }
+
+    // §120: stake the player's committed building plan as an UNBUILT site, so
+    // the colonists raise it themselves. Opt-in, exactly like the completed
+    // test hut above: WorldBootstrapDefinition has no "run this after Create"
+    // hook, and a bootstrap that silently staked a house would change every
+    // existing world.
+    public bool StakePlayerHutPlan { get; set; }
+
+    // Anchor hex of that plan. The site is staked at the plan's own authored
+    // facing (rotation 0), so its footprint is exactly the plan's footprint
+    // offset from here — a sandbox can therefore know which hexes the house
+    // owns before the world exists.
+    public int PlayerHutPlanTileQ { get; set; }
+
+    public int PlayerHutPlanTileR { get; set; }
 }
 
 public sealed class EnvironmentBootstrap

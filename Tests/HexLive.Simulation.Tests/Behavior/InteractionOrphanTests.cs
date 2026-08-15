@@ -1,5 +1,6 @@
 using System.Linq;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
@@ -61,6 +62,48 @@ public sealed class InteractionOrphanTests
             "Перепланирование оставило начатое действие включённым — именно так " +
             "клип питья уезжает вместе с телом.");
         Assert.That(npc.Execution.Status, Is.Not.EqualTo(ExecutionStatus.InProgress));
+    }
+
+    /// <summary>
+    /// Bug #128's real save had WashClothes/Active installed over Sleep/InProgress.
+    /// Both halves survived reload because an active matching work plan bypasses
+    /// the ordinary replan cleanup, while Execution kept maintaining the bed pose.
+    /// </summary>
+    [Test]
+    public void ActiveLaundryPlanCannotKeepAnOlderBedSleepAlive()
+    {
+        var world = TestWorld.CreateWorld();
+        var engine = new SimulationEngine(world, new SimulationSettings(), new SimulationClock());
+        engine.Clock.Resume();
+        engine.Register(new SleepPlanConsistencySystem());
+
+        var npc = world.Entities.Npcs.Values.First();
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic && o.Junctions.Count > 0);
+        var wakeJunction = npc.CurrentJunction;
+        Assert.That(BedSleep.TryEnter(
+            world, npc, bed, world.Tick + 100, wakeJunction), Is.True);
+
+        npc.Mind.CurrentGoal = GoalType.WashClothes;
+        npc.Plan.Goal = GoalType.WashClothes;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = new JunctionId(1)
+        });
+
+        engine.Step();
+
+        Assert.That(npc.Execution.Status, Is.EqualTo(ExecutionStatus.None));
+        Assert.That(npc.Execution.CurrentInteraction, Is.Null);
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Invalid));
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.WashClothes),
+            "Cleanup must preserve the desired chore so Planning can rebuild it.");
+        Assert.That(npc.IsLyingDown(world.Tick), Is.False);
+        Assert.That(bed.IsOccupied, Is.False);
+        Assert.That(bed.CurrentUser, Is.Null);
     }
 
     /// <summary>

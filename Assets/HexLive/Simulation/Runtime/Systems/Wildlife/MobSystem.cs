@@ -552,17 +552,17 @@ public sealed class MobSystem : ISimulationSystem
                             $"Dog={dog.Id} never reached melee in {window} ticks — " +
                             $"dropping the stance (grace {SimBalance.StandoffReleaseGraceTicks})");
                     }
-                    // §121: с приказом она не оборачивается и на разгон зверя —
-                    // идёт дальше (правило Кенши). Без приказа — как все.
-                    else if (!ManualControlMath.IsOrderedManual(target))
+                    // §121.2: правило Кенши отменено — разгон зверя ставит в
+                    // стойку и ручную с приказом.
+                    else
                     {
                         target.IsFighting = true;
                         if (target.Plan.Status == PlanStatus.Active ||
                             target.Execution.Status == ExecutionStatus.InProgress ||
                             target.IsCarryingPerson)
                         {
-                            PlanInterruption.AbortForCombat(
-                                world, target, $"Charged by dog {dog.Id}");
+                            PlanInterruption.TryAbortForCombat(
+                                world, target, InterruptionCause.CombatVictim, $"Charged by dog {dog.Id}");
                             target.Mind.CurrentGoal = GoalType.None;
                         }
                     }
@@ -638,10 +638,9 @@ public sealed class MobSystem : ISimulationSystem
         // A committed fighter never re-opens the flee assessment (that re-flee
         // was the endless-maul loop); a genuinely new flee only starts for a
         // girl not currently standing her ground.
-        // §121: ручная не убегает от зверя сама — как и от человека (§109.8).
-        // Отступление есть у игрока: приказ идти, который она — по правилу
-        // Кенши — не бросит даже под укусами.
-        var manualTarget = ManualControlMath.IsManual(target);
+        // §121.2: ручная не убегает от зверя сама — как и от человека (§109.8).
+        // Побег — решение, у ручной его принимает игрок (NpcControlPolicy.MayFlee).
+        var manualTarget = !NpcControlPolicy.MayFlee(target);
         var fleeing = target.Mind.CurrentGoal == GoalType.Flee && !committedToFight;
         if (!fleeing && !helpless && !committedToFight && !manualTarget)
         {
@@ -658,11 +657,9 @@ public sealed class MobSystem : ISimulationSystem
         // §50-prone: no refuge to crawl to still never means standing up —
         // a prone girl lies where she is (and takes the bites; §50 is HARD).
         //
-        // ⭐ §121 ПРАВИЛО КЕНШИ, вторая половина: с приказом она НЕ встаёт в
-        // стойку и против зверя — идёт и терпит укусы. Без приказа стоит и
-        // дерётся, как все (ветка ниже отрабатывает как прежде).
-        if (!fleeing && !helpless && !target.Body.IsProne &&
-            !(manualTarget && ManualControlMath.HasActiveOrder(target)))
+        // §121.2: правило Кенши отменено — укус ставит в стойку и ручную с
+        // приказом; приказ сносится причиной CombatVictim (самозащита).
+        if (!fleeing && !helpless && !target.Body.IsProne)
         {
             var wasFighting = target.IsFighting;
             target.IsFighting = true;
@@ -670,7 +667,7 @@ public sealed class MobSystem : ISimulationSystem
                 target.Execution.Status == ExecutionStatus.InProgress ||
                 target.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(world, target, $"Attacked by dog {dog.Id}");
+                PlanInterruption.TryAbortForCombat(world, target, InterruptionCause.CombatVictim, $"Attacked by dog {dog.Id}");
                 target.Mind.CurrentGoal = GoalType.None;
             }
 
@@ -970,6 +967,14 @@ public sealed class MobSystem : ISimulationSystem
     // прибытия, кольца угроз игнорируются.
     internal static bool TryFleeToCamp(WorldState world, NPCState npc, string reason)
     {
+        // §121.5 fail-closed: побег — решение, у ручной его принимает игрок.
+        // Гейт в самой функции, а не только у вызывающих: новая система,
+        // забывшая про ручной режим, не отправит её бежать.
+        if (!NpcControlPolicy.MayFlee(npc))
+        {
+            return false;
+        }
+
         if (npc.CurrentJunction is not { } startJunction ||
             !world.FactionHomes.TryGetValue(npc.Faction, out var camp) ||
             IsFleeOnCooldown(world, npc))
@@ -1032,7 +1037,7 @@ public sealed class MobSystem : ISimulationSystem
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {
-            PlanInterruption.Abort(world, npc, reason);
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.Flee, reason);
             // Abort releases the old target. If it happened to equal the newly
             // chosen refuge, reacquire our short anti-race reservation.
             SpatialMutations.TryReserveJunction(world, refuge, npc.Id, world.Tick, 48);
@@ -1072,6 +1077,12 @@ public sealed class MobSystem : ISimulationSystem
         int? dogId = null,
         EntityId? attackerNpcId = null)
     {
+        // §121.5 fail-closed: см. TryFleeToCamp — ручная не бежит сама.
+        if (!NpcControlPolicy.MayFlee(npc))
+        {
+            return false;
+        }
+
         if (npc.CurrentJunction is not { } startJunction || IsFleeOnCooldown(world, npc))
         {
             return false;
@@ -1112,7 +1123,7 @@ public sealed class MobSystem : ISimulationSystem
             return false; // nowhere to run — keep fighting
         }
 
-        PlanInterruption.Abort(world, npc, $"Fleeing from dogs (attackers={attackers})");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.Flee, $"Fleeing from dogs (attackers={attackers})");
         SpatialMutations.TryReserveJunction(world, refuge, npc.Id, world.Tick, 48);
         npc.IsFighting = false;
         // §109.9: бегство расцепляет бой — см. TryFleeToCamp выше. Здесь та же
@@ -1194,7 +1205,7 @@ public sealed class MobSystem : ISimulationSystem
             var path = HexPathfinder.FindPath(
                 world, start, candidate.Id, avoid,
                 weightClimb: false,
-                canJump: npc.Body.CanJump);
+                canJump: PlanningSystem.CanUseCriticalTraversal(npc));
             if (path.Count == 0 ||
                 !SpatialMutations.TryReserveJunction(
                     world, candidate.Id, npc.Id, world.Tick, 48))
@@ -1722,7 +1733,7 @@ public sealed class MobSystem : ISimulationSystem
         // and must keep that pose instead of replaying a death performance.
         var preserveLyingDeathPose = npc.IsLyingDown(world.Tick);
 
-        PlanInterruption.Abort(world, npc, "Died");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.Death, "Died");
 
         world.Entities.Npcs.Remove(deadId);
 

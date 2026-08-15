@@ -39,6 +39,9 @@ public sealed class TraceGateLintTests
     private static readonly string[] OrderReplies =
     {
         "ManualOrderRejected", "GroupOrderResult",
+        // §121.7: возврат под ИИ по таймауту обязан звучать всегда — молчаливое
+        // «она вдруг зажила своей жизнью» игрок читает как поломку.
+        "ManualControlExpired",
     };
 
     [Test]

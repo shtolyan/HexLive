@@ -29,7 +29,8 @@ public sealed partial class PlanningSystem
         if (mark.CurrentJunction is not { } markJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            AbandonLootHelpless(world, npc, "MarkOffGrid");
+            AbandonLootHelpless(world, npc, "MarkOffGrid",
+                Spec111.LootHelplessCooldownTicks);
             return;
         }
 
@@ -64,7 +65,8 @@ public sealed partial class PlanningSystem
         if (approach is not { } approachJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            AbandonLootHelpless(world, npc, "NoApproach");
+            AbandonLootHelpless(world, npc, "NoApproach",
+                Spec111.LootHelplessCooldownTicks);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "PlanFailed",

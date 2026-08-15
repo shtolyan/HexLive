@@ -161,7 +161,7 @@ public sealed partial class ExecutionSystem
         {
             patient.Mind.PendingAidFrom = null;
         }
-        PlanInterruption.Abort(world, helper, reason);
+        PlanInterruption.TryAbort(world, helper, InterruptionCause.ExecutionFailure, reason);
         helper.Mind.CurrentGoal = GoalType.None;
     }
 }

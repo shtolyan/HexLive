@@ -410,6 +410,32 @@ public sealed class LyingSpotTests
         Assert.That(HexSpatialMath.Distance(girls[0].Position, girls[1].Position),
             Is.GreaterThan(0.20f));
     }
+
+    [Test]
+    public void SleepAuctionIsClosedWhenNoBedOrFullBodyGroundSpotExists()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girl = Girl(world);
+        var stand = world.Junctions.Items.Values.First(j =>
+            !j.Blocked && j.Tiles.Count > 0);
+        girl.CurrentJunction = stand.Id;
+        girl.Tile = stand.Tiles[0];
+        girl.Position = stand.WorldPosition;
+        girl.Perception.Objects.Clear();
+        girl.Needs.Energy = 0f;
+        girl.Needs.Hunger = 0.1f;
+        girl.Needs.Thirst = 0.1f;
+        foreach (var junction in world.Junctions.Items.Keys)
+        {
+            world.Occupancy.JunctionOwner[junction] =
+                new EntityId(int.MaxValue - 600);
+        }
+
+        Assert.That(PlanningSystem.HasSleepSurface(world, girl), Is.False);
+        new DecisionSystem().Run(world);
+        Assert.That(girl.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Sleep),
+            "Sleep без физической поверхности не должен выигрывать и падать в NoGroundSpot.");
+    }
 }
 
 }

@@ -97,6 +97,8 @@ namespace HexLive.UnityPresentation.UI
         };
 
         private readonly Dictionary<Renderer, string> _wornByRenderer = new();
+        private readonly Dictionary<Renderer, MeshCollider> _wornPickColliders = new();
+        private readonly List<Mesh> _wornPickMeshes = new();
         private readonly HashSet<string> _wantedWorn = new();
         private readonly List<Renderer> _rendererScratch = new();
         private readonly List<Renderer> _cloneRendererScratch = new();
@@ -359,10 +361,30 @@ namespace HexLive.UnityPresentation.UI
                 0f);
             var ray = _camera.ViewportPointToRay(viewport);
             var nearest = float.MaxValue;
+            foreach (var pair in _wornPickColliders)
+            {
+                var renderer = pair.Key;
+                var collider = pair.Value;
+                if (renderer == null || collider == null || !renderer.enabled ||
+                    !renderer.gameObject.activeInHierarchy ||
+                    !collider.Raycast(ray, out var hit, _camera.farClipPlane) ||
+                    hit.distance >= nearest)
+                {
+                    continue;
+                }
+
+                nearest = hit.distance;
+                definitionId = _wornByRenderer[renderer];
+            }
+
+            // A runtime garment without usable mesh data remains selectable by
+            // its bounds. Exact triangle hits always win over this fallback, so
+            // a large leggings AABB can no longer steal hover from a visible bra.
             foreach (var pair in _wornByRenderer)
             {
                 var renderer = pair.Key;
-                if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy ||
+                if (_wornPickColliders.ContainsKey(renderer) || renderer == null ||
+                    !renderer.enabled || !renderer.gameObject.activeInHierarchy ||
                     !renderer.bounds.IntersectRay(ray, out var distance) || distance >= nearest)
                 {
                     continue;
@@ -575,6 +597,8 @@ namespace HexLive.UnityPresentation.UI
                 bounds.Expand(bounds.size.magnitude);
                 skin.localBounds = bounds;
             }
+
+            BuildWornPickColliders();
         }
 
         private void BuildClone(Transform source, int visualSignature)
@@ -1119,6 +1143,15 @@ namespace HexLive.UnityPresentation.UI
                 if (hairCovered) hair.Hide();
                 else hair.Show();
             }
+
+            foreach (var pair in _wornPickColliders)
+            {
+                if (pair.Value != null)
+                {
+                    pair.Value.enabled = pair.Key != null && pair.Key.enabled &&
+                                         pair.Key.gameObject.activeInHierarchy;
+                }
+            }
         }
 
         private void SetStageEnabled(bool enabled)
@@ -1176,6 +1209,105 @@ namespace HexLive.UnityPresentation.UI
                     _wornByRenderer[renderer] = definitionId;
                 }
             }
+        }
+
+        /// <summary>
+        /// Bakes the final frozen clothing pose once and gives every garment an
+        /// exact, stage-local picking surface. Bounds alone overlap heavily on
+        /// layered outfits; triangle raycasts make the foremost actually drawn
+        /// garment win without taking another camera render on pointer movement.
+        /// </summary>
+        private void BuildWornPickColliders()
+        {
+            ReleaseWornPickMeshes();
+            foreach (var pair in _wornByRenderer)
+            {
+                var renderer = pair.Key;
+                if (renderer == null)
+                {
+                    continue;
+                }
+
+                Mesh mesh = null;
+                var ownsMesh = false;
+                if (renderer is SkinnedMeshRenderer skin && skin.sharedMesh != null)
+                {
+                    mesh = new Mesh { name = $"CharacterDollPick_{pair.Value}" };
+                    ownsMesh = true;
+                    try
+                    {
+                        skin.BakeMesh(mesh, false);
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogWarning(
+                            $"[CharacterDoll] cannot bake pick mesh for '{pair.Value}': " +
+                            exception.Message, renderer);
+                        Destroy(mesh);
+                        continue;
+                    }
+                }
+                else if (renderer is MeshRenderer)
+                {
+                    var filter = renderer.GetComponent<MeshFilter>();
+                    if (filter != null)
+                    {
+                        mesh = filter.sharedMesh;
+                    }
+                }
+
+                if (mesh == null || mesh.vertexCount == 0)
+                {
+                    if (ownsMesh) Destroy(mesh);
+                    continue;
+                }
+
+                var pickObject = new GameObject($"DollPick_{pair.Value}")
+                {
+                    hideFlags = HideFlags.DontSave,
+                    layer = renderer.gameObject.layer
+                };
+                pickObject.transform.SetParent(renderer.transform, false);
+                var collider = pickObject.AddComponent<MeshCollider>();
+                try
+                {
+                    collider.sharedMesh = mesh;
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogWarning(
+                        $"[CharacterDoll] cannot build pick mesh for '{pair.Value}': " +
+                        exception.Message, renderer);
+                    Destroy(pickObject);
+                    if (ownsMesh) Destroy(mesh);
+                    continue;
+                }
+
+                if (collider.sharedMesh == null)
+                {
+                    Destroy(pickObject);
+                    if (ownsMesh) Destroy(mesh);
+                    continue;
+                }
+
+                collider.enabled = renderer.enabled && renderer.gameObject.activeInHierarchy;
+                _wornPickColliders[renderer] = collider;
+                if (ownsMesh) _wornPickMeshes.Add(mesh);
+            }
+        }
+
+        private void ReleaseWornPickMeshes()
+        {
+            foreach (var collider in _wornPickColliders.Values)
+            {
+                if (collider != null) Destroy(collider.gameObject);
+            }
+            _wornPickColliders.Clear();
+            foreach (var mesh in _wornPickMeshes)
+            {
+                if (mesh != null) Destroy(mesh);
+            }
+            _wornPickMeshes.Clear();
         }
 
         private void CacheDistalBones()
@@ -1553,6 +1685,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void DestroyClone()
         {
+            ReleaseWornPickMeshes();
             _wornByRenderer.Clear();
             _cloneWears = Array.Empty<Wear>();
             _equippedCloneWears.Clear();

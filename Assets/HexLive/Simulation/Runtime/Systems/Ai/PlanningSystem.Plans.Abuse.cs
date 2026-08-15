@@ -47,7 +47,10 @@ public sealed partial class PlanningSystem
             }
 
             npc.Plan.Status = PlanStatus.Failed;
-            AbandonAbuse(world, npc, "NoMark");
+            // Neither a live mark nor even a camp prowl anchor exists. This is
+            // a structural absence, not a one-tick race: the old short retry
+            // rebuilt the same empty plan every 40 ticks for whole days.
+            AbandonAbuse(world, npc, "NoMark", Spec81.AbuseCooldownTicks);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Abuse NoMark");
@@ -59,7 +62,7 @@ public sealed partial class PlanningSystem
         if (mark.CurrentJunction is not { } markJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            AbandonAbuse(world, npc, "MarkOffGrid");
+            AbandonAbuse(world, npc, "MarkOffGrid", Spec81.AbuseCooldownTicks);
             return;
         }
 
@@ -105,7 +108,7 @@ public sealed partial class PlanningSystem
         if (approach is not { } approachJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            AbandonAbuse(world, npc, "NoApproach");
+            AbandonAbuse(world, npc, "NoApproach", Spec81.AbuseCooldownTicks);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "PlanFailed", $"Goal=Abuse Mark={mark.Id.Value} NoApproach");
@@ -177,7 +180,8 @@ public sealed partial class PlanningSystem
 
     // Снять заявку ОБЯЗАТЕЛЬНО: иначе жертва остаётся помеченной навсегда и её
     // не сможет выбрать никто, включая её собственных собеседников.
-    internal static void AbandonAbuse(WorldState world, NPCState npc, string reason)
+    internal static void AbandonAbuse(
+        WorldState world, NPCState npc, string reason, int cooldownTicks = -1)
     {
         if (npc.Mind.AbuseTargetNpcId is { } markId &&
             world.Entities.Npcs.TryGetValue(markId, out var mark) &&
@@ -198,7 +202,8 @@ public sealed partial class PlanningSystem
         //
         // Короткая передышка всё же нужна, иначе он будет молотить планами
         // каждый тик по недостижимой цели.
-        npc.Mind.AbuseCooldownUntilTick = world.Tick + Spec81.AbuseRetryTicks;
+        npc.Mind.AbuseCooldownUntilTick = world.Tick +
+            (cooldownTicks >= 0 ? cooldownTicks : Spec81.AbuseRetryTicks);
         if (npc.Mind.CurrentGoal == GoalType.Abuse)
         {
             npc.Mind.CurrentGoal = GoalType.None;

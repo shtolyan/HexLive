@@ -160,6 +160,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _portraitGaze; // §80: взгляд отдан камере портрета
     private bool _cameraGaze;   // §130: на пару секунд смотрит в объектив игрока
     private float _cameraGazeUntil;
+    // §130 r2: 0..1 — плавный переход НАБОРА весов (глаза/голова/корпус)
+    // между обычным взглядом и «в объектив». IKPositionWeight и так едет
+    // MoveTowards'ом, а вот сами веса солвера раньше щёлкали за один кадр.
+    private float _cameraGazeBlend;
     private Transform _bodyRoot;
 
     // Spec 31B.5: animation follows measured view motion, not sim status —
@@ -545,9 +549,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Spec §50: a body with no support on either side cannot stand. Every
     // standing/idle clip is swapped for the existing prone idle (and walking
     // for crawl) via the override controller; no extra leg/knee pose is layered.
-    // Driven by PostureHint=Crawl — the snapshot form of BodyState.IsProne —
+    // Driven by the snapshot's LegsLost (BodyState.IsProne — функция ноги в
+    // нуле, оторвана она или разбита) плюс PostureHint=Crawl и зоны ампутации,
     // rather than re-deriving it from amputation visuals in this view.
     private bool _legless;
+
+    // §50: «ноги в ноль» прямо из снапшота. Отдельно от _posture, потому что
+    // подсказка позы ранжирована и обморок перебивает в ней ползание — см.
+    // RefreshLeglessPresentation.
+    private bool _legsLost;
 
     private AnimationClip ProneClip => _animSet != null ? _animSet.proneIdle : null;
 
@@ -799,13 +809,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SetRunning(bool running) => _running = running;
     private bool _wasWalking;
     private float _animSpeed = 1f;
-    // Fast-forward: the sim's speed multiplier scales every clip's playback
-    // (walk cadence, sleep, limp — all of it), fed per-sync by the renderer.
+    // Fast-forward: the PRESENTATION speed scales every clip's playback. MAX
+    // simulation uses +Infinity as an uncapped sentinel, so SetSimSpeed must
+    // normalize it before it can reach Animator.speed or any phase accumulator.
     private float _simSpeed = 1f;
 
     public void SetSimSpeed(float multiplier)
     {
-        _simSpeed = Mathf.Max(0.01f, multiplier);
+        _simSpeed = PresentationSpeed.Normalize(multiplier);
     }
 
     /// <summary>Feed the ground speed calculated from two simulation poses.
@@ -1499,6 +1510,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             if (_swimming)
             {
                 return r * 0.24f;
+            }
+
+            // §137: праздный отдых — сидение НА ЗЕМЛЕ, и оно заметно ниже
+            // сидения на мебели ниже. Число не на глаз: в клипе «X Bot@Sitting
+            // Idle» голова стоит на 0.642 м против 1.421 м в стоячей позе того
+            // же скелета, то есть 0.45 от стоячей — отсюда 0.62 × 0.45 ≈ 0.28.
+            // Оказывается между плаванием и стулом, как и должно быть.
+            if (_resting)
+            {
+                return r * 0.28f;
             }
 
             if (_sitting)
@@ -2386,7 +2407,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void RefreshLeglessPresentation()
     {
-        var missingLeg = _posture == "Crawl" ||
+        // §50: «вставать нечем» — это ФУНКЦИЯ НОГИ В НУЛЕ, а не подсказка позы.
+        //
+        // Подсказка ранжирована, и обморок в ней стоит выше ползания: стоило
+        // упасть, как PostureHint становился «Faint», и вид забывал про ноги.
+        // Оторванную он всё равно узнавал по зонам ампутации, а РАЗБИТУЮ В НОЛЬ,
+        // но целую — нет. Получалось, что одна и та же беспомощность падает
+        // двумя разными способами в зависимости от того, оторвало ногу или
+        // просто добило до нуля. Теперь факт едет своим полем (LegsLost) и
+        // обморок его не стирает.
+        var missingLeg = _legsLost || _posture == "Crawl" ||
             (_severedZones.Contains("LegL") && !_prostheticZones.Contains(BodyPart.LegL)) ||
             (_severedZones.Contains("LegR") && !_prostheticZones.Contains(BodyPart.LegR));
         if (_legless == missingLeg)
@@ -5273,10 +5303,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 40.9/40.1: the renderer feeds the injury-locomotion hint
     // (Faint/Crawl/Limp/ArmHang/HeadClutch/Upright) and the winded flag.
-    public void SetPosture(string postureHint, bool winded)
+    public void SetPosture(string postureHint, bool winded, bool legsLost = false)
     {
         _posture = string.IsNullOrEmpty(postureHint) ? "Upright" : postureHint;
         _winded = winded;
+        _legsLost = legsLost; // §50: до RefreshLeglessPresentation — он это читает
         RefreshLeglessPresentation();
 
         // Spec 40.9 r2: the dedicated limp pose was removed by player decision.
@@ -6989,22 +7020,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 return;
             }
 
-            if (_cameraGaze)
-            {
-                // §130: здесь, в отличие от портрета (§80 r2), голову вести
-                // МОЖНО — игровая камера не прибита к кости головы, обратной
-                // связи нет. Глаза решают, голова доворачивает, корпус едва.
-                _lookAtIK.solver.headWeight = 0.7f;
-                _lookAtIK.solver.eyesWeight = 1f;
-                // §114 баг #116: тот же корпус, та же беда — см. ниже.
-                _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.15f;
-                _lookAtIK.solver.clampWeight = 0.5f;
-                _lookAtIK.solver.clampWeightEyes = 0.3f;
-                return;
-            }
+            // §130 r2: набор весов не щёлкает — блендер плавно ведёт его от
+            // обычного взгляда к «в объектив» и так же плавно возвращает.
+            _cameraGazeBlend = Mathf.MoveTowards(
+                _cameraGazeBlend, _cameraGaze ? 1f : 0f, Time.deltaTime * 1.5f);
 
-            _lookAtIK.solver.headWeight = 0.8f;
-            _lookAtIK.solver.eyesWeight = 0.2f;
+            // Обычный взгляд (мировая цель): голова решает, глаза слегка.
+            var headWeight = 0.8f;
+            var eyesWeight = 0.2f;
             // §114 баг #116: ПОЛЗУЩАЯ НЕ ДОВОРАЧИВАЕТ КОРПУС ЗА ВЗГЛЯДОМ.
             //
             // bodyWeight крутит ПОЗВОНОЧНИК, а таз оставляет на месте. Стоящей
@@ -7016,12 +7039,32 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // вверх, и руки «махали по воздуху» вместо опоры о землю.
             //
             // Голову и глаза оставляем: ползущая вполне может поднять взгляд.
-            _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.3f;
-            _lookAtIK.solver.clampWeight = 0.5f;
+            var bodyWeight = _posture == "Crawl" ? 0f : 0.3f;
             // Clamp eye rotation hard so a wide gaze never rolls the eyes back
             // to the whites (0 = free, 1 = fully clamped). The head carries the
             // rest of the turn.
-            _lookAtIK.solver.clampWeightEyes = 0.4f;
+            var clampEyes = 0.4f;
+
+            if (_cameraGazeBlend > 0f)
+            {
+                // §130: здесь, в отличие от портрета (§80 r2), голову вести
+                // МОЖНО — игровая камера не прибита к кости головы, обратной
+                // связи нет. Голова доворачивает, глаза лишь чуть помогают
+                // (сильный вес глаз на близкой камере даёт «бешеные зрачки»),
+                // спина едва участвует.
+                headWeight = Mathf.Lerp(headWeight, 0.85f, _cameraGazeBlend);
+                eyesWeight = Mathf.Lerp(eyesWeight, 0.3f, _cameraGazeBlend);
+                // §114 баг #116: тот же корпус, та же беда — см. выше.
+                bodyWeight = Mathf.Lerp(
+                    bodyWeight, _posture == "Crawl" ? 0f : 0.2f, _cameraGazeBlend);
+                clampEyes = Mathf.Lerp(clampEyes, 0.3f, _cameraGazeBlend);
+            }
+
+            _lookAtIK.solver.headWeight = headWeight;
+            _lookAtIK.solver.eyesWeight = eyesWeight;
+            _lookAtIK.solver.bodyWeight = bodyWeight;
+            _lookAtIK.solver.clampWeight = 0.5f;
+            _lookAtIK.solver.clampWeightEyes = clampEyes;
         }
     }
 

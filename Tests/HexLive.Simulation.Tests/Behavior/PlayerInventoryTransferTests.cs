@@ -410,6 +410,10 @@ public sealed class PlayerInventoryTransferTests
         foreach (var npc in world.Entities.Npcs.Values)
         {
             npc.Mind.ManualControl = true;
+            // §121.6: голодная ручная сама берёт цель еды — сцены обмена
+            // проверяют не авто-нужды, и «цель None» обязана оставаться None.
+            npc.Needs.Hunger = 0f;
+            npc.Needs.Thirst = 0f;
         }
         looter.Inventory.Items.Clear();
         looter.WornItems.Clear();

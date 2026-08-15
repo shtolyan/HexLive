@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using System.IO;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
@@ -77,6 +78,12 @@ public sealed class LoopbackBackend : ISimulationBackend
     // своего мира, — значит и здесь тумблер ручного управления обязан быть
     // спрятан, как на настоящем удалённом подключении.
     public bool SupportsNpcCommands => false;
+
+    public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
+    {
+        into.Clear();
+        return false;
+    }
 
     public void EnqueueCommand(ISimulationCommand command)
     {

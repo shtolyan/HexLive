@@ -82,7 +82,7 @@ public sealed partial class ExecutionSystem
         }
 
         // Пусто — не провал, а конец: кто-то успел раньше (образец LootEmpty).
-        if (!LootHelplessMath.HasLoot(mark))
+        if (!LootHelplessMath.HasLootFor(world, npc, mark))
         {
             FinishLootHelpless(world, npc, mark);
             return;
@@ -191,7 +191,7 @@ public sealed partial class ExecutionSystem
                 $"Mark=NPC{mark.Id.Value} Def={takenId} Left={mark.Inventory.Items.Count}");
         }
 
-        if (!LootHelplessMath.HasLoot(mark))
+        if (!LootHelplessMath.HasLootFor(world, npc, mark))
         {
             FinishLootHelpless(world, npc, mark);
         }
@@ -295,7 +295,7 @@ public sealed partial class ExecutionSystem
 
         // Abort снимает клеймы, брони шагов и несомую вещь; AbandonLootHelpless —
         // заявку на тело и саму цель.
-        PlanInterruption.Abort(world, npc, $"LootHelpless aborted: {reason}");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, $"LootHelpless aborted: {reason}");
         PlanningSystem.AbandonLootHelpless(world, npc, reason, cooldownTicks);
     }
 }

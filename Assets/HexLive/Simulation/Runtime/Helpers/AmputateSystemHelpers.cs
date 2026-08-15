@@ -182,7 +182,7 @@ public static class AmputateSystemHelpers
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {
-            PlanInterruption.Abort(world, npc, $"Lost {part}");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.LimbLost, $"Lost {part}");
             npc.Mind.CurrentGoal = GoalType.None;
         }
 

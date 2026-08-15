@@ -304,6 +304,30 @@ internal static class LyingStations
     }
 
     /// <summary>
+    /// Reserve one already-proven station. Planners use this after checking the
+    /// snapped junction and route for every slot; blindly claiming the first
+    /// geometrically usable slot used to hide a reachable second slot behind a
+    /// chair, reservation or wall.
+    /// </summary>
+    internal static bool TryClaimSlot(
+        WorldState world, NPCState actor, NPCState body, int slot)
+    {
+        if (Held(world, actor, body) is { } already)
+        {
+            return already == slot;
+        }
+
+        if (!IsFree(world, body, slot, actor) || !IsUsable(world, body, slot))
+        {
+            return false;
+        }
+
+        actor.Execution.LyingStationTargetId = body.Id;
+        actor.Execution.LyingStationSlot = slot;
+        return true;
+    }
+
+    /// <summary>
     /// Станция, с которой актёр работает по этому телу СЕЙЧАС. Не держит ничего
     /// (сцена началась мимо планировщика, старый сейв) — значит ноги: это и
     /// приоритетная станция, и ровно прежнее поведение §111.9.

@@ -48,6 +48,7 @@
       поэтому подключается сюда напрямую — так же, как в hexsoak.
     -->
     <Compile Include="../../Assets/HexLive/UnityPresentation/AbuseTest/AbuseTestWorld.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/Wearing/PresentationSpeed.cs" />
   </ItemGroup>
 
   <ItemGroup>

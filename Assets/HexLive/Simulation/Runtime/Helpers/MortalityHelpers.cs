@@ -51,7 +51,12 @@ internal static class MortalityHelpers
     // может быть длиннее, и укорачивать её нельзя.
     internal static void GrantStandUpGrace(WorldState world, NPCState npc, bool wasProne)
     {
-        if (!wasProne || npc.Body.IsProne)
+        // Crossing 0 HP by a few thousandths is not standing up while both
+        // legs are still below the shared crawling threshold.  A survivor on
+        // a damaging tile can otherwise alternate 0 -> tiny regen every Slow
+        // tick and extend WakeGrace forever, freezing a completed route.  The
+        // grace belongs to the real crawl-to-stand transition.
+        if (!wasProne || npc.Body.IsCrawling)
         {
             return;
         }
@@ -296,7 +301,7 @@ internal static class MortalityHelpers
         {
             PinVitals(npc);
         }
-        PlanInterruption.Abort(world, npc, "Collapsed — dying");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.Dying, "Collapsed — dying");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // тело, которое только что выключилось, не держит стойку
         AnchorLyingBody(world, npc, allowNearbyBed: true);
@@ -631,7 +636,7 @@ internal static class MortalityHelpers
         // Порядок обязателен: Abort освобождает джанкшны и брони плана, а
         // AnchorLyingBody ниже занимает лежачий след — поменяй местами, и она
         // сама себе освободит только что застолблённое место.
-        PlanInterruption.Abort(world, npc, "Playing dead");
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayDead, "Playing dead");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // притворяющаяся не держит боевую стойку
         AnchorLyingBody(world, npc);

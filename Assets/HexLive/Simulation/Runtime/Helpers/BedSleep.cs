@@ -17,6 +17,32 @@ namespace HexLive.Simulation.Runtime
 public static class BedSleep
 {
     /// <summary>
+    /// Returns the exact support bed owned by an active sleeper. The execution
+    /// target and the object's occupancy must agree: a nearby/free bed is not a
+    /// support surface, and stale ownership must not change person-interaction
+    /// geometry.
+    /// </summary>
+    internal static bool TryGetOccupiedBed(
+        WorldState world, NPCState sleeper, out WorldObjectState bed)
+    {
+        bed = null;
+        if (world is null || sleeper is null ||
+            sleeper.Execution.Status != ExecutionStatus.InProgress ||
+            sleeper.Execution.CurrentInteraction != InteractionType.Sleep ||
+            sleeper.Execution.TargetObject is not { } bedId ||
+            !world.Entities.Objects.TryGetValue(bedId, out var candidate) ||
+            !ContentIds.IsBed(candidate.DefinitionId) ||
+            candidate.Junctions.Count == 0 ||
+            !candidate.IsOccupied || candidate.CurrentUser != sleeper.Id)
+        {
+            return false;
+        }
+
+        bed = candidate;
+        return true;
+    }
+
+    /// <summary>
     /// Places <paramref name="sleeper"/> on <paramref name="bed"/> and starts
     /// one in-progress Sleep block. <paramref name="wakeJunction"/> is the
     /// legal point from which the actor approached the furniture; it is kept

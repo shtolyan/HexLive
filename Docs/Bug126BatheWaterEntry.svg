@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#1f2937"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#fbbf24"/>
+    </marker>
+    <style>
+      .title { font: 700 30px system-ui, sans-serif; fill: #f9fafb; }
+      .head { font: 700 22px system-ui, sans-serif; fill: #f9fafb; }
+      .body { font: 17px system-ui, sans-serif; fill: #d1d5db; }
+      .mono { font: 16px ui-monospace, monospace; fill: #bfdbfe; }
+      .land { fill: #6b7f45; stroke: #a3b66f; stroke-width: 4; }
+      .water { fill: #176b87; stroke: #5ec5e8; stroke-width: 4; }
+      .node { fill: #f9fafb; stroke: #111827; stroke-width: 4; }
+      .wrong { fill: #fb7185; stroke: #fecdd3; stroke-width: 3; }
+      .right { fill: #34d399; stroke: #a7f3d0; stroke-width: 3; }
+    </style>
+  </defs>
+  <rect width="1200" height="720" rx="28" fill="url(#bg)"/>
+  <text x="55" y="62" class="title">#126 · Купание: авторитетная водная сторона узла</text>
+  <text x="55" y="98" class="body">Вид читает npc.Tile; цель Bathe не должна подменять физическое положение.</text>
+
+  <g transform="translate(55 135)">
+    <rect width="520" height="500" rx="22" fill="#0b1220" stroke="#374151" stroke-width="2"/>
+    <text x="28" y="42" class="head">Было</text>
+    <polygon class="land" points="85,120 195,56 305,120 305,248 195,312 85,248"/>
+    <polygon class="water" points="305,120 415,56 525,120 525,248 415,312 305,248" transform="translate(-30 0)"/>
+    <circle class="node" cx="290" cy="184" r="13"/>
+    <circle class="wrong" cx="246" cy="184" r="22"/>
+    <text x="42" y="352" class="mono">CurrentJunction = береговой узел</text>
+    <text x="42" y="382" class="mono">npc.Tile = LAND</text>
+    <text x="42" y="418" class="body">SwimBathe всё равно повышал Hygiene.</text>
+    <text x="42" y="448" class="body">Модель честно оставалась на суше.</text>
+  </g>
+
+  <g transform="translate(625 135)">
+    <rect width="520" height="500" rx="22" fill="#0b1220" stroke="#374151" stroke-width="2"/>
+    <text x="28" y="42" class="head">Стало</text>
+    <polygon class="land" points="85,120 195,56 305,120 305,248 195,312 85,248"/>
+    <polygon class="water" points="305,120 415,56 525,120 525,248 415,312 305,248" transform="translate(-30 0)"/>
+    <circle class="node" cx="290" cy="184" r="13"/>
+    <path d="M246 184 C275 130, 322 130, 352 184" fill="none" stroke="#fbbf24" stroke-width="7" marker-end="url(#arrow)"/>
+    <circle class="right" cx="366" cy="184" r="22"/>
+    <text x="42" y="352" class="mono">Plan.TargetTile = WATER</text>
+    <text x="42" y="382" class="mono">npc.Tile = WATER</text>
+    <text x="42" y="418" class="body">Перепад: JumpDown → tread → swim.</text>
+    <text x="42" y="448" class="body">Без перепада: вход и штатный wade.</text>
+  </g>
+
+  <g transform="translate(55 666)">
+    <text class="mono">HexRadius 1.5 wu</text>
+    <text x="250" class="mono">sub-grid 0.375 wu</text>
+    <text x="510" class="mono">deep-water root: surface − 0.6 wu</text>
+    <text x="930" class="body">масштаб условный</text>
+  </g>
+</svg>

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4457e13e3a04ba4a3dcbaa36f9ccd4b, type: 3}
   m_Name: CharacterBalance
   m_EditorClassIdentifier: 
-  perceptionRadiusTiles: 2
+  perceptionRadiusTiles: 3
   memoryTtlTicks: 2400
   goalLockTicks: 24
   lockOverrideDelta: 0.5
@@ -73,18 +73,18 @@ MonoBehaviour:
   coconutWaterCapacity: 4
   handSlots: 2
   baseCarrySlots: 2
-  groundSleepEnergy: 0.314
+  groundSleepEnergy: 0
   groundSitEnergy: 0.173
   groundSitComfort: 0.15
   groundSitComfortLedge: 0.25
-  bedEnergy: 0.448
+  bedEnergy: 0
   leafBedEnergy: 0.348
   chairComfort: 0.4
   chairEnergy: 0.158
-  sleepEnergyBaseBonus: 0.02
-  sleepEnergyFireBonus: 0.005
+  sleepEnergyBaseBonus: 0.002
+  sleepEnergyFireBonus: 0
   sleepEnergyLeafBedBonus: 0.006
-  sleepEnergyBasicBedBonus: 0.01
+  sleepEnergyBasicBedBonus: 0.002
   exhaustedSleepWakeEnergy: 0.45
   comaWakeThreshold: 0.15
   comaBloodEnterThreshold: 0.25

@@ -1,6 +1,6 @@
 ---
 name: hexlive-furniture-authoring
-description: Author, export, integrate, or repair HexLive furniture shared by Blender and Unity. Use for furniture models or FBXs; pivot, scale, axis, orientation, 60-degree rotation, hex/junction footprint, wall alignment, construction stages, Blender-to-Unity import, HutLayoutDesigner, test-versus-production placement mismatches, or assets such as beds, wardrobes, hearths, racks, collectors, and workbenches.
+description: Author, export, integrate, or repair HexLive furniture and §120 architecture elements shared by Blender and Unity. Use for furniture or architecture models/FBXs; walls, doors, windows, corner supports, floor and roof sectors, hearths, beds, wardrobes, racks, collectors, workbenches; pivot, scale, axis, orientation, 60-degree rotation, hex/junction footprint, wall alignment, construction stages, Blender-to-Unity import, HutLayoutDesigner and the building constructor, dark or wrong-looking materials, mirrored or misplaced sector art, and test-versus-production placement mismatches.
 ---
 
 # HexLive furniture authoring
@@ -78,6 +78,109 @@ For the one-hex home wardrobe, regenerate the checked-in diagram after changing 
 ```bash
 python3 .agents/skills/hexlive-furniture-authoring/scripts/generate_wardrobe_placement_svg.py
 ```
+
+## Architecture elements (§120 constructor)
+
+Walls, windows, doors, corner supports, floor sectors, roof sectors and the
+indoor hearth are one family. Their geometry is CODE, not hand-moved objects:
+[`Tools/blender/arch_elements_lib.py`](../../../Tools/blender/arch_elements_lib.py)
+holds the primitives, `build_arch_elements.py` builds every element from fixed
+seeds, `export_arch_elements.py` writes one FBX per definition id. Rebuild with
+
+```python
+exec(open("Tools/blender/build_arch_elements.py").read())
+exec(open("Tools/blender/export_arch_elements.py").read())
+```
+
+Author there and nowhere else. Blender crashed three times in one session and
+took every unsaved hand edit with it; a script made recovery free, and it makes
+the art reviewable as a diff. Save the `.blend` right after a rebuild anyway.
+
+### Rules paid for in bugs
+
+- **Recalculate face winding.** `bm.normal_update()` recomputes normals from the
+  EXISTING winding; it never fixes winding. Without
+  `bmesh.ops.recalc_face_normals` before `to_mesh`, 4842 of 6136 faces shipped
+  inside-out (78.9%) — ropes almost entirely — and with double-sided materials
+  they render dark and muddy. That is what "the materials broke" looks like.
+- **Suspect geometry before colour.** Imported material colour equals the Blender
+  palette expressed in gamma (0.720 → 0.865) and renders identically. Measure
+  both sides before touching a colour.
+- **The FBX axis conversion flips X and Y.** With `axis_forward='-Z'`,
+  `axis_up='Y'`, authored `+X` arrives as Unity `−X` and authored `+Y` as `−Z`.
+  Never hand-derive a yaw formula from that: pass a direction to
+  `Quaternion.LookRotation` and prove it with a measurement. A hand-rolled
+  `atan2` drew every floor and roof sector 180° backwards, so a click resolved
+  one sector and highlighted the opposite one.
+- **Measure in the space the object lives in.** Comparing world positions with
+  simulation coordinates without removing the preview root's yaw reported a
+  confident, wrong "121°". `root.InverseTransformPoint` first.
+- **Exported node names are a runtime contract.** `CampfireSpitMeat` finds the
+  spit by the exact name `stick_bar`; a `stick_bar__EXPORT` silently loses every
+  meat slot. The exporter parks sources under `__src_` so duplicates can carry
+  the authored name without Blender appending `.001`.
+- **Root markers stay direct children.** `fire_point` (the flame anchor) is
+  looked up with `transform.Find`, which does not recurse. Keep it in
+  `ROOT_MARKERS` and re-parent it to the wrapper after instantiating.
+
+### Stage contract
+
+`BuildStage_1/2/3` empties at the root; every direct mesh child of a stage is
+ONE delivered resource — sticks, then boards/stones/leaves, then rope. A name
+containing `_deco_` is free hardware that ships with its stage. `HL_Door_Pivot`
+is a transparent container: its leaf boards count as ordinary stage-2 resources.
+`BlueprintArchitectureFactory.ApplyStageProgress` reveals exactly the pieces the
+delivered materials paid for and never opens a stage before the previous one is
+complete. Keep the bill in `SimBalance` equal to the piece count, and make those
+numbers `const`: they are not tuning dials, and a `public static` knob must
+otherwise appear in `simdata.json` or `BalanceKnobHygieneGate` goes red.
+
+### Tiling rules for sector art
+
+- Keep a slope INSIDE its hex. A roof panel rises from the outer hex edge to the
+  hex centre, so two neighbouring hexes meet along a shared edge at each one's
+  LOW point — the same height for any room shape. That is what lets a stretched
+  room roof itself with no joiner element, and why a flat roof is not needed.
+- Let each sector carry its own radial edge beam plus the outer edge beam. On a
+  finished hex the six sectors close the frame with no duplicated beam.
+- Clip anything under a sector to the triangle. A bar at constant `y` pokes out
+  through the slanted sides, because a sector only exists from `x = |y|/tan30`
+  outwards.
+- Keep the frame under the deck: verify against the boards' measured underside,
+  not by eye.
+
+### Boundary and seam rules
+
+- A wall section is 0.5 wu. Its boards span the FULL section with a small overlap
+  and its post pair sits EXACTLY on the seam, or a vertical slot of daylight
+  opens between neighbouring sections.
+- Horizontal seams between boards are wanted, but as a shiplap step, never as a
+  through-gap. Overlap the boards and alternate their thickness.
+- A bay authors its post pair on its far (+Z) node only. Where a standalone
+  Support element owns that node, drop the bay's posts AND their lashing —
+  dropping only the posts leaves rope rings hanging in mid-air.
+- Orient the corner support: its pair separates along local `+Z`, so place it
+  with `LookRotation(outward)`. Left unrotated it points a random way and the
+  corner reads as a missing beam.
+
+### Footprints
+
+- Draw furniture at the CENTROID of its occupied junctions, not at the anchor
+  junction. A bed's footprint runs from −0.5625 to +0.9375, so the anchor is
+  0.1875 wu off centre and the mesh slid away from its wall.
+- A footprint's base axis must match the axis the models are authored on (`+Y`
+  at yawStep 0). The wardrobe's row ran at 30° instead and was a full hex step
+  (60°) out of sync with the cabinet the player could see.
+- The indoor hearth is a single junction. Its authored ring is 0.334 wu against
+  a 0.375 lattice, so it never reaches a neighbour; the old seven-junction disc
+  was the outdoor campfire's reach and blocked the middle of the hut.
+
+### Constructor overlay
+
+Overlay dots must read THROUGH the building. URP's Unlit shader hardcodes
+`ZTest LEqual` and ignores a `_ZTest` float, so use
+`HexLive/BlueprintOverlay` (`ZTest Always`, overlay queue) and keep it in
+Always Included Shaders or the Player strips it.
 
 ## Verify all layers
 

@@ -1,11 +1,13 @@
 #nullable enable
 using System.Collections.Generic;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.History;
 using UnityEngine;
+using EntityId = HexLive.Simulation.Common.EntityId;
 
 namespace HexLive.UnityPresentation.Bootstrap
 {
@@ -104,6 +106,17 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public bool SupportsClientSave => _backend?.SupportsClientSave ?? false;
 
     public bool SupportsNpcCommands => _backend?.SupportsNpcCommands ?? false;
+
+    public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
+    {
+        if (_backend is not null)
+        {
+            return _backend.TryGetCraftingOptions(npc, into);
+        }
+
+        into.Clear();
+        return false;
+    }
 
     public void EnqueueCommand(ISimulationCommand command) => _backend?.EnqueueCommand(command);
 
@@ -343,6 +356,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             else if (e.Type == "GroupOrderResult")
             {
                 Input.GroupOrderFeedback.Report(e.Message);
+            }
+            // §121.7: возврат под ИИ по таймауту обязан быть виден — молчаливое
+            // «она вдруг зажила своей жизнью» читается как поломка.
+            else if (e.Type == "ManualControlExpired" && e.EntityId is { } expiredNpc)
+            {
+                Input.ManualOrderFeedback.ReportTerm(expiredNpc, "toast.manual_expired");
             }
 
             if (!logAllTrace && !(logImportant && isGameHistoryEvent))

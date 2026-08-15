@@ -4,6 +4,7 @@ using System.Linq;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Runtime.Blueprints;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -116,6 +117,121 @@ public static class BuildingRules
     public static int RequiredSupportsForRoof(int supportCount) =>
         Math.Max(1, (supportCount + 1) / 2);
 
+    /// <summary>
+    /// Half of THIS building's posts, not half of six. The constant
+    /// <see cref="SupportCount"/> is the canonical hut's own number; a
+    /// player-authored plan has as many posts as it has, and reading the
+    /// constant would have unlocked its roof one post early (4 needed, 3 asked
+    /// for) — invisible in play, wrong in the one place the gate exists for.
+    /// </summary>
+    private static int RequiredSupportsForRoof(List<Definition> definitions)
+    {
+        var supports = 0;
+        foreach (var definition in definitions)
+        {
+            if (definition.Kind == BuildingElementKind.Support) supports++;
+        }
+
+        return RequiredSupportsForRoof(supports);
+    }
+
+    private static int RequiredSupportsForRoof(IEnumerable<ArchitectureElementState> elements)
+    {
+        var supports = 0;
+        foreach (var element in elements)
+        {
+            if (element.DefinitionId == "architecture.support.wood") supports++;
+        }
+
+        return RequiredSupportsForRoof(supports);
+    }
+
+    /// <summary>
+    /// Which module list a site/building raises. The canonical hut keeps
+    /// <see cref="HutDefinitions"/> byte for byte; a committed player plan is
+    /// converted once and cached. An unknown product falls back to the hut, so
+    /// nothing that existed before this method can change behaviour.
+    /// </summary>
+    private static List<Definition> DefinitionsFor(string buildProduct) =>
+        buildProduct == ContentIds.HutPlan
+            ? PlayerPlanDefinitions()
+            : HutDefinitions();
+
+    /// <summary>
+    /// A site carries its product in <c>BuildProduct</c>; the finished building
+    /// carries it in <c>DefinitionId</c> (the raise clears BuildProduct). Both
+    /// have to answer with the same module list or a raised house would forget
+    /// its own geometry the moment it stopped being a site.
+    /// </summary>
+    private static List<Definition> DefinitionsFor(WorldObjectState owner) =>
+        DefinitionsFor(owner == null || string.IsNullOrEmpty(owner.BuildProduct)
+            ? owner?.DefinitionId
+            : owner.BuildProduct);
+
+    /// <summary>
+    /// The door's outward yaw in BUILDING-LOCAL degrees, straight off the
+    /// module list. <see cref="DoorOutwardYaw(WorldState, WorldObjectState)"/>
+    /// answers the same question but needs the elements already spawned, and a
+    /// site has to know its facing BEFORE it is placed (a multi-hex plan's
+    /// footprint depends on the rotation).
+    /// </summary>
+    public static float DoorLocalOutwardYaw(string buildProduct)
+    {
+        foreach (var definition in DefinitionsFor(buildProduct))
+        {
+            if (definition.Kind != BuildingElementKind.Door) continue;
+            return MathF.Atan2(definition.LocalZ, definition.LocalX) * 180f / MathF.PI;
+        }
+
+        throw new InvalidOperationException($"Building plan '{buildProduct}' has no door module.");
+    }
+
+    /// <summary>
+    /// Is this object the RAISED building rather than a site? Both hut products
+    /// answer yes; anything else (a build.site, an architecture piece) no.
+    /// </summary>
+    public static bool IsCompletedBuilding(WorldObjectState owner) =>
+        owner != null &&
+        (owner.DefinitionId == ContentIds.Hut1Hex || owner.DefinitionId == ContentIds.HutPlan);
+
+    private static List<Definition> _playerPlanDefinitions;
+
+    private static List<Definition> PlayerPlanDefinitions()
+    {
+        if (_playerPlanDefinitions != null) return _playerPlanDefinitions;
+        var modules = CommittedBuildingPlans.PlayerHutModules;
+        var converted = new List<Definition>(modules.Count);
+        foreach (var module in modules)
+        {
+            converted.Add(new Definition
+            {
+                Key = module.Key,
+                Kind = module.Kind switch
+                {
+                    BlueprintElementKind.Support => BuildingElementKind.Support,
+                    BlueprintElementKind.FloorSector => BuildingElementKind.Floor,
+                    BlueprintElementKind.Window => BuildingElementKind.Window,
+                    BlueprintElementKind.Door => BuildingElementKind.Door,
+                    BlueprintElementKind.RoofSector => BuildingElementKind.Roof,
+                    _ => BuildingElementKind.Wall
+                },
+                Index = module.Index,
+                Sticks = module.Sticks,
+                Boards = module.Boards,
+                Rope = module.Rope,
+                Leaves = module.Leaves,
+                LocalX = module.LocalX,
+                LocalZ = module.LocalZ,
+                LocalYaw = module.LocalYaw
+            });
+        }
+
+        // Callers only ever read this list (their FindAll/List copies are what
+        // gets shuffled), so one cached instance is safe and keeps the JSON
+        // parse off the per-tick BuildSiteMath.Remaining path.
+        return _playerPlanDefinitions = converted;
+    }
+
     public static BuildingElementKind HutBayKind(int bay) => bay switch
     {
         2 or 3 or 10 or 11 => BuildingElementKind.Window,
@@ -124,9 +240,10 @@ public static class BuildingRules
     };
 
     public static IReadOnlyList<BuildingElementProgress> ResolveHutElements(
-        int siteSeed, int sticks, int boards, int rope, int leaves)
+        int siteSeed, int sticks, int boards, int rope, int leaves,
+        string buildProduct = null)
     {
-        var definitions = HutDefinitions();
+        var definitions = DefinitionsFor(buildProduct);
         var nonRoof = new List<Definition>();
         var roofs = new List<Definition>();
         foreach (var definition in definitions)
@@ -145,7 +262,7 @@ public static class BuildingRules
             if (state.Kind == BuildingElementKind.Support && state.Complete) completedSupports++;
         }
 
-        var roofBuildable = completedSupports >= RequiredSupportsForRoof(SupportCount);
+        var roofBuildable = completedSupports >= RequiredSupportsForRoof(definitions);
         Allocate(roofs, ref sticks, ref boards, ref rope, ref leaves, roofBuildable, states);
 
         var result = new List<BuildingElementProgress>(definitions.Count);
@@ -153,10 +270,11 @@ public static class BuildingRules
         return result;
     }
 
-    public static int CompletedSupports(int siteSeed, int sticks, int boards, int rope)
+    public static int CompletedSupports(
+        int siteSeed, int sticks, int boards, int rope, string buildProduct = null)
     {
         var count = 0;
-        foreach (var element in ResolveHutElements(siteSeed, sticks, boards, rope, 0))
+        foreach (var element in ResolveHutElements(siteSeed, sticks, boards, rope, 0, buildProduct))
         {
             if (element.Kind == BuildingElementKind.Support && element.Complete) count++;
         }
@@ -164,14 +282,16 @@ public static class BuildingRules
         return count;
     }
 
-    public static bool RoofUnlocked(int siteSeed, int sticks, int boards, int rope) =>
-        CompletedSupports(siteSeed, sticks, boards, rope) >= RequiredSupportsForRoof(SupportCount);
+    public static bool RoofUnlocked(
+        int siteSeed, int sticks, int boards, int rope, string buildProduct = null) =>
+        CompletedSupports(siteSeed, sticks, boards, rope, buildProduct) >=
+        RequiredSupportsForRoof(DefinitionsFor(buildProduct));
 
     public static void EnsureHutElements(WorldObjectState owner, bool completed = false)
     {
         if (owner == null) return;
         if (owner.ArchitectureElements.Count > 0) return;
-        var definitions = HutDefinitions();
+        var definitions = DefinitionsFor(owner);
         for (var i = 0; i < definitions.Count; i++)
         {
             var definition = definitions[i];
@@ -279,13 +399,13 @@ public static class BuildingRules
         foreach (var owner in owners)
         {
             EnsureHutElements(world, owner,
-                completed: owner.DefinitionId == ContentIds.Hut1Hex);
+                completed: IsCompletedBuilding(owner));
         }
     }
 
     public static float DoorOutwardYaw(WorldState world, WorldObjectState owner)
     {
-        EnsureHutElements(world, owner, completed: owner.DefinitionId == ContentIds.Hut1Hex);
+        EnsureHutElements(world, owner, completed: IsCompletedBuilding(owner));
         foreach (var element in Elements(world, owner))
         {
             if (element.DefinitionId != "architecture.door.wood") continue;
@@ -297,7 +417,7 @@ public static class BuildingRules
 
     public static Float2 DoorLocalCenter(WorldState world, WorldObjectState owner)
     {
-        EnsureHutElements(world, owner, completed: owner.DefinitionId == ContentIds.Hut1Hex);
+        EnsureHutElements(world, owner, completed: IsCompletedBuilding(owner));
         foreach (var element in Elements(world, owner))
             if (element.DefinitionId == "architecture.door.wood")
                 return new Float2(element.LocalX, element.LocalZ);
@@ -307,9 +427,10 @@ public static class BuildingRules
     public static bool RoofUnlocked(WorldState world, WorldObjectState owner)
     {
         EnsureHutElements(world, owner);
-        return Elements(world, owner).Count(element =>
+        var elements = Elements(world, owner).ToArray();
+        return elements.Count(element =>
             element.DefinitionId == "architecture.support.wood" && element.Complete) >=
-            RequiredSupportsForRoof(SupportCount);
+            RequiredSupportsForRoof(elements);
     }
 
     public static bool FloorComplete(WorldState world, WorldObjectState owner)
@@ -351,7 +472,7 @@ public static class BuildingRules
     public static void SyncHutElements(WorldState world, WorldObjectState owner)
     {
         EnsureHutElements(world, owner);
-        var definitions = HutDefinitions();
+        var definitions = DefinitionsFor(owner);
         var elements = Elements(world, owner).ToArray();
         var byKey = elements.ToDictionary(element => element.SlotKey);
         foreach (var element in elements)
@@ -375,14 +496,14 @@ public static class BuildingRules
         var supports = elements.Count(element =>
             element.DefinitionId == "architecture.support.wood" && element.Complete);
         SyncAllocate(roofs, byKey, ref sticks, ref boards, ref rope, ref leaves,
-            supports >= RequiredSupportsForRoof(SupportCount));
+            supports >= RequiredSupportsForRoof(elements));
     }
 
     private static void RefreshRoofBuildability(IEnumerable<ArchitectureElementState> elements)
     {
         var array = elements as ArchitectureElementState[] ?? elements.ToArray();
         var unlocked = array.Count(element => element.DefinitionId == "architecture.support.wood" &&
-            element.Complete) >= RequiredSupportsForRoof(SupportCount);
+            element.Complete) >= RequiredSupportsForRoof(array);
         foreach (var element in array)
             if (element.DefinitionId == "architecture.roof.palm") element.Buildable = unlocked;
     }
@@ -395,7 +516,7 @@ public static class BuildingRules
     public static void RefreshHutElementGeometry(WorldObjectState owner)
     {
         if (owner == null) return;
-        var definitions = HutDefinitions();
+        var definitions = DefinitionsFor(owner);
         var byKey = new Dictionary<string, Definition>();
         foreach (var definition in definitions) byKey[definition.Key] = definition;
         foreach (var element in owner.ArchitectureElements)
@@ -412,8 +533,8 @@ public static class BuildingRules
 
     public static void RefreshHutElementGeometry(WorldState world, WorldObjectState owner)
     {
-        EnsureHutElements(world, owner, completed: owner.DefinitionId == ContentIds.Hut1Hex);
-        var definitions = HutDefinitions().ToDictionary(definition => definition.Key);
+        EnsureHutElements(world, owner, completed: IsCompletedBuilding(owner));
+        var definitions = DefinitionsFor(owner).ToDictionary(definition => definition.Key);
         foreach (var element in Elements(world, owner))
         {
             if (!definitions.TryGetValue(element.SlotKey, out var definition)) continue;
@@ -454,7 +575,7 @@ public static class BuildingRules
     public static void SyncHutElements(WorldObjectState owner)
     {
         EnsureHutElements(owner);
-        var definitions = HutDefinitions();
+        var definitions = DefinitionsFor(owner);
         var byKey = new Dictionary<string, ArchitectureElementState>();
         foreach (var element in owner.ArchitectureElements)
         {
@@ -481,7 +602,7 @@ public static class BuildingRules
             if (element.DefinitionId == "architecture.support.wood" && element.Complete) supports++;
         }
         SyncAllocate(roofs, byKey, ref sticks, ref boards, ref rope, ref leaves,
-            supports >= RequiredSupportsForRoof(SupportCount));
+            supports >= RequiredSupportsForRoof(owner.ArchitectureElements));
     }
 
     public static bool RoofUnlocked(WorldObjectState owner)
@@ -492,7 +613,7 @@ public static class BuildingRules
         {
             if (element.DefinitionId == "architecture.support.wood" && element.Complete) supports++;
         }
-        return supports >= RequiredSupportsForRoof(SupportCount);
+        return supports >= RequiredSupportsForRoof(owner.ArchitectureElements);
     }
 
     public static bool FloorComplete(WorldObjectState owner)
@@ -560,7 +681,7 @@ public static class BuildingRules
         {
             if (element.DefinitionId == "architecture.support.wood" && element.Complete) supports++;
         }
-        var unlocked = supports >= RequiredSupportsForRoof(SupportCount);
+        var unlocked = supports >= RequiredSupportsForRoof(owner.ArchitectureElements);
         foreach (var element in owner.ArchitectureElements)
         {
             if (element.DefinitionId == "architecture.roof.palm") element.Buildable = unlocked;

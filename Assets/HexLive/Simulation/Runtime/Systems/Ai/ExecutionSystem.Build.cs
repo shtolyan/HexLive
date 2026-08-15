@@ -29,7 +29,7 @@ public sealed partial class ExecutionSystem
         var moved = 0;
         foreach (var mat in BuildSiteMath.AllMaterials)
         {
-            while (BuildSiteMath.Needs(site, mat))
+            while (BuildSiteMath.AcceptsDelivery(site, mat))
             {
                 var carried = npc.Inventory.Items.Find(i => i.DefinitionId == mat);
                 if (carried is null)
@@ -39,7 +39,7 @@ public sealed partial class ExecutionSystem
 
                 npc.Inventory.Items.Remove(carried);
                 site.Contents.Add(carried);
-                if (site.BuildProduct == ContentIds.Hut1Hex)
+                if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct))
                 {
                     BuildingRules.SyncHutElements(world, site);
                 }
@@ -47,11 +47,19 @@ public sealed partial class ExecutionSystem
             }
         }
 
-        if (site.BuildProduct == ContentIds.Hut1Hex &&
-            BuildingRules.FloorComplete(world, site) &&
-            world.Tiles.Items.TryGetValue(site.Tile, out var floorTile))
+        if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct) &&
+            BuildingRules.FloorComplete(world, site))
         {
-            floorTile.Flags |= TileFlags.HasFloor;
+            // §120: the plan's footprint is as many hexes as the player floored
+            // (three for hut_player_v1). One tile was the canonical hut's own
+            // number, not a property of "a building".
+            foreach (var footprintTile in Bootstrap.BuildingBootstrap.FootprintTiles(site))
+            {
+                if (world.Tiles.Items.TryGetValue(footprintTile, out var floorTile))
+                {
+                    floorTile.Flags |= TileFlags.HasFloor;
+                }
+            }
         }
 
         return moved;
@@ -163,7 +171,7 @@ public sealed partial class ExecutionSystem
         // идентификаторов через отрицание, то есть свойство вещи хранилось в
         // исполнителе: новая постройка молча получала «нужен молоток» и узнать
         // об этом можно было только по тому, что её никто не строит.
-        var needsHammer = !HasTag(world, site.BuildProduct, Content.ObjectTags.HandBuilt);
+        var needsHammer = BuildSiteMath.NeedsHammer(world, site);
         if (BuildSiteMath.IsStocked(site) &&
             (!needsHammer ||
              Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Hammer) ||
@@ -202,7 +210,7 @@ public sealed partial class ExecutionSystem
                     raised.CraftJunction = StructurePlacement.WorkbenchJunction(
                         world, tile, j, yaw);
                 }
-                else if (product == ContentIds.Hut1Hex)
+                else if (BuildSiteMath.IsArchitecturalBuilding(product))
                 {
                     Bootstrap.BuildingBootstrap.CompleteHut(world, raised);
                 }
@@ -335,15 +343,6 @@ public sealed partial class ExecutionSystem
         }
     }
 
-    /// <summary>
-    /// Несёт ли определение с таким id указанный тег. Неизвестный id — это
-    /// «нет»: спрашивать про свойство несуществующей вещи бессмысленно, а
-    /// бросать тут значило бы ронять симуляцию из-за опечатки в контенте.
-    /// </summary>
-    private static bool HasTag(WorldState world, string definitionId, string tag) =>
-        !string.IsNullOrEmpty(definitionId) &&
-        world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
-        definition.Tags.Contains(tag);
 }
 
 }

@@ -21,8 +21,8 @@ namespace HexLive.UnityPresentation.Config
     public sealed class CharacterBalanceConfig : ScriptableObject
     {
         [Header("Восприятие и решения (AiBalance)")]
-        [Tooltip("Радиус восприятия в тайлах.")]
-        [Range(1, 6)] public int perceptionRadiusTiles = 2;
+        [Tooltip("Радиус живого восприятия предметов в тайлах. Минимум 3: еда, вода и инструменты не должны теряться сразу за соседним кольцом.")]
+        [Range(3, 8)] public int perceptionRadiusTiles = 3;
         [Tooltip("Сколько тиков живёт пространственная память (виденные объекты/опасности).")]
         [Range(300, 9600)] public int memoryTtlTicks = 2400;
         [Tooltip("Свежевыигранная цель заперта столько тиков (анти-дребезг аукциона).")]
@@ -167,16 +167,16 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 6)] public int baseCarrySlots = 2;
 
         [Header("Отдых / сон — сколько восстанавливает")]
-        [Tooltip("Энергия за ночь сна на голой земле.")]
-        [Range(0f, 0.5f)] public float groundSleepEnergy = 0.12f;
+        [Tooltip("Устаревший второй канал энергии timed-взаимодействия. Должен быть 0: темп сна задаётся ниже одной slow-tick ручкой.")]
+        [Range(0f, 0.5f)] public float groundSleepEnergy = 0f;
         [Tooltip("Энергия за один присест на земле.")]
         [Range(0f, 0.3f)] public float groundSitEnergy = 0.05f;
         [Tooltip("Комфорт за присест на земле.")]
         [Range(0f, 0.5f)] public float groundSitComfort = 0.15f;
         [Tooltip("Комфорт за присест на кромке-уступе (с видом — больше).")]
         [Range(0f, 0.5f)] public float groundSitComfortLedge = 0.25f;
-        [Tooltip("Энергия за ночь в настоящей кровати.")]
-        [Range(0f, 0.5f)] public float bedEnergy = 0.18f;
+        [Tooltip("Устаревший второй канал энергии кровати. Должен быть 0: кроватный бонус задаётся ниже.")]
+        [Range(0f, 0.5f)] public float bedEnergy = 0f;
         [Tooltip("Энергия за ночь на листовом коврике.")]
         [Range(0f, 0.5f)] public float leafBedEnergy = 0.15f;
         [Tooltip("Комфорт за сидение на стуле.")]
@@ -184,15 +184,15 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Энергия за сидение на стуле.")]
         [Range(0f, 0.3f)] public float chairEnergy = 0.1f;
 
-        [Header("Сон — ускоренное восстановление (§54.11)")]
-        [Tooltip("Базовая добавка энергии за медленный тик ВО СНЕ (ночи короче по умолчанию).")]
-        [Range(0f, 0.05f)] public float sleepEnergyBaseBonus = 0.010f;
-        [Tooltip("Добавка за сон у горящего костра.")]
-        [Range(0f, 0.05f)] public float sleepEnergyFireBonus = 0.005f;
+        [Header("Сон — восстановление по игровым часам (§54.11 r2)")]
+        [Tooltip("Чистое восстановление за slow tick на земле/в коме. 0.002 = 0→100% за 8 игровых часов при slow interval 16.")]
+        [Range(0f, 0.05f)] public float sleepEnergyBaseBonus = 0.002f;
+        [Tooltip("Энергетическая добавка костра отключена, чтобы длительность сна не зависела от соседнего огня. Тепло и комфорт костра остаются.")]
+        [Range(0f, 0.05f)] public float sleepEnergyFireBonus = 0f;
         [Tooltip("Добавка за сон на листовом коврике.")]
         [Range(0f, 0.05f)] public float sleepEnergyLeafBedBonus = 0.006f;
-        [Tooltip("Добавка за сон на премиум-лежанке (bed.basic).")]
-        [Range(0f, 0.05f)] public float sleepEnergyBasicBedBonus = 0.010f;
+        [Tooltip("Добавка за настоящую кровать поверх земли. 0.002 + база 0.002 = 0→100% за 4 игровых часа.")]
+        [Range(0f, 0.05f)] public float sleepEnergyBasicBedBonus = 0.002f;
 
         [Header("Сон без задних ног / обморок (§60 r2)")]
         [Tooltip("Энергия, при которой просыпается из «сна без задних ног» (рухнула при 0 энергии; спит до этой отметки, боль будит раньше).")]

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#172033"/>
+    </linearGradient>
+    <pattern id="hexNodes" width="30" height="34.64" patternUnits="userSpaceOnUse">
+      <circle cx="0" cy="0" r="2.2" fill="#75839a" opacity="0.48"/>
+      <circle cx="15" cy="17.32" r="2.2" fill="#75839a" opacity="0.48"/>
+      <path d="M0 0 L15 8.66 L15 25.98 L0 34.64 M15 8.66 L30 0 M15 25.98 L30 34.64"
+            fill="none" stroke="#506079" stroke-width="0.7" opacity="0.28"/>
+    </pattern>
+    <clipPath id="objectsClip">
+      <polygon points="325,185 442,252 442,388 325,455 208,388 208,252"/>
+    </clipPath>
+    <clipPath id="peopleClip">
+      <polygon points="870,155 1013,238 1013,402 870,485 727,402 727,238"/>
+    </clipPath>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="700" rx="28" fill="url(#bg)"/>
+  <text x="55" y="68" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700">
+    Восприятие NPC: как стало
+  </text>
+  <text x="55" y="102" fill="#aab6ca" font-family="Inter,Arial,sans-serif" font-size="18">
+    Гекс-кольцо r содержит 1 + 3r(r + 1) тайлов · очки характеристики не меняются
+  </text>
+
+  <rect x="55" y="132" width="535" height="425" rx="22" fill="#0b1220" stroke="#354158"/>
+  <text x="82" y="175" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700">
+    Предметы, еда и вода
+  </text>
+  <text x="82" y="204" fill="#aab6ca" font-family="Inter,Arial,sans-serif" font-size="17">
+    единый живой скан, без зависимости от характеристики
+  </text>
+  <rect x="190" y="168" width="270" height="305" fill="url(#hexNodes)" clip-path="url(#objectsClip)"/>
+  <polygon points="325,185 442,252 442,388 325,455 208,388 208,252"
+           fill="#38bdf8" fill-opacity="0.08" stroke="#38bdf8" stroke-width="4" filter="url(#glow)"/>
+  <polygon points="325,230 403,275 403,365 325,410 247,365 247,275"
+           fill="#f59e0b" fill-opacity="0.06" stroke="#f59e0b" stroke-width="3" stroke-dasharray="9 7"/>
+  <circle cx="325" cy="320" r="12" fill="#f8fafc"/>
+  <text x="345" y="315" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="15">NPC</text>
+  <text x="95" y="510" fill="#f59e0b" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">Было: r = 2 · 19 тайлов</text>
+  <text x="330" y="510" fill="#38bdf8" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">Стало: r = 3 · 37 тайлов</text>
+  <text x="95" y="538" fill="#aab6ca" font-family="Inter,Arial,sans-serif" font-size="16">+50% радиуса · +95% площади живого скана</text>
+
+  <rect x="610" y="132" width="535" height="425" rx="22" fill="#0b1220" stroke="#354158"/>
+  <text x="637" y="175" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700">
+    Люди и угрозы
+  </text>
+  <text x="637" y="204" fill="#aab6ca" font-family="Inter,Arial,sans-serif" font-size="17">
+    max(3, round(Восприятие × 16))
+  </text>
+  <rect x="700" y="145" width="340" height="350" fill="url(#hexNodes)" clip-path="url(#peopleClip)"/>
+  <polygon points="870,155 1013,238 1013,402 870,485 727,402 727,238"
+           fill="#38bdf8" fill-opacity="0.08" stroke="#38bdf8" stroke-width="4" filter="url(#glow)"/>
+  <polygon points="870,217 959,268 959,372 870,423 781,372 781,268"
+           fill="#f59e0b" fill-opacity="0.06" stroke="#f59e0b" stroke-width="3" stroke-dasharray="9 7"/>
+  <polygon points="870,282 903,301 903,339 870,358 837,339 837,301"
+           fill="#a78bfa" fill-opacity="0.12" stroke="#a78bfa" stroke-width="3"/>
+  <circle cx="870" cy="320" r="12" fill="#f8fafc"/>
+  <text x="890" y="315" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="15">NPC</text>
+  <text x="640" y="510" fill="#f59e0b" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">Среднее было: r = 5 · 91 тайл</text>
+  <text x="895" y="510" fill="#38bdf8" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">Стало: r = 8 · 217</text>
+  <text x="640" y="538" fill="#a78bfa" font-family="Inter,Arial,sans-serif" font-size="16">Нулевой ролл: r = 3 · 37 тайлов</text>
+
+  <rect x="55" y="585" width="1090" height="70" rx="18" fill="#111b2e" stroke="#354158"/>
+  <circle cx="83" cy="620" r="8" fill="#f59e0b"/><text x="101" y="627" fill="#d9e2f1" font-family="Inter,Arial,sans-serif" font-size="17">старый радиус</text>
+  <circle cx="260" cy="620" r="8" fill="#38bdf8"/><text x="278" y="627" fill="#d9e2f1" font-family="Inter,Arial,sans-serif" font-size="17">новый радиус</text>
+  <circle cx="440" cy="620" r="8" fill="#a78bfa"/><text x="458" y="627" fill="#d9e2f1" font-family="Inter,Arial,sans-serif" font-size="17">минимум при 0 очков</text>
+  <text x="745" y="627" fill="#9fb0c8" font-family="Inter,Arial,sans-serif" font-size="16">Максимум: r 10 → 16 · чужак: r 7 → 11</text>
+</svg>

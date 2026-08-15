@@ -130,20 +130,31 @@ public sealed class InventoryState
 
     public const int MedicineStackSize = 10;
 
+    // §54.10 r2: food stays instance-based, but identical meat portions pack
+    // into compact eight-piece stacks. Raw and cooked meat have different
+    // definition ids, so they can never share a cell or silently change state.
+    public const int MeatStackSize = 8;
+
     // §54.2: leaves stack 3× deeper — a bed's mattress is ~46-50 leaves, so a
     // whole bed's worth of leaves rides in a single pocket instead of three.
     public const int LeafStackSize = 60;
 
-    // Per-item stack depth: leaves are extra-deep, medicines use 10 and bulk
-    // resources use 20.
+    // Per-item stack depth: leaves are extra-deep, medicines use 10, identical
+    // raw/cooked meat portions use 8 and bulk resources use 20.
     public static int StackSizeFor(string definitionId) =>
         definitionId == "resource.palm_leaf" ? LeafStackSize :
+        IsMeatStack(definitionId) ? MeatStackSize :
         IsMedicineStack(definitionId) ? MedicineStackSize : StackSize;
 
     public static bool IsStackable(string definitionId) =>
         !string.IsNullOrEmpty(definitionId) &&
         (definitionId.StartsWith("resource.", System.StringComparison.Ordinal) ||
+         IsMeatStack(definitionId) ||
          IsMedicineStack(definitionId));
+
+    private static bool IsMeatStack(string definitionId) =>
+        definitionId == ContentIds.MeatRaw ||
+        definitionId == ContentIds.MeatCooked;
 
     private static bool IsMedicineStack(string definitionId) =>
         definitionId == "item.bandage" ||

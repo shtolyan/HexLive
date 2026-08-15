@@ -78,6 +78,9 @@ namespace HexLive.Simulation.Runtime
                 return;
             }
 
+            // §123.5: спавн у ног проверяется ДО удаления из инвентаря —
+            // DropItemAtFeet возвращает null, когда рядом нет свободной точки,
+            // и порядок «сначала RemoveAt, потом спавн» тихо УНИЧТОЖАЛ предмет.
             switch (step.Type)
             {
                 case PlanStepType.PlayerWearInventory:
@@ -89,13 +92,29 @@ namespace HexLive.Simulation.Runtime
                     EquipmentMath.Recalculate(world, npc);
                     break;
                 case PlanStepType.PlayerDropCarried:
+                    if (DropItemAtFeet(world, npc, item) is null)
+                    {
+                        FailPlayerInventory(world, npc, "NoDropSpot");
+                        return;
+                    }
+
                     npc.Inventory.Items.RemoveAt(index);
-                    DropItemAtFeet(world, npc, item);
                     break;
                 case PlanStepType.PlayerDropWorn:
+                    // Spawn first so a failed ground placement leaves both the
+                    // garment and its pockets untouched.  Once it exists, the
+                    // lost pocket capacity becomes live and the true overflow
+                    // rides down inside this exact garment (§52.2).
+                    var droppedGarment = DropItemAtFeet(world, npc, item, underFoot: true);
+                    if (droppedGarment is null)
+                    {
+                        FailPlayerInventory(world, npc, "NoDropSpot");
+                        return;
+                    }
+
                     npc.WornItems.RemoveAt(index);
                     EquipmentMath.Recalculate(world, npc);
-                    DropItemAtFeet(world, npc, item);
+                    StashOverflowInDroppedGarment(world, npc, item, droppedGarment);
                     break;
             }
 

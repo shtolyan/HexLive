@@ -21,11 +21,22 @@ public sealed partial class PlanningSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            // §60/§105/§110: authored stillness owns the body. In particular,
+            // a coma must not rebuild Goal=None every medium tick, and a
+            // crying breakdown must not restart the plan it just interrupted.
+            if (WatchdogExclusions.IsAuthoredStillness(world, npc))
+            {
+                continue;
+            }
+
             // §121: планами ручной колонистки владеют только приказы —
             // ManualCommandExecutor строит их сразу при получении команды, а
             // ManualOrderSystem пересобирает погоню. Планировщику здесь делать
             // нечего: он бы «вылечил» приказ, подставив ему свою цель.
-            if (Spec121.ManualControlEnabled && npc.Mind.ManualControl)
+            // §121.6 — исключение: авто-нужды (еда/питьё) планируются штатно,
+            // теми же ветками, что у ИИ.
+            if (Spec121.ManualControlEnabled && npc.Mind.ManualControl &&
+                !NpcControlPolicy.MayPlanGoal(npc, npc.Mind.CurrentGoal))
             {
                 continue;
             }
@@ -35,6 +46,33 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // patient's own; treating it as an orphan woke her, released the
             // bed, and immediately auctioned the same rescue again.
             if (KenshiRescueMath.IsRecoveryResting(world, npc))
+            {
+                continue;
+            }
+
+            // §117 r2: once the approach has become a demand/fight, the
+            // CampExpulsionSystem owns the scene clock and there is no next
+            // movement plan to build.  The completed move-only approach used
+            // to fall through here every Medium tick, producing a stream of
+            // empty Expel plans until the answer beat ended.  The challenged
+            // participant is likewise held by the scene, not by Planning.
+            if (npc.Mind.CurrentGoal == GoalType.Expel &&
+                (npc.Mind.PendingExpulsionFrom.HasValue ||
+                 (npc.Mind.ExpulsionTargetNpcId.HasValue &&
+                  npc.Mind.ExpulsionPhase > 0)))
+            {
+                continue;
+            }
+
+            // §24.10 r2: None has no plan, and a completed Idle plan already
+            // says exactly what it should say. Rebuilding either every Medium
+            // tick generated hundreds of empty PlanStarted records while a
+            // character stood normally (and amplified the drowning case into
+            // four log records per second) without changing a single action.
+            if (npc.Mind.CurrentGoal == GoalType.None ||
+                (npc.Mind.CurrentGoal == GoalType.Idle &&
+                 npc.Plan.Goal == GoalType.Idle &&
+                 npc.Plan.Status == PlanStatus.Completed))
             {
                 continue;
             }
@@ -71,19 +109,30 @@ public sealed partial class PlanningSystem : ISimulationSystem
                        (gj.Equals(huntedJunction) ||
                         IsAdjacentJunction(world, gj, huntedJunction))));
 
-                // §115: чужак тоже ходит. Достала его или он сменил узел —
-                // старый подход больше не правда, его надо пересобрать.
+                // §115: do not re-path on EVERY single junction crossed by a
+                // walking intruder. Seed 632 rebuilt Expel 20 times in 96
+                // ticks, repeatedly discarding a viable route. The scene
+                // itself detects striking range; an active route only becomes
+                // stale after the target has moved materially away from the
+                // tile for which it was built.
                 var expelStale = npc.Mind.CurrentGoal == GoalType.Expel &&
                     npc.Movement.HopTimer <= 0f &&
                     npc.Mind.ExpulsionTargetNpcId is { } expelledId &&
                     world.Entities.Npcs.TryGetValue(expelledId, out var expelled) &&
-                    expelled.CurrentJunction is { } expelledJunction &&
-                    (InteractionReach.CanStrike(world, npc, expelled) ||
-                     !(npc.Plan.TargetJunctionId is { } ej &&
-                       (ej.Equals(expelledJunction) ||
-                        IsAdjacentJunction(world, ej, expelledJunction))));
+                    npc.Plan.TargetTile is { } expelledAtPlan &&
+                    HexSpatialMath.HexDistance(expelledAtPlan, expelled.Tile) > 2;
 
-                if (!huntStale && !groupHuntStale && !expelStale)
+                // §29C.4B: an on-station defender uses an explicit bounded
+                // Wait step. Re-open it when its assist lock expires so the
+                // live attacker is revalidated; otherwise keep the hold as one
+                // plan instead of recreating an empty Completed plan forever.
+                var defendHoldExpired = npc.Mind.CurrentGoal == GoalType.Defend &&
+                    npc.Plan.Steps.Count > 0 &&
+                    npc.Plan.Steps[npc.Plan.Steps.Count - 1].Type == PlanStepType.Wait &&
+                    npc.Plan.Steps[npc.Plan.Steps.Count - 1].TimeoutEndTick is { } defendHoldEnd &&
+                    world.Tick >= defendHoldEnd;
+
+                if (!huntStale && !groupHuntStale && !expelStale && !defendHoldExpired)
                 {
                     if (SimTrace.Enabled)
                     {
@@ -141,7 +190,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // держало занятость объекта и резервы — Abort отдаёт и их.
             if (npc.Execution.Status == ExecutionStatus.InProgress)
             {
-                PlanInterruption.Abort(world, npc,
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.Replan,
                     $"Replan over a live {npc.Execution.CurrentInteraction} " +
                     $"(Goal={npc.Mind.CurrentGoal} PrevStatus={prevStatus})");
             }
@@ -204,6 +253,35 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 {
                     Trace.Debug(world, npc.Id, "PlanFailed",
                         "Goal=Eat but no food in inventory");
+                }
+                continue;
+            }
+
+            // §119.2: an item-craft goal means "satisfy this item demand", not
+            // necessarily "manufacture a fresh copy". RecipeCatalog supplies
+            // the output id for every persistent item recipe, so this one seam
+            // automatically covers bandages, rope, tools, prostheses and future
+            // item recipes. Finished output wins over both an unfinished project
+            // and a new ingredient bill.
+            if (Content.RecipeCatalog.UsesPersistentProject(npc.Mind.CurrentGoal) &&
+                CraftProjectMath.HasReachableCompletedOutput(
+                    world, npc, npc.Mind.CurrentGoal))
+            {
+                if (TryBuildCompletedCraftOutputTakePlan(world, npc))
+                {
+                    continue;
+                }
+
+                // A visible result with no currently usable pickup (full pack,
+                // lost rim, reservation race) must still suppress manufacturing.
+                // Back off instead of converting that temporary problem into a
+                // second physical item on the ground.
+                npc.Plan.Status = PlanStatus.Failed;
+                SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanFailed",
+                        $"Goal={npc.Mind.CurrentGoal} finished output visible but not takeable");
                 }
                 continue;
             }
@@ -630,13 +708,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
-            // §68: first aid on yourself is in-place work — no walk, no target
-            // object, no station. She stops where she stands and winds the
-            // dressing (the bandage is already in her pack; the fetch/craft of
-            // one is the separate GatherHerb→CraftBandage chain).
+            // §68 r2: a carried dressing is still used in place. With an empty
+            // or full pack, however, a ready dressing in the craft ring can be
+            // applied straight from the ground/pocket; a farther perceived one
+            // gets a walk leg but never a PickUp leg.
             if (npc.Mind.CurrentGoal == GoalType.TreatWounds)
             {
-                if (MedicalSupplyMath.BandageCount(npc) <= 0)
+                if (!TryBuildSelfTreatmentPlan(world, npc))
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, GoalType.TreatWounds);
@@ -645,20 +723,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         Trace.Debug(world, npc.Id, "PlanFailed", "Goal=TreatWounds NoBandage");
 
                     }
-                    continue;
-                }
-
-                npc.Plan.Steps.Add(new PlanStep
-                {
-                    Type = PlanStepType.TreatSelf,
-                    Interaction = InteractionType.TreatSelf
-                });
-                npc.Plan.CurrentStepIndex = 0;
-                npc.Plan.Status = PlanStatus.Active;
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "PlanBuilt",
-                        $"Goal=TreatWounds Bandages={MedicalSupplyMath.BandageCount(npc)} Steps=[TreatSelf]");
                 }
                 continue;
             }
@@ -715,7 +779,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // ответ: оно ничего не греет и не защищает, но закрывает.
             var preferCover = interactionType == InteractionType.Dress &&
                 ModestyMath.OutsiderKnown(world, npc) &&
-                ModestyMath.MissingCover(world, npc);
+                ModestyMath.MissingCover(world, npc) &&
+                DecisionSystem.KnowsReachablePermittedCover(npc, world);
             // §55: boiling is retired — GetWater now just fetches the nearest
             // coconut to crack open (no boiled-vs-raw source preference).
             var preferBoiled = false;
@@ -732,7 +797,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
             var preferProstheticBoard = npc.Mind.CurrentGoal == GoalType.GatherWood &&
                 DecisionSystem.WoodenProstheticBoardShortfall(world, npc) > 0;
             var preferMedicalStick = npc.Mind.CurrentGoal == GoalType.GatherWood &&
-                !preferProstheticBoard && DecisionSystem.SplintSupplyNeeded(world, npc);
+                !preferProstheticBoard &&
+                (InventoryMath.NeedsEmergencyCoconutBlade(world, npc) ||
+                 DecisionSystem.SplintSupplyNeeded(world, npc));
+            var preferCoconutBlade = npc.Mind.CurrentGoal == GoalType.GatherTools &&
+                !DecisionSystem.HasCoconutBlade(npc) &&
+                (npc.Mind.IsStarving || npc.Mind.IsDehydrated) &&
+                DecisionSystem.HasCoconutOpportunity(npc, world);
             var fireUsable = false;
             if (preferFood)
             {
@@ -747,10 +818,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
             var selectedNutrition = 0f;
             var selectedProstheticBoard = false;
             var selectedMedicalStick = false;
+            var selectedCoconutBlade = false;
             var selectedDressAffinity = -1f;
             var selectedDressQuality = -1f;
             var selectedCover = 0; // §133: сколько стыдных мест закрывает кандидат
             var candidateCount = 0;
+            var queuedBuildSiteId = npc.Mind.CurrentGoal == GoalType.BuildFurniture
+                ? DecisionSystem.FindBuildSite(npc, world)?.Id
+                : null;
             foreach (var perceived in npc.Perception.Objects)
             {
                 if (!perceived.IsReachable ||
@@ -762,7 +837,18 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
 
                 // Spec 29E.4: per-goal target filtering by tags.
-                if (!IsValidTargetFor(world, npc, npc.Mind.CurrentGoal, perceived))
+                if (!IsValidTargetFor(
+                        world, npc, npc.Mind.CurrentGoal, perceived, queuedBuildSiteId))
+                {
+                    continue;
+                }
+
+                // §24.16 r3: the final stand point is part of availability,
+                // even for a non-obstacle object whose anchor is entered
+                // directly. SplitLog used to select a log under a housemate,
+                // wait 41 ticks, abort, and select the same anchor again.
+                if (!HasUsableObjectApproach(
+                        world, npc, perceived, interactionType.Value))
                 {
                     continue;
                 }
@@ -780,7 +866,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     InventoryMath.StashHoldsWantedTool(world, npc, stashCandidate);
 
                 if (interactionType == InteractionType.PickUp && !stashPickup &&
-                    !InventoryMath.CanMakeRoomFor(world, npc, perceived.DefinitionId))
+                    !InventoryMath.CanMakeRoomForGoal(
+                        world, npc, npc.Mind.CurrentGoal, perceived.DefinitionId))
                 {
                     if (SimTrace.Enabled)
                     {
@@ -791,7 +878,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
 
                 // Spec 29C.4A food avoidance: don't shop for food where the
-                // dogs are — unless starving (desperation overrides caution).
+                // dogs are. Starvation may override an old danger MEMORY, but
+                // never the presence of a live predator at the target: that
+                // was not desperation, it was a deterministic feeding loop.
                 // §54.16: butchered meat is EXEMPT while no beast is actually
                 // there. The kill site is stamped dangerous for 2400 ticks and
                 // the meat rots in 1800 — the ban outlived the meal, so every
@@ -799,10 +888,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // butcherings / 0 chunks cooked in the day-34 save). A stale
                 // mark must not fence off the catch they just fought for; a
                 // LIVE mob on the spot still does.
-                if (interactionType == InteractionType.PickUp && !npc.Mind.IsStarving &&
-                    IsNearDanger(npc, perceived.Tile, 2) &&
-                    !(IsMeatSource(world, perceived) &&
-                      !MobSystem.MobNear(world, perceived.Tile, 2)))
+                var liveMobNearPickup = interactionType == InteractionType.PickUp &&
+                    MobSystem.MobNear(world, perceived.Tile, 2);
+                if (interactionType == InteractionType.PickUp &&
+                    (liveMobNearPickup ||
+                     (!npc.Mind.IsStarving && IsNearDanger(npc, perceived.Tile, 2) &&
+                      !IsMeatSource(world, perceived))))
                 {
                     continue;
                 }
@@ -863,7 +954,20 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
                 }
 
-                if (preferCover)
+                if (preferCoconutBlade)
+                {
+                    var isBlade = ToolCandidateProvidesCapability(
+                        world, perceived, Content.GearCapability.Cut);
+                    if (selected is null ||
+                        (isBlade && !selectedCoconutBlade) ||
+                        (isBlade == selectedCoconutBlade &&
+                         perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
+                        selectedCoconutBlade = isBlade;
+                    }
+                }
+                else if (preferCover)
                 {
                     // Сначала — сколько стыдных мест закроет, потом броня,
                     // дальше вкус и расстояние (та же лесенка, что у брони).
@@ -1143,6 +1247,137 @@ public sealed partial class PlanningSystem : ISimulationSystem
         }
     }
 
+    /// <summary>
+    /// Builds the shared "take the product that already exists" plan for every
+    /// persistent item recipe. The target may be the output itself or a dropped
+    /// garment whose Contents holds it; completion extracts only the requested
+    /// output from that container.
+    /// </summary>
+    private static bool TryBuildCompletedCraftOutputTakePlan(
+        WorldState world, NPCState npc)
+    {
+        var goal = npc.Mind.CurrentGoal;
+        var output = Content.RecipeCatalog.OutputOf(goal);
+        if (string.IsNullOrEmpty(output) ||
+            !CraftProjectMath.TryFindTakeableCompletedOutput(
+                world, npc, goal, out var source) ||
+            source.Junctions.Count == 0)
+        {
+            return false;
+        }
+
+        var anchor = source.Junctions[0];
+        var reach = SpatialQueries.BesideReach(
+            world.Content.ObjectDefinitions.TryGetValue(
+                source.DefinitionId, out var definition)
+                    ? definition.ObstacleRadius
+                    : 0f);
+        if (!TryReserveBesideJunction(
+                world, npc, anchor, 48, out var beside, reach, source) ||
+            !SpatialMutations.TryReserveJunction(
+                world, beside, npc.Id, world.Tick, 48))
+        {
+            return false;
+        }
+
+        npc.Plan.TargetObjectId = source.Id;
+        npc.Plan.TargetTile = source.Tile;
+        npc.Plan.TargetJunctionId = beside;
+        npc.Plan.TargetItemDefinitionId = output;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = beside,
+            TargetObject = source.Id
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            TargetObject = source.Id,
+            TargetJunction = beside,
+            Interaction = InteractionType.PickUp
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CraftOutputTakePlanned",
+                $"Goal={goal} Output={output} Source={source.Id.Value} " +
+                $"SourceDef={source.DefinitionId} " +
+                $"Container={source.DefinitionId != output} Junction={beside.Value}");
+        }
+        return true;
+    }
+
+    private static bool TryBuildSelfTreatmentPlan(WorldState world, NPCState npc)
+    {
+        WorldObjectState source = null;
+        if (MedicalSupplyMath.BandageCount(npc) <= 0 &&
+            !MedicalSupplyMath.TryFindReachableBandageSource(world, npc, out source))
+        {
+            return false;
+        }
+
+        npc.Plan.TargetItemDefinitionId = ContentIds.Bandage;
+        if (source != null)
+        {
+            npc.Plan.TargetObjectId = source.Id;
+            npc.Plan.TargetTile = source.Tile;
+
+            // The same ring-1 reach used by ground-input crafting: no cargo
+            // transfer and no ceremonial one-step walk around an item already
+            // at her knees. A farther perceived source uses the normal reserved
+            // object approach before the treatment beat.
+            if (HexSpatialMath.HexDistance(npc.Tile, source.Tile) > 1)
+            {
+                if (source.Junctions.Count == 0)
+                {
+                    return false;
+                }
+
+                var anchor = source.Junctions[0];
+                var reach = SpatialQueries.BesideReach(
+                    world.Content.ObjectDefinitions.TryGetValue(
+                        source.DefinitionId, out var definition)
+                            ? definition.ObstacleRadius
+                            : 0f);
+                if (!TryReserveBesideJunction(
+                        world, npc, anchor, 48, out var beside, reach, source) ||
+                    !SpatialMutations.TryReserveJunction(
+                        world, beside, npc.Id, world.Tick, 48))
+                {
+                    return false;
+                }
+
+                npc.Plan.TargetJunctionId = beside;
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.MoveToJunction,
+                    TargetJunction = beside,
+                    TargetObject = source.Id
+                });
+            }
+        }
+
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.TreatSelf,
+            TargetObject = source?.Id,
+            TargetJunction = npc.Plan.TargetJunctionId,
+            Interaction = InteractionType.TreatSelf
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=TreatWounds InventoryBandages={MedicalSupplyMath.BandageCount(npc)} " +
+                $"Source={source?.Id.Value.ToString() ?? "inventory"} " +
+                $"Steps=[{(npc.Plan.Steps.Count > 1 ? "MoveToJunction," : string.Empty)}TreatSelf]");
+        }
+        return true;
+    }
+
     // One source of truth for object approach geometry.  Sit/Sleep always use
     // the free rim, even when an integrated bed leaves its anchor unblocked;
     // the anchor is a pose marker, not a place where a standing body may wait.
@@ -1177,15 +1412,18 @@ public sealed partial class PlanningSystem : ISimulationSystem
         // crossed on the way to the rim. Null means "cross nothing".
         WorldObjectState owner = null)
     {
-        SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, maxBesideDist, owner,
+        var rimScratch = world.Caches.ObjectApproachJunctionsScratch;
+        SpatialQueries.CollectStandableAround(world, anchorId, rimScratch, 96, maxBesideDist, owner,
             InteractionReach.RimMode);
-        if (npc.CurrentJunction is { } current && _rimScratch.Contains(current))
+        var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
+        if (npc.CurrentJunction is { } current && rimScratch.Contains(current) &&
+            !occupiedByActor.Contains(current))
         {
             beside = current;
             return true;
         }
 
-        _rimScratch.Sort((a, b) =>
+        rimScratch.Sort((a, b) =>
         {
             var da = world.Junctions.Items.TryGetValue(a, out var ja)
                 ? HexSpatialMath.Distance(ja.WorldPosition, npc.Position) : float.MaxValue;
@@ -1194,9 +1432,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
             return da.CompareTo(db);
         });
 
-        foreach (var rim in _rimScratch)
+        foreach (var rim in rimScratch)
         {
-            if (SpatialQueries.IsJunctionFree(world, rim) &&
+            if (!occupiedByActor.Contains(rim) &&
+                CanUseApproachJunction(world, npc, rim) &&
                 SpatialMutations.TryReserveJunction(world, rim, npc.Id, world.Tick, durationTicks))
             {
                 beside = rim;
@@ -1207,6 +1446,117 @@ public sealed partial class PlanningSystem : ISimulationSystem
         beside = default;
         return false;
     }
+
+    /// <summary>Non-mutating half of <see cref="TryReserveBesideJunction"/>.
+    /// Decision calls this before bidding for an object goal, so a visible
+    /// hammer boxed in by bodies/furniture is not selected and failed every
+    /// four ticks.  Geometry, route and live reservations deliberately mirror
+    /// the real planner.</summary>
+    private static bool HasUsableBesideJunction(
+        WorldState world,
+        NPCState npc,
+        JunctionId anchorId,
+        float maxBesideDist,
+        WorldObjectState owner)
+    {
+        var rimScratch = world.Caches.ObjectApproachJunctionsScratch;
+        SpatialQueries.CollectStandableAround(world, anchorId, rimScratch, 96, maxBesideDist, owner,
+            InteractionReach.RimMode);
+        var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
+
+        if (npc.CurrentJunction is { } current && rimScratch.Contains(current) &&
+            !occupiedByActor.Contains(current))
+        {
+            return true;
+        }
+
+        foreach (var rim in rimScratch)
+        {
+            if (!occupiedByActor.Contains(rim) &&
+                CanUseApproachJunction(world, npc, rim) &&
+                (!world.Reservations.Junctions.TryGetValue(rim, out var reservation) ||
+                 reservation.Owner == npc.Id || reservation.EndTick < world.Tick))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasUsableObjectApproach(
+        WorldState world,
+        NPCState npc,
+        PerceivedObject perceived,
+        InteractionType interaction)
+    {
+        // A remembered object has no live footprint, but its remembered anchor
+        // still has to belong to a component this body can reach. Returning
+        // unconditional true here made HarvestYucca select the same target
+        // behind a lost jump after every short cooldown (12 path failures in
+        // seed 31337). Existence stays a belief until arrival; topology does not.
+        if (!world.Entities.Objects.TryGetValue(perceived.Id, out var target) ||
+            target.Junctions.Count == 0)
+        {
+            if (!perceived.FromMemory)
+            {
+                return true;
+            }
+
+            if (!npc.Memory.KnownObjects.TryGetValue(perceived.Id, out var remembered) ||
+                remembered.Junction is not { } rememberedJunction ||
+                npc.CurrentJunction is not { } rememberedFrom)
+            {
+                return false;
+            }
+
+            return Connectivity.Reachable(
+                world, rememberedFrom, rememberedJunction,
+                CanUseRoutineTraversal(npc));
+        }
+
+        var anchor = interaction == InteractionType.Craft &&
+            target.CraftJunction is { } authoredWorkPoint
+                ? authoredWorkPoint
+                : target.Junctions[0];
+        if (RequiresBesideApproach(world, anchor, interaction))
+        {
+            var reach = SpatialQueries.BesideReach(
+                world.Content.ObjectDefinitions.TryGetValue(
+                    perceived.DefinitionId, out var definition)
+                        ? definition.ObstacleRadius
+                        : 0f);
+            return HasUsableBesideJunction(world, npc, anchor, reach, target);
+        }
+
+        if (PathfindingSystem.OtherActorJunctions(world, npc).Contains(anchor))
+        {
+            return false;
+        }
+
+        if (world.Reservations.Junctions.TryGetValue(anchor, out var reservation) &&
+            reservation.Owner != npc.Id && reservation.EndTick >= world.Tick)
+        {
+            return false;
+        }
+
+        return npc.CurrentJunction is not { } from ||
+            Connectivity.Reachable(world, from, anchor, CanUseRoutineTraversal(npc));
+    }
+
+    /// <summary>Routine errands stop taking jump shortcuts once a leg enters
+    /// the safe-ground warning band. Flee/critical exploration and the explicit
+    /// ReachSafeGround plan retain their emergency traversal permission.</summary>
+    internal static bool CanUseRoutineTraversal(NPCState npc) =>
+        npc.Body.CanJump &&
+        System.MathF.Min(
+            npc.Body.LimbFunction(BodyPart.LegL),
+            npc.Body.LimbFunction(BodyPart.LegR)) >= AiBalance.SafeGroundLegAlert;
+
+    private static bool CanUseApproachJunction(WorldState world, NPCState npc, JunctionId rim) =>
+        SpatialQueries.IsJunctionFree(world, rim) &&
+        (npc.CurrentJunction is not { } from ||
+         Connectivity.Reachable(world, from, rim, CanUseRoutineTraversal(npc)));
 
     private static string FormatInteractions(InteractionType[] interactions)
     {
@@ -1400,6 +1750,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
     internal static void SetGoalCooldown(WorldState world, NPCState npc, GoalType goal) =>
         SetGoalCooldown(world, npc, goal, FailureCooldownTicks);
 
+    /// <summary>External event producers (help cries, witnessed assaults,
+    /// threat alerts) must obey the same hard gate as the decision auction.
+    /// Otherwise an event raised every medium pass can immediately resurrect
+    /// the goal that pathfinding has just rejected.</summary>
+    internal static bool IsGoalOnCooldown(NPCState npc, GoalType goal, int currentTick) =>
+        npc.Mind.Cooldowns.Exists(c => c.Goal == goal && c.EndTick > currentTick);
+
     /// <summary>
     /// Тот же кулдаун, но на заданный срок. Понадобился §122: сорок тиков петля
     /// не замечает — она их и так пережила пять раз подряд, — а лестнице выхода
@@ -1443,7 +1800,128 @@ public sealed partial class PlanningSystem : ISimulationSystem
     private static InteractionType? GoalToInteraction(GoalType goal) =>
         AI.GoalCatalog.InteractionFor(goal);
 
-    private static bool IsValidTargetFor(WorldState world, NPCState npc, GoalType goal, PerceivedObject perceived)
+    /// <summary>Non-mutating mirror of the generic planner's common object
+    /// filters. Decision uses it for gather/build bids so Candidates=0 cannot
+    /// be the normal result immediately after the auction selected a goal.</summary>
+    internal static bool HasObjectCandidateForGoal(
+        WorldState world, NPCState npc, GoalType goal, ObjectId? requiredTarget = null)
+    {
+        var interactionType = GoalToInteraction(goal);
+        if (interactionType is null)
+        {
+            return false;
+        }
+
+        var queuedBuildSiteId = goal == GoalType.BuildFurniture
+            ? requiredTarget ?? DecisionSystem.FindBuildSite(npc, world)?.Id
+            : null;
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (requiredTarget is { } required && !perceived.Id.Equals(required) ||
+                !perceived.IsReachable ||
+                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+                npc.Memory.IsShunned(perceived.Id, world.Tick) ||
+                !perceived.AvailableInteractions.Contains(interactionType.Value) ||
+                !IsValidTargetFor(world, npc, goal, perceived, queuedBuildSiteId))
+            {
+                continue;
+            }
+
+            var stashPickup = goal == GoalType.GatherTools &&
+                world.Entities.Objects.TryGetValue(perceived.Id, out var stash) &&
+                stash.Contents.Count > 0 &&
+                InventoryMath.StashHoldsWantedTool(world, npc, stash);
+            if (interactionType == InteractionType.PickUp && !stashPickup &&
+                !InventoryMath.CanMakeRoomForGoal(
+                    world, npc, goal, perceived.DefinitionId))
+            {
+                continue;
+            }
+
+            if (interactionType == InteractionType.PickUp &&
+                (MobSystem.MobNear(world, perceived.Tile, 2) ||
+                 (!npc.Mind.IsStarving && IsNearDanger(npc, perceived.Tile, 2) &&
+                  !IsMeatSource(world, perceived))))
+            {
+                continue;
+            }
+
+            // Mirror the generic planner all the way through the exact stand
+            // point. Perception's IsReachable deliberately answers only the
+            // broader terrain question and ignores temporary actors/claims.
+            if (!HasUsableObjectApproach(
+                    world, npc, perceived, interactionType.Value))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Exact GatherTools candidate for a required verb. This is used
+    /// by survival chains whose missing tool is semantically specific: a
+    /// lighter or saw is still a valid ordinary tool upgrade, but cannot be
+    /// advertised as the blade that opens food.</summary>
+    internal static bool HasToolCandidateWithCapability(
+        WorldState world, NPCState npc, Content.GearCapability capability)
+    {
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (!perceived.IsReachable ||
+                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+                npc.Memory.IsShunned(perceived.Id, world.Tick) ||
+                !perceived.AvailableInteractions.Contains(InteractionType.PickUp) ||
+                !IsValidTargetFor(world, npc, GoalType.GatherTools, perceived) ||
+                !ToolCandidateProvidesCapability(world, perceived, capability) ||
+                !HasUsableObjectApproach(world, npc, perceived, InteractionType.PickUp))
+            {
+                continue;
+            }
+
+            var stashPickup = world.Entities.Objects.TryGetValue(
+                    perceived.Id, out var stash) &&
+                stash.Contents.Count > 0;
+            if (stashPickup ||
+                InventoryMath.CanMakeRoomFor(world, npc, perceived.DefinitionId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ToolCandidateProvidesCapability(
+        WorldState world, PerceivedObject perceived,
+        Content.GearCapability capability)
+    {
+        if (Content.GearCatalog.For(perceived.DefinitionId).Has(capability))
+        {
+            return true;
+        }
+
+        if (!world.Entities.Objects.TryGetValue(perceived.Id, out var stash))
+        {
+            return false;
+        }
+
+        foreach (var item in stash.Contents)
+        {
+            if (Content.GearCatalog.For(item.DefinitionId).Has(capability))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsValidTargetFor(
+        WorldState world, NPCState npc, GoalType goal, PerceivedObject perceived,
+        ObjectId? queuedBuildSiteId = null)
     {
         if (world.Entities.Objects.TryGetValue(perceived.Id, out var liveTarget) &&
             liveTarget.IsCraftProject)
@@ -1605,7 +2083,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // (FindBuildSite → IsOurSite), но план брал БЛИЖАЙШИЙ валидный
                 // сайт из восприятия — цель выиграна на своём, а материалы
                 // уходили в чужой лагерь, стоило пройти рядом с ним.
-                return definition.Tags.Contains("FurnitureSite") &&
+                return queuedBuildSiteId is { } queuedSite &&
+                    queuedSite.Equals(perceived.Id) &&
+                    definition.Tags.Contains("FurnitureSite") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var fsite) &&
                     BuildSiteMath.IsSite(fsite) &&
                     DecisionSystem.IsOurSite(world, npc, fsite) &&
@@ -1622,7 +2102,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // ничем (та же петля, что съела колонию на кокосах).
                 return CorpseMath.IsHumanDead(definition) &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var lootAnchor) &&
-                    CorpseMath.HasSpoils(world, lootAnchor);
+                    CorpseMath.HasLootableSpoils(world, npc, lootAnchor);
             case GoalType.WarmUp:
                 // Spec 42: only a BURNING fire warms — a cold pit is no target.
                 return definition.Tags.Contains("Campfire") &&

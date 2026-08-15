@@ -28,6 +28,7 @@ public sealed class SoakMetrics
         public int GoalSinceTick;
         public int Changes;
         public int StuckTicks;
+        public int StuckEligibleTicks;
 
         /// <summary>§122: тиков, прожитых внутри распознанного круга.</summary>
         public int LoopTicks;
@@ -177,14 +178,19 @@ public sealed class SoakMetrics
                 }
             }
 
-            // Подпись §102: цель есть, взаимодействие не идёт, и она никуда не
-            // идёт. Ровно в этом состоянии чужак простоял 2872 тика подряд, и
-            // ни одно событие об этом не сказало.
-            if (npc.Mind.CurrentGoal != GoalType.None &&
-                npc.Execution.Status == ExecutionStatus.None &&
-                !npc.Movement.IsMoving)
+            // §30.16: use the SAME exclusions and definition as the live
+            // watchdog. The old three-field copy counted Idle, sleep, crying,
+            // coma and valid aid waits as broken AI; seed 999983 reported 9.8%
+            // stuck with zero StuckDetected events.
+            if (!WatchdogExclusions.IsPlayerDriven(npc) &&
+                !WatchdogExclusions.IsAuthoredStillness(world, npc) &&
+                !WatchdogExclusions.IsIntentionalHold(world, npc))
             {
-                track.StuckTicks++;
+                track.StuckEligibleTicks++;
+                if (StuckDiagnosticSystem.CountsAsIdleWithGoal(world, npc))
+                {
+                    track.StuckTicks++;
+                }
             }
 
             // §122. ВРЕМЯ в петлях, а не число эпизодов: лестница выхода по
@@ -253,6 +259,8 @@ public sealed class SoakMetrics
 
     public int StuckTicks => _tracks.Values.Sum(t => t.StuckTicks);
 
+    public int StuckEligibleTicks => _tracks.Values.Sum(t => t.StuckEligibleTicks);
+
     /// <summary>§122: всего начатых петель за прогон.</summary>
     public int LoopOnsets => _loopOnsets.Values.Sum();
 
@@ -273,9 +281,9 @@ public sealed class SoakMetrics
 
     public double SwitchesPerNpcDay => NpcDays <= 0 ? 0 : MeaningfulSwitches / NpcDays;
 
-    public double StuckShare => TicksRun <= 0 || _tracks.Count == 0
+    public double StuckShare => StuckEligibleTicks <= 0
         ? 0
-        : StuckTicks / (double)(TicksRun * _tracks.Count);
+        : StuckTicks / (double)StuckEligibleTicks;
 
     public int BreathUsers => _breathUsers.Count;
 
@@ -401,6 +409,7 @@ public sealed class SoakMetrics
                ",\"breathSpentOnsets\":" + BreathSpentOnsets +
                ",\"movingBreathRecoveryNpcTicks\":" + MovingBreathRecoveryNpcTicks +
                ",\"stuckNpcTicks\":" + StuckTicks +
+               ",\"stuckEligibleNpcTicks\":" + StuckEligibleTicks +
                ",\"stuckShare\":" + StuckShare.ToString("F4", invariant) +
                ",\"loopTicks\":" + LoopTicks +
                ",\"loopShare\":" + LoopShare.ToString("F4", invariant) +

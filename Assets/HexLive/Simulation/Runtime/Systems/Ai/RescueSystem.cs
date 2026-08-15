@@ -4,6 +4,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -34,6 +35,16 @@ public sealed class RescueSystem : ISimulationSystem
                 helper.Body.IsCrawling ||
                 helper.Mind.PendingAbuseFrom is not null ||
                 helper.Mind.PendingExpulsionFrom is not null ||
+                // §118.4 r2: Rescue is reactive too, but it is not allowed to
+                // overwrite another system-owned reactive role.  A distant
+                // defender had an Invalid plan for one Medium beat; Rescue
+                // installed a carry plan, then friend-guard aborted it back to
+                // Defend, and the two systems repeated forever without one
+                // step of movement. Existing rescue/limb-care goals remain
+                // eligible for their own resume/continuation paths below.
+                (GoalCatalog.IsReactive(helper.Mind.CurrentGoal) &&
+                 helper.Mind.CurrentGoal is not (GoalType.Rescue or
+                     GoalType.Splint or GoalType.FitProsthetic)) ||
                 helper.Plan.Status == PlanStatus.Active ||
                 helper.Execution.Status == ExecutionStatus.InProgress ||
                 helper.Mind.IsStarving || helper.Mind.IsDehydrated)
@@ -274,6 +285,18 @@ public sealed class RescueSystem : ISimulationSystem
         if (patient is null ||
             !KenshiRescueMath.TryFindApproach(world, helper, patient, out var approach))
         {
+            return false;
+        }
+
+        // §111.13: a reactive limb-care route is not real until the helper
+        // owns one of the exact stations around a lying patient. Waiting until
+        // execution meant she could arrive, discover all stations blocked,
+        // abort, and be assigned the same Splint plan on every Medium tick.
+        if (patient.IsLyingDown(world.Tick) &&
+            !LyingStations.TryClaim(world, helper, patient, out _))
+        {
+            SpatialMutations.ReleaseJunctionReservation(
+                world, approach, helper.Id);
             return false;
         }
 

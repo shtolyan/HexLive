@@ -175,6 +175,8 @@ public sealed class KenshiCoreTests
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
         patient.Needs.Blood = 1f;
+        patient.Needs.Hunger = 0f;
+        patient.Needs.Thirst = 0f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1181,
@@ -547,6 +549,35 @@ public sealed class KenshiCoreTests
     }
 
     [Test]
+    public void TinyLegRegenWhileStillCrawling_DoesNotRearmWakeGrace()
+    {
+        var world = TestWorld.CreateWorld();
+        world.Tick = 100;
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Mind.WakeGraceUntilTick = 0;
+        patient.Body.Parts[BodyPart.LegL] = 0.0033f;
+        patient.Body.Parts[BodyPart.LegR] = 0.14f;
+
+        MortalityHelpers.GrantStandUpGrace(world, patient, wasProne: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Body.IsProne, Is.False,
+                "The legacy zero-HP posture edge has technically cleared.");
+            Assert.That(patient.Body.IsCrawling, Is.True,
+                "Both legs are still far below the shared standing threshold.");
+            Assert.That(patient.Mind.WakeGraceUntilTick, Is.Zero,
+                "Tiny regen on a repeatedly damaged leg must not freeze decisions forever.");
+        });
+
+        patient.Body.Parts[BodyPart.LegL] = 0.8f;
+        patient.Body.Parts[BodyPart.LegR] = 0.8f;
+        MortalityHelpers.GrantStandUpGrace(world, patient, wasProne: true);
+        Assert.That(patient.Mind.WakeGraceUntilTick,
+            Is.EqualTo(world.Tick + AiBalance.WakeGraceTicks));
+    }
+
+    [Test]
     public void CuttingCriticalDepth_SeversLimbAndLeavesRescuableStump()
     {
         var world = TestWorld.CreateWorld();
@@ -635,6 +666,34 @@ public sealed class KenshiCoreTests
             Assert.That(helper.Plan.TargetAgentId, Is.EqualTo(patient.Id));
             Assert.That(patient.Mind.PendingAidFrom, Is.EqualTo(helper.Id));
         });
+    }
+
+    [Test]
+    public void ProstheticPledgeDoesNotResurrectGatherToolsDuringFailureCooldown()
+    {
+        var world = TestWorld.CreateWorld();
+        var colonists = world.Entities.Npcs.Values
+            .Where(npc => npc.Faction == Faction.Colony).Take(2).ToArray();
+        var patient = colonists[0];
+        var helper = colonists[1];
+        patient.Body.Sever(BodyPart.LegL);
+        patient.Wounds.Clear();
+        helper.Inventory.Items.Clear();
+        helper.Mind.ProstheticAidTargetId = patient.Id;
+        helper.Mind.ProstheticAidPart = BodyPart.LegL;
+        helper.Mind.CurrentGoal = GoalType.None;
+        helper.Plan.Status = PlanStatus.Completed;
+        helper.Execution.Status = ExecutionStatus.None;
+        helper.Mind.Cooldowns.Add(new GoalCooldown
+        {
+            Goal = GoalType.GatherTools,
+            EndTick = world.Tick + 100
+        });
+
+        new ProstheticAidSystem().Run(world);
+
+        Assert.That(helper.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.GatherTools),
+            "Внешний исполнитель обещания протеза обязан уважать cooldown провалившегося пути.");
     }
 
     [Test]
@@ -904,7 +963,7 @@ public sealed class KenshiCoreTests
         abuser.Tile = carrier.Tile;
         abuser.Position = carrier.Position;
 
-        PlanInterruption.AbortForCombat(world, carrier,
+        PlanInterruption.TryAbortForCombat(world, carrier, InterruptionCause.CombatVictim,
             $"Abused by NPC{abuser.Id.Value}");
         carrier.Mind.CurrentGoal = GoalType.None; // mirrors the abuse call site
 
@@ -966,7 +1025,7 @@ public sealed class KenshiCoreTests
         carrier.Plan.Status = PlanStatus.Active;
         carrier.Plan.TargetAgentId = patient.Id;
 
-        PlanInterruption.Abort(world, carrier, "test replacement plan");
+        PlanInterruption.TryAbort(world, carrier, InterruptionCause.Auction, "test replacement plan");
 
         Assert.Multiple(() =>
         {
@@ -1016,7 +1075,7 @@ public sealed class KenshiCoreTests
             Assert.That(carrier.Plan.Status, Is.EqualTo(PlanStatus.Active));
         });
 
-        PlanInterruption.Abort(world, carrier, "path retry limit reached");
+        PlanInterruption.TryAbort(world, carrier, InterruptionCause.PathFailure, "path retry limit reached");
         Assert.Multiple(() =>
         {
             Assert.That(carrier.CarriedNpcId, Is.Null);

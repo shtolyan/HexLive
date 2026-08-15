@@ -199,8 +199,8 @@ public sealed class PredationSystem : ISimulationSystem
                 victim.Execution.Status == ExecutionStatus.InProgress ||
                 victim.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(
-                    world, victim, $"Fighting off NPC{predator.Id.Value}");
+                PlanInterruption.TryAbortForCombat(
+                    world, victim, InterruptionCause.Predation, $"Fighting off NPC{predator.Id.Value}");
                 victim.Mind.CurrentGoal = GoalType.None;
             }
 
@@ -319,8 +319,8 @@ public sealed class PredationSystem : ISimulationSystem
                 victim.Execution.Status == ExecutionStatus.InProgress ||
                 victim.IsCarryingPerson)
             {
-                PlanInterruption.AbortForCombat(
-                    world, victim, $"Fighting off NPC{predator.Id.Value}");
+                PlanInterruption.TryAbortForCombat(
+                    world, victim, InterruptionCause.Predation, $"Fighting off NPC{predator.Id.Value}");
                 victim.Mind.CurrentGoal = GoalType.None;
             }
 

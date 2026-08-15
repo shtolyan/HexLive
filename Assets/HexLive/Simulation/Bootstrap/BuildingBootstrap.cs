@@ -1190,11 +1190,9 @@ public static class BuildingBootstrap
     /// <summary>
     /// ⭐ §118.2: аптечка у гардероба — домашний запас медицины.
     ///
-    /// Садится на ТОТ ЖЕ джанкшен, что и гардероб, а не на соседний: комната в
-    /// один гекс, свободных джанкшенов наперечёт, и занять ещё один значило бы
-    /// отобрать место у койки или у прохода. Ящику это ничего не стоит — он
-    /// стоит на полу у стены и obstacle не ставит, ровно как гардероб и кровати
-    /// (§133), поэтому делить джанкшен с гардеробом безопасно.
+    /// Садится на свободный внутренний джанкшен 10, на один шаг сетки ближе к
+    /// центру от pivot гардероба. Трёхузловой authored footprint шкафа 9→4→0
+    /// остаётся свободен от ящика; сама аптечка obstacle не ставит.
     ///
     /// Внутри — расходники: сто пластырей и двадцать бинтов. Пластырь закрывает
     /// одну рану, бинт перевязывает зону целиком, отсюда и разница в числе.
@@ -1202,18 +1200,11 @@ public static class BuildingBootstrap
     private static void SpawnMedkit(
         WorldState world, WorldObjectState hut, WorldObjectState wardrobe)
     {
-        if (wardrobe.Junctions.Count == 0) return;
-        foreach (var existing in world.Entities.Objects.Values)
-        {
-            if (existing.DefinitionId == ContentIds.MedkitBox &&
-                existing.Tile.Equals(hut.Tile))
-            {
-                return; // уже стоит — повторный вызов не плодит второй ящик
-            }
-        }
+        if (FindMedkit(world, hut) != null) return;
+        if (FindMedkitJunction(world, hut) is not { } junctionId) return;
 
         var medkit = WorldObjectMutations.SpawnObject(
-            world, ContentIds.MedkitBox, hut.Fragment, hut.Tile, wardrobe.Junctions[0]);
+            world, ContentIds.MedkitBox, hut.Fragment, hut.Tile, junctionId);
         medkit.RotationDegrees = wardrobe.RotationDegrees;
         WorldObjectMutations.SetObstacleBlocking(world, medkit, blocked: false);
 
@@ -1415,7 +1406,100 @@ public static class BuildingBootstrap
             garment.Tile = wardrobe.Tile;
             garment.RotationDegrees = wardrobe.RotationDegrees;
         }
+        RepairMedkitAnchor(world, hut, wardrobe);
         world.TopologyVersion++;
+    }
+
+    private static void RepairMedkitAnchor(
+        WorldState world, WorldObjectState hut, WorldObjectState wardrobe)
+    {
+        var medkit = FindMedkit(world, hut);
+        if (medkit == null)
+        {
+            SpawnMedkit(world, hut, wardrobe);
+            return;
+        }
+
+        var ignored = new HashSet<ObjectId> { medkit.Id };
+        if (FindMedkitJunction(world, hut, ignored) is not { } junctionId) return;
+
+        foreach (var blockedId in medkit.BlockedJunctions)
+        {
+            if (world.Junctions.Items.TryGetValue(blockedId, out var blocked)) blocked.Blocked = false;
+        }
+        medkit.BlockedJunctions.Clear();
+        medkit.Junctions.Clear();
+        medkit.Junctions.Add(junctionId);
+        medkit.Fragment = hut.Fragment;
+        medkit.Tile = hut.Tile;
+        medkit.RotationDegrees = wardrobe.RotationDegrees;
+        WorldObjectMutations.SetObstacleBlocking(world, medkit, blocked: false);
+    }
+
+    private static WorldObjectState FindMedkit(WorldState world, WorldObjectState hut)
+    {
+        if (!world.Caches.ObjectsByTile.TryGetValue(hut.Tile, out var objects)) return null;
+        foreach (var id in objects)
+        {
+            if (world.Entities.Objects.TryGetValue(id, out var candidate) &&
+                candidate.DefinitionId == ContentIds.MedkitBox)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static JunctionId? FindMedkitJunction(
+        WorldState world,
+        WorldObjectState hut,
+        ISet<ObjectId> ignoredObjects = null)
+    {
+        var center = HexSpatialMath.TileToWorld(hut.Tile);
+        var radians = hut.RotationDegrees * MathF.PI / 180f;
+        var desired = center + RotateLocal(
+            new Float2(BuildingRules.HutMedkitLocalX, BuildingRules.HutMedkitLocalZ), radians);
+        JunctionId? best = null;
+        var bestSq = float.MaxValue;
+        foreach (var junctionId in world.Tiles.Items[hut.Tile].Junctions)
+        {
+            if (!world.Junctions.Items.TryGetValue(junctionId, out var candidate) ||
+                candidate.Tiles.Count != 1 || candidate.Blocked ||
+                InteriorObjectUses(world, hut, junctionId, ignoredObjects) ||
+                IsWardrobeFootprintJunction(center, radians, candidate.WorldPosition))
+            {
+                continue;
+            }
+
+            var fromCenter = candidate.WorldPosition - center;
+            const float interiorTemplateRadius = 1.1251f;
+            if (fromCenter.X * fromCenter.X + fromCenter.Y * fromCenter.Y >
+                interiorTemplateRadius * interiorTemplateRadius) continue;
+            var delta = candidate.WorldPosition - desired;
+            var sq = delta.X * delta.X + delta.Y * delta.Y;
+            if (sq < bestSq)
+            {
+                bestSq = sq;
+                best = junctionId;
+            }
+        }
+
+        return best;
+    }
+
+    private static bool IsWardrobeFootprintJunction(
+        Float2 tileCenter, float hutRadians, Float2 worldPosition)
+    {
+        foreach (var template in HexPointLayout.GetInteriorTemplates())
+        {
+            if (template.Slot != 9 && template.Slot != 4 && template.Slot != 0) continue;
+            var expected = tileCenter + RotateLocal(template.Offset, hutRadians);
+            var delta = worldPosition - expected;
+            if (delta.X * delta.X + delta.Y * delta.Y < 0.0001f * 0.0001f) return true;
+        }
+
+        return false;
     }
 
     private static WorldObjectState FindWardrobe(WorldState world, WorldObjectState hut)

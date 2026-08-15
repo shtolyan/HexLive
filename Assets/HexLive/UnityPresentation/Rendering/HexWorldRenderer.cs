@@ -3067,6 +3067,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             y += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
         }
+        else if (_floorTiles.Contains(worldObject.Tile))
+        {
+            // §118.2: loose items in a hut stand on the authored top of its
+            // raised floor, not on the terrain hidden 0.107475 wu below it.
+            y += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
+        }
 
         return y;
     }

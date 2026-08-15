@@ -14,7 +14,6 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(Spec72))]
     [MirrorTarget(typeof(Spec81))]
     [MirrorTarget(typeof(Spec82))]
-    [MirrorTarget(typeof(Spec86))]
     [MirrorTarget(typeof(Spec106))]
     [MirrorTarget(typeof(Spec108))]
     [MirrorTarget(typeof(Spec111))]
@@ -251,14 +250,6 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Насколько сильнее давит нулевое общение. Ниже ~1.5 он тонет среди бытовых дел и никого не трогает.")]
         [Range(0f, 4f)] public float lonelinessDriveMult = 3f;
 
-        [Header("§86 Бой не до смерти, если нет ненависти")]
-        [Tooltip("Включить пощаду. Выключено — люди снова добивают друг друга как звери.")]
-        public bool mercyEnabled = true;
-        [Tooltip("Ниже этой доли здоровья удар человека по человеку не опускает, если бьющий не ненавидит.")]
-        [Range(0f, 1f)] public float mercyHealthFloor = 0.55f;
-        [Tooltip("Пощадный удар не опускает ЧАСТЬ под ударом ниже этого: голова/торс не уничтожаются (мгновенная смерть), конечность не отрывается. Средний порог выше сам по себе этого не гарантирует — урон копится в одной части.")]
-        [Range(0f, 0.5f)] public float mercyPartFloor = 0.05f;
-
         [Header("§108 Групповая охота — сговор против чужака")]
         [Tooltip("⭐ Трое собрались, обсудили его и пошли бить. Выключено — тема «чужак» исчезает из разговоров, сговор не заключается.")]
         public bool groupHuntEnabled = true;
@@ -294,7 +285,7 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float groupHuntBondAffinity = 0.10f;
         [Tooltip("⭐ Сколько симпатии теряет ТА, КТО ВИДЕЛА сцену (не жертва). Недостающее звено: без него он фиксируется на удобной жертве, её симпатия уходит в -1.00, у двух других остаётся -0.35, и единогласия не бывает никогда.")]
         [Range(0f, 1f)] public float groupHuntWitnessAffinityLoss = 0.18f;
-        [Tooltip("Сколько ударов группы значит «проучили»: когда счёт набран и он оторвался или побежал — расправа удалась. Без этой меры у охоты с пощадой нет успешного конца вовсе.")]
+        [Tooltip("Сколько ударов группы значит «проучили»: когда счёт набран и он оторвался или побежал — расправа удалась без обязательного убийства.")]
         [Range(1, 30)] public int groupHuntBlowsToRout = 6;
         [Tooltip("Насколько он их за это возненавидит. Это его лестница оружия §91: побитый в следующий раз возьмётся за нож.")]
         [Range(0f, 1f)] public float groupHuntTargetGrudge = 0.30f;

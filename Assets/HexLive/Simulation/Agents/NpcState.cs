@@ -532,15 +532,11 @@ public sealed class NPCState
     // single-timing gear (knife/axe). Not persisted.
     public int SwingStrikeIndex { get; set; } = -1;
 
-    // §30: a human picks the body part and mercy decision at wind-up start.
-    // Persisted so saving between wind-up and impact cannot reroll the target.
+    // §30: a human picks the body part at wind-up start. Persisted so saving
+    // between wind-up and impact cannot reroll the target.
     public EntityId? PendingHumanStrikeTargetId { get; set; }
 
     public BodyPart PendingHumanStrikePart { get; set; } = BodyPart.Torso;
-
-    public bool PendingHumanStrikeKillAuthorized { get; set; }
-
-    public float PendingHumanStrikeKillIntent { get; set; }
 
     // ⭐ §104 r5: ТИК, В КОТОРЫЙ ПО НЕЙ ПОПАЛИ. Тот же приём, что и
     // SwingStartTick, и по той же причине: момент удара живёт ОДИН тик, а вид

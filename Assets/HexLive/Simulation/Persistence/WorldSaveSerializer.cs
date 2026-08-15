@@ -58,6 +58,7 @@ public static class WorldSaveSerializer
     // v28 (§116): критическая глубина, типы ран, шины, протезы и взаимные
     // ссылки переноски. Расширение добавлено в хвост NPC-записи.
     // v29 (§30): незавершённый человеческий замах и выбранная часть тела.
+    // Два legacy-слота mercy остаются в binary layout как false/0.
     // v30 (§119): workbench bills, persistent craft projects and aid pledges.
     // v31 (§121): ручное управление. В блоб едет ОДИН флаг — под чьим
     // управлением персонаж; недоигранный приказ едет сам собой, потому что
@@ -1334,7 +1335,7 @@ public static class WorldSaveSerializer
         WriteNullableEntity(w, npc.CarriedByNpcId);
         WriteNullableObject(w, npc.RescueDestinationObjectId);
 
-        // §30 / v29: save/load during wind-up preserves the exact decision.
+        // §30 / v29: save/load during wind-up preserves the selected part.
         w.Write(npc.StrikeLandsAtTick);
         w.Write(npc.StrikeReadyAtTick);
         w.Write(npc.AttackAnimUntilTick);
@@ -1342,8 +1343,8 @@ public static class WorldSaveSerializer
         w.Write(npc.SwingStrikeIndex);
         WriteNullableEntity(w, npc.PendingHumanStrikeTargetId);
         w.Write((int)npc.PendingHumanStrikePart);
-        w.Write(npc.PendingHumanStrikeKillAuthorized);
-        w.Write(npc.PendingHumanStrikeKillIntent);
+        w.Write(false); // retired v29 mercy flag; preserve blob layout
+        w.Write(0f); // retired v29 kill-intent scalar; preserve blob layout
         WriteNullableEntity(w, npc.Mind.CombatOpponentNpcId);
         w.Write(npc.Mind.ForcedMeleeWeaponId != null);
         if (npc.Mind.ForcedMeleeWeaponId != null)
@@ -1888,8 +1889,8 @@ public static class WorldSaveSerializer
                 var swingStrikeIndex = r.ReadInt32();
                 var pendingStrikeTarget = ReadNullableEntity(r);
                 var pendingStrikePart = (BodyPart)r.ReadInt32();
-                var pendingStrikeKillAuthorized = r.ReadBoolean();
-                var pendingStrikeKillIntent = r.ReadSingle();
+                _ = r.ReadBoolean(); // retired v29 mercy flag
+                _ = r.ReadSingle(); // retired v29 kill-intent scalar
                 FightScene.RestoreSwingSlot(
                     npc,
                     strikeLandsAtTick,
@@ -1898,9 +1899,7 @@ public static class WorldSaveSerializer
                     swingStartTick,
                     swingStrikeIndex,
                     pendingStrikeTarget,
-                    pendingStrikePart,
-                    pendingStrikeKillAuthorized,
-                    pendingStrikeKillIntent);
+                    pendingStrikePart);
                 npc.Mind.CombatOpponentNpcId = ReadNullableEntity(r);
                 npc.Mind.ForcedMeleeWeaponId = r.ReadBoolean() ? r.ReadString() : null;
             }

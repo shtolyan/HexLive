@@ -140,13 +140,9 @@ internal static class MeleeSwing
             var stats = CombatStatBreakdown.For(actor, weaponId, actor.SwingStrikeIndex);
             if (humanTarget != null)
             {
-                var decision = HumanStrikeDecision.Choose(
-                    world, actor, humanTarget,
-                    stats.EffectiveDamage * damageMultiplier, weaponId);
                 actor.PendingHumanStrikeTargetId = humanTarget.Id;
-                actor.PendingHumanStrikePart = decision.Part;
-                actor.PendingHumanStrikeKillAuthorized = decision.KillAuthorized;
-                actor.PendingHumanStrikeKillIntent = decision.KillIntent;
+                actor.PendingHumanStrikePart = AmputateSystemHelpers.RedirectFromStump(
+                    humanTarget, PickHumanPart(world, actor.Id.Value, humanTarget));
             }
             actor.StrikeLandsAtTick = world.Tick + SecondsToTicks(stats.HitDelaySeconds);
             actor.AttackAnimUntilTick = world.Tick + SecondsToTicks(stats.AttackDurationSeconds);
@@ -288,41 +284,22 @@ internal static class MeleeSwing
     {
         var hasPendingDecision = attacker.PendingHumanStrikeTargetId is { } pendingTarget &&
             pendingTarget.Equals(target.Id);
-        var fallback = hasPendingDecision
-            ? default
-            : HumanStrikeDecision.Choose(world, attacker, target, damage, weaponId);
         var part = hasPendingDecision
             ? AmputateSystemHelpers.RedirectFromStump(target, attacker.PendingHumanStrikePart)
-            : fallback.Part;
-        var killAuthorized = hasPendingDecision
-            ? attacker.PendingHumanStrikeKillAuthorized
-            : fallback.KillAuthorized;
-        var killIntent = hasPendingDecision
-            ? attacker.PendingHumanStrikeKillIntent
-            : fallback.KillIntent;
+            : AmputateSystemHelpers.RedirectFromStump(
+                target, PickHumanPart(world, attacker.Id.Value, target));
 
         // ⭐ §104 r5: вот сейчас, вот этим, вот сюда. Единственный сигнал, по
         // которому вид синхронно даёт кровь, отбой тела и звук удара — см.
-        // NPCState.HitStampTick. Ставится ДО пощады и до обнуления урона: удар
-        // случился в любом случае, и видно его быть обязано.
+        // NPCState.HitStampTick.
         StampHit(world, target, weaponId, part, attacker.Position);
         var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only
         var landed = EquipmentMath.Mitigate(world, target, part, damage);
-
-        // Recheck fatality at impact with the SAME selected part. Another
-        // fighter may have wounded the target during this wind-up.
-        var fatalAtImpact = HumanStrikeDecision.IsPotentiallyFatal(target, part, landed);
-        if (!killAuthorized && fatalAtImpact)
-        {
-            landed = HumanStrikeDecision.CapNonLethal(target, part, landed);
-        }
 
         var result = BodyDamageResolver.ApplyLanded(world, target, part, landed,
             DamageProfile.ForGear(weaponId), $"NPC{attacker.Id.Value}");
         landed = result.Landed;
         attacker.PendingHumanStrikeTargetId = null;
-        attacker.PendingHumanStrikeKillAuthorized = false;
-        attacker.PendingHumanStrikeKillIntent = 0f;
         EquipmentMath.WearCoveringItems(world, target, part, SimBalance.ClothingBiteDurabilityWear);
 
         if (SimTrace.Enabled)
@@ -330,7 +307,6 @@ internal static class MeleeSwing
             Trace.Debug(world, attacker.Id, traceName,
                 $"Target=NPC{target.Id.Value} {part} -{landed:F3} (armor={partArmor:F2}) " +
                 $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)} " +
-                $"KillIntent={killIntent:F2} Fatal={fatalAtImpact} Authorized={killAuthorized} " +
                 $"TargetHealth={target.Health:F2}");
         }
     }

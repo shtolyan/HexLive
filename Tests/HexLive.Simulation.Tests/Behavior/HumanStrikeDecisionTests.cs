@@ -1,8 +1,5 @@
 using System.IO;
 using System.Linq;
-using HexLive.Simulation.Agents;
-using HexLive.Simulation.AI;
-using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
@@ -10,63 +7,37 @@ using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
 {
-    public sealed class HumanStrikeDecisionTests
+    public sealed class HumanCombatLethalityTests
     {
-        [TestCase(-1f, 0f, 1f)]
-        [TestCase(-1f, 0.5f, 0.5f)]
-        [TestCase(-0.5f, 0.2f, 0.4f)]
-        [TestCase(0.5f, 0f, 0f)]
-        public void KillIntent_IsHatredTimesInverseCompassion(
-            float affinity, float compassion, float expected)
-        {
-            var world = TestWorld.CreateWorld();
-            var pair = world.Entities.Npcs.Values.Take(2).ToArray();
-            pair[0].Social.GetOrCreate(pair[1].Id).Affinity = affinity;
-            pair[0].CompassionTrait = compassion;
-
-            Assert.That(HumanStrikeDecision.CalculateKillIntent(pair[0], pair[1]),
-                Is.EqualTo(expected).Within(0.0001f));
-        }
-
-        [TestCase(BodyPart.Head)]
-        [TestCase(BodyPart.Torso)]
-        [TestCase(BodyPart.Pelvis)]
-        public void VitalPartCrossingZero_IsPotentiallyFatal(BodyPart part)
-        {
-            var target = TestWorld.CreateWorld().Entities.Npcs.Values.First();
-            target.Body.Parts[part] = 0.2f;
-            Assert.That(HumanStrikeDecision.IsPotentiallyFatal(target, part, 0.21f), Is.True);
-        }
-
         [Test]
-        public void VitalCriticalDepthCrossingOne_IsPotentiallyFatal()
+        public void MaximumCompassion_DoesNotCapPotentiallyFatalCombatDamage()
         {
-            var target = TestWorld.CreateWorld().Entities.Npcs.Values.First();
-            target.Body.Parts[BodyPart.Torso] = 0.05f;
-            target.Body.Condition(BodyPart.Torso).CriticalTrauma = 0.94f;
-
-            Assert.That(HumanStrikeDecision.IsPotentiallyFatal(
-                target, BodyPart.Torso, 0.12f), Is.True);
-        }
-
-        [Test]
-        public void RefusedFatalHit_LeavesPartAndDyingReserveAboveTheirFloors()
-        {
-            var target = TestWorld.CreateWorld().Entities.Npcs.Values.First();
+            var world = TestWorld.CreateWorld(91231);
+            var actor = world.Entities.Npcs.Values.First();
+            var target = world.Entities.Npcs.Values.Skip(1).First();
+            actor.CompassionTrait = 1f;
+            actor.Social.GetOrCreate(target.Id).Affinity = 1f;
+            actor.PendingHumanStrikeTargetId = target.Id;
+            actor.PendingHumanStrikePart = BodyPart.Head;
             target.Body.Parts[BodyPart.Head] = 0.2f;
-            target.Mind.DyingCause = DyingCause.VitalCrushed;
-            target.Mind.DyingReserve = 0.02f;
 
-            var capped = HumanStrikeDecision.CapNonLethal(target, BodyPart.Head, 1f);
+            MeleeSwing.ApplyHumanBlow(
+                world, actor, target, 10f, string.Empty, "CompassionLethalityTest");
 
-            Assert.That(target.Body.Parts[BodyPart.Head] - capped,
-                Is.GreaterThanOrEqualTo(Spec86.MercyPartFloor - 0.0001f));
-            Assert.That(capped * Spec105.DamageReserveFactor,
-                Is.LessThan(target.Mind.DyingReserve));
+            Assert.Multiple(() =>
+            {
+                Assert.That(target.Body.Parts[BodyPart.Head], Is.Zero,
+                    "Сострадание не должно оставлять legacy-пол части тела.");
+                Assert.That(target.Body.Condition(BodyPart.Head).CriticalTrauma,
+                    Is.GreaterThan(0f),
+                    "Потенциально смертельный overkill был обрезан до nonlethal-урона.");
+                Assert.That(actor.PendingHumanStrikeTargetId, Is.Null,
+                    "Разрешённый удар должен освободить сохранённую цель замаха.");
+            });
         }
 
         [Test]
-        public void SaveLoadDuringWindup_PreservesPartAndMercyDecision()
+        public void SaveLoadDuringWindup_PreservesOnlyTargetAndPart()
         {
             var world = TestWorld.CreateWorld(91231);
             var actor = world.Entities.Npcs.Values.First();
@@ -78,8 +49,6 @@ namespace HexLive.Simulation.Tests.Behavior
             actor.SwingStrikeIndex = 2;
             actor.PendingHumanStrikeTargetId = target.Id;
             actor.PendingHumanStrikePart = BodyPart.Pelvis;
-            actor.PendingHumanStrikeKillAuthorized = false;
-            actor.PendingHumanStrikeKillIntent = 0.42f;
             actor.Mind.CombatOpponentNpcId = target.Id;
             actor.Mind.ForcedMeleeWeaponId = "tool.machete";
 
@@ -97,13 +66,14 @@ namespace HexLive.Simulation.Tests.Behavior
             }
 
             var restored = loaded.Entities.Npcs[actor.Id];
-            Assert.That(restored.PendingHumanStrikeTargetId, Is.EqualTo(target.Id));
-            Assert.That(restored.PendingHumanStrikePart, Is.EqualTo(BodyPart.Pelvis));
-            Assert.That(restored.PendingHumanStrikeKillAuthorized, Is.False);
-            Assert.That(restored.PendingHumanStrikeKillIntent, Is.EqualTo(0.42f).Within(0.0001f));
-            Assert.That(restored.StrikeLandsAtTick, Is.EqualTo(actor.StrikeLandsAtTick));
-            Assert.That(restored.Mind.CombatOpponentNpcId, Is.EqualTo(target.Id));
-            Assert.That(restored.Mind.ForcedMeleeWeaponId, Is.EqualTo("tool.machete"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored.PendingHumanStrikeTargetId, Is.EqualTo(target.Id));
+                Assert.That(restored.PendingHumanStrikePart, Is.EqualTo(BodyPart.Pelvis));
+                Assert.That(restored.StrikeLandsAtTick, Is.EqualTo(actor.StrikeLandsAtTick));
+                Assert.That(restored.Mind.CombatOpponentNpcId, Is.EqualTo(target.Id));
+                Assert.That(restored.Mind.ForcedMeleeWeaponId, Is.EqualTo("tool.machete"));
+            });
         }
     }
 }

@@ -47,8 +47,8 @@ public readonly struct BodyDamageResult
 }
 
 /// <summary>
-/// §116: the single organic-damage pipeline. Combat callers may preview armor
-/// for mercy, but every landed blow reaches this class exactly once.
+/// §116: the single organic-damage pipeline. Every landed combat blow reaches
+/// this class exactly once.
 /// </summary>
 public static class BodyDamageResolver
 {

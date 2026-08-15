@@ -5248,10 +5248,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var prefabAxisCorrection = _handProp.transform.localRotation;
         var keepPrefabAxisCorrection =
             Config.GearLibrary.ConfigFor(itemId)?.preservePrefabRotationInHand == true;
-        // Size: normalize to the SAME world size the ground uses (ObjectFit), so a
-        // tool/coconut is identical in hand and on the ground. The gear asset's
-        // hand scale is a fine MULTIPLIER on top of this (default 1), not absolute.
-        var fit = ObjectFit.FitScaleFactor(_handProp, itemId);
+        var prefabLocalScale = _handProp.transform.localScale;
 
         // Placement priority (each higher tier wins): the gear asset's tuned
         // hand pose (edited live in the AxeChopTest scene) → an "AttachPoint"
@@ -5264,7 +5261,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _handProp.transform.localRotation = keepPrefabAxisCorrection
                 ? cfgRot * prefabAxisCorrection
                 : cfgRot;
-            _handProp.transform.localScale = cfgScale * fit; // config scale = multiplier
+            // #136: Renderer.bounds is a world AABB. Under a non-uniformly
+            // scaled hand bone, rotating AFTER fitting changes its measured
+            // maximum dimension and makes the same spear grow in the hand.
+            // Pose first, normalize that final orientation second, then apply
+            // the GearConfig scale as a fine multiplier over the prefab scale.
+            var fit = ObjectFit.FitScaleFactor(_handProp, itemId);
+            _handProp.transform.localScale =
+                Vector3.Scale(prefabLocalScale, cfgScale) * fit;
             return;
         }
 
@@ -5306,11 +5310,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        // No tuned placement: use the shared ObjectFit size (same as the ground)
-        // so e.g. a picked-up coconut is the same size it was lying on the ground.
-        _handProp.transform.localScale = Vector3.one * fit;
+        // No tuned placement: establish the final pose before measuring world
+        // bounds for exactly the same non-uniform-parent reason as above.
         _handProp.transform.localPosition = Vector3.zero;
         _handProp.transform.localRotation = Quaternion.identity;
+        _handProp.transform.localScale = prefabLocalScale *
+            ObjectFit.FitScaleFactor(_handProp, itemId);
     }
 
     private void SyncHandedness(IReadOnlyList<BodyPartConditionSnapshot> partConditions)
@@ -5502,11 +5507,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // (the machete does). Preserve it after applying the shared slot pose;
         // otherwise the semantic +Y handle axis is no longer the visible one.
         var prefabAxisCorrection = _backProp.transform.localRotation;
-
-        // Bug #87 rework: back, hand and ground must not invent three physical
-        // sizes for the same prefab. ObjectFit measures renderer bounds in world
-        // space, so the same factor works here even below a scaled animated bone.
-        _backProp.transform.localScale *= ObjectFit.FitScaleFactor(_backProp, itemId);
+        var prefabLocalScale = _backProp.transform.localScale;
 
         // One shared slot for every weapon. Rotate first, then align the centre
         // of the FINAL fitted render bounds — prefab roots/pivots may live at a
@@ -5530,6 +5531,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _backProp.transform.localRotation = slotRotation *
                 (twoHanded ? Quaternion.identity : Quaternion.Euler(0f, 0f, 180f)) *
                 prefabAxisCorrection;
+            _backProp.transform.localScale = prefabLocalScale *
+                ObjectFit.FitScaleFactor(_backProp, itemId);
             _backProp.transform.localPosition = slotLocal;
             return;
         }
@@ -5556,6 +5559,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : slotRotation *
               (twoHanded ? Quaternion.identity : Quaternion.Euler(0f, 0f, 180f)) *
               prefabAxisCorrection;
+
+        // #136: fit the FINAL orientation. Renderer.bounds is world-space, so
+        // fitting before this rotation under a non-uniform chest bone produced
+        // a different physical spear length than the hand path. Preserve the
+        // prefab's authored scale and multiply it by the shared fit factor.
+        _backProp.transform.localScale = prefabLocalScale *
+            ObjectFit.FitScaleFactor(_backProp, itemId);
 
         var combined = renderers[0].bounds;
         for (var i = 1; i < renderers.Length; i++)

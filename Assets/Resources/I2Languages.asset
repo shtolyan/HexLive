@@ -509,8 +509,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'A permanent personality trait. It influences mercy and willingness to help.'
-      - 'Постоянная черта характера. Влияет на пощаду и готовность помогать.'
+      - 'A permanent personality trait. It influences willingness to help.'
+      - 'Постоянная черта характера. Влияет на готовность помогать.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'skill.combat'

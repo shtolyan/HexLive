@@ -176,17 +176,42 @@ internal static class WoundMath
             return false;
         }
 
-        stabilized.Stabilized = true;
-        stabilized.Clot01 = 1f;
+        // ⭐ §118.2: повязка перевязывает ЗОНУ, а не одну царапину.
+        //
+        // Раньше бинт закрывал ровно одну запись. Но один укус пишет
+        // GashesPerHit=3 записи в одну и ту же зону, так что перевязать грудь
+        // целиком стоило семи бинтов, а флаг BandagedZones вставал уже с
+        // первого — в UI грудь выглядела забинтованной, пока под бинтом
+        // оставалось шесть необработанных ран (сейв seed=-28275602: у Киры
+        // bandaged=True при четырёх из пяти ран stabilized=False). Модель
+        // спорила сама с собой: перевязка мыслится по зоне, а лечила по записи.
+        //
+        // Теперь выбор САМОЙ ОПАСНОЙ раны выбирает ЗОНУ (приоритет активного
+        // кровотечения сохранён), а бинт ложится на все её открытые раны разом.
+        // Это и есть настоящая перевязка: тряпку наматывают на руку, а не на
+        // отдельный порез. Другие зоны требуют своего бинта — одна повязка
+        // по-прежнему одна конечность.
+        var zone = stabilized.Zone;
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Zone != zone || wound.Stabilized || wound.Heal01 >= 1f)
+            {
+                continue;
+            }
+
+            wound.Stabilized = true;
+            wound.Clot01 = 1f;
+        }
+
         if (herbal)
         {
-            npc.BandagedZones.Add(stabilized.Zone);
-            npc.GauzeZones.Remove(stabilized.Zone);
+            npc.BandagedZones.Add(zone);
+            npc.GauzeZones.Remove(zone);
         }
         else
         {
-            npc.GauzeZones.Add(stabilized.Zone);
-            npc.BandagedZones.Remove(stabilized.Zone);
+            npc.GauzeZones.Add(zone);
+            npc.BandagedZones.Remove(zone);
         }
 
         return true;

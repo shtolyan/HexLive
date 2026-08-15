@@ -239,6 +239,14 @@ whole garment set came from there.**
 
 ## Conventions
 
+### Carryable resources, items and tools
+
+Before adding or fixing any `resource.*` / `item.*` / `tool.*` prop — its model,
+its size on the ground and in the hand, or its inventory icon — read and follow
+`.agents/skills/hexlive-resource-authoring/SKILL.md`. A carryable thing is six
+artefacts (id, catalog entry, tuning asset, model, `ObjectFit` size, icon **plus
+its Addressables entry**), and every one of them fails silently on its own.
+
 ### Furniture art and placement
 
 Before changing a furniture Blender source/FBX, pivot, axes, footprint, wall

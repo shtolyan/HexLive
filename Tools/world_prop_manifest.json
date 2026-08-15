@@ -18,6 +18,7 @@
         {"id":"tool.saw","source":"ArtSource/WorldProps/tool.saw.glb","native":"tool_saw_native.fbx","mode":"native","minRenderers":1,"materialSlots":["saw_steel","saw_wood"],"alpha":"opaque"},
         {"id":"resource.log","source":"Resources/HexLive/Objects/resource.log.fbx","native":"resource.log.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Bark","Sapwood","Heartwood"],"alpha":"opaque"},
         {"id":"resource.stick","source":"Resources/HexLive/Objects/resource.stick.fbx","native":"resource.stick.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Bark","Heartwood"],"alpha":"opaque"},
+        {"id":"resource.board","source":"Tools/make_board_model.py","native":"resource.board.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Board_Sapwood","Board_Grain","Board_EndGrain"],"alpha":"opaque"},
         {"id":"station.drying_rack","source":"resource.stick.fbx + rope_lashing.fbx","native":"runtime assembly","mode":"native-assembly","minRenderers":8,"materialSlots":["Bark","Heartwood"],"alpha":"opaque","stagedBill":{"sticks":4,"rope":4}}
     ],
     "addressableNativeGroups": [

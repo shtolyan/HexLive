@@ -5266,9 +5266,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // maximum dimension and makes the same spear grow in the hand.
             // Pose first, normalize that final orientation second, then apply
             // the GearConfig scale as a fine multiplier over the prefab scale.
-            var fit = ObjectFit.FitScaleFactor(_handProp, itemId);
-            _handProp.transform.localScale =
-                Vector3.Scale(prefabLocalScale, cfgScale) * fit;
+            ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, cfgScale);
             return;
         }
 
@@ -5314,8 +5312,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // bounds for exactly the same non-uniform-parent reason as above.
         _handProp.transform.localPosition = Vector3.zero;
         _handProp.transform.localRotation = Quaternion.identity;
-        _handProp.transform.localScale = prefabLocalScale *
-            ObjectFit.FitScaleFactor(_handProp, itemId);
+        ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, Vector3.one);
+    }
+
+    /// <summary>#136: one multiply-contract for every fitted actor prop.
+    /// The caller must establish the final rotation first because ObjectFit
+    /// measures a world AABB under animated, potentially non-uniform bones.</summary>
+    private static void ApplyObjectFitScale(
+        GameObject prop, string itemId, Vector3 prefabLocalScale, Vector3 fineMultiplier)
+    {
+        var fit = ObjectFit.FitScaleFactor(prop, itemId);
+        prop.transform.localScale = Vector3.Scale(prefabLocalScale, fineMultiplier) * fit;
     }
 
     private void SyncHandedness(IReadOnlyList<BodyPartConditionSnapshot> partConditions)
@@ -5531,8 +5538,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _backProp.transform.localRotation = slotRotation *
                 (twoHanded ? Quaternion.identity : Quaternion.Euler(0f, 0f, 180f)) *
                 prefabAxisCorrection;
-            _backProp.transform.localScale = prefabLocalScale *
-                ObjectFit.FitScaleFactor(_backProp, itemId);
+            ApplyObjectFitScale(_backProp, itemId, prefabLocalScale, Vector3.one);
             _backProp.transform.localPosition = slotLocal;
             return;
         }
@@ -5564,8 +5570,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // fitting before this rotation under a non-uniform chest bone produced
         // a different physical spear length than the hand path. Preserve the
         // prefab's authored scale and multiply it by the shared fit factor.
-        _backProp.transform.localScale = prefabLocalScale *
-            ObjectFit.FitScaleFactor(_backProp, itemId);
+        ApplyObjectFitScale(_backProp, itemId, prefabLocalScale, Vector3.one);
 
         var combined = renderers[0].bounds;
         for (var i = 1; i < renderers.Length; i++)

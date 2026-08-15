@@ -23,16 +23,17 @@ public sealed class WeaponFitOrderContractTests
         var authored = method[authoredStart..authoredEnd];
 
         var rotation = authored.IndexOf("_handProp.transform.localRotation =", StringComparison.Ordinal);
-        var fit = authored.IndexOf("ObjectFit.FitScaleFactor(_handProp, itemId)", StringComparison.Ordinal);
-        var scale = authored.IndexOf(
-            "Vector3.Scale(prefabLocalScale, cfgScale) * fit", StringComparison.Ordinal);
+        var fit = authored.IndexOf(
+            "ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, cfgScale)",
+            StringComparison.Ordinal);
 
         Assert.Multiple(() =>
         {
             Assert.That(rotation, Is.GreaterThanOrEqualTo(0));
             Assert.That(fit, Is.GreaterThan(rotation),
                 "ObjectFit measured the hand prop before its final authored rotation.");
-            Assert.That(scale, Is.GreaterThan(fit),
+            Assert.That(method, Does.Contain(
+                "Vector3.Scale(prefabLocalScale, fineMultiplier) * fit"),
                 "GearConfig scale must multiply the fitted prefab, not replace its authored scale.");
         });
     }
@@ -48,7 +49,7 @@ public sealed class WeaponFitOrderContractTests
         var finalRotation = method.IndexOf(
             "_backProp.transform.localRotation = workingLocal.sqrMagnitude", StringComparison.Ordinal);
         var fittedScale = method.IndexOf(
-            "_backProp.transform.localScale = prefabLocalScale *\n            ObjectFit.FitScaleFactor(_backProp, itemId);",
+            "ApplyObjectFitScale(_backProp, itemId, prefabLocalScale, Vector3.one);",
             finalRotation, StringComparison.Ordinal);
         var centreBounds = method.IndexOf("var combined = renderers[0].bounds;", StringComparison.Ordinal);
 

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -150,6 +151,48 @@ public sealed class WardrobeTests
 
         Assert.That(WardrobeIn(loaded, Hut(loaded)), Is.Not.Null,
             "После загрузки в доме нет гардероба — старые сейвы останутся без мебели.");
+    }
+
+    [Test]
+    public void RepairingWardrobeAnchorMovesItsStoredGarmentsWithIt()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var hut = Hut(world);
+        var wardrobe = WardrobeIn(world, hut);
+        var approved = wardrobe.Junctions[0];
+
+        var coLocated = world.Entities.Objects.Values
+            .Where(candidate => !candidate.Id.Equals(wardrobe.Id) &&
+                                candidate.Junctions.Contains(approved))
+            .Select(candidate => candidate.Id)
+            .ToArray();
+        foreach (var objectId in coLocated) WorldObjectMutations.DespawnObject(world, objectId);
+
+        var occupied = world.Entities.Objects.Values
+            .SelectMany(candidate => candidate.Junctions)
+            .ToHashSet();
+        var displaced = world.Tiles.Items[hut.Tile].Junctions.First(junction =>
+            !junction.Equals(approved) &&
+            world.Junctions.Items[junction].Tiles.Count == 1 &&
+            !world.Junctions.Items[junction].Blocked &&
+            !occupied.Contains(junction));
+
+        wardrobe.Junctions.Clear();
+        wardrobe.Junctions.Add(displaced);
+        var garment = WorldObjectMutations.SpawnObject(
+            world, "underwear.bra_riot", hut.Fragment, hut.Tile, displaced);
+
+        BuildingBootstrap.RepairWardrobeAnchor(world, hut);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(wardrobe.Junctions, Is.EqualTo(new[] { approved }),
+                "Repair не вернул шкаф на утверждённый junction.");
+            Assert.That(garment.Junctions, Is.EqualTo(new[] { approved }),
+                "Одежда осталась на старом junction и стала наземным drop после загрузки.");
+            Assert.That(garment.RotationDegrees, Is.EqualTo(wardrobe.RotationDegrees),
+                "Перенесённая вещь не разделяет yaw шкафа и висит мимо socket.");
+        });
     }
 
     /// <summary>

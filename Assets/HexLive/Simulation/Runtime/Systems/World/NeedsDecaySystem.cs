@@ -552,8 +552,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 : working
                     ? -SimBalance.StaminaWorkDrain * AttributeMath.StaminaDrainMult(npc) * staminaDrain
                     : SimBalance.StaminaIdleGain * staminaRegen;
+            // Bug #152: the dynamic ceiling limits how much reserve a hungry,
+            // exhausted body can BUILD, but a positive rest tick must never
+            // make the bar run backwards. If the ceiling fell below an already
+            // accumulated reserve, hold that reserve until metabolism catches
+            // up; work can still spend it normally.
+            var staminaUpper = resting
+                ? System.MathF.Max(staminaCeiling, npc.Needs.Stamina)
+                : staminaCeiling;
             npc.Needs.Stamina = MathUtil.Clamp(
-                npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
+                npc.Needs.Stamina + staminaDelta, 0f, staminaUpper);
 
             // Spec 40.13: stress rises with danger/combat/pain/starvation and
             // ebbs in calm. A UI param, and a third path to collapse.

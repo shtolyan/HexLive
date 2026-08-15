@@ -132,19 +132,21 @@ namespace HexLive.UnityPresentation.UI
 
             if (open)
             {
-                // First the simulation, then the engine clock.
+                // Preserve the scaled presentation clock before Pause freezes
+                // it. This can legitimately be zero when the player already
+                // paused through the speed bar.
+                _timeScaleBefore = Time.timeScale;
                 _simWasPausedBefore = _runner != null && _runner.IsPaused;
                 if (_runner != null && !_simWasPausedBefore)
                 {
                     _runner.Pause();
                 }
 
-                _timeScaleBefore = Time.timeScale;
                 Time.timeScale = 0f;
             }
             else
             {
-                Time.timeScale = _timeScaleBefore > 0f ? _timeScaleBefore : 1f;
+                Time.timeScale = _timeScaleBefore >= 0f ? _timeScaleBefore : 1f;
                 // Resume only if WE paused it — a manual pause from the speed
                 // bar survives the menu.
                 if (_runner != null && !_simWasPausedBefore && _runner.IsPaused)

@@ -65,6 +65,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public static bool DeferContentPrewarm { get; set; }
 
     private bool _contentWarmed;
+    private bool _presentationPaused;
+    private float _timeScaleBeforePause = 1f;
 
     /// <summary>
     /// The live engine — LOCAL MODE ONLY, null otherwise.
@@ -309,6 +311,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         }
 
         _backend?.Shutdown();
+        SetPresentationPaused(false);
         if (ReferenceEquals(SimulationSource.Current, this))
         {
             SimulationSource.Current = null;
@@ -383,11 +386,70 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         _gameHistory.Tick();
     }
 
-    public void Pause() => _backend?.Pause();
+    public void Pause()
+    {
+        if (_backend is null)
+        {
+            return;
+        }
 
-    public void Resume() => _backend?.Resume();
+        _backend.Pause();
+        SetPresentationPaused(true);
+    }
 
-    public void TogglePause() => _backend?.TogglePause();
+    public void Resume()
+    {
+        if (_backend is null)
+        {
+            return;
+        }
+
+        _backend.Resume();
+        SetPresentationPaused(false);
+    }
+
+    public void TogglePause()
+    {
+        if (_backend is null)
+        {
+            return;
+        }
+
+        if (_backend.IsPaused)
+        {
+            Resume();
+        }
+        else
+        {
+            Pause();
+        }
+    }
+
+    private void SetPresentationPaused(bool paused)
+    {
+        if (paused)
+        {
+            if (!_presentationPaused)
+            {
+                _timeScaleBeforePause = Time.timeScale > 0f ? Time.timeScale : 1f;
+                _presentationPaused = true;
+            }
+
+            // §31.13C: the simulation clock is unscaled, but every character
+            // Animator and procedural pose consumes scaled time. Freeze that
+            // shared presentation clock so the exact current pose is retained.
+            Time.timeScale = 0f;
+            return;
+        }
+
+        if (!_presentationPaused)
+        {
+            return;
+        }
+
+        Time.timeScale = _timeScaleBeforePause > 0f ? _timeScaleBeforePause : 1f;
+        _presentationPaused = false;
+    }
 
     public void SetSpeed(float speedMultiplier) => _backend?.SetSpeed(speedMultiplier);
 

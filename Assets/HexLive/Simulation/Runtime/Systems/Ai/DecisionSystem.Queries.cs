@@ -865,20 +865,9 @@ public sealed partial class DecisionSystem
             need = contamination;
         }
 
-        // §40.6 r2 (laundry-in-hand): worn pieces wash directly — she walks to
-        // the water edge, takes the dirtiest piece off into her hand and scrubs
-        // it there. No more waiting for a bathe-undress to beach the pile.
-        foreach (var item in npc.WornItems)
-        {
-            if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) &&
-                definition.Layer == WearLayer.Bags)
-            {
-                continue; // §52: laundry must not remove worn backpacks
-            }
-
-            need = System.MathF.Max(need, MathUtil.Clamp01(item.Dirtiness + item.Bloodiness));
-        }
-
+        // #147: worn dirt belongs to the combined Bathe transaction. Its one
+        // LaundryBatch cleans every doffed dirty piece before the body bath;
+        // the standalone WashClothes goal remains only for ground laundry.
         return need;
     }
 

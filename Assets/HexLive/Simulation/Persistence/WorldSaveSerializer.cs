@@ -99,7 +99,9 @@ public static class WorldSaveSerializer
     // 47 (§118.2): у раны появился флаг Plastered — пластырь заклеивает ОДНУ
     // рану, в отличие от бинта на всю зону. Читается под гейтом версии, поэтому
     // сейвы 46 и старше грузятся как раньше (в них пластырей просто нет).
-    public const int BlobVersion = 47;
+    // v48 (§40.6 r13): persistent phase и настоящий берег отличают общую
+    // стирку, купание и финальное переодевание одной personal-care транзакции.
+    public const int BlobVersion = 48;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1140,6 +1142,10 @@ public static class WorldSaveSerializer
         }
 
         WriteNullableJunction(w, mind.RedressShore);
+        // v48 / #147: the pile alone cannot say whether she still owes the
+        // batch wash, the body bath, or only the final re-dress.
+        w.Write((int)mind.PersonalCarePhase);
+        WriteNullableJunction(w, mind.PersonalCareBathShore);
 
         var plan = npc.Plan;
         w.Write((int)SaveGoal(plan.Goal));
@@ -1665,6 +1671,17 @@ public static class WorldSaveSerializer
             }
 
             mind.RedressShore = ReadNullableJunction(r);
+            if (version >= 48)
+            {
+                mind.PersonalCarePhase = (PersonalCarePhase)r.ReadInt32();
+                mind.PersonalCareBathShore = ReadNullableJunction(r);
+            }
+            else if (mind.RedressGarments.Count > 0)
+            {
+                // v15-v47 had only one resumable meaning for a remembered
+                // pile: walk back and put it on.
+                mind.PersonalCarePhase = PersonalCarePhase.Redress;
+            }
         }
 
         var plan = npc.Plan;

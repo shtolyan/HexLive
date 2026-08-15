@@ -59,7 +59,7 @@ public static class GarmentDropFactory
         var root = new GameObject($"GarmentDrop {definitionId}");
         var pieces = new List<Transform>();
         var widths = new List<float>();
-        var hangingGloves = hanging && IsGloves(definitionId);
+        var hangingGloves = hanging && IsPairedHandwear(definitionId);
         foreach (var wear in visuals)
         {
             var source = wear.GetComponentInChildren<SkinnedMeshRenderer>(true);
@@ -69,8 +69,9 @@ public static class GarmentDropFactory
             }
 
             var mesh = source.sharedMesh;
-            // Gloves arrive as a single skinned mesh containing the left and
-            // right hand at their character-space positions. On a rail that
+            // Paired handwear arrives as a single skinned mesh containing the
+            // left and right arm pieces at their character-space positions. On
+            // a rail that
             // leaves the pair metres apart with fingers pointing away from one
             // another. Split the disconnected left/right halves only for the
             // hanging presentation, then hang the cuffs together and turn both
@@ -160,8 +161,8 @@ public static class GarmentDropFactory
     public static bool IsFootwear(string definitionId)
         => GarmentStorageCategories.IsFootwear(definitionId);
 
-    private static bool IsGloves(string definitionId) =>
-        GarmentStorageCategories.IsPairedGloves(definitionId);
+    private static bool IsPairedHandwear(string definitionId) =>
+        GarmentStorageCategories.IsPairedHandwear(definitionId);
 
     private static bool TryCreateHangingGlovePair(
         Transform parent, Mesh source, SkinnedMeshRenderer renderer, string definitionId,

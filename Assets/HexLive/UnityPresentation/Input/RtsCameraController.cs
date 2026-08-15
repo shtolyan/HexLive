@@ -151,18 +151,14 @@ namespace HexLive.UnityPresentation.Input
         private const float PalmCrownShowDistance = 2.5f;
         private const float PalmCrownCheckMovement = 0.1f;
 
-        // §130: камера почти вплотную (мин. зум 0.7) — NPC на пару секунд
-        // смотрит в объектив. Вход/выход с гистерезисом, метры от
-        // объектива до лица; пере-взгляд той же NPC не раньше кулдауна.
-        // r3: срабатывает ТОЛЬКО когда объектив перед лицом (dot взгляда на
-        // объектив с forward лица) — шею на 180° за камерой не выкручивает;
-        // гистерезис и по углу: выходим, лишь когда камера ушла вбок/за спину.
+        // §130 r4 / bug #134: камера почти вплотную (мин. зум 0.7) запускает
+        // шестисекундную реакцию NPC. После старта движение объектива её не
+        // обрывает: безопасный доворот задают малые веса LookAtIK, а не
+        // дополнительные дистанционные/угловые проверки. Повторный взгляд
+        // той же NPC — не раньше кулдауна и только после нового подъезда.
         private const float CloseUpGazeEnterDistance = 2.5f;
-        private const float CloseUpGazeExitDistance = 3.1f;
-        private const float CloseUpGazeSeconds = 2f;
+        private const float CloseUpGazeSeconds = 6f;
         private const float CloseUpGazeCooldownSeconds = 30f;
-        private const float CloseUpGazeFrontalEnterDot = 0.35f; // ~±70° от лица
-        private const float CloseUpGazeFrontalExitDot = 0.05f;  // почти профиль
 
         // §131: стартовый кадр игры — камера сразу у головы первой выделенной,
         // спереди-сбоку (¾), низко, и слежение уже включено. Числа под тюнинг.
@@ -229,11 +225,8 @@ namespace HexLive.UnityPresentation.Input
 
             closeUpGaze.Construct(
                 CloseUpGazeEnterDistance,
-                CloseUpGazeExitDistance,
                 CloseUpGazeSeconds,
-                CloseUpGazeCooldownSeconds,
-                CloseUpGazeFrontalEnterDot,
-                CloseUpGazeFrontalExitDot);
+                CloseUpGazeCooldownSeconds);
             transform.position = _startPosition;
             transform.rotation = Quaternion.Euler(_startRotation);
 

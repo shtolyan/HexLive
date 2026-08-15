@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -88,6 +90,89 @@ public sealed class StarterBackpackTests
         Assert.That(secondByNpc, Is.EqualTo(firstByNpc));
     }
 
+    [Test]
+    public void BackpackIsNeverAHeatUndressCandidate()
+    {
+        var world = TestWorld.CreateWorld(13323);
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        var pack = npc.WornItems.Single(item =>
+            world.Content.ObjectDefinitions[item.DefinitionId].Layer == WearLayer.Bags);
+        npc.WornItems.Clear();
+        npc.WornItems.Add(pack);
+        npc.Memory.Dangers.Clear();
+
+        Assert.That(DecisionSystem.FindRemovableItem(npc, world), Is.Null,
+            "Жара всё ещё считает рюкзак снимаемой одеждой.");
+    }
+
+    [Test]
+    public void DroppedOwnedBackpackGetsPriorityDressBidAndPlan()
+    {
+        var engine = TestWorld.CreateEngine(13324);
+        for (var i = 0; i < 4; i++) engine.Step();
+
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        var pack = npc.WornItems.Single(item =>
+            world.Content.ObjectDefinitions[item.DefinitionId].Layer == WearLayer.Bags);
+        npc.WornItems.Remove(pack);
+
+        Assert.That(npc.CurrentJunction, Is.Not.Null);
+        var dropped = WorldObjectMutations.SpawnObject(
+            world, pack.DefinitionId, npc.Fragment, npc.Tile, npc.CurrentJunction!.Value);
+        dropped.Owner = npc.Id;
+        npc.Perception.Objects.Clear();
+        var seen = new PerceivedObject
+        {
+            Id = dropped.Id,
+            DefinitionId = dropped.DefinitionId,
+            Tile = dropped.Tile,
+            Distance = 0.1f,
+            IsReachable = true
+        };
+        seen.AvailableInteractions.Add(InteractionType.Dress);
+        npc.Perception.Objects.Add(seen);
+        npc.Mind.RedressGarments.Clear();
+
+        new DecisionSystem().Run(world);
+        var dress = npc.Mind.LastScores.Single(score => score.Goal == GoalType.Dress);
+        Assert.That(dress.FinalScore, Is.GreaterThanOrEqualTo(1.1f),
+            "Потерянная вместимость не получила первоочередную ставку Dress.");
+
+        npc.Mind.CurrentGoal = GoalType.Dress;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Status = PlanStatus.None;
+        new PlanningSystem().Run(world);
+
+        Assert.That(npc.Plan.Steps.Any(step => step.TargetObject == dropped.Id), Is.True,
+            "Нулевое тепло рюкзака всё ещё отсекается как NoWarmthGain.");
+    }
+
+    [Test]
+    public void LaundryDoesNotRemoveAWornBackpack()
+    {
+        var engine = TestWorld.CreateEngine(13325);
+        for (var i = 0; i < 4; i++) engine.Step();
+
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        var pack = npc.WornItems.Single(item =>
+            world.Content.ObjectDefinitions[item.DefinitionId].Layer == WearLayer.Bags);
+        npc.WornItems.Clear();
+        pack.Dirtiness = 1f;
+        npc.WornItems.Add(pack);
+        npc.Perception.Objects.Clear();
+        npc.Mind.CurrentGoal = GoalType.WashClothes;
+        npc.Plan.Steps.Clear();
+        npc.Plan.TargetItemDefinitionId = null;
+        npc.Plan.Status = PlanStatus.None;
+
+        new PlanningSystem().Run(world);
+
+        Assert.That(npc.Plan.TargetItemDefinitionId, Is.Not.EqualTo(pack.DefinitionId),
+            "Стирка всё ещё снимает надетый рюкзак; временно снимать его может только купание.");
+    }
+
     private static bool IsBackpack(GarmentParams garment) =>
         garment != null &&
         garment.Id.StartsWith("gear.backpack_", StringComparison.Ordinal);
@@ -95,6 +180,7 @@ public sealed class StarterBackpackTests
     private static bool IsCorrectBackpack(GarmentParams garment) =>
         garment.Layer == WearLayer.Bags &&
         garment.Category == GarmentCategory.Bag &&
+        garment.Warmth == 0f &&
         garment.Capacity == 9;
 }
 

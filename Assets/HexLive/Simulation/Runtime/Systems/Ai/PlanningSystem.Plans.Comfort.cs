@@ -307,6 +307,12 @@ public sealed partial class PlanningSystem
         var wornContamination = 0f;
         foreach (var item in npc.WornItems)
         {
+            if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) &&
+                definition.Layer == WearLayer.Bags)
+            {
+                continue; // §52: only bathing may temporarily remove a backpack
+            }
+
             var contamination = MathUtil.Clamp01(item.Dirtiness + item.Bloodiness);
             if (contamination >= SimBalance.WashClothesNeedThreshold &&
                 contamination > wornContamination)

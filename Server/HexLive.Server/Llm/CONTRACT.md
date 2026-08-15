@@ -114,12 +114,15 @@ not appear in process listings or shell history.
 | `HEXLIVE_LLM_API_KEY` | none | optional bearer secret, environment only |
 | `HEXLIVE_LLM_TIMEOUT_SECONDS` | `--llm-timeout` | 12; range 1–120 |
 | `HEXLIVE_LLM_BACKOFF_SECONDS` | `--llm-backoff` | 8; range 0–300 |
-| `HEXLIVE_LLM_MAX_QUEUED_REQUESTS` | `--llm-max-queued` | 2; range 0–64 |
-| `HEXLIVE_LLM_MAX_CONCURRENT_REQUESTS` | `--llm-max-concurrent` | 2; range 1–16 |
+| `HEXLIVE_LLM_MAX_QUEUED_REQUESTS` | `--llm-max-queued` | 2; range 0–2 |
+| `HEXLIVE_LLM_MAX_CONCURRENT_REQUESTS` | `--llm-max-concurrent` | 2; range 1–2 |
 
 Only `HEXLIVE_LLM_ENDPOINT`/`--llm-endpoint` and
 `HEXLIVE_LLM_NPCS`/`--llm-npcs` express opt-in. A bearer key, model hint, or
 tuning value on its own is ignored, including during `--help`; once endpoint or
 NPC configuration opts in, partial configuration or any invalid value fails
 server startup with a configuration error. Configuration errors never print the
-secret value.
+secret value. Queue plus concurrency must cover the simulation's two-request
+in-flight budget, so provider admission cannot silently reject a request that the
+simulation was allowed to issue. Neither individual limit may exceed that budget;
+the queue also bounds completed or canceled results until the next simulation drain.

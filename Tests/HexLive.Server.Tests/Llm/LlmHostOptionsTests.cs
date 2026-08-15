@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HexLive.Server;
 using HexLive.Server.Llm;
+using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
 namespace HexLive.Server.Tests.Llm
@@ -20,7 +21,7 @@ public sealed class LlmHostOptionsTests
             [LlmHostOptions.NpcsEnvironmentVariable] = "7, 9",
             [LlmHostOptions.TimeoutEnvironmentVariable] = "20",
             [LlmHostOptions.BackoffEnvironmentVariable] = "3",
-            [LlmHostOptions.MaxQueuedEnvironmentVariable] = "4",
+            [LlmHostOptions.MaxQueuedEnvironmentVariable] = "1",
             [LlmHostOptions.MaxConcurrentEnvironmentVariable] = "1",
         };
         var options = new LlmHostOptions();
@@ -40,7 +41,7 @@ public sealed class LlmHostOptionsTests
             Assert.That(options.SelectedNpcIds[1].Value, Is.EqualTo(9));
             Assert.That(options.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(20)));
             Assert.That(options.Backoff, Is.EqualTo(TimeSpan.FromSeconds(3)));
-            Assert.That(options.MaxQueuedRequests, Is.EqualTo(4));
+            Assert.That(options.MaxQueuedRequests, Is.EqualTo(1));
             Assert.That(options.MaxConcurrentRequests, Is.EqualTo(1));
         });
     }
@@ -89,6 +90,33 @@ public sealed class LlmHostOptionsTests
             Assert.That(options.Backoff, Is.EqualTo(TimeSpan.FromSeconds(8)));
             Assert.That(options.MaxQueuedRequests, Is.EqualTo(2));
             Assert.That(options.MaxConcurrentRequests, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public void ProviderCapacity_CoversSimulationBudgetWithoutInertLimits()
+    {
+        var undersized = EnabledOptions();
+        undersized.SetMaxQueuedRequests("0");
+        undersized.SetMaxConcurrentRequests("1");
+
+        var serial = EnabledOptions();
+        serial.SetMaxQueuedRequests("1");
+        serial.SetMaxConcurrentRequests("1");
+
+        var parallelWithoutQueue = EnabledOptions();
+        parallelWithoutQueue.SetMaxQueuedRequests("0");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SpecLlmControl.MaxProviderQueuedRequests,
+                Is.EqualTo(SpecLlmControl.MaxInFlightRequests));
+            Assert.That(SpecLlmControl.MaxProviderConcurrentRequests,
+                Is.EqualTo(SpecLlmControl.MaxInFlightRequests));
+            Assert.That(() => undersized.Validate(),
+                Throws.InvalidOperationException.With.Message.Contains("in-flight request budget"));
+            Assert.That(() => serial.Validate(), Throws.Nothing);
+            Assert.That(() => parallelWithoutQueue.Validate(), Throws.Nothing);
         });
     }
 
@@ -159,7 +187,9 @@ public sealed class LlmHostOptionsTests
                 Throws.ArgumentException.With.Message.Contains("bearer"));
             Assert.That(() => options.SetRequestTimeoutSeconds("0"),
                 Throws.InstanceOf<ArgumentOutOfRangeException>());
-            Assert.That(() => options.SetMaxConcurrentRequests("17"),
+            Assert.That(() => options.SetMaxQueuedRequests("3"),
+                Throws.InstanceOf<ArgumentOutOfRangeException>());
+            Assert.That(() => options.SetMaxConcurrentRequests("3"),
                 Throws.InstanceOf<ArgumentOutOfRangeException>());
         });
     }
@@ -186,6 +216,14 @@ public sealed class LlmHostOptionsTests
             [LlmHostOptions.MaxQueuedEnvironmentVariable] = "65",
             [LlmHostOptions.MaxConcurrentEnvironmentVariable] = "17",
         };
+    }
+
+    private static LlmHostOptions EnabledOptions()
+    {
+        var options = new LlmHostOptions();
+        options.SetEndpoint("https://llm-gateway.example/decision");
+        options.SetSelectedNpcIds("7");
+        return options;
     }
 }
 

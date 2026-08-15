@@ -24,8 +24,8 @@ public sealed class LlmHostOptions
 
     private const int MaxTimeoutSeconds = 120;
     private const int MaxBackoffSeconds = 300;
-    private const int MaxQueuedRequestsLimit = 64;
-    private const int MaxConcurrentRequestsLimit = 16;
+    private const int MaxQueuedRequestsLimit = SpecLlmControl.MaxInFlightRequests;
+    private const int MaxConcurrentRequestsLimit = SpecLlmControl.MaxInFlightRequests;
 
     public Uri? Endpoint { get; private set; }
     public string ApiKey { get; private set; } = string.Empty;
@@ -192,6 +192,14 @@ public sealed class LlmHostOptions
         {
             throw new InvalidOperationException(
                 $"LLM configuration requires {NpcsEnvironmentVariable} or --llm-npcs.");
+        }
+
+        if (MaxQueuedRequests + MaxConcurrentRequests <
+            SpecLlmControl.MaxInFlightRequests)
+        {
+            throw new InvalidOperationException(
+                "LLM queue and concurrency must cover the simulation in-flight " +
+                $"request budget of {SpecLlmControl.MaxInFlightRequests}.");
         }
     }
 

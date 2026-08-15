@@ -31,6 +31,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     // Spec 42.A: extra thirst per unit of positive ThermalComfort (sweat).
     private static float SweatThirstFactor => SimBalance.SweatThirstFactor;
 
+    // Bug #149: rain cleans exposed skin, but ten times more slowly than
+    // immersion. This is deliberately derived from the canonical water wash
+    // rate so tuning bathing cannot silently desynchronise the ratio.
+    private const float RainHygieneWashFactor = 0.1f;
+
     // Spec §49 knobs (moved to HexTuningConfig in the tuning pass).
     private static float SickTorsoPerSlowTick => SimBalance.SickTorsoPerSlowTick;   // pace the budget pay-down (~0.08 over ~40 slow ticks)
     private static float SickTorsoFloor => SimBalance.SickTorsoFloor;          // sickness can't grind the torso below this
@@ -651,8 +656,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // tiles — the same contract the view uses for body wetness.
             var standingInWater = world.Tiles.Items.TryGetValue(npc.Tile, out var hygieneTile) &&
                 hygieneTile.Flags.HasFlag(TileFlags.Water);
+            var washingInRain = !standingInWater && ShelterMath.RainReaches(world, npc.Tile);
+            var hygieneDelta = standingInWater
+                ? SimBalance.HygieneWashGain
+                : washingInRain
+                    ? SimBalance.HygieneWashGain * RainHygieneWashFactor
+                    : -SimBalance.HygieneDriftLoss;
             npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
-                (standingInWater ? SimBalance.HygieneWashGain : -SimBalance.HygieneDriftLoss));
+                hygieneDelta);
             // §40.8-H r10: та же вода смывает кровяную подложку. На суше —
             // ничего: засохшая кровь, как грязь одежды, держится до мытья.
             if (standingInWater)

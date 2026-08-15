@@ -35,26 +35,29 @@
         {
           "source": "Top Leather",
           "texture": "Cloth D.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Cloth N.png"
         },
         {
           "source": "Basic Metal",
           "texture": "Accesories.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Accesories n.png"
         },
         {
           "source": "Basic Leather",
           "texture": "Accesories.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Accesories n.png"
         }
       ],
       "_measured": {
@@ -213,15 +216,17 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Cloth N.png"
         },
         {
           "source": "Button",
           "texture": "Accesories.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Accesories n.png"
         }
       ],
       "_measured": {
@@ -273,7 +278,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "G_Cloth_n.png"
         }
       ],
       "_measured": {
@@ -326,7 +332,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "G_Cloth_n.png"
         }
       ],
       "_measured": {
@@ -376,18 +383,20 @@
         {
           "source": "Belt",
           "texture": "Accesories.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Accesories n.png"
         },
         {
           "source": "metal",
           "texture": "Accesories.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Accesories n.png"
         }
       ],
       "_measured": {
@@ -444,7 +453,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Cloth N.png"
         }
       ],
       "_measured": {
@@ -499,10 +509,11 @@
         {
           "source": "Boots",
           "texture": "Cloth D.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Cloth N.png"
         },
         {
           "source": "Shocks",
@@ -510,15 +521,17 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Cloth N.png"
         },
         {
           "source": "Metal",
           "texture": "Accesories.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Accesories n.png"
         }
       ],
       "_measured": {
@@ -582,10 +595,11 @@
         {
           "source": "Boots",
           "texture": "UW_gear_d.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "UW_gear_n.png"
         },
         {
           "source": "Socks",
@@ -593,7 +607,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "UW_gear_n.png"
         }
       ],
       "_measured": {
@@ -648,7 +663,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "UW_gear_n.png"
         }
       ],
       "_measured": {
@@ -700,26 +716,29 @@
         {
           "source": "Holster",
           "texture": "UW_gear_d.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "UW_gear_n.png"
         },
         {
           "source": "Belt",
           "texture": "UW_gear_d.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "UW_gear_n.png"
         },
         {
           "source": "Metal",
           "texture": "UW_gear_d.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "UW_gear_n.png"
         }
       ],
       "_measured": {
@@ -773,7 +792,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "UW_gear_n.png"
         }
       ],
       "_measured": {

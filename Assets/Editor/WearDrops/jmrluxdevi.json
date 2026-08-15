@@ -2319,8 +2319,8 @@
           "source": "golden",
           "texture": null,
           "color": "#FFE29B",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -2519,8 +2519,8 @@
           "source": "golden",
           "texture": null,
           "color": "#FFE29B",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.649,
+          "metallic": 0.563,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -2728,8 +2728,8 @@
           "source": "metal",
           "texture": null,
           "color": "#5A5A5A",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -2986,8 +2986,8 @@
           "source": "silver",
           "texture": null,
           "color": "#FFA7A7",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -3003,16 +3003,16 @@
           "source": "Golden",
           "texture": null,
           "color": "#8E7D56",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "Metal",
           "texture": "bracelet_texture.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }
@@ -3063,8 +3063,8 @@
         {
           "source": "Frame",
           "texture": "sunglasses2_texture.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -3072,8 +3072,8 @@
           "source": "Golden",
           "texture": null,
           "color": "#FFF6D0",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -3088,8 +3088,8 @@
         {
           "source": "Frame_sunglasses_texture.jpg",
           "texture": "sunglasses_texture.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         }

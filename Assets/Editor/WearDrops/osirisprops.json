@@ -36,7 +36,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "UW_Accessories_N.png"
         }
       ],
       "_measured": {

@@ -38,7 +38,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "top n.jpg"
         }
       ],
       "_measured": {
@@ -91,10 +92,11 @@
         {
           "source": "Straps",
           "texture": "straps.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "straps n.png"
         },
         {
           "source": "Pad",
@@ -102,7 +104,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "pad n.jpg"
         }
       ],
       "_measured": {
@@ -157,7 +160,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "pants n.png"
         }
       ],
       "_measured": {
@@ -211,10 +215,11 @@
         {
           "source": "Belt",
           "texture": "straps.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "straps n.png"
         }
       ],
       "_measured": {
@@ -271,7 +276,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "straps n.png"
         },
         {
           "source": "Gloves",
@@ -279,7 +285,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "gloves n.png"
         }
       ],
       "_measured": {
@@ -333,7 +340,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Cap n.png"
         }
       ],
       "_measured": {
@@ -383,7 +391,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_DS_Top_Normal.tif"
         }
       ],
       "_measured": {
@@ -437,7 +446,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_DdlSlc_Shorts_Normal.tif"
         }
       ],
       "_measured": {
@@ -562,7 +572,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "S3D_DdlSlc_Add_normal.tif"
         }
       ],
       "_measured": {
@@ -618,17 +629,18 @@
         {
           "source": "FrontCorsetStraps",
           "texture": "1SJ_Corset.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_CorsetNM.jpg"
         },
         {
           "source": "FrontCorsetStrapsEyelets",
           "texture": null,
           "color": "#29190F",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -636,25 +648,26 @@
           "source": "CorsetBuckles",
           "texture": null,
           "color": "#111111",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "MainCorset",
           "texture": "1SJ_Corset.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_CorsetNM.jpg"
         },
         {
           "source": "FrontCorsetClipsCatches",
           "texture": null,
           "color": "#111111",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -662,8 +675,8 @@
           "source": "FrontCorsetClips",
           "texture": null,
           "color": "#29190F",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -671,8 +684,8 @@
           "source": "Chains",
           "texture": null,
           "color": "#29190F",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -682,39 +695,42 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_CorsetNM.jpg"
         },
         {
           "source": "BackCorsetBoning",
           "texture": "1SJ_Corset.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_CorsetNM.jpg"
         },
         {
           "source": "BackCorsetEyelets",
           "texture": null,
           "color": "#111111",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "SideStraps",
           "texture": "1SJ_Corset.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_CorsetNM.jpg"
         },
         {
           "source": "Rings",
           "texture": null,
           "color": "#111111",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -722,8 +738,8 @@
           "source": "SideStuds",
           "texture": null,
           "color": "#111111",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
@@ -731,18 +747,19 @@
           "source": "ChainAnchors",
           "texture": null,
           "color": "#111111",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "ChainAnchorBars",
           "texture": "1SJ_Corset.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_CorsetNM.jpg"
         },
         {
           "source": "BreastCloth",
@@ -750,7 +767,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_CorsetNM.jpg"
         },
         {
           "source": "NeckCloth",
@@ -758,7 +776,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_CorsetNM.jpg"
         }
       ],
       "_measured": {
@@ -814,31 +833,35 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_JeansNM.jpg"
         },
         {
           "source": "BeltLoops",
           "texture": "1SJ_Jeans.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_JeansNM.jpg"
         },
         {
           "source": "Belt",
           "texture": "1SJ_Jeans.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.33,
+          "metallic": 0.34,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_JeansNM.jpg"
         },
         {
           "source": "PantsButtons",
           "texture": "1SJ_Jeans.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "1SJ_JeansNM.jpg"
         }
       ],
       "_measured": {

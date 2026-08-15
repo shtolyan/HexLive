@@ -34,16 +34,16 @@
         {
           "source": "halter",
           "texture": "CruX Vamp Halter.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.327,
+          "metallic": 0.248,
           "doubleSided": true,
           "alphaClip": false
         },
         {
           "source": "buckles",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.628,
+          "metallic": 0.789,
           "doubleSided": true,
           "alphaClip": false,
           "color": "#88837B"
@@ -51,8 +51,8 @@
         {
           "source": "rivets",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.447,
+          "metallic": 0.657,
           "doubleSided": true,
           "alphaClip": false,
           "color": "#88837B"
@@ -60,8 +60,8 @@
         {
           "source": "eyelets",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.267,
+          "metallic": 0.32,
           "doubleSided": true,
           "alphaClip": false,
           "color": "#88837B"
@@ -208,8 +208,8 @@
         {
           "source": "button",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false,
           "color": "#88837B"
@@ -1276,8 +1276,8 @@
         {
           "source": "GCB_Tip",
           "texture": "GCB ltx BaseColor.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false,
           "color": "#C0C0C0"
@@ -1294,8 +1294,8 @@
         {
           "source": "GCB_Zip",
           "texture": "GCB ltx BaseColor.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false,
           "color": "#808080"
@@ -2768,16 +2768,16 @@
         {
           "source": "Zipper02",
           "texture": "AUTUMN_Texture01_AUTUMN_TransTX01A.png",
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": true
         },
         {
           "source": "Zipper01",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false,
           "color": "#C08FB8"
@@ -4990,7 +4990,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "X-L6 Top Map NM.jpg"
         },
         {
           "source": "L7_Basic_Mat",
@@ -5003,8 +5004,8 @@
         {
           "source": "L7_Rings_Mat",
           "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
+          "smoothness": 0.65,
+          "metallic": 0.66,
           "doubleSided": true,
           "alphaClip": false,
           "color": "#535251"
@@ -5623,7 +5624,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Panties_NM01.jpg"
         },
         {
           "source": "Crotchfd",
@@ -5631,7 +5633,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Panties_NM01.jpg"
         },
         {
           "source": "FrontPanel",
@@ -5639,7 +5642,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Panties_NM01.jpg"
         },
         {
           "source": "Sides",
@@ -5647,7 +5651,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Panties_NM01.jpg"
         },
         {
           "source": "Edges",
@@ -5655,7 +5660,8 @@
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
-          "alphaClip": false
+          "alphaClip": false,
+          "normal": "Panties_NM01.jpg"
         }
       ],
       "_measured": {

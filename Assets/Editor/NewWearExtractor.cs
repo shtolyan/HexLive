@@ -103,6 +103,10 @@ public static class NewWearExtractor
         // submesh per surface would be eighteen draw calls for one hat.
         public string[] Aliases = { };
         public string Texture;      // file under <Folder>/Textures (null = plain color)
+        // Normal map beside the albedo. DAZ ships one for a good part of the
+        // wardrobe and the extraction never copied it — see
+        // Tools/wardrobe/normal_maps.py, which fills this in from the presets.
+        public string Normal;
         public Color Color = Color.white;
         // Matte by default — the drop manifest is what normally sets this, and a
         // glossy garment mirrors the skybox instead of showing its own texture
@@ -239,6 +243,7 @@ public static class NewWearExtractor
     [System.Serializable] private sealed class DropMaterial
     {
         public string source, texture, color;
+        public string normal;           // normal map under <Folder>/Textures
         public string[] alsoSources;    // more FBX surfaces sharing this material
         public float smoothness = 0.3f, metallic;
         public bool doubleSided = true, alphaClip;
@@ -326,6 +331,7 @@ public static class NewWearExtractor
                     Source = m.source,
                     Aliases = m.alsoSources ?? new string[0],
                     Texture = string.IsNullOrEmpty(m.texture) ? null : m.texture,
+                    Normal = string.IsNullOrEmpty(m.normal) ? null : m.normal,
                     Color = ParseColor(m.color),
                     Smoothness = m.smoothness,
                     Metallic = m.metallic,
@@ -1174,6 +1180,10 @@ public static class NewWearExtractor
                     : spec.Texture;
                 var tex = file != null ? FindTexture(g, file) : null;
                 mat.SetTexture("_BaseMap", tex);
+                // The relief is geometry, not colour: a colourway repaints the
+                // cloth and keeps the prototype's normal map, exactly as it
+                // keeps smoothness and metallic above.
+                ApplyNormalMap(mat, g, spec);
                 EditorUtility.SetDirty(mat);
                 painted.Add(mat);
             }
@@ -1819,6 +1829,59 @@ public static class NewWearExtractor
         return null;
     }
 
+    /// <summary>
+    /// Bind the normal map, importing it AS a normal map first.
+    /// </summary>
+    /// <remarks>
+    /// Two things here are load-bearing and neither is obvious.
+    ///
+    /// A normal map that Unity imported as an ordinary colour texture is not
+    /// merely wrong, it is wrong QUIETLY: the file looks correct in the
+    /// inspector, the material shows a map, and the shading is subtly inside
+    /// out. DAZ maps arrive as plain .jpg with no naming convention Unity
+    /// recognises, so the importer type is forced here rather than trusted —
+    /// and the flag is checked before reimporting, since reimporting every
+    /// texture on every extraction would cost minutes.
+    ///
+    /// The map is set ALWAYS, including to null, for the same reason the
+    /// albedo is (see the note in BuildMaterial): a surface whose normal map
+    /// was removed from the manifest must lose it, not silently keep the old
+    /// one. `_NORMALMAP` follows the same rule — URP Lit samples the map only
+    /// when the keyword is on, so leaving it enabled with no map bound makes
+    /// the shader read a flat default and the garment goes matte for no
+    /// visible reason.
+    /// </remarks>
+    private static void ApplyNormalMap(Material mat, GarmentSpec g, MatSpec spec)
+    {
+        var normal = spec.Normal != null ? FindTexture(g, spec.Normal) : null;
+        if (spec.Normal != null && normal == null)
+        {
+            Debug.LogWarning($"[NewWear] {g.Folder}: normal map {spec.Normal} not imported yet");
+        }
+
+        if (normal != null)
+        {
+            var path = AssetDatabase.GetAssetPath(normal);
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer
+                && importer.textureType != TextureImporterType.NormalMap)
+            {
+                importer.textureType = TextureImporterType.NormalMap;
+                importer.SaveAndReimport();
+                normal = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            }
+        }
+
+        mat.SetTexture(BumpMap, normal);
+        if (normal != null)
+        {
+            mat.EnableKeyword("_NORMALMAP");
+        }
+        else
+        {
+            mat.DisableKeyword("_NORMALMAP");
+        }
+    }
+
     private static Material BuildMaterial(GarmentSpec g, MatSpec spec)
     {
         var path = $"{ImportRoot}/{g.Folder}/Materials/{Sanitize(spec.Source)}.mat";
@@ -1853,6 +1916,7 @@ public static class NewWearExtractor
         }
 
         mat.SetTexture("_BaseMap", tex);
+        ApplyNormalMap(mat, g, spec);
 
         if (spec.AlphaClip)
         {

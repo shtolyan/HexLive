@@ -117,7 +117,7 @@ internal static class EquipmentMath
         foreach (var itemId in npc.WornItems)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(itemId, out var definition) ||
-                !definition.Covers.Contains(part))
+                !WearSlotCatalog.ProtectsPart(definition, part))
             {
                 continue;
             }
@@ -149,7 +149,7 @@ internal static class EquipmentMath
         foreach (var itemId in npc.WornItems)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(itemId, out var definition) &&
-                definition.Covers.Contains(part))
+                WearSlotCatalog.ProtectsPart(definition, part))
             {
                 return true;
             }
@@ -168,7 +168,7 @@ internal static class EquipmentMath
         foreach (var item in npc.WornItems)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) &&
-                definition.Covers.Contains(part))
+                WearSlotCatalog.ProtectsPart(definition, part))
             {
                 // §52.8: a bite on the leg barely marks the gear strap.
                 item.Durability -= wear * HolsterCatalog.WearMultiplier(item.DefinitionId);

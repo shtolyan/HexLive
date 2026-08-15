@@ -760,6 +760,46 @@ namespace HexLive.Simulation.Content
                 : System.Array.Empty<WearSlot>();
 
         /// <summary>
+        /// Does this wearable physically protect <paramref name="part"/>?
+        /// <see cref="ObjectDefinition.Covers"/> remains the coarse authority;
+        /// authored left/right arm slots refine only the side when the wearable
+        /// occupies exactly one arm. Paired armwear and legacy items without
+        /// authored arm slots retain their coarse coverage unchanged.
+        /// </summary>
+        public static bool ProtectsPart(ObjectDefinition definition, BodyPart part)
+        {
+            if (definition is null || !definition.Covers.Contains(part))
+            {
+                return false;
+            }
+
+            if (part is not (BodyPart.ArmL or BodyPart.ArmR) || !Has(definition.Id))
+            {
+                return true;
+            }
+
+            var left = false;
+            var right = false;
+            foreach (var slot in For(definition.Id))
+            {
+                left |= slot is WearSlot.ShoulderL or WearSlot.ForearmL or
+                    WearSlot.WristL or WearSlot.HandL;
+                right |= slot is WearSlot.ShoulderR or WearSlot.ForearmR or
+                    WearSlot.WristR or WearSlot.HandR;
+            }
+
+            // Both sides = paired armwear. Neither side = an old/coarse item
+            // whose authored slots say nothing about arms. Only an asymmetric
+            // slot set is allowed to narrow the coarse ArmL+ArmR coverage.
+            if (left == right)
+            {
+                return true;
+            }
+
+            return part == BodyPart.ArmL ? left : right;
+        }
+
+        /// <summary>
         /// <b>THE</b> occupancy predicate (§52.9 r2): would wearing <paramref name="a"/>
         /// take <paramref name="b"/> off? Layer AND slot, in one place, mirroring
         /// <c>BodyBones.Equip</c> ("one garment per (layer, slot)") exactly.

@@ -229,7 +229,14 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 })
                 .ThenBy(element => element.Id, StringComparer.Ordinal);
 
-        private static string SlotKey(BlueprintElementData element) => element.Kind switch
+        /// <summary>
+        /// The stable identity of one module, shared by the site's
+        /// ArchitectureElementState and the draft element it came from. Public
+        /// because the topology repair has to walk BACK from a raised piece to
+        /// the blueprint segment it stands on; deriving that key anywhere else
+        /// would be a second place to get it wrong.
+        /// </summary>
+        public static string SlotKey(BlueprintElementData element) => element.Kind switch
         {
             BlueprintElementKind.Support => $"support:{element.Node}",
             BlueprintElementKind.FloorSector => $"floor:{element.FloorSector}",

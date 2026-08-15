@@ -209,6 +209,12 @@ public static class RecipeCatalog
         // hunting rework (craft avails are hard-false in the decision layer).
         Add(GoalType.CraftBandage, new[] { I("resource.herb_leaf", 2) },
             output: ContentIds.Bandage);
+        // TODO §118.2: пластырь (ContentIds.Plaster) — рецепт из 1 листа травы,
+        // вдвое дешевле бинта. Ждёт своего GoalType.CraftPlaster вместе со
+        // скорингом и назначением: GoalTypeCoverageGate не терпит цель, которую
+        // никто не считает и никто не берёт, а полутора-проводная цель хуже
+        // отсутствующей. Сама механика пластыря (WoundMath.PlasterMostDangerous)
+        // уже есть и работает от готового предмета.
         // Spec §54: cordage & cloth from fiber; the knife from a stick + stone.
         Add(GoalType.CraftRope, new[] { I("resource.fiber", SimBalance.RopeFiberCost) },
             output: ContentIds.Rope);

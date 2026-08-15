@@ -652,7 +652,10 @@ public sealed partial class PlanningSystem
     // Spec 29E.4: goals shop by tag — food pickups and wood pickups never cross.
     // §54.12: is a WHOLE log in demand anywhere — a furniture site whose
     // current stage bills logs, or the raft (hauled log by log)?
-    private static bool WholeLogsWanted(WorldState world, NPCState npc)
+    // §54.19: и второй, обратный вопрос — «можно ли это бревно расколоть».
+    // Ответ обязан быть ОДИН: разойдись эти два предиката, и колония начала бы
+    // носить бревно к стройке ради того, чтобы по дороге пустить его на палки.
+    internal static bool WholeLogsWanted(WorldState world, NPCState npc)
     {
         foreach (var obj in world.Entities.Objects.Values)
         {

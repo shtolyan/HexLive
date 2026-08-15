@@ -1279,8 +1279,34 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §55.2 retired boiling (and §-this-pass the pot): the fire chain no
         // longer carries a "she chose boiled over raw" push — warmth and
         // cooking are the only reasons the pit gets lit now.
+        // ⭐ §143: ПОДНЯТЬ СВОЙ ЖЕ НОЖ — постоянный повод, а не аварийный.
+        //
+        // Замер (6 сидов × 120 000 тиков, 75 моментов «колонистка без клинка»):
+        // в 48 из 72 недоступных крафтов рядом ЛЕЖИТ готовый нож — крафт
+        // подавлен правильно, подобрать дешевле, чем делать. Но идти за ним
+        // было нечем: надбавка `gatherToolsEmergencyBoost` включается только в
+        // красной зоне (жажда/голод выше порога прерывания сна), а при голоде
+        // 0.5 поход за СОБСТВЕННЫМ ножом в двадцати шагах стоил 0.25+0.2×жажда
+        // и проигрывал любому быту. Отсюда наблюдение §140.5: 20 000 тиков без
+        // ножа при достижимом ноже на земле.
+        //
+        // Клинок на этом острове не «ещё один инструмент»: без него не вскрыть
+        // кокос, то есть нет ни воды, ни еды. Поэтому «у меня нет режущего, а
+        // вон оно лежит» весит само по себе — до всякой нужды, ровно как
+        // одеться или потушить пожар. Аварийная надбавка остаётся сверху: она
+        // про «уже умираю», эта — про «не доводи до этого».
+        // Предикат СВОЙ, а не reachableCoconutBlade: тот сидит на
+        // coconutToolPressure, то есть уже требует голода/жажды выше порога и
+        // кокос в виду. Через него тяга включалась бы ровно тогда, когда и так
+        // работает аварийная надбавка, — то есть не давала бы ничего.
+        var bladePickupPull =
+            !ctx.HasCoconutBlade &&
+            PlanningSystem.HasToolCandidateWithCapability(
+                world, npc, Content.GearCapability.Cut)
+                ? AiBalance.BladePickupPull
+                : 0f;
         AddGoalScore(npc, world.Tick, GoalType.GatherTools,
-            0.25f + 0.2f * npc.Needs.Thirst + coldChain,
+            0.25f + 0.2f * npc.Needs.Thirst + coldChain + bladePickupPull,
             gatherToolsAvail, gatherToolsEmergencyBoost);
         // The raft pull mirrors BuildRaft's weight: stocking logs for the
         // coast run must win the auction as often as the run itself, or

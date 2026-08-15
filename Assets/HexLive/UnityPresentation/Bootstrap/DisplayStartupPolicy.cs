@@ -12,12 +12,32 @@ namespace HexLive.UnityPresentation.Bootstrap
     {
         internal const int Width = 1920;
         internal const int Height = 1080;
+        private const string NativeResolutionArgument = "-hexlive-native-resolution";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Apply()
         {
             if (Application.isEditor)
             {
+                return;
+            }
+
+            if (System.Array.Exists(
+                    System.Environment.GetCommandLineArgs(),
+                    argument => string.Equals(
+                        argument,
+                        NativeResolutionArgument,
+                        System.StringComparison.Ordinal)))
+            {
+                var display = Display.main;
+                var nativeWidth = Mathf.Max(1, display.systemWidth);
+                var nativeHeight = Mathf.Max(1, display.systemHeight);
+                Screen.SetResolution(
+                    nativeWidth,
+                    nativeHeight,
+                    FullScreenMode.FullScreenWindow);
+                Debug.Log(
+                    $"[Display] Native fullscreen requested: {nativeWidth}x{nativeHeight}.");
                 return;
             }
 

@@ -127,22 +127,25 @@ public sealed class WorldStateFactory
         // not a death sentence. Worn items are NOT world objects, so this
         // provisions the cold WITHOUT perturbing routes/placement.
         // Spec 42 (WarmUp era): castaways wash ashore in almost nothing —
-        // random (deterministic per seed+NPC) underwear, MAYBE shorts, MAYBE
-        // a top missing entirely. Clothing barely warms; the designed way
-        // through a cold night is the campfire, not the wardrobe.
+        // random (deterministic per seed+NPC) briefs + bra and MAYBE shorts.
+        // Clothing barely warms; the designed way through a cold night is the
+        // campfire, not the wardrobe. §133.5 makes both underwear zones a hard
+        // spawn invariant: nobody is born bare below or with an open chest.
         // Пулы ВЫВОДЯТСЯ из гардероба, а не перечисляются. Списком они были
         // ровно до тех пор, пока вещей было тридцать: после импорта их 685, и
         // каждая новая партия проходила бы мимо потерпевших молча — новую вещь
         // никто бы не увидел, пока её не впишут сюда руками.
-        var startBottoms = StartPool(g => g.Layer == WearLayer.Underwear && g.Covers.Contains(BodyPart.Pelvis));
+        var startBriefs = StartPool(g => g.Layer == WearLayer.Underwear &&
+                                      g.Covers.Contains(BodyPart.Pelvis) &&
+                                      !g.Covers.Contains(BodyPart.Torso));
         // §52.9 / баг #124: ВЕРХ — это то, что закрывает торс и НЕ претендует на
         // таз. Без второго условия в пул «лифчиков» попадали трусы с завышенной
         // талией (`briefs_strappy_mat03` = Belly+Pelvis, то есть Covers
         // Torso+Pelvis), и розыгрыш выдавал девушке ДВА низа: 20.3% колонисток
         // на 201 сиде выходили на берег в паре, дерущейся за один слот таза.
-        var startTops = StartPool(g => g.Layer == WearLayer.Underwear &&
-                                       g.Covers.Contains(BodyPart.Torso) &&
-                                       !g.Covers.Contains(BodyPart.Pelvis));
+        var startBras = StartPool(g => g.Layer == WearLayer.Underwear &&
+                                    g.Covers.Contains(BodyPart.Torso) &&
+                                    !g.Covers.Contains(BodyPart.Pelvis));
         // Верхний низ — только ЛЁГКИЙ: шорты и юбки проходят, джинсы (0.12) и
         // платья (0.10) нет. Никто не выходит на берег в шубе (§42).
         var startShorts = StartPool(g => g.Layer == WearLayer.Wear &&
@@ -174,6 +177,12 @@ public sealed class WorldStateFactory
                                             !g.Covers.Contains(BodyPart.Pelvis) &&
                                             g.Covers.Contains(BodyPart.LegL) &&
                                             g.Covers.Contains(BodyPart.LegR));
+        // §133.2 r2: every starting colonist gets one real backpack. Only the
+        // dedicated Bags layer is eligible; pouches and holsters are not
+        // silently promoted into backpacks by having pockets.
+        var startBackpacks = StartPool(g => g.Layer == WearLayer.Bags &&
+                                            g.Category == GarmentCategory.Bag &&
+                                            g.Id.StartsWith("gear.backpack_", StringComparison.Ordinal));
 
         // §72: чужак сходит на берег не потерпевшим, а бойцом — в своём
         // тактическом комплекте. Раздавать ему женское пляжное бельё было бы
@@ -201,11 +210,12 @@ public sealed class WorldStateFactory
                 continue;
             }
 
-            Wear(npc, startBottoms, MathUtil.Hash01(world.Seed, id, 11, 4201));
-            if (MathUtil.Hash01(world.Seed, id, 12, 4202) < 0.8f)
-            {
-                Wear(npc, startTops, MathUtil.Hash01(world.Seed, id, 13, 4203));
-            }
+            // §133.5 r2: panties and a separate chest cover are mandatory at
+            // spawn. The previous 80% bra roll made roughly every fifth
+            // castaway appear bare-chested. A shirt may still be added by the
+            // ordinary wardrobe later; the bra is the deterministic baseline.
+            Wear(npc, startBriefs, MathUtil.Hash01(world.Seed, id, 11, 4201));
+            Wear(npc, startBras, MathUtil.Hash01(world.Seed, id, 13, 4203));
 
             if (MathUtil.Hash01(world.Seed, id, 14, 4204) < 0.5f)
             {
@@ -218,6 +228,7 @@ public sealed class WorldStateFactory
             // сравнимыми по одежде.
             Wear(npc, startArmGuards, MathUtil.Hash01(world.Seed, id, 16, 4206));
             Wear(npc, startLegGuards, MathUtil.Hash01(world.Seed, id, 17, 4207));
+            Wear(npc, startBackpacks, MathUtil.Hash01(world.Seed, id, 18, 4208));
 
             // Пояс и подтяжки к сужению пула выше: розыгрыш кладёт вещи в
             // WornItems НАПРЯМУЮ, мимо ResolveWearConflicts, поэтому единственное,
@@ -247,7 +258,11 @@ public sealed class WorldStateFactory
         }
 
         var index = (int)(roll * pool.Length);
-        npc.WornItems.Add(pool[index >= pool.Length ? pool.Length - 1 : index]);
+        npc.WornItems.Add(new ItemInstance(pool[index >= pool.Length ? pool.Length - 1 : index])
+        {
+            // §133: starting clothes are personal property from tick zero.
+            OwnerId = npc.Id.Value
+        });
     }
 
     private static string[] StartPool(Func<GarmentParams, bool> keep)

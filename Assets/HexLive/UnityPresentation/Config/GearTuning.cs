@@ -125,7 +125,56 @@ namespace HexLive.UnityPresentation.Config
 
         public static AnimationClip ArmedWalkFor(string gearId) => ConfigFor(gearId)?.armedWalk;
 
+        /// <summary>§142: the item's own jog take (gait slot 0.5), or null.</summary>
+        public static AnimationClip ArmedSlowRunFor(string gearId) => ConfigFor(gearId)?.armedSlowRun;
+
+        /// <summary>§142: the item's own run take (gait slot 1), or null.</summary>
+        public static AnimationClip ArmedRunFor(string gearId) => ConfigFor(gearId)?.armedRun;
+
         public static AnimationClip WorkClipFor(string gearId) => ConfigFor(gearId)?.workClip;
+
+        /// <summary>§142: does this item ride in BOTH hands? Drives the upper-body
+        /// carry layer and the off-hand IK; everything else stays one-handed.</summary>
+        public static bool TwoHandedCarry(string gearId) => ConfigFor(gearId)?.twoHandedCarry == true;
+
+        /// <summary>§142: the frozen pose the carry layer holds while the item is
+        /// carried, plus WHERE in that clip to freeze. The asset's own
+        /// <c>carryPose</c> first; failing that the item's first ATTACK clip, whose
+        /// opening frame is the artist's own "weapon ready" stance (the spear's
+        /// Bayonet Stab starts with both hands on the shaft). Null = no layer.</summary>
+        public static AnimationClip CarryPoseFor(string gearId, out float normalizedTime)
+        {
+            normalizedTime = 0f;
+            var config = ConfigFor(gearId);
+            if (config == null || !config.twoHandedCarry)
+            {
+                return null;
+            }
+
+            normalizedTime = config.carryPoseTime;
+            if (config.carryPose != null)
+            {
+                return config.carryPose;
+            }
+
+            var attacks = AttackClipsFor(gearId);
+            return attacks != null && attacks.Length > 0 ? attacks[0] : null;
+        }
+
+        /// <summary>§142: off-hand IK settings — whether the free hand is pulled
+        /// onto the shaft at all, and how far along the item it grips.</summary>
+        public static bool TryGetOffHandGrip(string gearId, out float fraction)
+        {
+            fraction = 0.3f;
+            var config = ConfigFor(gearId);
+            if (config == null || !config.twoHandedCarry || !config.offHandGripIk)
+            {
+                return false;
+            }
+
+            fraction = config.offHandGripFraction;
+            return true;
+        }
 
         /// <summary>Tuned in-hand pose for a gear item, in the acting hand's
         /// local space (merged from the retired ItemAttachConfig). Left hand

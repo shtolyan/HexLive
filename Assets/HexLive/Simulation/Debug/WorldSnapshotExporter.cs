@@ -999,7 +999,15 @@ public static class WorldSnapshotExporter
             // the mark and ends pain/wet-gloss cues without lying to typed
             // medical consumers: OpenWounds below keeps authoritative Heal01.
             var visualHeal = HexLive.Simulation.Runtime.WoundMath.VisualHeal01(wound);
-            npcSnapshot.Wounds.Add($"{wound.Zone}|{wound.Seed}|{Num(visualHeal)}");
+            // §118.2: поля 4 и 5 — свёртываемость и глубина, для крови,
+            // проступающей СКВОЗЬ повязку. Дописаны в хвост сознательно: все
+            // четыре читателя строки проверяют Length >= 3 и берут [0..2],
+            // поэтому старый разбор не ломается, а типизированный OpenWounds
+            // остаётся источником правды для медицины.
+            npcSnapshot.Wounds.Add(
+                $"{wound.Zone}|{wound.Seed}|{Num(visualHeal)}|" +
+                $"{Num(wound.Clot01)}|{Num(wound.Severity)}|" +
+                $"{(wound.Plastered ? 1 : 0)}");
             npcSnapshot.OpenWounds.Add(new WoundSnapshot
             {
                 Id = wound.Id,
@@ -1008,6 +1016,7 @@ public static class WorldSnapshotExporter
                 Heal01 = wound.Heal01,
                 Clot01 = wound.Clot01,
                 Stabilized = wound.Stabilized,
+                Plastered = wound.Plastered,
                 BleedFactor = wound.BleedFactor,
                 Seed = wound.Seed
             });

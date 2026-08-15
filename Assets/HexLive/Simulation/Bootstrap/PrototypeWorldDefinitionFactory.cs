@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -20,8 +21,29 @@ namespace HexLive.Simulation.Bootstrap
         public const int MinR = -10;
         public const int MaxR = 12;
 
+        /// <summary>
+        /// Swaps the map without touching anything else about the game.
+        ///
+        /// The real game is assembled at runtime by PrototypeRuntimeBootstrap in
+        /// whatever scene is loaded, and it switches itself off as soon as a
+        /// SimulationRunnerBehaviour already exists — which is exactly what
+        /// every dev scene does, and exactly why none of them has the menus,
+        /// the loading screen, the RTS camera or the HUD. A scene that wants
+        /// the WHOLE game on a different map therefore must not build a runner;
+        /// it sets this instead, from Awake, and lets the ordinary bootstrap do
+        /// the rest. LoadingScreen is the only reader that matters and it runs
+        /// long after Awake.
+        ///
+        /// Null means the shipped island. Clear it when the scene unloads: it is
+        /// static, and a stale override would follow the player into a new game.
+        /// </summary>
+        public static Func<int, WorldBootstrapDefinition> Override;
+
         public static WorldBootstrapDefinition Create(int seed = 12345)
         {
+            var over = Override;
+            if (over != null) return over(seed);
+
             var definition = new WorldBootstrapDefinition
             {
                 Simulation = new SimulationBootstrapSettings

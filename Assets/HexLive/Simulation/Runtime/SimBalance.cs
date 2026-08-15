@@ -127,7 +127,6 @@ namespace HexLive.Simulation.Runtime
         // game-hour duration is explicit and identical for voluntary sleep and
         // exhaustion coma.
         public static float GroundSleepEnergy = 0f;
-        public static float GroundSitEnergy = 0.05f;        // energy per ground-sit
         public static float GroundSitComfort = 0.15f;       // comfort per ground-sit
         public static float GroundSitComfortLedge = 0.25f;  // ...more on a ledge (nice view)
         public static float BedEnergy = 0f;
@@ -145,7 +144,6 @@ namespace HexLive.Simulation.Runtime
         public static float SleepEnergyLeafBedBonus = 0.006f; // + on a leaf mat
         public static float SleepEnergyBasicBedBonus = 0.002f;
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
-        public static float ChairEnergy = 0.1f;             // energy per sit in a chair
 
         // Spec §60 r2 (coma rework): energy 0 is a DEAD-TIRED SLEEP, not a
         // death-lookalike — she crashes where she stands and sleeps it off
@@ -431,7 +429,6 @@ namespace HexLive.Simulation.Runtime
         public static float BreathReArm = 0.55f;            // must climb back to this to run again
 
         public static int AdrenalineTicks = 80;         // fresh damage keeps her too alert to sleep
-        public static float AdrenalineEnergyFloor = 0.05f;
         // §71: the adrenaline sprint, raised 1.5x (was 1.5, so 2.25).
         public static float AdrenalineMoveSpeedFactor = 2.25f;
         // Per-mob combat/behaviour (bite damage, HP, windup/cooldown, aggro,
@@ -603,6 +600,17 @@ namespace HexLive.Simulation.Runtime
         public static int BedBasicBillRope = 10;
         public static int BedBasicBillLeaves = 50;
 
+        // §120/§133: the wardrobe became buildable when a player plan started
+        // staking its OWN furniture — before that it only ever appeared, free,
+        // inside the canonical hut. Boards for the carcass and the doors, sticks
+        // for the hanging rail and the feet, one lashing.
+        // These are const, not tuning dials, for the same reason the hut hearth's
+        // bill is: each number counts real pieces of the authored cabinet, so
+        // moving one without re-authoring the model only desyncs bill from art.
+        public const int WardrobeBillBoards = 8;
+        public const int WardrobeBillSticks = 4;
+        public const int WardrobeBillRope = 1;
+
         // §35.5B: the drying rack is a staged fireside build-site like the beds
         // (two planted uprights → two rails → four lashings), not an atomic
         // craft. MUST equal the per-material sums of
@@ -674,6 +682,28 @@ namespace HexLive.Simulation.Runtime
         // всей карте, так что «где-то лежит камень» истинно почти всегда и
         // заморозило бы добычу навсегда.
         public static int PickUpFirstRadiusTiles = 4;
+
+        // §54.19: сколько тиков подряд стройку должно быть НЕЧЕМ закрыть,
+        // прежде чем очередь перестанет отдавать ей единственный слот.
+        //
+        // Слот один на колониста, и он достаётся первому подходящему звену
+        // цепочки `?? `. Кровать, которой не хватает четырёх брёвен, занимала
+        // furnitureSite насовсем — и всё, что стоит ниже (гардероб, верстак,
+        // да и любая следующая стройка), не строилось НИКОГДА, хотя материал
+        // на него лежал рядом. Мёртвая стройка не снимается и не отменяется:
+        // она уходит в конец очереди и вернётся в тот же тик, когда материал
+        // для неё снова появится в мире.
+        //
+        // ⭐ const, а не ручка: пересобрать SimData/simdata.json без Unity
+        // нельзя (меню HexLive ▸ Export Sim Data), а BalanceParityGate требует
+        // от КАЖДОЙ `public static` ручки строки в экспорте. Заводить дырявый
+        // экспорт ради числа, которое подбирается раз — хуже, чем константа;
+        // ровно так же живут HutHearthBill* выше. Станет нужно крутить —
+        // превратить в `public static int` вместе с переэкспортом.
+        //
+        // 1200 тиков = 5 минут игры на 4 Гц: длиннее любой ходки за материалом
+        // (кто-то донёс бы и снял метку), короче, чем стоит терпеть простой.
+        public const int BuildSiteUnstockableSkipTicks = 1200;
 
         // Fiber → rope / cloth (crafted at the fire); knife = sticks + stone.
         // Enough cordage that a couple of cut yucca can supply the first bed's

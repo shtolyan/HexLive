@@ -390,11 +390,6 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + wake);
             }
 
-            if (DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
-            {
-                DamageReactionSystemHelpers.ApplyAdrenalineEnergyFloor(npc);
-            }
-
             // Spec §60: energy drained to nothing on her feet — the body
             // simply switches off where it stands. (Asleep she is already
             // recovering; only an awake body can burn to the collapse line.)

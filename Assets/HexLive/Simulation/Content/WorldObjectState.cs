@@ -88,6 +88,24 @@ public sealed class WorldObjectState
     // workbench's six board_* children are revealed from this exact channel.
     public int BillBoards { get; set; }
 
+    /// <summary>
+    /// §54.19: с какого тика ТЕКУЩУЮ стадию этой стройки нечем закрыть —
+    /// материала, которого ей не хватает, в мире не нашлось ни у кого.
+    /// <para>
+    /// Ставится и снимается в <c>DecisionSystem.FindBuildSite</c> и служит
+    /// одному: не давать мёртвой стройке держать единственный слот очереди
+    /// и морить голодом всё, что стоит за ней. <c>null</c> = «закрыть есть чем
+    /// (или ещё не смотрели)».
+    /// </para>
+    /// <para>
+    /// НЕ сохраняется и НЕ ездит по проводу — это наблюдение, а не факт мира:
+    /// после загрузки колония просто смотрит заново и за
+    /// <c>SimBalance.BuildSiteUnstockableSkipTicks</c> приходит к тому же
+    /// выводу. Решения считаются только на сервере, клиенту знать нечего.
+    /// </para>
+    /// </summary>
+    public int? UnstockableSinceTick { get; set; }
+
     // §120 constructor layer. A real constructor piece is a top-level
     // WorldObject whose ArchitectureOwnerId points at the footprint aggregate
     // and whose ArchitectureElements list contains exactly one component. The

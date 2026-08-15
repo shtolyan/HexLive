@@ -28,8 +28,21 @@ namespace HexLive.UnityDebug.Editor
 
         public int callbackOrder => -1000;
 
+        /// <summary>
+        /// Scene-specific sandbox players are disposable test artefacts, not
+        /// releases. Their builder sets this flag for its own Unity process so
+        /// they cannot consume a release version or stamp the bug tracker.
+        /// </summary>
+        internal static bool SuppressForCurrentProcess { get; set; }
+
         public void OnPreprocessBuild(BuildReport report)
         {
+            if (SuppressForCurrentProcess)
+            {
+                Debug.Log("HexLive build versioning suppressed for a scene-specific sandbox build.");
+                return;
+            }
+
             var pending = ReadPendingVersion();
             if (string.IsNullOrEmpty(pending))
             {
@@ -38,6 +51,11 @@ namespace HexLive.UnityDebug.Editor
             }
 
             PlayerSettings.bundleVersion = pending;
+            // Platform build numbers must be synchronized before BuildPipeline
+            // writes Info.plist/AndroidManifest.xml into the player artifact.
+            // CommitSuccessfulBuild repeats this after success so the project
+            // settings stay aligned with the published version.
+            SyncPlatformBuildNumbers(pending);
             WritePendingBugSnapshot(pending, BugReportStore.CaptureReadyForTestReportIds());
             AssetDatabase.SaveAssets();
             Debug.Log($"HexLive build version reserved: {pending}");
@@ -45,6 +63,11 @@ namespace HexLive.UnityDebug.Editor
 
         public void OnPostprocessBuild(BuildReport report)
         {
+            if (SuppressForCurrentProcess)
+            {
+                return;
+            }
+
             if (report.summary.result != BuildResult.Succeeded)
             {
                 return;

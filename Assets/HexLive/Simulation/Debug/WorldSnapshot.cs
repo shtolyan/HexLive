@@ -959,6 +959,10 @@ public sealed class WoundSnapshot
     public float Heal01 { get; set; }
     public float Clot01 { get; set; }
     public bool Stabilized { get; set; }
+
+    /// <summary>§118.2: заклеена пластырем (одна рана), а не забинтована
+    /// (вся зона). Рисуется точечно на самой ране.</summary>
+    public bool Plastered { get; set; }
     public float BleedFactor { get; set; }
     public int Seed { get; set; }
 }

@@ -20,6 +20,9 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(settings, Does.Contain("defaultScreenHeight: 1080"));
                 Assert.That(settings, Does.Contain("fullscreenMode: 1"));
                 Assert.That(policy, Does.Contain("RuntimeInitializeLoadType.BeforeSceneLoad"));
+                Assert.That(policy, Does.Contain("-hexlive-native-resolution"));
+                Assert.That(policy, Does.Contain("display.systemWidth"));
+                Assert.That(policy, Does.Contain("display.systemHeight"));
                 Assert.That(policy,
                     Does.Contain("Screen.SetResolution(Width, Height, FullScreenMode.FullScreenWindow)"));
             });

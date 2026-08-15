@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 
 namespace HexLive.Simulation.Runtime.Blueprints
@@ -40,7 +41,18 @@ namespace HexLive.Simulation.Runtime.Blueprints
         };
         private static readonly JunctionKey[] Single = { FromAxial(0, 0) };
 
-        public static IReadOnlyList<JunctionKey> LocalOffsets(string definitionId)
+        public static IReadOnlyList<JunctionKey> LocalOffsets(string definitionId) =>
+            Authored(definitionId) ?? Single;
+
+        /// <summary>
+        /// Does this id own an AUTHORED footprint, as opposed to falling back to
+        /// the single junction every loose object occupies? Callers that must
+        /// tell "a piece of furniture" from "a stick somebody dropped on the
+        /// floor" ask here rather than keeping a second list of ids.
+        /// </summary>
+        public static bool HasFootprint(string definitionId) => Authored(definitionId) != null;
+
+        private static JunctionKey[] Authored(string definitionId)
         {
             if (string.Equals(definitionId, ContentIds.BedBasic, StringComparison.Ordinal)) return Bed;
             if (string.Equals(definitionId, "furniture.wardrobe", StringComparison.Ordinal)) return Wardrobe;
@@ -49,7 +61,37 @@ namespace HexLive.Simulation.Runtime.Blueprints
             if (string.Equals(definitionId, ContentIds.DryingRack, StringComparison.Ordinal) ||
                 string.Equals(definitionId, ContentIds.Workbench, StringComparison.Ordinal)) return WideStation;
             if (string.Equals(definitionId, ContentIds.WaterCollector, StringComparison.Ordinal)) return StationDisc;
-            return Single;
+            return null;
+        }
+
+        /// <summary>
+        /// From a piece's ANCHOR junction to the centre of the junctions it
+        /// actually occupies, in world units, at the given <paramref name="yawStep"/>.
+        ///
+        /// <para>
+        /// Furniture is DRAWN at the centroid of its footprint, never at the
+        /// anchor: a bed's row runs from -0.5625 to +0.9375 wu along its length,
+        /// so the anchor sits 0.1875 wu off centre and a mesh placed on it slides
+        /// that far away from the wall it was laid against. The anchor stays the
+        /// route/interaction point — this is the visual correction on top of it,
+        /// and it lives here so the §120 constructor preview and the world
+        /// renderer cannot disagree about where the same bed stands.
+        /// </para>
+        /// </summary>
+        public static Float2 CentroidOffset(string definitionId, int yawStep)
+        {
+            var offsets = LocalOffsets(definitionId);
+            if (offsets.Count == 0) return new Float2(0f, 0f);
+            float x = 0f, y = 0f;
+            foreach (var local in offsets)
+            {
+                var point = BlueprintGeometry.JunctionToWorld(
+                    BlueprintGeometry.RotateJunctionOffset(local, yawStep));
+                x += point.X;
+                y += point.Y;
+            }
+
+            return new Float2(x / offsets.Count, y / offsets.Count);
         }
 
         public static IReadOnlyList<JunctionKey> OccupiedJunctions(FurniturePlacementData placement)

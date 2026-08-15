@@ -68,13 +68,32 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, GameObject> _seamMarkers = new();
     private readonly Dictionary<int, GameObject> _objectViews = new();
 
-    // §120: one drawn module per architecture world object, keyed by that
-    // object's id and parented to its BUILDING's view. A building raised from a
-    // plan has no single mesh — it is exactly these pieces.
-    private readonly Dictionary<int, HexLive.UnityPresentation.Environment.ArchitectureModuleView>
-        _architectureModules = new();
-    private readonly HashSet<int> _liveArchitectureModules = new();
-    private readonly List<int> _staleArchitectureModules = new();
+    // §120: which owner objects are houses raised from a player PLAN (site or
+    // finished building). Such a building owns no mesh at all — every module is
+    // an ordinary world object that draws itself through its own view, so this
+    // is the one question the object loop has to answer about an architecture
+    // piece. The canonical hut_1hex is NOT here: its pieces are slots of one
+    // shared HutAssembly mesh, and their views stay bare id markers.
+    private readonly HashSet<int> _planBuildingOwners = new();
+
+    // §120: the ANCHOR junction of every plan building, by owner id. A module's
+    // LocalX/LocalZ is measured from it, and one module — the door — no longer
+    // stands on it: RepairPlanTopology rebinds the door piece's single junction
+    // to the navigation throat (BuildingBootstrap.RepairPlanTopology), because
+    // DoorTopology indexes a door by exactly one junction. Drawing that piece
+    // from its own junction added the door's offset twice and pushed it a
+    // measured 1.299 wu straight out through the wall line.
+    private readonly Dictionary<int, Float2> _planOwnerAnchors = new();
+
+    // §120: plan buildings that are RAISED (not still a site) — the cutaway
+    // owners, matching the monolith, whose _hutCutawayViews are only collected
+    // for a finished building.hut_1hex.
+    private readonly HashSet<int> _planRaisedOwners = new();
+
+    // §120: every hex a raised plan building covers. Furniture standing here is
+    // the plan's OWN furniture, so it is drawn on its footprint centre and in
+    // the six-way footprint basis, exactly as the constructor preview draws it.
+    private readonly HashSet<TileCoord> _planFootprintTiles = new();
 
     // PERF: the per-tick object loop used to re-ask every view for the same
     // handful of components (campfire, assembly, spit, garment, build pile).
@@ -91,6 +110,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         public HexLive.UnityPresentation.Environment.BuildSitePile Pile;
         public HexLive.UnityPresentation.Environment.CraftProjectVisual CraftProject;
         public HexLive.UnityPresentation.Environment.HutAssembly Hut;
+        public HexLive.UnityPresentation.Environment.ArchitectureModuleView Module;
     }
 
     private readonly Dictionary<int, ObjectViewParts> _objectViewParts = new();
@@ -109,6 +129,33 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     private readonly List<HutCutawayView> _hutCutawayViews = new();
+
+    // §120: the same feature for a house that HAS no monolith. One entry per
+    // module the cutaway may take away — walls, windows, doors, corner supports
+    // and roof panels; floor sectors never hide, exactly as the monolith never
+    // hides its deck.
+    private readonly struct PlanCutawayModule
+    {
+        public readonly int OwnerId;
+        public readonly bool Roof;
+        public readonly Vector2 Position;
+        public readonly HexLive.UnityPresentation.Environment.ArchitectureModuleView View;
+
+        public PlanCutawayModule(
+            int ownerId, bool roof, Vector2 position,
+            HexLive.UnityPresentation.Environment.ArchitectureModuleView view)
+        {
+            OwnerId = ownerId;
+            Roof = roof;
+            Position = position;
+            View = view;
+        }
+    }
+
+    private readonly List<PlanCutawayModule> _planCutawayModules = new();
+    private readonly List<int> _planCutawayIndexScratch = new();
+    private readonly List<Vector2> _planCutawayPositionScratch = new();
+    private readonly List<int> _planCutawayHiddenScratch = new();
     private Camera? _cutawayCamera;
 
     // PERF: junction id -> world position. Worldgen output, so it is built once
@@ -150,6 +197,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // выключен: без выбранной прятать людей не от чьего лица.
     private readonly HashSet<int> _fogHiddenNpcs = new();
     private bool _fogHidesNpcs;
+    // Bug #146: relation-card selection may point at a hidden outsider. The
+    // selection still opens her card, but only a living colonist may become
+    // the selected-only observer whose knowledge reveals the world.
+    private int _fogObserverNpcId = -1;
 
     // §125.5: подсвеченная граница радиуса выбранной — «докуда она видит».
     // Тайлы кольца красятся своим MaterialPropertyBlock (материалы общие на
@@ -591,7 +642,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void UpdateHutCutaways(WorldSnapshot snapshot)
     {
-        if (_hutCutawayViews.Count == 0) return;
+        // §120: a house raised from a player plan has no HutAssembly at all —
+        // it IS its 51 modules — so the same feature has to be able to run with
+        // _hutCutawayViews empty.
+        if (_hutCutawayViews.Count == 0 && _planCutawayModules.Count == 0) return;
 
         _cutawayCamera ??= Camera.main;
         var hasInteriorSelection = false;
@@ -621,7 +675,144 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _cutawayCamera != null;
             hut.Assembly.SetInteriorCutaway(reveal, cameraPosition);
         }
+
+        UpdatePlanCutaways(hasInteriorSelection, selectedTile, cameraPosition);
     }
+
+    /// <summary>
+    /// §120: the monolith's interior cutaway, for a house that has no monolith.
+    ///
+    /// <para>
+    /// Same trigger as <see cref="UpdateHutCutaways"/>'s own loop — a selected
+    /// colonist standing indoors — but "this house" is the FOOTPRINT, because a
+    /// plan spans several hexes and the selected tile is only ever one of them.
+    /// Same removal, too: the modules that stand between the camera and the room
+    /// go to <c>ShadowsOnly</c> and the roof comes off whole, which is exactly
+    /// what <c>HutAssembly.SetCutawayRenderers</c> does with its roof stage and
+    /// the wall pair it picks.
+    /// </para>
+    /// </summary>
+    private void UpdatePlanCutaways(
+        bool hasInteriorSelection, TileCoord selectedTile, Vector3 cameraPosition)
+    {
+        if (_planCutawayModules.Count == 0) return;
+        var hasCamera = _cutawayCamera != null;
+
+        foreach (var ownerKey in _planRaisedOwners)
+        {
+            // Which modules are this building's, in snapshot order.
+            var owned = _planCutawayIndexScratch;
+            owned.Clear();
+            for (var i = 0; i < _planCutawayModules.Count; i++)
+            {
+                if (_planCutawayModules[i].OwnerId == ownerKey) owned.Add(i);
+            }
+
+            if (owned.Count == 0) continue;
+
+            var reveal = hasInteriorSelection && hasCamera &&
+                _planFootprints.TryGetValue(ownerKey, out var footprint) &&
+                Covers(footprint, selectedTile);
+            if (!reveal)
+            {
+                for (var i = 0; i < owned.Count; i++)
+                {
+                    var view = _planCutawayModules[owned[i]].View;
+                    if (view != null) view.SetCutawayHidden(false);
+                }
+
+                continue;
+            }
+
+            // The envelope is ranked; the roof comes off whole either way.
+            var positions = _planCutawayPositionScratch;
+            positions.Clear();
+            for (var i = 0; i < owned.Count; i++)
+            {
+                if (_planCutawayModules[owned[i]].Roof) continue;
+                positions.Add(_planCutawayModules[owned[i]].Position);
+            }
+
+            var centre = _planOwnerAnchors.TryGetValue(ownerKey, out var anchor)
+                ? new Vector2(anchor.X, anchor.Y)
+                : Vector2.zero;
+            HexLive.UnityPresentation.Environment.ArchitectureCutaway.RankByCameraFacing(
+                positions, centre,
+                new Vector2(cameraPosition.x, cameraPosition.z),
+                _planCutawayHiddenScratch);
+
+            var envelopeIndex = 0;
+            for (var i = 0; i < owned.Count; i++)
+            {
+                var module = _planCutawayModules[owned[i]];
+                bool hidden;
+                if (module.Roof)
+                {
+                    hidden = true;
+                }
+                else
+                {
+                    hidden = _planCutawayHiddenScratch.Contains(envelopeIndex);
+                    envelopeIndex++;
+                }
+
+                if (module.View != null) module.View.SetCutawayHidden(hidden);
+            }
+        }
+    }
+
+    private static bool Covers(IReadOnlyList<TileCoord> footprint, TileCoord tile)
+    {
+        for (var i = 0; i < footprint.Count; i++)
+        {
+            if (footprint[i].Equals(tile)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// §120: remembers one module the plan cutaway may take away, with the world
+    /// point it is scored by. A floor sector is never collected — you look down
+    /// on the deck, never through it — which mirrors the monolith, whose scan
+    /// only ever indexes its roof stage, its wall bays and their posts.
+    /// </summary>
+    private void CollectPlanCutawayModule(
+        ObjectSnapshot piece,
+        HexLive.UnityPresentation.Environment.ArchitectureModuleView view)
+    {
+        if (piece.ArchitectureOwnerObjectId is not { } ownerKey) return;
+        if (!_planRaisedOwners.Contains(ownerKey)) return;
+        if (piece.ArchitectureElements.Count != 1) return;
+        var element = piece.ArchitectureElements[0];
+        var roof = element.DefinitionId.StartsWith(
+            "architecture.roof.", System.StringComparison.Ordinal);
+        if (!roof && System.Array.IndexOf(CutawayEnvelopeIds, element.DefinitionId) < 0) return;
+        if (!_planOwnerAnchors.TryGetValue(ownerKey, out var anchor)) return;
+
+        // The module's own point: its local offset turned by the building's yaw
+        // about the anchor. Simulation yaw is CCW about +X, which is the plane
+        // the offset lives in — the same conversion CollectArchitectureFloorTile
+        // makes for the same numbers.
+        var radians = piece.RotationDegrees * Mathf.Deg2Rad;
+        var cos = Mathf.Cos(radians);
+        var sin = Mathf.Sin(radians);
+        var x = anchor.X + element.LocalX * cos - element.LocalZ * sin;
+        var z = anchor.Y + element.LocalX * sin + element.LocalZ * cos;
+        _planCutawayModules.Add(new PlanCutawayModule(ownerKey, roof, new Vector2(x, z), view));
+    }
+
+    /// <summary>
+    /// The full-height pieces a cutaway may take away. Corner supports belong
+    /// here for the reason the constructor preview learned: they are full-height
+    /// posts, and leaving them out left one standing in front of the colonist
+    /// the player had just selected.
+    /// </summary>
+    private static readonly string[] CutawayEnvelopeIds =
+    {
+        "architecture.wall.wood", "architecture.window.wood", "architecture.door.wood",
+        "architecture.support.wood"
+    };
 
     // Spec 40.2-B: ground blood stains manager (lazy — lives under the
     // renderer, cleared with it on scene teardown).
@@ -1045,9 +1236,40 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var liveObjectIds = _liveObjectIdScratch;
         liveObjectIds.Clear();
         _hutCutawayViews.Clear();
+        _planBuildingOwners.Clear();
+        _planOwnerAnchors.Clear();
+        _planRaisedOwners.Clear();
+        _planFootprintTiles.Clear();
+        _planCutawayModules.Clear();
+        _architectureFloorTiles.Clear();
+        _planFootprints.Clear();
         foreach (var worldObject in snapshot.Objects)
         {
             liveObjectIds.Add(worldObject.Id.Value);
+
+            // §120: known before any view is created, because whether an
+            // architecture piece draws itself depends on it.
+            if (worldObject.DefinitionId == ContentIds.HutPlan ||
+                worldObject.BuildProduct == ContentIds.HutPlan)
+            {
+                var ownerKey = worldObject.Id.Value;
+                _planBuildingOwners.Add(ownerKey);
+                // Every module of this building is placed from THIS point; the
+                // module's own junction is not it (see _planOwnerAnchors).
+                _planOwnerAnchors[ownerKey] =
+                    GetObjectAnchorFromJunctions(worldObject, _junctionPositions);
+                var footprint = HexLive.Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
+                    ContentIds.HutPlan, worldObject.Tile, worldObject.RotationDegrees);
+                _planFootprints[ownerKey] = footprint;
+                // A site is not a house yet: the monolith only cuts away a
+                // finished building.hut_1hex, and the furniture of a plan is
+                // staked only once the plan is raised.
+                if (worldObject.DefinitionId == ContentIds.HutPlan)
+                {
+                    _planRaisedOwners.Add(ownerKey);
+                    for (var i = 0; i < footprint.Count; i++) _planFootprintTiles.Add(footprint[i]);
+                }
+            }
         }
 
         var staleObjectKeys = _staleObjectKeyScratch;
@@ -1199,6 +1421,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     Pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>(),
                     CraftProject = craftProject,
                     Hut = objectView.GetComponent<HexLive.UnityPresentation.Environment.HutAssembly>(),
+                    // §120: present exactly on a plan-built module's own view.
+                    Module = objectView.GetComponent<
+                        HexLive.UnityPresentation.Environment.ArchitectureModuleView>(),
                 };
                 // Spec §54: remember trees so felling them animates.
                 if (worldObject.DefinitionId.Contains("tree"))
@@ -1297,6 +1522,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             parts.CraftProject?.Sync(worldObject);
 
+            // §120: a module of a plan-built house grows in place — the model is
+            // built once, with the view, and only mutated afterwards (revealed
+            // stage by stage as its own bill is delivered). Nothing here rebuilds
+            // or re-parents it, so the owner's per-tick record cannot blink it.
+            var module = parts.Module;
+            if (module != null)
+            {
+                module.Sync(worldObject);
+                CollectArchitectureFloorTile(worldObject);
+                CollectPlanCutawayModule(worldObject, module);
+            }
+
             // §35.5B: keep a hung garment on its (possibly re-ranked) hanger
             // slot — when a neighbour is dressed off the rack the rest slide
             // one slot over. Cheap: one localPosition write per hung garment.
@@ -1310,7 +1547,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(hangSlot);
                 if (footwearOnWardrobeShelf)
                 {
-                    wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.ShoeShelfSlot(hangSlot);
+                    wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers
+                        .GroundFootwearOnShelf(hungChild, hangSlot);
                 }
                 else if (inWardrobe)
                 {
@@ -1352,20 +1590,32 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // of only at view creation) also covers a view rebuilt mid-build.
             // Exactly 0 = no §66 facing (loose props, pre-§66 worlds) — those
             // keep the identity rotation they have always had.
-            if (worldObject.RotationDegrees != 0f)
+            // §120: a plan-built module carries its building's yaw, but it is
+            // not the building's own forward — its model child composes that
+            // footprint yaw with the module's local yaw (ArchitectureModuleView),
+            // so writing it onto the module's root here would apply it twice.
+            if (worldObject.RotationDegrees != 0f && parts.Module == null)
             {
                 var architectureFootprint =
                     worldObject.DefinitionId == ContentIds.Hut1Hex ||
                     worldObject.BuildProduct == ContentIds.Hut1Hex ||
                     // §120: a plan-built house is geometry authored directly in
-                    // the simulation X/Y footprint plane, exactly like the hut —
-                    // its modules hang off this frame and would all be mirrored
-                    // by the character-forward yaw.
+                    // the simulation X/Y footprint plane, exactly like the hut.
                     worldObject.DefinitionId == ContentIds.HutPlan ||
                     worldObject.BuildProduct == ContentIds.HutPlan ||
                     IsIntegratedHutBed(worldObject) ||
                     IsIntegratedHutHearth(worldObject) ||
                     worldObject.DefinitionId == ContentIds.Wardrobe ||
+                    // §120: the plan's OWN furniture. Its yaw is a yawStep 0..5
+                    // the constructor authored (BuildingBootstrap
+                    // .StakePlanFurnitureSites composes it with the building's
+                    // rotation), so it belongs in the six-way FOOTPRINT basis —
+                    // the character convention would turn every piece 90° off
+                    // its own junction row. The three types above happen to be
+                    // covered already; a rack, a workbench or a collector the
+                    // player put in a plan were not, and neither was a piece
+                    // still standing as its build-site.
+                    IsPlanFurniture(worldObject) ||
                     // A hung garment is spatially owned by the wardrobe, not
                     // by its original loose-item yaw.  It must share the
                     // wardrobe's six-way footprint basis with its socket and
@@ -1664,18 +1914,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
             list.Add(piece);
         }
 
-        _liveArchitectureModules.Clear();
         foreach (var pair in byOwner)
         {
-            if (!_objectViews.TryGetValue(pair.Key, out var ownerView) || ownerView == null) continue;
+            if (!_objectViews.TryGetValue(pair.Key, out var ownerView)) continue;
             var assembly = ownerView.GetComponentInChildren<HexLive.UnityPresentation.Environment.HutAssembly>(true);
-            if (assembly == null)
-            {
-                // §120: a building with no monolithic assembly (a house raised
-                // from a player plan) IS its modules — each one draws itself.
-                BindArchitectureModules(ownerView.transform, pair.Value);
-                continue;
-            }
+            // §120: a building with no monolithic assembly (a house raised from
+            // a player plan) is nothing but its modules, and each of them is an
+            // ordinary world object that draws itself. Nothing to bind here.
+            if (assembly == null) continue;
 
             var components = new List<ArchitectureElementSnapshot>(pair.Value.Count);
             foreach (var piece in pair.Value) components.Add(piece.ArchitectureElements[0]);
@@ -1693,73 +1939,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 view.Init(piece.Id.Value, piece.DefinitionId,
                     assembly.RenderersForElement(component.SlotKey));
             }
-        }
-
-        SweepArchitectureModules();
-    }
-
-    /// <summary>
-    /// §120: draws one building as its independent modules. The owner's view is
-    /// the building FRAME — already at the site anchor and already turned to the
-    /// footprint yaw — so a module only adds its own local offset and yaw, and
-    /// a module that completes, or whose building is raised into a new object,
-    /// needs no repositioning here at all.
-    /// </summary>
-    private void BindArchitectureModules(Transform buildingFrame, List<ObjectSnapshot> pieces)
-    {
-        foreach (var piece in pieces)
-        {
-            var key = piece.Id.Value;
-            _liveArchitectureModules.Add(key);
-
-            var fresh = false;
-            if (!_architectureModules.TryGetValue(key, out var module) || module == null ||
-                !module.StandsIn(buildingFrame))
-            {
-                if (module != null) Destroy(module.gameObject);
-                module = HexLive.UnityPresentation.Environment.ArchitectureModuleView.Create(
-                    buildingFrame, key);
-                _architectureModules[key] = module;
-                fresh = true;
-            }
-
-            module.Sync(piece.ArchitectureElements[0]);
-            module.SetDoorOpen(piece.IsDoorOpen);
-
-            // §121: the module stays a real, separately selectable object. Its
-            // marker keeps the simulation id and points at the module's own
-            // renderers — bound once, when the model behind them is built.
-            if (!fresh || !_objectViews.TryGetValue(key, out var marker) || marker == null) continue;
-            var view = marker.GetComponent<Views.WorldObjectView>() ??
-                marker.AddComponent<Views.WorldObjectView>();
-            view.Init(key, piece.DefinitionId, module.Renderers);
-        }
-    }
-
-    /// <summary>
-    /// Drops module views whose piece left the world — a demolished element, a
-    /// world swap, or a building whose owner view was destroyed under them.
-    /// </summary>
-    private void SweepArchitectureModules()
-    {
-        if (_architectureModules.Count == 0) return;
-        _staleArchitectureModules.Clear();
-        foreach (var pair in _architectureModules)
-        {
-            if (!_liveArchitectureModules.Contains(pair.Key))
-            {
-                _staleArchitectureModules.Add(pair.Key);
-            }
-        }
-
-        foreach (var key in _staleArchitectureModules)
-        {
-            if (_architectureModules.TryGetValue(key, out var module) && module != null)
-            {
-                Destroy(module.gameObject);
-            }
-
-            _architectureModules.Remove(key);
         }
     }
 
@@ -3165,15 +3344,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private GameObject CreateObjectView(
         ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions, int snapshotTick)
     {
-        // Architecture pieces render through their owner's one shared hut mesh,
-        // but remain real top-level simulation objects. This marker receives a
-        // WorldObjectView bound only to its slot renderers in
-        // BindArchitectureElementViews; it must never instantiate a fallback
-        // primitive of its own.
+        // Architecture pieces of the CANONICAL hut render through their owner's
+        // one shared hut mesh, but remain real top-level simulation objects.
+        // This marker receives a WorldObjectView bound only to its slot
+        // renderers in BindArchitectureElementViews; it must never instantiate a
+        // fallback primitive of its own.
+        //
+        // §120: a module of a house raised from a player PLAN has no such shared
+        // mesh — it IS its own piece of the world, so it draws itself here, once,
+        // like any other object. Its renderers exist before the WorldObjectView
+        // below asks for them.
         if (worldObject.ArchitectureOwnerObjectId.HasValue)
         {
             var marker = new GameObject($"Architecture {worldObject.DefinitionId} #{worldObject.Id.Value}");
             marker.transform.SetParent(_objectsRoot, false);
+            if (IsPlanBuildingModule(worldObject))
+            {
+                marker.AddComponent<HexLive.UnityPresentation.Environment.ArchitectureModuleView>()
+                    .Sync(worldObject);
+            }
+
             return marker;
         }
 
@@ -3561,7 +3751,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
                 if (footwearOnWardrobeShelf)
                 {
-                    wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.ShoeShelfSlot(slot);
+                    wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers
+                        .GroundFootwearOnShelf(hung.transform, slot);
                 }
                 else if (inWardrobe)
                 {
@@ -3774,14 +3965,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // "Selected only": the fog narrows to what the selected NPC herself
         // knows/sees. With nothing selected it falls back to the colony union,
         // matching the debug panel's "target: everyone" convention.
-        var selectedId = UI.DebugControlsPanel.FogOfWarSelectedOnly &&
-            Input.NpcSelection.HasSelection
-                ? Input.NpcSelection.SelectedId
-                : -1;
+        var selectedOnly = UI.DebugControlsPanel.FogOfWarSelectedOnly &&
+            Input.NpcSelection.HasSelection;
+        var requestedId = selectedOnly ? Input.NpcSelection.SelectedId : -1;
+        var selectedId = selectedOnly
+            ? ResolveFogObserverId(snapshot, requestedId, _fogObserverNpcId)
+            : -1;
+        _fogObserverNpcId = selectedId;
 
         foreach (var npc in engine.World.Entities.Npcs.Values)
         {
-            var include = selectedId >= 0
+            var include = selectedOnly
                 ? npc.Id.Value == selectedId
                 : npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
             if (!include)
@@ -3800,7 +3994,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // (§125.5: вид не выводит формулу повторно).
         foreach (var npc in snapshot.Npcs)
         {
-            var include = selectedId >= 0
+            var include = selectedOnly
                 ? npc.Id.Value == selectedId
                 : !npc.IsHostileToColony;
             if (include)
@@ -3811,7 +4005,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         // §125.5: людей прячем только от лица ВЫБРАННОЙ — «чего не видит вся
         // колония сразу» смысла не имеет, там всегда видно всех.
-        _fogHidesNpcs = selectedId >= 0;
+        _fogHidesNpcs = selectedOnly;
         if (!_fogHidesNpcs)
         {
             return;
@@ -3826,19 +4020,53 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
+    // A relationship chip is allowed to SELECT a stranger for her card, but
+    // that does not grant the stranger camera/vision authority. Keep the last
+    // valid colony observer; on first use choose the lowest-id living colonist
+    // deterministically. With no living colonist return -1: selected-only then
+    // has no eyes and cannot reveal the selected outsider by accident.
+    private static int ResolveFogObserverId(
+        WorldSnapshot snapshot, int requestedId, int previousId)
+    {
+        var firstColonyId = int.MaxValue;
+        var previousIsValid = false;
+        foreach (var npc in snapshot.Npcs)
+        {
+            if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony || npc.Health <= 0f)
+            {
+                continue;
+            }
+
+            if (npc.Id.Value == requestedId)
+            {
+                return requestedId;
+            }
+
+            previousIsValid |= npc.Id.Value == previousId;
+            firstColonyId = System.Math.Min(firstColonyId, npc.Id.Value);
+        }
+
+        if (previousIsValid)
+        {
+            return previousId;
+        }
+
+        return firstColonyId == int.MaxValue ? -1 : firstColonyId;
+    }
+
     /// <summary>§125.5: кольцо гексов на самой границе восприятия выбранной.
     /// Перестраивается только когда она сменилась, сдвинулась или её радиус
     /// изменился — иначе это была бы перекраска сотни рендереров каждый кадр.</summary>
     private void SyncFogRing(WorldSnapshot snapshot)
     {
-        var show = _fogActive && _fogHidesNpcs && Input.NpcSelection.HasSelection;
+        var show = _fogActive && _fogHidesNpcs && _fogObserverNpcId >= 0;
         if (!show)
         {
             ClearFogRing();
             return;
         }
 
-        var selectedId = Input.NpcSelection.SelectedId;
+        var selectedId = _fogObserverNpcId;
         var centre = TileCoord.Zero;
         var radius = -1;
         foreach (var npc in snapshot.Npcs)
@@ -4285,8 +4513,36 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (_junctionAnchorById.TryGetValue(worldObject.Junctions[0].Value, out var pos))
             {
-                if (IsIntegratedHutBed(worldObject))
+                // §120: a MODULE is drawn from its building's anchor junction —
+                // that is the point its LocalX/LocalZ was measured from, and
+                // ArchitectureModuleView adds the offset on top of this
+                // transform. Its own Junctions[0] is normally that same anchor,
+                // but the door's is not: RepairPlanTopology rebinds the door
+                // piece to the navigation throat, and drawing from there applied
+                // the door's own offset twice (measured 1.299 wu straight out
+                // through the wall line, and only on the door).
+                if (worldObject.ArchitectureOwnerObjectId is { } planOwnerKey &&
+                    IsPlanBuildingModule(worldObject) &&
+                    _planOwnerAnchors.TryGetValue(planOwnerKey, out var ownerAnchor))
+                {
+                    pos = ownerAnchor;
+                }
+                else if (IsIntegratedHutBed(worldObject))
+                {
                     pos = IntegratedHutBedVisualPosition(snapshot, worldObject, pos);
+                }
+
+                // §120: the plan's own furniture stands on its footprint CENTRE,
+                // never on its anchor junction — the same correction the
+                // constructor preview draws with (BlueprintFurnitureFootprints
+                // .CentroidOffset). For a bed that is 0.1875 wu along its length;
+                // without it every bed slid that far off the wall it was laid
+                // against. The anchor itself stays the route/interaction point.
+                if (TryPlanFurnitureCentroidOffset(worldObject, out var centroid))
+                {
+                    pos = new Float2(pos.X + centroid.X, pos.Y + centroid.Y);
+                }
+
                 return SimulationUnityMapper.ToUnityPosition(pos, ObjectGroundY(worldObject));
             }
         }
@@ -4311,6 +4567,59 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var center = HexSpatialMath.TileToWorld(bed.Tile);
         return BuildingRules.HutBedVisualPosition(
             center, hut.RotationDegrees, anchor);
+    }
+
+    /// <summary>
+    /// §120: is this world object a module of a house raised from a player PLAN
+    /// (as opposed to a slot of the canonical hut's single assembly)? Such a
+    /// module draws itself, through its own <c>ArchitectureModuleView</c>.
+    /// </summary>
+    private bool IsPlanBuildingModule(ObjectSnapshot worldObject) =>
+        worldObject.ArchitectureElements.Count == 1 &&
+        worldObject.ArchitectureOwnerObjectId.HasValue &&
+        _planBuildingOwners.Contains(worldObject.ArchitectureOwnerObjectId.Value);
+
+    /// <summary>
+    /// §120: is this world object a piece of the plan's OWN furniture — a bed,
+    /// the hearth, the wardrobe the player put on the drawing board, whether it
+    /// is already raised or still standing as its build-site?
+    ///
+    /// <para>
+    /// The test is the hex it stands on: <c>BuildingBootstrap
+    /// .StakePlanFurnitureSites</c> only ever stakes inside the building's own
+    /// footprint, and the canonical <c>hut_1hex</c> can never appear there. It
+    /// deliberately accepts the SITE too (<c>BuildProduct</c>), so the growing
+    /// pile stands exactly where the finished piece will.
+    /// </para>
+    /// </summary>
+    private bool IsPlanFurniture(ObjectSnapshot worldObject) =>
+        _planFootprintTiles.Count > 0 &&
+        !worldObject.ArchitectureOwnerObjectId.HasValue &&
+        _planFootprintTiles.Contains(worldObject.Tile) &&
+        HexLive.Simulation.Runtime.Blueprints.BlueprintFurnitureFootprints.HasFootprint(
+            PlanFurnitureDefinitionId(worldObject));
+
+    private static string PlanFurnitureDefinitionId(ObjectSnapshot worldObject) =>
+        string.IsNullOrEmpty(worldObject.BuildProduct)
+            ? worldObject.DefinitionId
+            : worldObject.BuildProduct;
+
+    /// <summary>
+    /// §120: anchor junction -> footprint centre for the plan's own furniture,
+    /// the one correction that makes a raised bed land where the constructor
+    /// preview draws it. Zero (and false) for a symmetric footprint — a hearth,
+    /// a wardrobe — so nothing moves that has no reason to.
+    /// </summary>
+    private bool TryPlanFurnitureCentroidOffset(ObjectSnapshot worldObject, out Float2 offset)
+    {
+        offset = default;
+        if (!IsPlanFurniture(worldObject)) return false;
+        var yawStep = Mathf.RoundToInt(worldObject.RotationDegrees / 60f);
+        var centroid = HexLive.Simulation.Runtime.Blueprints.BlueprintFurnitureFootprints
+            .CentroidOffset(PlanFurnitureDefinitionId(worldObject), yawStep);
+        if (Mathf.Abs(centroid.X) < 0.0001f && Mathf.Abs(centroid.Y) < 0.0001f) return false;
+        offset = centroid;
+        return true;
     }
 
     private bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
@@ -4668,8 +4977,76 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<TileCoord, GameObject> _grassByTile = new();
     private readonly HashSet<TileCoord> _lyingTiles = new();
     private readonly HashSet<TileCoord> _floorTiles = new();
+
+    // §120: hexes that already carry at least ONE raised floor sector of a
+    // plan-built house. Deliberately NOT merged into _floorTiles: that set is
+    // the simulation's TileFlags.HasFloor, which also lifts an actor onto the
+    // deck and decides whether a bed/hearth is the canonical hut's built-in
+    // furniture. This one answers the grass question only, and it answers it
+    // the moment the first sector stands rather than when the floor is done.
+    private readonly HashSet<TileCoord> _architectureFloorTiles = new();
+
+    // One footprint list per plan building per tick, not per module: every
+    // module of a building shares its owner's tile and yaw.
+    private readonly Dictionary<int, IReadOnlyList<TileCoord>> _planFootprints = new();
     private readonly HashSet<TileCoord> _hiddenGrassTiles = new();
     private readonly List<TileCoord> _grassToggleScratch = new();
+
+    private const string ArchitectureFloorId = "architecture.floor.board";
+
+    /// <summary>
+    /// §120: the grass on a hex goes as soon as ONE floor sector is raised on
+    /// it — not when the room's floor is finished and not when the house is.
+    ///
+    /// <para>
+    /// Which hex that is cannot be read off the module's own <c>Tile</c>: every
+    /// module of a building is spawned on the building's anchor tile
+    /// (<c>BuildingRules.EnsureHutElements</c>), and a player plan spans several
+    /// hexes. A floor module's local offset IS its hex CENTRE relative to the
+    /// plan anchor (<c>BlueprintBuildingPlan.Modules</c> places a sector at
+    /// <c>HexCenter</c>), so turning it by the building's yaw lands it exactly
+    /// on one of the footprint hexes the simulation already computes.
+    /// </para>
+    /// </summary>
+    private void CollectArchitectureFloorTile(ObjectSnapshot worldObject)
+    {
+        if (worldObject.ArchitectureElements.Count != 1) return;
+        var element = worldObject.ArchitectureElements[0];
+        if (element.DefinitionId != ArchitectureFloorId || !element.Complete) return;
+        if (!worldObject.ArchitectureOwnerObjectId.HasValue) return;
+
+        var ownerKey = worldObject.ArchitectureOwnerObjectId.Value;
+        if (!_planFootprints.TryGetValue(ownerKey, out var footprint))
+        {
+            footprint = HexLive.Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
+                ContentIds.HutPlan, worldObject.Tile, worldObject.RotationDegrees);
+            _planFootprints[ownerKey] = footprint;
+        }
+
+        // Simulation yaw is CCW about +X, exactly the plane the offset lives in.
+        var radians = worldObject.RotationDegrees * Mathf.Deg2Rad;
+        var cos = Mathf.Cos(radians);
+        var sin = Mathf.Sin(radians);
+        var offsetX = element.LocalX * cos - element.LocalZ * sin;
+        var offsetZ = element.LocalX * sin + element.LocalZ * cos;
+        var anchor = HexSpatialMath.TileToWorld(worldObject.Tile);
+        var best = worldObject.Tile;
+        var bestDistance = float.MaxValue;
+        for (var i = 0; i < footprint.Count; i++)
+        {
+            var centre = HexSpatialMath.TileToWorld(footprint[i]);
+            var dx = centre.X - anchor.X - offsetX;
+            var dz = centre.Y - anchor.Y - offsetZ;
+            var distance = dx * dx + dz * dz;
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = footprint[i];
+            }
+        }
+
+        _architectureFloorTiles.Add(best);
+    }
 
     // §113: ОДИН ответ на «она сейчас на земле?». Разбор ПО ПОЗАМ (какой
     // цепочкой её ронять) живёт в SyncActorView и остаётся там — здесь союз
@@ -4718,7 +5095,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _grassToggleScratch.Clear();
         foreach (var coord in _hiddenGrassTiles)
         {
-            if (!_lyingTiles.Contains(coord) && !_floorTiles.Contains(coord))
+            if (!_lyingTiles.Contains(coord) && !_floorTiles.Contains(coord) &&
+                !_architectureFloorTiles.Contains(coord))
             {
                 _grassToggleScratch.Add(coord);
             }
@@ -4734,21 +5112,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         // Flatten under the newly lying.
-        foreach (var coord in _lyingTiles)
-        {
-            if (!_hiddenGrassTiles.Contains(coord) &&
-                _grassByTile.TryGetValue(coord, out var grass) && grass != null)
-            {
-                grass.SetActive(false);
-                _hiddenGrassTiles.Add(coord);
-            }
-        }
+        HideGrassOn(_lyingTiles);
 
-        // A completed architectural floor permanently covers the terrain tuft.
+        // An architectural floor covers the terrain tuft: the simulation's own
+        // floored tiles (a finished hut), and — §120 — any hex where a single
+        // floor sector of a plan has been raised, long before the building is.
         // This deliberately shares the same renderer toggle as flattening: no
         // hidden duplicate mesh remains poking through the floor, and the sleep
         // path cannot re-grow it when a character gets up.
-        foreach (var coord in _floorTiles)
+        HideGrassOn(_floorTiles);
+        HideGrassOn(_architectureFloorTiles);
+    }
+
+    private void HideGrassOn(HashSet<TileCoord> tiles)
+    {
+        foreach (var coord in tiles)
         {
             if (!_hiddenGrassTiles.Contains(coord) &&
                 _grassByTile.TryGetValue(coord, out var grass) && grass != null)

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Debug;
+using HexLive.UnityPresentation.Spatial;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Environment
@@ -11,18 +12,22 @@ namespace HexLive.UnityPresentation.Environment
     /// put it.
     ///
     /// <para>
-    /// A building is raised as N independent world objects. Each carries a
+    /// A building is raised as N independent world objects, each carrying a
     /// single <see cref="ArchitectureElementSnapshot"/> with its own delivery
-    /// bill, so the house goes up piece by piece instead of fading in as one
-    /// monolith. This view owns exactly one of those pieces:
+    /// bill. So a module is drawn like any other world object: this component
+    /// rides on that object's OWN view, which the ordinary render diff creates,
+    /// positions at the object's anchor junction and destroys. There is no
+    /// building frame, no parent and no lifecycle of its own — a piece is
+    /// placed in the world and switched on.
     /// </para>
     /// <list type="bullet">
     /// <item>the model comes from <see cref="BlueprintArchitectureFactory"/> —
     /// the same loader the §120 constructor preview draws with, so a module
     /// looks in the world exactly as it did on the drawing board;</item>
-    /// <item>the placement root stays identity: the BUILDING frame (the owner
-    /// object's view) carries the world anchor and the six-way footprint yaw,
-    /// and the module adds only its own local offset and rotation;</item>
+    /// <item>every module of a building shares its anchor junction and its
+    /// <c>RotationDegrees</c> (see <c>BuildingRules.EnsureHutElements</c>), so
+    /// the building's six-way footprint yaw and the module's own local offset
+    /// compose HERE, on this object's own model child;</item>
     /// <item>revealing pieces is
     /// <see cref="BlueprintArchitectureFactory.ApplyStageProgress"/>, so a
     /// half-delivered wall shows exactly the sticks/boards/rope the colony
@@ -32,60 +37,37 @@ namespace HexLive.UnityPresentation.Environment
     [DisallowMultipleComponent]
     public sealed class ArchitectureModuleView : MonoBehaviour
     {
-        private static readonly Renderer[] NoRenderers = Array.Empty<Renderer>();
-
         // One warning per missing definition id, not one per module per world:
         // a plan with ten roof panels would otherwise print ten identical lines.
         private static readonly HashSet<string> MissingModels = new();
 
         private string _definitionId = string.Empty;
         private GameObject? _model;
-        private Renderer[] _renderers = NoRenderers;
         private BlueprintDoorVisual? _door;
+        private Renderer[] _renderers = System.Array.Empty<Renderer>();
+        private bool _cutawayHidden;
         private int _sticks = -1;
         private int _stageTwo = -1;
         private int _rope = -1;
 
-        /// <summary>
-        /// §121: the module's own renderers, for the marker object that carries
-        /// its simulation id. Cached when the model is built — hover picking
-        /// asks for this every frame and re-walking the hierarchy per tick was
-        /// the shape of the old per-piece garbage.
-        /// </summary>
-        public Renderer[] Renderers => _renderers;
-
-        /// <summary>
-        /// Creates an empty module root inside a building's frame. The frame is
-        /// the owner object's view: already at the site anchor and already
-        /// turned to the building's footprint yaw, so the module needs no second
-        /// converter of its own.
-        /// </summary>
-        public static ArchitectureModuleView Create(Transform buildingFrame, int objectId)
+        public void Sync(ObjectSnapshot piece)
         {
-            var root = new GameObject($"Architecture module #{objectId}");
-            root.transform.SetParent(buildingFrame, false);
-            return root.AddComponent<ArchitectureModuleView>();
-        }
-
-        /// <summary>
-        /// Whether this view still hangs in the given building's frame. A raised
-        /// building is a NEW owner object (the site despawns), so the module has
-        /// to move house with it rather than keep drawing under a dead view.
-        /// </summary>
-        public bool StandsIn(Transform buildingFrame) => transform.parent == buildingFrame;
-
-        public void Sync(ArchitectureElementSnapshot element)
-        {
+            if (piece == null || piece.ArchitectureElements.Count != 1) return;
+            var element = piece.ArchitectureElements[0];
             if (element == null) return;
-            EnsureModel(element);
+            EnsureModel(piece, element);
+            if (_model == null) return;
 
             // §120.1: a roof panel whose posts are not up yet does not exist. It
             // is not an empty frame waiting for leaves — it is nothing at all,
             // exactly like the §52 build-site with nothing hauled in yet. Same
             // answer when the model is missing: never a placeholder primitive.
-            var visible = element.Buildable && _model != null;
-            if (gameObject.activeSelf != visible) gameObject.SetActive(visible);
-            if (_model == null) return;
+            // The MODEL is what hides, never this object's own view: the view is
+            // the world object, and the render diff owns whether it is active.
+            if (_model.activeSelf != element.Buildable) _model.SetActive(element.Buildable);
+
+            // §129: the door leaf follows the simulation's door state.
+            if (_door != null && _door.IsOpen != piece.IsDoorOpen) _door.SetOpen(piece.IsDoorOpen);
 
             // Stage 2 is whatever THIS module actually bills for: boards on a
             // wall, window, door or floor sector — palm LEAVES on a roof panel.
@@ -104,19 +86,13 @@ namespace HexLive.UnityPresentation.Environment
             BlueprintArchitectureFactory.ApplyStageProgress(_model, _sticks, _stageTwo, _rope);
         }
 
-        /// <summary>§129: the door leaf follows the simulation's door state.</summary>
-        public void SetDoorOpen(bool open)
-        {
-            if (_door != null && _door.IsOpen != open) _door.SetOpen(open);
-        }
-
-        private void EnsureModel(ArchitectureElementSnapshot element)
+        private void EnsureModel(ObjectSnapshot piece, ArchitectureElementSnapshot element)
         {
             if (_model != null && _definitionId == element.DefinitionId) return;
             if (_model != null) Destroy(_model);
             _model = null;
-            _renderers = NoRenderers;
             _door = null;
+            _renderers = System.Array.Empty<Renderer>();
             _definitionId = element.DefinitionId;
             _sticks = -1;
             _stageTwo = -1;
@@ -126,17 +102,25 @@ namespace HexLive.UnityPresentation.Environment
             // module is staked, and never moves afterwards. So it is read here,
             // when the model is built, and not re-applied every tick.
             //
+            // This object's own transform stands at the building's anchor
+            // junction (the render diff puts it there) with no rotation, so the
+            // FOOTPRINT yaw is composed here instead of being carried by a
+            // parent: the module's own RotationDegrees IS the building's.
+            //
             // A parentless transform's position IS its local position, so
-            // handing the LOCAL pose to the factory and then re-parenting with
-            // worldPositionStays:false keeps exactly those numbers as locals.
-            var localPosition = new Vector3(
+            // handing the composed pose to the factory and then re-parenting
+            // with worldPositionStays:false keeps exactly those numbers as
+            // locals.
+            var frame = Quaternion.Euler(
+                0f, SimulationUnityMapper.ToUnityFootprintYawDegrees(piece.RotationDegrees), 0f);
+            var localPosition = frame * new Vector3(
                 element.LocalX,
                 BlueprintArchitectureFactory.ModuleLift(_definitionId),
                 element.LocalZ);
             var wrapper = BlueprintArchitectureFactory.InstantiateModel(
                 _definitionId,
                 localPosition,
-                BlueprintArchitectureFactory.ModuleRotation(_definitionId, element.LocalYaw));
+                frame * BlueprintArchitectureFactory.ModuleRotation(_definitionId, element.LocalYaw));
             if (wrapper == null)
             {
                 if (MissingModels.Add(_definitionId))
@@ -149,10 +133,40 @@ namespace HexLive.UnityPresentation.Environment
                 return;
             }
 
+            // The model hangs under THIS object's view, so the WorldObjectView
+            // the render diff puts on the same object finds these renderers on
+            // its own — §121 hover picking needs no cached list here.
             wrapper.transform.SetParent(transform, worldPositionStays: false);
             _model = wrapper;
+            // §120 cutaway: this module's own renderers, resolved once with the
+            // model. A module that appears WHILE the near wall is already cut
+            // away has to come up cut away too, or the room the player is
+            // looking into grows a wall back one delivery at a time.
             _renderers = wrapper.GetComponentsInChildren<Renderer>(true);
+            if (_cutawayHidden) ApplyCutaway();
             ConfigureDoor(wrapper);
+        }
+
+        /// <summary>
+        /// §120: takes this module out of the picture while the player is
+        /// looking into the room it walls off, exactly the way the canonical
+        /// hut's monolith does it — the renderers go to
+        /// <c>ShadowsOnly</c>, so the house keeps its shadows and the piece keeps
+        /// accepting deliveries. Never SetActive: the model's own active state is
+        /// the §120.1 "this piece does not exist yet" answer and must not be
+        /// overwritten by a camera angle.
+        /// </summary>
+        public void SetCutawayHidden(bool hidden)
+        {
+            if (_cutawayHidden == hidden) return;
+            _cutawayHidden = hidden;
+            ApplyCutaway();
+        }
+
+        private void ApplyCutaway()
+        {
+            for (var i = 0; i < _renderers.Length; i++)
+                ArchitectureCutaway.SetVisible(_renderers[i], !_cutawayHidden);
         }
 
         /// <summary>

@@ -103,6 +103,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float homewardNeedThreshold = 0.75f;
         [Tooltip("Постоянный вес «домой» для разбитого тела: выше быта и прогулок, ниже смертельной нужды (та бьёт своим значением).")]
         [Range(0f, 1f)] public float homewardBrokenBodyUrgency = 0.55f;
+        [Tooltip("§143: насколько тянет подобрать ДОСТИЖИМЫЙ нож, когда своего нет. Без клинка не вскрыть кокос, то есть нет ни воды, ни еды. 0.35 — вровень с бытовыми делами, но ниже настоящей нужды. 0 выключает.")]
+        [Range(0f, 1.5f)] public float bladePickupPull = 0.35f;
 
         [Header("Нужды — скорость (за медленный тик, ~150/день)")]
         [Tooltip("Сколько ГОЛОДА набегает за медленный тик. Больше = быстрее хочет есть. §53.7: вдвое медленнее (было 0.0037).")]
@@ -207,8 +209,6 @@ namespace HexLive.UnityPresentation.Config
         [Header("Отдых / сон — сколько восстанавливает")]
         [Tooltip("Устаревший второй канал энергии timed-взаимодействия. Должен быть 0: темп сна задаётся ниже одной slow-tick ручкой.")]
         [Range(0f, 0.5f)] public float groundSleepEnergy = 0f;
-        [Tooltip("Энергия за один присест на земле.")]
-        [Range(0f, 0.3f)] public float groundSitEnergy = 0.05f;
         [Tooltip("Комфорт за присест на земле.")]
         [Range(0f, 0.5f)] public float groundSitComfort = 0.15f;
         [Tooltip("Комфорт за присест на кромке-уступе (с видом — больше).")]
@@ -219,8 +219,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.5f)] public float leafBedEnergy = 0.15f;
         [Tooltip("Комфорт за сидение на стуле.")]
         [Range(0f, 1f)] public float chairComfort = 0.4f;
-        [Tooltip("Энергия за сидение на стуле.")]
-        [Range(0f, 0.3f)] public float chairEnergy = 0.1f;
 
         [Header("Сон — восстановление по игровым часам (§54.11 r2)")]
         [Tooltip("Чистое восстановление за slow tick на земле/в коме. 0.002 = 0→100% за 8 игровых часов при slow interval 16.")]
@@ -377,8 +375,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.5f)] public float npcStrikePerPass = 0.15f;
         [Tooltip("Сколько тиков после урона держится адреналин: персонаж не может уснуть, эффект виден в панели.")]
         [Range(0, 300)] public int adrenalineTicks = 80;
-        [Tooltip("Минимальная энергия при активном адреналине (0.05 = 5%).")]
-        [Range(0f, 0.25f)] public float adrenalineEnergyFloor = 0.05f;
         [Tooltip("Множитель скорости движения при активном адреналине. §71: усилен в 1.5 раза (было 1.5). НЕ складывается со спринтом защиты — MovementSystem берёт БОЛЬШИЙ из двух.")]
         [Range(1f, 4f)] public float adrenalineMoveSpeedFactor = 2.25f;
         [Tooltip("§71: ОБЩАЯ скорость ходьбы колонии. Умножается в MovementSystem — это единственная ручка темпа (поле npc.MoveSpeed всегда 1 и никем не задаётся). Прыжок через уступ идёт по реальным секундам и НЕ ускоряется.")]

@@ -44,8 +44,7 @@ public sealed partial class ExecutionSystem
         {
             RunGroundRest(world, npc, step, InteractionType.Sit, 70,
                 step.TargetJunction is { } lg && PlanningSystem.IsLedgeId(world, lg)
-                    ? SimBalance.GroundSitComfortLedge : SimBalance.GroundSitComfort,
-                SimBalance.GroundSitEnergy);
+                    ? SimBalance.GroundSitComfortLedge : SimBalance.GroundSitComfort);
         }
         else if (step.Type == PlanStepType.GroundCool)
         {
@@ -59,7 +58,7 @@ public sealed partial class ExecutionSystem
             // Sleep restores as well as a bed (a night is a night) — the
             // bed's edge is comfort, not energy. +0.35 energy here produced
             // a poverty trap: 160 naps/soak and no time to live.
-            RunGroundRest(world, npc, step, InteractionType.Sleep, 100, 0f, SimBalance.GroundSleepEnergy); // spec 42
+            RunGroundRest(world, npc, step, InteractionType.Sleep, 100, 0f); // spec 42
         }
     }
 
@@ -67,7 +66,7 @@ public sealed partial class ExecutionSystem
     // object. Lying claims the body's footprint so housemates path around.
     private static void RunGroundRest(
         WorldState world, NPCState npc, PlanStep step,
-        InteractionType kind, int durationTicks, float comfort, float energy)
+        InteractionType kind, int durationTicks, float comfort)
     {
         if (npc.Execution.Status == ExecutionStatus.None)
         {
@@ -126,11 +125,12 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // Spec 29C.9: comfort/energy recover gradually while she rests — the
-        // whole point of "you can watch it fill", not a jump on standing up.
+        // Spec 29C.9 / §42: sitting restores comfort (and the stamina system
+        // restores Stamina); Energy belongs exclusively to the slow-tick sleep
+        // channel in NeedsDecaySystem. Do not add an energy argument here — it
+        // is how ground sitting became a hidden second recovery stream.
         var restShare = durationTicks > 0 ? 1f / durationTicks : 1f;
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfort * restShare);
-        npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + energy * restShare);
 
         var interruptedSleep = kind == InteractionType.Sleep &&
             HasSleepInterrupt(world, npc, alreadyAsleep: true);
@@ -178,7 +178,7 @@ public sealed partial class ExecutionSystem
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, kind == InteractionType.Sleep ? "GroundSleptWell" : "GroundSatDown",
-                $"Comfort+{comfort:F2} Energy+{energy:F2}");
+                $"Comfort+{comfort:F2}");
         }
 
         // Spec 41.5: wake up standing still for a beat — no sprinting off

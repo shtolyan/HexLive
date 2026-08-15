@@ -31,6 +31,10 @@ MonoBehaviour:
   drinkThirstThreshold: 0.35
   freezingComfortThreshold: -0.35
   buildSiteMaterialPull: 0.35
+  exploreHealthFloor: 0.6
+  homewardHealthFloor: 0.5
+  homewardNeedThreshold: 0.75
+  homewardBrokenBodyUrgency: 0.55
   hungerRate: 0.0025
   thirstRate: 0.006
   energyRate: 0.0018

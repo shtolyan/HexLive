@@ -1119,7 +1119,23 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // in hand, before walking to a coconut.
         var drinkAvail = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold &&
             (hasBottleWater || ctx.HasCoconutWater || collectorDrawSeen);
-        var waterSourceReachable = collectorDrawSeen ||
+        // ⭐ §140.3: ВОДА БЕЗ КЛИНКА. Весь путь к воде висел на `HasCoconutBlade`,
+        // а он требует и целой руки, и режущего инструмента в рюкзаке. Потеряла
+        // нож (или руку) — и оба водных предложения гаснут разом: Drink нечего
+        // пить, GetWater некуда идти. Аукцион в этот момент не «выбирает
+        // потерпеть», у него просто НЕТ водной ставки, и колонистка встаёт в
+        // Idle 0.150 при жажде 1.00, пока не умрёт (§139.8, замерено на четырёх
+        // смертях подряд).
+        //
+        // Между тем клинок нужен ровно для одного — вскрыть ЦЕЛЫЙ орех.
+        // Проколотый и вскрытый лежат по всему лагерю (их роняют, из них поят
+        // раненых), и чтобы напиться из такого, нож не нужен вовсе. Это не
+        // поблажка: это то, что и так верно по содержимому мира, просто модель
+        // решений об этом не знала.
+        var bladelessWaterSeen =
+            HasReachableDefinitionWorthCarrying(npc, world, ContentIds.CoconutPierced) ||
+            HasReachableDefinitionWorthCarrying(npc, world, ContentIds.CoconutOpen);
+        var waterSourceReachable = collectorDrawSeen || bladelessWaterSeen ||
             (ctx.HasCoconutBlade &&
              (HasReachableDefinitionWorthCarrying(npc, world, ContentIds.Coconut) ||
               (ctx.CanUseToolsOrWeapons && KnowsReachableProducer(npc, world))));
@@ -1469,6 +1485,49 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.ReachSafeGround,
             safeGroundUrgency, safeGroundAvail,
             criticalSwimmer && safeGroundAvail ? StarvingBoost : 0f);
+
+        // ⭐ §140.2: ДОМОЙ. Соседняя по смыслу ставка к ReachSafeGround, но про
+        // другую беду: там мир СЖАЛСЯ до уступа, здесь мир большой, а она в нём
+        // одна и без ответа. Обе ведут в одну точку плана — MoveToJunction — и
+        // обе существуют потому, что «стоять на месте» для умирающей это не
+        // выбор, а отсутствие выбора.
+        //
+        // Доступна в двух положениях, и оба взяты из разбора смертей:
+        //   тело  — ползёт или здоровье ниже порога: сама она уже ничего не
+        //           добудет, а у очага её найдут (§53 помощь ищет глазами);
+        //   нужда — жажда или голод на смертельном уровне, а НИ ОДНОГО
+        //           предложения по этой нужде аукцион не выставил: ни выпить,
+        //           ни сходить за водой. Ровно та дыра, где раньше стоял
+        //           Idle 0.150.
+        // Дома (InCamp) ставка не делается вовсе: незачем «идти домой» стоя
+        // дома, и без этого условия она перебивала бы лечение у самого костра.
+        var homewardAvail = false;
+        var homewardUrgency = 0f;
+        if (ColonyQueries.Home(world, npc.Faction) is not null &&
+            !ColonyQueries.InCamp(world, npc.Tile, npc.Faction))
+        {
+            var brokenBody = npc.Body.IsCrawling ||
+                npc.Health < AiBalance.HomewardHealthFloor;
+            var thirstStranded = npc.Needs.Thirst >= AiBalance.HomewardNeedThreshold &&
+                !drinkAvail && !getWaterAvail;
+            var hungerStranded = npc.Needs.Hunger >= AiBalance.HomewardNeedThreshold &&
+                !ctx.EatAvail && !ctx.GetFoodAvail;
+            if (brokenBody || thirstStranded || hungerStranded)
+            {
+                homewardAvail = true;
+                // Вес растёт с тем, что гонит домой. Голая нужда весит как сама
+                // нужда (жажда 1.00 обязана бить прогулку и любой быт), разбитое
+                // тело добавляет постоянку: калека доходит медленно, и начинать
+                // ей надо раньше, чем станет нечем.
+                homewardUrgency = System.MathF.Max(
+                    brokenBody ? AiBalance.HomewardBrokenBodyUrgency : 0f,
+                    System.MathF.Max(
+                        thirstStranded ? npc.Needs.Thirst : 0f,
+                        hungerStranded ? npc.Needs.Hunger : 0f));
+            }
+        }
+
+        AddGoalScore(npc, world.Tick, GoalType.Homeward, homewardUrgency, homewardAvail);
 
         // Spec 29F: hunting & crafting.
         var hasSpear = npc.Inventory.Items.Contains(ContentIds.Spear);
@@ -2411,7 +2470,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // unreachable and the outings gate starved (777: explores=0).
         var wellRested = npc.Needs.Hunger < 0.5f && npc.Needs.Thirst < 0.5f &&
             npc.Needs.Energy > 0.5f && npc.Needs.Comfort > 0.35f && !fuelLow ? 0.15f : 0f;
-        var exploreAvail = PlanningSystem.HasExploreCandidate(world, npc);
+        // ⭐ §140.1: РАНЕНАЯ НЕ УХОДИТ ГУЛЯТЬ. Explore уводит на случайный
+        // дальний узел, и это самый дешёвый способ убить колонистку: разбор
+        // смертей (сид 4242) показал одну и ту же дугу — ранят, ползёт,
+        // выбирает Explore (0.266 против Idle 0.05), уходит за полкарты и
+        // вернуться уже не может; умирает от жажды на тайле 14,-6.
+        //
+        // `wellRested` мешать не обязан: он лишь ДОБАВЛЯЕТ вес сытой, а
+        // разрешает прогулку доступность. Поэтому гейт здесь, а не в весе.
+        var fitToWander = !npc.Body.IsCrawling &&
+            npc.Health >= AiBalance.ExploreHealthFloor;
+        var exploreAvail = PlanningSystem.HasExploreCandidate(world, npc) && fitToWander;
         AddGoalScore(npc, world.Tick, GoalType.Explore,
             0.05f + exploreJitter + wellRested, exploreAvail);
 

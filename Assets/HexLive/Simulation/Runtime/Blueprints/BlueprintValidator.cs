@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using HexLive.Simulation.Content;
 
 namespace HexLive.Simulation.Runtime.Blueprints
 {
@@ -162,6 +163,11 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 .Select(element => element.FloorSector).ToArray();
             foreach (var item in draft.Furniture)
             {
+                // Unknown definitions keep the strict historical rule. Only a
+                // catalog-authored outdoor site may explicitly opt out of the
+                // completed-floor prerequisite (§120 Build/Buy catalog).
+                var requiresFloor = !BuildCatalogDefinition.TryGet(item.DefinitionId, out var catalogEntry) ||
+                                    catalogEntry.RequiresCompletedFloor;
                 if (item.JunctionSlot < 0 ||
                     item.JunctionSlot >= HexLive.Simulation.Spatial.HexPointLayout.GetInteriorTemplates().Count)
                 {
@@ -172,7 +178,12 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     result.Add("furniture.yaw", "Поворот мебели должен быть одним из шести шагов.", item.Id);
                 foreach (var junction in BlueprintFurnitureFootprints.OccupiedJunctions(item))
                 {
-                    if (floors.Length > 0 && !BlueprintGeometry.IsSupportedByFloor(junction, floors))
+                    // Furniture needs a floor under EVERY junction it occupies,
+                    // including when the blueprint has no floor at all. The old
+                    // "floors.Length > 0" escape let a bed be dropped onto bare
+                    // grass beside the hut, and the constructor happily drew the
+                    // green dots out there to invite it.
+                    if (requiresFloor && !BlueprintGeometry.IsSupportedByFloor(junction, floors))
                         result.Add("furniture.floor", $"Footprint выходит за построенный пол в junction {junction}.", item.Id);
                     if (occupied.TryGetValue(junction, out var previous))
                         result.Add("furniture.overlap", $"Footprint пересекается с {previous} в junction {junction}.", item.Id);

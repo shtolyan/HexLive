@@ -37,6 +37,8 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         private Material? _green;
         private Material? _red;
         private Material? _amber;
+        private Material? _architectureStake;
+        private Material? _furnitureStake;
         private BlueprintEditorMode _mode;
         private BuildingBlueprintDraft? _draft;
         private string _selectedId = string.Empty;
@@ -44,6 +46,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         private HashSet<JunctionKey> _conflicts = new();
         private HashSet<HexBuildNodeKey> _buildConflicts = new();
         private HashSet<string> _ghostIds = new();
+        private HashSet<HexLive.Simulation.Common.TileCoord> _extraFurnitureGridTiles = new();
         private bool _invalidGhost;
 
         public BuildingBlueprintDraft? Draft => _draft;
@@ -56,7 +59,8 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             IEnumerable<HexBuildNodeKey>? buildConflicts = null,
             IEnumerable<string>? ghostIds = null,
             bool invalidGhost = false,
-            IEnumerable<string>? selectedIds = null)
+            IEnumerable<string>? selectedIds = null,
+            IEnumerable<HexLive.Simulation.Common.TileCoord>? extraFurnitureGridTiles = null)
         {
             EnsureRoots();
             ClearChildren(_elementRoot!);
@@ -81,12 +85,16 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             _ghostIds = ghostIds != null
                 ? new HashSet<string>(ghostIds)
                 : new HashSet<string>();
+            _extraFurnitureGridTiles = extraFurnitureGridTiles != null
+                ? new HashSet<HexLive.Simulation.Common.TileCoord>(extraFurnitureGridTiles)
+                : new HashSet<HexLive.Simulation.Common.TileCoord>();
             _invalidGhost = invalidGhost;
 
             foreach (var element in draft.Elements)
                 BuildElement(element);
             foreach (var furniture in draft.Furniture)
                 BuildFurniture(furniture);
+            BuildPlanningMarkers();
             BuildOverlay();
             ApplyModeVisibility();
             ApplyGhostFeedback();
@@ -178,13 +186,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
 
         private void BuildFurniture(FurniturePlacementData item)
         {
-            GameObject? root = item.DefinitionId switch
-            {
-                ContentIds.BedBasic => HutFurnitureFactory.BuildBed(),
-                "furniture.hearth" => HutFurnitureFactory.BuildHearth(),
-                "furniture.wardrobe" => WardrobeAssembly.BuildFinished(),
-                _ => null
-            };
+            var root = BuildCatalogFurnitureFactory.Build(item.DefinitionId);
             if (root == null) return;
             root.name = $"Blueprint furniture {item.DefinitionId} {item.Id}";
             root.transform.SetParent(_elementRoot, false);
@@ -222,9 +224,16 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
                         owners.Add(furniture.Id);
                     }
 
-                var tiles = _draft.Elements.Where(element => element.Kind == BlueprintElementKind.FloorSector)
-                    .Select(element => element.FloorSector.Hex).Distinct().ToArray();
-                if (tiles.Length == 0) tiles = new[] { HexLive.Simulation.Common.TileCoord.Zero };
+                // Furniture stands on a BUILT floor and nowhere else, so the
+                // dots stop at the floor too. Drawing every point of every hex
+                // the room touches scattered green dots across the bare grass
+                // outside the walls and invited a placement the validator was
+                // always going to refuse. No floor sectors at all means no dots.
+                var floors = _draft.Elements
+                    .Where(element => element.Kind == BlueprintElementKind.FloorSector)
+                    .Select(element => element.FloorSector).ToArray();
+                var tiles = floors.Select(sector => sector.Hex)
+                    .Concat(_extraFurnitureGridTiles).Distinct().ToArray();
                 // The interior set stops at r=3. The r=4 boundary ring is where
                 // two hexes MEET, so a room spanning several hexes had no points
                 // at all along its inner seams: the player could neither build
@@ -238,6 +247,8 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
                     var pair = HexLive.Simulation.Spatial.HexPointLayout.GetJunctionKeyPair(tile, template.SubAxial);
                     var key = new JunctionKey(pair.xKey, pair.yKey);
                     if (!drawn.Add(key)) continue;
+                    var outdoorPreview = _extraFurnitureGridTiles.Contains(tile);
+                    if (!outdoorPreview && !BlueprintGeometry.IsSupportedByFloor(key, floors)) continue;
                     var conflict = _conflicts.Contains(key) ||
                         occupants.TryGetValue(key, out var owners) && owners.Count > 1;
                     var material = conflict ? Red :
@@ -290,6 +301,30 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
                         : Green;
                     AddMarker(BlueprintGeometry.ToWorld(node), material, $"build {node}", conflict);
                 }
+            }
+        }
+
+        private void BuildPlanningMarkers()
+        {
+            if (_draft == null || _overlayRoot == null) return;
+            var drawn = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var marker in _draft.Elements.SelectMany(BlueprintPlanningMarkers.ForElement)
+                         .Concat(_draft.Furniture.SelectMany(BlueprintPlanningMarkers.ForFurniture)))
+            {
+                var key = $"{(int)marker.Layer}:{marker.Position.X:0.0000}:{marker.Position.Y:0.0000}";
+                if (!drawn.Add(key)) continue;
+                var stake = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                stake.name = marker.Layer == PlanningMarkerLayer.Furniture
+                    ? "Furniture planning stake"
+                    : "Architecture planning stake";
+                stake.transform.SetParent(_overlayRoot, false);
+                stake.transform.localPosition = new Vector3(
+                    marker.Position.X, FloorY + 0.09f, marker.Position.Y);
+                stake.transform.localScale = new Vector3(0.025f, 0.09f, 0.025f);
+                stake.GetComponent<Renderer>().sharedMaterial = marker.Layer == PlanningMarkerLayer.Furniture
+                    ? FurnitureStake
+                    : ArchitectureStake;
+                Destroy(stake.GetComponent<Collider>());
             }
         }
 
@@ -385,6 +420,21 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         private Material Green => _green ??= OverlayMaterial("BlueprintFree", new Color(0.20f, 0.78f, 0.53f, 0.92f));
         private Material Red => _red ??= OverlayMaterial("BlueprintBlocked", new Color(0.94f, 0.24f, 0.29f, 0.95f));
         private Material Amber => _amber ??= OverlayMaterial("BlueprintSelected", new Color(1f, 0.63f, 0.20f, 0.98f));
+        private Material ArchitectureStake => _architectureStake ??= StakeMaterial(
+            "BlueprintArchitectureStake", new Color(0.54f, 0.31f, 0.14f, 1f));
+        private Material FurnitureStake => _furnitureStake ??= StakeMaterial(
+            "BlueprintFurnitureStake", new Color(0.18f, 0.55f, 0.50f, 1f));
+
+        private static Material StakeMaterial(string name, Color color)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit")
+                         ?? Shader.Find("Standard")
+                         ?? Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Unlit/Color");
+            var material = new Material(shader) { name = name, color = color };
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            return material;
+        }
 
         private static Material OverlayMaterial(string name, Color color)
         {

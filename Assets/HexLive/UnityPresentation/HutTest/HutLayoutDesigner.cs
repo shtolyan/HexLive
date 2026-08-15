@@ -32,25 +32,16 @@ namespace HexLive.UnityPresentation.HutTest
         private readonly BlueprintCommandHistory _history = new();
         private readonly BlueprintDraftStore _store = new();
         private readonly HashSet<string> _selectedIds = new();
-        private readonly Dictionary<Tool, string> _toolButtonNames = new()
-        {
-            [Tool.Select] = "tool-select",
-            [Tool.Room] = "tool-room",
-            [Tool.Wall] = "tool-wall",
-            [Tool.Window] = "tool-window",
-            [Tool.Door] = "tool-door",
-            [Tool.Support] = "tool-support",
-            [Tool.Floor] = "tool-floor",
-            [Tool.Roof] = "tool-roof",
-            [Tool.Bed] = "tool-bed",
-            [Tool.Hearth] = "tool-hearth",
-            [Tool.Wardrobe] = "tool-wardrobe"
-        };
 
         private UIDocument? _document;
         private VisualElement? _panel;
         private Label? _statusLabel;
         private Label? _selectionLabel;
+        private Label? _selectionDescription;
+        private Label? _availabilityLabel;
+        private Label? _categoryTitle;
+        private VisualElement? _categoryList;
+        private VisualElement? _catalogList;
         private SimulationRunnerBehaviour? _runner;
         private Camera? _camera;
         private RtsCameraController? _rtsCamera;
@@ -59,8 +50,12 @@ namespace HexLive.UnityPresentation.HutTest
         private BlueprintPreviewRenderer? _preview;
         private Transform? _handles;
         private BuildingBlueprintDraft _draft = null!;
-        private BlueprintEditorMode _mode = BlueprintEditorMode.Rooms;
-        private Tool _tool = Tool.Select;
+        private BlueprintEditorMode _mode = BlueprintEditorMode.Furniture;
+        private BuildCatalogMode _catalogMode = BuildCatalogMode.Furniture;
+        private Tool _tool = Tool.None;
+        private string _activeCategoryId = BuildCatalogCategories.Comfort;
+        private BuildCatalogEntryDefinition? _activeCatalogEntry;
+        private TileCoord? _outdoorGridTile;
         private string _selectedId = string.Empty;
         private int _selectedRoomId;
         private bool _gestureActive;
@@ -81,7 +76,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private enum Tool
         {
-            Select,
+            None,
             Room,
             Wall,
             Window,
@@ -89,9 +84,7 @@ namespace HexLive.UnityPresentation.HutTest
             Support,
             Floor,
             Roof,
-            Bed,
-            Hearth,
-            Wardrobe
+            Furniture
         }
 
         private void Awake()
@@ -232,21 +225,21 @@ namespace HexLive.UnityPresentation.HutTest
             if (_panel != null) _panel.pickingMode = PickingMode.Position;
             _statusLabel = root.Q<Label>("status-label");
             _selectionLabel = root.Q<Label>("selection-label");
+            _selectionDescription = root.Q<Label>("selection-description");
+            _availabilityLabel = root.Q<Label>("availability-label");
+            _categoryTitle = root.Q<Label>("category-title");
+            _categoryList = root.Q("category-list");
+            _catalogList = root.Q("catalog-list");
 
-            BindMode(root, "mode-rooms", BlueprintEditorMode.Rooms);
-            BindMode(root, "mode-architecture", BlueprintEditorMode.Architecture);
-            BindMode(root, "mode-furniture", BlueprintEditorMode.Furniture);
-            BindMode(root, "mode-roof", BlueprintEditorMode.Roof);
-            foreach (var pair in _toolButtonNames)
-            {
-                var captured = pair.Key;
-                root.Q<Button>(pair.Value).clicked += () => SetTool(captured);
-            }
+            root.Q<Button>("mode-construction").clicked += () => SetCatalogMode(BuildCatalogMode.Construction);
+            root.Q<Button>("mode-furniture").clicked += () => SetCatalogMode(BuildCatalogMode.Furniture);
             root.Q<Button>("delete-selection").clicked += DeleteSelected;
+            root.Q<Button>("finish-selection").clicked += FinishSelection;
             root.Q<Button>("undo").clicked += Undo;
             root.Q<Button>("redo").clicked += Redo;
             root.Q<Button>("save").clicked += () => SaveDraft(true);
             root.Q<Button>("export").clicked += ExportDraft;
+            RebuildCatalogUi();
             RefreshUiState();
         }
 
@@ -280,6 +273,7 @@ namespace HexLive.UnityPresentation.HutTest
             if (PointerOverPanel(screen)) return;
             if (!TryLocalPoint(screen, out var local)) return;
 
+            if (!_gestureActive && _activeCatalogEntry != null) UpdateCatalogGhost(local);
             if (mouse.leftButton.wasPressedThisFrame) PointerDown(local, screen);
             if (_gestureActive && mouse.leftButton.isPressed) UpdateGesturePreview(local);
             if (_gestureActive && mouse.leftButton.wasReleasedThisFrame) PointerUp(local);
@@ -298,7 +292,7 @@ namespace HexLive.UnityPresentation.HutTest
                     _roomStart = NearestSector(local);
                     _gestureActive = true;
                     break;
-                case Tool.Select:
+                case Tool.None:
                     ClearRotationPreview();
                     var keyboard = Keyboard.current;
                     var additive = keyboard != null &&
@@ -437,17 +431,20 @@ namespace HexLive.UnityPresentation.HutTest
                 var floor = NearestSector(local);
                 result = Execute(working => BlueprintEditorCommands.RoofHex(working, floor.Hex));
             }
-            else if (_tool is Tool.Bed or Tool.Hearth or Tool.Wardrobe)
+            else if (_tool == Tool.Furniture && _activeCatalogEntry != null)
             {
                 var (tile, slot) = NearestJunction(local);
-                var definition = _tool == Tool.Bed ? ContentIds.BedBasic :
-                    _tool == Tool.Hearth ? "furniture.hearth" : "furniture.wardrobe";
+                var definition = _activeCatalogEntry.DefinitionId;
                 result = Execute(working => BlueprintEditorCommands.PlaceFurniture(working, definition, tile, slot));
                 if (result.Succeeded)
                 {
                     _selectedId = _draft.Furniture.Last().Id;
                     _selectedIds.Clear();
                     _selectedIds.Add(_selectedId);
+                    _activeCatalogEntry = null;
+                    _tool = Tool.None;
+                    _outdoorGridTile = null;
+                    RebuildCatalogUi();
                     RebuildPreview();
                 }
             }
@@ -456,6 +453,51 @@ namespace HexLive.UnityPresentation.HutTest
                 if (!result.Succeeded) ShowCommandPreview(result);
                 SetStatus(result.Message);
             }
+        }
+
+        private void UpdateCatalogGhost(Vector3 local)
+        {
+            if (_activeCatalogEntry == null || _preview == null || _gestureActive) return;
+            // Editor commands commit successful candidates into the draft they
+            // receive. A hover preview must therefore operate on a disposable
+            // clone; passing _draft here would silently place one item per
+            // frame before the player ever clicked.
+            var previewDraft = _draft.Clone();
+            BlueprintCommandResult? result = null;
+            switch (_activeCatalogEntry.PlacementKind)
+            {
+                case BuildCatalogPlacementKind.FloorRegion:
+                    result = BlueprintEditorCommands.AddFloorSector(previewDraft, NearestSector(local));
+                    break;
+                case BuildCatalogPlacementKind.WallLine:
+                    var wallSegment = NearestSegment(local);
+                    result = BlueprintEditorCommands.DrawWall(previewDraft, wallSegment.A, wallSegment.B);
+                    break;
+                case BuildCatalogPlacementKind.Window:
+                    result = BlueprintEditorCommands.PlaceOpening(
+                        previewDraft, NearestSegment(local), BlueprintElementKind.Window);
+                    break;
+                case BuildCatalogPlacementKind.Door:
+                    result = BlueprintEditorCommands.PlaceOpening(
+                        previewDraft, NearestSegment(local), BlueprintElementKind.Door);
+                    break;
+                case BuildCatalogPlacementKind.Support:
+                    result = BlueprintEditorCommands.AddSupport(previewDraft, NearestBuildNode(local));
+                    break;
+                case BuildCatalogPlacementKind.Roof:
+                    result = BlueprintEditorCommands.RoofHex(previewDraft, NearestSector(local).Hex);
+                    break;
+                case BuildCatalogPlacementKind.Furniture:
+                    var (tile, slot) = NearestJunction(local);
+                    _outdoorGridTile = _activeCatalogEntry.CategoryId == BuildCatalogCategories.Outdoor
+                        ? tile
+                        : null;
+                    result = BlueprintEditorCommands.PlaceFurniture(
+                        previewDraft, _activeCatalogEntry.DefinitionId, tile, slot);
+                    break;
+            }
+
+            if (result != null) ShowCommandPreview(result);
         }
 
         private BlueprintCommandResult Execute(Func<BuildingBlueprintDraft, BlueprintCommandResult> gesture)
@@ -477,22 +519,28 @@ namespace HexLive.UnityPresentation.HutTest
             var candidateId = string.Empty;
             var candidateRoomId = 0;
             var best = PickRadius * PickRadius;
-            foreach (var item in _draft.Furniture)
+            if (_catalogMode == BuildCatalogMode.Furniture)
             {
-                var point = BlueprintGeometry.JunctionToWorld(item.PrimaryJunction);
-                var sq = Sqr(local.x - point.X, local.z - point.Y);
-                if (sq >= best) continue;
-                best = sq;
-                candidateId = item.Id;
+                foreach (var item in _draft.Furniture)
+                {
+                    var point = BlueprintGeometry.JunctionToWorld(item.PrimaryJunction);
+                    var sq = Sqr(local.x - point.X, local.z - point.Y);
+                    if (sq >= best) continue;
+                    best = sq;
+                    candidateId = item.Id;
+                }
             }
-            foreach (var element in _draft.Elements)
+            else
             {
-                var point = ElementCenter(element);
-                var sq = Sqr(local.x - point.x, local.z - point.z);
-                if (sq >= best) continue;
-                best = sq;
-                candidateId = element.Id;
-                candidateRoomId = element.Kind == BlueprintElementKind.FloorSector ? element.RoomId : 0;
+                foreach (var element in _draft.Elements.Where(ElementVisibleToCurrentToolspace))
+                {
+                    var point = ElementCenter(element);
+                    var sq = Sqr(local.x - point.x, local.z - point.z);
+                    if (sq >= best) continue;
+                    best = sq;
+                    candidateId = element.Id;
+                    candidateRoomId = element.Kind == BlueprintElementKind.FloorSector ? element.RoomId : 0;
+                }
             }
             if (!additive || candidateRoomId > 0)
             {
@@ -512,6 +560,15 @@ namespace HexLive.UnityPresentation.HutTest
             RebuildPreview();
             RefreshUiState();
         }
+
+        private bool ElementVisibleToCurrentToolspace(BlueprintElementData element) => _mode switch
+        {
+            BlueprintEditorMode.Rooms => element.Kind == BlueprintElementKind.FloorSector,
+            BlueprintEditorMode.Roof => element.Kind is BlueprintElementKind.RoofSector or BlueprintElementKind.Support,
+            BlueprintEditorMode.Architecture => element.Kind is BlueprintElementKind.Wall or
+                BlueprintElementKind.Window or BlueprintElementKind.Door or BlueprintElementKind.Support,
+            _ => false
+        };
 
         private void RotateSelected(int delta)
         {
@@ -604,7 +661,11 @@ namespace HexLive.UnityPresentation.HutTest
             _dragOpeningId = string.Empty;
             _roomResizeHandle = null;
             _gesturePreview = null;
+            _activeCatalogEntry = null;
+            _outdoorGridTile = null;
+            _tool = Tool.None;
             ClearRotationPreview();
+            RebuildCatalogUi();
             RebuildPreview();
             SetStatus("blueprint.status.cancelled", true);
         }
@@ -639,7 +700,8 @@ namespace HexLive.UnityPresentation.HutTest
         private void RebuildPreview()
         {
             if (_preview == null) return;
-            _preview.Rebuild(_draft, _mode, _selectedId, selectedIds: _selectedIds);
+            _preview.Rebuild(_draft, _mode, _selectedId, selectedIds: _selectedIds,
+                extraFurnitureGridTiles: OutdoorGridTiles());
             RebuildHandles();
         }
 
@@ -654,7 +716,16 @@ namespace HexLive.UnityPresentation.HutTest
             var buildConflicts = MissingRoofSupports(candidate);
             var invalid = result.Candidate != null && !result.Validation.IsValid;
             _preview.Rebuild(candidate, _mode, _selectedId,
-                junctionConflicts, buildConflicts, changed, invalid, _selectedIds);
+                junctionConflicts, buildConflicts, changed, invalid, _selectedIds,
+                OutdoorGridTiles());
+        }
+
+        private IEnumerable<TileCoord> OutdoorGridTiles()
+        {
+            if (_catalogMode == BuildCatalogMode.Furniture &&
+                _activeCategoryId == BuildCatalogCategories.Outdoor &&
+                _outdoorGridTile is { } tile)
+                yield return tile;
         }
 
         private static HashSet<string> ChangedIds(
@@ -778,20 +849,47 @@ namespace HexLive.UnityPresentation.HutTest
                 if (outward.sqrMagnitude < 0.001f) continue;
                 outward.Normalize();
 
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                var go = new GameObject($"floor-resize-arrow-{side.Key}");
                 go.name = $"room-resize-{side.Key}";
                 go.transform.SetParent(_handles, false);
                 go.transform.localPosition = midpoint + outward * 0.14f + Vector3.up *
                     (HutAssembly.FloorSurfaceLift + 0.07f);
                 go.transform.localRotation = Quaternion.LookRotation(outward, Vector3.up);
-                go.transform.localScale = new Vector3(0.15f, 0.08f, 0.28f);
-                go.GetComponent<Renderer>().material.color = new Color(1f, 0.63f, 0.20f);
+                AddResizeArrowArt(go.transform);
                 var handle = go.AddComponent<BlueprintRoomResizeHandle>();
                 handle.RoomId = _selectedRoomId;
                 handle.Outward = outward;
                 handle.AddSectors = candidates.ToArray();
                 handle.RemoveSectors = owners;
             }
+        }
+
+        private void AddResizeArrowArt(Transform parent)
+        {
+            var stemObject = new GameObject("arrow-stem");
+            stemObject.transform.SetParent(parent, false);
+            var stem = stemObject.AddComponent<LineRenderer>();
+            stem.useWorldSpace = false;
+            stem.positionCount = 2;
+            stem.SetPosition(0, new Vector3(0f, 0f, -0.17f));
+            stem.SetPosition(1, new Vector3(0f, 0f, 0.17f));
+            stem.startWidth = 0.052f;
+            stem.endWidth = 0.052f;
+            stem.sharedMaterial = RotationButtonMaterial;
+            stem.startColor = stem.endColor = new Color(1f, 0.63f, 0.20f, 0.98f);
+
+            var headObject = new GameObject("arrow-head");
+            headObject.transform.SetParent(parent, false);
+            var head = headObject.AddComponent<LineRenderer>();
+            head.useWorldSpace = false;
+            head.positionCount = 3;
+            head.SetPosition(0, new Vector3(-0.10f, 0f, 0.07f));
+            head.SetPosition(1, new Vector3(0f, 0f, 0.19f));
+            head.SetPosition(2, new Vector3(0.10f, 0f, 0.07f));
+            head.startWidth = 0.052f;
+            head.endWidth = 0.052f;
+            head.sharedMaterial = RotationButtonMaterial;
+            head.startColor = head.endColor = new Color(1f, 0.63f, 0.20f, 0.98f);
         }
 
         private IReadOnlyList<FloorSectorKey> ResizeSectors(BlueprintRoomResizeHandle handle, Vector3 local)
@@ -947,75 +1045,204 @@ namespace HexLive.UnityPresentation.HutTest
             return true;
         }
 
-        private void BindMode(VisualElement root, string name, BlueprintEditorMode mode)
+        private void SetCatalogMode(BuildCatalogMode mode)
         {
-            root.Q<Button>(name).clicked += () =>
-            {
-                _mode = mode;
-                _tool = mode switch
-                {
-                    BlueprintEditorMode.Rooms => Tool.Room,
-                    BlueprintEditorMode.Architecture => Tool.Wall,
-                    BlueprintEditorMode.Furniture => Tool.Select,
-                    BlueprintEditorMode.Roof => Tool.Roof,
-                    _ => Tool.Select
-                };
-                CancelGesture();
-                RefreshUiState();
-            };
-        }
-
-        private void SetTool(Tool tool)
-        {
-            _tool = tool;
-            _mode = tool switch
-            {
-                Tool.Room or Tool.Floor => BlueprintEditorMode.Rooms,
-                Tool.Wall or Tool.Window or Tool.Door or Tool.Support => BlueprintEditorMode.Architecture,
-                Tool.Bed or Tool.Hearth or Tool.Wardrobe => BlueprintEditorMode.Furniture,
-                Tool.Select => _mode,
-                Tool.Roof => BlueprintEditorMode.Roof,
-                _ => _mode
-            };
+            _catalogMode = mode;
+            _activeCatalogEntry = null;
+            _outdoorGridTile = null;
+            _tool = Tool.None;
+            _activeCategoryId = BuildCatalogDefinition.ForMode(mode)
+                .Select(entry => entry.CategoryId).FirstOrDefault() ?? string.Empty;
+            _mode = mode == BuildCatalogMode.Furniture
+                ? BlueprintEditorMode.Furniture
+                : PreviewModeForCategory(_activeCategoryId);
             CancelGesture();
+            RebuildCatalogUi();
             RefreshUiState();
         }
+
+        private void SetCategory(string categoryId)
+        {
+            _activeCategoryId = categoryId;
+            _activeCatalogEntry = null;
+            _outdoorGridTile = null;
+            _tool = Tool.None;
+            _mode = _catalogMode == BuildCatalogMode.Furniture
+                ? BlueprintEditorMode.Furniture
+                : PreviewModeForCategory(categoryId);
+            CancelGesture();
+            RebuildCatalogUi();
+            RefreshUiState();
+        }
+
+        private void SelectCatalogEntry(BuildCatalogEntryDefinition entry)
+        {
+            CancelGesture();
+            _activeCatalogEntry = entry;
+            _activeCategoryId = entry.CategoryId;
+            _catalogMode = entry.Mode;
+            _tool = ToolFor(entry.PlacementKind);
+            _mode = entry.Mode == BuildCatalogMode.Furniture
+                ? BlueprintEditorMode.Furniture
+                : PreviewModeForCategory(entry.CategoryId);
+            _selectedId = string.Empty;
+            _selectedRoomId = 0;
+            _selectedIds.Clear();
+            RebuildCatalogUi();
+            RebuildPreview();
+            RefreshUiState();
+        }
+
+        private static BlueprintEditorMode PreviewModeForCategory(string categoryId) => categoryId switch
+        {
+            BuildCatalogCategories.Floor => BlueprintEditorMode.Rooms,
+            BuildCatalogCategories.Roof => BlueprintEditorMode.Roof,
+            _ => BlueprintEditorMode.Architecture
+        };
+
+        private static Tool ToolFor(BuildCatalogPlacementKind kind) => kind switch
+        {
+            BuildCatalogPlacementKind.FloorRegion => Tool.Room,
+            BuildCatalogPlacementKind.WallLine => Tool.Wall,
+            BuildCatalogPlacementKind.Window => Tool.Window,
+            BuildCatalogPlacementKind.Door => Tool.Door,
+            BuildCatalogPlacementKind.Support => Tool.Support,
+            BuildCatalogPlacementKind.Roof => Tool.Roof,
+            BuildCatalogPlacementKind.Furniture => Tool.Furniture,
+            _ => Tool.None
+        };
+
+        private void FinishSelection()
+        {
+            CancelGesture();
+            _activeCatalogEntry = null;
+            _outdoorGridTile = null;
+            _tool = Tool.None;
+            _selectedId = string.Empty;
+            _selectedRoomId = 0;
+            _selectedIds.Clear();
+            RebuildCatalogUi();
+            RebuildPreview();
+            RefreshUiState();
+        }
+
+        private void RebuildCatalogUi()
+        {
+            if (_categoryList == null || _catalogList == null) return;
+            var entries = BuildCatalogDefinition.ForMode(_catalogMode).ToArray();
+            var categories = entries.Select(entry => entry.CategoryId).Distinct().ToArray();
+            if (categories.Length > 0 && !categories.Contains(_activeCategoryId))
+                _activeCategoryId = categories[0];
+
+            _categoryList.Clear();
+            foreach (var categoryId in categories)
+            {
+                var captured = categoryId;
+                var button = new Button(() => SetCategory(captured))
+                {
+                    text = Loc.Get(CategoryTerm(captured))
+                };
+                button.AddToClassList("category-button");
+                SetActive(button, captured == _activeCategoryId);
+                _categoryList.Add(button);
+            }
+
+            _catalogList.Clear();
+            foreach (var entry in entries.Where(entry => entry.CategoryId == _activeCategoryId))
+            {
+                var captured = entry;
+                var card = new Button(() => SelectCatalogEntry(captured));
+                card.AddToClassList("catalog-card");
+                SetActive(card, ReferenceEquals(_activeCatalogEntry, entry) ||
+                                _activeCatalogEntry?.DefinitionId == entry.DefinitionId);
+
+                var thumb = new Label(entry.FallbackGlyph);
+                thumb.AddToClassList("catalog-thumb");
+                card.Add(thumb);
+                var name = new Label(Loc.Get(entry.NameTerm));
+                name.AddToClassList("catalog-name");
+                card.Add(name);
+                var description = new Label(Loc.Get(entry.DescriptionTerm));
+                description.AddToClassList("catalog-description");
+                card.Add(description);
+                _catalogList.Add(card);
+            }
+
+            if (_categoryTitle != null)
+                _categoryTitle.text = Loc.Get(CategoryTerm(_activeCategoryId));
+        }
+
+        private static string CategoryTerm(string categoryId) => categoryId switch
+        {
+            BuildCatalogCategories.Floor => "blueprint.category.floor",
+            BuildCatalogCategories.Walls => "blueprint.category.walls",
+            BuildCatalogCategories.Openings => "blueprint.category.openings",
+            BuildCatalogCategories.Roof => "blueprint.category.roof",
+            BuildCatalogCategories.Comfort => "blueprint.category.comfort",
+            BuildCatalogCategories.Heating => "blueprint.category.heating",
+            BuildCatalogCategories.Storage => "blueprint.category.storage",
+            BuildCatalogCategories.Workstations => "blueprint.category.workstations",
+            BuildCatalogCategories.Outdoor => "blueprint.category.outdoor",
+            _ => "blueprint.category.other"
+        };
 
         private void RefreshUiState()
         {
             if (_document == null) return;
             var root = _document.rootVisualElement;
-            SetActive(root.Q("mode-rooms"), _mode == BlueprintEditorMode.Rooms);
-            SetActive(root.Q("mode-architecture"), _mode == BlueprintEditorMode.Architecture);
-            SetActive(root.Q("mode-furniture"), _mode == BlueprintEditorMode.Furniture);
-            SetActive(root.Q("mode-roof"), _mode == BlueprintEditorMode.Roof);
-            foreach (var pair in _toolButtonNames) SetActive(root.Q(pair.Value), pair.Key == _tool);
-
-            root.Q("tool-room").style.display = _mode == BlueprintEditorMode.Rooms ? DisplayStyle.Flex : DisplayStyle.None;
-            root.Q("tool-floor").style.display = _mode == BlueprintEditorMode.Rooms ? DisplayStyle.Flex : DisplayStyle.None;
-            foreach (var name in new[] { "tool-wall", "tool-window", "tool-door", "tool-support" })
-                root.Q(name).style.display = _mode == BlueprintEditorMode.Architecture ? DisplayStyle.Flex : DisplayStyle.None;
-            root.Q("tool-select").style.display = DisplayStyle.Flex;
-            foreach (var name in new[] { "tool-bed", "tool-hearth", "tool-wardrobe" })
-                root.Q(name).style.display = _mode == BlueprintEditorMode.Furniture ? DisplayStyle.Flex : DisplayStyle.None;
-            root.Q("tool-roof").style.display = _mode == BlueprintEditorMode.Roof ? DisplayStyle.Flex : DisplayStyle.None;
+            SetActive(root.Q("mode-construction"), _catalogMode == BuildCatalogMode.Construction);
+            SetActive(root.Q("mode-furniture"), _catalogMode == BuildCatalogMode.Furniture);
 
             root.Q<Button>("undo").SetEnabled(_history.CanUndo);
             root.Q<Button>("redo").SetEnabled(_history.CanRedo);
             var displayedDraft = _rotationPreviewId == _selectedId ? _rotationPreview : _draft;
             var selected = displayedDraft?.Furniture.FirstOrDefault(item => item.Id == _selectedId);
+            var catalogEntry = _activeCatalogEntry;
+            if (catalogEntry == null && selected != null)
+                BuildCatalogDefinition.TryGet(selected.DefinitionId, out catalogEntry);
+
             if (_selectionLabel != null)
+            {
                 _selectionLabel.text = _selectedIds.Count > 1
                     ? $"{Loc.Get("blueprint.selection")}: {_selectedIds.Count}"
-                    : selected != null
-                    ? $"{Loc.Get("blueprint.selection")}: {Loc.Get("blueprint.item." + ItemToken(selected.DefinitionId))} · {selected.YawStep * 60}°"
+                    : catalogEntry != null
+                        ? Loc.Get(catalogEntry.NameTerm) +
+                          (selected != null ? $" · {selected.YawStep * 60}°" : string.Empty)
+                        : _selectedRoomId > 0
+                            ? $"{Loc.Get("blueprint.room")} #{_selectedRoomId}"
+                            : Loc.Get("blueprint.selection.none");
+            }
+            if (_selectionDescription != null)
+            {
+                _selectionDescription.text = catalogEntry != null
+                    ? Loc.Get(catalogEntry.DescriptionTerm)
                     : _selectedRoomId > 0
-                        ? $"{Loc.Get("blueprint.room")} #{_selectedRoomId} · " +
-                          Loc.Get(BlueprintValidator.IsIndoorRoom(_draft, _selectedRoomId)
-                              ? "blueprint.indoor.ready"
-                              : "blueprint.indoor.incomplete")
-                        : Loc.Get("blueprint.selection.none");
+                        ? Loc.Get(BlueprintValidator.IsIndoorRoom(_draft, _selectedRoomId)
+                            ? "blueprint.indoor.ready"
+                            : "blueprint.indoor.incomplete")
+                        : Loc.Get("blueprint.catalog.help");
+            }
+            if (_availabilityLabel != null)
+            {
+                var waitingForFloor = selected != null && catalogEntry?.RequiresCompletedFloor == true &&
+                                      !FurnitureHasFloorSupport(displayedDraft!, selected);
+                _availabilityLabel.text = Loc.Get(waitingForFloor
+                    ? "blueprint.availability.floor"
+                    : "blueprint.availability.ready");
+                _availabilityLabel.EnableInClassList("waiting", waitingForFloor);
+            }
             root.Q<Button>("delete-selection").SetEnabled(!string.IsNullOrEmpty(_selectedId));
+            root.Q<Button>("finish-selection").SetEnabled(
+                _activeCatalogEntry != null || !string.IsNullOrEmpty(_selectedId));
+        }
+
+        private static bool FurnitureHasFloorSupport(
+            BuildingBlueprintDraft draft, FurniturePlacementData item)
+        {
+            var floors = draft.Elements.Where(element => element.Kind == BlueprintElementKind.FloorSector)
+                .Select(element => element.FloorSector).ToArray();
+            return BlueprintFurnitureFootprints.OccupiedJunctions(item)
+                .All(junction => BlueprintGeometry.IsSupportedByFloor(junction, floors));
         }
 
         private void ClearRotationPreview()
@@ -1046,18 +1273,17 @@ namespace HexLive.UnityPresentation.HutTest
             if (_document == null) return;
             var root = _document.rootVisualElement;
             Text<Label>(root, "title-label", "blueprint.title");
-            Text<Button>(root, "mode-rooms", "blueprint.mode.rooms");
-            Text<Button>(root, "mode-architecture", "blueprint.mode.architecture");
+            Text<Button>(root, "mode-construction", "blueprint.mode.construction");
             Text<Button>(root, "mode-furniture", "blueprint.mode.furniture");
-            Text<Button>(root, "mode-roof", "blueprint.mode.roof");
-            foreach (var pair in _toolButtonNames)
-                Text<Button>(root, pair.Value, "blueprint.tool." + pair.Key.ToString().ToLowerInvariant());
+            Text<Label>(root, "selection-title", "blueprint.selection.title");
             Text<Button>(root, "delete-selection", "blueprint.action.delete");
+            Text<Button>(root, "finish-selection", "blueprint.action.finish");
             Text<Button>(root, "undo", "blueprint.action.undo");
             Text<Button>(root, "redo", "blueprint.action.redo");
             Text<Button>(root, "save", "blueprint.action.save");
             Text<Button>(root, "export", "blueprint.action.export");
             Text<Label>(root, "shortcut-label", "blueprint.shortcuts");
+            RebuildCatalogUi();
             SetStatus(_statusKey, true);
             RefreshUiState();
         }
@@ -1081,14 +1307,6 @@ namespace HexLive.UnityPresentation.HutTest
             if (active) element.AddToClassList("active");
             else element.RemoveFromClassList("active");
         }
-
-        private static string ItemToken(string definitionId) => definitionId switch
-        {
-            ContentIds.BedBasic => "bed",
-            "furniture.hearth" => "hearth",
-            "furniture.wardrobe" => "wardrobe",
-            _ => "furniture"
-        };
 
         private static HexBuildNodeKey NearestBuildNode(Vector3 point)
         {

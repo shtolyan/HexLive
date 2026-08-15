@@ -29,6 +29,15 @@ namespace HexLive.Simulation.Runtime.Blueprints
             FromAxial(0, 0), FromAxial(1, 0), FromAxial(1, -1), FromAxial(0, -1),
             FromAxial(-1, 0), FromAxial(-1, 1), FromAxial(0, 1)
         };
+        private static readonly JunctionKey[] WideStation =
+        {
+            new JunctionKey(0, -2), new JunctionKey(0, 0), new JunctionKey(0, 2)
+        };
+        private static readonly JunctionKey[] StationDisc =
+        {
+            FromAxial(0, 0), FromAxial(1, 0), FromAxial(1, -1), FromAxial(0, -1),
+            FromAxial(-1, 0), FromAxial(-1, 1), FromAxial(0, 1)
+        };
         private static readonly JunctionKey[] Single = { FromAxial(0, 0) };
 
         public static IReadOnlyList<JunctionKey> LocalOffsets(string definitionId)
@@ -37,6 +46,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
             if (string.Equals(definitionId, "furniture.wardrobe", StringComparison.Ordinal)) return Wardrobe;
             if (string.Equals(definitionId, "furniture.hearth", StringComparison.Ordinal)) return Hearth;
             if (string.Equals(definitionId, ContentIds.Campfire, StringComparison.Ordinal)) return OutdoorCampfire;
+            if (string.Equals(definitionId, ContentIds.DryingRack, StringComparison.Ordinal) ||
+                string.Equals(definitionId, ContentIds.Workbench, StringComparison.Ordinal)) return WideStation;
+            if (string.Equals(definitionId, ContentIds.WaterCollector, StringComparison.Ordinal)) return StationDisc;
             return Single;
         }
 

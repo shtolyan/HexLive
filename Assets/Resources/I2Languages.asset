@@ -20193,6 +20193,342 @@ MonoBehaviour:
       - 'Indoor не готов'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'blueprint.mode.construction'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Build'
+      - 'Строительство'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.selection.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'SELECTION'
+      - 'ВЫБРАНО'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.finish'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Done'
+      - 'Готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.help'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose a catalog card or click an existing object directly in the world.'
+      - 'Выберите карточку каталога или кликните по существующему объекту прямо в мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.availability.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'READY TO PLAN'
+      - 'МОЖНО РАЗМЕСТИТЬ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.availability.floor'
+      TermType: 0
+      Description:
+      Languages:
+      - 'WAITING FOR FLOOR'
+      - 'ОЖИДАЕТ ПОЛА'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.floor'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Floor & outline'
+      - 'Пол и контур'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.walls'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Walls'
+      - 'Стены'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.openings'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Openings'
+      - 'Проёмы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.roof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Supports & roof'
+      - 'Опоры и крыша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.comfort'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Comfort'
+      - 'Комфорт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.heating'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Heating'
+      - 'Обогрев'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.storage'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Storage'
+      - 'Хранение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.workstations'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Workstations'
+      - 'Рабочие места'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.outdoor'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outdoor'
+      - 'Улица'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.category.other'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Other'
+      - 'Другое'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.floor.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Floor region'
+      - 'Область пола'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.floor.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drag a connected floor outline'
+      - 'Протяните связный контур пола'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.wall.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wood wall'
+      - 'Деревянная стена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.wall.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drag 0.5 wu wall sections'
+      - 'Протяните секции стены по 0,5 wu'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.window.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Window'
+      - 'Окно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.window.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Replace one existing wall section'
+      - 'Заменяет одну готовую секцию стены'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.door.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Door'
+      - 'Дверь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.door.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'One section and one junction portal'
+      - 'Одна секция и один junction-портал'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.support.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Roof support'
+      - 'Опора крыши'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.support.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Two lashed sticks at a build node'
+      - 'Две связанные палки в build-узле'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.roof.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Palm roof'
+      - 'Пальмовая крыша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.roof.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Covers one hex after its supports'
+      - 'Накрывает один гекс после опор'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.bed.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Palm bed'
+      - 'Пальмовая кровать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.bed.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A comfortable sleeping place'
+      - 'Удобное место для сна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.hearth.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Indoor hearth'
+      - 'Домашний очаг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.hearth.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Compact indoor warmth source'
+      - 'Компактный источник тепла в доме'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.wardrobe.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wardrobe rack'
+      - 'Гардероб'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.wardrobe.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Stores clothes and footwear'
+      - 'Хранит одежду и обувь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.workbench.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Prosthetics workbench'
+      - 'Верстак протезов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.workbench.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Craft limbs and mechanical parts'
+      - 'Создание конечностей и механизмов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.campfire.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outdoor campfire'
+      - 'Уличный костёр'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.campfire.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cooking, warmth and a future spit'
+      - 'Готовка, тепло и будущий вертел'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.drying_rack.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outdoor drying rack'
+      - 'Уличная сушилка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.drying_rack.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dries clothes in the open air'
+      - 'Сушит одежду на открытом воздухе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.water_collector.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rain collector'
+      - 'Сборщик дождевой воды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.catalog.water_collector.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Collects rain outside'
+      - 'Собирает дождь под открытым небом'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

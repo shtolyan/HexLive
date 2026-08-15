@@ -210,21 +210,44 @@ internal static class KenshiMedicalMath
         // it; without this path Heal01 (and therefore the wound paint) stayed
         // at zero forever. Stabilised wounds close as before, while a bare
         // stump starts scarring only after clotting reaches one.
+        //
+        // ⭐ §118.2: ТО ЖЕ рубцевание — у свернувшейся раны ЦЕЛОЙ зоны, вчетверо
+        // медленнее (NaturalScarringFactor). Ручка была объявлена и НИ РАЗУ не
+        // прочитана: естественный ход имела только культя, а обычная зона ждала
+        // повязки — навсегда, если повязки не случилось.
+        //
+        // Цена бага в сейве игрока (seed=-28275602, tick=61859): у Инес грудь
+        // 0.054 HP и СЕМЬ несшитых записей, все Heal01=0.000 при Clot01=1. Одна
+        // повязка стабилизирует ровно одну рану (§118.2), а один укус пишет
+        // GashesPerHit=3 записи, — очередь не разгребается. Потолок сытого
+        // регена = 1 − сумма severity = ровно 0.054, поэтому зона стояла
+        // намертво: ни рана не закрывается, ни HP не растёт. Прогон сейва на
+        // 4000 тиков вперёд не сдвинул грудь ни на сотую.
+        //
+        // Повязка остаётся заметно лучше (вчетверо быстрее) и по-прежнему
+        // единственный способ ОСТАНОВИТЬ кровь: пока Clot01 < 1, рана не
+        // рубцуется вовсе, а неперевязанный openCut выше порога ещё и углубляет
+        // зону через TickDegeneration. Самолечение — это долго и с потерями.
         var severed = npc.Body.IsSevered(part);
         var budget = Spec118.CutRecoveryPerSlowTick * restMultiplier;
         for (var i = npc.Wounds.Count - 1; i >= 0 && budget > 0f; i--)
         {
             var wound = npc.Wounds[i];
-            var naturallyClosingStump = severed && wound.Clot01 >= 1f;
-            if (wound.Zone != part ||
-                (!wound.Stabilized && !naturallyClosingStump) ||
-                wound.Heal01 >= 1f)
+            if (wound.Zone != part || wound.Heal01 >= 1f)
             {
                 continue;
             }
 
+            // Культя сохраняет свой прежний полный темп — на ней рубцевание уже
+            // работало, и на нём оттюнена дуга §50.
+            float rate;
+            if (wound.Stabilized) rate = 1f;
+            else if (severed && wound.Clot01 >= 1f) rate = 1f;
+            else if (wound.Clot01 >= 1f) rate = Spec118.NaturalScarringFactor;
+            else continue;
+
             var open = wound.Severity * (1f - wound.Heal01);
-            var amount = System.Math.Min(open, budget);
+            var amount = System.Math.Min(open, budget * rate);
             wound.Heal01 = MathUtil.Clamp01(wound.Heal01 + amount / wound.Severity);
             if (!severed)
             {

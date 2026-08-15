@@ -260,10 +260,14 @@ public sealed class ServerOptions
 
     public LlmHostOptions Llm { get; } = new();
 
-    public static ServerOptions? Parse(string[] args)
+    public static ServerOptions? Parse(
+        string[] args,
+        Func<string, string?>? readEnvironmentVariable = null)
     {
         var options = new ServerOptions();
-        options.Llm.ApplyEnvironment(Environment.GetEnvironmentVariable);
+        options.Llm.ApplyEnvironment(
+            readEnvironmentVariable ?? Environment.GetEnvironmentVariable,
+            CommandLineOptsIntoLlm(args));
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -339,6 +343,19 @@ public sealed class ServerOptions
 
         options.Llm.Validate();
         return options;
+    }
+
+    private static bool CommandLineOptsIntoLlm(string[] args)
+    {
+        foreach (var argument in args)
+        {
+            if (argument is "--llm-endpoint" or "--llm-npcs")
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 

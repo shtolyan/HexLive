@@ -37,22 +37,31 @@ public sealed class LlmHostOptions
     public IReadOnlyList<EntityId> SelectedNpcIds => _selectedNpcIds;
 
     private readonly List<EntityId> _selectedNpcIds = new();
-    private bool _configurationSpecified;
+    private bool _optInSpecified;
 
     public bool Enabled => Endpoint is not null && _selectedNpcIds.Count > 0;
 
     /// <summary>
-    /// Applies non-empty <c>HEXLIVE_LLM_*</c> values. Command-line settings are
-    /// applied afterwards and therefore override their non-secret equivalents.
+    /// Applies non-empty <c>HEXLIVE_LLM_*</c> values. Only endpoint or NPC
+    /// selection opts in, so auxiliary values are ignored unless either source
+    /// requests opt-in. Command-line settings are applied afterwards and override
+    /// their non-secret environment equivalents.
     /// </summary>
-    public void ApplyEnvironment(Func<string, string?> readVariable)
+    public void ApplyEnvironment(
+        Func<string, string?> readVariable,
+        bool commandLineOptInSpecified = false)
     {
         if (readVariable is null) throw new ArgumentNullException(nameof(readVariable));
 
         ApplyIfPresent(EndpointEnvironmentVariable, SetEndpoint);
+        ApplyIfPresent(NpcsEnvironmentVariable, SetSelectedNpcIds);
+        if (!_optInSpecified && !commandLineOptInSpecified)
+        {
+            return;
+        }
+
         ApplyIfPresent(ApiKeyEnvironmentVariable, SetApiKey);
         ApplyIfPresent(ModelEnvironmentVariable, SetModel);
-        ApplyIfPresent(NpcsEnvironmentVariable, SetSelectedNpcIds);
         ApplyIfPresent(TimeoutEnvironmentVariable, SetRequestTimeoutSeconds);
         ApplyIfPresent(BackoffEnvironmentVariable, SetBackoffSeconds);
         ApplyIfPresent(MaxQueuedEnvironmentVariable, SetMaxQueuedRequests);
@@ -60,17 +69,23 @@ public sealed class LlmHostOptions
 
         void ApplyIfPresent(string name, Action<string> apply)
         {
-            var value = readVariable(name);
-            if (!string.IsNullOrWhiteSpace(value))
+            var value = ReadIfPresent(name);
+            if (value is not null)
             {
                 apply(value);
             }
+        }
+
+        string? ReadIfPresent(string name)
+        {
+            var value = readVariable(name);
+            return string.IsNullOrWhiteSpace(value) ? null : value;
         }
     }
 
     public void SetEndpoint(string value)
     {
-        _configurationSpecified = true;
+        _optInSpecified = true;
         value = (value ?? string.Empty).Trim();
         if (!Uri.TryCreate(value, UriKind.Absolute, out var endpoint) ||
             (endpoint.Scheme != Uri.UriSchemeHttp && endpoint.Scheme != Uri.UriSchemeHttps))
@@ -95,7 +110,6 @@ public sealed class LlmHostOptions
 
     public void SetApiKey(string value)
     {
-        _configurationSpecified = true;
         value ??= string.Empty;
         if (value.Length > 4096 || (!string.IsNullOrEmpty(value) && !IsBearerToken(value)))
         {
@@ -107,7 +121,6 @@ public sealed class LlmHostOptions
 
     public void SetModel(string value)
     {
-        _configurationSpecified = true;
         value = (value ?? string.Empty).Trim();
         if (value.Length > 200 || value.IndexOfAny(new[] { '\r', '\n' }) >= 0)
         {
@@ -119,35 +132,31 @@ public sealed class LlmHostOptions
 
     public void SetRequestTimeoutSeconds(string value)
     {
-        _configurationSpecified = true;
         var seconds = ParseBoundedInt(value, 1, MaxTimeoutSeconds, "LLM timeout");
         RequestTimeout = TimeSpan.FromSeconds(seconds);
     }
 
     public void SetBackoffSeconds(string value)
     {
-        _configurationSpecified = true;
         var seconds = ParseBoundedInt(value, 0, MaxBackoffSeconds, "LLM backoff");
         Backoff = TimeSpan.FromSeconds(seconds);
     }
 
     public void SetMaxConcurrentRequests(string value)
     {
-        _configurationSpecified = true;
         MaxConcurrentRequests = ParseBoundedInt(
             value, 1, MaxConcurrentRequestsLimit, "LLM concurrency");
     }
 
     public void SetMaxQueuedRequests(string value)
     {
-        _configurationSpecified = true;
         MaxQueuedRequests = ParseBoundedInt(
             value, 0, MaxQueuedRequestsLimit, "LLM queue cap");
     }
 
     public void SetSelectedNpcIds(string csv)
     {
-        _configurationSpecified = true;
+        _optInSpecified = true;
         var parsed = new List<EntityId>();
         var seen = new HashSet<int>();
         foreach (var part in (csv ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -168,7 +177,7 @@ public sealed class LlmHostOptions
     /// <summary>Rejects partial opt-in instead of silently leaving LLM control off.</summary>
     public void Validate()
     {
-        if (!_configurationSpecified)
+        if (!_optInSpecified)
         {
             return;
         }

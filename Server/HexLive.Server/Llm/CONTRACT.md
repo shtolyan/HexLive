@@ -117,5 +117,9 @@ not appear in process listings or shell history.
 | `HEXLIVE_LLM_MAX_QUEUED_REQUESTS` | `--llm-max-queued` | 2; range 0–64 |
 | `HEXLIVE_LLM_MAX_CONCURRENT_REQUESTS` | `--llm-max-concurrent` | 2; range 1–16 |
 
-Any partial opt-in or invalid value fails server startup with a configuration
-error. Configuration errors never print the secret value.
+Only `HEXLIVE_LLM_ENDPOINT`/`--llm-endpoint` and
+`HEXLIVE_LLM_NPCS`/`--llm-npcs` express opt-in. A bearer key, model hint, or
+tuning value on its own is ignored, including during `--help`; once endpoint or
+NPC configuration opts in, partial configuration or any invalid value fails
+server startup with a configuration error. Configuration errors never print the
+secret value.

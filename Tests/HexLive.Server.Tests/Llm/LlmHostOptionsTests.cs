@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HexLive.Server;
 using HexLive.Server.Llm;
 using NUnit.Framework;
 
@@ -63,6 +64,85 @@ public sealed class LlmHostOptionsTests
     }
 
     [Test]
+    public void StrayAuxiliaryEnvironment_DoesNotOptInOrValidate()
+    {
+        var environment = new Dictionary<string, string?>
+        {
+            [LlmHostOptions.ApiKeyEnvironmentVariable] = "fixture-secret",
+            [LlmHostOptions.ModelEnvironmentVariable] = "fixture-model",
+            [LlmHostOptions.TimeoutEnvironmentVariable] = "20",
+            [LlmHostOptions.BackoffEnvironmentVariable] = "3",
+            [LlmHostOptions.MaxQueuedEnvironmentVariable] = "4",
+            [LlmHostOptions.MaxConcurrentEnvironmentVariable] = "1",
+        };
+        var options = new LlmHostOptions();
+
+        options.ApplyEnvironment(name => environment.GetValueOrDefault(name));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => options.Validate(), Throws.Nothing);
+            Assert.That(options.Enabled, Is.False);
+            Assert.That(options.ApiKey, Is.Empty);
+            Assert.That(options.Model, Is.Empty);
+            Assert.That(options.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(12)));
+            Assert.That(options.Backoff, Is.EqualTo(TimeSpan.FromSeconds(8)));
+            Assert.That(options.MaxQueuedRequests, Is.EqualTo(2));
+            Assert.That(options.MaxConcurrentRequests, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public void AuxiliaryEnvironment_IsAppliedAfterCommandLineOptIn()
+    {
+        var environment = new Dictionary<string, string?>
+        {
+            [LlmHostOptions.ApiKeyEnvironmentVariable] = "fixture-secret",
+            [LlmHostOptions.TimeoutEnvironmentVariable] = "20",
+        };
+        var options = ServerOptions.Parse(
+            new[]
+            {
+                "--llm-endpoint", "https://llm-gateway.example/decision",
+                "--llm-npcs", "7",
+            },
+            name => environment.GetValueOrDefault(name));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(options, Is.Not.Null);
+            Assert.That(options!.Llm.Enabled, Is.True);
+            Assert.That(options.Llm.ApiKey, Is.EqualTo("fixture-secret"));
+            Assert.That(options.Llm.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(20)));
+        });
+    }
+
+    [Test]
+    public void StrayAuxiliaryEnvironment_DoesNotBreakStartupOrHelp()
+    {
+        var environment = InvalidAuxiliaryEnvironment();
+        ServerOptions? startupOptions = null;
+        ServerOptions? helpOptions = new ServerOptions();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => startupOptions = ServerOptions.Parse(
+                    Array.Empty<string>(), name => environment.GetValueOrDefault(name)),
+                Throws.Nothing);
+            Assert.That(() => helpOptions = ServerOptions.Parse(
+                    new[] { "--help" }, name => environment.GetValueOrDefault(name)),
+                Throws.Nothing);
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(startupOptions, Is.Not.Null);
+            Assert.That(startupOptions!.Llm.Enabled, Is.False);
+            Assert.That(helpOptions, Is.Null);
+        });
+    }
+
+    [Test]
     public void UnsafeOrAmbiguousOperationalValues_AreRejected()
     {
         var options = new LlmHostOptions();
@@ -93,6 +173,19 @@ public sealed class LlmHostOptionsTests
 
         Assert.That(() => options.Validate(), Throws.Nothing);
         Assert.That(options.Enabled, Is.True);
+    }
+
+    private static Dictionary<string, string?> InvalidAuxiliaryEnvironment()
+    {
+        return new Dictionary<string, string?>
+        {
+            [LlmHostOptions.ApiKeyEnvironmentVariable] = "not a bearer token",
+            [LlmHostOptions.ModelEnvironmentVariable] = "invalid\nmodel",
+            [LlmHostOptions.TimeoutEnvironmentVariable] = "not-a-number",
+            [LlmHostOptions.BackoffEnvironmentVariable] = "-1",
+            [LlmHostOptions.MaxQueuedEnvironmentVariable] = "65",
+            [LlmHostOptions.MaxConcurrentEnvironmentVariable] = "17",
+        };
     }
 }
 

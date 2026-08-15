@@ -69,6 +69,16 @@ public sealed class BatheUndressAtHomeTests
         Assert.That(spot, Is.Not.Null, "Место для раздевания не найдено, хотя дом есть.");
         Assert.That(spot.Value.StowObject, Is.EqualTo(Wardrobe(world).Id),
             "Раздеваться собираются не у гардероба — приоритет дома не работает.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(spot.Value.Stand, Is.Not.EqualTo(Wardrobe(world).Junctions[0]),
+                "Нельзя вставать на заблокированный anchor внутри шкафа.");
+            Assert.That(world.Junctions.Items[spot.Value.Stand].Blocked, Is.False,
+                "Interaction-stand обязан лежать вне authored footprint.");
+            Assert.That(Connectivity.Reachable(world, npc.CurrentJunction!.Value,
+                spot.Value.Stand, PlanningSystem.CanUseRoutineTraversal(npc)), Is.True,
+                "Доступность шкафа проверяется по реальной точке взаимодействия.");
+        });
     }
 
     /// <summary>Гардероб полон — раздеваемся всё равно у дома, просто на землю.</summary>

@@ -70,6 +70,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float helpCryMortalBonus = 0.25f;
         [Tooltip("§57.10: стон умирающей вне боя — союзницы в радиусе запоминают, где она лежит.")]
         public bool dyingMoanEnabled = true;
+        [Tooltip("§57.11: разовая прибавка симпатии спасённой к спасительнице («она за меня дралась» не смывается перепалкой — жизнь весит больше ссоры).")]
+        [Range(0f, 1f)] public float rescueGratitudeAffinity = 0.2f;
         [Tooltip("Включить защиту друга (guard рядом с близким).")]
         public bool friendGuardEnabled = true;
         [Tooltip("Радиус, в котором друг считается «рядом», тайлы.")]

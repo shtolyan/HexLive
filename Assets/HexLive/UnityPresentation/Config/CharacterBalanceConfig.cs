@@ -46,6 +46,34 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Пока застой длится, повторять жалобу не чаще этого.")]
         [Range(50, 2000)] public int stuckRepeatEmitTicks = 200;
 
+        [Header("§122 Петля (лайвлок) — обнаружение и лестница выхода")]
+        [Tooltip("Выключатель АВТОВЫХОДА из петли: диагностика (LoopDetected) работает всегда, флаг гасит только действия. A/B-ручка — гонять один сид с ней и без.")]
+        public bool loopEscapeEnabled = true;
+        [Tooltip("Окно подсчёта попыток. 1200 = полдня игрового цикла событий (EventCycleTicks 2400).")]
+        [Range(200, 9600)] public int loopWindowTicks = 1200;
+        [Tooltip("Sisyphus: столько раз взялась за ОДИН прицел (цель+объект) внутри окна, не доведя ни разу. Четыре — бюджет ретраев маршрута; пятая = «сюда ходить бессмысленно».")]
+        [Range(2, 20)] public int loopRepeatAttempts = 5;
+        [Tooltip("Oscillation: столько смен содержательной цели туда-обратно (A→B→A = два) без единого завершения. Шесть — три полных качания.")]
+        [Range(2, 20)] public int loopOscillations = 6;
+        [Tooltip("NeedStarved: столько тиков нужда выше кризисной черты, пока обслуживающая её цель берётся и не доводится.")]
+        [Range(300, 9600)] public int loopNeedStarvedTicks = 2400;
+        [Tooltip("Пока петля держится, повторять жалобу не чаще этого (втрое реже StuckRepeatEmitTicks — петля длиннее застоя).")]
+        [Range(100, 4000)] public int loopRepeatEmitTicks = 600;
+        [Tooltip("Потолок лестницы выхода: 0 — только доклад, 1 — отворот, 2 — долгий отворот, 3 — глушение цели. Подобран прогоном (A/B −46% времени в петлях).")]
+        [Range(0, 3)] public int loopMaxRung = 3;
+        [Tooltip("Вторая ступень: Memory.Shun надолго — обычные 600 тиков этот объект уже переживал пять раз.")]
+        [Range(600, 24000)] public int loopHardShunTicks = 3000;
+        [Tooltip("Третья ступень: цель на кулдаун целиком, аукцион выдаёт второе по счёту дело. Заметно длиннее FailureCooldownTicks (40).")]
+        [Range(40, 9600)] public int loopGoalCooldownTicks = 900;
+
+        [Header("§50.9 Спуститься, пока ноги держат (SafeGround)")]
+        [Tooltip("Инстинкт: нога потрёпана, а плоская компонента подо мной крошечная — уходить на большую землю, ПОКА прыжок ещё возможен.")]
+        public bool safeGroundRetreatEnabled = true;
+        [Tooltip("Нога «потрёпана», когда её функция ниже этого. 0.75 — сам порог прыжка; 0.9 даёт запас в одну-две раны на реакцию.")]
+        [Range(0f, 1f)] public float safeGroundLegAlert = 0.9f;
+        [Tooltip("Компонента МЕНЬШЕ этого числа узлов — уступ-ловушка. Материк после честного графа — тысячи узлов; терраса горы — десятки.")]
+        [Range(4, 4000)] public int safeGroundIsletMaxJunctions = 96;
+
         [Header("Длительности решений (были продублированы числом в 2-3 местах)")]
         [Tooltip("Источник оказался занят по прибытии — столько тиков к нему не возвращается.")]
         [Range(60, 2400)] public int shunTicks = 600;
@@ -72,7 +100,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Сколько ЖАЖДЫ набегает за тик. Больше = быстрее хочет пить. §53.7: вдвое медленнее (было 0.008).")]
         [Range(0f, 0.05f)] public float thirstRate = 0.004f;
         [Tooltip("Сколько ЭНЕРГИИ тратится за тик бодрствования (~1 полоска/день).")]
-        [Range(0f, 0.03f)] public float energyRate = 0.007f;
+        [Range(0f, 0.03f)] public float energyRate = 0.0018f;
         [Tooltip("Сколько КОМФОРТА теряется за тик бодрствования (у костра — наоборот растёт).")]
         [Range(0f, 0.05f)] public float comfortRate = 0.01f;
         [Tooltip("Сколько СОЦИАЛА убывает за тик (одиночество).")]
@@ -275,6 +303,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.005f)] public float hygieneDriftLoss = 0.0004f;
         [Tooltip("Кровь пачкает: гигиена, теряемая на единицу общего HP, списанного уроном. 3 — треть максимума здоровья обнуляет гигиену (полностью помыться). Через гигиену же прячутся кровяные капли на коже: помылась — капли исчезли.")]
         [Range(0f, 10f)] public float hygieneDamageLoss = 3f;
+        [Tooltip("§40.8-H r10: сколько крови-грязи кладёт рана на кожу за единицу урона. Топор (~0.2) — до половины, укус волка (~0.08) — ~0.15, царапина 0.01 остаётся ниже onset-порога спеклов.")]
+        [Range(0f, 10f)] public float bloodSoilPerCut = 2f;
+        [Tooltip("§40.8-H r10: смыв крови-грязи за тик мытья В ВОДЕ (кровь сходит синхронно с общей грязью). На суше кровь не дрейфует — засохла и держится до мытья.")]
+        [Range(0f, 0.5f)] public float bloodSoilWashPerTick = 0.05f;
         [Tooltip("Загрязнение надетой одежды за тик.")]
         [Range(0f, 0.005f)] public float clothingDirtGain = 0.00035f;
         [Tooltip("Потеря комфорта за тик в грязной одежде.")]
@@ -359,6 +391,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(1f, 4f)] public float fleeRunSpeedFactor = 2.25f;
         [Tooltip("Скорость бега, когда она умирает с голоду/жажды и спешит к еде или воде. ЕДИНСТВЕННАЯ мирная причина бежать — поэтому бег видно, но каждая прогулка не превращается в трусцу.")]
         [Range(1f, 3f)] public float needRunSpeedFactor = 1.6f;
+        [Tooltip("§71: скорость бега по рутинному маршруту (походка — решение, не следствие скорости). Дыхание тратится то же, что и в аварийном беге, только спокойнее. Причины не складываются — MovementSystem берёт наибольший множитель.")]
+        [Range(1f, 3f)] public float routineRunSpeedFactor = 1.6f;
         [Tooltip("§71.4 За сколько мировых единиц до СТАТИЧНОЙ цели бегущая переходит на шаг " +
                  "(3.0 ≈ 1.15 гекса). Погоню за человеком и побег не осаживает. 0 = выключено.")]
         [Range(0f, 6f)] public float arrivalWalkDistance = 3f;

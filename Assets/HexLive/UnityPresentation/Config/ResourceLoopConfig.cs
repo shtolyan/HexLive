@@ -29,6 +29,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 10)] public int campfireBillRope = 2;
         [Tooltip("Стадия 2 (кольцо): топливо горит с этим множителем (0.5 = вдвое дольше).")]
         [Range(0.1f, 1f)] public float campfireRingBurnMultiplier = 0.5f;
+        [Tooltip("§120: очаг ПОД КРЫШЕЙ жжёт топливо ещё с этим множителем (поверх кольца: 0.5×0.5 = каменное кольцо в доме горит вчетверо дольше голого костра).")]
+        [Range(0.1f, 1f)] public float indoorFireBurnMultiplier = 0.5f;
         [Tooltip("Стадия 3 (вертел): сколько тиков жарится кусок мяса.")]
         [Range(50, 800)] public int meatRoastDurationTicks = 200;
         [Tooltip("Сколько кусков висит на перекладине одновременно (= 6 слотам вида CampfireSpitMeat).")]

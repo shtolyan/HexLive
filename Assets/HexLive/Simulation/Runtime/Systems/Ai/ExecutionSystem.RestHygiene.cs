@@ -461,7 +461,7 @@ public sealed partial class ExecutionSystem
     // inside the window and still blocks; a wolf that wandered off ages out and
     // she can finally rest at the fire. SleepDangerRecencyTicks <= 0 restores
     // the legacy "any remembered danger blocks sleep".
-    private static bool HasRecentDanger(WorldState world, NPCState npc)
+    internal static bool HasRecentDanger(WorldState world, NPCState npc)
     {
         var window = Spec49.SleepDangerRecencyTicks;
         if (window <= 0)

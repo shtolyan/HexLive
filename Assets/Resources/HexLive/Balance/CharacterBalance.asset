@@ -33,7 +33,7 @@ MonoBehaviour:
   buildSiteMaterialPull: 0.35
   hungerRate: 0.0025
   thirstRate: 0.006
-  energyRate: 0.0045
+  energyRate: 0.0018
   comfortRate: 0.01
   socialRate: 0.006
   sweatThirstFactor: 0.182

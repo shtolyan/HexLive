@@ -85,7 +85,10 @@ public sealed class BalanceKnobHygieneGateTests
     private static readonly Dictionary<string, string> KnownDefaultDrift =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["EnergyRate"] = "0.005 против 0.007",
+            // EnergyRate ушёл отсюда в §139.1: код 0.005, конфиг 0.007, ассет
+            // 0.0045 и simdata 0.0045 были четырьмя разными числами, и правка
+            // любого одного выглядела как «ничего не изменилось». Сведены к
+            // 0.0018 — девять игровых часов бодрствования с полной шкалы.
             ["BleedRateFactor"] = "0.06 против 0.09",
             ["FireWarmthRange1"] = "18 против 8 — §67 подняли тепло костра в статике",
             ["FireWarmthRange2"] = "11 против 4 — там же",

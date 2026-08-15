@@ -233,6 +233,24 @@ public sealed partial class DecisionSystem
     // with a knife still opens her dinner (Marta starved to death at day 28
     // sitting NEXT to coconuts because the blanket prone-gate blocked this).
     // Fighting and heavy tool work stay forbidden while lying.
+    /// <summary>§139.3: жив ли на острове кто-то враждебный ей. Ходить голой
+    /// (купание снимает ВСЁ, включая броню конечностей) при живом чужаке —
+    /// прямой путь к разгрызенным рукам, после которых она не может даже
+    /// открыть кокос.</summary>
+    internal static bool HasHostileAlive(WorldState world, NPCState npc)
+    {
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Health > 0f && !other.Id.Equals(npc.Id) &&
+                FactionRelations.AreHostile(other.Faction, npc.Faction))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static bool HasCoconutBlade(NPCState npc) =>
         npc.Body.HasUsableHand &&
         Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Cut);

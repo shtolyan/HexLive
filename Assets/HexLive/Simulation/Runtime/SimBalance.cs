@@ -34,7 +34,15 @@ namespace HexLive.Simulation.Runtime
         // and fallback all agree.
         public static float HungerRate = 0.00185f;      // hunger gained per slow tick (§53.7: was 0.0037 tuned / 0.0055 default)
         public static float ThirstRate = 0.004f;        // thirst gained per slow tick (§53.7: was 0.008 tuned / 0.010 default)
-        public static float EnergyRate = 0.005f;        // energy drained per slow tick awake (~1 bar per 200 slow ticks / 13 real min; was 0.007 — softened to cut exhaustion comas)
+        // ⭐ §139.1: бюджет бодрствования — ДЕВЯТЬ игровых часов с полной шкалы.
+        // Сутки = 24 000 тиков = 1500 медленных, значит 9 ч = 562 медленных
+        // тика, откуда 1/562 = 0.0018. Было 0.0045 (живое значение ассета):
+        // полной шкалы хватало на 3.5 часа, при том что сон в кровати набирает
+        // её за 4 — «поспала четыре часа, через три валится». Отсюда и
+        // вырубания, и смерти: §49.10 замер показал минимум энергии 0.00 у всех
+        // троих и 31 обморок за пять суток. Код/конфиг/ассет/simdata тут
+        // разъехались на три разных числа (0.005 / 0.007 / 0.0045) — сведены.
+        public static float EnergyRate = 0.0018f;       // energy drained per slow tick awake (9 in-game hours per full bar)
         public static float ComfortRate = 0.01f;        // comfort drained per slow tick awake
         public static float SocialRate = 0.008f;        // social drained per slow tick
         public static float SweatThirstFactor = 0.25f;  // extra thirst per unit of overheating

@@ -68,7 +68,11 @@ internal static class AttributeMath
         {
             npc.Attributes.Set(
                 AttributeSet.All[i],
-                Spec76.AttributeMean + Spec76.AttributeSpread * (raw[i] - mean) / maxAbs);
+                // §139.4: прибавка входит ТОЛЬКО сюда. В Effect/InverseEffect
+                // точкой отсчёта остаётся AttributeMean — иначе прибавка
+                // сократилась бы сама с собой и не дала бы ничего.
+                Spec76.AttributeMean + Spec76.AttributeBonus +
+                Spec76.AttributeSpread * (raw[i] - mean) / maxAbs);
         }
     }
 

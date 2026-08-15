@@ -42,6 +42,11 @@ public sealed class ManualOrderSystem : ISimulationSystem
             switch (npc.Mind.CurrentGoal)
             {
                 case GoalType.PlayerOrder:
+                // §124.1: приказ «уложить в кровать» держит цель Rescue —
+                // успешную укладку завершает CompleteCarrier, а вот СНЕСЁННЫЙ
+                // план без этого свипа оставлял бы ручную с вечной целью
+                // Rescue: ни авто-нужд, ни таймаута (оба ждут None).
+                case GoalType.Rescue:
                     SweepFinishedOrder(world, npc);
                     break;
                 case GoalType.PlayerAttack:

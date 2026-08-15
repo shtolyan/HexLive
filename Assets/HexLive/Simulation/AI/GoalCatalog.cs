@@ -309,6 +309,11 @@ public static class GoalCatalog
         // уступа на большую землю, пока прыжок ещё возможен. Спешит: каждая
         // деградация ран приближает порог CanJump.
         Add(GoalType.ReachSafeGround, urgency: UrgencyClass.Hurry);
+        // §140.2: «домой» — та же спешка, что у §50.9, и по той же причине.
+        // Идёт израненная или та, которой нечем утолить смертельную нужду:
+        // каждый лишний тик пути отнимается у окна, в котором её ещё можно
+        // спасти. Прогулочным шагом это была бы другая цель.
+        Add(GoalType.Homeward, urgency: UrgencyClass.Hurry);
         Add(GoalType.Hunt, urgency: UrgencyClass.Hurry, readiesMeleeWeapon: true);
         Add(GoalType.Prey, readiesMeleeWeapon: true);
         Add(GoalType.Flee, urgency: UrgencyClass.Flee,

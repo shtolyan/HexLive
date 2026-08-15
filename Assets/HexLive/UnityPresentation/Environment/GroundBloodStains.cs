@@ -42,19 +42,24 @@ public sealed class GroundBloodStains : MonoBehaviour
     private const int AgeBuckets = 6;
     private static readonly Color DriedBlood = new(0.15f, 0.02f, 0.02f, 1f);
     private const float SpreadTicks = 120f;     // drip -> full puddle, ~30 sim-s
-    private const float DripScale = 0.09f;      // fresh droplet, metres
+    // Bug #145: keep every horizontal pool dimension on one visual scale.
+    // The previous decals read three times too large in the world; applying
+    // one factor to spawn, growth, cap and merge footprint preserves the
+    // existing behaviour while shrinking only the cosmetic ground effect.
+    private const float StainScaleFactor = 1f / 3f;
+    private const float DripScale = 0.09f * StainScaleFactor;
     // Bigger + more opaque than the first pass: on bright sand a 0.2 m,
     // 0.85-alpha brown smear read as a faint dirt smudge. Fresh-red material
     // + these makes it a clear wet pool.
-    private const float PuddleScaleMin = 0.26f; // full spread, metres
-    private const float PuddleScaleMax = 0.46f;
+    private const float PuddleScaleMin = 0.26f * StainScaleFactor;
+    private const float PuddleScaleMax = 0.46f * StainScaleFactor;
     // A drip that lands inside an existing pool does NOT spawn a second
     // projector on top of it — it merges: the pool re-wets (fresh red, full
     // alpha) and its target size grows. A girl asleep with a bleed leaves ONE
     // wide spreading pool under her, not a stack of identical droplets.
-    private const float PoolGrowth = 0.07f;     // metres added per merged drip
-    private const float MaxPoolScale = 1.0f;    // widest a single pool gets
-    private const float MergeRadiusMin = 0.16f; // even a fresh drip catches close hits
+    private const float PoolGrowth = 0.07f * StainScaleFactor;
+    private const float MaxPoolScale = 1.0f * StainScaleFactor;
+    private const float MergeRadiusMin = 0.16f * StainScaleFactor;
     private const float MaxAlpha = 1f;
     private const int DripIntervalTicks = 6;    // while bleeding, ~1.5 sim-s
     private const int BleedGraceTicks = 20;     // blood drops on SLOW ticks (16)

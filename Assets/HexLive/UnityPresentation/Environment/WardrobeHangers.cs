@@ -36,5 +36,26 @@ namespace HexLive.UnityPresentation.Environment
             var wrapped = ((index % ShoeShelfSlotCount) + ShoeShelfSlotCount) % ShoeShelfSlotCount;
             return new Vector3(RoomSideX, 0.19f, -0.24f + wrapped * 0.16f);
         }
+
+        /// <summary>
+        /// Seats footwear by its measured bottom on the authored shelf surface.
+        /// Shoe meshes have different shaft heights, so the shelf Y is a
+        /// surface, never a universal centre coordinate.
+        /// </summary>
+        public static Vector3 GroundFootwearOnShelf(Transform footwear, int index)
+        {
+            var shelf = ShoeShelfSlot(index);
+            var renderers = footwear.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return shelf;
+
+            var bottom = renderers[0].bounds.min.y;
+            for (var rendererIndex = 1; rendererIndex < renderers.Length; rendererIndex++)
+                bottom = Mathf.Min(bottom, renderers[rendererIndex].bounds.min.y);
+
+            return new Vector3(
+                shelf.x,
+                shelf.y + footwear.position.y - bottom,
+                shelf.z);
+        }
     }
 }

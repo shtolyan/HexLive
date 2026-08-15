@@ -355,7 +355,7 @@ public sealed class BuildingConstructionTests
     }
 
     [Test]
-    public void FreshPrototypeHutSeedsThreeDistinctDeterministicWardrobeGarments()
+    public void FreshPrototypeHutSeedsSixDistinctDeterministicWardrobeGarments()
     {
         var first = TestWorld.CreateWorld(12345);
         var second = TestWorld.CreateWorld(12345);
@@ -366,19 +366,21 @@ public sealed class BuildingConstructionTests
             .Where(obj => obj.Tile.Equals(firstWardrobe.Tile) &&
                           obj.Junctions.Count == 1 &&
                           obj.Junctions[0].Equals(firstWardrobe.Junctions[0]) &&
-                          obj.DefinitionId.StartsWith("clothing.", StringComparison.Ordinal))
+                          first.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                          definition.Tags.Contains("Clothing"))
             .OrderBy(obj => obj.Id.Value)
             .ToArray();
         var secondGarments = second.Entities.Objects.Values
             .Where(obj => obj.Tile.Equals(secondWardrobe.Tile) &&
                           obj.Junctions.Count == 1 &&
                           obj.Junctions[0].Equals(secondWardrobe.Junctions[0]) &&
-                          obj.DefinitionId.StartsWith("clothing.", StringComparison.Ordinal))
+                          second.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                          definition.Tags.Contains("Clothing"))
             .OrderBy(obj => obj.Id.Value)
             .ToArray();
 
-        Assert.That(firstGarments, Has.Length.EqualTo(3));
-        Assert.That(firstGarments.Select(obj => obj.DefinitionId).Distinct().Count(), Is.EqualTo(3));
+        Assert.That(firstGarments, Has.Length.EqualTo(6));
+        Assert.That(firstGarments.Select(obj => obj.DefinitionId).Distinct().Count(), Is.EqualTo(6));
         Assert.That(firstGarments.All(obj => obj.BlockedJunctions.Count == 0), Is.True,
             "Стартовая одежда висит на гардеробе и не запирает проход в хижине.");
         Assert.That(secondGarments.Select(obj => obj.DefinitionId),
@@ -387,7 +389,7 @@ public sealed class BuildingConstructionTests
     }
 
     [Test]
-    public void FreshPrototypeWardrobeUsesOnlyLightEverydayClothesAndAtMostOnePairOfShoes()
+    public void FreshPrototypeWardrobeAlwaysIncludesPantsBootsAndProtectiveClothing()
     {
         for (var seed = 1; seed <= 100; seed++)
         {
@@ -397,21 +399,37 @@ public sealed class BuildingConstructionTests
                 .Where(obj => obj.Tile.Equals(wardrobe.Tile) &&
                               obj.Junctions.Count == 1 &&
                               obj.Junctions[0].Equals(wardrobe.Junctions[0]) &&
-                              obj.DefinitionId.StartsWith("clothing.", StringComparison.Ordinal))
+                              world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                              definition.Tags.Contains("Clothing"))
                 .ToArray();
 
             var footwearCount = 0;
+            var bootCount = 0;
+            var pantsCount = 0;
+            var protectiveCount = 0;
             foreach (var objectState in garments)
             {
                 var garment = GarmentLibrary.Active.Single(candidate => candidate.Id == objectState.DefinitionId);
                 Assert.That(BuildingBootstrap.IsStarterWardrobeGarment(garment, out var isFootwear), Is.True,
                     $"{objectState.DefinitionId} is outside the starter wardrobe policy.");
-                Assert.That(garment.Armor, Is.LessThanOrEqualTo(0.10f));
                 if (isFootwear) footwearCount++;
+                if (BuildingBootstrap.IsStarterWardrobeBoots(garment)) bootCount++;
+                if (BuildingBootstrap.IsStarterWardrobePants(garment)) pantsCount++;
+                if (BuildingBootstrap.IsStarterWardrobeProtective(garment)) protectiveCount++;
             }
 
-            Assert.That(footwearCount, Is.LessThanOrEqualTo(1),
-                "A starter hut may receive at most one rare footwear item.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(garments, Has.Length.EqualTo(6));
+                Assert.That(footwearCount, Is.EqualTo(1),
+                    "The starter wardrobe must contain exactly one footwear item.");
+                Assert.That(bootCount, Is.EqualTo(1),
+                    "The guaranteed footwear must be actual boots, not heels or sandals.");
+                Assert.That(pantsCount, Is.GreaterThanOrEqualTo(1),
+                    "The starter wardrobe must contain real four-pocket pants, not only a skirt.");
+                Assert.That(protectiveCount, Is.GreaterThanOrEqualTo(1),
+                    "The starter wardrobe must contain one non-leg piece with armor >= 0.10.");
+            });
         }
     }
 

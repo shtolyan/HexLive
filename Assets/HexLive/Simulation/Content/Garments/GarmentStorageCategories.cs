@@ -10,8 +10,25 @@ namespace HexLive.Simulation.Content
         public static bool IsFootwear(string definitionId)
             => CategoryFor(definitionId) == GarmentCategory.Footwear;
 
-        public static bool IsPairedGloves(string definitionId)
-            => CategoryFor(definitionId) == GarmentCategory.Gloves;
+        /// <summary>
+        /// A garment stored as a compact left/right pair: explicit gloves, or
+        /// any authored wearable whose fine slots are confined to the arms.
+        /// The slot rule deliberately excludes ids and coarse protection zones,
+        /// so new cuffs, detached sleeves and arm guards inherit it automatically.
+        /// </summary>
+        public static bool IsPairedHandwear(string definitionId)
+        {
+            if (CategoryFor(definitionId) == GarmentCategory.Gloves) return true;
+
+            var slots = WearSlotCatalog.For(definitionId);
+            if (slots.Count == 0) return false;
+            for (var index = 0; index < slots.Count; index++)
+            {
+                if (!IsArmSlot(slots[index])) return false;
+            }
+
+            return true;
+        }
 
         public static GarmentCategory CategoryFor(string definitionId)
         {
@@ -21,5 +38,11 @@ namespace HexLive.Simulation.Content
             }
             return GarmentCategory.Unclassified;
         }
+
+        private static bool IsArmSlot(WearSlot slot) => slot is
+            WearSlot.ShoulderR or WearSlot.ShoulderL or
+            WearSlot.ForearmR or WearSlot.ForearmL or
+            WearSlot.WristR or WearSlot.WristL or
+            WearSlot.HandR or WearSlot.HandL;
     }
 }

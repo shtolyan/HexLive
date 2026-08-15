@@ -87,6 +87,10 @@ namespace HexLive.UnityDebug.Editor
             // удар либо обрывается на выходе в Idle, либо доигрывает поверх
             // следующего замаха.
             AddParam(ac, "AttackSpeed", AnimatorControllerParameterType.Float, 1f);
+            // §142: КАКОЙ кадр позы удержания замер на верхнем слое. Слой играет
+            // на скорости 0, поэтому время в клипе задаётся не проигрыванием, а
+            // смещением цикла — и его можно двигать живьём, подбирая стойку.
+            AddParam(ac, "CarryPose", AnimatorControllerParameterType.Float);
 
             var sm = ac.layers[0].stateMachine;
             var idle = Find(sm, "Idle");
@@ -533,11 +537,134 @@ namespace HexLive.UnityDebug.Editor
             var ui = standUp.AddTransition(idle);
             ui.hasExitTime = true; ui.exitTime = 0.9f; ui.duration = 0.25f;
 
+            // §142: верхний слой «оружие в двух руках».
+            BuildArmedCarryLayer(ac);
+
             EditorUtility.SetDirty(ac);
             AssetDatabase.SaveAssets();
             Debug.Log($"[NpcActionStates] Built. states={sm.states.Length} params={ac.parameters.Length} " +
                 $"talk={talk.motion != null} gather={gather.motion != null} drink={drink.motion != null} " +
                 $"attack={attack.motion != null} death={death.motion != null}");
+        }
+
+        // §142: ВЕРХНИЙ СЛОЙ «предмет в двух руках».
+        //
+        // Задача — держать копьё обеими руками и в стойке, и в шаге, и в беге.
+        // Подменой базового клипа её не решить: у каждой походки свой клип, и на
+        // каждую пришлось бы рисовать двуручный вариант (а их четыре: стойка,
+        // шаг, трусца, бег) — плюс столько же на каждое новое двуручное оружие.
+        // Слой с маской «только руки» решает всё сразу: ноги, таз и корпус
+        // продолжают идти из базового клипа, а плечи и кисти берут ОДНУ позу
+        // удержания. Скорость состояния 0 — это поза, а не движение; какой
+        // именно кадр клипа замер, задаёт параметр CarryPose.
+        //
+        // Вес слоя ставит вид (NpcActorView), и по умолчанию он 0: одноручные
+        // инструменты, работа, драка, ползание и вода обязаны видеть базовый
+        // слой нетронутым.
+        public const string CarryLayerName = "ArmedCarry";
+        public const string CarryStateName = "Carry";
+        // Имя клипа-ключа = адрес слота в AnimatorOverrideController.
+        public const string CarryPoseClipName = "ArmedCarryPose";
+        const string ActorsDir = "Assets/HexLive/UnityPresentation/Actors/";
+        const string CarryPoseClipPath = ActorsDir + CarryPoseClipName + ".anim";
+        const string CarryMaskPath = ActorsDir + "ArmedUpperBody.mask";
+
+        static void BuildArmedCarryLayer(AnimatorController ac)
+        {
+            var mask = EnsureArmsMask();
+            var key = EnsureCarryPoseKeyClip();
+
+            var index = -1;
+            for (var i = 0; i < ac.layers.Length; i++)
+            {
+                if (ac.layers[i].name == CarryLayerName) index = i;
+            }
+
+            if (index < 0)
+            {
+                ac.AddLayer(CarryLayerName);
+                index = ac.layers.Length - 1;
+            }
+
+            // ac.layers отдаёт КОПИЮ массива — правки видны только после записи
+            // обратно. Тот же идиом, что у ac.parameters в AddParam выше.
+            var layers = ac.layers;
+            var layer = layers[index];
+            layer.defaultWeight = 0f;
+            layer.blendingMode = AnimatorLayerBlendingMode.Override;
+            layer.avatarMask = mask;
+            layer.iKPass = false;
+            layers[index] = layer;
+            ac.layers = layers;
+
+            var sm = ac.layers[index].stateMachine;
+            var carry = AddState(sm, CarryStateName, key);
+            carry.speed = 0f;
+            carry.cycleOffsetParameterActive = true;
+            carry.cycleOffsetParameter = "CarryPose";
+            sm.defaultState = carry;
+        }
+
+        // Маска «только руки». Корпус СОЗНАТЕЛЬНО не включён: разворот плеч в
+        // шаге и беге принадлежит походке, и, отняв его, мы получили бы манекен,
+        // которого возят по земле.
+        static AvatarMask EnsureArmsMask()
+        {
+            var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(CarryMaskPath);
+            if (mask == null)
+            {
+                mask = new AvatarMask();
+                AssetDatabase.CreateAsset(mask, CarryMaskPath);
+            }
+
+            foreach (AvatarMaskBodyPart part in Enum.GetValues(typeof(AvatarMaskBodyPart)))
+            {
+                if (part == AvatarMaskBodyPart.LastBodyPart) continue;
+                mask.SetHumanoidBodyPartActive(part,
+                    part == AvatarMaskBodyPart.LeftArm || part == AvatarMaskBodyPart.RightArm ||
+                    part == AvatarMaskBodyPart.LeftFingers || part == AvatarMaskBodyPart.RightFingers);
+            }
+
+            EditorUtility.SetDirty(mask);
+            return mask;
+        }
+
+        // Ключ слоя — СВОЙ клип-ассет, а не «X Bot@Bayonet Stab» напрямую.
+        // Подмена в AnimatorOverrideController адресуется КЛИПОМ, а тот же
+        // Bayonet Stab уже стоит клипом состояния Attack: один ключ на два
+        // состояния означал бы, что смена удара молча меняет и стойку.
+        //
+        // Содержимое — копия выпада копьём: его СТАРТОВЫЙ кадр и есть авторская
+        // двуручная стойка «оружие наготове», так что слой осмыслен ещё до того,
+        // как оружие подменит позу своей.
+        static AnimationClip EnsureCarryPoseKeyClip()
+        {
+            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(CarryPoseClipPath);
+            if (clip != null)
+            {
+                return clip;
+            }
+
+            var source = Clip("X Bot@Bayonet Stab");
+            clip = source != null
+                ? UnityEngine.Object.Instantiate(source)
+                : new AnimationClip();
+            clip.name = CarryPoseClipName;
+            var settings = AnimationUtility.GetAnimationClipSettings(clip);
+            settings.loopTime = true;
+            AnimationUtility.SetAnimationClipSettings(clip, settings);
+            AssetDatabase.CreateAsset(clip, CarryPoseClipPath);
+            // Копия humanoid-клипа обязана ОСТАТЬСЯ humanoid: иначе ретаргет не
+            // состоится и слой положит на плечи T-позу. Провал видно тут, при
+            // сборке, а не через полчаса в игре как «руки торчат в стороны».
+            if (source != null && !clip.isHumanMotion)
+            {
+                Debug.LogWarning($"[NpcActionStates] {CarryPoseClipName}: копия «{source.name}» " +
+                    "перестала быть humanoid — поза удержания §142 не ретаргетится. " +
+                    "Назначь клип в поле carryPose оружия вручную.");
+            }
+
+            return clip;
         }
 
         static void AddParam(AnimatorController ac, string n, AnimatorControllerParameterType t,

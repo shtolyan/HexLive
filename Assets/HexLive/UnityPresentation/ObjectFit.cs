@@ -36,6 +36,11 @@ namespace HexLive.UnityPresentation
             // Stranded Deep) — measured by its long axis; the crown and leaf are
             // sized to sit with the palm.
             if (definitionId == "resource.log" || definitionId == "resource.stick") return r * PalmSegmentLength;
+            // §119.1: доска — распущенное бревно (saw.log даёт две штуки), а не
+            // ручной инструмент. На общей ручке для resource.* (0.216) она лежала
+            // в траве щепкой втрое короче бревна: модель рисовалась, но игрок её
+            // не находил. 0.5 — заметно меньше бревна и всё же доска.
+            if (definitionId == "resource.board") return r * 0.5f;
             if (definitionId == "resource.palm_crown") return r * 0.7f;
             if (definitionId == "resource.palm_leaf") return r * 0.55f;
             // The spear is a long two-handed weapon — much longer than a hand tool.

@@ -453,6 +453,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private SkinTexturePainter _skinPainter;
     private readonly List<(string zone, int seed, float heal)> _woundScratch = new();
 
+    // §118.2: раны, которые ещё текут ПОД повязкой. Кровь проступает наружу
+    // только сквозь бинт, поэтому список собирается уже с учётом зоны: снаружи
+    // (на голой коже) кровь рисуют обычные раневые штампы.
+    private readonly List<(string zone, int seed, float bleed)> _bleedScratch = new();
+
+    // §118.2: раны, заклеенные ПЛАСТЫРЕМ. Per-wound, а не per-zone: на одном
+    // торсе может висеть сколько угодно пластырей — по одному на порез, — и
+    // поверх них ещё бинт. Поэтому список сидов, а не множество зон.
+    private readonly List<(string zone, int seed)> _plasterScratch = new();
+
     private readonly HashSet<int> _seenWoundSeeds = new();
     private bool _woundVfxPrimed;
     private float _lastSplashTime;
@@ -575,6 +585,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _sadWalk;
     private AnimationClip _armedIdleClip;
     private AnimationClip _armedWalkClip;
+    // §142: до этого вооружённой была ТОЛЬКО ходьба — стоило колонистке
+    // разогнаться, и предмет в руке терял стойку, потому что слоты трусцы и
+    // бега вообще не имели претендента, кроме ползания.
+    private AnimationClip _armedSlowRunClip;
+    private AnimationClip _armedRunClip;
     private AnimationClip _bareStanceClip;
 
     // A standing action clip becomes the prone idle while legless.
@@ -1660,6 +1675,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Wrap the controller so action-state clips can be swapped live.
             _animOverride = new AnimatorOverrideController(authored);
             _animator.runtimeAnimatorController = _animOverride;
+            // §142: новый аниматор — новый поиск слоя двуручной позы. Кэш «−2 =
+            // слоя нет» обязан умирать вместе с контроллером, который его дал.
+            _carryLayerIndex = -1;
+            _carryWeight = 0f;
+            _carryWeightWritten = false;
 
             // Sync the runtime mirror params to the current handedness so a
             // pooled/reused instance never starts on the wrong hand.
@@ -2069,6 +2089,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (PaintWoundsIntoTexture && _skinPainter != null)
         {
             _woundScratch.Clear();
+            _bleedScratch.Clear();
+            _plasterScratch.Clear();
             if (wounds != null)
             {
                 foreach (var entry in wounds)
@@ -2080,6 +2102,39 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                             System.Globalization.CultureInfo.InvariantCulture, out var woundHeal))
                     {
                         _woundScratch.Add((parts[0], woundSeed, woundHeal));
+
+                        // §118.2: кровь сквозь бинт. Условие ровно одно —
+                        // зона перевязана И рана ещё не свернулась. Свежая
+                        // повязка ставит Clot01 = 1 (WoundMath.Stabilize),
+                        // поэтому «сменили бинт — пятно ушло» получается само,
+                        // без отдельного счётчика поколений.
+                        if (parts.Length >= 5 &&
+                            (_bandagedScratch.Contains(parts[0]) ||
+                             _gauzeScratch.Contains(parts[0])) &&
+                            float.TryParse(parts[3],
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out var clot) &&
+                            float.TryParse(parts[4],
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out var severity) &&
+                            clot < 1f && woundHeal < 1f)
+                        {
+                            // Скорость промокания: чем глубже рана и чем хуже
+                            // свернулась, тем быстрее растёт пятно.
+                            var bleed = Mathf.Clamp01(severity * (1f - clot));
+                            if (bleed > 0.001f)
+                            {
+                                _bleedScratch.Add((parts[0], woundSeed, bleed));
+                            }
+                        }
+
+                        // §118.2: пластырь клеится НА РАНУ, поэтому запись
+                        // per-wound: сколько заклеенных порезов на торсе,
+                        // столько и наклеек, и бинт им не мешает.
+                        if (parts.Length >= 6 && parts[5] == "1")
+                        {
+                            _plasterScratch.Add((parts[0], woundSeed));
+                        }
                     }
                 }
             }
@@ -2147,7 +2202,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, _skinWetness);
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
                 PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint,
-                _gauzeScratch, _zoneDamageScratch, _zoneBruiseScratch);
+                _gauzeScratch, _zoneDamageScratch, _zoneBruiseScratch, _bleedScratch,
+                _plasterScratch);
             // v4.3: the projector RAIN droplets serve rain AND sweat — the
             // unified wetness pool (whichever of rain/sweat is stronger)
             // feeds the rain pass, so a sweating body beads exactly like a
@@ -4109,6 +4165,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         OverrideClip(EmoteBaseClip, Standing(clip));
         _animator.SetTrigger("Emote");
         _lastEmoteTime = Time.time;
+        // §142: сценка распоряжается руками сама — слой двуручной позы уходит
+        // на её длину, иначе салса игралась бы одними ногами.
+        _carrySuppressUntil = Time.time + clip.length;
     }
 
     // §81: «просто существует». Когда делать нечего, изредка — сплясать,
@@ -4190,7 +4249,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // the §81 sad walk) is the resolver's business, not this function's.
         _armedIdleClip = armed ? (gearIdle != null ? gearIdle : _animSet?.armedIdle) : null;
         _armedWalkClip = armed ? (gearWalk != null ? gearWalk : _animSet?.armedWalk) : null;
+        // §142: у бега общего фолбэка НЕТ — только личный клип предмета. Шаг
+        // может позволить себе один комплект на весь инвентарь, а бег с копьём
+        // и бег с ножом — разные движения, и делать вид, что это одно, значит
+        // повторить ту же неправду, которую §142 и чинит.
+        _armedSlowRunClip = armed ? Config.GearLibrary.ArmedSlowRunFor(itemId) : null;
+        _armedRunClip = armed ? Config.GearLibrary.ArmedRunFor(itemId) : null;
         ResolveLocomotionSlots();
+        UpdateTwoHandCarryGear(armed ? itemId : null);
 
         // Work clip (рубка/добыча/стройка): the gear SO can swap the Chop
         // state's clip; restore the base take when the item declares none.
@@ -4203,6 +4269,278 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             OverrideClip(ChopBaseClip, baseChop);
         }
+    }
+
+    // ---- §142: копьё несут ДВУМЯ руками -----------------------------------
+    //
+    // Подменой базового клипа это не делается. Слотов локомоции четыре
+    // (стойка, шаг, трусца, бег), и двуручный вариант пришлось бы рисовать на
+    // каждый — и заново на каждое новое двуручное оружие. Поэтому поза
+    // удержания живёт на ОТДЕЛЬНОМ слое аниматора с маской «только руки»:
+    // ноги, таз и корпус продолжают идти из базового клипа, плечи и кисти
+    // берут одну позу. Одна поза закрывает все четыре походки разом.
+    //
+    // Вторая половина — свободная кисть. Поза удержания авторская (стартовый
+    // кадр выпада), и рассчитана она на СВОЮ длину оружия; на нашем древке
+    // ладонь окажется рядом, но не на нём. Поэтому кисть доводится Final IK на
+    // ось предмета, посчитанную из его же габаритов, — и сдвиг этот по
+    // построению маленький, так что руку не выворачивает.
+    private const string CarryPoseBaseClip = "ArmedCarryPose";
+    private const string CarryLayerName = "ArmedCarry";
+    private static readonly int CarryPoseParam = Animator.StringToHash("CarryPose");
+    // Плавность поднятия/опускания слоя, вес в секунду. Мгновенная смена читается
+    // как щелчок кадра: руки телепортируются на древко.
+    private const float CarryLayerEaseSpeed = 6f;
+    // Насколько далеко от древка кисть ещё дотягивают, и с какого расстояния
+    // сдаются. Тело ≈ 1.7 мировых единиц, ладонь от ладони на древке ≈ 0.35.
+    private const float OffHandGripFullDistance = 0.30f;
+    private const float OffHandGripGiveUpDistance = 0.60f;
+
+    private int _carryLayerIndex = -1;
+    private bool _twoHandCarry;
+    private float _carryWeight;
+    private bool _carryWeightWritten;
+    private float _carrySuppressUntil;
+    private bool _offHandGripIk;
+    private float _offHandGripFraction = 0.3f;
+    private float _offHandGripWeight;
+    // Ось предмета в его СОБСТВЕННЫХ координатах, снятая с габаритов меша один
+    // раз на экземпляр. Держится ссылка на сам объект: рука меняет предмет, и
+    // ось прошлого — это чужая геометрия.
+    private GameObject _shaftOwner;
+    private bool _shaftValid;
+    private Vector3 _shaftLocalA;
+    private Vector3 _shaftLocalB;
+
+    // Предмет сменился — перечитать его двуручную карточку и зарядить позу.
+    private void UpdateTwoHandCarryGear(string itemId)
+    {
+        _shaftOwner = null;
+        _shaftValid = false;
+        _twoHandCarry = !string.IsNullOrEmpty(itemId) &&
+                        Config.GearLibrary.TwoHandedCarry(itemId);
+        _offHandGripIk = _twoHandCarry &&
+                         Config.GearLibrary.TryGetOffHandGrip(itemId, out _offHandGripFraction);
+
+        if (!_twoHandCarry)
+        {
+            return;
+        }
+
+        var pose = Config.GearLibrary.CarryPoseFor(itemId, out var poseTime);
+        if (pose == null)
+        {
+            _twoHandCarry = false;
+            return;
+        }
+
+        OverrideClip(CarryPoseBaseClip, pose);
+        if (_animator != null && CarryLayerIndex >= 0)
+        {
+            _animator.SetFloat(CarryPoseParam, poseTime);
+        }
+    }
+
+    // Индекс слоя ищется лениво и запоминается: контроллер один на всех, но
+    // -1 (слой ещё не собран меню «Build NPC Action States») обязан оставаться
+    // безвредным, а не сыпать предупреждениями каждый кадр.
+    private int CarryLayerIndex
+    {
+        get
+        {
+            if (_carryLayerIndex == -1 && _animator != null)
+            {
+                _carryLayerIndex = _animator.GetLayerIndex(CarryLayerName);
+                if (_carryLayerIndex < 0)
+                {
+                    _carryLayerIndex = -2; // искали и не нашли — больше не искать
+                }
+            }
+
+            return _carryLayerIndex;
+        }
+    }
+
+    // Когда поза удержания уместна. Всё, что само распоряжается руками, её
+    // снимает: работа и разговор (_busyInteraction), драка (клип выпада уже
+    // двуручный, и маска рук поверх него сломала бы удар), сценка §81, вода,
+    // ползание §50, тряпичная кукла и смерть.
+    private bool TwoHandCarryActive =>
+        _twoHandCarry && CarryLayerIndex >= 0 && _hasUsableHand &&
+        !_busyInteraction && !_combatFighting && !_actionTargetActive &&
+        !_legless && !_laying && !_sitting && !_swimming && !_ragdollActive && !_dead &&
+        Time.time >= _carrySuppressUntil;
+
+    // Вес слоя. Ставится в LateUpdate: аниматор считает позу до него, поэтому
+    // запись видна со следующего кадра — для плавно едущего веса это ровно то,
+    // что нужно, и на порядок дешевле, чем дёргать слой из OnAnimatorMove.
+    private void UpdateTwoHandCarry()
+    {
+        if (_animator == null || CarryLayerIndex < 0)
+        {
+            return;
+        }
+
+        // Первая запись обязательна, даже если вес «и так нужный». Вес слоя
+        // живёт на КОМПОНЕНТЕ Animator и переживает переселение актёра из пула:
+        // без этого копейщица, отданная в пул и выданная заново уже безоружной,
+        // унесла бы с собой поднятый слой — а поле _carryWeight, обнулённое в
+        // Construct, согласилось бы с нулём и никогда бы его не переписало.
+        var want = TwoHandCarryActive ? 1f : 0f;
+        if (_carryWeightWritten && Mathf.Approximately(_carryWeight, want))
+        {
+            return;
+        }
+
+        _carryWeight = Mathf.MoveTowards(_carryWeight, want, Time.deltaTime * CarryLayerEaseSpeed);
+        _animator.SetLayerWeight(CarryLayerIndex, _carryWeight);
+        _carryWeightWritten = true;
+    }
+
+    // §142: свободная кисть на древко. Живёт в той же очереди, что и замах с
+    // баюканьем раны (solver один на всё тело), и стоит в ней последней: и
+    // удар, и боль важнее того, как именно лежит вторая ладонь.
+    private void DriveOffHandGripIK(FullBodyBipedIK ik)
+    {
+        var solver = ik.solver;
+        var offHand = _leftHanded ? _rHand : _lHand;
+        var effector = _leftHanded ? solver.rightHandEffector : solver.leftHandEffector;
+
+        var grip = Vector3.zero;
+        var wants = _offHandGripIk && TwoHandCarryActive && _carryWeight > 0.5f &&
+                    offHand != null && TryShaftGripPoint(out grip);
+        var scale = 0f;
+        if (wants)
+        {
+            // Чем дальше ладонь от древка, тем меньше вес — и на расстоянии
+            // «так рука не тянется» IK отступает вместо того, чтобы вывернуть
+            // плечо. Поза удержания приезжает из чужого оружия, её вылет мы не
+            // контролируем, и предохранитель тут не роскошь.
+            var distance = Vector3.Distance(grip, offHand.position);
+            scale = Mathf.Clamp01(Mathf.InverseLerp(
+                OffHandGripGiveUpDistance, OffHandGripFullDistance, distance));
+        }
+
+        _offHandGripWeight = Mathf.MoveTowards(
+            _offHandGripWeight, scale, Time.deltaTime * CarryLayerEaseSpeed);
+
+        if (_offHandGripWeight <= 0.001f)
+        {
+            effector.positionWeight = 0f;
+            effector.rotationWeight = 0f;
+            return;
+        }
+
+        effector.target = null;
+        effector.position = grip;
+        effector.positionWeight = _offHandGripWeight;
+        effector.rotationWeight = 0f;
+        solver.IKPositionWeight = 1f;
+        // Корпус за кистью НЕ тянется: держать копьё — не тянуться за ним.
+        solver.pullBodyHorizontal = 0f;
+    }
+
+    // Точка второго хвата в мире: ось предмета из его габаритов, ведущая рука
+    // задаёт начало, доля из карточки — насколько дальше к острию лежит вторая
+    // ладонь.
+    private bool TryShaftGripPoint(out Vector3 grip)
+    {
+        grip = Vector3.zero;
+        var hand = _leftHanded ? _lHand : _rHand;
+        if (hand == null || !TryPropShaftLocal())
+        {
+            return false;
+        }
+
+        var root = _handProp.transform;
+        var a = root.TransformPoint(_shaftLocalA);
+        var b = root.TransformPoint(_shaftLocalB);
+        // Остриё — дальний от ведущей руки конец. Так работает и копьё, и любой
+        // будущий двуручный предмет, как бы он ни был повёрнут в ладони.
+        var tip = (a - hand.position).sqrMagnitude >= (b - hand.position).sqrMagnitude ? a : b;
+        var butt = tip == a ? b : a;
+
+        var axis = tip - butt;
+        var length = axis.magnitude;
+        if (length < 0.0001f)
+        {
+            return false;
+        }
+
+        var dir = axis / length;
+        var handT = Mathf.Clamp01(Vector3.Dot(hand.position - butt, dir) / length);
+        var gripT = Mathf.Clamp01(handT + _offHandGripFraction * (1f - handT));
+        grip = butt + dir * (gripT * length);
+        return true;
+    }
+
+    // Габариты модели в её собственных осях, считаются ОДИН раз на экземпляр
+    // предмета: меши в руке не меняются, а InverseTransformPoint по восьми
+    // углам каждого сабмеша — не та цена, которую платят каждый кадр.
+    private bool TryPropShaftLocal()
+    {
+        if (_handProp == null)
+        {
+            _shaftOwner = null;
+            return false;
+        }
+
+        if (_shaftOwner == _handProp)
+        {
+            return _shaftValid;
+        }
+
+        _shaftOwner = _handProp;
+        _shaftValid = false;
+
+        var root = _handProp.transform;
+        var filters = _handProp.GetComponentsInChildren<MeshFilter>();
+        var any = false;
+        var local = new Bounds();
+        foreach (var filter in filters)
+        {
+            var mesh = filter != null ? filter.sharedMesh : null;
+            if (mesh == null)
+            {
+                continue;
+            }
+
+            var b = mesh.bounds;
+            for (var i = 0; i < 8; i++)
+            {
+                var corner = new Vector3(
+                    (i & 1) == 0 ? b.min.x : b.max.x,
+                    (i & 2) == 0 ? b.min.y : b.max.y,
+                    (i & 4) == 0 ? b.min.z : b.max.z);
+                var p = root.InverseTransformPoint(filter.transform.TransformPoint(corner));
+                if (!any)
+                {
+                    local = new Bounds(p, Vector3.zero);
+                    any = true;
+                }
+                else
+                {
+                    local.Encapsulate(p);
+                }
+            }
+        }
+
+        if (!any)
+        {
+            return false;
+        }
+
+        // Длинная ось габарита И ЕСТЬ древко: копьё, палка, весло — всё это
+        // предметы, у которых одна сторона многократно длиннее двух других.
+        var size = local.size;
+        var axis = size.x >= size.y && size.x >= size.z ? Vector3.right
+            : size.y >= size.z ? Vector3.up
+            : Vector3.forward;
+        var half = Vector3.Scale(axis, local.extents);
+        _shaftLocalA = local.center - half;
+        _shaftLocalB = local.center + half;
+        _shaftValid = (half * 2f).magnitude > 0.0001f;
+        return _shaftValid;
     }
 
     // §78: give the actor the locomotion authored for HIS body. The animator is
@@ -4279,12 +4617,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : _armedWalkClip != null ? _armedWalkClip
             : BaseLocomotionClip(GaitClipKeys[0]);
 
+        // §142: трусца и бег получили тех же претендентов, что и шаг, — минус
+        // настроение (грустная походка авторски шаговая и на бег не растянется).
+        var slowRun = crawling ? CrawlClip
+            : _armedSlowRunClip != null ? _armedSlowRunClip
+            : BaseLocomotionClip(GaitClipKeys[1]);
+        var run = crawling ? CrawlClip
+            : _armedRunClip != null ? _armedRunClip
+            : BaseLocomotionClip(GaitClipKeys[2]);
+
         ApplyLocomotionSlot(IdleClipKey, idle, -1);
         ApplyLocomotionSlot(GaitClipKeys[0], walk, 0);
-        ApplyLocomotionSlot(GaitClipKeys[1],
-            crawling ? CrawlClip : BaseLocomotionClip(GaitClipKeys[1]), 1);
-        ApplyLocomotionSlot(GaitClipKeys[2],
-            crawling ? CrawlClip : BaseLocomotionClip(GaitClipKeys[2]), 2);
+        ApplyLocomotionSlot(GaitClipKeys[1], slowRun, 1);
+        ApplyLocomotionSlot(GaitClipKeys[2], run, 2);
     }
 
     // One resolved slot. Remembers what is playing there — the §71.5 cadence
@@ -6480,10 +6825,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Порядок именно такой: solver один на всё тело, и замах всегда
             // главнее, чем баюканье царапины.
             DriveHurtReachIK(_fullBodyIK);
+            // §142: и только когда молчат оба — вторая ладонь ложится на
+            // древко. Она в очереди последняя: держать копьё двумя руками
+            // важно, но не важнее, чем ударить или зажать рану.
+            if (_hurtReachWeight <= 0.001f)
+            {
+                DriveOffHandGripIK(_fullBodyIK);
+            }
+            else
+            {
+                _offHandGripWeight = 0f;
+            }
+
             return;
         }
 
+        // §142: свободную кисть уже обнулил otherEffector выше — замах владеет
+        // обеими руками единолично.
         _hurtReachWeight = 0f;
+        _offHandGripWeight = 0f;
 
         // §104 r11: рука не резиновая. Прицел (3.5 wu в HexWorldRenderer)
         // решает, ЕСТЬ ли цель; ЭТОТ предел — как далеко тело может за ней
@@ -6638,13 +6998,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        var wants = HurtReachActive || _actionTargetActive;
+        // §142: третий повод разбудить решатель — вторая ладонь на древке.
+        // В отличие от первых двух он держится и НА ХОДУ: копьё несут двумя
+        // руками и в шаге, и в беге.
+        var wants = HurtReachActive || _actionTargetActive ||
+                    (_offHandGripIk && TwoHandCarryActive);
         if (_fullBodyIK.enabled != wants)
         {
             _fullBodyIK.enabled = wants;
             if (!wants)
             {
                 _hurtReachWeight = 0f;
+                _offHandGripWeight = 0f;
                 ResetActionTargetIKWeights();
             }
         }
@@ -6850,6 +7215,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // больше не ходит: с §81.10 она приезжает флагом снапшота, а не тикает
         // тут таймером.)
         UpdateIdleFidget(_busyInteraction || _combatFighting || _wasWalking || _dead || _laying);
+        // §142: вес слоя двуручной позы — до решателя, чтобы «поза уместна» и
+        // «кисть тянут на древко» на кадре договаривались об одном и том же.
+        UpdateTwoHandCarry();
         UpdateHurtReach();
         // §67.10: hands the bubble back to a running conversation once a line
         // fades, and paces the ambient self-talk layer.
@@ -7022,8 +7390,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             // §130 r2: набор весов не щёлкает — блендер плавно ведёт его от
             // обычного взгляда к «в объектив» и так же плавно возвращает.
+            // r3: втрое быстрее — «посмотрела, улыбнулась и дальше по делам».
             _cameraGazeBlend = Mathf.MoveTowards(
-                _cameraGazeBlend, _cameraGaze ? 1f : 0f, Time.deltaTime * 1.5f);
+                _cameraGazeBlend, _cameraGaze ? 1f : 0f, Time.deltaTime * 4.5f);
 
             // Обычный взгляд (мировая цель): голова решает, глаза слегка.
             var headWeight = 0.8f;
@@ -7047,16 +7416,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             if (_cameraGazeBlend > 0f)
             {
-                // §130: здесь, в отличие от портрета (§80 r2), голову вести
-                // МОЖНО — игровая камера не прибита к кости головы, обратной
-                // связи нет. Голова доворачивает, глаза лишь чуть помогают
-                // (сильный вес глаз на близкой камере даёт «бешеные зрачки»),
-                // спина едва участвует.
-                headWeight = Mathf.Lerp(headWeight, 0.85f, _cameraGazeBlend);
-                eyesWeight = Mathf.Lerp(eyesWeight, 0.3f, _cameraGazeBlend);
-                // §114 баг #116: тот же корпус, та же беда — см. выше.
-                bodyWeight = Mathf.Lerp(
-                    bodyWeight, _posture == "Crawl" ? 0f : 0.2f, _cameraGazeBlend);
+                // §130 r3: в объектив — ТОЛЬКО головой, и то слегка. Корпус
+                // остаётся на анимации (вес 0), глаза чуть помогают (сильный
+                // вес глаз на близкой камере даёт «бешеные зрачки»). Голову
+                // вести можно (в отличие от портрета §80 r2) — игровая камера
+                // не прибита к кости головы, обратной связи нет.
+                headWeight = Mathf.Lerp(headWeight, 0.45f, _cameraGazeBlend);
+                eyesWeight = Mathf.Lerp(eyesWeight, 0.25f, _cameraGazeBlend);
+                bodyWeight = Mathf.Lerp(bodyWeight, 0f, _cameraGazeBlend);
                 clampEyes = Mathf.Lerp(clampEyes, 0.3f, _cameraGazeBlend);
             }
 

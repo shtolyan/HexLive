@@ -95,7 +95,10 @@ public static class WorldSaveSerializer
     // Старый блоб читается «дневник пуст», и это не потеря: до v45 его никто не
     // вёл, а первая запись появится через игровой час. Кандидат текущего часа
     // не пишется намеренно — он черновик, а не состояние мира.
-    public const int BlobVersion = 46;
+    // 47 (§118.2): у раны появился флаг Plastered — пластырь заклеивает ОДНУ
+    // рану, в отличие от бинта на всю зону. Читается под гейтом версии, поэтому
+    // сейвы 46 и старше грузятся как раньше (в них пластырей просто нет).
+    public const int BlobVersion = 47;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -649,6 +652,25 @@ public static class WorldSaveSerializer
         // Migration is spatial too: both legacy hut cots could retain one
         // anchor and render collapsed after becoming bed.basic.
         HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairIntegratedCotAnchors(world);
+        // §120: a committed player plan re-derives its own topology from the
+        // modules it actually raised. Both shapes are repaired — the unbuilt
+        // site (walls half up, doorway already open) and the finished building —
+        // because junction Blocked/Door flags are worldgen state the loader
+        // rebuilds, not save data.
+        var plansToRepair = new List<WorldObjectState>();
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == ContentIds.HutPlan || obj.BuildProduct == ContentIds.HutPlan)
+                plansToRepair.Add(obj);
+        }
+        foreach (var plan in plansToRepair)
+        {
+            BuildingRules.RefreshHutElementGeometry(world, plan);
+            HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairPlanTopology(world, plan);
+            if (plan.DefinitionId == ContentIds.HutPlan)
+                HexLive.Simulation.Bootstrap.BuildingBootstrap.StakePlanFurnitureSites(world, plan);
+        }
+
         var hutsToRepair = new List<WorldObjectState>();
         foreach (var obj in world.Entities.Objects.Values)
         {
@@ -1305,6 +1327,7 @@ public static class WorldSaveSerializer
             w.Write(wound.Clot01);
             w.Write(wound.Stabilized);
             w.Write(wound.BleedFactor);
+            w.Write(wound.Plastered); // blob 47
         }
 
         WriteNullableEntity(w, npc.CarriedNpcId);
@@ -1841,12 +1864,14 @@ public static class WorldSaveSerializer
                 var clot = r.ReadSingle();
                 var stabilized = r.ReadBoolean();
                 var bleedFactor = r.ReadSingle();
+                var plastered = version >= 47 && r.ReadBoolean();
                 var wound = npc.Wounds.Find(candidate => candidate.Id == id);
                 if (wound != null)
                 {
                     wound.Clot01 = clot;
                     wound.Stabilized = stabilized;
                     wound.BleedFactor = bleedFactor;
+                    wound.Plastered = plastered;
                 }
             }
 

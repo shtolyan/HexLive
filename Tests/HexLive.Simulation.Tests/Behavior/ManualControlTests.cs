@@ -650,7 +650,14 @@ public sealed class ManualControlTests
         Assert.That(target.Plan.Status, Is.EqualTo(PlanStatus.Active));
 
         AttackerNextTo(engine, target);
-        Step(engine, MediumTicks * 3);
+        // Кольцо событий держит ~11 тиков — трассу сноса ловим ПО ХОДУ шагов,
+        // а не одним взглядом в конце.
+        var sawInterrupted = false;
+        for (var i = 0; i < MediumTicks * 3; i++)
+        {
+            engine.Step();
+            sawInterrupted |= HasTrace(world, target.Id, "ManualOrderInterrupted", "Cause=");
+        }
 
         Assert.That(target.Mind.CombatOpponentNpcId, Is.Not.Null,
             "§121.2: атакованная ручная обязана ОТВЕТИТЬ — даже посреди приказа.");
@@ -658,6 +665,9 @@ public sealed class ManualControlTests
             "Приказ обязан быть брошен: самозащита сносит его причиной CombatVictim.");
         Assert.That(target.IsFighting, Is.True,
             "Атакованная не встала в боевую стойку.");
+        Assert.That(sawInterrupted, Is.True,
+            "§121.5: снос ПРИНЯТОГО приказа обязан быть виден игроку " +
+            "(ManualOrderInterrupted), а не гаснуть в debug-трассе.");
     }
 
     // ── 4b. Политика §121.5: причины-«выборы» не сносят приказ ───────────

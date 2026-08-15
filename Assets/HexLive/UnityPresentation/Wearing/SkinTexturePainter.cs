@@ -104,6 +104,10 @@ namespace HexLive.UnityPresentation.Wearing
             // рисуется САМЫМ НИЖНИМ (глубже крови: разлитое под кожей, не на
             // ней). Albedo-only, как спеклы.
             public bool IsBruise;
+            // §118.2: кровь, проступившая СКВОЗЬ повязку. Рисуется отдельным
+            // проходом ПОСЛЕ обмотки — иначе порядок словаря решал бы, видно её
+            // или нет, а бинт кладётся на весь тайл и перекрыл бы пятно.
+            public bool IsBleed;
             // r4: seeded random spin (degrees) applied via the GL matrix at
             // draw time, so the same splatter art never tiles visibly.
             public float RotationDeg;
@@ -378,6 +382,101 @@ namespace HexLive.UnityPresentation.Wearing
         private static Texture2D? _texBruise;
         private static Texture2D? _texBandage;
         private static Texture2D? _texGauze;
+
+        // §118.2: фиксированная обмотка на зону, в UV её тайла. Ключ — имя зоны
+        // из Zones ("Torso", "ArmL", …). Развёртка у всех актёров одна, поэтому
+        // кэш статический: шесть картинок на весь проект, а не на колонистку.
+        // Значение может быть null — это ЗАПОМНЕННОЕ отсутствие (у Head обмотки
+        // нет), иначе Resources.Load дёргался бы каждую перерисовку.
+        private static readonly Dictionary<string, Texture2D?> _wrapOverlays = new();
+        private static readonly Dictionary<string, Texture2D?> _wrapNormals = new();
+
+        // §118.2: клякса, проступающая сквозь повязку.
+        private static Texture2D? _texBleed;
+
+        // Сколько секунд СИЛЬНОГО кровотечения даёт пятно во всю ширину. Кровь
+        // идёт не мгновенно, и пятно должно расти на глазах у игрока, а не
+        // появляться готовым: полторы минуты — это заметный, но не мгновенный
+        // рост при полной ране.
+        private const float BloodSoakSeconds = 90f;
+
+        // Ступени роста. Пятно перерисовывается ТОЛЬКО при смене ступени —
+        // размер входит в ключ штампа, поэтому шесть ступеней = шесть перекладок за
+        // всё кровотечение вместо перекладки каждый кадр (§40.8-K: медленная
+        // половина картинки живёт в своём, редком ритме).
+        private const int BloodSoakSteps = 6;
+
+        // Накопленная промоклость по сиду раны, 0..1. Живёт между вызовами
+        // Sync: это ИСТОРИЯ кровотечения, её нельзя пересчитать из кадра.
+        private readonly Dictionary<int, float> _soak = new();
+
+        // Что положить на следующем PlaceNewStamps: ключ -> (зона, сид, ступень).
+        private readonly Dictionary<string, (string zone, int seed, int step)> _bleedPending = new();
+        private readonly Dictionary<string, (string zone, int seed)> _plasterPending = new();
+        private readonly HashSet<int> _soakSweep = new();
+        private readonly List<int> _soakDrop = new();
+
+        // ⭐ АВАРИЙНЫЙ ВЫКЛЮЧАТЕЛЬ обмотки. false = вернуться на старый круглый
+        // бинт, который работает.
+        //
+        // Полнотайловый штамп обмотки стирает АЛЬФУ всего тайла: Graphics.
+        // DrawTexture пишет RGBA, а квад накрывает весь таргет, поэтому за
+        // пределами полосы альфа кожи уходит в ноль. Тайл Legs общий на обе
+        // ноги — отсюда «одна повязка, а прозрачные обе». Чинится не размером
+        // штампа, а тем, что этот проход не должен трогать альфу назначения
+        // (ColorMask RGB), — но до проверки в игре обмотка выключена, чтобы не
+        // держать редактор в сломанном виде.
+        private const bool WrapOverlayEnabled = true;
+
+        // ⭐ §118.2: ТУГОЙ прямоугольник каждой обмотки в UV её тайла
+        // (центр u, центр v, ширина, высота), снят с альфы самой карты.
+        //
+        // Обмотка кладётся ОБЫЧНЫМ штампом, как рана или грязь, — а не квадом
+        // на весь тайл, как было. Полнотайловый квад и был причиной «одна
+        // повязка, а прозрачные обе ноги»: он накрывал весь общий тайл Legs.
+        // Здесь же LegL живёт на u=0.748, а LegR на u=0.252 — разные половины,
+        // и достать одну ногу штампом другой невозможно по построению.
+        private static readonly Dictionary<string, Rect> WrapRects = new()
+        {
+            ["Torso"] = new Rect(0.50000f, 0.53467f, 0.71289f, 0.12402f),
+            ["Pelvis"] = new Rect(0.50000f, 0.24072f, 0.85156f, 0.17871f),
+            ["ArmL"] = new Rect(0.31836f, 0.76855f, 0.26953f, 0.37305f),
+            ["ArmR"] = new Rect(0.68701f, 0.27930f, 0.26855f, 0.37305f),
+            ["LegL"] = new Rect(0.74805f, 0.65674f, 0.41016f, 0.35645f),
+            ["LegR"] = new Rect(0.25195f, 0.65674f, 0.41016f, 0.35645f),
+        };
+
+        private static Texture2D? WrapOverlayFor(string zoneName)
+        {
+            if (!WrapOverlayEnabled)
+            {
+                return null;
+            }
+
+            if (_wrapOverlays.TryGetValue(zoneName, out var cached))
+            {
+                return cached;
+            }
+
+            var tex = Resources.Load<Texture2D>($"HexLive/Decals/bandage_wrap_{zoneName}");
+            _wrapOverlays[zoneName] = tex;
+            return tex;
+        }
+
+        // §118.2: рельеф марли. Карта высот — яркость самой ткани, поэтому блик
+        // идёт ровно по тем ниткам, которые видно в альбедо. Без неё обмотка
+        // была бы плоской наклейкой: глубину в игре даёт ТОЛЬКО этот канал.
+        private static Texture2D? WrapNormalFor(string zoneName)
+        {
+            if (_wrapNormals.TryGetValue(zoneName, out var cached))
+            {
+                return cached;
+            }
+
+            var tex = Resources.Load<Texture2D>($"HexLive/Decals/bandage_wrap_{zoneName}_n");
+            _wrapNormals[zoneName] = tex;
+            return tex;
+        }
         // Matching relief maps (RGB = encoded tangent normal, A = stamp
         // alpha): scratches groove IN, blood pools bead UP.
         private static Texture2D? _texSplashN;
@@ -738,7 +837,9 @@ namespace HexLive.UnityPresentation.Wearing
             float sweat01 = 0f, HashSet<string>? uncovered = null, float wetSmoothness = 0.32f,
             HashSet<string>? gauzed = null,
             List<(string zone, float damage01)>? zoneDamage = null,
-            List<(string zone, float bruise01)>? zoneBruise = null)
+            List<(string zone, float bruise01)>? zoneBruise = null,
+            List<(string zone, int seed, float bleed)>? bleeds = null,
+            List<(string zone, int seed)>? plasters = null)
         {
             if (_body == null || _materials == null)
             {
@@ -836,6 +937,93 @@ namespace HexLive.UnityPresentation.Wearing
                     {
                         needsPlacement = true;
                     }
+                }
+            }
+
+            // ⭐ §118.2: ПЛАСТЫРЬ — точечная наклейка на одну рану.
+            //
+            // Это ровно старый круглый бинт, который до §118.2 был единственным
+            // видом перевязки: тот же штамп, то же место (сид раны → те же
+            // броски t/azimuth, что и у самой раны), только мельче. Он никуда
+            // не делся — он стал дешёвым расходником, а дорогой бинт поднялся
+            // до обмотки всей зоны. Оба видны одновременно: у пластыря свои
+            // ключи, и обмотка их не перекрывает, потому что рисуется раньше.
+            _plasterPending.Clear();
+            if (plasters != null && plasters.Count > 0)
+            {
+                foreach (var (zone, seed) in plasters)
+                {
+                    var key = $"p{seed}";
+                    _desired.Add(key);
+                    _alpha[key] = 1f;
+                    stateHash = stateHash * 31 + key.GetHashCode();
+                    _plasterPending[key] = (zone, seed);
+                    if (!_stamps.ContainsKey(key))
+                    {
+                        needsPlacement = true;
+                    }
+                }
+            }
+
+            // ⭐ §118.2: кровь, проступающая СКВОЗЬ повязку.
+            //
+            // Пятно копится, а не читается из кадра: чем дольше рана течёт под
+            // бинтом, тем оно шире. Свежая повязка ставит Clot01 = 1, поэтому
+            // перевязанная заново рана просто перестаёт приходить в bleeds —
+            // ключ выпадает из _desired, штамп сметается общей уборкой, и
+            // «сменили бинт — пятно ушло» получается само.
+            _bleedPending.Clear();
+            if (bleeds != null && bleeds.Count > 0 && _map != null)
+            {
+                var dt = Mathf.Max(Time.deltaTime, 0f);
+                foreach (var (zone, seed, bleed) in bleeds)
+                {
+                    _soak.TryGetValue(seed, out var soak);
+                    soak = Mathf.Clamp01(soak + bleed * dt / BloodSoakSeconds);
+                    _soak[seed] = soak;
+
+                    // Ступень, а не сырое значение: размер входит в ключ, и
+                    // непрерывный размер означал бы перекладку каждый кадр.
+                    var step = Mathf.Clamp(
+                        Mathf.FloorToInt(soak * BloodSoakSteps), 0, BloodSoakSteps - 1);
+                    var key = $"bl{seed}#{step}";
+                    _desired.Add(key);
+                    _alpha[key] = 1f;
+                    stateHash = stateHash * 31 + key.GetHashCode();
+                    _bleedPending[key] = (zone, seed, step);
+                    if (!_stamps.ContainsKey(key))
+                    {
+                        needsPlacement = true;
+                    }
+                }
+            }
+
+            // Рана перестала течь (свернулась, зажила, зону перевязали заново)
+            // — забыть её историю, иначе следующее кровотечение той же раны
+            // начнётся сразу с большого пятна.
+            if (_soak.Count > 0)
+            {
+                _soakSweep.Clear();
+                if (bleeds != null)
+                {
+                    foreach (var (_, seed, _) in bleeds)
+                    {
+                        _soakSweep.Add(seed);
+                    }
+                }
+
+                _soakDrop.Clear();
+                foreach (var seed in _soak.Keys)
+                {
+                    if (!_soakSweep.Contains(seed))
+                    {
+                        _soakDrop.Add(seed);
+                    }
+                }
+
+                foreach (var seed in _soakDrop)
+                {
+                    _soak.Remove(seed);
                 }
             }
 
@@ -1051,6 +1239,26 @@ namespace HexLive.UnityPresentation.Wearing
                     {
                         TryPlace(key, zone, zone.GetHashCode(), isBandage: true, isGauze: true);
                     }
+                }
+            }
+
+            // §118.2: пластыри — по одному на заклеенную рану.
+            foreach (var pending in _plasterPending)
+            {
+                if (!_stamps.ContainsKey(pending.Key))
+                {
+                    TryPlace(pending.Key, pending.Value.zone, pending.Value.seed,
+                        isBandage: true, isGauze: false, isPlaster: true);
+                }
+            }
+
+            // §118.2: пятна крови поверх повязок.
+            foreach (var pending in _bleedPending)
+            {
+                if (!_stamps.ContainsKey(pending.Key))
+                {
+                    TryPlaceBleed(pending.Key, pending.Value.zone,
+                        pending.Value.seed, pending.Value.step);
                 }
             }
 
@@ -1651,7 +1859,55 @@ namespace HexLive.UnityPresentation.Wearing
             sizeV = Mathf.Clamp(targetWorld / worldPerV, minUv, 0.95f);
         }
 
-        private void TryPlace(string key, string zoneName, int seed, bool isBandage, bool isGauze = false)
+        /// <summary>§118.2: клякса, проступившая сквозь повязку. Садится РОВНО
+        /// на рану — берёт тот же сид и те же броски (t, azimuth), что и сама
+        /// рана в TryPlace, поэтому кровь выступает там, где порез, а не в
+        /// случайной точке зоны. Растёт ступенями по мере промокания.</summary>
+        private void TryPlaceBleed(string key, string zoneName, int seed, int step)
+        {
+            if (_map == null || !Zones.ContainsKey(zoneName))
+            {
+                PlaceTombstone(key, seed, isBandage: false);
+                return;
+            }
+
+            var mapState = (uint)(_npcId * 73856093 ^ seed) | 1u;
+            var mapT = 0.25f + NextRand(ref mapState) * 0.5f;
+            var mapAzimuth = NextRand(ref mapState) * Mathf.PI * 2f;
+            var points = _map.PointsFor(zoneName);
+            var point = _map.PointAt(points, mapT, mapAzimuth);
+            if (points.Length == 0 || !point.Valid)
+            {
+                PlaceTombstone(key, seed, isBandage: false);
+                return;
+            }
+
+            EnsureStampTextures();
+
+            // Точка -> клякса. Нижний край мельче раны (первая капля читается
+            // как точка), верхний заметно её шире, но не во всю обмотку.
+            var grow = (step + 1) / (float)BloodSoakSteps;
+            var target = Mathf.Lerp(0.020f, 0.085f, grow) * (_height / 1.7f);
+            SizeFromDensity(point, target, out var sizeU, out var sizeV);
+
+            _stamps[key] = new Stamp
+            {
+                Key = key,
+                Slot = point.Slot,
+                Uv = point.Uv,
+                Seed = seed,
+                UvSizeX = sizeU,
+                UvSizeY = sizeV,
+                Under = null,
+                Over = _texBleed,
+                OverGloss = null,
+                OverNormal = null,
+                IsBleed = true
+            };
+        }
+
+        private void TryPlace(string key, string zoneName, int seed, bool isBandage,
+            bool isGauze = false, bool isPlaster = false)
         {
             if (!Zones.TryGetValue(zoneName, out var zone))
             {
@@ -1676,7 +1932,55 @@ namespace HexLive.UnityPresentation.Wearing
                 }
 
                 EnsureStampTextures();
-                var mapTarget = (isBandage ? 0.14f : 0.07f + NextRand(ref mapState) * 0.04f)
+
+                // ⭐ §118.2: повязка — не круглая нашлёпка, а ФИКСИРОВАННАЯ
+                // обмотка зоны, одинаковая у всех.
+                //
+                // Раньше бинт был обычным штампом: рулетка (t, azimuth) катала
+                // ему место на конечности и клала круг размером 0.14×рост. Это
+                // и читалось как пластырь, а не как бинт, — и никогда не могло
+                // обмотать конечность кругом, потому что штамп есть пятно.
+                //
+                // Оверлей зоны уже нарисован В UV ЭТОГО ТАЙЛА: полоса стоит на
+                // своём месте, всё остальное прозрачно. Поэтому позиция не
+                // катается вовсе — штамп кладётся на ВЕСЬ тайл (центр 0.5/0.5,
+                // размер 1×1, без спина), а где именно лечь, решает альфа
+                // картинки. Отсюда и «всегда бинтуем одинаково».
+                //
+                // Развёртка у всех актёров общая (Genesis 3, UDIM: Torso —
+                // тайл 1, Legs — 2, Arms — 3), так что один оверлей на зону
+                // годится любой колонистке.
+                // Пластырь идёт СТАРЫМ путём — точечная наклейка на ране, — и
+                // потому обмотку зоны обходит стороной.
+                if (isBandage && !isPlaster)
+                {
+                    var wrap = WrapOverlayFor(zoneName);
+                    if (wrap != null && WrapRects.TryGetValue(zoneName, out var wrapRect))
+                    {
+                        _stamps[key] = new Stamp
+                        {
+                            Key = key,
+                            Slot = point.Slot,
+                            Uv = new Vector2(wrapRect.x, wrapRect.y),
+                            Seed = seed,
+                            UvSizeX = wrapRect.width,
+                            UvSizeY = wrapRect.height,
+                            Under = null,
+                            Over = wrap,
+                            OverGloss = null,
+                            OverNormal = WrapNormalFor(zoneName),
+                            IsBandage = true,
+                            IsGauze = isGauze
+                        };
+                        return;
+                    }
+                }
+
+                // §118.2: наклейка чуть мельче прежнего круглого бинта (0.14 →
+                // 0.10) — она закрывает ОДИН порез, а не «область раны».
+                var mapTarget = (isPlaster ? 0.10f
+                                    : isBandage ? 0.14f
+                                    : 0.07f + NextRand(ref mapState) * 0.04f)
                                 * (_height / 1.7f);
 
                 // Spec 40.8-J: the seam-free path. Same seeded rolls, same
@@ -2072,8 +2376,25 @@ namespace HexLive.UnityPresentation.Wearing
                 return;
             }
 
+            if (stamp.IsBleed)
+            {
+                stamp.Over ??= _texBleed;
+                return;
+            }
+
             if (stamp.IsBandage)
             {
+                // §118.2: восстановить ИМЕННО обмотку этой зоны. Ключ несёт её
+                // имя ("b{zone}" / "g{zone}") — без разбора ключа домен-релоуд
+                // подсунул бы сюда круглую нашлёпку и бинт молча превратился бы
+                // в пластырь до следующего входа в игру.
+                if (stamp.Key.Length > 1)
+                {
+                    var wrapZone = stamp.Key.Substring(1);
+                    if (stamp.Over == null) stamp.Over = WrapOverlayFor(wrapZone);
+                    if (stamp.OverNormal == null) stamp.OverNormal = WrapNormalFor(wrapZone);
+                }
+
                 stamp.Over ??= stamp.IsGauze ? _texGauze : _texBandage;
                 return;
             }
@@ -2315,6 +2636,9 @@ namespace HexLive.UnityPresentation.Wearing
             // that provenance must not swap a wound's visible material.
             _texGauze = Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap") ?? MakeGauzeTexture();
             _texBandage = _texGauze;
+            _wrapOverlays.Clear();
+            _wrapNormals.Clear();
+            _texBleed = Resources.Load<Texture2D>("HexLive/Decals/bandage_bleed");
             _texSplashN = Resources.Load<Texture2D>("HexLive/Decals/blood_splash_n");
             _texScratchN = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch_n");
             _texSplatN = Resources.Load<Texture2D>("HexLive/Decals/blood_splat_n");
@@ -3009,7 +3333,8 @@ namespace HexLive.UnityPresentation.Wearing
 
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.IsSpeckle || stamp.IsBruise || !StampTouchesSlot(stamp, slot) ||
+                    if (stamp.IsSpeckle || stamp.IsBruise || stamp.IsBleed ||
+                        !StampTouchesSlot(stamp, slot) ||
                         !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
                     {
                         continue;
@@ -3051,6 +3376,32 @@ namespace HexLive.UnityPresentation.Wearing
                                 stamp.UvSizeX, stamp.UvSizeY),
                             stamp.Over, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, StampTint(alpha));
                     }
+                }
+
+                // §118.2: кровь сквозь бинт — ПОСЛЕ обмотки и до капель.
+                // Обмотка кладётся на весь тайл, поэтому в общем проходе
+                // порядок словаря решал бы, видно пятно или нет; отдельный
+                // проход делает «поверх» гарантией, а не везением.
+                foreach (var stamp in _stamps.Values)
+                {
+                    if (!stamp.IsBleed || stamp.Over == null ||
+                        !StampTouchesSlot(stamp, slot) ||
+                        !_alpha.TryGetValue(stamp.Key, out var bleedAlpha) || bleedAlpha <= 0.01f)
+                    {
+                        continue;
+                    }
+
+                    if (SkipAlreadyPainted(slot, additive, stamp.Key))
+                    {
+                        continue;
+                    }
+
+                    var bx = stamp.Uv.x;
+                    var by = 1f - stamp.Uv.y;
+                    Graphics.DrawTexture(
+                        new Rect(bx - stamp.UvSizeX * 0.5f, by - stamp.UvSizeY * 0.5f,
+                            stamp.UvSizeX, stamp.UvSizeY),
+                        stamp.Over, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, StampTint(bleedAlpha));
                 }
 
                 // Water droplets land ON TOP of wounds/bandages: the damp

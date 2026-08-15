@@ -18,9 +18,8 @@ namespace HexLive.Simulation.Bootstrap
 /// </summary>
 public static class BuildingBootstrap
 {
-    private const int StarterWardrobeGarmentCount = 3;
-    private const float StarterWardrobeMaxArmor = 0.10f;
-    private const float StarterWardrobeFootwearChance = 0.10f;
+    private const int StarterWardrobeGarmentCount = 6;
+    private const float StarterWardrobeGoodArmor = 0.10f;
 
     public static WorldObjectState SpawnCompletedTestHut(WorldState world, Faction faction)
     {
@@ -176,6 +175,10 @@ public static class BuildingBootstrap
         BuildingRules.EnsureHutElements(world, site);
         foreach (var piece in BuildingRules.ArchitectureObjects(world, site))
             piece.RotationDegrees = rotation;
+        // Nothing is raised yet, so this blocks nothing — it exists to put the
+        // doorway on the map from the first tick and to make the site's topology
+        // the SAME code path that every later delivery runs.
+        RepairPlanTopology(world, site);
         return site;
     }
 
@@ -205,6 +208,17 @@ public static class BuildingBootstrap
         {
             if (world.Tiles.Items.TryGetValue(footprintTile, out var footprint))
                 footprint.Flags |= TileFlags.HasFloor | TileFlags.Indoor;
+        }
+
+        // A committed player plan owns its own geometry, so it gets its own
+        // finishing pass: the walls it actually raised become obstacles and the
+        // furniture IT authored is staked as ordinary build-sites (§120). None
+        // of the canonical hut's hand-authored hut_1hex coordinates apply.
+        if (hut.DefinitionId == ContentIds.HutPlan)
+        {
+            RepairPlanTopology(world, hut);
+            StakePlanFurnitureSites(world, hut);
+            return;
         }
 
         // The rest of this method is the CANONICAL hut's own kit: its portal
@@ -246,6 +260,433 @@ public static class BuildingBootstrap
         }
 
         return dryNeighbors >= 3;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // §120: a committed player plan's own topology and furniture.
+    //
+    // The canonical hut can seal per HEX EDGE (RepairHutTopology/SealPerimeter)
+    // because every one of its twelve bays lies on one of its own six edges. A
+    // player plan cannot: its walls are unit segments of the 0.5-wu build
+    // lattice and the approved draft already contains two free-standing walls
+    // that belong to no hex edge at all. So the plan blocks per SECTION, on the
+    // junctions that section actually stands on — the same navigation lattice,
+    // the same Blocked flag, the same portal exemption, one granularity finer.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static readonly string[] EnvelopeDefinitionIds =
+    {
+        "architecture.wall.wood", "architecture.window.wood", "architecture.door.wood"
+    };
+
+    /// <summary>
+    /// Recomputes, from scratch and idempotently, which junctions a committed
+    /// plan's raised envelope blocks.
+    ///
+    /// ⭐ The rule is the player's own, and it is ONE threshold: the moment a
+    /// wall/window/door module has ANY delivered material, that module is an
+    /// obstacle. Not per stage, not per stick. Floors and roofs never block (you
+    /// walk on one and under the other) and supports never block — exactly as
+    /// the canonical hut's six posts don't, they only own junctions the wall
+    /// beside them sealed.
+    ///
+    /// A door's throat is never Blocked, built or not (§129): before the leaf
+    /// exists the doorway is simply a hole, and afterwards a closed door is
+    /// behaviour, not topology. The throat is also withheld from every OTHER
+    /// module, because the sections beside a door share its seam junction and
+    /// would otherwise brick the doorway shut from the side.
+    /// </summary>
+    public static void RepairPlanTopology(WorldState world, WorldObjectState owner)
+    {
+        if (world == null || owner == null) return;
+        var product = string.IsNullOrEmpty(owner.BuildProduct)
+            ? owner.DefinitionId
+            : owner.BuildProduct;
+        if (product != ContentIds.HutPlan) return;
+        if (!world.Tiles.Items.ContainsKey(owner.Tile)) return;
+
+        var plan = Runtime.Blueprints.CommittedBuildingPlans.PlayerHut;
+        var authoredBySlot = new Dictionary<string, Runtime.Blueprints.BlueprintElementData>(
+            StringComparer.Ordinal);
+        foreach (var element in plan.Elements)
+            authoredBySlot[Runtime.Blueprints.BlueprintBuildingPlan.SlotKey(element)] = element;
+
+        var steps = HexSymmetrySteps(owner.RotationDegrees);
+        var planAnchor = Runtime.Blueprints.BlueprintGeometry.HexCenter(
+            Runtime.Blueprints.BlueprintBuildingPlan.AnchorTile(plan));
+        var siteAnchor = Runtime.Blueprints.BlueprintGeometry.HexCenter(owner.Tile);
+        var index = PlanJunctionIndex(world, owner);
+        var pieces = BuildingRules.ArchitectureObjects(world, owner).ToArray();
+
+        // Release everything the plan owned, then re-derive. A module that lost
+        // its progress (a reset site, a save written by older rules) reopens its
+        // own line and nothing else — overlapping boulders keep their block.
+        var changed = false;
+        changed |= ReleaseBlocked(world, owner);
+        foreach (var piece in pieces)
+        {
+            changed |= ReleaseBlocked(world, piece);
+            if (piece.DefinitionId != Core.DoorTopology.DoorDefinitionId) continue;
+            foreach (var junctionId in piece.Junctions)
+            {
+                if (world.Junctions.Items.TryGetValue(junctionId, out var previous) && previous.Door)
+                {
+                    previous.Door = false;
+                    changed = true;
+                }
+            }
+        }
+
+        // Pass 1 — the doorways, before anything is allowed to block.
+        var portals = new HashSet<JunctionId>();
+        foreach (var piece in pieces)
+        {
+            if (piece.ArchitectureElements.Count != 1 ||
+                piece.DefinitionId != Core.DoorTopology.DoorDefinitionId) continue;
+            var element = piece.ArchitectureElements[0];
+            if (!authoredBySlot.TryGetValue(element.SlotKey, out var authored)) continue;
+            var segment = WorldSegment(authored.Segment, planAnchor, siteAnchor, steps);
+            JunctionId? throat = null;
+            // The centre junction of the bay is the real navigation throat, and
+            // TryDoorPortal is the existing answer to "which one is that".
+            if (Runtime.Blueprints.BlueprintGeometry.TryDoorPortal(segment, out var portalKey) &&
+                index.TryGetValue(portalKey, out var centre))
+            {
+                throat = centre;
+            }
+            else
+            {
+                foreach (var key in Runtime.Blueprints.BlueprintGeometry.SegmentJunctions(segment))
+                {
+                    if (!index.TryGetValue(key, out var fallback)) continue;
+                    throat = fallback;
+                    break;
+                }
+            }
+
+            if (throat is not { } portalId) continue;
+            // One door = one throat: DoorTopology only indexes a door piece with
+            // exactly one junction, and that index is what lets a colonist open it.
+            piece.Junctions.Clear();
+            piece.Junctions.Add(portalId);
+            portals.Add(portalId);
+            var portal = world.Junctions.Items[portalId];
+            portal.Blocked = false;
+            portal.Door = element.DeliveredTotal > 0;
+            changed = true;
+        }
+
+        // Pass 2 — every module with progress claims the junctions it stands on.
+        foreach (var piece in pieces)
+        {
+            if (piece.ArchitectureElements.Count != 1) continue;
+            var element = piece.ArchitectureElements[0];
+            if (Array.IndexOf(EnvelopeDefinitionIds, element.DefinitionId) < 0) continue;
+            if (element.DeliveredTotal <= 0) continue;
+            if (!authoredBySlot.TryGetValue(element.SlotKey, out var authored)) continue;
+            var segment = WorldSegment(authored.Segment, planAnchor, siteAnchor, steps);
+            foreach (var key in Runtime.Blueprints.BlueprintGeometry.SegmentJunctions(segment))
+            {
+                if (!index.TryGetValue(key, out var junctionId) ||
+                    portals.Contains(junctionId) ||
+                    !world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
+                    junction.Blocked)
+                {
+                    continue;
+                }
+
+                junction.Blocked = true;
+                piece.BlockedJunctions.Add(junctionId);
+                changed = true;
+                // §45 r5 / SealPerimeter: a girl left standing ON a junction that
+                // just went solid keeps a still-valid key, so perception never
+                // re-anchors her and every route reads unreachable. She is nudged
+                // off instead — the wall goes up around her, not through her.
+                foreach (var npc in world.Entities.Npcs.Values)
+                {
+                    if (npc.CurrentJunction is not { } current || !current.Equals(junctionId)) continue;
+                    npc.CurrentJunction = null;
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "WallSolidUnderfoot",
+                            $"Slot={element.SlotKey} Junction={junctionId.Value}");
+                    }
+                }
+            }
+        }
+
+        if (changed) world.TopologyVersion++;
+    }
+
+    private static bool ReleaseBlocked(WorldState world, WorldObjectState holder)
+    {
+        var changed = false;
+        foreach (var junctionId in holder.BlockedJunctions)
+        {
+            if (world.Junctions.Items.TryGetValue(junctionId, out var junction) && junction.Blocked)
+            {
+                junction.Blocked = false;
+                changed = true;
+            }
+        }
+
+        holder.BlockedJunctions.Clear();
+        return changed;
+    }
+
+    private static int HexSymmetrySteps(float rotationDegrees) =>
+        ((int)MathF.Round(rotationDegrees / 60f) % 6 + 6) % 6;
+
+    /// <summary>
+    /// One authored build segment placed into the world: de-anchored from the
+    /// plan's own hex, turned by the building's rotation, re-anchored on the
+    /// site's hex. Integer lattice arithmetic throughout — no coordinate is
+    /// rounded, which is why a rotated plan's walls cannot drift off the grid.
+    /// </summary>
+    private static Runtime.Blueprints.BuildSegmentKey WorldSegment(
+        Runtime.Blueprints.BuildSegmentKey authored,
+        Runtime.Blueprints.HexBuildNodeKey planAnchor,
+        Runtime.Blueprints.HexBuildNodeKey siteAnchor,
+        int steps)
+    {
+        var a = Runtime.Blueprints.BlueprintGeometry.RotateNode(
+            new Runtime.Blueprints.HexBuildNodeKey(
+                authored.A.Q - planAnchor.Q, authored.A.R - planAnchor.R), steps);
+        var b = Runtime.Blueprints.BlueprintGeometry.RotateNode(
+            new Runtime.Blueprints.HexBuildNodeKey(
+                authored.B.Q - planAnchor.Q, authored.B.R - planAnchor.R), steps);
+        return new Runtime.Blueprints.BuildSegmentKey(a + siteAnchor, b + siteAnchor);
+    }
+
+    /// <summary>
+    /// Junction key -> live junction id over the building's footprint and one
+    /// ring around it. The worldgen dictionary that built these keys is private
+    /// to the factory and is gone by runtime, so the key is read back off the
+    /// junction's own world position — the same integer lattice
+    /// <see cref="Runtime.Blueprints.BlueprintGeometry.JunctionToWorld"/> writes.
+    /// </summary>
+    private static Dictionary<Runtime.Blueprints.JunctionKey, JunctionId> PlanJunctionIndex(
+        WorldState world, WorldObjectState owner)
+    {
+        var index = new Dictionary<Runtime.Blueprints.JunctionKey, JunctionId>();
+        var tiles = new List<TileCoord>();
+        foreach (var footprint in FootprintTiles(owner))
+        {
+            if (!tiles.Contains(footprint)) tiles.Add(footprint);
+            foreach (var direction in HexDirection.All)
+            {
+                var neighbor = new TileCoord(footprint.Q + direction.DQ, footprint.R + direction.DR);
+                if (!tiles.Contains(neighbor)) tiles.Add(neighbor);
+            }
+        }
+
+        foreach (var coord in tiles)
+        {
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile)) continue;
+            foreach (var junctionId in tile.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(junctionId, out var junction)) continue;
+                index[JunctionKeyOf(junction.WorldPosition)] = junctionId;
+            }
+        }
+
+        return index;
+    }
+
+    private static Runtime.Blueprints.JunctionKey JunctionKeyOf(Float2 position) =>
+        new Runtime.Blueprints.JunctionKey(
+            (int)MathF.Round(position.X / (HexSpatialMath.Sqrt3 * 0.1875f)),
+            (int)MathF.Round(position.Y / 0.1875f));
+
+    /// <summary>
+    /// The plan's OWN furniture, staked as ordinary build-sites so the colony
+    /// raises it piece by piece like any other bed (§120).
+    ///
+    /// Nothing here retypes a coordinate: the placement's tile and junction slot
+    /// are resolved through <see cref="HexPointLayout"/> and rotated by the same
+    /// hex symmetry the footprint and the walls use. Idempotent — CompleteHut
+    /// also runs on save load, and a piece already standing (or already staked)
+    /// is left alone.
+    /// </summary>
+    public static void StakePlanFurnitureSites(WorldState world, WorldObjectState hut)
+    {
+        if (world == null || hut == null || hut.DefinitionId != ContentIds.HutPlan) return;
+        var plan = Runtime.Blueprints.CommittedBuildingPlans.PlayerHut;
+        var steps = HexSymmetrySteps(hut.RotationDegrees);
+        var planAnchorTile = Runtime.Blueprints.BlueprintBuildingPlan.AnchorTile(plan);
+        var index = PlanJunctionIndex(world, hut);
+        var claimed = new HashSet<JunctionId>();
+
+        foreach (var placement in plan.Furniture)
+        {
+            var product = PlanFurnitureProduct(placement.DefinitionId);
+            if (product == null || !world.Content.ObjectDefinitions.ContainsKey(product)) continue;
+            var tile = RotatePlanTile(placement.Tile, planAnchorTile, hut.Tile, steps);
+            if (!world.Tiles.Items.ContainsKey(tile)) continue;
+            var anchorKey = RotatePlanJunction(
+                placement.PrimaryJunction, planAnchorTile, hut.Tile, steps);
+            if (!index.TryGetValue(anchorKey, out var anchorId)) continue;
+            if (!claimed.Add(anchorId)) continue;
+            if (PlanFurnitureExists(world, tile, product, anchorId)) continue;
+
+            var site = WorldObjectMutations.SpawnObject(
+                world, ContentIds.BuildSite, hut.Fragment, tile, anchorId);
+            site.BuildProduct = product;
+            // §120.2: the plan's indoor fire is the small household hearth, and
+            // the variant is what tells the view (and the save) which one it is.
+            if (product == ContentIds.Campfire) site.Variant = BuildingRules.HutHearthVariant;
+            site.RotationDegrees = StructurePlacement.QuantizeHexYaw(
+                hut.RotationDegrees + Runtime.Blueprints.BlueprintGeometry.NormalizeSector(
+                    placement.YawStep) * 60f);
+            ApplyPlanFurnitureBill(site, product);
+            RememberPlanSite(world, site);
+        }
+    }
+
+    /// <summary>
+    /// The catalog id a §120 furniture placement is BUILT as. "furniture.hearth"
+    /// is a Build/Buy catalog row, not a world object — the thing that gets
+    /// raised is the ordinary campfire carrying the household-hearth variant,
+    /// exactly as the canonical hut's own hearth is.
+    /// </summary>
+    private static string PlanFurnitureProduct(string catalogId) => catalogId switch
+    {
+        "furniture.hearth" => ContentIds.Campfire,
+        null or "" => null,
+        _ => catalogId
+    };
+
+    /// <summary>
+    /// Everything the plan's OWN furniture will ask for, summed from the same
+    /// bills <see cref="StakePlanFurnitureSites"/> stamps. Kept beside them for
+    /// the reason <see cref="Runtime.Blueprints.BlueprintBuildingPlan.Bill"/> is:
+    /// a bill computed anywhere else is a second place to forget a material.
+    /// </summary>
+    public static (int Logs, int Stones, int Leaves, int Sticks, int Rope, int Boards)
+        PlanFurnitureBill()
+    {
+        int logs = 0, stones = 0, leaves = 0, sticks = 0, rope = 0, boards = 0;
+        foreach (var placement in Runtime.Blueprints.CommittedBuildingPlans.PlayerHut.Furniture)
+        {
+            var product = PlanFurnitureProduct(placement.DefinitionId);
+            if (product == null) continue;
+            var scratch = new WorldObjectState();
+            ApplyPlanFurnitureBill(scratch, product);
+            logs += scratch.BillLogs;
+            stones += scratch.BillStones;
+            leaves += scratch.BillLeaves;
+            sticks += scratch.BillSticks;
+            rope += scratch.BillRope;
+            boards += scratch.BillBoards;
+        }
+
+        return (logs, stones, leaves, sticks, rope, boards);
+    }
+
+    private static void ApplyPlanFurnitureBill(WorldObjectState site, string product)
+    {
+        switch (product)
+        {
+            case ContentIds.BedBasic:
+                site.BillLogs = SimBalance.BedBasicBillLogs;
+                site.BillSticks = SimBalance.BedBasicBillSticks;
+                site.BillRope = SimBalance.BedBasicBillRope;
+                site.BillLeaves = SimBalance.BedBasicBillLeaves;
+                break;
+            case ContentIds.Campfire:
+                site.BillSticks = SimBalance.HutHearthBillSticks;
+                site.BillStones = SimBalance.HutHearthBillStones;
+                site.BillRope = SimBalance.HutHearthBillRope;
+                break;
+            case ContentIds.Wardrobe:
+                site.BillBoards = SimBalance.WardrobeBillBoards;
+                site.BillSticks = SimBalance.WardrobeBillSticks;
+                site.BillRope = SimBalance.WardrobeBillRope;
+                break;
+            case ContentIds.Workbench:
+                site.BillSticks = Spec119.WorkbenchBillSticks;
+                site.BillBoards = Spec119.WorkbenchBillBoards;
+                site.BillRope = Spec119.WorkbenchBillRope;
+                break;
+            case ContentIds.DryingRack:
+                site.BillSticks = SimBalance.RackBillSticks;
+                site.BillRope = SimBalance.RackBillRope;
+                break;
+            case ContentIds.WaterCollector:
+                site.BillSticks = SimBalance.WaterCollectorBillSticks;
+                site.BillStones = SimBalance.WaterCollectorBillStones;
+                site.BillRope = SimBalance.WaterCollectorBillRope;
+                site.BillLeaves = SimBalance.WaterCollectorBillLeaves;
+                break;
+        }
+    }
+
+    private static bool PlanFurnitureExists(
+        WorldState world, TileCoord tile, string product, JunctionId anchor)
+    {
+        if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var objects)) return false;
+        foreach (var id in objects)
+        {
+            if (!world.Entities.Objects.TryGetValue(id, out var candidate)) continue;
+            var isProduct = candidate.DefinitionId == product ||
+                            candidate.BuildProduct == product;
+            if (isProduct && candidate.Junctions.Contains(anchor)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The colony has to KNOW a site to haul to it — the same handoff
+    /// BedSiteSystem performs when it stakes a bed by the fire.
+    /// </summary>
+    private static void RememberPlanSite(WorldState world, WorldObjectState site)
+    {
+        var junction = site.Junctions.Count > 0 ? site.Junctions[0] : (JunctionId?)null;
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Faction != Faction.Colony) continue;
+            npc.Memory.KnownObjects[site.Id] = new Memory.ObjectMemory
+            {
+                Id = site.Id,
+                DefinitionId = site.DefinitionId,
+                Tile = site.Tile,
+                Junction = junction,
+                IsPermanent = true,
+                LastSeenTick = world.Tick
+            };
+            npc.Memory.Version++;
+        }
+    }
+
+    private static TileCoord RotatePlanTile(
+        TileCoord planTile, TileCoord planAnchor, TileCoord siteAnchor, int steps)
+    {
+        var q = planTile.Q - planAnchor.Q;
+        var r = planTile.R - planAnchor.R;
+        for (var step = 0; step < steps; step++)
+        {
+            var rotatedQ = -r;
+            r = q + r;
+            q = rotatedQ;
+        }
+
+        return new TileCoord(siteAnchor.Q + q, siteAnchor.R + r);
+    }
+
+    private static Runtime.Blueprints.JunctionKey RotatePlanJunction(
+        Runtime.Blueprints.JunctionKey planJunction,
+        TileCoord planAnchor,
+        TileCoord siteAnchor,
+        int steps)
+    {
+        var from = HexPointLayout.GetJunctionKeyPair(planAnchor, new AxialPoint(0, 0));
+        var to = HexPointLayout.GetJunctionKeyPair(siteAnchor, new AxialPoint(0, 0));
+        var offset = Runtime.Blueprints.BlueprintGeometry.RotateJunctionOffset(
+            new Runtime.Blueprints.JunctionKey(
+                planJunction.XKey - from.xKey, planJunction.YKey - from.yKey), steps);
+        return new Runtime.Blueprints.JunctionKey(
+            to.xKey + offset.XKey, to.yKey + offset.YKey);
     }
 
     /// <summary>
@@ -742,10 +1183,53 @@ public static class BuildingBootstrap
         wardrobe.RotationDegrees = StructurePlacement.QuantizeHexYaw(
             hut.RotationDegrees + BuildingRules.HutWardrobeLocalYaw);
         WorldObjectMutations.SetObstacleBlocking(world, wardrobe, blocked: false);
+
+        SpawnMedkit(world, hut, wardrobe);
     }
 
     /// <summary>
-    /// §133.2: provisions only the fresh-game hut with three distinct loose
+    /// ⭐ §118.2: аптечка у гардероба — домашний запас медицины.
+    ///
+    /// Садится на ТОТ ЖЕ джанкшен, что и гардероб, а не на соседний: комната в
+    /// один гекс, свободных джанкшенов наперечёт, и занять ещё один значило бы
+    /// отобрать место у койки или у прохода. Ящику это ничего не стоит — он
+    /// стоит на полу у стены и obstacle не ставит, ровно как гардероб и кровати
+    /// (§133), поэтому делить джанкшен с гардеробом безопасно.
+    ///
+    /// Внутри — расходники: сто пластырей и двадцать бинтов. Пластырь закрывает
+    /// одну рану, бинт перевязывает зону целиком, отсюда и разница в числе.
+    /// </summary>
+    private static void SpawnMedkit(
+        WorldState world, WorldObjectState hut, WorldObjectState wardrobe)
+    {
+        if (wardrobe.Junctions.Count == 0) return;
+        foreach (var existing in world.Entities.Objects.Values)
+        {
+            if (existing.DefinitionId == ContentIds.MedkitBox &&
+                existing.Tile.Equals(hut.Tile))
+            {
+                return; // уже стоит — повторный вызов не плодит второй ящик
+            }
+        }
+
+        var medkit = WorldObjectMutations.SpawnObject(
+            world, ContentIds.MedkitBox, hut.Fragment, hut.Tile, wardrobe.Junctions[0]);
+        medkit.RotationDegrees = wardrobe.RotationDegrees;
+        WorldObjectMutations.SetObstacleBlocking(world, medkit, blocked: false);
+
+        for (var i = 0; i < 100; i++)
+        {
+            medkit.Contents.Add(new Agents.ItemInstance(ContentIds.Plaster));
+        }
+
+        for (var i = 0; i < 20; i++)
+        {
+            medkit.Contents.Add(new Agents.ItemInstance(ContentIds.Bandage));
+        }
+    }
+
+    /// <summary>
+    /// §133.2 r2: provisions only the fresh-game hut with six distinct loose
     /// garments. The sequence is a stateless world-seeded draw, so recreating
     /// a seed produces the same starter wardrobe; save repair and normal hut
     /// construction intentionally never call this method.
@@ -755,13 +1239,16 @@ public static class BuildingBootstrap
         var wardrobe = FindWardrobe(world, hut);
         if (wardrobe == null || wardrobe.Junctions.Count != 1) return;
 
-        // A new hut starts with ordinary light clothes, never with armour or a
-        // coat. Shoes are deliberately the rare exception: at most one pair
-        // has a 10% chance to replace an ordinary clothing slot. Sorting is
-        // part of the deterministic-random contract: catalog registration
-        // order must not change what a given new-game seed grants.
-        var everydayCandidates = new List<string>();
-        var footwearCandidates = new List<string>();
+        // §133.2 r2: six useful choices, with three guaranteed roles: real
+        // trousers (stable pants/trouser/jeans/legging id vocabulary), boots,
+        // and one protective non-leg piece. The other three come from substantial
+        // everyday/outer clothing — never underwear, accessories or bags.
+        // Sorting is part of the deterministic-random contract: catalog
+        // registration order must not change what a given seed grants.
+        var generalCandidates = new List<string>();
+        var pantsCandidates = new List<string>();
+        var bootCandidates = new List<string>();
+        var protectiveCandidates = new List<string>();
         foreach (var garment in GarmentLibrary.Active)
         {
             if (garment == null || garment.Sex == GarmentSex.Male ||
@@ -772,21 +1259,38 @@ public static class BuildingBootstrap
                 continue;
             }
 
-            (isFootwear ? footwearCandidates : everydayCandidates).Add(garment.Id);
+            if (isFootwear)
+            {
+                if (IsStarterWardrobeBoots(garment)) bootCandidates.Add(garment.Id);
+            }
+            else
+            {
+                generalCandidates.Add(garment.Id);
+                if (IsStarterWardrobePants(garment))
+                {
+                    pantsCandidates.Add(garment.Id);
+                }
+            }
+
+            if (IsStarterWardrobeProtective(garment))
+            {
+                protectiveCandidates.Add(garment.Id);
+            }
         }
-        everydayCandidates.Sort(StringComparer.Ordinal);
-        footwearCandidates.Sort(StringComparer.Ordinal);
+        generalCandidates.Sort(StringComparer.Ordinal);
+        pantsCandidates.Sort(StringComparer.Ordinal);
+        bootCandidates.Sort(StringComparer.Ordinal);
+        protectiveCandidates.Sort(StringComparer.Ordinal);
 
         var selected = new List<string>(StarterWardrobeGarmentCount);
-        if (footwearCandidates.Count > 0 &&
-            MathUtil.Hash01(world.Seed, hut.Id.Value, 0, 13303) < StarterWardrobeFootwearChance)
-        {
-            selected.Add(DrawStarterWardrobeGarment(world, hut, footwearCandidates, 13304));
-        }
+        DrawMandatoryStarterGarment(world, hut, pantsCandidates, selected, 13303);
+        DrawMandatoryStarterGarment(world, hut, bootCandidates, selected, 13304);
+        DrawMandatoryStarterGarment(world, hut, protectiveCandidates, selected, 13305);
 
-        while (selected.Count < StarterWardrobeGarmentCount && everydayCandidates.Count > 0)
+        generalCandidates.RemoveAll(selected.Contains);
+        while (selected.Count < StarterWardrobeGarmentCount && generalCandidates.Count > 0)
         {
-            selected.Add(DrawStarterWardrobeGarment(world, hut, everydayCandidates, 13302));
+            selected.Add(DrawStarterWardrobeGarment(world, hut, generalCandidates, 13306));
         }
 
         foreach (var definitionId in selected)
@@ -805,18 +1309,44 @@ public static class BuildingBootstrap
     {
         isFootwear = false;
         if (garment == null || garment.Sex == GarmentSex.Male ||
-            garment.Armor > StarterWardrobeMaxArmor)
+            garment.Layer is WearLayer.Underwear or WearLayer.Bags)
         {
             return false;
         }
 
         isFootwear = garment.Category == GarmentCategory.Footwear;
-        if (isFootwear)
-        {
-            return true;
-        }
+        return garment.Category is GarmentCategory.Top or GarmentCategory.Bottom or
+            GarmentCategory.Dress or GarmentCategory.Outerwear or
+            GarmentCategory.Footwear or GarmentCategory.Armwear or
+            GarmentCategory.Legwear or GarmentCategory.Outfit;
+    }
 
-        return garment.Category is GarmentCategory.Top or GarmentCategory.Bottom;
+    internal static bool IsStarterWardrobePants(GarmentParams garment) =>
+        garment != null && garment.Category == GarmentCategory.Bottom &&
+        garment.Capacity >= 4 &&
+        (garment.Id.IndexOf("pants", StringComparison.OrdinalIgnoreCase) >= 0 ||
+         garment.Id.IndexOf("trouser", StringComparison.OrdinalIgnoreCase) >= 0 ||
+         garment.Id.IndexOf("jeans", StringComparison.OrdinalIgnoreCase) >= 0 ||
+         garment.Id.IndexOf("legging", StringComparison.OrdinalIgnoreCase) >= 0);
+
+    internal static bool IsStarterWardrobeBoots(GarmentParams garment) =>
+        garment != null && garment.Category == GarmentCategory.Footwear &&
+        garment.Id.IndexOf("boot", StringComparison.OrdinalIgnoreCase) >= 0;
+
+    internal static bool IsStarterWardrobeProtective(GarmentParams garment) =>
+        garment != null && garment.Armor >= StarterWardrobeGoodArmor &&
+        garment.Category is not GarmentCategory.Bottom and not GarmentCategory.Footwear;
+
+    private static void DrawMandatoryStarterGarment(
+        WorldState world,
+        WorldObjectState hut,
+        List<string> candidates,
+        List<string> selected,
+        int salt)
+    {
+        if (candidates.Count == 0) return;
+        var definitionId = DrawStarterWardrobeGarment(world, hut, candidates, salt);
+        if (!selected.Contains(definitionId)) selected.Add(definitionId);
     }
 
     private static string DrawStarterWardrobeGarment(
@@ -848,6 +1378,23 @@ public static class BuildingBootstrap
             return;
         }
 
+        var storedGarments = new List<WorldObjectState>();
+        var storedGarmentIds = new HashSet<ObjectId>();
+        if (wardrobe.Junctions.Count > 0)
+        {
+            var oldJunction = wardrobe.Junctions[0];
+            foreach (var candidate in world.Entities.Objects.Values)
+            {
+                if (candidate.Id.Equals(wardrobe.Id) ||
+                    !candidate.Junctions.Contains(oldJunction) ||
+                    !GarmentLibrary.Active.Any(garment => garment.Id == candidate.DefinitionId))
+                    continue;
+
+                storedGarments.Add(candidate);
+                storedGarmentIds.Add(candidate.Id);
+            }
+        }
+
         foreach (var blockedId in wardrobe.BlockedJunctions)
         {
             if (world.Junctions.Items.TryGetValue(blockedId, out var blocked)) blocked.Blocked = false;
@@ -858,8 +1405,16 @@ public static class BuildingBootstrap
             hut.RotationDegrees + BuildingRules.HutWardrobeLocalYaw);
         WorldObjectMutations.SetObstacleBlocking(world, wardrobe, blocked: false);
 
-        if (FindWardrobeJunction(world, hut) is not { } junctionId) return;
+        if (FindWardrobeJunction(world, hut, storedGarmentIds) is not { } junctionId) return;
         wardrobe.Junctions.Add(junctionId);
+        foreach (var garment in storedGarments)
+        {
+            garment.Junctions.Clear();
+            garment.Junctions.Add(junctionId);
+            garment.Fragment = wardrobe.Fragment;
+            garment.Tile = wardrobe.Tile;
+            garment.RotationDegrees = wardrobe.RotationDegrees;
+        }
         world.TopologyVersion++;
     }
 
@@ -878,7 +1433,10 @@ public static class BuildingBootstrap
         return null;
     }
 
-    private static JunctionId? FindWardrobeJunction(WorldState world, WorldObjectState hut)
+    private static JunctionId? FindWardrobeJunction(
+        WorldState world,
+        WorldObjectState hut,
+        ISet<ObjectId> ignoredObjects = null)
     {
         var center = HexSpatialMath.TileToWorld(hut.Tile);
         var radians = hut.RotationDegrees * MathF.PI / 180f;
@@ -890,7 +1448,7 @@ public static class BuildingBootstrap
         {
             if (!world.Junctions.Items.TryGetValue(junctionId, out var candidate) ||
                 candidate.Tiles.Count != 1 || candidate.Blocked ||
-                InteriorObjectUses(world, hut, junctionId))
+                InteriorObjectUses(world, hut, junctionId, ignoredObjects))
             {
                 continue;
             }
@@ -917,12 +1475,15 @@ public static class BuildingBootstrap
     }
 
     private static bool InteriorObjectUses(
-        WorldState world, WorldObjectState hut, JunctionId junction)
+        WorldState world,
+        WorldObjectState hut,
+        JunctionId junction,
+        ISet<ObjectId> ignoredObjects = null)
     {
         if (!world.Caches.ObjectsByTile.TryGetValue(hut.Tile, out var objects)) return false;
         foreach (var id in objects)
         {
-            if (id.Equals(hut.Id)) continue;
+            if (id.Equals(hut.Id) || ignoredObjects?.Contains(id) == true) continue;
             if (world.Entities.Objects.TryGetValue(id, out var obj) &&
                 obj.Junctions.Contains(junction))
             {

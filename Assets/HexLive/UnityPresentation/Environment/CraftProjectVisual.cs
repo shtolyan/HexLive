@@ -12,7 +12,6 @@ namespace HexLive.UnityPresentation.Environment
         private readonly List<GameObject> _ingredients = new();
         private Transform? _output;
         private string _ingredientSignature = string.Empty;
-        private bool _outputSized;
 
         public void Sync(ObjectSnapshot snapshot)
         {
@@ -48,10 +47,6 @@ namespace HexLive.UnityPresentation.Environment
             if (_output == null) return;
             _output.localPosition = new Vector3(0f, onTable ? TableTopY + 0.035f : 0.035f, 0f);
             _output.localRotation = Quaternion.Euler(onTable ? 0f : 86f, 0f, 0f);
-            if (_outputSized || !ObjectFit.WorldBounds(_output.gameObject, out var bounds)) return;
-            var current = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
-            if (current > 0.24f) _output.localScale *= 0.24f / current;
-            _outputSized = true;
         }
 
         private void RebuildIngredients(IReadOnlyList<string> ids, bool onTable)
@@ -60,19 +55,15 @@ namespace HexLive.UnityPresentation.Environment
             _ingredients.Clear();
             for (var i = 0; i < ids.Count && i < 6; i++)
             {
-                var model = LowPolyToolFactory.Build(ids[i]);
-                if (model == null)
-                {
-                    var prefab = WorldPropResources.Load(ids[i]);
-                    model = prefab != null ? Instantiate(prefab) : GameObject.CreatePrimitive(PrimitiveType.Cube);
-                }
+                // §119.1 / bug #137: use the authored Player-safe model first,
+                // exactly like a world drop. Crafting used to call the
+                // procedural factory first, silently replacing valid native
+                // resources, then clamp everything to 0.16 wu.
+                var model = WorldPropResources.Build(ids[i]) ??
+                            GameObject.CreatePrimitive(PrimitiveType.Cube);
                 model.name = $"Craft Ingredient {i:00} {ids[i]}";
                 model.transform.SetParent(transform, false);
-                if (ObjectFit.WorldBounds(model, out var bounds))
-                {
-                    var horizontal = Mathf.Max(bounds.size.x, bounds.size.z);
-                    if (horizontal > 0.16f) model.transform.localScale *= 0.16f / horizontal;
-                }
+                model.transform.localScale *= ObjectFit.FitScaleFactor(model, ids[i]);
 
                 if (onTable)
                 {

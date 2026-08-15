@@ -356,6 +356,87 @@ public sealed partial class PlanningSystem
         }
     }
 
+    /// <summary>
+    /// §140.2: маршрут к своему очагу. Цель — ближайший СВОБОДНЫЙ узел на
+    /// домашнем тайле фракции; если весь тайл занят или недостижим, берём
+    /// ближайший достижимый узел внутри лагеря. Отдельный план, а не вызов
+    /// Explore с другой точкой: Explore выбирает случайный дальний узел и
+    /// оценивает достижимость по «бытовому» проходу, а домой идёт та, у кого
+    /// ног почти нет, — ей нужен тот же аварийный проход, что и §50.9
+    /// (спуски по направленному графу, §57.11).
+    /// </summary>
+    private void BuildHomewardPlan(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from ||
+            ColonyQueries.Home(world, npc.Faction) is not { } home)
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.Homeward);
+            return;
+        }
+
+        JunctionId? best = null;
+        var bestDistance = float.MaxValue;
+        var homeCentre = HexSpatialMath.TileToWorld(home);
+        foreach (var pair in world.Junctions.Items)
+        {
+            var junction = pair.Value;
+            if (junction.Blocked ||
+                junction.Tiles.Count == 0 ||
+                !ColonyQueries.InCamp(world, junction.Tiles[0], npc.Faction) ||
+                !SpatialQueries.IsJunctionFree(world, pair.Key))
+            {
+                continue;
+            }
+
+            var d = HexSpatialMath.Distance(junction.WorldPosition, homeCentre);
+            if (d >= bestDistance)
+            {
+                continue;
+            }
+
+            // Достижимость считается её РЕАЛЬНЫМ телом и последней — она дороже
+            // расстояния, а кандидатов в лагере десятки.
+            if (!Connectivity.Reachable(world, from, pair.Key, CanUseCriticalTraversal(npc)))
+            {
+                continue;
+            }
+
+            bestDistance = d;
+            best = pair.Key;
+        }
+
+        if (best is not { } destination)
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.Homeward);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Homeward NoRouteToCamp");
+            }
+
+            return;
+        }
+
+        npc.Plan.TargetJunctionId = destination;
+        npc.Plan.TargetTile = world.Junctions.Items[destination].Tiles.Count > 0
+            ? world.Junctions.Items[destination].Tiles[0]
+            : null;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = destination
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=Homeward To Junction={destination.Value} " +
+                $"Dist={bestDistance:F1} Steps=[MoveToJunction]");
+        }
+    }
+
     private static bool HasTalkPartnerClaimedByOther(
         WorldState world, NPCState npc)
     {

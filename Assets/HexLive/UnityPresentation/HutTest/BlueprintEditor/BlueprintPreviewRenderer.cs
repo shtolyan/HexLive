@@ -31,6 +31,9 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         // by. Corner supports belong here too: they are full-height posts, and
         // leaving them out left one standing in front of the selected colonist.
         private readonly List<(Vector2 position, Renderer[] renderers)> _walls = new();
+        // Per-frame scratch for the shared cutaway ranking — allocated once.
+        private readonly List<Vector2> _cutawayPositions = new();
+        private readonly List<int> _cutawayHidden = new();
         private readonly List<Transform> _conflictMarkers = new();
         private Transform? _elementRoot;
         private Transform? _overlayRoot;
@@ -136,28 +139,29 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             if (_mode != BlueprintEditorMode.Furniture || camera == null || _walls.Count == 0)
             {
                 foreach (var wall in _walls)
-                    foreach (var renderer in wall.renderers) renderer.shadowCastingMode = ShadowCastingMode.On;
+                    foreach (var renderer in wall.renderers)
+                        ArchitectureCutaway.SetVisible(renderer, true);
                 return;
             }
 
+            // §120: the ranking itself is shared with the raised house — see
+            // ArchitectureCutaway. The preview root is at the plan's own origin
+            // with no rotation, so its local space IS the plan's and the centre
+            // to measure "outward" from is that origin.
             var localCamera = transform.InverseTransformPoint(camera.transform.position);
-            var ordered = _walls.Select(wall =>
-            {
-                var position = wall.position;
-                var cameraDirection = new Vector2(localCamera.x - position.x, localCamera.z - position.y).normalized;
-                var outward = position.sqrMagnitude > 0.001f ? position.normalized : cameraDirection;
-                return (wall, score: Vector2.Dot(outward, cameraDirection));
-            }).OrderByDescending(entry => entry.score).ToArray();
+            _cutawayPositions.Clear();
+            foreach (var wall in _walls) _cutawayPositions.Add(wall.position);
+            ArchitectureCutaway.RankByCameraFacing(
+                _cutawayPositions, Vector2.zero,
+                new Vector2(localCamera.x, localCamera.z), _cutawayHidden);
 
-            var hiddenCount = Math.Max(1, ordered.Length / 3);
-            for (var i = 0; i < ordered.Length; i++)
+            for (var i = 0; i < _walls.Count; i++)
             {
-                foreach (var renderer in ordered[i].wall.renderers)
+                var visible = !_cutawayHidden.Contains(i);
+                foreach (var renderer in _walls[i].renderers)
                 {
                     // Shadows remain even while the nearest wall is invisible.
-                    renderer.shadowCastingMode = i < hiddenCount
-                        ? ShadowCastingMode.ShadowsOnly
-                        : ShadowCastingMode.On;
+                    ArchitectureCutaway.SetVisible(renderer, visible);
                 }
             }
         }
@@ -194,16 +198,22 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             // anchor junction. A bed's logical footprint runs from -0.5625 to
             // +0.9375 along its length, so the anchor sits 0.1875 wu off centre
             // and placing the mesh there slid every bed away from its wall.
-            var occupied = BlueprintFurnitureFootprints.OccupiedJunctions(item);
-            var centre = Vector2.zero;
-            foreach (var junction in occupied)
-            {
-                var world = BlueprintGeometry.JunctionToWorld(junction);
-                centre += new Vector2(world.X, world.Y);
-            }
-            centre /= Mathf.Max(1, occupied.Count);
-            root.transform.localPosition = new Vector3(centre.x, FloorY, centre.y);
-            root.transform.localRotation = Quaternion.Euler(0f, -item.YawStep * 60f, 0f);
+            // The correction is BlueprintFurnitureFootprints.CentroidOffset, so
+            // the raised piece in the world lands where this preview draws it.
+            var anchor = BlueprintGeometry.JunctionToWorld(item.PrimaryJunction);
+            var offset = BlueprintFurnitureFootprints.CentroidOffset(item.DefinitionId, item.YawStep);
+            root.transform.localPosition = new Vector3(
+                anchor.X + offset.X, FloorY, anchor.Y + offset.Y);
+            // A six-way footprint yaw, through the one mapper the world renderer
+            // also uses: yawStep k is simulation yaw 60k, and simulation yaw
+            // becomes Unity yaw by negation (never 90 - yaw, which is the
+            // character/forward convention and would sit every piece across its
+            // own junction row).
+            root.transform.localRotation = Quaternion.Euler(
+                0f,
+                HexLive.UnityPresentation.Spatial.SimulationUnityMapper.ToUnityFootprintYawDegrees(
+                    BlueprintGeometry.NormalizeSector(item.YawStep) * 60f),
+                0f);
             _objects[item.Id] = root;
         }
 

@@ -69,6 +69,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(600, 9600)] public int dogRespawnCheckTicks = 3600;
         [Tooltip("В какой момент игрового периода стартует рейд стаи (тики от начала периода; 1800 из 2400 = «на закате» периода).")]
         [Range(0, 2400)] public int raidDuskOffsetTicks = 1800;
+        [Tooltip("§46 v4: сколько тиков рейдовые «гостьи» сверх потолка стаи слоняются у лагеря, прежде чем уйти сами.")]
+        [Range(300, 9600)] public int raidLingerTicks = 2400;
+        [Tooltip("§46 v4: предохранитель — рейдовая собака уходит через столько тиков НЕЗАВИСИМО от зрителей, иначе «временная» стая стала бы вечной.")]
+        [Range(300, 9600)] public int raidDepartureBackstopTicks = 2400;
         [Tooltip("Минимальная дистанция спауна собаки от NPC, тайлы.")]
         [Range(1, 15)] public int dogSpawnMinDistanceFromNpc = 5;
         [Tooltip("Сколько тиков ПОДРЯД погоня не сдвигает собаку (нет проходимого пути к жертве), прежде чем она бросает цель и уходит бродить. Мелек сбрасывает счётчик.")]

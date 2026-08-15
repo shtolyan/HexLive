@@ -112,6 +112,16 @@ public sealed partial class DecisionSystem
         WorldObjectState collectorSite = null;
         WorldObjectState furnitureSite = null;
         WorldObjectState hearthUpgrade = null;
+        // §54.19: стройка, которую нечем закрыть, — последняя в очереди, а не
+        // первая. Не выбрасывается: если материала нет НИ У ОДНОЙ, колония
+        // по-прежнему берёт что было и ведёт себя как раньше.
+        WorldObjectState starvedSite = null;
+        // Что колония вообще может достать — считается ОДНИМ проходом по
+        // восприятию и только если понадобится. Наивные шесть-восемь
+        // `HasReachableWithTag` на каждую стройку означали бы сорок проходов по
+        // списку из сотен предметов на КАЖДЫЙ выбор цели.
+        MaterialSources sources = default;
+        var sourcesScanned = false;
         foreach (var obj in npc.Perception.Objects)
         {
             if (!obj.IsReachable ||
@@ -125,9 +135,46 @@ public sealed partial class DecisionSystem
             // §54.14: only the BARE hearth site (no fire raised yet) gets the
             // cold-start priority. A live campfire mid-upgrade (stone ring /
             // spit outstanding) queues like any other furniture site.
+            //
+            // §54.19 не трогает эту ветку сознательно: очаг — контракт
+            // холодного старта (§54.6), его стадия 1 это палки, а палок в мире
+            // нет только тогда, когда не построить вообще ничего.
             if (site.BuildProduct == ContentIds.Campfire && site.DefinitionId == ContentIds.BuildSite)
             {
                 return site;
+            }
+
+            // §54.19: метка «нечем закрыть» — колониальная, а не личная: её
+            // снимает ЛЮБАЯ девушка, которая видит источник, и ставит она себя
+            // сама, один раз. Значит «мёртвая» = мёртвая для всех подряд
+            // BuildSiteUnstockableSkipTicks тиков, а не «эта отвернулась».
+            if (SiteShortOfAnything(site))
+            {
+                if (!sourcesScanned)
+                {
+                    sources = MaterialSources.Scan(world, npc);
+                    sourcesScanned = true;
+                }
+
+                if (SiteStockableNow(site, sources, npc))
+                {
+                    site.UnstockableSinceTick = null;
+                }
+                else
+                {
+                    site.UnstockableSinceTick ??= world.Tick;
+                }
+            }
+            else
+            {
+                site.UnstockableSinceTick = null; // всё привезли, ждёт молотка
+            }
+
+            if (site.UnstockableSinceTick is { } since &&
+                world.Tick - since >= SimBalance.BuildSiteUnstockableSkipTicks)
+            {
+                starvedSite ??= site;
+                continue;
             }
 
             if (site.DefinitionId == ContentIds.Campfire)
@@ -190,7 +237,162 @@ public sealed partial class DecisionSystem
         var needsSpitNow = npc.Inventory.Items.Contains(ContentIds.MeatRaw);
         return needsSpitNow && hearthUpgrade != null
             ? hearthUpgrade
-            : collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ?? firstSite;
+            : collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ??
+              firstSite ?? starvedSite;
+    }
+
+    /// <summary>§54.19: ждёт ли стройка ещё хоть чего-нибудь на ТЕКУЩЕЙ стадии.
+    /// Дешёвая проверка перед дорогой — стройке, которой всё привезли, вопрос
+    /// «можно ли её закрыть» задавать незачем.</summary>
+    private static bool SiteShortOfAnything(WorldObjectState site)
+    {
+        foreach (var material in BuildSiteMath.AllMaterials)
+        {
+            if (BuildSiteMath.Remaining(site, material) > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// §54.19: можно ли ТЕКУЩУЮ стадию этой стройки вообще чем-то закрыть —
+    /// есть ли для каждого недостающего материала хоть какой-то источник.
+    /// </summary>
+    private static bool SiteStockableNow(
+        WorldObjectState site, in MaterialSources sources, NPCState npc)
+    {
+        foreach (var material in BuildSiteMath.AllMaterials)
+        {
+            if (BuildSiteMath.Remaining(site, material) <= 0)
+            {
+                continue;
+            }
+
+            // Несёт сама — донесёт.
+            if (npc.Inventory.Items.Contains(material))
+            {
+                continue;
+            }
+
+            if (!sources.Has(material))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// §54.19: что из строительных материалов колонии вообще доступно — один
+    /// проход по восприятию вместо восьми запросов по тегу.
+    /// <para>
+    /// Список источников нарочно ЩЕДРЫЙ: цена ложного «нет» (живую стройку
+    /// задвинули в конец очереди) выше цены ложного «да» (всё как раньше).
+    /// Поэтому считаются и производные пути: палка = лежит ИЛИ раскалывается из
+    /// бревна, верёвка = лежит ИЛИ вьётся из волокна, лист = лежит ИЛИ
+    /// срубается с кроны.
+    /// </para>
+    /// <para>
+    /// ⭐ У БРЕВНА производного пути нет — и это не упущение. §64.9 запретил
+    /// валить пальмы под счёт постройки (пальма — вода колонии), так что
+    /// лежащее бревно единственный источник; именно поэтому кровать с
+    /// «log 0/4» и была вечным жильцом слота очереди.
+    /// </para>
+    /// </summary>
+    private readonly struct MaterialSources
+    {
+        private MaterialSources(bool log, bool stone, bool boulder, bool leaf, bool crown,
+            bool palm, bool stick, bool rope, bool fiber, bool board)
+        {
+            Log = log;
+            Stone = stone;
+            Boulder = boulder;
+            Leaf = leaf;
+            Crown = crown;
+            Palm = palm;
+            Stick = stick;
+            Rope = rope;
+            Fiber = fiber;
+            Board = board;
+        }
+
+        private bool Log { get; }
+
+        private bool Stone { get; }
+
+        private bool Boulder { get; }
+
+        private bool Leaf { get; }
+
+        private bool Crown { get; }
+
+        private bool Palm { get; }
+
+        private bool Stick { get; }
+
+        private bool Rope { get; }
+
+        private bool Fiber { get; }
+
+        private bool Board { get; }
+
+        public static MaterialSources Scan(WorldState world, NPCState npc)
+        {
+            bool log = false, stone = false, boulder = false, leaf = false, crown = false;
+            bool palm = false, stick = false, rope = false, fiber = false, board = false;
+            foreach (var obj in npc.Perception.Objects)
+            {
+                // Те же фильтры, что у HasReachableWithTag: недостижимое,
+                // занятое и отвергнутое памятью источником не является.
+                if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
+                    npc.Memory.IsShunned(obj.Id, world.Tick) ||
+                    !world.Content.ObjectDefinitions.TryGetValue(
+                        obj.DefinitionId, out var definition))
+                {
+                    continue;
+                }
+
+                foreach (var tag in definition.Tags)
+                {
+                    switch (tag)
+                    {
+                        case ObjectTags.Log: log = true; break;
+                        case ObjectTags.Stone: stone = true; break;
+                        case ObjectTags.Boulder: boulder = true; break;
+                        case ObjectTags.PalmLeaf: leaf = true; break;
+                        case ObjectTags.PalmCrown: crown = true; break;
+                        case ObjectTags.Palm: palm = true; break;
+                        case ObjectTags.Stick: stick = true; break;
+                        case ObjectTags.Rope: rope = true; break;
+                        case ObjectTags.Fiber:
+                        case ObjectTags.Yucca: fiber = true; break;
+                    }
+                }
+
+                if (obj.DefinitionId == ContentIds.Board)
+                {
+                    board = true;
+                }
+            }
+
+            return new MaterialSources(log, stone, boulder, leaf, crown, palm, stick, rope,
+                fiber, board);
+        }
+
+        public bool Has(string material) => material switch
+        {
+            BuildSiteMath.MaterialLogs => Log,
+            BuildSiteMath.MaterialStones => Stone || Boulder,
+            BuildSiteMath.MaterialLeaves => Leaf || Crown || Palm,
+            BuildSiteMath.MaterialSticks => Stick || Log,
+            BuildSiteMath.MaterialRope => Rope || Fiber,
+            BuildSiteMath.MaterialBoards => Board || Log,
+            _ => true
+        };
     }
 
     // §80: своя ли это стройка. §72 развёл лагеря, но очередь построек — нет:

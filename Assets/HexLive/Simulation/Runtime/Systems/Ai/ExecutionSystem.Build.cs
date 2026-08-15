@@ -47,6 +47,16 @@ public sealed partial class ExecutionSystem
             }
         }
 
+        // §120: a wall becomes an obstacle the moment ANY of its pieces is
+        // delivered, so the topology is re-derived on the delivery — not at
+        // completion. Idempotent and cheap (51 modules, integer lattice), and
+        // running it here means the site and the raised building can never
+        // disagree about which junctions the same walls block.
+        if (moved > 0 && site.BuildProduct == ContentIds.HutPlan)
+        {
+            Bootstrap.BuildingBootstrap.RepairPlanTopology(world, site);
+        }
+
         if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct) &&
             BuildingRules.FloorComplete(world, site))
         {
@@ -131,6 +141,8 @@ public sealed partial class ExecutionSystem
                     world, ContentIds.Campfire, npc.Fragment, fireTile, fj);
                 fire.ResourceAmount = 0f; // born cold — light it like any fire
                 fire.BuildProduct = ContentIds.Campfire;
+                fire.Variant = site.Variant;  // §120.2: the household hearth stays one
+                ReleaseIndoorFootprint(world, fire);
                 fire.RotationDegrees = site.RotationDegrees; // §66: the site's facing is the piece's
                 fire.BillSticks = site.BillSticks;
                 fire.BillStones = site.BillStones;
@@ -197,6 +209,7 @@ public sealed partial class ExecutionSystem
             // §66: so does the yaw the site was staked at — the bed must come up
             // lying side-on to the fire, not on whatever default the prefab has.
             var yaw = site.RotationDegrees;
+            var variant = site.Variant;
             var architectureOwner = site.Id;
             WorldObjectMutations.DespawnObject(world, site.Id);
             if (junction is { } j)
@@ -204,6 +217,8 @@ public sealed partial class ExecutionSystem
                 var raised = WorldObjectMutations.SpawnObject(world, product, npc.Fragment, tile, j);
                 raised.Owner = owner;
                 raised.RotationDegrees = yaw;
+                if (!string.IsNullOrEmpty(variant)) raised.Variant = variant;
+                ReleaseIndoorFootprint(world, raised);
                 BuildingRules.ReparentElements(world, architectureOwner, raised);
                 if (product == ContentIds.Workbench)
                 {
@@ -220,6 +235,26 @@ public sealed partial class ExecutionSystem
                 $"{product} raised at Tile={tile.Q},{tile.R}" +
                 (owner is { } ow ? $" for colonist {ow.Value}" : string.Empty));
         }
+    }
+
+    /// <summary>
+    /// §120: ARCHITECTURE owns a room's topology, furniture never does. A piece
+    /// raised on an Indoor tile drops its obstacle footprint the moment it comes
+    /// up — the canonical hut does exactly this for its two cots, its hearth and
+    /// its wardrobe, and for the same reason: three beds, a cabinet and a fire
+    /// claiming their real footprints inside a three-hex room would wall its own
+    /// door shut. Outdoors nothing changes; the piece stays solid.
+    /// </summary>
+    private static void ReleaseIndoorFootprint(WorldState world, WorldObjectState raised)
+    {
+        if (raised == null ||
+            !world.Tiles.Items.TryGetValue(raised.Tile, out var tile) ||
+            !tile.Flags.HasFlag(TileFlags.Indoor))
+        {
+            return;
+        }
+
+        WorldObjectMutations.SetObstacleBlocking(world, raised, blocked: false);
     }
 
     // Spec 35.3: consume the bill and place the pending piece; walls block

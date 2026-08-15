@@ -67,6 +67,15 @@ public sealed class SoakMetrics
     public int TicksRun;
     public int NpcsAtStart;
     public int NpcsAtEnd;
+    /// <summary>
+    /// ⭐ Только КОЛОНИЯ. «NPC 4 → 3» ничего не говорит о выживании колонии:
+    /// стартовый состав — три колонистки И чужак (§72), и смерть чужака в этой
+    /// строке выглядит ровно как смерть колонистки, хотя это противоположная
+    /// новость. Цель баланса ставится в колонистках («восемь дней из десяти все
+    /// три живы»), поэтому она и меряется отдельно.
+    /// </summary>
+    public int ColonistsAtStart;
+    public int ColonistsAtEnd;
     public int MobsAtEnd;
     public int MobsPeak;
     public bool Completed;
@@ -326,6 +335,7 @@ public sealed class SoakMetrics
         text.AppendLine("сид " + Seed + ", тиков " + TicksRun +
                         " (" + (TicksRun / Math.Max(Seconds, 0.001)).ToString("F0", invariant) + " тик/с)");
         text.AppendLine("  NPC                 " + NpcsAtStart + " → " + NpcsAtEnd);
+        text.AppendLine("  КОЛОНИЯ             " + ColonistsAtStart + " → " + ColonistsAtEnd);
         text.AppendLine("  мобы (пик/конец)    " + MobsPeak + " / " + MobsAtEnd);
         text.AppendLine("  плот                " + (Completed ? "запущен" : "не запущен"));
         text.AppendLine("  цель менялась       " + GoalChanges +
@@ -386,6 +396,8 @@ public sealed class SoakMetrics
                ",\"ticks\":" + TicksRun +
                ",\"npcsAtStart\":" + NpcsAtStart +
                ",\"npcsAtEnd\":" + NpcsAtEnd +
+               ",\"colonistsAtStart\":" + ColonistsAtStart +
+               ",\"colonistsAtEnd\":" + ColonistsAtEnd +
                ",\"mobsAtEnd\":" + MobsAtEnd +
                ",\"mobsPeak\":" + MobsPeak +
                ",\"completed\":" + (Completed ? "true" : "false") +

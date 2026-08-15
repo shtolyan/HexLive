@@ -55,6 +55,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float outsiderHardiness = 0.6f;
         [Tooltip("Смекалка чужака: скорость обучения навыкам и крафта. Не мастеровой — его сила в руках.")]
         [Range(0f, 1f)] public float outsiderWits = 0.4f;
+        [Tooltip("§125: восприятие чужака (радиус живого зрения). 0.7 = зоркий охотник, живёт наблюдением.")]
+        [Range(0f, 1f)] public float outsiderPerception = 0.7f;
         [Tooltip("Он сходит на берег с ножом. У одиночки нет разделения труда колонии, а охота вообще гейтится на настоящем оружии.")]
         public bool outsiderStartsArmed = true;
 

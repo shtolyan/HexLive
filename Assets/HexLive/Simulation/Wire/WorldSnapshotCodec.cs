@@ -843,6 +843,7 @@ public static class WorldSnapshotCodec
             w.Write(wound.Heal01);
             w.Write(wound.Clot01);
             w.Write(wound.Stabilized);
+            w.Write(wound.Plastered); // §118.2
             w.Write(wound.BleedFactor);
             w.Write(wound.Seed);
         }
@@ -1103,6 +1104,7 @@ public static class WorldSnapshotCodec
             wound.Heal01 = r.ReadSingle();
             wound.Clot01 = r.ReadSingle();
             wound.Stabilized = r.ReadBoolean();
+            wound.Plastered = r.ReadBoolean(); // §118.2
             wound.BleedFactor = r.ReadSingle();
             wound.Seed = r.ReadInt32();
         }

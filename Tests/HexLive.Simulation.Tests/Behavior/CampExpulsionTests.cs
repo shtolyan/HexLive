@@ -42,6 +42,13 @@ public sealed class CampExpulsionTests
         intruder.Mind.GoalLock = null;
         owner.IsFighting = false;
         intruder.IsFighting = false;
+        // Most tests below exercise scene phases rather than the new §117
+        // voluntary-risk gate. Stage an owner who can safely issue the demand;
+        // dedicated odds tests replace this loadout explicitly.
+        owner.Inventory.Items.Clear();
+        owner.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
+        intruder.Inventory.Items.Clear();
+        owner.EquippedArmor = intruder.EquippedArmor = 0f;
     }
 
     [Test]
@@ -99,6 +106,85 @@ public sealed class CampExpulsionTests
             Assert.That(owner.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Expel));
             Assert.That(owner.Mind.ExpulsionTargetNpcId, Is.Null,
                 "A survival emergency keeps ownership of the actor.");
+            Assert.That(intruder.Mind.PendingExpulsionFrom, Is.Null);
+        });
+    }
+
+    [Test]
+    public void VoluntaryChallengeWeighsHealthArmorAndWeaponOnBothSides()
+    {
+        var (world, owner, intruder) = Pair();
+        owner.Inventory.Items.Clear();
+        intruder.Inventory.Items.Clear();
+        owner.Health = intruder.Health = 1f;
+        owner.EquippedArmor = intruder.EquippedArmor = 0f;
+        owner.Attributes.Strength = intruder.Attributes.Strength = 0.5f;
+        owner.Skills.Combat = intruder.Skills.Combat = 0f;
+
+        Assert.That(CampExpulsionSystem.HasSafeChallengeOdds(world, owner, intruder),
+            Is.True, "Равные здоровые безоружные стороны не меняют прежнее поведение.");
+
+        intruder.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
+        Assert.That(CampExpulsionSystem.HasSafeChallengeOdds(world, owner, intruder),
+            Is.False, "Безоружная не должна сама начинать бой против мачете.");
+
+        owner.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
+        Assert.That(CampExpulsionSystem.HasSafeChallengeOdds(world, owner, intruder),
+            Is.True, "Одинаковое оружие должно вернуть равный расклад.");
+
+        owner.Health = 0.6f;
+        Assert.That(CampExpulsionSystem.HasSafeChallengeOdds(world, owner, intruder),
+            Is.False, "Текущее здоровье обеих сторон должно участвовать в решении.");
+
+        owner.Health = 1f;
+        intruder.EquippedArmor = 0.25f;
+        Assert.That(CampExpulsionSystem.HasSafeChallengeOdds(world, owner, intruder),
+            Is.False, "Броня чужака должна удерживать более слабую хозяйку от атаки.");
+    }
+
+    [Test]
+    public void WorseOddsDoNotClaimIntruderOrStartFight()
+    {
+        var (world, owner, intruder) = Pair();
+        PutAtCamp(world, owner, intruder);
+        owner.Inventory.Items.Clear();
+        intruder.Inventory.Items.Clear();
+        intruder.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
+
+        CampExpulsionSystem.BeginChallenge(world, owner, intruder);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(owner.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Expel));
+            Assert.That(owner.Mind.ExpulsionTargetNpcId, Is.Null);
+            Assert.That(intruder.Mind.PendingExpulsionFrom, Is.Null);
+            Assert.That(owner.Mind.SceneBlowsPlanned, Is.Zero);
+        });
+    }
+
+    [Test]
+    public void OddsAreRecheckedImmediatelyBeforeRefusalBecomesFight()
+    {
+        var (world, owner, intruder) = Pair();
+        PutAtCamp(world, owner, intruder);
+        owner.Inventory.Items.Clear();
+        intruder.Inventory.Items.Clear();
+        owner.Attributes.Strength = intruder.Attributes.Strength = 0.5f;
+        owner.Skills.Combat = intruder.Skills.Combat = 0f;
+        CampExpulsionSystem.BeginChallenge(world, owner, intruder);
+        owner.Mind.ExpulsionPhase = 1;
+        owner.Mind.ExpulsionPhaseStartedTick = world.Tick - Spec82.TerritoryResponseDelayTicks;
+        intruder.Mind.CurrentGoal = GoalType.Expel;
+
+        intruder.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
+        CampExpulsionSystem.AdvanceDemand(world, owner, intruder);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(owner.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(owner.Mind.ExpulsionTargetNpcId, Is.Null);
+            Assert.That(owner.Mind.SceneBlowsPlanned, Is.Zero,
+                "После ухудшения расклада драка не должна даже объявлять удары.");
             Assert.That(intruder.Mind.PendingExpulsionFrom, Is.Null);
         });
     }

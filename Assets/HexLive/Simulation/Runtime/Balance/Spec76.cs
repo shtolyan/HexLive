@@ -38,7 +38,28 @@ public static class Spec76
 
     // The human average. Every multiplier is expressed as a deviation FROM
     // this, so a body sitting exactly here is the pre-§76 game.
+    //
+    // ⭐ ЭТУ РУЧКУ НЕЛЬЗЯ ИСПОЛЬЗОВАТЬ, ЧТОБЫ «ДАТЬ ОЧКОВ» — она стоит в ОБЕИХ
+    // половинах формулы сразу: и в центре розыгрыша (`Mean + Spread × dev`), и
+    // в отсчёте эффекта (`1 + (attr − Mean) × Gain`). Поднять её значит поднять
+    // и планку, относительно которой считается бонус, поэтому `attr − Mean` не
+    // меняется НИ НА СКОЛЬКО: 0.5 → 0.6 — доказуемый no-op, а не «+1 к каждой».
+    // Проверено замером (§139.4): шесть сидов, ноль разницы в поведении.
+    // Прибавка живёт в AttributeBonus ниже.
     public static float AttributeMean = 0.5f;
+
+    // ⭐ §139.4: +6 ОЧКОВ РОССЫПЬЮ — и вот это уже работает. Сдвигает только
+    // розыгрыш, а точка отсчёта эффекта остаётся на AttributeMean, поэтому
+    // каждая из шести врождённых характеристик получает ровно +1 из десяти:
+    // шесть очков, размазанных по всем, а не вложенных в одну.
+    //
+    // Toughness при этом режет и входящий урон, и скорость деградации ран, то
+    // есть бьёт прямо по тому, от чего они гибли — по разгрызенным в ноль
+    // рукам и ногам.
+    //
+    // Потолок: Mean + Bonus + Spread <= 1, иначе полоса клипается и точный
+    // бюджет §76.2 перестаёт быть точным. При 0.5 + 0.1 + 0.4 = ровно 1.0.
+    public static float AttributeBonus = 0.1f;
 
     // Half-width of the band. Attributes land in [Mean − Spread, Mean + Spread]
     // EXACTLY (AttributeMath.Roll normalises, so Clamp01 never bites and the
@@ -49,7 +70,9 @@ public static class Spec76
     // person at a glance. Note the numbers look more dramatic than they play —
     // a "0/10" is a 15% penalty, not a broken limb (see the *Gain knobs).
     // Set to 0 for the provable no-op described above.
-    public static float AttributeSpread = 0.5f;
+    // §139.4: разброс сужен под прибавку — правило Mean + Bonus + Spread <= 1
+    // обязано держаться, иначе полоса клипается и бюджет перестаёт быть точным.
+    public static float AttributeSpread = 0.4f;
 
     // ---- Per-effect gains ---------------------------------------------------
     // Every multiplier reads `1 + (attr − Mean) × Gain`, so at Spread 0.5 a

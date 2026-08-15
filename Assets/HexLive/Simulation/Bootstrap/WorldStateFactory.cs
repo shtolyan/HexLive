@@ -127,27 +127,63 @@ public sealed class WorldStateFactory
         // not a death sentence. Worn items are NOT world objects, so this
         // provisions the cold WITHOUT perturbing routes/placement.
         // Spec 42 (WarmUp era): castaways wash ashore in almost nothing —
-        // random (deterministic per seed+NPC) underwear, MAYBE shorts, MAYBE
-        // a top missing entirely. Clothing barely warms; the designed way
-        // through a cold night is the campfire, not the wardrobe.
+        // random (deterministic per seed+NPC) briefs + bra and MAYBE shorts.
+        // Clothing barely warms; the designed way through a cold night is the
+        // campfire, not the wardrobe. §133.5 makes both underwear zones a hard
+        // spawn invariant: nobody is born bare below or with an open chest.
         // Пулы ВЫВОДЯТСЯ из гардероба, а не перечисляются. Списком они были
         // ровно до тех пор, пока вещей было тридцать: после импорта их 685, и
         // каждая новая партия проходила бы мимо потерпевших молча — новую вещь
         // никто бы не увидел, пока её не впишут сюда руками.
-        var startBottoms = StartPool(g => g.Layer == WearLayer.Underwear && g.Covers.Contains(BodyPart.Pelvis));
+        var startBriefs = StartPool(g => g.Layer == WearLayer.Underwear &&
+                                      g.Covers.Contains(BodyPart.Pelvis) &&
+                                      !g.Covers.Contains(BodyPart.Torso));
         // §52.9 / баг #124: ВЕРХ — это то, что закрывает торс и НЕ претендует на
         // таз. Без второго условия в пул «лифчиков» попадали трусы с завышенной
         // талией (`briefs_strappy_mat03` = Belly+Pelvis, то есть Covers
         // Torso+Pelvis), и розыгрыш выдавал девушке ДВА низа: 20.3% колонисток
         // на 201 сиде выходили на берег в паре, дерущейся за один слот таза.
-        var startTops = StartPool(g => g.Layer == WearLayer.Underwear &&
-                                       g.Covers.Contains(BodyPart.Torso) &&
-                                       !g.Covers.Contains(BodyPart.Pelvis));
+        var startBras = StartPool(g => g.Layer == WearLayer.Underwear &&
+                                    g.Covers.Contains(BodyPart.Torso) &&
+                                    !g.Covers.Contains(BodyPart.Pelvis));
         // Верхний низ — только ЛЁГКИЙ: шорты и юбки проходят, джинсы (0.12) и
         // платья (0.10) нет. Никто не выходит на берег в шубе (§42).
         var startShorts = StartPool(g => g.Layer == WearLayer.Wear &&
                                          g.Covers.Contains(BodyPart.Pelvis) &&
                                          g.Warmth <= 0.06f);
+        // ⭐ §139.2: НАРУЧИ И ОБУВЬ В СТАРТОВОМ НАБОРЕ. Волк грызёт руки и ноги,
+        // и именно они решают судьбу: рука ниже 0.20 — и колонистка не может
+        // открыть кокос, то есть умирает от жажды рядом с пальмой (замер §53.9,
+        // seed 476005489). Стартовый набор при этом состоял из белья и шорт —
+        // брони на конечностях НОЛЬ.
+        //
+        // Три условия пула не косметические, каждое закрывает свою дыру:
+        //   Armor >= 0.1  — розыгрыш равновероятен по пулу (StartPool сортирует
+        //     по id, а не по броне), так что «хоть что-то с бронёй» выдало бы
+        //     блузку на 0.01 и гарантия оказалась бы враньём;
+        //   Warmth <= 0.16 — остров жаркий, шуба на ногах платится жаждой
+        //     (SweatThirstFactor), ровно как у шорт выше;
+        //   !Pelvis (для ног) — таз уже занят шортами, а Wear молча пропускает
+        //     вещь, чей слот занят (§52.9): половина «поножей» не надевалась бы
+        //     вовсе, и в замере это выглядело бы как «броня не помогает».
+        // Остаётся 6 наручей (0.15) и 50 пар обуви (0.10-0.18) — набор, который
+        // и на вид читается как «выброшенная на берег», а не как латы.
+        var startArmGuards = StartPool(g => g.Armor >= 0.1f &&
+                                            g.Warmth <= 0.16f &&
+                                            g.Covers.Contains(BodyPart.ArmL) &&
+                                            g.Covers.Contains(BodyPart.ArmR));
+        var startLegGuards = StartPool(g => g.Armor >= 0.1f &&
+                                            g.Warmth <= 0.16f &&
+                                            !g.Covers.Contains(BodyPart.Pelvis) &&
+                                            g.Covers.Contains(BodyPart.LegL) &&
+                                            g.Covers.Contains(BodyPart.LegR));
+        // §133.2 r2: every starting colonist gets one real backpack. Only the
+        // dedicated Bags layer is eligible; pouches and holsters are not
+        // silently promoted into backpacks by having pockets.
+        var startBackpacks = StartPool(g => g.Layer == WearLayer.Bags &&
+                                            g.Category == GarmentCategory.Bag &&
+                                            g.Id.StartsWith("gear.backpack_", StringComparison.Ordinal));
+
         // §72: чужак сходит на берег не потерпевшим, а бойцом — в своём
         // тактическом комплекте. Раздавать ему женское пляжное бельё было бы
         // не только нелепо на вид: без брони он гиб на всех сидах, дважды даже
@@ -174,16 +210,25 @@ public sealed class WorldStateFactory
                 continue;
             }
 
-            Wear(npc, startBottoms, MathUtil.Hash01(world.Seed, id, 11, 4201));
-            if (MathUtil.Hash01(world.Seed, id, 12, 4202) < 0.8f)
-            {
-                Wear(npc, startTops, MathUtil.Hash01(world.Seed, id, 13, 4203));
-            }
+            // §133.5 r2: panties and a separate chest cover are mandatory at
+            // spawn. The previous 80% bra roll made roughly every fifth
+            // castaway appear bare-chested. A shirt may still be added by the
+            // ordinary wardrobe later; the bra is the deterministic baseline.
+            Wear(npc, startBriefs, MathUtil.Hash01(world.Seed, id, 11, 4201));
+            Wear(npc, startBras, MathUtil.Hash01(world.Seed, id, 13, 4203));
 
             if (MathUtil.Hash01(world.Seed, id, 14, 4204) < 0.5f)
             {
                 Wear(npc, startShorts, MathUtil.Hash01(world.Seed, id, 15, 4205));
             }
+
+            // §139.2: защита конечностей — не розыгрыш «повезло/не повезло», а
+            // часть набора: её носят ВСЕ. Отдельные seeds (4206/4207), чтобы
+            // добавление не сдвинуло розыгрыш белья выше и старые сиды остались
+            // сравнимыми по одежде.
+            Wear(npc, startArmGuards, MathUtil.Hash01(world.Seed, id, 16, 4206));
+            Wear(npc, startLegGuards, MathUtil.Hash01(world.Seed, id, 17, 4207));
+            Wear(npc, startBackpacks, MathUtil.Hash01(world.Seed, id, 18, 4208));
 
             // Пояс и подтяжки к сужению пула выше: розыгрыш кладёт вещи в
             // WornItems НАПРЯМУЮ, мимо ResolveWearConflicts, поэтому единственное,
@@ -213,7 +258,11 @@ public sealed class WorldStateFactory
         }
 
         var index = (int)(roll * pool.Length);
-        npc.WornItems.Add(pool[index >= pool.Length ? pool.Length - 1 : index]);
+        npc.WornItems.Add(new ItemInstance(pool[index >= pool.Length ? pool.Length - 1 : index])
+        {
+            // §133: starting clothes are personal property from tick zero.
+            OwnerId = npc.Id.Value
+        });
     }
 
     private static string[] StartPool(Func<GarmentParams, bool> keep)
@@ -1036,11 +1085,27 @@ public sealed class WorldStateFactory
 
         // §40.3 / §44: the starting first-aid reserve is real cargo. Every
         // dressing remains a separate instance, while identical wraps share a
-        // visible ten-item stack (two medkit gauzes, then two herbal wraps).
-        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: false));
-        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: false));
-        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: true));
-        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: true));
+        // visible ten-item stack (medkit gauzes first, then herbal wraps).
+        //
+        // ⭐ §139.5: запас УДВОЕН, 4 -> 8 повязок и 1 -> 2 таблетки. Основная
+        // причина смерти колонистки за первые сутки — BledOut, и разбор смертей
+        // показал, что умирают они С ПУСТОЙ аптечкой: у Лены в инвентаре к
+        // концу остались бутылка, копьё, кирка, нож, молоток, пила и зажигалка,
+        // а бинтов — ни одного. Значит упирались не в решение «перевязаться», а
+        // в наличие. Повязки СТАКУЮТСЯ (одна ячейка на десяток), поэтому
+        // удвоение почти ничего не стоит по слотам — то есть не приближает
+        // §52-дедлок «полный рюкзак», которым уже отравлены походы за водой.
+        for (var i = 0; i < 4; i++)
+        {
+            npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: false));
+        }
+
+        for (var i = 0; i < 4; i++)
+        {
+            npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: true));
+        }
+
+        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
         npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
 
         // §72 / §79: the authored opening outsider keeps his established

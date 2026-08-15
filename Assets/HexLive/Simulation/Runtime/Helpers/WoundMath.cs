@@ -142,10 +142,35 @@ internal static class WoundMath
             (Spec118.BandageTicksExpert - Spec118.BandageTicksNovice) * medicine));
     }
 
-    public static bool StabilizeMostDangerous(
-        NPCState npc, bool herbal, out WoundState stabilized)
+    /// <summary>⭐ §118.2: ПЛАСТЫРЬ — заклеить ровно одну рану, самую опасную.
+    ///
+    /// Ровно то поведение, которое до §118.2 было у бинта: приоритет активного
+    /// кровотечения, затем самая глубокая сухая. Оно никуда не делось — просто
+    /// переехало на дешёвый расходник, а бинт поднялся до целой зоны.
+    ///
+    /// Зону пластырь НЕ помечает: на торсе может висеть пяток пластырей, по
+    /// одному на порез, и поверх них ещё бинт. Поэтому метка живёт на записи
+    /// раны (<see cref="WoundState.Plastered"/>), а BandagedZones не трогается.
+    /// </summary>
+    public static bool PlasterMostDangerous(NPCState npc, out WoundState plastered)
     {
-        stabilized = null;
+        plastered = PickMostDangerous(npc);
+        if (plastered == null)
+        {
+            return false;
+        }
+
+        plastered.Stabilized = true;
+        plastered.Plastered = true;
+        plastered.Clot01 = 1f;
+        return true;
+    }
+
+    /// <summary>Общий выбор жертвы для повязки и пластыря: активно кровоточащая
+    /// всегда вперёд сухой, среди равных — самая глубокая.</summary>
+    private static WoundState PickMostDangerous(NPCState npc)
+    {
+        WoundState chosen = null;
         var danger = 0f;
         var choseActiveBleed = false;
         foreach (var wound in npc.Wounds)
@@ -155,38 +180,71 @@ internal static class WoundMath
                 continue;
             }
 
-            // Active hemorrhage always wins. If every wound is already dry,
-            // choose the deepest remaining cut instead of the first list item
-            // (the old (1-clot) score made every clotted wound tie at zero).
             var openDanger = wound.Severity * (1f - wound.Heal01) * wound.BleedFactor;
             var activeBleed = wound.Clot01 < 1f;
             var score = activeBleed ? openDanger * (1f - wound.Clot01) : openDanger;
-            if (stabilized == null ||
+            if (chosen == null ||
                 (activeBleed && !choseActiveBleed) ||
                 (activeBleed == choseActiveBleed && score > danger))
             {
-                stabilized = wound;
+                chosen = wound;
                 danger = score;
                 choseActiveBleed = activeBleed;
             }
         }
 
+        return chosen;
+    }
+
+    public static bool StabilizeMostDangerous(
+        NPCState npc, bool herbal, out WoundState stabilized)
+    {
+        // Active hemorrhage always wins; among equals the deepest cut. The
+        // chosen wound only picks the ZONE — the dressing then covers all of
+        // it (see below). §118.2: the same picker serves the plaster, which
+        // stops at that one wound.
+        stabilized = PickMostDangerous(npc);
         if (stabilized == null)
         {
             return false;
         }
 
-        stabilized.Stabilized = true;
-        stabilized.Clot01 = 1f;
+        // ⭐ §118.2: повязка перевязывает ЗОНУ, а не одну царапину.
+        //
+        // Раньше бинт закрывал ровно одну запись. Но один укус пишет
+        // GashesPerHit=3 записи в одну и ту же зону, так что перевязать грудь
+        // целиком стоило семи бинтов, а флаг BandagedZones вставал уже с
+        // первого — в UI грудь выглядела забинтованной, пока под бинтом
+        // оставалось шесть необработанных ран (сейв seed=-28275602: у Киры
+        // bandaged=True при четырёх из пяти ран stabilized=False). Модель
+        // спорила сама с собой: перевязка мыслится по зоне, а лечила по записи.
+        //
+        // Теперь выбор САМОЙ ОПАСНОЙ раны выбирает ЗОНУ (приоритет активного
+        // кровотечения сохранён), а бинт ложится на все её открытые раны разом.
+        // Это и есть настоящая перевязка: тряпку наматывают на руку, а не на
+        // отдельный порез. Другие зоны требуют своего бинта — одна повязка
+        // по-прежнему одна конечность.
+        var zone = stabilized.Zone;
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Zone != zone || wound.Stabilized || wound.Heal01 >= 1f)
+            {
+                continue;
+            }
+
+            wound.Stabilized = true;
+            wound.Clot01 = 1f;
+        }
+
         if (herbal)
         {
-            npc.BandagedZones.Add(stabilized.Zone);
-            npc.GauzeZones.Remove(stabilized.Zone);
+            npc.BandagedZones.Add(zone);
+            npc.GauzeZones.Remove(zone);
         }
         else
         {
-            npc.GauzeZones.Add(stabilized.Zone);
-            npc.BandagedZones.Remove(stabilized.Zone);
+            npc.GauzeZones.Add(zone);
+            npc.BandagedZones.Remove(zone);
         }
 
         return true;

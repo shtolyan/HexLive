@@ -162,6 +162,22 @@ public sealed class PutDownPersonCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§124.1: донести переносимого человека до кровати и уложить в неё.</summary>
+public sealed class PutPersonInBedCommand : ISimulationCommand
+{
+    public PutPersonInBedCommand(EntityId npc, ObjectId bed)
+    {
+        Npc = npc;
+        Bed = bed;
+    }
+
+    public EntityId Npc { get; }
+
+    public ObjectId Bed { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§121: бить зверя. Мобы живут отдельным списком со своей
 /// нумерацией, поэтому цель — int, а не EntityId.</summary>
 public sealed class AttackMobCommand : ISimulationCommand

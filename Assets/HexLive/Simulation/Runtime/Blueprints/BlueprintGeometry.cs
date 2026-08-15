@@ -267,6 +267,71 @@ namespace HexLive.Simulation.Runtime.Blueprints
             return true;
         }
 
+        /// <summary>
+        /// Rotates a build node by <paramref name="steps"/> hex symmetries about
+        /// the lattice origin. The build basis is axial (one neighbour step is
+        /// 0.5 wu at 30°/90°/150°), so +60° is the SAME (q,r) -> (-r, q+r) step
+        /// the tile grid uses — which is why a plan's footprint, its modules and
+        /// its walls can all be rotated by one formula instead of three.
+        /// </summary>
+        public static HexBuildNodeKey RotateNode(HexBuildNodeKey node, int steps)
+        {
+            var q = node.Q;
+            var r = node.R;
+            for (var i = 0; i < NormalizeSector(steps); i++)
+            {
+                var nextQ = -r;
+                r = q + r;
+                q = nextQ;
+            }
+            return new HexBuildNodeKey(q, r);
+        }
+
+        /// <summary>
+        /// The navigation junctions that lie ON one unit build segment — the
+        /// §120 obstacle rule for a raised wall/window/door section.
+        ///
+        /// Both lattices share one world frame and one axial basis: a build node
+        /// (q,r) is the junction key (4q/3, (4q+8r)/3), so the three build
+        /// directions ARE the three junction directions and a junction point
+        /// falls every 3/4 of a build step along the line. A unit segment
+        /// therefore carries one or two junctions and the only candidate
+        /// parameters are the quarters t = 0, 1/4, 1/2, 3/4, 1 — which is why
+        /// this walks node coordinates scaled by four and stays exact integer
+        /// arithmetic. Blocking every junction on the line seals it: in a
+        /// triangular lattice no edge crosses a lattice line without landing on
+        /// a lattice point of that line.
+        ///
+        /// The endpoints are inclusive on purpose. Adjacent sections then share
+        /// their seam junction, so three sections along one hex edge cover all
+        /// five of its junctions with no gap — and a HALF-built edge keeps its
+        /// real holes instead of pretending to be solid.
+        /// </summary>
+        public static IReadOnlyList<JunctionKey> SegmentJunctions(BuildSegmentKey segment)
+        {
+            var result = new List<JunctionKey>(2);
+            if (!IsUnitSegment(segment)) return result;
+            var dq = segment.B.Q - segment.A.Q;
+            var dr = segment.B.R - segment.A.R;
+            for (var quarter = 0; quarter <= 4; quarter++)
+            {
+                var scaledQ = 4 * segment.A.Q + quarter * dq;
+                var scaledR = 4 * segment.A.R + quarter * dr;
+                if (Mod3(scaledQ) != 0) continue;
+                var scaledY = scaledQ + 2 * scaledR;
+                if (Mod3(scaledY) != 0) continue;
+                var key = new JunctionKey(scaledQ / 3, scaledY / 3);
+                if (!result.Contains(key)) result.Add(key);
+            }
+            return result;
+        }
+
+        private static int Mod3(int value)
+        {
+            var remainder = value % 3;
+            return remainder < 0 ? remainder + 3 : remainder;
+        }
+
         public static bool AreSectorsAdjacent(FloorSectorKey left, FloorSectorKey right)
         {
             if (left == right) return false;

@@ -526,6 +526,34 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 ok ? null : Loc.Get("menu.missing_tool")));
         }
 
+        // §124.1: у несущей человека клик по кровати добавляет «Положить» —
+        // рядом со «Спать» из каталога. Занятость кровати авторитетно решает
+        // симуляция (Occupied придёт тостом): в ObjectSnapshot её нет.
+        if (HexLive.Simulation.Content.ContentIds.IsBed(view.DefinitionId))
+        {
+            var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+            NpcSnapshot? me = null;
+            if (snapshot != null)
+            {
+                foreach (var candidate in snapshot.Npcs)
+                {
+                    if (candidate.Id.Value == ManualNpcId)
+                    {
+                        me = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (me?.CarriedNpcId is not null)
+            {
+                var bedId = view.ObjectId;
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.put_in_bed"),
+                    () => runner.EnqueueCommand(
+                        new PutPersonInBedCommand(actor, new ObjectId(bedId)))));
+            }
+        }
+
         if (_entries.Count == 0)
         {
             return;
@@ -573,6 +601,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.put_down_person"),
                 () => runner.EnqueueCommand(
                     new PutDownPersonCommand(new EntityId(carrier.Id.Value)))));
+            // §128: «взял — обыскал». Несомый САМИМ носильщиком — легальная
+            // цель обыска, обмен идёт прямо в руках.
+            if (!dead && target.IsUnconscious)
+            {
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
+                    () => LootTransferPanel.Open(carrier.Id.Value, npcId)));
+            }
         }
         else if (lying)
         {
@@ -587,14 +622,18 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     new EntityId(carrier!.Id.Value), new EntityId(npcId))),
                 canCarry, canCarry ? null : blockedReason));
         }
-        if (!dead && target.IsUnconscious)
+        if (!dead && target.IsUnconscious && carrier?.CarriedNpcId != npcId)
         {
             var canLoot = carrier != null && _selectedColonyIds.Count == 1 &&
                 _manualSelectedIds.Count == 1 && carrier.Id.Value != npcId &&
                 carrier.CarriedNpcId is null && target.CarriedByNpcId is null;
+            // §128: подсказка называет НАСТОЯЩУЮ причину — раньше «на руках у
+            // другой» показывало враньё «выберите одного персонажа».
             var blockedReason = carrier?.CarriedNpcId is not null
                 ? Loc.Get("menu.hands_occupied")
-                : Loc.Get("menu.select_one_character");
+                : target.CarriedByNpcId is not null
+                    ? Loc.Get("menu.carried_by_other")
+                    : Loc.Get("menu.select_one_character");
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
                 () => LootTransferPanel.Open(carrier!.Id.Value, npcId),
                 canLoot, canLoot ? null : blockedReason));

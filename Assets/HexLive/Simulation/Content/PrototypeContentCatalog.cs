@@ -729,6 +729,20 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
+            // ⭐ §118.2: аптечка — ящик с расходной медициной, стоит в хижине у
+            // гардероба. Это КОНТЕЙНЕР, а не станция: её можно взять в слот и
+            // унести, как рюкзак, поэтому запас лечится там, где он нужен.
+            //
+            // Obstacle НЕ ставим (как у кровати и гардероба, §133): комната в
+            // один гекс, и любой лишний занятый джанкшен запирает дверь или
+            // койку. Ящик стоит у стены и никому не мешает ходить.
+            ["item.medkit"] = new ObjectDefinition
+            {
+                Id = "item.medkit",
+                DisplayName = "First aid kit",
+                Tags = { "Container", "Portable" },
+                MaxCarriedInstances = 1,
+            },
             // §54.15: the water collector — a staged fireside build-site like
             // the rack (4 planted uprights → a stone stand → the top rim →
             // rope lashings → the leaf funnel). The funnel sheds rain inward
@@ -1018,7 +1032,7 @@ public static class PrototypeContentCatalog
 
                         // Spec 31C.7A: a proper breather, not a fidget.
                         DurationTicks = 70,
-                        Effects = { ComfortDelta = SimBalance.ChairComfort, EnergyDelta = SimBalance.ChairEnergy }
+                        Effects = { ComfortDelta = SimBalance.ChairComfort }
                     }
                 },
                 Tags = { "Chair" }
@@ -1038,7 +1052,7 @@ public static class PrototypeContentCatalog
                         Id = "sit.stump",
                         Type = InteractionType.Sit,
                         DurationTicks = 70,
-                        Effects = { ComfortDelta = SimBalance.GroundSitComfortLedge, EnergyDelta = SimBalance.ChairEnergy }
+                        Effects = { ComfortDelta = SimBalance.GroundSitComfortLedge }
                     }
                 },
                 Tags = { "Stump", "Obstacle" }

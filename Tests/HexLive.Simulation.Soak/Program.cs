@@ -135,6 +135,7 @@ public static class Program
         {
             Seed = seed,
             NpcsAtStart = world.Entities.Npcs.Count,
+            ColonistsAtStart = CountColony(world),
         };
 
         StreamWriter trace = null;
@@ -189,10 +190,31 @@ public static class Program
 
         metrics.TicksRun = world.Tick;
         metrics.NpcsAtEnd = world.Entities.Npcs.Count;
+        metrics.ColonistsAtEnd = CountColony(world);
         metrics.MobsAtEnd = world.Mobs.Count;
         metrics.Seconds = stopwatch.Elapsed.TotalSeconds;
         metrics.Finish(world);
         return metrics;
+    }
+
+    /// <summary>
+    /// Живые КОЛОНИСТКИ. Общий счёт NPC включает чужака (§72), и его смерть в
+    /// строке «NPC 4 → 3» неотличима от смерти колонистки — хотя это ровно
+    /// противоположная новость. Цель баланса ставится в колонии, значит и
+    /// мерить надо колонию.
+    /// </summary>
+    private static int CountColony(WorldState world)
+    {
+        var count = 0;
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Faction == Faction.Colony)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     /// <summary>

@@ -182,11 +182,21 @@ namespace HexLive.UnityPresentation.BuildHutTest
             }
 
             var bill = HouseBill;
-            Scatter(ContentIds.Stick, Slack(bill.Sticks) + Slack(SimBalance.CampfireBillSticks));
-            Scatter(ContentIds.Board, Slack(bill.Boards));
-            Scatter(ContentIds.Rope, Slack(bill.Rope) + Slack(SimBalance.CampfireBillRope));
-            Scatter(ContentIds.PalmLeaf, Slack(bill.Leaves));
-            Scatter(ContentIds.Stone, Slack(SimBalance.CampfireBillStones));
+            // §120: the plan's own furniture (3 beds, the hearth, the wardrobe)
+            // is staked as ordinary build-sites once the house is raised, so its
+            // bill is part of what the sandbox has to have lying around. Read
+            // from the same code that stamps those sites — never retyped — and
+            // it is what brings LOGS into this world at all: a bed is log-framed
+            // and the palms here are water (§64.9), not lumber.
+            var furniture = BuildingBootstrap.PlanFurnitureBill();
+            Scatter(ContentIds.Stick,
+                Slack(bill.Sticks) + Slack(SimBalance.CampfireBillSticks) + Slack(furniture.Sticks));
+            Scatter(ContentIds.Board, Slack(bill.Boards) + Slack(furniture.Boards));
+            Scatter(ContentIds.Rope,
+                Slack(bill.Rope) + Slack(SimBalance.CampfireBillRope) + Slack(furniture.Rope));
+            Scatter(ContentIds.PalmLeaf, Slack(bill.Leaves) + Slack(furniture.Leaves));
+            Scatter(ContentIds.Stone, Slack(SimBalance.CampfireBillStones) + Slack(furniture.Stones));
+            Scatter(ContentIds.Log, Slack(furniture.Logs));
 
             // Tools. A hammer is not a nicety: BuildSiteMath.NeedsHammer means
             // no piece of the hut goes up without one in hand.

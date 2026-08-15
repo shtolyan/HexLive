@@ -29,6 +29,49 @@ public static class HexSpatialMath
         return TileToWorld(tile) + offset;
     }
 
+    /// <summary>
+    /// §141: ОБРАТНЫЙ переход — в каком гексе лежит мировая точка. Точная
+    /// инверсия <see cref="TileToWorld"/> плюс кубическое округление, поэтому
+    /// центр тайла всегда возвращает сам тайл, а точка на ребре достаётся
+    /// одному из двух соседей детерминированно.
+    /// <para>
+    /// Понадобился виду: он рисует тело по непрерывной <c>Position</c>, а
+    /// высоту и «в доме ли она» спрашивал у дискретного <c>npc.Tile</c>. Поле
+    /// отстаёт от тела (замер: в 99% переездов тело уже внутри нового гекса,
+    /// когда тайл только щёлкает), и на пороге хижины это читалось как проход
+    /// сквозь ступеньку. Симуляция этот метод не зовёт — ей дискретный тайл и
+    /// нужен.
+    /// </para>
+    /// </summary>
+    public static TileCoord WorldToTile(Float2 world)
+    {
+        var r = world.Y / (HexRadius * HexRowStepFactor);
+        var q = world.X / (HexRadius * HexWidthFactor) - r * 0.5f;
+
+        // Кубическое округление: восстанавливаем третью ось, округляем все
+        // три и правим ту, что дальше всего уехала — иначе дробные координаты
+        // у ребра садятся не в тот гекс.
+        var cubeY = -q - r;
+        var rq = MathF.Round(q);
+        var rr = MathF.Round(r);
+        var ry = MathF.Round(cubeY);
+
+        var dq = MathF.Abs(rq - q);
+        var dr = MathF.Abs(rr - r);
+        var dy = MathF.Abs(ry - cubeY);
+
+        if (dq > dr && dq > dy)
+        {
+            rq = -rr - ry;
+        }
+        else if (dr > dy)
+        {
+            rr = -rq - ry;
+        }
+
+        return new TileCoord((int)rq, (int)rr);
+    }
+
     public static float Distance(Float2 a, Float2 b)
     {
         var dx = a.X - b.X;

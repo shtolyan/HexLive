@@ -42,5 +42,12 @@ MonoBehaviour:
   - {fileID: -203655887218126122, guid: 5dd0fd96d3fa64b62bc3c1272fde5a39, type: 3}
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
+  armedSlowRun: {fileID: 0}
+  armedRun: {fileID: 0}
   workClip: {fileID: 0}
+  twoHandedCarry: 1
+  carryPose: {fileID: 0}
+  carryPoseTime: 0
+  offHandGripIk: 1
+  offHandGripFraction: 0.3
 

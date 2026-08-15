@@ -31,6 +31,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     // Spec 42.A: extra thirst per unit of positive ThermalComfort (sweat).
     private static float SweatThirstFactor => SimBalance.SweatThirstFactor;
 
+    // Bug #149: rain cleans exposed skin, but ten times more slowly than
+    // immersion. This is deliberately derived from the canonical water wash
+    // rate so tuning bathing cannot silently desynchronise the ratio.
+    private const float RainHygieneWashFactor = 0.1f;
+
     // Spec §49 knobs (moved to HexTuningConfig in the tuning pass).
     private static float SickTorsoPerSlowTick => SimBalance.SickTorsoPerSlowTick;   // pace the budget pay-down (~0.08 over ~40 slow ticks)
     private static float SickTorsoFloor => SimBalance.SickTorsoFloor;          // sickness can't grind the torso below this
@@ -385,11 +390,6 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + wake);
             }
 
-            if (DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
-            {
-                DamageReactionSystemHelpers.ApplyAdrenalineEnergyFloor(npc);
-            }
-
             // Spec §60: energy drained to nothing on her feet — the body
             // simply switches off where it stands. (Asleep she is already
             // recovering; only an awake body can burn to the collapse line.)
@@ -547,8 +547,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 : working
                     ? -SimBalance.StaminaWorkDrain * AttributeMath.StaminaDrainMult(npc) * staminaDrain
                     : SimBalance.StaminaIdleGain * staminaRegen;
+            // Bug #152: the dynamic ceiling limits how much reserve a hungry,
+            // exhausted body can BUILD, but a positive rest tick must never
+            // make the bar run backwards. If the ceiling fell below an already
+            // accumulated reserve, hold that reserve until metabolism catches
+            // up; work can still spend it normally.
+            var staminaUpper = resting
+                ? System.MathF.Max(staminaCeiling, npc.Needs.Stamina)
+                : staminaCeiling;
             npc.Needs.Stamina = MathUtil.Clamp(
-                npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
+                npc.Needs.Stamina + staminaDelta, 0f, staminaUpper);
 
             // Spec 40.13: stress rises with danger/combat/pain/starvation and
             // ebbs in calm. A UI param, and a third path to collapse.
@@ -651,8 +659,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // tiles — the same contract the view uses for body wetness.
             var standingInWater = world.Tiles.Items.TryGetValue(npc.Tile, out var hygieneTile) &&
                 hygieneTile.Flags.HasFlag(TileFlags.Water);
+            var washingInRain = !standingInWater && ShelterMath.RainReaches(world, npc.Tile);
+            var hygieneDelta = standingInWater
+                ? SimBalance.HygieneWashGain
+                : washingInRain
+                    ? SimBalance.HygieneWashGain * RainHygieneWashFactor
+                    : -SimBalance.HygieneDriftLoss;
             npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
-                (standingInWater ? SimBalance.HygieneWashGain : -SimBalance.HygieneDriftLoss));
+                hygieneDelta);
             // §40.8-H r10: та же вода смывает кровяную подложку. На суше —
             // ничего: засохшая кровь, как грязь одежды, держится до мытья.
             if (standingInWater)

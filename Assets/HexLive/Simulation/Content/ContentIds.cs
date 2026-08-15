@@ -62,6 +62,12 @@ public static class ContentIds
     public const string Bottle = "tool.bottle";
 
     public const string Bandage = "item.bandage";
+    // §118.2: дешёвый односменный пластырь — закрывает ОДНУ рану, в отличие от
+    // бинта, который перевязывает зону целиком.
+    public const string Plaster = "item.plaster";
+    // §118.2: ЯЩИК с расходной медициной в хижине. Не путать с Medkit
+    // ("bandage.medkit") — тот перевязочный материал, а это тара под него.
+    public const string MedkitBox = "item.medkit";
     public const string Pill = "item.pill";
     public const string Medkit = "bandage.medkit";
     public const string Splint = "med.splint";

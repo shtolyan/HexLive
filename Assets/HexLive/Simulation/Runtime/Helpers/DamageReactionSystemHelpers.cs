@@ -20,8 +20,6 @@ internal static class DamageReactionSystemHelpers
             return;
         }
 
-        ApplyAdrenalineEnergyFloor(npc);
-
         var until = world.Tick + SimBalance.AdrenalineTicks;
         if (until <= npc.Mind.AdrenalineUntilTick)
         {
@@ -39,15 +37,6 @@ internal static class DamageReactionSystemHelpers
     public static bool IsAdrenalineActive(WorldState world, NPCState npc) =>
         world != null && npc != null && world.Tick < npc.Mind.AdrenalineUntilTick;
 
-    public static void ApplyAdrenalineEnergyFloor(NPCState npc)
-    {
-        if (npc == null || SimBalance.AdrenalineEnergyFloor <= 0f)
-        {
-            return;
-        }
-
-        npc.Needs.Energy = System.Math.Max(npc.Needs.Energy, SimBalance.AdrenalineEnergyFloor);
-    }
 }
 
 }

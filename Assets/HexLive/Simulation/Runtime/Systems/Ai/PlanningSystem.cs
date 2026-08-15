@@ -482,6 +482,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.Homeward)
+            {
+                BuildHomewardPlan(world, npc);
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.CoolOff)
             {
                 BuildCoolOffPlan(world, npc);

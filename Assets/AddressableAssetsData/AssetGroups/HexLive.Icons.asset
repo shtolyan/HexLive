@@ -105,6 +105,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e6ce6407777148c6a923fa97a8613abe
+    m_Address: icon/resource.board
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ef93502264ab4aea957f970fe5a4415f
     m_Address: icon/resource.rope
     m_ReadOnly: 0

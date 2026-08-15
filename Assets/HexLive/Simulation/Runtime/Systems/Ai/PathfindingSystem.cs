@@ -356,13 +356,25 @@ public sealed class PathfindingSystem : ISimulationSystem
             // narrow §63 emergency scramble (both legs still crawl-capable).
             // The planner used that same permission to choose the target, so
             // pathfinding must not reject the promised route one tick later.
+            // §140.2: Homeward здесь обязателен. План строится с
+            // CanUseCriticalTraversal (домой идёт та, у кого ног почти нет), и
+            // без этой строки патфайндер отверг бы обещанный маршрут тиком
+            // позже — ровно тот разрыв между планом и путём, из-за которого
+            // §50.9 когда-то крутил вечный PlanFailed.
             var emergencyTraversal = npc.Mind.CurrentGoal is GoalType.Flee or
-                    GoalType.ReachSafeGround ||
+                    GoalType.ReachSafeGround or GoalType.Homeward ||
                 (npc.Mind.CurrentGoal == GoalType.Explore &&
                  PlanningSystem.ExploreMustAvoidDeepWater(npc));
-            var canJump = emergencyTraversal
-                ? PlanningSystem.CanUseCriticalTraversal(npc)
-                : PlanningSystem.CanUseRoutineTraversal(npc);
+            // §121.5: приказ игрока принят по Body.CanJump (обе ноги ≥ 0.75) —
+            // путь обязан верить ТОМУ ЖЕ предикату. Бытовой гейт (нога ≥ 0.9,
+            // SafeGroundLegAlert) давал раненой в зазоре 0.75…0.90 принять
+            // приказ и молча уронить его через секунду (PathFailure): маршрут
+            // с прыжком, который приём обещал, патфайндер резал.
+            var canJump = npc.Mind.CurrentGoal is GoalType.PlayerOrder or GoalType.PlayerAttack
+                ? npc.Body.CanJump
+                : emergencyTraversal
+                    ? PlanningSystem.CanUseCriticalTraversal(npc)
+                    : PlanningSystem.CanUseRoutineTraversal(npc);
             // §129: закрытые ЧУЖИЕ дверные порталы — жёсткий запрет (hardAvoid
             // переживает enclosed-fallback ретрай). У колонисток набор пуст →
             // null → путь бит-в-бит как до §129.

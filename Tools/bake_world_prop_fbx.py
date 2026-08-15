@@ -19,7 +19,8 @@ import bpy
 from mathutils import Vector
 
 
-RESOURCE_GLB_SOURCES = ("item.bandage", "tool.bottle", "tool.machete", "tool.saw")
+RESOURCE_GLB_SOURCES = (
+    "item.bandage", "item.medkit", "tool.bottle", "tool.machete", "tool.saw")
 
 LEGACY_GLB_WRAPPERS = (
     "bed_basic_final", "bed_leaf_final", "campfire_final", "food.meat_cooked",
@@ -187,6 +188,23 @@ def bake(entry: dict, source: Path, destination: Path) -> None:
     if source_meshes == 0 or source_vertices == 0:
         raise RuntimeError(f"{source} imported without mesh data")
     validate_stage_contract(entry, "source normalization")
+
+    albedo_name = entry.get("albedo")
+    if albedo_name:
+        images = [
+            node.image
+            for material in bpy.data.materials
+            if material.node_tree
+            for node in material.node_tree.nodes
+            if node.type == "TEX_IMAGE" and node.image is not None
+        ]
+        if not images:
+            raise RuntimeError(f"{source} has no image texture to extract as {albedo_name}")
+        albedo = max(images, key=lambda image: image.size[0] * image.size[1])
+        albedo_path = destination.parent / albedo_name
+        albedo.filepath_raw = str(albedo_path)
+        albedo.file_format = "PNG"
+        albedo.save()
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.fbx(

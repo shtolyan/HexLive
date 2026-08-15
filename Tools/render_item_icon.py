@@ -1,7 +1,8 @@
 """Headless-Blender renderer for inventory item icons (ICON_GENERATION_SPEC.md).
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P Tools/render_item_icon.py -- \
-        <model.obj|model.glb|model.fbx> <out.png> [--install <itemId>] [--fit 1.25] [--samples 64]
+        <model.obj|model.glb|model.fbx> <out.png> [--install <itemId>] [--fit 1.25] \
+        [--tilt 22] [--samples 64]
 
 Takes a garment OBJ (from Tools/unity_mesh_to_obj.py) or a prop GLB/FBX (the ones
 in Assets/Resources/HexLive/Objects) and renders the 512x512 RGBA icon the
@@ -10,10 +11,22 @@ the framing of the icons that shipped with the game (compare
 `Assets/Resources/HexLive/UI/Items/Shorts_10_14636.png`). Change them and the
 new icon will not sit in the same row as the old ones.
 
-`--install <itemId>` also copies the PNG to
-`Assets/Resources/HexLive/UI/Items/<itemId>.png` and writes a sprite `.meta`
-cloned from an existing icon with a fresh guid, so Unity imports it as a Sprite
-on next launch without an editor session.
+`--tilt <deg>` rolls the model about its long axis before framing. A FLAT prop
+(a board, a hide) presents its whole face square-on to the key sun and burns out
+to white; a roll of ~20 degrees takes the face off that normal and shows the
+edge and the end grain. It is a pose, not a rig change — camera, lights and
+framing stay the ones the whole icon set shares.
+
+`--install <itemId>` also copies the PNG to `Assets/HexLiveContent/Icons/`,
+writes a sprite `.meta`, and registers the Addressables entry `icon/<itemId>` in
+`HexLive.Icons`, so Unity imports it as a Sprite on next launch without an
+editor session.
+
+⚠️ It used to install into `Assets/Resources/HexLive/UI/Items`, and that folder
+is DEAD: `Wearing/Garments/ItemIcons` is the only door to item icons and it asks
+Addressables for `icon/<id>`, nothing else. An icon installed the old way copied
+cleanly, imported cleanly — and never appeared anywhere in the game. A PNG
+without its Addressables entry is invisible in exactly the same silent way.
 """
 import math
 import os
@@ -23,7 +36,7 @@ import sys
 import uuid
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 # --- the shipped looks (do not tune casually) ----------------------------
 # Two presets, because two batches of icons shipped: the cloth one matches the
@@ -44,7 +57,8 @@ SUNS = (  # direction, energy: key / fill / rim / top
     ((0.0, -0.1, 1.0), 1.2),
 )
 
-ICON_DIR = "Assets/Resources/HexLive/UI/Items"
+ICON_DIR = "Assets/HexLiveContent/Icons"
+ICON_GROUP = "Assets/AddressableAssetsData/AssetGroups/HexLive.Icons.asset"
 # Шаблон .meta встроен НАМЕРЕННО. Раньше он копировался с соседней
 # иконки — и когда ту вещь снесли вместе со старым гардеробом,
 # установка иконок сломалась бы на пустом месте. Плюс режим спрайта
@@ -59,7 +73,7 @@ TextureImporter:
   serializedVersion: 13
   mipmaps:
     mipMapMode: 0
-    enableMipMap: 0
+    enableMipMap: 1
     sRGBTexture: 1
     linearTexture: 0
     fadeOut: 0
@@ -90,9 +104,9 @@ TextureImporter:
     filterMode: 1
     aniso: 1
     mipBias: 0
-    wrapU: 1
-    wrapV: 1
-    wrapW: 1
+    wrapU: 0
+    wrapV: 0
+    wrapW: 0
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
@@ -153,7 +167,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: __SPRITEID__
     internalID: 0
     vertices: []
     indices: 
@@ -178,11 +192,14 @@ def parse_args():
     style = "tool" if src.lower().endswith((".glb", ".gltf", ".fbx")) else "cloth"
     if "--style" in argv:
         style = argv[argv.index("--style") + 1]
-    opts = {"install": None, "style": style, "fit": None, "samples": SAMPLES}
+    opts = {"install": None, "style": style, "fit": None, "tilt": 0.0,
+            "samples": SAMPLES}
     if "--install" in argv:
         opts["install"] = argv[argv.index("--install") + 1]
     if "--fit" in argv:
         opts["fit"] = float(argv[argv.index("--fit") + 1])
+    if "--tilt" in argv:
+        opts["tilt"] = float(argv[argv.index("--tilt") + 1])
     if "--samples" in argv:
         opts["samples"] = int(argv[argv.index("--samples") + 1])
     return src, dst, opts
@@ -207,6 +224,24 @@ def load(src):
     meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
     assert meshes, f"no mesh in {src}"
     return meshes
+
+
+def tilt(meshes, degrees):
+    """Крен вокруг длинной оси модели — поза, а не правка рига.
+
+    ⚠️ Поворот кладётся В ВЕРШИНЫ. Присваивать объекту `rotation_euler` нельзя:
+    импортёры FBX/glTF уже держат там поворот осевой конверсии, и присваивание
+    его затирает — модель молча возвращается в исходную позу.
+    """
+    if abs(degrees) < 1e-6:
+        return
+    lo, hi = world_bbox(meshes)
+    size = hi - lo
+    axis = 'XYZ'[max(range(3), key=lambda i: size[i])]
+    rot = Matrix.Rotation(math.radians(degrees), 4, axis)
+    for ob in meshes:
+        ob.data.transform(ob.matrix_world.inverted() @ rot @ ob.matrix_world)
+        ob.data.update()
 
 
 def world_bbox(meshes):
@@ -313,25 +348,65 @@ def render(dst, meshes, style, fit, samples):
     bpy.ops.render.render(write_still=True)
 
 
+def register_addressable(guid, item_id):
+    """Прописать `icon/<id>` в группу HexLive.Icons — БЕЗ этого иконки нет.
+
+    Игра берёт иконки только через Addressables (`ItemIcons.Address`), поэтому
+    PNG без записи в группе — это молчаливая пустота: файл на месте, импорт
+    чистый, в игре ничего. Записи в группе отсортированы по GUID, повторный
+    прогон переписывает свою и не плодит дублей.
+    """
+    if not os.path.isfile(ICON_GROUP):
+        raise SystemExit(f"run from the repo root — {ICON_GROUP} not found")
+    text = open(ICON_GROUP, encoding="utf-8").read()
+    address = f"icon/{item_id}"
+    entry = (r"  - m_GUID: (\w+)\n    m_Address: (.+)\n    m_ReadOnly: 0\n"
+             r"    m_SerializedLabels: \[\]\n"
+             r"    FlaggedDuringContentUpdateRestriction: 0\n")
+    block_at = re.search(r"  m_SerializeEntries:\n((?:" + entry + r")+)", text)
+    if block_at is None:
+        raise SystemExit(f"не разобрал m_SerializeEntries в {ICON_GROUP}")
+    kept = [(g, a) for g, a in re.findall(entry, block_at.group(1))
+            if a != address and g != guid]
+    kept.append((guid, address))
+    rebuilt = "".join(
+        f"  - m_GUID: {g}\n    m_Address: {a}\n    m_ReadOnly: 0\n"
+        f"    m_SerializedLabels: []\n    FlaggedDuringContentUpdateRestriction: 0\n"
+        for g, a in sorted(kept))
+    open(ICON_GROUP, "w", encoding="utf-8").write(
+        text[:block_at.start(1)] + rebuilt + text[block_at.end(1):])
+    print("ADDRESSABLE", address, guid, f"({len(kept)} entries)")
+
+
 def install(png, item_id):
-    """Copy into Resources with a hand-written sprite .meta (no Unity needed)."""
+    """Положить иконку туда, откуда игра её действительно читает."""
     if not os.path.isdir(ICON_DIR):
         raise SystemExit(f"run from the repo root — {ICON_DIR} not found")
     target = os.path.join(ICON_DIR, item_id + ".png")
     shutil.copyfile(png, target)
+    # GUID переживает переустановку: иначе каждый повторный рендер иконки
+    # рвал бы ссылку на неё из группы Addressables.
+    guid = uuid.uuid4().hex
+    if os.path.isfile(target + ".meta"):
+        found = re.search(r"^guid: (\w+)", open(target + ".meta", encoding="utf-8").read(),
+                          re.M)
+        if found:
+            guid = found.group(1)
     meta = (META_TEMPLATE_TEXT
-            .replace("__GUID__", uuid.uuid4().hex)
+            .replace("__GUID__", guid)
             .replace("__SPRITEID__", uuid.uuid4().hex))
     open(target + ".meta", "w", encoding="utf-8").write(meta)
     print("INSTALLED", target)
+    register_addressable(guid, item_id)
 
 
 def main():
     src, dst, opts = parse_args()
     meshes = load(src)
+    tilt(meshes, opts["tilt"])
     setup_materials(meshes, opts["style"])
     render(dst, meshes, opts["style"], opts["fit"], opts["samples"])
-    print(f"WROTE {dst} (style={opts['style']})")
+    print(f"WROTE {dst} (style={opts['style']}, tilt={opts['tilt']})")
     if opts["install"]:
         install(dst, opts["install"])
 

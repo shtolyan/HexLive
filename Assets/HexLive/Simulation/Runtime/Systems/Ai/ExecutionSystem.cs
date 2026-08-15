@@ -2515,7 +2515,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     {
         npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + effects.HungerDelta * k);
         npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + effects.ThirstDelta * k);
-        npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + effects.EnergyDelta * k);
+        // §42 / bug #150: positive Energy is sleep-only. Keep negative effects
+        // data-compatible, but an old/external catalog cannot quietly turn a
+        // chair, stump, meal or any future awake interaction into recovery.
+        var energyDelta = effects.EnergyDelta <= 0f ||
+            npc.Execution.CurrentInteraction == InteractionType.Sleep
+                ? effects.EnergyDelta
+                : 0f;
+        npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + energyDelta * k);
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + effects.ComfortDelta * k);
         npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(npc.Needs.ThermalDiscomfort + effects.ThermalDelta * k);
         // Spec 31A.5A: warmth/armor are no longer touched here — they are

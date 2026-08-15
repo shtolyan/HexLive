@@ -22,7 +22,15 @@ public sealed class SleepPlanConsistencySystem : ISimulationSystem
             if (npc.Execution.Status != ExecutionStatus.InProgress ||
                 npc.Execution.CurrentInteraction != InteractionType.Sleep ||
                 npc.Plan.Status != PlanStatus.Active ||
-                npc.Plan.Goal == GoalType.Sleep && npc.Mind.CurrentGoal == GoalType.Sleep)
+                npc.Plan.Goal == GoalType.Sleep && npc.Mind.CurrentGoal == GoalType.Sleep ||
+                // §121.1: ручной приказ «спать» ДЕРЖИТ обычный PlayerOrder над
+                // живой Sleep-интеракцией — это штатное состояние, а не
+                // split-brain из bug-128 (там поверх сна стоял ЧУЖОЙ план
+                // WashClothes). Рвать его значило будить её через тик после
+                // укладки и молча гасить приказ.
+                npc.Plan.Goal == GoalType.PlayerOrder &&
+                npc.Mind.CurrentGoal == GoalType.PlayerOrder &&
+                ManualControlMath.IsManual(npc))
             {
                 continue;
             }

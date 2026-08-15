@@ -31,9 +31,14 @@ MonoBehaviour:
   drinkThirstThreshold: 0.35
   freezingComfortThreshold: -0.35
   buildSiteMaterialPull: 0.35
+  exploreHealthFloor: 0.6
+  homewardHealthFloor: 0.5
+  homewardNeedThreshold: 0.75
+  homewardBrokenBodyUrgency: 0.55
+  bladePickupPull: 0.35
   hungerRate: 0.0025
   thirstRate: 0.006
-  energyRate: 0.0045
+  energyRate: 0.0018
   comfortRate: 0.01
   socialRate: 0.006
   sweatThirstFactor: 0.182
@@ -74,13 +79,11 @@ MonoBehaviour:
   handSlots: 2
   baseCarrySlots: 2
   groundSleepEnergy: 0
-  groundSitEnergy: 0.173
   groundSitComfort: 0.15
   groundSitComfortLedge: 0.25
   bedEnergy: 0
   leafBedEnergy: 0.348
   chairComfort: 0.4
-  chairEnergy: 0.158
   sleepEnergyBaseBonus: 0.002
   sleepEnergyFireBonus: 0
   sleepEnergyLeafBedBonus: 0.006
@@ -144,7 +147,6 @@ MonoBehaviour:
   timedMeleeEverywhere: 1
   npcStrikePerPass: 0.15
   adrenalineTicks: 80
-  adrenalineEnergyFloor: 0.05
   adrenalineMoveSpeedFactor: 2.25
   baseMoveSpeedFactor: 1.2
   baseTurnSpeedFactor: 2.4

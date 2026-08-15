@@ -126,6 +126,16 @@ public sealed class Wear : MonoBehaviour
             }
         }
 
+        // §74.9 / bugs #129, #130: an imported mesh bounds only the bind pose,
+        // not the vertices after this garment's bones have been stitched onto
+        // the live actor. Gloves are the sharpest case (their box is only
+        // 0.04 x 0.07 m on two axes), but the same contract applies to every
+        // fitted piece. Keep skinning outside the stale import AABB so Unity
+        // recomputes the live bounds instead of frustum-culling visible cloth.
+        // GarmentCloth sets the same flag for simulated hems; doing it here is
+        // the common path for ordinary clothes and every future extracted item.
+        _meshRenderer.updateWhenOffscreen = true;
+
         // Spec 35.5: garments opt into the cloth decal layer so rain-droplet
         // projectors can land on them (wounds/dirt/sweat stay skin-only).
         _meshRenderer.renderingLayerMask |= ClothDecalLayer;

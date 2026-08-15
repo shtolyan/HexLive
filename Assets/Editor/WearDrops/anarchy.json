@@ -594,7 +594,9 @@
         "Chest",
         "Belly"
       ],
-      "noHide": [],
+      "noHide": [
+        "Chest"
+      ],
       "materials": [
         {
           "source": "corset",

@@ -3742,6 +3742,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // this visual alias is all the scene needs.
         var looting = !_legless && interaction == "Loot";
         var crafting = !_legless && interaction == "Craft";
+        // §54.7: разделка использует тот же planting-style CraftWork, что
+        // крафт/поиск тела, но остаётся одноручной — нож не снимается.
+        var butchering = !_legless && interaction == "Butcher";
         // §53: tending a suffering housemate — the helper holds the mediator
         // item (feed → whole coconut, water → the pierced drink coconut;
         // treat/medicate/console tend bare-handed). She kneels into the
@@ -3763,7 +3766,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // там руки и правда работают.
         var praying = aidingOther && aidTargetLying && interaction == "ConsoleOther";
         // The solo craft always kneels; an aid kneels only over a lying ward.
-        var kneelingCraft = crafting || looting ||
+        var kneelingCraft = crafting || looting || butchering ||
             (aidingOther && aidTargetLying && !praying);
         // §68/§53: ПЕРЕВЯЗКА. Раньше и своя (TreatSelf), и чужая над стоячей
         // не играли ничего вовсе — ActionFromInteraction возвращал на них
@@ -4901,8 +4904,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 return chopping ? ActionKind.Chop : ActionKind.Work;
             case "Process": // spec §54: splitting a log — an axe chop motion
                 return ActionKind.Chop;
-            case "Butcher": // spec §54: knifing a carcass — a crouched working motion
-                return ActionKind.Work;
             case "PickUp":
             case "BuildRaft":
             case "Craft":

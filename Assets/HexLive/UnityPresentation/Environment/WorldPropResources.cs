@@ -37,5 +37,26 @@ namespace HexLive.UnityPresentation.Environment
 
         public static GameObject? Load(string id) =>
             Resources.Load<GameObject>($"HexLive/Objects/{NativeName(id)}");
+
+        /// <summary>
+        /// Instantiate the same Player-safe authored prop used by world drops;
+        /// procedural geometry is only a genuine missing-asset fallback.
+        /// </summary>
+        public static GameObject? Build(string id)
+        {
+            var prefab = Load(id);
+            if (prefab != null)
+            {
+                var instance = UnityEngine.Object.Instantiate(prefab);
+                if (ObjectFit.HasRenderableGeometry(instance))
+                {
+                    return instance;
+                }
+
+                UnityEngine.Object.Destroy(instance);
+            }
+
+            return LowPolyToolFactory.Build(id);
+        }
     }
 }

@@ -1,5 +1,8 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -59,6 +62,77 @@ internal static class MedicalSupplyMath
 
     internal static ItemInstance CreatePill() => new(ContentIds.Pill);
 
+    // §68 r2: a dressing is a physical treatment input, not necessarily pack
+    // cargo. The same ready-output search that prevents duplicate crafting
+    // also sees a loose bandage or one in reachable dropped clothing while a
+    // full pack rejects the ordinary pickup path.
+    internal static bool TryFindReachableBandageSource(
+        WorldState world, NPCState npc, out WorldObjectState source) =>
+        CraftProjectMath.TryFindUsableCompletedOutput(
+            world, npc, GoalType.CraftBandage, out source);
+
+    internal static bool TryClaimBandageSource(
+        WorldState world, NPCState npc, ObjectId sourceId)
+    {
+        if (!world.Entities.Objects.TryGetValue(sourceId, out var source) ||
+            (source.IsOccupied && source.CurrentUser != npc.Id) ||
+            !SourceContainsBandage(world, source))
+        {
+            return false;
+        }
+
+        source.IsOccupied = true;
+        source.CurrentUser = npc.Id;
+        return true;
+    }
+
+    // Consumption happens only when the treatment beat completes. If the plan
+    // is interrupted, PlanInterruption merely releases this claim and the
+    // exact physical dressing remains in the world.
+    internal static bool TrySpendClaimedBandageSource(
+        WorldState world, NPCState npc, ObjectId sourceId, out bool herbal)
+    {
+        herbal = false;
+        if (!world.Entities.Objects.TryGetValue(sourceId, out var source) ||
+            source.CurrentUser != npc.Id)
+        {
+            return false;
+        }
+
+        if (source.DefinitionId == ContentIds.Bandage &&
+            !source.IsCraftProject &&
+            (source.CraftWorkRequired <= 0 ||
+             source.CraftWorkDone >= source.CraftWorkRequired))
+        {
+            herbal = source.ResourceAmount >= HerbalMarker;
+            WorldObjectMutations.DespawnObject(world, source.Id);
+            return true;
+        }
+
+        var index = FindPreferredBandageIndex(source.Contents);
+        if (index < 0)
+        {
+            ReleaseBandageSource(world, npc, sourceId);
+            return false;
+        }
+
+        herbal = source.Contents[index].ResourceAmount >= HerbalMarker;
+        source.Contents.RemoveAt(index);
+        ReleaseBandageSource(world, npc, sourceId);
+        return true;
+    }
+
+    internal static void ReleaseBandageSource(
+        WorldState world, NPCState npc, ObjectId sourceId)
+    {
+        if (world.Entities.Objects.TryGetValue(sourceId, out var source) &&
+            source.CurrentUser == npc.Id)
+        {
+            source.IsOccupied = false;
+            source.CurrentUser = null;
+        }
+    }
+
     // Medkit gauze is spent before herbal wraps, preserving §44 provenance.
     internal static bool TrySpendBandage(NPCState npc, out bool herbal)
     {
@@ -114,6 +188,54 @@ internal static class MedicalSupplyMath
         }
 
         return false;
+    }
+
+    private static bool SourceContainsBandage(WorldState world, WorldObjectState source)
+    {
+        if (source.DefinitionId == ContentIds.Bandage &&
+            !source.IsCraftProject &&
+            (source.CraftWorkRequired <= 0 ||
+             source.CraftWorkDone >= source.CraftWorkRequired))
+        {
+            return true;
+        }
+
+        // Contents on build/process objects are paid inputs, not a public
+        // stash. Only a dropped wearable (Layer != null) exposes its pockets.
+        if (source.IsCraftProject || source.Contents.Count == 0 ||
+            !world.Content.ObjectDefinitions.TryGetValue(
+                source.DefinitionId, out var definition) ||
+            definition.Layer == null)
+        {
+            return false;
+        }
+
+        return FindPreferredBandageIndex(source.Contents) >= 0;
+    }
+
+    private static int FindPreferredBandageIndex(
+        System.Collections.Generic.List<ItemInstance> items)
+    {
+        // Preserve the inventory rule: pre-made gauze before herbal wraps.
+        for (var pass = 0; pass < 2; pass++)
+        {
+            for (var i = 0; i < items.Count; i++)
+            {
+                var item = items[i];
+                if (item.DefinitionId != ContentIds.Bandage)
+                {
+                    continue;
+                }
+
+                var herbal = item.ResourceAmount >= HerbalMarker;
+                if ((pass == 0 && !herbal) || (pass == 1 && herbal))
+                {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
     }
 
     // Blob v41 and older saves stored dressings outside Inventory. Keep the

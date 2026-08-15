@@ -82,6 +82,106 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 HexCorner(sector.Hex, sector.Sector + 1)
             };
 
+        /// <summary>
+        /// Which seam node carries each bay's single post pair.
+        ///
+        /// A wall/window/door section authors ONE pair of posts, and the export
+        /// puts it on the model's local -Z end. Reading that end off the segment
+        /// key does not work: <see cref="BuildSegmentKey"/> SORTS A and B, so
+        /// around a closed boundary the orientation turns over wherever the key
+        /// ordering does. A node that is the A of both its bays then grows two
+        /// posts inside each other, and a node that is the A of neither gets no
+        /// post at all. Measured on the player's own three-hex draft: 6 doubled
+        /// joints and 5 bare ones out of 24 seams.
+        ///
+        /// So the NODE owns the post, not the bay. Every boundary component is
+        /// walked once and each bay is handed the node it arrives at: a closed
+        /// ring comes out with exactly one post per node, and an open chain
+        /// leaves only its very first node bare, which is the true minimum when
+        /// each section ships one pair. A bay that is handed nothing draws no
+        /// post — its neighbours already cover both its ends.
+        ///
+        /// The walk starts at the ends and forks first (degree != 2) so an open
+        /// chain is covered from its open end rather than from its middle.
+        /// </summary>
+        public static IReadOnlyDictionary<string, HexBuildNodeKey> AssignSeamPosts(
+            IEnumerable<BlueprintElementData> elements)
+        {
+            var owner = new Dictionary<string, HexBuildNodeKey>();
+            if (elements == null) return owner;
+
+            // Deterministic order in, deterministic assignment out: the walk
+            // below always takes the first unwalked bay at a node.
+            var bays = elements
+                .Where(element => element != null &&
+                    element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window
+                        or BlueprintElementKind.Door)
+                .OrderBy(element => element.Segment)
+                .ThenBy(element => element.Id, StringComparer.Ordinal)
+                .ToArray();
+            if (bays.Length == 0) return owner;
+
+            var incident = new Dictionary<HexBuildNodeKey, List<BlueprintElementData>>();
+            foreach (var bay in bays)
+            {
+                Touch(incident, bay.Segment.A).Add(bay);
+                Touch(incident, bay.Segment.B).Add(bay);
+            }
+
+            var starts = incident.Keys.OrderBy(node => node).ToArray();
+            var claimed = new HashSet<HexBuildNodeKey>();
+            var walked = new HashSet<string>(StringComparer.Ordinal);
+            for (var pass = 0; pass < 2; pass++)
+            {
+                foreach (var start in starts)
+                {
+                    if (pass == 0 && incident[start].Count == 2) continue;
+                    WalkSeam(incident, start, claimed, walked, owner);
+                }
+            }
+            return owner;
+        }
+
+        private static List<BlueprintElementData> Touch(
+            Dictionary<HexBuildNodeKey, List<BlueprintElementData>> incident, HexBuildNodeKey node)
+        {
+            if (!incident.TryGetValue(node, out var list))
+            {
+                list = new List<BlueprintElementData>();
+                incident[node] = list;
+            }
+            return list;
+        }
+
+        private static void WalkSeam(
+            Dictionary<HexBuildNodeKey, List<BlueprintElementData>> incident,
+            HexBuildNodeKey start,
+            HashSet<HexBuildNodeKey> claimed,
+            HashSet<string> walked,
+            Dictionary<string, HexBuildNodeKey> owner)
+        {
+            var current = start;
+            while (true)
+            {
+                BlueprintElementData next = null;
+                foreach (var candidate in incident[current])
+                {
+                    if (walked.Contains(candidate.Id)) continue;
+                    next = candidate;
+                    break;
+                }
+                if (next == null) return;
+                walked.Add(next.Id);
+                var far = next.Segment.A == current ? next.Segment.B : next.Segment.A;
+                // Arriving at a free node claims it. Walking a ring, the last
+                // bay arrives back at the node the walk started from, which is
+                // still free — that is why a closed room needs no extra pass.
+                if (claimed.Add(far)) owner[next.Id] = far;
+                else if (claimed.Add(current)) owner[next.Id] = current;
+                current = far;
+            }
+        }
+
         public static IReadOnlyList<BuildSegmentKey> SectorBoundary(FloorSectorKey sector)
         {
             var center = HexCenter(sector.Hex);

@@ -114,7 +114,7 @@ namespace HexLive.UnityPresentation.Environment
         /// BuildStage_1/2/3 children are single delivered resources, section
         /// length runs along local +Z, origin is the section centre on the floor.
         /// </summary>
-        private static GameObject? InstantiateModel(string definitionId, Vector3 position, Quaternion yaw)
+        public static GameObject? InstantiateModel(string definitionId, Vector3 position, Quaternion yaw)
         {
             if (!ModelPrefabs.TryGetValue(definitionId, out var prefab))
             {
@@ -189,6 +189,51 @@ namespace HexLive.UnityPresentation.Environment
         private static Quaternion SectorYaw(Vector3 bisector) =>
             Quaternion.LookRotation(bisector.normalized, Vector3.up) *
             Quaternion.Euler(0f, 90f, 0f);
+
+        /// <summary>
+        /// How high a §120 module's own origin stands inside its building's
+        /// frame. These are exactly the heights <c>Build*</c> above places the
+        /// same authored art at, kept in one place so a module drawn from
+        /// simulation state and one drawn in the constructor preview cannot
+        /// drift: the walkable deck for anything standing on the floor, the
+        /// ground plane for the floor boards themselves, the eave for a roof.
+        /// </summary>
+        public static float ModuleLift(string definitionId) => definitionId switch
+        {
+            "architecture.floor.board" => 0f,
+            "architecture.roof.palm" => RoofEaveHeight,
+            "architecture.roof.palm.flat" => RoofEaveHeight,
+            _ => HutAssembly.FloorSurfaceLift
+        };
+
+        /// <summary>
+        /// Turns the LocalYaw the simulation stores on an architecture element
+        /// into that module's rotation.
+        ///
+        /// <para>
+        /// The simulation writes a yaw as <c>atan2(-dz, dx)</c> in degrees (see
+        /// <c>BuildingRules.HutDefinitions</c> and
+        /// <c>BlueprintBuildingPlan.Yaw</c>) — which is the yaw whose +X axis
+        /// points along the direction it was measured from. So recover that
+        /// direction and hand it to the SAME two conventions <c>Build*</c>
+        /// proved by measurement: a post or a wall section is aimed with
+        /// <see cref="Quaternion.LookRotation(Vector3, Vector3)"/>, a floor or
+        /// roof triangle adds <c>SectorYaw</c>'s quarter turn because its art
+        /// spans the model's X axis. Both ends pass a DIRECTION; there is no
+        /// hand-rolled angle convention left to get backwards.
+        /// </para>
+        /// </summary>
+        public static Quaternion ModuleRotation(string definitionId, float localYawDegrees)
+        {
+            var direction = Quaternion.Euler(0f, localYawDegrees, 0f) * Vector3.right;
+            return IsSectorModel(definitionId)
+                ? SectorYaw(direction)
+                : Quaternion.LookRotation(direction, Vector3.up);
+        }
+
+        private static bool IsSectorModel(string definitionId) =>
+            definitionId.StartsWith("architecture.floor.", StringComparison.Ordinal) ||
+            definitionId.StartsWith("architecture.roof.", StringComparison.Ordinal);
 
         private static GameObject BuildFloor(BlueprintElementData element)
         {
@@ -276,8 +321,22 @@ namespace HexLive.UnityPresentation.Environment
             var b2 = BlueprintGeometry.ToWorld(element.Segment.B);
             var a = new Vector3(a2.X, HutAssembly.FloorSurfaceLift, a2.Y);
             var b = new Vector3(b2.X, HutAssembly.FloorSurfaceLift, b2.Y);
+            // The authored post pair stands on the model's local -Z end, which
+            // is the segment's A: in Blender it sits at +Y (the 0.5 wu seam) and
+            // the export lands authored +Y on Unity -Z. Which seam node actually
+            // owns that pair is decided for the whole boundary at once, because
+            // BuildSegmentKey sorts A and B and the ordering turns over around a
+            // ring (see BlueprintGeometry.AssignSeamPosts). When the owned node
+            // is B the section is simply turned around — it is symmetric apart
+            // from that pair, so the yaw is the entire correction.
+            var seamPost = SeamPosts(draft).TryGetValue(element.Id, out var owned)
+                ? (HexBuildNodeKey?)owned
+                : null;
+            var forward = seamPost.HasValue && seamPost.Value == element.Segment.B
+                ? (a - b).normalized
+                : (b - a).normalized;
             var direction = b - a;
-            var yaw = Quaternion.LookRotation(direction.normalized, Vector3.up);
+            var yaw = Quaternion.LookRotation(forward, Vector3.up);
             var midpoint = (a + b) * 0.5f;
 
             var definitionId = kind switch
@@ -289,9 +348,9 @@ namespace HexLive.UnityPresentation.Environment
             var authored = InstantiateModel(definitionId, midpoint, yaw);
             if (authored != null)
             {
-                DropPostsOwnedByASupport(authored, element, draft);
+                DropSeamPostUnlessOwned(authored, seamPost, draft);
                 if (kind == BlueprintElementKind.Door)
-                    ConfigureDoorPivot(authored, element, draft, midpoint, direction.normalized);
+                    ConfigureDoorPivot(authored, element, draft, midpoint, forward);
                 return authored;
             }
 
@@ -339,21 +398,25 @@ namespace HexLive.UnityPresentation.Environment
         }
 
         /// <summary>
-        /// A bay authors its post pair on its far (+Z) node. When a standalone
-        /// Support element already owns that node — every hex corner has one —
-        /// the bay must not build a second pair on top of it, or each corner
-        /// grows two overlapping sets of posts. The corner post is the Support.
+        /// Takes the post pair off a section that must not draw one: either the
+        /// seam it was given already belongs to a standalone Support element
+        /// (every corner post is one, and two overlapping pairs read as a fat
+        /// smudged joint), or the walk gave that seam to the neighbouring
+        /// section instead.
         /// </summary>
-        private static void DropPostsOwnedByASupport(
-            GameObject authored, BlueprintElementData element, BuildingBlueprintDraft draft)
+        private static void DropSeamPostUnlessOwned(
+            GameObject authored, HexBuildNodeKey? seamPost, BuildingBlueprintDraft draft)
         {
-            var node = element.Segment.B;
-            var owned = draft.Elements.Any(other =>
-                other.Kind == BlueprintElementKind.Support && other.Node == node);
-            if (!owned) return;
+            var standsHere = seamPost.HasValue && !draft.Elements.Any(other =>
+                other.Kind == BlueprintElementKind.Support && other.Node == seamPost.Value);
+            if (standsHere) return;
 
-            // Drop the whole bundle, posts AND their lashing. Removing only the
-            // posts left the rope rings hanging in mid-air over the joint.
+            // Drop the whole bundle, posts AND their lashings. Matching the rope
+            // by "_rope" never removed anything: the exported lashings are
+            // WALL_bind_0..3 / WIN_bind_* / DOOR_bind_*, so every dropped post
+            // left four rings hanging in mid-air over a bare seam — 20 of them
+            // on the player's own draft. The door's lintel carries no "_stick_"
+            // and deliberately stays.
             var posts = FindStage(authored.transform, 1);
             if (posts != null)
             {
@@ -367,9 +430,37 @@ namespace HexLive.UnityPresentation.Environment
             if (lashing == null) return;
             foreach (var child in lashing.Cast<Transform>().ToArray())
             {
-                if (!child.name.Contains("_rope")) continue;
+                if (!IsSeamLashing(child.name)) continue;
                 UnityEngine.Object.DestroyImmediate(child.gameObject);
             }
+        }
+
+        private static bool IsSeamLashing(string name) =>
+            name.Contains("_bind_") || name.Contains("_rope");
+
+        private static BuildingBlueprintDraft? _seamPostDraft;
+        private static int _seamPostRevision = int.MinValue;
+        private static System.Collections.Generic.IReadOnlyDictionary<string, HexBuildNodeKey>? _seamPostMap;
+
+        /// <summary>
+        /// The seam walk is O(sections), but Build runs once per element, so
+        /// recomputing it every call would be O(sections²) on a whole colony.
+        /// The assignment depends only on the SET of section segments, and that
+        /// changes only when an element is added or removed — turning a wall
+        /// into a window or moving an opening keeps every segment in place — so
+        /// the element count with the id counter identifies it.
+        /// </summary>
+        private static System.Collections.Generic.IReadOnlyDictionary<string, HexBuildNodeKey> SeamPosts(BuildingBlueprintDraft draft)
+        {
+            var revision = draft.Elements.Count * 397 ^ draft.NextElementId;
+            if (_seamPostMap == null || !ReferenceEquals(_seamPostDraft, draft) ||
+                _seamPostRevision != revision)
+            {
+                _seamPostMap = BlueprintGeometry.AssignSeamPosts(draft.Elements);
+                _seamPostDraft = draft;
+                _seamPostRevision = revision;
+            }
+            return _seamPostMap;
         }
 
         private static void ConfigureDoorPivot(

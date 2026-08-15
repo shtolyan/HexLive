@@ -3,6 +3,8 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -17,26 +19,58 @@ public sealed partial class ExecutionSystem
     // the common case (a dozen shallow bites, low mean HP, every zone > 0.5).
     private static void RunTreatSelf(WorldState world, NPCState npc)
     {
-        if (MedicalSupplyMath.BandageCount(npc) <= 0)
+        if (npc.Execution.Status == ExecutionStatus.None &&
+            npc.Plan.TargetJunctionId is { } walkTarget)
         {
-            // Cooldown, or a decision layer that still believes she can treat
-            // re-selects it every tick and she stands in an ExecFailed loop
-            // (the CraftBandage death class, Jul 2026).
-            PlanningSystem.SetGoalCooldown(world, npc, GoalType.TreatWounds);
-            npc.Plan.Status = PlanStatus.Failed;
-            if (SimTrace.Enabled)
+            if (npc.Movement.IsMoving)
             {
-                Trace.Debug(world, npc.Id, "ExecFailed", "TreatSelf: no bandage left");
-
+                return;
             }
-            return;
+
+            if (npc.Movement.Status == MovementStatus.Blocked)
+            {
+                PlanningSystem.SetGoalCooldown(world, npc, GoalType.TreatWounds);
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                    "TreatSelf: bandage source unreachable");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            if (npc.CurrentJunction is not { } at || !at.Equals(walkTarget))
+            {
+                return;
+            }
         }
 
         if (npc.Execution.Status == ExecutionStatus.None)
         {
+            ObjectId? claimedSource = null;
+            if (npc.Plan.TargetObjectId is { } requestedSource &&
+                MedicalSupplyMath.TryClaimBandageSource(world, npc, requestedSource))
+            {
+                claimedSource = requestedSource;
+            }
+
+            if (!claimedSource.HasValue && MedicalSupplyMath.BandageCount(npc) <= 0)
+            {
+                // Cooldown, or a decision layer that still believes she can
+                // treat re-selects it every tick and she stands in an
+                // ExecFailed loop (the CraftBandage death class, Jul 2026).
+                PlanningSystem.SetGoalCooldown(world, npc, GoalType.TreatWounds);
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                    "TreatSelf: neither carried nor claimable nearby bandage");
+                npc.Mind.CurrentGoal = GoalType.None;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecFailed",
+                        "TreatSelf: neither carried nor claimed nearby bandage");
+                }
+                return;
+            }
+
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.TreatSelf;
-            npc.Execution.TargetObject = null;
+            npc.Execution.TargetObject = claimedSource;
             npc.Execution.StartTick = world.Tick;
             // §76: a practised hand winds a dressing faster (Wits + Medicine).
             var treatTicks = Spec118.Enabled
@@ -49,7 +83,8 @@ public sealed partial class ExecutionSystem
                 Trace.Debug(world, npc.Id, "InteractionStarted",
                     $"TreatSelf Duration={treatTicks}ticks " +
                     $"Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} " +
-                    $"Bandages={MedicalSupplyMath.BandageCount(npc)}");
+                    $"InventoryBandages={MedicalSupplyMath.BandageCount(npc)} " +
+                    $"Source={claimedSource?.Value.ToString() ?? "inventory"}");
             }
             return;
         }
@@ -60,15 +95,33 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // The dressing is spent. Spec 44: burn the pre-made medkit stock first;
-        // only a HERBAL dressing leaves the plantain leaf-wrap decal, so the
-        // leaf visual always means she actually gathered the leaves.
-        if (!MedicalSupplyMath.TrySpendBandage(npc, out var herbal))
+        // The dressing is spent only now. Spec 44: burn pre-made gauze before
+        // herbal wraps inside either source. A claimed world source can vanish
+        // during the beat; a newly received carried dressing is then a safe
+        // fallback, otherwise no treatment effect is produced.
+        var spent = false;
+        var herbal = false;
+        if (npc.Execution.TargetObject is { } sourceId)
         {
+            spent = MedicalSupplyMath.TrySpendClaimedBandageSource(
+                world, npc, sourceId, out herbal);
+        }
+
+        if (!spent)
+        {
+            spent = MedicalSupplyMath.TrySpendBandage(npc, out herbal);
+        }
+
+        if (!spent)
+        {
+            if (npc.Execution.TargetObject is { } failedSource)
+            {
+                MedicalSupplyMath.ReleaseBandageSource(world, npc, failedSource);
+            }
             PlanningSystem.SetGoalCooldown(world, npc, GoalType.TreatWounds);
-            npc.Plan.Status = PlanStatus.Failed;
-            npc.Execution.Status = ExecutionStatus.None;
-            npc.Execution.CurrentInteraction = null;
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                "TreatSelf: reserved bandage vanished before completion");
+            npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
 
@@ -138,11 +191,16 @@ public sealed partial class ExecutionSystem
             $"Left={MedicalSupplyMath.BandageCount(npc)}");
         }
 
+        if (npc.Plan.TargetJunctionId is { } reserved)
+        {
+            SpatialMutations.ReleaseJunctionReservation(world, reserved, npc.Id);
+        }
         npc.Plan.Status = PlanStatus.Completed;
         npc.Plan.Steps.Clear();
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
         if (SimTrace.Enabled)

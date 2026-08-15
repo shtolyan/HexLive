@@ -274,6 +274,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 continue;
             }
 
+            // §52: definitions may cap how many physical instances one NPC can
+            // carry. Normal acquisition enforces this before pickup; this pass
+            // repairs old saves and legacy direct-add paths without deleting
+            // property — extras land at the owner's feet.
+            InventoryMath.SpillCarriedLimitExcess(world, npc);
+
             var prevHunger = npc.Needs.Hunger;
             var prevEnergy = npc.Needs.Energy;
             var prevComfort = npc.Needs.Comfort;
@@ -332,7 +338,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // §76: Endurance is the "can stay up" half of the stat — she runs
             // down toward sleep slower. (Fighting still suspends the drain
             // entirely, as before.)
-            var energyDrain = npc.IsFighting ? 0f : EnergyRate * AttributeMath.EnergyDrainMult(npc);
+            // §54.11 r2: sleep recovery is a NET game-hour contract. Charging
+            // awake EnergyRate while simultaneously adding a sleep bonus made
+            // the duration depend on two unrelated dials and hid a second
+            // restore stream in the timed interaction. An asleep body neither
+            // spends waking energy nor fights; the single recovery block below
+            // owns the clock.
+            var energyDrain = sleeping || npc.IsFighting
+                ? 0f
+                : EnergyRate * AttributeMath.EnergyDrainMult(npc);
 
             // §76.13: Hardiness has only one teacher — going without. Counted
             // while she is genuinely in the red on food, water or temperature,
@@ -346,10 +360,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             }
             npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - energyDrain);
 
-            // §54.11: faster sleep recovery — a base lift (shorter nights) plus a
-            // fireside bonus and a bed bonus, so a bed built by the fire pays off
-            // in time awake. One place, both sleep paths (ground + bed) — `sleeping`
-            // is true for either; the bed bonus keys off the slept-on object.
+            // §54.11 r2: the ONE sleep-energy channel. Ground/coma use the
+            // 8-hour base; bed.basic adds the matching increment for 4 hours.
+            // Legacy interaction and fire energy are zeroed in live balance;
+            // fire still improves warmth and comfort, just not this clock.
             if (sleeping)
             {
                 var wake = SimBalance.SleepEnergyBaseBonus;

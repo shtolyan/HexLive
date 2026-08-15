@@ -82,7 +82,7 @@ public sealed partial class ExecutionSystem
         }
 
         // Пусто — не провал, а конец: кто-то успел раньше (образец LootEmpty).
-        if (!LootHelplessMath.HasLoot(mark))
+        if (!LootHelplessMath.HasLootFor(world, npc, mark))
         {
             FinishLootHelpless(world, npc, mark);
             return;
@@ -191,7 +191,7 @@ public sealed partial class ExecutionSystem
                 $"Mark=NPC{mark.Id.Value} Def={takenId} Left={mark.Inventory.Items.Count}");
         }
 
-        if (!LootHelplessMath.HasLoot(mark))
+        if (!LootHelplessMath.HasLootFor(world, npc, mark))
         {
             FinishLootHelpless(world, npc, mark);
         }

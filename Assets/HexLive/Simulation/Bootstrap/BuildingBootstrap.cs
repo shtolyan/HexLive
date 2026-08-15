@@ -100,14 +100,94 @@ public static class BuildingBootstrap
     }
 
     /// <summary>
+    /// Every hex a building stands on. The canonical hut owns exactly its own
+    /// tile — that is a property of THAT plan, not of "a building" — while a
+    /// committed player plan owns whatever it put floor on, rotated with the
+    /// building. Yaw is quantised to the six hex symmetries, so the rotation is
+    /// an exact integer number of 60° axial steps and no coordinate is rounded.
+    /// </summary>
+    public static IReadOnlyList<TileCoord> FootprintTiles(WorldObjectState building)
+    {
+        if (building == null) return Array.Empty<TileCoord>();
+        var product = string.IsNullOrEmpty(building.BuildProduct)
+            ? building.DefinitionId
+            : building.BuildProduct;
+        return FootprintTiles(product, building.Tile, building.RotationDegrees);
+    }
+
+    public static IReadOnlyList<TileCoord> FootprintTiles(
+        string buildProduct, TileCoord anchorTile, float rotationDegrees)
+    {
+        if (buildProduct != ContentIds.HutPlan) return new[] { anchorTile };
+
+        var plan = Runtime.Blueprints.CommittedBuildingPlans.PlayerHut;
+        var planAnchor = Runtime.Blueprints.BlueprintBuildingPlan.AnchorTile(plan);
+        // +60° of world yaw is one axial step (q,r) -> (-r, q+r): TileToWorld
+        // maps +q to 0° and +r to 60°, so the two rotations are the same one.
+        var steps = ((int)MathF.Round(rotationDegrees / 60f) % 6 + 6) % 6;
+        var result = new List<TileCoord>();
+        foreach (var hex in Runtime.Blueprints.BlueprintBuildingPlan.Footprint(plan))
+        {
+            var q = hex.Q - planAnchor.Q;
+            var r = hex.R - planAnchor.R;
+            for (var step = 0; step < steps; step++)
+            {
+                var rotatedQ = -r;
+                r = q + r;
+                q = rotatedQ;
+            }
+
+            var tile = new TileCoord(anchorTile.Q + q, anchorTile.R + r);
+            if (!result.Contains(tile)) result.Add(tile);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Stakes the player's committed §120 plan as an ordinary unbuilt site.
+    /// Everything past this point is the existing furniture-site chain: the
+    /// bill is hauled, the modules are raised, and CompleteHut finishes it.
+    /// </summary>
+    public static WorldObjectState CreateHutPlanSite(
+        WorldState world, TileCoord tile, float facingYaw)
+    {
+        // The facing decides the footprint, so it has to be known before the
+        // placement check rather than after the site exists.
+        var rotation = StructurePlacement.QuantizeHexSymmetryYaw(
+            facingYaw - BuildingRules.DoorLocalOutwardYaw(ContentIds.HutPlan));
+        foreach (var footprint in FootprintTiles(ContentIds.HutPlan, tile, rotation))
+        {
+            if (!CanPlaceHut(world, footprint)) return null;
+        }
+
+        if (StructurePlacement.CenterJunction(world, tile) is not { } anchor) return null;
+
+        var site = WorldObjectMutations.SpawnObject(
+            world, ContentIds.BuildSite, world.Junctions.Items[anchor].Fragment, tile, anchor);
+        site.BuildProduct = ContentIds.HutPlan;
+        var bill = Runtime.Blueprints.BlueprintBuildingPlan.Bill(
+            Runtime.Blueprints.CommittedBuildingPlans.PlayerHutModules);
+        site.BillSticks = bill.Sticks;
+        site.BillBoards = bill.Boards;
+        site.BillRope = bill.Rope;
+        site.BillLeaves = bill.Leaves;
+        site.RotationDegrees = rotation;
+        BuildingRules.EnsureHutElements(world, site);
+        foreach (var piece in BuildingRules.ArchitectureObjects(world, site))
+            piece.RotationDegrees = rotation;
+        return site;
+    }
+
+    /// <summary>
     /// Finalises either a bootstrap hut or a normally raised hut. Indoor is
     /// granted only here, after the leaf stage has completed and the site has
     /// already become the finished building object.
     /// </summary>
     public static void CompleteHut(WorldState world, WorldObjectState hut)
     {
-        if (hut == null || hut.DefinitionId != ContentIds.Hut1Hex ||
-            !world.Tiles.Items.TryGetValue(hut.Tile, out var tile))
+        if (hut == null || !BuildingRules.IsCompletedBuilding(hut) ||
+            !world.Tiles.Items.ContainsKey(hut.Tile))
         {
             return;
         }
@@ -119,7 +199,20 @@ public static class BuildingBootstrap
         BuildingRules.EnsureHutElements(world, hut, completed: true);
         foreach (var piece in BuildingRules.ArchitectureObjects(world, hut))
             piece.RotationDegrees = hut.RotationDegrees;
-        tile.Flags |= TileFlags.HasFloor | TileFlags.Indoor;
+        // §120: the roof covers the whole footprint, so the flags do too. For
+        // hut_1hex that list is exactly {hut.Tile} and this is the old line.
+        foreach (var footprintTile in FootprintTiles(hut))
+        {
+            if (world.Tiles.Items.TryGetValue(footprintTile, out var footprint))
+                footprint.Flags |= TileFlags.HasFloor | TileFlags.Indoor;
+        }
+
+        // The rest of this method is the CANONICAL hut's own kit: its portal
+        // edge, its two cots, its hearth and wardrobe all live at coordinates
+        // authored for that one hex. A player plan has its own geometry and
+        // gets none of it — inventing a placement here would be a guess, and a
+        // guess is what puts a bed inside a wall.
+        if (hut.DefinitionId != ContentIds.Hut1Hex) return;
         RepairHutTopology(world, hut);
         SpawnCot(world, hut, 0);
         SpawnCot(world, hut, 1);

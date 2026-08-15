@@ -35,6 +35,17 @@ namespace HexLive.UnityPresentation.Environment
         {
             _signature = Signature(site);
 
+            // §120: a house raised from a PLAN is drawn by its modules — each
+            // one its own world object with an ArchitectureModuleView. The site
+            // itself must add nothing: the old one-hex monolith is the wrong
+            // building, and a pile of the hauled materials would draw every
+            // board twice (once in the pile, once in the wall it went into).
+            if (site.BuildProduct == ContentIds.HutPlan)
+            {
+                ClearChildren();
+                return;
+            }
+
             if (site.BuildProduct == ContentIds.Hut1Hex)
             {
                 RefreshHut(site);

@@ -84,6 +84,13 @@ public static class ContentIds
     public const string WaterCollector = "station.water_collector";
     public const string Workbench = "station.workbench";
     public const string Hut1Hex = "building.hut_1hex";
+    /// <summary>
+    /// §120: дом, собранный по УТВЕРЖДЁННОМУ ИГРОКОМ чертежу
+    /// (CommittedBuildingPlans.PlayerHut). Отдельный продукт, а не вариант
+    /// hut_1hex: у него другой список модулей и многогексовый след, а
+    /// канонический hut_1hex обязан остаться байт-в-байт прежним.
+    /// </summary>
+    public const string HutPlan = "building.hut_plan";
     /// <summary>§133: домашняя сушилка-гардероб — вещи висят в доме, а не по карте.</summary>
     public const string Wardrobe = "furniture.wardrobe";
     public const string HutBed = "building.hut_bed";

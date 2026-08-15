@@ -109,7 +109,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
-            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.TreatSelf)
+            // §68 r2: a ground/stashed dressing can add a walk before the
+            // treatment beat; the final step owns the special executor.
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type == PlanStepType.TreatSelf)
             {
                 RunTreatSelf(world, npc);
                 continue;
@@ -901,29 +903,34 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
-                // §138: one click owns ONE whole persistent item, not one
-                // 24-tick work slice. Autonomous workers still return to the
-                // auction between slices; a manual craft repeats the same
-                // ordinary plan until its project reaches 100%, then enters
-                // the same short physical take beat as in-place crafting.
+                // §138 + §119.2: one manual click owns one whole persistent
+                // item. Autonomous workers still return to the auction between
+                // work slices, but BOTH control modes keep ownership across the
+                // final 100% -> physical PickUp beat. Otherwise station crafts
+                // left their output on the table and immediately bid for a new
+                // bill (the bandage carpet).
                 if (completedInteraction.Type == InteractionType.Craft &&
-                    npc.Mind.ManualControl &&
                     RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
                 {
-                    SkillTrace.Award(world, npc, completedInteraction.Type,
-                        npc.Execution.EndTick - npc.Execution.StartTick);
                     if (npc.Execution.CraftLayout.Count > 0)
                     {
-                        BeginManualCraftTake(world, npc);
+                        SkillTrace.Award(world, npc, completedInteraction.Type,
+                            npc.Execution.EndTick - npc.Execution.StartTick);
+                        BeginCraftOutputTake(world, npc);
                         continue;
                     }
 
-                    var unfinished = CraftProjectMath.FindReachableProject(
-                        world, npc, npc.Plan.Goal);
-                    if (unfinished != null)
+                    if (npc.Mind.ManualControl)
                     {
-                        ResetManualCraftCycle(npc);
-                        continue;
+                        var unfinished = CraftProjectMath.FindReachableProject(
+                            world, npc, npc.Plan.Goal);
+                        if (unfinished != null)
+                        {
+                            SkillTrace.Award(world, npc, completedInteraction.Type,
+                                npc.Execution.EndTick - npc.Execution.StartTick);
+                            ResetCraftCycleExecution(npc);
+                            continue;
+                        }
                     }
                 }
 
@@ -1113,7 +1120,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             var projectId = npc.Execution.CraftProjectId;
             CraftProjectMath.CompleteCycle(world, npc, npc.Plan.Goal);
-            if (npc.Mind.ManualControl && projectId is { } completedId &&
+            if (projectId is { } completedId &&
                 world.Entities.Objects.TryGetValue(completedId, out var completedProject) &&
                 !completedProject.IsCraftProject)
             {
@@ -1428,6 +1435,29 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         if (definition.Tags.Contains("Campfire"))
         {
             TakeMeatFromSpit(world, npc, worldObject);
+        }
+        else if (npc.Plan.Goal == GoalType.CraftLeather &&
+                 worldObject.DefinitionId == ContentIds.LeatherPants)
+        {
+            // Leather's authored completion adapter is immediate wear. Reusing
+            // a finished pair found on the ground must behave exactly like the
+            // pair this worker has just completed, not strand it in her pack.
+            return CompleteDress(
+                world, npc, worldObject, definition, completedInteraction, needsBefore);
+        }
+        // §119.2: the generic craft-output planner may target a dropped
+        // garment whose pockets hold the requested result. Take exactly one
+        // recipe output and leave the container plus unrelated contents.
+        else if (RecipeCatalog.UsesPersistentProject(npc.Plan.Goal) &&
+                 worldObject.DefinitionId != RecipeCatalog.OutputOf(npc.Plan.Goal) &&
+                 worldObject.Contents.Count > 0)
+        {
+            if (!RecoverCraftOutputFromStash(
+                    world, npc, worldObject,
+                    RecipeCatalog.OutputOf(npc.Plan.Goal)))
+            {
+                return false;
+            }
         }
         // Spec §52: "gathering a tool" that rides in a dropped
         // garment's pockets — rifle the pockets and leave the
@@ -1768,7 +1798,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         string needsBefore)
     {
         var body = CorpseMath.BodyOf(world, worldObject);
-        var spoil = CorpseMath.NextSpoil(world, worldObject, out var source);
+        var spoil = CorpseMath.NextSpoil(world, npc, worldObject, out var source);
         if (spoil is null)
         {
             // Кто-то успел раньше. Не провал плана — просто здесь уже пусто.
@@ -1956,7 +1986,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     // Spec 29F: into the inventory, or at the feet when full.
     internal static void GiveOrDrop(WorldState world, NPCState npc, ItemInstance item)
     {
-        if (npc.Inventory.HasSpace)
+        if (InventoryMath.FitsWithoutEviction(world, npc, item.DefinitionId))
         {
             npc.Inventory.Items.Add(item);
         }

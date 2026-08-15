@@ -30,15 +30,56 @@ internal static class InventoryMath
             ? ItemCatalog.Importance(ItemCategory.Resource)
             : Importance(world, item.DefinitionId);
 
+    /// <summary>
+    /// Content-authored per-NPC carry limit. This is deliberately independent
+    /// of capacity: a second unique item does not become valid merely because
+    /// another pocket is free. Definitions with the default zero are unlimited.
+    /// </summary>
+    public static bool CanAcquireAdditional(
+        WorldState world, NPCState npc, string incomingDefinitionId)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(
+                incomingDefinitionId, out var definition) ||
+            definition.MaxCarriedInstances <= 0)
+        {
+            return true;
+        }
+
+        var carried = 0;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == incomingDefinitionId &&
+                ++carried >= definition.MaxCarriedInstances)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static bool CanMakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
     {
-        if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
+        {
+            return false;
+        }
+
+        if (FitsWithoutEviction(world, npc, incomingDefinitionId))
         {
             return true;
         }
 
         return ReplacementVictim(world, npc, incomingDefinitionId) is not null;
     }
+
+    /// <summary>A physical instance can enter without displacing anything.
+    /// Used by completion paths which must distinguish a truly full pack from
+    /// free capacity inside an existing stack.</summary>
+    internal static bool FitsWithoutEviction(
+        WorldState world, NPCState npc, string incomingDefinitionId) =>
+        CanAcquireAdditional(world, npc, incomingDefinitionId) &&
+        (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId));
 
     // §63: the emergency coconut-blade chain is allowed to sacrifice an
     // ordinary tool for its ONE stick and ONE stone.  The generic importance
@@ -52,6 +93,11 @@ internal static class InventoryMath
     public static bool CanMakeRoomForGoal(
         WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
     {
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
+        {
+            return false;
+        }
+
         if (CanMakeRoomFor(world, npc, incomingDefinitionId))
         {
             return true;
@@ -63,6 +109,11 @@ internal static class InventoryMath
 
     public static bool MakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
     {
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
+        {
+            return false;
+        }
+
         if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
         {
             return true;
@@ -97,6 +148,11 @@ internal static class InventoryMath
     public static bool MakeRoomForGoal(
         WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
     {
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
+        {
+            return false;
+        }
+
         if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
         {
             return true;
@@ -127,6 +183,45 @@ internal static class InventoryMath
         }
 
         return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
+    }
+
+    /// <summary>
+    /// Repairs older saves (and any legacy direct-add path) which already
+    /// contain more instances than the definition permits. Extras are dropped,
+    /// never deleted, so another NPC who actually lacks the item may recover one.
+    /// </summary>
+    public static void SpillCarriedLimitExcess(WorldState world, NPCState npc)
+    {
+        System.Collections.Generic.Dictionary<string, int>? counts = null;
+        for (var i = 0; i < npc.Inventory.Items.Count;)
+        {
+            var item = npc.Inventory.Items[i];
+            if (!world.Content.ObjectDefinitions.TryGetValue(
+                    item.DefinitionId, out var definition) ||
+                definition.MaxCarriedInstances <= 0)
+            {
+                i++;
+                continue;
+            }
+
+            counts ??= new System.Collections.Generic.Dictionary<string, int>();
+            counts.TryGetValue(item.DefinitionId, out var carried);
+            if (carried < definition.MaxCarriedInstances)
+            {
+                counts[item.DefinitionId] = carried + 1;
+                i++;
+                continue;
+            }
+
+            npc.Inventory.Items.RemoveAt(i);
+            ExecutionSystem.DropItemAtFeet(world, npc, item);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CarryLimitSpill",
+                    $"Dropped excess {item.DefinitionId}; " +
+                    $"limit={definition.MaxCarriedInstances}");
+            }
+        }
     }
 
     internal static bool NeedsEmergencyCoconutBlade(WorldState world, NPCState npc) =>

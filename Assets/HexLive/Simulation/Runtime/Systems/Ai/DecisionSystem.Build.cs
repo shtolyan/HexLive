@@ -107,6 +107,7 @@ public sealed partial class DecisionSystem
             activeDream == DreamType.OwnBed &&
             IsDreamBuilder(npc, world);
         WorldObjectState firstSite = null;
+        WorldObjectState houseSite = null;
         WorldObjectState dreamSite = null;
         WorldObjectState collectorSite = null;
         WorldObjectState furnitureSite = null;
@@ -146,6 +147,22 @@ public sealed partial class DecisionSystem
                 }
             }
             else if (site.DefinitionId == ContentIds.BuildSite &&
+                BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct))
+            {
+                // §120: a HOUSE is the colony's shelter, not a comfort upgrade.
+                // Left as the unranked `firstSite` fallback it is starved
+                // outright: the single buildSite slot goes to whatever else is
+                // staked, and a personal bed waiting on logs that this island
+                // does not have holds that slot forever. Measured in the §120
+                // sandbox (seed 12345, 40 000 ticks): the staked house took
+                // 0 of 151 sticks while a bed.basic site sat at 0/4 logs.
+                //
+                // This lane is inert in the shipped game — nothing stakes an
+                // architectural site there — so it can only change worlds that
+                // deliberately put a house up.
+                houseSite ??= site;
+            }
+            else if (site.DefinitionId == ContentIds.BuildSite &&
                 site.BuildProduct == ContentIds.WaterCollector)
             {
                 // §54.15: survival infrastructure has a bounded queue. The
@@ -173,7 +190,7 @@ public sealed partial class DecisionSystem
         var needsSpitNow = npc.Inventory.Items.Contains(ContentIds.MeatRaw);
         return needsSpitNow && hearthUpgrade != null
             ? hearthUpgrade
-            : collectorSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ?? firstSite;
+            : collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ?? firstSite;
     }
 
     // §80: своя ли это стройка. §72 развёл лагеря, но очередь построек — нет:

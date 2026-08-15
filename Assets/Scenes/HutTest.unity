@@ -150,7 +150,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.HutTest.HutTestBootstrap
   _layoutDesignerMode: 1
   _startDelaySeconds: 2
-  _forceRain: 1
+  _startInAcceptancePose: 0
 --- !u!4 &61372088
 Transform:
   m_ObjectHideFlags: 0

@@ -97,24 +97,31 @@ namespace HexLive.Simulation.Tests.Blueprints
         }
 
         [Test]
-        public void RoofSectorRequiresAnyThreePerimeterSupportsAndNeverTheCentrePost()
+        public void RoofSectorRequiresBothPostsOfItsOwnEdgeAndNeverTheCentrePost()
         {
             var draft = new BuildingBlueprintDraft();
             var sector = new RoofSectorKey(TileCoord.Zero, 0);
             var candidates = BlueprintGeometry.RoofSupports(sector);
-            Assert.That(candidates, Has.Count.EqualTo(6));
+            // A sector spans from its own outer hex edge up to the hex centre,
+            // so the two posts of THAT edge carry it. Counting three of the
+            // parent hex's six corners left a stretched room unroofable.
+            Assert.That(candidates, Has.Count.EqualTo(2));
+            Assert.That(candidates, Is.EquivalentTo(new[]
+            {
+                BlueprintGeometry.HexCorner(TileCoord.Zero, sector.Sector),
+                BlueprintGeometry.HexCorner(TileCoord.Zero, sector.Sector + 1)
+            }));
             Assert.That(candidates, Does.Not.Contain(BlueprintGeometry.HexCenter(TileCoord.Zero)));
             Assert.That(BlueprintEditorCommands.AddRoofSector(draft, sector).Succeeded, Is.False);
             Assert.That(draft.Elements, Is.Empty);
 
             Assert.That(BlueprintEditorCommands.AddSupport(
                 draft, BlueprintGeometry.HexCenter(TileCoord.Zero)).Succeeded, Is.True);
-            foreach (var support in candidates.Take(2))
-                Assert.That(BlueprintEditorCommands.AddSupport(draft, support).Succeeded, Is.True);
+            Assert.That(BlueprintEditorCommands.AddSupport(draft, candidates[0]).Succeeded, Is.True);
             Assert.That(BlueprintEditorCommands.AddRoofSector(draft, sector).Succeeded, Is.False,
                 "The legacy centre post must not count as a roof support.");
 
-            Assert.That(BlueprintEditorCommands.AddSupport(draft, candidates[2]).Succeeded, Is.True);
+            Assert.That(BlueprintEditorCommands.AddSupport(draft, candidates[1]).Succeeded, Is.True);
             Assert.That(BlueprintEditorCommands.AddRoofSector(draft, sector).Succeeded, Is.True);
             var centreId = draft.Elements.Single(element =>
                 element.Kind == BlueprintElementKind.Support &&
@@ -124,10 +131,93 @@ namespace HexLive.Simulation.Tests.Blueprints
             Assert.That(draft.Elements.Any(element => element.Kind == BlueprintElementKind.RoofSector), Is.True);
         }
 
+        /// <summary>
+        /// Furniture may only stand on a built floor, so a draft that is about
+        /// to receive furniture starts with one whole hex of it.
+        /// </summary>
+        private static BuildingBlueprintDraft DraftWithFloor()
+        {
+            var draft = new BuildingBlueprintDraft();
+            var result = BlueprintEditorCommands.CreateRoom(draft, Enumerable.Range(0, 6)
+                .Select(index => new FloorSectorKey(TileCoord.Zero, index)));
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            return draft;
+        }
+
+        [Test]
+        public void FurnitureNeedsFloorUnderEveryJunctionEvenWhenNothingIsBuilt()
+        {
+            var empty = new BuildingBlueprintDraft();
+            var refused = BlueprintEditorCommands.PlaceFurniture(
+                empty, "test.single", TileCoord.Zero, 18);
+            Assert.That(refused.Succeeded, Is.False,
+                "A bed on bare grass beside the hut is not a placement, it is a bug.");
+            Assert.That(refused.Validation.Issues.Any(issue => issue.Code == "furniture.floor"), Is.True);
+            Assert.That(empty.Furniture, Is.Empty);
+
+            var floored = DraftWithFloor();
+            Assert.That(BlueprintEditorCommands.PlaceFurniture(
+                floored, "test.single", TileCoord.Zero, 18).Succeeded, Is.True);
+        }
+
+        /// <summary>
+        /// Every 0.5 wu seam of a closed room carries exactly one post pair.
+        /// The section models author one pair each and BuildSegmentKey sorts its
+        /// two nodes, so "the pair is on B" put two posts inside each other
+        /// wherever the ordering turned over and none at all on the node next
+        /// door: 6 doubled and 5 bare joints out of 24 on the player's draft.
+        /// </summary>
+        [Test]
+        public void EverySeamOfAClosedRoomCarriesExactlyOnePost()
+        {
+            var draft = BuiltInBuildingBlueprints.Hut1Hex();
+            var bays = draft.Elements.Where(element =>
+                element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window
+                    or BlueprintElementKind.Door).ToArray();
+            var assigned = BlueprintGeometry.AssignSeamPosts(draft.Elements);
+
+            var seams = bays.SelectMany(bay => new[] { bay.Segment.A, bay.Segment.B }).ToHashSet();
+            Assert.That(assigned, Has.Count.EqualTo(bays.Length),
+                "Around a closed ring every section carries a pair.");
+            foreach (var seam in seams)
+            {
+                Assert.That(assigned.Values.Count(node => node == seam), Is.EqualTo(1),
+                    $"Seam {seam} must carry exactly one post pair.");
+            }
+            foreach (var bay in bays)
+            {
+                Assert.That(assigned[bay.Id], Is.EqualTo(bay.Segment.A).Or.EqualTo(bay.Segment.B),
+                    "A section can only put its pair on one of its own two nodes.");
+            }
+
+            var shuffled = BlueprintGeometry.AssignSeamPosts(
+                draft.Elements.OrderByDescending(element => element.Id).ToArray());
+            Assert.That(shuffled, Is.EqualTo(assigned),
+                "The assignment must not depend on the order elements arrive in.");
+        }
+
+        [Test]
+        public void OpenWallChainLeavesOnlyItsFirstNodeWithoutAPost()
+        {
+            var draft = new BuildingBlueprintDraft();
+            Assert.That(BlueprintEditorCommands.DrawWall(
+                draft, new HexBuildNodeKey(0, 0), new HexBuildNodeKey(0, 4)).Succeeded, Is.True);
+            var assigned = BlueprintGeometry.AssignSeamPosts(draft.Elements);
+
+            Assert.That(assigned, Has.Count.EqualTo(4));
+            Assert.That(assigned.Values.Distinct().Count(), Is.EqualTo(4),
+                "Four sections carry four pairs and never stack two on one seam.");
+            var seams = draft.Elements
+                .SelectMany(element => new[] { element.Segment.A, element.Segment.B }).ToHashSet();
+            var bare = seams.Where(seam => assigned.Values.All(node => node != seam)).ToArray();
+            Assert.That(bare, Has.Length.EqualTo(1),
+                "An open chain has one more seam than it has sections, so exactly one end is bare.");
+        }
+
         [Test]
         public void FurnitureHasSixYawStepsAndRejectsOccupiedJunction()
         {
-            var draft = new BuildingBlueprintDraft();
+            var draft = DraftWithFloor();
             Assert.That(BlueprintEditorCommands.PlaceFurniture(
                 draft, "test.single", TileCoord.Zero, 18).Succeeded, Is.True);
             var id = draft.Furniture.Single().Id;
@@ -144,7 +234,7 @@ namespace HexLive.Simulation.Tests.Blueprints
         [Test]
         public void RotationPreviewCanCrossInvalidSixtyAndOneTwentyToCommitOneEighty()
         {
-            var draft = new BuildingBlueprintDraft();
+            var draft = DraftWithFloor();
             Assert.That(BlueprintEditorCommands.PlaceFurniture(
                 draft, "bed.basic", TileCoord.Zero, 18).Succeeded, Is.True);
             var bedId = draft.Furniture.Single().Id;
@@ -269,7 +359,8 @@ namespace HexLive.Simulation.Tests.Blueprints
                 element.Node == BlueprintGeometry.HexCenter(TileCoord.Zero)), Is.False);
             Assert.That(migrated.Elements.Count(element =>
                 element.Kind == BlueprintElementKind.Support &&
-                BlueprintGeometry.RoofSupports(sector).Contains(element.Node)), Is.EqualTo(3));
+                BlueprintGeometry.RoofSupports(sector).Contains(element.Node)),
+                Is.EqualTo(BlueprintGeometry.RequiredRoofSupportCount));
         }
 
         [Test]
@@ -334,7 +425,7 @@ namespace HexLive.Simulation.Tests.Blueprints
         [Test]
         public void InvalidFurnitureMoveExposesRedGhostCandidateButKeepsDraftUnchanged()
         {
-            var draft = new BuildingBlueprintDraft();
+            var draft = DraftWithFloor();
             Assert.That(BlueprintEditorCommands.PlaceFurniture(
                 draft, "test.single", TileCoord.Zero, 18).Succeeded, Is.True);
             Assert.That(BlueprintEditorCommands.PlaceFurniture(

@@ -924,6 +924,7 @@ public static class PrototypeContentCatalog
             {
                 Id = "tool.bottle",
                 DisplayName = "Bottle",
+                MaxCarriedInstances = 1,
                 Tags = { "Tool" },
                 Interactions =
                 {
@@ -1062,7 +1063,10 @@ public static class PrototypeContentCatalog
                         // Spec §49: comfort no longer lives on the interaction —
                         // it's the unified sleep-comfort formula in NeedsDecaySystem
                         // (surface + fire + sun + rain). Energy still lands here.
-                        Effects = { EnergyDelta = SimBalance.BedEnergy } // spec 42: full night ~6h
+                        // §54.11 r2: kept as a data hook for compatibility,
+                        // but live balance sets it to zero. NeedsDecaySystem
+                        // owns the single 4-hour bed clock.
+                        Effects = { EnergyDelta = SimBalance.BedEnergy }
                     }
                 },
                 Tags = { "Bed", "Obstacle" }
@@ -1253,6 +1257,18 @@ public static class PrototypeContentCatalog
         {
             Id = ContentIds.Hut1Hex,
             DisplayName = "Palm hut",
+            Tags = { "Building", ObjectTags.Shelter, ObjectTags.Shade, ObjectTags.HandBuilt }
+        };
+
+        // §120: тот же объект-агрегат, но модули берутся из утверждённого
+        // игроком чертежа. Теги ОБЯЗАНЫ совпадать с hut_1hex: HandBuilt —
+        // это то, чем BuildSiteMath.NeedsHammer отличает «вяжут руками» от
+        // «нужен молоток», и потеря тега тихо превратила бы дом в стройку,
+        // которую невозможно поднять без инструмента в радиусе гекса.
+        defs[ContentIds.HutPlan] = new ObjectDefinition
+        {
+            Id = ContentIds.HutPlan,
+            DisplayName = "Palm house",
             Tags = { "Building", ObjectTags.Shelter, ObjectTags.Shade, ObjectTags.HandBuilt }
         };
 

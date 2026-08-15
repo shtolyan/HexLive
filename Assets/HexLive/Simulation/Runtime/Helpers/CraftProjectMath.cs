@@ -25,6 +25,15 @@ internal static class CraftProjectMath
             return false;
         }
 
+        // §119.2: this is the last, atomic defence against duplicate output.
+        // Decision and Planning normally redirect the demand to PickUp, but a
+        // result may enter perception between those passes. No item recipe is
+        // allowed to pay another bill while its finished output is visible.
+        if (HasReachableCompletedOutput(world, npc, goal))
+        {
+            return false;
+        }
+
         if (TryFindProject(world, npc, goal, station, requireNearby: true, out var project))
         {
             return !project.IsOccupied || project.CurrentUser == npc.Id;
@@ -43,23 +52,64 @@ internal static class CraftProjectMath
         return FindReachableProject(world, npc, goal) is not null;
     }
 
-    // Bug #86: a 100% project is deliberately no longer IsCraftProject, but it
-    // is still the result which satisfied the craft demand. Without this seam
-    // CraftKnife saw only the crafter's pack, outbid GatherTools, and paid for
-    // another knife while the previous one was lying at her feet.
+    // Bug #86/#92 generalized: every item-output recipe derives its duplicate
+    // guard from RecipeCatalog.OutputOf. Adding a new item recipe therefore
+    // needs no second hand-maintained list here or in PlanningSystem.
     internal static bool HasReachableCompletedOutput(
-        WorldState world, NPCState npc, GoalType goal)
+        WorldState world, NPCState npc, GoalType goal) =>
+        TryFindReachableCompletedOutput(
+            world, npc, goal, requireInventoryRoom: false, out _);
+
+    /// <summary>
+    /// A demand can be satisfied by taking a finished output, resuming a paid
+    /// project, or (last) paying a new bill. A visible result which cannot fit
+    /// deliberately returns false instead of authorizing a duplicate.
+    /// </summary>
+    internal static bool CanSatisfyItemCraftDemand(
+        WorldState world, NPCState npc, GoalType goal, bool canManufacture)
     {
+        if (TryFindReachableCompletedOutput(
+                world, npc, goal, requireInventoryRoom: false, out _))
+        {
+            return TryFindReachableCompletedOutput(
+                world, npc, goal, requireInventoryRoom: true, out _);
+        }
+
+        return HasReachableProject(world, npc, goal) || canManufacture;
+    }
+
+    internal static bool TryFindTakeableCompletedOutput(
+        WorldState world, NPCState npc, GoalType goal, out WorldObjectState source) =>
+        TryFindReachableCompletedOutput(
+            world, npc, goal, requireInventoryRoom: true, out source);
+
+    // A consumable may be used straight from its world object/container. This
+    // deliberately skips only the inventory-capacity gate; perception,
+    // reachability, reservations and the "finished project" invariant remain
+    // exactly the same as for the ordinary pickup path.
+    internal static bool TryFindUsableCompletedOutput(
+        WorldState world, NPCState npc, GoalType goal, out WorldObjectState source) =>
+        TryFindReachableCompletedOutput(
+            world, npc, goal, requireInventoryRoom: false, out source);
+
+    private static bool TryFindReachableCompletedOutput(
+        WorldState world, NPCState npc, GoalType goal, bool requireInventoryRoom,
+        out WorldObjectState source)
+    {
+        source = null;
         var output = RecipeCatalog.OutputOf(goal);
         if (string.IsNullOrEmpty(output)) return false;
 
         foreach (var perceived in npc.Perception.Objects)
         {
             if (!perceived.IsReachable || perceived.DefinitionId != output ||
+                !perceived.AvailableInteractions.Contains(InteractionType.PickUp) ||
+                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var candidate) ||
                 !candidate.Fragment.Equals(npc.Fragment) || candidate.IsOccupied ||
-                !InventoryMath.CanMakeRoomFor(world, npc, output))
+                (requireInventoryRoom &&
+                 !InventoryMath.CanMakeRoomForGoal(world, npc, goal, output)))
             {
                 continue;
             }
@@ -72,6 +122,7 @@ internal static class CraftProjectMath
                 (candidate.CraftWorkRequired <= 0 ||
                  candidate.CraftWorkDone >= candidate.CraftWorkRequired))
             {
+                source = candidate;
                 return true;
             }
         }
@@ -85,10 +136,20 @@ internal static class CraftProjectMath
         foreach (var perceived in npc.Perception.Objects)
         {
             if (!perceived.IsReachable ||
+                !perceived.AvailableInteractions.Contains(InteractionType.PickUp) ||
+                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var container) ||
+                container.IsCraftProject || container.IsOccupied ||
                 container.Contents.Count == 0 ||
-                !container.Fragment.Equals(npc.Fragment))
+                !container.Fragment.Equals(npc.Fragment) ||
+                // Contents is not synonymous with a pocket. Build sites,
+                // stations and process objects also own paid/working contents;
+                // treating those as stash made a rope delivered into a site
+                // look like loose rope and produced an endless pickup plan.
+                !world.Content.ObjectDefinitions.TryGetValue(
+                    container.DefinitionId, out var containerDefinition) ||
+                containerDefinition.Layer == null)
             {
                 continue;
             }
@@ -96,8 +157,10 @@ internal static class CraftProjectMath
             foreach (var stashed in container.Contents)
             {
                 if (stashed.DefinitionId == output &&
-                    InventoryMath.CanMakeRoomFor(world, npc, output))
+                    (!requireInventoryRoom ||
+                     InventoryMath.CanMakeRoomForGoal(world, npc, goal, output)))
                 {
+                    source = container;
                     return true;
                 }
             }
@@ -149,6 +212,14 @@ internal static class CraftProjectMath
         if (!RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe) ||
             !RecipeCatalog.UsesPersistentProject(goal) ||
             !StationMatches(world, station, recipe.Station))
+        {
+            return false;
+        }
+
+        // A late perception update can race the plan. Keep the invariant at
+        // the mutation boundary too: never create/resume manufacturing while
+        // a finished copy is already available to this worker.
+        if (HasReachableCompletedOutput(world, npc, goal))
         {
             return false;
         }

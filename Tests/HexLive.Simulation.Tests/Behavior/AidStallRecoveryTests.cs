@@ -2,6 +2,7 @@ using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
@@ -63,22 +64,37 @@ public sealed class AidStallRecoveryTests
     [Test]
     public void DyingWardRemainsAidableWhileRecoverySleepIsBusy()
     {
-        var world = TestWorld.CreateWorld();
+        var world = TestWorld.CreateWorld(12345);
         var npcs = world.Entities.Npcs.Values.Take(2).ToArray();
         var helper = npcs[0];
         var patient = npcs[1];
-        var junctions = world.Junctions.Items.Values
-            .Where(j => !j.Blocked && j.Tiles.Count > 0)
-            .Take(2)
-            .ToArray();
-        helper.CurrentJunction = junctions[0].Id;
-        helper.Tile = junctions[0].Tiles[0];
-        helper.Position = junctions[0].WorldPosition;
-        patient.CurrentJunction = junctions[1].Id;
-        patient.Tile = junctions[1].Tiles[0];
-        patient.Position = junctions[1].WorldPosition;
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic &&
+            o.Variant == ContentIds.HutBedVariant);
+        var bedside = new System.Collections.Generic.List<JunctionId>();
+        SpatialQueries.CollectStandableAround(
+            world, bed.Junctions[0], bedside, 96,
+            SpatialQueries.BesideReach(LyingSpot.SolidRadius(world, bed)),
+            bed, SpatialQueries.RimPurpose.Route);
+        Assert.That(bedside, Is.Not.Empty);
         patient.Needs.Thirst = 1f;
         MortalityHelpers.EnterDying(world, patient, DyingCause.Dehydration);
+        Assert.That(BedSleep.TryEnter(
+            world, patient, bed, int.MaxValue, bedside[0]), Is.True);
+
+        var usable = bedside.Where(j =>
+                !j.Equals(patient.CurrentJunction) &&
+                world.Junctions.Items.TryGetValue(j, out var point) &&
+                HexSpatialMath.Distance(point.WorldPosition, patient.Position) <=
+                    InteractionReach.Aid)
+            .Take(1)
+            .ToArray();
+        Assert.That(usable, Has.Length.EqualTo(1));
+
+        var helperJunction = world.Junctions.Items[usable[0]];
+        helper.CurrentJunction = helperJunction.Id;
+        helper.Tile = helperJunction.Tiles[0];
+        helper.Position = helperJunction.WorldPosition;
         helper.Needs.Hunger = 0.1f;
         helper.Needs.Thirst = 0.1f;
         helper.Needs.Blood = 1f;
@@ -86,11 +102,6 @@ public sealed class AidStallRecoveryTests
         helper.CompassionTrait = 1f;
         helper.BottleWater = WaterKind.Rain;
         helper.BottleCharges = 2;
-        var blockedFeet = SpatialQueries.FindNearestJunction(
-            world, LyingStations.Point(patient, LyingStations.FeetSlot));
-        Assert.That(blockedFeet, Is.Not.Null);
-        world.Occupancy.JunctionOwner[blockedFeet.Value] =
-            new EntityId(int.MaxValue - 531);
         helper.Perception.Agents.Clear();
         helper.Perception.Agents.Add(new PerceivedAgent
         {
@@ -116,6 +127,30 @@ public sealed class AidStallRecoveryTests
             Assert.That(helper.Plan.Status, Is.EqualTo(PlanStatus.Active));
             Assert.That(helper.Plan.TargetAgentId, Is.EqualTo(patient.Id));
             Assert.That(patient.Mind.PendingAidFrom, Is.EqualTo(helper.Id));
+            Assert.That(bed.CurrentUser, Is.EqualTo(patient.Id));
+        });
+
+        var approach = helper.Plan.TargetJunctionId;
+        Assert.That(approach, Is.Not.Null);
+        var approachNode = world.Junctions.Items[approach.Value];
+        helper.CurrentJunction = approach;
+        helper.Position = approachNode.WorldPosition;
+        helper.Tile = approachNode.Tiles[0];
+        helper.Movement.IsMoving = false;
+        helper.Movement.Status = MovementStatus.Arrived;
+        helper.Movement.JunctionPath.Clear();
+        var bedsidePosition = helper.Position;
+
+        new ExecutionSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.Execution.Status, Is.EqualTo(ExecutionStatus.InProgress));
+            Assert.That(helper.Execution.CurrentInteraction,
+                Is.EqualTo(InteractionType.HydrateOther));
+            Assert.That(helper.Position, Is.EqualTo(bedsidePosition),
+                "Aid beside a bed must not snap the helper onto the mattress.");
+            Assert.That(helper.Execution.LyingStationTargetId, Is.Null);
         });
     }
 

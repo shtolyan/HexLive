@@ -1315,6 +1315,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // bandage at the fire. Urgency scales with how hurt anyone is.
         var herbLeaves = CountInventory(npc, ContentIds.HerbLeaf);
         var bandageCount = MedicalSupplyMath.BandageCount(npc);
+        var hasReachableBandage = MedicalSupplyMath.TryFindReachableBandageSource(
+            world, npc, out _);
+        // A loose/stashed source is deliberately counted as one available
+        // dressing, even when the pack is full. The exact object is selected
+        // and claimed by Planning/Execution rather than teleported into cargo.
+        var usableBandageCount = bandageCount + (hasReachableBandage ? 1 : 0);
+        var selfTreatmentReady = SelfTreatmentIndicated(npc, usableBandageCount);
         // §68: the resupply half of self first-aid. A flat 0.3 step at
         // Health < 0.7 barely moved the herb run, and now that she SPENDS
         // her own dressings the pouch has to be refilled — so how badly she
@@ -1331,13 +1338,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             InventoryMath.CanMakeRoomFor(world, npc, ContentIds.HerbLeaf) &&
             PlanningSystem.HasObjectCandidateForGoal(
                 world, npc, GoalType.GatherHerb);
-        var bandageCraftPossible =
-            (herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage)) ||
-            CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftBandage);
-        var gatherHerbAvail = herbFetchPossible && bandageCount < 2;
+        var bandageCraftPossible = CraftProjectMath.CanSatisfyItemCraftDemand(
+            world, npc, GoalType.CraftBandage,
+            herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage));
+        var gatherHerbAvail = herbFetchPossible && usableBandageCount < 2;
         AddGoalScore(npc, world.Tick, GoalType.GatherHerb,
             0.22f + hurtUrgency, gatherHerbAvail);
-        var craftBandageAvail = bandageCraftPossible && bandageCount < 2;
+        var craftBandageAvail = bandageCraftPossible && usableBandageCount < 2 &&
+            !selfTreatmentReady;
         AddGoalScore(npc, world.Tick, GoalType.CraftBandage,
             0.3f + hurtUrgency, craftBandageAvail);
 
@@ -1345,6 +1353,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // quiet preparedness bid only when an allied patient actually needs
         // that exact support and this NPC already carries the complete bill;
         // rescue/first aid remains the urgent layer above manufacturing.
+        var canManufactureSplint =
+            (HasRecipeInputs(npc, GoalType.CraftSplint) ||
+             BillCoveredByGroundPiles(npc, world, GoalType.CraftSplint)) &&
+            CraftPlaceOk(GoalType.CraftSplint);
         var craftSplintAvail = Spec118.Enabled && Spec118.SplintsEnabled &&
             CountInventory(npc, ContentIds.Splint) == 0 &&
             HasAlliedLimbNeed(world, npc, arms: true, legs: true, severed: false) &&
@@ -1353,26 +1365,26 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // нести весь счёт в руках держало эту цель недоступной всегда:
             // подвоза верёвки нет ни у одной цели, а RescueSystem без готовой
             // шины не стартует, так что молчала вся ветка лечения конечности.
-            (HasRecipeInputs(npc, GoalType.CraftSplint) ||
-             BillCoveredByGroundPiles(npc, world, GoalType.CraftSplint) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSplint)) &&
-            CraftPlaceOk(GoalType.CraftSplint);
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftSplint, canManufactureSplint);
         AddGoalScore(npc, world.Tick, GoalType.CraftSplint, 0.36f, craftSplintAvail);
 
         var craftWoodenArmAvail = Spec118.Enabled && Spec118.ProstheticsEnabled &&
             CountInventory(npc, ContentIds.WoodenArm) == 0 &&
             HasAlliedLimbNeed(world, npc, arms: true, legs: false, severed: true) &&
-            (HasRecipeInputs(npc, GoalType.CraftWoodenArm) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftWoodenArm)) &&
-            CraftPlaceOk(GoalType.CraftWoodenArm);
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftWoodenArm,
+                HasRecipeInputs(npc, GoalType.CraftWoodenArm) &&
+                CraftPlaceOk(GoalType.CraftWoodenArm));
         AddGoalScore(npc, world.Tick, GoalType.CraftWoodenArm, 0.34f, craftWoodenArmAvail);
 
         var craftWoodenLegAvail = Spec118.Enabled && Spec118.ProstheticsEnabled &&
             CountInventory(npc, ContentIds.WoodenLeg) == 0 &&
             HasAlliedLimbNeed(world, npc, arms: false, legs: true, severed: true) &&
-            (HasRecipeInputs(npc, GoalType.CraftWoodenLeg) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftWoodenLeg)) &&
-            CraftPlaceOk(GoalType.CraftWoodenLeg);
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftWoodenLeg,
+                HasRecipeInputs(npc, GoalType.CraftWoodenLeg) &&
+                CraftPlaceOk(GoalType.CraftWoodenLeg));
         AddGoalScore(npc, world.Tick, GoalType.CraftWoodenLeg, 0.34f, craftWoodenLegAvail);
 
         // §68: patch YOURSELF up. Until now the only active wound care was
@@ -1383,17 +1395,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // 0.55 / blood 0.48 carrying TWO unusable bandages, and the auction
         // gave the evening to laundry. Now the burden reads the WHOLE body,
         // and a bleeding girl treats before she does chores.
-        var treatBurdenGate = bandageCount > 1
-            ? Spec53.SelfTreatBurdenThreshold
-            : Spec53.SelfTreatLastBandageBurden;
-        var quietAftercare = Spec118.Enabled &&
-            !MortalityHelpers.IsBleeding(npc) && WoundMath.NeedsAftercare(npc);
-        var treatWoundsAvail = Spec53.SelfTreatEnabled &&
-            bandageCount > 0 &&
-            (woundBurden >= treatBurdenGate || quietAftercare) &&
-            // Light hand-work: a lost leg must not forbid winding a bandage.
-            npc.Body.HasUsableHand &&
-            !npc.IsFighting; // not mid-bite: fight or flee first
+        var treatWoundsAvail = selfTreatmentReady;
         // Deliberately NOT gated on remembered danger: that is the §65 trap
         // that already forbids sleep for a day after a wolf walks past, and a
         // dressing is exactly what she needs AFTER the fight.
@@ -1513,6 +1515,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var cookAvail = hasRawMeat && cookingFire != null &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.CookMeat);
         var craftLeatherAvail = !npc.WornItems.Contains(ContentIds.LeatherPants) &&
+            !npc.Inventory.Items.Contains(ContentIds.LeatherPants) &&
             ((hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftLeather));
 
@@ -1892,13 +1895,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             FindGroundInputPile(npc, world, ContentIds.Fiber,
                 SimBalance.ClothFiberCost - carriedFiber) is not null;
         var craftRopeAvail = ctx.CanUseToolsOrWeapons && wantRope &&
-            (((carriedFiber >= SimBalance.RopeFiberCost || ropeGroundPileOk) &&
-              CraftPlaceOk(GoalType.CraftRope)) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftRope));
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftRope,
+                (carriedFiber >= SimBalance.RopeFiberCost || ropeGroundPileOk) &&
+                CraftPlaceOk(GoalType.CraftRope));
         var craftClothAvail = ctx.CanUseToolsOrWeapons && wantCloth &&
-            (((carriedFiber >= SimBalance.ClothFiberCost || clothGroundPileOk) &&
-              CraftPlaceOk(GoalType.CraftCloth)) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftCloth));
+            CraftProjectMath.CanSatisfyItemCraftDemand(
+                world, npc, GoalType.CraftCloth,
+                (carriedFiber >= SimBalance.ClothFiberCost || clothGroundPileOk) &&
+                CraftPlaceOk(GoalType.CraftCloth));
         var finishedKnifeReachable = CraftProjectMath.HasReachableCompletedOutput(
             world, npc, GoalType.CraftKnife);
         var craftKnifeAvail = ctx.CanUseToolsOrWeapons &&
@@ -3244,9 +3249,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             GoalType.Idle or GoalType.None => true,
             GoalType.Eat or GoalType.GetFood => npc.Mind.IsStarving,
             GoalType.Drink or GoalType.GetWater => npc.Mind.IsDehydrated,
-            // Fetching the bandage's herbs IS the crisis response — zeroing it
-            // left a herbless bleeder with literally nothing to do (Jul 2026).
-            GoalType.CraftBandage or GoalType.GatherHerb => true,
+            // Applying an available bandage is the direct response; fetching
+            // herbs/crafting one is the fallback. Omitting TreatWounds here
+            // made the bleeding-crisis suppressor zero the newly available
+            // nearby-bandage bid and leave Explore as the only survivor.
+            GoalType.TreatWounds or GoalType.CraftBandage or GoalType.GatherHerb => true,
             _ => false
         };
     }

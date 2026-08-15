@@ -160,6 +160,7 @@ namespace HexLive.UnityPresentation.UI
         private CharacterDollStage _characterDollStage;
         private VisualElement _invDetailView; // one reused item-card popover
         private VisualElement _invDetailAnchor;
+        private InventoryDetailPlacement _invDetailPlacement = InventoryDetailPlacement.Item;
         private Label _invBackLabel;
         private Label _invDetailEmoji;
         private Image _invDetailIcon;
@@ -453,6 +454,13 @@ namespace HexLive.UnityPresentation.UI
         // рядом с «Природой» (что может тело) и «Умениями» (что умеют руки),
         // но своей страницей, потому что черта это не число на шкале.
         private enum SheetTab { Needs, Nature, Skills, Character }
+
+        private enum InventoryDetailPlacement
+        {
+            Preserve,
+            Item,
+            Doll
+        }
 
         private static readonly NeedConfig[] Needs =
         {
@@ -2636,7 +2644,7 @@ namespace HexLive.UnityPresentation.UI
                     ShowItemDetail(
                         wornId, true, _invWornDurability, _invCarriedWater,
                         _invCarriedStacks, _invWornWetness, _invWornDirtiness,
-                        _invPreviewHoverAnchor);
+                        _invPreviewHoverAnchor, -1, InventoryDetailPlacement.Doll);
                 }
                 return;
             }
@@ -3258,6 +3266,7 @@ namespace HexLive.UnityPresentation.UI
         {
             _invSelectedId = null;
             _invDetailAnchor = null;
+            _invDetailPlacement = InventoryDetailPlacement.Item;
             SetHoveredWorn(string.Empty);
             if (_invDetailView != null)
             {
@@ -3294,16 +3303,50 @@ namespace HexLive.UnityPresentation.UI
             if (float.IsNaN(detailHeight) || detailHeight < 1f) detailHeight = 470f;
             detailHeight = Mathf.Min(detailHeight, allowedHeight);
 
-            // One predictable resting place for every item card: just beyond
-            // the inventory window's doll-side edge, vertically centred on the
-            // doll. On a narrow viewport the screen edge wins, so the card
-            // remains usable instead of rendering off-screen.
-            var x = window.xMax - root.xMin + 12f;
-            x = Mathf.Min(x, Mathf.Max(8f, root.width - detailWidth - 8f));
-            x = Mathf.Max(8f, x);
+            float x;
+            float y;
+            if (_invDetailPlacement == InventoryDetailPlacement.Item &&
+                _invDetailAnchor != null)
+            {
+                // A clicked grid item owns the card spatially. Prefer its right
+                // edge, fall back to the left, then clamp only when neither side
+                // can contain the legacy card (small resolutions).
+                var anchor = _invDetailAnchor.worldBound;
+                var right = anchor.xMax - root.xMin + 10f;
+                var left = anchor.xMin - root.xMin - detailWidth - 10f;
+                var rightFits = right + detailWidth <= root.width - 8f;
+                var leftFits = left >= 8f;
+                if (rightFits)
+                {
+                    x = right;
+                }
+                else if (leftFits)
+                {
+                    x = left;
+                }
+                else
+                {
+                    var roomRight = root.xMax - anchor.xMax;
+                    var roomLeft = anchor.xMin - root.xMin;
+                    x = roomRight >= roomLeft ? right : left;
+                    x = Mathf.Clamp(x, 8f, Mathf.Max(8f, root.width - detailWidth - 8f));
+                }
 
-            var doll = _invDollPane != null ? _invDollPane.worldBound : window;
-            var y = doll.center.y - root.yMin - detailHeight * 0.5f;
+                y = anchor.center.y - root.yMin - detailHeight * 0.5f;
+            }
+            else
+            {
+                // A doll hover has one predictable resting place: just beyond
+                // the inventory window's doll-side edge. It never chases the
+                // pointer across the body and therefore does not obstruct drag.
+                x = window.xMax - root.xMin + 12f;
+                x = Mathf.Min(x, Mathf.Max(8f, root.width - detailWidth - 8f));
+                x = Mathf.Max(8f, x);
+
+                var doll = _invDollPane != null ? _invDollPane.worldBound : window;
+                y = doll.center.y - root.yMin - detailHeight * 0.5f;
+            }
+
             y = Mathf.Clamp(y, 8f, Mathf.Max(8f, root.height - detailHeight - 8f));
             _invDetailView.style.left = x;
             _invDetailView.style.top = y;
@@ -3661,12 +3704,17 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
             VisualElement anchor = null,
-            int sourceIndex = -1)
+            int sourceIndex = -1,
+            InventoryDetailPlacement placement = InventoryDetailPlacement.Preserve)
         {
             _invSelectedId = id;
             _invSelectedWorn = worn;
             _invSelectedSourceIndex = worn ? -1 : sourceIndex;
             SetHoveredWorn(worn ? id : string.Empty);
+            if (placement != InventoryDetailPlacement.Preserve)
+            {
+                _invDetailPlacement = placement;
+            }
             if (anchor != null)
             {
                 _invDetailAnchor = anchor;
@@ -3777,7 +3825,7 @@ namespace HexLive.UnityPresentation.UI
 
                 ShowItemDetail(
                     itemId, worn, durability, water, stacks, wetness, dirtiness,
-                    element, sourceIndex);
+                    element, sourceIndex, InventoryDetailPlacement.Item);
                 evt.StopPropagation();
             });
         }

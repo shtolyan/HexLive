@@ -31,6 +31,14 @@ internal static class BuildSiteMath
         MaterialLogs, MaterialStones, MaterialLeaves, MaterialSticks, MaterialRope, MaterialBoards
     };
 
+    /// <summary>
+    /// §120: a site whose product is raised as INDEPENDENT MODULES (the
+    /// BuildingRules grammar) rather than as ordered furniture stages. The
+    /// canonical hut and any committed player plan are both such products.
+    /// </summary>
+    public static bool IsArchitecturalBuilding(string buildProduct) =>
+        buildProduct == ContentIds.Hut1Hex || buildProduct == ContentIds.HutPlan;
+
     /// <summary>Authored construction method shared by bidding and execution.
     /// A missing/unknown product is conservative and still requires a hammer.</summary>
     public static bool NeedsHammer(WorldState world, WorldObjectState site) =>
@@ -144,17 +152,19 @@ internal static class BuildSiteMath
     // (unstaged sites: campfire, hut pieces).
     public static int Remaining(WorldObjectState site, string materialId)
     {
-        if (site.BuildProduct == ContentIds.Hut1Hex)
+        if (IsArchitecturalBuilding(site.BuildProduct))
         {
             // §120 modular grammar: wall/floor/support cubes are independent,
             // so all of their materials may be hauled in parallel. Roof leaves
             // become demand only after half of this roof patch's support
-            // vertices are actually complete (3/6 for hut_1hex).
+            // vertices are actually complete (3/6 for hut_1hex, 4/7 for the
+            // player's committed plan — the count is the PLAN's, not a constant).
             if (materialId == MaterialLeaves && !BuildingRules.RoofUnlocked(
                     site.Id.Value,
                     Delivered(site, MaterialSticks),
                     Delivered(site, MaterialBoards),
-                    Delivered(site, MaterialRope)))
+                    Delivered(site, MaterialRope),
+                    site.BuildProduct))
                 return 0;
             return TotalRemaining(site, materialId);
         }

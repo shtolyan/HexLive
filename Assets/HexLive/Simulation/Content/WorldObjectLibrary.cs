@@ -56,6 +56,11 @@ namespace HexLive.Simulation.Content
                     }
                 }
 
+                if (pair.Value.MaxCarriedInstances > 0)
+                {
+                    baseDef.MaxCarriedInstances = pair.Value.MaxCarriedInstances;
+                }
+
                 if (pair.Value.Produce != null)
                 {
                     baseDef.Produce = pair.Value.Produce;

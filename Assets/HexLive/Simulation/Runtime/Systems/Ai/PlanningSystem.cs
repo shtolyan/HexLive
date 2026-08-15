@@ -257,6 +257,35 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            // §119.2: an item-craft goal means "satisfy this item demand", not
+            // necessarily "manufacture a fresh copy". RecipeCatalog supplies
+            // the output id for every persistent item recipe, so this one seam
+            // automatically covers bandages, rope, tools, prostheses and future
+            // item recipes. Finished output wins over both an unfinished project
+            // and a new ingredient bill.
+            if (Content.RecipeCatalog.UsesPersistentProject(npc.Mind.CurrentGoal) &&
+                CraftProjectMath.HasReachableCompletedOutput(
+                    world, npc, npc.Mind.CurrentGoal))
+            {
+                if (TryBuildCompletedCraftOutputTakePlan(world, npc))
+                {
+                    continue;
+                }
+
+                // A visible result with no currently usable pickup (full pack,
+                // lost rim, reservation race) must still suppress manufacturing.
+                // Back off instead of converting that temporary problem into a
+                // second physical item on the ground.
+                npc.Plan.Status = PlanStatus.Failed;
+                SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "PlanFailed",
+                        $"Goal={npc.Mind.CurrentGoal} finished output visible but not takeable");
+                }
+                continue;
+            }
+
             // §gear-craft: the recipe declares NO station — craft right where
             // she stands: a one-step in-place plan, no walk, no target object.
             if (Content.RecipeCatalog.UsesPersistentProject(npc.Mind.CurrentGoal) &&
@@ -679,13 +708,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
-            // §68: first aid on yourself is in-place work — no walk, no target
-            // object, no station. She stops where she stands and winds the
-            // dressing (the bandage is already in her pack; the fetch/craft of
-            // one is the separate GatherHerb→CraftBandage chain).
+            // §68 r2: a carried dressing is still used in place. With an empty
+            // or full pack, however, a ready dressing in the craft ring can be
+            // applied straight from the ground/pocket; a farther perceived one
+            // gets a walk leg but never a PickUp leg.
             if (npc.Mind.CurrentGoal == GoalType.TreatWounds)
             {
-                if (MedicalSupplyMath.BandageCount(npc) <= 0)
+                if (!TryBuildSelfTreatmentPlan(world, npc))
                 {
                     npc.Plan.Status = PlanStatus.Failed;
                     SetGoalCooldown(world, npc, GoalType.TreatWounds);
@@ -694,20 +723,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         Trace.Debug(world, npc.Id, "PlanFailed", "Goal=TreatWounds NoBandage");
 
                     }
-                    continue;
-                }
-
-                npc.Plan.Steps.Add(new PlanStep
-                {
-                    Type = PlanStepType.TreatSelf,
-                    Interaction = InteractionType.TreatSelf
-                });
-                npc.Plan.CurrentStepIndex = 0;
-                npc.Plan.Status = PlanStatus.Active;
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "PlanBuilt",
-                        $"Goal=TreatWounds Bandages={MedicalSupplyMath.BandageCount(npc)} Steps=[TreatSelf]");
                 }
                 continue;
             }
@@ -1230,6 +1245,137 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     $"FromMemory={selected.FromMemory} Steps=[MoveToJunction,Interact]");
             }
         }
+    }
+
+    /// <summary>
+    /// Builds the shared "take the product that already exists" plan for every
+    /// persistent item recipe. The target may be the output itself or a dropped
+    /// garment whose Contents holds it; completion extracts only the requested
+    /// output from that container.
+    /// </summary>
+    private static bool TryBuildCompletedCraftOutputTakePlan(
+        WorldState world, NPCState npc)
+    {
+        var goal = npc.Mind.CurrentGoal;
+        var output = Content.RecipeCatalog.OutputOf(goal);
+        if (string.IsNullOrEmpty(output) ||
+            !CraftProjectMath.TryFindTakeableCompletedOutput(
+                world, npc, goal, out var source) ||
+            source.Junctions.Count == 0)
+        {
+            return false;
+        }
+
+        var anchor = source.Junctions[0];
+        var reach = SpatialQueries.BesideReach(
+            world.Content.ObjectDefinitions.TryGetValue(
+                source.DefinitionId, out var definition)
+                    ? definition.ObstacleRadius
+                    : 0f);
+        if (!TryReserveBesideJunction(
+                world, npc, anchor, 48, out var beside, reach, source) ||
+            !SpatialMutations.TryReserveJunction(
+                world, beside, npc.Id, world.Tick, 48))
+        {
+            return false;
+        }
+
+        npc.Plan.TargetObjectId = source.Id;
+        npc.Plan.TargetTile = source.Tile;
+        npc.Plan.TargetJunctionId = beside;
+        npc.Plan.TargetItemDefinitionId = output;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = beside,
+            TargetObject = source.Id
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            TargetObject = source.Id,
+            TargetJunction = beside,
+            Interaction = InteractionType.PickUp
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CraftOutputTakePlanned",
+                $"Goal={goal} Output={output} Source={source.Id.Value} " +
+                $"SourceDef={source.DefinitionId} " +
+                $"Container={source.DefinitionId != output} Junction={beside.Value}");
+        }
+        return true;
+    }
+
+    private static bool TryBuildSelfTreatmentPlan(WorldState world, NPCState npc)
+    {
+        WorldObjectState source = null;
+        if (MedicalSupplyMath.BandageCount(npc) <= 0 &&
+            !MedicalSupplyMath.TryFindReachableBandageSource(world, npc, out source))
+        {
+            return false;
+        }
+
+        npc.Plan.TargetItemDefinitionId = ContentIds.Bandage;
+        if (source != null)
+        {
+            npc.Plan.TargetObjectId = source.Id;
+            npc.Plan.TargetTile = source.Tile;
+
+            // The same ring-1 reach used by ground-input crafting: no cargo
+            // transfer and no ceremonial one-step walk around an item already
+            // at her knees. A farther perceived source uses the normal reserved
+            // object approach before the treatment beat.
+            if (HexSpatialMath.HexDistance(npc.Tile, source.Tile) > 1)
+            {
+                if (source.Junctions.Count == 0)
+                {
+                    return false;
+                }
+
+                var anchor = source.Junctions[0];
+                var reach = SpatialQueries.BesideReach(
+                    world.Content.ObjectDefinitions.TryGetValue(
+                        source.DefinitionId, out var definition)
+                            ? definition.ObstacleRadius
+                            : 0f);
+                if (!TryReserveBesideJunction(
+                        world, npc, anchor, 48, out var beside, reach, source) ||
+                    !SpatialMutations.TryReserveJunction(
+                        world, beside, npc.Id, world.Tick, 48))
+                {
+                    return false;
+                }
+
+                npc.Plan.TargetJunctionId = beside;
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.MoveToJunction,
+                    TargetJunction = beside,
+                    TargetObject = source.Id
+                });
+            }
+        }
+
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.TreatSelf,
+            TargetObject = source?.Id,
+            TargetJunction = npc.Plan.TargetJunctionId,
+            Interaction = InteractionType.TreatSelf
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=TreatWounds InventoryBandages={MedicalSupplyMath.BandageCount(npc)} " +
+                $"Source={source?.Id.Value.ToString() ?? "inventory"} " +
+                $"Steps=[{(npc.Plan.Steps.Count > 1 ? "MoveToJunction," : string.Empty)}TreatSelf]");
+        }
+        return true;
     }
 
     // One source of truth for object approach geometry.  Sit/Sleep always use
@@ -1956,7 +2102,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // ничем (та же петля, что съела колонию на кокосах).
                 return CorpseMath.IsHumanDead(definition) &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var lootAnchor) &&
-                    CorpseMath.HasSpoils(world, lootAnchor);
+                    CorpseMath.HasLootableSpoils(world, npc, lootAnchor);
             case GoalType.WarmUp:
                 // Spec 42: only a BURNING fire warms — a cold pit is no target.
                 return definition.Tags.Contains("Campfire") &&

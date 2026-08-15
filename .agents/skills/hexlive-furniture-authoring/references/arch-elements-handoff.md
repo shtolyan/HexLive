@@ -25,15 +25,28 @@ exec(open("Tools/blender/export_arch_elements.py").read())
 
 ## Done and measured
 
+⭐ **Re-measure these after every kit rebuild, out of the FBX, never off this
+table.** The rope column was wrong for months (it said 1 everywhere, because a
+lashing was once one joined object) and the roof row went stale the moment the
+flat panels became real palm fronds. A module billed for fewer units than the
+model has can never reveal its last pieces, yet still reports Complete. Counted
+2026-08-15 by parsing the FBX `Models` + `Connections`, skipping `_deco_`
+hardware and the transparent `HL_Door_Pivot` container:
+
 | Element | Stage units (sticks / boards-stones-leaves / rope) |
 |---|---|
-| `architecture.wall.wood` | 4 / 3 / 1 |
-| `architecture.window.wood` | 4 / 3 / 1 |
-| `architecture.door.wood` | 5 / 2 / 1 |
-| `architecture.support.wood` | 2 / 0 / 1 |
-| `architecture.floor.board` | 2 / 3 / 1 |
-| `architecture.roof.palm` | 2 / 3 / 1 |
-| `furniture.hearth` | 8 / 12 / 1 |
+| `architecture.wall.wood` | 4 / 3 / **4** |
+| `architecture.window.wood` | 4 / 3 / **4** |
+| `architecture.door.wood` | 5 / 2 / **4** |
+| `architecture.support.wood` | 2 / 0 / **3** |
+| `architecture.floor.board` | 2 / 3 / **3** |
+| `architecture.roof.palm` | **3 / 27 / 2** |
+| `architecture.roof.palm.flat` | **3 / 27 / 2** |
+| `furniture.hearth` | 8 / 12 / 1 (not re-measured) |
+
+The player's committed plan therefore bills **161 sticks, 101 boards, 167 rope,
+270 leaves** — 699 hauled items, of which the roof thatch alone is 270. That is
+a balance decision the player has to see, not a number to quietly shrink.
 
 Numbers that were verified, not eyeballed:
 
@@ -53,6 +66,21 @@ Numbers that were verified, not eyeballed:
   changes nothing. Nothing stands at the hex centre: six panels meet there.
 - Furniture overlay draws the r=4 boundary ring as well as the r=3 interior set,
   deduplicated by JunctionKey: 169 points on a three-hex room versus 111.
+- Seam posts: on the player's own saved draft (24 sections, 7 supports) the ship-
+  ping build left 5 bare joints, 6 doubled ones and 20 rope rings hanging in mid
+  air. After `BlueprintGeometry.AssignSeamPosts`: 25 joints, exactly one post
+  pair on each, zero orphan rings, and the door keeps its authored hinge. Two
+  separate defects, both measured, not guessed:
+  * the pair stands on the model's local −Z (authored +Y, the 0.5 wu seam) which
+    is the segment's **A**, while the drop test asked about **B** — and
+    `BuildSegmentKey` SORTS its two nodes, so no fixed end can ever be right
+    around a ring;
+  * the lashings were matched by `_rope`, but the export names them
+    `WALL_bind_0..3` / `WIN_bind_*` / `DOOR_bind_*`, so nothing was ever deleted.
+- Furniture now needs floor under every occupied junction even on an empty
+  blueprint, and the furniture overlay only dots junctions that sit on a built
+  floor sector. The old `floors.Length > 0` escape let a bed be dropped on the
+  grass beside the hut, with green dots inviting it.
 
 ## Open
 
@@ -81,9 +109,61 @@ Numbers that were verified, not eyeballed:
    overhanging past the walls, and thatched with the palm fronds instead of flat
    panels. Geometry lives in the `HL_ARCH_ROOF` block of
    `build_arch_elements.py`; keep the tiling rule (slope inside the hex).
-4. **Production hut still uses the old monolith.** The game scene renders
-   `building.hut_1hex.fbx` through `HutAssembly` with the 34/31/12/4 bill. Moving
-   it onto these six elements and recomputing the bill is a separate change.
+4. **Production hut still uses the old monolith — the bridge is HALF BUILT.**
+   The player wants his own constructor draft to be raised by colonists, not the
+   canonical hut. What is measured and true:
+   * A build-site's whole geometry already lives per element
+     (`ArchitectureElementState.LocalX/LocalZ/LocalYaw` + the four Required*
+     counts) and is already serialised and wired. Only the GENERATOR of that
+     list is hard-coded: `BuildingRules.HutDefinitions()`, twelve bays, windows
+     nailed to bays 2/3/10/11.
+   * **DONE:** `BlueprintBuildingPlan` (Simulation/Runtime/Blueprints) converts a
+     `BuildingBlueprintDraft` into exactly that module list. Measured on the
+     player's saved draft: anchor hex (0,0), footprint {(-1,1),(0,0),(0,1)},
+     51 modules (7 support / 10 floor / 16 wall / 7 window / 1 door / 10 roof),
+     bill **151 sticks, 101 boards, 51 rope, 30 leaves**, 51/51 unique slot keys,
+     deterministic. It reuses `AssignSeamPosts`, so a section's post stands on
+     the same seam in the world as in the preview.
+   * **LEFT:**
+     a. `BuildingRules` must take the module list from the SITE instead of always
+        calling `HutDefinitions()` — `ResolveHutElements`, `SyncHutElements` and
+        `RefreshHutElementGeometry` all re-derive it globally. The site's own
+        elements already carry it; read those.
+     b. Stake the site: `BuildingBootstrap.CreateHutSite` (which has **zero
+        callers** today) needs a plan-aware sibling that sets `Bill*` from
+        `BlueprintBuildingPlan.Bill` and spawns the modules.
+     c. Multi-hex footprint: `CompleteHut` sets `HasFloor|Indoor` on ONE tile and
+        derives one portal edge. A three-hex plan needs `Footprint(draft)`.
+     d. Presentation draws nothing from `ArchitectureElements` at all — grep is
+        empty. `HutAssembly` renders the monolith FBX. The renderer for a plan is
+        `BlueprintArchitectureFactory` plus `ApplyStageProgress`, which is
+        written, correct, and has **no callers** — a fair sign the previous
+        session was walking to exactly this bridge and stopped.
+   * Committing the player's draft: it lives at
+     `~/Library/Application Support/JuicyLove/HexLive/HexLive/BlueprintDrafts/hut_constructor_autosave.json`.
+     The old promotion path (`scripts/extract_latest_hut_layout.py`, scraping
+     `[HutDesigner][SAVED]` out of `Editor.log`) is FURNITURE-ONLY and stale —
+     the constructor writes proper JSON now. Freeze the JSON as a committed
+     asset instead of scraping a log.
+
+5. **`BuildHutTest` scene.** `Assets/HexLive/UnityPresentation/BuildHutTest/BuildHutTestWorld.cs`
+   builds the sandbox world: hex flower (radius 1 play area, radius 2 padding —
+   `BlockEdgeJunctions` seals a bare flower's own rim), three colonists, an
+   unbuilt hearth via `FactionHomeBootstrap.StakeCampfireSite`, and every
+   material scattered from ring 1 outwards so nothing lands inside the house.
+   The scene itself is not authored yet. The recipe, measured: the real game is
+   assembled at runtime by `PrototypeRuntimeBootstrap` in ANY scene and switches
+   itself off when a `SimulationRunnerBehaviour` already exists — which is what
+   every existing test scene does, and why none of them has the game's menus or
+   cameras. So the scene must be a copy of `Main.unity` with ONLY a marker that
+   overrides the world definition and creates no runner. `PrototypeWorldDefinitionFactory.Create`
+   has no override hook yet; add one. Watch `LoadingScreen` — it enables autosave
+   and will overwrite `hexlive_save.dat`.
+   Also true and worth not rediscovering: `tool.bottle` is `MaxCarriedInstances = 1`
+   and the water lives on the NPC (`NpcState.BottleWater`), so a heap of bottles
+   is NOT a water supply — a `water.pond` is. Meat placed through `ObjectBootstrap`
+   never spoils, because `AddObject` leaves `SpawnTick = 0` and
+   `MeatSpoilageSystem` skips those.
 5. **`SimData/simdata.json` was not re-exported.** The hut hearth bill is `const`
    so `BalanceKnobHygieneGate` stays green, but if any of those numbers becomes a
    `public static` knob it must be exported through

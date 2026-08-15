@@ -889,6 +889,27 @@ public sealed partial class DecisionSystem
         return MathUtil.Clamp01(System.MathF.Max(burden, 1f - npc.Needs.Blood));
     }
 
+    // One predicate shared by the auction and the craft-output adapter. A
+    // freshly crafted dressing can therefore flow straight into treatment
+    // without duplicating (and eventually drifting from) the last-bandage
+    // reserve rule here.
+    internal static bool SelfTreatmentIndicated(NPCState npc, int availableBandages)
+    {
+        if (!Spec53.SelfTreatEnabled || availableBandages <= 0 ||
+            !npc.Body.HasUsableHand || npc.IsFighting)
+        {
+            return false;
+        }
+
+        var burden = SelfTreatBurden(npc);
+        var burdenGate = availableBandages > 1
+            ? Spec53.SelfTreatBurdenThreshold
+            : Spec53.SelfTreatLastBandageBurden;
+        var quietAftercare = Spec118.Enabled &&
+            !MortalityHelpers.IsBleeding(npc) && WoundMath.NeedsAftercare(npc);
+        return burden >= burdenGate || quietAftercare;
+    }
+
     private static bool HasInteraction(NPCState npc, InteractionType interactionType)
     {
         foreach (var obj in npc.Perception.Objects)

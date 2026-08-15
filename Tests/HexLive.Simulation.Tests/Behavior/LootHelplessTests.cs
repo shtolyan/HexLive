@@ -287,6 +287,56 @@ public sealed class LootHelplessTests
     }
 
     [Test]
+    public void LooterSkipsTheVictimsBottleWhenAlreadyCarryingOne()
+    {
+        var world = TestWorld.CreateWorld();
+        var actors = world.Entities.Npcs.Values.Take(2).ToArray();
+        var looter = actors[0];
+        var victim = actors[1];
+        looter.Inventory.Items.Clear();
+        victim.Inventory.Items.Clear();
+        victim.WornItems.Clear();
+        looter.Inventory.Items.Add(ContentIds.Bottle);
+        var victimsBottle = new ItemInstance(ContentIds.Bottle);
+        victim.Inventory.Items.Add(victimsBottle);
+        victim.Inventory.Items.Add(new ItemInstance(GearCatalog.Hammer));
+
+        Assert.That(LootHelplessMath.TryTake(
+            world, looter, victim, out var taken), Is.True);
+        Assert.That(taken, Is.EqualTo(GearCatalog.Hammer),
+            "The redundant bottle must not hide useful loot behind it.");
+        Assert.That(LootHelplessMath.HasLootFor(world, looter, victim), Is.False,
+            "A body holding only a redundant bottle must not start another loot scene.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(looter.Inventory.Items.Count(
+                i => i.DefinitionId == ContentIds.Bottle), Is.EqualTo(1));
+            Assert.That(victim.Inventory.Items.Any(
+                i => ReferenceEquals(i, victimsBottle)), Is.True,
+                "The bottle remains property on the victim; it is not destroyed.");
+        });
+    }
+
+    [Test]
+    public void BottlelessLooterMayRecoverOneBottle()
+    {
+        var world = TestWorld.CreateWorld();
+        var actors = world.Entities.Npcs.Values.Take(2).ToArray();
+        var looter = actors[0];
+        var victim = actors[1];
+        looter.Inventory.Items.Clear();
+        victim.Inventory.Items.Clear();
+        victim.WornItems.Clear();
+        victim.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+
+        Assert.That(LootHelplessMath.TryTake(
+            world, looter, victim, out var taken), Is.True);
+        Assert.That(taken, Is.EqualTo(ContentIds.Bottle));
+        Assert.That(looter.Inventory.Items.Count(
+            i => i.DefinitionId == ContentIds.Bottle), Is.EqualTo(1));
+    }
+
+    [Test]
     public void ConsciousMarks_AreNotVictims()
     {
         var (engine, outsider, colonist) = Adjacent();

@@ -87,7 +87,6 @@ public sealed class BalanceKnobHygieneGateTests
         {
             ["EnergyRate"] = "0.005 против 0.007",
             ["BleedRateFactor"] = "0.06 против 0.09",
-            ["SleepEnergyBaseBonus"] = "0.026 против 0.01",
             ["FireWarmthRange1"] = "18 против 8 — §67 подняли тепло костра в статике",
             ["FireWarmthRange2"] = "11 против 4 — там же",
             ["WashClothesNeedThreshold"] = "0.45 против 0.2",

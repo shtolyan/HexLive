@@ -216,6 +216,10 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(previewHover, Does.Contain("StartingIn(80)"));
             Assert.That(source, Does.Contain("window.xMax - root.xMin + 12f"));
             Assert.That(source, Does.Contain("doll.center.y - root.yMin"));
+            Assert.That(source, Does.Contain("anchor.xMax - root.xMin + 10f"));
+            Assert.That(source, Does.Contain("anchor.xMin - root.xMin - detailWidth - 10f"));
+            Assert.That(source, Does.Contain("InventoryDetailPlacement.Doll"));
+            Assert.That(source, Does.Contain("InventoryDetailPlacement.Item"));
             Assert.That(source, Does.Contain("if (_invSelectedWorn)"));
             Assert.That(source, Does.Contain("private const float InventoryDragThreshold = 6f"));
             Assert.That(source, Does.Contain("UpdateInventoryPointerGesture"));
@@ -224,6 +228,31 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Contain("if (!_invPreviewRotated)"));
             Assert.That(source, Does.Contain("_root.RegisterCallback<PointerMoveEvent>"),
                 "The threshold must still be observed after the pointer leaves a card.");
+        });
+    }
+
+    [Test]
+    public void DollPickingUsesFrozenMeshSurfacesBeforeBoundsFallback()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var pickStart = source.IndexOf(
+            "public bool TryPickWorn", StringComparison.Ordinal);
+        var zonesStart = source.IndexOf(
+            "public void SetZones", pickStart, StringComparison.Ordinal);
+        Assert.That(pickStart, Is.GreaterThanOrEqualTo(0));
+        Assert.That(zonesStart, Is.GreaterThan(pickStart));
+        var picking = source[pickStart..zonesStart];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("BuildWornPickColliders()"));
+            Assert.That(source, Does.Contain("skin.BakeMesh(mesh, false)"));
+            Assert.That(picking, Does.Contain("collider.Raycast"));
+            Assert.That(picking, Does.Contain("_wornPickColliders.ContainsKey(renderer)"));
+            Assert.That(picking.IndexOf("collider.Raycast", StringComparison.Ordinal),
+                Is.LessThan(picking.IndexOf("bounds.IntersectRay", StringComparison.Ordinal)),
+                "Exact visible triangles must be considered before a legacy bounds fallback.");
+            Assert.That(source, Does.Contain("ReleaseWornPickMeshes()"));
         });
     }
 

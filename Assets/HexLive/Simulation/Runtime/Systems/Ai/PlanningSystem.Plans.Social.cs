@@ -538,6 +538,29 @@ public sealed partial class PlanningSystem
         return route.Count > 0;
     }
 
+    private static int BedsideRouteLength(
+        WorldState world, NPCState npc, JunctionId candidate,
+        System.Collections.Generic.HashSet<JunctionId> occupiedByActor)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return int.MaxValue;
+        }
+
+        if (from.Equals(candidate))
+        {
+            return 0;
+        }
+
+        var route = HexPathfinder.FindPath(
+            world, from, candidate, occupiedByActor,
+            weightClimb: true, canJump: CanUseRoutineTraversal(npc),
+            danger: null, dangerCost: 0L,
+            hardAvoid: DoorTopology.ForbiddenFor(world, npc.Faction),
+            maxExpansions: AidApproachExpansionBudget);
+        return route.Count > 0 ? route.Count : int.MaxValue;
+    }
+
     /// <summary>
     /// §53 r4: dry availability and the reserving planner use the same station,
     /// reach, occupancy and physical-route predicate. This prevents a visible
@@ -562,6 +585,13 @@ public sealed partial class PlanningSystem
         // it reserves a point already held by a third person and MovementSystem
         // politely re-paths to that exact same point forever.
         var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
+        if (partner is not null &&
+            BedSleep.TryGetOccupiedBed(world, partner, out var supportBed))
+        {
+            return FindBedsideApproach(
+                world, npc, partner, supportBed, occupiedByActor, reserve);
+        }
+
         if (partner is not null && partner.IsLyingDown(world.Tick))
         {
             // Do not claim the first geometrically usable slot and only then
@@ -632,6 +662,78 @@ public sealed partial class PlanningSystem
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// §53.4 r6: the five body-local stations sit over a mattress and therefore
+    /// are not standing places. For an authoritative BedSleep occupant, walk to
+    /// the furniture's ordinary free rim, then keep only points from which the
+    /// patient's live body is within aid reach. Dry scoring and reservation use
+    /// this same selection so an unavailable bedside never wins the auction.
+    /// </summary>
+    private static JunctionId? FindBedsideApproach(
+        WorldState world, NPCState npc, NPCState patient, WorldObjectState bed,
+        System.Collections.Generic.HashSet<JunctionId> occupiedByActor,
+        bool reserve)
+    {
+        var candidates = world.Caches.ObjectApproachJunctionsScratch;
+        SpatialQueries.CollectStandableAround(
+            world, bed.Junctions[0], candidates, 96,
+            SpatialQueries.BesideReach(LyingSpot.SolidRadius(world, bed)),
+            bed, SpatialQueries.RimPurpose.Route);
+
+        JunctionId? best = null;
+        var bestRoute = int.MaxValue;
+        var bestPatientDistance = float.MaxValue;
+        foreach (var candidate in candidates)
+        {
+            if (!world.Junctions.Items.TryGetValue(candidate, out var junction) ||
+                occupiedByActor.Contains(candidate) ||
+                !JunctionAvailableFor(world, candidate, npc.Id) ||
+                HexSpatialMath.Distance(junction.WorldPosition, patient.Position) >
+                    InteractionReach.Aid ||
+                !InteractionReach.CanTouchBedOccupantAcross(world, candidate, bed) ||
+                world.Reservations.Junctions.TryGetValue(candidate, out var held) &&
+                    held.Owner != npc.Id && held.EndTick >= world.Tick)
+            {
+                continue;
+            }
+
+            var routeLength = BedsideRouteLength(
+                world, npc, candidate, occupiedByActor);
+            if (routeLength == int.MaxValue)
+            {
+                continue;
+            }
+
+            var patientDistance = HexSpatialMath.Distance(
+                junction.WorldPosition, patient.Position);
+            if (routeLength < bestRoute ||
+                routeLength == bestRoute && patientDistance < bestPatientDistance - 0.001f ||
+                routeLength == bestRoute &&
+                System.Math.Abs(patientDistance - bestPatientDistance) <= 0.001f &&
+                (best is null || candidate.Value < best.Value.Value))
+            {
+                best = candidate;
+                bestRoute = routeLength;
+                bestPatientDistance = patientDistance;
+            }
+        }
+
+        if (best is not { } bedside)
+        {
+            return null;
+        }
+
+        if (!reserve)
+        {
+            return bedside;
+        }
+
+        return SpatialMutations.TryReserveJunction(
+            world, bedside, npc.Id, world.Tick, 48)
+            ? bedside
+            : null;
     }
 
     private static bool IsArmsLengthCandidate(

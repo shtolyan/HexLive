@@ -446,6 +446,48 @@ public sealed partial class ExecutionSystem
         }
     }
 
+    /// <summary>Take one exact completed recipe output from a perceived stash.
+    /// Unlike GatherTools this is definition-specific and therefore works for
+    /// medicine, rope, splints, prostheses, and future item recipes alike.</summary>
+    private static bool RecoverCraftOutputFromStash(
+        WorldState world, NPCState npc, WorldObjectState stash, string outputId)
+    {
+        for (var i = 0; i < stash.Contents.Count; i++)
+        {
+            var item = stash.Contents[i];
+            if (item.DefinitionId != outputId)
+            {
+                continue;
+            }
+
+            if (!InventoryMath.MakeRoomForGoal(world, npc, npc.Plan.Goal, outputId))
+            {
+                break;
+            }
+
+            stash.Contents.RemoveAt(i);
+            npc.Inventory.Items.Add(item);
+            stash.IsOccupied = false;
+            stash.CurrentUser = null;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CraftOutputRecovered",
+                    $"Goal={npc.Plan.Goal} Output={outputId} " +
+                    $"Container={stash.Id.Value} left=[{string.Join(",", stash.Contents)}]");
+            }
+            return true;
+        }
+
+        stash.IsOccupied = false;
+        stash.CurrentUser = null;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PickupBlocked",
+                $"Goal={npc.Plan.Goal} Output={outputId} missing/full stash={stash.Id.Value}");
+        }
+        return false;
+    }
+
     // Spec 31A.5A: take off a worn item in place; it drops to the world at
     // the NPC's feet, retrievable by anyone.
     // §Wardrobe-anim: 8 ticks = 2.0s at 0.25s/tick — matches the dress window.

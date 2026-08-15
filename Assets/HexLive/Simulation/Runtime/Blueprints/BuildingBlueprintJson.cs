@@ -117,8 +117,8 @@ namespace HexLive.Simulation.Runtime.Blueprints
             if (sourceVersion >= 2) return;
 
             // Draft v1 mistook the geometric centre of every triangular roof
-            // sector for a physical floor-to-roof post. V2 uses the six corner
-            // posts as the support contour and requires any three of them.
+            // sector for a physical floor-to-roof post. V2 stands a sector on
+            // the two corner posts of its OWN outer hex edge and requires both.
             var roofHexes = draft.Elements
                 .Where(element => element.Kind == BlueprintElementKind.RoofSector)
                 .Select(element => element.RoofSector.Hex)

@@ -39,7 +39,7 @@ public sealed partial class ExecutionSystem
 
                 npc.Inventory.Items.Remove(carried);
                 site.Contents.Add(carried);
-                if (site.BuildProduct == ContentIds.Hut1Hex)
+                if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct))
                 {
                     BuildingRules.SyncHutElements(world, site);
                 }
@@ -47,11 +47,19 @@ public sealed partial class ExecutionSystem
             }
         }
 
-        if (site.BuildProduct == ContentIds.Hut1Hex &&
-            BuildingRules.FloorComplete(world, site) &&
-            world.Tiles.Items.TryGetValue(site.Tile, out var floorTile))
+        if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct) &&
+            BuildingRules.FloorComplete(world, site))
         {
-            floorTile.Flags |= TileFlags.HasFloor;
+            // §120: the plan's footprint is as many hexes as the player floored
+            // (three for hut_player_v1). One tile was the canonical hut's own
+            // number, not a property of "a building".
+            foreach (var footprintTile in Bootstrap.BuildingBootstrap.FootprintTiles(site))
+            {
+                if (world.Tiles.Items.TryGetValue(footprintTile, out var floorTile))
+                {
+                    floorTile.Flags |= TileFlags.HasFloor;
+                }
+            }
         }
 
         return moved;
@@ -202,7 +210,7 @@ public sealed partial class ExecutionSystem
                     raised.CraftJunction = StructurePlacement.WorkbenchJunction(
                         world, tile, j, yaw);
                 }
-                else if (product == ContentIds.Hut1Hex)
+                else if (BuildSiteMath.IsArchitecturalBuilding(product))
                 {
                     Bootstrap.BuildingBootstrap.CompleteHut(world, raised);
                 }

@@ -371,38 +371,7 @@ public sealed partial class ExecutionSystem
             foreach (var craftedId in npc.Execution.CraftLayout)
             {
                 if (!world.Entities.Objects.TryGetValue(craftedId, out var crafted)) continue;
-                if (goal == GoalType.CraftLeather &&
-                    crafted.DefinitionId == ContentIds.LeatherPants)
-                {
-                    // Preserve the authored specialized result: leather craft
-                    // has always been worn immediately, not packed first.
-                    ResolveWearConflicts(world, npc, ContentIds.LeatherPants);
-                    npc.WornItems.Add(ContentIds.LeatherPants);
-                }
-                else
-                {
-                    if (!npc.Inventory.HasSpace)
-                    {
-                        // The finished project already IS the physical output
-                        // at the workplace. A full backpack leaves that exact
-                        // object there; cloning through GiveOrDrop could fail
-                        // to find a second free point and then despawn the only
-                        // result.
-                        crafted.IsOccupied = false;
-                        crafted.CurrentUser = null;
-                        continue;
-                    }
-
-                    npc.Inventory.Items.Add(new ItemInstance(crafted.DefinitionId)
-                    {
-                        Wetness = crafted.Wetness,
-                        Durability = crafted.Durability,
-                        ResourceAmount = crafted.ResourceAmount,
-                        Dirtiness = crafted.Dirtiness,
-                        Bloodiness = crafted.Bloodiness
-                    });
-                }
-                WorldObjectMutations.DespawnObject(world, craftedId);
+                TakeCompletedProjectOutput(world, npc, goal, crafted);
             }
 
             npc.Execution.CraftLayout.Clear();
@@ -455,13 +424,18 @@ public sealed partial class ExecutionSystem
         {
             if (result.IsCraftProject && npc.Mind.ManualControl)
             {
-                ResetManualCraftCycle(npc);
+                ResetCraftCycleExecution(npc);
                 return;
             }
 
             if (result.IsCraftProject)
             {
                 FinishCraftInPlace(world, npc, goal);
+                return;
+            }
+
+            if (TryContinueCraftedBandageAsSelfTreatment(world, npc, goal, result))
+            {
                 return;
             }
 
@@ -484,7 +458,94 @@ public sealed partial class ExecutionSystem
         FinishCraftInPlace(world, npc, goal);
     }
 
-    private static void ResetManualCraftCycle(NPCState npc)
+    /// <summary>Final physical take shared by ground and station persistent
+    /// crafts. False means the exact ready object stays where it was because
+    /// the pack is genuinely full.</summary>
+    private static bool TakeCompletedProjectOutput(
+        WorldState world, NPCState npc, GoalType goal, WorldObjectState crafted)
+    {
+        if (goal == GoalType.CraftLeather &&
+            crafted.DefinitionId == ContentIds.LeatherPants)
+        {
+            // Leather's one authored output adapter: it is worn immediately.
+            ResolveWearConflicts(world, npc, ContentIds.LeatherPants);
+            npc.WornItems.Add(new ItemInstance(ContentIds.LeatherPants)
+            {
+                Wetness = crafted.Wetness,
+                Durability = crafted.Durability,
+                ResourceAmount = crafted.ResourceAmount,
+                Dirtiness = crafted.Dirtiness,
+                Bloodiness = crafted.Bloodiness
+            });
+            WorldObjectMutations.DespawnObject(world, crafted.Id);
+            EquipmentMath.Recalculate(world, npc);
+            StowDisplacedGarments(world, npc);
+            return true;
+        }
+
+        if (!InventoryMath.FitsWithoutEviction(world, npc, crafted.DefinitionId))
+        {
+            crafted.IsOccupied = false;
+            crafted.CurrentUser = null;
+            return false;
+        }
+
+        npc.Inventory.Items.Add(new ItemInstance(crafted.DefinitionId)
+        {
+            Wetness = crafted.Wetness,
+            Durability = crafted.Durability,
+            ResourceAmount = crafted.ResourceAmount,
+            Dirtiness = crafted.Dirtiness,
+            Bloodiness = crafted.Bloodiness
+        });
+        WorldObjectMutations.DespawnObject(world, crafted.Id);
+        return true;
+    }
+
+    // §68 r2: once the physical bandage reaches 100%, a wounded crafter can
+    // apply that exact object without a PickUp round-trip. This is keyed to the
+    // treatment predicate, not current free slots: paying two herb leaves may
+    // itself open a slot even though the pack was full when the chain began.
+    private static bool TryContinueCraftedBandageAsSelfTreatment(
+        WorldState world, NPCState npc, GoalType goal, WorldObjectState result)
+    {
+        if (goal != GoalType.CraftBandage ||
+            result.DefinitionId != ContentIds.Bandage ||
+            !DecisionSystem.SelfTreatmentIndicated(
+                npc, MedicalSupplyMath.BandageCount(npc) + 1))
+        {
+            return false;
+        }
+
+        npc.Execution.CraftLayout.Clear();
+        npc.Plan.Goal = GoalType.TreatWounds;
+        npc.Mind.CurrentGoal = GoalType.TreatWounds;
+        npc.Plan.TargetObjectId = result.Id;
+        npc.Plan.TargetItemDefinitionId = ContentIds.Bandage;
+        npc.Plan.TargetTile = result.Tile;
+        npc.Plan.TargetJunctionId = null; // output lies in the crafter's ring
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.TreatSelf,
+            TargetObject = result.Id,
+            Interaction = InteractionType.TreatSelf
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        ResetCraftCycleExecution(npc);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CraftBandageDirectTreatment",
+                $"Project={result.Id.Value} InventoryBandages={MedicalSupplyMath.BandageCount(npc)}");
+        }
+
+        // Claim immediately in the same execution turn: no other planner can
+        // steal the output in the one-tick seam between Craft and TreatSelf.
+        RunTreatSelf(world, npc);
+        return true;
+    }
+
+    private static void ResetCraftCycleExecution(NPCState npc)
     {
         npc.Plan.Status = PlanStatus.Active;
         npc.Plan.CurrentStepIndex = 0;
@@ -495,7 +556,7 @@ public sealed partial class ExecutionSystem
         npc.Execution.EndTick = 0;
     }
 
-    private static void BeginManualCraftTake(WorldState world, NPCState npc)
+    private static void BeginCraftOutputTake(WorldState world, NPCState npc)
     {
         if (npc.Execution.CraftLayout.Count == 0)
         {
@@ -503,6 +564,13 @@ public sealed partial class ExecutionSystem
         }
 
         var resultId = npc.Execution.CraftLayout[0];
+        if (world.Entities.Objects.TryGetValue(resultId, out var result) &&
+            TryContinueCraftedBandageAsSelfTreatment(
+                world, npc, npc.Plan.Goal, result))
+        {
+            return;
+        }
+
         npc.Plan.Steps.Clear();
         npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.CraftInPlace });
         npc.Plan.CurrentStepIndex = 0;
@@ -719,15 +787,7 @@ public sealed partial class ExecutionSystem
                 continue; // somebody took it first — the craft still ends
             }
 
-            GiveOrDrop(world, npc, new ItemInstance(crafted.DefinitionId)
-            {
-                Wetness = crafted.Wetness,
-                Durability = crafted.Durability,
-                ResourceAmount = crafted.ResourceAmount,
-                Dirtiness = crafted.Dirtiness,
-                Bloodiness = crafted.Bloodiness
-            });
-            WorldObjectMutations.DespawnObject(world, craftedId);
+            TakeCompletedProjectOutput(world, npc, goal, crafted);
         }
 
         npc.Execution.CraftLayout.Clear();

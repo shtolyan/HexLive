@@ -188,6 +188,54 @@ internal static class InteractionReach
         WorldState world, JunctionId stand, JunctionId target, float reach) =>
         SpatialQueries.CanTouchAcross(world, stand, target, reach, null, RimMode);
 
+    /// <summary>
+    /// §53.4 r6: a patient in a bed is touched across HER support furniture,
+    /// not across the stale wake junction kept in CurrentJunction. The bed's
+    /// own footprint is transparent to the hands; walls, cliffs and third
+    /// objects remain barriers.
+    /// </summary>
+    internal static bool CanTouchBedOccupantAcross(
+        WorldState world, JunctionId stand, WorldObjectState bed)
+    {
+        if (bed?.Junctions.Count <= 0)
+        {
+            return false;
+        }
+
+        return SpatialQueries.CanTouchAcross(
+            world, stand, bed.Junctions[0],
+            SpatialQueries.BesideReach(LyingSpot.SolidRadius(world, bed)),
+            bed, RimMode);
+    }
+
+    internal static bool CheckBedOccupantStart(
+        WorldState world, NPCState npc, NPCState target,
+        WorldObjectState bed, string what)
+    {
+        if (!CheckStart(world, npc, target.Position, Aid, what))
+        {
+            return false;
+        }
+
+        if (npc.CurrentJunction is not { } stand)
+        {
+            return true; // off-grid interpolation: metric is the only honest proof
+        }
+
+        if (CanTouchBedOccupantAcross(world, stand, bed))
+        {
+            return true;
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "InteractionTooFar",
+                $"{what} cannot reach the occupied bed from j{stand.Value} " +
+                "without crossing a wall/cliff/third object");
+        }
+        return false;
+    }
+
     public static bool CheckPersonStart(
         WorldState world, NPCState npc, NPCState target, Float2 anchor,
         float reach, string what)

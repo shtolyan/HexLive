@@ -257,6 +257,44 @@ public sealed class InventoryLayoutTests
             "so GatherHerb must not wait for an empty slot.");
     }
 
+    [Test]
+    public void BottleCarryLimitRejectsASecondInstanceAndRepairsLegacyPacks()
+    {
+        var (world, npc) = CleanNpc();
+        npc.Inventory.Items.Add(ContentIds.Bottle);
+        npc.Inventory.Items.Add(ContentIds.Bottle);
+        npc.Inventory.Items.Add(ContentIds.Bottle);
+        npc.Inventory.Capacity = 8;
+        var groundBefore = world.Entities.Objects.Values.Count(
+            o => o.DefinitionId == ContentIds.Bottle);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Content.ObjectDefinitions[ContentIds.Bottle]
+                .MaxCarriedInstances, Is.EqualTo(1));
+            Assert.That(SimDataFile.ExportJson(),
+                Does.Contain("\"maxCarriedInstances\": 1"),
+                "A future SimData export must preserve the content-authored limit.");
+            Assert.That(InventoryMath.CanAcquireAdditional(
+                world, npc, ContentIds.Bottle), Is.False);
+            Assert.That(InventoryMath.CanMakeRoomFor(
+                world, npc, ContentIds.Bottle), Is.False,
+                "Free pockets must not make a second NPC-backed bottle valid.");
+        });
+
+        new NeedsDecaySystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Count(
+                i => i.DefinitionId == ContentIds.Bottle), Is.EqualTo(1),
+                "An old save with duplicate bottles must heal on its first slow pass.");
+            Assert.That(world.Entities.Objects.Values.Count(
+                o => o.DefinitionId == ContentIds.Bottle) - groundBefore, Is.EqualTo(2),
+                "Excess property must be dropped, not silently deleted.");
+        });
+    }
+
     // §75A: статы первичны — любимое оружие выбирает MeleePriority, а не вкус.
     // Мачете (35) обязано побеждать нож (10) у ЛЮБОГО персонажа, каким бы ни
     // был его хеш симпатии; вкус решает только между экземплярами одного класса.

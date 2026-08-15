@@ -316,6 +316,35 @@ public sealed class CorpseTests
     }
 
     [Test]
+    public void CorpseBottleIsSkippedForAnNpcWhoAlreadyHasOne()
+    {
+        var (engine, deadId) = Kill();
+        var world = engine.World;
+        var looter = world.Entities.Npcs.Values.First();
+        var body = world.Entities.Corpses[deadId];
+        var anchor = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == deadId);
+        looter.Inventory.Items.Clear();
+        looter.Inventory.Items.Add(ContentIds.Bottle);
+        body.Inventory.Items.Clear();
+        body.WornItems.Clear();
+        body.Inventory.Items.Add(ContentIds.Bottle);
+        body.Inventory.Items.Add(ContentIds.Stone);
+
+        var spoil = CorpseMath.NextSpoil(world, looter, anchor, out var source);
+        Assert.Multiple(() =>
+        {
+            Assert.That(spoil?.DefinitionId, Is.EqualTo(ContentIds.Stone),
+                "A redundant bottle must not block useful property behind it.");
+            Assert.That(source, Is.EqualTo(CorpseMath.SpoilSource.Pockets));
+        });
+
+        Assert.That(CorpseMath.TakeSpoil(world, anchor, spoil, source), Is.True);
+        Assert.That(CorpseMath.HasLootableSpoils(world, looter, anchor), Is.False,
+            "A corpse with only the looter's redundant bottle must leave the auction.");
+    }
+
+    [Test]
     public void AnEmptyBodyIsNoLongerWorthTheTrip()
     {
         var (engine, deadId) = Kill();

@@ -507,9 +507,7 @@ namespace HexLive.UnityPresentation.UI
                 actions.Add(MakeSmallButton(Loc.Get("bugs.mark_fixed"), ChipFixed, () =>
                 {
                     BugReportStore.MarkFixed(report.id);
-                    _tab = ManagerTab.Fixed;
-                    BuildManagerTabsAgain();
-                    RebuildManager();
+                    RefreshManagerAfterStatusChange(ManagerTab.Fixed);
                 }));
                 actions.Add(MakeSmallButton(Loc.Get("bugs.rework"), Raised, () =>
                 {
@@ -643,11 +641,20 @@ namespace HexLive.UnityPresentation.UI
             {
                 BugReportStore.SendToRework(report.id, editor.value);
                 _reworkEditorId = -1;
-                _tab = ManagerTab.Open;
-                BuildManagerTabsAgain();
-                RebuildManager();
+                RefreshManagerAfterStatusChange(ManagerTab.Open);
             }));
             row.Add(buttons);
+        }
+
+        private void RefreshManagerAfterStatusChange(ManagerTab destinationWithoutFilter)
+        {
+            if (_statusFilter == null)
+            {
+                _tab = destinationWithoutFilter;
+                BuildManagerTabsAgain();
+            }
+
+            RebuildManager();
         }
 
         private static string StatusLabel(BugReportStore.Report report)

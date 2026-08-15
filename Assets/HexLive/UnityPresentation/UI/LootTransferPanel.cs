@@ -159,9 +159,11 @@ public sealed class LootTransferPanel : MonoBehaviour
         var snapshot = _runner.CreateSnapshot();
         var looter = FindNpc(snapshot, looterId);
         var other = FindNpc(snapshot, otherId);
+        // §128: несомый — цель, только если он на руках у САМОГО обыскивающего.
         if (looter == null || other == null || looter.Faction != Faction.Colony ||
             looter.Health <= 0f || !looter.IsManualControl || !other.IsUnconscious ||
-            other.Health <= 0f || other.CarriedByNpcId is not null)
+            other.Health <= 0f ||
+            (other.CarriedByNpcId is not null && other.CarriedByNpcId != looterId))
         {
             return;
         }
@@ -336,7 +338,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         if (looter == null || other == null || looter.Health <= 0f ||
             looter.Faction != Faction.Colony || !looter.IsManualControl ||
             other.Health <= 0f || !other.IsUnconscious ||
-            other.CarriedByNpcId is not null)
+            (other.CarriedByNpcId is not null && other.CarriedByNpcId != _looterId))
         {
             Hide();
             return;

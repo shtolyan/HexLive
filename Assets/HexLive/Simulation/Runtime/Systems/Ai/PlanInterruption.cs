@@ -25,6 +25,7 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
+        ReportInterruptedOrder(world, npc, cause);
         Abort(world, npc, reason);
         // A hostile crossing the route or a scene taking ownership is not a
         // failed attempt at the route's target.  Retaining it made five valid
@@ -45,6 +46,7 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
+        ReportInterruptedOrder(world, npc, cause);
         AbortKeepingCarriedPerson(world, npc, reason);
         return true;
     }
@@ -57,8 +59,44 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
+        ReportInterruptedOrder(world, npc, cause);
         AbortForCombat(world, npc, reason);
         return true;
+    }
+
+    // §121.5: снос ПРИНЯТОГО приказа обязан быть виден. Отказ в момент клика
+    // давно тостится (ManualOrderRejected), а приказ, убитый позже — боем,
+    // провалом пути, исчезнувшей целью, — гас в debug-трассе, и игрок читал
+    // «стоит и не идёт» как поломку. Телесные причины не тостятся: падение
+    // тела видно и так; PlayerCommand/ControlReleased — сам игрок.
+    private static void ReportInterruptedOrder(
+        WorldState world, NPCState npc, InterruptionCause cause)
+    {
+        if (!ManualControlMath.IsManual(npc) ||
+            // Rescue — только ручной §124.1 (гейт IsManual выше отсекает ИИ).
+            npc.Plan.Goal is not (GoalType.PlayerOrder or GoalType.PlayerInventory
+                or GoalType.Rescue) ||
+            (npc.Plan.Status != PlanStatus.Active &&
+             npc.Execution.Status != ExecutionStatus.InProgress))
+        {
+            return;
+        }
+
+        switch (cause)
+        {
+            case InterruptionCause.PlayerCommand:
+            case InterruptionCause.ControlReleased:
+            case InterruptionCause.Death:
+            case InterruptionCause.BodyComa:
+            case InterruptionCause.Faint:
+            case InterruptionCause.Crying:
+            case InterruptionCause.Dying:
+            case InterruptionCause.PlayDead:
+            case InterruptionCause.LimbLost:
+                return;
+        }
+
+        Trace.Emit(world, npc.Id, "ManualOrderInterrupted", $"Cause={cause}");
     }
 
     // §121.5: путь не-ручного персонажа обязан быть байт-в-байт прежним —

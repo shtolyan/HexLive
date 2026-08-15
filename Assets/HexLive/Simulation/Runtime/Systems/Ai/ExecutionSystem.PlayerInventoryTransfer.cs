@@ -12,11 +12,15 @@ public sealed partial class ExecutionSystem
 {
     private static void RunPlayerInventoryTransfer(WorldState world, NPCState looter)
     {
+        // §128: несомый САМИМ обыскивающим — легальная цель («взял — обыскал»).
+        var carriedBySelf = false;
         if (looter.Plan.Steps.Count == 0 ||
             looter.Plan.TargetAgentId is not { } otherId ||
             !world.Entities.Npcs.TryGetValue(otherId, out var other) ||
             other.Health <= 0f || !other.IsUnconscious(world.Tick) ||
-            other.IsBeingCarried || CombatMedium.IsNpcSwimming(world, other))
+            (other.IsBeingCarried &&
+             !(carriedBySelf = other.CarriedByNpcId?.Equals(looter.Id) ?? false)) ||
+            CombatMedium.IsNpcSwimming(world, other))
         {
             FailPlayerInventoryTransfer(world, looter, "PersonNotAvailable");
             return;
@@ -29,15 +33,20 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var transferSlot = LyingStations.SlotFor(world, looter, other);
-        if (looter.Movement.Status == MovementStatus.Blocked ||
-            !InteractionReach.CheckPersonStart(
-                world, looter, other, LyingStations.Point(other, transferSlot),
-                LyingStations.Reach(transferSlot),
-                $"Player inventory transfer with NPC{other.Id.Value}"))
+        // §128: тело в руках — дистанция ноль по построению, станция у ног
+        // неопределима (у несомого нет CurrentJunction).
+        if (!carriedBySelf)
         {
-            FailPlayerInventoryTransfer(world, looter, "OutOfReach");
-            return;
+            var transferSlot = LyingStations.SlotFor(world, looter, other);
+            if (looter.Movement.Status == MovementStatus.Blocked ||
+                !InteractionReach.CheckPersonStart(
+                    world, looter, other, LyingStations.Point(other, transferSlot),
+                    LyingStations.Reach(transferSlot),
+                    $"Player inventory transfer with NPC{other.Id.Value}"))
+            {
+                FailPlayerInventoryTransfer(world, looter, "OutOfReach");
+                return;
+            }
         }
 
         // Like manual person pickup, the final action owns the whole plan while

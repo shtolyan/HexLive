@@ -56,6 +56,9 @@ internal static class ManualCommandExecutor
             case PutDownPersonCommand putDownPerson:
                 ApplyPutDownPerson(world, putDownPerson);
                 break;
+            case PutPersonInBedCommand putInBed:
+                ApplyPutPersonInBed(world, putInBed);
+                break;
             case AttackMobCommand attackMob:
                 ApplyAttackMob(world, attackMob);
                 break;
@@ -270,6 +273,41 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        // §121.5: точка прибытия — СВОБОДНЫЙ узел. Клик в клетку с трупом,
+        // лежащей или чужой резервацией отправлял её в занятый узел: 81 тик
+        // молчаливого ожидания и тихий провал. Занятое место при приёме
+        // заменяется ближайшим свободным соседним (как в формации §123.6);
+        // своя клетка — не занята.
+        if (!destination.Equals(npc.CurrentJunction) &&
+            !SpatialQueries.IsJunctionFree(world, destination))
+        {
+            JunctionId? fallback = null;
+            var bestSq = float.MaxValue;
+            foreach (var neighborId in SpatialQueries.GetPassableNeighbors(world, destination))
+            {
+                if (!SpatialQueries.IsJunctionFree(world, neighborId) ||
+                    !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
+                {
+                    continue;
+                }
+
+                var dx = neighbor.WorldPosition.X - command.WorldPosition.X;
+                var dy = neighbor.WorldPosition.Y - command.WorldPosition.Y;
+                var sq = dx * dx + dy * dy;
+                if (sq < bestSq)
+                {
+                    bestSq = sq;
+                    fallback = neighborId;
+                }
+            }
+
+            if (fallback is { } free)
+            {
+                destination = free;
+                junction = world.Junctions.Items[free];
+            }
+        }
+
         ClearForNewOrder(world, npc, "Новый приказ игрока", keepCarriedPerson: true);
         ClearAttackOrder(world, npc);
 
@@ -410,6 +448,73 @@ internal static class ManualCommandExecutor
         {
             Trace.Debug(world, carrier.Id, "ManualOrderAccepted",
                 $"Order=PutDownPerson Target=NPC{carried?.Value ?? 0}");
+        }
+    }
+
+    // §124.1: донести несомого до кровати и уложить. Занятость решается ДО
+    // подхода (Occupied читабельнее, чем Unreachable), а сама укладка — ровно
+    // тем же путём, что §105.17 у ИИ: план PutPersonInBed → RunRescue →
+    // PutDownAtDestination → BedSleep.TryEnter.
+    private static void ApplyPutPersonInBed(WorldState world, PutPersonInBedCommand command)
+    {
+        if (!TryTakeOrder(world, command.Npc, "PutPersonInBed", requireManual: true,
+                out var carrier))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, carrier))
+        {
+            Reject(world, carrier.Id, "PutPersonInBed", "Incapacitated");
+            return;
+        }
+
+        if (!carrier.IsCarryingPerson || carrier.CarriedNpcId is not { } carriedId)
+        {
+            Reject(world, carrier.Id, "PutPersonInBed", "HandsEmpty");
+            return;
+        }
+
+        // Только ЖИВОГО: мёртвое тело в кровать не укладывается — BedSleep
+        // сделал бы из трупа «спящего».
+        if (!world.Entities.Npcs.TryGetValue(carriedId, out var patient) ||
+            patient.Health <= 0f)
+        {
+            Reject(world, carrier.Id, "PutPersonInBed", "PersonNotAvailable");
+            return;
+        }
+
+        if (!world.Entities.Objects.TryGetValue(command.Bed, out var bed) ||
+            !ContentIds.IsBed(bed.DefinitionId) ||
+            !string.IsNullOrEmpty(bed.BuildProduct))
+        {
+            Reject(world, carrier.Id, "PutPersonInBed", "TargetGone");
+            return;
+        }
+
+        if (bed.IsOccupied && bed.CurrentUser != patient.Id)
+        {
+            Reject(world, carrier.Id, "PutPersonInBed", "Occupied");
+            return;
+        }
+
+        // Транзакция плана СОХРАНЯЕТ ношу — как MoveTo/Stop (§124).
+        ClearForNewOrder(world, carrier, "Приказ уложить в кровать", keepCarriedPerson: true);
+        ClearAttackOrder(world, carrier);
+
+        if (!KenshiRescueMath.TryBeginManualBedPlacement(world, carrier, patient, bed))
+        {
+            Reject(world, carrier.Id, "PutPersonInBed", "Unreachable");
+            carrier.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
+        carrier.Mind.CurrentGoal = GoalType.Rescue;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, carrier.Id, "ManualOrderAccepted",
+                $"Order=PutPersonInBed Bed={bed.DefinitionId}#{bed.Id.Value} " +
+                $"Patient=NPC{patient.Id.Value}");
         }
     }
 
@@ -723,9 +828,14 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        // §128: несомый — цель, только если он на руках у САМОГО обыскивающего
+        // («взял — обыскал»); на чужих руках — по-прежнему нет.
+        var carriedBySelf = false;
         if (!world.Entities.Npcs.TryGetValue(command.Other, out var other) ||
             other.Id.Equals(looter.Id) || other.Health <= 0f ||
-            !other.IsUnconscious(world.Tick) || other.IsBeingCarried ||
+            !other.IsUnconscious(world.Tick) ||
+            (other.IsBeingCarried &&
+             !(carriedBySelf = other.CarriedByNpcId?.Equals(looter.Id) ?? false)) ||
             CombatMedium.IsNpcSwimming(world, other))
         {
             Reject(world, looter.Id, "TransferInventory", "PersonNotAvailable");
@@ -741,7 +851,9 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        ClearForNewOrder(world, looter, "Ручной обмен с лежащим человеком");
+        // §128: транзакция плана не роняет того, в чьих карманах роемся.
+        ClearForNewOrder(world, looter, "Ручной обмен с лежащим человеком",
+            keepCarriedPerson: carriedBySelf);
         ClearAttackOrder(world, looter);
 
         looter.Plan.Goal = GoalType.PlayerInventory;
@@ -749,16 +861,24 @@ internal static class ManualCommandExecutor
         looter.Plan.TargetItemDefinitionId = command.Item.ExpectedDefinitionId;
         looter.Plan.TargetTile = other.Tile;
 
-        // §111.13: приказ игрока идёт мимо планировщика, поэтому станцию он
-        // занимает прямо здесь — иначе ручной обмен остался бы единственным
-        // путём, который по-прежнему делит точку у ног с чужой сценой.
-        var orderSlot = LyingStations.TryClaim(world, looter, other, out var claimed)
-            ? claimed
-            : LyingStations.SlotFor(world, looter, other);
-        var closeEnough = InteractionReach.CheckPersonStart(
-            world, looter, other, LyingStations.Point(other, orderSlot),
-            LyingStations.Reach(orderSlot),
-            $"Player inventory transfer with NPC{other.Id.Value}");
+        // §128: тело в руках — участники уже ближе некуда. Ни станции у ног,
+        // ни подхода: сразу шаг передачи (у несомого нет ни CurrentJunction,
+        // ни валидной геометрии лежания — станцию считать не по чему).
+        var closeEnough = carriedBySelf;
+        if (!carriedBySelf)
+        {
+            // §111.13: приказ игрока идёт мимо планировщика, поэтому станцию он
+            // занимает прямо здесь — иначе ручной обмен остался бы единственным
+            // путём, который по-прежнему делит точку у ног с чужой сценой.
+            var orderSlot = LyingStations.TryClaim(world, looter, other, out var claimed)
+                ? claimed
+                : LyingStations.SlotFor(world, looter, other);
+            closeEnough = InteractionReach.CheckPersonStart(
+                world, looter, other, LyingStations.Point(other, orderSlot),
+                LyingStations.Reach(orderSlot),
+                $"Player inventory transfer with NPC{other.Id.Value}");
+        }
+
         if (!closeEnough)
         {
             if (!KenshiRescueMath.TryFindApproach(world, looter, other, out var approach))

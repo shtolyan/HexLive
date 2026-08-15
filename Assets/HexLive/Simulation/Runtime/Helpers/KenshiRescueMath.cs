@@ -678,6 +678,64 @@ internal static class KenshiRescueMath
         }
     }
 
+    /// <summary>§124.1: игрок выбрал КОНКРЕТНУЮ кровать для человека, который
+    /// уже на руках. Бронирует подход и кровать и ставит носильщице ровно тот
+    /// же план из одного шага PutPersonInBed, каким §105.17 ходит ИИ, — дальше
+    /// прибытие и укладку ведёт штатный RunRescue → PutDownAtDestination.
+    /// false = подхода нет (занято/недостижимо); занятость кровати проверяет
+    /// вызывающий ДО (чтобы отказать Occupied, а не Unreachable).</summary>
+    internal static bool TryBeginManualBedPlacement(
+        WorldState world, NPCState carrier, NPCState patient, WorldObjectState bed)
+    {
+        if (carrier.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, carrier);
+        if (!TryObjectApproach(
+                world, carrier, patient, bed, from, occupiedByActor,
+                out var approach, out var route) ||
+            !SpatialMutations.TryReserveJunction(world, approach, carrier.Id, world.Tick, 240))
+        {
+            return false;
+        }
+
+        bed.IsOccupied = true;
+        bed.CurrentUser = patient.Id;
+        carrier.RescueDestinationObjectId = bed.Id;
+
+        carrier.Plan.Goal = GoalType.Rescue;
+        carrier.Plan.TargetObjectId = null;
+        carrier.Plan.TargetAgentId = patient.Id;
+        carrier.Plan.TargetJunctionId = approach;
+        carrier.Plan.TargetTile = bed.Tile;
+        carrier.Plan.Steps.Clear();
+        carrier.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PutPersonInBed,
+            TargetJunction = approach,
+            TargetObject = bed.Id,
+            Interaction = InteractionType.PutInBed
+        });
+        carrier.Plan.CurrentStepIndex = 0;
+        carrier.Plan.Status = PlanStatus.Active;
+        carrier.Movement.JunctionPath.Clear();
+        foreach (var junction in route)
+        {
+            carrier.Movement.JunctionPath.Add(junction);
+        }
+
+        carrier.Movement.PathIndex = route.Count > 1 ? 1 : route.Count;
+        carrier.Movement.BlockedWaitTicks = 0;
+        carrier.Movement.HopArmed = false;
+        carrier.Movement.HopPathIndex = -1;
+        carrier.Movement.IsMoving = route.Count > 1;
+        carrier.Movement.SetStatus(
+            carrier.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived);
+        return true;
+    }
+
     /// <summary>§124: ручной перенос заканчивается в руках, а не автоматически
     /// выбранной кроватью. Следующий MoveTo держит связь до явного PutDown.</summary>
     internal static void BeginManualCarry(
@@ -802,6 +860,23 @@ internal static class KenshiRescueMath
         var wakeJunction = carrier.CurrentJunction;
         ClearLinks(carrier, patient);
         carrier.Mind.InterruptedRescuePatientId = null;
+        // Уложенная не владеет прошлым планом: застрявший Active-план поверх
+        // её Sleep-интеракции — ровно «split-brain» bug-128, и
+        // SleepPlanConsistencySystem вытащил бы её из кровати следующим тиком.
+        // Органический обморок план уже разобрал (Abort) — ветка мертва для
+        // golden trace и стреляет только на протухшем Active.
+        if (patient.Plan.Status == PlanStatus.Active)
+        {
+            patient.Plan.Status = PlanStatus.None;
+            patient.Plan.Goal = GoalType.None;
+            patient.Plan.Steps.Clear();
+            patient.Plan.TargetObjectId = null;
+            patient.Plan.TargetJunctionId = null;
+            patient.Plan.TargetAgentId = null;
+            patient.Plan.TargetTile = null;
+            patient.Mind.CurrentGoal = GoalType.None;
+        }
+
         var enteredBed = destination is not null && IsBed(destination) &&
             BedSleep.TryEnter(
                 world, patient, destination, int.MaxValue, wakeJunction);
@@ -955,6 +1030,14 @@ internal static class KenshiRescueMath
         carrier.Plan.TargetJunctionId = null;
         carrier.Plan.TargetTile = null;
         carrier.Mind.CurrentGoal = GoalType.None;
+        // §121.7: доигранная укладка — завершение ручного приказа §124.1,
+        // окно внимания перезапускается. Для ИИ — безобидная запись None-ветки
+        // не происходит: гейт по IsManual.
+        if (ManualControlMath.IsManual(carrier))
+        {
+            carrier.Mind.LastManualInputTick = world.Tick;
+        }
+
         carrier.Movement.JunctionPath.Clear();
         carrier.Movement.IsMoving = false;
         carrier.Movement.SetStatus(MovementStatus.Idle);

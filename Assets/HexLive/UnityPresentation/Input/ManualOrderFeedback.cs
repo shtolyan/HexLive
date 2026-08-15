@@ -59,6 +59,22 @@ public static class ManualOrderFeedback
         _stampedAt = Time.unscaledTime;
     }
 
+    /// <summary>§121.5: снос ПРИНЯТОГО приказа — разбирает
+    /// <c>ManualOrderInterrupted Cause=…</c> в ключ
+    /// <c>toast.order_interrupted.&lt;Cause&gt;</c>.</summary>
+    public static void ReportInterrupted(int npcId, string message)
+    {
+        var cause = ValueOf(message, "Cause=");
+        if (cause.Length == 0)
+        {
+            return;
+        }
+
+        NpcId = npcId;
+        ReasonKey = "toast.order_interrupted." + cause;
+        _stampedAt = Time.unscaledTime;
+    }
+
     /// <summary>§121.7: тост с готовым ключом локализации — для событий, у
     /// которых нет формы <c>Reason=…</c> (возврат под ИИ по таймауту).</summary>
     public static void ReportTerm(int npcId, string term)

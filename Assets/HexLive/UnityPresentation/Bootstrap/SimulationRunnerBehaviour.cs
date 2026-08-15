@@ -363,6 +363,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             {
                 Input.ManualOrderFeedback.ReportTerm(expiredNpc, "toast.manual_expired");
             }
+            // §121.5: приказ был ПРИНЯТ и убит позже (бой, провал пути,
+            // исчезнувшая цель) — раньше это гасло в debug-трассе, и игрок
+            // читал «стоит и не идёт» как поломку.
+            else if (e.Type == "ManualOrderInterrupted" && e.EntityId is { } interruptedNpc)
+            {
+                Input.ManualOrderFeedback.ReportInterrupted(interruptedNpc, e.Message);
+            }
 
             if (!logAllTrace && !(logImportant && isGameHistoryEvent))
             {

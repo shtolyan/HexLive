@@ -2225,6 +2225,14 @@ MonoBehaviour:
       - 'Спускается с уступа'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'goal.Homeward'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Heading back to camp'
+      - 'Пробирается к лагерю'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'goal.Idle'
       TermType: 0
       Description:
@@ -3041,6 +3049,22 @@ MonoBehaviour:
       - 'Положить'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.put_in_bed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Lay in bed'
+      - 'Положить в кровать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.carried_by_other'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Someone is carrying them'
+      - 'На руках у другой'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.loot_person'
       TermType: 0
       Description:
@@ -3287,6 +3311,70 @@ MonoBehaviour:
       Languages:
       - 'No room to drop it here'
       - 'Здесь некуда положить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.CombatVictim'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Attacked — order dropped'
+      - 'Атакована — приказ прерван'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.Predation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Attacked — order dropped'
+      - 'Атакована — приказ прерван'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.AbuseMark'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dragged into a fight — order dropped'
+      - 'Втянута в драку — приказ прерван'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.CorneredFight'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cornered — order dropped'
+      - 'Загнана в угол — приказ прерван'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.PathFailure'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Couldn''t find a way there'
+      - 'Не смогла найти путь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.ExecutionFailure'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Order failed — target unavailable'
+      - 'Приказ сорвался: цель недоступна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.Replan'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Order failed'
+      - 'Приказ сорвался'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.RescueDrop'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Had to set the carried person down'
+      - 'Пришлось положить ношу'
       Flags: 0101
       Languages_Touch: []
     - Term: 'toast.manual_expired'

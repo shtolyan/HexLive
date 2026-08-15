@@ -7022,8 +7022,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             // §130 r2: набор весов не щёлкает — блендер плавно ведёт его от
             // обычного взгляда к «в объектив» и так же плавно возвращает.
+            // r3: втрое быстрее — «посмотрела, улыбнулась и дальше по делам».
             _cameraGazeBlend = Mathf.MoveTowards(
-                _cameraGazeBlend, _cameraGaze ? 1f : 0f, Time.deltaTime * 1.5f);
+                _cameraGazeBlend, _cameraGaze ? 1f : 0f, Time.deltaTime * 4.5f);
 
             // Обычный взгляд (мировая цель): голова решает, глаза слегка.
             var headWeight = 0.8f;
@@ -7047,16 +7048,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             if (_cameraGazeBlend > 0f)
             {
-                // §130: здесь, в отличие от портрета (§80 r2), голову вести
-                // МОЖНО — игровая камера не прибита к кости головы, обратной
-                // связи нет. Голова доворачивает, глаза лишь чуть помогают
-                // (сильный вес глаз на близкой камере даёт «бешеные зрачки»),
-                // спина едва участвует.
-                headWeight = Mathf.Lerp(headWeight, 0.85f, _cameraGazeBlend);
-                eyesWeight = Mathf.Lerp(eyesWeight, 0.3f, _cameraGazeBlend);
-                // §114 баг #116: тот же корпус, та же беда — см. выше.
-                bodyWeight = Mathf.Lerp(
-                    bodyWeight, _posture == "Crawl" ? 0f : 0.2f, _cameraGazeBlend);
+                // §130 r3: в объектив — ТОЛЬКО головой, и то слегка. Корпус
+                // остаётся на анимации (вес 0), глаза чуть помогают (сильный
+                // вес глаз на близкой камере даёт «бешеные зрачки»). Голову
+                // вести можно (в отличие от портрета §80 r2) — игровая камера
+                // не прибита к кости головы, обратной связи нет.
+                headWeight = Mathf.Lerp(headWeight, 0.45f, _cameraGazeBlend);
+                eyesWeight = Mathf.Lerp(eyesWeight, 0.25f, _cameraGazeBlend);
+                bodyWeight = Mathf.Lerp(bodyWeight, 0f, _cameraGazeBlend);
                 clampEyes = Mathf.Lerp(clampEyes, 0.3f, _cameraGazeBlend);
             }
 

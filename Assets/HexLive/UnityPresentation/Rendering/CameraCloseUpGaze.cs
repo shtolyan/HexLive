@@ -21,6 +21,11 @@ namespace HexLive.UnityPresentation.Rendering
         private float _exitDistance;
         private float _gazeSeconds;
         private float _cooldownSeconds;
+        // r3: взгляд только когда объектив ПЕРЕД лицом — dot(forward лица,
+        // направление на объектив). Вход строже выхода (гистерезис по углу),
+        // чтобы у края конуса взгляд не мигал.
+        private float _frontalEnterDot;
+        private float _frontalExitDot;
 
         private HexWorldRenderer? _renderer;
         private NpcActorView? _activeView;
@@ -34,12 +39,16 @@ namespace HexLive.UnityPresentation.Rendering
             float enterDistance,
             float exitDistance,
             float gazeSeconds,
-            float cooldownSeconds)
+            float cooldownSeconds,
+            float frontalEnterDot,
+            float frontalExitDot)
         {
             _enterDistance = Mathf.Max(0f, enterDistance);
             _exitDistance = Mathf.Max(_enterDistance, exitDistance);
             _gazeSeconds = Mathf.Max(0f, gazeSeconds);
             _cooldownSeconds = Mathf.Max(0f, cooldownSeconds);
+            _frontalEnterDot = Mathf.Clamp(frontalEnterDot, -1f, 1f);
+            _frontalExitDot = Mathf.Min(Mathf.Clamp(frontalExitDot, -1f, 1f), _frontalEnterDot);
         }
 
         private void OnDisable()
@@ -77,8 +86,11 @@ namespace HexLive.UnityPresentation.Rendering
                     // Кончился по таймеру (или его погасили ragdoll/портрет).
                     ReleaseActive(withCooldown: true);
                 }
-                else if (!IsWithin(_activeView, lens, _exitDistance))
+                else if (!IsWithin(_activeView, lens, _exitDistance) ||
+                         !IsFrontal(_activeView, lens, _frontalExitDot))
                 {
+                    // Уехали далеко ИЛИ объектив ушёл вбок/за спину — шею за
+                    // ним не выкручиваем, отпускаем взгляд.
                     _activeView.EndCameraGaze();
                     ReleaseActive(withCooldown: true);
                 }
@@ -113,6 +125,13 @@ namespace HexLive.UnityPresentation.Rendering
                 return;
             }
 
+            if (!IsFrontal(view, lens, _frontalEnterDot))
+            {
+                // Близко, но сбоку/за спиной: не смотрим и не тратим взвод —
+                // объедет игрок к лицу, взгляд случится на этом же подъезде.
+                return;
+            }
+
             if (view.BeginCameraGaze(lens, _gazeSeconds))
             {
                 _activeView = view;
@@ -140,6 +159,28 @@ namespace HexLive.UnityPresentation.Rendering
             }
 
             return (center - lens).sqrMagnitude <= distance * distance;
+        }
+
+        // r3: объектив перед лицом? Считаем по горизонтали (высоту камеры не
+        // учитываем): dot forward'а лица с направлением на объектив.
+        private static bool IsFrontal(NpcActorView view, Vector3 lens, float minDot)
+        {
+            if (!view.TryGetFace(out var center, out var forward, out _, out _))
+            {
+                return false;
+            }
+
+            var to = lens - center;
+            to.y = 0f;
+            forward.y = 0f;
+            if (to.sqrMagnitude < 0.0001f || forward.sqrMagnitude < 0.0001f)
+            {
+                // Камера ровно над головой / лицо смотрит в зенит — направления
+                // «спереди» тут нет, считаем что нет и повода вертеть шеей.
+                return false;
+            }
+
+            return Vector3.Dot(forward.normalized, to.normalized) >= minDot;
         }
     }
 }

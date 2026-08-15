@@ -151,13 +151,18 @@ namespace HexLive.UnityPresentation.Input
         private const float PalmCrownShowDistance = 2.5f;
         private const float PalmCrownCheckMovement = 0.1f;
 
-        // §130: камера почти вплотную (мин. зум 0.7) — NPC на несколько
-        // секунд смотрит в объектив. Вход/выход с гистерезисом, метры от
+        // §130: камера почти вплотную (мин. зум 0.7) — NPC на пару секунд
+        // смотрит в объектив. Вход/выход с гистерезисом, метры от
         // объектива до лица; пере-взгляд той же NPC не раньше кулдауна.
-        private const float CloseUpGazeEnterDistance = 3.0f;
-        private const float CloseUpGazeExitDistance = 3.8f;
-        private const float CloseUpGazeSeconds = 5f;
+        // r3: срабатывает ТОЛЬКО когда объектив перед лицом (dot взгляда на
+        // объектив с forward лица) — шею на 180° за камерой не выкручивает;
+        // гистерезис и по углу: выходим, лишь когда камера ушла вбок/за спину.
+        private const float CloseUpGazeEnterDistance = 2.5f;
+        private const float CloseUpGazeExitDistance = 3.1f;
+        private const float CloseUpGazeSeconds = 2f;
         private const float CloseUpGazeCooldownSeconds = 30f;
+        private const float CloseUpGazeFrontalEnterDot = 0.35f; // ~±70° от лица
+        private const float CloseUpGazeFrontalExitDot = 0.05f;  // почти профиль
 
         // §131: стартовый кадр игры — камера сразу у головы первой выделенной,
         // спереди-сбоку (¾), низко, и слежение уже включено. Числа под тюнинг.
@@ -226,7 +231,9 @@ namespace HexLive.UnityPresentation.Input
                 CloseUpGazeEnterDistance,
                 CloseUpGazeExitDistance,
                 CloseUpGazeSeconds,
-                CloseUpGazeCooldownSeconds);
+                CloseUpGazeCooldownSeconds,
+                CloseUpGazeFrontalEnterDot,
+                CloseUpGazeFrontalExitDot);
             transform.position = _startPosition;
             transform.rotation = Quaternion.Euler(_startRotation);
 

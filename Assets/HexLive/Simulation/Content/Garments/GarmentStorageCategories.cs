@@ -11,6 +11,36 @@ namespace HexLive.Simulation.Content
             => CategoryFor(definitionId) == GarmentCategory.Footwear;
 
         /// <summary>
+        /// §40.19 r2 (баг #165): СУМКА — рюкзак, подсумок, кобура. Как и обувь,
+        /// она не тряпка: лежит на земле своей формой, а не расплющивается в
+        /// блин, как рубашка. Именно поэтому рюкзак на земле и читался как
+        /// «модели рюкзака нет» — модель была, её просто сплющивали до 12%
+        /// толщины и клали на спину.
+        /// <para>
+        /// Спрашивается и категория, и слой: категорию проставляет ЮНИТИ-ассет,
+        /// а headless-прогон и сервер её не видят — слой же авторский и едет в
+        /// simdata. Один вопрос, два источника, и ни один не молчит.
+        /// </para>
+        /// </summary>
+        public static bool IsBag(string definitionId)
+        {
+            foreach (var garment in GarmentLibrary.Active)
+            {
+                if (garment != null && garment.Id == definitionId)
+                {
+                    return garment.Category == GarmentCategory.Bag ||
+                        garment.Layer == WearLayer.Bags;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Вещь, которая на земле сохраняет форму: обувь и сумки.</summary>
+        public static bool KeepsShapeOnGround(string definitionId)
+            => IsFootwear(definitionId) || IsBag(definitionId);
+
+        /// <summary>
         /// A garment stored as a compact left/right pair: explicit gloves, or
         /// any authored wearable whose fine slots are confined to the arms.
         /// The slot rule deliberately excludes ids and coarse protection zones,

@@ -54,7 +54,10 @@ public static class GarmentDropFactory
             return null;
         }
 
-        var flatten = !IsFootwear(definitionId);
+        // §40.19 r2 (#165): не только обувь. Сумка (рюкзак, подсумок, кобура)
+        // тоже держит форму — расплющенный до 12% толщины и уложенный на спину
+        // рюкзак читается как «модели рюкзака нет».
+        var flatten = !GarmentStorageCategories.KeepsShapeOnGround(definitionId);
         var lieFlat = flatten && !hanging ? Quaternion.Euler(-90f, 0f, 0f) : Quaternion.identity;
         var root = new GameObject($"GarmentDrop {definitionId}");
         var pieces = new List<Transform>();

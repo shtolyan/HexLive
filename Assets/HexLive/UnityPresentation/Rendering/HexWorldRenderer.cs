@@ -4034,7 +4034,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.Id.Value != selectedId && !FogSeesTile(npc.Tile))
+            // #146 rework: own colonists are player-owned bodies, not fog
+            // contacts. Hiding housemates made a talk target disappear while
+            // her selected partner spoke to empty space; clicking the missing
+            // roster entry then exempted that id and looked like a spawn.
+            if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony &&
+                npc.Id.Value != selectedId && !FogSeesTile(npc.Tile))
             {
                 _fogHiddenNpcs.Add(npc.Id.Value);
             }

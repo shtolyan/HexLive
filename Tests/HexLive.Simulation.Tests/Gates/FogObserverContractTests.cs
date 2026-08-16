@@ -24,6 +24,9 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(renderer, Does.Contain("previousIsValid |= npc.Id.Value == previousId;"));
                 Assert.That(renderer, Does.Contain("firstColonyId == int.MaxValue ? -1 : firstColonyId"));
                 Assert.That(renderer, Does.Contain("_fogHidesNpcs = selectedOnly;"));
+                Assert.That(renderer, Does.Contain(
+                    "npc.Faction != HexLive.Simulation.Agents.Faction.Colony &&"),
+                    "Selected-only fog must never deactivate the player's own colonists.");
                 Assert.That(renderer, Does.Contain("var selectedId = _fogObserverNpcId;"),
                     "The perception ring must follow the validated observer, not the relation target.");
                 Assert.That(renderer, Does.Not.Contain("_fogHidesNpcs = selectedId >= 0;"));
@@ -31,6 +34,7 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(camera, Does.Contain("_worldRenderer.IsNpcHiddenByFog(npcId)"));
                 Assert.That(camera, Does.Contain("target = Vector3.zero;"));
                 Assert.That(spec, Does.Contain("Карточка отношений может выбрать скрытого чужака"));
+                Assert.That(spec, Does.Contain("Собственные живые колонистки"));
             });
         }
     }

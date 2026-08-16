@@ -354,6 +354,10 @@ namespace HexLive.UnityPresentation.UI
             // the speed is not yours to change.
             var remote = _runner != null && _runner.Link.IsRemote;
 
+            // Pause belongs to the same rule and was simply forgotten: a viewer
+            // could stop the shared colony with it, and it worked.
+            _pauseButton.SetEnabled(!remote);
+
             var speed = _runner != null ? _runner.SpeedMultiplier : 1f;
             for (var i = 0; i < _speedButtons.Count; i++)
             {

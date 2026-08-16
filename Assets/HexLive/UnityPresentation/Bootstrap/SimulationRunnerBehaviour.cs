@@ -386,9 +386,20 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         _gameHistory.Tick();
     }
 
+    /// <summary>
+    /// §83.4: on a hosted world the clock is not ours. Pausing is refused HERE
+    /// rather than only on the speed bar, because the loudest caller is not a
+    /// button at all — <c>GameMenu</c> pauses the simulation before it draws
+    /// itself, so opening the menu on a server stopped the colony for every
+    /// other viewer, with nothing on screen saying so. The menu's own
+    /// <c>Time.timeScale</c> still freezes THIS client's view, which is all it
+    /// ever wanted.
+    /// </summary>
+    public bool CanControlClock => !Link.IsRemote;
+
     public void Pause()
     {
-        if (_backend is null)
+        if (_backend is null || !CanControlClock)
         {
             return;
         }
@@ -399,7 +410,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 
     public void Resume()
     {
-        if (_backend is null)
+        if (_backend is null || !CanControlClock)
         {
             return;
         }

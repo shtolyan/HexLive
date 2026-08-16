@@ -75,7 +75,10 @@ public static class WorldSnapshotCodec
     /// внутри неё дневник стоил бы втрое больше всего остального трафика.
     /// v25: §50 LegsLost — «ноги в ноль» едет отдельно от PostureHint, иначе
     /// обморок стирал этот факт и вид ронял разбитую в ноль как здоровую.
-    public const int WireVersion = 25;
+    /// v26: §57 RelationshipDetails уехали из отладочного блока в основную
+    /// запись NPC — вкладка «Отношения» на листе персонажа это ИГРА, а не дамп
+    /// панели, и на сервере без --debug-details она молча пустовала.
+    public const int WireVersion = 26;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -882,18 +885,12 @@ public static class WorldSnapshotCodec
         WireIo.WriteNullableInt(w, n.GoalLockEndTick);
         w.Write(n.IsManualControl); // §121
 
-        // Debug-panel payload: relationship/memory dumps and goal scores.
-        // Off by default for the same reason the exporter gates them.
-        if (!includeDebugDetails)
-        {
-            return;
-        }
-
-        WireIo.WriteStrings(w, n.CooldownGoals);
-        WireIo.WriteStrings(w, n.Relationships);
-        WireIo.WriteStrings(w, n.KnownObjects);
-        WireIo.WriteJunctions(w, n.Path);
-
+        // §57: отношения — ИГРОВЫЕ данные, вкладка «Отношения» на листе
+        // персонажа, и едут всегда. Раньше они лежали в отладочном блоке ниже,
+        // и это был молчаливый отказ ровно того сорта, который §83 обещает
+        // ловить: локально панель читает снапшот напрямую, мимо кодека, поэтому
+        // всё работало, — а на сервере вкладка оказывалась пустой, если хост не
+        // запущен с --debug-details. Пустая вкладка не выглядит как поломка.
         w.Write(n.RelationshipDetails.Count);
         for (var j = 0; j < n.RelationshipDetails.Count; j++)
         {
@@ -904,6 +901,19 @@ public static class WorldSnapshotCodec
             w.Write(rel.Familiarity);
             w.Write(rel.Affinity);
         }
+
+        // Debug-panel payload: the string dumps (memory, cooldowns, the raw
+        // relationship line) and goal scores. Off by default for the same reason
+        // the exporter gates them — megabytes a tick that only the panel reads.
+        if (!includeDebugDetails)
+        {
+            return;
+        }
+
+        WireIo.WriteStrings(w, n.CooldownGoals);
+        WireIo.WriteStrings(w, n.Relationships);
+        WireIo.WriteStrings(w, n.KnownObjects);
+        WireIo.WriteJunctions(w, n.Path);
 
         w.Write(n.GoalScores.Count);
         for (var j = 0; j < n.GoalScores.Count; j++)
@@ -1143,25 +1153,7 @@ public static class WorldSnapshotCodec
         n.GoalLockEndTick = WireIo.ReadNullableInt(r);
         n.IsManualControl = r.ReadBoolean(); // §121
 
-        if (!includeDebugDetails)
-        {
-            // Nothing was written, so leave whatever the reused snapshot
-            // already had — but clear it, or a panel toggled off would keep
-            // showing the last frame's relationships forever.
-            n.CooldownGoals.Clear();
-            n.Relationships.Clear();
-            n.KnownObjects.Clear();
-            n.Path.Clear();
-            n.RelationshipDetails.Clear();
-            n.GoalScores.Clear();
-            return;
-        }
-
-        WireIo.ReadStrings(r, n.CooldownGoals);
-        WireIo.ReadStrings(r, n.Relationships);
-        WireIo.ReadStrings(r, n.KnownObjects);
-        WireIo.ReadJunctions(r, n.Path);
-
+        // §57: всегда — см. писателя.
         var relCount = r.ReadInt32();
         WireIo.Resize(n.RelationshipDetails, relCount);
         for (var j = 0; j < relCount; j++)
@@ -1173,6 +1165,24 @@ public static class WorldSnapshotCodec
             rel.Familiarity = r.ReadSingle();
             rel.Affinity = r.ReadSingle();
         }
+
+        if (!includeDebugDetails)
+        {
+            // Nothing was written, so leave whatever the reused snapshot
+            // already had — but clear it, or a panel toggled off would keep
+            // showing the last frame's dumps forever.
+            n.CooldownGoals.Clear();
+            n.Relationships.Clear();
+            n.KnownObjects.Clear();
+            n.Path.Clear();
+            n.GoalScores.Clear();
+            return;
+        }
+
+        WireIo.ReadStrings(r, n.CooldownGoals);
+        WireIo.ReadStrings(r, n.Relationships);
+        WireIo.ReadStrings(r, n.KnownObjects);
+        WireIo.ReadJunctions(r, n.Path);
 
         var scoreCount = r.ReadInt32();
         WireIo.Resize(n.GoalScores, scoreCount);

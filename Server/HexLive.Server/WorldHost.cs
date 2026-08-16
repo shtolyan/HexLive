@@ -41,6 +41,7 @@ public sealed class WorldHost : IDisposable
     private readonly SimulationSettings _settings;
     private readonly string _savePath;
     private readonly LlmControlSystem? _llmControlSystem;
+    private readonly LlmProviderDiagnostics? _llmProviderDiagnostics;
 
     private WorldSnapshot? _snapshot;
     private int _snapshotTick = -1;
@@ -95,15 +96,16 @@ public sealed class WorldHost : IDisposable
         _engine = new SimulationEngine(world, _settings, _clock);
         if (llmOptions is { Enabled: true })
         {
+            _llmProviderDiagnostics = new LlmProviderDiagnostics(Console.Error.WriteLine);
             _llmControlSystem = new LlmControlSystem(
                 enabled: true,
                 eligibleNpcIds: llmOptions.SelectedNpcIds,
-                provider: new LlmHttpControlProvider(llmOptions),
+                provider: new LlmHttpControlProvider(llmOptions, _llmProviderDiagnostics),
                 decisionCooldownTicks: SpecLlmControl.DecisionCooldownTicks,
                 requestTimeoutTicks: SpecLlmControl.RequestTimeoutTicks,
                 maxInFlightRequests: SpecLlmControl.MaxInFlightRequests);
             Console.WriteLine(
-                $"[llm] enabled for {llmOptions.SelectedNpcIds.Count} NPC(s), endpoint {llmOptions.Endpoint}");
+                $"[llm] enabled for {llmOptions.SelectedNpcIds.Count} NPC(s), HTTP provider configured");
         }
 
         SimulationSystemRegistry.RegisterDefaults(_engine, _llmControlSystem);
@@ -129,6 +131,9 @@ public sealed class WorldHost : IDisposable
 
         TopologyChecksum = HexLive.Simulation.Wire.TopologyChecksum.Compute(world);
     }
+
+    public string? DrainLlmProviderFailureSummary() =>
+        _llmProviderDiagnostics?.DrainSummary();
 
     public int Seed
     {

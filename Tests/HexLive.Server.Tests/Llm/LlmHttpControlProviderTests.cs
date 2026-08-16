@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -81,69 +83,73 @@ public sealed class LlmHttpControlProviderTests
 
     [TestCase(
         "{\"commandKind\":\"None\"}",
-        nameof(JsonException),
+        "response-json",
         TestName = "Response requires contractVersion")]
     [TestCase(
         "{\"contractVersion\":2,\"commandKind\":\"None\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects an unsupported contractVersion")]
     [TestCase(
         "{\"contractVersion\":1,\"commandkind\":\"None\"}",
-        nameof(JsonException),
+        "response-json",
         TestName = "Response property names are case-sensitive")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"none\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response enum values are case-sensitive")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"1\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects a numeric command ordinal")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"None, Stop\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects a comma-combined command")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\" None\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects leading command whitespace")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"None \"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects trailing command whitespace")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\"NotAnInteraction\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects an unsupported interaction")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\"0\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects a numeric interaction ordinal")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\"Eat, Drink\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects a comma-combined interaction")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\" Harvest\"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects leading interaction whitespace")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"Interact\",\"interaction\":\"Harvest \"}",
-        nameof(InvalidOperationException),
+        "response-contract",
         TestName = "Response rejects trailing interaction whitespace")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"None\",\"extra\":true}",
-        nameof(JsonException),
+        "response-json",
         TestName = "Response rejects unknown fields")]
     [TestCase(
         "{\"contractVersion\":1,\"commandKind\":\"MoveTo\",\"targetPosition\":{\"x\":1}}",
-        nameof(JsonException),
+        "response-json",
         TestName = "Response targetPosition requires both coordinates")]
-    public void MalformedContractResponse_FailsClosed(string body, string errorType)
+    public void MalformedContractResponse_FailsClosed(
+        string body,
+        string expectedCategory)
     {
+        var warnings = new List<string>();
+        var diagnostics = new LlmProviderDiagnostics(warnings.Add);
         using var handler = new RecordingHandler(_ => JsonResponse(body));
         using var http = new HttpClient(handler);
-        using var provider = new LlmHttpControlProvider(Options(), http);
+        using var provider = new LlmHttpControlProvider(Options(), http, diagnostics);
 
         Assert.That(provider.TryRequest(Request()), Is.True);
         var result = WaitForResult(provider);
@@ -152,7 +158,13 @@ public sealed class LlmHttpControlProviderTests
         {
             Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Failed));
             Assert.That(result.Decision, Is.Null);
-            Assert.That(result.ErrorType, Is.EqualTo(errorType));
+            Assert.That(result.ErrorType, Is.EqualTo("LlmProviderFailureException"));
+            Assert.That(result.ErrorMessage,
+                Is.EqualTo($"LLM provider failure category={expectedCategory}."));
+            Assert.That(warnings, Has.Count.EqualTo(1));
+            Assert.That(warnings[0], Does.Contain($"category={expectedCategory}"));
+            Assert.That(diagnostics.DrainSummary(),
+                Is.EqualTo($"[llm] provider failures {expectedCategory}=1"));
         });
     }
 
@@ -183,16 +195,80 @@ public sealed class LlmHttpControlProviderTests
         Assert.Multiple(() =>
         {
             Assert.That(nonJson.Status, Is.EqualTo(LlmControlResultStatus.Failed));
-            Assert.That(nonJson.ErrorMessage, Does.Contain("Content-Type"));
+            Assert.That(nonJson.ErrorMessage,
+                Is.EqualTo("LLM provider failure category=response-media-type."));
             Assert.That(oversized.Status, Is.EqualTo(LlmControlResultStatus.Failed));
-            Assert.That(oversized.ErrorMessage, Does.Contain("exceeds"));
+            Assert.That(oversized.ErrorMessage,
+                Is.EqualTo("LLM provider failure category=response-too-large."));
         });
     }
 
-    private static LlmHostOptions Options(string apiKey = "")
+    [TestCase(LlmProviderFailureCategory.Timeout)]
+    [TestCase(LlmProviderFailureCategory.Transport)]
+    [TestCase(LlmProviderFailureCategory.HttpStatus)]
+    [TestCase(LlmProviderFailureCategory.ResponseMediaType)]
+    [TestCase(LlmProviderFailureCategory.ResponseTooLarge)]
+    [TestCase(LlmProviderFailureCategory.ResponseEncoding)]
+    [TestCase(LlmProviderFailureCategory.ResponseJson)]
+    [TestCase(LlmProviderFailureCategory.ResponseContract)]
+    [TestCase(LlmProviderFailureCategory.Unexpected)]
+    public void FailureTaxonomy_IsOperatorVisibleRedactedAndBounded(
+        LlmProviderFailureCategory category)
+    {
+        const string querySecret = "query-secret";
+        const string apiSecret = "api-secret";
+        const string responseSecret = "response-secret";
+        var warnings = new List<string>();
+        var diagnostics = new LlmProviderDiagnostics(warnings.Add);
+        using var handler = new RecordingHandler(_ => FailureResponse(category, responseSecret));
+        using var http = new HttpClient(handler);
+        using var provider = new LlmHttpControlProvider(
+            Options(apiSecret, $"http://127.0.0.1:11434/decision?token={querySecret}"),
+            http,
+            diagnostics);
+
+        Assert.That(provider.TryRequest(Request()), Is.True);
+        var result = WaitForResult(provider);
+        for (var i = 0; i < 100; i++)
+        {
+            diagnostics.RecordFailure(category);
+        }
+
+        var categoryName = DiagnosticCategoryName(category);
+        var summary = diagnostics.DrainSummary();
+        var diagnosticOutput = string.Join("\n", warnings) + "\n" + summary + "\n" +
+            result.ErrorType + "\n" + result.ErrorMessage;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Failed));
+            Assert.That(result.ErrorType, Is.EqualTo("LlmProviderFailureException"));
+            Assert.That(result.ErrorMessage,
+                Is.EqualTo($"LLM provider failure category={categoryName}."));
+            Assert.That(warnings, Has.Count.EqualTo(1),
+                "Only the first failure in a category may warn immediately.");
+            Assert.That(warnings[0].Length,
+                Is.LessThanOrEqualTo(LlmProviderDiagnostics.MaxDiagnosticLineLength));
+            Assert.That(summary,
+                Is.EqualTo($"[llm] provider failures {categoryName}=101"));
+            Assert.That(summary!.Length,
+                Is.LessThanOrEqualTo(LlmProviderDiagnostics.MaxDiagnosticLineLength));
+            Assert.That(diagnostics.DrainSummary(), Is.Null,
+                "A drained interval must not emit an empty periodic line.");
+            Assert.That(diagnosticOutput, Does.Not.Contain(querySecret));
+            Assert.That(diagnosticOutput, Does.Not.Contain(apiSecret));
+            Assert.That(diagnosticOutput, Does.Not.Contain(responseSecret));
+            Assert.That(diagnosticOutput.Length,
+                Is.LessThanOrEqualTo(LlmProviderDiagnostics.MaxDiagnosticLineLength * 3));
+        });
+    }
+
+    private static LlmHostOptions Options(
+        string apiKey = "",
+        string endpoint = "http://127.0.0.1:11434/decision")
     {
         var options = new LlmHostOptions();
-        options.SetEndpoint("http://127.0.0.1:11434/decision");
+        options.SetEndpoint(endpoint);
         options.SetSelectedNpcIds("7");
         options.SetModel("fixture-model");
         options.SetApiKey(apiKey);
@@ -200,6 +276,67 @@ public sealed class LlmHttpControlProviderTests
         options.Validate();
         return options;
     }
+
+    private static HttpResponseMessage FailureResponse(
+        LlmProviderFailureCategory category,
+        string responseSecret)
+    {
+        switch (category)
+        {
+            case LlmProviderFailureCategory.Timeout:
+                throw new OperationCanceledException(responseSecret);
+            case LlmProviderFailureCategory.Transport:
+                throw new HttpRequestException(responseSecret);
+            case LlmProviderFailureCategory.HttpStatus:
+                return new HttpResponseMessage(HttpStatusCode.BadGateway)
+                {
+                    Content = new StringContent(responseSecret),
+                };
+            case LlmProviderFailureCategory.ResponseMediaType:
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(responseSecret, Encoding.UTF8, "text/plain"),
+                };
+            case LlmProviderFailureCategory.ResponseTooLarge:
+                return JsonResponse(
+                    "{\"contractVersion\":1,\"commandKind\":\"None\",\"reason\":\"" +
+                    responseSecret + new string('x', LlmHttpControlProvider.MaxResponseBytes) +
+                    "\"}");
+            case LlmProviderFailureCategory.ResponseEncoding:
+                var invalidUtf8 = new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(new byte[] { 0xff, 0xfe, 0xfd }),
+                };
+                invalidUtf8.Content.Headers.ContentType =
+                    new MediaTypeHeaderValue("application/json");
+                return invalidUtf8;
+            case LlmProviderFailureCategory.ResponseJson:
+                return JsonResponse("{\"response-secret\":");
+            case LlmProviderFailureCategory.ResponseContract:
+                return JsonResponse(
+                    "{\"contractVersion\":2,\"commandKind\":\"None\",\"reason\":\"" +
+                    responseSecret + "\"}");
+            case LlmProviderFailureCategory.Unexpected:
+                throw new ApplicationException(responseSecret);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(category));
+        }
+    }
+
+    private static string DiagnosticCategoryName(LlmProviderFailureCategory category) =>
+        category switch
+        {
+            LlmProviderFailureCategory.Timeout => "timeout",
+            LlmProviderFailureCategory.Transport => "transport",
+            LlmProviderFailureCategory.HttpStatus => "http-status",
+            LlmProviderFailureCategory.ResponseMediaType => "response-media-type",
+            LlmProviderFailureCategory.ResponseTooLarge => "response-too-large",
+            LlmProviderFailureCategory.ResponseEncoding => "response-encoding",
+            LlmProviderFailureCategory.ResponseJson => "response-json",
+            LlmProviderFailureCategory.ResponseContract => "response-contract",
+            LlmProviderFailureCategory.Unexpected => "unexpected",
+            _ => throw new ArgumentOutOfRangeException(nameof(category)),
+        };
 
     private static LlmControlRequest Request(LlmDecisionContext? context = null) => new(
         requestId: 1,

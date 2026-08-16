@@ -192,6 +192,11 @@ public static class Program
                 Console.WriteLine(
                     $"[world] tick {host.Tick} · {c.alive}/{c.total} colonists · {c.objects} objects · " +
                     $"{host.AverageTickMs:0.00} ms/tick");
+                var llmFailures = host.DrainLlmProviderFailureSummary();
+                if (llmFailures is not null)
+                {
+                    Console.Error.WriteLine(llmFailures);
+                }
             }
         }
         catch (OperationCanceledException)

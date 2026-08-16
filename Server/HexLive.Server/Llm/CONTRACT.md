@@ -96,6 +96,17 @@ Non-2xx responses, timeouts, transport failures, and invalid response bodies
 produce failed provider results and activate the configured backoff. A request
 canceled by the simulation lifetime does not mark the endpoint unhealthy.
 
+The host exposes those failures to the server operator without requiring
+`--verbose-trace`. It uses a fixed, low-cardinality taxonomy: `timeout`,
+`transport`, `http-status`, `response-media-type`, `response-too-large`,
+`response-encoding`, `response-json`, `response-contract`, and `unexpected`.
+The first failure in each category emits one immediate warning per provider
+lifetime. Further failures are counted and included in the existing one-minute
+server status only when the count is non-zero, so a failing gateway cannot create
+per-tick log spam. Provider result errors and operator diagnostics contain only
+the fixed category text; they never include the endpoint (including its query),
+the bearer key, response body, or underlying exception message.
+
 ## Configuration
 
 No endpoint or model is built in. With no LLM configuration the adapter remains

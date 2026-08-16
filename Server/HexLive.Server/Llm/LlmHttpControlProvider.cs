@@ -44,11 +44,19 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
     private readonly string _model;
     private readonly TimeSpan _requestTimeout;
     private readonly TimeSpan _backoff;
+    private readonly LlmProviderDiagnostics? _diagnostics;
     private DateTimeOffset _nextAllowedRequestUtc = DateTimeOffset.MinValue;
     private readonly object _backoffGate = new();
 
     public LlmHttpControlProvider(LlmHostOptions options)
-        : this(options, new HttpClient(), disposeHttpClient: true)
+        : this(options, new HttpClient(), diagnostics: null, disposeHttpClient: true)
+    {
+    }
+
+    public LlmHttpControlProvider(
+        LlmHostOptions options,
+        LlmProviderDiagnostics diagnostics)
+        : this(options, new HttpClient(), diagnostics, disposeHttpClient: true)
     {
     }
 
@@ -57,13 +65,22 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
     /// deliberately share an <see cref="HttpMessageHandler"/> pool.
     /// </summary>
     public LlmHttpControlProvider(LlmHostOptions options, HttpClient httpClient)
-        : this(options, httpClient, disposeHttpClient: false)
+        : this(options, httpClient, diagnostics: null, disposeHttpClient: false)
+    {
+    }
+
+    public LlmHttpControlProvider(
+        LlmHostOptions options,
+        HttpClient httpClient,
+        LlmProviderDiagnostics diagnostics)
+        : this(options, httpClient, diagnostics, disposeHttpClient: false)
     {
     }
 
     private LlmHttpControlProvider(
         LlmHostOptions options,
         HttpClient httpClient,
+        LlmProviderDiagnostics? diagnostics,
         bool disposeHttpClient)
         : base(options?.MaxQueuedRequests ?? SpecLlmControl.MaxProviderQueuedRequests,
             options?.MaxConcurrentRequests ?? SpecLlmControl.MaxProviderConcurrentRequests)
@@ -77,6 +94,7 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
         _model = options.Model;
         _requestTimeout = options.RequestTimeout;
         _backoff = options.Backoff;
+        _diagnostics = diagnostics;
         _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _disposeHttpClient = disposeHttpClient;
     }
@@ -122,9 +140,8 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
                 linked.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                throw new HttpRequestException(
-                    "LLM provider returned HTTP " +
-                    ((int)response.StatusCode).ToString(CultureInfo.InvariantCulture));
+                throw new LlmProviderFailureException(
+                    LlmProviderFailureCategory.HttpStatus);
             }
 
             ValidateContentType(response.Content.Headers.ContentType);
@@ -144,10 +161,38 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
             // health, so it must not throttle the next unrelated request.
             throw;
         }
-        catch
+        catch (LlmProviderFailureException exception)
         {
-            NoteFailure(DateTimeOffset.UtcNow);
+            ReportFailure(exception.Category);
             throw;
+        }
+        catch (OperationCanceledException exception)
+        {
+            throw WrapFailure(LlmProviderFailureCategory.Timeout, exception);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw WrapFailure(LlmProviderFailureCategory.Transport, exception);
+        }
+        catch (IOException exception)
+        {
+            throw WrapFailure(LlmProviderFailureCategory.Transport, exception);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw WrapFailure(LlmProviderFailureCategory.ResponseEncoding, exception);
+        }
+        catch (JsonException exception)
+        {
+            throw WrapFailure(LlmProviderFailureCategory.ResponseJson, exception);
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw WrapFailure(LlmProviderFailureCategory.ResponseContract, exception);
+        }
+        catch (Exception exception)
+        {
+            throw WrapFailure(LlmProviderFailureCategory.Unexpected, exception);
         }
     }
 
@@ -183,6 +228,20 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
                 _nextAllowedRequestUtc = next;
             }
         }
+    }
+
+    private LlmProviderFailureException WrapFailure(
+        LlmProviderFailureCategory category,
+        Exception exception)
+    {
+        ReportFailure(category);
+        return new LlmProviderFailureException(category, exception);
+    }
+
+    private void ReportFailure(LlmProviderFailureCategory category)
+    {
+        NoteFailure(DateTimeOffset.UtcNow);
+        _diagnostics?.RecordFailure(category);
     }
 
     private LlmRequestWire ToWireRequest(LlmDecisionContext context) => new()
@@ -276,16 +335,16 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
     {
         if (!string.Equals(contentType?.MediaType, "application/json", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException(
-                "LLM provider response Content-Type must be application/json.");
+            throw new LlmProviderFailureException(
+                LlmProviderFailureCategory.ResponseMediaType);
         }
 
         var charset = contentType?.CharSet;
         if (!string.IsNullOrWhiteSpace(charset) &&
             !string.Equals(charset.Trim('"'), "utf-8", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException(
-                "LLM provider response charset must be UTF-8 when specified.");
+            throw new LlmProviderFailureException(
+                LlmProviderFailureCategory.ResponseMediaType);
         }
     }
 
@@ -295,8 +354,8 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
     {
         if (content.Headers.ContentLength is > MaxResponseBytes)
         {
-            throw new InvalidOperationException(
-                $"LLM provider response exceeds {MaxResponseBytes} bytes.");
+            throw new LlmProviderFailureException(
+                LlmProviderFailureCategory.ResponseTooLarge);
         }
 
         using var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
@@ -313,8 +372,8 @@ public sealed class LlmHttpControlProvider : QueuedLlmControlProvider
 
             if (buffer.Length + read > MaxResponseBytes)
             {
-                throw new InvalidOperationException(
-                    $"LLM provider response exceeds {MaxResponseBytes} bytes.");
+                throw new LlmProviderFailureException(
+                    LlmProviderFailureCategory.ResponseTooLarge);
             }
 
             buffer.Write(chunk, 0, read);

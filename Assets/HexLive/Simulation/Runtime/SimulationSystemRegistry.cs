@@ -18,7 +18,11 @@ public static class SimulationSystemRegistry
     /// Effective per-<see cref="SimulationEngine.Step"/> order is Fast → Medium →
     /// Slow; within a layer, the order below.
     /// </summary>
-    public static void RegisterDefaults(SimulationEngine engine)
+    public static void RegisterDefaults(SimulationEngine engine) =>
+        RegisterDefaults(engine, null);
+
+    public static void RegisterDefaults(
+        SimulationEngine engine, LlmControlSystem llmControlSystem)
     {
         // §23.17: repair a saved split-brain Sleep/non-Sleep plan before path,
         // movement or execution can consume either half of the contradiction.
@@ -28,6 +32,12 @@ public static class SimulationSystemRegistry
         engine.Register(new ExecutionSystem());
         engine.Register(new PerceptionSystem());
         engine.Register(new RescueSystem());
+        // §32.15: opt-in LLM adapter. The shipped constructor is double-safe:
+        // SpecLlmControl.Enabled defaults false and its selected-id set is empty,
+        // so registration has zero world, trace, provider, or ordering effects.
+        // When explicitly constructed, it runs after rescue claims work and
+        // before the ordinary decision/planning pipeline claims an idle NPC.
+        engine.Register(llmControlSystem ?? new LlmControlSystem());
         engine.Register(new DecisionSystem());
         engine.Register(new ProstheticAidSystem()); // §119: persistent compassion chain
         engine.Register(new PlanningSystem());

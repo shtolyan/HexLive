@@ -31,7 +31,12 @@ public sealed class MoistureSystem : ISimulationSystem
             world.Tiles.Items.TryGetValue(npc.Tile, out var tile);
             var onWater = tile is not null && tile.Flags.HasFlag(TileFlags.Water);
             var touchesWater = onWater || ShelterMath.RainReaches(world, npc.Tile);
-            var dryRate = DryBase * DryMultiplier(world, npc.Tile, indoor, stationBoost: 0f);
+            var bodyDryRate = DryBase * DryMultiplier(
+                world, npc.Tile, indoor, stationBoost: 0f, naturalMultiplier: 1f);
+            var ordinaryItemDryRate = bodyDryRate;
+            var clothingDryRate = DryBase * DryMultiplier(
+                world, npc.Tile, indoor, stationBoost: 0f,
+                naturalMultiplier: WorldBalance.ClothingNaturalDryMultiplier);
 
             // Spec 35.5: the body soaks too — rain/water wet the skin directly,
             // so a naked or near-naked survivor still reads as soaked even with
@@ -42,11 +47,13 @@ public sealed class MoistureSystem : ISimulationSystem
             }
             else
             {
-                npc.BodyWetness = System.MathF.Max(0f, npc.BodyWetness - dryRate);
+                npc.BodyWetness = System.MathF.Max(0f, npc.BodyWetness - bodyDryRate);
             }
 
-            UpdateItems(world, npc, npc.WornItems, touchesWater, dryRate, worn: true);
-            UpdateItems(world, npc, npc.Inventory.Items, touchesWater, dryRate, worn: false);
+            UpdateItems(world, npc, npc.WornItems, touchesWater,
+                ordinaryItemDryRate, clothingDryRate, worn: true);
+            UpdateItems(world, npc, npc.Inventory.Items, touchesWater,
+                ordinaryItemDryRate, clothingDryRate, worn: false);
 
             // Spec 35.6: worn cloth loses ClothingPassiveWearPerDay every 150
             // slow ticks (= 2400 ticks = 10 real minutes). The 150 is a
@@ -93,8 +100,12 @@ public sealed class MoistureSystem : ISimulationSystem
             }
 
             var stationBoost = StationDryMultiplier(world, obj);
+            var naturalMultiplier = definition.Layer is not null
+                ? WorldBalance.ClothingNaturalDryMultiplier
+                : 1f;
             obj.Wetness = System.MathF.Max(0f,
-                obj.Wetness - DryBase * DryMultiplier(world, obj.Tile, indoor, stationBoost));
+                obj.Wetness - DryBase * DryMultiplier(
+                    world, obj.Tile, indoor, stationBoost, naturalMultiplier));
         }
     }
 
@@ -121,7 +132,7 @@ public sealed class MoistureSystem : ISimulationSystem
     private static void UpdateItems(
         WorldState world, NPCState npc,
         System.Collections.Generic.List<ItemInstance> items,
-        bool touchesWater, float dryRate, bool worn)
+        bool touchesWater, float ordinaryDryRate, float clothingDryRate, bool worn)
     {
         foreach (var item in items)
         {
@@ -140,17 +151,28 @@ public sealed class MoistureSystem : ISimulationSystem
             }
             else
             {
+                var dryRate = IsClothing(world, item.DefinitionId)
+                    ? clothingDryRate
+                    : ordinaryDryRate;
                 item.Wetness = System.MathF.Max(0f, item.Wetness - dryRate);
             }
         }
     }
 
-    // Spec 35.5: best of sun x3 / lit campfire x4 / rack x5, else x1.
+    private static bool IsClothing(WorldState world, string definitionId) =>
+        world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
+        definition.Layer is not null;
+
+    // Spec 35.5: clothing's ordinary world rate is ×0.1 (sun ×0.3), while
+    // lit campfire ×4 and rack ×5 remain absolute multipliers of DryBase.
+    // Body/non-clothing pass naturalMultiplier=1 and keep the old rates.
     // §133: гардероб приходит сюда своим множителем (×5 при живом очаге,
     // ×1.5 при потухшем), поэтому станция передаётся числом, а не флагом.
-    private static float DryMultiplier(WorldState world, TileCoord tile, bool indoor, float stationBoost)
+    private static float DryMultiplier(
+        WorldState world, TileCoord tile, bool indoor,
+        float stationBoost, float naturalMultiplier)
     {
-        var best = 1f;
+        var best = naturalMultiplier;
         if (stationBoost > 0f)
         {
             best = stationBoost;
@@ -160,10 +182,11 @@ public sealed class MoistureSystem : ISimulationSystem
             best = 4f;
         }
 
-        if (best < 3f && !indoor && world.Environment.UvIndex > 0.3f &&
+        var sunMultiplier = 3f * naturalMultiplier;
+        if (best < sunMultiplier && !indoor && world.Environment.UvIndex > 0.3f &&
             !TemperatureSystem.IsShaded(world, tile))
         {
-            best = 3f;
+            best = sunMultiplier;
         }
 
         return best;

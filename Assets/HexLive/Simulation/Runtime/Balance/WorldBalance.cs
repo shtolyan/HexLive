@@ -55,6 +55,11 @@ public static class WorldBalance
     // Base drying rate per slow tick for soaked garments (worn, no fire).
     public static float MoistureDryBase = 0.02f;
 
+    // §35.5 / bug #160: ordinary ambient drying of CLOTHING only. Body and
+    // non-clothing pickups keep the base rate; fire/rack factors bypass this
+    // scale so their established absolute speeds do not move.
+    public static float ClothingNaturalDryMultiplier = 0.1f;
+
     // Fuel units a lit campfire burns per slow tick (before the §54.14
     // stone-ring multiplier).
     public static float FireBurnPerSlowTick = 16f;

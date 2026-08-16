@@ -625,6 +625,7 @@
     "SocialBalance.SleepComfortNightSlowTicks": 75,
     "SocialBalance.TalkRelationshipGain": 0.075000003,
     "WorldBalance.CanopyVirtualSteps": 2,
+    "WorldBalance.ClothingNaturalDryMultiplier": 0.100000001,
     "WorldBalance.ColonistCount": 3,
     "WorldBalance.ColonyArrivalIntervalDays": 7,
     "WorldBalance.DayLengthTicks": 24000,

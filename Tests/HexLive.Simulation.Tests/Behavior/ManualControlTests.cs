@@ -181,6 +181,238 @@ public sealed class ManualControlTests
             "Приказ игрока обязан перебивать авто-цель §121.6 немедленно.");
     }
 
+    // ── 1b. §121.6 r2: авто-нужды берутся ТОЛЬКО из своего рюкзака ───────
+    //
+    // Обещание игрока: под ручным управлением она стоит и ждёт приказов.
+    // Съесть то, что уже лежит у неё в рюкзаке, — не автономия (она никуда
+    // не идёт и ничего не выбирает в мире); а вот пойти за кокосом, к
+    // водосборнику или к костру — это ровно та самая автономия, ради
+    // выключения которой существует §121.
+
+    /// <summary>
+    /// Кокосы вокруг неё — соблазн, на который старая версия шла. Кладём на
+    /// ВСЕ проходимые соседние узлы: один сосед — это гонка с проголодавшейся
+    /// соседкой-ИИ, и утащенный ею кокос превратил бы тест в пустой (есть
+    /// стало бы просто нечего, и «стоит» доказывало бы не то).
+    /// </summary>
+    private static void DropAroundHer(WorldState world, NPCState npc, string definitionId)
+    {
+        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(
+                     world, npc.CurrentJunction!.Value))
+        {
+            var junction = world.Junctions.Items[neighbor];
+            if (junction.Tiles.Count == 0)
+            {
+                continue;
+            }
+
+            WorldObjectMutations.SpawnObject(
+                world, definitionId, new FragmentId(1), junction.Tiles[0], neighbor);
+        }
+    }
+
+    /// <summary>Видела ли она соблазн — иначе замер «стоит» ничего не значит.</summary>
+    private static bool SeesReachable(NPCState npc, string definitionId) =>
+        npc.Perception.Objects.Any(o => o.DefinitionId == definitionId && o.IsReachable);
+
+    /// <summary>
+    /// Держит нужду на «остро, но не смертельно»: латч голодания/обезвоживания
+    /// поднял бы §60/§105 и подменил бы предмет замера.
+    /// </summary>
+    private static void HoldNeeds(NPCState npc, float hunger, float thirst)
+    {
+        npc.Needs.Hunger = hunger;
+        npc.Needs.Thirst = thirst;
+    }
+
+    [Test]
+    public void StarvingManualNpcWithAnEmptyPackWaitsInsteadOfWalkingToGroundFood()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear(); // пустой рюкзак: ни еды, ни лезвия
+
+        // Готовые к еде кокосы лежат в шаге — старый §121.6 честно шёл за ними.
+        DropAroundHer(world, npc, ContentIds.CoconutOpen);
+        var startTile = npc.Tile;
+
+        var sawTemptation = false;
+        for (var i = 0; i < MediumTicks * 8; i++)
+        {
+            HoldNeeds(npc, 0.9f, 0f);
+            engine.Step();
+            sawTemptation |= SeesReachable(npc, ContentIds.CoconutOpen);
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+                $"Ручная с ПУСТЫМ рюкзаком взяла цель {npc.Mind.CurrentGoal} — " +
+                "голод не даёт права уходить за едой в мир, она ждёт приказа.");
+        }
+
+        Assert.That(npc.Tile, Is.EqualTo(startTile),
+            "Ручная пошла за едой сама — приказа на это не было.");
+        Assert.That(sawTemptation, Is.True,
+            "Прекондиция: она обязана была ВИДЕТЬ достижимую еду — иначе " +
+            "тест проходит вхолостую (есть было просто нечего).");
+    }
+
+    [Test]
+    public void DehydratedManualNpcWithAnEmptyPackWaitsInsteadOfWalkingToWater()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        npc.BottleWater = WaterKind.None;
+        npc.BottleCharges = 0;
+
+        // Продырявленный кокос с водой пьётся без лезвия — самый дешёвый
+        // источник, к которому старая версия уходила сама.
+        DropAroundHer(world, npc, ContentIds.CoconutPierced);
+        var startTile = npc.Tile;
+
+        var sawTemptation = false;
+        for (var i = 0; i < MediumTicks * 8; i++)
+        {
+            HoldNeeds(npc, 0f, 0.9f);
+            engine.Step();
+            sawTemptation |= SeesReachable(npc, ContentIds.CoconutPierced);
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+                $"Ручная с пустым рюкзаком взяла цель {npc.Mind.CurrentGoal} — " +
+                "жажда не открывает ей поход к воде без приказа.");
+        }
+
+        Assert.That(npc.Tile, Is.EqualTo(startTile),
+            "Ручная пошла за водой сама.");
+        Assert.That(sawTemptation, Is.True,
+            "Прекондиция: достижимый источник воды обязан был попасть ей в " +
+            "восприятие — иначе замер «стоит» ничего не доказывает.");
+    }
+
+    [Test]
+    public void GroundFoodAndSpitRoastAreNotHerOwnPack()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+
+        // Два самых заманчивых мировых источника разом: готовый кокос под
+        // ногами и жареное мясо на вертеле (§54.17 — старый Eat уходил к нему
+        // даже с полным рюкзаком).
+        DropAroundHer(world, npc, ContentIds.CoconutOpen);
+        foreach (var fire in world.Entities.Objects.Values)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(fire.DefinitionId, out var def) &&
+                def.Tags.Contains("Campfire"))
+            {
+                fire.Contents.Add(new ItemInstance(ContentIds.MeatCooked));
+            }
+        }
+
+        for (var i = 0; i < MediumTicks * 8; i++)
+        {
+            HoldNeeds(npc, 0.9f, 0f);
+            engine.Step();
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+                "Еда в МИРЕ (земля, вертел) — не её рюкзак: за ней ходят " +
+                "только по приказу.");
+        }
+
+        // ⭐ И обратная половина: тот же кокос, но В РЮКЗАКЕ — законный обед.
+        // Разделяет случаи именно владение, а не «кокосы запрещены».
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.CoconutOpen));
+        var ate = false;
+        for (var i = 0; i < MediumTicks * 12 && !ate; i++)
+        {
+            HoldNeeds(npc, 0.9f, 0f);
+            engine.Step();
+            ate |= npc.Mind.CurrentGoal == GoalType.Eat;
+        }
+
+        Assert.That(ate, Is.True,
+            "Тот же кокос, положенный ей в рюкзак, обязан съедаться без " +
+            "приказа — иначе слайс запретил не поход, а саму еду.");
+    }
+
+    [Test]
+    public void ManualNpcStillDrinksFromHerOwnBottle()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        npc.BottleWater = WaterKind.Rain;
+        npc.BottleCharges = SimBalance.BottleCapacity;
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0.9f;
+
+        // Минимум по ходу замера, а не значение в конце: жажда снова растёт
+        // после глотка, и «сколько её сейчас» ничего не доказывает.
+        var drank = false;
+        var lowestThirst = npc.Needs.Thirst;
+        for (var i = 0; i < MediumTicks * 12; i++)
+        {
+            engine.Step();
+            drank |= npc.Mind.CurrentGoal == GoalType.Drink;
+            lowestThirst = System.Math.Min(lowestThirst, npc.Needs.Thirst);
+        }
+
+        Assert.That(drank, Is.True,
+            "Своя полная фляга — питьё на месте, а не поход: §121.6 обязан её " +
+            "разрешать.");
+        Assert.That(lowestThirst, Is.LessThan(0.9f),
+            "Цель Drink была, а жажда ни разу не упала — план не исполнился.");
+    }
+
+    [Test]
+    public void ActivePlayerAttackIsNotReplacedByHungerOrThirst()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var attacker = Colonist(world);
+        TakeControl(engine, attacker);
+
+        var victim = world.Entities.Npcs.Values.First(n => !n.Id.Equals(attacker.Id));
+        var near = SpatialQueries.GetPassableNeighbors(
+            world, attacker.CurrentJunction!.Value).First();
+        victim.CurrentJunction = near;
+        victim.Tile = world.Junctions.Items[near].Tiles[0];
+        victim.Position = world.Junctions.Items[near].WorldPosition;
+
+        engine.Commands.Enqueue(new AttackNpcCommand(attacker.Id, victim.Id));
+        engine.Step();
+        Assert.That(attacker.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerAttack));
+
+        // Полный рюкзак И острые нужды: приказ игрока не уступает авто-нужде.
+        attacker.Inventory.Items.Add(new ItemInstance("food.meat_cooked"));
+        attacker.BottleWater = WaterKind.Rain;
+        attacker.BottleCharges = SimBalance.BottleCapacity;
+
+        // Замеряется ровно одно: НУЖДА не подменяет приказ. Цель по ходу боя
+        // может на такт уйти в None (самозащита §121.2 сносит план, а
+        // ManualOrderSystem защёлкивает пару обратно средним проходом) — это
+        // законно и к §121.6 отношения не имеет. А вот `Eat`/`Drink` посреди
+        // приказа означали бы, что узкий аукцион пробил гейт занятости.
+        for (var i = 0; i < MediumTicks * 4; i++)
+        {
+            HoldNeeds(attacker, 0.9f, 0.9f);
+            engine.Step();
+            Assert.That(attacker.Mind.CurrentGoal,
+                Is.Not.EqualTo(GoalType.Eat).And.Not.EqualTo(GoalType.Drink),
+                $"Приказ атаки подменён авто-нуждой {attacker.Mind.CurrentGoal} — " +
+                "гейт занятости §121.6 пробит.");
+            Assert.That(attacker.Mind.ManualAttackNpcId, Is.EqualTo(victim.Id),
+                "Голод/жажда уронили сам приказ атаки — авто-нужда не имеет " +
+                "права его отменять.");
+        }
+    }
+
     [Test]
     public void ManualNpcIsNeverAssignedReactiveRescueOrProstheticWork()
     {
@@ -514,6 +746,92 @@ public sealed class ManualControlTests
 
     // ── 3. Отказы: приказ, который нельзя выполнить ──────────────────────
 
+    [TestCase(InterruptionCause.CombatVictim)]
+    [TestCase(InterruptionCause.PathFailure)]
+    public void AcceptedAdmissionIsDistinctFromLaterOrderInterruption(
+        InterruptionCause cause)
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        var destination = NearbyFreeJunction(world, npc, minTiles: 3);
+
+        var previousTrace = SimTrace.Enabled;
+        SimTrace.Enabled = true;
+        try
+        {
+            var admission = ManualCommandExecutor.Apply(
+                world, new MoveToCommand(npc.Id, destination.WorldPosition));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(admission.Status,
+                    Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
+                Assert.That(admission.Order, Is.EqualTo("MoveTo"));
+                Assert.That(admission.Reason, Is.Empty);
+                Assert.That(HasTrace(
+                    world, npc.Id, "ManualCommandAdmission", "Status=Accepted"),
+                    Is.True,
+                    "Admission must be a structured trace before any system can " +
+                    "later interrupt the accepted order.");
+            });
+
+            Assert.That(
+                PlanInterruption.TryAbort(world, npc, cause, "admission-status-test"),
+                Is.True);
+            Assert.That(HasTrace(
+                world, npc.Id, "ManualOrderInterrupted", $"Cause={cause}"),
+                Is.True,
+                "An admitted order that later stops must name self-defence/path " +
+                "as lifecycle cause instead of looking like command rejection.");
+        }
+        finally
+        {
+            SimTrace.Enabled = previousTrace;
+        }
+    }
+
+    [Test]
+    public void RejectedAdmissionCarriesReasonAndHasNoInterruptionTrace()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        engine.Step(); // initialize the NPC junction, but leave her under AI
+        var destination = NearbyFreeJunction(world, npc);
+
+        var previousTrace = SimTrace.Enabled;
+        SimTrace.Enabled = true;
+        try
+        {
+            var admission = ManualCommandExecutor.Apply(
+                world, new MoveToCommand(npc.Id, destination.WorldPosition));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(admission.Status,
+                    Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+                Assert.That(admission.Order, Is.EqualTo("MoveTo"));
+                Assert.That(admission.Reason, Is.EqualTo("NotManual"));
+                Assert.That(HasTrace(
+                    world, npc.Id, "ManualCommandAdmission", "Status=Rejected"),
+                    Is.True);
+                Assert.That(HasTrace(
+                    world, npc.Id, "ManualCommandAdmission", "Reason=NotManual"),
+                    Is.True);
+                Assert.That(HasTrace(
+                    world, npc.Id, "ManualOrderInterrupted", string.Empty),
+                    Is.False,
+                    "A command that never entered the plan has no lifecycle to interrupt.");
+            });
+        }
+        finally
+        {
+            SimTrace.Enabled = previousTrace;
+        }
+    }
+
     [Test]
     public void OrderWithoutTheToolIsRejectedAndLeaksNothing()
     {
@@ -703,12 +1021,15 @@ public sealed class ManualControlTests
     // ── 4c. §121.7: таймаут бездействия ──────────────────────────────────
 
     [Test]
-    public void IdleManualNpcReturnsToAiAfterTimeout()
+    public void SparseWorldTicksDoNotExtendTheRealtimeLease()
     {
-        var engine = TestWorld.CreateEngine();
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
         var world = engine.World;
         var npc = Colonist(world);
         TakeControl(engine, npc);
+        engine.Clock.SetSpeed(0.1f); // server slow-speed floor
         npc.Needs.Hunger = 0f;
         npc.Needs.Thirst = 0f;
 
@@ -716,19 +1037,65 @@ public sealed class ManualControlTests
         // с player-visible событием (молчаливый возврат читается как поломка).
         // Шагов ровно на один Medium-проход: кольцо событий держит ~11 тиков,
         // и лишние шаги вытесняют ManualControlExpired до ассерта.
-        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks;
+        realtimeSeconds += Spec121.ManualIdleReleaseSeconds;
         Step(engine, 5);
 
-        Assert.That(npc.Mind.ManualControl, Is.False,
-            "§121.7: брошенная ручная обязана вернуться под ИИ по таймауту.");
-        Assert.That(HasTrace(world, npc.Id, "ManualControlExpired", ""), Is.True,
-            "Возврат по таймауту обязан быть виден игроку (ManualControlExpired).");
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Tick,
+                Is.LessThan(Spec121.ManualIdleReleaseSeconds / engine.Settings.TickDeltaTime),
+                "Precondition: the sparse-cadence case accidentally consumed the old tick budget.");
+            Assert.That(npc.Mind.ManualControl, Is.False,
+                "§121.7: sparse world ticks extended the real-time inactivity lease.");
+            Assert.That(HasTrace(world, npc.Id, "ManualControlExpired", ""), Is.True,
+                "Возврат по таймауту обязан быть виден игроку (ManualControlExpired).");
+        });
+    }
+
+    [Test]
+    public void FastForwardTicksDoNotPrematurelyExpireTheRealtimeLease()
+    {
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        engine.Clock.SetSpeed(200f); // server/operator fast-forward ceiling
+        realtimeSeconds = Spec121.ManualIdleReleaseSeconds - 0.001d;
+
+        // Drive the lease owner across more world ticks than the old 1200-tick
+        // timeout, without advancing wall time. Calling only the focused medium
+        // system keeps unrelated survival/combat behavior out of this clock test.
+        var formerTickTimeout =
+            (int)(Spec121.ManualIdleReleaseSeconds / engine.Settings.TickDeltaTime);
+        var manualOrders = new ManualOrderSystem();
+        for (var i = 0; i < formerTickTimeout + engine.Settings.MediumInterval; i++)
+        {
+            world.Tick++;
+            if (world.Tick % engine.Settings.MediumInterval == 0)
+            {
+                manualOrders.Run(world);
+            }
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Tick, Is.GreaterThan(formerTickTimeout));
+            Assert.That(realtimeSeconds,
+                Is.LessThan(Spec121.ManualIdleReleaseSeconds));
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(npc.Mind.ManualControl, Is.True,
+                "Fast-forward/server tick speed consumed a real-time manual lease.");
+        });
     }
 
     [Test]
     public void ActiveOrderBlocksTheIdleTimeout()
     {
-        var engine = TestWorld.CreateEngine();
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
         var world = engine.World;
         var npc = Colonist(world);
         TakeControl(engine, npc);
@@ -740,7 +1107,7 @@ public sealed class ManualControlTests
 
         // Даже с «протухшим» окном активный приказ держит ручной режим:
         // таймер §121.7 стартует только ПОСЛЕ завершения приказа.
-        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks * 2;
+        realtimeSeconds += Spec121.ManualIdleReleaseSeconds * 2;
         engine.Step();
 
         Assert.That(npc.Mind.ManualControl, Is.True,
@@ -750,7 +1117,9 @@ public sealed class ManualControlTests
     [Test]
     public void OrderCompletionRestartsTheIdleWindow()
     {
-        var engine = TestWorld.CreateEngine();
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
         var world = engine.World;
         var npc = Colonist(world);
         TakeControl(engine, npc);
@@ -762,7 +1131,7 @@ public sealed class ManualControlTests
         engine.Step();
         // Окно «протухает» во время похода — завершение приказа обязано
         // перезапустить его, а не отпустить её в момент прибытия.
-        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks * 2;
+        realtimeSeconds += Spec121.ManualIdleReleaseSeconds * 2;
 
         var arrived = false;
         for (var i = 0; i < 600 && !arrived; i++)
@@ -776,10 +1145,9 @@ public sealed class ManualControlTests
         Assert.That(npc.Mind.ManualControl, Is.True,
             "Поход длиннее таймаута «истёк» в момент прибытия — окно обязано " +
             "перезапускаться завершением приказа.");
-        Assert.That(
-            world.Tick - npc.Mind.LastManualInputTick,
-            Is.LessThan(Spec121.ManualIdleReleaseTicks),
-            "Отметка окна не перезапустилась на завершении приказа.");
+        Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds,
+            Is.EqualTo(realtimeSeconds),
+            "Lease не продлился на завершении приказа.");
     }
 
     [Test]
@@ -885,10 +1253,9 @@ public sealed class ManualControlTests
             "Недошедший приказ обязан продолжиться после загрузки: план едет в " +
             "блобе целиком, складывать цель незачем.");
         Assert.That(reloaded.Plan.TargetJunctionId, Is.EqualTo(destination.Id));
-        Assert.That(reloaded.Mind.LastManualInputTick,
-            Is.EqualTo(npc.Mind.LastManualInputTick),
-            "§121.7 (v46): окно внимания игрока обязано пережить сохранение — " +
-            "иначе загрузка сдвигает таймаут возврата под ИИ.");
+        Assert.That(reloaded.Mind.ManualControlLeaseRenewedAtSeconds, Is.Null,
+            "Монотонный process-relative lease не должен попадать в сейв; " +
+            "после загрузки idle-проход начинает полное новое окно.");
     }
 
     [Test]

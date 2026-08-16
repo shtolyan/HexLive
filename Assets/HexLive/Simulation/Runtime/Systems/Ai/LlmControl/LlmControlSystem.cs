@@ -267,35 +267,36 @@ public sealed class LlmControlSystem : ISimulationSystem, IDisposable
             return;
         }
 
-        var eventWatermark = world.Events.HighestSeq;
         var primedManualMode = false;
         if (command is not SetManualControlCommand && !npc.Mind.ManualControl)
         {
-            ManualCommandExecutor.Apply(
+            var manualModeAdmission = ManualCommandExecutor.Apply(
                 world, new SetManualControlCommand(npc.Id, enabled: true));
             primedManualMode = true;
 
-            if (!npc.Mind.ManualControl)
+            if (!manualModeAdmission.Accepted || !npc.Mind.ManualControl)
             {
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "LlmControlRejected",
-                        $"Reason=ManualModeNotEnabled IssuedTick={issuedTick}");
+                        $"Reason=ManualModeNotEnabled " +
+                        $"AdmissionReason={manualModeAdmission.Reason} " +
+                        $"IssuedTick={issuedTick}");
                 }
 
                 return;
             }
         }
 
-        ManualCommandExecutor.Apply(world, command);
+        var admission = ManualCommandExecutor.Apply(world, command);
 
-        if (WasManualCommandRejected(world, npc.Id, eventWatermark))
+        if (!admission.Accepted)
         {
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "LlmControlRejected",
                     $"Reason=ManualCommandRejected Command={decision.CommandKind} " +
-                    $"IssuedTick={issuedTick}");
+                    $"AdmissionReason={admission.Reason} IssuedTick={issuedTick}");
             }
 
             return;
@@ -477,21 +478,6 @@ public sealed class LlmControlSystem : ISimulationSystem, IDisposable
         }
     }
 
-    private static bool WasManualCommandRejected(
-        WorldState world, EntityId npcId, long eventWatermark)
-    {
-        foreach (var simulationEvent in world.Events.Items)
-        {
-            if (simulationEvent.Seq > eventWatermark &&
-                simulationEvent.Type == "ManualOrderRejected" &&
-                simulationEvent.EntityId == npcId.Value)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }
 
 }

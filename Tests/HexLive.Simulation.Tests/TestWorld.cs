@@ -13,7 +13,8 @@ namespace HexLive.Simulation.Tests
 /// </summary>
 public static class TestWorld
 {
-    public static SimulationEngine CreateEngine(int seed = 12345)
+    public static SimulationEngine CreateEngine(
+        int seed = 12345, SimulationClock clock = null)
     {
         // §30.17: в тестах трасса включена всегда — половина поведенческих
         // проверок ассертит именно на события, а в игре тот же поток по
@@ -30,7 +31,7 @@ public static class TestWorld
             SlowInterval = definition.Simulation.SlowTickInterval,
         };
 
-        var clock = new SimulationClock();
+        clock ??= new SimulationClock();
         clock.Resume();
 
         var engine = new SimulationEngine(world, settings, clock);

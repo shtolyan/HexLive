@@ -29,6 +29,29 @@ internal static class ManualControlMath
     /// раздающих боевые цели.</summary>
     public static bool IsOrderedManual(NPCState npc) => IsManual(npc) && HasActiveOrder(npc);
 
+    /// <summary>§121.7: renew the inactivity lease against monotonic wall time.</summary>
+    public static void RenewInactivityLease(WorldState world, NPCState npc) =>
+        npc.Mind.ManualControlLeaseRenewedAtSeconds = world.RuntimeClock.RealtimeSeconds;
+
+    /// <summary>
+    /// §121.7: a loaded/manual NPC has no process-relative timestamp, so its
+    /// first idle pass starts a fresh lease instead of expiring immediately.
+    /// </summary>
+    public static bool InactivityLeaseExpired(WorldState world, NPCState npc)
+    {
+        var now = world.RuntimeClock.RealtimeSeconds;
+        if (npc.Mind.ManualControlLeaseRenewedAtSeconds is not { } renewedAt)
+        {
+            npc.Mind.ManualControlLeaseRenewedAtSeconds = now;
+            return false;
+        }
+
+        return now - renewedAt >= Spec121.ManualIdleReleaseSeconds;
+    }
+
+    public static void ClearInactivityLease(NPCState npc) =>
+        npc.Mind.ManualControlLeaseRenewedAtSeconds = null;
+
     /// <summary>Зверь по номеру. Мобы лежат списком, а не словарём.</summary>
     public static bool TryGetMob(WorldState world, int mobId, out Wildlife.MobState mob)
     {

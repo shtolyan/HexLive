@@ -25,7 +25,7 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
-        ReportInterruptedOrder(world, npc, cause);
+        TraceManualOrderInterruption(world, npc, cause, reason);
         Abort(world, npc, reason);
         // A hostile crossing the route or a scene taking ownership is not a
         // failed attempt at the route's target.  Retaining it made five valid
@@ -46,7 +46,7 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
-        ReportInterruptedOrder(world, npc, cause);
+        TraceManualOrderInterruption(world, npc, cause, reason);
         AbortKeepingCarriedPerson(world, npc, reason);
         return true;
     }
@@ -59,44 +59,28 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
-        ReportInterruptedOrder(world, npc, cause);
+        TraceManualOrderInterruption(world, npc, cause, reason);
         AbortForCombat(world, npc, reason);
         return true;
     }
 
-    // §121.5: снос ПРИНЯТОГО приказа обязан быть виден. Отказ в момент клика
-    // давно тостится (ManualOrderRejected), а приказ, убитый позже — боем,
-    // провалом пути, исчезнувшей целью, — гас в debug-трассе, и игрок читал
-    // «стоит и не идёт» как поломку. Телесные причины не тостятся: падение
-    // тела видно и так; PlayerCommand/ControlReleased — сам игрок.
-    private static void ReportInterruptedOrder(
-        WorldState world, NPCState npc, InterruptionCause cause)
+    /// <summary>
+    /// §121.5: once admission succeeded, a later loss of the order must name
+    /// its lifecycle cause. This is deliberately manual-only, preserving the
+    /// zero-diff diagnostic trace for worlds without manually controlled NPCs.
+    /// </summary>
+    private static void TraceManualOrderInterruption(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
-        if (!ManualControlMath.IsManual(npc) ||
-            // Rescue — только ручной §124.1 (гейт IsManual выше отсекает ИИ).
-            npc.Plan.Goal is not (GoalType.PlayerOrder or GoalType.PlayerInventory
-                or GoalType.Rescue) ||
-            (npc.Plan.Status != PlanStatus.Active &&
-             npc.Execution.Status != ExecutionStatus.InProgress))
-        {
-            return;
-        }
+        if (!SimTrace.Enabled || !ManualControlMath.IsManual(npc)) return;
 
-        switch (cause)
-        {
-            case InterruptionCause.PlayerCommand:
-            case InterruptionCause.ControlReleased:
-            case InterruptionCause.Death:
-            case InterruptionCause.BodyComa:
-            case InterruptionCause.Faint:
-            case InterruptionCause.Crying:
-            case InterruptionCause.Dying:
-            case InterruptionCause.PlayDead:
-            case InterruptionCause.LimbLost:
-                return;
-        }
+        var order = npc.Plan.Goal != GoalType.None
+            ? npc.Plan.Goal
+            : npc.Mind.CurrentGoal;
+        if (!NpcControlPolicy.IsPlayerGoal(order)) return;
 
-        Trace.Emit(world, npc.Id, "ManualOrderInterrupted", $"Cause={cause}");
+        Trace.Debug(world, npc.Id, "ManualOrderInterrupted",
+            $"Order={order} Status=Interrupted Cause={cause} Reason={reason}");
     }
 
     // §121.5: путь не-ручного персонажа обязан быть байт-в-байт прежним —

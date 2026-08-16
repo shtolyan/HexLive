@@ -42,6 +42,14 @@ public enum InterruptionCause
     HelpFriend,        // CombatHelpSystem — клич/защита подруги
     ScenePact,         // сговор §108, сцена выгона §115/§117
     SceneInitiator,    // Raid/Abuse/Expel — инициатор бросает дела
+
+    // ── ПОЛИТИКА УПРАВЛЕНИЯ: проходит всегда (append-only, дописано в
+    //    конец — группа определяется switch'ом ниже, а не ординалом) ──
+    // §121.6 r2: ручному персонажу досталась цель, которой ему иметь не
+    // положено (чужая система забыла проверить режим). Планировщик для
+    // ручной выключен и такую цель не починит, поэтому её снимает ручной
+    // проход — и обязан пройти, иначе колонистка встаёт столбом.
+    ManualPolicySweep,
 }
 
 public static class InterruptionCauses
@@ -70,6 +78,7 @@ public static class InterruptionCauses
             case InterruptionCause.Predation:
             case InterruptionCause.AbuseMark:
             case InterruptionCause.CorneredFight:
+            case InterruptionCause.ManualPolicySweep:
                 return true;
             default:
                 return false;

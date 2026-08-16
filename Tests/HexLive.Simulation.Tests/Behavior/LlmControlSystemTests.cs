@@ -38,7 +38,7 @@ public sealed class LlmControlSystemTests
         using var system = new LlmControlSystem();
 
         var eventsBefore = world.Events.HighestSeq;
-        var inputTickBefore = npc.Mind.LastManualInputTick;
+        var leaseBefore = npc.Mind.ManualControlLeaseRenewedAtSeconds;
 
         system.Run(world);
 
@@ -49,7 +49,8 @@ public sealed class LlmControlSystemTests
             Assert.That(npc.Mind.ManualControl, Is.False);
             Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
             Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.None));
-            Assert.That(npc.Mind.LastManualInputTick, Is.EqualTo(inputTickBefore));
+            Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds,
+                Is.EqualTo(leaseBefore));
             Assert.That(world.Events.HighestSeq, Is.EqualTo(eventsBefore));
         });
     }
@@ -92,7 +93,7 @@ public sealed class LlmControlSystemTests
             Assert.That(provider.Requests, Is.Empty);
             Assert.That(provider.Disposed, Is.True);
             Assert.That(npc.Mind.ManualControl, Is.False);
-            Assert.That(npc.Mind.LastManualInputTick, Is.Zero);
+            Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds, Is.Null);
         });
     }
 
@@ -121,7 +122,7 @@ public sealed class LlmControlSystemTests
         {
             Assert.That(npc.Mind.ManualControl, Is.True,
                 "Stop must acquire manual mode through SetManualControlCommand.");
-            Assert.That(npc.Mind.LastManualInputTick, Is.EqualTo(world.Tick));
+            Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds, Is.Not.Null);
             Assert.That(world.Events.Items.Any(e =>
                 e.EntityId == npc.Id.Value && e.Type == "ManualControlChanged"), Is.True);
             Assert.That(world.Events.Items.Any(e =>
@@ -255,7 +256,7 @@ public sealed class LlmControlSystemTests
         {
             Assert.That(provider.Requests, Has.Count.EqualTo(1));
             Assert.That(npc.Mind.ManualControl, Is.False);
-            Assert.That(npc.Mind.LastManualInputTick, Is.Zero);
+            Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds, Is.Null);
             Assert.That(world.Events.Items.Any(e =>
                 e.EntityId == npc.Id.Value && e.Type == "LlmControlDropped" &&
                 e.Message.Contains("Reason=StaleDecision") &&
@@ -334,7 +335,7 @@ public sealed class LlmControlSystemTests
             Assert.That(npc.Mind.ManualControl, Is.False);
             Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
             Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.None));
-            Assert.That(npc.Mind.LastManualInputTick, Is.Zero);
+            Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds, Is.Null);
             Assert.That(world.Events.Items.Any(e =>
                 e.Seq > eventsBefore && e.EntityId == npc.Id.Value &&
                 e.Type == "LlmControlRejected" &&
@@ -343,6 +344,40 @@ public sealed class LlmControlSystemTests
             Assert.That(world.Events.Items.Any(e =>
                 e.Seq > eventsBefore && e.EntityId == npc.Id.Value &&
                 e.Type.StartsWith("Manual", StringComparison.Ordinal)), Is.False);
+        });
+    }
+
+    [Test]
+    public void ManualAdmissionReasonIsPropagatedWithoutScanningTraceRing()
+    {
+        var (world, npc) = Arena(tick: 61);
+        var provider = new ControllableProvider();
+        using var system = SystemFor(
+            provider, new[] { npc.Id }, cooldownTicks: 64, timeoutTicks: 64, cap: 1);
+
+        system.Run(world);
+        provider.Complete(0, new LlmDecision(
+            LlmCommandKind.MoveTo,
+            targetPosition: new Float2(100f, 100f)));
+        system.Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Mind.ManualControl, Is.True,
+                "The control-mode command was admitted before MoveTo validation.");
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(world.Events.Items.Any(e =>
+                e.EntityId == npc.Id.Value &&
+                e.Type == "ManualCommandAdmission" &&
+                e.Message.Contains("Order=MoveTo") &&
+                e.Message.Contains("Status=Rejected") &&
+                e.Message.Contains("Reason=Unreachable")), Is.True);
+            Assert.That(world.Events.Items.Any(e =>
+                e.EntityId == npc.Id.Value &&
+                e.Type == "LlmControlRejected" &&
+                e.Message.Contains("Reason=ManualCommandRejected") &&
+                e.Message.Contains("AdmissionReason=Unreachable")), Is.True,
+                "The LLM adapter must consume the typed admission result, including reason.");
         });
     }
 

@@ -1976,13 +1976,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // его исполнение. Цель гасится общим путём ниже, а ManualOrderSystem
         // на следующем среднем проходе только подтвердит, что приказ доигран.
         //
-        // §121.7: завершение приказа перезапускает окно внимания ЗДЕСЬ ЖЕ —
+        // §121.7: завершение приказа продлевает lease внимания ЗДЕСЬ ЖЕ —
         // этот путь минует SweepFinishedOrder (цель уже None), и без штампа
         // поход длиннее таймаута «истекал» в момент прибытия: два тика спустя
         // её отпускало под ИИ.
         if (npc.Mind.CurrentGoal == GoalType.PlayerOrder)
         {
-            npc.Mind.LastManualInputTick = world.Tick;
+            ManualControlMath.RenewInactivityLease(world, npc);
         }
 
         npc.Mind.CurrentGoal = GoalType.None;

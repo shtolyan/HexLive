@@ -132,6 +132,43 @@ public static class ColonyQueries
 
         return false;
     }
+
+    // ⭐ §54.2 r2 (баг #168): сколько предметов с этим тегом ЕСТЬ В МИРЕ.
+    //
+    // Это сознательно НЕ восприятие. Запас рощи (§64.9 «пальма — это вода
+    // колонии») и «сначала подбери, что лежит» — утверждения про остров, а не
+    // про то, что видно с этого места, и мерить их перцепцией значило мерить
+    // не ту величину: стоя в свежей роще колонистка видела больше резерва и
+    // рубила, потом отходила и видела следующие пять. Замер по сейву
+    // (seed −28147312, tick 91585): пальм в мире НОЛЬ, пней 17, при этом на
+    // земле лежат 595 листьев и 128 палок.
+    //
+    // Кэш на тик: сканировать ~1000 объектов на каждую NPC каждый тик решений
+    // ни к чему, а состав мира внутри тика не меняется.
+    public static int WorldCountWithTag(WorldState world, string tag)
+    {
+        if (world.TagCensusTick != world.Tick)
+        {
+            world.TagCensus.Clear();
+            foreach (var obj in world.Entities.Objects.Values)
+            {
+                if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
+                {
+                    continue;
+                }
+
+                foreach (var objTag in def.Tags)
+                {
+                    world.TagCensus.TryGetValue(objTag, out var prior);
+                    world.TagCensus[objTag] = prior + 1;
+                }
+            }
+
+            world.TagCensusTick = world.Tick;
+        }
+
+        return world.TagCensus.TryGetValue(tag, out var count) ? count : 0;
+    }
 }
 
 }

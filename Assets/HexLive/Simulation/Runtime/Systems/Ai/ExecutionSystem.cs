@@ -385,7 +385,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     world, npc, definition, GetPlannedInteractionType(npc.Plan));
                 if (interaction is null)
                 {
-                    npc.Plan.Status = PlanStatus.Failed;
+                    // §54.2 r2 (#168): раньше здесь оставался только Failed — и
+                    // план строился к тому же объекту снова и снова. Пока
+                    // фолбэк хватал ЛЮБОЙ первый глагол, пустышек не бывало;
+                    // теперь бывают (пальма без «потрясти»), и цикл надо
+                    // закрыть тем же способом, что и все соседние отказы:
+                    // пометить объект, остудить цель и отпустить её.
+                    npc.Memory.Shun(worldObject.Id, world.Tick + AiBalance.ShunTicks);
+                    PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                        $"Nothing to do with {worldObject.DefinitionId} for {npc.Plan.Goal}");
+                    npc.Mind.CurrentGoal = GoalType.None;
                     if (SimTrace.Enabled)
                     {
                         Trace.Debug(world, npc.Id, "ExecFailed",
@@ -2598,12 +2608,36 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return true;
     }
 
-    private static InteractionDefinition? ResolveInteraction(
+    // internal ради теста §54.2 r2: правило «фолбэк не валит деревья» проверяется
+    // здесь напрямую — арена с подставленным планом молча проходила и на старом
+    // коде, потому что до этой развилки исполнитель не доходил.
+    internal static InteractionDefinition? ResolveInteraction(
         WorldState world, NPCState npc, ObjectDefinition definition, InteractionType? type)
     {
         if (type is null)
         {
-            return definition.Interactions.Count > 0 ? definition.Interactions[0] : null;
+            // ⭐ §54.2 r2 (баг #168): «план не назвал глагол» НЕ значит «делай с
+            // объектом что угодно». У пальмы первый и единственный глагол —
+            // chop.palm, то есть СВАЛИТЬ ЕЁ, а сюда приходит ветка добычи
+            // «подойти и потрясти» из ForagePlan, которая шага Interact не
+            // ставит вовсе. Замер (соак 120 000 тиков, сид 777): роща 17 -> 0,
+            // и КАЖДАЯ пальма с 41 267-го тика упала под целью GetWater — то
+            // есть колония вырубала свой источник воды, идя за водой. Ровно то,
+            // на что жалуется игрок: «рубят все деревья и лишают себя кокосов».
+            //
+            // Harvest — глагол разрушительный и необратимый (пальма, валун,
+            // юкка), и он обязан быть назван планом явно. Не нашлось другого —
+            // взаимодействие не состоится, и вызывающий разберётся как с
+            // пустышкой (пометит объект и возьмёт следующий).
+            foreach (var fallback in definition.Interactions)
+            {
+                if (fallback.Type != InteractionType.Harvest)
+                {
+                    return fallback;
+                }
+            }
+
+            return null;
         }
 
         InteractionDefinition first = null;

@@ -104,6 +104,7 @@
     "SimBalance.KnifeStoneCost": 1,
     "SimBalance.LogSplitDurationTicks": 120,
     "SimBalance.LogSplitYield": 4,
+    "SimBalance.LooseHarvestBacklog": 8,
     "SimBalance.MaxWounds": 36,
     "SimBalance.MeatCookedSpoilTicks": 20000,
     "SimBalance.MeatRawSpoilTicks": 12000,

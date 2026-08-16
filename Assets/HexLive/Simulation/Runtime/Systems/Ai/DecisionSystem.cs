@@ -1753,15 +1753,33 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // un-chopped crown OR loose leaves already on the ground block the leaf
         // motive here (chop-crown/gather-leaves take over); the wood/fuel motive
         // is already blocked by a reachable "Wood" (logs carry that tag).
+        // §54.2 r2 (#168): перцепция здесь мерила не ту величину. Отойдя от
+        // своей же кучи на пару минут, колонистка «не видела» ничего лежащего и
+        // валила следующую пальму — на сейве игрока это дало 595 листьев и 128
+        // палок на земле при НУЛЕ пальм и 17 пнях. Урожай, лежащий на острове,
+        // — факт острова: пока его больше порога, новое дерево не пилят.
+        var looseHarvestBacklog =
+            ColonyQueries.WorldCountWithTag(world, "PalmCrown") +
+            ColonyQueries.WorldCountWithTag(world, "PalmLeaf");
         var pendingLeafSource = HasReachableWithTag(npc, world, "PalmCrown") ||
-            HasReachableWithTag(npc, world, "PalmLeaf");
+            HasReachableWithTag(npc, world, "PalmLeaf") ||
+            looseHarvestBacklog >= SimBalance.LooseHarvestBacklog;
         // §64.9: a palm is the colony's WATER (coconuts), and felling is
         // permanent — building takes the grove's surplus, never its seed
         // stock. See SimBalance.PalmGroveReserve for the soak that killed a
         // colony by chopping the last seven palms for bed rails.
+        // §54.2 r2 (#168): резерв рощи считается ПО МИРУ, а не по восприятию.
+        // Перцепция делала его локальным: стоя в свежей роще колонистка видела
+        // больше резерва, рубила, отходила — и видела следующие пять. Смысл
+        // §64.9 («пальма — это вода колонии, последние не трогать») жил только
+        // в комментарии; на сейве игрока пальм не осталось вовсе.
         var groveHasSurplus =
-            CountReachableWithTag(npc, world, "Palm") > SimBalance.PalmGroveReserve;
-        var harvestTreeAvail = canChop &&
+            ColonyQueries.WorldCountWithTag(world, "Palm") > SimBalance.PalmGroveReserve;
+        var harvestTreeAvail = canChop && groveHasSurplus &&
+            // §54.2 r2: топливная ветка тоже под резервом. Раньше она была от
+            // него свободна совсем — и это ровно та дыра, через которую роща
+            // ушла в ноль: дрова горят каждую ночь, а пальма не отрастает.
+            // Дрова есть и без пальмы: валежник, брёвна, палки на земле.
             ((fuelLow && !HasReachableWithTag(npc, world, "Wood") &&
               PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HarvestTree)) ||
              // §64.9: a build's LOG bill deliberately does NOT fell a palm.
@@ -1773,7 +1791,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
              // logs come off the ground (GatherWood + bedLogPull) only; the
              // log stage itself is now avoided for FIRST beds — see
              // SpecDream.PremiumBedChance.
-             (!pendingLeafSource && groveHasSurplus &&
+             (!pendingLeafSource &&
               (CountInventory(npc, ContentIds.PalmLeaf) == 0 ||
                (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves) ||
                (bedDeficit && carriedLeaves < 3)) &&

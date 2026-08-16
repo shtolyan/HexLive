@@ -666,11 +666,21 @@ namespace HexLive.Simulation.Runtime
         // bed's log stage took all seven between day 16 and 18 — coconuts hit 0
         // on day 20 and the whole colony died of thirst on day 21, at Thermal
         // ±0.0 with GetWater burning 7.9% of every waking tick.
-        // Counted over what she can actually see, like every other build gate.
-        // The genuine no-wood-at-all fire emergency is exempt (freezing kills
-        // sooner than thirst, and that branch already demands a dead fire AND no
-        // reachable wood of any kind).
+        // §54.2 r2 (#168): считается ПО МИРУ, а не по восприятию, и распространён
+        // на топливную ветку. Прежняя мера («сколько пальм ВИЖУ») делала резерв
+        // локальным: в свежей роще видно больше резерва, срубила, отошла — и
+        // снова видно больше. Топливная ветка и вовсе была от резерва свободна.
+        // Замер по сейву игрока (seed −28147312, tick 91585): пальм в мире 0,
+        // пней 17 — ровно та смерть от жажды, которую этот резерв и заводили
+        // предотвращать.
         public static int PalmGroveReserve = 4;
+
+        // §54.2 r2 (#168): «сначала собери, что лежит». Пока на острове валяется
+        // столько крон+листьев, новое дерево не пилят. Мера общеостровная — в
+        // отличие от §80 ниже — потому что урожай пальмы это и есть след
+        // прошлой рубки: он лежит там, где рубили, и «не вижу» тут значит
+        // «отошла», а не «нету». На сейве игрока лежало 595 листьев.
+        public static int LooseHarvestBacklog = 8;
 
         // §80: радиус правила «сначала подбери с земли, потом добывай ещё».
         // Меряется и от самого NPC, и от стройки, ради которой он добывает.

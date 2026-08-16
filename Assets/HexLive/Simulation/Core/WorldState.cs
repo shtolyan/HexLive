@@ -111,6 +111,14 @@ public sealed class WorldState
     // serialized; a loaded world repopulates it on its first tick.
     public System.Collections.Generic.HashSet<Common.TileCoord> ShadedTiles { get; } = new();
 
+    // §54.2 r2 (#168): перепись тегов ВСЕХ объектов мира, посчитанная не чаще
+    // раза в тик (ColonyQueries.WorldCountWithTag). Запас рощи и «сначала
+    // подбери, что лежит» — утверждения про остров, а не про поле зрения.
+    // DERIVED — не сериализуется, пересчитывается при первом же вопросе.
+    public System.Collections.Generic.Dictionary<string, int> TagCensus { get; } = new();
+
+    public int TagCensusTick { get; set; } = -1;
+
     // Spec 43: sun horizontal direction (world XZ) and elevation in degrees,
     // exported so the rendered light matches the sim's shadow math exactly.
     public Common.Float2 SunDirection { get; set; }

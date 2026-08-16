@@ -39,6 +39,40 @@ internal static class HygieneMath
         return false;
     }
 
+    /// <summary>
+    /// §40.6 r14: с этого узла можно стоять на берегу — у него есть сухой
+    /// ходибельный тайл, соседствующий с водой. Раньше спрашивался ТОЛЬКО
+    /// <c>Tiles[0]</c>, и это отсекало как раз пограничные узлы, у которых
+    /// первым числится вода, — то есть ровно те, что стоят у самой кромки.
+    /// </summary>
+    private static bool StandsOnShore(WorldState world, Junction junction)
+    {
+        foreach (var tile in junction.Tiles)
+        {
+            if (IsShoreTile(world, tile))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>§40.6 r14: узел стоит на самой границе — ему принадлежит и вода.</summary>
+    private static bool TouchesWater(WorldState world, Junction junction)
+    {
+        foreach (var tile in junction.Tiles)
+        {
+            if (world.Tiles.Items.TryGetValue(tile, out var state) &&
+                state.Flags.HasFlag(TileFlags.Water))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static bool IsBathingTile(WorldState world, TileCoord tile)
     {
         if (world.Tiles.Items.TryGetValue(tile, out var here) &&
@@ -85,7 +119,7 @@ internal static class HygieneMath
             if (junction.Blocked || junction.Tiles.Count == 0 ||
                 occupied.Contains(junction.Id) ||
                 !SpatialQueries.IsJunctionFree(world, junction.Id) ||
-                !IsShoreTile(world, junction.Tiles[0]))
+                !StandsOnShore(world, junction))
             {
                 continue;
             }
@@ -97,7 +131,16 @@ internal static class HygieneMath
                 continue;
             }
 
-            InsertNearest(candidates, junction.Id, distance);
+            // ⭐ §40.6 r14 (#147): У САМОЙ ВОДЫ, а не «где-то в песке». Тайл
+            // берега — это целый гекс шириной 2.6 wu, и его узлы разбросаны по
+            // всей ширине: раньше годился любой, и стирка запросто игралась в
+            // метре от кромки. Узел, которому принадлежит и водяной тайл, стоит
+            // ровно на границе — его и предпочитаем, доплачивая за него не
+            // больше двух радиусов лишнего хода.
+            var effective = TouchesWater(world, junction)
+                ? distance
+                : distance + HexSpatialMath.HexRadius * 2f;
+            InsertNearest(candidates, junction.Id, effective);
         }
 
         foreach (var candidate in candidates)

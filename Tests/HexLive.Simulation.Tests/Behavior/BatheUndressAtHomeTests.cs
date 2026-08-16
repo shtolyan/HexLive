@@ -365,8 +365,12 @@ public sealed class BatheUndressAtHomeTests
     }
 
     [Test]
-    public void OneLaundryBeatCleansEveryDirtyPieceBeforeCleanRemainderIsDoffed()
+    public void EachDirtyPieceIsWashedRightAfterItIsTakenOff()
     {
+        // §40.6 r14 (#147 rework): «сняли первую шмотку, начали стирать её…
+        // постирали, положили на песок, потом следующую». Прошлая версия
+        // снимала весь ворох и стирала одним общим тактом — игрок вернул её на
+        // доработку именно за это.
         var world = SettledWorld(1104);
         var npc = world.Entities.Npcs.Values.First(candidate =>
             candidate.Faction == Faction.Colony &&
@@ -382,6 +386,7 @@ public sealed class BatheUndressAtHomeTests
             world.Tiles.Items.TryGetValue(tile, out var state) &&
             !state.Flags.HasFlag(TileFlags.Water));
         npc.Position = shore.WorldPosition;
+        npc.Needs.Hygiene = 1f; // сама чистая — купаться незачем
         npc.WornItems.Clear();
         var clean = new ItemInstance("underwear.bra_riot")
         {
@@ -419,11 +424,13 @@ public sealed class BatheUndressAtHomeTests
         npc.Movement.SetStatus(MovementStatus.Arrived);
 
         var execution = new ExecutionSystem();
-        for (var removed = 0; removed < 2; removed++)
+        for (var piece = 0; piece < 2; piece++)
         {
+            // Такт снятия.
             execution.Run(world);
-            Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Undress));
-            if (removed == 0)
+            Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Undress),
+                $"вещь {piece + 1}: сначала снимает");
+            if (piece == 0)
             {
                 world.Tick = npc.Execution.StartTick +
                     (npc.Execution.EndTick - npc.Execution.StartTick) / 2;
@@ -436,8 +443,26 @@ public sealed class BatheUndressAtHomeTests
                         "Personal-care не должен зависеть от несохраняемого hand-slot.");
                 });
             }
+
+            // Снятие завершилось — и ТУТ ЖЕ началась стирка этой самой вещи.
             world.Tick = npc.Execution.EndTick;
             execution.Run(world);
+            Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.WashClothes),
+                $"вещь {piece + 1}: сняла — стирает её же, а не копит ворох");
+            Assert.That(npc.Mind.RedressGarments, Has.Count.EqualTo(piece + 1),
+                $"вещь {piece + 1}: уже лежит на песке");
+            var washing = world.Entities.Objects[npc.Execution.TargetObject!.Value];
+            Assert.That(npc.Execution.TargetObject, Is.EqualTo(npc.Mind.RedressGarments[piece]),
+                "стирается ровно та вещь, которую только что сняли");
+
+            world.Tick = npc.Execution.EndTick;
+            execution.Run(world);
+            Assert.Multiple(() =>
+            {
+                Assert.That(washing.Dirtiness, Is.EqualTo(0f));
+                Assert.That(washing.Bloodiness, Is.EqualTo(0f));
+                Assert.That(washing.Wetness, Is.EqualTo(1f));
+            });
         }
 
         Assert.Multiple(() =>
@@ -445,34 +470,73 @@ public sealed class BatheUndressAtHomeTests
             Assert.That(npc.WornItems, Has.Count.EqualTo(1));
             Assert.That(npc.WornItems[0], Is.SameAs(clean),
                 "Чистая вещь должна оставаться надетой во время стирки.");
-            Assert.That(npc.Mind.RedressGarments, Has.Count.EqualTo(2));
-        });
-
-        execution.Run(world);
-        var washEnd = npc.Execution.EndTick;
-        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.WashClothes));
-        world.Tick = washEnd;
-        execution.Run(world);
-
-        var washed = npc.Mind.RedressGarments
-            .Select(id => world.Entities.Objects[id])
-            .ToArray();
-        Assert.Multiple(() =>
-        {
-            Assert.That(washed, Has.Length.EqualTo(2));
-            Assert.That(washed.All(item => item.Dirtiness == 0f && item.Bloodiness == 0f), Is.True);
-            Assert.That(washed.All(item => item.Wetness == 1f), Is.True);
-            Assert.That(npc.WornItems, Has.Count.EqualTo(1),
-                "Между стиркой и купанием ничего не должно надеваться обратно.");
             Assert.That(clean.Wetness, Is.EqualTo(0.17f),
                 "Чистый остаток не должен намокать от чужой стирки.");
             Assert.That(npc.Execution.HeldGarment, Is.Null);
-            Assert.That(npc.Mind.PersonalCarePhase, Is.EqualTo(PersonalCarePhase.Bathing));
         });
 
+        // Сама чистая — купания нет, она сразу идёт одеваться.
         execution.Run(world);
-        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Undress),
-            "После единой стирки надо снять чистый остаток перед входом в воду.");
+        Assert.That(npc.Mind.PersonalCarePhase, Is.EqualTo(PersonalCarePhase.Redress),
+            "грязна была только одежда — в воду лезть незачем");
+        Assert.That(
+            npc.Plan.Steps.Any(step => step.Type == PlanStepType.RedressAfterBathe),
+            Is.True, "постиранное надевается сразу");
+    }
+
+    [Test]
+    public void ADirtyBodyStillGoesIntoTheWaterAfterTheLaundry()
+    {
+        var world = SettledWorld(1104);
+        var npc = world.Entities.Npcs.Values.First(candidate =>
+            candidate.Faction == Faction.Colony &&
+            HygieneMath.FindReachableBathShore(world, candidate) is not null);
+        foreach (var candidate in world.Entities.Npcs.Values)
+        {
+            candidate.Plan.Status = PlanStatus.Completed;
+        }
+
+        var shore = HygieneMath.FindReachableBathShore(world, npc)!;
+        npc.CurrentJunction = shore.Id;
+        npc.Tile = shore.Tiles.First(tile =>
+            world.Tiles.Items.TryGetValue(tile, out var state) &&
+            !state.Flags.HasFlag(TileFlags.Water));
+        npc.Position = shore.WorldPosition;
+        npc.Needs.Hygiene = 0f; // грязна сама
+        npc.WornItems.Clear();
+        npc.WornItems.Add(new ItemInstance("underwear.thong_anarchy")
+        {
+            Dirtiness = 0.8f,
+            OwnerId = npc.Id.Value
+        });
+        npc.Mind.CurrentGoal = GoalType.Bathe;
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.LaundryBatch;
+        npc.Mind.PersonalCareBathShore = shore.Id;
+        npc.Mind.RedressShore = shore.Id;
+        npc.Mind.RedressGarments.Clear();
+        npc.Plan.Goal = GoalType.Bathe;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetJunctionId = shore.Id;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PrepareBathe,
+            TargetJunction = shore.Id,
+            TimeoutEndTick = shore.Id.Value
+        });
+        npc.Movement.IsMoving = false;
+        npc.Movement.SetStatus(MovementStatus.Arrived);
+
+        var execution = new ExecutionSystem();
+        execution.Run(world);              // снимает
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world);              // стирает
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world);              // достирала
+        execution.Run(world);              // развилка
+
+        Assert.That(npc.Mind.PersonalCarePhase, Is.EqualTo(PersonalCarePhase.Bathing),
+            "грязная сама — после стирки идёт купаться");
     }
 
     [Test]

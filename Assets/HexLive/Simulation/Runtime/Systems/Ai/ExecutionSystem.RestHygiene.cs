@@ -657,7 +657,30 @@ public sealed partial class ExecutionSystem
             npc.Execution.EndTick = 0;
             npc.Plan.TargetItemDefinitionId = null;
             EquipmentMath.Recalculate(world, npc);
+
+            // ⭐ §40.6 r14 (#147 rework): СНЯЛА — СТИРАЕТ ЭТУ ЖЕ ВЕЩЬ, сразу.
+            // Прошлая версия снимала весь ворох и стирала его одним общим
+            // проходом; игрок на это ответил: «нужно сначала показывать, что
+            // она стирает… подошли к краю воды, сняли первую шмотку, начали
+            // стирать её… постирали, положили на песок, потом следующую».
+            // Поэтому стирка теперь поштучная и с видимым статусом на каждой.
+            if (doffed != null && IsLaundry(doffed))
+            {
+                StartGarmentWash(world, npc, doffed);
+            }
+
             return;
+        }
+
+        // §40.6 r14: идёт стирка ОДНОЙ снятой вещи. Пока бьёт этот такт, статус
+        // персонажа — «стирает», и это ровно то, что игрок хотел видеть.
+        if (npc.Execution.Status == ExecutionStatus.InProgress &&
+            npc.Execution.CurrentInteraction == InteractionType.WashClothes)
+        {
+            if (!TickGarmentWash(world, npc))
+            {
+                return;
+            }
         }
 
         // §52.8: strip CLOTHES for the swim, never gear. A leg holster of tools
@@ -688,39 +711,56 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // #147: every dirty piece already exists as an authoritative world
-        // object in RedressGarments. One WashClothes animation cleans the
-        // whole batch in place; no item enters HeldGarment and nothing is put
-        // back on between pieces. An interrupt leaves phase+ids resumable.
+        // §40.6 r14 (#147 rework): стирка кончилась — грязного на ней больше
+        // нет. Дальше развилка, которую игрок и просил РАЗЛИЧАТЬ:
+        //
+        //   грязна ОНА САМА → складывает чистое на берегу, купается, одевается;
+        //   грязна была только одежда → сразу надевает постиранное и уходит.
+        //
+        // Прежняя версия купалась всегда, потому что стирка и купание были
+        // одной неразрывной сделкой.
         if (npc.Mind.PersonalCarePhase == PersonalCarePhase.LaundryBatch)
         {
-            var dirtyCount = CountDirtyRedressGarments(world, npc);
-            if (dirtyCount > 0 && npc.Execution.Status == ExecutionStatus.None)
+            var dirtyLeft = CountDirtyRedressGarments(world, npc);
+            if (dirtyLeft > 0 && npc.Execution.Status == ExecutionStatus.None)
             {
-                npc.Execution.Status = ExecutionStatus.InProgress;
-                npc.Execution.CurrentInteraction = InteractionType.WashClothes;
-                npc.Execution.StartTick = world.Tick;
-                npc.Execution.EndTick = world.Tick + SimBalance.WashClothesDurationTicks;
+                // Осталась грязная вещь, но не на ней (сняли раньше и не
+                // достирали — прерывание/загрузка). Достирываем поштучно.
+                foreach (var id in npc.Mind.RedressGarments)
+                {
+                    if (world.Entities.Objects.TryGetValue(id, out var pending) &&
+                        IsLaundry(pending))
+                    {
+                        StartGarmentWash(world, npc, pending);
+                        return;
+                    }
+                }
+            }
+
+            if (!WantsBodyBath(npc))
+            {
+                npc.Mind.PersonalCarePhase = PersonalCarePhase.Redress;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "LaundryOnly",
+                        $"Постирала {npc.Mind.RedressGarments.Count} вещей; " +
+                        $"сама чистая (гигиена={npc.Needs.Hygiene:F2}) — одевается без купания");
+                }
+
+                // Тот же путь одевания, что после купания: она уже стоит на том
+                // самом берегу, где лежит её постиранное, поэтому шаг движения
+                // отработает мгновенно. Куча пуста (нечего надевать) — обычное
+                // завершение сцены.
+                if (!TryBeginPostBatheRedress(world, npc, shore))
+                {
+                    FinishPersonalCare(world, npc, shore, GoalType.Bathe, "Bathed");
+                }
+
                 return;
             }
 
-            if (npc.Execution.Status == ExecutionStatus.InProgress &&
-                npc.Execution.CurrentInteraction == InteractionType.WashClothes)
-            {
-                WashRedressBatch(world, npc, completed: world.Tick >= npc.Execution.EndTick);
-                if (world.Tick < npc.Execution.EndTick) return;
-
-                dirtyCount = CountDirtyRedressGarments(world, npc);
-                Trace.Emit(world, npc.Id, "ClothesWashed",
-                    $"Batch={npc.Mind.RedressGarments.Count} RemainingDirty={dirtyCount}");
-                npc.Execution.Status = ExecutionStatus.None;
-                npc.Execution.CurrentInteraction = null;
-                npc.Execution.StartTick = 0;
-                npc.Execution.EndTick = 0;
-            }
-
-            // The clean remainder stays worn through the laundry beat. It is
-            // doffed only now, before entering the water, on subsequent ticks.
+            // Чистый остаток она носит весь черёд стирки; снимут его только
+            // теперь, перед водой, на следующих тиках.
             npc.Mind.PersonalCarePhase = PersonalCarePhase.Bathing;
             return;
         }
@@ -1035,18 +1075,78 @@ public sealed partial class ExecutionSystem
         return count;
     }
 
-    private static void WashRedressBatch(WorldState world, NPCState npc, bool completed)
+    /// <summary>§40.6 r14: на этой вещи есть что отстирывать.</summary>
+    private static bool IsLaundry(WorldObjectState garment) =>
+        MathUtil.Clamp01(garment.Dirtiness + garment.Bloodiness) > 0.001f;
+
+    /// <summary>
+    /// §40.6 r14 (#147): нужна ли ей самой вода. «Грязна только одежда» — не
+    /// повод раздеваться догола и лезть в море: игрок отдельно на этом
+    /// настоял. Порог тот же, по которому купание вообще становится нуждой.
+    /// </summary>
+    private static bool WantsBodyBath(NPCState npc) =>
+        1f - npc.Needs.Hygiene >=
+            SimBalance.BatheNeedThreshold * TraitMath.GroomingThresholdMult(npc);
+
+    /// <summary>§40.6 r14: начать такт стирки ОДНОЙ лежащей вещи.</summary>
+    private static void StartGarmentWash(
+        WorldState world, NPCState npc, WorldObjectState garment)
     {
+        npc.Execution.Status = ExecutionStatus.InProgress;
+        npc.Execution.CurrentInteraction = InteractionType.WashClothes;
+        npc.Execution.TargetObject = garment.Id;
+        npc.Execution.StartTick = world.Tick;
+        npc.Execution.EndTick = world.Tick + SimBalance.WashClothesDurationTicks;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "GarmentWashStarted",
+                $"Object={garment.Id.Value} Def={garment.DefinitionId} " +
+                $"Dirt={garment.Dirtiness:F2} Blood={garment.Bloodiness:F2}");
+        }
+    }
+
+    /// <summary>
+    /// §40.6 r14: один тик стирки одной вещи. true — такт закончен и вещь
+    /// осталась лежать на берегу чистой; false — ещё стирает.
+    /// </summary>
+    private static bool TickGarmentWash(WorldState world, NPCState npc)
+    {
+        var target = npc.Execution.TargetObject;
+        if (target is not { } id || !world.Entities.Objects.TryGetValue(id, out var garment))
+        {
+            // Вещь исчезла из-под рук (подобрали, смыло) — такт закрываем, но
+            // сцену не роняем: остальная стирка её не касается.
+            ClearWashBeat(npc);
+            return true;
+        }
+
+        var completed = world.Tick >= npc.Execution.EndTick;
         var remainingTicks = System.Math.Max(0, npc.Execution.EndTick - world.Tick);
         var retained = completed ? 0f : remainingTicks / (remainingTicks + 1f);
-        foreach (var id in npc.Mind.RedressGarments)
+        garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness * retained);
+        garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness * retained);
+        garment.Wetness = 1f;
+        if (!completed)
         {
-            if (!world.Entities.Objects.TryGetValue(id, out var garment)) continue;
-            if (MathUtil.Clamp01(garment.Dirtiness + garment.Bloodiness) <= 0.001f) continue;
-            garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness * retained);
-            garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness * retained);
-            garment.Wetness = 1f;
+            return false;
         }
+
+        // Тип события — константа: §63/TraceEmitLint запрещает собирать его из
+        // данных, иначе множество типов становится бесконечным.
+        Trace.Emit(world, npc.Id, "ClothesWashed",
+            $"Object={garment.Id.Value} Def={garment.DefinitionId} " +
+            $"Remaining={CountDirtyRedressGarments(world, npc)}");
+        ClearWashBeat(npc);
+        return true;
+    }
+
+    private static void ClearWashBeat(NPCState npc)
+    {
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
     }
 
     // §40.6 r2 (laundry-in-hand): the piece is washed IN THE HAND, never in

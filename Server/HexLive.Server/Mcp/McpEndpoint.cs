@@ -112,13 +112,50 @@ public static class McpEndpoint
             }
         });
 
-        // GET на тот же адрес — чтобы «а он вообще живой?» отвечало по-человечески,
-        // а не 405-й строкой из фреймворка.
-        app.MapGet("/mcp", (HttpContext context) => Results.Text(
-            "HexLive MCP endpoint.\n" +
-            "POST JSON-RPC 2.0 here with: Authorization: Bearer <токен из hexlive-mcp.txt>\n" +
-            $"Методы: initialize, ping, tools/list, tools/call. Инструментов: {McpTools.Catalog.Count}.\n",
-            "text/plain; charset=utf-8"));
+        // GET на том же адресе значит РАЗНОЕ для клиента и для человека, и
+        // спутать их нельзя. Клиент, просящий text/event-stream, открывает
+        // серверный канал уведомлений; у нас его нет, и спецификация требует
+        // ответить именно 405 — тогда клиент спокойно живёт без него. Ответить
+        // такому клиенту бодрым 200 с текстом значит сломать подключение
+        // приветствием. Человеку с браузером при этом по-прежнему отвечаем
+        // по-человечески.
+        app.MapGet("/mcp", (HttpContext context) =>
+        {
+            var accept = context.Request.Headers["Accept"].ToString();
+            if (accept.Contains("text/event-stream", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
+            }
+
+            return Results.Text(
+                "HexLive MCP endpoint.\n" +
+                "POST JSON-RPC 2.0 here with: Authorization: Bearer <токен из hexlive-mcp.txt>\n" +
+                $"Методы: initialize, ping, tools/list, tools/call. Инструментов: {McpTools.Catalog.Count}.\n",
+                "text/plain; charset=utf-8");
+        });
+
+        // Клиент закрывает сессию. Лизы этой сессии отпускаем сразу, не дожидаясь
+        // таймаута: агент попрощался явно, держать за ним колонисток незачем.
+        app.MapDelete("/mcp", (HttpContext context) =>
+        {
+            if (!Authorized(context, token))
+            {
+                return Results.Unauthorized();
+            }
+
+            var session = context.Request.Headers[SessionHeader].ToString();
+            if (!string.IsNullOrWhiteSpace(session))
+            {
+                foreach (var npcId in leases.OwnedBy(session))
+                {
+                    host.SubmitManualCommand(new HexLive.Simulation.Runtime.SetManualControlCommand(
+                        new HexLive.Simulation.Common.EntityId(npcId), false));
+                    leases.Release(npcId, session);
+                }
+            }
+
+            return Results.StatusCode(StatusCodes.Status204NoContent);
+        });
     }
 
     private static object? Handle(JsonElement request, McpTools tools, string owner,

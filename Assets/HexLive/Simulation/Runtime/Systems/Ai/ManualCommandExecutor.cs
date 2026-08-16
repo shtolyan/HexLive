@@ -240,9 +240,9 @@ internal static class ManualCommandExecutor
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
         npc.Mind.GoalLock = null;
-        // §121.7: любая принятая команда перезапускает окно внимания игрока
+        // §121.7: любая принятая команда продлевает lease внимания игрока
         // (сюда приходят только принятые — TryTakeOrder уже отработал).
-        npc.Mind.LastManualInputTick = world.Tick;
+        ManualControlMath.RenewInactivityLease(world, npc);
     }
 
     private static void ApplySetManual(
@@ -299,10 +299,11 @@ internal static class ManualCommandExecutor
         npc.Mind.ManualAttackNpcId = null;
         npc.Mind.ManualAttackMobId = null;
         npc.Mind.ManualControl = false;
+        ManualControlMath.ClearInactivityLease(npc);
         if (expired)
         {
             Trace.Emit(world, npc.Id, "ManualControlExpired",
-                $"IdleTicks={Spec121.ManualIdleReleaseTicks}");
+                $"IdleSeconds={Spec121.ManualIdleReleaseSeconds}");
         }
 
         if (SimTrace.Enabled)
@@ -490,8 +491,8 @@ internal static class ManualCommandExecutor
         var carried = carrier.CarriedNpcId;
         PlanInterruption.TryAbort(world, carrier, InterruptionCause.PlayerCommand, "Игрок положил переносимого человека");
         carrier.Mind.CurrentGoal = GoalType.None;
-        // §121.7: PutDown идёт мимо ClearForNewOrder — окно штампуется здесь.
-        carrier.Mind.LastManualInputTick = world.Tick;
+        // §121.7: PutDown идёт мимо ClearForNewOrder — lease продлевается здесь.
+        ManualControlMath.RenewInactivityLease(world, carrier);
         ClearAttackOrder(world, carrier);
         if (SimTrace.Enabled)
         {

@@ -443,14 +443,6 @@ public static class WorldSaveSerializer
         for (var i = 0; i < npcCount; i++)
         {
             var npc = ReadNpc(r, version);
-            // §121.7: в сейве до v46 отметки внимания не было — считаем, что
-            // игрок «только что» был тут, иначе загрузка мгновенно отпустила
-            // бы всех ручных по таймауту.
-            if (version < 46 && npc.Mind.ManualControl)
-            {
-                npc.Mind.LastManualInputTick = world.Tick;
-            }
-
             world.Entities.Npcs[npc.Id] = npc;
         }
 
@@ -1071,8 +1063,8 @@ public static class WorldSaveSerializer
         // режима в блобе — цель приказа едет своим ходом (план сериализуется
         // целиком), а сцепка PlayerAttack складывается в SaveGoal.
         w.Write(mind.ManualControl);
-        // §121.7 (v46): окно внимания игрока — без него загрузка обнуляла бы
-        // отметку и таймаут отпускал бы ручных мгновенно.
+        // §121.7 (v46 legacy): прежний потиковый штамп остаётся в блобе только
+        // ради бинарной совместимости. Реальный lease процесса не сохраняется.
         w.Write(mind.LastManualInputTick);
         w.Write(mind.WakeGraceUntilTick);
         w.Write(mind.AdrenalineUntilTick);
@@ -1590,8 +1582,8 @@ public static class WorldSaveSerializer
         mind.SadWalkUntilTick = version >= 26 ? r.ReadInt32() : 0;
         // §121: в старом сейве ручного режима не было — все под ИИ.
         mind.ManualControl = version >= 31 && r.ReadBoolean();
-        // §121.7: у старого сейва окно нормализуется после загрузки NPC —
-        // world.Tick здесь ещё недоступен.
+        // §121.7 (v46 legacy): читаем прежний потиковый штамп, сохраняя layout;
+        // действующий real-time lease начинается заново на первом idle-проходе.
         mind.LastManualInputTick = version >= 46 ? r.ReadInt32() : 0;
 
         mind.WakeGraceUntilTick = r.ReadInt32();

@@ -9,6 +9,12 @@ namespace HexLive.Simulation.Core
 
 public sealed class WorldState
 {
+    /// <summary>
+    /// Runtime-only monotonic clock. The engine replaces the default instance
+    /// with its clock; saves and snapshots deliberately do not carry it.
+    /// </summary>
+    internal SimulationClock RuntimeClock { get; set; } = new();
+
     public int Tick { get; set; }
 
     public float TickDeltaTime { get; set; }

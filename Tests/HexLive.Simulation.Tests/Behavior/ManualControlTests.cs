@@ -1011,12 +1011,15 @@ public sealed class ManualControlTests
     // ── 4c. §121.7: таймаут бездействия ──────────────────────────────────
 
     [Test]
-    public void IdleManualNpcReturnsToAiAfterTimeout()
+    public void SparseWorldTicksDoNotExtendTheRealtimeLease()
     {
-        var engine = TestWorld.CreateEngine();
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
         var world = engine.World;
         var npc = Colonist(world);
         TakeControl(engine, npc);
+        engine.Clock.SetSpeed(0.1f); // server slow-speed floor
         npc.Needs.Hunger = 0f;
         npc.Needs.Thirst = 0f;
 
@@ -1024,19 +1027,65 @@ public sealed class ManualControlTests
         // с player-visible событием (молчаливый возврат читается как поломка).
         // Шагов ровно на один Medium-проход: кольцо событий держит ~11 тиков,
         // и лишние шаги вытесняют ManualControlExpired до ассерта.
-        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks;
+        realtimeSeconds += Spec121.ManualIdleReleaseSeconds;
         Step(engine, 5);
 
-        Assert.That(npc.Mind.ManualControl, Is.False,
-            "§121.7: брошенная ручная обязана вернуться под ИИ по таймауту.");
-        Assert.That(HasTrace(world, npc.Id, "ManualControlExpired", ""), Is.True,
-            "Возврат по таймауту обязан быть виден игроку (ManualControlExpired).");
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Tick,
+                Is.LessThan(Spec121.ManualIdleReleaseSeconds / engine.Settings.TickDeltaTime),
+                "Precondition: the sparse-cadence case accidentally consumed the old tick budget.");
+            Assert.That(npc.Mind.ManualControl, Is.False,
+                "§121.7: sparse world ticks extended the real-time inactivity lease.");
+            Assert.That(HasTrace(world, npc.Id, "ManualControlExpired", ""), Is.True,
+                "Возврат по таймауту обязан быть виден игроку (ManualControlExpired).");
+        });
+    }
+
+    [Test]
+    public void FastForwardTicksDoNotPrematurelyExpireTheRealtimeLease()
+    {
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        engine.Clock.SetSpeed(200f); // server/operator fast-forward ceiling
+        realtimeSeconds = Spec121.ManualIdleReleaseSeconds - 0.001d;
+
+        // Drive the lease owner across more world ticks than the old 1200-tick
+        // timeout, without advancing wall time. Calling only the focused medium
+        // system keeps unrelated survival/combat behavior out of this clock test.
+        var formerTickTimeout =
+            (int)(Spec121.ManualIdleReleaseSeconds / engine.Settings.TickDeltaTime);
+        var manualOrders = new ManualOrderSystem();
+        for (var i = 0; i < formerTickTimeout + engine.Settings.MediumInterval; i++)
+        {
+            world.Tick++;
+            if (world.Tick % engine.Settings.MediumInterval == 0)
+            {
+                manualOrders.Run(world);
+            }
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Tick, Is.GreaterThan(formerTickTimeout));
+            Assert.That(realtimeSeconds,
+                Is.LessThan(Spec121.ManualIdleReleaseSeconds));
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(npc.Mind.ManualControl, Is.True,
+                "Fast-forward/server tick speed consumed a real-time manual lease.");
+        });
     }
 
     [Test]
     public void ActiveOrderBlocksTheIdleTimeout()
     {
-        var engine = TestWorld.CreateEngine();
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
         var world = engine.World;
         var npc = Colonist(world);
         TakeControl(engine, npc);
@@ -1048,7 +1097,7 @@ public sealed class ManualControlTests
 
         // Даже с «протухшим» окном активный приказ держит ручной режим:
         // таймер §121.7 стартует только ПОСЛЕ завершения приказа.
-        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks * 2;
+        realtimeSeconds += Spec121.ManualIdleReleaseSeconds * 2;
         engine.Step();
 
         Assert.That(npc.Mind.ManualControl, Is.True,
@@ -1058,7 +1107,9 @@ public sealed class ManualControlTests
     [Test]
     public void OrderCompletionRestartsTheIdleWindow()
     {
-        var engine = TestWorld.CreateEngine();
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
         var world = engine.World;
         var npc = Colonist(world);
         TakeControl(engine, npc);
@@ -1070,7 +1121,7 @@ public sealed class ManualControlTests
         engine.Step();
         // Окно «протухает» во время похода — завершение приказа обязано
         // перезапустить его, а не отпустить её в момент прибытия.
-        npc.Mind.LastManualInputTick = world.Tick - Spec121.ManualIdleReleaseTicks * 2;
+        realtimeSeconds += Spec121.ManualIdleReleaseSeconds * 2;
 
         var arrived = false;
         for (var i = 0; i < 600 && !arrived; i++)
@@ -1084,10 +1135,9 @@ public sealed class ManualControlTests
         Assert.That(npc.Mind.ManualControl, Is.True,
             "Поход длиннее таймаута «истёк» в момент прибытия — окно обязано " +
             "перезапускаться завершением приказа.");
-        Assert.That(
-            world.Tick - npc.Mind.LastManualInputTick,
-            Is.LessThan(Spec121.ManualIdleReleaseTicks),
-            "Отметка окна не перезапустилась на завершении приказа.");
+        Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds,
+            Is.EqualTo(realtimeSeconds),
+            "Lease не продлился на завершении приказа.");
     }
 
     [Test]
@@ -1193,10 +1243,9 @@ public sealed class ManualControlTests
             "Недошедший приказ обязан продолжиться после загрузки: план едет в " +
             "блобе целиком, складывать цель незачем.");
         Assert.That(reloaded.Plan.TargetJunctionId, Is.EqualTo(destination.Id));
-        Assert.That(reloaded.Mind.LastManualInputTick,
-            Is.EqualTo(npc.Mind.LastManualInputTick),
-            "§121.7 (v46): окно внимания игрока обязано пережить сохранение — " +
-            "иначе загрузка сдвигает таймаут возврата под ИИ.");
+        Assert.That(reloaded.Mind.ManualControlLeaseRenewedAtSeconds, Is.Null,
+            "Монотонный process-relative lease не должен попадать в сейв; " +
+            "после загрузки idle-проход начинает полное новое окно.");
     }
 
     [Test]

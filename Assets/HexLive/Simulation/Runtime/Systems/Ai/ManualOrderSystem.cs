@@ -49,15 +49,15 @@ public sealed class ManualOrderSystem : ISimulationSystem
                     break;
             }
 
-            // §121.7: приказ завершён (цель None, сцепки нет) и окно внимания
-            // игрока истекло — возврат под ИИ. Авто-цель §121.6 (Eat/Drink)
+            // §121.7: приказ завершён (цель None, сцепки нет) и реальный lease
+            // игрока истёк — возврат под ИИ. Авто-цель §121.6 (Eat/Drink)
             // держит CurrentGoal != None и потому отсрочивает релиз до своего
             // завершения; sweep выше в этом же проходе уже мог снять цель.
             if (npc.Mind.CurrentGoal == GoalType.None &&
                 npc.Mind.ManualAttackNpcId is null &&
                 npc.Mind.ManualAttackMobId is null &&
                 !ManualControlMath.HasActiveOrder(npc) &&
-                world.Tick - npc.Mind.LastManualInputTick >= Spec121.ManualIdleReleaseTicks)
+                ManualControlMath.InactivityLeaseExpired(world, npc))
             {
                 ManualCommandExecutor.ReleaseToAi(
                     world, npc, "Таймаут ручного управления", expired: true);
@@ -92,9 +92,9 @@ public sealed class ManualOrderSystem : ISimulationSystem
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Plan.Status = PlanStatus.None;
         npc.Plan.RunRequested = false;
-        // §121.7: завершение приказа перезапускает окно — поход длиной больше
+        // §121.7: завершение приказа продлевает lease — поход длиной больше
         // таймаута не должен «истечь» в момент прибытия.
-        npc.Mind.LastManualInputTick = world.Tick;
+        ManualControlMath.RenewInactivityLease(world, npc);
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerOrder Outcome={outcome}");
@@ -279,8 +279,8 @@ public sealed class ManualOrderSystem : ISimulationSystem
         ManualCommandExecutor.ClearAttackOrder(world, npc);
         npc.IsFighting = false;
         npc.Mind.CurrentGoal = GoalType.None;
-        // §121.7: конец сцепки = завершение приказа — окно перезапускается.
-        npc.Mind.LastManualInputTick = world.Tick;
+        // §121.7: конец сцепки = завершение приказа — lease продлевается.
+        ManualControlMath.RenewInactivityLease(world, npc);
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerAttack Outcome={reason}");

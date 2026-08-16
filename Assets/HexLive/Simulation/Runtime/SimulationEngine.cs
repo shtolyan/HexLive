@@ -13,6 +13,7 @@ public sealed class SimulationEngine
         World = world;
         Settings = settings;
         Clock = clock;
+        World.RuntimeClock = clock;
     }
 
     public WorldState World { get; }

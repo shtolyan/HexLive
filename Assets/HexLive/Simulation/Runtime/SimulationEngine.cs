@@ -30,6 +30,22 @@ public sealed class SimulationEngine
 
     public void Register(ISimulationSystem system) => _systems.Add(system);
 
+    /// <summary>
+    /// Applies one manual-control command through the authoritative validation
+    /// boundary and returns its immediate admission result. The caller owns
+    /// scheduling: Unity uses <see cref="Commands"/> on its main thread, while a
+    /// host must serialize this call with <see cref="Step"/> and snapshot reads.
+    /// </summary>
+    public ManualCommandAdmission ApplyManualCommand(ISimulationCommand command)
+    {
+        if (command is null)
+        {
+            throw new System.ArgumentNullException(nameof(command));
+        }
+
+        return ManualCommandExecutor.Apply(World, command);
+    }
+
     public void Step()
     {
         if (World.Completed)
@@ -43,7 +59,7 @@ public sealed class SimulationEngine
         // headless — цикл прогона), поэтому замка здесь нет.
         while (Commands.TryDequeue(out var command) && command is not null)
         {
-            ManualCommandExecutor.Apply(World, command);
+            ApplyManualCommand(command);
         }
 
         var isMedium = World.Tick % Settings.MediumInterval == 0;

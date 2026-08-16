@@ -135,6 +135,35 @@ public sealed class WorldHost : IDisposable
     public string? DrainLlmProviderFailureSummary() =>
         _llmProviderDiagnostics?.DrainSummary();
 
+    /// <summary>
+    /// Thread-safe ingress for an authenticated host-side controller. The
+    /// ordinary manual-command executor remains the sole validation boundary;
+    /// this method only serializes it with ticks and snapshot readers and makes
+    /// the typed accepted/rejected admission observable to the caller.
+    /// <para>
+    /// Ownership, authentication and lease policy deliberately do not live
+    /// here. A future MCP adapter must establish those before calling this seam.
+    /// </para>
+    /// </summary>
+    public ManualCommandAdmission SubmitManualCommand(ISimulationCommand command)
+    {
+        if (command is null)
+        {
+            throw new ArgumentNullException(nameof(command));
+        }
+
+        lock (_gate)
+        {
+            var admission = _engine.ApplyManualCommand(command);
+
+            // A command can mutate the world without advancing its tick. A
+            // snapshot already cached for that tick is therefore stale even
+            // though its cache key still matches.
+            _snapshotTick = -1;
+            return admission;
+        }
+    }
+
     public int Seed
     {
         get

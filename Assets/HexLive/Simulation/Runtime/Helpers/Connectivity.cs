@@ -252,6 +252,13 @@ internal static class Connectivity
         // НАПРАВЛЕННО: сползти на нижнюю полку можно, вернуться — нет. По
         // высотам граф компонент ацикличен, но замыкание считается BFS-ом и
         // само по себе устойчиво к любой форме.
+        //
+        // §40.18-C (#162): сюда же — ВЫХОД ИЗ ВОДЫ. Он тоже направленный (выйти
+        // можно, войти по нему нельзя) и тоже обязан быть проекцией правил
+        // пафйндера, иначе повторится ровно та беда, о которой предупреждает
+        // комментарий выше: граф обещает то, чего FindPath не строит, либо
+        // молчит о том, что FindPath умеет. Замыкание BFS-ом уже устойчиво к
+        // тому, что этот граф перестал быть ацикличным по высотам.
         world.FlatDescendClosure.Clear();
         var descendEdges = new System.Collections.Generic.Dictionary<int,
             System.Collections.Generic.HashSet<int>>();
@@ -269,13 +276,21 @@ internal static class Connectivity
                 var neighborId = junction.Neighbors[n];
                 if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
                     neighbor.Blocked ||
-                    world.SwimJunctions.Contains(neighborId) ||
-                    world.StraitJunctions.Contains(neighborId) ||
                     (world.ClimbSeams.Contains(junction.Id) &&
                      world.ClimbSeams.Contains(neighborId)) ||
-                    Navigation.HexPathfinder.StepDelta(world, junction, n, neighborId) >= 0 ||
                     !world.JunctionComponentsFlat.TryGetValue(neighborId, out var toComp) ||
                     toComp <= 0 || toComp == fromComp)
+                {
+                    continue;
+                }
+
+                // Спуск — но не в воду; либо выход из воды на сушу (§40.18-C).
+                var waterExit = Navigation.HexPathfinder.IsWaterExit(
+                    world, junction.Id, neighborId);
+                if (!waterExit &&
+                    (world.SwimJunctions.Contains(neighborId) ||
+                     world.StraitJunctions.Contains(neighborId) ||
+                     Navigation.HexPathfinder.StepDelta(world, junction, n, neighborId) >= 0))
                 {
                     continue;
                 }

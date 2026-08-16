@@ -118,6 +118,60 @@ public static class HexPathfinder
         return ResolveStepDelta(world, fromId, toId) != 0;
     }
 
+    /// <summary>
+    /// §40.18-C (баг #162): шаг «из воды на сушу». Выбраться на берег — не
+    /// прыжок, а карабканье, и оно доступно всем, пока человек в сознании.
+    /// <para>
+    /// Без этого исключения вода была ловушкой в одну сторону: замер по живому
+    /// сейву (seed −28147312) показал, что из ВСЕХ 1265 глубоких узлов и из 434
+    /// из 474 мелководных не существует ни одного маршрута на сушу с
+    /// <c>canJump=false</c> — берег везде на ступень выше. Раненая в ноги
+    /// колонистка, оказавшись в воде, теряла весь мир: планы падали один за
+    /// другим, и она умирала там, где стояла.
+    /// </para>
+    /// Правило направленное: ВОЙТИ в воду по этому исключению нельзя, только
+    /// выйти. «Из воды» — узел, у которого есть водяной тайл; «на сушу» — узел
+    /// без глубокой воды, у которого есть ходибельный сухой тайл (берег часто
+    /// смешанный, и требовать полностью сухой узел значило бы оставить ловушку).
+    /// </summary>
+    public static bool IsWaterExit(WorldState world, JunctionId fromId, JunctionId toId)
+    {
+        if (!world.Junctions.Items.TryGetValue(fromId, out var from) ||
+            !world.Junctions.Items.TryGetValue(toId, out var to))
+        {
+            return false;
+        }
+
+        var fromInWater = false;
+        foreach (var coord in from.Tiles)
+        {
+            if (world.Tiles.Items.TryGetValue(coord, out var tile) &&
+                tile.Flags.HasFlag(TileFlags.Water))
+            {
+                fromInWater = true;
+                break;
+            }
+        }
+
+        if (!fromInWater || world.SwimJunctions.Contains(toId) ||
+            world.StraitJunctions.Contains(toId))
+        {
+            return false;
+        }
+
+        foreach (var coord in to.Tiles)
+        {
+            if (world.Tiles.Items.TryGetValue(coord, out var tile) &&
+                tile.Flags.HasFlag(TileFlags.Walkable) &&
+                !tile.Flags.HasFlag(TileFlags.Water))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // Spec 24.3 (iteration 24): housemates are soft obstacles — avoid the
     // junctions they stand on; when that seals every route, fall back to
     // the direct path (never hard-stuck).
@@ -266,7 +320,9 @@ public static class HexPathfinder
                 // elevation step — but she can lower herself DOWN one («вверх
                 // нельзя, а спрыгнуть-то можно»). Water stays barred in both
                 // directions: a controlled slide ends on land, never in a dive.
-                if (!canJump && (stepDelta > 0 ||
+                // §40.18-C: и ровно одно исключение — ВЫХОД ИЗ ВОДЫ на сушу.
+                if (!canJump && !IsWaterExit(world, current, neighborId) &&
+                    (stepDelta > 0 ||
                     (stepDelta < 0 && (world.SwimJunctions.Contains(neighborId) ||
                                        world.StraitJunctions.Contains(neighborId)))))
                 {
@@ -580,7 +636,9 @@ public static class HexPathfinder
                 // §57.11: то же правило, что в FindPath — вниз можно, вверх и
                 // в воду нельзя. Обе выборки обязаны совпадать, иначе мультицель
                 // и путь разойдутся в достижимости.
-                if (!canJump && (stepDelta > 0 ||
+                // §40.18-C: из воды на сушу — всегда (см. IsWaterExit).
+                if (!canJump && !IsWaterExit(world, current, neighborId) &&
+                    (stepDelta > 0 ||
                     (stepDelta < 0 && (world.SwimJunctions.Contains(neighborId) ||
                                        world.StraitJunctions.Contains(neighborId))))) continue;
                 var next = score[current] + ClimbCost(

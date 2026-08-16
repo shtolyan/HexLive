@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="470" viewBox="0 0 900 470" font-family="Helvetica,Arial,sans-serif">
+<rect width="900" height="470" fill="#12161c"/>
+<text x="24" y="34" fill="#e8eef6" font-size="19" font-weight="bold">§40.18-C — из воды выбираются всегда (баг #162)</text>
+<text x="24" y="58" fill="#9fb0c4" font-size="13">Разрез берега. Берег в этом мире везде на ступень выше воды, поэтому «без прыжка вверх нельзя» запирало воду наглухо.</text>
+<rect x="60" y="300" width="380" height="120" fill="#173247" stroke="#2b5a7d"/>
+<rect x="60" y="286" width="380" height="16" fill="#1d4a68" opacity="0.85"/>
+<text x="250" y="370" fill="#7fc4ff" font-size="14" text-anchor="middle">глубокая вода — Water &amp; !Walkable</text>
+<rect x="440" y="240" width="400" height="180" fill="#243524" stroke="#3d5c3d"/>
+<text x="640" y="350" fill="#8fce8f" font-size="14" text-anchor="middle">берег — на один шаг высоты выше</text>
+<circle cx="330" cy="274" r="13" fill="#e6b9a0" stroke="#fff" stroke-width="1.4"/>
+<text x="330" y="252" fill="#e8eef6" font-size="12" text-anchor="middle">ноги повреждены — CanJump = false</text>
+<defs><marker id="ok" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#69d68a"/></marker><marker id="no" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#e06c6c"/></marker></defs>
+<path d="M355,266 C400,195 460,145 505,222" stroke="#69d68a" stroke-width="3.2" fill="none" marker-end="url(#ok)"/>
+<text x="430" y="135" fill="#69d68a" font-size="14" text-anchor="middle">выход из воды — ВСЕГДА</text>
+<text x="430" y="153" fill="#8fbf9c" font-size="12" text-anchor="middle">это карабканье, а не прыжок</text>
+<path d="M560,224 C520,250 470,254 420,270" stroke="#e06c6c" stroke-width="3.0" fill="none" stroke-dasharray="7 5" marker-end="url(#no)"/>
+<text x="700" y="194" fill="#e06c6c" font-size="13" text-anchor="middle">вход в воду по исключению — НЕТ</text>
+<text x="700" y="212" fill="#c99" font-size="12" text-anchor="middle">правило направленное</text>
+<rect x="60" y="378" width="780" height="66" rx="6" fill="#1a2029" stroke="#2c3644"/>
+<text x="78" y="402" fill="#ffd66b" font-size="13" font-weight="bold">Замер по живому сейву (seed −28147312, tick 91585), до правки:</text>
+<text x="78" y="422" fill="#cdd8e4" font-size="13">маршрут на сушу без прыжка отсутствовал у 1265 из 1265 глубоких узлов и у 434 из 474 мелководных;</text>
+<text x="78" y="440" fill="#cdd8e4" font-size="13">для прыгающей — 0 запертых. После правки: 0 и 0. Все три погибшие колонистки имели CanJump = false.</text>
+</svg>

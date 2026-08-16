@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 
 namespace HexLive.Simulation.Wire
@@ -83,7 +84,8 @@ public sealed class Handshake
 {
     // 2: §21.21B v15 added HopFromTile to the NPC record.
     // 3: §121 added IsManualControl to the NPC record.
-    public const int ProtocolVersion = 3;
+    // 4: simdata едет gzip'ом — 530 КБ текста против 35 КБ (15x).
+    public const int ProtocolVersion = 4;
 
     public int Seed { get; set; }
 
@@ -121,7 +123,7 @@ public sealed class Handshake
         w.Write(Paused);
         w.Write(EventSeq);
         w.Write(TopologyChecksum);
-        w.Write(SimData ?? string.Empty);
+        WriteSimData(w, SimData ?? string.Empty);
     }
 
     public static Handshake Read(BinaryReader r)
@@ -142,8 +144,75 @@ public sealed class Handshake
             Paused = r.ReadBoolean(),
             EventSeq = r.ReadInt64(),
             TopologyChecksum = r.ReadUInt32(),
-            SimData = r.ReadString(),
+            SimData = ReadSimData(r),
         };
+    }
+
+    /// <summary>
+    /// Экспортированные каталоги — самый крупный кусок, который вообще
+    /// пересекает провод: 530 КБ отформатированного JSON, и это ОДИН раз на
+    /// подключение против ~4.6 КБ/с потока. Он же и самый сжимаемый: имена
+    /// ручек повторяются тысячами, gzip даёт 35 КБ, пятнадцатикратно.
+    /// <para>
+    /// Жмётся здесь, а не «где-нибудь по дороге», по той же причине, по которой
+    /// весь провод живёт в сборке симуляции: тогда сжатие и разжатие — это
+    /// одно место и один формат, а не договорённость между сервером и клиентом,
+    /// которую можно разойтись.
+    /// </para>
+    /// </summary>
+    private static void WriteSimData(BinaryWriter w, string json)
+    {
+        var raw = Encoding.UTF8.GetBytes(json);
+        byte[] packed;
+        using (var packedStream = new MemoryStream())
+        {
+            using (var gzip = new GZipStream(packedStream, CompressionLevel.Optimal, true))
+            {
+                gzip.Write(raw, 0, raw.Length);
+            }
+
+            packed = packedStream.ToArray();
+        }
+
+        w.Write(raw.Length);
+        w.Write(packed.Length);
+        w.Write(packed);
+    }
+
+    private static string ReadSimData(BinaryReader r)
+    {
+        var rawLength = r.ReadInt32();
+        var packedLength = r.ReadInt32();
+
+        // Длина разжатого объявлена отправителем, поэтому ей нельзя верить на
+        // слово: без потолка «сервер» из одного кадра просит гигабайт памяти.
+        // 64 МБ — с большим запасом над реальными 530 КБ.
+        if (rawLength < 0 || rawLength > 64 * 1024 * 1024 || packedLength < 0 || packedLength > rawLength + 1024)
+        {
+            throw new InvalidDataException(
+                $"Handshake simdata block claims {rawLength} bytes packed into {packedLength} — not plausible.");
+        }
+
+        var packed = r.ReadBytes(packedLength);
+        var raw = new byte[rawLength];
+        using (var packedStream = new MemoryStream(packed))
+        using (var gzip = new GZipStream(packedStream, CompressionMode.Decompress))
+        {
+            var read = 0;
+            while (read < rawLength)
+            {
+                var got = gzip.Read(raw, read, rawLength - read);
+                if (got <= 0)
+                {
+                    throw new InvalidDataException(
+                        $"Handshake simdata ended after {read} of {rawLength} bytes.");
+                }
+
+                read += got;
+            }
+        }
+
+        return Encoding.UTF8.GetString(raw);
     }
 }
 

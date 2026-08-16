@@ -52,7 +52,21 @@ public static class SnapshotDeltaReader
             WorldSnapshotCodec.ReadHeaderRecord(reader, into);
         }
 
-        WorldSnapshotCodec.ReadTiles(r, into);
+        // Тайлы едут только когда изменились (§83.2 r13). Ни одного байта здесь
+        // не значит «набор тот же», а НЕ «тайлов нет» — зеркало держит своё.
+        if (r.ReadBoolean())
+        {
+            var length = r.ReadInt32();
+            if (length < 0 || length > 1_000_000)
+            {
+                throw new InvalidDataException($"Delta tile block of {length} bytes is not plausible.");
+            }
+
+            var bytes = r.ReadBytes(length);
+            using var tileStream = new MemoryStream(bytes);
+            using var tileReader = new BinaryReader(tileStream);
+            WorldSnapshotCodec.ReadTiles(tileReader, into);
+        }
 
         ApplySection(r, into.Objects, o => o.Id.Value,
             (reader, o) => WorldSnapshotCodec.ReadObjectRecord(reader, o));

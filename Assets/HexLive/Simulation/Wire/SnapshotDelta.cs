@@ -66,6 +66,7 @@ public sealed class SnapshotDeltaEncoder
     private readonly Dictionary<int, byte[]> _journals = new();
 
     private byte[] _header = Array.Empty<byte>();
+    private byte[] _tiles = Array.Empty<byte>();
     private int _deaths;
 
     private readonly MemoryStream _scratch = new();
@@ -94,6 +95,7 @@ public sealed class SnapshotDeltaEncoder
         _sharks.Clear();
         _journals.Clear();
         _header = Array.Empty<byte>();
+        _tiles = Array.Empty<byte>();
         _deaths = 0;
         BaselineTick = -1;
     }
@@ -148,10 +150,26 @@ public sealed class SnapshotDeltaEncoder
             _header = header;
         }
 
-        // Architectural floors are few, but their tile state is mutable. Send
-        // the complete runtime tile set so grass/indoor presentation changes on
-        // the exact construction tick and can also be cleared after a restore.
-        WorldSnapshotCodec.WriteTiles(snapshot, w);
+        // Architectural floors are few, but their tile state is mutable, so the
+        // wire carries the COMPLETE runtime tile set — that is what lets the
+        // grass vanish on the exact construction tick and lets a restore clear a
+        // flag the mirror still holds.
+        //
+        // Complete, but not every frame. It changes when the colony finishes a
+        // floor, i.e. once in several game hours, and it was riding four times a
+        // second: measured at 22% of what a delta cost after the NPC record was
+        // split (~260 B a frame). Same trick as the header above, and the same
+        // reason it is safe — the bytes come from the ordinary tile writer, so
+        // nothing here knows what a tile field is.
+        var tiles = Capture(sw => WorldSnapshotCodec.WriteTiles(snapshot, sw));
+        var tilesChanged = !Same(_tiles, tiles);
+        w.Write(tilesChanged);
+        if (tilesChanged)
+        {
+            w.Write(tiles.Length);
+            w.Write(tiles);
+            _tiles = tiles;
+        }
 
         WriteSection(w, snapshot.Objects, _objects,
             (o) => o.Id.Value, (sw, o) => WorldSnapshotCodec.WriteObjectRecord(sw, o));

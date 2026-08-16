@@ -138,7 +138,67 @@ public sealed class NpcFieldGroupDeltaGateTests
             "неизменившаяся колонистка не должна занимать ни байта");
     }
 
+    /// <summary>
+    /// §83.2 r13: набор runtime-тайлов меняется, когда достроен настил, — раз в
+    /// несколько игровых часов, — а ехал каждым кадром: 22% дельты после разреза
+    /// записи NPC. Теперь за флагом; неизменный набор стоит один байт.
+    /// </summary>
+    [Test]
+    public void UnchangedTilesCostOneByteAndAChangedSetStillArrives()
+    {
+        var snapshot = OneNpc();
+        var coord = new TileCoord(2, 3);
+        snapshot.Tiles.Add(new TileSnapshot { Coord = coord, Walkable = true, Elevation = 1, Indoor = true });
+
+        var encoder = new SnapshotDeltaEncoder();
+        var mirror = new WorldSnapshot();
+        mirror.Tiles.Add(new TileSnapshot { Coord = coord, Walkable = true, Elevation = 1 });
+        ApplyDelta(encoder.Encode(snapshot, false), mirror, -1);
+        Assert.That(mirror.Tiles[0].Indoor, Is.True, "первый кадр обязан привезти набор целиком");
+
+        snapshot.Tick++;
+        var quiet = encoder.Encode(snapshot, false);
+        Assert.That(TilesRide(quiet), Is.False, "неизменившийся набор тайлов не должен ехать вовсе");
+
+        // Применяем и его: цепочка дельт неразрывна, пропущенное звено ловится
+        // читателем — что он и сделал, когда этого вызова здесь не было.
+        ApplyDelta(quiet, mirror, mirror.Tick);
+        Assert.That(mirror.Tiles[0].Indoor, Is.True, "молчание про тайлы не должно гасить флаг зеркала");
+
+        snapshot.Tick++;
+        snapshot.Tiles[0].HasFloor = true;
+        var withFloor = encoder.Encode(snapshot, false);
+        Assert.That(TilesRide(withFloor), Is.True, "достроенный настил обязан доехать в тот же тик");
+
+        ApplyDelta(withFloor, mirror, mirror.Tick);
+        Assert.That(mirror.Tiles[0].HasFloor, Is.True);
+    }
+
     // ── вспомогательное ───────────────────────────────────────────────────
+
+    private static void ApplyDelta(byte[] bytes, WorldSnapshot mirror, int mirrorTick)
+    {
+        using var stream = new MemoryStream(bytes);
+        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        SnapshotDeltaReader.Apply(reader, mirror, mirrorTick);
+    }
+
+    /// <summary>Есть ли в кадре блок тайлов.</summary>
+    private static bool TilesRide(byte[] delta)
+    {
+        using var stream = new MemoryStream(delta);
+        using var r = new BinaryReader(stream, Encoding.UTF8);
+        r.ReadInt32();
+        r.ReadBoolean();
+        r.ReadInt32();
+        r.ReadInt32();
+        if (r.ReadBoolean())
+        {
+            r.ReadBytes(r.ReadInt32());
+        }
+
+        return r.ReadBoolean();
+    }
 
     private static WorldSnapshot OneNpc()
     {
@@ -177,8 +237,10 @@ public sealed class NpcFieldGroupDeltaGateTests
             r.ReadBytes(r.ReadInt32()); // header block
         }
 
-        var tiles = r.ReadUInt16();
-        r.ReadBytes(tiles * 13);
+        if (r.ReadBoolean())
+        {
+            r.ReadBytes(r.ReadInt32()); // tile block
+        }
 
         SkipSection(r); // objects
 

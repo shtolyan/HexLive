@@ -80,7 +80,9 @@ public static class WorldSnapshotCodec
     /// панели, и на сервере без --debug-details она молча пустовала.
     /// v27: §83.2 r12 — запись NPC разложена на группы полей и едет с маской
     /// групп. Дельта шлёт только изменившиеся; замер до/после — в §83.5.
-    public const int WireVersion = 27;
+    /// v28: §83.2 r13 — набор runtime-тайлов в дельте едет за флагом «изменился»,
+    /// а не каждым кадром. Ключевой кадр по-прежнему несёт его всегда.
+    public const int WireVersion = 28;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 

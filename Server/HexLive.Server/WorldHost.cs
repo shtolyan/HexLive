@@ -461,9 +461,21 @@ public sealed class WorldHost : IDisposable
 
     // ── clock commands ────────────────────────────────────────────────────
 
-    public void Pause() => _clock.Pause();
+    /// <summary>
+    /// Stopping the world is OPERATOR-ONLY, and there is deliberately no viewer
+    /// counterpart — unlike speed, which merely clamps.
+    /// <para>
+    /// Pause is the biggest lever on a shared world there is: it does not run
+    /// the colony wrong, it stops it, for everyone watching, until someone
+    /// notices. A viewer had it, and it worked — through the speed bar's button
+    /// AND, silently, through opening the in-game menu, which pauses before it
+    /// draws. §83.4 says a viewer is a watcher, not a participant; that has to
+    /// be true of the clock first of all.
+    /// </para>
+    /// </summary>
+    public void PauseAsOperator() => _clock.Pause();
 
-    public void Resume() => _clock.Resume();
+    public void ResumeAsOperator() => _clock.Resume();
 
     /// <summary>
     /// A VIEWER's speed request — clamped to 1x. A hosted world is shared and

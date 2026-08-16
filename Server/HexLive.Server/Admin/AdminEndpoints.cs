@@ -115,14 +115,14 @@ public static class AdminEndpoints
 
         app.MapPost("/admin/pause", (HttpContext context) => Guarded(context, sessions, () =>
         {
-            worlds.Host.Pause();
+            worlds.Host.PauseAsOperator();
             Console.WriteLine("[admin] world paused");
             return Redirect("/admin?notice=World paused.");
         }));
 
         app.MapPost("/admin/resume", (HttpContext context) => Guarded(context, sessions, () =>
         {
-            worlds.Host.Resume();
+            worlds.Host.ResumeAsOperator();
             Console.WriteLine("[admin] world resumed");
             return Redirect("/admin?notice=World resumed.");
         }));

@@ -185,13 +185,15 @@ public sealed class ViewerConnection
 
                 switch (kind)
                 {
+                    // Refused, not clamped: there is no "a little bit paused".
+                    // A client of the current build never sends these (the
+                    // button is greyed on a remote link, and the in-game menu no
+                    // longer pauses somebody else's colony to draw itself), so a
+                    // line here means an old build or a hand-rolled client —
+                    // which is exactly the case the server must not trust.
                     case CommandKind.Pause:
-                        _host.Pause();
-                        Console.WriteLine("[viewer] paused the world");
-                        break;
                     case CommandKind.Resume:
-                        _host.Resume();
-                        Console.WriteLine("[viewer] resumed the world");
+                        Console.WriteLine($"[viewer] refused clock command {kind} — operator-only");
                         break;
                     case CommandKind.SetSpeed:
                         _host.SetSpeed(value);

@@ -122,31 +122,41 @@ public sealed class BalanceKnobHygieneGateTests
         foreach (var file in Directory.EnumerateFiles(configDir, "*BalanceConfig.cs")
                      .OrderBy(p => p, StringComparer.Ordinal))
         {
-            var text = File.ReadAllText(file);
-            foreach (Match m in ConfigField.Matches(text))
+            foreach (var field in ConfigFields(file))
             {
-                var pascal = char.ToUpperInvariant(m.Groups[1].Value[0]) + m.Groups[1].Value.Substring(1);
-                if (!TryNumber(m.Groups[2].Value, out var configValue) ||
-                    !statics.TryGetValue(pascal, out var declared))
+                if (!TryNumber(field.ValueText, out var configValue) ||
+                    !statics.TryGetValue(field.StaticName, out var all))
+                {
+                    continue;
+                }
+
+                // ⭐ Сверять надо с ТЕМ статиком, который этот конфиг зеркалит,
+                // а не с любым однофамильцем. Пока `Enabled` был один, разницы
+                // не было; §32.15 принёс второй — и чужой `false` немедленно
+                // «починил» чужое расхождение, погасив запись в ратчете. Гейт,
+                // который молчит от появления однофамильца, не сторожит ничего,
+                // поэтому владелец берётся из [MirrorTarget]/[MirrorField] —
+                // ровно как в соседнем EveryBalanceConfigFieldResolvesToExactlyOne.
+                var declared = all.Where(d => field.AllowedTargets.Contains(d.Owner)).ToList();
+                if (declared.Count == 0)
                 {
                     continue;
                 }
 
                 compared++;
-                // Сошлось хотя бы одно объявление — этот конфиг и зеркалит его.
                 if (declared.Any(d => Math.Abs(d.Value - configValue) <= 1e-4))
                 {
                     continue;
                 }
 
-                if (KnownDefaultDrift.ContainsKey(pascal))
+                if (KnownDefaultDrift.ContainsKey(field.StaticName))
                 {
-                    staleKnown.Remove(pascal);
+                    staleKnown.Remove(field.StaticName);
                     continue;
                 }
 
                 mismatches.Add(string.Format(CultureInfo.InvariantCulture,
-                    "{0} = {1} против {2} в {3}", pascal,
+                    "{0} = {1} против {2} в {3}", field.StaticName,
                     string.Join("/", declared.Select(d => d.Owner + " " + d.Value)),
                     configValue, Path.GetFileName(file)));
             }
@@ -290,6 +300,67 @@ public sealed class BalanceKnobHygieneGateTests
     /// <c>Enabled</c> живёт сразу в нескольких Spec-классах, а конфиг знает
     /// только camelCase — по одному имени класс не восстановить.
     /// </summary>
+    /// <summary>
+    /// Поле balance-конфига вместе с тем, КУДА оно зеркалится: имя статика и
+    /// допустимые владельцы. Правило одно на весь файл — [MirrorIgnore] мимо,
+    /// явный [MirrorField(typeof(X), "Name")] сильнее, иначе PascalCase имени
+    /// поля в любом из [MirrorTarget] класса. Два теста читают одно и то же:
+    /// разъехавшись, они начали бы сторожить разные вещи под общим именем.
+    /// </summary>
+    private readonly struct ConfigFieldTarget
+    {
+        public ConfigFieldTarget(string fieldName, string staticName, string valueText,
+            HashSet<string> allowedTargets)
+        {
+            FieldName = fieldName;
+            StaticName = staticName;
+            ValueText = valueText;
+            AllowedTargets = allowedTargets;
+        }
+
+        public string FieldName { get; }
+
+        public string StaticName { get; }
+
+        public string ValueText { get; }
+
+        public HashSet<string> AllowedTargets { get; }
+    }
+
+    private static List<ConfigFieldTarget> ConfigFields(string file)
+    {
+        var text = File.ReadAllText(file);
+        var targets = Regex.Matches(text, @"\[MirrorTarget\(typeof\((\w+)\)\)\]")
+            .Select(m => m.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var fields = new List<ConfigFieldTarget>();
+        foreach (Match field in ConfigField.Matches(text))
+        {
+            var previousFieldEnd = text.LastIndexOf(';', field.Index);
+            var attributesStart = previousFieldEnd < 0 ? 0 : previousFieldEnd + 1;
+            var attributes = text.Substring(attributesStart, field.Index - attributesStart);
+            if (attributes.Contains("[MirrorIgnore]", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var fieldName = field.Groups[1].Value;
+            var explicitMap = Regex.Match(attributes,
+                @"\[MirrorField\(typeof\((\w+)\),\s*""(\w+)""\)\]");
+            var staticName = explicitMap.Success
+                ? explicitMap.Groups[2].Value
+                : char.ToUpperInvariant(fieldName[0]) + fieldName.Substring(1);
+            var allowed = explicitMap.Success
+                ? new HashSet<string>(new[] { explicitMap.Groups[1].Value }, StringComparer.Ordinal)
+                : targets;
+
+            fields.Add(new ConfigFieldTarget(fieldName, staticName, field.Groups[2].Value, allowed));
+        }
+
+        return fields;
+    }
+
     private static Dictionary<string, List<Declared>> StaticInitializers()
     {
         var found = new Dictionary<string, List<Declared>>(StringComparer.Ordinal);

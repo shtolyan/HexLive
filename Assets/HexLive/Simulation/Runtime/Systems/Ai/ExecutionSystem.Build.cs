@@ -354,7 +354,9 @@ public sealed partial class ExecutionSystem
             project.Completed = true;
             if (world.Tiles.Items.TryGetValue(project.Tile, out var hutTile))
             {
-                hutTile.Flags |= TileFlags.Indoor;
+                // §35.4 r2: достроенная хижина — это и санктуарий, и настоящая
+                // крыша. Второй флаг несёт только солнце и дождь.
+                hutTile.Flags |= TileFlags.Indoor | TileFlags.Roofed;
                 if (hutTile.Junctions.Count > 1)
                 {
                     WorldObjectMutations.SpawnObject(world, ContentIds.BedBasic,

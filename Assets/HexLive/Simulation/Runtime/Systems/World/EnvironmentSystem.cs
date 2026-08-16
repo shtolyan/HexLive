@@ -128,9 +128,12 @@ public sealed class EnvironmentSystem : ISimulationSystem
         foreach (var pair in world.Tiles.Items)
         {
             var tile = pair.Value;
-            if (tile.Flags.HasFlag(TileFlags.Indoor))
+            if (tile.Flags.HasFlag(TileFlags.Roofed))
             {
-                // Roofed: always out of the sun, and the walls block others.
+                // §35.4 r2: именно КРЫША, а не Indoor. Санктуарные тайлы (двор
+                // колонии, стоянка чужака) не несут ни перекрытия, ни стен в
+                // кадре — вешать на них вечную тень значило врать и про них, и
+                // про их соседей.
                 world.ShadedTiles.Add(pair.Key);
                 _shadowExtra.TryGetValue(pair.Key, out var prior);
                 _shadowExtra[pair.Key] = System.Math.Max(prior, CanopyVirtualSteps);

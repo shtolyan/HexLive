@@ -912,13 +912,10 @@ public static class WorldSnapshotExporter
 
         // Spec 35.4: per-NPC effective UV — same formula as TemperatureSystem
         // (indoor/water block it entirely, shade cuts the index to 20%).
-        var uvIndoor = world.Tiles.Items.TryGetValue(npc.Tile, out var uvTile) &&
-            uvTile.Flags.HasFlag(TileFlags.Indoor);
-        var uvWater = uvTile is not null && uvTile.Flags.HasFlag(TileFlags.Water);
+        // §35.4 r2 (#167): ровно та же функция, что копит загар — панель обязана
+        // показывать то, что происходит, а не вторую копию формулы.
         npcSnapshot.IsShaded = Runtime.TemperatureSystem.IsShaded(world, npc.Tile);
-        npcSnapshot.EffectiveUv = uvIndoor || uvWater
-            ? 0f
-            : world.Environment.UvIndex * (npcSnapshot.IsShaded ? 0.2f : 1f);
+        npcSnapshot.EffectiveUv = Runtime.TemperatureSystem.EffectiveUv(world, npc.Tile);
 
         var stackCounts = new Dictionary<string, int>();
         var stackOrder = new List<string>();

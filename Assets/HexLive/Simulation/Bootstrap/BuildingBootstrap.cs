@@ -207,7 +207,7 @@ public static class BuildingBootstrap
         foreach (var footprintTile in FootprintTiles(hut))
         {
             if (world.Tiles.Items.TryGetValue(footprintTile, out var footprint))
-                footprint.Flags |= TileFlags.HasFloor | TileFlags.Indoor;
+                footprint.Flags |= TileFlags.HasFloor | TileFlags.Indoor | TileFlags.Roofed;
         }
 
         // A committed player plan owns its own geometry, so it gets its own

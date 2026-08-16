@@ -219,9 +219,13 @@ public sealed class TemperatureSystem : ISimulationSystem
             }
 
             // Spec 35.4: sun exposure and sunburn on uncovered parts.
-            var effectiveUv = isIndoor || isInWater
-                ? 0f
-                : world.Environment.UvIndex * (isShaded ? 0.2f : 1f);
+            // §35.4 r2 (#167): солнце перекрывает КРЫША, а не флаг Indoor. Indoor
+            // у нас значит «санктуарий» (§72.12) и стоит на стартовом дворе
+            // колонии и на стоянке чужака — там нет никакого перекрытия, и
+            // девушка, спящая на кровати под открытым небом, ловила ровный ноль
+            // ультрафиолета. Тепловой бонус дома остаётся на Indoor: это про
+            // стены и очаг, а не про тень.
+            var effectiveUv = EffectiveUv(world, npc.Tile);
             var uncovered = CollectUncoveredParts(world, npc);
             if (effectiveUv > 0.5f && uncovered.Count > 0)
             {
@@ -447,6 +451,25 @@ public sealed class TemperatureSystem : ISimulationSystem
         // every medium tick (terrain silhouettes + canopy + hut walls), so
         // shade is directional now: long at dawn/dusk, tight at noon.
         return world.ShadedTiles.Contains(tile);
+    }
+
+    /// <summary>
+    /// §35.4 r2 (#167): сколько солнца достаёт до кожи на этом тайле. Одна
+    /// формула на всех — тик загара и панель персонажа читают её же. Раньше это
+    /// были две копии выражения в разных файлах, и они уже разъезжались: сначала
+    /// по флагу (Indoor против крыши), а разъехаться могли и по порядку
+    /// умножений, что в этом мире тоже поведение.
+    /// </summary>
+    internal static float EffectiveUv(WorldState world, TileCoord tile)
+    {
+        world.Tiles.Items.TryGetValue(tile, out var state);
+        // Крыша, а не санктуарий: Indoor стоит и на дворе колонии, и на стоянке
+        // чужака — там открытое небо.
+        var roofed = state is not null && state.Flags.HasFlag(TileFlags.Roofed);
+        var water = state is not null && state.Flags.HasFlag(TileFlags.Water);
+        return roofed || water
+            ? 0f
+            : world.Environment.UvIndex * (IsShaded(world, tile) ? 0.2f : 1f);
     }
 
     private static readonly System.Collections.Generic.List<BodyPart> _uncoveredScratch = new();

@@ -101,7 +101,11 @@ public static class WorldSaveSerializer
     // сейвы 46 и старше грузятся как раньше (в них пластырей просто нет).
     // v48 (§40.6 r13): persistent phase и настоящий берег отличают общую
     // стирку, купание и финальное переодевание одной personal-care транзакции.
-    public const int BlobVersion = 48;
+    // v49 (§35.4 r2, #167): у тайла появился флаг Roofed. Indoor остался
+    // санктуарием — им размечены двор колонии и стоянка чужака, где крыши нет,
+    // — а солнце и тень теперь смотрят только на перекрытие. Старый блоб
+    // читается «крыша там, где есть настил».
+    public const int BlobVersion = 49;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -418,6 +422,16 @@ public static class WorldSaveSerializer
             if (!world.Tiles.Items.TryGetValue(coord, out var tile))
             {
                 throw new InvalidDataException($"Save references missing tile {coord}.");
+            }
+
+            // §35.4 r2 (v49): у крыши появился собственный флаг. В старом сейве
+            // его нет, а достроенный дом узнаётся по настилу: HasFloor ставится
+            // ровно там, где легло перекрытие. Санктуарные тайлы без постройки
+            // (двор колонии, стоянка чужака) настила не имеют и крышу не
+            // получают — ради этого различия всё и затевалось.
+            if (version < 49 && flags.HasFlag(TileFlags.HasFloor))
+            {
+                flags |= TileFlags.Roofed;
             }
 
             tile.Flags = flags;

@@ -499,7 +499,9 @@ public sealed class BatheUndressAtHomeTests
             Assert.That(reloaded.Mind.RedressShore, Is.EqualTo(pileShore));
             Assert.That(reloaded.Mind.PersonalCareBathShore, Is.EqualTo(bathShore));
             Assert.That(reloaded.Mind.PersonalCarePhase, Is.EqualTo(PersonalCarePhase.LaundryBatch));
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(48));
+            // Пин версии блоба: он поднимается сознательно и только вместе с
+            // читателем старого формата. 48 → 49 в §35.4 r2 (флаг крыши, #167).
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(49));
         });
     }
 

@@ -92,7 +92,13 @@ public enum TileFlags
     Indoor = 1 << 2,
     Water = 1 << 3, // spec 35.1: walkable shallows — river tiles
     HasFloor = 1 << 4, // spec 35.3: a built floor+roof piece
-    Swimmable = 1 << 5 // spec 40.18: deep water an NPC can swim (4x cost, shark risk)
+    Swimmable = 1 << 5, // spec 40.18: deep water an NPC can swim (4x cost, shark risk)
+    // §35.4 r2: КРЫША, а не «дом». Indoor у нас носит второе, более широкое
+    // значение — санктуарий (§72.12): им размечены и стартовый двор колонии, и
+    // стоянка чужака, где никакой крыши нет и не рисуется. Солнце про это
+    // ничего не знает: оно перекрывается ровно там, где над головой есть
+    // перекрытие. Флаг ставится вместе с достройкой дома (см. CompleteHut).
+    Roofed = 1 << 6
 }
 
 }

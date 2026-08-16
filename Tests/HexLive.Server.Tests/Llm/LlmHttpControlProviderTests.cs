@@ -247,6 +247,32 @@ public sealed class LlmHttpControlProviderTests
         });
     }
 
+    [Test]
+    public void ResponseAtMaximumSize_IsAccepted()
+    {
+        const string prefix =
+            "{\"contractVersion\":1,\"commandKind\":\"None\",\"reason\":\"";
+        const string suffix = "\"}";
+        var reasonLength = LlmHttpControlProvider.MaxResponseBytes -
+            Encoding.UTF8.GetByteCount(prefix + suffix);
+        var body = prefix + new string('x', reasonLength) + suffix;
+        using var handler = new RecordingHandler(_ => JsonResponse(body));
+        using var http = new HttpClient(handler);
+        using var provider = new LlmHttpControlProvider(Options(), http);
+
+        Assert.That(Encoding.UTF8.GetByteCount(body),
+            Is.EqualTo(LlmHttpControlProvider.MaxResponseBytes));
+        Assert.That(provider.TryRequest(Request()), Is.True);
+        var result = WaitForResult(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Completed));
+            Assert.That(result.Decision, Is.Not.Null);
+            Assert.That(result.Decision!.Reason, Has.Length.EqualTo(reasonLength));
+        });
+    }
+
     [TestCase(LlmProviderFailureCategory.Timeout)]
     [TestCase(LlmProviderFailureCategory.Transport)]
     [TestCase(LlmProviderFailureCategory.HttpStatus)]

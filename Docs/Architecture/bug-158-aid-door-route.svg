@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Баг #158 — интерполяция помощи через дверной портал</title>
+  <desc id="desc">Реальные junction координаты хижины seed -28147312. Прямая хорда пересекает стену; восстановленный маршрут проходит через portal j1221.</desc>
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+  <rect width="960" height="720" fill="#10151c"/>
+  <text x="42" y="48" fill="#f3f4f6" font-family="system-ui,sans-serif" font-size="24" font-weight="700">#158 · помощь не срезает стену между snapshot-позами</text>
+  <text x="42" y="76" fill="#9ca3af" font-family="system-ui,sans-serif" font-size="14">seed=-28147312 · hut=(0,5), yaw=300° · сетка 0.375 wu · barrier radius 0.1875 wu</text>
+
+  <!-- World X/Z coordinates are kept verbatim; only this display transform scales them. -->
+  <g transform="translate(-390 1680) scale(180 -120)">
+    <polygon points="5.196,10.5 6.495,9.75 7.794,10.5 7.794,12 6.495,12.75 5.196,12"
+             fill="#334155" fill-opacity="0.32" stroke="#64748b" stroke-width="0.018"/>
+
+    <!-- Forbidden old presentation chord: from j16076 to j16125, through the north wall. -->
+    <line x1="6.495" y1="11.25" x2="7.145" y2="13.5"
+          stroke="#f59e0b" stroke-width="0.035" stroke-dasharray="0.09 0.06"
+          marker-end="url(#arrow-orange)"/>
+
+    <!-- Shortest free graph route emitted by SnapshotMovementRoute in the focused test. -->
+    <polyline fill="none" stroke="#3b82f6" stroke-width="0.045" stroke-linejoin="round"
+              marker-end="url(#arrow-blue)"
+              points="6.495,11.25 6.17,11.063 6.17,10.688 6.17,10.313 6.17,9.938 5.846,9.75 5.521,9.938 5.196,10.125 4.871,10.313 4.871,10.688 4.871,11.063 4.871,11.438 4.871,11.813 4.547,12 4.222,12.188 3.897,12.375 3.572,12.563 3.572,12.938 3.897,13.125 4.222,13.313 4.547,13.5 4.871,13.688 5.196,13.875 5.521,14.063 5.846,14.25 6.17,14.063 6.495,13.875 6.82,13.688 7.145,13.5"/>
+
+    <!-- Authored boundary junctions. Red nodes are solid; the one blue node is the door portal. -->
+    <g fill="#ef4444" stroke="#fecaca" stroke-width="0.009">
+      <circle cx="5.196" cy="10.5" r="0.055"/><circle cx="5.521" cy="10.312" r="0.055"/>
+      <circle cx="5.846" cy="10.125" r="0.055"/><circle cx="6.495" cy="9.75" r="0.055"/>
+      <circle cx="6.82" cy="9.938" r="0.055"/><circle cx="7.145" cy="10.125" r="0.055"/>
+      <circle cx="7.469" cy="10.312" r="0.055"/><circle cx="7.794" cy="10.5" r="0.055"/>
+      <circle cx="7.794" cy="10.875" r="0.055"/><circle cx="7.794" cy="11.25" r="0.055"/>
+      <circle cx="7.794" cy="11.625" r="0.055"/><circle cx="7.794" cy="12" r="0.055"/>
+      <circle cx="7.469" cy="12.188" r="0.055"/><circle cx="7.145" cy="12.375" r="0.055"/>
+      <circle cx="6.82" cy="12.563" r="0.055"/><circle cx="6.495" cy="12.75" r="0.055"/>
+      <circle cx="6.17" cy="12.563" r="0.055"/><circle cx="5.846" cy="12.375" r="0.055"/>
+      <circle cx="5.521" cy="12.188" r="0.055"/><circle cx="5.196" cy="12" r="0.055"/>
+      <circle cx="5.196" cy="11.625" r="0.055"/><circle cx="5.196" cy="11.25" r="0.055"/>
+      <circle cx="5.196" cy="10.875" r="0.055"/>
+    </g>
+    <circle cx="6.17" cy="9.938" r="0.085" fill="#38bdf8" stroke="#e0f2fe" stroke-width="0.014"/>
+    <circle cx="6.495" cy="11.25" r="0.075" fill="#a78bfa" stroke="#ede9fe" stroke-width="0.014"/>
+    <circle cx="7.145" cy="13.5" r="0.075" fill="#22c55e" stroke="#dcfce7" stroke-width="0.014"/>
+  </g>
+
+  <g font-family="system-ui,sans-serif" font-size="15">
+    <rect x="42" y="590" width="876" height="96" rx="12" fill="#18212c" stroke="#374151"/>
+    <circle cx="66" cy="616" r="7" fill="#ef4444"/><text x="82" y="621" fill="#d1d5db">solid boundary junction</text>
+    <circle cx="280" cy="616" r="8" fill="#38bdf8"/><text x="297" y="621" fill="#d1d5db">door portal j1221 = (6.170, 9.938)</text>
+    <line x1="574" y1="616" x2="624" y2="616" stroke="#f59e0b" stroke-width="4" stroke-dasharray="8 6"/><text x="636" y="621" fill="#d1d5db">старая хорда сквозь стену</text>
+    <line x1="66" y1="655" x2="116" y2="655" stroke="#3b82f6" stroke-width="5"/><text x="128" y="660" fill="#d1d5db">новая ломаная по Neighbors: только свободные junction, обязательно через дверь</text>
+  </g>
+</svg>

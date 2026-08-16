@@ -35,11 +35,12 @@ public static class WorldSnapshotExporter
     public static bool IncludeDebugDetails { get; set; }
 
     // PERF (profiling, Aug-2026): the same bargain, one level down. Refreshing
-    // the MUTABLE junction flags costs ~56 000 dictionary/hash lookups over the
-    // ~14 000 junctions, every tick — and NOTHING in the shipped view reads
-    // them. The only consumers are the junction debug markers and the hex
-    // inspector, so they opt in while someone is actually looking; a flip is
-    // picked up on the next tick, which for a debug overlay is instant enough.
+    // the diagnostic junction flags costs ~56 000 dictionary/hash lookups over
+    // the ~14 000 junctions, every tick. The only consumers are the junction
+    // debug markers and the hex inspector, so they opt in while someone is
+    // actually looking; a flip is picked up on the next tick, which for a debug
+    // overlay is instant enough. Blocked is excluded from this switch: §71.10
+    // production interpolation reads it and its direct field copy has no lookup.
     // IsClimbSeam is deliberately NOT part of this bargain: it is worldgen
     // output (WorldStateFactory writes ClimbSeams and nothing else ever does),
     // so the values the first full export copied stay right forever — which
@@ -373,8 +374,9 @@ public static class WorldSnapshotExporter
         if (junctions.Count == world.Junctions.Items.Count)
         {
             // See IncludeJunctionFlags: the identity sweep below stays (it is
-            // what detects a world swap, and it is only a struct compare each),
-            // but the four hash lookups per junction are debug-only work.
+            // what detects a world swap, and it is only a struct compare each).
+            // Blocked is production movement topology and is always refreshed;
+            // the remaining four hash lookups are debug-only work.
             var refreshFlags = IncludeDebugDetails || IncludeJunctionFlags;
             var i = 0;
             var match = true;
@@ -388,9 +390,10 @@ public static class WorldSnapshotExporter
                     break;
                 }
 
+                cached.Blocked = junction.Blocked;
                 if (refreshFlags)
                 {
-                    RefreshJunctionFlags(world, junction, cached);
+                    RefreshJunctionDebugFlags(world, junction, cached);
                 }
             }
 
@@ -409,7 +412,8 @@ public static class WorldSnapshotExporter
                 Id = junction.Id,
                 WorldPosition = junction.WorldPosition
             };
-            RefreshJunctionFlags(world, junction, js);
+            js.Blocked = junction.Blocked;
+            RefreshJunctionDebugFlags(world, junction, js);
             // Topology is IMMUTABLE after worldgen — copied once here, never
             // in the per-tick refresh (re-filling ~14k junctions' Tiles +
             // Neighbors lists every tick was one of the top CPU items in the
@@ -428,10 +432,10 @@ public static class WorldSnapshotExporter
         }
     }
 
-    // Per-tick refresh: ONLY the mutable flags — see ExportJunctions.
-    private static void RefreshJunctionFlags(WorldState world, Junction junction, JunctionSnapshot js)
+    // Per-tick debug refresh: Blocked is the production topology flag and is
+    // refreshed independently even when IncludeJunctionFlags is false.
+    private static void RefreshJunctionDebugFlags(WorldState world, Junction junction, JunctionSnapshot js)
     {
-        js.Blocked = junction.Blocked;
         js.Occupied = world.Occupancy.JunctionOwner.TryGetValue(junction.Id, out var owner) && owner is not null;
         js.Reserved = world.Reservations.Junctions.ContainsKey(junction.Id);
         js.IsClimbSeam = world.ClimbSeams.Contains(junction.Id);

@@ -341,6 +341,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly Dictionary<int, Pose> _prevNpcPoses = new();
     private readonly Dictionary<int, Pose> _currNpcPoses = new();
+    // §71.10: sparse snapshots can skip a junction bend. When the direct
+    // chord intersects blocked topology, retain the legal graph polyline so
+    // presentation follows the same doorway as the simulation.
+    private readonly Dictionary<int, List<Float2>> _npcMovementRoutes = new();
 
     // §40.18-B: NPCs currently standing on a water tile ride the live wave
     // swell every render frame (WaterWave), so their Y stays glued to the same
@@ -605,6 +609,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 _prevNpcPoses.Clear();
                 _currNpcPoses.Clear();
+                _npcMovementRoutes.Clear();
                 _prevObjectPositions.Clear();
                 _currObjectPositions.Clear();
                 // Animals too — a wolf lerping across the island after a restore
@@ -1704,10 +1709,44 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // jumps are simulation teleports/collapse snaps.
                 var locomoting = npc.MovementStatus is "Moving" or "Arrived" ||
                     npc.CarriedByNpcId is not null;
-                _prevNpcPoses[key] = !locomoting &&
+                var previousPose = !locomoting &&
                     Vector3.Distance(oldPose.Position, targetPose.Position) > TeleportSnapWorldUnits
                         ? targetPose
                         : oldPose;
+
+                if (locomoting)
+                {
+                    if (!_npcMovementRoutes.TryGetValue(key, out var route))
+                    {
+                        route = new List<Float2>();
+                    }
+
+                    var routeKind = SnapshotMovementRoute.Build(
+                        snapshot.Junctions,
+                        new Float2(oldPose.Position.x, oldPose.Position.z),
+                        new Float2(targetPose.Position.x, targetPose.Position.z),
+                        route);
+                    if (routeKind == SnapshotMovementRoute.RouteKind.Routed)
+                    {
+                        _npcMovementRoutes[key] = route;
+                    }
+                    else
+                    {
+                        _npcMovementRoutes.Remove(key);
+                        if (routeKind == SnapshotMovementRoute.RouteKind.Disconnected)
+                        {
+                            // A relocation with no passable graph connection is
+                            // never safe to animate as travel through solid art.
+                            previousPose = targetPose;
+                        }
+                    }
+                }
+                else
+                {
+                    _npcMovementRoutes.Remove(key);
+                }
+
+                _prevNpcPoses[key] = previousPose;
 
                 // §45: stepping onto a tile one level up/down is a visible
                 // hop, not a glide — the actor plays JumpUp/JumpDown and its
@@ -1722,6 +1761,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             else
             {
                 _prevNpcPoses[key] = targetPose;
+                _npcMovementRoutes.Remove(key);
             }
 
             _currNpcPoses[key] = targetPose;
@@ -1899,6 +1939,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _pendingSocialCueItemKey.Remove(key);
             _prevNpcPoses.Remove(key);
             _currNpcPoses.Remove(key);
+            _npcMovementRoutes.Remove(key);
             _npcOnWater.Remove(key);
         }
 
@@ -2977,6 +3018,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (_prevNpcPoses.TryGetValue(key, out var prev))
             {
                 var pos = Vector3.Lerp(prev.Position, curr.Position, alpha);
+                if (_npcMovementRoutes.TryGetValue(key, out var route))
+                {
+                    var routed = SnapshotMovementRoute.Evaluate(route, alpha);
+                    pos.x = routed.X;
+                    pos.z = routed.Y;
+                }
                 // §45 hex-step jump: don't ALSO lerp the root's Y across the
                 // step — the actor animates the vertical itself (jump offset),
                 // so the root snaps straight to the new ground level.

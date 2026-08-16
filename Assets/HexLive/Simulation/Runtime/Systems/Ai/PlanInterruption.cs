@@ -25,6 +25,7 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
+        TraceManualOrderInterruption(world, npc, cause, reason);
         Abort(world, npc, reason);
         return true;
     }
@@ -36,6 +37,7 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
+        TraceManualOrderInterruption(world, npc, cause, reason);
         AbortKeepingCarriedPerson(world, npc, reason);
         return true;
     }
@@ -48,8 +50,28 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
+        TraceManualOrderInterruption(world, npc, cause, reason);
         AbortForCombat(world, npc, reason);
         return true;
+    }
+
+    /// <summary>
+    /// §121.5: once admission succeeded, a later loss of the order must name
+    /// its lifecycle cause. This is deliberately manual-only, preserving the
+    /// zero-diff diagnostic trace for worlds without manually controlled NPCs.
+    /// </summary>
+    private static void TraceManualOrderInterruption(
+        WorldState world, NPCState npc, InterruptionCause cause, string reason)
+    {
+        if (!SimTrace.Enabled || !ManualControlMath.IsManual(npc)) return;
+
+        var order = npc.Plan.Goal != GoalType.None
+            ? npc.Plan.Goal
+            : npc.Mind.CurrentGoal;
+        if (!NpcControlPolicy.IsPlayerGoal(order)) return;
+
+        Trace.Debug(world, npc.Id, "ManualOrderInterrupted",
+            $"Order={order} Status=Interrupted Cause={cause} Reason={reason}");
     }
 
     // §121.5: путь не-ручного персонажа обязан быть байт-в-байт прежним —

@@ -746,6 +746,92 @@ public sealed class ManualControlTests
 
     // ── 3. Отказы: приказ, который нельзя выполнить ──────────────────────
 
+    [TestCase(InterruptionCause.CombatVictim)]
+    [TestCase(InterruptionCause.PathFailure)]
+    public void AcceptedAdmissionIsDistinctFromLaterOrderInterruption(
+        InterruptionCause cause)
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        var destination = NearbyFreeJunction(world, npc, minTiles: 3);
+
+        var previousTrace = SimTrace.Enabled;
+        SimTrace.Enabled = true;
+        try
+        {
+            var admission = ManualCommandExecutor.Apply(
+                world, new MoveToCommand(npc.Id, destination.WorldPosition));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(admission.Status,
+                    Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
+                Assert.That(admission.Order, Is.EqualTo("MoveTo"));
+                Assert.That(admission.Reason, Is.Empty);
+                Assert.That(HasTrace(
+                    world, npc.Id, "ManualCommandAdmission", "Status=Accepted"),
+                    Is.True,
+                    "Admission must be a structured trace before any system can " +
+                    "later interrupt the accepted order.");
+            });
+
+            Assert.That(
+                PlanInterruption.TryAbort(world, npc, cause, "admission-status-test"),
+                Is.True);
+            Assert.That(HasTrace(
+                world, npc.Id, "ManualOrderInterrupted", $"Cause={cause}"),
+                Is.True,
+                "An admitted order that later stops must name self-defence/path " +
+                "as lifecycle cause instead of looking like command rejection.");
+        }
+        finally
+        {
+            SimTrace.Enabled = previousTrace;
+        }
+    }
+
+    [Test]
+    public void RejectedAdmissionCarriesReasonAndHasNoInterruptionTrace()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        engine.Step(); // initialize the NPC junction, but leave her under AI
+        var destination = NearbyFreeJunction(world, npc);
+
+        var previousTrace = SimTrace.Enabled;
+        SimTrace.Enabled = true;
+        try
+        {
+            var admission = ManualCommandExecutor.Apply(
+                world, new MoveToCommand(npc.Id, destination.WorldPosition));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(admission.Status,
+                    Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+                Assert.That(admission.Order, Is.EqualTo("MoveTo"));
+                Assert.That(admission.Reason, Is.EqualTo("NotManual"));
+                Assert.That(HasTrace(
+                    world, npc.Id, "ManualCommandAdmission", "Status=Rejected"),
+                    Is.True);
+                Assert.That(HasTrace(
+                    world, npc.Id, "ManualCommandAdmission", "Reason=NotManual"),
+                    Is.True);
+                Assert.That(HasTrace(
+                    world, npc.Id, "ManualOrderInterrupted", string.Empty),
+                    Is.False,
+                    "A command that never entered the plan has no lifecycle to interrupt.");
+            });
+        }
+        finally
+        {
+            SimTrace.Enabled = previousTrace;
+        }
+    }
+
     [Test]
     public void OrderWithoutTheToolIsRejectedAndLeaksNothing()
     {

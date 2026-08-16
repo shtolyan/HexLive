@@ -39,6 +39,42 @@ public interface ISimulationCommand
     EntityId? TargetEntity { get; }
 }
 
+/// <summary>
+/// §121.1: immediate outcome of submitting one command to the manual-control
+/// boundary. This says whether the command was admitted; later path failure,
+/// self-defence or completion are order lifecycle outcomes, not rejections.
+/// </summary>
+public enum ManualCommandAdmissionStatus
+{
+    Accepted,
+    Rejected
+}
+
+/// <summary>
+/// Structured command-boundary result. Callers must consume this result instead
+/// of inferring admission by scanning the bounded simulation event ring.
+/// </summary>
+public readonly struct ManualCommandAdmission
+{
+    internal ManualCommandAdmission(
+        ManualCommandAdmissionStatus status,
+        EntityId? actor,
+        string order,
+        string reason)
+    {
+        Status = status;
+        Actor = actor;
+        Order = order ?? string.Empty;
+        Reason = reason ?? string.Empty;
+    }
+
+    public ManualCommandAdmissionStatus Status { get; }
+    public EntityId? Actor { get; }
+    public string Order { get; }
+    public string Reason { get; }
+    public bool Accepted => Status == ManualCommandAdmissionStatus.Accepted;
+}
+
 public interface IGroupSimulationCommand : ISimulationCommand
 {
     IReadOnlyList<EntityId> Actors { get; }

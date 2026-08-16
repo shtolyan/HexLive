@@ -29,38 +29,40 @@ namespace HexLive.Simulation.Runtime
 //    приказ читается игроком как «игра сломалась».
 internal static class ManualCommandExecutor
 {
-    public static void Apply(WorldState world, ISimulationCommand command)
+    public static ManualCommandAdmission Apply(WorldState world, ISimulationCommand command)
     {
+        var admission = new AdmissionTracker(command.TargetEntity, OrderName(command));
         if (!Spec121.ManualControlEnabled)
         {
-            return;
+            admission.Reject("FeatureDisabled");
+            return FinishAdmission(world, admission);
         }
 
         switch (command)
         {
             case SetManualControlCommand setManual:
-                ApplySetManual(world, setManual);
+                ApplySetManual(world, setManual, admission);
                 break;
             case MoveToCommand moveTo:
-                ApplyMoveTo(world, moveTo);
+                ApplyMoveTo(world, moveTo, admission);
                 break;
             case InteractCommand interact:
-                ApplyInteract(world, interact);
+                ApplyInteract(world, interact, admission);
                 break;
             case AttackNpcCommand attackNpc:
-                ApplyAttackNpc(world, attackNpc);
+                ApplyAttackNpc(world, attackNpc, admission);
                 break;
             case CarryPersonCommand carryPerson:
-                ApplyCarryPerson(world, carryPerson);
+                ApplyCarryPerson(world, carryPerson, admission);
                 break;
             case PutDownPersonCommand putDownPerson:
-                ApplyPutDownPerson(world, putDownPerson);
+                ApplyPutDownPerson(world, putDownPerson, admission);
                 break;
             case AttackMobCommand attackMob:
-                ApplyAttackMob(world, attackMob);
+                ApplyAttackMob(world, attackMob, admission);
                 break;
             case StopCommand stop:
-                ApplyStop(world, stop);
+                ApplyStop(world, stop, admission);
                 break;
             case GroupMoveCommand groupMove:
                 ApplyGroupMove(world, groupMove);
@@ -78,32 +80,109 @@ internal static class ManualCommandExecutor
                 ApplySetGroupManual(world, setGroupManual);
                 break;
             case ManageInventoryCommand inventory:
-                ApplyManageInventory(world, inventory);
+                ApplyManageInventory(world, inventory, admission);
                 break;
             case TransferInventoryCommand transfer:
-                ApplyTransferInventory(world, transfer);
+                ApplyTransferInventory(world, transfer, admission);
+                break;
+            default:
+                admission.Reject("UnsupportedCommand");
                 break;
         }
+
+        return FinishAdmission(world, admission);
+    }
+
+    private sealed class AdmissionTracker
+    {
+        public AdmissionTracker(EntityId? actor, string order)
+        {
+            Actor = actor;
+            Order = order;
+        }
+
+        public EntityId? Actor { get; }
+        public string Order { get; }
+        public string Reason { get; private set; } = string.Empty;
+        public bool Accepted => Reason.Length == 0;
+
+        public void Reject(string reason)
+        {
+            if (Reason.Length == 0) Reason = reason;
+        }
+
+        public ManualCommandAdmission Result => new(
+            Accepted
+                ? ManualCommandAdmissionStatus.Accepted
+                : ManualCommandAdmissionStatus.Rejected,
+            Actor, Order, Reason);
+    }
+
+    private static string OrderName(ISimulationCommand command) => command switch
+    {
+        SetManualControlCommand => "SetManual",
+        MoveToCommand => "MoveTo",
+        InteractCommand => "Interact",
+        AttackNpcCommand => "AttackNpc",
+        CarryPersonCommand => "CarryPerson",
+        PutDownPersonCommand => "PutDownPerson",
+        AttackMobCommand => "AttackMob",
+        StopCommand => "Stop",
+        GroupMoveCommand => "GroupMove",
+        GroupStopCommand => "GroupStop",
+        GroupAttackNpcCommand => "GroupAttackNpc",
+        GroupAttackMobCommand => "GroupAttackMob",
+        SetGroupManualControlCommand => "SetManual",
+        ManageInventoryCommand => "Inventory",
+        TransferInventoryCommand => "TransferInventory",
+        _ => command.GetType().Name
+    };
+
+    private static ManualCommandAdmission FinishAdmission(
+        WorldState world, AdmissionTracker admission)
+    {
+        var result = admission.Result;
+        if (SimTrace.Enabled)
+        {
+            var message = $"Order={result.Order} Status={result.Status} " +
+                $"Reason={(result.Reason.Length == 0 ? "-" : result.Reason)}";
+            if (result.Actor is { } actor)
+            {
+                Trace.Debug(world, actor, "ManualCommandAdmission", message);
+            }
+            else
+            {
+                Trace.DebugSystem(world, "ManualCommandAdmission", message);
+            }
+        }
+
+        return result;
     }
 
     /// <summary>Приказ отклонён и почему. Тип НЕ в GameEventTypes намеренно:
     /// это сигнал игроку в момент клика, а не строка в летописи колонии.</summary>
-    private static void Reject(WorldState world, EntityId npc, string verb, string reason) =>
+    private static void Reject(
+        WorldState world, EntityId npc, string verb, string reason,
+        AdmissionTracker admission)
+    {
+        admission.Reject(reason);
         Trace.Emit(world, npc, "ManualOrderRejected", $"Order={verb} Reason={reason}");
+    }
 
     // Общий вход: NPC существует, жив и (кроме тумблера) действительно ручной.
     private static bool TryTakeOrder(
-        WorldState world, EntityId id, string verb, bool requireManual, out NPCState npc)
+        WorldState world, EntityId id, string verb, bool requireManual,
+        AdmissionTracker admission, out NPCState npc)
     {
         if (!world.Entities.Npcs.TryGetValue(id, out npc) || npc.Health <= 0f)
         {
-            Reject(world, id, verb, "NoSuchNpc");
+            Reject(world, id, verb, "NoSuchNpc", admission);
             return false;
         }
 
         if (npc.Faction != Faction.Colony)
         {
-            Reject(world, id, verb, "NotOwned");
+            Reject(world, id, verb, "NotOwned", admission);
             return false;
         }
 
@@ -111,7 +190,7 @@ internal static class ManualCommandExecutor
         {
             // Клик, отправленный до того, как игрок вернул её ИИ, — приказ
             // молча применять нельзя: он бы перебил только что выбранную цель.
-            Reject(world, id, verb, "NotManual");
+            Reject(world, id, verb, "NotManual", admission);
             return false;
         }
 
@@ -166,9 +245,12 @@ internal static class ManualCommandExecutor
         npc.Mind.LastManualInputTick = world.Tick;
     }
 
-    private static void ApplySetManual(WorldState world, SetManualControlCommand command)
+    private static void ApplySetManual(
+        WorldState world, SetManualControlCommand command, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Npc, "SetManual", requireManual: false, out var npc))
+        if (!TryTakeOrder(
+                world, command.Npc, "SetManual", requireManual: false,
+                admission, out var npc))
         {
             return;
         }
@@ -229,9 +311,12 @@ internal static class ManualCommandExecutor
         }
     }
 
-    private static void ApplyStop(WorldState world, StopCommand command)
+    private static void ApplyStop(
+        WorldState world, StopCommand command, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Npc, "Stop", requireManual: true, out var npc))
+        if (!TryTakeOrder(
+                world, command.Npc, "Stop", requireManual: true,
+                admission, out var npc))
         {
             return;
         }
@@ -246,16 +331,19 @@ internal static class ManualCommandExecutor
         }
     }
 
-    private static void ApplyMoveTo(WorldState world, MoveToCommand command)
+    private static void ApplyMoveTo(
+        WorldState world, MoveToCommand command, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Npc, "MoveTo", requireManual: true, out var npc))
+        if (!TryTakeOrder(
+                world, command.Npc, "MoveTo", requireManual: true,
+                admission, out var npc))
         {
             return;
         }
 
         if (Incapacitated(world, npc))
         {
-            Reject(world, npc.Id, "MoveTo", "Incapacitated");
+            Reject(world, npc.Id, "MoveTo", "Incapacitated", admission);
             return;
         }
 
@@ -263,7 +351,7 @@ internal static class ManualCommandExecutor
             !world.Junctions.Items.TryGetValue(destination, out var junction) ||
             junction.Blocked)
         {
-            Reject(world, npc.Id, "MoveTo", "Unreachable");
+            Reject(world, npc.Id, "MoveTo", "Unreachable", admission);
             return;
         }
 
@@ -273,7 +361,7 @@ internal static class ManualCommandExecutor
         if (npc.CurrentJunction is not { } start ||
             !Connectivity.Reachable(world, start, destination, npc.Body.CanJump))
         {
-            Reject(world, npc.Id, "MoveTo", "Unreachable");
+            Reject(world, npc.Id, "MoveTo", "Unreachable", admission);
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
@@ -307,30 +395,31 @@ internal static class ManualCommandExecutor
         npc.Mind.CurrentGoal = GoalType.PlayerOrder;
     }
 
-    private static void ApplyCarryPerson(WorldState world, CarryPersonCommand command)
+    private static void ApplyCarryPerson(
+        WorldState world, CarryPersonCommand command, AdmissionTracker admission)
     {
         if (!TryTakeOrder(world, command.Npc, "CarryPerson", requireManual: true,
-                out var carrier))
+                admission, out var carrier))
         {
             return;
         }
 
         if (Incapacitated(world, carrier))
         {
-            Reject(world, carrier.Id, "CarryPerson", "Incapacitated");
+            Reject(world, carrier.Id, "CarryPerson", "Incapacitated", admission);
             return;
         }
 
         if (carrier.IsCarryingPerson)
         {
-            Reject(world, carrier.Id, "CarryPerson", "HandsOccupied");
+            Reject(world, carrier.Id, "CarryPerson", "HandsOccupied", admission);
             return;
         }
 
         // Приказ игрока тоже не поднимает ползущую на ноги.
         if (carrier.Body.IsCrawling)
         {
-            Reject(world, carrier.Id, "CarryPerson", "Crawling");
+            Reject(world, carrier.Id, "CarryPerson", "Crawling", admission);
             return;
         }
 
@@ -338,13 +427,13 @@ internal static class ManualCommandExecutor
                 world, command.Target, out var person, out var dead) ||
             person.Id.Equals(carrier.Id))
         {
-            Reject(world, carrier.Id, "CarryPerson", "NoSuchPerson");
+            Reject(world, carrier.Id, "CarryPerson", "NoSuchPerson", admission);
             return;
         }
 
         if (person.IsBeingCarried || (!dead && !person.IsLyingDown(world.Tick)))
         {
-            Reject(world, carrier.Id, "CarryPerson", "PersonNotAvailable");
+            Reject(world, carrier.Id, "CarryPerson", "PersonNotAvailable", admission);
             return;
         }
 
@@ -353,7 +442,7 @@ internal static class ManualCommandExecutor
         if (!KenshiRescueMath.TryFindApproach(world, carrier, person, out var approach))
         {
             carrier.Mind.CurrentGoal = GoalType.None;
-            Reject(world, carrier.Id, "CarryPerson", "Unreachable");
+            Reject(world, carrier.Id, "CarryPerson", "Unreachable", admission);
             return;
         }
 
@@ -383,17 +472,18 @@ internal static class ManualCommandExecutor
         }
     }
 
-    private static void ApplyPutDownPerson(WorldState world, PutDownPersonCommand command)
+    private static void ApplyPutDownPerson(
+        WorldState world, PutDownPersonCommand command, AdmissionTracker admission)
     {
         if (!TryTakeOrder(world, command.Npc, "PutDownPerson", requireManual: true,
-                out var carrier))
+                admission, out var carrier))
         {
             return;
         }
 
         if (!carrier.IsCarryingPerson)
         {
-            Reject(world, carrier.Id, "PutDownPerson", "HandsEmpty");
+            Reject(world, carrier.Id, "PutDownPerson", "HandsEmpty", admission);
             return;
         }
 
@@ -619,12 +709,13 @@ internal static class ManualCommandExecutor
             command.Enabled ? 0 : accepted);
     }
 
-    private static void ApplyManageInventory(WorldState world, ManageInventoryCommand command)
+    private static void ApplyManageInventory(
+        WorldState world, ManageInventoryCommand command, AdmissionTracker admission)
     {
         if (!PlayerAuthority.CanMutateInventory(world, command.Npc, out var npc) ||
             npc.Health <= 0f)
         {
-            Reject(world, command.Npc, "Inventory", "NotOwned");
+            Reject(world, command.Npc, "Inventory", "NotOwned", admission);
             return;
         }
 
@@ -634,7 +725,7 @@ internal static class ManualCommandExecutor
         if (command.Item.Index < 0 || command.Item.Index >= source.Count ||
             source[command.Item.Index].DefinitionId != command.Item.ExpectedDefinitionId)
         {
-            Reject(world, npc.Id, "Inventory", "StaleItem");
+            Reject(world, npc.Id, "Inventory", "StaleItem", admission);
             return;
         }
 
@@ -647,7 +738,7 @@ internal static class ManualCommandExecutor
                     !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var wearDef) ||
                     wearDef.Layer is null)
                 {
-                    Reject(world, npc.Id, "Inventory", "InvalidAction");
+                    Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
                     return;
                 }
                 stepType = PlanStepType.PlayerWearInventory;
@@ -655,7 +746,7 @@ internal static class ManualCommandExecutor
             case InventoryAction.Stow:
                 if (command.Item.Source != InventoryItemSource.Worn)
                 {
-                    Reject(world, npc.Id, "Inventory", "InvalidAction");
+                    Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
                     return;
                 }
                 stepType = PlanStepType.PlayerStowWorn;
@@ -666,13 +757,13 @@ internal static class ManualCommandExecutor
                     : PlanStepType.PlayerDropCarried;
                 break;
             default:
-                Reject(world, npc.Id, "Inventory", "InvalidAction");
+                Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
                 return;
         }
 
         if (!PlayerInventoryMath.FitsAfter(world, npc, command.Item, command.Action))
         {
-            Reject(world, npc.Id, "Inventory", "InsufficientSpace");
+            Reject(world, npc.Id, "Inventory", "InsufficientSpace", admission);
             return;
         }
 
@@ -699,24 +790,24 @@ internal static class ManualCommandExecutor
     }
 
     private static void ApplyTransferInventory(
-        WorldState world, TransferInventoryCommand command)
+        WorldState world, TransferInventoryCommand command, AdmissionTracker admission)
     {
         if (!TryTakeOrder(world, command.Looter, "TransferInventory",
-                requireManual: true, out var looter))
+                requireManual: true, admission, out var looter))
         {
             return;
         }
 
         if (Incapacitated(world, looter))
         {
-            Reject(world, looter.Id, "TransferInventory", "Incapacitated");
+            Reject(world, looter.Id, "TransferInventory", "Incapacitated", admission);
             return;
         }
 
         if (command.Direction is not InventoryTransferDirection.Take and
             not InventoryTransferDirection.Give)
         {
-            Reject(world, looter.Id, "TransferInventory", "InvalidDirection");
+            Reject(world, looter.Id, "TransferInventory", "InvalidDirection", admission);
             return;
         }
 
@@ -725,7 +816,7 @@ internal static class ManualCommandExecutor
             !other.IsUnconscious(world.Tick) || other.IsBeingCarried ||
             CombatMedium.IsNpcSwimming(world, other))
         {
-            Reject(world, looter.Id, "TransferInventory", "PersonNotAvailable");
+            Reject(world, looter.Id, "TransferInventory", "PersonNotAvailable", admission);
             return;
         }
 
@@ -734,7 +825,7 @@ internal static class ManualCommandExecutor
         if (!PlayerInventoryTransferMath.FitsAfter(
                 world, source, destination, command.Item, command.Count))
         {
-            Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace");
+            Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace", admission);
             return;
         }
 
@@ -769,7 +860,7 @@ internal static class ManualCommandExecutor
                 looter.Plan.TargetItemDefinitionId = null;
                 looter.Plan.TargetJunctionId = null;
                 looter.Plan.TargetTile = null;
-                Reject(world, looter.Id, "TransferInventory", "Unreachable");
+                Reject(world, looter.Id, "TransferInventory", "Unreachable", admission);
                 return;
             }
 
@@ -810,29 +901,32 @@ internal static class ManualCommandExecutor
         }
     }
 
-    private static void ApplyInteract(WorldState world, InteractCommand command)
+    private static void ApplyInteract(
+        WorldState world, InteractCommand command, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Npc, "Interact", requireManual: true, out var npc))
+        if (!TryTakeOrder(
+                world, command.Npc, "Interact", requireManual: true,
+                admission, out var npc))
         {
             return;
         }
 
         if (Incapacitated(world, npc))
         {
-            Reject(world, npc.Id, "Interact", "Incapacitated");
+            Reject(world, npc.Id, "Interact", "Incapacitated", admission);
             return;
         }
 
         // Правило 2: объект берётся из МИРА, а не из npc.Perception.
         if (!world.Entities.Objects.TryGetValue(command.Target, out var worldObject))
         {
-            Reject(world, npc.Id, "Interact", "TargetGone");
+            Reject(world, npc.Id, "Interact", "TargetGone", admission);
             return;
         }
 
         if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
         {
-            Reject(world, npc.Id, "Interact", "TargetGone");
+            Reject(world, npc.Id, "Interact", "TargetGone", admission);
             return;
         }
 
@@ -848,7 +942,7 @@ internal static class ManualCommandExecutor
 
         if (interaction is null)
         {
-            Reject(world, npc.Id, "Interact", "NoSuchAction");
+            Reject(world, npc.Id, "Interact", "NoSuchAction", admission);
             return;
         }
 
@@ -858,19 +952,19 @@ internal static class ManualCommandExecutor
         if (interaction.RequiredCapabilities.Count > 0 &&
             !DecisionSystem.HasAnyCapability(npc, interaction.RequiredCapabilities))
         {
-            Reject(world, npc.Id, "Interact", "MissingTool");
+            Reject(world, npc.Id, "Interact", "MissingTool", admission);
             return;
         }
 
         if (worldObject.IsOccupied && worldObject.CurrentUser is { } user && !user.Equals(npc.Id))
         {
-            Reject(world, npc.Id, "Interact", "Occupied");
+            Reject(world, npc.Id, "Interact", "Occupied", admission);
             return;
         }
 
         if (worldObject.Junctions.Count == 0)
         {
-            Reject(world, npc.Id, "Interact", "Unreachable");
+            Reject(world, npc.Id, "Interact", "Unreachable", admission);
             return;
         }
 
@@ -895,7 +989,7 @@ internal static class ManualCommandExecutor
                     world, npc, anchor, Spec121.ManualReserveTicks, out target,
                     SpatialQueries.BesideReach(definition.ObstacleRadius), worldObject))
             {
-                Reject(world, npc.Id, "Interact", "Unreachable");
+                Reject(world, npc.Id, "Interact", "Unreachable", admission);
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -906,7 +1000,7 @@ internal static class ManualCommandExecutor
             if (!SpatialMutations.TryReserveJunction(
                     world, target, npc.Id, world.Tick, Spec121.ManualReserveTicks))
             {
-                Reject(world, npc.Id, "Interact", "Occupied");
+                Reject(world, npc.Id, "Interact", "Occupied", admission);
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -916,7 +1010,7 @@ internal static class ManualCommandExecutor
             !Connectivity.Reachable(world, start, target, npc.Body.CanJump))
         {
             SpatialMutations.ReleaseJunctionReservation(world, target, npc.Id);
-            Reject(world, npc.Id, "Interact", "Unreachable");
+            Reject(world, npc.Id, "Interact", "Unreachable", admission);
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
@@ -953,16 +1047,19 @@ internal static class ManualCommandExecutor
         }
     }
 
-    private static void ApplyAttackNpc(WorldState world, AttackNpcCommand command)
+    private static void ApplyAttackNpc(
+        WorldState world, AttackNpcCommand command, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Npc, "AttackNpc", requireManual: true, out var npc))
+        if (!TryTakeOrder(
+                world, command.Npc, "AttackNpc", requireManual: true,
+                admission, out var npc))
         {
             return;
         }
 
         if (Incapacitated(world, npc))
         {
-            Reject(world, npc.Id, "AttackNpc", "Incapacitated");
+            Reject(world, npc.Id, "AttackNpc", "Incapacitated", admission);
             return;
         }
 
@@ -970,7 +1067,7 @@ internal static class ManualCommandExecutor
             !world.Entities.Npcs.TryGetValue(command.Target, out var target) ||
             target.Health <= 0f)
         {
-            Reject(world, npc.Id, "AttackNpc", "TargetGone");
+            Reject(world, npc.Id, "AttackNpc", "TargetGone", admission);
             return;
         }
 
@@ -986,22 +1083,25 @@ internal static class ManualCommandExecutor
         }
     }
 
-    private static void ApplyAttackMob(WorldState world, AttackMobCommand command)
+    private static void ApplyAttackMob(
+        WorldState world, AttackMobCommand command, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Npc, "AttackMob", requireManual: true, out var npc))
+        if (!TryTakeOrder(
+                world, command.Npc, "AttackMob", requireManual: true,
+                admission, out var npc))
         {
             return;
         }
 
         if (Incapacitated(world, npc))
         {
-            Reject(world, npc.Id, "AttackMob", "Incapacitated");
+            Reject(world, npc.Id, "AttackMob", "Incapacitated", admission);
             return;
         }
 
         if (!ManualControlMath.TryGetMob(world, command.MobId, out _))
         {
-            Reject(world, npc.Id, "AttackMob", "TargetGone");
+            Reject(world, npc.Id, "AttackMob", "TargetGone", admission);
             return;
         }
 

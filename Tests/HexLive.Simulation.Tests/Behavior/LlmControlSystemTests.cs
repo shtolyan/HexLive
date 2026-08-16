@@ -347,6 +347,40 @@ public sealed class LlmControlSystemTests
     }
 
     [Test]
+    public void ManualAdmissionReasonIsPropagatedWithoutScanningTraceRing()
+    {
+        var (world, npc) = Arena(tick: 61);
+        var provider = new ControllableProvider();
+        using var system = SystemFor(
+            provider, new[] { npc.Id }, cooldownTicks: 64, timeoutTicks: 64, cap: 1);
+
+        system.Run(world);
+        provider.Complete(0, new LlmDecision(
+            LlmCommandKind.MoveTo,
+            targetPosition: new Float2(100f, 100f)));
+        system.Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Mind.ManualControl, Is.True,
+                "The control-mode command was admitted before MoveTo validation.");
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(world.Events.Items.Any(e =>
+                e.EntityId == npc.Id.Value &&
+                e.Type == "ManualCommandAdmission" &&
+                e.Message.Contains("Order=MoveTo") &&
+                e.Message.Contains("Status=Rejected") &&
+                e.Message.Contains("Reason=Unreachable")), Is.True);
+            Assert.That(world.Events.Items.Any(e =>
+                e.EntityId == npc.Id.Value &&
+                e.Type == "LlmControlRejected" &&
+                e.Message.Contains("Reason=ManualCommandRejected") &&
+                e.Message.Contains("AdmissionReason=Unreachable")), Is.True,
+                "The LLM adapter must consume the typed admission result, including reason.");
+        });
+    }
+
+    [Test]
     public void CooldownStartsAtRequestIssueAndPreventsImmediateRequery()
     {
         var (world, npc) = Arena(tick: 100);

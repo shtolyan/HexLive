@@ -99,11 +99,12 @@ public sealed class Handshake
     public long EventSeq { get; set; }
 
     /// <summary>
-    /// Checksum of the server's regenerated topology (tiles + junction ids and
-    /// positions). The client recomputes it after its own worldgen and refuses
-    /// to continue on a mismatch — that is the guard against the one soft spot
-    /// in regenerating from a seed, a float rounding difference flipping a tile's
-    /// elevation.
+    /// Checksum of the server's regenerated topology — tiles, plus junction ids,
+    /// touching tiles and neighbours, all as integers (see
+    /// <see cref="TopologyChecksum"/> for why no float may go in). The client
+    /// recomputes it after its own worldgen and refuses to continue on a mismatch
+    /// — that is the guard against the one soft spot in regenerating from a seed,
+    /// a float rounding difference flipping a tile's elevation.
     /// </summary>
     public uint TopologyChecksum { get; set; }
 

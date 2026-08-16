@@ -81,6 +81,15 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     // Written by the socket thread, read by the main thread. Bytes only.
     private readonly object _inbox = new();
     private readonly Queue<(bool keyframe, byte[] bytes)> _snapshotFrames = new();
+
+    /// <summary>
+    /// The tick of every frame queued since the main thread last looked, in
+    /// arrival order. The clock is told about arrivals BEFORE it is asked what to
+    /// present — it will not present anything at all until it has seen one (see
+    /// <c>RemoteTickClock._started</c>), and it measures the world's real rate
+    /// from these, not from the speed the server claims.
+    /// </summary>
+    private readonly List<int> _arrivedTicks = new();
     private readonly List<byte[]> _eventFrames = new();
     private Handshake? _handshake;
     private bool _handshakeIsNew;
@@ -287,6 +296,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                         // main thread was reached AFTER that keyframe had been
                         // queued and threw it away, stranding every reconnect.
                         _snapshotFrames.Clear();
+                        _arrivedTicks.Clear();
                         _eventFrames.Clear();
                     }
                 }
@@ -305,10 +315,13 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                     if (_snapshotFrames.Count > 64)
                     {
                         _snapshotFrames.Clear();
+                        _arrivedTicks.Clear();
                         _needKeyframe = true;
                     }
 
                     _snapshotFrames.Enqueue((kind == FrameKind.Snapshot, payload));
+                    _arrivedTicks.Add(
+                        WorldSnapshotCodec.PeekFrameTick(payload, kind == FrameKind.Snapshot));
                     if (_state == LinkState.Stalled)
                     {
                         _state = LinkState.Live;
@@ -474,6 +487,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         }
 
         List<byte[]>? events = null;
+        List<int>? arrived = null;
         int buffered;
         bool clockChanged;
         bool paused;
@@ -482,6 +496,12 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         lock (_inbox)
         {
             buffered = _snapshotFrames.Count;
+            if (_arrivedTicks.Count > 0)
+            {
+                arrived = new List<int>(_arrivedTicks);
+                _arrivedTicks.Clear();
+            }
+
             if (_eventFrames.Count > 0)
             {
                 events = new List<byte[]>(_eventFrames);
@@ -502,6 +522,27 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         if (events != null)
         {
             DecodeEvents(events);
+        }
+
+        // ⭐ Arrivals FIRST, and this ordering is the whole reason a connected
+        // client used to show an empty island: the clock refuses to present
+        // anything before it has seen a frame arrive, and the only call telling
+        // it one had arrived sat INSIDE the present-loop below — a loop that runs
+        // zero times until the clock starts. Connected, live, 7 ms ping, not one
+        // snapshot ever decoded, and no error anywhere, because nothing had
+        // failed. It is also where the tick rate is measured, so it belongs here
+        // on the arrival side rather than after presentation, where the estimate
+        // would be measuring its own output.
+        if (arrived != null)
+        {
+            for (var i = 0; i < arrived.Count; i++)
+            {
+                // The verdict is deliberately not acted on: "drop this frame" is
+                // advice from a world of independent snapshots, and our deltas
+                // are a chain — a hole in it is refused by the reader below and
+                // answered with a keyframe, which is the only safe repair.
+                _clock.OnFrameArrived(arrived[i], out _);
+            }
         }
 
         var present = _clock.Advance(unscaledDeltaTime, buffered);
@@ -567,6 +608,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                     lock (_inbox)
                     {
                         _snapshotFrames.Clear();
+                        _arrivedTicks.Clear();
                     }
 
                     RequestKeyframe();
@@ -574,7 +616,6 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                 }
             }
 
-            _clock.OnFrameArrived(_snapshot.Tick, out _);
             _clock.OnTickPresented(_snapshot.Tick);
         }
     }

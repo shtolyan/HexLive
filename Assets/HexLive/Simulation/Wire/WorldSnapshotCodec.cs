@@ -108,6 +108,36 @@ public static class WorldSnapshotCodec
     }
 
     /// <summary>
+    /// Which tick a queued frame carries, without decoding it.
+    /// <para>
+    /// The receiving clock has to know what ARRIVED before it can decide what to
+    /// present, and the tick is the only thing it needs — reading a 27 KB
+    /// keyframe on the socket thread to learn one int would be absurd. Both
+    /// writers put it in the same place by construction: version, the debug-details
+    /// flag, then (for a delta only) the baseline tick, then the tick. This method
+    /// is the one place that knows that, so the two headers cannot drift from the
+    /// peek in silence.
+    /// </para>
+    /// </summary>
+    public static int PeekFrameTick(byte[] payload, bool keyframe)
+    {
+        var offset = keyframe
+            ? sizeof(int) + sizeof(bool)                 // version + flag
+            : sizeof(int) + sizeof(bool) + sizeof(int);  // …+ baseline tick
+
+        if (payload == null || payload.Length < offset + sizeof(int))
+        {
+            throw new InvalidDataException(
+                $"Frame is {payload?.Length ?? 0} bytes — too short to carry a tick.");
+        }
+
+        return payload[offset]
+               | (payload[offset + 1] << 8)
+               | (payload[offset + 2] << 16)
+               | (payload[offset + 3] << 24);
+    }
+
+    /// <summary>
     /// Decodes into <paramref name="into"/>, reusing its lists and payload
     /// objects (same contract as <c>WorldSnapshotExporter.Export(world, reuse)</c>:
     /// the caller owns the instance and consumers must not hold it across frames).

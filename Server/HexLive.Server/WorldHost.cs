@@ -107,12 +107,18 @@ public sealed class WorldHost
         // frame is encoded.
         DefinitionIdTable.Build(world.Content);
 
+        // BEFORE the save is applied, and that ordering is load-bearing: what a
+        // connecting client compares this against is its own FRESH worldgen, so
+        // the fingerprint has to be of worldgen too. Tile flags are the trap —
+        // HasFloor/Roofed arrive when the colony lays a floor and are restored
+        // with the blob, so a long-lived world that had built anything would
+        // start turning every new viewer away, blaming "different builds".
+        TopologyChecksum = HexLive.Simulation.Wire.TopologyChecksum.Compute(world);
+
         // The blob is a delta from worldgen: it is applied onto a world already
         // rebuilt from the SAME seed (static topology is regenerated, never
         // stored). So restore has to happen after Create, not instead of it.
         TryRestore();
-
-        TopologyChecksum = HexLive.Simulation.Wire.TopologyChecksum.Compute(world);
     }
 
     public int Seed

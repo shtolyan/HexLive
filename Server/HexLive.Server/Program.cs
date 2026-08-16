@@ -127,6 +127,20 @@ public static class Program
 
         Admin.AdminEndpoints.Map(app, worlds, account, sessions, mailer, lifetime);
 
+        if (options.McpEnabled)
+        {
+            // Хост берётся ОДИН раз, как и у зрителей на accept: админская
+            // «новая колония» подменяет хост, и старые лизы вместе с ним
+            // теряют смысл — агент увидит отказ и переподключится, а не
+            // продолжит командовать людьми, которых больше нет.
+            var mcpToken = Mcp.McpAccessToken.LoadOrCreate(options.McpTokenPath);
+            var leases = new Mcp.McpControlLeases(options.McpLeaseSeconds);
+            Mcp.McpEndpoint.Map(app, worlds.Host, mcpToken, leases);
+            Console.WriteLine(
+                $"[server] mcp control    http://localhost:{options.Port}/mcp " +
+                $"(токен в {options.McpTokenPath}, лиз {leases.TimeoutSeconds} с)");
+        }
+
         // A plain GET for eyeballing that the thing is alive.
         app.MapGet("/", () =>
         {
@@ -254,6 +268,20 @@ public sealed class ServerOptions
     public string AdminAccountPath =>
         Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-admin.txt");
 
+    /// <summary>
+    /// §144: MCP выключен по умолчанию, и это не осторожность ради
+    /// осторожности. Зритель по вебсокету может только смотреть, админка
+    /// прячется за паролем и правит мир целиком, а MCP — единственная дверь,
+    /// через которую посторонний процесс отдаёт приказы конкретным людям.
+    /// Дверь, которой не просили, должна быть закрыта.
+    /// </summary>
+    public bool McpEnabled { get; private set; }
+
+    public int McpLeaseSeconds { get; private set; } = Mcp.McpControlLeases.DefaultTimeoutSeconds;
+
+    public string McpTokenPath =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-mcp.txt");
+
     public bool IncludeDebugDetails { get; private set; }
 
     /// <summary>
@@ -298,6 +326,12 @@ public sealed class ServerOptions
                 case "--verbose-trace":
                     options.VerboseTrace = true;
                     break;
+                case "--mcp":
+                    options.McpEnabled = true;
+                    break;
+                case "--mcp-lease" when i + 1 < args.Length:
+                    options.McpLeaseSeconds = int.Parse(args[++i]);
+                    break;
                 case "--llm-endpoint" when i + 1 < args.Length:
                     options.Llm.SetEndpoint(args[++i]);
                     break;
@@ -330,6 +364,8 @@ public sealed class ServerOptions
                         "  --autosave N     seconds between saves, 0 to disable (default 60)\n" +
                         "  --debug-details  include per-NPC debug dumps in every frame\n" +
                         "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n" +
+                        "  --mcp            expose MCP control at /mcp (off by default)\n" +
+                        "  --mcp-lease N    seconds a control lease survives without commands (default 120)\n" +
                         "  --llm-endpoint URL  enable host-side HTTP LLM provider endpoint\n" +
                         "  --llm-npcs IDS      comma-separated selected NPC ids for LLM control\n" +
                         "  --llm-model NAME    optional provider model hint\n" +

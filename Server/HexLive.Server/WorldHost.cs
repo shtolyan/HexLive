@@ -142,6 +142,30 @@ public sealed class WorldHost : IDisposable
         _llmProviderDiagnostics?.DrainSummary();
 
     /// <summary>
+    /// Читает мир под тем же замком, что держит тик, — единственный законный
+    /// способ ответить на вопрос «что там сейчас» из чужого потока.
+    /// <para>
+    /// ⚠️ Обратный вызов обязан ВЫЧИТАТЬ и вернуть готовое значение, а не
+    /// вынести наружу ссылку на <c>WorldState</c> или на что-либо внутри него:
+    /// за пределами замка это уже полушагнувший мир. Ровно та же дисциплина,
+    /// что у снапшота (§83), просто без кодека — MCP-инструменту нужно имя
+    /// колонистки, а не 37 КБ кадра.
+    /// </para>
+    /// </summary>
+    public T Read<T>(Func<WorldState, T> read)
+    {
+        if (read is null)
+        {
+            throw new ArgumentNullException(nameof(read));
+        }
+
+        lock (_gate)
+        {
+            return read(_engine.World);
+        }
+    }
+
+    /// <summary>
     /// Thread-safe ingress for an authenticated host-side controller. The
     /// ordinary manual-command executor remains the sole validation boundary;
     /// this method only serializes it with ticks and snapshot readers and makes

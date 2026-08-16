@@ -161,8 +161,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         var other = FindNpc(snapshot, otherId);
         // §128: несомый — цель, только если он на руках у САМОГО обыскивающего.
         if (looter == null || other == null || looter.Faction != Faction.Colony ||
-            looter.Health <= 0f || !looter.IsManualControl || !other.IsUnconscious ||
-            other.Health <= 0f ||
+            looter.Health <= 0f || !looter.IsManualControl || !IsLootable(other) ||
             (other.CarriedByNpcId is not null && other.CarriedByNpcId != looterId))
         {
             return;
@@ -337,7 +336,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         var other = FindNpc(snapshot, _otherId);
         if (looter == null || other == null || looter.Health <= 0f ||
             looter.Faction != Faction.Colony || !looter.IsManualControl ||
-            other.Health <= 0f || !other.IsUnconscious ||
+            !IsLootable(other) ||
             (other.CarriedByNpcId is not null && other.CarriedByNpcId != _looterId))
         {
             Hide();
@@ -832,12 +831,23 @@ public sealed class LootTransferPanel : MonoBehaviour
         return result.ToString();
     }
 
+    // §128 r2 (#164): тело лежит в ОТДЕЛЬНОМ списке снапшота, и без этой ветки
+    // панель молча не открывалась над мёртвой — «обыскать» в меню было, а окна
+    // не появлялось.
     private static NpcSnapshot? FindNpc(WorldSnapshot snapshot, int id)
     {
         foreach (var npc in snapshot.Npcs)
             if (npc.Id.Value == id) return npc;
+        foreach (var corpse in snapshot.Corpses)
+            if (corpse.Id.Value == id) return corpse;
         return null;
     }
+
+    /// <summary>§128 r2 (#164): лежит и не ответит — мёртвая, спящая, без
+    /// сознания. Зеркало сим-предиката PlayerLootTargets.IsLyingHelpless.</summary>
+    private static bool IsLootable(NpcSnapshot person) =>
+        person.Health <= 0f || person.IsUnconscious || person.IsDying ||
+        person.IsFainted || person.CurrentInteraction == "Sleep";
 
     private void Hide()
     {

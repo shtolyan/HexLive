@@ -38,7 +38,10 @@ public sealed class LootTransferUiContractTests
     }
 
     [Test]
-    public void ContextMenuOffersLootOnlyForLivingUnconsciousPeopleOfEitherFaction()
+    // §128 r2 (#164): «лежит — можно обыскать», включая мёртвую и спящую. Раньше
+    // контракт закреплял ровно обратное («только живая в отключке»), и это была
+    // не защита, а зафиксированный симптом.
+    public void ContextMenuOffersLootForAnyLyingPersonOfEitherFaction()
     {
         var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
         var bootstrap = File.ReadAllText(Presentation("Bootstrap", "PrototypeRuntimeBootstrap.cs"));
@@ -48,11 +51,15 @@ public sealed class LootTransferUiContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(adapter, Does.Contain("if (!dead && target.IsUnconscious)"));
+            Assert.That(adapter, Does.Contain("if (lying && carrier?.CarriedNpcId != npcId)"));
             Assert.That(adapter, Does.Contain("Loc.Get(\"menu.loot_person\")"));
             Assert.That(adapter, Does.Contain("LootTransferPanel.Open(carrier!.Id.Value, npcId)"));
             Assert.That(adapter, Does.Not.Contain("AreHostile(carrier"),
-                "Allied and foreign unconscious people must share the same interaction.");
+                "Allied and foreign lying people must share the same interaction.");
+            // Тело живёт в отдельном списке снапшота — без этой ветки панель
+            // молча не открылась бы над мёртвой.
+            Assert.That(File.ReadAllText(Presentation("UI", "LootTransferPanel.cs")),
+                Does.Contain("snapshot.Corpses"));
             Assert.That(bootstrap, Does.Contain("AddComponent<LootTransferPanel>()"));
             Assert.That(camera, Does.Contain("UI.LootTransferPanel.IsOpen"));
             Assert.That(camera, Does.Contain("UI.LootTransferPanel.Close()"));

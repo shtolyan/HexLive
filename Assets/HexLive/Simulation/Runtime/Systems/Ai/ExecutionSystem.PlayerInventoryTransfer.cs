@@ -12,15 +12,12 @@ public sealed partial class ExecutionSystem
 {
     private static void RunPlayerInventoryTransfer(WorldState world, NPCState looter)
     {
-        // §128: несомый САМИМ обыскивающим — легальная цель («взял — обыскал»).
-        var carriedBySelf = false;
+        // §128 r2 (#164): тот же предикат, что принял приказ, — иначе «разрешили
+        // спящих» дошло бы только до половины пути.
         if (looter.Plan.Steps.Count == 0 ||
             looter.Plan.TargetAgentId is not { } otherId ||
-            !world.Entities.Npcs.TryGetValue(otherId, out var other) ||
-            other.Health <= 0f || !other.IsUnconscious(world.Tick) ||
-            (other.IsBeingCarried &&
-             !(carriedBySelf = other.CarriedByNpcId?.Equals(looter.Id) ?? false)) ||
-            CombatMedium.IsNpcSwimming(world, other))
+            !PlayerLootTargets.TryResolve(
+                world, looter, otherId, out var other, out var carriedBySelf))
         {
             FailPlayerInventoryTransfer(world, looter, "PersonNotAvailable");
             return;

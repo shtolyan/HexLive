@@ -828,15 +828,11 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        // §128: несомый — цель, только если он на руках у САМОГО обыскивающего
-        // («взял — обыскал»); на чужих руках — по-прежнему нет.
-        var carriedBySelf = false;
-        if (!world.Entities.Npcs.TryGetValue(command.Other, out var other) ||
-            other.Id.Equals(looter.Id) || other.Health <= 0f ||
-            !other.IsUnconscious(world.Tick) ||
-            (other.IsBeingCarried &&
-             !(carriedBySelf = other.CarriedByNpcId?.Equals(looter.Id) ?? false)) ||
-            CombatMedium.IsNpcSwimming(world, other))
+        // §128 r2 (#164): кого можно обыскать — один предикат на приём приказа и
+        // на его исполнение (мёртвая, спящая, без сознания; несомый — только
+        // своими же руками).
+        if (!PlayerLootTargets.TryResolve(
+                world, looter, command.Other, out var other, out var carriedBySelf))
         {
             Reject(world, looter.Id, "TransferInventory", "PersonNotAvailable");
             return;

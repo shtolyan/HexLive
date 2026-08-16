@@ -603,7 +603,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     new PutDownPersonCommand(new EntityId(carrier.Id.Value)))));
             // §128: «взял — обыскал». Несомый САМИМ носильщиком — легальная
             // цель обыска, обмен идёт прямо в руках.
-            if (!dead && target.IsUnconscious)
+            if (lying)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
                     () => LootTransferPanel.Open(carrier.Id.Value, npcId)));
@@ -622,7 +622,10 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     new EntityId(carrier!.Id.Value), new EntityId(npcId))),
                 canCarry, canCarry ? null : blockedReason));
         }
-        if (!dead && target.IsUnconscious && carrier?.CarriedNpcId != npcId)
+        // §128 r2 (#164): обыскать можно ЛЮБОГО лежащего — мёртвую, спящую,
+        // без сознания. Раньше пункт показывался только для живой в отключке, и
+        // над телом или спящей в меню оставалось одно «взять на руки».
+        if (lying && carrier?.CarriedNpcId != npcId)
         {
             var canLoot = carrier != null && _selectedColonyIds.Count == 1 &&
                 _manualSelectedIds.Count == 1 && carrier.Id.Value != npcId &&

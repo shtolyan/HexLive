@@ -12,10 +12,10 @@ public sealed partial class ExecutionSystem
 {
     private static void RunManualPersonPickup(WorldState world, NPCState carrier)
     {
+        // §118.4 r2 (#166): тот же предикат, что принял приказ.
         if (carrier.Plan.TargetAgentId is not { } personId ||
             !KenshiRescueMath.TryGetPerson(world, personId, out var person, out var dead) ||
-            person.Id.Equals(carrier.Id) || person.IsBeingCarried ||
-            (!dead && !person.IsLyingDown(world.Tick)))
+            !ManualCarryTargets.CanCarry(world, carrier, person, dead))
         {
             PlanInterruption.TryAbort(world, carrier, InterruptionCause.ExecutionFailure, "цель ручного переноса недоступна");
             carrier.Mind.CurrentGoal = GoalType.None;

@@ -383,7 +383,9 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        if (person.IsBeingCarried || (!dead && !person.IsLyingDown(world.Tick)))
+        // §118.4 r2 (#166): своих носят всегда, спят они или нет. Чужой на ногах
+        // в руки не даётся — это уже не носилки, а захват.
+        if (!ManualCarryTargets.CanCarry(world, carrier, person, dead))
         {
             Reject(world, carrier.Id, "CarryPerson", "PersonNotAvailable");
             return;

@@ -557,6 +557,7 @@
     "Spec118.SplintSupportNovice": 0.200000003,
     "Spec118.SplintsEnabled": true,
     "Spec118.SteadyBleedPerSlowTick": 0.0120000001,
+    "Spec118.StrandedRescueEnabled": true,
     "Spec118.StumpBloodLoss": 0.349999994,
     "Spec118.StumpWoundSeverity": 0.349999994,
     "Spec118.VitalKnockoutTicks": 80,

@@ -33,8 +33,52 @@ internal static class KenshiRescueMath
     internal static bool NeedsRescue(WorldState world, NPCState patient) =>
         patient.Health > 0f &&
         !patient.IsBeingCarried &&
-        (patient.IsDying || patient.Mind.ComaCause != ComaCause.None) &&
+        (patient.IsDying || patient.Mind.ComaCause != ComaCause.None ||
+         IsStranded(world, patient)) &&
         !IsRecoveryResting(world, patient);
+
+    /// <summary>
+    /// §118.4 r2 (баг #166): ЗАСТРЯЛА. В сознании, но ноги её больше не несут, и
+    /// своим ходом до дома ей не добраться — с её способностями маршрута туда
+    /// просто нет. До этой ветки спасение знало только умирающих и коматозных,
+    /// то есть переломанная, но живая колонистка оставалась там, где упала, и
+    /// колония смотрела на это молча.
+    /// <para>
+    /// Мера — связность, а не расстояние: «далеко» она доползёт (§50.9 ровно об
+    /// этом), а «нет пути» не лечится временем. Спрашивается по её РЕАЛЬНОЙ
+    /// проходимости (аварийная лестница §63), поэтому здоровая, у которой дом
+    /// за обрывом, сюда не попадает: у неё маршрут есть.
+    /// </para>
+    /// </summary>
+    internal static bool IsStranded(WorldState world, NPCState patient)
+    {
+        if (!Spec118.StrandedRescueEnabled ||
+            patient.IsUnconscious(world.Tick) ||
+            !patient.Body.IsCrawling ||
+            patient.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        var home = ColonyQueries.Home(world, patient.Faction);
+        if (home is not { } homeTile ||
+            !world.Tiles.Items.TryGetValue(homeTile, out var homeState) ||
+            homeState.Junctions.Count == 0)
+        {
+            return false;
+        }
+
+        var canJump = PlanningSystem.CanUseCriticalTraversal(patient);
+        foreach (var junction in homeState.Junctions)
+        {
+            if (Connectivity.Reachable(world, from, junction, canJump))
+            {
+                return false; // дойдёт сама, пусть и ползком
+            }
+        }
+
+        return true;
+    }
 
     internal static bool TryGetPerson(
         WorldState world, EntityId id, out NPCState person, out bool dead)
@@ -764,6 +808,20 @@ internal static class KenshiRescueMath
         carrier.IsFighting = false;
         MeleeSwing.Cancel(carrier);
         carrier.StrikeReadyAtTick = 0;
+        // §118.4 r2 (#166): на руки берут и БОДРСТВУЮЩУЮ свою. У лежащей плана
+        // нет по построению, а у идущей он есть — и без этой остановки она
+        // продолжала бы «идти» по своему маршруту с рук носильщика: узла у неё
+        // уже нет, так что это была бы не ходьба, а тихо ломающееся состояние.
+        if (!dead && !person.IsLyingDown(world.Tick))
+        {
+            PlanInterruption.TryAbort(
+                world, person, InterruptionCause.PlayerCommand, "её взяли на руки");
+            person.Mind.CurrentGoal = GoalType.None;
+            person.Movement.JunctionPath.Clear();
+            person.Movement.IsMoving = false;
+            person.Movement.SetStatus(MovementStatus.Idle);
+        }
+
         SyncPatient(world, carrier, person, dead);
         if (SimTrace.Enabled)
         {

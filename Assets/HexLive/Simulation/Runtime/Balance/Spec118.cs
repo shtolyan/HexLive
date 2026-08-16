@@ -14,6 +14,12 @@ public class Spec118
     public static bool DamageTypesEnabled = true;
     public static bool MedicalEnabled = true;
     public static bool RescueEnabled = true;
+
+    // §118.4 r2 (#166): спасают не только умирающих и коматозных, но и ЗАСТРЯВШУЮ
+    // — в сознании, ноги не держат, а маршрута до дома с её проходимостью нет.
+    // Выключатель отдельный: это единственная ветка спасения, которая срабатывает
+    // у человека при здоровье, и её цена — занятая пара рук.
+    public static bool StrandedRescueEnabled = true;
     public static bool SplintsEnabled = true;
     public static bool ProstheticsEnabled = true;
 

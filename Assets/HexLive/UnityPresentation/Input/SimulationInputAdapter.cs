@@ -609,11 +609,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     () => LootTransferPanel.Open(carrier.Id.Value, npcId)));
             }
         }
-        else if (lying)
+        // §118.4 r2 (#166): СВОИХ берут на руки всегда — спят они или нет, здоровы
+        // или переломаны. Чужой на ногах в руки не даётся: это уже не носилки.
+        else if (lying || target.Faction == Faction.Colony)
         {
             var canCarry = carrier != null && _selectedColonyIds.Count == 1 &&
                 _manualSelectedIds.Count == 1 && carrier.CarriedNpcId is null &&
-                target.CarriedByNpcId is null;
+                target.CarriedByNpcId is null && carrier.Id.Value != npcId;
             var blockedReason = carrier?.CarriedNpcId is not null
                 ? Loc.Get("menu.hands_occupied")
                 : Loc.Get("menu.select_one_character");

@@ -248,7 +248,11 @@ internal static class CombatHelpSystem
             return;
         }
 
-        var mortal = victim.IsDying ||
+        // §118.4 r2 (#166): «застрял, ноги сломаны, не могу добраться до дома» —
+        // тоже повод звать. До этого стон был только предсмертным, и живая
+        // переломанная колонистка, отрезанная от дома, молчала до конца.
+        var stranded = KenshiRescueMath.IsStranded(world, victim);
+        var mortal = stranded || victim.IsDying ||
             (victim.Body.IsProne &&
              MobSystem.WorstPartHealth(victim) < Spec57.HelpCryMortalPlight);
         if (!mortal)
@@ -260,7 +264,8 @@ internal static class CombatHelpSystem
         SocialCueSignals.Stamp(world, victim, "HelpMoan", null);
         Trace.Emit(world, victim.Id, "HelpMoan",
             $"Radius={Spec57.HelpCryMortalRadiusTiles} Health={victim.Health:F2} " +
-            $"Dying={(victim.IsDying ? 1 : 0)} Prone={(victim.Body.IsProne ? 1 : 0)}");
+            $"Dying={(victim.IsDying ? 1 : 0)} Prone={(victim.Body.IsProne ? 1 : 0)} " +
+            $"Stranded={(stranded ? 1 : 0)}");
 
         var aidKind = AidAssessment.Assess(victim, world.Tick, out var severity);
         foreach (var hearer in world.Entities.Npcs.Values)

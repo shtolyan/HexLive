@@ -155,9 +155,19 @@ public static class ActorSkinNormals
                     converted++;
                 }
 
+                // Seed the strength only on FIRST wiring. Re-running this menu
+                // must not undo tuning done in the Inspector or in the Skin
+                // Relief window — the maps and the keyword are structural and
+                // safe to re-apply, the strength is somebody's taste and is
+                // not. (Same rule as --adopt on the garment side: never clobber
+                // a value a human set on purpose.)
+                var hadBump = mat.GetTexture(BumpMap) != null;
                 mat.SetTexture(BumpMap, AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
-                SetRelief(mat, name,
-                    IsTrueNormal(texPath) ? TrueNormalBumpScale : DefaultBumpScale);
+                if (!hadBump)
+                {
+                    SetRelief(mat, name,
+                        IsTrueNormal(texPath) ? TrueNormalBumpScale : DefaultBumpScale);
+                }
                 // URP Lit samples _BumpMap only with this on. The actors' skin
                 // carried `_NORMALMAP_TANGENT_SPACE` instead — a Built-in-era
                 // keyword URP does not read — which is why a map assigned by
@@ -210,10 +220,20 @@ public static class ActorSkinNormals
     /// `…_face_bumb_base` are heights, and `…FaceS` is SPECULAR and must never
     /// be taken — it also contains "face" and would otherwise win on a plain
     /// substring match.
+    ///
+    /// ⭐ The HEIGHT map wins when a product ships both, which is the opposite
+    /// of the obvious rule. Marta has both, was given her normal map on that
+    /// obvious rule, and came out glass-smooth at every strength up to 5. The
+    /// reason is in the files: her `TorsoN` measures 0.00028 of detail against
+    /// 0.03910 in her own `TorsoB` — 140x — because the vendor baked the normal
+    /// for large forms and left the pores in the bump. Nothing downstream can
+    /// recover detail that is not in the map, so the choice has to be made
+    /// here. A true normal is still used when it is all there is.
     /// </remarks>
     private static string Pick(List<string> textures, string zone)
     {
         string bump = null;
+        string normal = null;
         foreach (var path in textures)
         {
             var f = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
@@ -228,18 +248,17 @@ public static class ActorSkinNormals
             // before reading it.
             var stem = f.TrimEnd('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '_');
 
-            if (f.Contains("normal") || (stem.EndsWith("n") && !stem.EndsWith("bumb")))
-            {
-                return path;                     // a real normal map wins outright
-            }
-
             if (stem.EndsWith("b") || f.Contains("bump") || f.Contains("bumb"))
             {
                 bump ??= path;
             }
+            else if (f.Contains("normal") || stem.EndsWith("n"))
+            {
+                normal ??= path;
+            }
         }
 
-        return bump;
+        return bump ?? normal;
     }
 
     /// <summary>Apply a body strength to one skin material, doubling the face.</summary>

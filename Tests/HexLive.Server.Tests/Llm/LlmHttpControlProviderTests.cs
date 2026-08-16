@@ -82,6 +82,22 @@ public sealed class LlmHttpControlProviderTests
         });
     }
 
+    [Test]
+    public async Task CallerOwnedHttpClient_RemainsUsableAfterProviderDisposal()
+    {
+        using var handler = new RecordingHandler(_ => JsonResponse(
+            "{\"contractVersion\":1,\"commandKind\":\"None\"}"));
+        using var http = new HttpClient(handler);
+        var provider = new LlmHttpControlProvider(Options(), http);
+
+        provider.Dispose();
+
+        using var response = await http.GetAsync(
+            "http://127.0.0.1:11434/after-provider-disposal");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
     [TestCase(
         "{\"commandKind\":\"None\"}",
         "response-json",

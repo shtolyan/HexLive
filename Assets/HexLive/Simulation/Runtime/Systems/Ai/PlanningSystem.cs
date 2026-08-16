@@ -166,6 +166,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
             if (npc.Mind.CurrentGoal == GoalType.Eat)
             {
+                // ⭐ §121.6 r2: у ручной обед — только из СВОЕГО рюкзака. Все
+                // ветки ниже, которые ведут ногами в мир (вертел, земля,
+                // пальма), для неё закрыты: пустой рюкзак значит «ждёт
+                // приказа», а не «пошла за едой».
+                var inventoryOnly = NpcControlPolicy.RequiresInventoryOnlySelfCare(npc);
+
                 // Eating happens in place from inventory (spec 29B.3):
                 // no target object, no junction reservation. §54.17: the MOST
                 // NUTRITIOUS item, not the first — cooked meat beats the
@@ -174,7 +180,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // §54.17 r2: a roast on a perceived spit outranks the pack —
                 // otherwise "coconut in hand" wins forever and the cooked
                 // meat hangs untouched until it burns through colony turnover.
-                if (TryBuildSpitTakePlan(world, npc, foodDefinitionId))
+                if (!inventoryOnly && TryBuildSpitTakePlan(world, npc, foodDefinitionId))
                 {
                     continue;
                 }
@@ -197,7 +203,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
-                if (BuildCoconutEatPlan(world, npc))
+                if (BuildCoconutEatPlan(world, npc, inventoryOnly))
                 {
                     continue;
                 }
@@ -269,6 +275,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
             if (npc.Mind.CurrentGoal == GoalType.Drink)
             {
+                // ⭐ §121.6 r2: у ручной питьё — только из СВОЕГО рюкзака.
+                // Водосборник, кокос в мире и поход за помощью — это добыча,
+                // и без приказа она за ней не идёт.
+                var inventoryOnly = NpcControlPolicy.RequiresInventoryOnlySelfCare(npc);
+
                 if (DecisionSystem.HasBottleWater(npc))
                 {
                     npc.Plan.Steps.Add(new PlanStep
@@ -308,12 +319,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // collected under the funnel is the nearest water there is, so
                 // it beats walking to a coconut (and a full bottle that nobody
                 // ever drew from was the whole station going to waste).
-                if (TryBuildCollectorDrawPlan(world, npc))
+                if (!inventoryOnly && TryBuildCollectorDrawPlan(world, npc))
                 {
                     continue;
                 }
 
-                if (BuildCoconutDrinkPlan(world, npc))
+                if (BuildCoconutDrinkPlan(world, npc, inventoryOnly))
                 {
                     continue;
                 }
@@ -324,7 +335,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // Hydrate-aid needs her in sight). Walking home IS her drink
                 // plan; the recurring seed-42 day-0.5 death was Marta chasing
                 // distant tools at the island's rim while thirst hit 1.0.
-                if (!DecisionSystem.HasCoconutBlade(npc) &&
+                if (!inventoryOnly &&
+                    !DecisionSystem.HasCoconutBlade(npc) &&
                     TryBuildSeekWaterHelpPlan(world, npc))
                 {
                     continue;

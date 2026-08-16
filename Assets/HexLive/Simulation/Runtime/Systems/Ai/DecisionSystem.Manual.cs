@@ -6,25 +6,46 @@ using HexLive.Simulation.Content;
 namespace HexLive.Simulation.Runtime
 {
 
-// §121.6: авто-нужды ручного персонажа. Без активного приказа аукцион
-// разрешает ей ровно две цели — еду и питьё, с теми же порогами и проверками
-// доступности, что у ИИ. Намеренно НЕ переиспользует полный конвейер
+// §121.6 r2: авто-нужды ручного персонажа. Без активного приказа аукцион
+// разрешает ей ровно две цели — съесть и выпить СВОЁ, на месте. Ни одной
+// цели добычи (`GetFood`/`GetWater`) здесь больше нет и ни одного запроса к
+// миру не делается: пустой рюкзак означает «стоит и ждёт приказа», а не
+// «пошла за кокосом». Намеренно НЕ переиспользует полный конвейер
 // ScoreGoals: тот тянет 70 скоринг-блоков и побочные записи, а здесь выбор
-// из четырёх кандидатов решается детерминированно остротой нужды.
+// из двух кандидатов решается детерминированно остротой нужды.
 public sealed partial class DecisionSystem
 {
     private static readonly GoalType[] ManualLanesThirstFirst =
-        { GoalType.Drink, GoalType.GetWater, GoalType.Eat, GoalType.GetFood };
+        { GoalType.Drink, GoalType.Eat };
 
     private static readonly GoalType[] ManualLanesHungerFirst =
-        { GoalType.Eat, GoalType.GetFood, GoalType.Drink, GoalType.GetWater };
+        { GoalType.Eat, GoalType.Drink };
 
     private static void RunManualNeedsAuction(WorldState world, NPCState npc)
     {
+        // 0. ⭐ Fail-closed (§121.6 r2). Цель, которой ручной иметь не
+        //    положено, снимается НЕМЕДЛЕННО: её мог оставить только
+        //    «забытый иф» в чужой системе или сейв, сделанный по прежним
+        //    правилам, а планировщик для ручной выключен и её не починит —
+        //    колонистка встала бы столбом с целью, за которую никто не
+        //    отвечает. Причина проходит у ручной всегда (§121.5).
+        if (!NpcControlPolicy.MayRetainGoalWhileManual(npc, npc.Mind.CurrentGoal))
+        {
+            var forbidden = npc.Mind.CurrentGoal;
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ManualPolicySweep,
+                $"ManualForbiddenGoal={forbidden}");
+            npc.Mind.CurrentGoal = GoalType.None;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ManualForbiddenGoalDropped",
+                    $"Goal={forbidden}");
+            }
+        }
+
         // 1. Sweep завершённой авто-цели (зеркало ManualOrderSystem.
         //    SweepFinishedOrder): план доигран или сорвался — цель снимается,
         //    она стоит и ждёт (или следующего голода, или приказа).
-        if (NpcControlPolicy.IsAutoNeed(npc.Mind.CurrentGoal) &&
+        if (NpcControlPolicy.IsManualInventoryNeed(npc.Mind.CurrentGoal) &&
             npc.Plan.Status != PlanStatus.Active &&
             npc.Execution.Status != ExecutionStatus.InProgress)
         {
@@ -50,11 +71,9 @@ public sealed partial class DecisionSystem
             return;
         }
 
-        // 3. Доступность — те же условия, что в большом аукционе (Eat/GetFood
-        //    около строки 419, Drink/GetWater около 1033). Разница одна: Eat у
-        //    ИИ не имеет порога голода (его балансируют другие ставки), у
-        //    ручной других ставок нет — поэтому еда и питьё открываются теми
-        //    же порогами, что их fetch-половины.
+        // 3. Пороги — те же, что у ИИ. Доступность — СТРОГО инвентарная:
+        //    ⭐ ни `npc.Perception`, ни памяти о продюсерах, ни водосборников.
+        //    Это и есть весь слайс: голод не даёт ручной права уйти с места.
         var hungry = npc.Needs.Hunger >= SimBalance.GetFoodHungerThreshold;
         var thirsty = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold;
         if (!hungry && !thirsty)
@@ -62,21 +81,18 @@ public sealed partial class DecisionSystem
             return;
         }
 
-        var hasFoodInInventory = npc.Inventory.FindFirstFood(world.Content) != null;
-        var hasCoconutMeal = HasCoconutMeal(npc, world);
-        var eatAvail = hungry && (hasFoodInInventory || hasCoconutMeal);
-        var getFoodAvail = hungry && !hasFoodInInventory && !hasCoconutMeal &&
-            (HasReachableFoodForCurrentTools(npc, world) || KnowsReachableProducer(npc, world));
+        // Кокос в рюкзаке — законная еда: вскрыть его она может там, где
+        // стоит (BuildCoconutInventoryPlan). Кокос на земле или на пальме —
+        // уже поход, и его здесь нет.
+        var eatAvail = hungry &&
+            (npc.Inventory.FindFirstFood(world.Content) is not null ||
+             HasInventoryCoconutMeal(npc));
 
-        var hasBottleWater = HasBottleWater(npc);
-        var hasCoconutWater = HasCoconutWater(npc, world);
-        var collectorDrawSeen = FindDrawableCollector(npc, world) is not null;
-        var drinkAvail = thirsty && (hasBottleWater || hasCoconutWater || collectorDrawSeen);
-        var getWaterAvail = thirsty && !hasCoconutWater && !hasBottleWater &&
-            (collectorDrawSeen ||
-             (HasCoconutBlade(npc) &&
-              (HasReachableDefinitionWorthCarrying(npc, world, ContentIds.Coconut) ||
-               KnowsReachableProducer(npc, world))));
+        // HasInventoryCoconutWater покрывает и полную флягу, и продырявленный
+        // кокос с водой; FindFirstDrink — всё прочее питьевое в рюкзаке.
+        var drinkAvail = thirsty &&
+            (HasInventoryCoconutWater(npc) ||
+             npc.Inventory.FindFirstDrink(world.Content) is not null);
 
         // 4. Детерминированный выбор: острее нужда — max(Hunger, Thirst), при
         //    равенстве жажда первой (§64.9: жажда убивает быстрее). Кулдаун
@@ -86,14 +102,10 @@ public sealed partial class DecisionSystem
             : ManualLanesHungerFirst;
         foreach (var goal in lanes)
         {
-            var available = goal switch
-            {
-                GoalType.Eat => eatAvail,
-                GoalType.GetFood => getFoodAvail,
-                GoalType.Drink => drinkAvail,
-                _ => getWaterAvail,
-            };
-            if (!available || IsOnCooldown(npc, goal, world.Tick))
+            var available = goal == GoalType.Eat ? eatAvail : drinkAvail;
+            if (!available ||
+                !NpcControlPolicy.MayAuctionGoal(npc, goal) ||
+                IsOnCooldown(npc, goal, world.Tick))
             {
                 continue;
             }

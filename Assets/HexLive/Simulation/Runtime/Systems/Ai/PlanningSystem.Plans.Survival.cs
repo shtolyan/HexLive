@@ -17,7 +17,11 @@ public sealed partial class PlanningSystem
     // чтобы не аллоцировать на каждый план.
     private readonly System.Collections.Generic.List<JunctionId> _forageRimScratch = new();
 
-    private static bool BuildCoconutDrinkPlan(WorldState world, NPCState npc)
+    // §121.6 r2: `inventoryOnly` отсекает ровно ветки ДОБЫЧИ — те, что
+    // строят MoveToJunction к кокосу в мире. Ветки «вскрыть своё на месте»
+    // остаются: ручная пьёт из рюкзака, но никуда за водой не идёт.
+    private static bool BuildCoconutDrinkPlan(
+        WorldState world, NPCState npc, bool inventoryOnly)
     {
         if (TryFindInventoryItem(npc, ContentIds.CoconutPierced, requireWater: true, out _))
         {
@@ -29,6 +33,11 @@ public sealed partial class PlanningSystem
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Drink, carriedWhole,
                 InteractionType.Process, InteractionType.PickUp);
+        }
+
+        if (inventoryOnly)
+        {
+            return false;
         }
 
         if (TryFindCoconutObject(npc, world, ContentIds.CoconutPierced, requireWater: true, out var pierced))
@@ -122,7 +131,12 @@ public sealed partial class PlanningSystem
         return false;
     }
 
-    private static bool BuildCoconutEatPlan(WorldState world, NPCState npc)
+    // §121.6 r2: см. BuildCoconutDrinkPlan — `inventoryOnly` гасит только
+    // ветки TryFindCoconutObject (поход к кокосу в мире). Порядок остальных
+    // веток не меняется: последняя, «водянистый пронзённый в рюкзаке»,
+    // намеренно остаётся ПОСЛЕ мировых — у ИИ приоритет прежний.
+    private static bool BuildCoconutEatPlan(
+        WorldState world, NPCState npc, bool inventoryOnly)
     {
         if (TryFindInventoryItem(npc, ContentIds.CoconutOpen, out _))
         {
@@ -149,19 +163,20 @@ public sealed partial class PlanningSystem
                 InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
         }
 
-        if (TryFindCoconutObject(npc, world, ContentIds.CoconutOpen, requireWater: false, out var open))
+        if (!inventoryOnly &&
+            TryFindCoconutObject(npc, world, ContentIds.CoconutOpen, requireWater: false, out var open))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, open, InteractionType.PickUp);
         }
 
-        if (HasCoconutBlade(npc) &&
+        if (!inventoryOnly && HasCoconutBlade(npc) &&
             TryFindCoconutObject(npc, world, ContentIds.Coconut, requireWater: false, out var whole))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, whole,
                 InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
         }
 
-        if (HasCoconutBlade(npc) &&
+        if (!inventoryOnly && HasCoconutBlade(npc) &&
             TryFindCoconutObject(npc, world, ContentIds.CoconutPierced, requireWater: false,
                 out var pierced, preferDrained: true))
         {

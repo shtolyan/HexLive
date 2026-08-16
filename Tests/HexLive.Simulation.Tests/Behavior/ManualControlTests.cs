@@ -181,6 +181,238 @@ public sealed class ManualControlTests
             "Приказ игрока обязан перебивать авто-цель §121.6 немедленно.");
     }
 
+    // ── 1b. §121.6 r2: авто-нужды берутся ТОЛЬКО из своего рюкзака ───────
+    //
+    // Обещание игрока: под ручным управлением она стоит и ждёт приказов.
+    // Съесть то, что уже лежит у неё в рюкзаке, — не автономия (она никуда
+    // не идёт и ничего не выбирает в мире); а вот пойти за кокосом, к
+    // водосборнику или к костру — это ровно та самая автономия, ради
+    // выключения которой существует §121.
+
+    /// <summary>
+    /// Кокосы вокруг неё — соблазн, на который старая версия шла. Кладём на
+    /// ВСЕ проходимые соседние узлы: один сосед — это гонка с проголодавшейся
+    /// соседкой-ИИ, и утащенный ею кокос превратил бы тест в пустой (есть
+    /// стало бы просто нечего, и «стоит» доказывало бы не то).
+    /// </summary>
+    private static void DropAroundHer(WorldState world, NPCState npc, string definitionId)
+    {
+        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(
+                     world, npc.CurrentJunction!.Value))
+        {
+            var junction = world.Junctions.Items[neighbor];
+            if (junction.Tiles.Count == 0)
+            {
+                continue;
+            }
+
+            WorldObjectMutations.SpawnObject(
+                world, definitionId, new FragmentId(1), junction.Tiles[0], neighbor);
+        }
+    }
+
+    /// <summary>Видела ли она соблазн — иначе замер «стоит» ничего не значит.</summary>
+    private static bool SeesReachable(NPCState npc, string definitionId) =>
+        npc.Perception.Objects.Any(o => o.DefinitionId == definitionId && o.IsReachable);
+
+    /// <summary>
+    /// Держит нужду на «остро, но не смертельно»: латч голодания/обезвоживания
+    /// поднял бы §60/§105 и подменил бы предмет замера.
+    /// </summary>
+    private static void HoldNeeds(NPCState npc, float hunger, float thirst)
+    {
+        npc.Needs.Hunger = hunger;
+        npc.Needs.Thirst = thirst;
+    }
+
+    [Test]
+    public void StarvingManualNpcWithAnEmptyPackWaitsInsteadOfWalkingToGroundFood()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear(); // пустой рюкзак: ни еды, ни лезвия
+
+        // Готовые к еде кокосы лежат в шаге — старый §121.6 честно шёл за ними.
+        DropAroundHer(world, npc, ContentIds.CoconutOpen);
+        var startTile = npc.Tile;
+
+        var sawTemptation = false;
+        for (var i = 0; i < MediumTicks * 8; i++)
+        {
+            HoldNeeds(npc, 0.9f, 0f);
+            engine.Step();
+            sawTemptation |= SeesReachable(npc, ContentIds.CoconutOpen);
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+                $"Ручная с ПУСТЫМ рюкзаком взяла цель {npc.Mind.CurrentGoal} — " +
+                "голод не даёт права уходить за едой в мир, она ждёт приказа.");
+        }
+
+        Assert.That(npc.Tile, Is.EqualTo(startTile),
+            "Ручная пошла за едой сама — приказа на это не было.");
+        Assert.That(sawTemptation, Is.True,
+            "Прекондиция: она обязана была ВИДЕТЬ достижимую еду — иначе " +
+            "тест проходит вхолостую (есть было просто нечего).");
+    }
+
+    [Test]
+    public void DehydratedManualNpcWithAnEmptyPackWaitsInsteadOfWalkingToWater()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        npc.BottleWater = WaterKind.None;
+        npc.BottleCharges = 0;
+
+        // Продырявленный кокос с водой пьётся без лезвия — самый дешёвый
+        // источник, к которому старая версия уходила сама.
+        DropAroundHer(world, npc, ContentIds.CoconutPierced);
+        var startTile = npc.Tile;
+
+        var sawTemptation = false;
+        for (var i = 0; i < MediumTicks * 8; i++)
+        {
+            HoldNeeds(npc, 0f, 0.9f);
+            engine.Step();
+            sawTemptation |= SeesReachable(npc, ContentIds.CoconutPierced);
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+                $"Ручная с пустым рюкзаком взяла цель {npc.Mind.CurrentGoal} — " +
+                "жажда не открывает ей поход к воде без приказа.");
+        }
+
+        Assert.That(npc.Tile, Is.EqualTo(startTile),
+            "Ручная пошла за водой сама.");
+        Assert.That(sawTemptation, Is.True,
+            "Прекондиция: достижимый источник воды обязан был попасть ей в " +
+            "восприятие — иначе замер «стоит» ничего не доказывает.");
+    }
+
+    [Test]
+    public void GroundFoodAndSpitRoastAreNotHerOwnPack()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+
+        // Два самых заманчивых мировых источника разом: готовый кокос под
+        // ногами и жареное мясо на вертеле (§54.17 — старый Eat уходил к нему
+        // даже с полным рюкзаком).
+        DropAroundHer(world, npc, ContentIds.CoconutOpen);
+        foreach (var fire in world.Entities.Objects.Values)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(fire.DefinitionId, out var def) &&
+                def.Tags.Contains("Campfire"))
+            {
+                fire.Contents.Add(new ItemInstance(ContentIds.MeatCooked));
+            }
+        }
+
+        for (var i = 0; i < MediumTicks * 8; i++)
+        {
+            HoldNeeds(npc, 0.9f, 0f);
+            engine.Step();
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+                "Еда в МИРЕ (земля, вертел) — не её рюкзак: за ней ходят " +
+                "только по приказу.");
+        }
+
+        // ⭐ И обратная половина: тот же кокос, но В РЮКЗАКЕ — законный обед.
+        // Разделяет случаи именно владение, а не «кокосы запрещены».
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.CoconutOpen));
+        var ate = false;
+        for (var i = 0; i < MediumTicks * 12 && !ate; i++)
+        {
+            HoldNeeds(npc, 0.9f, 0f);
+            engine.Step();
+            ate |= npc.Mind.CurrentGoal == GoalType.Eat;
+        }
+
+        Assert.That(ate, Is.True,
+            "Тот же кокос, положенный ей в рюкзак, обязан съедаться без " +
+            "приказа — иначе слайс запретил не поход, а саму еду.");
+    }
+
+    [Test]
+    public void ManualNpcStillDrinksFromHerOwnBottle()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        npc.BottleWater = WaterKind.Rain;
+        npc.BottleCharges = SimBalance.BottleCapacity;
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0.9f;
+
+        // Минимум по ходу замера, а не значение в конце: жажда снова растёт
+        // после глотка, и «сколько её сейчас» ничего не доказывает.
+        var drank = false;
+        var lowestThirst = npc.Needs.Thirst;
+        for (var i = 0; i < MediumTicks * 12; i++)
+        {
+            engine.Step();
+            drank |= npc.Mind.CurrentGoal == GoalType.Drink;
+            lowestThirst = System.Math.Min(lowestThirst, npc.Needs.Thirst);
+        }
+
+        Assert.That(drank, Is.True,
+            "Своя полная фляга — питьё на месте, а не поход: §121.6 обязан её " +
+            "разрешать.");
+        Assert.That(lowestThirst, Is.LessThan(0.9f),
+            "Цель Drink была, а жажда ни разу не упала — план не исполнился.");
+    }
+
+    [Test]
+    public void ActivePlayerAttackIsNotReplacedByHungerOrThirst()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var attacker = Colonist(world);
+        TakeControl(engine, attacker);
+
+        var victim = world.Entities.Npcs.Values.First(n => !n.Id.Equals(attacker.Id));
+        var near = SpatialQueries.GetPassableNeighbors(
+            world, attacker.CurrentJunction!.Value).First();
+        victim.CurrentJunction = near;
+        victim.Tile = world.Junctions.Items[near].Tiles[0];
+        victim.Position = world.Junctions.Items[near].WorldPosition;
+
+        engine.Commands.Enqueue(new AttackNpcCommand(attacker.Id, victim.Id));
+        engine.Step();
+        Assert.That(attacker.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerAttack));
+
+        // Полный рюкзак И острые нужды: приказ игрока не уступает авто-нужде.
+        attacker.Inventory.Items.Add(new ItemInstance("food.meat_cooked"));
+        attacker.BottleWater = WaterKind.Rain;
+        attacker.BottleCharges = SimBalance.BottleCapacity;
+
+        // Замеряется ровно одно: НУЖДА не подменяет приказ. Цель по ходу боя
+        // может на такт уйти в None (самозащита §121.2 сносит план, а
+        // ManualOrderSystem защёлкивает пару обратно средним проходом) — это
+        // законно и к §121.6 отношения не имеет. А вот `Eat`/`Drink` посреди
+        // приказа означали бы, что узкий аукцион пробил гейт занятости.
+        for (var i = 0; i < MediumTicks * 4; i++)
+        {
+            HoldNeeds(attacker, 0.9f, 0.9f);
+            engine.Step();
+            Assert.That(attacker.Mind.CurrentGoal,
+                Is.Not.EqualTo(GoalType.Eat).And.Not.EqualTo(GoalType.Drink),
+                $"Приказ атаки подменён авто-нуждой {attacker.Mind.CurrentGoal} — " +
+                "гейт занятости §121.6 пробит.");
+            Assert.That(attacker.Mind.ManualAttackNpcId, Is.EqualTo(victim.Id),
+                "Голод/жажда уронили сам приказ атаки — авто-нужда не имеет " +
+                "права его отменять.");
+        }
+    }
+
     [Test]
     public void ManualNpcIsNeverAssignedReactiveRescueOrProstheticWork()
     {

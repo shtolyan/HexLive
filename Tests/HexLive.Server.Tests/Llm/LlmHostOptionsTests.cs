@@ -238,6 +238,24 @@ public sealed class LlmHostOptionsTests
         });
     }
 
+    [TestCase("https://llm-gateway.example/decision?token=endpoint-secret")]
+    [TestCase("https://llm-gateway.example/decision#endpoint-secret")]
+    public void EndpointQueryOrFragment_IsRejectedWithoutExposingEndpointContent(
+        string endpoint)
+    {
+        var options = new LlmHostOptions();
+
+        var exception = Assert.Throws<ArgumentException>(() => options.SetEndpoint(endpoint));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain("query, or a fragment"));
+            Assert.That(exception.ToString(), Does.Not.Contain(endpoint));
+            Assert.That(exception.ToString(), Does.Not.Contain("endpoint-secret"));
+            Assert.That(options.Endpoint, Is.Null);
+        });
+    }
+
     [Test]
     public void LoopbackHttp_RemainsAvailableForAnExplicitLocalProvider()
     {

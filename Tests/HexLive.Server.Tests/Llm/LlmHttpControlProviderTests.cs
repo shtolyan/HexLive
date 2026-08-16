@@ -215,7 +215,7 @@ public sealed class LlmHttpControlProviderTests
     public void FailureTaxonomy_IsOperatorVisibleRedactedAndBounded(
         LlmProviderFailureCategory category)
     {
-        const string querySecret = "query-secret";
+        const string endpointSecret = "endpoint-secret";
         const string apiSecret = "api-secret";
         const string responseSecret = "response-secret";
         var warnings = new List<string>();
@@ -223,7 +223,7 @@ public sealed class LlmHttpControlProviderTests
         using var handler = new RecordingHandler(_ => FailureResponse(category, responseSecret));
         using var http = new HttpClient(handler);
         using var provider = new LlmHttpControlProvider(
-            Options(apiSecret, $"http://127.0.0.1:11434/decision?token={querySecret}"),
+            Options(apiSecret, $"http://127.0.0.1:11434/decision/{endpointSecret}"),
             http,
             diagnostics);
 
@@ -255,7 +255,7 @@ public sealed class LlmHttpControlProviderTests
                 Is.LessThanOrEqualTo(LlmProviderDiagnostics.MaxDiagnosticLineLength));
             Assert.That(diagnostics.DrainSummary(), Is.Null,
                 "A drained interval must not emit an empty periodic line.");
-            Assert.That(diagnosticOutput, Does.Not.Contain(querySecret));
+            Assert.That(diagnosticOutput, Does.Not.Contain(endpointSecret));
             Assert.That(diagnosticOutput, Does.Not.Contain(apiSecret));
             Assert.That(diagnosticOutput, Does.Not.Contain(responseSecret));
             Assert.That(diagnosticOutput.Length,

@@ -93,10 +93,13 @@ public sealed class LlmHostOptions
             throw new ArgumentException("LLM endpoint must be an absolute http(s) URL.", nameof(value));
         }
 
-        if (!string.IsNullOrEmpty(endpoint.UserInfo) || !string.IsNullOrEmpty(endpoint.Fragment))
+        if (!string.IsNullOrEmpty(endpoint.UserInfo) ||
+            !string.IsNullOrEmpty(endpoint.Query) ||
+            !string.IsNullOrEmpty(endpoint.Fragment))
         {
             throw new ArgumentException(
-                "LLM endpoint must not contain user-info credentials or a fragment.", nameof(value));
+                "LLM endpoint must not contain user-info credentials, a query, or a fragment.",
+                nameof(value));
         }
 
         if (endpoint.Scheme == Uri.UriSchemeHttp && !endpoint.IsLoopback)

@@ -104,8 +104,10 @@ The first failure in each category emits one immediate warning per provider
 lifetime. Further failures are counted and included in the existing one-minute
 server status only when the count is non-zero, so a failing gateway cannot create
 per-tick log spam. Provider result errors and operator diagnostics contain only
-the fixed category text; they never include the endpoint (including its query),
-the bearer key, response body, or underlying exception message.
+the fixed category text; they never include the endpoint, the bearer key,
+response body, or underlying exception message. An endpoint carries no query or
+fragment by configuration, so its path is the only part that could hold a
+gateway secret, and it is redacted along with the rest of the URL.
 
 ## Configuration
 
@@ -119,7 +121,7 @@ not appear in process listings or shell history.
 
 | Environment | Command line | Default / validation |
 |---|---|---|
-| `HEXLIVE_LLM_ENDPOINT` | `--llm-endpoint` | required to opt in; absolute HTTPS, or HTTP loopback only; no URL user-info or fragment |
+| `HEXLIVE_LLM_ENDPOINT` | `--llm-endpoint` | required to opt in; absolute HTTPS, or HTTP loopback only; no URL user-info, query, or fragment |
 | `HEXLIVE_LLM_NPCS` | `--llm-npcs` | required to opt in; unique, positive comma-separated ids |
 | `HEXLIVE_LLM_MODEL` | `--llm-model` | optional gateway routing hint, at most 200 characters |
 | `HEXLIVE_LLM_API_KEY` | none | optional bearer secret, environment only |

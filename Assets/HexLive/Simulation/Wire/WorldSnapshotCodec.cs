@@ -78,7 +78,9 @@ public static class WorldSnapshotCodec
     /// v26: §57 RelationshipDetails уехали из отладочного блока в основную
     /// запись NPC — вкладка «Отношения» на листе персонажа это ИГРА, а не дамп
     /// панели, и на сервере без --debug-details она молча пустовала.
-    public const int WireVersion = 26;
+    /// v27: §83.2 r12 — запись NPC разложена на группы полей и едет с маской
+    /// групп. Дельта шлёт только изменившиеся; замер до/после — в §83.5.
+    public const int WireVersion = 27;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -660,9 +662,90 @@ public static class WorldSnapshotCodec
     }
 
     /// <summary>ONE colonist, self-contained — see <see cref="WriteObjectRecord"/>.</summary>
+    /// <summary>
+    /// §83.2 r12: запись колонистки, разложенная на ГРУППЫ ПОЛЕЙ.
+    /// <para>
+    /// Замер, из-за которого это появилось: 96.5% дельты — записи NPC, медиана
+    /// 3.6 КБ на запись, 39-69 КБ/с на зрителя. Дельта сравнивает БАЙТЫ записи
+    /// целиком, а колонистка каждый тик делает шаг — значит вместе с двадцатью
+    /// байтами позиции каждый раз уезжали полтора килобайта прочности, грязи,
+    /// влаги и крови по каждой надетой и лежащей в рюкзаке вещи, плюс атрибуты и
+    /// навыки, которые не меняются вообще.
+    /// </para>
+    /// <para>
+    /// Группа — это диапазон полей, которые меняются ВМЕСТЕ и с одной частотой.
+    /// Перед записью едет маска: бит на группу, и в дельте включены только те,
+    /// чьи байты отличаются от базовой линии.
+    /// </para>
+    /// <para>
+    /// ⭐ Свойство §83, ради которого всё это устроено именно так, не нарушено:
+    /// кодировщик дельты по-прежнему НЕ СМОТРИТ НА ПОЛЕ. Он просит у этих же
+    /// методов байты группы — тех самых, которыми пишется ключевой кадр, — и
+    /// сравнивает их с прошлыми. Поле по-прежнему можно забыть ровно в одном
+    /// месте, и это место сторожит гейт покрытия. Поэтому группы обязаны быть
+    /// разбиением: каждое поле ровно в одной, ни одного вне их.
+    /// </para>
+    /// </summary>
+    internal static class NpcGroup
+    {
+        public const int Identity = 0;    // имя, меш, причёска, фракция — не меняется никогда
+        public const int Transform = 1;   // тайл, позиция, поворот — каждый тик
+        public const int Locomotion = 2;  // поза, прыжок, обмороки, стресс — часто
+        public const int Vitals = 3;      // здоровье и нужды — на среднем слое
+        public const int Combat = 4;      // замах, удар, оружие — только в бою
+        public const int Body = 5;        // конечности, раны, протезы, перенос
+        public const int Mind = 6;        // цель, план, реплики, цель взаимодействия
+        public const int Inventory = 7;   // рюкзак и контейнеры — редко, но толсто
+        public const int Wear = 8;        // надетое и его состояние — редко, но толсто
+        public const int Character = 9;   // §76 атрибуты, навыки, перки, черты, эффекты
+        public const int Relations = 10;  // §57 отношения
+        public const int Debug = 11;      // дампы панели — только под --debug-details
+
+        public const int Count = 12;
+        public const int All = (1 << Count) - 1;
+        public const int AllButDebug = All & ~(1 << Debug);
+    }
+
+    /// <summary>
+    /// Полная запись — как её пишет ключевой кадр: маска со всеми группами,
+    /// затем все группы подряд. Дельта пишет ту же маску с меньшим числом битов
+    /// и только выбранные группы; читатель у обоих ОДИН.
+    /// </summary>
     internal static void WriteNpcRecord(BinaryWriter w, NpcSnapshot n, bool includeDebugDetails)
     {
-        // identity + transform
+        var mask = includeDebugDetails ? NpcGroup.All : NpcGroup.AllButDebug;
+        w.Write((ushort)mask);
+        for (var group = 0; group < NpcGroup.Count; group++)
+        {
+            if ((mask & (1 << group)) != 0)
+            {
+                WriteNpcGroup(w, n, group);
+            }
+        }
+    }
+
+    internal static void WriteNpcGroup(BinaryWriter w, NpcSnapshot n, int group)
+    {
+        switch (group)
+        {
+            case NpcGroup.Identity: WriteNpcIdentity(w, n); break;
+            case NpcGroup.Transform: WriteNpcTransform(w, n); break;
+            case NpcGroup.Locomotion: WriteNpcLocomotion(w, n); break;
+            case NpcGroup.Vitals: WriteNpcVitals(w, n); break;
+            case NpcGroup.Combat: WriteNpcCombat(w, n); break;
+            case NpcGroup.Body: WriteNpcBody(w, n); break;
+            case NpcGroup.Mind: WriteNpcMind(w, n); break;
+            case NpcGroup.Inventory: WriteNpcInventory(w, n); break;
+            case NpcGroup.Wear: WriteNpcWear(w, n); break;
+            case NpcGroup.Character: WriteNpcCharacter(w, n); break;
+            case NpcGroup.Relations: WriteNpcRelations(w, n); break;
+            case NpcGroup.Debug: WriteNpcDebug(w, n); break;
+            default: throw new InvalidDataException($"Unknown NPC field group {group}.");
+        }
+    }
+
+    private static void WriteNpcIdentity(BinaryWriter w, NpcSnapshot n)
+    {
         w.Write(n.Id.Value);
         WireIo.WriteString(w, n.DisplayName);
         WireIo.WriteString(w, n.ActorMesh);
@@ -674,13 +757,17 @@ public static class WorldSnapshotCodec
         WireIo.WriteString(w, n.VoiceBank);
         w.Write((byte)n.Faction);
         w.Write(n.IsHostileToColony);
+    }
+
+    private static void WriteNpcTransform(BinaryWriter w, NpcSnapshot n)
+    {
         WireIo.WriteTile(w, n.Tile);
         WireIo.WriteFloat2(w, n.Position);
         w.Write(n.RotationDegrees);
+    }
 
-        // combat
-        w.Write(n.Health);
-        w.Write(n.CompassionTrait);
+    private static void WriteNpcCombat(BinaryWriter w, NpcSnapshot n)
+    {
         w.Write(n.MeleeStats.LimbMultiplier);
         w.Write(n.MeleeStats.StrengthMultiplier);
         w.Write(n.MeleeStats.CombatMultiplier);
@@ -695,16 +782,12 @@ public static class WorldSnapshotCodec
         w.Write(n.HitWeaponId ?? string.Empty);
         w.Write(n.HitPart ?? string.Empty);
         WireIo.WriteFloat2(w, n.HitFrom);
+    }
 
-        // body
-        WireIo.WriteStrings(w, n.BodyParts);
-        WireIo.WriteStrings(w, n.PartArmor);
-        WireIo.WriteStrings(w, n.SeveredParts);
-        WireIo.WriteString(w, n.WorstBodyPart);
-        WireIo.WriteStrings(w, n.UncoveredParts);
-        WireIo.WriteStrings(w, n.BandagedZones);
-
-        // needs
+    private static void WriteNpcVitals(BinaryWriter w, NpcSnapshot n)
+    {
+        w.Write(n.Health);
+        w.Write(n.CompassionTrait);
         w.Write(n.Hunger);
         w.Write(n.Thirst);
         w.Write(n.Energy);
@@ -722,8 +805,14 @@ public static class WorldSnapshotCodec
         w.Write(n.Sunburn);
         w.Write(n.EffectiveUv);
         w.Write(n.IsShaded);
+        w.Write(n.WoundLockedHp);
+        w.Write(n.VitalHealth); // §105 r2
+        w.Write(n.DisplayHealth); // §105 r3
+        w.Write(n.BloodDeficit);
+    }
 
-        // posture / locomotion
+    private static void WriteNpcLocomotion(BinaryWriter w, NpcSnapshot n)
+    {
         WireIo.WriteString(w, n.PostureHint);
         w.Write(n.Winded);
         w.Write(n.IsRunning);
@@ -745,7 +834,10 @@ public static class WorldSnapshotCodec
         w.Write(n.LedgeSeatStepsUp);
         w.Write(n.IsWaking);
         w.Write(n.Stress);
+    }
 
+    private static void WriteNpcMind(BinaryWriter w, NpcSnapshot n)
+    {
         // goal / plan / execution
         WireIo.WriteString(w, n.CurrentGoal);
         WireIo.WriteString(w, n.CurrentDream);
@@ -777,8 +869,13 @@ public static class WorldSnapshotCodec
         WireIo.WriteNullableInt(w, n.TargetObjectId);
         WireIo.WriteNullableTile(w, n.TargetTile);
         w.Write(n.IsStarving);
+        w.Write(n.KnownObjectCount);
+        WireIo.WriteNullableInt(w, n.GoalLockEndTick);
+        w.Write(n.IsManualControl); // §121
+    }
 
-        // inventory
+    private static void WriteNpcInventory(BinaryWriter w, NpcSnapshot n)
+    {
         WireIo.WriteStrings(w, n.InventoryItems);
         w.Write(n.InventoryUsedSlots);
         WireIo.WriteStrings(w, n.InventoryStacks);
@@ -811,20 +908,20 @@ public static class WorldSnapshotCodec
                 WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
             }
         }
+    }
 
-        // §28.15C v3: каким клипом она упала.
-        w.Write(n.DeathAnimVariant);
-
-        // worn
+    private static void WriteNpcWear(BinaryWriter w, NpcSnapshot n)
+    {
         WireIo.WriteStrings(w, n.WornItems);
         WireIo.WriteStrings(w, n.HolsteredItems);
         WireIo.WriteStrings(w, n.WornDurability);
         WireIo.WriteStrings(w, n.WornWetness);
         WireIo.WriteStrings(w, n.WornDirtiness);
         WireIo.WriteStrings(w, n.WornBloodiness);
+    }
 
-        // wounds + effects
-        WireIo.WriteStrings(w, n.Wounds);
+    private static void WriteNpcCharacter(BinaryWriter w, NpcSnapshot n)
+    {
         WireIo.WriteStrings(w, n.Effects);
         // §76: innate attributes, learned skills, perks.
         WireIo.WriteStrings(w, n.Attributes);
@@ -833,12 +930,22 @@ public static class WorldSnapshotCodec
         WireIo.WriteStrings(w, n.Perks);
         // §126/v19: черты характера.
         WireIo.WriteStrings(w, n.Traits);
-        w.Write(n.WoundLockedHp);
-        w.Write(n.VitalHealth); // §105 r2
-        w.Write(n.DisplayHealth); // §105 r3
+    }
+
+    private static void WriteNpcBody(BinaryWriter w, NpcSnapshot n)
+    {
+        WireIo.WriteStrings(w, n.BodyParts);
+        WireIo.WriteStrings(w, n.PartArmor);
+        WireIo.WriteStrings(w, n.SeveredParts);
+        WireIo.WriteString(w, n.WorstBodyPart);
+        WireIo.WriteStrings(w, n.UncoveredParts);
+        WireIo.WriteStrings(w, n.BandagedZones);
+        WireIo.WriteStrings(w, n.Wounds);
+
+        // §28.15C v3: каким клипом она упала.
+        w.Write(n.DeathAnimVariant);
 
         // §116/v12: typed conditions, wounds, prosthetics and carry links.
-        w.Write(n.BloodDeficit);
         WireIo.WriteNullableInt(w, n.CarriedNpcId);
         WireIo.WriteNullableInt(w, n.CarriedByNpcId);
         WireIo.WriteNullableInt(w, n.RescueDestinationObjectId);
@@ -880,17 +987,17 @@ public static class WorldSnapshotCodec
             w.Write(wound.BleedFactor);
             w.Write(wound.Seed);
         }
+    }
 
-        w.Write(n.KnownObjectCount);
-        WireIo.WriteNullableInt(w, n.GoalLockEndTick);
-        w.Write(n.IsManualControl); // §121
-
-        // §57: отношения — ИГРОВЫЕ данные, вкладка «Отношения» на листе
-        // персонажа, и едут всегда. Раньше они лежали в отладочном блоке ниже,
-        // и это был молчаливый отказ ровно того сорта, который §83 обещает
-        // ловить: локально панель читает снапшот напрямую, мимо кодека, поэтому
-        // всё работало, — а на сервере вкладка оказывалась пустой, если хост не
-        // запущен с --debug-details. Пустая вкладка не выглядит как поломка.
+    /// <summary>
+    /// §57: отношения — ИГРОВЫЕ данные, вкладка «Отношения» на листе персонажа,
+    /// и едут всегда. Когда-то они лежали в отладочном блоке, и это был молчаливый
+    /// отказ ровно того сорта, который §83 обещает ловить: локально панель читает
+    /// снапшот напрямую, мимо кодека, поэтому всё работало, — а на сервере вкладка
+    /// оказывалась пустой, если хост не запущен с --debug-details.
+    /// </summary>
+    private static void WriteNpcRelations(BinaryWriter w, NpcSnapshot n)
+    {
         w.Write(n.RelationshipDetails.Count);
         for (var j = 0; j < n.RelationshipDetails.Count; j++)
         {
@@ -901,15 +1008,15 @@ public static class WorldSnapshotCodec
             w.Write(rel.Familiarity);
             w.Write(rel.Affinity);
         }
+    }
 
-        // Debug-panel payload: the string dumps (memory, cooldowns, the raw
-        // relationship line) and goal scores. Off by default for the same reason
-        // the exporter gates them — megabytes a tick that only the panel reads.
-        if (!includeDebugDetails)
-        {
-            return;
-        }
-
+    /// <summary>
+    /// Debug-panel payload: the string dumps (memory, cooldowns, the raw
+    /// relationship line) and goal scores. Off by default for the same reason
+    /// the exporter gates them — megabytes a tick that only the panel reads.
+    /// </summary>
+    private static void WriteNpcDebug(BinaryWriter w, NpcSnapshot n)
+    {
         WireIo.WriteStrings(w, n.CooldownGoals);
         WireIo.WriteStrings(w, n.Relationships);
         WireIo.WriteStrings(w, n.KnownObjects);
@@ -937,6 +1044,52 @@ public static class WorldSnapshotCodec
     /// <summary>ONE colonist — the mirror of <see cref="WriteNpcRecord"/>.</summary>
     internal static void ReadNpcRecord(BinaryReader r, NpcSnapshot n, bool includeDebugDetails)
     {
+        // ОДИН читатель на ключевой кадр и на дельту: разница между ними ровно в
+        // том, сколько битов стоит в маске. Группа, чей бит не стоит, не тронута
+        // — зеркало сохраняет то, что уже держало, и это весь смысл затеи.
+        var mask = r.ReadUInt16();
+        for (var group = 0; group < NpcGroup.Count; group++)
+        {
+            if ((mask & (1 << group)) != 0)
+            {
+                ReadNpcGroup(r, n, group);
+            }
+        }
+
+        if (!includeDebugDetails)
+        {
+            // Ничего не писали, но чистим: иначе выключенная панель показывала бы
+            // дампы последнего кадра, в котором была открыта.
+            n.CooldownGoals.Clear();
+            n.Relationships.Clear();
+            n.KnownObjects.Clear();
+            n.Path.Clear();
+            n.GoalScores.Clear();
+        }
+    }
+
+    internal static void ReadNpcGroup(BinaryReader r, NpcSnapshot n, int group)
+    {
+        switch (group)
+        {
+            case NpcGroup.Identity: ReadNpcIdentity(r, n); break;
+            case NpcGroup.Transform: ReadNpcTransform(r, n); break;
+            case NpcGroup.Locomotion: ReadNpcLocomotion(r, n); break;
+            case NpcGroup.Vitals: ReadNpcVitals(r, n); break;
+            case NpcGroup.Combat: ReadNpcCombat(r, n); break;
+            case NpcGroup.Body: ReadNpcBody(r, n); break;
+            case NpcGroup.Mind: ReadNpcMind(r, n); break;
+            case NpcGroup.Inventory: ReadNpcInventory(r, n); break;
+            case NpcGroup.Wear: ReadNpcWear(r, n); break;
+            case NpcGroup.Character: ReadNpcCharacter(r, n); break;
+            case NpcGroup.Relations: ReadNpcRelations(r, n); break;
+            case NpcGroup.Debug: ReadNpcDebug(r, n); break;
+            default: throw new InvalidDataException($"Unknown NPC field group {group}.");
+        }
+    }
+
+    private static void ReadNpcIdentity(BinaryReader r, NpcSnapshot n)
+    {
         n.Id = new EntityId(r.ReadInt32());
         n.DisplayName = r.ReadString();
         n.ActorMesh = r.ReadString();
@@ -946,12 +1099,17 @@ public static class WorldSnapshotCodec
         n.VoiceBank = r.ReadString();
         n.Faction = (Agents.Faction)r.ReadByte();
         n.IsHostileToColony = r.ReadBoolean();
+    }
+
+    private static void ReadNpcTransform(BinaryReader r, NpcSnapshot n)
+    {
         n.Tile = WireIo.ReadTile(r);
         n.Position = WireIo.ReadFloat2(r);
         n.RotationDegrees = r.ReadSingle();
+    }
 
-        n.Health = r.ReadSingle();
-        n.CompassionTrait = r.ReadSingle();
+    private static void ReadNpcCombat(BinaryReader r, NpcSnapshot n)
+    {
         n.MeleeStats ??= new MeleeStatsSnapshot();
         n.MeleeStats.LimbMultiplier = r.ReadSingle();
         n.MeleeStats.StrengthMultiplier = r.ReadSingle();
@@ -967,14 +1125,12 @@ public static class WorldSnapshotCodec
         n.HitWeaponId = r.ReadString();
         n.HitPart = r.ReadString();
         n.HitFrom = WireIo.ReadFloat2(r);
+    }
 
-        WireIo.ReadStrings(r, n.BodyParts);
-        WireIo.ReadStrings(r, n.PartArmor);
-        WireIo.ReadStrings(r, n.SeveredParts);
-        n.WorstBodyPart = r.ReadString();
-        WireIo.ReadStrings(r, n.UncoveredParts);
-        WireIo.ReadStrings(r, n.BandagedZones);
-
+    private static void ReadNpcVitals(BinaryReader r, NpcSnapshot n)
+    {
+        n.Health = r.ReadSingle();
+        n.CompassionTrait = r.ReadSingle();
         n.Hunger = r.ReadSingle();
         n.Thirst = r.ReadSingle();
         n.Energy = r.ReadSingle();
@@ -992,7 +1148,14 @@ public static class WorldSnapshotCodec
         n.Sunburn = r.ReadSingle();
         n.EffectiveUv = r.ReadSingle();
         n.IsShaded = r.ReadBoolean();
+        n.WoundLockedHp = r.ReadSingle();
+        n.VitalHealth = r.ReadSingle(); // §105 r2
+        n.DisplayHealth = r.ReadSingle(); // §105 r3
+        n.BloodDeficit = r.ReadSingle();
+    }
 
+    private static void ReadNpcLocomotion(BinaryReader r, NpcSnapshot n)
+    {
         n.PostureHint = r.ReadString();
         n.Winded = r.ReadBoolean();
         n.IsRunning = r.ReadBoolean();
@@ -1014,7 +1177,10 @@ public static class WorldSnapshotCodec
         n.LedgeSeatStepsUp = r.ReadInt32();
         n.IsWaking = r.ReadBoolean();
         n.Stress = r.ReadSingle();
+    }
 
+    private static void ReadNpcMind(BinaryReader r, NpcSnapshot n)
+    {
         n.CurrentGoal = r.ReadString();
         n.CurrentDream = r.ReadString();
         n.PlanStatus = r.ReadString();
@@ -1043,7 +1209,13 @@ public static class WorldSnapshotCodec
         n.TargetObjectId = WireIo.ReadNullableInt(r);
         n.TargetTile = WireIo.ReadNullableTile(r);
         n.IsStarving = r.ReadBoolean();
+        n.KnownObjectCount = r.ReadInt32();
+        n.GoalLockEndTick = WireIo.ReadNullableInt(r);
+        n.IsManualControl = r.ReadBoolean(); // §121
+    }
 
+    private static void ReadNpcInventory(BinaryReader r, NpcSnapshot n)
+    {
         WireIo.ReadStrings(r, n.InventoryItems);
         n.InventoryUsedSlots = r.ReadInt32();
         WireIo.ReadStrings(r, n.InventoryStacks);
@@ -1080,28 +1252,40 @@ public static class WorldSnapshotCodec
                 slot.AcceptedItemDefinitionId = r.ReadString();
             }
         }
+    }
 
-        n.DeathAnimVariant = r.ReadInt32();
-
+    private static void ReadNpcWear(BinaryReader r, NpcSnapshot n)
+    {
         WireIo.ReadStrings(r, n.WornItems);
         WireIo.ReadStrings(r, n.HolsteredItems);
         WireIo.ReadStrings(r, n.WornDurability);
         WireIo.ReadStrings(r, n.WornWetness);
         WireIo.ReadStrings(r, n.WornDirtiness);
         WireIo.ReadStrings(r, n.WornBloodiness);
+    }
 
-        WireIo.ReadStrings(r, n.Wounds);
+    private static void ReadNpcCharacter(BinaryReader r, NpcSnapshot n)
+    {
         WireIo.ReadStrings(r, n.Effects);
         WireIo.ReadStrings(r, n.Attributes);
         WireIo.ReadStrings(r, n.Skills);
         n.PerceptionRadiusTiles = r.ReadInt32();
         WireIo.ReadStrings(r, n.Perks);
         WireIo.ReadStrings(r, n.Traits);
-        n.WoundLockedHp = r.ReadSingle();
-        n.VitalHealth = r.ReadSingle(); // §105 r2
-        n.DisplayHealth = r.ReadSingle(); // §105 r3
+    }
 
-        n.BloodDeficit = r.ReadSingle();
+    private static void ReadNpcBody(BinaryReader r, NpcSnapshot n)
+    {
+        WireIo.ReadStrings(r, n.BodyParts);
+        WireIo.ReadStrings(r, n.PartArmor);
+        WireIo.ReadStrings(r, n.SeveredParts);
+        n.WorstBodyPart = r.ReadString();
+        WireIo.ReadStrings(r, n.UncoveredParts);
+        WireIo.ReadStrings(r, n.BandagedZones);
+        WireIo.ReadStrings(r, n.Wounds);
+
+        n.DeathAnimVariant = r.ReadInt32();
+
         n.CarriedNpcId = WireIo.ReadNullableInt(r);
         n.CarriedByNpcId = WireIo.ReadNullableInt(r);
         n.RescueDestinationObjectId = WireIo.ReadNullableInt(r);
@@ -1148,12 +1332,10 @@ public static class WorldSnapshotCodec
             wound.BleedFactor = r.ReadSingle();
             wound.Seed = r.ReadInt32();
         }
+    }
 
-        n.KnownObjectCount = r.ReadInt32();
-        n.GoalLockEndTick = WireIo.ReadNullableInt(r);
-        n.IsManualControl = r.ReadBoolean(); // §121
-
-        // §57: всегда — см. писателя.
+    private static void ReadNpcRelations(BinaryReader r, NpcSnapshot n)
+    {
         var relCount = r.ReadInt32();
         WireIo.Resize(n.RelationshipDetails, relCount);
         for (var j = 0; j < relCount; j++)
@@ -1166,19 +1348,10 @@ public static class WorldSnapshotCodec
             rel.Affinity = r.ReadSingle();
         }
 
-        if (!includeDebugDetails)
-        {
-            // Nothing was written, so leave whatever the reused snapshot
-            // already had — but clear it, or a panel toggled off would keep
-            // showing the last frame's dumps forever.
-            n.CooldownGoals.Clear();
-            n.Relationships.Clear();
-            n.KnownObjects.Clear();
-            n.Path.Clear();
-            n.GoalScores.Clear();
-            return;
-        }
+    }
 
+    private static void ReadNpcDebug(BinaryReader r, NpcSnapshot n)
+    {
         WireIo.ReadStrings(r, n.CooldownGoals);
         WireIo.ReadStrings(r, n.Relationships);
         WireIo.ReadStrings(r, n.KnownObjects);

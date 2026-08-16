@@ -58,6 +58,10 @@ public static class BuildingRules
     public const float HutWardrobeLocalX = -0.3247595f;
     public const float HutWardrobeLocalZ = -0.9375f;
     public const float HutWardrobeLocalYaw = 240f;
+    // §118.2: аптечка стоит на следующем внутреннем узле 10, а не на
+    // трёхузловом authored footprint гардероба 9 -> 4 -> 0.
+    public const float HutMedkitLocalX = -0.3247595f;
+    public const float HutMedkitLocalZ = -0.5625f;
 
     public const float HutHearthLocalX = -0.3248f;
     public const float HutHearthLocalZ = 0.5625f;

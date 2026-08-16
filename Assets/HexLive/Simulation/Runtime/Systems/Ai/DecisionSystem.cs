@@ -555,7 +555,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var wantsCover = ModestyMath.OutsiderKnown(world, npc) &&
                 ModestyMath.MissingCover(world, npc) &&
                 KnowsReachablePermittedCover(npc, world);
-            var dressAvail = !pendingRedress && (wantsArmor || wantsCover ||
+            var wearsBackpack = false;
+            foreach (var worn in npc.WornItems)
+            {
+                if (world.Content.ObjectDefinitions.TryGetValue(worn.DefinitionId, out var wornDefinition) &&
+                    wornDefinition.Layer == WearLayer.Bags)
+                {
+                    wearsBackpack = true;
+                    break;
+                }
+            }
+            var wantsBackpack = !wearsBackpack && KnowsReachableBackpack(npc, world);
+            var dressAvail = !pendingRedress && (wantsBackpack || wantsArmor || wantsCover ||
                 (npc.Needs.ThermalDiscomfort >= SimBalance.DressThermalThreshold &&
                  effectiveTemp < SimBalance.DressColdTemp && // spec 42: dress against REAL cold only —
                  // a merely-cool girl (14..16) must not circle the wardrobe all
@@ -586,6 +597,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             {
                 // §133: прикрыться при чужаке важнее и холода, и загара.
                 dressNeed = System.Math.Max(dressNeed, ModestyMath.CoverNeed);
+            }
+            if (wantsBackpack)
+            {
+                // §52: restoring nine lost carry slots beats ordinary work.
+                dressNeed = System.Math.Max(dressNeed, 1f);
             }
 
             // Spec 28.6 / 28.15A: Socialize needs a reachable non-busy agent;

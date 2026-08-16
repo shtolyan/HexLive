@@ -389,6 +389,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
+    // Bug #146: UI may keep a hidden relation target selected so its card can
+    // stay open. Camera code must ask the same authoritative fog state before
+    // using the still-alive (but inactive) actor transform as a framing target.
+    public bool IsNpcHiddenByFog(int npcId) =>
+        _fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(npcId);
+
     // §67.10: the actor itself, so a sim event (death cry, "it's built!") can
     // be spoken by the right mouth instead of a disembodied sfx.
     public bool TryGetActorView(int npcId, out NpcActorView view)
@@ -3061,9 +3067,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             y += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
         }
+        else if (_floorTiles.Contains(worldObject.Tile) &&
+                 !OwnsRaisedFloorGeometry(worldObject))
+        {
+            // §118.2: loose items in a hut stand on the authored top of its
+            // raised floor, not on the terrain hidden 0.107475 wu below it.
+            // Bug #155: the hut/architecture root already carries that rise in
+            // its authored local geometry. Lifting the root as well raises the
+            // visible floor twice and leaves every correctly seated piece of
+            // furniture buried by exactly FloorSurfaceLift.
+            y += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
+        }
 
         return y;
     }
+
+    private static bool OwnsRaisedFloorGeometry(ObjectSnapshot worldObject) =>
+        worldObject.DefinitionId == ContentIds.Hut1Hex ||
+        worldObject.ArchitectureOwnerObjectId.HasValue;
 
     // §40.18-B: where an ACTOR's root sits on a tile. On land that is the
     // ground; in deep water she hangs SinkDepth below the water surface; in

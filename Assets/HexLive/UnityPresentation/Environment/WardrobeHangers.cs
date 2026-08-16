@@ -29,7 +29,9 @@ namespace HexLive.UnityPresentation.Environment
         /// <summary>
         /// Four places on the wardrobe's lower board. Footwear is stored here
         /// upright, never on a rail hanger. This shares the wardrobe's local
-        /// axis and is rotated only by the furniture root's six-way yaw.
+        /// axis and is rotated only by the furniture root's six-way yaw. The Y
+        /// coordinate is the shelf surface; <see cref="GroundFootwearOnShelf"/>
+        /// lifts each differently sized mesh by its own bounds.
         /// </summary>
         public static Vector3 ShoeShelfSlot(int index)
         {

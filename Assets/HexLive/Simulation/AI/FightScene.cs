@@ -62,8 +62,6 @@ public static class FightScene
 
         npc.StrikeLandsAtTick = 0;
         npc.PendingHumanStrikeTargetId = null;
-        npc.PendingHumanStrikeKillAuthorized = false;
-        npc.PendingHumanStrikeKillIntent = 0f;
 
         // Порог различает сентинел (~5·10⁸) и легальный кулдаун оружия
         // (десятки тиков): настоящую готовность мы не трогаем.
@@ -75,8 +73,8 @@ public static class FightScene
 
     /// <summary>
     /// Restore an in-flight human swing from a save without giving persistence
-    /// a second implementation of the slot. The stored body part and mercy
-    /// decision must stay paired with the exact timeline that selected them.
+    /// a second implementation of the slot. The stored body part must stay
+    /// paired with the exact timeline that selected it.
     /// </summary>
     public static void RestoreSwingSlot(
         NPCState npc,
@@ -86,9 +84,7 @@ public static class FightScene
         int startTick,
         int strikeIndex,
         EntityId? targetId,
-        Content.BodyPart part,
-        bool killAuthorized,
-        float killIntent)
+        Content.BodyPart part)
     {
         npc.StrikeLandsAtTick = landsAtTick;
         npc.StrikeReadyAtTick = readyAtTick;
@@ -97,8 +93,6 @@ public static class FightScene
         npc.SwingStrikeIndex = strikeIndex;
         npc.PendingHumanStrikeTargetId = targetId;
         npc.PendingHumanStrikePart = part;
-        npc.PendingHumanStrikeKillAuthorized = killAuthorized;
-        npc.PendingHumanStrikeKillIntent = killIntent;
     }
 
     /// <summary>

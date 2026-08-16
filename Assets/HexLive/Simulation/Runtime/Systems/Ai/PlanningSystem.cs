@@ -776,6 +776,19 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            var wearsBackpack = false;
+            foreach (var worn in npc.WornItems)
+            {
+                if (world.Content.ObjectDefinitions.TryGetValue(worn.DefinitionId, out var definition) &&
+                    definition.Layer == WearLayer.Bags)
+                {
+                    wearsBackpack = true;
+                    break;
+                }
+            }
+            var preferBackpack = interactionType == InteractionType.Dress &&
+                !wearsBackpack && DecisionSystem.KnowsReachableBackpack(npc, world);
+
             // Spec 29C.4A: a threatened underarmored NPC dressing up prefers
             // the best armor over the nearest garment.
             var preferArmor = interactionType == InteractionType.Dress &&
@@ -823,6 +836,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             var selectedMine = false;
             var selectedNutrition = 0f;
             var selectedProstheticBoard = false;
+            var selectedOwnedBackpack = false;
             var selectedMedicalStick = false;
             var selectedCoconutBlade = false;
             var selectedDressAffinity = -1f;
@@ -923,7 +937,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // never walk to an identical/worse shirt (clamp-aware gain over
                 // what she wears now). Armor-driven dressing (preferArmor) keeps
                 // its own CandidateArmor gain rule below, untouched.
-                if (interactionType == InteractionType.Dress && !preferArmor && !preferCover &&
+                var isBackpackCandidate = interactionType == InteractionType.Dress &&
+                    world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var wearDefinition) &&
+                    wearDefinition.Layer == WearLayer.Bags;
+                if (preferBackpack && !isBackpackCandidate)
+                {
+                    continue;
+                }
+
+                if (interactionType == InteractionType.Dress && !preferBackpack && !preferArmor && !preferCover &&
                     EquipmentMath.WarmthGainFromWearing(world, npc, perceived.DefinitionId) <
                         SimBalance.DressWarmthGainMin)
                 {
@@ -960,7 +982,19 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
                 }
 
-                if (preferCoconutBlade)
+                if (preferBackpack)
+                {
+                    var mine = world.Entities.Objects.TryGetValue(perceived.Id, out var backpack) &&
+                        backpack.Owner == npc.Id;
+                    if (selected is null ||
+                        (mine && !selectedOwnedBackpack) ||
+                        (mine == selectedOwnedBackpack && perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
+                        selectedOwnedBackpack = mine;
+                    }
+                }
+                else if (preferCoconutBlade)
                 {
                     var isBlade = ToolCandidateProvidesCapability(
                         world, perceived, Content.GearCapability.Cut);

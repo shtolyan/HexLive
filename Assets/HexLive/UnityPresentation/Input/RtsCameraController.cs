@@ -1239,6 +1239,15 @@ namespace HexLive.UnityPresentation.Input
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
             }
 
+            // Bug #146: selecting a hidden outsider through a relationship
+            // card must not leak her location by framing an inactive actor or
+            // falling back to the authoritative snapshot position.
+            if (_worldRenderer != null && _worldRenderer.IsNpcHiddenByFog(npcId))
+            {
+                target = Vector3.zero;
+                return false;
+            }
+
             if (_worldRenderer != null && _worldRenderer.TryGetNpcViewPosition(npcId, out var viewPos))
             {
                 // §131: высоту головы отвечает сама фигура ЕДИНЫМ методом —

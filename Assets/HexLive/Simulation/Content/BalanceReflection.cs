@@ -39,7 +39,6 @@ public static class BalanceReflection
         typeof(Spec81),
         typeof(Spec82),
         typeof(Spec85),
-        typeof(Spec86),
         typeof(Spec94),
         typeof(Spec105),
         typeof(Spec106),

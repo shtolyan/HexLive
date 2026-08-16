@@ -101,11 +101,9 @@ public sealed class HumanCombatSystem : ISimulationSystem
 
             if (!inReach || damage <= 0f)
             {
-                // The selected part/intent belongs to this resolved wind-up.
-                // Never let a miss leak that decision into the next swing.
+                // The selected part belongs to this resolved wind-up. Never
+                // let a miss leak that target into the next swing.
                 actor.PendingHumanStrikeTargetId = null;
-                actor.PendingHumanStrikeKillAuthorized = false;
-                actor.PendingHumanStrikeKillIntent = 0f;
                 continue; // the swing resolved into thin air — she stepped away
             }
 

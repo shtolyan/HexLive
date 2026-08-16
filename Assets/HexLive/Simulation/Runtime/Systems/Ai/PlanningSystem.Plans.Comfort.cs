@@ -1,3 +1,4 @@
+using System.Linq;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -163,13 +164,21 @@ public sealed partial class PlanningSystem
 
     private void BuildBathePlan(WorldState world, NPCState npc)
     {
-        // §40.6: an interrupted post-bathe redress RESUMES here — if she still
-        // owes clothes to the shore pile, walk back and put them on rather than
-        // starting a brand-new bathe (which would clear the pile memory and
-        // leave her naked). Stale pieces (taken/gone) are dropped first.
-        if (npc.Mind.RedressGarments.Count > 0 && npc.Mind.RedressShore is { } redressShore)
+        npc.Mind.RedressGarments.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
+        if (npc.Mind.PersonalCarePhase == PersonalCarePhase.None &&
+            npc.Mind.RedressGarments.Count > 0)
         {
-            npc.Mind.RedressGarments.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
+            // Compatibility with v15-v47 and hand-built fixtures: a remembered
+            // pile used to mean only one thing — final redress.
+            npc.Mind.PersonalCarePhase = PersonalCarePhase.Redress;
+        }
+
+        // #147: resume the exact persistent phase. Laundry returns to the pile
+        // and finishes ONE batch beat; Bathing returns to the selected shore;
+        // Redress uses the old same-clothes return path.
+        if (npc.Mind.PersonalCarePhase == PersonalCarePhase.Redress &&
+            npc.Mind.RedressShore is { } redressShore)
+        {
             if (npc.Mind.RedressGarments.Count > 0)
             {
                 npc.Plan.TargetObjectId = null;
@@ -188,6 +197,45 @@ public sealed partial class PlanningSystem
             }
 
             npc.Mind.RedressShore = null;
+            npc.Mind.PersonalCareBathShore = null;
+            npc.Mind.PersonalCarePhase = PersonalCarePhase.None;
+        }
+        else if (npc.Mind.PersonalCarePhase is PersonalCarePhase.LaundryBatch or
+                 PersonalCarePhase.Bathing)
+        {
+            var stillDoffing = npc.WornItems.Any(item =>
+                !HolsterCatalog.IsHolster(item.DefinitionId));
+            var resume = npc.Mind.PersonalCarePhase == PersonalCarePhase.LaundryBatch || stillDoffing
+                ? npc.Mind.RedressShore
+                : npc.Mind.PersonalCareBathShore;
+            if (resume is { } resumeJunction &&
+                world.Junctions.Items.ContainsKey(resumeJunction) &&
+                SpatialMutations.TryReserveJunction(world, resumeJunction, npc.Id, world.Tick, 96))
+            {
+                npc.Plan.TargetObjectId = null;
+                npc.Plan.TargetJunctionId = resumeJunction;
+                npc.Plan.TargetTile = world.Junctions.Items[resumeJunction].Tiles.Count > 0
+                    ? world.Junctions.Items[resumeJunction].Tiles[0]
+                    : null;
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.MoveToJunction,
+                    TargetJunction = resumeJunction
+                });
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.PrepareBathe,
+                    TargetJunction = resumeJunction,
+                    TimeoutEndTick = npc.Mind.PersonalCareBathShore?.Value
+                });
+                npc.Plan.CurrentStepIndex = 0;
+                npc.Plan.Status = PlanStatus.Active;
+                return;
+            }
+
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.Bathe);
+            return;
         }
 
         // §40.6: a fresh bathe starts a fresh doffed-clothes pile — drop any
@@ -195,6 +243,8 @@ public sealed partial class PlanningSystem
         // follows only reclaims the clothes she takes off THIS time.
         npc.Mind.RedressGarments.Clear();
         npc.Mind.RedressShore = null;
+        npc.Mind.PersonalCareBathShore = null;
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.None;
 
         if (npc.CurrentJunction is not { } from)
         {
@@ -223,7 +273,11 @@ public sealed partial class PlanningSystem
         // у самой воды) остаётся запасным: без дома или без пути от дома к воде.
         var undressStand = best.Id;
         ObjectId? stowObject = null;
-        if (StowMath.FindUndressSpot(world, npc) is { } spot &&
+        var laundryRequired = npc.WornItems.Any(item =>
+            !HolsterCatalog.IsHolster(item.DefinitionId) &&
+            MathUtil.Clamp01(item.Dirtiness + item.Bloodiness) >=
+                SimBalance.WashClothesNeedThreshold);
+        if (!laundryRequired && StowMath.FindUndressSpot(world, npc) is { } spot &&
             HygieneMath.HasBathApproachRoute(world, npc, from, spot.Stand) &&
             HygieneMath.HasBathApproachRoute(world, npc, spot.Stand, best.Id) &&
             // ⭐ ...НО ТОЛЬКО ЕСЛИ ДОМ РЯДОМ С ВОДОЙ. Здесь стояла одна лишь
@@ -258,6 +312,11 @@ public sealed partial class PlanningSystem
         }
 
         npc.Plan.TargetObjectId = stowObject;
+        npc.Mind.RedressShore = undressStand;
+        npc.Mind.PersonalCareBathShore = best.Id;
+        npc.Mind.PersonalCarePhase = laundryRequired
+            ? PersonalCarePhase.LaundryBatch
+            : PersonalCarePhase.Bathing;
         // Pathfinding consumes Plan.TargetJunctionId, so while the first leg
         // goes home it must remain the home work point. Preserve the ACTUAL
         // shore on PrepareBathe.TimeoutEndTick (an integer payload, as used by
@@ -299,25 +358,7 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        // §40.6 r2 (laundry-in-hand): the dirtiest WORN piece competes with the
-        // beached pile — whichever is filthier gets washed. A worn winner means
-        // she carries it on her body to the edge, doffs it into her hand there
-        // and scrubs; a ground winner is picked up off the shore into the hand.
-        string wornCandidate = null;
-        var wornContamination = 0f;
-        foreach (var item in npc.WornItems)
-        {
-            var contamination = MathUtil.Clamp01(item.Dirtiness + item.Bloodiness);
-            if (contamination >= SimBalance.WashClothesNeedThreshold &&
-                contamination > wornContamination)
-            {
-                wornContamination = contamination;
-                wornCandidate = item.DefinitionId;
-            }
-        }
-
         WorldObjectState best = null;
-        var bestContamination = 0f;
         JunctionId bestTarget = default;
         TileCoord bestStandTile = default;
         var bestDistance = float.MaxValue;
@@ -359,66 +400,10 @@ public sealed partial class PlanningSystem
                 {
                     bestDistance = distance;
                     best = obj;
-                    bestContamination = objContamination;
                     bestTarget = junction.Id;
                     bestStandTile = standTile;
                 }
             }
-        }
-
-        // The worn piece wins ties — off-the-body washing is the primary path.
-        if (wornCandidate is not null && wornContamination >= bestContamination)
-        {
-            best = null;
-            bestDistance = float.MaxValue;
-            foreach (var junction in world.Junctions.Items.Values)
-            {
-                if (!TryGetEdgeSeatGeometry(world, junction, waterOnly: true,
-                        out var standTile, out _) ||
-                    !JunctionAvailableFor(world, junction.Id, npc.Id) ||
-                    !Connectivity.Reachable(world, from, junction.Id, CanUseRoutineTraversal(npc)))
-                {
-                    continue;
-                }
-
-                var distance = HexSpatialMath.Distance(npc.Position, junction.WorldPosition);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    bestTarget = junction.Id;
-                    bestStandTile = standTile;
-                }
-            }
-
-            if (bestDistance == float.MaxValue ||
-                !SpatialMutations.TryReserveJunction(world, bestTarget, npc.Id, world.Tick,
-                    SimBalance.WashClothesDurationTicks + 96))
-            {
-                npc.Plan.Status = PlanStatus.Failed;
-                SetGoalCooldown(world, npc, GoalType.WashClothes);
-                return;
-            }
-
-            npc.Plan.TargetObjectId = null;
-            npc.Plan.TargetItemDefinitionId = wornCandidate;
-            npc.Plan.TargetJunctionId = bestTarget;
-            npc.Plan.TargetTile = bestStandTile;
-            npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = bestTarget });
-            npc.Plan.Steps.Add(new PlanStep
-            {
-                Type = PlanStepType.WashClothes,
-                TargetJunction = bestTarget,
-                Interaction = InteractionType.WashClothes
-            });
-            npc.Plan.CurrentStepIndex = 0;
-            npc.Plan.Status = PlanStatus.Active;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "WashClothesPlanned",
-                    $"Worn={wornCandidate} Dirt={wornContamination:F2} " +
-                    $"Edge={bestTarget.Value} StandTile={bestStandTile.Q},{bestStandTile.R}");
-            }
-            return;
         }
 
         if (best is null)

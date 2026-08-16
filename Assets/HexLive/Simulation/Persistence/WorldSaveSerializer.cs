@@ -58,6 +58,7 @@ public static class WorldSaveSerializer
     // v28 (§116): критическая глубина, типы ран, шины, протезы и взаимные
     // ссылки переноски. Расширение добавлено в хвост NPC-записи.
     // v29 (§30): незавершённый человеческий замах и выбранная часть тела.
+    // Два legacy-слота mercy остаются в binary layout как false/0.
     // v30 (§119): workbench bills, persistent craft projects and aid pledges.
     // v31 (§121): ручное управление. В блоб едет ОДИН флаг — под чьим
     // управлением персонаж; недоигранный приказ едет сам собой, потому что
@@ -98,7 +99,9 @@ public static class WorldSaveSerializer
     // 47 (§118.2): у раны появился флаг Plastered — пластырь заклеивает ОДНУ
     // рану, в отличие от бинта на всю зону. Читается под гейтом версии, поэтому
     // сейвы 46 и старше грузятся как раньше (в них пластырей просто нет).
-    public const int BlobVersion = 47;
+    // v48 (§40.6 r13): persistent phase и настоящий берег отличают общую
+    // стирку, купание и финальное переодевание одной personal-care транзакции.
+    public const int BlobVersion = 48;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1139,6 +1142,10 @@ public static class WorldSaveSerializer
         }
 
         WriteNullableJunction(w, mind.RedressShore);
+        // v48 / #147: the pile alone cannot say whether she still owes the
+        // batch wash, the body bath, or only the final re-dress.
+        w.Write((int)mind.PersonalCarePhase);
+        WriteNullableJunction(w, mind.PersonalCareBathShore);
 
         var plan = npc.Plan;
         w.Write((int)SaveGoal(plan.Goal));
@@ -1334,7 +1341,7 @@ public static class WorldSaveSerializer
         WriteNullableEntity(w, npc.CarriedByNpcId);
         WriteNullableObject(w, npc.RescueDestinationObjectId);
 
-        // §30 / v29: save/load during wind-up preserves the exact decision.
+        // §30 / v29: save/load during wind-up preserves the selected part.
         w.Write(npc.StrikeLandsAtTick);
         w.Write(npc.StrikeReadyAtTick);
         w.Write(npc.AttackAnimUntilTick);
@@ -1342,8 +1349,8 @@ public static class WorldSaveSerializer
         w.Write(npc.SwingStrikeIndex);
         WriteNullableEntity(w, npc.PendingHumanStrikeTargetId);
         w.Write((int)npc.PendingHumanStrikePart);
-        w.Write(npc.PendingHumanStrikeKillAuthorized);
-        w.Write(npc.PendingHumanStrikeKillIntent);
+        w.Write(false); // retired v29 mercy flag; preserve blob layout
+        w.Write(0f); // retired v29 kill-intent scalar; preserve blob layout
         WriteNullableEntity(w, npc.Mind.CombatOpponentNpcId);
         w.Write(npc.Mind.ForcedMeleeWeaponId != null);
         if (npc.Mind.ForcedMeleeWeaponId != null)
@@ -1664,6 +1671,17 @@ public static class WorldSaveSerializer
             }
 
             mind.RedressShore = ReadNullableJunction(r);
+            if (version >= 48)
+            {
+                mind.PersonalCarePhase = (PersonalCarePhase)r.ReadInt32();
+                mind.PersonalCareBathShore = ReadNullableJunction(r);
+            }
+            else if (mind.RedressGarments.Count > 0)
+            {
+                // v15-v47 had only one resumable meaning for a remembered
+                // pile: walk back and put it on.
+                mind.PersonalCarePhase = PersonalCarePhase.Redress;
+            }
         }
 
         var plan = npc.Plan;
@@ -1888,8 +1906,8 @@ public static class WorldSaveSerializer
                 var swingStrikeIndex = r.ReadInt32();
                 var pendingStrikeTarget = ReadNullableEntity(r);
                 var pendingStrikePart = (BodyPart)r.ReadInt32();
-                var pendingStrikeKillAuthorized = r.ReadBoolean();
-                var pendingStrikeKillIntent = r.ReadSingle();
+                _ = r.ReadBoolean(); // retired v29 mercy flag
+                _ = r.ReadSingle(); // retired v29 kill-intent scalar
                 FightScene.RestoreSwingSlot(
                     npc,
                     strikeLandsAtTick,
@@ -1898,9 +1916,7 @@ public static class WorldSaveSerializer
                     swingStartTick,
                     swingStrikeIndex,
                     pendingStrikeTarget,
-                    pendingStrikePart,
-                    pendingStrikeKillAuthorized,
-                    pendingStrikeKillIntent);
+                    pendingStrikePart);
                 npc.Mind.CombatOpponentNpcId = ReadNullableEntity(r);
                 npc.Mind.ForcedMeleeWeaponId = r.ReadBoolean() ? r.ReadString() : null;
             }

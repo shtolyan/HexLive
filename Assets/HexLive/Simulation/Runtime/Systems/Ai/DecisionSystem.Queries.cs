@@ -865,14 +865,9 @@ public sealed partial class DecisionSystem
             need = contamination;
         }
 
-        // §40.6 r2 (laundry-in-hand): worn pieces wash directly — she walks to
-        // the water edge, takes the dirtiest piece off into her hand and scrubs
-        // it there. No more waiting for a bathe-undress to beach the pile.
-        foreach (var item in npc.WornItems)
-        {
-            need = System.MathF.Max(need, MathUtil.Clamp01(item.Dirtiness + item.Bloodiness));
-        }
-
+        // #147: worn dirt belongs to the combined Bathe transaction. Its one
+        // LaundryBatch cleans every doffed dirty piece before the body bath;
+        // the standalone WashClothes goal remains only for ground laundry.
         return need;
     }
 
@@ -963,6 +958,12 @@ public sealed partial class DecisionSystem
         foreach (var itemId in npc.WornItems)
         {
             var (warmth, armor) = EquipmentMath.ItemValues(world, itemId);
+            if (world.Content.ObjectDefinitions.TryGetValue(itemId, out var itemDefinition) &&
+                itemDefinition.Layer == WearLayer.Bags)
+            {
+                continue; // §52: heat never strips backpacks, even malformed warm content
+            }
+
             if (armor > 0f && npc.Memory.Dangers.Count > 0)
             {
                 continue; // protection beats comfort under threat
@@ -1005,6 +1006,24 @@ public sealed partial class DecisionSystem
         {
             if (IsDressCandidateCommon(npc, world, obj) &&
                 CandidateArmor(world, obj, npc.Sex) > npc.EquippedArmor)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>§52: a dropped backpack is lost carry capacity, not optional
+    /// clothing. Prefer the owner's own reachable pack; an unowned/loot pack
+    /// is still a valid fallback when no personal one is known.</summary>
+    internal static bool KnowsReachableBackpack(NPCState npc, WorldState world)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (IsDressCandidateCommon(npc, world, obj) &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Layer == WearLayer.Bags)
             {
                 return true;
             }

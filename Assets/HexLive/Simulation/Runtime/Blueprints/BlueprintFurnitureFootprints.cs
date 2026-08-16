@@ -94,6 +94,28 @@ namespace HexLive.Simulation.Runtime.Blueprints
             return new Float2(x / offsets.Count, y / offsets.Count);
         }
 
+        /// <summary>
+        /// Authored footprint points relative to the visible centre of a piece.
+        /// Runtime placement uses these offsets rather than renderer bounds so
+        /// an interaction anchor may differ from the physical centre without
+        /// moving the navigation obstacle (§120).
+        /// </summary>
+        public static IReadOnlyList<Float2> CenteredWorldOffsets(
+            string definitionId, int yawStep)
+        {
+            var offsets = LocalOffsets(definitionId);
+            var centroid = CentroidOffset(definitionId, yawStep);
+            var result = new List<Float2>(offsets.Count);
+            foreach (var local in offsets)
+            {
+                var point = BlueprintGeometry.JunctionToWorld(
+                    BlueprintGeometry.RotateJunctionOffset(local, yawStep));
+                result.Add(new Float2(point.X - centroid.X, point.Y - centroid.Y));
+            }
+
+            return result;
+        }
+
         public static IReadOnlyList<JunctionKey> OccupiedJunctions(FurniturePlacementData placement)
         {
             var primary = placement.PrimaryJunction;

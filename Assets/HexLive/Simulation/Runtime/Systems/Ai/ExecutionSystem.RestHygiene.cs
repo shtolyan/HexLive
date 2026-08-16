@@ -629,20 +629,15 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            var total = npc.Execution.EndTick - npc.Execution.StartTick;
-            var progress = total > 0 ? (float)(world.Tick - npc.Execution.StartTick) / total : 1f;
-            if (npc.Execution.HeldGarment is null && progress >= WardrobeHandoffFraction)
-            {
-                npc.WornItems.Remove(garment);
-                npc.Execution.HeldGarment = garment;
-                EquipmentMath.Recalculate(world, npc);
-            }
-
             if (world.Tick < npc.Execution.EndTick)
             {
                 return;
             }
 
+            // #147: Bathe persists the transaction but not transient hand
+            // props. Keep the authoritative item worn until the doff beat is
+            // complete; a save/interrupt before that point therefore resumes
+            // with the item still owned, never in a non-serialized limbo.
             npc.WornItems.Remove(garment);
             // §133: если раздевается у гардероба/сушилки — вещь вешается на неё,
             // а не падает под ноги. Станция переполнилась (вторая купальщица
@@ -671,7 +666,10 @@ public sealed partial class ExecutionSystem
         var stripIndex = -1;
         for (var i = npc.WornItems.Count - 1; i >= 0; i--)
         {
-            if (!HolsterCatalog.IsHolster(npc.WornItems[i].DefinitionId))
+            var item = npc.WornItems[i];
+            var laundryCandidate = MathUtil.Clamp01(item.Dirtiness + item.Bloodiness) > 0.001f;
+            if (!HolsterCatalog.IsHolster(item.DefinitionId) &&
+                (npc.Mind.PersonalCarePhase != PersonalCarePhase.LaundryBatch || laundryCandidate))
             {
                 stripIndex = i;
                 break;
@@ -690,10 +688,48 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var bathShore = step.TimeoutEndTick is { } encodedShore &&
+        // #147: every dirty piece already exists as an authoritative world
+        // object in RedressGarments. One WashClothes animation cleans the
+        // whole batch in place; no item enters HeldGarment and nothing is put
+        // back on between pieces. An interrupt leaves phase+ids resumable.
+        if (npc.Mind.PersonalCarePhase == PersonalCarePhase.LaundryBatch)
+        {
+            var dirtyCount = CountDirtyRedressGarments(world, npc);
+            if (dirtyCount > 0 && npc.Execution.Status == ExecutionStatus.None)
+            {
+                npc.Execution.Status = ExecutionStatus.InProgress;
+                npc.Execution.CurrentInteraction = InteractionType.WashClothes;
+                npc.Execution.StartTick = world.Tick;
+                npc.Execution.EndTick = world.Tick + SimBalance.WashClothesDurationTicks;
+                return;
+            }
+
+            if (npc.Execution.Status == ExecutionStatus.InProgress &&
+                npc.Execution.CurrentInteraction == InteractionType.WashClothes)
+            {
+                WashRedressBatch(world, npc, completed: world.Tick >= npc.Execution.EndTick);
+                if (world.Tick < npc.Execution.EndTick) return;
+
+                dirtyCount = CountDirtyRedressGarments(world, npc);
+                Trace.Emit(world, npc.Id, "ClothesWashed",
+                    $"Batch={npc.Mind.RedressGarments.Count} RemainingDirty={dirtyCount}");
+                npc.Execution.Status = ExecutionStatus.None;
+                npc.Execution.CurrentInteraction = null;
+                npc.Execution.StartTick = 0;
+                npc.Execution.EndTick = 0;
+            }
+
+            // The clean remainder stays worn through the laundry beat. It is
+            // doffed only now, before entering the water, on subsequent ticks.
+            npc.Mind.PersonalCarePhase = PersonalCarePhase.Bathing;
+            return;
+        }
+
+        var bathShore = npc.Mind.PersonalCareBathShore ??
+            (step.TimeoutEndTick is { } encodedShore &&
                         world.Junctions.Items.ContainsKey(new JunctionId(encodedShore))
             ? new JunctionId(encodedShore)
-            : npc.Plan.TargetJunctionId ?? shore;
+            : npc.Plan.TargetJunctionId ?? shore);
         if (!current.Equals(bathShore))
         {
             // Undressing happened at home. Release that work point, claim the
@@ -716,6 +752,7 @@ public sealed partial class ExecutionSystem
                     return;
                 }
                 bathShore = replacement.Id;
+                npc.Mind.PersonalCareBathShore = replacement.Id;
                 npc.Plan.TargetJunctionId = replacement.Id;
                 npc.Plan.TargetTile = replacement.Tiles[0];
             }
@@ -806,6 +843,8 @@ public sealed partial class ExecutionSystem
 
         if (npc.Execution.Status == ExecutionStatus.None)
         {
+            if (npc.Mind.PersonalCarePhase == PersonalCarePhase.None)
+                npc.Mind.PersonalCarePhase = PersonalCarePhase.Bathing;
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.CoolOff;
             npc.Execution.StartTick = world.Tick;
@@ -844,11 +883,14 @@ public sealed partial class ExecutionSystem
         // §40.6: she came out of the water naked — walk back to the shore pile
         // and put the same clothes back on. Only falls through to a plain
         // finish when there is nothing left to reclaim.
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.Redress;
         if (TryBeginPostBatheRedress(world, npc, target))
         {
             return;
         }
 
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.None;
+        npc.Mind.PersonalCareBathShore = null;
         FinishPersonalCare(world, npc, target, GoalType.Bathe, "Bathed");
     }
 
@@ -862,6 +904,8 @@ public sealed partial class ExecutionSystem
         if (npc.Mind.RedressGarments.Count == 0 || npc.Mind.RedressShore is not { } shore)
         {
             npc.Mind.RedressShore = null;
+            npc.Mind.PersonalCarePhase = PersonalCarePhase.None;
+            npc.Mind.PersonalCareBathShore = null;
             return false;
         }
 
@@ -966,12 +1010,43 @@ public sealed partial class ExecutionSystem
 
         npc.Mind.RedressGarments.Clear();
         npc.Mind.RedressShore = null;
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.None;
+        npc.Mind.PersonalCareBathShore = null;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "PostBatheDressed",
                 $"Re-donned {reworn} garments Warmth={npc.EquippedWarmth:F2}");
         }
         FinishPersonalCare(world, npc, shore, GoalType.Bathe, "Bathed");
+    }
+
+    private static int CountDirtyRedressGarments(WorldState world, NPCState npc)
+    {
+        var count = 0;
+        foreach (var id in npc.Mind.RedressGarments)
+        {
+            if (world.Entities.Objects.TryGetValue(id, out var garment) &&
+                MathUtil.Clamp01(garment.Dirtiness + garment.Bloodiness) > 0.001f)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static void WashRedressBatch(WorldState world, NPCState npc, bool completed)
+    {
+        var remainingTicks = System.Math.Max(0, npc.Execution.EndTick - world.Tick);
+        var retained = completed ? 0f : remainingTicks / (remainingTicks + 1f);
+        foreach (var id in npc.Mind.RedressGarments)
+        {
+            if (!world.Entities.Objects.TryGetValue(id, out var garment)) continue;
+            if (MathUtil.Clamp01(garment.Dirtiness + garment.Bloodiness) <= 0.001f) continue;
+            garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness * retained);
+            garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness * retained);
+            garment.Wetness = 1f;
+        }
     }
 
     // §40.6 r2 (laundry-in-hand): the piece is washed IN THE HAND, never in

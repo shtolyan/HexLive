@@ -87,7 +87,9 @@
         "Neck",
         "Chest"
       ],
-      "noHide": [],
+      "noHide": [
+        "Chest"
+      ],
       "materials": [
         {
           "source": "Straps",

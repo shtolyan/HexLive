@@ -4,6 +4,18 @@ using HexLive.Simulation.Content;
 namespace HexLive.Simulation.AI
 {
 
+/// <summary>
+/// Persistent ownership phase for the combined laundry → body bath → redress
+/// transaction (§40.6). Values are serialized explicitly; append only.
+/// </summary>
+public enum PersonalCarePhase
+{
+    None = 0,
+    LaundryBatch = 1,
+    Bathing = 2,
+    Redress = 3
+}
+
 public sealed class NPCMind
 {
     public GoalType CurrentGoal { get; set; } = GoalType.None;
@@ -445,6 +457,13 @@ public sealed class NPCMind
     public List<HexLive.Simulation.Common.ObjectId> RedressGarments { get; } = new();
 
     public HexLive.Simulation.Common.JunctionId? RedressShore { get; set; }
+
+    // #147: RedressGarments are authoritative world objects throughout one
+    // combined care transaction. The phase tells a resumed plan whether to
+    // finish the single batch wash, return to the water, or dress once.
+    public PersonalCarePhase PersonalCarePhase { get; set; }
+
+    public HexLive.Simulation.Common.JunctionId? PersonalCareBathShore { get; set; }
 
     public List<GoalCooldown> Cooldowns { get; } = new();
 

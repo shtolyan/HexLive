@@ -50,6 +50,7 @@ public static class StowMath
         }
 
         WorldObjectState best = null;
+        JunctionId? bestStand = null;
         var bestRank = int.MaxValue;
         var bestDistance = float.MaxValue;
         foreach (var obj in world.Entities.Objects.Values)
@@ -67,23 +68,25 @@ public static class StowMath
                 : obj.DefinitionId == ContentIds.DryingRack ? 1
                 : -1;
             if (rank < 0 || ExecutionSystem.RackIsFull(world, obj) ||
-                !Connectivity.Reachable(
-                    world, from, obj.Junctions[0], PlanningSystem.CanUseRoutineTraversal(npc)))
+                StandFor(world, npc, obj.Junctions[0]) is not { } interactionStand ||
+                !Connectivity.Reachable(world, from, interactionStand,
+                    PlanningSystem.CanUseRoutineTraversal(npc)))
             {
                 continue;
             }
 
             var distance = HexSpatialMath.Distance(
-                world.Junctions.Items[obj.Junctions[0]].WorldPosition, npc.Position);
+                world.Junctions.Items[interactionStand].WorldPosition, npc.Position);
             if (rank < bestRank || (rank == bestRank && distance < bestDistance))
             {
                 bestRank = rank;
                 bestDistance = distance;
                 best = obj;
+                bestStand = interactionStand;
             }
         }
 
-        if (best != null && StandFor(world, npc, best.Junctions[0]) is { } stand)
+        if (best != null && bestStand is { } stand)
         {
             return new UndressSpot(stand, best.Id);
         }
@@ -96,8 +99,9 @@ public static class StowMath
     }
 
     /// <summary>
-    /// Место у станции: сам её джанкшен, если свободен (гардероб и сушилка
-    /// ничего не блокируют, поэтому встать можно прямо на него), иначе соседний.
+    /// Место у станции: сам её джанкшен, если он проходим, иначе свободный
+    /// соседний. Авторский footprint гардероба блокирует anchor намеренно;
+    /// interaction остаётся доступен с его внешнего rim.
     ///
     /// <para>
     /// ⭐ Функция обязана быть ЧИСТО ЧИТАЮЩЕЙ. Первая версия звала
@@ -110,7 +114,9 @@ public static class StowMath
     /// </summary>
     private static JunctionId? StandFor(WorldState world, NPCState npc, JunctionId anchor)
     {
-        if (npc.CurrentJunction is { } current && current.Equals(anchor))
+        if (npc.CurrentJunction is { } current && current.Equals(anchor) &&
+            world.Junctions.Items.TryGetValue(anchor, out var currentJunction) &&
+            !currentJunction.Blocked)
         {
             return anchor;
         }

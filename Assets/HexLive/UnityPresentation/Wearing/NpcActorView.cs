@@ -3742,6 +3742,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // this visual alias is all the scene needs.
         var looting = !_legless && interaction == "Loot";
         var crafting = !_legless && interaction == "Craft";
+        // §54.7: разделка использует тот же planting-style CraftWork, что
+        // крафт/поиск тела, но остаётся одноручной — нож не снимается.
+        var butchering = !_legless && interaction == "Butcher";
         // §53: tending a suffering housemate — the helper holds the mediator
         // item (feed → whole coconut, water → the pierced drink coconut;
         // treat/medicate/console tend bare-handed). She kneels into the
@@ -3763,7 +3766,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // там руки и правда работают.
         var praying = aidingOther && aidTargetLying && interaction == "ConsoleOther";
         // The solo craft always kneels; an aid kneels only over a lying ward.
-        var kneelingCraft = crafting || looting ||
+        var kneelingCraft = crafting || looting || butchering ||
             (aidingOther && aidTargetLying && !praying);
         // §68/§53: ПЕРЕВЯЗКА. Раньше и своя (TreatSelf), и чужая над стоячей
         // не играли ничего вовсе — ActionFromInteraction возвращал на них
@@ -4901,8 +4904,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 return chopping ? ActionKind.Chop : ActionKind.Work;
             case "Process": // spec §54: splitting a log — an axe chop motion
                 return ActionKind.Chop;
-            case "Butcher": // spec §54: knifing a carcass — a crouched working motion
-                return ActionKind.Work;
             case "PickUp":
             case "BuildRaft":
             case "Craft":
@@ -5248,10 +5249,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var prefabAxisCorrection = _handProp.transform.localRotation;
         var keepPrefabAxisCorrection =
             Config.GearLibrary.ConfigFor(itemId)?.preservePrefabRotationInHand == true;
-        // Size: normalize to the SAME world size the ground uses (ObjectFit), so a
-        // tool/coconut is identical in hand and on the ground. The gear asset's
-        // hand scale is a fine MULTIPLIER on top of this (default 1), not absolute.
-        var fit = ObjectFit.FitScaleFactor(_handProp, itemId);
+        var prefabLocalScale = _handProp.transform.localScale;
 
         // Placement priority (each higher tier wins): the gear asset's tuned
         // hand pose (edited live in the AxeChopTest scene) → an "AttachPoint"
@@ -5264,7 +5262,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _handProp.transform.localRotation = keepPrefabAxisCorrection
                 ? cfgRot * prefabAxisCorrection
                 : cfgRot;
-            _handProp.transform.localScale = cfgScale * fit; // config scale = multiplier
+            // #136: Renderer.bounds is a world AABB. Under a non-uniformly
+            // scaled hand bone, rotating AFTER fitting changes its measured
+            // maximum dimension and makes the same spear grow in the hand.
+            // Pose first, normalize that final orientation second, then apply
+            // the GearConfig scale as a fine multiplier over the prefab scale.
+            ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, cfgScale);
             return;
         }
 
@@ -5306,11 +5309,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        // No tuned placement: use the shared ObjectFit size (same as the ground)
-        // so e.g. a picked-up coconut is the same size it was lying on the ground.
-        _handProp.transform.localScale = Vector3.one * fit;
+        // No tuned placement: establish the final pose before measuring world
+        // bounds for exactly the same non-uniform-parent reason as above.
         _handProp.transform.localPosition = Vector3.zero;
         _handProp.transform.localRotation = Quaternion.identity;
+        ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, Vector3.one);
+    }
+
+    /// <summary>#136: one multiply-contract for every fitted actor prop.
+    /// The caller must establish the final rotation first because ObjectFit
+    /// measures a world AABB under animated, potentially non-uniform bones.</summary>
+    private static void ApplyObjectFitScale(
+        GameObject prop, string itemId, Vector3 prefabLocalScale, Vector3 fineMultiplier)
+    {
+        var fit = ObjectFit.FitScaleFactor(prop, itemId);
+        prop.transform.localScale = Vector3.Scale(prefabLocalScale, fineMultiplier) * fit;
     }
 
     private void SyncHandedness(IReadOnlyList<BodyPartConditionSnapshot> partConditions)
@@ -5502,11 +5515,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // (the machete does). Preserve it after applying the shared slot pose;
         // otherwise the semantic +Y handle axis is no longer the visible one.
         var prefabAxisCorrection = _backProp.transform.localRotation;
-
-        // Bug #87 rework: back, hand and ground must not invent three physical
-        // sizes for the same prefab. ObjectFit measures renderer bounds in world
-        // space, so the same factor works here even below a scaled animated bone.
-        _backProp.transform.localScale *= ObjectFit.FitScaleFactor(_backProp, itemId);
+        var prefabLocalScale = _backProp.transform.localScale;
 
         // One shared slot for every weapon. Rotate first, then align the centre
         // of the FINAL fitted render bounds — prefab roots/pivots may live at a
@@ -5530,6 +5539,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _backProp.transform.localRotation = slotRotation *
                 (twoHanded ? Quaternion.identity : Quaternion.Euler(0f, 0f, 180f)) *
                 prefabAxisCorrection;
+            ApplyObjectFitScale(_backProp, itemId, prefabLocalScale, Vector3.one);
             _backProp.transform.localPosition = slotLocal;
             return;
         }
@@ -5556,6 +5566,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : slotRotation *
               (twoHanded ? Quaternion.identity : Quaternion.Euler(0f, 0f, 180f)) *
               prefabAxisCorrection;
+
+        // #136: fit the FINAL orientation. Renderer.bounds is world-space, so
+        // fitting before this rotation under a non-uniform chest bone produced
+        // a different physical spear length than the hand path. Preserve the
+        // prefab's authored scale and multiply it by the shared fit factor.
+        ApplyObjectFitScale(_backProp, itemId, prefabLocalScale, Vector3.one);
 
         var combined = renderers[0].bounds;
         for (var i = 1; i < renderers.Length; i++)

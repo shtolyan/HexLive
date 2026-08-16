@@ -142,8 +142,8 @@ public sealed partial class ExecutionSystem
                 fire.ResourceAmount = 0f; // born cold — light it like any fire
                 fire.BuildProduct = ContentIds.Campfire;
                 fire.Variant = site.Variant;  // §120.2: the household hearth stays one
-                ReleaseIndoorFootprint(world, fire);
                 fire.RotationDegrees = site.RotationDegrees; // §66: the site's facing is the piece's
+                ApplyIndoorFurnitureFootprint(world, fire);
                 fire.BillSticks = site.BillSticks;
                 fire.BillStones = site.BillStones;
                 fire.BillRope = site.BillRope;
@@ -218,7 +218,7 @@ public sealed partial class ExecutionSystem
                 raised.Owner = owner;
                 raised.RotationDegrees = yaw;
                 if (!string.IsNullOrEmpty(variant)) raised.Variant = variant;
-                ReleaseIndoorFootprint(world, raised);
+                ApplyIndoorFurnitureFootprint(world, raised);
                 BuildingRules.ReparentElements(world, architectureOwner, raised);
                 if (product == ContentIds.Workbench)
                 {
@@ -238,14 +238,13 @@ public sealed partial class ExecutionSystem
     }
 
     /// <summary>
-    /// §120: ARCHITECTURE owns a room's topology, furniture never does. A piece
-    /// raised on an Indoor tile drops its obstacle footprint the moment it comes
-    /// up — the canonical hut does exactly this for its two cots, its hearth and
-    /// its wardrobe, and for the same reason: three beds, a cabinet and a fire
-    /// claiming their real footprints inside a three-hex room would wall its own
-    /// door shut. Outdoors nothing changes; the piece stays solid.
+    /// §120: indoor furniture owns its authored physical junctions, while the
+    /// architecture owns walls and the door corridor. Replace the generic
+    /// radius applied by SpawnObject with the exact placement footprint; the
+    /// committed constructor has already validated that it does not seal its
+    /// portal. Outdoors the ordinary obstacle contract remains unchanged.
     /// </summary>
-    private static void ReleaseIndoorFootprint(WorldState world, WorldObjectState raised)
+    internal static void ApplyIndoorFurnitureFootprint(WorldState world, WorldObjectState raised)
     {
         if (raised == null ||
             !world.Tiles.Items.TryGetValue(raised.Tile, out var tile) ||
@@ -254,7 +253,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        WorldObjectMutations.SetObstacleBlocking(world, raised, blocked: false);
+        WorldObjectMutations.SetAuthoredFurnitureBlocking(world, raised, blocked: true);
     }
 
     // Spec 35.3: consume the bill and place the pending piece; walls block

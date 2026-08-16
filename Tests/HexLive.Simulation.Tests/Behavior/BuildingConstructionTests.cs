@@ -6,7 +6,6 @@ using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
-using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
@@ -17,6 +16,63 @@ namespace HexLive.Simulation.Tests.Behavior
 
 public sealed class BuildingConstructionTests
 {
+    [TestCase(ContentIds.BedBasic, "", 14)]
+    [TestCase(ContentIds.Campfire, BuildingRules.HutHearthVariant, 1)]
+    [TestCase(ContentIds.Wardrobe, "", 3)]
+    public void ConstructorRaisedIndoorFurnitureUsesAuthoredFootprint(
+        string definitionId, string variant, int expectedBlocked)
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var source = world.Entities.Objects.Values.First(obj =>
+            obj.DefinitionId == definitionId &&
+            (definitionId != ContentIds.Campfire || obj.Variant == variant));
+        var tile = source.Tile;
+        var anchor = source.Junctions[0];
+        var yaw = source.RotationDegrees;
+        WorldObjectMutations.DespawnObject(world, source.Id);
+
+        var raised = WorldObjectMutations.SpawnObject(
+            world, definitionId, source.Fragment, tile, anchor);
+        raised.Variant = variant;
+        raised.RotationDegrees = yaw;
+        ExecutionSystem.ApplyIndoorFurnitureFootprint(world, raised);
+
+        Assert.That(raised.BlockedJunctions, Has.Count.EqualTo(expectedBlocked));
+        Assert.That(raised.BlockedJunctions.All(id => world.Junctions.Items[id].Blocked), Is.True);
+        Assert.That(raised.BlockedJunctions.Any(id => world.Junctions.Items[id].Door), Is.False,
+            "Authoring footprint не имеет права перекрывать portal-junction.");
+    }
+
+    [Test]
+    public void CanonicalHutFurnitureBlocksGeometryAndKeepsDoorApproachesOpen()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var hut = world.Entities.Objects.Values.Single(
+            obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var furniture = world.Caches.ObjectsByTile[hut.Tile]
+            .Select(id => world.Entities.Objects[id]).ToArray();
+        var beds = furniture.Where(obj => obj.DefinitionId == ContentIds.BedBasic).ToArray();
+        var hearth = furniture.Single(obj => obj.DefinitionId == ContentIds.Campfire &&
+            obj.Variant == BuildingRules.HutHearthVariant);
+        var wardrobe = furniture.Single(obj => obj.DefinitionId == ContentIds.Wardrobe);
+
+        Assert.That(beds, Has.Length.EqualTo(2));
+        Assert.That(beds.All(bed => bed.BlockedJunctions.Count == 14), Is.True);
+        Assert.That(hearth.BlockedJunctions, Has.Count.EqualTo(1));
+        Assert.That(wardrobe.BlockedJunctions, Has.Count.EqualTo(3));
+        Assert.That(furniture.SelectMany(obj => obj.BlockedJunctions)
+            .Any(id => world.Junctions.Items[id].Door), Is.False);
+
+        var start = StructurePlacement.CenterJunction(world, world.FactionHomes[Faction.Colony]);
+        Assert.That(start, Is.Not.Null);
+        foreach (var target in beds.Append(hearth).Append(wardrobe))
+        {
+            Assert.That(Connectivity.ReachableBeside(
+                    world, start.Value, target.Junctions[0], owner: target),
+                Is.True, $"Дверной коридор не ведёт к {target.DefinitionId}.");
+        }
+    }
+
     [Test]
     public void CatalogPublishesExactlyOneBedType()
     {
@@ -345,12 +401,14 @@ public sealed class BuildingConstructionTests
             var definition = world.Content.ObjectDefinitions[cot.DefinitionId];
             Assert.That(definition.Tags, Does.Contain(ObjectTags.Bed));
             Assert.That(definition.Interactions.Any(i => i.Type == InteractionType.Sleep), Is.True);
+            Assert.That(cot.BlockedJunctions, Has.Count.EqualTo(14),
+                "Кровать обязана закрывать все authored junction рамы, а не только route-anchor.");
 
             var home = world.FactionHomes[Faction.Colony];
             var start = StructurePlacement.CenterJunction(world, home);
             Assert.That(start, Is.Not.Null);
-            Assert.That(HexPathfinder.FindPath(world, start.Value, cot.Junctions[0]), Is.Not.Empty,
-                "Кровать видна, но путь через дверной портал до неё закрыт.");
+            Assert.That(Connectivity.ReachableBeside(world, start.Value, cot.Junctions[0], owner: cot),
+                Is.True, "Кровать физически закрыта, но подход через дверной портал обязан остаться.");
         }
     }
 

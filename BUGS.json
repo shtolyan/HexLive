@@ -4117,13 +4117,15 @@
         {
             "id": 135,
             "createdUtc": "2026-08-15 19:50 UTC",
-            "status": "in_progress",
+            "status": "ready_for_test",
             "text": "Аптечку нужно снапить к полу так же, как и мебель. Она провалилась сквозь пол.  \n\nЕще она занимает точку гардероба, стоит прямо в крайней точке, поэтому ее надо сдвинуть на одну свободную точку подальше.",
             "context": "seed=-28164782 tick=5375 npc=3",
-            "assignedAgent": "/root/fix_135_medkit_floor",
-            "agentHandoff": "Диагноз готов, реализация заблокирована чужими dirty-файлами. SpawnMedkit в BuildingBootstrap.cs ставит аптечку на wardrobe.Junctions[0], то есть узел 4 внутри footprint 9→4→0. Ближайшая свободная точка внутрь комнаты — узел 10: local=(-0.3247595,-0.5625), ровно 0.375 wu. HexWorldRenderer.ObjectGroundY не поднимает обычные предметы на пол: bbox аптечки садится на terrain, на 0.107475 wu ниже HutAssembly.FloorSurfaceLift. Нужны точечные hunks в BuildingBootstrap.cs (выбор/repair узла) и HexWorldRenderer.cs (общий floor lift для неархитектурных объектов), но оба содержат большие незакоммиченные изменения других задач; не патчил и не stage по указанию /root. Схема: /private/tmp/bug-135-medkit-floor.svg.",
-            "fixCommits": [],
-            "fixCommit": "",
+            "assignedAgent": "/root/fix_144_pause_animations",
+            "agentHandoff": "Готово к тестированию на seed=-28164782 tick=5375 npc=3. Аптечка теперь выбирает ближайший свободный внутренний junction 10 local=(-0.3247595,-0.5625), исключая authored footprint гардероба 9→4→0; это ровно один шаг 0.375 wu внутрь. Load repair пересаживает старую аптечку без потери/дублирования содержимого. ObjectGroundY поднимает обычные предметы в хижине на FloorSurfaceLift, поэтому ящик стоит верхом на полу. SVG /private/tmp/bug-135-medkit-floor.svg остаётся актуальной. Узкие тесты 3/3, Unity/MCP не запускался.",
+            "fixCommits": [
+                "aafceda3d62bc859f9eed2c406797336d095924d"
+            ],
+            "fixCommit": "aafceda3d62bc859f9eed2c406797336d095924d",
             "reportedInVersion": "0.1.45",
             "readyForTestInVersion": "",
             "fixedInVersion": "",
@@ -4138,6 +4140,16 @@
                     "whenUtc": "",
                     "author": "codex",
                     "text": "Диагноз подтверждён кодом и реальными координатами сетки: аптечка создаётся на центральной точке footprint гардероба, а её вид садится на terrain вместо поверхности пола. Исправление временно заблокировано: оба необходимых файла уже содержат крупные незакоммиченные изменения других задач, смешивать их нельзя. Оставляю in_progress с точным handoff."
+                },
+                {
+                    "whenUtc": "2026-08-16 00:00 UTC",
+                    "author": "codex",
+                    "text": "Возобновил #135 по сохранённому handoff: целевые файлы теперь чистые. Проверяю единый spawn/repair аптечки на свободный внутренний junction и посадку обычных предметов на верх пола; существующую геометрическую схему сверил с канонической сеткой."
+                },
+                {
+                    "whenUtc": "2026-08-16 00:20 UTC",
+                    "author": "codex",
+                    "text": "Исправление готово в aafceda3d62bc859f9eed2c406797336d095924d. Аптечка перенесена с pivot гардероба на свободный junction 10, старые сейвы чинятся идемпотентно без пересоздания содержимого, а обычные предметы хижины теперь опираются на верх поднятого пола. Каноническая схема не изменилась; узкие тесты 3/3. Готово к проверке игроком."
                 }
             ]
         },
@@ -4147,8 +4159,8 @@
             "status": "in_progress",
             "text": "Копьё в руках стало больше, чем было раньше. Сделай такой же размер копья, как когда оно висит на спине.",
             "context": "seed=-28164782 tick=5574 npc=2",
-            "assignedAgent": "/root/fix_136_spear_scale",
-            "agentHandoff": "Блокер: NpcActorView.cs уже содержит чужую незавершённую #142 (git diff: +374/-6), GearConfig.cs +25 и spear.asset +7; по AGENTS.md пересекающиеся dirty нельзя править/частично коммитить без игрока. Диагноз #136: оба production-пути вызывают ObjectFit.FitScaleFactor ДО установки финального hand/back rotation. Renderer.bounds — world AABB; после разных поворотов под неравномерно масштабированными костями итоговый размер меняется, поэтому копьё в руке и на спине расходится. handLocalScale копья = (1,1,1), mesh/prefab root scale = 1 — это не asset-тюн. Нужный общий контракт: сначала position/rotation, затем умножить исходный localScale на FitScaleFactor; только ПОСЛЕ нормализации применить GearConfig handLocalScale как fine multiplier. В SetBackWeapon перенести fit после вычисления/установки финального rotation и до повторного bounds-centering. Добавить source-contract тест порядка операций для SetHandProp/SetBackWeapon. Unity MCP не запускался.",
+            "assignedAgent": "/root/fix_148_exile_risk",
+            "agentHandoff": "Продолжаю сохранённый диагноз после завершения #142: NpcActorView/GearConfig/spear.asset теперь clean. Проверяю общий порядок final rotation → ObjectFit при nonuniform bone scale и GearConfig handLocalScale как post-fit multiplier; asset-тюн копья менять не планируется. Unity/MCP не используется.",
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
@@ -4165,6 +4177,11 @@
                     "whenUtc": "2026-08-15 20:10 UTC",
                     "author": "codex",
                     "text": "Диагноз готов: ObjectFit измеряет world bounds до финального поворота предмета; после разных hand/back rotations под масштабированными костями физический размер расходится. Asset копья и multiplier равны единице, mesh подгонять не нужно. Исправление заблокировано пересечением с чужой незавершённой #142 в NpcActorView.cs (+374/-6), GearConfig.cs (+25) и spear.asset (+7); по правилам проекта эти dirty-файлы не трогаю. Точные hunks сохранены в agentHandoff, #136 остаётся in_progress."
+                },
+                {
+                    "whenUtc": "2026-08-15 22:24 UTC",
+                    "author": "codex",
+                    "text": "Продолжаю #136 по сохранённому диагнозу: #142 завершён, NpcActorView, GearConfig и spear.asset больше не содержат чужих dirty-изменений. Исправляю общий порядок финального поворота и ObjectFit без asset-specific масштаба; Unity не трогаю."
                 }
             ]
         },
@@ -4200,13 +4217,16 @@
         {
             "id": 138,
             "createdUtc": "2026-08-15 19:55 UTC",
-            "status": "in_progress",
+            "status": "ready_for_test",
             "text": "Часть вещей валяется под полом, под вешалкой. Почему-то они не висят на плечиках. Не понимаю, как так вышло.\n\nОни же должны их вешать. В таком месте они не должны лежать. Кто их туда бросил?",
             "context": "seed=-28164782 tick=6435 npc=3",
             "assignedAgent": "/root/fix_139_armwear_hangers",
-            "agentHandoff": "Диагноз seed=-28164782/tick=6435: никто не бросает вещи мимо гардероба. SpawnStarterWardrobeGarments (в текущем dirty-коде гарантирует ботинки), CompleteHang и StowGarmentWithContents корректно создают garment на junction станции. Renderer видит Footwear и намеренно ставит его на ShoeShelfSlot, но после общего масштаба присваивает фиксированный центр y=0.19 без измерения bounds; пол хижины y=0.107475, поэтому при halfHeight>0.082525 низ обуви уходит под пол. Обычная одежда использует HangSlotOffset с bounds и не страдает. Второй save/load-риск: RepairWardrobeAnchor переносит сам шкаф на новый junction, но не переносит garment-объекты со старого — после миграции они перестают считаться hanging. План: единый bounds-based WardrobeShelfOffset в create+sync (bottom на authored shelf), миграция co-located garments old→new при RepairWardrobeAnchor, тесты на переменную высоту обуви и load-repair. Блокер: обязательные HexWorldRenderer.cs, BuildingBootstrap.cs и Spec/133.md уже foreign dirty; Spec/133 пересекается с #139 и текущими starter-wardrobe правками. Код #138 не патчен.",
-            "fixCommits": [],
-            "fixCommit": "",
+            "agentHandoff": "Готово к тестированию на seed=-28164782 tick=6435 npc=3. Причина: ShoeShelfSlot ошибочно применялся как центр обуви, поэтому высокий mesh проваливался низом под поднятый пол; load repair переносил гардероб, но оставлял co-located garment на старом junction. Теперь create и sync ставят нижний renderer bounds на authored поверхность полки, а RepairWardrobeAnchor переносит вещи вместе со шкафом и yaw. Тесты 7/7. Первый SHA 346469854a744d2f1b1ebe7f072a38f4273c418d содержит core-реализацию #138, но был случайно смешан координатором с другими изменениями shared HEAD; историю по решению координатора не переписывали. Отдельный атомарный cf0ac7e345425841d7e57e6f94c01d12efcd5dbe фиксирует контракт, регрессионный тест и §133.",
+            "fixCommits": [
+                "346469854a744d2f1b1ebe7f072a38f4273c418d",
+                "cf0ac7e345425841d7e57e6f94c01d12efcd5dbe"
+            ],
+            "fixCommit": "cf0ac7e345425841d7e57e6f94c01d12efcd5dbe",
             "reportedInVersion": "0.1.45",
             "readyForTestInVersion": "",
             "fixedInVersion": "",
@@ -4221,6 +4241,11 @@
                     "whenUtc": "2026-08-15 20:48 UTC",
                     "author": "codex",
                     "text": "Причина найдена: ботинки правильно попадают на нижнюю полку, но её y=0.19 ошибочно используется как центр обуви без учёта фактических bounds. При высоте больше 0.16505 wu низ пересекает поднятый пол y=0.107475. Также repair после старого save переносит шкаф без лежащей на его прежнем junction одежды. Исправление заблокировано чужими изменениями в HexWorldRenderer.cs, BuildingBootstrap.cs и обязательном Spec/133.md; код не меняю, точный план оставлен в handoff."
+                },
+                {
+                    "whenUtc": "2026-08-15 21:49 UTC",
+                    "author": "codex",
+                    "text": "Исправление готово. Обувь теперь ставится фактическим нижним bounds на поверхность полки в create и sync, а repair старого save переносит хранившиеся garment-объекты вместе с гардеробом и его yaw. Точечные тесты 7/7. Core попал в общий коммит 346469854a744d2f1b1ebe7f072a38f4273c418d; отдельный атомарный коммит #138 с тестами и спецификацией — cf0ac7e345425841d7e57e6f94c01d12efcd5dbe. Готово к проверке игроком на seed=-28164782 tick=6435 npc=3."
                 }
             ]
         },
@@ -4346,12 +4371,14 @@
         {
             "id": 143,
             "createdUtc": "2026-08-15 20:08 UTC",
-            "status": "in_progress",
+            "status": "ready_for_test",
             "text": "Рюкзак не должен сниматься, даже если жарко. Рюкзак должен быть всегда.\n\nУбери у него причину, что он греет. И нужно дополнительное правило для искусственного интеллекта: снимать рюкзак вообще не нужно, только если купаться, и обязательно надевать его в приоритете.\n\nЕсли вдруг сняли, то обязательно нужно надеть в первую очередь, в высоком приоритете.",
             "context": "seed=-28164782 tick=9115 npc=2",
-            "assignedAgent": "/root/fix_143_backpack_ai",
-            "agentHandoff": "Диагноз: все пять WearLayer.Bags имеют warmth=0.02, а FindRemovableItem снимает при жаре любой предмет с warmth>0. Обычный Dress доступен лишь из-за холода/брони/скромности и отбрасывает нулевой NoWarmthGain, поэтому снятый рюкзак сам не возвращается. Нужны общие правила по слою Bags: нулевое тепло, исключение из heat-undress, высокий Dress bid и первый выбор Bags; отдельный PrepareBathe/RedressGarments оставить без изменений. Реализация заблокирована чужими dirty в DecisionSystem.cs (изменения #140.5), GarmentLibrary.cs, пяти backpack assets, Spec/52.md и Spec/133.md (изменения стартовой вместимости/скромности). По правилу не смешивать чужие изменения файлы не патчил; Unity не трогал.",
-            "fixCommits": [],
+            "assignedAgent": "/root/fix_148_exile_risk",
+            "agentHandoff": "Готово: все пять рюкзаков и live SimData имеют warmth=0; слой Bags исключён из heat-undress и стирки надетой одежды. Если рюкзак потерян, Dress получает ставку 1.1, обходит NoWarmthGain, отбрасывает не-Bags и первым выбирает собственный экземпляр. Купальный PrepareBathe/RedressGarments не менялся и остаётся единственным штатным временным снятием. Focused StarterBackpackTests 6/6 passed. Коммит 7334e7216cdee104b3c60c7a82b730ed9bbd733e; готово к тесту игроком.",
+            "fixCommits": [
+                "7334e7216cdee104b3c60c7a82b730ed9bbd733e"
+            ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
             "readyForTestInVersion": "",
@@ -4367,6 +4394,16 @@
                     "whenUtc": "2026-08-15 20:24 UTC",
                     "author": "codex",
                     "text": "Диагноз подтверждён: пять рюкзаков ошибочно дают 0.02 тепла, поэтому общий heat-undress считает их снимаемыми; обычный Dress при этом не имеет причины и допуска для возврата нулевого по теплу Bags. Купальный путь отдельный и уже корректно запоминает/возвращает снятые вещи. Исправление временно заблокировано чужими незакоммиченными изменениями в необходимых AI/content/spec-файлах; по правилам проекта их не смешиваю. Точный план оставлен в agentHandoff."
+                },
+                {
+                    "whenUtc": "2026-08-15 21:54 UTC",
+                    "author": "codex",
+                    "text": "Продолжаю #143 по сохранённому диагнозу: нужные AI/content/spec-файлы освобождены. Делаю узкий follow-up без Unity — рюкзак не греет и не снимается от жары, а потерянный собственный рюкзак становится первоочередной целью Dress; купальный цикл остаётся отдельным."
+                },
+                {
+                    "whenUtc": "2026-08-15 22:20 UTC",
+                    "author": "codex",
+                    "text": "Исправлено: у всех пяти рюкзаков нулевое тепло в defaults, Unity assets и live SimData; ИИ не снимает Bags ни от жары, ни ради стирки. Потерянный рюкзак получает первоочередной Dress, проходит мимо NoWarmthGain и выбирает собственный экземпляр раньше других вещей. Купание и возврат того же экземпляра не менялись. Focused-тесты прошли 6/6, коммит 7334e7216cdee104b3c60c7a82b730ed9bbd733e. Готово к проверке игроком."
                 }
             ]
         },
@@ -4431,12 +4468,15 @@
         {
             "id": 146,
             "createdUtc": "2026-08-15 20:17 UTC",
-            "status": "in_progress",
+            "status": "ready_for_test",
             "text": "Наблюдаю странное поведение. Персонажа не было, и он тут же появился, когда я накрикнул на него в правом меню нашего лагеря.",
             "context": "seed=-28164782 tick=10936 npc=3",
             "assignedAgent": "/root/fix_148_exile_risk",
-            "agentHandoff": "Продолжаю доказанный диагноз: выбор скрытого outsider из relation menu не телепортирует симуляцию, а ошибочно делает его selected-only fog observer и исключает из _fogHiddenNpcs. Проверил актуальный dirty diff HexWorldRenderer: изменения §120/§141 находятся в других hunks, RebuildFogState не затронут; делаю точечный contract и partial-stage только своего hunk.",
-            "fixCommits": [],
+            "agentHandoff": "Исправлено: relation target остаётся выбираемым для карточки, но selected-only fog observer может быть только живой колонисткой; сохраняется предыдущая допустимая либо берётся минимальный colony id. Скрытый outsider больше не исключается из _fogHiddenNpcs. Дополнительно камера спрашивает IsNpcHiddenByFog до actor-transform и snapshot fallback, поэтому выбор не выдаёт даже позицию. Основная observer-правка попала в общий commit 346469854a744d2f1b1ebe7f072a38f4273c418d при параллельной фиксации dirty tree; отдельный атомарный hardening #146 — 1581596292c76f2b643389b81042192effbceba7. Focused source-contract 1/1 passed; готово к проверке игроком.",
+            "fixCommits": [
+                "346469854a744d2f1b1ebe7f072a38f4273c418d",
+                "1581596292c76f2b643389b81042192effbceba7"
+            ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
             "readyForTestInVersion": "",
@@ -4457,6 +4497,11 @@
                     "whenUtc": "2026-08-15 21:39 UTC",
                     "author": "codex",
                     "text": "Возобновил #146. Перепроверил dirty overlap: чужие §120/§141 правят другие участки HexWorldRenderer, метод RebuildFogState чист. Исправляю только выбор допустимого fog observer и закоммичу свой hunk частично, не затрагивая чужую работу."
+                },
+                {
+                    "whenUtc": "2026-08-15 21:47 UTC",
+                    "author": "codex",
+                    "text": "Готово к тестированию. Скрытый чужак из relation menu больше не становится глазами тумана: observer остаётся живой колонисткой, поэтому чужак показывается только если реально попадает в её восприятие. Камера также не использует transform или snapshot скрытого NPC и не переводит кадр на его тайную позицию. Основная observer-правка зафиксирована в 346469854a744d2f1b1ebe7f072a38f4273c418d (её захватил параллельный общий commit), отдельное атомарное завершение #146 — 1581596292c76f2b643389b81042192effbceba7. Focused source-contract: 1/1."
                 }
             ]
         },
@@ -4548,12 +4593,15 @@
         {
             "id": 150,
             "createdUtc": "2026-08-15 20:34 UTC",
-            "status": "in_progress",
+            "status": "ready_for_test",
             "text": "Сидение на пеньке не должно повышать энергию.Энергию повышает только сон. Проверь везде в коде, что у нас повышает энергию. Для этого нужен только сон.",
             "context": "seed=-28164782 tick=14788 npc=101",
             "assignedAgent": "/root/fix_144_pause_animations",
-            "agentHandoff": "Расширенный аудит: ground sit передаёт GroundSitEnergy; chair.basic и stump.palm несут ChairEnergy через InteractionEffects. Production CharacterBalance.asset переопределяет их до 0.173/0.158, SimData экспортирует те же значения. Кроме сидения Energy реально поднимает legacy adrenaline floor 0.05 (DamageReactionSystemHelpers при ударе и каждый slow tick); это тоже противоречит условию «только сон». Инициализация spawn/load не является восстановлением; единственный корректный runtime gain — NeedsDecaySystem при Sleep/coma через SleepEnergy*. Для полного исправления нужны нули sit/chair/adrenaline в SimBalance, CharacterBalanceConfig/asset и SimData, удаление adrenaline energy-floor вызовов, сохранение alert/move-speed эффекта, §42 и тесты. Обязательные файлы foreign dirty, но целевые строки не пересекаются: SimBalance занят §120/§133/§54.19, PrototypeContentCatalog — §118.2, CharacterBalanceConfig/asset — bladePickupPull #143, SimData — общими текущими экспортами. Запрошено разрешение root на точечные partial hunks и подтверждение удаления adrenaline floor; до ответа код не смешивался, Unity не использовалась.",
-            "fixCommits": [],
+            "agentHandoff": "Готово: единственный production runtime gain Energy — slow-tick сон/кома в NeedsDecaySystem (4 часа bed.basic, 8 часов земля). Ground/ledge sit, chair.basic и stump.palm больше не имеют Energy knobs/effects; положительный InteractionEffects.EnergyDelta игнорируется вне Sleep. Legacy adrenaline Energy floor удалён, но alert window и множитель движения сохранены. Удалены также dormant GroundSleepEnergy/BedEnergy/LeafBedEnergy и bed timed EnergyDelta, чтобы второй канал нельзя было вернуть баланс-ассетом. §42/§54 и SimData синхронизированы; focused EnergyRecoveryContractTests + SleepRecoveryTests 5/5 passed. Первый набор hunks был непреднамеренно захвачен внешним mixed commit 346469854a744d2f1b1ebe7f072a38f4273c418d; атомарный follow-up fix(bug-150) — be6236751cd38b13bd5b8ad1dc737ff0c1953622. Готово к проверке игроком.",
+            "fixCommits": [
+                "346469854a744d2f1b1ebe7f072a38f4273c418d",
+                "be6236751cd38b13bd5b8ad1dc737ff0c1953622"
+            ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
             "readyForTestInVersion": "",
@@ -4574,6 +4622,11 @@
                     "whenUtc": "2026-08-15 21:37 UTC",
                     "author": "codex",
                     "text": "Повторный полный аудит нашёл ещё два production-источника: баланс-ассет фактически задаёт сидению 0.173/0.158 энергии, а активный адреналин поднимает её до 0.05 даже без сна. Spawn/load лишь инициализируют состояние; корректный runtime-рост уже централизован в NeedsDecaySystem и происходит при Sleep/coma. Полный фикс должен обнулить сидение и удалить energy-floor адреналина, сохранив его запрет сна и ускорение. Нужные файлы содержат чужие непересекающиеся изменения; запросил у root разрешение на строго точечные partial hunks."
+                },
+                {
+                    "whenUtc": "2026-08-15 21:49 UTC",
+                    "author": "codex",
+                    "text": "Energy теперь восстанавливается только во сне/коме через NeedsDecaySystem: сидение на земле, уступе, стуле и пеньке даёт Comfort/Stamina, но не Energy; адреналин больше не создаёт минимум Energy, сохраняя запрет сна и ускорение. Удалены все старые timed-interaction Energy knobs, включая нулевые backdoor-поля кровати. Focused-тесты 5/5 прошли. Первый набор правок попал в общий mixed commit 346469854a744d2f1b1ebe7f072a38f4273c418d из-за конкурентного коммита; отдельный атомарный follow-up #150 — be6236751cd38b13bd5b8ad1dc737ff0c1953622. Готово к проверке игроком."
                 }
             ]
         },

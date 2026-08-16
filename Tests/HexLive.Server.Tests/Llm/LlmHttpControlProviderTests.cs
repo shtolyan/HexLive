@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -203,6 +204,33 @@ public sealed class LlmHttpControlProviderTests
         });
     }
 
+    [Test]
+    public void StreamedOversizedResponseWithoutContentLength_FailsBeforeDeserialization()
+    {
+        using var content = new UnknownLengthJsonContent(
+            "{\"contractVersion\":1,\"commandKind\":\"None\",\"reason\":\"" +
+            new string('x', LlmHttpControlProvider.MaxResponseBytes) + "\"}");
+        using var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        });
+        using var http = new HttpClient(handler);
+        using var provider = new LlmHttpControlProvider(Options(), http);
+
+        Assert.That(content.Headers.ContentLength, Is.Null,
+            "The fixture must exercise the streamed response path without a length header.");
+        Assert.That(provider.TryRequest(Request()), Is.True);
+        var result = WaitForResult(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Failed));
+            Assert.That(result.Decision, Is.Null);
+            Assert.That(result.ErrorMessage,
+                Is.EqualTo("LLM provider failure category=response-too-large."));
+        });
+    }
+
     [TestCase(LlmProviderFailureCategory.Timeout)]
     [TestCase(LlmProviderFailureCategory.Transport)]
     [TestCase(LlmProviderFailureCategory.HttpStatus)]
@@ -364,6 +392,27 @@ public sealed class LlmHttpControlProviderTests
     {
         Content = new StringContent(body, Encoding.UTF8, "application/json"),
     };
+
+    private sealed class UnknownLengthJsonContent : HttpContent
+    {
+        private readonly byte[] _body;
+
+        public UnknownLengthJsonContent(string body)
+        {
+            _body = Encoding.UTF8.GetBytes(body);
+            Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        }
+
+        protected override Task SerializeToStreamAsync(
+            Stream stream,
+            TransportContext? context) => stream.WriteAsync(_body).AsTask();
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+    }
 
     private sealed class RecordingHandler : HttpMessageHandler
     {

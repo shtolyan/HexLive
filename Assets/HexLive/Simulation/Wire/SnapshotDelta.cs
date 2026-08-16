@@ -34,11 +34,27 @@ public sealed class SnapshotDeltaEncoder
 {
     /// <summary>Bytes last sent for each entity, keyed by id. The baseline.</summary>
     private readonly Dictionary<int, byte[]> _objects = new();
-    private readonly Dictionary<int, byte[]> _npcs = new();
+
+    /// <summary>
+    /// §83.2 r12: у колонистки базовая линия хранится ПО ГРУППАМ ПОЛЕЙ — один
+    /// блоб со всеми группами подряд и границы между ними. Сравнение идёт
+    /// диапазонами, поэтому шаг колонистки везёт двадцать байт позиции, а не
+    /// три с половиной килобайта вместе с рюкзаком и навыками.
+    /// </summary>
+    private readonly Dictionary<int, NpcBaseline> _npcs = new();
+
     // §28.15C v3: тела. Дешевле всех остальных секций: труп не двигается и не
     // меняется, поэтому стоит один апсерт в кадре появления — и ноль байт
     // навсегда после. Ровно ради этого дельта и сравнивает БАЙТЫ, а не поля.
-    private readonly Dictionary<int, byte[]> _corpses = new();
+    private readonly Dictionary<int, NpcBaseline> _corpses = new();
+
+    private sealed class NpcBaseline
+    {
+        public byte[] Blob = Array.Empty<byte>();
+
+        /// <summary>Смещение КОНЦА каждой группы внутри <see cref="Blob"/>.</summary>
+        public readonly int[] Ends = new int[WorldSnapshotCodec.NpcGroup.Count];
+    }
     private readonly Dictionary<int, byte[]> _mobs = new();
     private readonly Dictionary<int, byte[]> _crabs = new();
     private readonly Dictionary<int, byte[]> _sharks = new();
@@ -53,6 +69,8 @@ public sealed class SnapshotDeltaEncoder
     private int _deaths;
 
     private readonly MemoryStream _scratch = new();
+    private readonly MemoryStream _npcScratch = new();
+    private readonly int[] _groupEnds = new int[WorldSnapshotCodec.NpcGroup.Count];
     private readonly List<int> _gone = new();
     private readonly HashSet<int> _present = new();
 
@@ -138,11 +156,8 @@ public sealed class SnapshotDeltaEncoder
         WriteSection(w, snapshot.Objects, _objects,
             (o) => o.Id.Value, (sw, o) => WorldSnapshotCodec.WriteObjectRecord(sw, o));
 
-        WriteSection(w, snapshot.Npcs, _npcs,
-            (n) => n.Id.Value, (sw, n) => WorldSnapshotCodec.WriteNpcRecord(sw, n, includeDebugDetails));
-
-        WriteSection(w, snapshot.Corpses, _corpses,
-            (n) => n.Id.Value, (sw, n) => WorldSnapshotCodec.WriteNpcRecord(sw, n, includeDebugDetails));
+        WriteNpcSection(w, snapshot.Npcs, _npcs, includeDebugDetails);
+        WriteNpcSection(w, snapshot.Corpses, _corpses, includeDebugDetails);
 
         WriteSection(w, snapshot.Mobs, _mobs,
             (m) => m.Id, (sw, m) => WorldSnapshotCodec.WriteMobRecord(sw, m));
@@ -246,6 +261,154 @@ public sealed class SnapshotDeltaEncoder
             w.Write(upserts[i].bytes.Length);
             w.Write(upserts[i].bytes);
         }
+    }
+
+    /// <summary>
+    /// Секция колонисток — единственная, что сравнивает не запись целиком, а её
+    /// ГРУППЫ ПОЛЕЙ, и по той же причине, по которой дельта вообще существует:
+    /// на типичном тике меняется одна двадцатая записи, а ехала она вся. Формат
+    /// апсерта тот же самый (id, длина, байты), просто внутри байтов теперь
+    /// сначала маска групп — поэтому читатель секций не знает об этом ничего.
+    /// <para>
+    /// Свойство §83 сохранено дословно: сравниваются БАЙТЫ, выданные тем же
+    /// писателем, которым пишется ключевой кадр. Здесь нет ни одного «а это
+    /// поле изменилось?» — есть только «эти байты те же, что в прошлый раз?».
+    /// </para>
+    /// </summary>
+    private void WriteNpcSection(BinaryWriter w, List<NpcSnapshot> items,
+        Dictionary<int, NpcBaseline> baseline, bool includeDebugDetails)
+    {
+        _present.Clear();
+        _gone.Clear();
+
+        var groupMask = includeDebugDetails
+            ? WorldSnapshotCodec.NpcGroup.All
+            : WorldSnapshotCodec.NpcGroup.AllButDebug;
+
+        var upserts = new List<(int id, byte[] bytes)>();
+        for (var i = 0; i < items.Count; i++)
+        {
+            var npc = items[i];
+            var id = npc.Id.Value;
+            _present.Add(id);
+
+            // Все группы — в один буфер, запоминая, где кончается каждая.
+            _scratch.SetLength(0);
+            _scratch.Position = 0;
+            using (var gw = new BinaryWriter(_scratch, Encoding.UTF8, true))
+            {
+                for (var group = 0; group < WorldSnapshotCodec.NpcGroup.Count; group++)
+                {
+                    if ((groupMask & (1 << group)) != 0)
+                    {
+                        WorldSnapshotCodec.WriteNpcGroup(gw, npc, group);
+                    }
+
+                    gw.Flush();
+                    _groupEnds[group] = (int)_scratch.Position;
+                }
+            }
+
+            var blob = _scratch.ToArray();
+            baseline.TryGetValue(id, out var previous);
+
+            // ВСЕ сравнения — до того, как трогать базовую линию: previous и next
+            // это один и тот же объект, когда колонистка уже известна.
+            var changed = 0;
+            for (var group = 0; group < WorldSnapshotCodec.NpcGroup.Count; group++)
+            {
+                if ((groupMask & (1 << group)) == 0)
+                {
+                    continue;
+                }
+
+                if (previous == null || !SameGroup(previous, blob, _groupEnds, group))
+                {
+                    changed |= 1 << group;
+                }
+            }
+
+            if (previous != null && changed == 0)
+            {
+                continue;
+            }
+
+            _npcScratch.SetLength(0);
+            _npcScratch.Position = 0;
+            using (var pw = new BinaryWriter(_npcScratch, Encoding.UTF8, true))
+            {
+                pw.Write((ushort)changed);
+                for (var group = 0; group < WorldSnapshotCodec.NpcGroup.Count; group++)
+                {
+                    if ((changed & (1 << group)) == 0)
+                    {
+                        continue;
+                    }
+
+                    var start = group == 0 ? 0 : _groupEnds[group - 1];
+                    pw.Write(blob, start, _groupEnds[group] - start);
+                }
+
+                pw.Flush();
+            }
+
+            var next = previous ?? new NpcBaseline();
+            next.Blob = blob;
+            Array.Copy(_groupEnds, next.Ends, _groupEnds.Length);
+            baseline[id] = next;
+
+            upserts.Add((id, _npcScratch.ToArray()));
+        }
+
+        foreach (var pair in baseline)
+        {
+            if (!_present.Contains(pair.Key))
+            {
+                _gone.Add(pair.Key);
+            }
+        }
+
+        for (var i = 0; i < _gone.Count; i++)
+        {
+            baseline.Remove(_gone[i]);
+        }
+
+        w.Write((ushort)_gone.Count);
+        for (var i = 0; i < _gone.Count; i++)
+        {
+            w.Write(_gone[i]);
+        }
+
+        w.Write((ushort)upserts.Count);
+        for (var i = 0; i < upserts.Count; i++)
+        {
+            w.Write(upserts[i].id);
+            w.Write(upserts[i].bytes.Length);
+            w.Write(upserts[i].bytes);
+        }
+    }
+
+    private static bool SameGroup(NpcBaseline previous, byte[] blob, int[] ends, int group)
+    {
+        var oldStart = group == 0 ? 0 : previous.Ends[group - 1];
+        var oldEnd = previous.Ends[group];
+        var newStart = group == 0 ? 0 : ends[group - 1];
+        var newEnd = ends[group];
+
+        if (oldEnd - oldStart != newEnd - newStart)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < oldEnd - oldStart; i++)
+        {
+            if (previous.Blob[oldStart + i] != blob[newStart + i])
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private byte[] Capture(Action<BinaryWriter> write)

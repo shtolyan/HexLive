@@ -148,7 +148,24 @@ public static class SpatialQueries
             return false;
         }
 
-        return target is null || !target.BlockedJunctions.Contains(junctionId);
+        if (target is null || !target.BlockedJunctions.Contains(junctionId))
+        {
+            return true;
+        }
+
+        // Authored furniture may deliberately share a junction (a bed rail at
+        // the hut boundary, or the bed/wardrobe corner in §120). Ownership by
+        // the target does not erase the second obstacle: only a junction owned
+        // exclusively by the target is transparent to its own rim search.
+        foreach (var other in world.Entities.Objects.Values)
+        {
+            if (!other.Id.Equals(target.Id) && other.BlockedJunctions.Contains(junctionId))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Spec §26.6A r4/r5: may the object anchored at `anchor` be TOUCHED from

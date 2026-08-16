@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Баг #161 — вставание с кровати внутри хижины</title>
+  <desc id="desc">Хижина seed -28147312 на tile 0,5. Сохранённая точка по другую сторону стены отклоняется; Position и CurrentJunction переходят на достижимый обод кровати, дальнейший маршрут выходит через дверь.</desc>
+  <defs>
+    <marker id="blue-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="orange-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+  <rect width="960" height="720" fill="#10151c"/>
+  <text x="42" y="48" fill="#f3f4f6" font-family="system-ui,sans-serif" font-size="24" font-weight="700">#161 · пробуждение остаётся внутри и выходит через дверь</text>
+  <text x="42" y="77" fill="#9ca3af" font-family="system-ui,sans-serif" font-size="14">seed=-28147312 · hut tile=(0,5), centre=(6.495,11.250), yaw=300° · HexRadius=1.5 wu · шаг=0.375 wu</text>
+
+  <!-- All world X/Z values come from HexSpatialMath and the committed §120 hut layout. -->
+  <g transform="translate(-390 1680) scale(180 -120)">
+    <polygon points="5.196,10.5 6.495,9.75 7.794,10.5 7.794,12 6.495,12.75 5.196,12"
+             fill="#334155" fill-opacity="0.35" stroke="#64748b" stroke-width="0.018"/>
+
+    <!-- 37 r=3 interior junctions, step 0.375 wu. -->
+    <g fill="#64748b" opacity="0.55">
+      <circle cx="6.495" cy="11.25" r="0.025"/>
+      <circle cx="6.820" cy="11.438" r="0.025"/><circle cx="6.820" cy="11.063" r="0.025"/>
+      <circle cx="6.495" cy="10.875" r="0.025"/><circle cx="6.170" cy="11.063" r="0.025"/>
+      <circle cx="6.170" cy="11.438" r="0.025"/><circle cx="6.495" cy="11.625" r="0.025"/>
+      <circle cx="7.145" cy="11.625" r="0.025"/><circle cx="7.145" cy="11.250" r="0.025"/>
+      <circle cx="7.145" cy="10.875" r="0.025"/><circle cx="6.820" cy="10.688" r="0.025"/>
+      <circle cx="6.495" cy="10.500" r="0.025"/><circle cx="6.170" cy="10.688" r="0.025"/>
+      <circle cx="5.846" cy="10.875" r="0.025"/><circle cx="5.846" cy="11.250" r="0.025"/>
+      <circle cx="5.846" cy="11.625" r="0.025"/><circle cx="6.170" cy="11.813" r="0.025"/>
+      <circle cx="6.495" cy="12.000" r="0.025"/><circle cx="6.820" cy="11.813" r="0.025"/>
+      <circle cx="7.469" cy="11.813" r="0.025"/><circle cx="7.469" cy="11.438" r="0.025"/>
+      <circle cx="7.469" cy="11.063" r="0.025"/><circle cx="7.469" cy="10.688" r="0.025"/>
+      <circle cx="7.145" cy="10.500" r="0.025"/><circle cx="6.820" cy="10.313" r="0.025"/>
+      <circle cx="6.495" cy="10.125" r="0.025"/><circle cx="6.170" cy="10.313" r="0.025"/>
+      <circle cx="5.846" cy="10.500" r="0.025"/><circle cx="5.521" cy="10.688" r="0.025"/>
+      <circle cx="5.521" cy="11.063" r="0.025"/><circle cx="5.521" cy="11.438" r="0.025"/>
+      <circle cx="5.521" cy="11.813" r="0.025"/><circle cx="5.846" cy="12.000" r="0.025"/>
+      <circle cx="6.170" cy="12.188" r="0.025"/><circle cx="6.495" cy="12.375" r="0.025"/>
+      <circle cx="6.820" cy="12.188" r="0.025"/><circle cx="7.145" cy="12.000" r="0.025"/>
+    </g>
+
+    <!-- Authored second bed centre at local (0.487139,0.84375), transformed by hut yaw 300°. -->
+    <rect x="7.144" y="10.500" width="0.650" height="1.500" rx="0.06"
+          fill="#ef4444" fill-opacity="0.18" stroke="#fca5a5" stroke-width="0.018"/>
+    <!-- BuildBed: 2 rails × 5 plus 4 centre nodes, centred by (0,0.1875). -->
+    <g fill="#ef4444" stroke="#fecaca" stroke-width="0.009">
+      <circle cx="7.144" cy="10.500" r="0.050"/><circle cx="7.794" cy="10.500" r="0.050"/>
+      <circle cx="7.144" cy="10.875" r="0.050"/><circle cx="7.794" cy="10.875" r="0.050"/>
+      <circle cx="7.144" cy="11.250" r="0.050"/><circle cx="7.794" cy="11.250" r="0.050"/>
+      <circle cx="7.144" cy="11.625" r="0.050"/><circle cx="7.794" cy="11.625" r="0.050"/>
+      <circle cx="7.144" cy="12.000" r="0.050"/><circle cx="7.794" cy="12.000" r="0.050"/>
+      <circle cx="7.469" cy="10.688" r="0.050"/><circle cx="7.469" cy="11.063" r="0.050"/>
+      <circle cx="7.469" cy="11.438" r="0.050"/><circle cx="7.469" cy="11.813" r="0.050"/>
+    </g>
+    <circle cx="7.469" cy="11.250" r="0.055" fill="#ef4444"/>
+    <circle cx="6.820" cy="11.438" r="0.075" fill="#22c55e" stroke="#dcfce7" stroke-width="0.014"/>
+
+    <!-- Stale close point outside the wall: metric distance alone used to accept it. -->
+    <circle cx="8.118" cy="11.438" r="0.075" fill="#f59e0b" stroke="#fef3c7" stroke-width="0.014"/>
+    <line x1="7.469" y1="11.250" x2="8.118" y2="11.438" stroke="#f59e0b" stroke-width="0.035"
+          stroke-dasharray="0.08 0.05" marker-end="url(#orange-arrow)"/>
+
+    <!-- Door portal and the next route from the atomically restored inner node. -->
+    <circle cx="6.170" cy="9.938" r="0.075" fill="#38bdf8" stroke="#e0f2fe" stroke-width="0.014"/>
+    <polyline points="6.820,11.438 6.820,11.063 6.495,10.875 6.495,10.500 6.170,10.313 6.170,9.938 5.846,9.750"
+              fill="none" stroke="#3b82f6" stroke-width="0.045" stroke-linejoin="round"
+              marker-end="url(#blue-arrow)"/>
+  </g>
+
+  <g font-family="system-ui,sans-serif" font-size="15">
+    <rect x="42" y="575" width="876" height="112" rx="12" fill="#18212c" stroke="#374151"/>
+    <circle cx="68" cy="604" r="8" fill="#64748b"/><text x="86" y="609" fill="#d1d5db">37 внутренних junction, шаг 0.375 wu</text>
+    <rect x="342" y="596" width="20" height="14" fill="#ef4444" fill-opacity="0.55"/><text x="372" y="609" fill="#d1d5db">authored footprint кровати: 14 узлов</text>
+    <circle cx="650" cy="604" r="8" fill="#f59e0b"/><text x="668" y="609" fill="#d1d5db">старая точка за стеной — отказ</text>
+    <circle cx="68" cy="649" r="8" fill="#22c55e"/><text x="86" y="654" fill="#d1d5db">новые Position + CurrentJunction на доступном Reach-ободе</text>
+    <line x1="515" y1="649" x2="565" y2="649" stroke="#3b82f6" stroke-width="5"/><text x="578" y="654" fill="#d1d5db">следующий путь только через door portal</text>
+  </g>
+</svg>

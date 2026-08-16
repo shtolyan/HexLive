@@ -387,6 +387,62 @@ public sealed class LyingSpotTests
         Assert.That(world.Tiles.Items[bed.Tile].Junctions.Any(id =>
             world.Junctions.Items[id].WorldPosition.Equals(girl.Position) &&
             !world.Junctions.Items[id].Blocked), Is.True);
+        Assert.That(girl.CurrentJunction, Is.Not.Null);
+        Assert.That(girl.Position,
+            Is.EqualTo(world.Junctions.Items[girl.CurrentJunction!.Value].WorldPosition),
+            "The navigation origin must move with the standing pose.");
+    }
+
+    [Test]
+    public void SavedWakePointAcrossHutWall_IsRejectedForReachableInnerRim()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var girl = Girl(world);
+        MoveOtherNpcsAway(world, girl);
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic &&
+            o.Variant == ContentIds.HutBedVariant &&
+            o.BlockedJunctions.Any(id => world.Entities.Objects.Values.Any(other =>
+                !other.Id.Equals(o.Id) && other.BlockedJunctions.Contains(id))));
+        var anchor = bed.Junctions[0];
+        var reach = SpatialQueries.BesideReach(LyingSpot.SolidRadius(world, bed));
+
+        var sharedBlocker = bed.BlockedJunctions.First(id =>
+            world.Entities.Objects.Values.Any(other =>
+                !other.Id.Equals(bed.Id) && other.BlockedJunctions.Contains(id)));
+        Assert.That(SpatialQueries.IsBarrierFor(
+            world, sharedBlocker, bed, SpatialQueries.RimPurpose.Reach), Is.True,
+            "A bed must not make a wall or another furniture footprint transparent at a shared node.");
+
+        var freeCandidates = world.Junctions.Items.Values
+            .Where(j => j.Tiles.Count > 0 && !j.Blocked &&
+                !SpatialQueries.IsAllWaterJunction(world, j.Id) &&
+                SpatialQueries.IsJunctionFree(world, j.Id) &&
+                !j.Id.Equals(anchor) && !bed.BlockedJunctions.Contains(j.Id) &&
+                HexSpatialMath.Distance(
+                    j.WorldPosition, world.Junctions.Items[anchor].WorldPosition) <= reach)
+            .OrderBy(j => HexSpatialMath.Distance(
+                j.WorldPosition, world.Junctions.Items[anchor].WorldPosition))
+            .ThenBy(j => j.Id.Value)
+            .ToArray();
+        var staleOutside = freeCandidates.First(j => !SpatialQueries.CanTouchAcross(
+            world, j.Id, anchor, reach, bed, SpatialQueries.RimPurpose.Reach));
+        Assert.That(freeCandidates.Any(j => SpatialQueries.CanTouchAcross(
+            world, j.Id, anchor, reach, bed, SpatialQueries.RimPurpose.Reach)), Is.True,
+            "The production hut must still expose a legal inner interaction rim.");
+
+        girl.CurrentJunction = staleOutside.Id;
+        girl.Position = staleOutside.WorldPosition;
+        girl.Tile = staleOutside.Tiles[0];
+
+        Assert.That(LyingSpot.TryStandAfterObjectSleep(world, girl, bed), Is.True);
+        Assert.That(girl.CurrentJunction, Is.Not.EqualTo(staleOutside.Id),
+            "A metrically close junction across the hut wall cannot be a wake destination.");
+        Assert.That(girl.CurrentJunction, Is.Not.Null);
+        var chosen = girl.CurrentJunction!.Value;
+        Assert.That(SpatialQueries.CanTouchAcross(
+            world, chosen, anchor, reach, bed, SpatialQueries.RimPurpose.Reach), Is.True);
+        Assert.That(girl.Position, Is.EqualTo(world.Junctions.Items[chosen].WorldPosition));
     }
 
     [Test]

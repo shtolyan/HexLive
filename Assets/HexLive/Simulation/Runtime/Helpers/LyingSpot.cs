@@ -207,8 +207,9 @@ internal static class LyingSpot
 
     /// <summary>
     /// Moves a waking sleeper from the authored bed pose to a real standing
-    /// junction. New plans retain their reserved approach node; legacy plans
-    /// that targeted the bed anchor search the nearest free node instead.
+    /// junction on the bed's reachable rim. New plans retain their reserved
+    /// approach node only while no wall or third footprint separates it;
+    /// legacy plans that targeted the bed anchor search the nearest free node.
     /// </summary>
     internal static bool TryStandAfterObjectSleep(
         WorldState world, NPCState npc, WorldObjectState bed)
@@ -241,7 +242,7 @@ internal static class LyingSpot
         SpatialQueries.CollectStandableAround(
             world, anchor.Value, candidates, 96,
             SpatialQueries.BesideReach(SolidRadius(world, bed)), bed,
-            SpatialQueries.RimPurpose.Route);
+            SpatialQueries.RimPurpose.Reach);
         candidates.Sort((a, b) =>
         {
             var da = world.Junctions.Items.TryGetValue(a, out var ja)
@@ -277,7 +278,11 @@ internal static class LyingSpot
         // authored blocked junction as the standing result, even if the global
         // topology cache has not yet mirrored that object flag.
         return !candidate.Equals(anchor.Value) &&
-            !bed.BlockedJunctions.Contains(candidate);
+            !bed.BlockedJunctions.Contains(candidate) &&
+            SpatialQueries.CanTouchAcross(
+                world, candidate, anchor.Value,
+                SpatialQueries.BesideReach(SolidRadius(world, bed)), bed,
+                SpatialQueries.RimPurpose.Reach);
     }
 
     private static bool CanStandAt(WorldState world, NPCState npc, JunctionId candidate)
@@ -313,6 +318,10 @@ internal static class LyingSpot
     {
         if (!world.Junctions.Items.TryGetValue(stand, out var junction)) return false;
         npc.Position = junction.WorldPosition;
+        // Position and navigation origin are one standing-pose invariant. If
+        // CurrentJunction remains on the stale side of a hut wall, the next
+        // route starts outside even though the rendered body woke indoors.
+        npc.CurrentJunction = stand;
         if (!junction.Tiles.Contains(npc.Tile) && junction.Tiles.Count > 0)
         {
             var previous = npc.Tile;

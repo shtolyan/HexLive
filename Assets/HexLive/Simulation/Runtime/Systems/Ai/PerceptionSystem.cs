@@ -61,6 +61,7 @@ public sealed class PerceptionSystem : ISimulationSystem
             npc.Perception.Agents.Clear();
             npc.Perception.Hostiles.Clear(); // §72
             npc.Perception.Remembered.Clear(); // §125.7
+            npc.Perception.Mobs.Clear(); // §125.4
             npc.Perception.Self.Hunger = npc.Needs.Hunger;
             npc.Perception.Self.Energy = npc.Needs.Energy;
             npc.Perception.Self.Comfort = npc.Needs.Comfort;
@@ -354,6 +355,7 @@ public sealed class PerceptionSystem : ISimulationSystem
 
             UpdateAgentMemory(world, npc);
             BuildRememberedAgents(world, npc);
+            CollectMobsInRadius(world, npc, agentRadius);
 
             // §72 «компания» = СОЮЗНИЦЫ, и с §125 — только те, кого она видит:
             // подруга на другом конце острова больше не согревает.
@@ -458,6 +460,61 @@ public sealed class PerceptionSystem : ISimulationSystem
             entry.Helpless = met.Helpless;
             npc.Perception.Remembered.Add(entry);
         }
+    }
+
+    /// <summary>
+    /// §125.4 / §144.7: какие звери у неё в поле зрения.
+    /// <para>
+    /// Радиус тот же личный <see cref="PerceptionMath.RadiusTiles"/>, что у
+    /// людей, и та же мера в гексах, что у сторожевого прохода
+    /// (<c>ThreatAlertSystem</c>). Иначе список либо прятал бы зверя, которого
+    /// она видит, либо разрешал бы бить того, кого не видит, — а именно на
+    /// «увидеть и ударить» его и заводят.
+    /// </para>
+    /// <para>
+    /// ⚠️ <c>ThreatAlertSystem</c> сознательно продолжает сканировать
+    /// <c>world.Mobs</c> сам. Перевести его сюда — правка ПОВЕДЕНИЯ: у него
+    /// ранний выход и разбор ничьих по ближайшей дистанции, и любой сдвиг там
+    /// тасует, кого именно колония замечает первой.
+    /// </para>
+    /// <para>
+    /// Список пересобирается целиком без пула: зверей на острове единицы, а
+    /// пул платит словарём и риском протухшего поля ради экономии, которой
+    /// здесь нет.
+    /// </para>
+    /// </summary>
+    private static void CollectMobsInRadius(WorldState world, NPCState npc, int radius)
+    {
+        var mobs = npc.Perception.Mobs;
+        for (var i = 0; i < world.Mobs.Count; i++)
+        {
+            var mob = world.Mobs[i];
+            if (mob.Health <= 0f)
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.HexDistance(npc.Tile, mob.Tile);
+            if (distance > radius)
+            {
+                continue;
+            }
+
+            mobs.Add(new PerceivedMob
+            {
+                Id = mob.Id,
+                MobId = mob.MobId,
+                Tile = mob.Tile,
+                Distance = distance,
+                Health = mob.Health,
+                Status = mob.Status,
+                TargetsMe = mob.TargetNpc == npc.Id,
+            });
+        }
+
+        // Детерминизм, как у каждого соседнего списка: порядок world.Mobs —
+        // это порядок спавна и смертей, а не свойство мира.
+        mobs.Sort(static (a, b) => a.Id.CompareTo(b.Id));
     }
 
     /// <summary>§125.2: кто из людей стоит в кольце восприятия наблюдателя.

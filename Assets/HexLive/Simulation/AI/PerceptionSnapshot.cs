@@ -35,6 +35,27 @@ public sealed class PerceptionSnapshot
     // под видом восприятия. Отдельный тип отвечает на это компилятором.
     public List<RememberedAgent> Remembered { get; } = new();
 
+    // §125.4 / §144.7: ЗВЕРИ, которых она видит прямо сейчас. Отдельный список и
+    // отдельный тип — по той же причине, по которой отдельно живут Hostiles и
+    // Remembered: у зверя нет ни отношений, ни страдания, ни разговора, и
+    // подмешать его к людям значит выдать шести потребителям человека, которым
+    // он не является.
+    //
+    // ⭐ Почему список вообще появился. Внешнее управление (§144) обещало
+    // `mobId` для `attack_mob` «из сводки восприятия» — и обещание было ложным:
+    // мобов в восприятии не существовало вовсе, каждая система сканировала
+    // world.Mobs сама. Живой прогон показал, чем это оборачивается: на
+    // колонистку напал зверь, пришло fighting=true при ПУСТОМ hostiles, и
+    // внешний контур не мог ни увидеть напавшего, ни ударить в ответ.
+    //
+    // Читателей у списка пока ровно один — сборщик контекста управления.
+    // ⚠️ ThreatAlertSystem намеренно НЕ переведён на него: его ранний выход и
+    // разбор ничьих по bestDistance — это поведение, и его правка обязана быть
+    // отдельным осознанным коммитом со своей трассой.
+    //
+    // Runtime-only: ни в сейв, ни в провод не ходит — как Hostiles и Remembered.
+    public List<PerceivedMob> Mobs { get; } = new();
+
     public PerceivedEnvironment Environment { get; } = new();
 
     public int LastUpdatedTick { get; set; }
@@ -132,6 +153,33 @@ public sealed class RememberedAgent
     public AidKind AidKind { get; set; } = AidKind.None;
 
     public bool Helpless { get; set; }
+}
+
+/// <summary>
+/// §125.4: зверь в поле зрения. Полей ровно столько, сколько нужно, чтобы
+/// РЕШИТЬ — бить, бежать или не заметить: кто, где, далеко ли, жив ли и не по
+/// мою ли душу.
+/// </summary>
+public sealed class PerceivedMob
+{
+    /// <summary>То самое число, которое ждёт приказ атаки. Не EntityId: у
+    /// зверей своё пространство идентификаторов.</summary>
+    public int Id { get; set; }
+
+    public string MobId { get; set; } = string.Empty;
+
+    public TileCoord Tile { get; set; } = TileCoord.Zero;
+
+    /// <summary>В гексах — той же мерой, которой считается сам радиус обзора.</summary>
+    public int Distance { get; set; }
+
+    public float Health { get; set; }
+
+    public Wildlife.MobStatus Status { get; set; } = Wildlife.MobStatus.Roaming;
+
+    /// <summary>Он идёт ИМЕННО ЗА НЕЙ. Без этого стая, бредущая мимо, и волк,
+    /// вышедший на неё, выглядят одинаково.</summary>
+    public bool TargetsMe { get; set; }
 }
 
 public sealed class PerceivedAgent

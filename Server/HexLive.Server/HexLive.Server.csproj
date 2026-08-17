@@ -25,4 +25,29 @@
     <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
   </ItemGroup>
 
+  <!--
+    §144.9: the spec travels WITH the server.
+
+    An MCP agent reaches this process over HTTP and may be on another machine
+    entirely: it has no repository, no checkout, no filesystem here. Without
+    these files the only thing it can ever learn about the world is twelve tool
+    descriptions — and the rules that actually decide whether an order succeeds
+    (§121.6 "she consumes only her own", §64.9 "the palm IS the water supply")
+    live in the spec, not in a parameter list.
+
+    Content, not EmbeddedResource: 2.1 MB of Markdown that changes on nearly
+    every commit has no business inflating the assembly, and a plain directory
+    stays readable by a human debugging the server on the box.
+  -->
+  <ItemGroup>
+    <Content Include="../../Spec/*.md"
+             Link="Spec/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../spec.md"
+             Link="Spec/spec.md"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

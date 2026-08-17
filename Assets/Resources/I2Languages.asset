@@ -3085,8 +3085,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - 'Drag an item into the other inventory'
-      - 'Перетащите вещь в другой инвентарь'
+      - 'Drag an item across — or double-click: right takes it, left wears or removes it'
+      - 'Перетащите вещь на другую сторону — или двойной клик: справа забрать, слева надеть/снять'
       Flags: 0101
       Languages_Touch: []
     - Term: 'loot.drop_hint'
@@ -3119,6 +3119,30 @@ MonoBehaviour:
       Languages:
       - 'Nothing here'
       - 'Здесь пусто'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.equipping'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Putting it on…'
+      - 'Надевает…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.removing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Taking it off…'
+      - 'Снимает…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loot.no_quick_action'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A double click wears or removes — drag to hand it over'
+      - 'Двойной клик надевает или снимает — отдать можно перетаскиванием'
       Flags: 0101
       Languages_Touch: []
     - Term: 'menu.hands_occupied'

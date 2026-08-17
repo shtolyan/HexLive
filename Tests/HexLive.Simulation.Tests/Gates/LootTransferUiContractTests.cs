@@ -13,7 +13,7 @@ public sealed class LootTransferUiContractTests
             .Concat(parts).ToArray());
 
     [Test]
-    public void ExchangeIsTwoEqualUnscrolledWindowsWithAuthoritativeDragDrops()
+    public void ExchangeIsTwoEqualScrollingWindowsWithAuthoritativeDragDrops()
     {
         var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
 
@@ -22,8 +22,14 @@ public sealed class LootTransferUiContractTests
             Assert.That(panel, Does.Contain("loot-own-window"));
             Assert.That(panel, Does.Contain("loot-target-window"));
             Assert.That(panel, Does.Contain("pane.style.width = Length.Percent(50f)"));
-            Assert.That(panel, Does.Not.Contain("ScrollView"));
-            Assert.That(panel, Does.Not.Contain("Scroller"));
+            // §128.1: панель СКРОЛЛИТСЯ со своим скроллбаром. Раньше здесь стояло
+            // ровно обратное требование, и лестница плотности жала ячейки до 28
+            // единиц, а остаток всё равно срезала рамка с overflow: hidden.
+            Assert.That(panel, Does.Contain("new ScrollView("));
+            Assert.That(panel, Does.Contain("verticalScrollerVisibility"));
+            Assert.That(panel, Does.Contain("ScrollerVisibility.Auto"));
+            Assert.That(panel, Does.Contain("private const int MaxDensityTier = 1"),
+                "Лестница усадки укорочена: дальше вещи не мельчают, а скроллятся.");
             Assert.That(panel, Does.Contain("private const float DragThreshold = 6f"));
             Assert.That(panel, Does.Contain("using HexLive.Simulation.Content;"),
                 "ItemInfo.Slug belongs to the simulation content namespace.");
@@ -34,6 +40,68 @@ public sealed class LootTransferUiContractTests
             Assert.That(panel, Does.Contain("InventoryItemSource.Worn"));
             Assert.That(panel, Does.Not.Contain("ShowItemDetail"),
                 "The exchange has no hover or click popup competing with drag-and-drop.");
+        });
+    }
+
+    [Test]
+    // §128.1a: жест держится захватом указателя, а не тем, куда всплывёт событие.
+    // Прежняя версия слушала PointerUp на панели-приёмнике и брала приёмник из
+    // evt.target — и разваливалась от пересборки раскладки посреди жеста.
+    public void DragIsHeldByPointerCaptureAndResolvedGeometrically()
+    {
+        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel, Does.Contain("_frame.CapturePointer("),
+                "Указатель забирает РАМКА: она переживает пересборку содержимого.");
+            Assert.That(panel, Does.Contain("ReleasePointer("));
+            Assert.That(panel, Does.Contain("PointerCaptureOutEvent"),
+                "Потеря захвата обязана гасить жест, иначе он зависнет навсегда.");
+            Assert.That(panel, Does.Contain("worldBound.Contains("),
+                "Приёмник определяется геометрией точки отпускания, а не evt.target.");
+            Assert.That(panel, Does.Contain("_rebuildDeferred"),
+                "Пересборка раскладки во время жеста откладывается.");
+            Assert.That(panel, Does.Contain("_dragGhost"),
+                "За курсором едет призрак вещи, иначе жест невидим.");
+        });
+    }
+
+    [Test]
+    // §128.4: правило двойного клика и его порог живут в ОДНОМ файле, и оба
+    // инвентаря спрашивают именно его.
+    public void DoubleClickRuleIsSharedBetweenExchangeAndColonistInventory()
+    {
+        var shared = File.ReadAllText(Presentation("UI", "InventoryQuickAction.cs"));
+        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+        var character = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var localization = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shared, Does.Contain("public const float DoubleClickSeconds = 0.35f"));
+            Assert.That(shared, Does.Contain("InventoryQuickAction.TakeFromOther"));
+            Assert.That(shared, Does.Contain("InventoryQuickAction.TakeOff"));
+            Assert.That(shared, Does.Contain("InventoryQuickAction.Wear"));
+            // Своя сторона НИКОГДА не отдаёт вещь двойным кликом: отдача — только
+            // перетаскиванием, иначе случайный двойной клик ссыпет гардероб в труп.
+            Assert.That(shared, Does.Contain("if (!ownSide) return InventoryQuickAction.TakeFromOther;"));
+            Assert.That(shared, Does.Contain("definition?.Layer is not null"),
+                "«Можно надеть» — тот же признак, что принимает PlayerInventoryMath.");
+
+            Assert.That(panel, Does.Contain("InventoryQuickActions.Resolve("));
+            Assert.That(panel, Does.Contain("DoubleClickWatch _doubleClick"));
+            Assert.That(panel, Does.Contain("ManageInventoryCommand("),
+                "Надеть/снять в окне обмена идёт штатным приказом §123.");
+            Assert.That(panel, Does.Contain("_autoWearDefinitionId"),
+                "Забранная носимая вещь доводится до надетой отложенным Wear.");
+
+            Assert.That(character, Does.Contain("InventoryQuickActions.Resolve("));
+            Assert.That(character, Does.Contain("TryInventoryQuickAction("));
+
+            Assert.That(localization, Does.Contain("Term: 'loot.equipping'"));
+            Assert.That(localization, Does.Contain("Term: 'loot.no_quick_action'"));
         });
     }
 

@@ -198,6 +198,12 @@ namespace HexLive.UnityPresentation.UI
         private int _invPointerId = -1;
         private Vector2 _invPointerDownPosition;
         private bool _invPointerMoved;
+
+        // §128.4: двойной клик по ячейке = «надеть/снять», то же правило и тот
+        // же порог, что в окне обмена. Решение живёт в InventoryQuickActions;
+        // приказ по-прежнему уходит отсюда, штатным EnqueueInventoryAction.
+        private readonly DoubleClickWatch _invDoubleClick = new();
+        private bool _invPointerDoubleClick;
         private string _invHoveredWornId;
         private bool _invHoverDetailFocus;
         private VisualWearLayer _invVisibleWearLayer = VisualWearLayer.Bags;
@@ -2699,6 +2705,9 @@ namespace HexLive.UnityPresentation.UI
             _invHoverDetailFocus = false;
             _invSelectedId = null;
             _invDetailAnchor = null;
+            // Закрытое окно обрывает пару: клик до закрытия и клик после — не
+            // двойной клик, даже если между ними меньше порога.
+            _invDoubleClick.Reset();
             if (!_healthOpen)
             {
                 _characterDollStage?.SetMode(CharacterDollMode.Hidden);
@@ -3815,11 +3824,18 @@ namespace HexLive.UnityPresentation.UI
             int sourceIndex = -1)
         {
             element.RegisterCallback<PointerDownEvent>(evt =>
-                BeginInventoryPointerGesture(itemId, worn, evt));
+                BeginInventoryPointerGesture(itemId, worn, sourceIndex, evt));
             element.RegisterCallback<PointerUpEvent>(evt =>
             {
+                var quick = _invPointerDoubleClick;
                 if (!FinishInventoryClick(itemId, worn, evt))
                 {
+                    return;
+                }
+
+                if (quick && TryInventoryQuickAction(itemId, worn, sourceIndex))
+                {
+                    evt.StopPropagation();
                     return;
                 }
 
@@ -3850,7 +3866,8 @@ namespace HexLive.UnityPresentation.UI
             return -1;
         }
 
-        private void BeginInventoryPointerGesture(string itemId, bool worn, PointerDownEvent evt)
+        private void BeginInventoryPointerGesture(
+            string itemId, bool worn, int sourceIndex, PointerDownEvent evt)
         {
             if (evt.button != 0 || string.IsNullOrEmpty(itemId)) return;
             ClearInventoryDrag();
@@ -3859,6 +3876,33 @@ namespace HexLive.UnityPresentation.UI
             _invPointerId = evt.pointerId;
             _invPointerDownPosition = new Vector2(evt.position.x, evt.position.y);
             _invPointerMoved = false;
+            // §128.4: пару засекаем на нажатии, а исполняем на отпускании —
+            // иначе второй клик успел бы стать началом перетаскивания.
+            _invPointerDoubleClick = _invDoubleClick.Accept(
+                InventoryQuickActions.CellKey(
+                    _inventoryActorId,
+                    worn ? InventoryItemSource.Worn : InventoryItemSource.Carried,
+                    sourceIndex,
+                    itemId),
+                evt.clickCount);
+        }
+
+        /// <summary>§128.4 «своя панель»: надеть носимое, снять надетое. Отказ
+        /// возвращает false, и ячейка ведёт себя как при обычном клике.</summary>
+        private bool TryInventoryQuickAction(string itemId, bool worn, int sourceIndex)
+        {
+            if (!_inventoryMutable || _runner == null || _inventoryActorId < 0) return false;
+            var quick = InventoryQuickActions.Resolve(
+                ownSide: true, worn, InventoryQuickActions.IsWearable(_runner, itemId));
+            if (quick == InventoryQuickAction.None) return false;
+
+            _invSelectedId = itemId;
+            _invSelectedWorn = worn;
+            _invSelectedSourceIndex = sourceIndex;
+            EnqueueInventoryAction(quick == InventoryQuickAction.TakeOff
+                ? InventoryAction.Stow
+                : InventoryAction.Wear);
+            return true;
         }
 
         private void UpdateInventoryPointerGesture(PointerMoveEvent evt)
@@ -3917,6 +3961,7 @@ namespace HexLive.UnityPresentation.UI
             _invDraggedWorn = false;
             _invPointerItemId = null;
             _invPointerItemWorn = false;
+            _invPointerDoubleClick = false;
             _invPointerId = -1;
             _invPointerMoved = false;
         }

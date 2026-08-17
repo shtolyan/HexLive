@@ -62,6 +62,19 @@ public sealed class LootTransferPanel : MonoBehaviour
     private int _dragPointerId = -1;
     private Vector2 _dragStart;
     private VisualElement? _dragCell;
+    private VisualElement? _dragGhost;
+    private bool _dragDoubleClick;
+    private readonly DoubleClickWatch _doubleClick = new();
+
+    // §128.1a: снапшот приходит 4 раза в секунду и может пересобрать раскладку
+    // прямо посреди жеста. Читать его продолжаем, дерево — не трогаем.
+    private bool _rebuildDeferred;
+
+    // §128.4: единственное отложенное действие панели — довести забранную
+    // носимую вещь до надетой, когда она доедет в переноску получателя.
+    private string _autoWearDefinitionId = string.Empty;
+    private int _autoWearDeadlineTick = -1;
+    private int _autoWearBaseline;
 
     private readonly List<VisualElement> _slotCells = new();
     private readonly List<VisualElement> _slotIcons = new();
@@ -78,6 +91,16 @@ public sealed class LootTransferPanel : MonoBehaviour
     private static readonly float[] CellSizes = { 42f, 36f, 32f, 28f };
     private static readonly float[] Gaps = { 5f, 4f, 3f, 2f };
     private const float DragThreshold = 6f;
+
+    // §128.1: со скроллом мельчить бессмысленно — две ступени экономят место,
+    // дальше панель скроллится. Хвост лестницы (32/28) оставлен в таблицах как
+    // след прежнего поведения и намеренно не используется.
+    private const int MaxDensityTier = 1;
+    private const float GhostSize = 40f;
+
+    // §128.4: окно, в течение которого «забрал носимое» доводится до «надел».
+    // 40 тиков ≈ 10 секунд — этого хватает на подход и передачу.
+    private const int AutoWearWindowTicks = 40;
 
     private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
     private static readonly Color TextDim = new(0.655f, 0.702f, 0.733f);
@@ -192,6 +215,9 @@ public sealed class LootTransferPanel : MonoBehaviour
         _lastTick = -1;
         _signature = string.Empty;
         _pending = false;
+        _rebuildDeferred = false;
+        ClearAutoWear();
+        _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
         IsOpen = true;
@@ -222,6 +248,9 @@ public sealed class LootTransferPanel : MonoBehaviour
         _lastTick = -1;
         _signature = string.Empty;
         _pending = false;
+        _rebuildDeferred = false;
+        ClearAutoWear();
+        _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
         IsOpen = true;
@@ -270,8 +299,12 @@ public sealed class LootTransferPanel : MonoBehaviour
         SetRadius(_frame, 15f);
         _frame.RegisterCallback<PointerEnterEvent>(_ => PointerOverPanel = true);
         _frame.RegisterCallback<PointerLeaveEvent>(_ => PointerOverPanel = false);
+        // §128.1a: жест ведёт рамка, потому что она переживает пересборку
+        // содержимого. Отпускание разбирается ЗДЕСЬ, а не на панели-приёмнике:
+        // с захваченным указателем цель события — всегда рамка.
         _frame.RegisterCallback<PointerMoveEvent>(UpdateDrag);
-        _frame.RegisterCallback<PointerUpEvent>(_ => ClearDrag());
+        _frame.RegisterCallback<PointerUpEvent>(OnFramePointerUp);
+        _frame.RegisterCallback<PointerCaptureOutEvent>(_ => ClearDrag());
 
         var header = new VisualElement();
         header.style.flexDirection = FlexDirection.Row;
@@ -304,12 +337,12 @@ public sealed class LootTransferPanel : MonoBehaviour
         panes.style.flexDirection = FlexDirection.Row;
         panes.style.flexGrow = 1f;
         panes.style.minHeight = 0f;
-        _leftPane = BuildPersonPane(out _leftTitle, out _leftCapacity, out _leftContent);
-        _rightPane = BuildPersonPane(out _rightTitle, out _rightCapacity, out _rightContent);
+        _leftPane = BuildPersonPane(out _leftTitle, out _leftCapacity, out _leftScroll);
+        _rightPane = BuildPersonPane(out _rightTitle, out _rightCapacity, out _rightScroll);
+        _leftContent = _leftScroll.contentContainer;
+        _rightContent = _rightScroll.contentContainer;
         _leftPane.name = "loot-own-window";
         _rightPane.name = "loot-target-window";
-        _leftPane.RegisterCallback<PointerUpEvent>(evt => DropOn(_looterId, evt));
-        _rightPane.RegisterCallback<PointerUpEvent>(evt => DropOn(_otherId, evt));
         panes.Add(_leftPane);
         var arrows = new Label("⇄");
         arrows.style.width = 34f;
@@ -332,7 +365,7 @@ public sealed class LootTransferPanel : MonoBehaviour
     }
 
     private static VisualElement BuildPersonPane(
-        out Label title, out Label capacity, out VisualElement content)
+        out Label title, out Label capacity, out ScrollView scroll)
     {
         var pane = new VisualElement();
         pane.style.width = Length.Percent(50f);
@@ -361,13 +394,21 @@ public sealed class LootTransferPanel : MonoBehaviour
         header.Add(capacity);
         pane.Add(header);
 
-        content = new VisualElement();
+        // §128.1: панель скроллится своим скроллбаром. До этого раскладка,
+        // не влезшая после усадки ячеек, просто срезалась рамкой — добраться
+        // до остатка было нечем.
+        scroll = new ScrollView(ScrollViewMode.Vertical);
+        scroll.style.flexGrow = 1f;
+        scroll.style.minHeight = 0f;
+        scroll.verticalScrollerVisibility = ScrollerVisibility.Auto;
+        scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+
+        var content = scroll.contentContainer;
         content.style.flexDirection = FlexDirection.Row;
         content.style.flexWrap = Wrap.Wrap;
         content.style.alignContent = Align.FlexStart;
-        content.style.flexGrow = 1f;
-        content.style.minHeight = 0f;
-        pane.Add(content);
+        content.style.width = Length.Percent(100f);
+        pane.Add(scroll);
         return pane;
     }
 
@@ -410,7 +451,14 @@ public sealed class LootTransferPanel : MonoBehaviour
             var containerSignature =
                 PersonSignature(looter) + "<>" + ContainerSignature(container);
             UpdatePendingStatus(snapshot, looter, containerSignature);
+            TryFinishAutoWear(looter, containerSignature);
             if (!force && containerSignature == _signature) return;
+            if (_dragPrepared)
+            {
+                _rebuildDeferred = true;
+                return;
+            }
+
             _signature = containerSignature;
             RebuildWithContainer(looter, container);
             return;
@@ -428,8 +476,17 @@ public sealed class LootTransferPanel : MonoBehaviour
 
         var signature = PersonSignature(looter) + "<>" + PersonSignature(other);
         UpdatePendingStatus(snapshot, looter, signature);
+        TryFinishAutoWear(looter, signature);
 
         if (!force && signature == _signature) return;
+        // §128.1a: раскладку во время жеста не трогаем — иначе нажатая ячейка
+        // исчезнет из дерева прямо под пальцем.
+        if (_dragPrepared)
+        {
+            _rebuildDeferred = true;
+            return;
+        }
+
         _signature = signature;
         Rebuild(looter, other);
     }
@@ -842,6 +899,15 @@ public sealed class LootTransferPanel : MonoBehaviour
             _dragPointerId = evt.pointerId;
             _dragStart = new Vector2(evt.position.x, evt.position.y);
             _dragCell = element;
+            // §128.4: пару засекаем на нажатии, исполняем на отпускании — иначе
+            // второй клик успел бы стать началом перетаскивания.
+            _dragDoubleClick = _doubleClick.Accept(
+                InventoryQuickActions.CellKey(
+                    item.OwnerId, item.Source, item.Index, item.DefinitionId),
+                evt.clickCount);
+            // §128.1a: указатель забирает РАМКА. Ячейка под курсором может
+            // исчезнуть на ближайшей пересборке, рамка — нет.
+            _frame.CapturePointer(evt.pointerId);
         });
         element.RegisterCallback<PointerEnterEvent>(_ => SetBorder(element, GoldDim, 1f));
         element.RegisterCallback<PointerLeaveEvent>(_ =>
@@ -853,25 +919,61 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void UpdateDrag(PointerMoveEvent evt)
     {
-        if (!_dragPrepared || _dragMoved || evt.pointerId != _dragPointerId) return;
+        if (!_dragPrepared || evt.pointerId != _dragPointerId) return;
         var position = new Vector2(evt.position.x, evt.position.y);
-        if ((position - _dragStart).sqrMagnitude < DragThreshold * DragThreshold) return;
-        _dragMoved = true;
-        if (_dragCell != null)
+        if (!_dragMoved)
         {
-            _dragCell.style.opacity = 0.55f;
-            SetBorder(_dragCell, Gold, 2f);
+            if ((position - _dragStart).sqrMagnitude < DragThreshold * DragThreshold) return;
+            _dragMoved = true;
+            if (_dragCell != null)
+            {
+                _dragCell.style.opacity = 0.55f;
+                SetBorder(_dragCell, Gold, 2f);
+            }
+            ShowGhost(_drag.DefinitionId);
+            _status.text = Loc.Get("loot.drop_hint");
         }
-        _status.text = Loc.Get("loot.drop_hint");
+
+        MoveGhost(position);
     }
 
-    private void DropOn(int destinationId, PointerUpEvent evt)
+    /// <summary>§128.1a: приёмник — тот, ЧЬЯ ПАНЕЛЬ под точкой отпускания, а не
+    /// то, что оказалось под курсором.</summary>
+    private void OnFramePointerUp(PointerUpEvent evt)
     {
-        if (!_dragPrepared || !_dragMoved || evt.pointerId != _dragPointerId ||
-            destinationId == _drag.OwnerId || _runner == null)
+        if (!_dragPrepared || evt.pointerId != _dragPointerId)
         {
+            ClearDrag();
             return;
         }
+
+        var position = new Vector2(evt.position.x, evt.position.y);
+        var item = _drag;
+        var doubleClick = _dragDoubleClick;
+        var moved = _dragMoved;
+        if (_frame.HasPointerCapture(evt.pointerId)) _frame.ReleasePointer(evt.pointerId);
+
+        if (moved)
+        {
+            if (_leftPane.worldBound.Contains(position)) DropOn(_looterId, item);
+            else if (_rightPane.worldBound.Contains(position)) DropOn(_otherId, item);
+        }
+        else if (doubleClick)
+        {
+            QuickAction(item);
+        }
+
+        // Двойной клик сам оставляет сообщение (в том числе «так нельзя»), а
+        // сорвавшееся перетаскивание обязано вернуть подсказку. Успешный приказ
+        // защищён внутри ClearDrag проверкой _pending.
+        ClearDrag(resetStatus: !doubleClick);
+        evt.StopPropagation();
+    }
+
+    private void DropOn(int destinationId, DragItem drag)
+    {
+        _drag = drag;
+        if (destinationId == _drag.OwnerId || _runner == null) return;
 
         var direction = _drag.OwnerId == _otherId && destinationId == _looterId
             ? InventoryTransferDirection.Take
@@ -888,12 +990,7 @@ public sealed class LootTransferPanel : MonoBehaviour
                 _drag.DefinitionId,
                 _drag.Count,
                 direction));
-            _pending = true;
-            _pendingTick = _lastTick;
-            _pendingSignature = _signature;
-            _status.text = Loc.Get("loot.transferring");
-            ClearDrag(resetStatus: false);
-            evt.StopPropagation();
+            MarkPending();
             return;
         }
 
@@ -904,12 +1001,152 @@ public sealed class LootTransferPanel : MonoBehaviour
                 _drag.Source, _drag.Index, _drag.DefinitionId),
             _drag.Count,
             direction));
+        MarkPending();
+    }
+
+    /// <summary>§128.4 быстрое действие двойным кликом. Сторону выбирает
+    /// <see cref="InventoryQuickActions"/>; приказ по-прежнему шлётся отсюда и
+    /// проверяется симуляцией заново.</summary>
+    private void QuickAction(DragItem item)
+    {
+        if (_runner == null || _pending) return;
+        var quick = InventoryQuickActions.Resolve(
+            ownSide: item.OwnerId == _looterId,
+            worn: item.Source == InventoryItemSource.Worn,
+            wearable: InventoryQuickActions.IsWearable(_runner, item.DefinitionId));
+        switch (quick)
+        {
+            case InventoryQuickAction.TakeFromOther:
+                DropOn(_looterId, item);
+                ArmAutoWear(item);
+                break;
+            case InventoryQuickAction.Wear:
+                EnqueueManage(item, InventoryAction.Wear, "loot.equipping");
+                break;
+            case InventoryQuickAction.TakeOff:
+                EnqueueManage(item, InventoryAction.Stow, "loot.removing");
+                break;
+            default:
+                _status.text = Loc.Get("loot.no_quick_action");
+                break;
+        }
+    }
+
+    private void EnqueueManage(DragItem item, InventoryAction action, string statusTerm)
+    {
+        _runner!.EnqueueCommand(new ManageInventoryCommand(
+            new HexLive.Simulation.Common.EntityId(_looterId),
+            new InventoryItemRef(item.Source, item.Index, item.DefinitionId),
+            action));
+        ClearAutoWear();
+        MarkPending();
+        _status.text = Loc.Get(statusTerm);
+    }
+
+    private void MarkPending()
+    {
         _pending = true;
         _pendingTick = _lastTick;
         _pendingSignature = _signature;
         _status.text = Loc.Get("loot.transferring");
-        ClearDrag(resetStatus: false);
-        evt.StopPropagation();
+    }
+
+    /// <summary>§128.4: надетая вещь приезжает уже надетой (§128.2), доводить
+    /// нечего. Носимая из чужих карманов приезжает в переноску — её и надеваем,
+    /// как только она там появится.</summary>
+    private void ArmAutoWear(DragItem item)
+    {
+        ClearAutoWear();
+        if (item.Source != InventoryItemSource.Carried || _runner == null ||
+            !InventoryQuickActions.IsWearable(_runner, item.DefinitionId))
+        {
+            return;
+        }
+
+        var snapshot = _runner.CreateSnapshot();
+        var looter = snapshot == null ? null : FindNpc(snapshot, _looterId);
+        if (looter == null) return;
+        _autoWearDefinitionId = item.DefinitionId;
+        _autoWearBaseline = CountCarried(looter, item.DefinitionId, out _);
+        _autoWearDeadlineTick = _lastTick + AutoWearWindowTicks;
+    }
+
+    private void TryFinishAutoWear(NpcSnapshot looter, string signature)
+    {
+        if (_autoWearDefinitionId.Length == 0 || _runner == null) return;
+        if (_lastTick > _autoWearDeadlineTick)
+        {
+            ClearAutoWear();
+            return;
+        }
+
+        var count = CountCarried(looter, _autoWearDefinitionId, out var index);
+        if (count <= _autoWearBaseline || index < 0) return;
+
+        _runner.EnqueueCommand(new ManageInventoryCommand(
+            new HexLive.Simulation.Common.EntityId(_looterId),
+            new InventoryItemRef(InventoryItemSource.Carried, index, _autoWearDefinitionId),
+            InventoryAction.Wear));
+        ClearAutoWear();
+        _pending = true;
+        _pendingTick = _lastTick;
+        _pendingSignature = signature;
+        _status.text = Loc.Get("loot.equipping");
+    }
+
+    private static int CountCarried(
+        NpcSnapshot npc, string definitionId, out int firstSourceIndex)
+    {
+        firstSourceIndex = -1;
+        var count = 0;
+        foreach (var container in npc.InventoryContainers)
+        {
+            foreach (var slot in container.Slots)
+            {
+                if (slot.ItemDefinitionId != definitionId || slot.SourceIndex < 0) continue;
+                count++;
+                if (firstSourceIndex < 0) firstSourceIndex = slot.SourceIndex;
+            }
+        }
+
+        return count;
+    }
+
+    private void ClearAutoWear()
+    {
+        _autoWearDefinitionId = string.Empty;
+        _autoWearDeadlineTick = -1;
+        _autoWearBaseline = 0;
+    }
+
+    private void ShowGhost(string definitionId)
+    {
+        if (_dragGhost == null)
+        {
+            _dragGhost = new VisualElement { name = "loot-drag-ghost" };
+            _dragGhost.style.position = Position.Absolute;
+            _dragGhost.style.width = GhostSize;
+            _dragGhost.style.height = GhostSize;
+            _dragGhost.style.alignItems = Align.Center;
+            _dragGhost.style.justifyContent = Justify.Center;
+            _dragGhost.style.backgroundColor = new Color(Panel.r, Panel.g, Panel.b, 0.85f);
+            _dragGhost.pickingMode = PickingMode.Ignore;
+            SetBorder(_dragGhost, Gold, 2f);
+            SetRadius(_dragGhost, 7f);
+            _root.Add(_dragGhost);
+        }
+
+        _dragGhost.Clear();
+        AddItemVisual(_dragGhost, definitionId, GhostSize - 10f, trackDensity: false);
+        _dragGhost.style.display = DisplayStyle.Flex;
+        _dragGhost.BringToFront();
+    }
+
+    private void MoveGhost(Vector2 position)
+    {
+        if (_dragGhost == null) return;
+        _dragGhost.style.left = position.x - GhostSize * 0.5f;
+        _dragGhost.style.top = position.y - GhostSize * 0.5f;
     }
 
     private void ClearDrag(bool resetStatus = true)
@@ -919,30 +1156,51 @@ public sealed class LootTransferPanel : MonoBehaviour
             _dragCell.style.opacity = 1f;
             SetBorder(_dragCell, StrokeStrong, 1f);
         }
+        if (_dragGhost != null) _dragGhost.style.display = DisplayStyle.None;
+        if (_dragPointerId >= 0 && _frame != null &&
+            _frame.HasPointerCapture(_dragPointerId))
+        {
+            _frame.ReleasePointer(_dragPointerId);
+        }
         _dragPrepared = false;
         _dragMoved = false;
+        _dragDoubleClick = false;
         _dragPointerId = -1;
         _dragCell = null;
         if (resetStatus && !_pending && _status != null)
         {
             _status.text = Loc.Get("loot.drag_hint");
         }
+
+        // §128.1a: пересборку, которую жест придержал, отпускаем сразу — иначе
+        // окно осталось бы показывать раскладку с прошлого тика.
+        if (_rebuildDeferred && IsOpen)
+        {
+            _rebuildDeferred = false;
+            Refresh(force: true);
+        }
     }
 
     private void FitDensity()
     {
-        if (_densityTier >= CellSizes.Length - 1) return;
-        var leftOverflow = RequiredHeight(_leftContent) > _leftContent.contentRect.height + 0.5f;
-        var rightOverflow = RequiredHeight(_rightContent) > _rightContent.contentRect.height + 0.5f;
+        if (_densityTier >= MaxDensityTier) return;
+        var leftHeight = ViewportHeight(_leftScroll);
+        var rightHeight = ViewportHeight(_rightScroll);
+        if (leftHeight < 1f && rightHeight < 1f) return;
+        var leftOverflow = RequiredHeight(_leftContent) > leftHeight + 0.5f;
+        var rightOverflow = RequiredHeight(_rightContent) > rightHeight + 0.5f;
         if (!leftOverflow && !rightOverflow) return;
         _densityTier++;
         ApplyDensity();
         _frame.schedule.Execute(FitDensity);
     }
 
+    private static float ViewportHeight(ScrollView scroll) =>
+        scroll.contentViewport.contentRect.height;
+
     private void ApplyDensity()
     {
-        var tier = Mathf.Clamp(_densityTier, 0, CellSizes.Length - 1);
+        var tier = Mathf.Clamp(_densityTier, 0, MaxDensityTier);
         var size = CellSizes[tier];
         var gap = Gaps[tier];
         foreach (var cell in _slotCells)
@@ -1054,8 +1312,11 @@ public sealed class LootTransferPanel : MonoBehaviour
         _otherId = -1;
         _otherObjectId = -1;
         _pending = false;
-        ClearDrag();
         IsOpen = false;
+        _rebuildDeferred = false;
+        ClearAutoWear();
+        _doubleClick.Reset();
+        ClearDrag();
         PointerOverPanel = false;
     }
 

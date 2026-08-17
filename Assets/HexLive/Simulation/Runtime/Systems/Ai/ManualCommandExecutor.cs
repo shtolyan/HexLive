@@ -82,6 +82,12 @@ internal static class ManualCommandExecutor
             case SelfActionCommand selfAction:
                 ApplySelfAction(world, selfAction, admission);
                 break;
+            case PreyPersonCommand prey:
+                ApplyPreyPerson(world, prey, admission);
+                break;
+            case AbusePersonCommand abuse:
+                ApplyAbusePerson(world, abuse, admission);
+                break;
             case GroupMoveCommand groupMove:
                 ApplyGroupMove(world, groupMove);
                 break;
@@ -155,6 +161,8 @@ internal static class ManualCommandExecutor
         AidPersonCommand => "Aid",
         TreatLimbsCommand => "TreatLimbs",
         SelfActionCommand => "SelfAction",
+        PreyPersonCommand => "Prey",
+        AbusePersonCommand => "Abuse",
         GroupMoveCommand => "GroupMove",
         GroupStopCommand => "GroupStop",
         GroupAttackNpcCommand => "GroupAttackNpc",
@@ -987,6 +995,181 @@ internal static class ManualCommandExecutor
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
                 $"Order=SelfAction Kind={command.Kind}");
+        }
+    }
+
+    // §121.9 (тёмная фаза): выследить соседку ради мяса (§56). Гейты выбора
+    // (сострадание, голод, «другой еды нет») — решение, и его принял игрок;
+    // остаются только физические: нож-разделочник и рабочие руки. Удары ведёт
+    // штатная PredationSystem по смежной союзнице; погоню держит
+    // ManualOrderSystem.KeepPreying, как у приказа атаки.
+    private static void ApplyPreyPerson(
+        WorldState world, PreyPersonCommand command, AdmissionTracker admission)
+    {
+        if (!Spec121.ManualDarkOrdersEnabled || !SimBalance.PredationEnabled)
+        {
+            admission.Reject("FeatureDisabled");
+            return;
+        }
+
+        if (!TryTakeOrder(world, command.Npc, "Prey", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc) || !npc.Body.CanUseToolsOrWeapons)
+        {
+            Reject(world, npc.Id, "Prey", "Incapacitated", admission);
+            return;
+        }
+
+        if (!Content.GearCatalog.HasCapability(
+                npc.Inventory.Items, Content.GearCapability.Butcher))
+        {
+            Reject(world, npc.Id, "Prey", "MissingTool", admission);
+            return;
+        }
+
+        if (command.Target.Equals(npc.Id))
+        {
+            Reject(world, npc.Id, "Prey", "TargetSelf", admission);
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Target, out var victim) ||
+            victim.Health <= 0f)
+        {
+            Reject(world, npc.Id, "Prey", "TargetGone", admission);
+            return;
+        }
+
+        // §56 — каннибализм СВОИХ; чужака бьют приказом атаки (§72 налёт).
+        if (!FactionRelations.AreAllies(npc, victim))
+        {
+            Reject(world, npc.Id, "Prey", "NotAlly", admission);
+            return;
+        }
+
+        if (victim.CarriedByNpcId is not null ||
+            victim.CurrentJunction is not { } victimJunction)
+        {
+            Reject(world, npc.Id, "Prey", "TargetUnavailable", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Приказ выследить соседку");
+        ClearAttackOrder(world, npc);
+        if (npc.CurrentJunction is not { } start ||
+            !Connectivity.Reachable(world, start, victimJunction, npc.Body.CanJump))
+        {
+            npc.Mind.CurrentGoal = GoalType.None;
+            Reject(world, npc.Id, "Prey", "Unreachable", admission);
+            return;
+        }
+
+        // Move-only сталк, как строит планировщик для §56: без TargetAgentId —
+        // иначе диспетчер исполнения примет план за разговор. Жертву погони
+        // держит ManualAttackNpcId (тот же якорь, что у приказа атаки).
+        npc.Plan.Goal = GoalType.Prey;
+        npc.Plan.TargetJunctionId = victimJunction;
+        npc.Plan.TargetTile = victim.Tile;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = victimJunction
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Mind.CurrentGoal = GoalType.Prey;
+        npc.Mind.ManualAttackNpcId = command.Target;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=Prey Target=NPC{victim.Id.Value}");
+        }
+    }
+
+    // §121.9 (тёмная фаза): сцена травли §81 против чужака. Сцену ведёт
+    // штатный RunAbuse (латч боя, свидетельницы и защитницы жертвы работают
+    // как у автономной — латч-цикл TryStartAbuse не различает, кто начал).
+    private static void ApplyAbusePerson(
+        WorldState world, AbusePersonCommand command, AdmissionTracker admission)
+    {
+        if (!Spec121.ManualDarkOrdersEnabled || !Spec81.AbuseEnabled)
+        {
+            admission.Reject("FeatureDisabled");
+            return;
+        }
+
+        if (!TryTakeOrder(world, command.Npc, "Abuse", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc) || npc.Body.IsProne ||
+            !npc.Body.CanUseToolsOrWeapons)
+        {
+            Reject(world, npc.Id, "Abuse", "Incapacitated", admission);
+            return;
+        }
+
+        if (command.Target.Equals(npc.Id))
+        {
+            Reject(world, npc.Id, "Abuse", "TargetSelf", admission);
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Target, out var mark) ||
+            mark.Health <= 0f)
+        {
+            Reject(world, npc.Id, "Abuse", "TargetGone", admission);
+            return;
+        }
+
+        // §81: сцена строится на враждебности (Ratio/AnswersBack) — своих не
+        // травят приказом; беспомощного обирают §111 (обыском), спящую сцена
+        // не разыгрывает, из святилища и воды жертву не достать.
+        if (!FactionRelations.AreHostile(npc.Faction, mark.Faction))
+        {
+            Reject(world, npc.Id, "Abuse", "NotHostile", admission);
+            return;
+        }
+
+        if (mark.IsUnconscious(world.Tick) || mark.Body.IsProne ||
+            mark.IsPlayingDead(world.Tick) ||
+            mark.Execution.CurrentInteraction == InteractionType.Sleep ||
+            mark.CarriedByNpcId is not null ||
+            (Spec81.AbuseRespectsSanctuary && MobSystem.IsNpcInSanctuary(world, mark)) ||
+            (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, mark)) ||
+            mark.CurrentJunction is not { } markJunction)
+        {
+            Reject(world, npc.Id, "Abuse", "TargetUnavailable", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Приказ затеять сцену");
+        ClearAttackOrder(world, npc);
+        npc.Mind.CurrentGoal = GoalType.Abuse;
+        npc.Mind.AbuseTargetNpcId = mark.Id;
+        npc.Mind.AbuseHasLoot =
+            AbuseMath.WhatToTake(world, npc, mark) != AidKind.None;
+        npc.Mind.AbuseBeat = 0;
+        npc.Mind.AbuseBlows = 0;
+        if (!PlanningSystem.TryInstallAbusePlan(world, npc, mark, markJunction))
+        {
+            PlanningSystem.AbandonAbuse(world, npc, "ManualNoApproach", 0);
+            npc.Mind.CurrentGoal = GoalType.None;
+            Reject(world, npc.Id, "Abuse", "Unreachable", admission);
+            return;
+        }
+
+        npc.Plan.Goal = GoalType.Abuse;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=Abuse Mark=NPC{mark.Id.Value} Loot={npc.Mind.AbuseHasLoot}");
         }
     }
 

@@ -66,6 +66,25 @@ public sealed partial class PlanningSystem
             return;
         }
 
+        if (!TryInstallAbusePlan(world, npc, mark, markJunction))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            AbandonAbuse(world, npc, "NoApproach", Spec81.AbuseCooldownTicks);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "PlanFailed", $"Goal=Abuse Mark={mark.Id.Value} NoApproach");
+
+            }
+            return;
+        }
+    }
+
+    /// <summary>§121.9: хвост установки плана сцены на УЖЕ выбранную жертву —
+    /// общий для автономного билдера и ручного приказа (<c>AbusePersonCommand</c>):
+    /// одна геометрия подхода, один claim, одни шаги.</summary>
+    internal static bool TryInstallAbusePlan(
+        WorldState world, NPCState npc, NPCState mark, JunctionId markJunction)
+    {
         // ⭐ §102 r2: УЖЕ ВПЛОТНУЮ — сцена начинается прямо здесь.
         //
         // Раньше это проверялось только для ОДНОГО И ТОГО ЖЕ узла, а стоящий на
@@ -94,7 +113,7 @@ public sealed partial class PlanningSystem
             });
             npc.Plan.CurrentStepIndex = 0;
             npc.Plan.Status = PlanStatus.Active;
-            return;
+            return true;
         }
 
         // §97: подход БОЕВОЙ, а не разговорный. Прежде бронировался узел «на
@@ -107,14 +126,7 @@ public sealed partial class PlanningSystem
         var approach = PickApproachJunction(world, npc, markJunction);
         if (approach is not { } approachJunction)
         {
-            npc.Plan.Status = PlanStatus.Failed;
-            AbandonAbuse(world, npc, "NoApproach", Spec81.AbuseCooldownTicks);
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "PlanFailed", $"Goal=Abuse Mark={mark.Id.Value} NoApproach");
-
-            }
-            return;
+            return false;
         }
 
         npc.Plan.TargetAgentId = mark.Id;
@@ -141,6 +153,8 @@ public sealed partial class PlanningSystem
                 $"Goal=Abuse Mark=NPC{mark.Id.Value} Loot={npc.Mind.AbuseHasLoot} " +
                 $"Ratio={AbuseMath.Ratio(world, npc, mark):F2}");
         }
+
+        return true;
     }
 
     // Держимся ОДНОЙ жертвы, пока она годится: пересчёт на каждом тике заставлял

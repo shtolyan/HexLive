@@ -58,6 +58,8 @@ public static class SimulationCommandCodec
         ManageInventory = 20,
         TransferInventory = 21,
         TransferContainer = 22,
+        PreyPerson = 23,
+        AbusePerson = 24,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -174,6 +176,16 @@ public static class SimulationCommandCodec
                 w.Write(c.Count);
                 w.Write((int)c.Direction);
                 break;
+            case PreyPersonCommand c:
+                w.Write((ushort)CommandType.PreyPerson);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.Target);
+                break;
+            case AbusePersonCommand c:
+                w.Write((ushort)CommandType.AbusePerson);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.Target);
+                break;
             case TransferContainerCommand c:
                 w.Write((ushort)CommandType.TransferContainer);
                 WriteEntity(w, c.Looter);
@@ -248,6 +260,10 @@ public static class SimulationCommandCodec
                 return new TransferInventoryCommand(
                     ReadEntity(r), ReadEntity(r), ReadItemRef(r), r.ReadInt32(),
                     (InventoryTransferDirection)r.ReadInt32());
+            case CommandType.PreyPerson:
+                return new PreyPersonCommand(ReadEntity(r), ReadEntity(r));
+            case CommandType.AbusePerson:
+                return new AbusePersonCommand(ReadEntity(r), ReadEntity(r));
             case CommandType.TransferContainer:
                 return new TransferContainerCommand(
                     ReadEntity(r), new ObjectId(r.ReadInt32()), r.ReadInt32(),

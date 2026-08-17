@@ -21033,6 +21033,54 @@ MonoBehaviour:
       - 'Функция выключена'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.dark.prey'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hunt for meat…'
+      - 'Выследить ради мяса…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.dark.prey.confirm'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Confirm: hunt her down and kill for meat'
+      - 'Подтвердить: выследить и убить ради мяса'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.dark.abuse'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Shake down…'
+      - 'Затеять травлю…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.dark.abuse.confirm'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Confirm: start the abuse scene'
+      - 'Подтвердить: затеять сцену травли'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NotAlly'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Only a housemate — outsiders are attacked instead'
+      - 'Только своя — чужака бьют приказом атаки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NotHostile'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Only a hostile outsider'
+      - 'Только враждебный чужак'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

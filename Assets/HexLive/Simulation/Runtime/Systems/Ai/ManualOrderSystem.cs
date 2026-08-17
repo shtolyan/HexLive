@@ -66,6 +66,26 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 case GoalType.PlayerAttack:
                     KeepAttacking(world, npc);
                     break;
+                // §121.9 (тёмная фаза): погоня §56 — как приказ атаки, жертву
+                // держит тот же якорь ManualAttackNpcId; удары ведёт
+                // PredationSystem, пока цель Prey и жертва смежна.
+                case GoalType.Prey:
+                    KeepPreying(world, npc);
+                    break;
+                // Сцена §81 доиграна или сорвана — снять клеймо жертвы тем же
+                // AbandonAbuse, что у автономного (иначе PendingAbuseFrom
+                // остаётся навсегда), и вернуть её в «стоит и ждёт приказа».
+                case GoalType.Abuse:
+                    if (npc.Plan.Status != PlanStatus.Active &&
+                        npc.Execution.Status != ExecutionStatus.InProgress)
+                    {
+                        PlanningSystem.AbandonAbuse(
+                            world, npc, "ManualOrderFinished", 0);
+                        npc.Mind.CurrentGoal = GoalType.None;
+                        ManualControlMath.RenewInactivityLease(world, npc);
+                    }
+
+                    break;
             }
 
             // §121.7: приказ завершён (цель None, сцепки нет) и реальный lease
@@ -284,6 +304,79 @@ public sealed class ManualOrderSystem : ISimulationSystem
         {
             Trace.Debug(world, npc.Id, "ManualChaseRepath",
                 $"Target=Dog{mobId} ApproachJunction={approach.Value}");
+        }
+    }
+
+    // §121.9: погоня каннибализма. Форма украдена у KeepAttackingNpc — цель
+    // перечитывается каждый средний проход, план перекладывается на её узел.
+    // Разница одна: рядом с жертвой цель ОСТАЁТСЯ Prey (удары выдаёт
+    // PredationSystem по смежности), латч IsFighting ставит она же.
+    private static void KeepPreying(WorldState world, NPCState npc)
+    {
+        if (npc.Mind.ManualAttackNpcId is not { } targetId)
+        {
+            // Якоря нет — приказ доигран или снят; обычный sweep.
+            SweepFinishedOrder(world, npc);
+            return;
+        }
+
+        world.Entities.Npcs.TryGetValue(targetId, out var target);
+        if (!Spec121.ManualDarkOrdersEnabled || target is null || target.Health <= 0f)
+        {
+            EndAttack(world, npc, target is null ? "TargetGone" : "TargetDown");
+            return;
+        }
+
+        if (target.CurrentJunction is not { } targetJunction ||
+            npc.CurrentJunction is not { } here)
+        {
+            return;
+        }
+
+        var adjacent = here.Equals(targetJunction) ||
+            (world.Junctions.Items.TryGetValue(targetJunction, out var tj) &&
+             tj.Neighbors.Contains(here));
+        if (adjacent)
+        {
+            // Дошла — стоять; смежность и удары решает PredationSystem.
+            if (npc.Plan.Status == PlanStatus.Active)
+            {
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Дошла до жертвы §56");
+                npc.Mind.CurrentGoal = GoalType.Prey;
+            }
+
+            return;
+        }
+
+        var stale = !(npc.Plan.Status == PlanStatus.Active &&
+            npc.Plan.TargetJunctionId is { } current &&
+            (current.Equals(targetJunction) ||
+             PlanningSystem.IsAdjacentJunction(world, current, targetJunction)));
+        if (!stale || npc.Movement.HopTimer > 0f)
+        {
+            return;
+        }
+
+        if (npc.Plan.Status == PlanStatus.Active)
+        {
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Жертва §56 сместилась");
+            npc.Mind.CurrentGoal = GoalType.Prey;
+        }
+
+        npc.Plan.Goal = GoalType.Prey;
+        npc.Plan.TargetJunctionId = targetJunction;
+        npc.Plan.TargetTile = target.Tile;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = targetJunction
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualChaseRepath",
+                $"Target=NPC{target.Id.Value} PreyJunction={targetJunction.Value}");
         }
     }
 

@@ -320,6 +320,43 @@ public sealed class TreatLimbsCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§121.9 (тёмная фаза, за Spec121.ManualDarkOrdersEnabled):
+/// выследить и убить СОСЕДКУ ради мяса (§56). Родная цель Prey: удары ведёт
+/// та же PredationSystem, что у автономного каннибализма, — по смежной
+/// союзнице с наименьшим здоровьем.</summary>
+public sealed class PreyPersonCommand : ISimulationCommand
+{
+    public PreyPersonCommand(EntityId npc, EntityId target)
+    {
+        Npc = npc;
+        Target = target;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>§121.9 (тёмная фаза): затеять сцену травли §81 против чужака —
+/// отжать припас или «контакт». Родная цель Abuse: сцену ведёт штатный
+/// RunAbuse со всеми последствиями (свидетельницы, защитницы, урон доверию).</summary>
+public sealed class AbusePersonCommand : ISimulationCommand
+{
+    public AbusePersonCommand(EntityId npc, EntityId target)
+    {
+        Npc = npc;
+        Target = target;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§121.9: виды самодействий — то, что колонистка делает сама с собой
 /// или на месте. Enum живёт только в командном слое: в сейв не пишется,
 /// в снапшот не едет.</summary>

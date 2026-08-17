@@ -677,6 +677,30 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
+        // §121.9 (тёмная фаза): необратимые акты — только через подменю
+        // подтверждения, случайный клик не должен запускать ни охоту на
+        // соседку (§56), ни сцену травли (§81).
+        if (!dead && HexLive.Simulation.Runtime.Spec121.ManualDarkOrdersEnabled &&
+            canOrderSocial)
+        {
+            if (target.Faction == Faction.Colony && !target.IsUnconscious)
+            {
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.prey"),
+                    () => OpenConfirmMenu(mousePos, NpcTitle(npcId),
+                        "menu.dark.prey.confirm",
+                        () => runner.EnqueueCommand(new PreyPersonCommand(
+                            new EntityId(carrier!.Id.Value), new EntityId(npcId))))));
+            }
+            else if (target.Faction != Faction.Colony && !lying)
+            {
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.abuse"),
+                    () => OpenConfirmMenu(mousePos, NpcTitle(npcId),
+                        "menu.dark.abuse.confirm",
+                        () => runner.EnqueueCommand(new AbusePersonCommand(
+                            new EntityId(carrier!.Id.Value), new EntityId(npcId))))));
+            }
+        }
+
         if (carrier != null && carrier.CarriedNpcId == npcId)
         {
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.put_down_person"),
@@ -760,6 +784,16 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.stop"),
             () => runner.EnqueueCommand(new StopCommand(actor))));
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    // §121.9: подтверждение необратимого приказа — второе меню из одного
+    // пункта. Клик мимо меню закрывает его, то есть «передумала» бесплатно.
+    private void OpenConfirmMenu(
+        Vector2 mousePos, string title, string confirmKey, System.Action confirmed)
+    {
+        _entries.Clear();
+        _entries.Add(new ContextMenuEntry(Loc.Get(confirmKey), confirmed));
+        ContextMenuPanel.Open(mousePos, title, _entries);
     }
 
     // §121.9: подменю видов помощи (§53). Пять видов всегда активны — правду

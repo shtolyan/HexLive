@@ -66,6 +66,8 @@ public sealed class CommandCodecCoverageGateTests
             new EntityId(37), new ObjectId(73), slotIndex: 5,
             expectedDefinitionId: "item.bandage", count: 2,
             InventoryTransferDirection.Take),
+        new PreyPersonCommand(new EntityId(38), new EntityId(83)),
+        new AbusePersonCommand(new EntityId(39), new EntityId(84)),
     };
 
     [Test]

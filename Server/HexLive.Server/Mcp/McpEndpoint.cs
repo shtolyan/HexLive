@@ -37,9 +37,9 @@ public static class McpEndpoint
     private const string SessionHeader = "Mcp-Session-Id";
 
     public static void Map(WebApplication app, WorldHost host, McpAccessToken token,
-        McpControlLeases leases)
+        ControlLeases leases, SpecLibrary? spec = null)
     {
-        var tools = new McpTools(host, leases);
+        var tools = new McpTools(host, leases, spec);
 
         app.MapPost("/mcp", async (HttpContext context) =>
         {
@@ -78,7 +78,9 @@ public static class McpEndpoint
                 // один, и пусть лучше они мешают друг другу явно, чем тихо
                 // перехватывают колонисток.
                 var session = context.Request.Headers[SessionHeader].ToString();
-                var owner = string.IsNullOrWhiteSpace(session) ? "anonymous" : session;
+                // §145.4: owner в ЕДИНОМ реестре лиз несёт неймспейс контура —
+                // коллизия с ws:-игроком исключена синтаксически.
+                var owner = "mcp:" + (string.IsNullOrWhiteSpace(session) ? "anonymous" : session);
 
                 var root = document.RootElement;
                 if (root.ValueKind == JsonValueKind.Array)
@@ -199,10 +201,21 @@ public static class McpEndpoint
                         ["name"] = "hexlive",
                         ["version"] = "1",
                     },
+                    // §144.9. Это ЕДИНСТВЕННЫЙ текст, который агент читает до
+                    // первого вызова, поэтому здесь стоит не список инструментов,
+                    // а то, чего он иначе никогда не узнает: что у мира есть
+                    // написанные правила и что их можно прочитать отсюда.
                     ["instructions"] =
-                        "Колония живёт своей жизнью и без тебя. Порядок работы: list_colonists → " +
-                        "describe_colonist → acquire_control → приказы → release_control. " +
-                        "Приказ проходит ту же проверку, что клик игрока: отказ приходит с причиной.",
+                        "Колония живёт своей жизнью и без тебя. Мир описан спецификацией, и она " +
+                        "доступна прямо здесь: начни с read_spec — там правила, которые решают, " +
+                        "сработает приказ или нет. Без неё многое выглядит поломкой, хотя таково " +
+                        "по замыслу.\n" +
+                        "Порядок работы: read_spec → list_colonists → describe_colonist → " +
+                        "acquire_control → приказы → release_control.\n" +
+                        "Приказ проходит ту же проверку, что клик игрока: отказ приходит с " +
+                        "причиной, и причину надо читать. Что происходит в мире, показывает " +
+                        "read_events — по одним числам состояния причину падающего здоровья " +
+                        "не восстановить.",
                 });
             }
 

@@ -935,9 +935,22 @@ internal static class ManualCommandExecutor
             }
 
             case SelfActionKind.GroundSit:
+                // Сначала штатное «присесть на уступ» (§137-геометрия), а без
+                // уступа рядом — честный §137 IdleRest: сесть там, где стоишь.
+                // Замер e2e: на полу хижины GroundSit отказывал NoGroundSpot,
+                // хотя «присесть» игрок понимает как «сядь здесь».
                 InstallSelfPlan(world, npc, admission, GoalType.Sit,
                     "Приказ присесть", "NoGroundSpot",
-                    () => ManualPlanner.BuildGroundSitPlan(world, npc));
+                    () =>
+                    {
+                        ManualPlanner.BuildGroundSitPlan(world, npc);
+                        if (npc.Plan.Status != PlanStatus.Active)
+                        {
+                            npc.Plan.Steps.Clear();
+                            npc.Plan.Status = PlanStatus.None;
+                            ManualPlanner.BuildIdleRestPlan(world, npc);
+                        }
+                    });
                 break;
 
             case SelfActionKind.GroundSleep:

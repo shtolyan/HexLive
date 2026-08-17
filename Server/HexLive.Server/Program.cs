@@ -79,6 +79,22 @@ public static class Program
         var sessions = new Admin.AdminSessions();
         var mailer = new Admin.AdminMailer();
 
+        // §145.4: ОДИН реестр лиз на процесс — MCP-агенты и сетевые игроки
+        // делят его, различаясь префиксом owner'а (mcp:/ws:). Создаётся, как
+        // только открыта хоть одна дверь управления.
+        ControlLeases? controlLeases = null;
+        AccessTokenFile? playerToken = null;
+        if (options.ControlEnabled || options.McpEnabled)
+        {
+            controlLeases = new ControlLeases(options.McpLeaseSeconds);
+        }
+
+        if (options.ControlEnabled)
+        {
+            playerToken = AccessTokenFile.LoadOrCreate(
+                options.PlayerTokenPath, "PLAYER CONTROL — first run", "hexplay_");
+        }
+
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
@@ -104,13 +120,35 @@ public static class Program
                 return;
             }
 
+            // §145.3: токен игрока — заголовками HTTP-upgrade, ДО принятия
+            // сокета. Неверный или отсутствующий токен не рвёт соединение:
+            // это прежний анонимный зритель, ControlEnabled=false в рукопожатии.
+            string? controlOwner = null;
+            if (playerToken is not null && controlLeases is not null)
+            {
+                var authorization = context.Request.Headers.Authorization.ToString();
+                const string bearerPrefix = "Bearer ";
+                if (authorization.StartsWith(bearerPrefix, StringComparison.Ordinal) &&
+                    playerToken.Matches(authorization.Substring(bearerPrefix.Length).Trim()))
+                {
+                    var clientId = context.Request.Headers["X-HexLive-Client-Id"].ToString().Trim();
+                    controlOwner = "ws:" + (string.IsNullOrEmpty(clientId)
+                        ? context.Connection.Id
+                        : clientId);
+                }
+            }
+
             using var socket = await context.WebSockets.AcceptWebSocketAsync();
-            Console.WriteLine($"[viewer] connected from {context.Connection.RemoteIpAddress}");
+            Console.WriteLine(
+                $"[viewer] connected from {context.Connection.RemoteIpAddress}" +
+                (controlOwner is null ? string.Empty : $" as {controlOwner}"));
             // Host, simdata AND lifetime all come from the supervisor at accept
             // time: an admin "new world" swaps the host, refreshes the simdata
             // and cancels this token, closing the connection so the client
             // reconnects into the new world instead of pinging a frozen one.
-            var viewer = new ViewerConnection(worlds.Host, socket, worlds.SimData, options.IncludeDebugDetails);
+            var viewer = new ViewerConnection(worlds.Host, socket, worlds.SimData,
+                options.IncludeDebugDetails, controlOwner,
+                controlOwner is null ? null : controlLeases);
             try
             {
                 await viewer.RunAsync(worlds.ViewerLifetime);
@@ -131,15 +169,53 @@ public static class Program
         {
             // Хост берётся ОДИН раз, как и у зрителей на accept: админская
             // «новая колония» подменяет хост, и старые лизы вместе с ним
-            // теряют смысл — агент увидит отказ и переподключится, а не
-            // продолжит командовать людьми, которых больше нет.
+            // теряют смысл — реестр чистится по событию WorldSwapped ниже.
             var mcpToken = Mcp.McpAccessToken.LoadOrCreate(options.McpTokenPath);
-            var leases = new Mcp.McpControlLeases(options.McpLeaseSeconds);
-            Mcp.McpEndpoint.Map(app, worlds.Host, mcpToken, leases);
+            var leases = controlLeases!;
+
+            // §144.6: зеркало хроники заводится вместе с дверью и только с ней.
+            worlds.Host.EnableMcpEventLog();
+
+            // §144.9: агент за сетью не имеет ни репозитория, ни файлов рядом —
+            // спека едет к нему тем же швом, что и всё остальное.
+            var spec = Mcp.SpecLibrary.Discover(options.SpecDir);
+
+            Mcp.McpEndpoint.Map(app, worlds.Host, mcpToken, leases, spec);
             Console.WriteLine(
                 $"[server] mcp control    http://localhost:{options.Port}/mcp " +
                 $"(токен в {options.McpTokenPath}, лиз {leases.TimeoutSeconds} с)");
+            Console.WriteLine(spec.Available
+                ? $"[server] mcp spec       {spec.Sections().Count} разделов доступно агенту"
+                : "[server] mcp spec       НЕ НАЙДЕНА — агент будет знать о мире только " +
+                  "из описаний инструментов; путь задаётся --spec-dir");
         }
+
+        if (options.ControlEnabled)
+        {
+            Console.WriteLine(
+                $"[server] player control ws://localhost:{options.Port}/watch " +
+                $"(токен в {options.PlayerTokenPath}, лиз {controlLeases!.TimeoutSeconds} с; " +
+                "клиенту: -hexlive-token <токен|путь>)");
+        }
+
+        // §145.4: world-swap — внешние контуры забывают старый мир: реестр лиз
+        // чистится, зеркало хроники MCP заводится на НОВОМ хосте (иначе
+        // read_events после свапа молча пустеет).
+        worlds.WorldSwapped += () =>
+        {
+            controlLeases?.Clear();
+            if (options.McpEnabled)
+            {
+                worlds.Host.EnableMcpEventLog();
+            }
+        };
+
+        // §145.4: истёкший лиз больше не молчит — брошенная колонистка
+        // возвращается под ИИ тем же переходом, что тумблер 🎮→🧠. Всегда через
+        // СВЕЖИЙ worlds.Host: после свапа команда не должна уйти мёртвому миру.
+        var leaseSweep = controlLeases is null
+            ? Task.CompletedTask
+            : Task.Run(() => LeaseSweepAsync(worlds, controlLeases, lifetime.Token));
 
         // A plain GET for eyeballing that the thing is alive.
         app.MapGet("/", () =>
@@ -165,13 +241,40 @@ public static class Program
         }
 
         lifetime.Cancel();
-        await Task.WhenAll(autosave, status).ConfigureAwait(false);
+        await Task.WhenAll(autosave, status, leaseSweep).ConfigureAwait(false);
 
         // Last write wins: whatever happens, the colony that was alive a second
         // ago is on disk when this process ends.
         worlds.Host.Save();
         Console.WriteLine($"[world] saved at tick {worlds.Host.Tick}");
         return 0;
+    }
+
+    private static async Task LeaseSweepAsync(
+        WorldSupervisor worlds, ControlLeases leases, CancellationToken cancel)
+    {
+        var expired = new System.Collections.Generic.List<(int NpcId, string Owner)>();
+        try
+        {
+            while (!cancel.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), cancel).ConfigureAwait(false);
+                expired.Clear();
+                leases.CollectExpired(expired);
+                foreach (var (npcId, owner) in expired)
+                {
+                    var admission = worlds.Host.SubmitManualCommand(
+                        new HexLive.Simulation.Runtime.SetManualControlCommand(
+                            new HexLive.Simulation.Common.EntityId(npcId), false));
+                    Console.WriteLine(
+                        $"[control] lease of NPC{npcId} by {owner} expired — " +
+                        $"returned to AI ({admission.Status})");
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     private static async Task AutosaveAsync(WorldSupervisor worlds, int seconds, CancellationToken cancel)
@@ -277,7 +380,23 @@ public sealed class ServerOptions
     /// </summary>
     public bool McpEnabled { get; private set; }
 
-    public int McpLeaseSeconds { get; private set; } = Mcp.McpControlLeases.DefaultTimeoutSeconds;
+    /// <summary>
+    /// §145.3: сетевое управление ИГРОКА выключено по умолчанию по той же
+    /// логике, что MCP: дверь, которой не просили, должна быть закрыта.
+    /// Включение генерирует токен игрока (hexlive-player.txt рядом с сейвом).
+    /// </summary>
+    public bool ControlEnabled { get; private set; }
+
+    public string PlayerTokenPath =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-player.txt");
+
+    public int McpLeaseSeconds { get; private set; } = ControlLeases.DefaultTimeoutSeconds;
+
+    /// <summary>
+    /// §144.9: где лежит спека. Пусто — берётся каталог Spec рядом со сборкой,
+    /// куда его кладёт csproj. Флаг нужен запуску из чужого места.
+    /// </summary>
+    public string? SpecDir { get; private set; }
 
     public string McpTokenPath =>
         Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-mcp.txt");
@@ -329,8 +448,14 @@ public sealed class ServerOptions
                 case "--mcp":
                     options.McpEnabled = true;
                     break;
+                case "--control":
+                    options.ControlEnabled = true;
+                    break;
                 case "--mcp-lease" when i + 1 < args.Length:
                     options.McpLeaseSeconds = int.Parse(args[++i]);
+                    break;
+                case "--spec-dir" when i + 1 < args.Length:
+                    options.SpecDir = args[++i];
                     break;
                 case "--llm-endpoint" when i + 1 < args.Length:
                     options.Llm.SetEndpoint(args[++i]);
@@ -365,7 +490,9 @@ public sealed class ServerOptions
                         "  --debug-details  include per-NPC debug dumps in every frame\n" +
                         "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n" +
                         "  --mcp            expose MCP control at /mcp (off by default)\n" +
+                        "  --control        allow player NPC control over /watch (token in hexlive-player.txt)\n" +
                         "  --mcp-lease N    seconds a control lease survives without commands (default 120)\n" +
+                        "  --spec-dir PATH  spec served to MCP agents (default: Spec/ beside the binary)\n" +
                         "  --llm-endpoint URL  enable host-side HTTP LLM provider endpoint\n" +
                         "  --llm-npcs IDS      comma-separated selected NPC ids for LLM control\n" +
                         "  --llm-model NAME    optional provider model hint\n" +

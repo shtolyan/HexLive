@@ -609,7 +609,8 @@ public sealed partial class PlanningSystem
     // (PlanNoInteraction). Кулдаун на Idle не вешается: SetGoalCooldown его
     // намеренно не берёт, а обнулять ставку запасной цели нельзя — без неё
     // аукцион остаётся вовсе без победителя.
-    private void BuildIdleRestPlan(WorldState world, NPCState npc)
+    // §121.9: internal — фолбэк ручного «присесть», когда уступа рядом нет.
+    internal void BuildIdleRestPlan(WorldState world, NPCState npc)
     {
         if (!IdleRestMath.CanStart(world, npc))
         {

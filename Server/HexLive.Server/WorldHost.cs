@@ -36,6 +36,14 @@ public sealed class WorldHost : IDisposable
     /// </summary>
     private readonly object _gate = new();
 
+    /// <summary>
+    /// §144.6. Зеркало хроники для MCP. Заводится только при <c>--mcp</c>: дверь,
+    /// которой не просили, не должна стоить ни байта.
+    /// </summary>
+    private Mcp.McpEventLog? _mcpEvents;
+
+    private long _mcpDrainSeq;
+
     private readonly SimulationEngine _engine;
     private readonly SimulationClock _clock;
     private readonly SimulationSettings _settings;
@@ -190,7 +198,44 @@ public sealed class WorldHost : IDisposable
             // snapshot already cached for that tick is therefore stale even
             // though its cache key still matches.
             _snapshotTick = -1;
+
+            // ⭐ Not redundant with the drain in the tick loop. A rejection is
+            // emitted HERE, between ticks — and an operator-paused world never
+            // reaches Step(), so draining only there would lose exactly the
+            // answer the agent is waiting for, and only in a paused world.
+            DrainMcpEvents();
             return admission;
+        }
+    }
+
+    /// <summary>Only under <c>_gate</c>. Cheap no-op when MCP is off.</summary>
+    private void DrainMcpEvents()
+    {
+        if (_mcpEvents is { } log)
+        {
+            _mcpDrainSeq = log.Drain(_engine.World.Events, _mcpDrainSeq);
+        }
+    }
+
+    /// <summary>
+    /// Turns on the §144.6 chronicle mirror. Called from the composition root
+    /// when <c>--mcp</c> is present.
+    /// </summary>
+    public void EnableMcpEventLog()
+    {
+        lock (_gate)
+        {
+            if (_mcpEvents != null)
+            {
+                return;
+            }
+
+            _mcpEvents = new Mcp.McpEventLog();
+
+            // Start at the present, not at whatever the ring happens to hold: an
+            // agent connecting on tick 50 000 wants what happens next, and the
+            // ring's three seconds of backlog are events it cannot place anyway.
+            _mcpDrainSeq = _engine.World.Events.HighestSeq;
         }
     }
 
@@ -342,6 +387,10 @@ public sealed class WorldHost : IDisposable
                     watch.Stop();
                     _busyMs += watch.Elapsed.TotalMilliseconds;
                     Interlocked.Increment(ref _ticksRun);
+
+                    // Copy out before the ring buries it: at ~174 events/tick the
+                    // 2048-entry buffer holds under twelve ticks.
+                    DrainMcpEvents();
                 }
             }
 
@@ -455,15 +504,18 @@ public sealed class WorldHost : IDisposable
             var items = buffer.Items;
             for (var i = 0; i < items.Count; i++)
             {
-                // Only events a player could see, hear or read about. The other
-                // ~97% by volume is the AI thinking out loud — GoalScored,
-                // PerceivedObject, PlanCandidate — which nothing on the client
-                // consumes and which cost ~66 KB/s per viewer to ship.
+                // Only events a player could see, hear or read about — plus the
+                // §145.3 order replies (ManualOrderInterrupted/ManualControlExpired/
+                // GroupOrderResult), which must reach the viewer's toasts but are
+                // NOT chronicle. The other ~97% by volume is the AI thinking out
+                // loud — GoalScored, PerceivedObject, PlanCandidate — which
+                // nothing on the client consumes and which cost ~66 KB/s per
+                // viewer to ship.
                 //
                 // Note the watermark still advances past the filtered ones (it is
                 // set from buffer.HighestSeq above), so a viewer never asks for
                 // them again and never mistakes the gap for a dropped event.
-                if (items[i].Seq > sinceSeq && GameEventTypes.IsPlayerVisible(items[i]))
+                if (items[i].Seq > sinceSeq && GameEventTypes.IsWireRelevant(items[i]))
                 {
                     batch.Add(items[i]);
                 }
@@ -482,6 +534,45 @@ public sealed class WorldHost : IDisposable
         writer.Flush();
         return stream.ToArray();
     }
+
+    /// <summary>
+    /// The same selection as <see cref="EncodeEvents"/>, handed back as plain
+    /// records instead of the viewer's binary frame (§144.6).
+    /// <para>
+    /// It is a separate method rather than a mode flag on <see cref="EncodeEvents"/>
+    /// because the two differ in what silence means. The viewer is a stream: an
+    /// empty batch is nothing to send, so it returns null and says nothing. A
+    /// pulling agent asks a question and must always get an answer — "nothing
+    /// happened, and here is your new watermark" is a result, not a non-event.
+    /// Folding that into the viewer path would have made it return empty frames.
+    /// </para>
+    /// <para>
+    /// What the two MUST share is the watermark rule, and they do: it comes from
+    /// <c>HighestSeq</c> and therefore advances PAST the filtered-out chatter. A
+    /// consumer that advanced only to the last event it was shown would re-scan
+    /// the same ~97% of AI noise on every call, forever.
+    /// </para>
+    /// </summary>
+    public EventBatch ReadEvents(long? sinceSeq, int limit, int? entityId)
+    {
+        lock (_gate)
+        {
+            if (_mcpEvents is not { } log)
+            {
+                return new EventBatch(
+                    Array.Empty<EventRecord>(), 0, 0, false, false, false);
+            }
+
+            // Drain before answering: between the last tick and this call the
+            // world may have moved, and the agent asked "what happened", not
+            // "what had happened as of the previous tick boundary".
+            DrainMcpEvents();
+            return log.Read(sinceSeq, limit, entityId);
+        }
+    }
+
+    /// <summary>Epoch of the current world instance; changes on restore and restart.</summary>
+    public string McpSessionEpoch => _mcpEvents?.SessionEpoch ?? string.Empty;
 
     // ── clock commands ────────────────────────────────────────────────────
 
@@ -604,6 +695,14 @@ public sealed class WorldHost : IDisposable
             using var blobStream = new MemoryStream(blob);
             using var blobReader = new BinaryReader(blobStream);
             WorldSaveSerializer.Read(_engine.World, blobReader);
+
+            // The mirror now holds the chronicle of a world that no longer
+            // happened — «дерево срублено» about a tree the restored world still
+            // has standing. Drop it and re-anchor; the epoch change tells any
+            // attached agent its picture is void.
+            _mcpEvents?.Reset();
+            _mcpDrainSeq = _engine.World.Events.HighestSeq;
+
             Console.WriteLine($"[world] restored seed {savedSeed} at tick {savedTick}");
         }
         catch (Exception ex)

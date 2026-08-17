@@ -35,12 +35,14 @@ namespace HexLive.Server.Mcp
 public sealed class McpTools
 {
     private readonly WorldHost _host;
-    private readonly McpControlLeases _leases;
+    private readonly ControlLeases _leases;
+    private readonly SpecLibrary _spec;
 
-    public McpTools(WorldHost host, McpControlLeases leases)
+    public McpTools(WorldHost host, ControlLeases leases, SpecLibrary? spec = null)
     {
         _host = host;
         _leases = leases;
+        _spec = spec ?? SpecLibrary.Discover(null);
     }
 
     // ── каталог ───────────────────────────────────────────────────────────
@@ -59,9 +61,31 @@ public sealed class McpTools
 
         new("describe_colonist",
             "Полная картина по одной колонистке: состояние, восприятие (объекты рядом с их " +
-            "id и доступными взаимодействиями) и память. Ровно тот текст, который получает " +
-            "LLM-контур. Отсюда берут objectId для interact.",
+            "id и доступными взаимодействиями, союзницы, враги и звери) и память. Ровно " +
+            "тот текст, который получает LLM-контур. Отсюда берут objectId для interact " +
+            "и mobId для attack_mob.",
             Schema(("npcId", "integer", "id колонистки", true))),
+
+        new("read_spec",
+            "Спецификация мира — та же, по которой он написан. Начните с неё: правила, " +
+            "решающие, сработает приказ или нет, живут здесь, а не в описаниях " +
+            "инструментов. Без аргументов — оглавление всех разделов. section=«121» — " +
+            "раздел целиком (управление и ручной режим), «144» — этот шов, «64» — вода " +
+            "и мечты, «54» — стройка и припасы. Длинные разделы читаются кусками: " +
+            "передайте offset из поля nextOffset.",
+            Schema(("section", "string", "номер раздела, например 121 или 29E", false),
+                   ("offset", "integer", "с какого символа продолжить чтение длинного раздела", false))),
+
+        new("read_events",
+            "Что произошло в мире: разговоры, удары, ранения, обмороки, смерти, ссоры. " +
+            "Без него видно только числа состояния — падающее здоровье приходит без " +
+            "причины, и причину приходится домысливать. Вызывать с sinceSeq=watermark " +
+            "из прошлого ответа; первый вызов без него отдаёт свежий хвост. " +
+            "gap=true — кольцо подрезало, пропущенное потеряно навсегда и переспрашивать " +
+            "его нельзя. truncated=true — упёрлись в limit, позовите ещё раз.",
+            Schema(("sinceSeq", "integer", "вотермарка прошлого ответа; без неё — свежий хвост", false),
+                   ("limit", "integer", "сколько событий максимум (по умолчанию 100)", false),
+                   ("npcId", "integer", "оставить только события про эту колонистку", false))),
 
         new("list_leases",
             "Кто кем сейчас владеет и сколько секунд простаивает.",
@@ -104,13 +128,104 @@ public sealed class McpTools
                    ("targetNpcId", "integer", "id цели", true))),
 
         new("attack_mob",
-            "Напасть на зверя. mobId — из describe_colonist.",
+            "Напасть на зверя. mobId — из поля mobs в describe_colonist: там ровно те, " +
+            "кого она сейчас видит. targetsMe=true значит зверь идёт именно за ней.",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("mobId", "integer", "id зверя", true))),
 
         new("stop",
             "Отставить текущий приказ. Не выключает ручной режим — это разные вещи (§121).",
             Schema(("npcId", "integer", "id колонистки", true))),
+
+        new("talk_to",
+            "Подойти и поговорить с колонисткой (§121.9/§28). Занятая или не в духе цель " +
+            "откажет ПО ПРИБЫТИИ — это штатный исход, не ошибка инструмента.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("targetNpcId", "integer", "с кем говорить", true))),
+
+        new("aid_person",
+            "Помочь конкретной колонистке ЯВНЫМ видом помощи (§53): Feed/Hydrate/Treat/" +
+            "Medicate/Console. Помощь стоит припаса ПОМОЩНИЦЫ (§53.7); отказ NoSupplies " +
+            "значит «нечем» — сначала добудьте еду/воду/бинт.",
+            Schema(("npcId", "integer", "id помощницы", true),
+                   ("targetNpcId", "integer", "кому помочь", true),
+                   ("kind", "string", "вид помощи: Feed/Hydrate/Treat/Medicate/Console", true))),
+
+        new("treat_limbs",
+            "Наложить шину или приладить протез лежащей (§116/§118). Что именно — решает " +
+            "симуляция (шина первой). NoLimbDamage — конечности целы; NoSupplies — нет " +
+            "шины/протеза или пациентка не в кровати для протеза.",
+            Schema(("npcId", "integer", "id лекарки", true),
+                   ("targetNpcId", "integer", "id пациентки", true))),
+
+        new("self_action",
+            "Самодействие (§121.9): CallForHelp (крик о помощи в бою, не сносит план), " +
+            "TreatSelf (перевязаться), GroundSit/GroundSleep (сесть/лечь на землю), " +
+            "Bathe/WashClothes (купание/стирка), EatFromPack/DrinkFromPack (из рюкзака).",
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("kind", "string",
+                    "вид: CallForHelp/TreatSelf/GroundSit/GroundSleep/Bathe/WashClothes/" +
+                    "EatFromPack/DrinkFromPack", true))),
+
+        new("carry_person",
+            "Взять на руки лежащую (или свою — и стоящую) колонистку (§124). Руки должны " +
+            "быть свободны.",
+            Schema(("npcId", "integer", "id носильщицы", true),
+                   ("targetNpcId", "integer", "кого поднять", true))),
+
+        new("put_down_person",
+            "Положить переносимого человека у ног (§124).",
+            Schema(("npcId", "integer", "id носильщицы", true))),
+
+        new("put_person_in_bed",
+            "Донести переносимого человека до кровати и уложить (§124.1). objectId кровати — " +
+            "из describe_colonist.",
+            Schema(("npcId", "integer", "id носильщицы", true),
+                   ("bedObjectId", "integer", "id кровати", true))),
+
+        new("manage_inventory",
+            "Надеть/убрать/выбросить вещь из инвентаря (§52): source=Carried|Worn, index — " +
+            "номер ячейки из describe_colonist, expectedDefinitionId защищает от протухшей " +
+            "картинки (id не совпал — приказ честно отклоняется).",
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("source", "string", "Carried или Worn", true),
+                   ("index", "integer", "номер ячейки", true),
+                   ("expectedDefinitionId", "string", "ожидаемый id предмета в ячейке", true),
+                   ("action", "string", "Wear/Stow/Drop", true))),
+
+        new("transfer_inventory",
+            "Обмен с лежащим человеком (§128): взять или отдать одну ячейку.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("otherNpcId", "integer", "id второй стороны (лежащей)", true),
+                   ("source", "string", "Carried или Worn — чья ячейка описывается", true),
+                   ("index", "integer", "номер ячейки", true),
+                   ("expectedDefinitionId", "string", "ожидаемый id предмета", true),
+                   ("count", "integer", "сколько штук (по умолчанию 1)", false),
+                   ("direction", "string", "Take (себе) или Give (отдать)", true))),
+
+        new("transfer_container",
+            "Обыск вещи (§128.5): истлевшее тело, снятый рюкзак, аптечка. slotIndex и " +
+            "expectedDefinitionId — из содержимого объекта в describe_colonist.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("containerObjectId", "integer", "id объекта-контейнера", true),
+                   ("slotIndex", "integer", "номер ячейки содержимого", true),
+                   ("expectedDefinitionId", "string", "ожидаемый id предмета", true),
+                   ("count", "integer", "сколько штук (по умолчанию 1)", false),
+                   ("direction", "string", "Take или Give", true))),
+
+        new("prey_person",
+            "«Тёмный» приказ §56 (за выключателем Spec121.ManualDarkOrdersEnabled): " +
+            "выследить СОСЕДКУ ради мяса. Нужен разделочный нож. Необратимо и с полными " +
+            "последствиями §56 — свидетельницы, страх, метка убийцы.",
+            Schema(("npcId", "integer", "id охотницы", true),
+                   ("targetNpcId", "integer", "id жертвы (союзница)", true))),
+
+        new("abuse_person",
+            "«Тёмный» приказ §81 (за тем же выключателем): затеять сцену травли против " +
+            "ВРАЖДЕБНОГО чужака — отжать припас. Свидетельницы жертвы впишутся, доверие " +
+            "к агрессорше упадёт у всех, кто видел.",
+            Schema(("npcId", "integer", "id зачинщицы", true),
+                   ("targetNpcId", "integer", "id жертвы (враждебной)", true))),
     };
 
     public sealed record ToolSpec(string Name, string Description, JsonElement InputSchema);
@@ -131,6 +246,8 @@ public sealed class McpTools
                 case "world_status": return WorldStatus();
                 case "list_colonists": return ListColonists();
                 case "list_leases": return ListLeases();
+                case "read_events": return ReadEvents(arguments);
+                case "read_spec": return ReadSpec(arguments, out isError);
                 case "describe_colonist": return Describe(Int(arguments, "npcId"), out isError);
                 case "acquire_control": return Acquire(Int(arguments, "npcId"), owner, out isError);
                 case "release_control": return Release(Int(arguments, "npcId"), owner, out isError);
@@ -140,6 +257,58 @@ public sealed class McpTools
                 case "attack_npc": return AttackNpc(arguments, owner, out isError);
                 case "attack_mob": return AttackMob(arguments, owner, out isError);
                 case "stop": return Simple(arguments, owner, npc => new StopCommand(npc), out isError);
+                // ⭐ Обязательные аргументы читаются ДО Submit (вне лямбды):
+                // отказ «нет параметра X» обязан прийти и без лиза — за этим
+                // следит контрактный гейт каталога.
+                case "talk_to":
+                {
+                    var target = new EntityId(Int(arguments, "targetNpcId"));
+                    return Simple(arguments, owner,
+                        npc => new TalkToCommand(npc, target), out isError);
+                }
+
+                case "aid_person": return AidPerson(arguments, owner, out isError);
+                case "treat_limbs":
+                {
+                    var target = new EntityId(Int(arguments, "targetNpcId"));
+                    return Simple(arguments, owner,
+                        npc => new TreatLimbsCommand(npc, target), out isError);
+                }
+
+                case "self_action": return SelfAction(arguments, owner, out isError);
+                case "carry_person":
+                {
+                    var target = new EntityId(Int(arguments, "targetNpcId"));
+                    return Simple(arguments, owner,
+                        npc => new CarryPersonCommand(npc, target), out isError);
+                }
+
+                case "put_down_person":
+                    return Simple(arguments, owner, npc => new PutDownPersonCommand(npc), out isError);
+                case "put_person_in_bed":
+                {
+                    var bed = new ObjectId(Int(arguments, "bedObjectId"));
+                    return Simple(arguments, owner,
+                        npc => new PutPersonInBedCommand(npc, bed), out isError);
+                }
+
+                case "manage_inventory": return ManageInventory(arguments, owner, out isError);
+                case "transfer_inventory": return TransferInventory(arguments, owner, out isError);
+                case "transfer_container": return TransferContainer(arguments, owner, out isError);
+                case "prey_person":
+                {
+                    var target = new EntityId(Int(arguments, "targetNpcId"));
+                    return Simple(arguments, owner,
+                        npc => new PreyPersonCommand(npc, target), out isError);
+                }
+
+                case "abuse_person":
+                {
+                    var target = new EntityId(Int(arguments, "targetNpcId"));
+                    return Simple(arguments, owner,
+                        npc => new AbusePersonCommand(npc, target), out isError);
+                }
+
                 default:
                     isError = true;
                     return $"Нет такого инструмента: {name}";
@@ -171,6 +340,113 @@ public sealed class McpTools
             ["ticksPerSecond"] = Math.Round(_host.MeasuredTicksPerSecond, 2),
             ["averageTickMs"] = Math.Round(_host.AverageTickMs, 2),
         }));
+    }
+
+    /// <summary>
+    /// §144.9. Спека по сети: у агента нет ни репозитория, ни файлов рядом.
+    /// </summary>
+    private string ReadSpec(JsonElement arguments, out bool isError)
+    {
+        isError = false;
+
+        var section = arguments.ValueKind == JsonValueKind.Object &&
+                      arguments.TryGetProperty("section", out var value) &&
+                      value.ValueKind == JsonValueKind.String
+            ? value.GetString() ?? string.Empty
+            : string.Empty;
+
+        if (string.IsNullOrWhiteSpace(section))
+        {
+            var index = _spec.ReadIndex();
+            if (index == null)
+            {
+                isError = true;
+                return "Спека не поставлена с этим сервером. Запустите с --spec-dir <путь>.";
+            }
+
+            var sections = _spec.Sections();
+            return Json(new Dictionary<string, object?>
+            {
+                ["index"] = index,
+                ["sections"] = sections,
+                ["hint"] = "read_spec с section=«121» отдаёт раздел целиком. " +
+                           "Ссылка вида §105.14 значит раздел 105 — подпункты живут внутри файла.",
+            });
+        }
+
+        var offset = OptionalInt(arguments, "offset") ?? 0;
+        if (!_spec.TryReadSection(section, offset, out var text, out var total, out var error))
+        {
+            isError = true;
+            return error;
+        }
+
+        var end = offset + text.Length;
+        return Json(new Dictionary<string, object?>
+        {
+            ["section"] = section.Trim().TrimStart('§'),
+            ["text"] = text,
+            ["offset"] = offset,
+            ["totalChars"] = total,
+            // Усечение — элемент ответа, а не тишина: обрыв на полуслове,
+            // прочитанный как конец раздела, хуже отсутствия раздела.
+            ["truncated"] = end < total,
+            ["nextOffset"] = end < total ? end : (object?)null,
+        });
+    }
+
+    /// <summary>
+    /// §144.6. Тянущее чтение хроники — сервер по-прежнему ничего не проталкивает
+    /// (§144.4), агент сам спрашивает «что было после Seq=N».
+    /// <para>
+    /// Первый вызов без <c>sinceSeq</c> отдаёт свежий хвост, а не всю ленту с
+    /// начала мира: агент, подключившийся на 50-тысячном тике, интересуется тем,
+    /// что происходит сейчас, а не двумя тысячами событий из кольца, каждое из
+    /// которых он всё равно не сможет соотнести с текущим состоянием.
+    /// </para>
+    /// </summary>
+    private string ReadEvents(JsonElement arguments)
+    {
+        var limit = OptionalInt(arguments, "limit") ?? 100;
+        if (limit is <= 0 or > 500)
+        {
+            limit = limit <= 0 ? 100 : 500;
+        }
+
+        var entityId = OptionalInt(arguments, "npcId");
+
+        // Без вотермарки — «с этого момента», а не «всё, что храним». Свалить на
+        // первый же вызов сотни накопленных событий значит забить агенту контекст
+        // тем, чего он не вызывал и с текущим состоянием соотнести не может.
+        // Кому нужна предыстория — передаёт sinceSeq=1 и получает gap=true.
+        var batch = _host.ReadEvents(OptionalLong(arguments, "sinceSeq"), limit, entityId);
+
+        var rows = new List<object>(batch.Events.Count);
+        foreach (var e in batch.Events)
+        {
+            rows.Add(new Dictionary<string, object?>
+            {
+                ["seq"] = e.Seq,
+                ["tick"] = e.Tick,
+                ["type"] = e.Type,
+                // Дословно: из Message вытаскивают id зверя и разбирают Kind=/Cause=[…].
+                ["message"] = e.Message,
+                ["entityId"] = e.EntityId,
+            });
+        }
+
+        return Json(new Dictionary<string, object?>
+        {
+            ["events"] = rows,
+            ["watermark"] = batch.Watermark,
+            ["oldestRetainedSeq"] = batch.OldestRetainedSeq,
+            ["gap"] = batch.Gap,
+            ["sessionReset"] = batch.SessionReset,
+            ["truncated"] = batch.Truncated,
+            // Меняется при перезапуске процесса и при загрузке сейва. Без него
+            // чужой мир, успевший дойти до seq 900, неотличим от нашего.
+            ["sessionEpoch"] = _host.McpSessionEpoch,
+        });
     }
 
     private string ListColonists()
@@ -420,6 +696,125 @@ public sealed class McpTools
         return Submit(npcId, owner, npc => new AttackMobCommand(npc, mobId), out isError);
     }
 
+    // ⭐ Во всех хелперах ниже СНАЧАЛА читаются все обязательные аргументы
+    // (Int/Text бросают именной отказ на недостающий), и только ПОТОМ
+    // валидируются значения енумов: отказ «нет параметра X» обязан приходить
+    // независимо от мусора в остальных — за этим следит контрактный гейт.
+
+    // §121.9: вид помощи выбирает агент явно — как игрок в подменю.
+    private string AidPerson(JsonElement arguments, string owner, out bool isError)
+    {
+        var npcId = Int(arguments, "npcId");
+        var wardId = Int(arguments, "targetNpcId");
+        var kindName = Text(arguments, "kind");
+        if (!Enum.TryParse<AidKind>(kindName, ignoreCase: true, out var kind) ||
+            kind == AidKind.None)
+        {
+            isError = true;
+            return $"Неизвестный вид помощи «{kindName}». Допустимые: " +
+                   "Feed, Hydrate, Treat, Medicate, Console.";
+        }
+
+        var ward = new EntityId(wardId);
+        return Submit(npcId, owner,
+            npc => new AidPersonCommand(npc, ward, kind), out isError);
+    }
+
+    private string SelfAction(JsonElement arguments, string owner, out bool isError)
+    {
+        var npcId = Int(arguments, "npcId");
+        var kindName = Text(arguments, "kind");
+        if (!Enum.TryParse<SelfActionKind>(kindName, ignoreCase: true, out var kind))
+        {
+            isError = true;
+            return $"Неизвестное самодействие «{kindName}». Допустимые: " +
+                   string.Join(", ", Enum.GetNames(typeof(SelfActionKind)));
+        }
+
+        return Submit(npcId, owner,
+            npc => new SelfActionCommand(npc, kind), out isError);
+    }
+
+    private string ManageInventory(JsonElement arguments, string owner, out bool isError)
+    {
+        var npcId = Int(arguments, "npcId");
+        var sourceName = Text(arguments, "source");
+        var index = Int(arguments, "index");
+        var expected = Text(arguments, "expectedDefinitionId");
+        var actionName = Text(arguments, "action");
+        if (!TryEnum<InventoryItemSource>(sourceName, "source", out var source, out var error) ||
+            !TryEnum<InventoryAction>(actionName, "action", out var action, out error))
+        {
+            isError = true;
+            return error;
+        }
+
+        var item = new InventoryItemRef(source, index, expected);
+        return Submit(npcId, owner,
+            npc => new ManageInventoryCommand(npc, item, action), out isError);
+    }
+
+    private string TransferInventory(JsonElement arguments, string owner, out bool isError)
+    {
+        var npcId = Int(arguments, "npcId");
+        var otherId = Int(arguments, "otherNpcId");
+        var sourceName = Text(arguments, "source");
+        var index = Int(arguments, "index");
+        var expected = Text(arguments, "expectedDefinitionId");
+        var directionName = Text(arguments, "direction");
+        if (!TryEnum<InventoryItemSource>(sourceName, "source", out var source, out var error) ||
+            !TryEnum<InventoryTransferDirection>(
+                directionName, "direction", out var direction, out error))
+        {
+            isError = true;
+            return error;
+        }
+
+        var count = OptionalInt(arguments, "count") ?? 1;
+        var item = new InventoryItemRef(source, index, expected);
+        var other = new EntityId(otherId);
+        return Submit(npcId, owner,
+            npc => new TransferInventoryCommand(npc, other, item, count, direction),
+            out isError);
+    }
+
+    private string TransferContainer(JsonElement arguments, string owner, out bool isError)
+    {
+        var npcId = Int(arguments, "npcId");
+        var containerId = Int(arguments, "containerObjectId");
+        var slotIndex = Int(arguments, "slotIndex");
+        var expected = Text(arguments, "expectedDefinitionId");
+        var directionName = Text(arguments, "direction");
+        if (!TryEnum<InventoryTransferDirection>(
+                directionName, "direction", out var direction, out var error))
+        {
+            isError = true;
+            return error;
+        }
+
+        var count = OptionalInt(arguments, "count") ?? 1;
+        var container = new ObjectId(containerId);
+        return Submit(npcId, owner,
+            npc => new TransferContainerCommand(
+                npc, container, slotIndex, expected, count, direction),
+            out isError);
+    }
+
+    private static bool TryEnum<T>(
+        string text, string name, out T value, out string error)
+        where T : struct, Enum
+    {
+        error = string.Empty;
+        if (Enum.TryParse(text, ignoreCase: true, out value))
+        {
+            return true;
+        }
+
+        error = $"Неизвестное значение «{text}» для {name}. Допустимые: " +
+                string.Join(", ", Enum.GetNames(typeof(T)));
+        return false;
+    }
+
     private string Simple(JsonElement arguments, string owner,
         Func<EntityId, ISimulationCommand> build, out bool isError) =>
         Submit(Int(arguments, "npcId"), owner, build, out isError);
@@ -485,6 +880,57 @@ public sealed class McpTools
         }
 
         throw new McpArgumentException($"Нужен целочисленный параметр «{name}».");
+    }
+
+    /// <summary>
+    /// Необязательное целое: отсутствует — <c>null</c>, а не ноль. Ноль здесь
+    /// значащий (вотермарка 0 = «с самого начала кольца»), поэтому подменять им
+    /// пропуск нельзя.
+    /// </summary>
+    private static int? OptionalInt(JsonElement arguments, string name)
+    {
+        if (arguments.ValueKind != JsonValueKind.Object ||
+            !arguments.TryGetProperty(name, out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number))
+        {
+            return number;
+        }
+
+        if (value.ValueKind == JsonValueKind.String &&
+            int.TryParse(value.GetString(), NumberStyles.Integer,
+                CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        return null;
+    }
+
+    private static long? OptionalLong(JsonElement arguments, string name)
+    {
+        if (arguments.ValueKind != JsonValueKind.Object ||
+            !arguments.TryGetProperty(name, out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var number))
+        {
+            return number;
+        }
+
+        if (value.ValueKind == JsonValueKind.String &&
+            long.TryParse(value.GetString(), NumberStyles.Integer,
+                CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        return null;
     }
 
     private static float Number(JsonElement arguments, string name)

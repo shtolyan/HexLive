@@ -27,6 +27,15 @@ public sealed class WorldSupervisor : IDisposable
     private readonly CancellationToken _appShutdown;
 
     private readonly object _swap = new();
+
+    /// <summary>
+    /// §145.4: мир заменён — подписчики обязаны забыть всё, что держали про
+    /// старый (реестр лиз чистится, зеркало хроники MCP заводится на новом
+    /// хосте). Иначе внешние контуры продолжают командовать людьми, которых
+    /// больше нет.
+    /// </summary>
+    public event Action? WorldSwapped;
+
     private WorldHost _host;
     private CancellationTokenSource _hostLifetime;
     private CancellationTokenSource _viewerLifetime;
@@ -137,6 +146,8 @@ public sealed class WorldSupervisor : IDisposable
             _simData = File.ReadAllText(_simDataPath);
             Console.WriteLine($"[world] NEW WORLD started, seed {seed}");
         }
+
+        WorldSwapped?.Invoke();
     }
 
     private void ArchiveSave()

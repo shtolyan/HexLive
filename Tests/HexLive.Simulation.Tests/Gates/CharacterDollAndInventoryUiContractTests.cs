@@ -86,7 +86,10 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(panel, Does.Contain("_runner.SupportsNpcCommands"));
             Assert.That(sourceApi, Does.Contain("TryGetCraftingOptions"));
             Assert.That(local, Does.Contain("CraftingOptions.TryFill"));
-            Assert.That(loopback, Does.Contain("return false"));
+            // §145.2: loopback с кадром команд репетирует УПРАВЛЯЕМЫЙ мир —
+            // вкладка крафта живёт, список рецептов делегируется внутрь
+            // (правду о доступности всё равно решает ManualCommandExecutor).
+            Assert.That(loopback, Does.Contain("_inner.TryGetCraftingOptions"));
             Assert.That(remote, Does.Contain("return false"));
             Assert.That(localization, Does.Contain("Term: 'craft.tab.craft'"));
             Assert.That(localization, Does.Contain("'Craft'"));

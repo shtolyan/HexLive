@@ -130,10 +130,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly List<HutCutawayView> _hutCutawayViews = new();
 
-    // #146: the Indoor tiles occupied by the colony's own bodies this frame —
-    // the cutaway trigger. Rebuilt in UpdateHutCutaways, read by the plan path.
-    private readonly HashSet<TileCoord> _occupiedIndoorTiles = new();
-
     // §120: the same feature for a house that HAS no monolith. One entry per
     // module the cutaway may take away — walls, windows, doors, corner supports
     // and roof panels; floor sectors never hide, exactly as the monolith never
@@ -663,59 +659,52 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (_hutCutawayViews.Count == 0 && _planCutawayModules.Count == 0) return;
 
         _cutawayCamera ??= Camera.main;
-
-        // #146: the cutaway used to open only for the SELECTED colonist
-        // standing indoors. An unselected housemate stayed walled in — the
-        // player read that as "she does not render at all", and clicking her
-        // roster entry (= selecting her) looked like a spawn; a selected girl
-        // could talk to a partner hidden inside a closed house. Any OWN body
-        // indoors — alive or a corpse — now opens her house. Outsiders never
-        // do: fog may be masking them, and an open wall must not undo that.
-        _occupiedIndoorTiles.Clear();
-        CollectColonyIndoorTiles(snapshot.Npcs);
-        CollectColonyIndoorTiles(snapshot.Corpses);
+        var hasInteriorSelection = false;
+        var selectedTile = TileCoord.Zero;
+        if (Input.NpcSelection.HasSelection)
+        {
+            var selectedId = Input.NpcSelection.SelectedId;
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Id.Value != selectedId) continue;
+                // §141: «она в доме» — про ТЕЛО, а не про поле тайла. Дом
+                // раскрывался не в тот момент, когда она входит: поле
+                // догоняет тело, и на пороге получалось «и в доме, и не в
+                // доме» — при том, что высоту вид брал оттуда же.
+                selectedTile = GroundTileUnder(npc);
+                hasInteriorSelection = _indoorCoords.Contains(selectedTile);
+                break;
+            }
+        }
 
         var cameraPosition = _cutawayCamera != null
             ? _cutawayCamera.transform.position
             : Vector3.zero;
         foreach (var hut in _hutCutawayViews)
         {
-            var reveal = _cutawayCamera != null &&
-                _occupiedIndoorTiles.Contains(hut.Tile);
+            var reveal = hasInteriorSelection && hut.Tile.Equals(selectedTile) &&
+                _cutawayCamera != null;
             hut.Assembly.SetInteriorCutaway(reveal, cameraPosition);
         }
 
-        UpdatePlanCutaways(cameraPosition);
-    }
-
-    private void CollectColonyIndoorTiles(List<NpcSnapshot> bodies)
-    {
-        foreach (var npc in bodies)
-        {
-            if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony) continue;
-            // §141: «она в доме» — про ТЕЛО, а не про поле тайла. Дом
-            // раскрывался не в тот момент, когда она входит: поле
-            // догоняет тело, и на пороге получалось «и в доме, и не в
-            // доме» — при том, что высоту вид брал оттуда же.
-            var tile = GroundTileUnder(npc);
-            if (_indoorCoords.Contains(tile)) _occupiedIndoorTiles.Add(tile);
-        }
+        UpdatePlanCutaways(hasInteriorSelection, selectedTile, cameraPosition);
     }
 
     /// <summary>
     /// §120: the monolith's interior cutaway, for a house that has no monolith.
     ///
     /// <para>
-    /// Same trigger as <see cref="UpdateHutCutaways"/>'s own loop — any own
-    /// colonist (or her body) indoors — but "this house" is the FOOTPRINT,
-    /// because a plan spans several hexes and the occupied tile is only ever
-    /// one of them. Same removal, too: the modules that stand between the
-    /// camera and the room go to <c>ShadowsOnly</c> and the roof comes off
-    /// whole, which is exactly what <c>HutAssembly.SetCutawayRenderers</c>
-    /// does with its roof stage and the wall pair it picks.
+    /// Same trigger as <see cref="UpdateHutCutaways"/>'s own loop — a selected
+    /// colonist standing indoors — but "this house" is the FOOTPRINT, because a
+    /// plan spans several hexes and the selected tile is only ever one of them.
+    /// Same removal, too: the modules that stand between the camera and the room
+    /// go to <c>ShadowsOnly</c> and the roof comes off whole, which is exactly
+    /// what <c>HutAssembly.SetCutawayRenderers</c> does with its roof stage and
+    /// the wall pair it picks.
     /// </para>
     /// </summary>
-    private void UpdatePlanCutaways(Vector3 cameraPosition)
+    private void UpdatePlanCutaways(
+        bool hasInteriorSelection, TileCoord selectedTile, Vector3 cameraPosition)
     {
         if (_planCutawayModules.Count == 0) return;
         var hasCamera = _cutawayCamera != null;
@@ -732,9 +721,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (owned.Count == 0) continue;
 
-            var reveal = hasCamera && _occupiedIndoorTiles.Count > 0 &&
+            var reveal = hasInteriorSelection && hasCamera &&
                 _planFootprints.TryGetValue(ownerKey, out var footprint) &&
-                CoversAnyOccupied(footprint);
+                Covers(footprint, selectedTile);
             if (!reveal)
             {
                 for (var i = 0; i < owned.Count; i++)
@@ -783,11 +772,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
-    private bool CoversAnyOccupied(IReadOnlyList<TileCoord> footprint)
+    private static bool Covers(IReadOnlyList<TileCoord> footprint, TileCoord tile)
     {
         for (var i = 0; i < footprint.Count; i++)
         {
-            if (_occupiedIndoorTiles.Contains(footprint[i])) return true;
+            if (footprint[i].Equals(tile)) return true;
         }
 
         return false;

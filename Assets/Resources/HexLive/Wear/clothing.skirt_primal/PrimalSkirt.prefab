@@ -145,23 +145,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Wear
   configs:
   - actorName: 0
-    scale: 1
+    scale: 1.03
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 6b89232861c263b42b44c6b93205f75c, type: 2}
   - actorName: 1
-    scale: 1
+    scale: 1.03
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 0e1dac09a233a7f47a94ae44b8ba6462, type: 2}
   - actorName: 2
-    scale: 1
+    scale: 1.03
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 2ad041274690f784fa2bc532f71ee9fb, type: 2}
   - actorName: 5
-    scale: 1
+    scale: 1.03
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 3e780ebbad457fd4e980fe25f7e8eaec, type: 2}
   slots: 090000000c000000
-  noHideUnderwearSlots: 
+  noHideUnderwearSlots: 090000000c000000
   layer: 1
   gender: 1
   heel:

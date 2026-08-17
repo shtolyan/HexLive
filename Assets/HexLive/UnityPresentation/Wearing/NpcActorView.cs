@@ -1023,6 +1023,56 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    // Bug #146 watchdog: is ANY body skin actually being drawn this frame?
+    // isVisible is Unity's own answer after culling — the exact thing the
+    // player's «она не рендерится» is about.
+    public bool AnyBodySkinVisible()
+    {
+        if (_bodySkins == null)
+        {
+            return true; // primitives fallback has no skins; not our case
+        }
+
+        foreach (var skin in _bodySkins)
+        {
+            if (skin != null && skin.enabled && skin.isVisible)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Bug #146 watchdog: one line of truth about why this body can or cannot
+    // be drawn — renderer flags, layers, culling bounds, animator culling.
+    public string DescribeRenderState()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append(gameObject.activeInHierarchy ? "active" : "INACTIVE");
+        sb.Append($" laying={_laying} dead={_dead} ragdoll={_ragdollActive}");
+        if (_animator != null)
+        {
+            sb.Append($" animator={(_animator.enabled ? "on" : "OFF")}/{_animator.cullingMode}");
+        }
+
+        if (_bodySkins != null)
+        {
+            foreach (var skin in _bodySkins)
+            {
+                if (skin == null) continue;
+                var b = skin.bounds;
+                sb.Append($" | {skin.name}: en={skin.enabled} vis={skin.isVisible}" +
+                    $" layer={skin.gameObject.layer} offscr={skin.updateWhenOffscreen}" +
+                    $" shadow={skin.shadowCastingMode}" +
+                    $" bC=({b.center.x:0.0},{b.center.y:0.0},{b.center.z:0.0})" +
+                    $" bE=({b.extents.x:0.0},{b.extents.y:0.0},{b.extents.z:0.0})");
+            }
+        }
+
+        return sb.ToString();
+    }
+
     // §21.21B: sim hop signal ("Up"/"Down"/""), fed every sync. Starts the
     // ballistic arc on a hop the sim began and we have not played yet.
     // heightDeltaWorld is the EXACT signed root-level difference

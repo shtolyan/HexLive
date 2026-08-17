@@ -1944,6 +1944,88 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         SyncCorpseViews(snapshot);
+        AuditNpcRenderState(snapshot);
+    }
+
+    // ⭐ Bug #146 watchdog: «девушки не рендерятся, пока не кликнешь». Три
+    // правдоподобных диагноза подряд (туман §125.5, вырез §120, GRD occlusion)
+    // не подтвердились у игрока — дальше только замер по живой сессии, §109.16.
+    // Раз в 2 секунды каждая живая колонистка обязана: (1) иметь вид, (2) вид
+    // активен, (3) вид стоит там, где тело в симуляции, (4) если тело в кадре
+    // камеры — хотя бы один скин реально нарисован. Нарушение пишет в
+    // Player.log полное состояние рендереров. Снять после подтверждения #146.
+    private float _renderWatchdogNextTime;
+    private readonly Dictionary<string, float> _renderWatchdogLastByKey = new();
+
+    private void AuditNpcRenderState(WorldSnapshot snapshot)
+    {
+        if (Time.unscaledTime < _renderWatchdogNextTime) return;
+        _renderWatchdogNextTime = Time.unscaledTime + 2f;
+
+        var cam = Camera.main;
+        if (cam == null) return;
+        var planes = GeometryUtility.CalculateFrustumPlanes(cam);
+
+        foreach (var npc in snapshot.Npcs)
+        {
+            if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony) continue;
+            var id = npc.Id.Value;
+
+            if (!_npcViews.TryGetValue(id, out var view) || view == null)
+            {
+                WatchdogReport($"noview:{id}",
+                    $"[NpcRenderWatchdog] npc={id} {npc.DisplayName}: в снапшоте есть, вида НЕТ " +
+                    $"(corpseView={_corpseViews.ContainsKey(id)})");
+                continue;
+            }
+
+            if (!view.activeInHierarchy)
+            {
+                WatchdogReport($"inactive:{id}",
+                    $"[NpcRenderWatchdog] npc={id} {npc.DisplayName}: вид НЕАКТИВЕН " +
+                    $"(activeSelf={view.activeSelf} fogActive={_fogActive} fogHidesNpcs={_fogHidesNpcs} " +
+                    $"fogHidden={_fogHiddenNpcs.Contains(id)})");
+                continue;
+            }
+
+            var expected = _currNpcPoses.TryGetValue(id, out var pose)
+                ? pose.Position
+                : SimulationUnityMapper.ToUnityPosition(
+                    npc.Position, ActorGroundY(GroundTileUnder(npc)));
+            var actual = view.transform.position;
+            var drift = Vector3.Distance(actual, expected);
+            if (drift > 3f)
+            {
+                WatchdogReport($"drift:{id}",
+                    $"[NpcRenderWatchdog] npc={id} {npc.DisplayName}: вид в {drift:0.0} wu от симуляции " +
+                    $"(view=({actual.x:0.0},{actual.y:0.0},{actual.z:0.0}) " +
+                    $"sim=({expected.x:0.0},{expected.y:0.0},{expected.z:0.0}) " +
+                    $"move={npc.MovementStatus} carriedBy={npc.CarriedByNpcId?.ToString() ?? "-"})");
+            }
+
+            // Тело в кадре — но ни один его скин не нарисован этой сценой.
+            var inFrustum = GeometryUtility.TestPlanesAABB(planes,
+                new Bounds(actual + Vector3.up * 0.9f, new Vector3(1.2f, 2.0f, 1.2f)));
+            if (inFrustum && _actorViews.TryGetValue(id, out var actor) && actor != null &&
+                !actor.AnyBodySkinVisible())
+            {
+                WatchdogReport($"culled:{id}",
+                    $"[NpcRenderWatchdog] npc={id} {npc.DisplayName}: тело в кадре, но ни один скин " +
+                    $"не рисуется -> {actor.DescribeRenderState()}");
+            }
+        }
+    }
+
+    private void WatchdogReport(string key, string message)
+    {
+        if (_renderWatchdogLastByKey.TryGetValue(key, out var last) &&
+            Time.unscaledTime - last < 10f)
+        {
+            return;
+        }
+
+        _renderWatchdogLastByKey[key] = Time.unscaledTime;
+        UnityEngine.Debug.LogWarning(message);
     }
 
     private void BindArchitectureElementViews(WorldSnapshot snapshot)

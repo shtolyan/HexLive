@@ -2074,7 +2074,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (_corpseActorViews.TryGetValue(key, out var actor) && actor != null)
             {
-                // §170: земля под телом — свойство места, где оно лежит СЕЙЧАС.
+                // баг #170: земля под телом — свойство места, где оно лежит СЕЙЧАС.
                 // Тело носят (§118.4 спасение, ручной перенос), и без этой
                 // строки оно садилось на высоту тайла, где человек умер.
                 actor.SetDeathSurfaceY(ActorGroundY(body.Tile));

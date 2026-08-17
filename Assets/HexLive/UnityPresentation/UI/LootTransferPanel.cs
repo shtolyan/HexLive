@@ -30,6 +30,8 @@ public sealed class LootTransferPanel : MonoBehaviour
     private VisualElement _frame = null!;
     private VisualElement _leftPane = null!;
     private VisualElement _rightPane = null!;
+    private ScrollView _leftScroll = null!;
+    private ScrollView _rightScroll = null!;
     private VisualElement _leftContent = null!;
     private VisualElement _rightContent = null!;
     private Label _leftTitle = null!;
@@ -39,7 +41,15 @@ public sealed class LootTransferPanel : MonoBehaviour
     private Label _status = null!;
 
     private int _looterId = -1;
+
+    // §128: id второй стороны для перетаскивания. Для человека это его EntityId,
+    // для вещи (§128.5) — МИНУС id объекта: жесту нужен один int, по которому он
+    // отличает «своя панель» от «чужой», а пространства id людей и объектов
+    // независимы и оба начинаются с единицы. Минус разводит их без второго поля
+    // в каждом DragItem. Настоящий id вещи лежит в _otherObjectId.
     private int _otherId = -1;
+
+    private int _otherObjectId = -1;
     private int _lastTick = -1;
     private string _signature = string.Empty;
     private bool _pending;
@@ -146,6 +156,15 @@ public sealed class LootTransferPanel : MonoBehaviour
         _instance?.OpenInternal(looterId, otherId);
     }
 
+    /// <summary>
+    /// §128.5: то же окно, но справа ВЕЩЬ — истлевшее тело, снятый рюкзак,
+    /// аптечка. Вторая сторона называется id объекта, а не человека.
+    /// </summary>
+    public static void OpenContainer(int looterId, int objectId)
+    {
+        _instance?.OpenContainerInternal(looterId, objectId);
+    }
+
     public static void Close() => _instance?.Hide();
 
     private void OpenInternal(int looterId, int otherId)
@@ -169,6 +188,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
         _looterId = looterId;
         _otherId = otherId;
+        _otherObjectId = -1;
         _lastTick = -1;
         _signature = string.Empty;
         _pending = false;
@@ -177,6 +197,47 @@ public sealed class LootTransferPanel : MonoBehaviour
         IsOpen = true;
         LayoutFrame();
         Refresh(force: true);
+    }
+
+    private void OpenContainerInternal(int looterId, int objectId)
+    {
+        if (_runner == null || !_runner.IsReady || !_runner.SupportsNpcCommands ||
+            looterId < 0 || objectId < 0)
+        {
+            return;
+        }
+
+        var snapshot = _runner.CreateSnapshot();
+        var looter = FindNpc(snapshot, looterId);
+        var container = FindContainer(snapshot, objectId);
+        if (looter == null || container == null || looter.Faction != Faction.Colony ||
+            looter.Health <= 0f || !looter.IsManualControl)
+        {
+            return;
+        }
+
+        _looterId = looterId;
+        _otherObjectId = objectId;
+        _otherId = -objectId;
+        _lastTick = -1;
+        _signature = string.Empty;
+        _pending = false;
+        ClearDrag();
+        _root.style.display = DisplayStyle.Flex;
+        IsOpen = true;
+        LayoutFrame();
+        Refresh(force: true);
+    }
+
+    /// <summary>§128.5: вещь, у которой есть что показать в окне обыска.</summary>
+    private static ObjectSnapshot? FindContainer(WorldSnapshot snapshot, int objectId)
+    {
+        foreach (var obj in snapshot.Objects)
+        {
+            if (obj.Id.Value == objectId) return obj;
+        }
+
+        return null;
     }
 
     private void Update()
@@ -333,6 +394,28 @@ public sealed class LootTransferPanel : MonoBehaviour
         var snapshot = _runner.CreateSnapshot();
         _lastTick = snapshot.Tick;
         var looter = FindNpc(snapshot, _looterId);
+
+        // §128.5: справа вещь — своя, куда более короткая проверка живости:
+        // у мешка нет ни сознания, ни фракции, ни чужих рук.
+        if (_otherObjectId >= 0)
+        {
+            var container = FindContainer(snapshot, _otherObjectId);
+            if (looter == null || container == null || looter.Health <= 0f ||
+                looter.Faction != Faction.Colony || !looter.IsManualControl)
+            {
+                Hide();
+                return;
+            }
+
+            var containerSignature =
+                PersonSignature(looter) + "<>" + ContainerSignature(container);
+            UpdatePendingStatus(snapshot, looter, containerSignature);
+            if (!force && containerSignature == _signature) return;
+            _signature = containerSignature;
+            RebuildWithContainer(looter, container);
+            return;
+        }
+
         var other = FindNpc(snapshot, _otherId);
         if (looter == null || other == null || looter.Health <= 0f ||
             looter.Faction != Faction.Colony || !looter.IsManualControl ||
@@ -344,25 +427,114 @@ public sealed class LootTransferPanel : MonoBehaviour
         }
 
         var signature = PersonSignature(looter) + "<>" + PersonSignature(other);
-        if (_pending)
-        {
-            if (signature != _pendingSignature)
-            {
-                _pending = false;
-                _status.text = Loc.Get("loot.drag_hint");
-            }
-            else if (snapshot.Tick > _pendingTick &&
-                     looter.CurrentGoal != "PlayerInventory" &&
-                     looter.PlanStatus != "Active")
-            {
-                _pending = false;
-                _status.text = Loc.Get("loot.transfer_failed");
-            }
-        }
+        UpdatePendingStatus(snapshot, looter, signature);
 
         if (!force && signature == _signature) return;
         _signature = signature;
         Rebuild(looter, other);
+    }
+
+    // Один и тот же ответ на «дошёл ли приказ» для человека и для вещи: раскладка
+    // изменилась — дошёл; не изменилась, а исполнитель уже не занят — отказ.
+    private void UpdatePendingStatus(
+        WorldSnapshot snapshot, NpcSnapshot looter, string signature)
+    {
+        if (!_pending) return;
+        if (signature != _pendingSignature)
+        {
+            _pending = false;
+            _status.text = Loc.Get("loot.drag_hint");
+        }
+        else if (snapshot.Tick > _pendingTick &&
+                 looter.CurrentGoal != "PlayerInventory" &&
+                 looter.PlanStatus != "Active")
+        {
+            _pending = false;
+            _status.text = Loc.Get("loot.transfer_failed");
+        }
+    }
+
+    private static string ContainerSignature(ObjectSnapshot container)
+    {
+        var result = new System.Text.StringBuilder();
+        result.Append(container.Id.Value).Append(':').Append(container.DefinitionId);
+        foreach (var slot in container.Contents)
+        {
+            result.Append('|').Append(slot.Index).Append(':')
+                .Append(slot.ItemDefinitionId).Append('×').Append(slot.StackCount);
+        }
+
+        return result.ToString();
+    }
+
+    private void RebuildWithContainer(NpcSnapshot looter, ObjectSnapshot container)
+    {
+        _leftContent.Clear();
+        _rightContent.Clear();
+        _slotCells.Clear();
+        _slotIcons.Clear();
+        _slotBadges.Clear();
+        _slotGlyphs.Clear();
+        _containerCards.Clear();
+        _leftTitle.text = Loc.NpcName(looter.DisplayName);
+        _rightTitle.text = ItemName(container.DefinitionId);
+        _leftCapacity.text = $"{looter.InventoryUsedSlots}/{looter.InventoryCapacity}";
+        var stored = 0;
+        foreach (var slot in container.Contents) stored += Mathf.Max(1, slot.StackCount);
+        _rightCapacity.text = stored.ToString();
+        BuildInventoryProjection(_leftContent, looter);
+        BuildContainerProjection(_rightContent, container);
+        _densityTier = 0;
+        ApplyDensity();
+        _frame.schedule.Execute(FitDensity);
+    }
+
+    /// <summary>
+    /// §128.5: содержимое вещи — ОДНА плоская карточка. У мешка нет ни рук, ни
+    /// слоёв одежды, ни кобуры, и рисовать ему человеческую анатомию значило бы
+    /// показать игроку то, чего в модели нет.
+    /// </summary>
+    private void BuildContainerProjection(VisualElement parent, ObjectSnapshot container)
+    {
+        if (container.Contents.Count == 0)
+        {
+            var empty = new Label(Loc.Get("loot.empty"));
+            empty.style.color = TextMute;
+            empty.style.fontSize = 12f;
+            empty.style.marginTop = 16f;
+            empty.style.width = Length.Percent(100f);
+            empty.style.unityTextAlign = TextAnchor.MiddleCenter;
+            parent.Add(empty);
+            return;
+        }
+
+        var card = new VisualElement();
+        card.name = "loot-container-card";
+        card.style.width = Length.Percent(100f);
+        card.style.flexShrink = 0f;
+        card.style.backgroundColor = Raised;
+        card.style.paddingLeft = 7f;
+        card.style.paddingRight = 7f;
+        card.style.paddingTop = 6f;
+        card.style.paddingBottom = 7f;
+        card.style.marginBottom = 6f;
+        SetBorder(card, Stroke, 1f);
+        SetRadius(card, 8f);
+        _containerCards.Add(card);
+
+        var slots = new VisualElement();
+        slots.style.flexDirection = FlexDirection.Row;
+        slots.style.flexWrap = Wrap.Wrap;
+        foreach (var slot in container.Contents)
+        {
+            // Ячейка называется своим ИНДЕКСОМ В РАСКЛАДКЕ, а не физическим
+            // местом в Contents: симуляция разрешает её тем же перечислением,
+            // что построило эту сетку, и сверяет ожидаемый id.
+            slots.Add(BuildSlot(-container.Id.Value, slot, null, useCellIndex: true));
+        }
+
+        card.Add(slots);
+        parent.Add(card);
     }
 
     private void Rebuild(NpcSnapshot looter, NpcSnapshot other)
@@ -557,7 +729,11 @@ public sealed class LootTransferPanel : MonoBehaviour
         return chip;
     }
 
-    private VisualElement BuildSlot(int ownerId, InventorySlotSnapshot slot, string? badge)
+    // §128.5: useCellIndex — ячейка ВЕЩИ. У человека жест несёт физический
+    // индекс экземпляра (SourceIndex), у мешка — номер ячейки в его раскладке:
+    // именно им симуляция разрешает содержимое обратно.
+    private VisualElement BuildSlot(
+        int ownerId, InventorySlotSnapshot slot, string? badge, bool useCellIndex = false)
     {
         var cell = new VisualElement();
         cell.name = "loot-item-slot";
@@ -615,7 +791,8 @@ public sealed class LootTransferPanel : MonoBehaviour
         }
         cell.tooltip = ItemName(slot.ItemDefinitionId);
         RegisterDrag(cell, new DragItem(
-            ownerId, InventoryItemSource.Carried, slot.SourceIndex,
+            ownerId, InventoryItemSource.Carried,
+            useCellIndex ? slot.Index : slot.SourceIndex,
             Mathf.Max(1, slot.StackCount), slot.ItemDefinitionId));
         return cell;
     }
@@ -699,6 +876,27 @@ public sealed class LootTransferPanel : MonoBehaviour
         var direction = _drag.OwnerId == _otherId && destinationId == _looterId
             ? InventoryTransferDirection.Take
             : InventoryTransferDirection.Give;
+
+        // §128.5: справа вещь — другой приказ. Сторону жест уже определил выше:
+        // из мешка к себе — Take, из своих карманов в мешок — Give.
+        if (_otherObjectId >= 0)
+        {
+            _runner.EnqueueCommand(new TransferContainerCommand(
+                new HexLive.Simulation.Common.EntityId(_looterId),
+                new HexLive.Simulation.Common.ObjectId(_otherObjectId),
+                _drag.Index,
+                _drag.DefinitionId,
+                _drag.Count,
+                direction));
+            _pending = true;
+            _pendingTick = _lastTick;
+            _pendingSignature = _signature;
+            _status.text = Loc.Get("loot.transferring");
+            ClearDrag(resetStatus: false);
+            evt.StopPropagation();
+            return;
+        }
+
         _runner.EnqueueCommand(new TransferInventoryCommand(
             new HexLive.Simulation.Common.EntityId(_looterId),
             new HexLive.Simulation.Common.EntityId(_otherId),
@@ -854,6 +1052,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         if (_root != null) _root.style.display = DisplayStyle.None;
         _looterId = -1;
         _otherId = -1;
+        _otherObjectId = -1;
         _pending = false;
         ClearDrag();
         IsOpen = false;

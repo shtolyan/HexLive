@@ -554,12 +554,40 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             }
         }
 
+        // §128.5: ОБЫСКАТЬ ВЕЩЬ — истлевшее тело, снятый рюкзак, аптечку.
+        // Признак берётся из снапшота: симуляция кладёт в объект содержимое
+        // только у настоящих контейнеров, поэтому непустой список — это и есть
+        // ответ «здесь есть что взять», а не догадка по id.
+        if (TryFindObject(runner, view.ObjectId) is { } container &&
+            container.Contents.Count > 0)
+        {
+            var containerId = view.ObjectId;
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
+                () => LootTransferPanel.OpenContainer(ManualNpcId, containerId)));
+        }
+
         if (_entries.Count == 0)
         {
             return;
         }
 
         ContextMenuPanel.Open(mousePos, ObjectTitle(definition, view.DefinitionId), _entries);
+    }
+
+    private static ObjectSnapshot? TryFindObject(ISimulationSource runner, int objectId)
+    {
+        var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+        if (snapshot == null)
+        {
+            return null;
+        }
+
+        foreach (var obj in snapshot.Objects)
+        {
+            if (obj.Id.Value == objectId) return obj;
+        }
+
+        return null;
     }
 
     private void OpenNpcMenu(Vector2 mousePos, int npcId)

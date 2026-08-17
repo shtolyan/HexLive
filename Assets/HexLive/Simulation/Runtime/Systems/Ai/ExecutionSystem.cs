@@ -103,6 +103,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §128.5: обмен с вещью — своя ветка, потому что второй стороной
+            // тут не человек, а объект мира.
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type is
+                PlanStepType.PlayerTakeFromContainer or
+                PlanStepType.PlayerGiveToContainer)
+            {
+                RunPlayerContainerTransfer(world, npc);
+                continue;
+            }
+
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.DrinkBottle)
             {
                 RunDrinkBottle(world, npc);

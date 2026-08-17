@@ -86,7 +86,12 @@ public enum PlanStepType
     // §133 append-only: поднять валяющуюся одежду и отнести её к дому.
     StowCarriedGarment,
     // §137 append-only: сесть на землю там, где стоишь, и отдохнуть.
-    IdleRest
+    IdleRest,
+    // §128.5 append-only: обмен с ВЕЩЬЮ (истлевшее тело, снятый рюкзак).
+    // TargetObject — сам контейнер; TimeoutEndTick пакует счёт и индекс ячейки,
+    // ровно как в человеческой паре шагов выше.
+    PlayerTakeFromContainer,
+    PlayerGiveToContainer
 }
 
 public enum PlanStatus

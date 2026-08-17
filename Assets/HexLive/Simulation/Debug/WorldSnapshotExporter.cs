@@ -55,6 +55,11 @@ public static class WorldSnapshotExporter
     // it across ticks — HexWorldRenderer & co. re-poll every frame).
     // Ascending-id comparers, cached so sorting does not allocate a delegate per
     // tick. See SortById for why the order matters at all.
+    // §128.5: буфер ячеек содержимого вещи. Экспорт идёт по одному объекту за
+    // раз в одном потоке, поэтому один общий список дешевле аллокации на объект.
+    private static readonly List<(string ItemId, int Count, int SourceIndex)>
+        _containerCellsScratch = new();
+
     private static readonly Comparison<ObjectSnapshot> ByObjectId =
         (a, b) => a.Id.Value.CompareTo(b.Id.Value);
 
@@ -170,6 +175,29 @@ public static class WorldSnapshotExporter
                 if (obj.IsCraftProject)
                 {
                     exported.CraftIngredients.Add(item.DefinitionId);
+                }
+            }
+
+            // §128.5: содержимое вещи для панели обыска — ТОЛЬКО у настоящих
+            // контейнеров (истлевшее тело, снятый рюкзак, аптечка). Стройка
+            // тоже держит вещи в Contents, но это доставленные материалы, а не
+            // мешок: показывать их как карманы значило бы предложить игроку
+            // разобрать недостроенную кровать через окно обмена.
+            if (!isSite && !obj.IsCraftProject &&
+                Runtime.ContainerLootMath.IsLootable(world, obj))
+            {
+                _containerCellsScratch.Clear();
+                Runtime.ContainerLootMath.BuildCells(obj, _containerCellsScratch);
+                for (var cell = 0; cell < _containerCellsScratch.Count; cell++)
+                {
+                    var (itemId, count, sourceIndex) = _containerCellsScratch[cell];
+                    exported.Contents.Add(new InventorySlotSnapshot
+                    {
+                        Index = cell,
+                        SourceIndex = sourceIndex,
+                        ItemDefinitionId = itemId,
+                        StackCount = count
+                    });
                 }
             }
 

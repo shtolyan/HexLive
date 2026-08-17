@@ -386,4 +386,38 @@ public sealed class TransferInventoryCommand : ISimulationCommand
     public EntityId? TargetEntity => Looter;
 }
 
+/// <summary>
+/// §128.5: то же самое, но вторая сторона — ВЕЩЬ: истлевшее тело, снятый
+/// рюкзак, аптечка. Ячейка называется индексом в раскладке содержимого плюс
+/// ожидаемым id: панель рисует прошлый тик, и к моменту приказа содержимое
+/// могло измениться — тогда приказ честно отклоняется, а не берёт «что попало
+/// под этим номером».
+/// </summary>
+public sealed class TransferContainerCommand : ISimulationCommand
+{
+    public TransferContainerCommand(
+        EntityId looter,
+        ObjectId container,
+        int slotIndex,
+        string expectedDefinitionId,
+        int count,
+        InventoryTransferDirection direction)
+    {
+        Looter = looter;
+        Container = container;
+        SlotIndex = slotIndex;
+        ExpectedDefinitionId = expectedDefinitionId ?? string.Empty;
+        Count = count > 0 ? count : 1;
+        Direction = direction;
+    }
+
+    public EntityId Looter { get; }
+    public ObjectId Container { get; }
+    public int SlotIndex { get; }
+    public string ExpectedDefinitionId { get; }
+    public int Count { get; }
+    public InventoryTransferDirection Direction { get; }
+    public EntityId? TargetEntity => Looter;
+}
+
 }

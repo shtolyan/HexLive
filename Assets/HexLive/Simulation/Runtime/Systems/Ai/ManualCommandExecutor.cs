@@ -91,6 +91,9 @@ internal static class ManualCommandExecutor
             case TransferInventoryCommand transfer:
                 ApplyTransferInventory(world, transfer, admission);
                 break;
+            case TransferContainerCommand containerTransfer:
+                ApplyTransferContainer(world, containerTransfer, admission);
+                break;
             default:
                 admission.Reject("UnsupportedCommand");
                 break;
@@ -143,6 +146,7 @@ internal static class ManualCommandExecutor
         SetGroupManualControlCommand => "SetManual",
         ManageInventoryCommand => "Inventory",
         TransferInventoryCommand => "TransferInventory",
+        TransferContainerCommand => "TransferContainer",
         _ => command.GetType().Name
     };
 
@@ -1025,6 +1029,129 @@ internal static class ManualCommandExecutor
                 $"Def={command.Item.ExpectedDefinitionId}");
         }
     }
+
+    /// <summary>
+    /// §128.5: обмен с ВЕЩЬЮ — истлевшим телом, снятым рюкзаком, аптечкой.
+    /// Зеркало ApplyTransferInventory, только вторая сторона — объект мира,
+    /// поэтому и подход считается по объекту (обод вокруг его футпринта), а не
+    /// по станции у ног лежащего человека.
+    /// </summary>
+    private static void ApplyTransferContainer(
+        WorldState world, TransferContainerCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Looter, "TransferContainer",
+                requireManual: true, admission, out var looter))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, looter))
+        {
+            Reject(world, looter.Id, "TransferContainer", "Incapacitated", admission);
+            return;
+        }
+
+        if (command.Direction is not InventoryTransferDirection.Take and
+            not InventoryTransferDirection.Give)
+        {
+            Reject(world, looter.Id, "TransferContainer", "InvalidDirection", admission);
+            return;
+        }
+
+        // Правило 2: объект берётся ИЗ МИРА, а не из восприятия — игрок видит
+        // остров целиком, и приказ на замеченный им мешок обязан работать.
+        if (!world.Entities.Objects.TryGetValue(command.Container, out var container) ||
+            !ContainerLootMath.IsLootable(world, container))
+        {
+            Reject(world, looter.Id, "TransferContainer", "ContainerNotAvailable", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, looter, "Ручной обмен с вещью");
+        ClearAttackOrder(world, looter);
+
+        looter.Plan.Goal = GoalType.PlayerInventory;
+        looter.Plan.TargetObjectId = container.Id;
+        looter.Plan.TargetItemDefinitionId = command.ExpectedDefinitionId;
+        looter.Plan.TargetTile = container.Tile;
+
+        var definition = world.Content.ObjectDefinitions.TryGetValue(
+            container.DefinitionId, out var found) ? found : null;
+        var closeEnough = definition is not null && InteractionReach.CheckObjectStart(
+            world, looter, container, definition.ObstacleRadius);
+        if (!closeEnough)
+        {
+            // Обод вокруг футпринта — тот же, которым подходят к любому объекту
+            // (§26.6A). Мешок может лежать под пальмой или у стены, поэтому
+            // «первый свободный сосед» тут не годится.
+            _containerRimScratch.Clear();
+            SpatialQueries.CollectStandableAround(
+                world, container.Junctions.Count > 0
+                    ? container.Junctions[0]
+                    : looter.CurrentJunction ?? default,
+                _containerRimScratch, 96,
+                SpatialQueries.BesideReach(definition?.ObstacleRadius ?? 0f),
+                container, SpatialQueries.RimPurpose.Reach);
+
+            JunctionId? approach = null;
+            foreach (var rim in _containerRimScratch)
+            {
+                if ((looter.CurrentJunction is not { } from ||
+                     Connectivity.Reachable(world, from, rim, looter.Body.CanJump)) &&
+                    SpatialQueries.IsJunctionFree(world, rim) &&
+                    SpatialMutations.TryReserveJunction(world, rim, looter.Id, world.Tick, 96))
+                {
+                    approach = rim;
+                    break;
+                }
+            }
+
+            if (approach is not { } approachJunction)
+            {
+                looter.Mind.CurrentGoal = GoalType.None;
+                looter.Plan.Goal = GoalType.None;
+                looter.Plan.Status = PlanStatus.Failed;
+                looter.Plan.CurrentStepIndex = 0;
+                looter.Plan.Steps.Clear();
+                looter.Plan.TargetObjectId = null;
+                looter.Plan.TargetItemDefinitionId = null;
+                looter.Plan.TargetJunctionId = null;
+                looter.Plan.TargetTile = null;
+                Reject(world, looter.Id, "TransferContainer", "Unreachable", admission);
+                return;
+            }
+
+            looter.Plan.TargetJunctionId = approachJunction;
+            looter.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.MoveToJunction,
+                TargetJunction = approachJunction
+            });
+        }
+
+        looter.Plan.Steps.Add(new PlanStep
+        {
+            Type = command.Direction == InventoryTransferDirection.Take
+                ? PlanStepType.PlayerTakeFromContainer
+                : PlanStepType.PlayerGiveToContainer,
+            TargetObject = container.Id,
+            TimeoutEndTick = PlayerInventoryTransferMath.PackCursor(
+                command.SlotIndex, command.Count)
+        });
+        looter.Plan.CurrentStepIndex = 0;
+        looter.Plan.Status = PlanStatus.Active;
+        looter.Mind.CurrentGoal = GoalType.PlayerInventory;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, looter.Id, "ManualOrderAccepted",
+                $"Order=TransferContainer Direction={command.Direction} " +
+                $"Container={container.Id.Value} Def={container.DefinitionId} " +
+                $"Slot={command.SlotIndex} Count={command.Count} " +
+                $"Item={command.ExpectedDefinitionId}");
+        }
+    }
+
+    private static readonly System.Collections.Generic.List<JunctionId> _containerRimScratch = new();
 
     private static void ApplyInteract(
         WorldState world, InteractCommand command, AdmissionTracker admission)

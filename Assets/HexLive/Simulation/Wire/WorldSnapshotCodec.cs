@@ -423,6 +423,29 @@ public static class WorldSnapshotCodec
         w.Write(o.SpawnTick);
         WireIo.WriteJunctions(w, o.Junctions);
 
+        // §128.5: содержимое вещи. Своего бита в ObjectParts ему не досталось —
+        // байт флагов занят все восемь; расширять его до ushort ради поля,
+        // которое почти всегда пусто, значило бы переписать формат КАЖДОГО
+        // объекта. Поэтому счётчик пишется всегда одним байтом: в дельте
+        // постоянный ноль не стоит ничего (дельта сравнивает байты), а на
+        // ключевом кадре это ~1 КБ на тысячу объектов.
+        var contentsCount = o.Contents.Count > byte.MaxValue ? byte.MaxValue : o.Contents.Count;
+        w.Write((byte)contentsCount);
+        for (var i = 0; i < contentsCount; i++)
+        {
+            var slot = o.Contents[i];
+            w.Write(slot.Index);
+            w.Write(slot.SourceIndex);
+            WriteDefinitionId(w, slot.ItemDefinitionId);
+            w.Write(slot.StackCount);
+            // У мешка типизированных ячеек не бывает, и соблазн «не писать
+            // заведомо пустое» здесь неверный: тип ячейки один на человека и на
+            // вещь, а через провод тип едет ЦЕЛИКОМ или не едет никак. Пустая
+            // строка стоит байт, а поле, забытое ради байта, живёт до
+            // следующего ключевого кадра (гейт покрытия провода ловит ровно это).
+            WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
+        }
+
         if ((parts & ObjectParts.Owner) != 0)
         {
             w.Write(o.OwnerNpcId.Value);
@@ -526,6 +549,21 @@ public static class WorldSnapshotCodec
             o.Bloodiness = r.ReadSingle();
             o.SpawnTick = r.ReadInt32();
             WireIo.ReadJunctions(r, o.Junctions);
+
+            // §128.5: содержимое вещи — счётчик пишется всегда (см. writer).
+            o.Contents.Clear();
+            var contentsCount = r.ReadByte();
+            for (var i = 0; i < contentsCount; i++)
+            {
+                o.Contents.Add(new InventorySlotSnapshot
+                {
+                    Index = r.ReadInt32(),
+                    SourceIndex = r.ReadInt32(),
+                    ItemDefinitionId = ReadDefinitionId(r),
+                    StackCount = r.ReadInt32(),
+                    AcceptedItemDefinitionId = r.ReadString()
+                });
+            }
 
             // Absent parts must be CLEARED, not left alone: these records are
             // reused across frames, so an object that stops being a build site

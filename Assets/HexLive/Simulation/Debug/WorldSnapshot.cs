@@ -343,6 +343,12 @@ public sealed class ObjectSnapshot
 
     public int RoastingCooked { get; set; }
 
+    // §128.5: содержимое ВЕЩИ — истлевшего тела, снятого рюкзака, аптечки.
+    // Ячейками, а не сырым списком: панель обыска рисует их той же сеткой, что
+    // и человеческие карманы, и приказ ссылается на тот же индекс ячейки.
+    // Пусто у подавляющего большинства объектов, поэтому на проводе это ноль.
+    public List<InventorySlotSnapshot> Contents { get; } = new();
+
     public List<JunctionId> Junctions { get; } = new();
 }
 

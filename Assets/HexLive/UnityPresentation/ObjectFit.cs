@@ -142,10 +142,101 @@ namespace HexLive.UnityPresentation
         /// renderer.bounds is world-space, so the result targets a world size.
         public static float FitScaleFactor(GameObject go, string definitionId)
         {
-            if (!WorldBounds(go, out var b)) return 1f;
-            var current = MeasureCurrent(definitionId, b);
-            if (current <= 0.0001f) return 1f;
+            if (!TryMeasuredSize(go, definitionId, out var current) || current <= 0.0001f)
+            {
+                return 1f;
+            }
+
             return TargetWorldSize(definitionId) / current;
+        }
+
+        /// <summary>
+        /// ⭐ #136: размер предмета НЕ ЗАВИСИТ ОТ ТОГО, КАК ОН ПОВЁРНУТ.
+        /// <para>
+        /// Здесь стоял мировой AABB (<see cref="WorldBounds"/>), а он у длинного
+        /// предмета тем короче, чем косее предмет висит: у стержня длины L,
+        /// повёрнутого на угол α, наибольшая сторона коробки ≈ L·cos α. Подгонка
+        /// делит цель на эту укороченную меру — и предмет РАСТЁТ ровно во столько
+        /// раз, во сколько его наклонили. За спиной копьё висит почти вертикально
+        /// (наклон 18°, cos ≈ 0.95), а в руке лежит наискось — отсюда жалоба
+        /// игрока «в руке намного больше, чем за спиной» на ОДИН И ТОТ ЖЕ
+        /// предмет с одной и той же целью размера.
+        /// </para>
+        /// <para>
+        /// Поэтому меряем в СОБСТВЕННОМ пространстве предмета и переводим в мир
+        /// масштабом: длина копья — свойство копья, а не его позы. Прежний
+        /// порядок «сначала поворот, потом подгонка» это лечить не мог — он
+        /// делал ошибку лишь одинаковой на каждом кадре.
+        /// </para>
+        /// </summary>
+        public static bool TryMeasuredSize(GameObject go, string definitionId, out float size)
+        {
+            size = 0f;
+            var toLocal = go.transform.worldToLocalMatrix;
+            var has = false;
+            var local = new Bounds();
+
+            // ⚠️ Меряем ИСХОДНЫЕ меши, а не Renderer.bounds: последний уже
+            // мировой AABB, то есть уже раздут поворотом. Привести его в
+            // локальное пространство мало — раздутие переехало бы вместе с ним.
+            void Accumulate(Mesh mesh, Transform owner)
+            {
+                if (mesh == null || mesh.vertexCount == 0 || owner == null) return;
+                var matrix = toLocal * owner.localToWorldMatrix;
+                var meshBounds = mesh.bounds;
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var point = meshBounds.center + Vector3.Scale(
+                        meshBounds.extents,
+                        new Vector3(
+                            (corner & 1) == 0 ? -1f : 1f,
+                            (corner & 2) == 0 ? -1f : 1f,
+                            (corner & 4) == 0 ? -1f : 1f));
+                    var localPoint = matrix.MultiplyPoint3x4(point);
+                    if (!has)
+                    {
+                        local = new Bounds(localPoint, Vector3.zero);
+                        has = true;
+                    }
+                    else
+                    {
+                        local.Encapsulate(localPoint);
+                    }
+                }
+            }
+
+            var filters = go.GetComponentsInChildren<MeshFilter>(true);
+            for (var i = 0; i < filters.Length; i++)
+            {
+                Accumulate(filters[i].sharedMesh, filters[i].transform);
+            }
+
+            var skinned = go.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            for (var i = 0; i < skinned.Length; i++)
+            {
+                Accumulate(skinned[i].sharedMesh, skinned[i].transform);
+            }
+
+            // Спрайты и прочее без меша меряем как раньше — по мировой коробке:
+            // у плоского спрайта поворот длину не искажает.
+            if (!has)
+            {
+                if (!WorldBounds(go, out var fallback)) return false;
+                size = MeasureCurrent(definitionId, fallback);
+                return true;
+            }
+
+            // Локальный размер → мировой: масштабом самого предмета вместе с
+            // костью, на которой он висит.
+            var lossy = go.transform.lossyScale;
+            var worldSize = new Bounds(
+                Vector3.zero,
+                new Vector3(
+                    local.size.x * Mathf.Abs(lossy.x),
+                    local.size.y * Mathf.Abs(lossy.y),
+                    local.size.z * Mathf.Abs(lossy.z)));
+            size = MeasureCurrent(definitionId, worldSize);
+            return true;
         }
     }
 }

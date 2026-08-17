@@ -15,7 +15,18 @@ public enum LlmCommandKind
     Interact,
     AttackNpc,
     AttackMob,
-    SetManualControl
+    SetManualControl,
+
+    // §121.9: полный паритет с ручными приказами игрока. Переводчик строит
+    // ТЕ ЖЕ объекты команд — валидация и исполнение общие с кликом.
+    TalkTo,
+    Aid,
+    TreatLimbs,
+    SelfAction,
+    CarryPerson,
+    PutDownPerson,
+    PutPersonInBed,
+    Craft
 }
 
 /// <summary>
@@ -169,7 +180,10 @@ public sealed class LlmDecision
         Float2? targetPosition = null,
         InteractionType? interaction = null,
         bool? manualControlEnabled = null,
-        string reason = "")
+        string reason = "",
+        AI.AidKind? aidKind = null,
+        SelfActionKind? selfAction = null,
+        AI.GoalType? recipeGoal = null)
     {
         CommandKind = commandKind;
         TargetNpcId = targetNpcId;
@@ -179,6 +193,9 @@ public sealed class LlmDecision
         Interaction = interaction;
         ManualControlEnabled = manualControlEnabled;
         Reason = reason ?? string.Empty;
+        AidKind = aidKind;
+        SelfAction = selfAction;
+        RecipeGoal = recipeGoal;
     }
 
     public LlmCommandKind CommandKind { get; }
@@ -189,6 +206,15 @@ public sealed class LlmDecision
     public InteractionType? Interaction { get; }
     public bool? ManualControlEnabled { get; }
     public string Reason { get; }
+
+    /// <summary>§121.9: вид помощи для <see cref="LlmCommandKind.Aid"/>.</summary>
+    public AI.AidKind? AidKind { get; }
+
+    /// <summary>§121.9: вид самодействия для <see cref="LlmCommandKind.SelfAction"/>.</summary>
+    public SelfActionKind? SelfAction { get; }
+
+    /// <summary>§138/§121.9: цель рецепта для <see cref="LlmCommandKind.Craft"/>.</summary>
+    public AI.GoalType? RecipeGoal { get; }
 }
 
 }

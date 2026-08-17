@@ -131,6 +131,108 @@ public static class LlmCommandTranslator
                 command = new SetManualControlCommand(npcId, enabled);
                 return true;
 
+            // §121.9: паритет с приказами игрока — те же объекты команд.
+
+            case LlmCommandKind.TalkTo:
+                if (!RequirePeer(decision, npcId, "TalkTo", out var talkTarget, out errorReason))
+                {
+                    return false;
+                }
+
+                command = new TalkToCommand(npcId, talkTarget);
+                return true;
+
+            case LlmCommandKind.Aid:
+                if (!RequirePeer(decision, npcId, "Aid", out var aidTarget, out errorReason))
+                {
+                    return false;
+                }
+
+                if (decision.AidKind is not { } aidKind)
+                {
+                    errorReason = "Aid requires AidKind.";
+                    return false;
+                }
+
+                if (!Enum.IsDefined(typeof(AI.AidKind), aidKind))
+                {
+                    errorReason = $"Aid does not support AidKind: {aidKind}.";
+                    return false;
+                }
+
+                command = new AidPersonCommand(npcId, aidTarget, aidKind);
+                return true;
+
+            case LlmCommandKind.TreatLimbs:
+                if (!RequirePeer(decision, npcId, "TreatLimbs", out var patient, out errorReason))
+                {
+                    return false;
+                }
+
+                command = new TreatLimbsCommand(npcId, patient);
+                return true;
+
+            case LlmCommandKind.SelfAction:
+                if (decision.SelfAction is not { } selfAction)
+                {
+                    errorReason = "SelfAction requires SelfAction kind.";
+                    return false;
+                }
+
+                if (!Enum.IsDefined(typeof(SelfActionKind), selfAction))
+                {
+                    errorReason = $"SelfAction does not support kind: {selfAction}.";
+                    return false;
+                }
+
+                command = new SelfActionCommand(npcId, selfAction);
+                return true;
+
+            case LlmCommandKind.CarryPerson:
+                if (!RequirePeer(decision, npcId, "CarryPerson", out var carried, out errorReason))
+                {
+                    return false;
+                }
+
+                command = new CarryPersonCommand(npcId, carried);
+                return true;
+
+            case LlmCommandKind.PutDownPerson:
+                command = new PutDownPersonCommand(npcId);
+                return true;
+
+            case LlmCommandKind.PutPersonInBed:
+                if (decision.TargetObjectId is not { } bedId)
+                {
+                    errorReason = "PutPersonInBed requires TargetObjectId (the bed).";
+                    return false;
+                }
+
+                if (bedId.Value <= 0)
+                {
+                    errorReason = "PutPersonInBed requires a positive TargetObjectId.";
+                    return false;
+                }
+
+                command = new PutPersonInBedCommand(npcId, bedId);
+                return true;
+
+            case LlmCommandKind.Craft:
+                if (decision.RecipeGoal is not { } recipeGoal)
+                {
+                    errorReason = "Craft requires RecipeGoal.";
+                    return false;
+                }
+
+                if (!Content.RecipeCatalog.ByGoal.ContainsKey(recipeGoal))
+                {
+                    errorReason = $"Craft does not know recipe goal: {recipeGoal}.";
+                    return false;
+                }
+
+                command = new CraftItemCommand(npcId, recipeGoal);
+                return true;
+
             default:
                 errorReason = $"Unsupported LLM command kind: {decision.CommandKind}.";
                 return false;
@@ -139,6 +241,35 @@ public static class LlmCommandTranslator
 
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
+
+    // §121.9: общая проверка цели-человека — есть, положительна, не сама.
+    private static bool RequirePeer(
+        LlmDecision decision, EntityId npcId, string verb,
+        out EntityId target, out string errorReason)
+    {
+        target = default;
+        errorReason = string.Empty;
+        if (decision.TargetNpcId is not { } candidate)
+        {
+            errorReason = $"{verb} requires TargetNpcId.";
+            return false;
+        }
+
+        if (candidate.Value <= 0)
+        {
+            errorReason = $"{verb} requires a positive TargetNpcId.";
+            return false;
+        }
+
+        if (candidate == npcId)
+        {
+            errorReason = $"{verb} cannot target the acting NPC.";
+            return false;
+        }
+
+        target = candidate;
+        return true;
+    }
 }
 
 }

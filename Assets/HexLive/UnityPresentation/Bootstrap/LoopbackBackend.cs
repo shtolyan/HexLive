@@ -74,20 +74,36 @@ public sealed class LoopbackBackend : ISimulationBackend
 
     public bool SupportsClientSave => false;
 
-    // §121: и приказы тоже. Режим существует, чтобы РЕПЕТИРОВАТЬ жизнь без
-    // своего мира, — значит и здесь тумблер ручного управления обязан быть
-    // спрятан, как на настоящем удалённом подключении.
-    public bool SupportsNpcCommands => false;
+    // §121.9/§83: приказы ЕДУТ — через кодек команд, как поедут по сети.
+    // Раньше loopback прятал ручной режим (репетиция «мира без команд»); с
+    // кадром NpcCommand в протоколе репетировать надо противоположное:
+    // забытая в SimulationCommandCodec команда обязана ловиться нажатием
+    // Play, ровно как забытое поле снапшота.
+    public bool SupportsNpcCommands => true;
 
-    public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
-    {
-        into.Clear();
-        return false;
-    }
+    // Список рецептов — подсказка UI, не команда: правду о доступности всё
+    // равно решает ManualCommandExecutor.ApplyCraft. Делегат внутрь, чтобы
+    // вкладка «Крафт» жила в loopback вместе с приказами.
+    public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into) =>
+        _inner.TryGetCraftingOptions(npc, into);
 
     public void EnqueueCommand(ISimulationCommand command)
     {
-        // Ничего: SupportsNpcCommands ложь, звать сюда никто не должен.
+        // Полный encode→decode: в мир попадает ДЕКОДИРОВАННАЯ команда. Кодек
+        // кидает NotSupportedException на незарегистрированный тип — и это
+        // видно сразу, а не молча теряется на настоящем сервере.
+        using var buffer = new MemoryStream();
+        using (var writer = new BinaryWriter(buffer, System.Text.Encoding.UTF8, true))
+        {
+            SimulationCommandCodec.Write(writer, command);
+            writer.Flush();
+        }
+
+        buffer.Position = 0;
+        using (var reader = new BinaryReader(buffer, System.Text.Encoding.UTF8, true))
+        {
+            _inner.EnqueueCommand(SimulationCommandCodec.Read(reader));
+        }
     }
 
     public WorldSnapshot CreateSnapshot()

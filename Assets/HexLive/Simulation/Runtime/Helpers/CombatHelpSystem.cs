@@ -104,6 +104,49 @@ internal static class CombatHelpSystem
         CallForHelp(world, victim, null, attackerId, $"Attacker=NPC{attackerId.Value}", attackers);
     }
 
+    /// <summary>§121.9: ручной крик о помощи. Возвращает false с причиной,
+    /// когда крик невозможен: не в бою, кулдаун §57.9 не прошёл, фича
+    /// выключена. Успех идёт ровно тем же приватным <see cref="CallForHelp"/>,
+    /// что и автоматика — радиус, Mortal-надбавка и отбор помощниц не
+    /// дублируются. Атакующий берётся из боевых полей самой жертвы: без
+    /// агрессора крик механически пуст (Defend некому назначить цель).</summary>
+    public static bool TryCallForHelpManual(WorldState world, NPCState victim, out string reason)
+    {
+        reason = string.Empty;
+        if (!Spec57.HelpCryEnabled)
+        {
+            reason = "FeatureDisabled";
+            return false;
+        }
+
+        if (world.Tick - victim.Mind.LastHelpCryTick < Spec57.HelpCryCooldownTicks)
+        {
+            reason = "Cooldown";
+            return false;
+        }
+
+        if (victim.Mind.CombatOpponentNpcId is { } attackerId &&
+            world.Entities.Npcs.TryGetValue(attackerId, out var attacker) &&
+            attacker.Health > 0f)
+        {
+            CallForHelpFromNpc(world, victim, attackerId, 1);
+            return true;
+        }
+
+        foreach (var mob in world.Mobs)
+        {
+            if (mob.Health > 0f && mob.TargetNpc is { } targetNpc &&
+                targetNpc.Equals(victim.Id))
+            {
+                CallForHelpFromDog(world, victim, mob.Id, 1);
+                return true;
+            }
+        }
+
+        reason = "NotInCombat";
+        return false;
+    }
+
     private static void CallForHelp(
         WorldState world,
         NPCState victim,

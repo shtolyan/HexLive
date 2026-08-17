@@ -79,6 +79,9 @@ internal static class ManualCommandExecutor
             case TreatLimbsCommand treatLimbs:
                 ApplyTreatLimbs(world, treatLimbs, admission);
                 break;
+            case SelfActionCommand selfAction:
+                ApplySelfAction(world, selfAction, admission);
+                break;
             case GroupMoveCommand groupMove:
                 ApplyGroupMove(world, groupMove);
                 break;
@@ -151,6 +154,7 @@ internal static class ManualCommandExecutor
         TalkToCommand => "TalkTo",
         AidPersonCommand => "Aid",
         TreatLimbsCommand => "TreatLimbs",
+        SelfActionCommand => "SelfAction",
         GroupMoveCommand => "GroupMove",
         GroupStopCommand => "GroupStop",
         GroupAttackNpcCommand => "GroupAttackNpc",
@@ -858,6 +862,150 @@ internal static class ManualCommandExecutor
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
                 $"Order=TreatLimbs Goal={goal} Target=NPC{patient.Id.Value}");
+        }
+    }
+
+    // §121.9: планы самодействий ставят ТЕ ЖЕ билдеры, что у автономной.
+    // PlanningSystem бесстатусен (ни одного поля), поэтому исполнителю хватает
+    // собственного экземпляра — второй симуляции это не заводит.
+    private static readonly PlanningSystem ManualPlanner = new();
+
+    // §121.9: самодействия. Крик о помощи не сносит текущий план (крик — не
+    // действие тела в очереди, а голос); всё остальное — обычная транзакция
+    // приказа: снять старое, поставить родную цель, построить штатный план.
+    private static void ApplySelfAction(
+        WorldState world, SelfActionCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "SelfAction", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "SelfAction", "Incapacitated", admission);
+            return;
+        }
+
+        switch (command.Kind)
+        {
+            case SelfActionKind.CallForHelp:
+                if (!CombatHelpSystem.TryCallForHelpManual(world, npc, out var cryReason))
+                {
+                    Reject(world, npc.Id, "SelfAction", cryReason, admission);
+                    return;
+                }
+
+                // Крик не трогает план — только продлевает внимание игрока.
+                ManualControlMath.RenewInactivityLease(world, npc);
+                break;
+
+            case SelfActionKind.TreatSelf:
+            {
+                var bandages = MedicalSupplyMath.BandageCount(npc) +
+                    (MedicalSupplyMath.TryFindReachableBandageSource(world, npc, out _) ? 1 : 0);
+                if (!DecisionSystem.SelfTreatmentIndicated(npc, bandages))
+                {
+                    Reject(world, npc.Id, "SelfAction",
+                        bandages > 0 ? "NotNeeded" : "NoBandage", admission);
+                    return;
+                }
+
+                ClearForNewOrder(world, npc, "Приказ перевязаться");
+                ClearAttackOrder(world, npc);
+                if (!PlanningSystem.TryBuildSelfTreatmentPlan(world, npc))
+                {
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    Reject(world, npc.Id, "SelfAction", "NoBandage", admission);
+                    return;
+                }
+
+                npc.Plan.Goal = GoalType.TreatWounds;
+                npc.Mind.CurrentGoal = GoalType.TreatWounds;
+                break;
+            }
+
+            case SelfActionKind.GroundSit:
+                InstallSelfPlan(world, npc, admission, GoalType.Sit,
+                    "Приказ присесть", "NoGroundSpot",
+                    () => ManualPlanner.BuildGroundSitPlan(world, npc));
+                break;
+
+            case SelfActionKind.GroundSleep:
+                InstallSelfPlan(world, npc, admission, GoalType.Sleep,
+                    "Приказ лечь спать", "NoGroundSpot",
+                    () => ManualPlanner.BuildGroundSleepPlan(world, npc));
+                break;
+
+            case SelfActionKind.Bathe:
+                InstallSelfPlan(world, npc, admission, GoalType.Bathe,
+                    "Приказ искупаться", "NoSpot",
+                    () => ManualPlanner.BuildBathePlan(world, npc));
+                break;
+
+            case SelfActionKind.WashClothes:
+                InstallSelfPlan(world, npc, admission, GoalType.WashClothes,
+                    "Приказ постирать", "NothingToWash",
+                    () => ManualPlanner.BuildWashClothesPlan(world, npc));
+                break;
+
+            case SelfActionKind.EatFromPack:
+                if (npc.Inventory.FindFirstFood(world.Content) is null &&
+                    !DecisionSystem.HasInventoryCoconutMeal(npc))
+                {
+                    Reject(world, npc.Id, "SelfAction", "NothingToEat", admission);
+                    return;
+                }
+
+                ClearForNewOrder(world, npc, "Приказ поесть", keepCarriedPerson: true);
+                ClearAttackOrder(world, npc);
+                // План построит штатный планировщик: Eat в списке
+                // MayPlanGoal ручной (§121.6, inventory-only).
+                npc.Mind.CurrentGoal = GoalType.Eat;
+                break;
+
+            case SelfActionKind.DrinkFromPack:
+                if (!DecisionSystem.HasInventoryCoconutWater(npc) &&
+                    npc.Inventory.FindFirstDrink(world.Content) is null)
+                {
+                    Reject(world, npc.Id, "SelfAction", "NothingToDrink", admission);
+                    return;
+                }
+
+                ClearForNewOrder(world, npc, "Приказ попить", keepCarriedPerson: true);
+                ClearAttackOrder(world, npc);
+                npc.Mind.CurrentGoal = GoalType.Drink;
+                break;
+
+            default:
+                admission.Reject("UnsupportedCommand");
+                return;
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=SelfAction Kind={command.Kind}");
+        }
+    }
+
+    // Общая транзакция самодействия с штатным билдером: билдер сам решает
+    // «есть ли где» (Plan.Status == Active — принято; иначе честный отказ).
+    private static void InstallSelfPlan(
+        WorldState world, NPCState npc, AdmissionTracker admission, GoalType goal,
+        string clearReason, string failReason, System.Action build)
+    {
+        ClearForNewOrder(world, npc, clearReason);
+        ClearAttackOrder(world, npc);
+        npc.Mind.CurrentGoal = goal;
+        npc.Plan.Goal = goal;
+        build();
+        if (npc.Plan.Status != PlanStatus.Active)
+        {
+            npc.Mind.CurrentGoal = GoalType.None;
+            npc.Plan.Status = PlanStatus.None;
+            Reject(world, npc.Id, "SelfAction", failReason, admission);
         }
     }
 

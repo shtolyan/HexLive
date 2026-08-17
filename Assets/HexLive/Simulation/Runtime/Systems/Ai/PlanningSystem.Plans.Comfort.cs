@@ -162,7 +162,8 @@ public sealed partial class PlanningSystem
         }
     }
 
-    private void BuildBathePlan(WorldState world, NPCState npc)
+    // §121.9: internal — ручной приказ ставит тот же план тем же билдером.
+    internal void BuildBathePlan(WorldState world, NPCState npc)
     {
         npc.Mind.RedressGarments.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
         if (npc.Mind.PersonalCarePhase == PersonalCarePhase.None &&
@@ -349,7 +350,8 @@ public sealed partial class PlanningSystem
         }
     }
 
-    private void BuildWashClothesPlan(WorldState world, NPCState npc)
+    // §121.9: internal — ручной приказ ставит тот же план тем же билдером.
+    internal void BuildWashClothesPlan(WorldState world, NPCState npc)
     {
         if (npc.CurrentJunction is not { } from)
         {
@@ -536,7 +538,8 @@ public sealed partial class PlanningSystem
 
     // Spec 29G: sit on the land — a ledge with the legs over the edge when
     // one is close, any free junction otherwise.
-    private void BuildGroundSitPlan(WorldState world, NPCState npc)
+    // §121.9: internal — ручной приказ ставит тот же план тем же билдером.
+    internal void BuildGroundSitPlan(WorldState world, NPCState npc)
     {
         JunctionId? spot = null;
         var siteJunctions = CollectBuildSiteJunctions(world);
@@ -747,7 +750,8 @@ public sealed partial class PlanningSystem
         return spot;
     }
 
-    private void BuildGroundSleepPlan(WorldState world, NPCState npc)
+    // §121.9: internal — ручной приказ ставит тот же план тем же билдером.
+    internal void BuildGroundSleepPlan(WorldState world, NPCState npc)
     {
         var spot = FindGroundSleepSpot(world, npc, out var anchor);
         if (spot is not { } lieSpot ||

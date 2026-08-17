@@ -320,6 +320,39 @@ public sealed class TreatLimbsCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§121.9: виды самодействий — то, что колонистка делает сама с собой
+/// или на месте. Enum живёт только в командном слое: в сейв не пишется,
+/// в снапшот не едет.</summary>
+public enum SelfActionKind
+{
+    CallForHelp,   // крик о помощи §57.9 — не сносит текущий план
+    TreatSelf,     // перевязать себя §68
+    GroundSit,     // присесть на землю/уступ §137
+    GroundSleep,   // лечь спать на землю §29G
+    Bathe,         // искупаться §40.5
+    WashClothes,   // постирать §40.6
+    EatFromPack,   // поесть из рюкзака (§121.6, но по явному приказу)
+    DrinkFromPack  // попить из рюкзака
+}
+
+/// <summary>§121.9: самодействие. Одна команда на все виды — один кейс в
+/// исполнителе, в UI, в MCP и в LLM-переводчике; сами планы ставят те же
+/// билдеры, что у автономной (§138: родная цель + белый список).</summary>
+public sealed class SelfActionCommand : ISimulationCommand
+{
+    public SelfActionCommand(EntityId npc, SelfActionKind kind)
+    {
+        Npc = npc;
+        Kind = kind;
+    }
+
+    public EntityId Npc { get; }
+
+    public SelfActionKind Kind { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§123: one target point, many independently placed actors.</summary>
 public sealed class GroupMoveCommand : GroupSimulationCommand
 {

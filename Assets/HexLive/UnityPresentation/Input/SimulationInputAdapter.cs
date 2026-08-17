@@ -309,7 +309,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var ray = _camera.ScreenPointToRay(mousePos);
         foreach (var person in People(snapshot))
         {
-            if (NpcSelection.Contains(person.Id.Value) ||
+            // §121.9: свой ЕДИНСТВЕННЫЙ выделенный ручной — легальная цель
+            // ТОЧНОГО луча: клик по ней открывает само-меню. Только точный луч:
+            // 70px-фолбэк ниже по-прежнему исключает выделенных, поэтому клик
+            // «рядом с ней» остаётся приказом идти / меню объекта.
+            var isSelf = person.Id.Value == ManualNpcId &&
+                _selectedColonyIds.Count == 1 && _manualSelectedIds.Count == 1;
+            if ((NpcSelection.Contains(person.Id.Value) && !isSelf) ||
                 !_worldRenderer.TryGetActorView(person.Id.Value, out var view) ||
                 !view.TryRaycastVisibleGeometry(ray, distance, out var hitDistance))
             {
@@ -427,7 +433,17 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (_hoveredNpcId >= 0)
         {
             ResetGroundClickCadence();
-            OpenNpcMenu(mousePos, _hoveredNpcId);
+            // §121.9: клик по себе — меню самодействий, не приказ и не выбор.
+            if (_hoveredNpcId == ManualNpcId &&
+                _selectedColonyIds.Count == 1 && _manualSelectedIds.Count == 1)
+            {
+                OpenSelfMenu(mousePos, _hoveredNpcId);
+            }
+            else
+            {
+                OpenNpcMenu(mousePos, _hoveredNpcId);
+            }
+
             return true;
         }
 
@@ -714,6 +730,35 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.select"),
             () => NpcSelection.Select(npcId)));
 
+        ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    // §121.9: само-меню — то, что колонистка делает сама с собой. Пункты
+    // всегда активны: правду («нечем перевязаться», «не в бою», «нечего
+    // стирать») знает симуляция, отказ придёт честным тостом причины.
+    private void OpenSelfMenu(Vector2 mousePos, int npcId)
+    {
+        var runner = _runner;
+        if (runner == null)
+        {
+            return;
+        }
+
+        var actor = new EntityId(npcId);
+        _entries.Clear();
+        void Add(string key, SelfActionKind kind) => _entries.Add(new ContextMenuEntry(
+            Loc.Get(key),
+            () => runner.EnqueueCommand(new SelfActionCommand(actor, kind))));
+        Add("menu.self.call_help", SelfActionKind.CallForHelp);
+        Add("menu.self.treat", SelfActionKind.TreatSelf);
+        Add("menu.self.sit", SelfActionKind.GroundSit);
+        Add("menu.self.sleep", SelfActionKind.GroundSleep);
+        Add("menu.self.bathe", SelfActionKind.Bathe);
+        Add("menu.self.wash", SelfActionKind.WashClothes);
+        Add("menu.self.eat", SelfActionKind.EatFromPack);
+        Add("menu.self.drink", SelfActionKind.DrinkFromPack);
+        _entries.Add(new ContextMenuEntry(Loc.Get("menu.stop"),
+            () => runner.EnqueueCommand(new StopCommand(actor))));
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
     }
 

@@ -1361,7 +1361,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
         return true;
     }
 
-    private static bool TryBuildSelfTreatmentPlan(WorldState world, NPCState npc)
+    // §121.9: internal — ручной приказ «перевязаться» ставит тот же план.
+    internal static bool TryBuildSelfTreatmentPlan(WorldState world, NPCState npc)
     {
         WorldObjectState source = null;
         if (MedicalSupplyMath.BandageCount(npc) <= 0 &&

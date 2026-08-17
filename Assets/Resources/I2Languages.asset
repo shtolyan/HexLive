@@ -20889,6 +20889,150 @@ MonoBehaviour:
       - 'Конечности целы'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.self.call_help'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Call for help'
+      - 'Крикнуть о помощи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.self.treat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Treat own wounds'
+      - 'Перевязаться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.self.sit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sit down'
+      - 'Присесть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.self.sleep'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lie down to sleep'
+      - 'Лечь спать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.self.bathe'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bathe'
+      - 'Искупаться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.self.wash'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wash clothes'
+      - 'Постирать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.self.eat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Eat from pack'
+      - 'Поесть из рюкзака'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.self.drink'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Drink from pack'
+      - 'Попить из рюкзака'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NotInCombat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No one is attacking her'
+      - 'На неё никто не нападает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.Cooldown'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Too soon to cry out again'
+      - 'Слишком рано кричать снова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NotNeeded'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No wounds to dress'
+      - 'Перевязка не нужна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoBandage'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No bandage'
+      - 'Нет бинта'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoGroundSpot'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No spot to rest here'
+      - 'Здесь негде расположиться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoSpot'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No suitable spot'
+      - 'Нет подходящего места'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NothingToWash'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing dirty to wash, or no shore nearby'
+      - 'Нечего стирать или нет берега рядом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NothingToEat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No food in the pack'
+      - 'В рюкзаке нет еды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NothingToDrink'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing to drink in the pack'
+      - 'В рюкзаке нет питья'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.FeatureDisabled'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'This feature is disabled'
+      - 'Функция выключена'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

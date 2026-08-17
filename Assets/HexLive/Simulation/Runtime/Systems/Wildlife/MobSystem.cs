@@ -1827,7 +1827,11 @@ public sealed class MobSystem : ISimulationSystem
         //
         // Тело переезжает в отдельный реестр целиком. Его безопасная позиция и
         // курс НЕ пересчитываются: якорь выбран по ним, а не наоборот.
-        npc.DeathAnimVariant = preserveLyingDeathPose
+        // §169: метку «умерла уже лёжа» может поставить и тот, кто знал это
+        // раньше свипа. Окно умирания гасит DyingCause РАНЬШЕ, чем свип
+        // подберёт тело, — к этому моменту IsLyingDown уже отвечает «нет», и
+        // без сохранения чужой метки телу назначался обычный вариант смерти.
+        npc.DeathAnimVariant = preserveLyingDeathPose || npc.DeathAnimVariant < 0
             ? -1
             : (int)(MathUtil.Hash01(world.Seed, world.Tick, deadId.Value, 977) * 1024f);
         if (dropJunction is { } restJunction)

@@ -108,6 +108,7 @@ namespace HexLive.UnityPresentation.UI
 
         // §121: тумблер «ИИ / Ручное» и последний прочитанный из снапшота режим.
         private VisualElement _controlButton;
+        private VisualElement _stopButton;
         private VisualElement _controlAiSegment;
         private VisualElement _controlPlayerSegment;
         private Label _controlAiGlyph;
@@ -6128,6 +6129,7 @@ namespace HexLive.UnityPresentation.UI
             col.Add(vitalsCluster);
 
             col.Add(BuildControlToggle());
+            col.Add(BuildStopButton());
             col.Add(BuildInventoryButton());
             col.Add(BuildJournalButton()); // §136: под рюкзаком у правого края
 
@@ -6273,6 +6275,49 @@ namespace HexLive.UnityPresentation.UI
                 new HexLive.Simulation.Common.EntityId(NpcSelection.SelectedId), !_manualControlNow));
         }
 
+        // §121: одиночное «Отставить» — снять текущий приказ, НЕ выключая
+        // ручной режим. У группы эта кнопка есть в групповой карточке
+        // (GroupStopCommand); у одиночки до сих пор не было способа отменить
+        // приказ иначе, чем отдать новый.
+        private VisualElement BuildStopButton()
+        {
+            var button = new Label(Loc.Get("menu.stop"));
+            button.style.position = Position.Absolute;
+            button.style.left = 12f;
+            button.style.top = 52f;
+            button.style.width = 88f;
+            button.style.height = 24f;
+            button.style.unityTextAlign = TextAnchor.MiddleCenter;
+            button.style.fontSize = 11f;
+            button.style.color = Text;
+            button.style.backgroundColor = IdentityGlass;
+            SetBorder(button, StrokeStrong, 1f);
+            SetRadius(button, 10f);
+            button.style.display = DisplayStyle.None;
+            button.tooltip = Loc.Get("menu.stop.tooltip");
+            button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
+            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(button, StrokeStrong));
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                StopSingle();
+                evt.StopPropagation();
+            });
+            _stopButton = button;
+            return button;
+        }
+
+        private void StopSingle()
+        {
+            if (_runner == null || !_runner.SupportsNpcCommands ||
+                !_controlAvailable || !_manualControlNow || !NpcSelection.HasSelection)
+            {
+                return;
+            }
+
+            _runner.EnqueueCommand(new HexLive.Simulation.Runtime.StopCommand(
+                new HexLive.Simulation.Common.EntityId(NpcSelection.SelectedId)));
+        }
+
         // §121: тумблер прячется целиком, когда приказы отдавать некому —
         // на удалённом мире колония общая, и увести чужую колонистку нельзя.
         private void RefreshControlToggle(NpcSnapshot npc)
@@ -6301,10 +6346,20 @@ namespace HexLive.UnityPresentation.UI
                 _controlAiIcon.style.opacity = 0.35f;
                 _controlPlayerIcon.style.opacity = 0.35f;
                 SetBorderColor(_controlButton, Stroke);
+                if (_stopButton != null)
+                {
+                    _stopButton.style.display = DisplayStyle.None;
+                }
                 return;
             }
 
             _manualControlNow = npc.IsManualControl;
+            if (_stopButton != null)
+            {
+                _stopButton.style.display = _manualControlNow
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
+            }
             _controlButton.tooltip = Loc.Get("panel.control.tooltip");
             _controlAiSegment.style.backgroundColor = _manualControlNow
                 ? Color.clear

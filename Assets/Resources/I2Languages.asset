@@ -20641,6 +20641,150 @@ MonoBehaviour:
       - 'Собирает дождь под открытым небом'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.stop'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Halt'
+      - 'Отставить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.stop.tooltip'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cancel the current order without releasing manual control'
+      - 'Отменить текущий приказ, не выключая ручное управление'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.HandsOccupied'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hands are full'
+      - 'Руки заняты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.HandsEmpty'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Not carrying anyone'
+      - 'На руках никого нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.Crawling'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Can''t do that while crawling'
+      - 'Ползком это не сделать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoSuchPerson'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No such person'
+      - 'Такого человека здесь нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.PersonNotAvailable'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'They can''t be reached right now'
+      - 'Человек сейчас недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.InvalidDirection'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrong transfer direction'
+      - 'Неверное направление передачи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.StaleOrNoSpace'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Item is gone or no space left'
+      - 'Вещь пропала или нет места'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.ContainerNotAvailable'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Container is not available'
+      - 'Контейнер недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.ManualPolicySweep'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Forbidden goal dropped'
+      - 'Запрещённая цель снята'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.Death'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'She died'
+      - 'Она погибла'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.BodyComa'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fell into a coma'
+      - 'Впала в кому'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.Faint'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fainted — order dropped'
+      - 'Потеряла сознание — приказ прерван'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.Crying'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Broke down crying — order dropped'
+      - 'Разрыдалась — приказ прерван'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.Dying'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'She is dying'
+      - 'Она умирает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.PlayDead'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Playing dead — order dropped'
+      - 'Притворилась мёртвой — приказ прерван'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_interrupted.LimbLost'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lost a limb — order dropped'
+      - 'Потеряла конечность — приказ прерван'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

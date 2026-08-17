@@ -66,20 +66,29 @@ public static class PlanInterruption
 
     /// <summary>
     /// §121.5: once admission succeeded, a later loss of the order must name
-    /// its lifecycle cause. This is deliberately manual-only, preserving the
-    /// zero-diff diagnostic trace for worlds without manually controlled NPCs.
+    /// its lifecycle cause. This is an ORDER REPLY, not diagnostics: it goes
+    /// through <see cref="Trace.Emit"/> so the toast works in a normal build
+    /// (a Debug trace here silently disappeared with the master flag off).
+    /// Manual-only, so worlds without manually controlled NPCs stay zero-diff.
+    /// Player-initiated causes are skipped: a fresh order or the 🎮→🧠 toggle
+    /// must not toast the player about their own click.
     /// </summary>
     private static void TraceManualOrderInterruption(
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
-        if (!SimTrace.Enabled || !ManualControlMath.IsManual(npc)) return;
+        if (!ManualControlMath.IsManual(npc)) return;
+        if (cause is InterruptionCause.PlayerCommand
+                  or InterruptionCause.ControlReleased)
+        {
+            return;
+        }
 
         var order = npc.Plan.Goal != GoalType.None
             ? npc.Plan.Goal
             : npc.Mind.CurrentGoal;
         if (!NpcControlPolicy.IsPlayerGoal(order)) return;
 
-        Trace.Debug(world, npc.Id, "ManualOrderInterrupted",
+        Trace.Emit(world, npc.Id, "ManualOrderInterrupted",
             $"Order={order} Status=Interrupted Cause={cause} Reason={reason}");
     }
 

@@ -58,6 +58,29 @@ internal static class NpcControlPolicy
     public static bool IsManualCraftGoal(GoalType goal) =>
         Content.RecipeCatalog.ByGoal.ContainsKey(goal);
 
+    /// <summary>
+    /// ⭐ §121.9: социальные и само-приказы носят РОДНУЮ цель (как крафт §138) —
+    /// «поговори с ней» приезжает как <c>Socialize</c>, «перевяжи себя» как
+    /// <c>TreatWounds</c>, — чтобы их исполнял штатный executor байт в байт.
+    /// Автономии это не открывает: назначить такую цель ручной по-прежнему
+    /// нельзя (<see cref="MayAuctionGoal"/>/<see cref="MayPlanGoal"/>), она
+    /// появляется только из принятой команды ManualCommandExecutor.
+    /// </summary>
+    public static bool IsManualSocialOrSelfGoal(GoalType goal) =>
+        goal is GoalType.Socialize or GoalType.Aid
+             or GoalType.Splint or GoalType.FitProsthetic
+             or GoalType.TreatWounds
+             or GoalType.Sleep or GoalType.Sit
+             or GoalType.Bathe or GoalType.WashClothes;
+
+    /// <summary>§121.5/§121.9: цель, стоящая за ПРИНЯТЫМ приказом игрока —
+    /// в любой из трёх форм (Player*, заказанный крафт, социальное/само-действие).
+    /// Это фильтр видимости: снос такой цели обязан дойти до игрока тостом.</summary>
+    public static bool IsManualOrderGoal(GoalType goal) =>
+        IsPlayerGoal(goal) ||
+        IsManualCraftGoal(goal) ||
+        IsManualSocialOrSelfGoal(goal);
+
     /// <summary>⭐ §121.6 r2, fail-closed: цель, которую ручная имеет право
     /// ДОНОСИТЬ. Всё, что не приказ, не заказанный крафт, не еда/питьё из
     /// рюкзака и не `None`, — протухшая чужая цель. Планировщик для ручной
@@ -75,6 +98,7 @@ internal static class NpcControlPolicy
         goal == GoalType.None ||
         IsPlayerGoal(goal) ||
         IsManualCraftGoal(goal) ||
+        IsManualSocialOrSelfGoal(goal) ||
         IsManualInventoryNeed(goal);
 
     /// <summary>§121.5: охрана точки прерывания. Тело, механика плана,

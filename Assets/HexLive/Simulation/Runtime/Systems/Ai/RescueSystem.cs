@@ -282,8 +282,22 @@ public sealed class RescueSystem : ISimulationSystem
             }
         }
 
-        if (patient is null ||
-            !KenshiRescueMath.TryFindApproach(world, helper, patient, out var approach))
+        if (patient is null)
+        {
+            return false;
+        }
+
+        return TryInstallLimbCarePlan(world, helper, patient, goal);
+    }
+
+    /// <summary>§121.9: хвост установки плана шины/протеза на УЖЕ выбранную
+    /// пациентку — общий для реактивного выбора (<see cref="TryAssignLimbCare"/>)
+    /// и ручного приказа (<c>TreatLimbsCommand</c>): один подход, один claim
+    /// станции лежащей, одни шаги.</summary>
+    internal static bool TryInstallLimbCarePlan(
+        WorldState world, NPCState helper, NPCState patient, GoalType goal)
+    {
+        if (!KenshiRescueMath.TryFindApproach(world, helper, patient, out var approach))
         {
             return false;
         }

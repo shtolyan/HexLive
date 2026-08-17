@@ -86,7 +86,7 @@ public static class PlanInterruption
         var order = npc.Plan.Goal != GoalType.None
             ? npc.Plan.Goal
             : npc.Mind.CurrentGoal;
-        if (!NpcControlPolicy.IsPlayerGoal(order)) return;
+        if (!NpcControlPolicy.IsManualOrderGoal(order)) return;
 
         Trace.Emit(world, npc.Id, "ManualOrderInterrupted",
             $"Order={order} Status=Interrupted Cause={cause} Reason={reason}");

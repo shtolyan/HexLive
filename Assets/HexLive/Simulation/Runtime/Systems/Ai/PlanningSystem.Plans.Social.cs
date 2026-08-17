@@ -534,9 +534,9 @@ public sealed partial class PlanningSystem
         // from the partner, on the initiator's side, not the adjacent
         // sub-grid point (that reads as standing inside each other).
         world.Entities.Npcs.TryGetValue(target.Id, out var partnerState);
-        var approach = TryReserveArmsLengthApproach(world, npc, partnerState, targetJunction);
-
-        if (approach is not { } approachJunction)
+        if (!TryInstallTalkPlan(
+                world, npc, partnerState, target.Id, targetJunction, target.Tile,
+                out var approachJunction))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Socialize);
@@ -548,39 +548,61 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        npc.Plan.TargetAgentId = target.Id;
-        npc.Plan.TargetJunctionId = approachJunction;
-        npc.Plan.TargetTile = target.Tile;
-        if (world.Entities.Npcs.TryGetValue(target.Id, out var claimedTarget))
-        {
-            claimedTarget.Mind.PendingTalkFrom = npc.Id;
-            claimedTarget.Mind.PendingTalkSinceTick = world.Tick;
-            SocialCueSignals.Stamp(world, npc, "TalkRequest", target.Id);
-            SocialCueSignals.Stamp(world, claimedTarget, "TalkIncoming", npc.Id);
-            Trace.Emit(world, npc.Id, "TalkRequested",
-                $"Asked NPC{target.Id.Value} to talk " +
-                $"Affinity={npc.Social.GetOrCreate(target.Id).Affinity:F2}");
-        }
-
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.MoveToJunction,
-            TargetJunction = approachJunction
-        });
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.Interact,
-            TargetJunction = approachJunction,
-            Interaction = InteractionType.Talk
-        });
-        npc.Plan.CurrentStepIndex = 0;
-        npc.Plan.Status = PlanStatus.Active;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "PlanBuilt",
                 $"Goal=Socialize Target=NPC{target.Id.Value} " +
                 $"ApproachJunction={approachJunction.Value} Steps=[MoveToJunction,Talk]");
         }
+    }
+
+    /// <summary>§121.9: хвост установки плана разговора на УЖЕ выбранную цель —
+    /// общий для автономного выбора (<see cref="BuildTalkPlan"/>) и ручного
+    /// приказа (<c>TalkToCommand</c>): одна геометрия подхода, один claim,
+    /// одни шаги, одна трасса <c>TalkRequested</c>. <paramref name="partner"/>
+    /// может быть null (цели нет в мире живьём) — тогда подход строится без
+    /// станций лежащей и claim не ставится, ровно как раньше.</summary>
+    internal static bool TryInstallTalkPlan(
+        WorldState world, NPCState npc, NPCState partner, EntityId targetId,
+        JunctionId partnerJunction, TileCoord? partnerTile,
+        out JunctionId approachJunction)
+    {
+        approachJunction = default;
+        if (TryReserveArmsLengthApproach(world, npc, partner, partnerJunction)
+            is not { } approach)
+        {
+            return false;
+        }
+
+        approachJunction = approach;
+        npc.Plan.TargetAgentId = targetId;
+        npc.Plan.TargetJunctionId = approach;
+        npc.Plan.TargetTile = partnerTile;
+        if (world.Entities.Npcs.TryGetValue(targetId, out var claimedTarget))
+        {
+            claimedTarget.Mind.PendingTalkFrom = npc.Id;
+            claimedTarget.Mind.PendingTalkSinceTick = world.Tick;
+            SocialCueSignals.Stamp(world, npc, "TalkRequest", targetId);
+            SocialCueSignals.Stamp(world, claimedTarget, "TalkIncoming", npc.Id);
+            Trace.Emit(world, npc.Id, "TalkRequested",
+                $"Asked NPC{targetId.Value} to talk " +
+                $"Affinity={npc.Social.GetOrCreate(targetId).Affinity:F2}");
+        }
+
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = approach
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            TargetJunction = approach,
+            Interaction = InteractionType.Talk
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        return true;
     }
 
     // Spec §53: which aid interaction serves this kind of suffering.
@@ -1178,9 +1200,9 @@ public sealed partial class PlanningSystem
             partnerState = null;
         }
 
-        var approach = TryReserveArmsLengthApproach(world, npc, partnerState, targetJunction);
-
-        if (approach is not { } approachJunction)
+        if (!TryInstallAidPlan(
+                world, npc, partnerState, targetId, targetKind, targetTile,
+                targetSuffering, targetJunction, fromMemory, out var approachJunction))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Aid);
@@ -1192,9 +1214,45 @@ public sealed partial class PlanningSystem
             return;
         }
 
+        // NB (замерено, не чинится намеренно): обычный замок цели держится
+        // GoalLockTicks = 24 тика, дальше помощь перебивается SwitchDelta =
+        // 0.15. Выглядит как дыра — «бросила помощь ради болтовни», 16 случаев
+        // на seed 63287937, — но по данным она бьёт ТОЛЬКО лёгкие походы:
+        // Console 0.47…0.60, Feed/Hydrate 0.56…0.74. Ни один поход Treat, в том
+        // числе все шесть с Suffering=1.00, не был брошен ни до правки #117, ни
+        // после. Усиливать замок для тяжёлой помощи означало бы охранять то,
+        // чего в данных нет; проверка стоит здесь, чтобы это не пришлось
+        // выяснять заново.
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal=Aid Kind={targetKind} Target=NPC{targetId.Value} " +
+                $"Suffering={targetSuffering:F2} ApproachJunction={approachJunction.Value} " +
+                $"FromMemory={(fromMemory ? 1 : 0)} Steps=[MoveToJunction,{AidInteraction(targetKind)}]");
+        }
+    }
+
+    /// <summary>§121.9: хвост установки плана помощи на УЖЕ выбранную подопечную —
+    /// общий для автономного выбора (<see cref="BuildAidPlan"/>) и ручного
+    /// приказа (<c>AidPersonCommand</c>). <paramref name="partner"/> может быть
+    /// null (цель по памяти): подход строится от запомненного узла, значки
+    /// видимой пары не ставятся — ровно прежнее поведение.</summary>
+    internal static bool TryInstallAidPlan(
+        WorldState world, NPCState npc, NPCState partner, EntityId targetId,
+        AidKind targetKind, TileCoord? targetTile, float targetSuffering,
+        JunctionId targetJunction, bool fromMemory, out JunctionId approachJunction)
+    {
+        approachJunction = default;
+        if (TryReserveArmsLengthApproach(world, npc, partner, targetJunction)
+            is not { } approach)
+        {
+            return false;
+        }
+
+        approachJunction = approach;
         var interaction = AidInteraction(targetKind);
         npc.Plan.TargetAgentId = targetId;
-        npc.Plan.TargetJunctionId = approachJunction;
+        npc.Plan.TargetJunctionId = approach;
         npc.Plan.TargetTile = targetTile;
         if (world.Entities.Npcs.TryGetValue(targetId, out var claimedTarget))
         {
@@ -1217,33 +1275,17 @@ public sealed partial class PlanningSystem
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.MoveToJunction,
-            TargetJunction = approachJunction
+            TargetJunction = approach
         });
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.Interact,
-            TargetJunction = approachJunction,
+            TargetJunction = approach,
             Interaction = interaction
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-
-        // NB (замерено, не чинится намеренно): обычный замок цели держится
-        // GoalLockTicks = 24 тика, дальше помощь перебивается SwitchDelta =
-        // 0.15. Выглядит как дыра — «бросила помощь ради болтовни», 16 случаев
-        // на seed 63287937, — но по данным она бьёт ТОЛЬКО лёгкие походы:
-        // Console 0.47…0.60, Feed/Hydrate 0.56…0.74. Ни один поход Treat, в том
-        // числе все шесть с Suffering=1.00, не был брошен ни до правки #117, ни
-        // после. Усиливать замок для тяжёлой помощи означало бы охранять то,
-        // чего в данных нет; проверка стоит здесь, чтобы это не пришлось
-        // выяснять заново.
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "PlanBuilt",
-                $"Goal=Aid Kind={targetKind} Target=NPC{targetId.Value} " +
-                $"Suffering={targetSuffering:F2} ApproachJunction={approachJunction.Value} " +
-                $"FromMemory={(fromMemory ? 1 : 0)} Steps=[MoveToJunction,{interaction}]");
-        }
+        return true;
     }
 
     private void BuildDefendPlan(WorldState world, NPCState npc)

@@ -47,6 +47,20 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 // план без этого свипа оставлял бы ручную с вечной целью
                 // Rescue: ни авто-нужд, ни таймаута (оба ждут None).
                 case GoalType.Rescue:
+                // §121.9: социальные и само-приказы носят РОДНУЮ цель (как
+                // крафт §138). Доигранный или сорванный план обязан вернуть
+                // цель в None тем же свипом — иначе ручная застревает с вечной
+                // Socialize/Aid: ни авто-нужд, ни таймаута (оба ждут None), а
+                // планировщик для ручной выключен и цель не починит.
+                case GoalType.Socialize:
+                case GoalType.Aid:
+                case GoalType.Splint:
+                case GoalType.FitProsthetic:
+                case GoalType.TreatWounds:
+                case GoalType.Sleep:
+                case GoalType.Sit:
+                case GoalType.Bathe:
+                case GoalType.WashClothes:
                     SweepFinishedOrder(world, npc);
                     break;
                 case GoalType.PlayerAttack:

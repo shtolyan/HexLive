@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
@@ -624,6 +625,42 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         var lying = dead || target.IsUnconscious || target.IsDying || target.IsFainted ||
             target.IsPlayingDead || target.CurrentInteraction == "Sleep";
+
+        // §121.9: социальные приказы. Меню не предугадывает сим: занятая или
+        // не в духе цель откажет по прибытии честным cue (TalkRejected), а
+        // нехватка припаса — тостом NoSupplies. Серость здесь — только про
+        // «кто приказывает» (один выделенный ручной, цель не на чужих руках).
+        var canOrderSocial = carrier != null && _selectedColonyIds.Count == 1 &&
+            _manualSelectedIds.Count == 1 && carrier.Id.Value != npcId &&
+            target.CarriedByNpcId is null;
+        var socialBlocked = target.CarriedByNpcId is not null
+            ? Loc.Get("menu.carried_by_other")
+            : Loc.Get("menu.select_one_character");
+        if (!dead && !target.IsUnconscious)
+        {
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.talk_to"),
+                () => runner.EnqueueCommand(new TalkToCommand(
+                    new EntityId(carrier!.Id.Value), new EntityId(npcId))),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
+        }
+
+        // Помочь можно и лежащей без сознания (§53.8 стабилизация) — поэтому
+        // условие мягче, чем у разговора.
+        if (!dead)
+        {
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.aid"),
+                () => OpenAidMenu(mousePos, carrier!.Id.Value, npcId),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
+        }
+
+        if (!dead && lying)
+        {
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.treat_limbs"),
+                () => runner.EnqueueCommand(new TreatLimbsCommand(
+                    new EntityId(carrier!.Id.Value), new EntityId(npcId))),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
+        }
+
         if (carrier != null && carrier.CarriedNpcId == npcId)
         {
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.put_down_person"),
@@ -678,6 +715,29 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             () => NpcSelection.Select(npcId)));
 
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    // §121.9: подменю видов помощи (§53). Пять видов всегда активны — правду
+    // о припасе и нужде знает симуляция, отказ придёт честным тостом.
+    private void OpenAidMenu(Vector2 mousePos, int actorId, int targetId)
+    {
+        var runner = _runner;
+        if (runner == null)
+        {
+            return;
+        }
+
+        _entries.Clear();
+        void Add(string key, AidKind kind) => _entries.Add(new ContextMenuEntry(
+            Loc.Get(key),
+            () => runner.EnqueueCommand(new AidPersonCommand(
+                new EntityId(actorId), new EntityId(targetId), kind))));
+        Add("menu.aid.feed", AidKind.Feed);
+        Add("menu.aid.hydrate", AidKind.Hydrate);
+        Add("menu.aid.treat", AidKind.Treat);
+        Add("menu.aid.medicate", AidKind.Medicate);
+        Add("menu.aid.console", AidKind.Console);
+        ContextMenuPanel.Open(mousePos, NpcTitle(targetId), _entries);
     }
 
     private void OpenMobMenu(Vector2 mousePos, int mobId)

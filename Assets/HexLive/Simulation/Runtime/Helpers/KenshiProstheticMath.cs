@@ -42,6 +42,23 @@ internal static class KenshiProstheticMath
         return found;
     }
 
+    /// <summary>§121.9: есть ли вообще отсечённая конечность — чистый вопрос о
+    /// ТЕЛЕ, без кровати и припасов. Нужен ручному приказу, чтобы отличить
+    /// честное «нечем/не так лежит» (NoSupplies) от «нечего лечить»
+    /// (NoLimbDamage).</summary>
+    internal static bool HasSeveredLimb(NPCState patient)
+    {
+        foreach (var limb in Limbs)
+        {
+            if (patient.Body.IsSevered(limb))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static bool TryFindProstheticPart(
         WorldState world, NPCState helper, NPCState patient,
         out BodyPart part, out string itemId, out bool repair)

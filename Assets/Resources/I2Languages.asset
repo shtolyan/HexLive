@@ -20785,6 +20785,110 @@ MonoBehaviour:
       - 'Потеряла конечность — приказ прерван'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.talk_to'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Talk'
+      - 'Поговорить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.aid'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Help…'
+      - 'Помочь…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.aid.feed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Feed'
+      - 'Накормить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.aid.hydrate'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Give water'
+      - 'Напоить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.aid.treat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dress wounds'
+      - 'Перевязать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.aid.medicate'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Give medicine'
+      - 'Дать лекарство'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.aid.console'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Console'
+      - 'Утешить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.treat_limbs'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Splint / prosthetic'
+      - 'Шина / протез'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.TargetSelf'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'She can''t target herself'
+      - 'Сама себе не цель'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.TargetUnavailable'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Target is unavailable'
+      - 'Цель недоступна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.InvalidKind'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pick a kind of help'
+      - 'Выберите вид помощи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoSupplies'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing to help with'
+      - 'Нечем помочь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoLimbDamage'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No limb damage to treat'
+      - 'Конечности целы'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

@@ -70,6 +70,15 @@ internal static class ManualCommandExecutor
             case CraftItemCommand craft:
                 ApplyCraft(world, craft, admission);
                 break;
+            case TalkToCommand talkTo:
+                ApplyTalkTo(world, talkTo, admission);
+                break;
+            case AidPersonCommand aidPerson:
+                ApplyAidPerson(world, aidPerson, admission);
+                break;
+            case TreatLimbsCommand treatLimbs:
+                ApplyTreatLimbs(world, treatLimbs, admission);
+                break;
             case GroupMoveCommand groupMove:
                 ApplyGroupMove(world, groupMove);
                 break;
@@ -139,6 +148,9 @@ internal static class ManualCommandExecutor
         AttackMobCommand => "AttackMob",
         StopCommand => "Stop",
         CraftItemCommand => "Craft",
+        TalkToCommand => "TalkTo",
+        AidPersonCommand => "Aid",
+        TreatLimbsCommand => "TreatLimbs",
         GroupMoveCommand => "GroupMove",
         GroupStopCommand => "GroupStop",
         GroupAttackNpcCommand => "GroupAttackNpc",
@@ -615,6 +627,237 @@ internal static class ManualCommandExecutor
             Trace.Debug(world, carrier.Id, "ManualOrderAccepted",
                 $"Order=PutPersonInBed Bed={bed.DefinitionId}#{bed.Id.Value} " +
                 $"Patient=NPC{patient.Id.Value}");
+        }
+    }
+
+    // §121.9: подойти и поговорить. Цель занята, идёт или не в духе — приказ
+    // всё равно принимается: отказ по прибытии сыграет штатный RunTalk
+    // (видимый cue TalkRejected), ровно как у автономной инициаторки. На
+    // приёме отклоняется только физически невозможное.
+    private static void ApplyTalkTo(
+        WorldState world, TalkToCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "TalkTo", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "TalkTo", "Incapacitated", admission);
+            return;
+        }
+
+        if (command.Target.Equals(npc.Id))
+        {
+            Reject(world, npc.Id, "TalkTo", "TargetSelf", admission);
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Target, out var partner) ||
+            partner.Health <= 0f)
+        {
+            Reject(world, npc.Id, "TalkTo", "TargetGone", admission);
+            return;
+        }
+
+        // С лежащей без сознания или с несомой не разговаривают; спящую или
+        // занятую RunTalk вежливо откажет по прибытии, поэтому они проходят.
+        if (partner.IsUnconscious(world.Tick) ||
+            partner.CarriedByNpcId is not null ||
+            partner.CurrentJunction is not { } partnerJunction)
+        {
+            Reject(world, npc.Id, "TalkTo", "TargetUnavailable", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Приказ поговорить", keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+        if (!PlanningSystem.TryInstallTalkPlan(
+                world, npc, partner, partner.Id, partnerJunction, partner.Tile,
+                out _))
+        {
+            npc.Mind.CurrentGoal = GoalType.None;
+            Reject(world, npc.Id, "TalkTo", "Unreachable", admission);
+            return;
+        }
+
+        npc.Plan.Goal = GoalType.Socialize;
+        npc.Mind.CurrentGoal = GoalType.Socialize;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=TalkTo Target=NPC{partner.Id.Value}");
+        }
+    }
+
+    // §121.9: помочь ЯВНЫМ видом помощи (§53). Вид выбирает игрок; припас
+    // проверяется тем же предикатом, что у ИИ (AidSupply.Has). «Нужна ли ей
+    // именно эта помощь» на приёме сознательно не проверяется — по прибытии
+    // это честно решает штатный RunAid с живой переоценкой.
+    private static void ApplyAidPerson(
+        WorldState world, AidPersonCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "Aid", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "Aid", "Incapacitated", admission);
+            return;
+        }
+
+        if (command.Kind == AidKind.None)
+        {
+            Reject(world, npc.Id, "Aid", "InvalidKind", admission);
+            return;
+        }
+
+        if (command.Target.Equals(npc.Id))
+        {
+            Reject(world, npc.Id, "Aid", "TargetSelf", admission);
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Target, out var partner) ||
+            partner.Health <= 0f)
+        {
+            Reject(world, npc.Id, "Aid", "TargetGone", admission);
+            return;
+        }
+
+        // Без сознания помогать МОЖНО (стабилизация §53.8); нельзя — несомой
+        // на чужих руках и той, у кого нет узла (геометрии подхода не к чему).
+        if (partner.CarriedByNpcId is not null ||
+            partner.CurrentJunction is not { } partnerJunction)
+        {
+            Reject(world, npc.Id, "Aid", "TargetUnavailable", admission);
+            return;
+        }
+
+        if (!AidSupply.Has(world, npc, command.Kind))
+        {
+            Reject(world, npc.Id, "Aid", "NoSupplies", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Приказ помочь", keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+        AidAssessment.Assess(partner, world.Tick, out var suffering);
+        if (!PlanningSystem.TryInstallAidPlan(
+                world, npc, partner, partner.Id, command.Kind, partner.Tile,
+                suffering, partnerJunction, fromMemory: false, out _))
+        {
+            npc.Mind.CurrentGoal = GoalType.None;
+            Reject(world, npc.Id, "Aid", "Unreachable", admission);
+            return;
+        }
+
+        npc.Plan.Goal = GoalType.Aid;
+        npc.Mind.CurrentGoal = GoalType.Aid;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=Aid Kind={command.Kind} Target=NPC{partner.Id.Value}");
+        }
+    }
+
+    // §121.9: наложить шину или приладить протез. Что именно — решает та же
+    // математика, что у реактивного ИИ (§116): сперва шина, затем протез.
+    private static void ApplyTreatLimbs(
+        WorldState world, TreatLimbsCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "TreatLimbs", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "TreatLimbs", "Incapacitated", admission);
+            return;
+        }
+
+        if (command.Target.Equals(npc.Id))
+        {
+            Reject(world, npc.Id, "TreatLimbs", "TargetSelf", admission);
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Target, out var patient) ||
+            patient.Health <= 0f)
+        {
+            Reject(world, npc.Id, "TreatLimbs", "TargetGone", admission);
+            return;
+        }
+
+        if (patient.IsBeingCarried)
+        {
+            Reject(world, npc.Id, "TreatLimbs", "PersonNotAvailable", admission);
+            return;
+        }
+
+        // Тот же порядок выбора, что у TryAssignLimbCare: шина первой.
+        var goal = GoalType.None;
+        var hasSplintDamage = KenshiProstheticMath.TryFindSplintPart(patient, out _);
+        if (Spec118.SplintsEnabled && hasSplintDamage &&
+            KenshiProstheticMath.HasItem(npc, ContentIds.Splint))
+        {
+            goal = GoalType.Splint;
+        }
+        else if (Spec118.ProstheticsEnabled &&
+                 KenshiProstheticMath.TryFindProstheticPart(
+                     world, npc, patient, out _, out _, out _))
+        {
+            goal = GoalType.FitProsthetic;
+        }
+
+        if (goal == GoalType.None)
+        {
+            // Повреждение есть, а сделать нечего → нет припаса (или пациентка
+            // лежит не в кровати для протеза); повреждения нет → нечего лечить.
+            var reason = hasSplintDamage || KenshiProstheticMath.HasSeveredLimb(patient)
+                ? "NoSupplies"
+                : "NoLimbDamage";
+            Reject(world, npc.Id, "TreatLimbs", reason, admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Приказ заняться конечностями");
+        ClearAttackOrder(world, npc);
+        if (!RescueSystem.TryInstallLimbCarePlan(world, npc, patient, goal))
+        {
+            npc.Mind.CurrentGoal = GoalType.None;
+            // Провал внутри — либо нет подхода, либо станции лежачей заняты.
+            var stationBusy = false;
+            if (patient.IsLyingDown(world.Tick))
+            {
+                stationBusy = true;
+                for (var slot = 0; slot < LyingStations.Count; slot++)
+                {
+                    if (LyingStations.IsFree(world, patient, slot, npc) &&
+                        LyingStations.IsUsable(world, patient, slot))
+                    {
+                        stationBusy = false;
+                        break;
+                    }
+                }
+            }
+
+            Reject(world, npc.Id, "TreatLimbs",
+                stationBusy ? "StationBusy" : "Unreachable", admission);
+            return;
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=TreatLimbs Goal={goal} Target=NPC{patient.Id.Value}");
         }
     }
 

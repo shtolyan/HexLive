@@ -264,6 +264,62 @@ public sealed class CraftItemCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§121.9: подойти и поговорить с конкретной колонисткой. Носит
+/// родную цель Socialize — рукопожатие, темы и исходы играет штатный RunTalk;
+/// занятая или несклонная цель откажет ПО ПРИБЫТИИ, ровно как своей.</summary>
+public sealed class TalkToCommand : ISimulationCommand
+{
+    public TalkToCommand(EntityId npc, EntityId target)
+    {
+        Npc = npc;
+        Target = target;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>§121.9: помочь конкретной колонистке ЯВНЫМ видом помощи (§53).
+/// Вид выбирает игрок — в этом смысл ручного режима; расход припаса и сама
+/// помощь идут тем же RunAid, что у автономной помощницы.</summary>
+public sealed class AidPersonCommand : ISimulationCommand
+{
+    public AidPersonCommand(EntityId npc, EntityId target, AidKind kind)
+    {
+        Npc = npc;
+        Target = target;
+        Kind = kind;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public AidKind Kind { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>§121.9: наложить шину или приладить протез (§116/§118). Что именно —
+/// решает та же математика, что у реактивного ИИ: сперва шина, затем протез.</summary>
+public sealed class TreatLimbsCommand : ISimulationCommand
+{
+    public TreatLimbsCommand(EntityId npc, EntityId target)
+    {
+        Npc = npc;
+        Target = target;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§123: one target point, many independently placed actors.</summary>
 public sealed class GroupMoveCommand : GroupSimulationCommand
 {

@@ -109,6 +109,8 @@ namespace HexLive.UnityPresentation.UI
         // §121: тумблер «ИИ / Ручное» и последний прочитанный из снапшота режим.
         private VisualElement _controlButton;
         private VisualElement _stopButton;
+        private int _manualEdgeNpcId = -1;
+        private bool _manualEdgeWas;
         private VisualElement _controlAiSegment;
         private VisualElement _controlPlayerSegment;
         private Label _controlAiGlyph;
@@ -6352,6 +6354,18 @@ namespace HexLive.UnityPresentation.UI
                 }
                 return;
             }
+
+            // §121.9: на удалёнке сервер может снять ручной режим сам (истёк
+            // лиз, операторский force-release) — локального события об этом
+            // нет, поэтому край «был ручной → стал ИИ» ловится по снапшоту.
+            if (_manualEdgeNpcId == npc.Id.Value && _manualEdgeWas &&
+                !npc.IsManualControl && _runner != null && _runner.Link.IsRemote)
+            {
+                Input.ManualOrderFeedback.ReportTerm(npc.Id.Value, "toast.manual_expired");
+            }
+
+            _manualEdgeNpcId = npc.Id.Value;
+            _manualEdgeWas = npc.IsManualControl;
 
             _manualControlNow = npc.IsManualControl;
             if (_stopButton != null)

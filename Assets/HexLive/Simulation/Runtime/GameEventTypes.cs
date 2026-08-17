@@ -231,6 +231,34 @@ public static class GameEventTypes
     public static bool IsPlayerVisible(SimulationEvent simulationEvent) =>
         simulationEvent != null && IsPlayerVisible(simulationEvent.Type);
 
+    /// <summary>
+    /// §121.5/§121.7: ответы на приказы игрока, которые обязаны ДОЕХАТЬ до
+    /// зрителя по проводу (тосты сноса приказа и возврата под ИИ), но НЕ
+    /// являются летописью: в историю колонии и звук они не попадают, поэтому
+    /// список ОТДЕЛЬНЫЙ от <see cref="PlayerVisible"/>. Серверный фильтр
+    /// событий пропускает объединение двух списков.
+    /// <para>
+    /// <c>ManualOrderRejected</c> здесь НЕТ намеренно: отказ едет синхронным
+    /// кадром CommandResult своему автору — в потоке событий у него не было бы
+    /// адресата, и отказ одного игрока видели бы все зрители.
+    /// </para>
+    /// </summary>
+    private static readonly HashSet<string> ManualOrderReplies = new(StringComparer.Ordinal)
+    {
+        "ManualOrderInterrupted",
+        "ManualControlExpired",
+        "GroupOrderResult",
+    };
+
+    public static bool IsManualOrderReply(string type) =>
+        !string.IsNullOrEmpty(type) && ManualOrderReplies.Contains(type);
+
+    /// <summary>§83: что серверу класть в канал событий для зрителей —
+    /// летопись плюс ответы на приказы.</summary>
+    public static bool IsWireRelevant(SimulationEvent simulationEvent) =>
+        simulationEvent != null &&
+        (IsPlayerVisible(simulationEvent.Type) || IsManualOrderReply(simulationEvent.Type));
+
     /// <summary>The listed names, for the drift gate. Does not include the prefix rule.</summary>
     public static IReadOnlyCollection<string> ListedTypes => PlayerVisible;
 }

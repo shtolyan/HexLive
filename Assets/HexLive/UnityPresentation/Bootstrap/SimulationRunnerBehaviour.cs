@@ -676,7 +676,10 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
                 }
 
                 local.Shutdown();
-                var remote = new Remote.RemoteSocketBackend(url);
+                // §121.9: с токеном игрока сервер разрешит NpcCommand, и весь
+                // ручной режим оживёт на удалёнке сам (SupportsNpcCommands).
+                var remote = new Remote.RemoteSocketBackend(
+                    url, SessionConfig.ControlToken, SessionConfig.ClientId);
                 remote.Connect();
                 return remote;
 

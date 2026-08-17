@@ -21081,6 +21081,54 @@ MonoBehaviour:
       - 'Только враждебный чужак'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.order_rejected.ControlledByOther'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Another player or agent controls her'
+      - 'Ею управляет другой игрок или агент'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoLease'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Take control first'
+      - 'Сначала возьмите управление'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.RateLimited'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Too many orders at once'
+      - 'Слишком много приказов подряд'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.ControlNotGranted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'This connection has no control token'
+      - 'У подключения нет токена управления'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.BadFrame'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The order didn''t survive the wire'
+      - 'Приказ не пережил провод'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.FrameTooLarge'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The order didn''t survive the wire'
+      - 'Приказ не пережил провод'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

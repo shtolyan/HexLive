@@ -59,6 +59,24 @@ public enum FrameKind : byte
     /// recovery path, used after a gap, a decode failure or a reconnect.
     /// </summary>
     RequestKeyframe = 9,
+
+    /// <summary>
+    /// Client → server: приказ NPC (§121.9/§83) — int32 correlationId + команда
+    /// в <see cref="SimulationCommandCodec"/>. Принимается только от
+    /// авторизованного соединения (токен игрока в рукопожатии HTTP-upgrade);
+    /// владение колонисткой решает реестр лиз на сервере, правду о приказе —
+    /// единственный валидатор ManualCommandExecutor.
+    /// </summary>
+    NpcCommand = 10,
+
+    /// <summary>
+    /// Server → client: синхронный вердикт границы приёма на ОДИН NpcCommand —
+    /// correlationId + ManualCommandAdmission. Клиент по Rejected синтезирует
+    /// локальное событие ManualOrderRejected, и существующий тост §121.5
+    /// работает без единой правки UI. Отказы НЕ едут потоком событий нарочно:
+    /// у потока нет адресата, и отказ одного игрока видели бы все зрители.
+    /// </summary>
+    CommandResult = 11,
 }
 
 public enum CommandKind : byte
@@ -85,7 +103,9 @@ public sealed class Handshake
     // 2: §21.21B v15 added HopFromTile to the NPC record.
     // 3: §121 added IsManualControl to the NPC record.
     // 4: simdata едет gzip'ом — 530 КБ текста против 35 КБ (15x).
-    public const int ProtocolVersion = 4;
+    // 5: §121.9/§83 — кадры NpcCommand/CommandResult, поля ControlEnabled/
+    //    ControlOwner в рукопожатии: игрок по сети управляет колонисткой.
+    public const int ProtocolVersion = 5;
 
     public int Seed { get; set; }
 
@@ -113,6 +133,16 @@ public sealed class Handshake
     /// <summary>The server's <c>simdata.json</c>, verbatim.</summary>
     public string SimData { get; set; } = string.Empty;
 
+    /// <summary>§121.9: сервер принял токен игрока — этому соединению можно
+    /// слать <see cref="FrameKind.NpcCommand"/>. Ложь — прежний анонимный
+    /// зритель: UI прячет весь ручной режим (SupportsNpcCommands).</summary>
+    public bool ControlEnabled { get; set; }
+
+    /// <summary>§121.9: канонический owner соединения в реестре лиз
+    /// (например <c>ws:&lt;guid&gt;</c>) — для диагностики и сообщений
+    /// «занято таким-то». Пустая строка у анонима.</summary>
+    public string ControlOwner { get; set; } = string.Empty;
+
     public void Write(BinaryWriter w)
     {
         w.Write(ProtocolVersion);
@@ -124,6 +154,8 @@ public sealed class Handshake
         w.Write(EventSeq);
         w.Write(TopologyChecksum);
         WriteSimData(w, SimData ?? string.Empty);
+        w.Write(ControlEnabled);
+        w.Write(ControlOwner ?? string.Empty);
     }
 
     public static Handshake Read(BinaryReader r)
@@ -145,6 +177,8 @@ public sealed class Handshake
             EventSeq = r.ReadInt64(),
             TopologyChecksum = r.ReadUInt32(),
             SimData = ReadSimData(r),
+            ControlEnabled = r.ReadBoolean(),
+            ControlOwner = r.ReadString(),
         };
     }
 
@@ -272,6 +306,95 @@ public static class Frame
         using var stream = new MemoryStream(payload);
         using var reader = new BinaryReader(stream, Encoding.UTF8);
         return reader.ReadInt64();
+    }
+
+    // ── §121.9: приказы NPC и вердикты ───────────────────────────────────
+
+    public static byte[] NpcCommand(int correlationId, Runtime.ISimulationCommand command)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8);
+        writer.Write(correlationId);
+        SimulationCommandCodec.Write(writer, command);
+        writer.Flush();
+        return Wrap(FrameKind.NpcCommand, stream.ToArray());
+    }
+
+    public static (int CorrelationId, Runtime.ISimulationCommand Command) ReadNpcCommand(byte[] payload)
+    {
+        using var stream = new MemoryStream(payload);
+        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        var correlationId = reader.ReadInt32();
+        var command = SimulationCommandCodec.Read(reader);
+        if (stream.Position != stream.Length)
+        {
+            throw new InvalidDataException(
+                $"NpcCommand frame carries {stream.Length - stream.Position} " +
+                "trailing bytes — codec and frame disagree.");
+        }
+
+        return (correlationId, command);
+    }
+
+    /// <summary>Вердикт границы приёма для одного NpcCommand.</summary>
+    public readonly struct CommandResultFrame
+    {
+        public CommandResultFrame(
+            int correlationId, bool accepted, int? actorId, string order, string reason)
+        {
+            CorrelationId = correlationId;
+            Accepted = accepted;
+            ActorId = actorId;
+            Order = order ?? string.Empty;
+            Reason = reason ?? string.Empty;
+        }
+
+        public int CorrelationId { get; }
+        public bool Accepted { get; }
+        public int? ActorId { get; }
+        public string Order { get; }
+        public string Reason { get; }
+    }
+
+    public static byte[] CommandResult(int correlationId, Runtime.ManualCommandAdmission admission)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8);
+        writer.Write(correlationId);
+        writer.Write(admission.Accepted);
+        WireIo.WriteNullableInt(writer, admission.Actor?.Value);
+        writer.Write(admission.Order ?? string.Empty);
+        writer.Write(admission.Reason ?? string.Empty);
+        writer.Flush();
+        return Wrap(FrameKind.CommandResult, stream.ToArray());
+    }
+
+    /// <summary>Вердикт с ГОТОВОЙ причиной — для отказов самого сервера
+    /// (нет лиза, rate-limit, аноним), которые до симуляции не дошли.</summary>
+    public static byte[] CommandResult(
+        int correlationId, bool accepted, int? actorId, string order, string reason)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8);
+        writer.Write(correlationId);
+        writer.Write(accepted);
+        WireIo.WriteNullableInt(writer, actorId);
+        writer.Write(order ?? string.Empty);
+        writer.Write(reason ?? string.Empty);
+        writer.Flush();
+        return Wrap(FrameKind.CommandResult, stream.ToArray());
+    }
+
+    public static CommandResultFrame ReadCommandResult(byte[] payload)
+    {
+        using var stream = new MemoryStream(payload);
+        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        return new CommandResultFrame(
+            reader.ReadInt32(),
+            reader.ReadBoolean(),
+            WireIo.ReadNullableInt(reader),
+            reader.ReadString(),
+            reader.ReadString());
     }
 
     private static byte[] WithLong(FrameKind kind, long value)

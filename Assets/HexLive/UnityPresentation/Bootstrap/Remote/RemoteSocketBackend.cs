@@ -74,9 +74,17 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     private const double DeadAfterSeconds = 10.0;
 
     private readonly string _url;
+    private readonly string? _controlToken;
+    private readonly string _clientId;
     private readonly CancellationTokenSource _shutdown = new();
 
     private ClientWebSocket? _socket;
+
+    // §121.9: корреляция приказ→вердикт и локально синтезированные события
+    // отказа (см. Dispatch: CommandResult). Кладутся на сокет-потоке,
+    // дренируются на главном — поэтому под _inbox.
+    private int _commandSeq;
+    private readonly List<SimulationEvent> _verdictEvents = new();
 
     // Written by the socket thread, read by the main thread. Bytes only.
     private readonly object _inbox = new();
@@ -107,9 +115,17 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     private WorldState? _localWorld;
     private bool _ready;
 
-    public RemoteSocketBackend(string url)
+    /// <param name="controlToken">§121.9: токен игрока (<c>--control</c> на
+    /// сервере). Null — прежний анонимный зритель.</param>
+    /// <param name="clientId">Стабильный id клиента: лиз переживает реконнект,
+    /// потому что owner <c>ws:&lt;clientId&gt;</c> не меняется.</param>
+    public RemoteSocketBackend(string url, string? controlToken = null, string? clientId = null)
     {
         _url = url;
+        _controlToken = string.IsNullOrEmpty(controlToken) ? null : controlToken;
+        _clientId = string.IsNullOrEmpty(clientId)
+            ? Guid.NewGuid().ToString("N")
+            : clientId!;
     }
 
     public bool IsReady => _ready;
@@ -132,21 +148,38 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     public bool SupportsClientSave => false;
 
-    // §121 v1: приказы по проводу не ездят. Колония на сервере общая, и
-    // право увести чужую колонистку — вопрос прав оператора, а не ещё одного
-    // кадра в протоколе; когда он решится, кадр появится ЗДЕСЬ, и ни одна
-    // кнопка интерфейса об этом не узнает.
-    public bool SupportsNpcCommands => false;
+    // §121.9: приказы ЕЗДЯТ — если сервер принял токен игрока
+    // (Handshake.ControlEnabled). Кадр появился здесь, и ни одна кнопка
+    // интерфейса об этом не узнала — ровно как обещал §121.4.
+    public bool SupportsNpcCommands
+    {
+        get
+        {
+            lock (_inbox)
+            {
+                return _handshake?.ControlEnabled == true;
+            }
+        }
+    }
 
     public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
     {
+        // Рецепты пока не ездят по проводу: вкладка «Крафт» на удалёнке
+        // пуста. Приказ CraftItemCommand при этом валиден — MCP-агент шлёт
+        // его по каталогу рецептов; окно UI догонит отдельным кадром.
         into.Clear();
         return false;
     }
 
     public void EnqueueCommand(ISimulationCommand command)
     {
-        // Ничего: SupportsNpcCommands ложь, вид прячет тумблер.
+        if (!SupportsNpcCommands)
+        {
+            return;
+        }
+
+        var correlationId = Interlocked.Increment(ref _commandSeq);
+        Send(Frame.NpcCommand(correlationId, command));
     }
 
     public SimulationLink Link
@@ -178,6 +211,15 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             try
             {
                 using var socket = new ClientWebSocket();
+                // §121.9: токен и стабильный id клиента едут заголовками
+                // HTTP-upgrade — не в query string, где они текли бы в логи.
+                if (_controlToken is not null)
+                {
+                    socket.Options.SetRequestHeader(
+                        "Authorization", "Bearer " + _controlToken);
+                    socket.Options.SetRequestHeader("X-HexLive-Client-Id", _clientId);
+                }
+
                 _socket = socket;
                 await socket.ConnectAsync(new Uri(_url), cancel).ConfigureAwait(false);
 
@@ -369,6 +411,31 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                 }
 
                 break;
+
+            // §121.9: вердикт границы приёма. Отказ превращается в ЛОКАЛЬНОЕ
+            // событие ManualOrderRejected — существующий слив событий в
+            // SimulationRunnerBehaviour показывает тост §121.5 без единой
+            // правки UI. Принятые вердикты молчат: принятый приказ виден по
+            // самой колонистке.
+            case FrameKind.CommandResult:
+            {
+                var verdict = Frame.ReadCommandResult(payload);
+                if (!verdict.Accepted && verdict.ActorId is { } rejectedActor)
+                {
+                    lock (_inbox)
+                    {
+                        _verdictEvents.Add(new SimulationEvent
+                        {
+                            Tick = _handshake?.Tick ?? 0,
+                            EntityId = rejectedActor,
+                            Type = "ManualOrderRejected",
+                            Message = $"Order={verdict.Order} Reason={verdict.Reason}",
+                        });
+                    }
+                }
+
+                break;
+            }
         }
     }
 
@@ -736,6 +803,17 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     public long DrainEvents(long sinceSeq, List<SimulationEvent> into)
     {
+        // §121.9: локально синтезированные отказы — вне серверной нумерации
+        // Seq, поэтому мимо водяного знака: он принадлежит потоку сервера.
+        lock (_inbox)
+        {
+            if (_verdictEvents.Count > 0)
+            {
+                into.AddRange(_verdictEvents);
+                _verdictEvents.Clear();
+            }
+        }
+
         if (_pendingEvents.Count == 0)
         {
             return sinceSeq;

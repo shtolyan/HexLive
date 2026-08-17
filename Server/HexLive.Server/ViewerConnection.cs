@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Wire;
 
 namespace HexLive.Server
@@ -18,13 +20,37 @@ namespace HexLive.Server
 /// held up by somebody's slow network, so this loop polls the host's current
 /// tick rather than being pushed to.
 /// </para>
+/// <para>
+/// §121.9: авторизованный токеном игрок — больше не только зритель. Его
+/// соединение несёт owner (<c>ws:&lt;guid&gt;</c>), и кадры
+/// <see cref="FrameKind.NpcCommand"/> проходят: потолок кадра → rate-limit →
+/// реестр лиз → <c>WorldHost.SubmitManualCommand</c> (единственный валидатор —
+/// тот же <c>ManualCommandExecutor</c>) → синхронный
+/// <see cref="FrameKind.CommandResult"/> с вердиктом. Сервер не верит клиенту
+/// НИЧЕГО: «агент не может больше игрока» (§144.3) распространяется на игрока
+/// по сети буквально, а часы остаются операторскими (§83.2).
+/// </para>
 /// </summary>
 public sealed class ViewerConnection
 {
+    // Потолок кадра команды: самая большая легальная команда — групповая с
+    // сотней акторов — укладывается в сотни байт; 4 КБ — большой запас.
+    private const int MaxCommandFrameBytes = 4096;
+
+    // Token-bucket: щедрее любого живого игрока (drag-приказы группами — это
+    // единицы кадров в секунду), но душит цикл злонамеренного клиента.
+    private const double CommandRatePerSecond = 10.0;
+    private const double CommandBurst = 30.0;
+
     private readonly WorldHost _host;
     private readonly WebSocket _socket;
     private readonly string _simData;
     private readonly bool _includeDebugDetails;
+    private readonly string? _controlOwner;
+    private readonly ControlLeases? _leases;
+
+    private double _rateTokens = CommandBurst;
+    private DateTimeOffset _rateStamp = DateTimeOffset.UtcNow;
 
     private long _eventSeq;
 
@@ -33,13 +59,19 @@ public sealed class ViewerConnection
     private readonly SnapshotDeltaEncoder _delta = new();
     private volatile bool _keyframeRequested = true;
 
-    public ViewerConnection(WorldHost host, WebSocket socket, string simData, bool includeDebugDetails)
+    public ViewerConnection(
+        WorldHost host, WebSocket socket, string simData, bool includeDebugDetails,
+        string? controlOwner = null, ControlLeases? leases = null)
     {
         _host = host;
         _socket = socket;
         _simData = simData;
         _includeDebugDetails = includeDebugDetails;
+        _controlOwner = controlOwner;
+        _leases = leases;
     }
+
+    private bool ControlEnabled => _controlOwner is not null && _leases is not null;
 
     public async Task RunAsync(CancellationToken cancel)
     {
@@ -55,6 +87,8 @@ public sealed class ViewerConnection
             EventSeq = _eventSeq,
             TopologyChecksum = _host.TopologyChecksum,
             SimData = _simData,
+            ControlEnabled = ControlEnabled,
+            ControlOwner = _controlOwner ?? string.Empty,
         }), cancel).ConfigureAwait(false);
 
         // Commands arrive on their own loop so a silent client never blocks the
@@ -125,7 +159,7 @@ public sealed class ViewerConnection
 
     private async Task ReadCommandsAsync(CancellationToken cancel)
     {
-        var buffer = new byte[256];
+        var buffer = new byte[MaxCommandFrameBytes];
         try
         {
             while (!cancel.IsCancellationRequested && _socket.State == WebSocketState.Open)
@@ -139,6 +173,15 @@ public sealed class ViewerConnection
 
                 if (result.Count < 1)
                 {
+                    continue;
+                }
+
+                // §121.9: приказ NPC. Разбор и вердикт — в своём методе; кадр,
+                // не поместившийся в буфер целиком, отвергается (это уже не
+                // команда, а мусор или атака на память).
+                if (buffer[0] == (byte)FrameKind.NpcCommand)
+                {
+                    await HandleNpcCommandAsync(buffer, result, cancel).ConfigureAwait(false);
                     continue;
                 }
 
@@ -207,6 +250,187 @@ public sealed class ViewerConnection
         }
         catch (WebSocketException)
         {
+        }
+    }
+
+    // §121.9: один кадр NpcCommand — один синхронный вердикт CommandResult.
+    // Порядок обороны: полный ли кадр → авторизован ли → rate-limit → разбор →
+    // лизы → симуляция. До SubmitManualCommand доходит только то, что прошло
+    // всё; сам приказ валидирует ManualCommandExecutor, вторых правил нет.
+    private async Task HandleNpcCommandAsync(
+        byte[] buffer, WebSocketReceiveResult result, CancellationToken cancel)
+    {
+        // Кадр обязан быть ЦЕЛЫМ сообщением в нашем буфере: correlationId ещё
+        // можно достать (первые 4 байта payload'а), а команду уже нельзя.
+        var correlationId = result.Count >= 5 ? BitConverter.ToInt32(buffer, 1) : 0;
+        if (!result.EndOfMessage)
+        {
+            await DrainOversizedMessageAsync(buffer, cancel).ConfigureAwait(false);
+            await SendResultAsync(correlationId, "FrameTooLarge", cancel).ConfigureAwait(false);
+            return;
+        }
+
+        if (!ControlEnabled)
+        {
+            await SendResultAsync(correlationId, "ControlNotGranted", cancel).ConfigureAwait(false);
+            return;
+        }
+
+        if (!TakeRateToken())
+        {
+            await SendResultAsync(correlationId, "RateLimited", cancel).ConfigureAwait(false);
+            return;
+        }
+
+        ISimulationCommand command;
+        try
+        {
+            var payload = new byte[result.Count - 1];
+            Buffer.BlockCopy(buffer, 1, payload, 0, payload.Length);
+            (correlationId, command) = Frame.ReadNpcCommand(payload);
+        }
+        catch (Exception e) when (e is InvalidDataException or NotSupportedException
+                                       or EndOfStreamException)
+        {
+            await SendResultAsync(correlationId, "BadFrame", cancel).ConfigureAwait(false);
+            return;
+        }
+
+        if (!TryMapLease(command, out var refusal))
+        {
+            await SendResultAsync(correlationId, refusal, cancel,
+                (command.TargetEntity)?.Value).ConfigureAwait(false);
+            return;
+        }
+
+        var admission = _host.SubmitManualCommand(command);
+        await SendAsync(Frame.CommandResult(correlationId, admission), cancel)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// §144.2: маппинг команды на единый реестр лиз. Взятие ручного режима =
+    /// взятие лиза, снятие = освобождение, любой другой приказ = продление.
+    /// Групповые проверяются ПО КАЖДОМУ актору и отказывают целиком: Apply не
+    /// возвращает пер-акторные вердикты, и смешанная группа исполнилась бы
+    /// частично и молча.
+    /// </summary>
+    private bool TryMapLease(ISimulationCommand command, out string refusal)
+    {
+        refusal = string.Empty;
+        var leases = _leases!;
+        var owner = _controlOwner!;
+
+        switch (command)
+        {
+            case SetManualControlCommand setManual:
+                if (setManual.Enabled)
+                {
+                    if (!leases.TryAcquire(setManual.Npc.Value, owner, out _, out var heldBy))
+                    {
+                        Console.WriteLine(
+                            $"[viewer {owner}] lease refused for NPC{setManual.Npc.Value}: held by {heldBy}");
+                        refusal = "ControlledByOther";
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                if (leases.HolderOf(setManual.Npc.Value) is { Length: > 0 } current &&
+                    !string.Equals(current, owner, StringComparison.Ordinal))
+                {
+                    refusal = "ControlledByOther";
+                    return false;
+                }
+
+                leases.Release(setManual.Npc.Value, owner);
+                return true;
+
+            case SetGroupManualControlCommand groupManual:
+                foreach (var actor in groupManual.Actors)
+                {
+                    var holder = leases.HolderOf(actor.Value);
+                    if (holder.Length > 0 && !string.Equals(holder, owner, StringComparison.Ordinal))
+                    {
+                        refusal = "ControlledByOther";
+                        return false;
+                    }
+                }
+
+                foreach (var actor in groupManual.Actors)
+                {
+                    if (groupManual.Enabled)
+                    {
+                        leases.TryAcquire(actor.Value, owner, out _, out _);
+                    }
+                    else
+                    {
+                        leases.Release(actor.Value, owner);
+                    }
+                }
+
+                return true;
+
+            case IGroupSimulationCommand group:
+                foreach (var actor in group.Actors)
+                {
+                    if (!leases.TryRenew(actor.Value, owner, out var groupHolder))
+                    {
+                        refusal = groupHolder.Length > 0 ? "ControlledByOther" : "NoLease";
+                        return false;
+                    }
+                }
+
+                return true;
+
+            default:
+                if (command.TargetEntity is { } actorId)
+                {
+                    if (!leases.TryRenew(actorId.Value, owner, out var holder))
+                    {
+                        refusal = holder.Length > 0 ? "ControlledByOther" : "NoLease";
+                        return false;
+                    }
+                }
+
+                return true;
+        }
+    }
+
+    private bool TakeRateToken()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var elapsed = (now - _rateStamp).TotalSeconds;
+        _rateStamp = now;
+        _rateTokens = Math.Min(CommandBurst, _rateTokens + elapsed * CommandRatePerSecond);
+        if (_rateTokens < 1.0)
+        {
+            return false;
+        }
+
+        _rateTokens -= 1.0;
+        return true;
+    }
+
+    private Task SendResultAsync(
+        int correlationId, string reason, CancellationToken cancel, int? actorId = null) =>
+        SendAsync(
+            Frame.CommandResult(correlationId, accepted: false, actorId, "NpcCommand", reason),
+            cancel);
+
+    // Кадр больше буфера: дочитать фрагменты до конца сообщения и выбросить —
+    // иначе следующий ReceiveAsync прочтёт его СЕРЕДИНУ как новый кадр.
+    private async Task DrainOversizedMessageAsync(byte[] buffer, CancellationToken cancel)
+    {
+        while (_socket.State == WebSocketState.Open)
+        {
+            var more = await _socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancel)
+                .ConfigureAwait(false);
+            if (more.EndOfMessage || more.MessageType == WebSocketMessageType.Close)
+            {
+                return;
+            }
         }
     }
 

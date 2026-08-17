@@ -41,10 +41,16 @@ public static class SessionConfig
 {
     private const string ServerArgument = "-hexlive-server";
     private const string LoopbackArgument = "-hexlive-loopback";
+    // §121.9: токен игрока для управления колонисткой на сервере. Значение —
+    // сам токен либо путь к файлу с ним (hexlive-player.txt рядом с сейвом
+    // сервера); без аргумента — прежний анонимный зритель.
+    private const string TokenArgument = "-hexlive-token";
+    private const string ClientIdPref = "HexLive.RemoteClientId";
 
     private static bool _resolved;
     private static SimulationMode _mode = SimulationMode.Local;
     private static string? _serverUrl;
+    private static string? _controlToken;
 
     public static SimulationMode Mode
     {
@@ -62,6 +68,38 @@ public static class SessionConfig
         {
             Resolve();
             return _serverUrl;
+        }
+    }
+
+    /// <summary>§121.9: токен игрока для NpcCommand; null — аноним.</summary>
+    public static string? ControlToken
+    {
+        get
+        {
+            Resolve();
+            return _controlToken;
+        }
+    }
+
+    /// <summary>
+    /// §121.9: стабильный id этого клиента — owner лиза (<c>ws:&lt;id&gt;</c>)
+    /// переживает реконнект и перезапуск игры. Генерируется один раз и живёт
+    /// в PlayerPrefs.
+    /// </summary>
+    public static string ClientId
+    {
+        get
+        {
+            var existing = PlayerPrefs.GetString(ClientIdPref, string.Empty);
+            if (!string.IsNullOrEmpty(existing))
+            {
+                return existing;
+            }
+
+            var fresh = Guid.NewGuid().ToString("N");
+            PlayerPrefs.SetString(ClientIdPref, fresh);
+            PlayerPrefs.Save();
+            return fresh;
         }
     }
 
@@ -117,6 +155,13 @@ public static class SessionConfig
                 return;
             }
 
+            if (i + 1 < args.Length &&
+                string.Equals(args[i], TokenArgument, StringComparison.OrdinalIgnoreCase))
+            {
+                _controlToken = ResolveToken(args[i + 1]);
+                continue;
+            }
+
             if (i + 1 >= args.Length ||
                 !string.Equals(args[i], ServerArgument, StringComparison.OrdinalIgnoreCase))
             {
@@ -126,14 +171,39 @@ public static class SessionConfig
             var url = args[i + 1];
             if (string.IsNullOrWhiteSpace(url))
             {
-                break;
+                continue;
             }
 
             _mode = SimulationMode.Remote;
             _serverUrl = url;
             Debug.Log($"[HexLive] Session mode: Remote ({url})");
-            return;
         }
+    }
+
+    // Значение аргумента — сам токен ЛИБО путь к файлу с ним: сервер кладёт
+    // hexlive-player.txt рядом с сейвом, и удобнее сослаться на файл, чем
+    // копировать строку (заодно токен не светится в списке процессов).
+    private static string? ResolveToken(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            if (System.IO.File.Exists(value))
+            {
+                var content = System.IO.File.ReadAllText(value).Trim();
+                return string.IsNullOrEmpty(content) ? null : content;
+            }
+        }
+        catch (Exception)
+        {
+            // Нечитаемый файл — попробуем как literal-токен ниже.
+        }
+
+        return value.Trim();
     }
 }
 

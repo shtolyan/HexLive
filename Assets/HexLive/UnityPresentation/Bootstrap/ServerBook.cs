@@ -47,6 +47,26 @@ public static class ServerBook
         }
     }
 
+    private const string LastTokenKey = "HexLive.Servers.LastToken";
+
+    /// <summary>§145.3: токен управления, введённый в меню в прошлый раз, —
+    /// или null. Помнится, как URL: набирать 55 символов при каждом входе
+    /// никто не станет, а пустое поле честно означает «зритель».</summary>
+    public static string? LastToken
+    {
+        get
+        {
+            var token = PlayerPrefs.GetString(LastTokenKey, string.Empty);
+            return string.IsNullOrWhiteSpace(token) ? null : token;
+        }
+    }
+
+    public static void RememberToken(string? token)
+    {
+        PlayerPrefs.SetString(LastTokenKey, token?.Trim() ?? string.Empty);
+        PlayerPrefs.Save();
+    }
+
     public static List<string> Recent()
     {
         var stored = PlayerPrefs.GetString(RecentKey, string.Empty);

@@ -21129,6 +21129,14 @@ MonoBehaviour:
       - 'Приказ не пережил провод'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.connect.token'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Control token (empty = spectator)'
+      - 'Токен управления (пусто — зритель)'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

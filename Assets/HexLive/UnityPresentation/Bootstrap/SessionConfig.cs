@@ -106,10 +106,21 @@ public static class SessionConfig
     /// <summary>
     /// Force a mode at runtime (a main-menu "connect to server" entry, or a test
     /// harness). Passing a null/blank url returns the session to local.
+    /// <para>
+    /// ⭐ §145.3: сначала Resolve() — иначе выбор в меню затирал ВЕСЬ разбор
+    /// командной строки, включая <c>-hexlive-token</c>: игрок запускал клиент
+    /// с токеном, кликал «подключиться» и молча становился зрителем. Токен из
+    /// меню (если дан) главнее CLI; пустое поле меню оставляет CLI-токен жить.
+    /// </para>
     /// </summary>
-    public static void UseServer(string? url)
+    public static void UseServer(string? url, string? controlToken = null)
     {
-        _resolved = true;
+        Resolve();
+        if (!string.IsNullOrWhiteSpace(controlToken))
+        {
+            _controlToken = ResolveToken(controlToken!);
+        }
+
         if (string.IsNullOrWhiteSpace(url))
         {
             _mode = SimulationMode.Local;

@@ -57,6 +57,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _connectChosen;
         private VisualElement _connectBox;
         private TextField _serverField;
+        private TextField _tokenField;
 
         private VisualElement _root;
         private VisualElement _menuBox;
@@ -429,6 +430,25 @@ namespace HexLive.UnityPresentation.UI
             };
             box.Add(_serverField);
 
+            // §145.3: токен управления. Пустое поле — честный зритель; с
+            // токеном сервер разрешит этому подключению приказы NPC. Помнится,
+            // как URL: набирать 55 знаков при каждом входе никто не станет.
+            var tokenLabel = new Label(Loc.Get("menu.connect.token"))
+            {
+                style = { fontSize = 11, opacity = 0.75f, marginTop = 2 }
+            };
+            box.Add(tokenLabel);
+            _tokenField = new TextField
+            {
+                value = ServerBook.LastToken ?? string.Empty,
+                style =
+                {
+                    marginLeft = 0, marginRight = 0, marginTop = 2, marginBottom = 8,
+                    fontSize = 13
+                }
+            };
+            box.Add(_tokenField);
+
             box.Add(MakeMenuRow("play", Loc.Get("menu.connect.go"), primary: true, enabled: true,
                 () => BeginConnect(_serverField.value)));
 
@@ -449,7 +469,8 @@ namespace HexLive.UnityPresentation.UI
             }
 
             ServerBook.Remember(url);
-            SessionConfig.UseServer(url);
+            ServerBook.RememberToken(_tokenField?.value);
+            SessionConfig.UseServer(url, _tokenField?.value);
 
             _connectChosen = true;
             _continueChosen = false;

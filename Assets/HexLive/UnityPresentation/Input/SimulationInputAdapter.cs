@@ -39,13 +39,10 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     [SerializeField] private SimulationRunnerBehaviour? _runner;
 
     // Тот же радиус, которым камера выбирает NPC: два разных числа значили бы,
-    // что подсветилось одно, а кликнулось другое.
+    // что подсветилось одно, а кликнулось другое. После §121.1 r2 применяется
+    // только к зверям и к людям БЕЗ готового вида (первые кадры после спавна,
+    // примитивы прототипных сцен) — у остальных был честный точный луч.
     private const float PickRadiusPixels = 70f;
-
-    // §121.1: узкий радиус, в котором человек/зверь всё же выигрывает у
-    // объекта, в чей AABB попал луч, — чтобы зверь вплотную к кокосу оставался
-    // кликабельным, а широкие 70 px не гасили предметы вокруг толпы.
-    private const float TightPickRadiusPixels = 24f;
     private const float DoubleClickSeconds = 0.30f;
     private const float DoubleClickRadiusPixels = 18f;
 
@@ -167,39 +164,31 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         _hoveredNpcId = -1;
         _hoveredMobId = -1;
-        var objectHit = PickObjectUnderCursor(mousePos, out var objectDistance);
+        var objectHit = PickObjectUnderCursor(mousePos, out _);
 
-        // §121.1: живое больше НЕ съедает объект безусловно — точное попадание
-        // луча в тело человека соревнуется с объектом ПО ГЛУБИНЕ. Раньше труп,
-        // лежащий на одежде, и колонистка рядом с кокосом делали их
-        // некликабельными: любое пересечение с телом гасило объект.
-        if (TryRaycastNpc(snapshot, mousePos, out var rayNpcId, out var npcDistance) &&
-            (objectHit == null || npcDistance <= objectDistance))
+        // §121.1 r2: предмет под курсором ВСЕГДА важнее человека и зверя —
+        // правило игрока: «персонаж как-нибудь прокликнется, предмет — уже
+        // никак». Лежащая на вещах или стоящая на кокосе выбирается по
+        // свободному от вещей пикселю своего тела; глубинного спора и узкого
+        // радиуса-исключения больше нет.
+        if (objectHit == null)
         {
-            _hoveredNpcId = rayNpcId;
-            objectHit = null;
-        }
-        else
-        {
-            // Экранные радиусы — запасной путь. Широкий (70 px) работает только
-            // когда луч не попал ни в один объект; узкий (24 px) сохраняет
-            // кликабельность человека/зверя, стоящего вплотную к предмету.
-            var fallbackNpcId = PickNpcByScreenRadius(snapshot, mousePos, out var npcScreenDist);
-            var mobId = PickMobUnderCursor(snapshot, mousePos, out var mobScreenDist);
-            if (objectHit == null)
+            if (TryRaycastNpc(snapshot, mousePos, out var rayNpcId, out _))
             {
-                _hoveredNpcId = fallbackNpcId;
-                _hoveredMobId = fallbackNpcId >= 0 ? -1 : mobId;
+                _hoveredNpcId = rayNpcId;
             }
-            else if (fallbackNpcId >= 0 && npcScreenDist <= TightPickRadiusPixels)
+            else
             {
-                _hoveredNpcId = fallbackNpcId;
-                objectHit = null;
-            }
-            else if (mobId >= 0 && mobScreenDist <= TightPickRadiusPixels)
-            {
-                _hoveredMobId = mobId;
-                objectHit = null;
+                // Экранный радиус — запасной путь ТОЛЬКО для людей без готового
+                // вида (первые кадры после спавна, примитивы прототипных сцен):
+                // у остальных был честный точный луч, и промах по нему — промах,
+                // а не повод растянуть тело на 70 px вокруг ног. Зверям точного
+                // луча пока нет.
+                _hoveredNpcId = PickNpcByScreenRadius(snapshot, mousePos, out _);
+                if (_hoveredNpcId < 0)
+                {
+                    _hoveredMobId = PickMobUnderCursor(snapshot, mousePos, out _);
+                }
             }
         }
 
@@ -344,6 +333,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             if (NpcSelection.Contains(npc.Id.Value))
             {
                 continue; // сама себе не цель
+            }
+
+            // §121.1 r2: у человека с готовым видом уже был точный луч по его
+            // геометрии — радиус вокруг ног дал бы «огромный клик» поверх
+            // предметов и соседок. Радиус остаётся только виду-примитиву.
+            if (_worldRenderer != null &&
+                _worldRenderer.TryGetActorView(npc.Id.Value, out _))
+            {
+                continue;
             }
 
             var world = SimulationUnityMapper.ToUnityPosition(

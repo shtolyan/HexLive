@@ -817,12 +817,21 @@ namespace HexLive.UnityPresentation.Input
 
             // A just-spawned actor may not have completed its visual setup yet,
             // and prototype scenes still use primitive NPC views. Preserve the
-            // point-radius fallback for those cases only.
+            // point-radius fallback for those cases only: a person with a live
+            // actor view already had the exact geometry ray above, and stretching
+            // her another 70 px around the feet is exactly the "huge click"
+            // that swallowed items and neighbours (§121.1 r2).
             var bestId = -1;
             var bestDist = _pickRadiusPixels;
 
             foreach (var npc in PickablePeople(snapshot))
             {
+                if (_worldRenderer != null &&
+                    _worldRenderer.TryGetActorView(npc.Id.Value, out _))
+                {
+                    continue;
+                }
+
                 var world = SimulationUnityMapper.ToUnityPosition(
                     npc.Position, SimulationUnityMapper.CameraTargetHeight);
                 var screen = _camera.WorldToScreenPoint(world);

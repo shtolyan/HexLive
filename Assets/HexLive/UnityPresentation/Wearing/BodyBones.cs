@@ -426,9 +426,12 @@ public sealed class BodyBones : MonoBehaviour
                     under.Hide();
                 }
             }
-            else
+            else if (wearPrefab.Layer == VisualWearLayer.Underwear)
             {
-                // Dressing underwear beneath already-worn outer layers.
+                // Dressing underwear beneath already-worn outer layers. Scoped
+                // to Underwear explicitly: bug #177 — a bare `else` also caught
+                // Bags, so a backpack equipped AFTER a Chest/Belly top (the
+                // redress order after bathing) was hidden and never re-shown.
                 if (_byLayer[VisualWearLayer.Wear].TryGetValue(slot, out var outer1) &&
                     outer1.HeedHideUnderwearSlot(slot))
                 {

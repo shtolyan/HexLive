@@ -28,6 +28,13 @@ public sealed class BackpackVisibilityGateTests
             Assert.That(equip, Does.Not.Contain(
                 "wearPrefab.Layer != VisualWearLayer.Underwear"),
                 "A broad non-underwear rule accidentally includes the Bags overlay layer.");
+            // Bug #177: the occlusion is symmetric. The hide-the-new-garment
+            // branch must be scoped to Underwear, or a Bags item equipped
+            // after a Chest/Belly top is hidden itself and never re-shown
+            // (TakeOff only restores the Underwear layer).
+            Assert.That(equip, Does.Contain(
+                "else if (wearPrefab.Layer == VisualWearLayer.Underwear)"),
+                "The dress-under-outerwear branch must not catch the Bags overlay layer.");
         });
     }
 

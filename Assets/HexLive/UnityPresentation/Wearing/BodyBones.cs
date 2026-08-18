@@ -179,7 +179,35 @@ public sealed class BodyBones : MonoBehaviour
 
     // Has to be LateUpdate: the Animator writes the legs every frame, so a pose
     // applied at equip time (or in Update) is gone before it is ever drawn.
-    // Nothing accumulates — each frame starts from what the animation wrote.
+    //
+    // ⭐ Bug #146: «each frame starts from what the animation wrote» is ONLY
+    // true while the Animator actually writes. A standing girl's animator runs
+    // in CullUpdateTransforms: the moment her renderer leaves every camera the
+    // bones freeze — and a naive «+=» then compounds every frame. Measured in
+    // the player: the hip climbed ~3 wu/s, its culling AABB left the frustum
+    // (bounds centre at Y=84 wu while she walked at Y=1.3), so the renderer
+    // could never become visible again and the animator never woke up — she
+    // was invisible FOREVER, until selecting her made the portrait camera
+    // render the body and restart the loop. So every bone remembers what we
+    // wrote last frame: if nobody else has rewritten the bone since, we first
+    // roll back to the remembered base, then apply the fresh offset. The base
+    // is always the animator's (or IK's) last real word, and a frozen skeleton
+    // stays exactly one application away from it instead of drifting.
+    private struct TrackedPose
+    {
+        public bool Valid;
+        public Quaternion BaseRotation;
+        public Quaternion WrittenRotation;
+    }
+
+    private TrackedPose _lFootPose;
+    private TrackedPose _rFootPose;
+    private TrackedPose _lToePose;
+    private TrackedPose _rToePose;
+    private bool _hipLiftValid;
+    private Vector3 _hipLiftBase;
+    private Vector3 _hipLiftWritten;
+
     private void LateUpdate()
     {
         _heelPoseWeight = Mathf.MoveTowards(
@@ -193,10 +221,10 @@ public sealed class BodyBones : MonoBehaviour
         }
 
         var axis = _heel.Axis;
-        Pitch(GetBone("lFoot"), axis, _heel.footDegrees * _heelPoseWeight);
-        Pitch(GetBone("rFoot"), axis, _heel.footDegrees * _heelPoseWeight);
-        Pitch(GetBone("lToe"), axis, _heel.toeDegrees * _heelPoseWeight);
-        Pitch(GetBone("rToe"), axis, _heel.toeDegrees * _heelPoseWeight);
+        Pitch(GetBone("lFoot"), ref _lFootPose, axis, _heel.footDegrees * _heelPoseWeight);
+        Pitch(GetBone("rFoot"), ref _rFootPose, axis, _heel.footDegrees * _heelPoseWeight);
+        Pitch(GetBone("lToe"), ref _lToePose, axis, _heel.toeDegrees * _heelPoseWeight);
+        Pitch(GetBone("rToe"), ref _rToePose, axis, _heel.toeDegrees * _heelPoseWeight);
 
         // Standing on the ball of the foot instead of the sole makes her taller;
         // without the lift she sinks into the ground by exactly the heel height.
@@ -204,19 +232,62 @@ public sealed class BodyBones : MonoBehaviour
         // fade this entire correction to zero through heelPoseWeight.
         if (hip != null && Mathf.Abs(_heel.lift) > 0.0001f)
         {
-            hip.position += transform.up * (_heel.lift * _heelPoseWeight);
+            Lift(hip, transform.up * (_heel.lift * _heelPoseWeight));
         }
     }
 
-    private static void Pitch(Transform bone, Vector3 axis, float degrees)
+    private static void Pitch(Transform bone, ref TrackedPose tracked, Vector3 axis, float degrees)
     {
-        if (bone == null || Mathf.Abs(degrees) < 0.01f)
+        if (bone == null)
         {
             return;
         }
 
-        bone.localRotation *= Quaternion.AngleAxis(degrees, axis);
+        var current = bone.localRotation;
+        if (tracked.Valid && ExactlyEqual(current, tracked.WrittenRotation))
+        {
+            // The bone still holds OUR last write — the animator is culled (or
+            // off). Roll back to its last real value before applying afresh.
+            current = tracked.BaseRotation;
+        }
+
+        var written = Mathf.Abs(degrees) < 0.01f
+            ? current
+            : current * Quaternion.AngleAxis(degrees, axis);
+        bone.localRotation = written;
+        tracked.BaseRotation = current;
+        tracked.WrittenRotation = written;
+        tracked.Valid = true;
     }
+
+    // The hip is tracked in LOCAL space on purpose: the actor root moves every
+    // render frame (interpolation), so a world-space cache would read every
+    // frame as «somebody rewrote the bone» and re-base with the previous lift
+    // still baked in — accumulating exactly like the bug this guards against.
+    private void Lift(Transform hipBone, Vector3 worldLift)
+    {
+        var localLift = hipBone.parent != null
+            ? hipBone.parent.InverseTransformVector(worldLift)
+            : worldLift;
+
+        var current = hipBone.localPosition;
+        if (_hipLiftValid && ExactlyEqual(current, _hipLiftWritten))
+        {
+            current = _hipLiftBase;
+        }
+
+        var written = current + localLift;
+        hipBone.localPosition = written;
+        _hipLiftBase = current;
+        _hipLiftWritten = written;
+        _hipLiftValid = true;
+    }
+
+    private static bool ExactlyEqual(Quaternion a, Quaternion b) =>
+        a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
+
+    private static bool ExactlyEqual(Vector3 a, Vector3 b) =>
+        a.x == b.x && a.y == b.y && a.z == b.z;
 
     public bool IsEquipped(string key)
     {

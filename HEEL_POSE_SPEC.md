@@ -137,9 +137,23 @@ respected as a decision.
 `lToe`/`rToe`, then lifts `hip`.
 
 **Why LateUpdate and not equip time:** the Animator rewrites the legs every
-frame, so anything applied earlier is gone before it is ever drawn. Nothing
-accumulates — each frame starts from whatever the animation wrote, and the pose
-is re-applied on top.
+frame, so anything applied earlier is gone before it is ever drawn.
+
+⚠️ **«Nothing accumulates» is only true while the Animator writes** — and a
+standing/walking animator runs in `CullUpdateTransforms` (perf, spec §31C.8):
+the moment the renderer leaves every camera, the bones freeze. A naive
+`hip.position +=` then compounds every rendered frame. That was bug #146: the
+hip climbed ~3 wu/s, the skin's culling AABB left the frustum (bounds centre
+measured at Y = 84 wu under a girl walking at Y = 1.3), the renderer could
+never become visible again, so the animator never woke — she was invisible
+FOREVER, until clicking her in the roster made the portrait camera render the
+body once and restart the loop. Since then every bone the heel pose touches
+(both foot/toe rotations too — `localRotation *=` compounds identically)
+remembers what it wrote last frame: if the bone still holds exactly our last
+write, we roll back to the remembered base first, then apply afresh. The hip
+cache lives in LOCAL space — the actor root moves every render frame, so a
+world-space cache would re-base every frame with the previous lift baked in
+and accumulate all the same.
 
 **Why the lift goes along `transform.up` and not world up:** the standing pose
 follows the actor's own up axis. Sitting, lying, bed and swimming explicitly

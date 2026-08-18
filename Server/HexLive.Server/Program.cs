@@ -79,6 +79,14 @@ public static class Program
         var sessions = new Admin.AdminSessions();
         var mailer = new Admin.AdminMailer();
 
+        // Пути — АБСОЛЮТНЫМИ и всегда. Сейв задаётся относительным путём, и
+        // запуск из другой папки молча заводит ДРУГОЙ мир и ДРУГОЙ админ-файл
+        // рядом с ним: «я менял пароль, а он снова временный» — это не потеря
+        // данных, это два файла в двух местах. Одна строка лога закрывает
+        // целый вечер такой археологии.
+        Console.WriteLine($"[server] save file     {Path.GetFullPath(options.SavePath)}");
+        Console.WriteLine($"[server] admin account {Path.GetFullPath(options.AdminAccountPath)}");
+
         // §145.4: ОДИН реестр лиз на процесс — MCP-агенты и сетевые игроки
         // делят его, различаясь префиксом owner'а (mcp:/ws:). Создаётся, как
         // только открыта хоть одна дверь управления.

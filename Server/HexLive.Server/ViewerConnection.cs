@@ -83,6 +83,7 @@ public sealed class ViewerConnection
         await SendAsync(Frame.Handshake(new Handshake
         {
             Seed = _host.Seed,
+            Mode = (int)_host.Mode,
             Tick = _host.Tick,
             TickDeltaTime = _host.TickDeltaTime,
             SpeedMultiplier = _host.SpeedMultiplier,

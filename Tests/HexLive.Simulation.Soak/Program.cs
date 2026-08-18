@@ -95,7 +95,7 @@ public static class Program
         // мы смотрим на два разных мира и спорим о показаниях.
         var definition = options.Arena == "abuse"
             ? HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.Build(seed)
-            : PrototypeWorldDefinitionFactory.Create(seed);
+            : PrototypeWorldDefinitionFactory.Create(seed, options.Mode);
         var world = new WorldStateFactory().Create(definition);
 
         if (options.Arena == "abuse")

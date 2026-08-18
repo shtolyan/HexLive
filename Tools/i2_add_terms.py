@@ -30,7 +30,10 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 ASSET = REPO / "Assets" / "Resources" / "I2Languages.asset"
 
-TERM_RE = re.compile(r"^    - Term: '(?P<term>.*)'$")
+# Unity при пересохранении ассета убирает одинарные кавычки у простых строк
+# (`- Term: menu.continue`), а сам скрипт исторически писал `- Term: 'x'`.
+# Оба написания — один и тот же YAML, поэтому принимаем оба.
+TERM_RE = re.compile(r"^    - Term: (?:'(?P<q>.*)'|\"(?P<dq>.*)\"|(?P<bare>\S.*?))\s*$")
 # Конец списка терминов — первая строка того же уровня, что и mTerms.
 END_RE = re.compile(r"^    (CaseInsensitiveTerms|OnMissingTranslation|mTerm_AppName|mLanguages):")
 
@@ -110,7 +113,9 @@ def main():
         if match:
             if current is not None:
                 spans[current][1] = i
-            current = match.group("term")
+            current = (match.group("q") if match.group("q") is not None
+                       else match.group("dq") if match.group("dq") is not None
+                       else match.group("bare"))
             order.append(current)
             spans[current] = [i, None]
             continue

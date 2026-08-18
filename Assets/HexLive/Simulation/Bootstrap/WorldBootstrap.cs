@@ -44,6 +44,12 @@ public sealed class SimulationBootstrapSettings
     // Spec 29C.1: world seed — same seed reproduces the run exactly.
     public int Seed { get; set; } = 12345;
 
+    // §146: the scenario this world was created as. Worldgen picks the island
+    // by it, WorldStateFactory stamps it into WorldState.Mode, and the save/
+    // handshake layers refuse to mix worlds of different modes. Dev-scene
+    // bootstraps keep the default and stay mode-less.
+    public GameMode Mode { get; set; } = GameMode.Feud;
+
     // Temporary vertical slice for the architectural-building pass: prototype
     // islands start with one complete, usable 1-hex hut beside the colony
     // hearth. Small test bootstraps keep the old empty default.

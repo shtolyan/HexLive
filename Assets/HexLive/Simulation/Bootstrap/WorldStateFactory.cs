@@ -21,7 +21,8 @@ public sealed class WorldStateFactory
         {
             Tick = 0,
             TickDeltaTime = bootstrap.Simulation.TickDeltaTime,
-            Seed = bootstrap.Simulation.Seed
+            Seed = bootstrap.Simulation.Seed,
+            Mode = bootstrap.Simulation.Mode
         };
 
         foreach (var pair in PrototypeContentCatalog.CreateDefaults())

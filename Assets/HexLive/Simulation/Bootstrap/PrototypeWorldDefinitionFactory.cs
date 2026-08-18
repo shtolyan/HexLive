@@ -6,7 +6,7 @@ using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Bootstrap
 {
-    public static class PrototypeWorldDefinitionFactory
+    public static partial class PrototypeWorldDefinitionFactory
     {
         // §73: границы карты. Были зашиты числами в четырёх местах, из-за чего
         // «расширить остров» означало найти и согласовать их все, включая те,
@@ -39,11 +39,27 @@ namespace HexLive.Simulation.Bootstrap
         /// </summary>
         public static Func<int, WorldBootstrapDefinition> Override;
 
-        public static WorldBootstrapDefinition Create(int seed = 12345)
+        // §146.1: one entry point, two scenarios. The Feud body below is the
+        // shipped island, byte-for-byte; BigIsland lives in its own partial.
+        // The dev-scene Override wins regardless of mode — those scenes are
+        // deliberately mode-less.
+        public static WorldBootstrapDefinition Create(
+            int seed = 12345, GameMode mode = GameMode.Feud)
         {
             var over = Override;
             if (over != null) return over(seed);
 
+            if (mode == GameMode.BigIsland)
+            {
+                return CreateBigIsland(seed);
+            }
+
+            return CreateFeud(seed);
+        }
+
+        private static WorldBootstrapDefinition CreateFeud(
+            int seed, bool includeOutsiders = true)
+        {
             var definition = new WorldBootstrapDefinition
             {
                 Simulation = new SimulationBootstrapSettings
@@ -52,6 +68,7 @@ namespace HexLive.Simulation.Bootstrap
                     MediumTickInterval = 4,
                     SlowTickInterval = 16,
                     Seed = seed,
+                    Mode = GameMode.Feud,
                     SpawnCompletedTestHut = true
                 },
                 Environment = new EnvironmentBootstrap
@@ -142,7 +159,10 @@ namespace HexLive.Simulation.Bootstrap
             AddIslandElevation(definition.Fragments[0], seed);
             AddSeaChannel(definition.Fragments[0], seed);
             AddNaturalFeatures(definition, seed);
-            AddOutsiderCamp(definition, seed);
+            if (includeOutsiders)
+            {
+                AddOutsiderCamp(definition, seed);
+            }
             return definition;
         }
 

@@ -17,11 +17,16 @@ namespace HexLive.UnityPresentation.Bootstrap
     [Serializable]
     public sealed class SaveGameData
     {
-        public int version = 2;
+        public int version = 3;
         public int seed;
         public int tick;
         public long unixSeconds;
         public float speed = 1f;
+
+        // §146.2: GameMode ordinal. Худер v2 писался до режимов — читается
+        // как Feud (0). Живёт во ВНЕШНЕМ заголовке, потому что режим нужен
+        // ДО worldgen'а: блоб применяется на уже построенный остров.
+        public int mode;
     }
 
     public static class SaveGame
@@ -41,7 +46,8 @@ namespace HexLive.UnityPresentation.Bootstrap
         public static int OfflineTicksCap => int.MaxValue / 2;
 
         private const int Magic = 0x48584C56; // "HXLV"
-        private const int Version = 2;
+        // v3 (§146.2): GameMode ordinal after speed. v2 reads as Feud.
+        private const int Version = 3;
 
         private static string FilePath =>
             Path.Combine(Application.persistentDataPath, "hexlive_save.dat");
@@ -67,6 +73,7 @@ namespace HexLive.UnityPresentation.Bootstrap
                     writer.Write(world.Tick);
                     writer.Write(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
                     writer.Write(speed);
+                    writer.Write((int)world.Mode); // §146.2 (v3)
                     WorldSaveSerializer.Write(world, writer);
                 }
 
@@ -96,18 +103,30 @@ namespace HexLive.UnityPresentation.Bootstrap
 
                 using var stream = File.OpenRead(FilePath);
                 using var reader = new BinaryReader(stream);
-                if (reader.ReadInt32() != Magic || reader.ReadInt32() != Version)
+                if (reader.ReadInt32() != Magic)
+                {
+                    return null;
+                }
+
+                var version = reader.ReadInt32();
+                if (version != 2 && version != Version)
                 {
                     return null;
                 }
 
                 var data = new SaveGameData
                 {
+                    version = version,
                     seed = reader.ReadInt32(),
                     tick = reader.ReadInt32(),
                     unixSeconds = reader.ReadInt64(),
-                    speed = reader.ReadSingle()
+                    speed = reader.ReadSingle(),
+                    mode = 0
                 };
+                if (version >= 3)
+                {
+                    data.mode = reader.ReadInt32();
+                }
                 return data.tick >= 0 ? data : null;
             }
             catch (Exception e)
@@ -126,7 +145,13 @@ namespace HexLive.UnityPresentation.Bootstrap
             {
                 using var stream = File.OpenRead(FilePath);
                 using var reader = new BinaryReader(stream);
-                if (reader.ReadInt32() != Magic || reader.ReadInt32() != Version)
+                if (reader.ReadInt32() != Magic)
+                {
+                    return false;
+                }
+
+                var version = reader.ReadInt32();
+                if (version != 2 && version != Version)
                 {
                     return false;
                 }
@@ -135,6 +160,10 @@ namespace HexLive.UnityPresentation.Bootstrap
                 reader.ReadInt32(); // tick
                 reader.ReadInt64(); // unixSeconds
                 reader.ReadSingle(); // speed
+                if (version >= 3)
+                {
+                    reader.ReadInt32(); // mode (validated inside the blob, v51)
+                }
                 WorldSaveSerializer.Read(world, reader);
                 return true;
             }

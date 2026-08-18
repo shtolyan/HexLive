@@ -42,7 +42,8 @@ public sealed class WorldSupervisor : IDisposable
     private Thread _thread;
     private string _simData;
 
-    public WorldSupervisor(int seed, string savePath, string simDataPath, bool verboseTrace,
+    public WorldSupervisor(int seed, HexLive.Simulation.Bootstrap.GameMode mode,
+        string savePath, string simDataPath, bool verboseTrace,
         bool includeDebugDetails, LlmHostOptions llmOptions, CancellationToken appShutdown)
     {
         _savePath = savePath;
@@ -52,7 +53,7 @@ public sealed class WorldSupervisor : IDisposable
         _llmOptions = llmOptions;
         _appShutdown = appShutdown;
 
-        _host = new WorldHost(seed, savePath, simDataPath, verboseTrace, includeDebugDetails, llmOptions);
+        _host = new WorldHost(seed, mode, savePath, simDataPath, verboseTrace, includeDebugDetails, llmOptions);
         _hostLifetime = CancellationTokenSource.CreateLinkedTokenSource(appShutdown);
         _viewerLifetime = CancellationTokenSource.CreateLinkedTokenSource(appShutdown);
         _thread = StartThread(_host, _hostLifetime.Token);
@@ -120,7 +121,8 @@ public sealed class WorldSupervisor : IDisposable
     /// for a month", and a backup file costs nothing.
     /// </para>
     /// </summary>
-    public void StartNewWorld(int seed)
+    public void StartNewWorld(int seed,
+        HexLive.Simulation.Bootstrap.GameMode mode = HexLive.Simulation.Bootstrap.GameMode.Feud)
     {
         lock (_swap)
         {
@@ -140,7 +142,7 @@ public sealed class WorldSupervisor : IDisposable
 
             ArchiveSave();
 
-            _host = new WorldHost(seed, _savePath, _simDataPath, _verboseTrace, _includeDebugDetails, _llmOptions);
+            _host = new WorldHost(seed, mode, _savePath, _simDataPath, _verboseTrace, _includeDebugDetails, _llmOptions);
             _hostLifetime = CancellationTokenSource.CreateLinkedTokenSource(_appShutdown);
             _thread = StartThread(_host, _hostLifetime.Token);
             _simData = File.ReadAllText(_simDataPath);

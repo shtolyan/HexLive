@@ -57,7 +57,7 @@ public sealed class WorldHost : IDisposable
     private long _ticksRun;
     private double _busyMs;
 
-    public WorldHost(int seed, string savePath, string simDataPath, bool verboseTrace,
+    public WorldHost(int seed, GameMode mode, string savePath, string simDataPath, bool verboseTrace,
         bool includeDebugDetails = false, LlmHostOptions? llmOptions = null)
     {
         // The codec flag alone is not enough: the EXPORTER only fills the per-NPC
@@ -88,7 +88,7 @@ public sealed class WorldHost : IDisposable
 
         _savePath = savePath;
 
-        var definition = PrototypeWorldDefinitionFactory.Create(seed);
+        var definition = PrototypeWorldDefinitionFactory.Create(seed, mode);
         var world = new WorldStateFactory().Create(definition);
 
         _settings = new SimulationSettings
@@ -246,6 +246,18 @@ public sealed class WorldHost : IDisposable
             lock (_gate)
             {
                 return _engine.World.Seed;
+            }
+        }
+    }
+
+    // §146: worldgen ran with (seed, mode) — the handshake carries both.
+    public GameMode Mode
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _engine.World.Mode;
             }
         }
     }
@@ -648,6 +660,7 @@ public sealed class WorldHost : IDisposable
             writer.Write(SaveMagic);
             writer.Write(SaveVersion);
             writer.Write(Seed);
+            writer.Write((int)Mode); // §146.2 (v2) — beside the seed, same rule
             writer.Write(tick);
             writer.Write(blob.Length);
             writer.Write(blob);
@@ -657,7 +670,8 @@ public sealed class WorldHost : IDisposable
     }
 
     private const int SaveMagic = unchecked((int)0x48584C53); // "HXLS" — server save
-    private const int SaveVersion = 1;
+    // v2 (§146.2): GameMode ordinal after the seed. v1 saves are always Feud.
+    private const int SaveVersion = 2;
 
     private void TryRestore()
     {
@@ -671,13 +685,29 @@ public sealed class WorldHost : IDisposable
         {
             using var file = File.OpenRead(_savePath);
             using var reader = new BinaryReader(file);
-            if (reader.ReadInt32() != SaveMagic || reader.ReadInt32() != SaveVersion)
+            if (reader.ReadInt32() != SaveMagic)
+            {
+                Console.WriteLine("[world] save header not recognised — starting fresh");
+                return;
+            }
+
+            var headerVersion = reader.ReadInt32();
+            if (headerVersion != 1 && headerVersion != SaveVersion)
             {
                 Console.WriteLine("[world] save header not recognised — starting fresh");
                 return;
             }
 
             var savedSeed = reader.ReadInt32();
+            // §146.2: v1 predates modes and is always Feud.
+            var savedMode = headerVersion >= 2 ? (GameMode)reader.ReadInt32() : GameMode.Feud;
+            if (savedMode != _engine.World.Mode)
+            {
+                Console.WriteLine(
+                    $"[world] save is a {savedMode} world, this host runs {_engine.World.Mode} — starting fresh");
+                return;
+            }
+
             var savedTick = reader.ReadInt32();
             if (savedSeed != _engine.World.Seed)
             {

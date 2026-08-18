@@ -218,6 +218,11 @@ Connected clients cannot do it — only this panel can.</p></div>");
 'Start a NEW colony? The current one stops immediately. Its save is archived next to the current one, but the running world is gone.')"">
 <label>New world — seed (blank for random)</label>
 <input type='text' name='seed' placeholder='e.g. 12345' inputmode='numeric'>
+<label style='margin-top:8px'>Game mode</label>
+<select name='mode'>
+<option value='feud'>Feud with outsiders (classic island)</option>
+<option value='bigisland'>Big island survival (3 camps)</option>
+</select>
 <div class='row' style='margin-top:12px'><button class='danger'>Start a new world</button>
 <span class='dim' style='font-size:13px'>The existing save is archived, not deleted.</span></div></form>");
 
@@ -231,7 +236,8 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
         body.Append("<h2>Session</h2><div class='card'><div class='row'>")
             .Append("<form method='post' action='/admin/logout'><button>Sign out</button></form>")
             .Append("<span class='dim' style='font-size:13px'>seed <code>")
-            .Append(host.Seed).Append("</code> · topology <code>0x")
+            .Append(host.Seed).Append("</code> · mode <code>")
+            .Append(host.Mode).Append("</code> · topology <code>0x")
             .Append(host.TopologyChecksum.ToString("X8")).Append("</code></span>")
             .Append("</div></div>");
 

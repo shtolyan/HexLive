@@ -40,6 +40,7 @@ public sealed class HandshakeCompressionGateTests
         var sent = new Handshake
         {
             Seed = 872812195,
+            Mode = 1, // §146: BigIsland ordinal
             Tick = 17420,
             TickDeltaTime = 0.25f,
             SpeedMultiplier = 1f,
@@ -54,6 +55,7 @@ public sealed class HandshakeCompressionGateTests
         Assert.Multiple(() =>
         {
             Assert.That(got.Seed, Is.EqualTo(sent.Seed));
+            Assert.That(got.Mode, Is.EqualTo(sent.Mode));
             Assert.That(got.Tick, Is.EqualTo(sent.Tick));
             Assert.That(got.TickDeltaTime, Is.EqualTo(sent.TickDeltaTime));
             Assert.That(got.SpeedMultiplier, Is.EqualTo(sent.SpeedMultiplier));
@@ -74,8 +76,9 @@ public sealed class HandshakeCompressionGateTests
         var frame = Encode(new Handshake { Seed = 1, SimData = "{}" });
 
         // Подменяем объявленную длину разжатого на 1 ГБ: она лежит сразу за
-        // фиксированной шапкой (версия, сид, тик, dt, скорость, пауза, seq, сумма).
-        const int offset = 4 + 4 + 4 + 4 + 4 + 1 + 8 + 4;
+        // фиксированной шапкой (версия, сид, режим §146, тик, dt, скорость,
+        // пауза, seq, сумма).
+        const int offset = 4 + 4 + 4 + 4 + 4 + 4 + 1 + 8 + 4;
         System.BitConverter.GetBytes(1_000_000_000).CopyTo(frame, offset);
 
         Assert.Throws<InvalidDataException>(() => Decode(frame));

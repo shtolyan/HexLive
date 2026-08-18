@@ -201,17 +201,20 @@ public static class AdminEndpoints
             var seed = int.TryParse(form["seed"], out var parsed)
                 ? parsed
                 : Environment.TickCount;
+            // §146: an unrecognised value falls back to Feud — the select only
+            // offers valid names, so this is belt for hand-crafted POSTs.
+            ServerOptions.TryParseMode(form["mode"], out var mode);
 
             try
             {
-                worlds.StartNewWorld(seed);
+                worlds.StartNewWorld(seed, mode);
             }
             catch (Exception ex)
             {
                 return Redirect("/admin?notice=Could not start a new world: " + ex.Message);
             }
 
-            return Redirect($"/admin?notice=New world started, seed {seed}.");
+            return Redirect($"/admin?notice=New world started, seed {seed}, mode {mode}.");
         });
 
         app.MapPost("/admin/shutdown", (HttpContext context) => Guarded(context, sessions, () =>

@@ -59,6 +59,14 @@ namespace HexLive.UnityPresentation.UI
         private TextField _serverField;
         private TextField _tokenField;
 
+        // §146: which scenario "New game" starts. The row expands into the two
+        // mode rows (the Connect-row pattern); the last pick is remembered so
+        // the next new game defaults to it. Continue/Restart ignore this and
+        // take the mode from the save header.
+        private HexLive.Simulation.Bootstrap.GameMode _newGameMode;
+        private VisualElement _newGameBox;
+        private const string NewGameModePref = "HexLive.NewGameMode";
+
         private VisualElement _root;
         private VisualElement _menuBox;
         private VisualElement _progressFill;
@@ -229,12 +237,12 @@ namespace HexLive.UnityPresentation.UI
                 _menuChosen = true;
             }));
 
+            // §146: "New game" opens the mode choice instead of starting
+            // immediately — two worlds now live behind this row.
             card.Add(MakeMenuRow("plus", Loc.Get("menu.newgame"),
-                primary: false, enabled: true, () =>
-            {
-                _continueChosen = false;
-                _menuChosen = true;
-            }));
+                primary: false, enabled: true, () => ToggleNewGameBox()));
+            _newGameBox = BuildNewGameBox();
+            card.Add(_newGameBox);
 
             // Watch a world running on a server instead of building one here.
             // The row expands into an address field rather than opening another
@@ -481,6 +489,57 @@ namespace HexLive.UnityPresentation.UI
             _menuChosen = true;
         }
 
+        // §146: the two scenarios behind "New game". Rows, not a dropdown —
+        // the whole menu is rows, and two options do not earn a widget.
+        private VisualElement BuildNewGameBox()
+        {
+            var box = new VisualElement
+            {
+                style =
+                {
+                    display = DisplayStyle.None,
+                    paddingLeft = 24, paddingRight = 12, paddingBottom = 4
+                }
+            };
+
+            var remembered = PlayerPrefs.GetInt(NewGameModePref, 0);
+            _newGameMode = remembered == (int)HexLive.Simulation.Bootstrap.GameMode.BigIsland
+                ? HexLive.Simulation.Bootstrap.GameMode.BigIsland
+                : HexLive.Simulation.Bootstrap.GameMode.Feud;
+
+            AddNewGameModeRow(box, "menu.newgame.mode.feud",
+                HexLive.Simulation.Bootstrap.GameMode.Feud);
+            AddNewGameModeRow(box, "menu.newgame.mode.bigisland",
+                HexLive.Simulation.Bootstrap.GameMode.BigIsland);
+            return box;
+        }
+
+        private void AddNewGameModeRow(
+            VisualElement box, string term, HexLive.Simulation.Bootstrap.GameMode mode)
+        {
+            var row = MakeMenuRow("play", Loc.Get(term), primary: false, enabled: true, () =>
+            {
+                _newGameMode = mode;
+                PlayerPrefs.SetInt(NewGameModePref, (int)mode);
+                PlayerPrefs.Save();
+                _continueChosen = false;
+                _menuChosen = true;
+            });
+            row.style.height = 36;
+            box.Add(row);
+        }
+
+        private void ToggleNewGameBox()
+        {
+            if (_newGameBox == null)
+            {
+                return;
+            }
+
+            var opening = _newGameBox.style.display == DisplayStyle.None;
+            _newGameBox.style.display = opening ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
         private void ToggleConnectRow(VisualElement card)
         {
             if (_connectBox == null)
@@ -707,11 +766,15 @@ namespace HexLive.UnityPresentation.UI
             }
 
             int seed;
+            // §146.2: the mode is part of the world's identity. Continue and
+            // Restart take it from the save header; only New game asks the menu.
+            var mode = HexLive.Simulation.Bootstrap.GameMode.Feud;
             if (_continueChosen && _save != null)
             {
                 seed = _save.seed;
+                mode = (HexLive.Simulation.Bootstrap.GameMode)_save.mode;
                 _targetTick = _save.tick + SaveGame.OfflineTicks(_save);
-                Debug.Log($"[HexLive] Resuming save: seed {seed}, tick {_save.tick}" +
+                Debug.Log($"[HexLive] Resuming save: seed {seed} ({mode}), tick {_save.tick}" +
                     $" + offline {_targetTick - _save.tick}");
             }
             else
@@ -722,6 +785,9 @@ namespace HexLive.UnityPresentation.UI
                 // known island seed be restarted cleanly without keeping the
                 // old mutable save.
                 var restartSeed = _restartChosen && _save != null ? _save.seed : (int?)null;
+                mode = _restartChosen && _save != null
+                    ? (HexLive.Simulation.Bootstrap.GameMode)_save.mode
+                    : _newGameMode;
                 SaveGame.Delete();
                 if (restartSeed.HasValue)
                 {
@@ -733,8 +799,8 @@ namespace HexLive.UnityPresentation.UI
                 }
                 _targetTick = 0;
                 Debug.Log(restartSeed.HasValue
-                    ? $"[HexLive] Restart same island: seed {seed}"
-                    : $"[HexLive] New game: seed {seed}");
+                    ? $"[HexLive] Restart same island: seed {seed} ({mode})"
+                    : $"[HexLive] New game: seed {seed} ({mode})");
             }
 
             // This session is local — so Continue offers the local save next
@@ -761,7 +827,7 @@ namespace HexLive.UnityPresentation.UI
             try
             {
                 _runner.Configure(
-                    HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed),
+                    HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed, mode),
                     startPaused: true, initialSpeed: speed);
 
                 // Spec 41.2 v2: apply the saved MODEL onto the freshly built
@@ -779,7 +845,7 @@ namespace HexLive.UnityPresentation.UI
                         seed = System.Environment.TickCount;
                         _targetTick = 0;
                         _runner.Configure(
-                            HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed),
+                            HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed, mode),
                             startPaused: true, initialSpeed: 1f);
                     }
                     else if (restoreEngine.World.Completed)

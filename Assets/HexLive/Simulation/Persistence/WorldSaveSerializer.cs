@@ -111,7 +111,11 @@ public static class WorldSaveSerializer
     // объект несёт BlueprintId (0 = встроенный committed-план). Без реестра
     // загрузчик переписал бы геометрию слотов произвольного дома из
     // committed-плана — молча и навсегда.
-    public const int BlobVersion = 50;
+    // v51 (§146.2): режим мира + ревизия генератора большого острова сразу за
+    // сидом. Проверяются как сид: блоб, записанный на чужой геометрии (другой
+    // режим или выросшая карта BigIsland), отклоняется, а не применяется молча
+    // на несуществующие тайлы. Блобы ≤50 — всегда Feud.
+    public const int BlobVersion = 51;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -126,6 +130,12 @@ public static class WorldSaveSerializer
     {
         w.Write(BlobVersion);
         w.Write(world.Seed);
+        // §146.2 (v51): режим и ревизия worldgen'а — вторая половина ключа
+        // «на какой геометрии написан этот блоб» (первая — сид).
+        w.Write((int)world.Mode);
+        w.Write(world.Mode == Bootstrap.GameMode.BigIsland
+            ? Bootstrap.PrototypeWorldDefinitionFactory.BigIslandWorldGenRevision
+            : 0);
         w.Write(world.Tick);
         w.Write(world.NextRuntimeObjectId);
         w.Write(world.RaftProgress);
@@ -344,6 +354,28 @@ public static class WorldSaveSerializer
         if (seed != world.Seed)
         {
             throw new InvalidDataException($"Save seed {seed} does not match world seed {world.Seed}.");
+        }
+
+        // §146.2 (v51): блоб обязан лечь на worldgen СВОЕГО режима и своей
+        // ревизии. Блобы ≤50 писались до режимов — они всегда Feud.
+        var savedMode = version >= 51 ? (Bootstrap.GameMode)r.ReadInt32() : Bootstrap.GameMode.Feud;
+        if (savedMode != world.Mode)
+        {
+            throw new InvalidDataException(
+                $"Save mode {savedMode} does not match world mode {world.Mode}.");
+        }
+
+        if (version >= 51)
+        {
+            var revision = r.ReadInt32();
+            var expected = world.Mode == Bootstrap.GameMode.BigIsland
+                ? Bootstrap.PrototypeWorldDefinitionFactory.BigIslandWorldGenRevision
+                : 0;
+            if (revision != expected)
+            {
+                throw new InvalidDataException(
+                    $"Save worldgen revision {revision}, this build generates {expected}.");
+            }
         }
 
         world.Tick = r.ReadInt32();

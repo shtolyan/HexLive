@@ -105,9 +105,16 @@ public sealed class Handshake
     // 4: simdata едет gzip'ом — 530 КБ текста против 35 КБ (15x).
     // 5: §121.9/§83 — кадры NpcCommand/CommandResult, поля ControlEnabled/
     //    ControlOwner в рукопожатии: игрок по сети управляет колонисткой.
-    public const int ProtocolVersion = 5;
+    // 6: §146.2 — Mode: клиент регенерирует остров из (seed, mode), поэтому
+    //    режим обязан ехать в рукопожатии, иначе topology checksum честно, но
+    //    непонятно отвергал бы каждое подключение к BigIsland-миру.
+    public const int ProtocolVersion = 6;
 
     public int Seed { get; set; }
+
+    /// <summary>§146: ordinal of <c>GameMode</c> the server's world was
+    /// created as. The client passes it to worldgen beside the seed.</summary>
+    public int Mode { get; set; }
 
     public int Tick { get; set; }
 
@@ -147,6 +154,7 @@ public sealed class Handshake
     {
         w.Write(ProtocolVersion);
         w.Write(Seed);
+        w.Write(Mode);
         w.Write(Tick);
         w.Write(TickDeltaTime);
         w.Write(SpeedMultiplier);
@@ -170,6 +178,7 @@ public sealed class Handshake
         return new Handshake
         {
             Seed = r.ReadInt32(),
+            Mode = r.ReadInt32(),
             Tick = r.ReadInt32(),
             TickDeltaTime = r.ReadSingle(),
             SpeedMultiplier = r.ReadSingle(),

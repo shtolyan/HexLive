@@ -144,6 +144,12 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     public int Seed => _handshake?.Seed ?? 0;
 
+    // §146.2: the (seed, mode) the ACCEPTED world was built from. Snapshotted
+    // when the first handshake passes the checksum — `_handshake` itself is
+    // replaced by every reconnect, so comparing against it would always agree.
+    private int _acceptedSeed;
+    private GameMode _acceptedMode;
+
     public int CurrentTick => _snapshot.Tick;
 
     public float TickAlpha => _clock.TickAlpha;
@@ -729,11 +735,13 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
         if (_ready)
         {
-            // Reconnected. A different seed means the operator restarted the
-            // server on another world — nothing we are showing is valid any more.
-            if (handshake.Seed != Seed)
+            // Reconnected. A different seed or mode means the operator
+            // restarted the server on another world — nothing we are showing
+            // is valid any more.
+            if (handshake.Seed != _acceptedSeed || (GameMode)handshake.Mode != _acceptedMode)
             {
-                Fail($"The server is now running seed {handshake.Seed}, not {Seed} — this is a different world.");
+                Fail($"The server is now running seed {handshake.Seed} ({(GameMode)handshake.Mode})," +
+                     $" not {_acceptedSeed} ({_acceptedMode}) — this is a different world.");
                 _ready = false;
                 return;
             }
@@ -762,7 +770,11 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             return;
         }
 
-        var definition = PrototypeWorldDefinitionFactory.Create(handshake.Seed);
+        // §146.2: the island is a function of (seed, mode) — regenerate with
+        // the server's mode or the checksum below would refuse every BigIsland
+        // world with a misleading "different builds".
+        var definition = PrototypeWorldDefinitionFactory.Create(
+            handshake.Seed, (GameMode)handshake.Mode);
         _localWorld = new WorldStateFactory().Create(definition);
 
         var checksum = TopologyChecksum.Compute(_localWorld);
@@ -793,6 +805,9 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         // Object definition ids travel as indices into a table both ends derive
         // from this same catalog. Must be built BEFORE the first frame decodes.
         DefinitionIdTable.Build(_localWorld.Content);
+
+        _acceptedSeed = handshake.Seed;
+        _acceptedMode = (GameMode)handshake.Mode;
 
         lock (_inbox)
         {

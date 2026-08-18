@@ -88,6 +88,12 @@ public sealed class WorldState
     // The authored opening outsider is not a wave; this counts 1, 2, ... only.
     public int RaidWavesSpawned { get; set; }
 
+    // §146: the scenario this world was created as. Stamped by WorldStateFactory
+    // from the bootstrap, written into the save blob (v51) and compared on load
+    // like the seed — a blob applied onto the wrong mode's worldgen would put
+    // objects on tiles that do not exist.
+    public Bootstrap.GameMode Mode { get; set; } = Bootstrap.GameMode.Feud;
+
     // §132: same schedule cursor for the colony's weekly arrival. It counts
     // processed opportunities, not living arrivals, for the same no-backlog rule.
     public int ColonyArrivalsProcessed { get; set; }

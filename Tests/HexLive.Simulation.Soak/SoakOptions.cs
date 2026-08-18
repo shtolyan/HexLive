@@ -11,6 +11,8 @@ namespace HexLive.Simulation.Soak
 public sealed class SoakOptions
 {
     public List<int> Seeds = new List<int> { 12345 };
+    // §146: which scenario the prototype arena generates.
+    public HexLive.Simulation.Bootstrap.GameMode Mode = HexLive.Simulation.Bootstrap.GameMode.Feud;
     public int Ticks = 4000;
     public string SimDataPath;
     public string MetricsJsonPath;
@@ -154,6 +156,16 @@ public sealed class SoakOptions
                     case "--ticks":
                         options.Ticks = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--mode":
+                        options.Mode = Next(arg).Trim().ToLowerInvariant() switch
+                        {
+                            "feud" or "0" => HexLive.Simulation.Bootstrap.GameMode.Feud,
+                            "bigisland" or "big-island" or "1" =>
+                                HexLive.Simulation.Bootstrap.GameMode.BigIsland,
+                            var other => throw new ArgumentException(
+                                $"--mode {other}: feud | bigisland"),
+                        };
+                        break;
                     case "--simdata":
                         options.SimDataPath = Next(arg);
                         break;
@@ -262,6 +274,7 @@ public sealed class SoakOptions
   --state-hash-every N    добавлять в трассу хэш полного кадра раз в N тиков
 
   --arena NAME            prototype (по умолчанию) | abuse — арена §91
+  --mode NAME             feud (по умолчанию) | bigisland — режим §146
   --combat-frames         по-тиковая раскадровка боя: замах/попадание/готовность
   --journal N             §136: напечатать дневник NPC N — что она сама
                           записала о своих днях. 12000 тиков = 12 записей

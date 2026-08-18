@@ -58,7 +58,7 @@ public static class Program
         {
             // The supervisor owns the world AND its tick thread, so the admin
             // panel can start a fresh colony without restarting the process.
-            worlds = new WorldSupervisor(options.Seed, options.SavePath, options.SimDataPath,
+            worlds = new WorldSupervisor(options.Seed, options.Mode, options.SavePath, options.SimDataPath,
                 options.VerboseTrace, options.IncludeDebugDetails, options.Llm, lifetime.Token);
         }
         catch (Exception ex)
@@ -334,6 +334,32 @@ public sealed class ServerOptions
 {
     public int Seed { get; private set; } = 12345;
 
+    // §146: which scenario a fresh world is generated as. An existing save
+    // wins over worldgen as always — but only if its header carries the SAME
+    // mode; a mismatch starts fresh rather than corrupting.
+    public HexLive.Simulation.Bootstrap.GameMode Mode { get; private set; } =
+        HexLive.Simulation.Bootstrap.GameMode.Feud;
+
+    // Shared by --mode and the admin panel's new-world form.
+    public static bool TryParseMode(string? value, out HexLive.Simulation.Bootstrap.GameMode mode)
+    {
+        switch (value?.Trim().ToLowerInvariant())
+        {
+            case "feud":
+            case "0":
+                mode = HexLive.Simulation.Bootstrap.GameMode.Feud;
+                return true;
+            case "bigisland":
+            case "big-island":
+            case "1":
+                mode = HexLive.Simulation.Bootstrap.GameMode.BigIsland;
+                return true;
+            default:
+                mode = HexLive.Simulation.Bootstrap.GameMode.Feud;
+                return false;
+        }
+    }
+
     public int Port { get; private set; } = 5123;
 
     public string SavePath { get; private set; } = "hexlive-server.sav";
@@ -435,6 +461,15 @@ public sealed class ServerOptions
                 case "--seed" when i + 1 < args.Length:
                     options.Seed = int.Parse(args[++i]);
                     break;
+                case "--mode" when i + 1 < args.Length:
+                    if (!TryParseMode(args[++i], out var mode))
+                    {
+                        Console.Error.WriteLine(
+                            $"Unknown mode '{args[i]}' — feud or bigisland.");
+                        return null;
+                    }
+                    options.Mode = mode;
+                    break;
                 case "--port" when i + 1 < args.Length:
                     options.Port = int.Parse(args[++i]);
                     break;
@@ -491,6 +526,7 @@ public sealed class ServerOptions
                     Console.WriteLine(
                         "HexLive server\n" +
                         "  --seed N         world seed (default 12345)\n" +
+                        "  --mode NAME      game mode for a fresh world: feud | bigisland (default feud)\n" +
                         "  --port N         listen port (default 5123)\n" +
                         "  --save PATH      save file (default hexlive-server.sav)\n" +
                         "  --simdata PATH   exported catalogs (default SimData/simdata.json)\n" +

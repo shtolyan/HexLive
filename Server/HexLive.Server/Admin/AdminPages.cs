@@ -236,8 +236,27 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
             .Append("</div></div>");
 
         // The numbers go stale in seconds; refresh rather than making the
-        // operator wonder whether the world is stuck.
-        body.Append("<script>setTimeout(function(){location.reload()},10000)</script>");
+        // operator wonder whether the world is stuck. ⭐ Но НИКОГДА поверх
+        // недописанной формы: слепой reload стирал пароль и email посреди
+        // набора, и оператор вводил их через буфер обмена с третьей попытки.
+        // Правило простое: тронул любое поле или держишь в нём фокус —
+        // автообновление замирает, пока форма не отправлена (submit сам
+        // уводит со страницы) или поля не потеряли и фокус, и правки.
+        body.Append(@"<script>
+(function(){
+  var dirty = false;
+  document.addEventListener('input', function(){ dirty = true; });
+  function editing(){
+    var a = document.activeElement;
+    return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
+  }
+  function tick(){
+    if (dirty || editing()) { setTimeout(tick, 2000); return; }
+    location.reload();
+  }
+  setTimeout(tick, 10000);
+})();
+</script>");
 
         return Page("Dashboard", body.ToString());
     }

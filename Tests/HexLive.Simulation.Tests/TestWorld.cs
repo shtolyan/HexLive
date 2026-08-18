@@ -1,3 +1,4 @@
+using System.Linq;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
@@ -45,6 +46,39 @@ public static class TestWorld
     }
 
     public static WorldState CreateWorld(int seed = 12345) => CreateEngine(seed).World;
+
+    /// <summary>§120.3 r2: стартовый дом прототипа — конструкторное
+    /// plan-здание (чертёж Hut1Hex из реестра §120.8), не FBX-кит hut_1hex.
+    /// Тесты, которым нужен «дом мира», обязаны идти сюда, а не искать
+    /// конкретный DefinitionId.</summary>
+    public static Content.WorldObjectState StartHut(WorldState world) =>
+        world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == Content.ContentIds.HutPlan &&
+            string.IsNullOrEmpty(obj.BuildProduct));
+
+    /// <summary>Легаси-кит hut_1hex, построенный вручную: путь совместимости
+    /// старых сейвов (интегрированные кровати §120.2, авторский шкаф §133,
+    /// ремонты якорей). Новые миры такой дом больше не рождают — тесты этих
+    /// контрактов обязаны собирать его сами.</summary>
+    public static Content.WorldObjectState SpawnLegacyKitHut(WorldState world)
+    {
+        foreach (var coord in world.Tiles.Items.Keys
+                     .OrderBy(c => c.Q).ThenBy(c => c.R))
+        {
+            if (!Bootstrap.BuildingBootstrap.CanPlaceHut(world, coord)) continue;
+            if (Runtime.StructurePlacement.CenterJunction(world, coord) is not { } anchor) continue;
+            var hut = Core.WorldObjectMutations.SpawnObject(
+                world, Content.ContentIds.Hut1Hex,
+                world.Junctions.Items[anchor].Fragment, coord, anchor);
+            Runtime.BuildingRules.EnsureHutElements(world, hut, completed: true);
+            hut.RotationDegrees = 360f;
+            Bootstrap.BuildingBootstrap.CompleteHut(world, hut);
+            return hut;
+        }
+
+        throw new System.InvalidOperationException(
+            "Прототипный остров не дал места под легаси-кит.");
+    }
 }
 
 }

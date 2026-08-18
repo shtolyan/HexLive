@@ -24,6 +24,10 @@ public sealed class PlayerBlueprintTests
     {
         var engine = TestWorld.CreateEngine(seed);
         var world = engine.World;
+        // §120.3 r2: стартовый дом мира уже держит свой чертёж в реестре —
+        // счёт в тестах относительный, а размеченная площадка ищется как
+        // единственный ещё НЕ достроенный plan-объект.
+        var baseline = world.PlayerBlueprints.Count;
         var draft = BuiltInBuildingBlueprints.Hut1Hex();
         var json = BuildingBlueprintJson.Serialize(draft, pretty: false);
 
@@ -36,6 +40,8 @@ public sealed class PlayerBlueprintTests
                 continue;
             }
 
+            Assert.That(world.PlayerBlueprints, Has.Count.EqualTo(baseline + 1),
+                "Команда обязана зарегистрировать ровно один новый чертёж.");
             var site = world.Entities.Objects.Values.Single(candidate =>
                 candidate.BuildProduct == ContentIds.HutPlan && candidate.BlueprintId != 0);
             return (world, site, draft);
@@ -49,9 +55,6 @@ public sealed class PlayerBlueprintTests
     public void PlacedBlueprintUsesItsOwnModulesNotTheCommittedPlan()
     {
         var (world, site, draft) = PlaceCustomBlueprint(12345);
-
-        Assert.That(world.PlayerBlueprints, Has.Count.EqualTo(1),
-            "Команда обязана зарегистрировать чертёж в реестре мира.");
 
         var expected = BlueprintBuildingPlan.Modules(draft)
             .Select(module => module.Key).OrderBy(key => key).ToArray();
@@ -72,6 +75,7 @@ public sealed class PlayerBlueprintTests
     {
         var engine = TestWorld.CreateEngine(12345);
         var world = engine.World;
+        var baseline = world.PlayerBlueprints.Count;
         var json = BuildingBlueprintJson.Serialize(
             BuiltInBuildingBlueprints.Hut1Hex(), pretty: false);
 
@@ -80,7 +84,7 @@ public sealed class PlayerBlueprintTests
             json, new TileCoord(9999, 9999), rotationDegrees: 0f));
 
         Assert.That(admission.Accepted, Is.False);
-        Assert.That(world.PlayerBlueprints, Is.Empty,
+        Assert.That(world.PlayerBlueprints, Has.Count.EqualTo(baseline),
             "Отклонённая разметка не должна оставлять чертёж-сироту в реестре.");
     }
 

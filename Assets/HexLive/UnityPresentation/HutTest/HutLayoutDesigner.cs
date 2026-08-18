@@ -249,6 +249,15 @@ namespace HexLive.UnityPresentation.HutTest
                 _source = hut.transform;
                 break;
             }
+
+            // §120.3 r2: стартовый дом теперь plan-здание — FBX-кита в мире
+            // нет, якорь берётся у невидимого anchor-объекта агрегата.
+            if (_source == null)
+            {
+                var planAnchor = GameObject.Find("Object building.hut_plan (anchor)");
+                if (planAnchor != null) _source = planAnchor.transform;
+            }
+
             if (_source == null || _draft == null) return;
 
             foreach (var renderer in _source.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
@@ -256,6 +265,16 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 if (view == null || Vector3.Distance(view.transform.position, _source.position) >= 2f) continue;
                 foreach (var renderer in view.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+            }
+
+            // Модули plan-здания — не WorldObjectView; их виды гасятся отдельно,
+            // иначе превью конструктора рисуется поверх настоящего дома.
+            foreach (var module in FindObjectsByType<ArchitectureModuleView>(
+                         FindObjectsSortMode.None))
+            {
+                if (Vector3.Distance(module.transform.position, _source.position) >= 2.5f) continue;
+                foreach (var renderer in module.GetComponentsInChildren<Renderer>(true))
+                    renderer.enabled = false;
             }
 
             var root = new GameObject("Blueprint constructor preview");

@@ -24,14 +24,15 @@ public sealed class WardrobeTests
             .Select(id => world.Entities.Objects[id])
             .FirstOrDefault(o => o.DefinitionId == ContentIds.Wardrobe);
 
-    private static WorldObjectState Hut(WorldState world) =>
-        world.Entities.Objects.Values.First(o => o.DefinitionId == ContentIds.Hut1Hex);
+    private static WorldObjectState Hut(WorldState world) => TestWorld.StartHut(world);
 
     [Test]
     public void CompletedHutWardrobeBlocksItsAuthoredLineButKeepsSharedOwnership()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = Hut(world);
+        // Контракт авторского кита (§133/§118.2) — легаси-путь старых
+        // сейвов; новые миры кит не рождают, собираем его в тесте сами.
+        var hut = TestWorld.SpawnLegacyKitHut(world);
         var wardrobe = WardrobeIn(world, hut);
 
         Assert.That(wardrobe, Is.Not.Null, "В достроенной хижине нет гардероба.");
@@ -141,7 +142,9 @@ public sealed class WardrobeTests
     public void LoadingAHutWithoutAWardrobeInstallsOne()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = Hut(world);
+        // Контракт авторского кита (§133/§118.2) — легаси-путь старых
+        // сейвов; новые миры кит не рождают, собираем его в тесте сами.
+        var hut = TestWorld.SpawnLegacyKitHut(world);
         var wardrobe = WardrobeIn(world, hut);
         WorldObjectMutations.DespawnObject(world, wardrobe.Id);
         Assert.That(WardrobeIn(world, hut), Is.Null, "Гардероб не удалился — проверять нечего.");
@@ -159,7 +162,9 @@ public sealed class WardrobeTests
             WorldSaveSerializer.Read(loaded, reader);
         }
 
-        Assert.That(WardrobeIn(loaded, Hut(loaded)), Is.Not.Null,
+        var loadedKit = loaded.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.Hut1Hex);
+        Assert.That(WardrobeIn(loaded, loadedKit), Is.Not.Null,
             "После загрузки в доме нет гардероба — старые сейвы останутся без мебели.");
     }
 
@@ -167,7 +172,9 @@ public sealed class WardrobeTests
     public void RepairingWardrobeAnchorMovesItsStoredGarmentsWithIt()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = Hut(world);
+        // Контракт авторского кита (§133/§118.2) — легаси-путь старых
+        // сейвов; новые миры кит не рождают, собираем его в тесте сами.
+        var hut = TestWorld.SpawnLegacyKitHut(world);
         var wardrobe = WardrobeIn(world, hut);
         var approved = wardrobe.Junctions[0];
 
@@ -215,7 +222,7 @@ public sealed class WardrobeTests
         {
             var engine = TestWorld.CreateEngine(12345);
             var world = engine.World;
-            var hut = world.Entities.Objects.Values.First(o => o.DefinitionId == ContentIds.Hut1Hex);
+            var hut = TestWorld.StartHut(world);
             var wardrobe = world.Caches.ObjectsByTile[hut.Tile]
                 .Select(id => world.Entities.Objects[id])
                 .First(o => o.DefinitionId == ContentIds.Wardrobe);

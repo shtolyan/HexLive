@@ -58,20 +58,52 @@ public static class BuildingBootstrap
         }
 
         var homePosition = HexSpatialMath.TileToWorld(home);
-        // The authored pointy-top kit has its door bay outward normal at
-        // building yaw +300°.
+        // §120.3 r2: стартовый дом — БОЛЬШЕ НЕ авторский FBX-кит hut_1hex, а
+        // конструкторный чертёж Hut1Hex (§120.8): та же геометрия (окна на
+        // рёбрах 1 и 5, дверь в центре ребра 3, та же мебель на тех же
+        // координатах), но собранная из модулей конструктора — стартовый дом и
+        // дом, начерченный игроком, выглядят и живут одинаково. hut_1hex
+        // остаётся путём совместимости для старых сейвов.
+        var draft = Runtime.Blueprints.BuiltInBuildingBlueprints.Hut1Hex();
+        var blueprintId = world.NextPlayerBlueprintId++;
+        world.PlayerBlueprints[blueprintId] = draft;
+
+        var hut = WorldObjectMutations.SpawnObject(
+            world, ContentIds.HutPlan, center.Fragment, hutTile, anchorId);
+        hut.BlueprintId = blueprintId;
+        BuildingRules.EnsureHutElements(world, hut, completed: true);
         // Keep the hex itself on one of its six 60° symmetries and choose the
         // symmetry whose door normal is closest to camp. Arbitrary yaw rotates
         // walls off the tile edges; treating local forward as the door normal
         // seals the neighbouring edge instead of the visible doorway.
-        var hut = WorldObjectMutations.SpawnObject(
-            world, ContentIds.Hut1Hex, center.Fragment, hutTile, anchorId);
-        BuildingRules.EnsureHutElements(world, hut, completed: true);
         var desiredDoorYaw = StructurePlacement.FacingYaw(center.WorldPosition, homePosition);
         var localDoorYaw = BuildingRules.DoorOutwardYaw(world, hut);
         hut.RotationDegrees = StructurePlacement.QuantizeHexSymmetryYaw(
             desiredDoorYaw - localDoorYaw);
+        foreach (var piece in BuildingRules.ArchitectureObjects(world, hut))
+            piece.RotationDegrees = hut.RotationDegrees;
         CompleteHut(world, hut);
+
+        // §120.6 разметил мебель чертежа обычными площадками; стартовый дом
+        // рождается обжитым — поднимаем их тем же ядром подъёма, что у
+        // ExecutionSystem, без второй реализации.
+        var footprint = FootprintTiles(world, hut);
+        var furnitureSites = world.Entities.Objects.Values.Where(candidate =>
+                candidate.DefinitionId == ContentIds.BuildSite &&
+                !string.IsNullOrEmpty(candidate.BuildProduct) &&
+                candidate.BuildProduct != ContentIds.HutPlan &&
+                footprint.Contains(candidate.Tile))
+            .ToArray();
+        foreach (var site in furnitureSites)
+        {
+            Runtime.ExecutionSystem.RaiseFurnitureSite(world, site, center.Fragment, anchorId);
+        }
+
+        // §118.2: аптечка — спутница домашнего гардероба; канонической ветке
+        // её даёт SpawnWardrobe, плановому стартовому дому — этот вызов.
+        var starterWardrobe = FindWardrobe(world, hut);
+        if (starterWardrobe != null) SpawnMedkit(world, hut, starterWardrobe);
+
         SeedStarterWardrobeGarments(world, hut);
         return hut;
     }
@@ -1245,7 +1277,7 @@ public static class BuildingBootstrap
         WorldState world, WorldObjectState hut, WorldObjectState wardrobe)
     {
         if (FindMedkit(world, hut) != null) return;
-        if (FindMedkitJunction(world, hut) is not { } junctionId) return;
+        if (FindMedkitJunction(world, hut, wardrobe) is not { } junctionId) return;
 
         var medkit = WorldObjectMutations.SpawnObject(
             world, ContentIds.MedkitBox, hut.Fragment, hut.Tile, junctionId);
@@ -1461,7 +1493,7 @@ public static class BuildingBootstrap
         }
 
         var ignored = new HashSet<ObjectId> { medkit.Id };
-        if (FindMedkitJunction(world, hut, ignored) is not { } junctionId) return;
+        if (FindMedkitJunction(world, hut, wardrobe, ignored) is not { } junctionId) return;
 
         foreach (var blockedId in medkit.BlockedJunctions)
         {
@@ -1494,12 +1526,31 @@ public static class BuildingBootstrap
     private static JunctionId? FindMedkitJunction(
         WorldState world,
         WorldObjectState hut,
+        WorldObjectState wardrobe = null,
         ISet<ObjectId> ignoredObjects = null)
     {
         var center = HexSpatialMath.TileToWorld(hut.Tile);
         var radians = hut.RotationDegrees * MathF.PI / 180f;
-        var desired = center + RotateLocal(
-            new Float2(BuildingRules.HutMedkitLocalX, BuildingRules.HutMedkitLocalZ), radians);
+        // §118.2: «на один шаг сетки ближе к центру от pivot гардероба».
+        // §120.3 r2: у планового дома шкаф стоит там, куда его поставил ЧЕРТЁЖ,
+        // поэтому желанная точка выводится от фактического pivot шкафа, а
+        // авторские координаты кита остаются fallback'ом для легаси-хижины.
+        Float2 desired;
+        if (wardrobe != null && wardrobe.Junctions.Count == 1 &&
+            world.Junctions.Items.TryGetValue(wardrobe.Junctions[0], out var pivot))
+        {
+            var toCenter = center - pivot.WorldPosition;
+            var length = MathF.Sqrt(toCenter.X * toCenter.X + toCenter.Y * toCenter.Y);
+            desired = length > 0.001f
+                ? pivot.WorldPosition + new Float2(
+                    toCenter.X / length * 0.375f, toCenter.Y / length * 0.375f)
+                : pivot.WorldPosition;
+        }
+        else
+        {
+            desired = center + RotateLocal(
+                new Float2(BuildingRules.HutMedkitLocalX, BuildingRules.HutMedkitLocalZ), radians);
+        }
         JunctionId? best = null;
         var bestSq = float.MaxValue;
         foreach (var junctionId in world.Tiles.Items[hut.Tile].Junctions)

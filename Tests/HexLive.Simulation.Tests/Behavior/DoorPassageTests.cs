@@ -26,8 +26,7 @@ public sealed class DoorPassageTests
             obj.DefinitionId == DoorTopology.DoorDefinitionId);
 
     private static WorldObjectState Hut(WorldState world) =>
-        world.Entities.Objects.Values.Single(obj =>
-            obj.DefinitionId == ContentIds.Hut1Hex);
+        TestWorld.StartHut(world);
 
     private static JunctionId InteriorJunction(WorldState world)
     {

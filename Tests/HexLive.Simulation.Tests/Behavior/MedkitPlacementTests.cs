@@ -15,8 +15,7 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>§118.2: домашняя аптечка стоит отдельно от authored footprint гардероба.</summary>
 public sealed class MedkitPlacementTests
 {
-    private static WorldObjectState Hut(WorldState world) =>
-        world.Entities.Objects.Values.First(item => item.DefinitionId == ContentIds.Hut1Hex);
+    private static WorldObjectState Hut(WorldState world) => TestWorld.StartHut(world);
 
     private static WorldObjectState InHut(WorldState world, WorldObjectState hut, string id) =>
         world.Caches.ObjectsByTile[hut.Tile]
@@ -27,7 +26,9 @@ public sealed class MedkitPlacementTests
     public void MedkitUsesAuthoredFreeInteriorJunction()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = Hut(world);
+        // Контракт авторского кита (§133/§118.2) — легаси-путь старых
+        // сейвов; новые миры кит не рождают, собираем его в тесте сами.
+        var hut = TestWorld.SpawnLegacyKitHut(world);
         var wardrobe = InHut(world, hut, ContentIds.Wardrobe);
         var medkit = InHut(world, hut, ContentIds.MedkitBox);
         var center = HexSpatialMath.TileToWorld(hut.Tile);
@@ -59,7 +60,9 @@ public sealed class MedkitPlacementTests
     public void LoadingOldSharedWardrobeAnchorRepairsMedkitWithoutReplacingContents()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = Hut(world);
+        // Контракт авторского кита (§133/§118.2) — легаси-путь старых
+        // сейвов; новые миры кит не рождают, собираем его в тесте сами.
+        var hut = TestWorld.SpawnLegacyKitHut(world);
         var wardrobe = InHut(world, hut, ContentIds.Wardrobe);
         var medkit = InHut(world, hut, ContentIds.MedkitBox);
         var originalContents = medkit.Contents.Count;
@@ -79,7 +82,8 @@ public sealed class MedkitPlacementTests
             WorldSaveSerializer.Read(loaded, reader);
         }
 
-        var loadedHut = Hut(loaded);
+        var loadedHut = loaded.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.Hut1Hex);
         var loadedWardrobe = InHut(loaded, loadedHut, ContentIds.Wardrobe);
         var loadedMedkit = InHut(loaded, loadedHut, ContentIds.MedkitBox);
         Assert.Multiple(() =>

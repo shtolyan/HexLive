@@ -200,41 +200,61 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            var junction = site.Junctions.Count > 0 ? site.Junctions[0] : npc.CurrentJunction;
-            var tile = site.Tile;
             var product = site.BuildProduct;
-            // §64: a personal bed's ownership rides from the site onto the
-            // finished piece — this is what makes the raised bed hers.
+            var tile = site.Tile;
             var owner = site.Owner;
-            // §66: so does the yaw the site was staked at — the bed must come up
-            // lying side-on to the fire, not on whatever default the prefab has.
-            var yaw = site.RotationDegrees;
-            var variant = site.Variant;
-            var architectureOwner = site.Id;
-            WorldObjectMutations.DespawnObject(world, site.Id);
-            if (junction is { } j)
-            {
-                var raised = WorldObjectMutations.SpawnObject(world, product, npc.Fragment, tile, j);
-                raised.Owner = owner;
-                raised.RotationDegrees = yaw;
-                if (!string.IsNullOrEmpty(variant)) raised.Variant = variant;
-                ApplyIndoorFurnitureFootprint(world, raised);
-                BuildingRules.ReparentElements(world, architectureOwner, raised);
-                if (product == ContentIds.Workbench)
-                {
-                    raised.CraftJunction = StructurePlacement.WorkbenchJunction(
-                        world, tile, j, yaw);
-                }
-                else if (BuildSiteMath.IsArchitecturalBuilding(product))
-                {
-                    Bootstrap.BuildingBootstrap.CompleteHut(world, raised);
-                }
-            }
+            RaiseFurnitureSite(world, site, npc.Fragment, npc.CurrentJunction);
 
             Trace.Emit(world, npc.Id, "FurnitureBuilt",
                 $"{product} raised at Tile={tile.Q},{tile.R}" +
                 (owner is { } ow ? $" for colonist {ow.Value}" : string.Empty));
         }
+    }
+
+    /// <summary>
+    /// Ядро подъёма готовой мебельной площадки — БЕЗ NPC: этим же путём
+    /// стартовый дом (§120.3 r2) поднимает мебель своего чертежа при
+    /// worldgen'е. Второй реализации подъёма быть не должно — забытая деталь
+    /// (footprint, вариант, владелец, workbench-junction) ломается молча.
+    /// </summary>
+    internal static WorldObjectState RaiseFurnitureSite(
+        WorldState world, WorldObjectState site,
+        FragmentId fragment, JunctionId? fallbackJunction)
+    {
+        var junction = site.Junctions.Count > 0 ? site.Junctions[0] : fallbackJunction;
+        var tile = site.Tile;
+        var product = site.BuildProduct;
+        // §64: a personal bed's ownership rides from the site onto the
+        // finished piece — this is what makes the raised bed hers.
+        var owner = site.Owner;
+        // §66: so does the yaw the site was staked at — the bed must come up
+        // lying side-on to the fire, not on whatever default the prefab has.
+        var yaw = site.RotationDegrees;
+        var variant = site.Variant;
+        var architectureOwner = site.Id;
+        WorldObjectMutations.DespawnObject(world, site.Id);
+        if (junction is not { } j)
+        {
+            return null;
+        }
+
+        var raised = WorldObjectMutations.SpawnObject(world, product, fragment, tile, j);
+        raised.Owner = owner;
+        raised.RotationDegrees = yaw;
+        if (!string.IsNullOrEmpty(variant)) raised.Variant = variant;
+        ApplyIndoorFurnitureFootprint(world, raised);
+        BuildingRules.ReparentElements(world, architectureOwner, raised);
+        if (product == ContentIds.Workbench)
+        {
+            raised.CraftJunction = StructurePlacement.WorkbenchJunction(
+                world, tile, j, yaw);
+        }
+        else if (BuildSiteMath.IsArchitecturalBuilding(product))
+        {
+            Bootstrap.BuildingBootstrap.CompleteHut(world, raised);
+        }
+
+        return raised;
     }
 
     /// <summary>

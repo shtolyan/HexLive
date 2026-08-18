@@ -17,8 +17,7 @@ public sealed class SnapshotMovementRouteTests
     {
         const int reportSeed = -28147312;
         var world = TestWorld.CreateWorld(reportSeed);
-        var hut = world.Entities.Objects.Values.Single(
-            obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var hut = TestWorld.StartHut(world);
         var center = HexSpatialMath.TileToWorld(hut.Tile);
         var portal = world.Junctions.Items.Values.Single(junction =>
             junction.Door && junction.Tiles.Contains(hut.Tile));

@@ -77,8 +77,9 @@ public sealed class LyingSpotTests
     {
         var world = TestWorld.CreateWorld(12345);
         var girl = Girl(world);
-        var hut = world.Entities.Objects.Values.Single(o =>
-            o.DefinitionId == ContentIds.Hut1Hex);
+        // §120.2-инвариант точной позы принадлежит интегрированной кровати
+        // легаси-кита; новые миры её больше не рождают — собираем сами.
+        var hut = TestWorld.SpawnLegacyKitHut(world);
         var bed = world.Entities.Objects.Values.First(o =>
             o.DefinitionId == ContentIds.BedBasic &&
             o.Variant == ContentIds.HutBedVariant);
@@ -123,6 +124,7 @@ public sealed class LyingSpotTests
     public void BedSleepEntry_RejectsASecondSleeperWithoutPartialMutation()
     {
         var world = TestWorld.CreateWorld(12345);
+        TestWorld.SpawnLegacyKitHut(world);
         var girls = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).ToArray();
         var bed = world.Entities.Objects.Values.First(o =>
             o.DefinitionId == ContentIds.BedBasic &&
@@ -146,8 +148,12 @@ public sealed class LyingSpotTests
         var girls = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).ToArray();
         var girl = girls[0];
         MoveOtherNpcsAway(world, girl);
+        // Точная поза HutBedVisualPosition — контракт интегрированной кровати
+        // легаси-кита (§120.2); собираем кит в тесте.
+        TestWorld.SpawnLegacyKitHut(world);
         var bed = world.Entities.Objects.Values.First(o =>
-            o.DefinitionId == ContentIds.BedBasic && o.Variant == ContentIds.HutBedVariant);
+            o.DefinitionId == ContentIds.BedBasic &&
+            o.Variant == ContentIds.HutBedVariant);
 
         // Make this bed the deterministic first choice; no unrelated bed may
         // accidentally satisfy the assertion just because it is a little nearer.
@@ -376,7 +382,8 @@ public sealed class LyingSpotTests
         var girl = Girl(world);
         MoveOtherNpcsAway(world, girl);
         var bed = world.Entities.Objects.Values.First(o =>
-            o.DefinitionId == ContentIds.BedBasic && o.Variant == ContentIds.HutBedVariant);
+            o.DefinitionId == ContentIds.BedBasic &&
+            o.Tile.Equals(TestWorld.StartHut(world).Tile));
         var anchor = bed.Junctions[0];
         girl.Tile = bed.Tile;
         girl.Position = world.Junctions.Items[anchor].WorldPosition;
@@ -401,7 +408,7 @@ public sealed class LyingSpotTests
         MoveOtherNpcsAway(world, girl);
         var bed = world.Entities.Objects.Values.First(o =>
             o.DefinitionId == ContentIds.BedBasic &&
-            o.Variant == ContentIds.HutBedVariant &&
+            o.Tile.Equals(TestWorld.StartHut(world).Tile) &&
             o.BlockedJunctions.Any(id => world.Entities.Objects.Values.Any(other =>
                 !other.Id.Equals(o.Id) && other.BlockedJunctions.Contains(id))));
         var anchor = bed.Junctions[0];
@@ -451,7 +458,8 @@ public sealed class LyingSpotTests
         var world = TestWorld.CreateWorld(12345);
         var girls = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).Take(2).ToArray();
         var beds = world.Entities.Objects.Values.Where(o =>
-                o.DefinitionId == ContentIds.BedBasic && o.Variant == ContentIds.HutBedVariant)
+                o.DefinitionId == ContentIds.BedBasic &&
+                o.Tile.Equals(TestWorld.StartHut(world).Tile))
             .OrderBy(o => o.Id.Value).Take(2).ToArray();
         Assert.That(beds, Has.Length.EqualTo(2));
         for (var i = 0; i < 2; i++)

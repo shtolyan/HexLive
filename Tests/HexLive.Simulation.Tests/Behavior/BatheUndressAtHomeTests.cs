@@ -210,8 +210,7 @@ public sealed class BatheUndressAtHomeTests
     public void BathAvailabilityRejectsACoarselyConnectedButForbiddenDoorRoute()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = world.Entities.Objects.Values.Single(o =>
-            o.DefinitionId == ContentIds.Hut1Hex);
+        var hut = TestWorld.StartHut(world);
         var door = world.Entities.Objects.Values.Single(o =>
             o.DefinitionId == DoorTopology.DoorDefinitionId);
         var inside = world.Tiles.Items[hut.Tile].Junctions

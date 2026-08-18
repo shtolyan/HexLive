@@ -70,7 +70,7 @@ public sealed class AidStallRecoveryTests
         var patient = npcs[1];
         var bed = world.Entities.Objects.Values.First(o =>
             o.DefinitionId == ContentIds.BedBasic &&
-            o.Variant == ContentIds.HutBedVariant);
+            o.Tile.Equals(TestWorld.StartHut(world).Tile));
         var bedside = new System.Collections.Generic.List<JunctionId>();
         SpatialQueries.CollectStandableAround(
             world, bed.Junctions[0], bedside, 96,

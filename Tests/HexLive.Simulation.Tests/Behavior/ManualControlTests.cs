@@ -618,7 +618,7 @@ public sealed class ManualControlTests
 
         var bed = world.Entities.Objects.Values.First(o =>
             o.DefinitionId == ContentIds.BedBasic &&
-            o.Variant == ContentIds.HutBedVariant && !o.IsOccupied);
+            o.Tile.Equals(TestWorld.StartHut(world).Tile) && !o.IsOccupied);
         var bedAnchor = bed.Junctions[0];
 
         engine.Commands.Enqueue(new InteractCommand(npc.Id, bed.Id, InteractionType.Sleep));

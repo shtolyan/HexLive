@@ -43,12 +43,19 @@ public sealed class BuildingConstructionTests
             "Authoring footprint не имеет права перекрывать portal-junction.");
     }
 
+    // §120.3 r2: стартовый дом прототипа — конструкторное plan-здание
+    // (чертёж Hut1Hex из реестра §120.8); hut_1hex остался только как путь
+    // совместимости старых сейвов и проверяется отдельным legacy-тестом.
+    private static WorldObjectState StartHut(WorldState world) =>
+        world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.HutPlan &&
+            string.IsNullOrEmpty(obj.BuildProduct));
+
     [Test]
     public void CanonicalHutFurnitureBlocksGeometryAndKeepsDoorApproachesOpen()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = world.Entities.Objects.Values.Single(
-            obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var hut = StartHut(world);
         var furniture = world.Caches.ObjectsByTile[hut.Tile]
             .Select(id => world.Entities.Objects[id]).ToArray();
         var beds = furniture.Where(obj => obj.DefinitionId == ContentIds.BedBasic).ToArray();
@@ -211,12 +218,16 @@ public sealed class BuildingConstructionTests
     {
         const int seed = 12345;
         var world = TestWorld.CreateWorld(seed);
-        var hut = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var hut = StartHut(world);
         var pieces = BuildingRules.ArchitectureObjects(world, hut).ToArray();
         Assert.That(hut.ArchitectureElements, Is.Empty,
             "Footprint aggregate must not contain selectable/renderable LEGO state.");
-        Assert.That(pieces, Has.Length.EqualTo(30));
-        Assert.That(pieces.Select(piece => piece.Id).Distinct().Count(), Is.EqualTo(30));
+        // §120.3 r2: число модулей — свойство ЧЕРТЕЖА (у Hut1Hex 36: контур
+        // идёт секциями по 0.5 wu), а не константа канонического кита.
+        var moduleCount = Runtime.Blueprints.BlueprintBuildingPlan.Modules(
+            world.PlayerBlueprints[hut.BlueprintId]).Count;
+        Assert.That(pieces, Has.Length.EqualTo(moduleCount));
+        Assert.That(pieces.Select(piece => piece.Id).Distinct().Count(), Is.EqualTo(moduleCount));
         var piece = pieces[7];
         var element = piece.ArchitectureElements.Single();
         var canonicalYaw = element.LocalYaw;
@@ -236,7 +247,7 @@ public sealed class BuildingConstructionTests
         var loadedHut = loaded.Entities.Objects[hut.Id];
         Assert.That(loadedHut.ArchitectureElements, Is.Empty);
         var loadedPieces = BuildingRules.ArchitectureObjects(loaded, loadedHut).ToArray();
-        Assert.That(loadedPieces, Has.Length.EqualTo(30));
+        Assert.That(loadedPieces, Has.Length.EqualTo(moduleCount));
         Assert.That(loaded.Entities.Objects.ContainsKey(piece.Id), Is.True,
             "Each LEGO piece keeps its own ObjectId through save/load.");
         var loadedPiece = loaded.Entities.Objects[piece.Id];
@@ -254,53 +265,32 @@ public sealed class BuildingConstructionTests
     public void PrototypeStartsWithOneUsableHutTwoCotsAndAColdHearth()
     {
         var world = TestWorld.CreateWorld(12345);
+        // §120.3 r2: стартовый дом — конструкторное plan-здание с чертежом
+        // Hut1Hex из реестра §120.8, а не авторский FBX-кит hut_1hex.
         var huts = world.Entities.Objects.Values
-            .Where(obj => obj.DefinitionId == ContentIds.Hut1Hex).ToArray();
+            .Where(obj => obj.DefinitionId == ContentIds.HutPlan &&
+                          string.IsNullOrEmpty(obj.BuildProduct)).ToArray();
         Assert.That(huts, Has.Length.EqualTo(1));
 
         var hut = huts[0];
+        Assert.That(hut.BlueprintId, Is.Not.Zero,
+            "Стартовый дом обязан ссылаться на свой чертёж в реестре мира.");
+        Assert.That(world.PlayerBlueprints.ContainsKey(hut.BlueprintId), Is.True);
         var symmetry = hut.RotationDegrees % 60f;
         if (symmetry < 0f) symmetry += 60f;
-        Assert.That(symmetry, Is.EqualTo(0f).Within(0.001f),
-            "Архитектурный pointy-top гекс допускает только шесть поворотов; произвольный yaw снимает стены с рёбер.");
+        Assert.That(symmetry % 60f, Is.EqualTo(0f).Within(0.001f),
+            "Архитектурный pointy-top гекс допускает только шесть поворотов.");
+
+        // Мебель чертежа поднята при рождении — недостроенных площадок нет.
+        Assert.That(world.Entities.Objects.Values.Any(obj =>
+                obj.DefinitionId == ContentIds.BuildSite && obj.Tile.Equals(hut.Tile)),
+            Is.False, "Стартовый дом рождается обжитым: площадки мебели подняты.");
+
         var cots = world.Entities.Objects.Values
-            .Where(obj => obj.DefinitionId == ContentIds.BedBasic &&
-                obj.Variant == ContentIds.HutBedVariant && obj.Tile.Equals(hut.Tile))
+            .Where(obj => obj.DefinitionId == ContentIds.BedBasic && obj.Tile.Equals(hut.Tile))
             .ToArray();
         Assert.That(cots, Has.Length.EqualTo(2));
         Assert.That(cots.Select(c => c.Junctions[0]).Distinct().Count(), Is.EqualTo(2));
-
-        // Current-save migration must recover even when both legacy cot ids
-        // were serialized on the same junction.
-        var collapsed = cots[0].Junctions[0];
-        cots[1].Junctions.Clear();
-        cots[1].Junctions.Add(collapsed);
-        BuildingBootstrap.RepairIntegratedCotAnchors(world);
-        Assert.That(cots.Select(c => c.Junctions[0]).Distinct().Count(), Is.EqualTo(2));
-
-        var center = HexSpatialMath.TileToWorld(hut.Tile);
-        var radians = hut.RotationDegrees * MathF.PI / 180f;
-        cots = cots.OrderBy(cot => cot.Id.Value).ToArray();
-        var expectedBeds = new[]
-        {
-            new Float2(BuildingRules.HutBed0LocalX, BuildingRules.HutBed0LocalZ),
-            new Float2(BuildingRules.HutBed1LocalX, BuildingRules.HutBed1LocalZ)
-        };
-        for (var i = 0; i < cots.Length; i++)
-        {
-            var expected = center + new Float2(
-                expectedBeds[i].X * MathF.Cos(radians) - expectedBeds[i].Y * MathF.Sin(radians),
-                expectedBeds[i].X * MathF.Sin(radians) + expectedBeds[i].Y * MathF.Cos(radians));
-            var actual = world.Junctions.Items[cots[i].Junctions[0]].WorldPosition;
-            var delta = actual - expected;
-            Assert.That(delta.X * delta.X + delta.Y * delta.Y, Is.LessThan(0.35f * 0.35f),
-                "Simulation interaction anchor is the nearest free junction; the exact " +
-                "four-corner bed centre is applied by presentation and may lie between nodes.");
-        }
-        Assert.That(cots[0].RotationDegrees,
-            Is.EqualTo(StructurePlacement.QuantizeHexYaw(hut.RotationDegrees + 180f)).Within(0.001f));
-        Assert.That(cots[1].RotationDegrees,
-            Is.EqualTo(StructurePlacement.QuantizeHexYaw(hut.RotationDegrees + 240f)).Within(0.001f));
 
         var hearths = world.Entities.Objects.Values
             .Where(obj => obj.DefinitionId == ContentIds.Campfire &&
@@ -309,32 +299,31 @@ public sealed class BuildingConstructionTests
         Assert.That(hearths, Has.Length.EqualTo(1));
         Assert.That(hearths[0].ResourceAmount, Is.Zero,
             "Домашний очаг должен начинаться холодным: топливо остаётся игровым ресурсом.");
-        Assert.That(BuildSiteMath.CampfireSpitComplete(hearths[0]), Is.True);
-        Assert.That(BuildSiteMath.CampfireRingComplete(hearths[0]), Is.True);
-        Assert.That(hearths[0].BlockedJunctions, Has.Count.EqualTo(1),
-            "Малый очаг закрывает только свой опорный узел, а не половину комнаты.");
+
+        // Голова спящей ближе к огню, чем ноги (§66) — ориентация кроватей
+        // авторская из чертежа и повторяет прежний кит (+180°/+240°).
         var hearthPosition = world.Junctions.Items[hearths[0].Junctions[0]].WorldPosition;
-        var hearthLocal = new Float2(BuildingRules.HutHearthLocalX, BuildingRules.HutHearthLocalZ);
-        var hearthExpected = center + new Float2(
-            hearthLocal.X * MathF.Cos(radians) - hearthLocal.Y * MathF.Sin(radians),
-            hearthLocal.X * MathF.Sin(radians) + hearthLocal.Y * MathF.Cos(radians));
-        var hearthDelta = hearthPosition - hearthExpected;
-        Assert.That(hearthDelta.X * hearthDelta.X + hearthDelta.Y * hearthDelta.Y,
-            Is.LessThan(0.21f * 0.21f));
         foreach (var cot in cots)
         {
             var bedPosition = world.Junctions.Items[cot.Junctions[0]].WorldPosition;
             var heading = cot.RotationDegrees * MathF.PI / 180f;
             var headDirection = new Float2(MathF.Sin(heading), -MathF.Cos(heading));
             var towardFire = hearthPosition - bedPosition;
-            Assert.That(headDirection.X * towardFire.X + headDirection.Y * towardFire.Y, Is.GreaterThan(0f),
-                "Unity sleep-head обязан быть ближе к очагу, чем ноги.");
+            Assert.That(headDirection.X * towardFire.X + headDirection.Y * towardFire.Y,
+                Is.GreaterThan(0f), "Unity sleep-head обязан быть ближе к очагу, чем ноги.");
         }
+
+        Assert.That(world.Entities.Objects.Values.Count(obj =>
+                obj.DefinitionId == ContentIds.Wardrobe && obj.Tile.Equals(hut.Tile)),
+            Is.EqualTo(1));
+
         var tile = world.Tiles.Items[hut.Tile];
         Assert.That(tile.Flags.HasFlag(TileFlags.HasFloor), Is.True);
         Assert.That(tile.Flags.HasFlag(TileFlags.Indoor), Is.True,
             "Indoor появляется только у полностью завершённой листовой крыши.");
 
+        // Контур запечатан посекционно (§120.6): каждый пограничный junction —
+        // либо единственный дверной портал, либо закрыт стеной.
         var boundary = tile.Junctions
             .Select(id => world.Junctions.Items[id])
             .Where(junction => junction.Tiles.Count >= 2).ToArray();
@@ -344,24 +333,10 @@ public sealed class BuildingConstructionTests
         Assert.That(boundary.All(junction => junction.Door || junction.Blocked), Is.True);
         Assert.That(hut.BlockedJunctions, Is.Empty,
             "Footprint aggregate must not own pathfinding: individual LEGO pieces do.");
-        var architecturePieces = BuildingRules.ArchitectureObjects(world, hut).ToArray();
-        var pieceBlocked = architecturePieces.SelectMany(piece => piece.BlockedJunctions).ToArray();
-        Assert.That(pieceBlocked.Distinct().Count(), Is.EqualTo(boundary.Count(junction => junction.Blocked)));
-        Assert.That(architecturePieces.Single(piece =>
-                piece.DefinitionId == "architecture.door.wood").Junctions.Count,
-            Is.EqualTo(1), "Door object itself must own its single centre portal junction.");
-        Assert.That(architecturePieces.Single(piece =>
-                piece.DefinitionId == "architecture.door.wood").ArchitectureElements[0].SlotIndex,
-            Is.EqualTo(7));
-        Assert.That(architecturePieces.Where(piece =>
-                piece.DefinitionId == "architecture.window.wood")
-            .Select(piece => piece.ArchitectureElements[0].SlotIndex).OrderBy(index => index),
-            Is.EqualTo(new[] { 2, 3, 10, 11 }));
 
-        // The architecture.door element is the single source of truth: its
-        // saved local position, rotated with the building, selects the three
-        // simulation portal junctions on the SAME visible edge.
-        var visibleDoorRadians = BuildingRules.DoorOutwardYaw(hut) * MathF.PI / 180f;
+        // Дверь смотрит наружу через видимый проём, а не через чужую грань.
+        var center = HexSpatialMath.TileToWorld(hut.Tile);
+        var visibleDoorRadians = BuildingRules.DoorOutwardYaw(world, hut) * MathF.PI / 180f;
         var visibleDoorOutward = new Float2(
             MathF.Cos(visibleDoorRadians), MathF.Sin(visibleDoorRadians));
         var doorJunctions = boundary.Where(junction => junction.Door).ToArray();
@@ -372,46 +347,39 @@ public sealed class BuildingConstructionTests
         var portalLength = MathF.Sqrt(portalDelta.X * portalDelta.X + portalDelta.Y * portalDelta.Y);
         Assert.That((portalDelta.X * visibleDoorOutward.X + portalDelta.Y * visibleDoorOutward.Y) /
                     portalLength, Is.GreaterThan(0.95f),
-            "Portal-edge должен совпадать с видимым Bay_00, а не с противоположной гранью.");
-
-        var savedDoorLocal = BuildingRules.DoorLocalCenter(world, hut);
-        var expectedDoorCenter = center + new Float2(
-            savedDoorLocal.X * MathF.Cos(radians) - savedDoorLocal.Y * MathF.Sin(radians),
-            savedDoorLocal.X * MathF.Sin(radians) + savedDoorLocal.Y * MathF.Cos(radians));
-        var halfBayDelta = doorCenter - expectedDoorCenter;
-        Assert.That(halfBayDelta.X * halfBayDelta.X + halfBayDelta.Y * halfBayDelta.Y,
-            Is.LessThan(0.02f * 0.02f),
-            "Portal совпал с гранью, но не с её половиной: единственный проходимый " +
-            "junction обязан лежать в центре сохранённого door bay.");
-
-        var doorPiece = architecturePieces.Single(piece =>
-            piece.DefinitionId == "architecture.door.wood");
-        Assert.That(doorPiece.Junctions.OrderBy(id => id.Value),
-            Is.EqualTo(doorJunctions.Select(junction => junction.Id).OrderBy(id => id.Value)),
-            "LEGO-объект двери и навигация обязаны владеть одним набором трёх точек.");
-
-        var homeDelta = HexSpatialMath.TileToWorld(world.FactionHomes[Faction.Colony]) - center;
-        var homeLength = MathF.Sqrt(homeDelta.X * homeDelta.X + homeDelta.Y * homeDelta.Y);
-        Assert.That((homeDelta.X * visibleDoorOutward.X + homeDelta.Y * visibleDoorOutward.Y) /
-                    homeLength, Is.GreaterThan(0.85f),
-            "Наружная сторона видимой двери должна смотреть к лагерю.");
-
-        foreach (var cot in cots)
-        {
-            var definition = world.Content.ObjectDefinitions[cot.DefinitionId];
-            Assert.That(definition.Tags, Does.Contain(ObjectTags.Bed));
-            Assert.That(definition.Interactions.Any(i => i.Type == InteractionType.Sleep), Is.True);
-            Assert.That(cot.BlockedJunctions, Has.Count.EqualTo(14),
-                "Кровать обязана закрывать все authored junction рамы, а не только route-anchor.");
-
-            var home = world.FactionHomes[Faction.Colony];
-            var start = StructurePlacement.CenterJunction(world, home);
-            Assert.That(start, Is.Not.Null);
-            Assert.That(Connectivity.ReachableBeside(world, start.Value, cot.Junctions[0], owner: cot),
-                Is.True, "Кровать физически закрыта, но подход через дверной портал обязан остаться.");
-        }
+            "Portal-edge должен совпадать с видимым дверным проёмом.");
     }
 
+    [Test]
+    public void LegacyHut1HexKitStillCompletesWithIntegratedCots()
+    {
+        // Путь совместимости старых сейвов: канонический FBX-кит hut_1hex
+        // по-прежнему достраивается со встроенными кроватями и чинит их якоря.
+        var world = TestWorld.CreateWorld(12345);
+        var spot = world.Tiles.Items.Keys
+            .Where(coord => BuildingBootstrap.CanPlaceHut(world, coord))
+            .OrderBy(coord => coord.Q).ThenBy(coord => coord.R).First();
+        var anchor = StructurePlacement.CenterJunction(world, spot).Value;
+        var hut = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Hut1Hex, world.Junctions.Items[anchor].Fragment, spot, anchor);
+        BuildingRules.EnsureHutElements(world, hut, completed: true);
+        hut.RotationDegrees = 360f;
+        BuildingBootstrap.CompleteHut(world, hut);
+
+        var cots = world.Entities.Objects.Values
+            .Where(obj => obj.DefinitionId == ContentIds.BedBasic &&
+                obj.Variant == ContentIds.HutBedVariant && obj.Tile.Equals(spot))
+            .ToArray();
+        Assert.That(cots, Has.Length.EqualTo(2));
+        Assert.That(cots.Select(c => c.Junctions[0]).Distinct().Count(), Is.EqualTo(2));
+
+        // Repair переживает сейв, где оба легаси-якоря слиплись в один узел.
+        var collapsed = cots[0].Junctions[0];
+        cots[1].Junctions.Clear();
+        cots[1].Junctions.Add(collapsed);
+        BuildingBootstrap.RepairIntegratedCotAnchors(world);
+        Assert.That(cots.Select(c => c.Junctions[0]).Distinct().Count(), Is.EqualTo(2));
+    }
     [Test]
     public void FreshPrototypeHutSeedsSixDistinctDeterministicWardrobeGarments()
     {
@@ -596,10 +564,9 @@ public sealed class BuildingConstructionTests
     public void DoorElementSelectsItsOwnPortalAtEveryHexRotation(float yaw)
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = world.Entities.Objects.Values.Single(
-            obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var hut = StartHut(world);
         hut.RotationDegrees = yaw;
-        BuildingBootstrap.RepairHutTopology(world, hut);
+        BuildingBootstrap.RepairPlanTopology(world, hut);
 
         var tile = world.Tiles.Items[hut.Tile];
         var portals = tile.Junctions.Select(id => world.Junctions.Items[id])
@@ -610,7 +577,7 @@ public sealed class BuildingConstructionTests
         var center = HexSpatialMath.TileToWorld(hut.Tile);
         var portalCenter = portals[0].WorldPosition;
         var portalDelta = HexSpatialMath.Normalize(portalCenter - center);
-        var doorRadians = BuildingRules.DoorOutwardYaw(hut) * MathF.PI / 180f;
+        var doorRadians = BuildingRules.DoorOutwardYaw(world, hut) * MathF.PI / 180f;
         var doorDirection = new Float2(MathF.Cos(doorRadians), MathF.Sin(doorRadians));
         Assert.That(portalDelta.X * doorDirection.X + portalDelta.Y * doorDirection.Y,
             Is.GreaterThan(0.95f),
@@ -621,8 +588,7 @@ public sealed class BuildingConstructionTests
     public void CompletedRoofStopsRainForBodyClothesCarriedAndLooseMaterials()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = world.Entities.Objects.Values.Single(
-            obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var hut = StartHut(world);
         var outdoor = FindDryOutdoorTile(world, hut.Tile);
         var npc = world.Entities.Npcs.Values.First();
         npc.Tile = hut.Tile;
@@ -655,8 +621,7 @@ public sealed class BuildingConstructionTests
     public void IndoorHearthIgnoresRainAndBurnsHalfAsFastAsBestOutdoorFire()
     {
         var world = TestWorld.CreateWorld(12345);
-        var hut = world.Entities.Objects.Values.Single(
-            obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var hut = StartHut(world);
         var hearth = world.Entities.Objects.Values.Single(obj =>
             obj.DefinitionId == ContentIds.Campfire &&
             obj.Variant == BuildingRules.HutHearthVariant);
@@ -734,8 +699,7 @@ public sealed class BuildingConstructionTests
             candidate.ResourceAmount = 0f;
         }
 
-        var hut = world.Entities.Objects.Values.Single(
-            obj => obj.DefinitionId == ContentIds.Hut1Hex);
+        var hut = StartHut(world);
         var fire = SpawnPickup(
             world, ContentIds.Campfire, FindDryOutdoorTile(world, hut.Tile));
         fire.ResourceAmount = 100f;

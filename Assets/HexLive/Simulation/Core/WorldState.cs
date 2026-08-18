@@ -94,9 +94,19 @@ public sealed class WorldState
     // objects on tiles that do not exist.
     public Bootstrap.GameMode Mode { get; set; } = Bootstrap.GameMode.Feud;
 
-    // §132: same schedule cursor for the colony's weekly arrival. It counts
-    // processed opportunities, not living arrivals, for the same no-backlog rule.
-    public int ColonyArrivalsProcessed { get; set; }
+    // §132/§146.6: schedule cursors for the weekly arrivals, one per girl camp.
+    // They count processed opportunities, not living arrivals (no backlog).
+    public System.Collections.Generic.Dictionary<Agents.Faction, int>
+        ColonyArrivalsProcessedByFaction { get; } = new();
+
+    // Legacy shim over the Colony entry: the pre-§146 save layout (blob v40)
+    // and the mode-0 call sites keep reading the single-camp cursor.
+    public int ColonyArrivalsProcessed
+    {
+        get => ColonyArrivalsProcessedByFaction.TryGetValue(Agents.Faction.Colony, out var v)
+            ? v : 0;
+        set => ColonyArrivalsProcessedByFaction[Agents.Faction.Colony] = value;
+    }
 
     // Spec 40.15: logs hauled to the escape raft (target 20). At the target the
     // colony can sail off the island — the global goal.

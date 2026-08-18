@@ -25,6 +25,21 @@ public static class WorldBalance
     public static int MaxColonyNpcs = 5;
     public static int MaxOutsiderNpcs = 5;
 
+    // §146.6: потолки большого острова — ПАРНЫЕ ручки, не мутация верхних:
+    // статики глобальны на процесс, а клиент перезапускается в другой режим
+    // без рестарта, поэтому один simdata.json несёт оба режима, а селекторы
+    // ниже выбирают по world.Mode. 6 стартовых девушек + по одной в неделю
+    // в КАЖДЫЙ из трёх лагерей упёрлись бы в Feud-потолки немедленно.
+    public static int BigIslandMaxLivingNpcs = 24;
+    public static int BigIslandMaxCampNpcs = 6;
+
+    public static int MaxLivingNpcsFor(Bootstrap.GameMode mode) =>
+        mode == Bootstrap.GameMode.BigIsland ? BigIslandMaxLivingNpcs : MaxLivingNpcs;
+
+    // Квота ОДНОГО лагеря девушек (для Outsiders остаётся MaxOutsiderNpcs).
+    public static int MaxCampNpcsFor(Bootstrap.GameMode mode) =>
+        mode == Bootstrap.GameMode.BigIsland ? BigIslandMaxCampNpcs : MaxColonyNpcs;
+
     // Начало календарных дней 7, 14, 21…: одна новая девушка, если оба
     // потолка оставляют ей место. 0 выключает пополнение.
     public static int ColonyArrivalIntervalDays = 7;

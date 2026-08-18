@@ -138,6 +138,72 @@ public sealed class PopulationArrivalTests
         Assert.That(loaded.ColonyArrivalsProcessed, Is.EqualTo(4));
     }
 
+    // §146.6: на большом острове лодка приходит в КАЖДЫЙ лагерь независимо.
+    [Test]
+    public void BigIsland_WeeklyArrivalLandsInEveryCamp_WithPerCampIds()
+    {
+        var world = new Bootstrap.WorldStateFactory().Create(
+            Bootstrap.PrototypeWorldDefinitionFactory.Create(
+                12345, Bootstrap.GameMode.BigIsland));
+        Assert.That(world.Entities.Npcs.Count, Is.EqualTo(6));
+
+        world.Tick = CalendarBoundary(7);
+        new ColonyArrivalSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Count(world, Faction.Colony), Is.EqualTo(3), "лагерь игрока");
+            Assert.That(Count(world, Faction.Colony2), Is.EqualTo(3), "лагерь 2");
+            Assert.That(Count(world, Faction.Colony3), Is.EqualTo(3), "лагерь 3");
+            // Полоса в 500 id на лагерь: Colony на прежних 2000+.
+            Assert.That(world.Entities.Npcs.ContainsKey(new EntityId(2001)), Is.True);
+            Assert.That(world.Entities.Npcs.ContainsKey(new EntityId(3001)), Is.True);
+            Assert.That(world.Entities.Npcs.ContainsKey(new EntityId(3501)), Is.True);
+            Assert.That(world.Entities.Npcs[new EntityId(3001)].Faction,
+                Is.EqualTo(Faction.Colony2));
+            Assert.That(world.Entities.Npcs[new EntityId(3501)].Faction,
+                Is.EqualTo(Faction.Colony3));
+        });
+
+        // Повторный проход той же даты не дублирует никого.
+        new ColonyArrivalSystem().Run(world);
+        Assert.That(world.Entities.Npcs.Count, Is.EqualTo(9));
+    }
+
+    // §146.6 (v52): курсоры всех трёх лагерей переживают сейв/лоуд.
+    [Test]
+    public void BigIsland_SaveRoundTripPreservesPerCampCursors()
+    {
+        var world = new Bootstrap.WorldStateFactory().Create(
+            Bootstrap.PrototypeWorldDefinitionFactory.Create(
+                12345, Bootstrap.GameMode.BigIsland));
+        world.ColonyArrivalsProcessedByFaction[Faction.Colony] = 4;
+        world.ColonyArrivalsProcessedByFaction[Faction.Colony2] = 2;
+        world.ColonyArrivalsProcessedByFaction[Faction.Colony3] = 7;
+
+        var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        blob.Position = 0;
+        var loaded = new Bootstrap.WorldStateFactory().Create(
+            Bootstrap.PrototypeWorldDefinitionFactory.Create(
+                12345, Bootstrap.GameMode.BigIsland));
+        using (var reader = new BinaryReader(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(loaded, reader);
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loaded.ColonyArrivalsProcessedByFaction[Faction.Colony], Is.EqualTo(4));
+            Assert.That(loaded.ColonyArrivalsProcessedByFaction[Faction.Colony2], Is.EqualTo(2));
+            Assert.That(loaded.ColonyArrivalsProcessedByFaction[Faction.Colony3], Is.EqualTo(7));
+        });
+    }
+
     private static int CalendarBoundary(int day) =>
         (day - 1) * EnvironmentSystem.DayLengthTicks - EnvironmentSystem.DayLengthTicks / 4;
 

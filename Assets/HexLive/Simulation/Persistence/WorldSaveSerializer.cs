@@ -115,7 +115,9 @@ public static class WorldSaveSerializer
     // сидом. Проверяются как сид: блоб, записанный на чужой геометрии (другой
     // режим или выросшая карта BigIsland), отклоняется, а не применяется молча
     // на несуществующие тайлы. Блобы ≤50 — всегда Feud.
-    public const int BlobVersion = 51;
+    // v52 (§146.6): недельные курсоры прибытий по лагерям — словарь в хвосте;
+    // старое одиночное поле v40 остаётся и читается в шим (запись Colony).
+    public const int BlobVersion = 52;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -334,6 +336,20 @@ public static class WorldSaveSerializer
             w.Write(pair.Key);
             w.Write(Runtime.Blueprints.BuildingBlueprintJson.Serialize(
                 pair.Value, pretty: false));
+        }
+
+        // §146.6 (v52): недельные курсоры прибытий ПО ЛАГЕРЯМ. Colony уехала
+        // выше в старом одиночном поле (v40, через шим) — здесь весь словарь,
+        // отсортированный по ординалу, чтобы байты сейва не зависели от
+        // порядка словаря.
+        var arrivalCamps = new List<Agents.Faction>(
+            world.ColonyArrivalsProcessedByFaction.Keys);
+        arrivalCamps.Sort((a, b) => ((int)a).CompareTo((int)b));
+        w.Write(arrivalCamps.Count);
+        foreach (var faction in arrivalCamps)
+        {
+            w.Write((int)faction);
+            w.Write(world.ColonyArrivalsProcessedByFaction[faction]);
         }
 
         w.Write(EndMarker);
@@ -677,6 +693,19 @@ public static class WorldSaveSerializer
                 }
 
                 world.PlayerBlueprints[id] = draft;
+            }
+        }
+
+        // §146.6 (v52): по-лагерные курсоры прибытий. Старый int (v40) уже
+        // прочитан выше в шим (ляжет в Colony); словарь целиком его перекрывает.
+        if (version >= 52)
+        {
+            world.ColonyArrivalsProcessedByFaction.Clear();
+            var arrivalCampCount = r.ReadInt32();
+            for (var i = 0; i < arrivalCampCount; i++)
+            {
+                var faction = (Agents.Faction)r.ReadInt32();
+                world.ColonyArrivalsProcessedByFaction[faction] = r.ReadInt32();
             }
         }
 

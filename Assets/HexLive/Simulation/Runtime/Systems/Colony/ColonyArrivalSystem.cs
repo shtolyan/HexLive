@@ -18,51 +18,82 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
     public string Name => nameof(ColonyArrivalSystem);
     public TickLayer Layer => TickLayer.Medium;
 
+    // §146.6: порядок обхода лагерей — ординал фракции (правило BedSiteSystem):
+    // порядок словаря не смеет попадать в реплей.
+    private static readonly System.Collections.Generic.List<Faction> _campScratch = new();
+
     public void Run(WorldState world)
     {
         var interval = WorldBalance.ColonyArrivalIntervalDays;
-        if (interval <= 0 ||
-            !world.FactionHomes.TryGetValue(Faction.Colony, out var home))
+        if (interval <= 0)
         {
             return;
         }
 
-        var opportunitiesDue = EnvironmentSystem.CalendarDay(world.Tick) / interval;
-        while (world.ColonyArrivalsProcessed < opportunitiesDue)
+        _campScratch.Clear();
+        foreach (var faction in world.FactionHomes.Keys)
         {
-            var arrival = world.ColonyArrivalsProcessed + 1;
+            if (FactionRelations.IsColonyKind(faction))
+            {
+                _campScratch.Add(faction);
+            }
+        }
+
+        _campScratch.Sort((a, b) => ((int)a).CompareTo((int)b));
+
+        var opportunitiesDue = EnvironmentSystem.CalendarDay(world.Tick) / interval;
+        foreach (var faction in _campScratch)
+        {
+            RunForCamp(world, faction, opportunitiesDue);
+        }
+    }
+
+    // §146.6: у каждого лагеря СВОЯ лодка раз в неделю — курсоры независимы,
+    // полный лагерь съедает свою неделю, не трогая чужие.
+    private static void RunForCamp(WorldState world, Faction faction, int opportunitiesDue)
+    {
+        var home = world.FactionHomes[faction];
+        world.ColonyArrivalsProcessedByFaction.TryGetValue(faction, out var processed);
+        while (processed < opportunitiesDue)
+        {
+            var arrival = processed + 1;
 
             // A full camp consumes THIS week's boat. If a place opens tomorrow,
             // nobody materialises from a backlog: the next chance is the next
             // visible weekly boundary. This is the survival rhythm the player
             // can plan around, and mirrors the capped enemy schedule.
-            if (!PopulationArrivalMath.HasRoom(world, Faction.Colony))
+            if (!PopulationArrivalMath.HasRoom(world, faction))
             {
-                world.ColonyArrivalsProcessed = arrival;
+                processed = arrival;
+                world.ColonyArrivalsProcessedByFaction[faction] = processed;
                 if (SimTrace.Enabled)
                 {
                     Trace.DebugSystem(world, "ColonyArrivalSkippedCapacity",
-                        $"Arrival={arrival} Alive={world.Entities.Npcs.Count} " +
-                        $"WorldCap={WorldBalance.MaxLivingNpcs} " +
-                        $"ColonyCap={WorldBalance.MaxColonyNpcs}");
+                        $"Arrival={arrival} Camp={faction} Alive={world.Entities.Npcs.Count} " +
+                        $"WorldCap={WorldBalance.MaxLivingNpcsFor(world.Mode)} " +
+                        $"CampCap={WorldBalance.MaxCampNpcsFor(world.Mode)}");
                 }
                 continue;
             }
 
-            if (!TrySpawn(world, home, arrival))
+            if (!TrySpawn(world, faction, home, arrival))
             {
                 // No free landing point is not a consumed life event. Retry on
                 // the next medium pass; a walking body may clear the point.
                 return;
             }
 
-            world.ColonyArrivalsProcessed = arrival;
+            processed = arrival;
+            world.ColonyArrivalsProcessedByFaction[faction] = processed;
         }
     }
 
-    private static bool TrySpawn(WorldState world, TileCoord home, int arrival)
+    private static bool TrySpawn(WorldState world, Faction faction, TileCoord home, int arrival)
     {
-        var id = new EntityId(RuntimeColonistIdBase + arrival);
+        // Полоса в 500 id на лагерь: Colony остаётся на прежних 2000+ (сейвы
+        // режима 0 не двигаются), Colony2 — 3000+, Colony3 — 3500+. Рейдеры
+        // живут на 1000+, стартовые девушки — на 1..22: пересечений нет.
+        var id = new EntityId(RuntimeColonistIdBase + (int)faction * 500 + arrival);
         if (world.Entities.Npcs.ContainsKey(id) || world.Entities.Corpses.ContainsKey(id))
         {
             // Save counter lagged behind a completed arrival. The stable id is
@@ -86,7 +117,7 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
             EyeColor = look.EyeColor,
             Hairstyle = look.Hairstyle,
             VoiceBank = look.VoiceBank,
-            Faction = Faction.Colony,
+            Faction = faction,
             Fragment = landing.Fragment,
             Tile = landing.Tile,
             Position = landing.Position,

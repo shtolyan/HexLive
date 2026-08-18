@@ -35,16 +35,18 @@ internal static class PopulationArrivalMath
 
     public static bool HasRoom(WorldState world, Faction faction)
     {
-        if (world == null || WorldBalance.MaxLivingNpcs <= 0 ||
-            world.Entities.Npcs.Count >= WorldBalance.MaxLivingNpcs)
+        // §146.6: потолки выбираются селектором по режиму мира.
+        var worldCap = world == null ? 0 : WorldBalance.MaxLivingNpcsFor(world.Mode);
+        if (world == null || worldCap <= 0 ||
+            world.Entities.Npcs.Count >= worldCap)
         {
             return false;
         }
 
-        // §146.3: MaxColonyNpcs is a PER-CAMP quota — each girl faction counts
-        // against its own copy of it, the Outsiders against theirs.
+        // §146.3: the girl-camp cap is a PER-CAMP quota — each girl faction
+        // counts against its own copy of it, the Outsiders against theirs.
         var factionCap = FactionRelations.IsColonyKind(faction)
-            ? WorldBalance.MaxColonyNpcs
+            ? WorldBalance.MaxCampNpcsFor(world.Mode)
             : WorldBalance.MaxOutsiderNpcs;
         if (factionCap <= 0)
         {

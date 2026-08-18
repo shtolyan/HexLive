@@ -893,8 +893,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             shape.shapeType = ParticleSystemShapeType.Box;
             shape.scale = new Vector3(60f, 60f, 1f); // XY box, perpendicular to fall
 
-            // Kill each drop exactly at ground level...
-            var groundY = SimulationUnityMapper.TileHeight + 0.03f;
+            // Kill each drop at the walkable ground level. Land tops sit at
+            // TileHeight + elevation*ElevationStep with elevation >= 1 (water
+            // is the only elevation-0 surface), so a sea-level plane buries
+            // every splash inside the hex prism — and 0.465 wu under the
+            // water sheet (bug #176). One infinite plane can only serve one
+            // elevation band; pick the elevation-1 band the colony lives on.
+            var groundY = SimulationUnityMapper.TileHeight + ElevationStep + 0.03f;
             var planeGo = new GameObject("RainGroundPlane");
             planeGo.transform.SetParent(transform, false); // NOT under the rotated emitter
             planeGo.transform.position = new Vector3(0f, groundY, 0f);

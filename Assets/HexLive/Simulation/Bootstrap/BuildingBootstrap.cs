@@ -27,21 +27,37 @@ public static class BuildingBootstrap
         if (!world.Tiles.Items.TryGetValue(home, out var homeTile)) return null;
 
         var candidates = new List<TileCoord>();
-        for (var ring = 1; ring <= 2 && candidates.Count == 0; ring++)
+        // #179: сперва строгий отбор — дом обходим со всех шести сторон и
+        // дверной проём не на шве высоты, — по кольцам 1..3; и только если
+        // таких мест нет вовсе, прежний мягкий отбор по кольцам 1..2:
+        // дом у горы лучше, чем колония без дома.
+        for (var pass = 0; pass < 2 && candidates.Count == 0; pass++)
         {
-            foreach (var pair in world.Tiles.Items)
+            var strict = pass == 0;
+            var maxRing = strict ? 3 : 2;
+            for (var ring = 1; ring <= maxRing && candidates.Count == 0; ring++)
             {
-                var coord = pair.Key;
-                var tile = pair.Value;
-                if (HexSpatialMath.HexDistance(coord, home) != ring ||
-                    tile.Elevation != homeTile.Elevation ||
-                    tile.Flags.HasFlag(TileFlags.Indoor) ||
-                    !CanPlaceHut(world, coord))
+                foreach (var pair in world.Tiles.Items)
                 {
-                    continue;
-                }
+                    var coord = pair.Key;
+                    var tile = pair.Value;
+                    if (HexSpatialMath.HexDistance(coord, home) != ring ||
+                        tile.Elevation != homeTile.Elevation ||
+                        tile.Flags.HasFlag(TileFlags.Indoor) ||
+                        !CanPlaceHut(world, coord))
+                    {
+                        continue;
+                    }
 
-                candidates.Add(coord);
+                    if (strict &&
+                        (!HutApproachableAllSides(world, coord, tile.Elevation) ||
+                         !DoorThresholdFlat(world, coord, home, tile.Elevation)))
+                    {
+                        continue;
+                    }
+
+                    candidates.Add(coord);
+                }
             }
         }
 
@@ -313,6 +329,87 @@ public static class BuildingBootstrap
         RepairIntegratedCotAnchors(world);
         SpawnHearth(world, hut);
         SpawnWardrobe(world, hut);
+    }
+
+    // #179 «дом впритык к горе закрывает вход»: к стартовому дому обязан быть
+    // подход со всех шести сторон — каждый сосед ходибельный, сухой и не
+    // дальше ОДНОЙ ступени высоты. |Δ| >= 2 — ровно порог, которым
+    // BlockCliffAndSeaJunctions решает «обрыв» и запирает весь общий обод;
+    // прежний счётчик dryNeighbors >= 3 терпел до трёх горных соседей, а
+    // портал двери принудительно разлочивается и «открывался» в запертый
+    // карман. Правило живёт на спавне нарочно: CanPlaceHut остаётся общим
+    // гейтом игроцких строек и их не ужесточает.
+    private static bool HutApproachableAllSides(
+        WorldState world, TileCoord coord, int elevation)
+    {
+        foreach (var direction in HexDirection.All)
+        {
+            var neighborCoord = new TileCoord(
+                coord.Q + direction.DQ, coord.R + direction.DR);
+            if (!world.Tiles.Items.TryGetValue(neighborCoord, out var neighbor) ||
+                !neighbor.Flags.HasFlag(TileFlags.Walkable) ||
+                neighbor.Flags.HasFlag(TileFlags.Water) ||
+                neighbor.Flags.HasFlag(TileFlags.Blocked) ||
+                Math.Abs(neighbor.Elevation - elevation) > 1)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // #179: дверной проём — строго вровень с домом. Дверь стоит на ребре в
+    // t=0.75, то есть у ВЕРШИНЫ гекса, которой владеют три тайла: сосед по
+    // нормали двери и сосед за углом (+60°) — оба обязаны быть той же высоты.
+    // Шов высоты в проёме недопустим: шаг «шов-к-шву» патфайндер запрещает,
+    // а без прыжка (§50, калеки) запрещён любой подъём — своя же дверь
+    // становилась непроходимой. Ориентация двери повторяет спавн:
+    // QuantizeHexSymmetryYaw(FacingYaw(дом -> лагерь)).
+    private static bool DoorThresholdFlat(
+        WorldState world, TileCoord coord, TileCoord home, int elevation)
+    {
+        var doorYaw = StructurePlacement.QuantizeHexSymmetryYaw(
+            StructurePlacement.FacingYaw(
+                HexSpatialMath.TileToWorld(coord), HexSpatialMath.TileToWorld(home)));
+        foreach (var yaw in stackalloc[] { doorYaw, doorYaw + 60f })
+        {
+            var neighborCoord = NeighborTowardYaw(coord, yaw);
+            if (!world.Tiles.Items.TryGetValue(neighborCoord, out var neighbor) ||
+                neighbor.Elevation != elevation)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Сосед, чей центр лежит по данному мировому углу. Центры соседей стоят
+    // ровно на кратных 60°, но порядок HexDirection.All углам не соответствует
+    // — выбираем максимальный скалярный прирост, чистой геометрией.
+    private static TileCoord NeighborTowardYaw(TileCoord coord, float yawDegrees)
+    {
+        var origin = HexSpatialMath.TileToWorld(coord);
+        var radians = yawDegrees * (MathF.PI / 180f);
+        var dirX = MathF.Cos(radians);
+        var dirY = MathF.Sin(radians);
+        var best = coord;
+        var bestDot = float.MinValue;
+        foreach (var direction in HexDirection.All)
+        {
+            var neighborCoord = new TileCoord(
+                coord.Q + direction.DQ, coord.R + direction.DR);
+            var to = HexSpatialMath.TileToWorld(neighborCoord);
+            var dot = (to.X - origin.X) * dirX + (to.Y - origin.Y) * dirY;
+            if (dot > bestDot)
+            {
+                bestDot = dot;
+                best = neighborCoord;
+            }
+        }
+
+        return best;
     }
 
     public static bool CanPlaceHut(WorldState world, TileCoord tile)

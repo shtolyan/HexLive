@@ -836,6 +836,14 @@ public sealed class WorldStateFactory
     // water tile). Bounded to the SE corner the home colony never routes into.
     private static void OpenStraitCorridor(WorldState world)
     {
+        // §146.4: пролив и второй островок — деталь острова Feud; его рамка
+        // считается от Feud-констант MaxQ/MaxR и на другой карте не значит
+        // ничего.
+        if (world.Mode == GameMode.BigIsland)
+        {
+            return;
+        }
+
         var opened = new System.Collections.Generic.List<Common.JunctionId>();
         foreach (var junction in world.Junctions.Items.Values)
         {

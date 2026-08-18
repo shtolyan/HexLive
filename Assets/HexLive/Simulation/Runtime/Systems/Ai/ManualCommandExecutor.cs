@@ -119,6 +119,9 @@ internal static class ManualCommandExecutor
             case PlaceFurnitureSiteCommand placeFurniture:
                 ApplyPlaceFurnitureSite(world, placeFurniture, admission);
                 break;
+            case PlaceBuildingBlueprintCommand placeBlueprint:
+                ApplyPlaceBuildingBlueprint(world, placeBlueprint, admission);
+                break;
             case RotateBuildSiteCommand rotateSite:
                 ApplyRotateBuildSite(world, rotateSite, admission);
                 break;
@@ -186,6 +189,7 @@ internal static class ManualCommandExecutor
         TransferContainerCommand => "TransferContainer",
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
         PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
+        PlaceBuildingBlueprintCommand => "PlaceBuildingBlueprint",
         RotateBuildSiteCommand => "RotateBuildSite",
         CancelBuildSiteCommand => "CancelBuildSite",
         _ => command.GetType().Name
@@ -2261,6 +2265,70 @@ internal static class ManualCommandExecutor
         return true;
     }
 
+    // Потолок сырого JSON чертежа. Committed-план ~10 КБ; большой ручной дом —
+    // десятки килобайт. Всё сверх — мусор или атака на память, не чертёж.
+    private const int MaxBlueprintJsonChars = 128 * 1024;
+
+    private static void ApplyPlaceBuildingBlueprint(
+        WorldState world, PlaceBuildingBlueprintCommand command, AdmissionTracker admission)
+    {
+        void RejectWorld(string reason)
+        {
+            admission.Reject(reason);
+            Trace.EmitSystem(world, "ManualOrderRejected",
+                $"Order=PlaceBuildingBlueprint Reason={reason} Tile={command.Tile}");
+        }
+
+        if (string.IsNullOrEmpty(command.BlueprintJson) ||
+            command.BlueprintJson.Length > MaxBlueprintJsonChars)
+        {
+            RejectWorld("InvalidBlueprint");
+            return;
+        }
+
+        // TryDeserialize уже гоняет полный BlueprintValidator; невалидный
+        // чертёж не доходит даже до реестра.
+        if (!Blueprints.BuildingBlueprintJson.TryDeserialize(
+                command.BlueprintJson, out var draft, out _))
+        {
+            RejectWorld("InvalidBlueprint");
+            return;
+        }
+
+        // Минимум содержательности: без пола нет якоря и футпринта, без двери
+        // дом не имеет портала (DoorLocalOutwardYaw кидает, §120.2).
+        var hasFloor = false;
+        var hasDoor = false;
+        foreach (var element in draft.Elements)
+        {
+            hasFloor |= element.Kind == Blueprints.BlueprintElementKind.FloorSector;
+            hasDoor |= element.Kind == Blueprints.BlueprintElementKind.Door;
+        }
+
+        if (!hasFloor || !hasDoor)
+        {
+            RejectWorld("InvalidBlueprint");
+            return;
+        }
+
+        var blueprintId = world.NextPlayerBlueprintId++;
+        world.PlayerBlueprints[blueprintId] = draft;
+        var site = Bootstrap.BuildingBootstrap.CreatePlayerBlueprintSite(
+            world, command.Tile, command.RotationDegrees, blueprintId);
+        if (site == null)
+        {
+            // Негодное место — чертёж не остаётся сиротой в реестре.
+            world.PlayerBlueprints.Remove(blueprintId);
+            RejectWorld("PlacementBlocked");
+            return;
+        }
+
+        Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
+        Trace.EmitSystem(world, "BuildSitePlanned",
+            $"Product={ContentIds.HutPlan} Blueprint={blueprintId} " +
+            $"Tile={command.Tile} Site={site.Id.Value}");
+    }
+
     private static void ApplyRotateBuildSite(
         WorldState world, RotateBuildSiteCommand command, AdmissionTracker admission)
     {
@@ -2271,11 +2339,12 @@ internal static class ManualCommandExecutor
 
         if (site.BuildProduct == ContentIds.HutPlan)
         {
+            var plan = BuildingRules.PlanFor(world, site);
             var rotation = StructurePlacement.QuantizeHexSymmetryYaw(command.RotationDegrees);
             var oldFootprint = Bootstrap.BuildingBootstrap.FootprintTiles(
-                ContentIds.HutPlan, site.Tile, site.RotationDegrees);
+                plan, site.Tile, site.RotationDegrees);
             foreach (var tile in Bootstrap.BuildingBootstrap.FootprintTiles(
-                         ContentIds.HutPlan, site.Tile, rotation))
+                         plan, site.Tile, rotation))
             {
                 // Свои прежние гексы не проверяются заново: на них стоит сама
                 // площадка, и CanPlaceHut честно счёл бы её чужой постройкой.
@@ -2321,6 +2390,8 @@ internal static class ManualCommandExecutor
             foreach (var piece in BuildingRules.ArchitectureObjects(world, site).ToArray())
                 Core.WorldObjectMutations.DespawnObject(world, piece.Id);
             Bootstrap.BuildingBootstrap.RepairPlanTopology(world, site);
+            // §120.8: чертёж живёт, пока жива его площадка.
+            if (site.BlueprintId != 0) world.PlayerBlueprints.Remove(site.BlueprintId);
         }
 
         Core.WorldObjectMutations.DespawnObject(world, site.Id);

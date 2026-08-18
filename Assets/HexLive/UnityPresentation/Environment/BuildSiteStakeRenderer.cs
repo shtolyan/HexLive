@@ -50,6 +50,7 @@ namespace HexLive.UnityPresentation.Environment
         // подписи (тайл/поворот/продукт) или пропаже права на колышки.
         private readonly Dictionary<int, (string Signature, GameObject Root)> _stakes = new();
         private readonly HashSet<int> _seen = new();
+        private readonly Dictionary<int, List<ObjectSnapshot>> _modulesByOwner = new();
 
         public void Construct(SimulationRunnerBehaviour runner, HexWorldRenderer worldRenderer)
         {
@@ -79,14 +80,37 @@ namespace HexLive.UnityPresentation.Environment
                 return;
             }
 
+            // §120.8: модули plan-площадки — самостоятельные объекты; и колышки,
+            // и правило «первый ингредиент» читают ИХ, а не committed-план —
+            // поэтому произвольный чертёж обслуживается тем же кодом.
+            _modulesByOwner.Clear();
+            foreach (var obj in snapshot.Objects)
+            {
+                if (obj.ArchitectureOwnerObjectId is not { } ownerId ||
+                    obj.ArchitectureElements.Count != 1)
+                {
+                    continue;
+                }
+
+                if (!_modulesByOwner.TryGetValue(ownerId, out var list))
+                {
+                    list = new List<ObjectSnapshot>();
+                    _modulesByOwner[ownerId] = list;
+                }
+
+                list.Add(obj);
+            }
+
             _seen.Clear();
             foreach (var obj in snapshot.Objects)
             {
                 if (string.IsNullOrEmpty(obj.BuildProduct)) continue;
-                if (!WantsStakes(obj)) continue;
+                _modulesByOwner.TryGetValue(obj.Id.Value, out var modules);
+                if (!WantsStakes(obj, modules)) continue;
 
                 _seen.Add(obj.Id.Value);
-                var signature = $"{obj.Tile.Q}:{obj.Tile.R}:{obj.RotationDegrees:0}:{obj.BuildProduct}";
+                var signature = $"{obj.Tile.Q}:{obj.Tile.R}:{obj.RotationDegrees:0}:{obj.BuildProduct}" +
+                                $":{(modules?.Count ?? 0)}";
                 if (_stakes.TryGetValue(obj.Id.Value, out var existing) &&
                     existing.Signature == signature)
                 {
@@ -94,7 +118,7 @@ namespace HexLive.UnityPresentation.Environment
                 }
 
                 if (existing.Root != null) Destroy(existing.Root);
-                _stakes[obj.Id.Value] = (signature, BuildStakes(obj));
+                _stakes[obj.Id.Value] = (signature, BuildStakes(obj, modules));
             }
 
             // Площадка достроилась, получила первый материал или исчезла.
@@ -115,22 +139,30 @@ namespace HexLive.UnityPresentation.Environment
         }
 
         /// <summary>Колышки живут, пока в постройке нет ни одного ингредиента.
-        /// В открытом режиме стройки их подменяет полный призрак здания.</summary>
-        private static bool WantsStakes(ObjectSnapshot site)
+        /// У plan-площадки материалы копятся В МОДУЛЯХ — сумма идёт по ним.
+        /// В открытом режиме стройки колышки подменяет полный призрак.</summary>
+        private static bool WantsStakes(ObjectSnapshot site, List<ObjectSnapshot> modules)
         {
             if (UI.BuildModePanel.IsOpen) return false;
             var delivered = site.DeliveredLogs + site.DeliveredSticks + site.DeliveredRope +
                             site.DeliveredLeaves + site.DeliveredStones + site.DeliveredBoards;
             if (delivered > 0) return false;
-            foreach (var element in site.ArchitectureElements)
+            if (modules != null)
             {
-                if (element.DeliveredTotal > 0) return false;
+                foreach (var module in modules)
+                {
+                    if (module.ArchitectureElements[0].DeliveredTotal > 0 ||
+                        module.ArchitectureElements[0].WorkDone > 0)
+                    {
+                        return false;
+                    }
+                }
             }
 
             return true;
         }
 
-        private GameObject BuildStakes(ObjectSnapshot site)
+        private GameObject BuildStakes(ObjectSnapshot site, List<ObjectSnapshot> modules)
         {
             EnsureRoot();
             var root = new GameObject($"Build stakes (site {site.Id.Value} {site.BuildProduct})");
@@ -138,7 +170,7 @@ namespace HexLive.UnityPresentation.Environment
 
             var groundY = _worldRenderer!.GroundTopY(site.Tile);
             var anchor = _worldRenderer.ObjectAnchorPosition(site);
-            foreach (var point in StakePoints(site, anchor))
+            foreach (var point in StakePoints(site, anchor, modules))
             {
                 AddStake(root.transform, new Vector3(point.X, groundY, point.Y));
             }
@@ -146,50 +178,35 @@ namespace HexLive.UnityPresentation.Environment
             return root;
         }
 
-        private static IEnumerable<Float2> StakePoints(ObjectSnapshot site, Float2 anchor)
+        private static IEnumerable<Float2> StakePoints(
+            ObjectSnapshot site, Float2 anchor, List<ObjectSnapshot> modules)
         {
             if (site.BuildProduct == ContentIds.HutPlan)
             {
-                return PlanStakePoints(site, anchor);
+                return PlanStakePoints(site, anchor, modules);
             }
 
             return FurnitureStakePoints(site, anchor);
         }
 
-        /// <summary>Дом: колышки каждого элемента утверждённого плана, повёрнутые
-        /// симметрией площадки — та же геометрия, что у превью конструктора.</summary>
-        private static IEnumerable<Float2> PlanStakePoints(ObjectSnapshot site, Float2 anchor)
+        /// <summary>Дом: колышек на месте каждого запланированного модуля.
+        /// Геометрия читается из САМИХ модульных объектов (LocalX/LocalZ,
+        /// повёрнутые площадкой) — поэтому произвольный чертёж §120.8 размечен
+        /// так же честно, как committed-план, без чтения чертежа клиентом.</summary>
+        private static IEnumerable<Float2> PlanStakePoints(
+            ObjectSnapshot site, Float2 anchor, List<ObjectSnapshot> modules)
         {
-            var plan = CommittedBuildingPlans.PlayerHut;
-            var planAnchor = BlueprintGeometry.ToWorld(
-                BlueprintGeometry.HexCenter(BlueprintBuildingPlan.AnchorTile(plan)));
+            if (modules == null) yield break;
             var radians = site.RotationDegrees * Mathf.Deg2Rad;
             var cos = Mathf.Cos(radians);
             var sin = Mathf.Sin(radians);
             var unique = new HashSet<(int, int)>();
-
-            IEnumerable<PlanningMarkerPoint> All()
+            foreach (var module in modules)
             {
-                foreach (var element in plan.Elements)
-                foreach (var point in BlueprintPlanningMarkers.ForElement(element))
-                {
-                    yield return point;
-                }
-
-                foreach (var furniture in plan.Furniture)
-                foreach (var point in BlueprintPlanningMarkers.ForFurniture(furniture))
-                {
-                    yield return point;
-                }
-            }
-
-            foreach (var point in All())
-            {
-                var localX = point.Position.X - planAnchor.X;
-                var localY = point.Position.Y - planAnchor.Y;
+                var element = module.ArchitectureElements[0];
                 var world = new Float2(
-                    anchor.X + localX * cos - localY * sin,
-                    anchor.Y + localX * sin + localY * cos);
+                    anchor.X + element.LocalX * cos - element.LocalZ * sin,
+                    anchor.Y + element.LocalX * sin + element.LocalZ * cos);
                 if (!unique.Add(((int)(world.X * 1000f), (int)(world.Y * 1000f)))) continue;
                 yield return world;
             }

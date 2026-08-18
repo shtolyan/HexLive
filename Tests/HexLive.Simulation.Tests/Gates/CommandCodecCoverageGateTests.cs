@@ -73,6 +73,8 @@ public sealed class CommandCodecCoverageGateTests
             "station.drying_rack", new TileCoord(-3, 8), rotationDegrees: 300f),
         new RotateBuildSiteCommand(new ObjectId(217), rotationDegrees: 180f),
         new CancelBuildSiteCommand(new ObjectId(218)),
+        new PlaceBuildingBlueprintCommand(
+            "{\"version\":2}", new TileCoord(7, -2), rotationDegrees: 60f),
     };
 
     [Test]

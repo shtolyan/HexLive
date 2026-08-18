@@ -480,6 +480,30 @@ public sealed class PlaceFurnitureSiteCommand : ISimulationCommand
     public EntityId? TargetEntity => null;
 }
 
+/// <summary>§120.8: разметить ПРОИЗВОЛЬНЫЙ чертёж игрока (свободная
+/// архитектура из конструктора). Чертёж едет своим же JSON-форматом
+/// (<c>BuildingBlueprintJson</c>) — исполнитель парсит, валидирует
+/// (<c>BlueprintValidator</c> + пол + дверь + футпринт) и только тогда
+/// регистрирует его в мире и ставит площадку. Tile — куда ложится
+/// <c>BlueprintBuildingPlan.AnchorTile</c> чертежа.</summary>
+public sealed class PlaceBuildingBlueprintCommand : ISimulationCommand
+{
+    public PlaceBuildingBlueprintCommand(string blueprintJson, TileCoord tile, float rotationDegrees)
+    {
+        BlueprintJson = blueprintJson ?? string.Empty;
+        Tile = tile;
+        RotationDegrees = rotationDegrees;
+    }
+
+    public string BlueprintJson { get; }
+
+    public TileCoord Tile { get; }
+
+    public float RotationDegrees { get; }
+
+    public EntityId? TargetEntity => null;
+}
+
 /// <summary>§120.7: повернуть ПУСТУЮ размеченную площадку (ни одного
 /// доставленного материала). Абсолютный угол; исполнитель квантует и для
 /// дома перепроверяет футпринт новой ориентации.</summary>

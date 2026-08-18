@@ -172,6 +172,57 @@ public static class BuildingRules
             ? owner?.DefinitionId
             : owner.BuildProduct);
 
+    /// <summary>Продукт объекта (площадка несёт его в BuildProduct, поднятое
+    /// здание — в DefinitionId).</summary>
+    private static string ProductOf(WorldObjectState owner) =>
+        owner == null || string.IsNullOrEmpty(owner.BuildProduct)
+            ? owner?.DefinitionId
+            : owner.BuildProduct;
+
+    /// <summary>
+    /// §120.8: ЧЕРТЁЖ этого plan-здания. Произвольный чертёж игрока живёт в
+    /// <c>WorldState.PlayerBlueprints</c> под <c>owner.BlueprintId</c>;
+    /// id 0 и потерянная запись честно откатываются на встроенный
+    /// committed-план — ровно то, что делали все читатели до §120.8.
+    /// Для не-plan продуктов (каноническая хижина) возвращает null.
+    /// </summary>
+    internal static Blueprints.BuildingBlueprintDraft PlanFor(
+        WorldState world, WorldObjectState owner)
+    {
+        if (ProductOf(owner) != ContentIds.HutPlan) return null;
+        if (owner.BlueprintId != 0 && world != null &&
+            world.PlayerBlueprints.TryGetValue(owner.BlueprintId, out var draft) &&
+            draft != null)
+        {
+            return draft;
+        }
+
+        return Blueprints.CommittedBuildingPlans.PlayerHut;
+    }
+
+    // Конверсия модулей произвольного чертежа кэшируется по ссылке на драфт:
+    // после стейка драфт неизменяем, а Modules() на каждый вызов не бесплатен.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+        Blueprints.BuildingBlueprintDraft, List<Definition>> _customPlanDefinitions = new();
+
+    private static List<Definition> DefinitionsFor(Blueprints.BuildingBlueprintDraft plan)
+    {
+        if (plan == null) return HutDefinitions();
+        if (ReferenceEquals(plan, Blueprints.CommittedBuildingPlans.PlayerHut))
+            return PlayerPlanDefinitions();
+        return _customPlanDefinitions.GetValue(
+            plan, p => ConvertModules(Blueprints.BlueprintBuildingPlan.Modules(p)));
+    }
+
+    /// <summary>Definitions с учётом чертежа КОНКРЕТНОГО владельца — все
+    /// world-aware читатели геометрии обязаны идти сюда, а не в строковый
+    /// вариант, иначе произвольный план молча подменяется committed-планом.</summary>
+    private static List<Definition> DefinitionsFor(WorldState world, WorldObjectState owner)
+    {
+        var plan = PlanFor(world, owner);
+        return plan != null ? DefinitionsFor(plan) : DefinitionsFor(owner);
+    }
+
     /// <summary>
     /// The door's outward yaw in BUILDING-LOCAL degrees, straight off the
     /// module list. <see cref="DoorOutwardYaw(WorldState, WorldObjectState)"/>
@@ -200,10 +251,12 @@ public static class BuildingRules
 
     private static List<Definition> _playerPlanDefinitions;
 
-    private static List<Definition> PlayerPlanDefinitions()
+    private static List<Definition> PlayerPlanDefinitions() =>
+        _playerPlanDefinitions ??= ConvertModules(CommittedBuildingPlans.PlayerHutModules);
+
+    private static List<Definition> ConvertModules(
+        System.Collections.Generic.IReadOnlyList<Blueprints.BuildingElementBlueprint> modules)
     {
-        if (_playerPlanDefinitions != null) return _playerPlanDefinitions;
-        var modules = CommittedBuildingPlans.PlayerHutModules;
         var converted = new List<Definition>(modules.Count);
         foreach (var module in modules)
         {
@@ -231,9 +284,9 @@ public static class BuildingRules
         }
 
         // Callers only ever read this list (their FindAll/List copies are what
-        // gets shuffled), so one cached instance is safe and keeps the JSON
+        // gets shuffled), so a cached instance is safe and keeps the JSON
         // parse off the per-tick BuildSiteMath.Remaining path.
-        return _playerPlanDefinitions = converted;
+        return converted;
     }
 
     public static BuildingElementKind HutBayKind(int bay) => bay switch
@@ -291,11 +344,15 @@ public static class BuildingRules
         CompletedSupports(siteSeed, sticks, boards, rope, buildProduct) >=
         RequiredSupportsForRoof(DefinitionsFor(buildProduct));
 
-    public static void EnsureHutElements(WorldObjectState owner, bool completed = false)
+    public static void EnsureHutElements(WorldObjectState owner, bool completed = false) =>
+        EnsureHutElements(owner, completed, definitions: null);
+
+    private static void EnsureHutElements(
+        WorldObjectState owner, bool completed, List<Definition> definitions)
     {
         if (owner == null) return;
         if (owner.ArchitectureElements.Count > 0) return;
-        var definitions = DefinitionsFor(owner);
+        definitions ??= DefinitionsFor(owner);
         for (var i = 0; i < definitions.Count; i++)
         {
             var definition = definitions[i];
@@ -333,8 +390,9 @@ public static class BuildingRules
         if (ArchitectureObjects(world, owner).Any()) return;
 
         // Build the canonical component records, or consume v32-v33 records
-        // already loaded on the aggregate.
-        EnsureHutElements(owner, completed);
+        // already loaded on the aggregate. §120.8: чертёж берётся у ВЛАДЕЛЬЦА
+        // (произвольный план из реестра мира), не у статического committed.
+        EnsureHutElements(owner, completed, DefinitionsFor(world, owner));
         var components = owner.ArchitectureElements.Select(element => element.Clone()).ToArray();
         owner.ArchitectureElements.Clear();
         var anchor = owner.Junctions.Count > 0
@@ -538,7 +596,7 @@ public static class BuildingRules
     public static void RefreshHutElementGeometry(WorldState world, WorldObjectState owner)
     {
         EnsureHutElements(world, owner, completed: IsCompletedBuilding(owner));
-        var definitions = DefinitionsFor(owner).ToDictionary(definition => definition.Key);
+        var definitions = DefinitionsFor(world, owner).ToDictionary(definition => definition.Key);
         foreach (var element in Elements(world, owner))
         {
             if (!definitions.TryGetValue(element.SlotKey, out var definition)) continue;

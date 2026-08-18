@@ -9,6 +9,7 @@ using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Environment;
+using HexLive.UnityPresentation.HutTest;
 using HexLive.UnityPresentation.HutTest.BlueprintEditor;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
@@ -44,6 +45,10 @@ namespace HexLive.UnityPresentation.UI
         private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
         private const string StyleResource = "HexLive/UI/HutConstructor/HutConstructorStyles";
         private const string HutCardId = "building.hut_plan";
+
+        /// <summary>§120.8: карточка «Свой проект» — клик по гексу открывает
+        /// конструктор прямо в мире, «Построить» шлёт чертёж командой.</summary>
+        private const string ProjectCardId = "custom.project";
         private const float SnapshotInterval = 0.25f;
         private const float OverlayInterval = 1f;
 
@@ -367,6 +372,8 @@ namespace HexLive.UnityPresentation.UI
                 AddCategoryButton("house", Loc.Get("blueprint.category.house"));
                 if (_categoryTitle != null) _categoryTitle.text = Loc.Get("blueprint.category.house");
                 AddCard(HutCardId, "blueprint.catalog.hut.name", "blueprint.catalog.hut.description", "⌂");
+                AddCard(ProjectCardId, "blueprint.catalog.project.name",
+                    "blueprint.catalog.project.description", "✎");
             }
             else
             {
@@ -506,6 +513,11 @@ namespace HexLive.UnityPresentation.UI
         /// сводятся к своим карточкам каталога).</summary>
         private static (string NameTerm, string DescriptionTerm) CardTerms(string id)
         {
+            if (id == ProjectCardId)
+            {
+                return ("blueprint.catalog.project.name", "blueprint.catalog.project.description");
+            }
+
             if (id == HutCardId || id == ContentIds.HutPlan)
             {
                 return ("blueprint.catalog.hut.name", "blueprint.catalog.hut.description");
@@ -530,7 +542,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void Update()
         {
-            var ready = _runner != null && _runner.IsReady && _runner.SupportsNpcCommands;
+            var ready = _runner != null && _runner.IsReady && _runner.SupportsNpcCommands &&
+                        !HutLayoutDesigner.WorldEditorOpen;
             if (_openButton != null)
             {
                 _openButton.style.display = ready && !IsOpen ? DisplayStyle.Flex : DisplayStyle.None;
@@ -652,6 +665,14 @@ namespace HexLive.UnityPresentation.UI
             if (!_ghostValid)
             {
                 SetStatus("build.mode.blocked");
+                return;
+            }
+
+            // «Свой проект»: клик выбирает якорный гекс и открывает конструктор
+            // прямо в мире — команда уйдёт из его кнопки «Построить».
+            if (_activeCardId == ProjectCardId)
+            {
+                OpenBlueprintEditor(tile);
                 return;
             }
 
@@ -928,11 +949,13 @@ namespace HexLive.UnityPresentation.UI
             {
                 BuildPlanPreview(_ghostRoot.transform, CommittedBuildingPlans.PlayerHut);
             }
-            else
+            else if (_activeCardId != ProjectCardId)
             {
                 var model = GhostModel(_activeCardId);
                 if (model != null) model.transform.SetParent(_ghostRoot.transform, false);
             }
+            // «Свой проект» — только контур якорного гекса: чертить будет
+            // конструктор, показывать нечего.
 
             var outline = new GameObject("Footprint outline");
             outline.transform.SetParent(_ghostRoot.transform, false);
@@ -1094,6 +1117,41 @@ namespace HexLive.UnityPresentation.UI
             return _outlineMaterial;
         }
 
+        /// <summary>§120.8: конструктор поверх выбранного гекса. Лоток
+        /// закрывается; «Построить» в конструкторе шлёт чертёж мировой
+        /// командой — тот же путь, что и на сервере.</summary>
+        private void OpenBlueprintEditor(TileCoord anchorTile)
+        {
+            var runner = _runner;
+            var worldRenderer = _worldRenderer;
+            if (runner == null || worldRenderer == null) return;
+            var anchorWorld = SimulationUnityMapper.ToUnityTilePosition(
+                anchorTile, worldRenderer.GroundTopY(anchorTile));
+            EndBuildMode();
+
+            HutLayoutDesigner.PendingWorldPlacement = new HutLayoutDesigner.WorldPlacementConfig
+            {
+                AnchorWorldPosition = anchorWorld,
+                AnchorTile = anchorTile,
+                OnBuild = draft =>
+                {
+                    // Сим кладёт AnchorTile чертежа на тайл команды; черчение
+                    // шло от выбранного гекса как (0,0) — сложить смещения.
+                    var draftAnchor = BlueprintBuildingPlan.AnchorTile(draft);
+                    var target = new TileCoord(
+                        anchorTile.Q + draftAnchor.Q, anchorTile.R + draftAnchor.R);
+                    runner.EnqueueCommand(new PlaceBuildingBlueprintCommand(
+                        BuildingBlueprintJson.Serialize(draft, pretty: false),
+                        target, rotationDegrees: 0f));
+                },
+                OnClosed = null
+            };
+
+            var editorRoot = new GameObject("HexLive Blueprint Editor");
+            editorRoot.AddComponent<UIDocument>();
+            editorRoot.AddComponent<HutLayoutDesigner>();
+        }
+
         private void ClearGhost()
         {
             if (_ghostRoot != null) Destroy(_ghostRoot);
@@ -1189,13 +1247,34 @@ namespace HexLive.UnityPresentation.UI
         private void RefreshSiteOverlays()
         {
             if (_snapshot == null || _worldRenderer == null) return;
+            // §120.8: модульные объекты plan-площадок — источник геометрии
+            // призрака «полностью построено»: чертёж клиенту не нужен.
+            var modulesByOwner = new Dictionary<int, List<ObjectSnapshot>>();
+            foreach (var obj in _snapshot.Objects)
+            {
+                if (obj.ArchitectureOwnerObjectId is not { } ownerId ||
+                    obj.ArchitectureElements.Count != 1)
+                {
+                    continue;
+                }
+
+                if (!modulesByOwner.TryGetValue(ownerId, out var list))
+                {
+                    list = new List<ObjectSnapshot>();
+                    modulesByOwner[ownerId] = list;
+                }
+
+                list.Add(obj);
+            }
+
             var seen = new HashSet<int>();
             foreach (var obj in _snapshot.Objects)
             {
                 if (string.IsNullOrEmpty(obj.BuildProduct)) continue;
                 seen.Add(obj.Id.Value);
                 if (_siteOverlays.ContainsKey(obj.Id.Value)) continue;
-                var overlay = BuildSiteOverlay(obj);
+                modulesByOwner.TryGetValue(obj.Id.Value, out var modules);
+                var overlay = BuildSiteOverlay(obj, modules);
                 if (overlay != null) _siteOverlays[obj.Id.Value] = overlay;
             }
 
@@ -1215,7 +1294,7 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        private GameObject? BuildSiteOverlay(ObjectSnapshot site)
+        private GameObject? BuildSiteOverlay(ObjectSnapshot site, List<ObjectSnapshot>? modules)
         {
             var anchor = _worldRenderer!.ObjectAnchorPosition(site);
             var groundY = _worldRenderer.GroundTopY(site.Tile);
@@ -1223,14 +1302,33 @@ namespace HexLive.UnityPresentation.UI
 
             if (site.BuildProduct == ContentIds.HutPlan)
             {
+                // Дом собирается из СВОИХ модулей (произвольный чертёж §120.8
+                // приходит теми же модульными объектами, что и committed-план);
+                // каждый модуль — полная авторская модель, как её поставит
+                // ArchitectureModuleView по завершении.
                 root.transform.position = SimulationUnityMapper.ToUnityPosition(anchor, groundY);
-                if (site.RotationDegrees != 0f)
+                if (modules == null || modules.Count == 0)
                 {
-                    root.transform.rotation = Quaternion.Euler(
-                        0f, SimulationUnityMapper.ToUnityFootprintYawDegrees(site.RotationDegrees), 0f);
+                    Destroy(root);
+                    return null;
                 }
 
-                BuildPlanPreview(root.transform, CommittedBuildingPlans.PlayerHut);
+                var frame = Quaternion.Euler(
+                    0f, SimulationUnityMapper.ToUnityFootprintYawDegrees(site.RotationDegrees), 0f);
+                foreach (var module in modules)
+                {
+                    var element = module.ArchitectureElements[0];
+                    var localPosition = frame * new Vector3(
+                        element.LocalX,
+                        BlueprintArchitectureFactory.ModuleLift(element.DefinitionId),
+                        element.LocalZ);
+                    var wrapper = BlueprintArchitectureFactory.InstantiateModel(
+                        element.DefinitionId, localPosition,
+                        frame * BlueprintArchitectureFactory.ModuleRotation(
+                            element.DefinitionId, element.LocalYaw));
+                    if (wrapper != null) wrapper.transform.SetParent(root.transform, false);
+                }
+
                 return root;
             }
 

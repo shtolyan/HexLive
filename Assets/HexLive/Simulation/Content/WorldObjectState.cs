@@ -114,6 +114,14 @@ public sealed class WorldObjectState
     // whole hut one selectable object.
     public ObjectId? ArchitectureOwnerId { get; set; }
 
+    /// <summary>
+    /// §120.8: какой чертёж строит эта площадка/здание с продуктом
+    /// <c>building.hut_plan</c>. 0 — встроенный committed-план; иначе ключ в
+    /// <c>WorldState.PlayerBlueprints</c>. Инстансные данные (сейв v50);
+    /// по проводу не едет — клиент рендерит модульные объекты.
+    /// </summary>
+    public int BlueprintId { get; set; }
+
     public List<ArchitectureElementState> ArchitectureElements { get; } = new();
 
     public bool IsArchitectureElement => ArchitectureOwnerId.HasValue &&

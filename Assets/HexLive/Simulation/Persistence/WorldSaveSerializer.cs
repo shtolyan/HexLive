@@ -105,7 +105,13 @@ public static class WorldSaveSerializer
     // санктуарием — им размечены двор колонии и стоянка чужака, где крыши нет,
     // — а солнце и тень теперь смотрят только на перекрытие. Старый блоб
     // читается «крыша там, где есть настил».
-    public const int BlobVersion = 49;
+    // v50 (§120.8): произвольные чертежи игрока. Реестр
+    // WorldState.PlayerBlueprints едет JSON'ом собственного формата чертежа
+    // (BuildingBlueprintJson — тот же, что в команде и в редакторе), а каждый
+    // объект несёт BlueprintId (0 = встроенный committed-план). Без реестра
+    // загрузчик переписал бы геометрию слотов произвольного дома из
+    // committed-плана — молча и навсегда.
+    public const int BlobVersion = 50;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -307,6 +313,17 @@ public static class WorldSaveSerializer
             {
                 w.Write(id.Value);
             }
+        }
+
+        // v50 (§120.8): реестр произвольных чертежей — тем же JSON, что и
+        // команда/редактор, чтобы формат чертежа жил ровно в одном месте.
+        w.Write(world.NextPlayerBlueprintId);
+        w.Write(world.PlayerBlueprints.Count);
+        foreach (var pair in world.PlayerBlueprints)
+        {
+            w.Write(pair.Key);
+            w.Write(Runtime.Blueprints.BuildingBlueprintJson.Serialize(
+                pair.Value, pretty: false));
         }
 
         w.Write(EndMarker);
@@ -608,6 +625,29 @@ public static class WorldSaveSerializer
 
         world.Events.Clear();
 
+        // v50 (§120.8): реестр чертежей читается ДО MigrateRetiredContent —
+        // именно миграция переписывает геометрию слотов plan-зданий, и делать
+        // это она обязана уже по чертежу площадки, не по committed-плану.
+        if (version >= 50)
+        {
+            world.NextPlayerBlueprintId = r.ReadInt32();
+            var blueprintCount = r.ReadInt32();
+            world.PlayerBlueprints.Clear();
+            for (var i = 0; i < blueprintCount; i++)
+            {
+                var id = r.ReadInt32();
+                var json = r.ReadString();
+                if (!Runtime.Blueprints.BuildingBlueprintJson.TryDeserialize(
+                        json, out var draft, out var error))
+                {
+                    throw new InvalidDataException(
+                        $"Save blob player blueprint {id} is unreadable: {error}");
+                }
+
+                world.PlayerBlueprints[id] = draft;
+            }
+        }
+
         if (r.ReadInt32() != EndMarker)
         {
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
@@ -826,6 +866,9 @@ public static class WorldSaveSerializer
         }
         WriteNullableObject(w, obj.ArchitectureOwnerId);
         w.Write(obj.IsDoorOpen);
+
+        // v50 (§120.8): чей чертёж строит этот plan-объект (0 = committed).
+        w.Write(obj.BlueprintId);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -929,6 +972,7 @@ public static class WorldSaveSerializer
 
         obj.ArchitectureOwnerId = version >= 34 ? ReadNullableObject(r) : null;
         obj.IsDoorOpen = version >= 37 ? r.ReadBoolean() : true;
+        obj.BlueprintId = version >= 50 ? r.ReadInt32() : 0;
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including

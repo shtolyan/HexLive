@@ -114,12 +114,30 @@ public static class BuildingBootstrap
         return FootprintTiles(product, building.Tile, building.RotationDegrees);
     }
 
+    /// <summary>§120.8: футпринт с учётом ЧЕРТЕЖА владельца — произвольный план
+    /// игрока владеет своими гексами, а не гексами committed-плана.</summary>
+    public static IReadOnlyList<TileCoord> FootprintTiles(
+        WorldState world, WorldObjectState building)
+    {
+        if (building == null) return Array.Empty<TileCoord>();
+        var plan = BuildingRules.PlanFor(world, building);
+        return plan != null
+            ? FootprintTiles(plan, building.Tile, building.RotationDegrees)
+            : FootprintTiles(building);
+    }
+
     public static IReadOnlyList<TileCoord> FootprintTiles(
         string buildProduct, TileCoord anchorTile, float rotationDegrees)
     {
         if (buildProduct != ContentIds.HutPlan) return new[] { anchorTile };
+        return FootprintTiles(
+            Runtime.Blueprints.CommittedBuildingPlans.PlayerHut, anchorTile, rotationDegrees);
+    }
 
-        var plan = Runtime.Blueprints.CommittedBuildingPlans.PlayerHut;
+    public static IReadOnlyList<TileCoord> FootprintTiles(
+        Runtime.Blueprints.BuildingBlueprintDraft plan,
+        TileCoord anchorTile, float rotationDegrees)
+    {
         var planAnchor = Runtime.Blueprints.BlueprintBuildingPlan.AnchorTile(plan);
         // +60° of world yaw is one axial step (q,r) -> (-r, q+r): TileToWorld
         // maps +q to 0° and +r to 60°, so the two rotations are the same one.
@@ -155,7 +173,36 @@ public static class BuildingBootstrap
         // placement check rather than after the site exists.
         var rotation = StructurePlacement.QuantizeHexSymmetryYaw(
             facingYaw - BuildingRules.DoorLocalOutwardYaw(ContentIds.HutPlan));
-        foreach (var footprint in FootprintTiles(ContentIds.HutPlan, tile, rotation))
+        return CreatePlanSite(
+            world, tile, rotation,
+            Runtime.Blueprints.CommittedBuildingPlans.PlayerHut, blueprintId: 0);
+    }
+
+    /// <summary>
+    /// §120.8: разметить ПРОИЗВОЛЬНЫЙ чертёж игрока. Чертёж обязан УЖЕ лежать в
+    /// <c>world.PlayerBlueprints[blueprintId]</c> — модули, топология и мебель
+    /// площадки разрешаются через её BlueprintId, и площадка без записи в
+    /// реестре молча откатилась бы на committed-план.
+    /// </summary>
+    public static WorldObjectState CreatePlayerBlueprintSite(
+        WorldState world, TileCoord tile, float rotationDegrees, int blueprintId)
+    {
+        if (world == null ||
+            !world.PlayerBlueprints.TryGetValue(blueprintId, out var plan) || plan == null)
+        {
+            return null;
+        }
+
+        return CreatePlanSite(
+            world, tile, StructurePlacement.QuantizeHexSymmetryYaw(rotationDegrees),
+            plan, blueprintId);
+    }
+
+    private static WorldObjectState CreatePlanSite(
+        WorldState world, TileCoord tile, float rotation,
+        Runtime.Blueprints.BuildingBlueprintDraft plan, int blueprintId)
+    {
+        foreach (var footprint in FootprintTiles(plan, tile, rotation))
         {
             if (!CanPlaceHut(world, footprint)) return null;
         }
@@ -165,8 +212,9 @@ public static class BuildingBootstrap
         var site = WorldObjectMutations.SpawnObject(
             world, ContentIds.BuildSite, world.Junctions.Items[anchor].Fragment, tile, anchor);
         site.BuildProduct = ContentIds.HutPlan;
+        site.BlueprintId = blueprintId;
         var bill = Runtime.Blueprints.BlueprintBuildingPlan.Bill(
-            Runtime.Blueprints.CommittedBuildingPlans.PlayerHutModules);
+            Runtime.Blueprints.BlueprintBuildingPlan.Modules(plan));
         site.BillSticks = bill.Sticks;
         site.BillBoards = bill.Boards;
         site.BillRope = bill.Rope;
@@ -204,7 +252,7 @@ public static class BuildingBootstrap
             piece.RotationDegrees = hut.RotationDegrees;
         // §120: the roof covers the whole footprint, so the flags do too. For
         // hut_1hex that list is exactly {hut.Tile} and this is the old line.
-        foreach (var footprintTile in FootprintTiles(hut))
+        foreach (var footprintTile in FootprintTiles(world, hut))
         {
             if (world.Tiles.Items.TryGetValue(footprintTile, out var footprint))
                 footprint.Flags |= TileFlags.HasFloor | TileFlags.Indoor | TileFlags.Roofed;
@@ -305,7 +353,8 @@ public static class BuildingBootstrap
         if (product != ContentIds.HutPlan) return;
         if (!world.Tiles.Items.ContainsKey(owner.Tile)) return;
 
-        var plan = Runtime.Blueprints.CommittedBuildingPlans.PlayerHut;
+        // §120.8: топология считается по чертежу ЭТОЙ площадки, не по committed.
+        var plan = BuildingRules.PlanFor(world, owner);
         var authoredBySlot = new Dictionary<string, Runtime.Blueprints.BlueprintElementData>(
             StringComparer.Ordinal);
         foreach (var element in plan.Elements)
@@ -460,7 +509,7 @@ public static class BuildingBootstrap
     {
         var index = new Dictionary<Runtime.Blueprints.JunctionKey, JunctionId>();
         var tiles = new List<TileCoord>();
-        foreach (var footprint in FootprintTiles(owner))
+        foreach (var footprint in FootprintTiles(world, owner))
         {
             if (!tiles.Contains(footprint)) tiles.Add(footprint);
             foreach (var direction in HexDirection.All)
@@ -501,7 +550,8 @@ public static class BuildingBootstrap
     public static void StakePlanFurnitureSites(WorldState world, WorldObjectState hut)
     {
         if (world == null || hut == null || hut.DefinitionId != ContentIds.HutPlan) return;
-        var plan = Runtime.Blueprints.CommittedBuildingPlans.PlayerHut;
+        // §120.8: мебель размечает чертёж ЭТОГО дома, не committed-план.
+        var plan = BuildingRules.PlanFor(world, hut);
         var steps = HexSymmetrySteps(hut.RotationDegrees);
         var planAnchorTile = Runtime.Blueprints.BlueprintBuildingPlan.AnchorTile(plan);
         var index = PlanJunctionIndex(world, hut);

@@ -69,6 +69,19 @@ public sealed class WorldState
     // Runtime-spawned objects allocate ids from here; bootstrap ids stay below 1000.
     public int NextRuntimeObjectId { get; set; } = 1000;
 
+    /// <summary>
+    /// §120.8: произвольные чертежи игрока, размеченные в ЭТОМ мире, по id.
+    /// Id 0 зарезервирован за встроенным committed-планом
+    /// (<c>CommittedBuildingPlans.PlayerHut</c>) и в словаре не живёт.
+    /// Чертёж после стейка неизменяем; запись удаляется вместе со снятой
+    /// пустой площадкой. Едет в сейве (v50); на проводе НЕ едет — клиент
+    /// рендерит модульные объекты, а чертёж отправляет только в команде.
+    /// </summary>
+    public System.Collections.Generic.Dictionary<int, Runtime.Blueprints.BuildingBlueprintDraft>
+        PlayerBlueprints { get; } = new();
+
+    public int NextPlayerBlueprintId { get; set; } = 1;
+
     // §72.14/§132: how many post-start raid BOUNDARIES were processed.
     // A boundary can spawn a raider or be consumed by a full camp; persisting
     // the latter is what prevents a death tomorrow from releasing a backlog.

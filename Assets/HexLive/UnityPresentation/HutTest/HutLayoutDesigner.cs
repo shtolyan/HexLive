@@ -27,7 +27,32 @@ namespace HexLive.UnityPresentation.HutTest
     [RequireComponent(typeof(UIDocument))]
     public sealed class HutLayoutDesigner : MonoBehaviour
     {
+        /// <summary>
+        /// §120.8: конструктор, открытый ИЗ ИГРЫ на выбранном гексе. Черчение
+        /// то же самое; отличия — якорь превью (гекс игрока вместо HutAssembly
+        /// сцены), никакой принудительной паузы (серверный паритет §120.7),
+        /// свой автосейв-черновик и кнопка «Построить», отдающая драфт наружу.
+        /// Config кладётся статически ДО AddComponent: Awake строит UI сразу.
+        /// </summary>
+        public sealed class WorldPlacementConfig
+        {
+            public Vector3 AnchorWorldPosition;
+            public Simulation.Common.TileCoord AnchorTile;
+            public Action<BuildingBlueprintDraft> OnBuild;
+            public Action OnClosed;
+        }
+
+        public static WorldPlacementConfig PendingWorldPlacement;
+
+        /// <summary>Открыт ли конструктор поверх игрового мира — кнопка
+        /// «Строить» BuildModePanel прячется, пока игрок чертит.</summary>
+        public static bool WorldEditorOpen { get; private set; }
+
+        private WorldPlacementConfig _worldPlacement;
+        private bool WorldMode => _worldPlacement != null;
+
         private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
+        private const string WorldDraftId = "game_project_autosave";
         // ⚠️ Не совмещать путь со стилем: у .uxml при импорте появляется свой
         // inline-StyleSheet-сабассет, и Resources.Load<StyleSheet> по общему
         // пути отдаёт ЕГО — пустой. Панель тогда рисуется голыми кнопками во
@@ -95,6 +120,9 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void Awake()
         {
+            _worldPlacement = PendingWorldPlacement;
+            PendingWorldPlacement = null;
+            if (WorldMode) WorldEditorOpen = true;
             _document = GetComponent<UIDocument>();
             ConfigurePanelSettings();
             BuildUi();
@@ -106,10 +134,13 @@ namespace HexLive.UnityPresentation.HutTest
             _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
             _camera = Camera.main;
             SuppressWorldSelection();
-            if (!_store.TryLoad(DraftId, out _draft, out var error))
+            var draftId = WorldMode ? WorldDraftId : DraftId;
+            if (!_store.TryLoad(draftId, out _draft, out var error))
             {
-                _draft = BuiltInBuildingBlueprints.Hut1Hex();
-                _draft.BlueprintId = DraftId;
+                // Игровой проект начинается с ЧИСТОГО листа: игрок чертит свой
+                // дом, а не редактирует эталон dev-сцены.
+                _draft = WorldMode ? new BuildingBlueprintDraft() : BuiltInBuildingBlueprints.Hut1Hex();
+                _draft.BlueprintId = draftId;
                 if (!string.IsNullOrEmpty(error)) Debug.LogWarning($"[BlueprintEditor] {error}", this);
             }
             ApplyLanguage();
@@ -121,6 +152,14 @@ namespace HexLive.UnityPresentation.HutTest
             Loc.LanguageChanged -= ApplyLanguage;
             if (_rotationButtonMaterial != null) Destroy(_rotationButtonMaterial);
             if (_rotationGlyphMaterial != null) Destroy(_rotationGlyphMaterial);
+            if (WorldMode)
+            {
+                // Превью — отдельный корневой GO; в игре за собой прибираем.
+                WorldEditorOpen = false;
+                if (_preview != null) Destroy(_preview.gameObject);
+                if (_handles != null) Destroy(_handles.gameObject);
+                _worldPlacement.OnClosed?.Invoke();
+            }
         }
 
         private void Update()
@@ -128,7 +167,9 @@ namespace HexLive.UnityPresentation.HutTest
             SuppressWorldSelection();
             if (!_initialized) InitializePreview();
             if (!_initialized || _preview == null || _camera == null) return;
-            if (_runner != null && !_runner.IsPaused) _runner.TogglePause();
+            // Dev-сцена конструктора держит мир на паузе; ИГРОВОЙ режим — нет
+            // (§120.7: на сервере часы операторские, паузу игрок ставит сам).
+            if (!WorldMode && _runner != null && !_runner.IsPaused) _runner.TogglePause();
             HandleKeyboard();
             HandlePointer();
             _preview.UpdateCutaway(_camera);
@@ -174,6 +215,20 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void InitializePreview()
         {
+            if (WorldMode)
+            {
+                // §120.8: превью встаёт на выбранный игроком гекс; чужие
+                // renderer'ы не трогаем — вокруг живой мир, не тест-стенд.
+                if (_draft == null) return;
+                var worldRoot = new GameObject("Blueprint constructor preview");
+                worldRoot.transform.SetPositionAndRotation(
+                    _worldPlacement.AnchorWorldPosition, Quaternion.identity);
+                _preview = worldRoot.AddComponent<BlueprintPreviewRenderer>();
+                RebuildPreview();
+                _initialized = true;
+                return;
+            }
+
             foreach (var hut in FindObjectsByType<HutAssembly>(FindObjectsSortMode.None))
             {
                 if (hut.name.Contains("Blueprint", StringComparison.OrdinalIgnoreCase)) continue;
@@ -248,10 +303,53 @@ namespace HexLive.UnityPresentation.HutTest
             root.Q<Button>("finish-selection").clicked += FinishSelection;
             root.Q<Button>("undo").clicked += Undo;
             root.Q<Button>("redo").clicked += Redo;
-            root.Q<Button>("save").clicked += () => SaveDraft(true);
-            root.Q<Button>("export").clicked += ExportDraft;
+            if (WorldMode)
+            {
+                // §120.8: в игре черновик и так автосейвится; две кнопки — это
+                // «Выйти» (закрыть без стройки) и «Построить» (отдать драфт).
+                root.Q<Button>("save").clicked += CloseWorldMode;
+                root.Q<Button>("export").clicked += BuildAndClose;
+            }
+            else
+            {
+                root.Q<Button>("save").clicked += () => SaveDraft(true);
+                root.Q<Button>("export").clicked += ExportDraft;
+            }
+
             RebuildCatalogUi();
             RefreshUiState();
+        }
+
+        /// <summary>Валидный чертёж уходит наружу (BuildModePanel шлёт команду
+        /// разметки), конструктор закрывается. Невалидный остаётся на экране с
+        /// причиной в статусе — молча терять работу игрока нельзя.</summary>
+        private void BuildAndClose()
+        {
+            if (_worldPlacement?.OnBuild == null) return;
+            SaveDraft(false);
+            var validation = BlueprintValidator.Validate(_draft);
+            var hasFloor = _draft.Elements.Any(e => e.Kind == BlueprintElementKind.FloorSector);
+            var hasDoor = _draft.Elements.Any(e => e.Kind == BlueprintElementKind.Door);
+            if (!validation.IsValid || !hasFloor || !hasDoor)
+            {
+                SetStatus(!hasFloor
+                    ? Loc.Get("blueprint.build.needs_floor")
+                    : !hasDoor
+                        ? Loc.Get("blueprint.build.needs_door")
+                        : validation.Issues[0].Message);
+                return;
+            }
+
+            var draft = _draft.Clone();
+            _worldPlacement.OnBuild(draft);
+            CloseWorldMode();
+        }
+
+        private void CloseWorldMode()
+        {
+            if (!WorldMode) return;
+            SaveDraft(false);
+            Destroy(gameObject);
         }
 
         private void HandleKeyboard()
@@ -1343,8 +1441,8 @@ namespace HexLive.UnityPresentation.HutTest
             // «Отменить» вылезает из 36px и наезжает на соседей.
             Tooltip<Button>(root, "undo", "blueprint.action.undo");
             Tooltip<Button>(root, "redo", "blueprint.action.redo");
-            Text<Button>(root, "save", "blueprint.action.save");
-            Text<Button>(root, "export", "blueprint.action.export");
+            Text<Button>(root, "save", WorldMode ? "blueprint.action.exit" : "blueprint.action.save");
+            Text<Button>(root, "export", WorldMode ? "blueprint.action.build" : "blueprint.action.export");
             Text<Label>(root, "shortcut-label", "blueprint.shortcuts");
             RebuildCatalogUi();
             SetStatus(_statusKey, true);

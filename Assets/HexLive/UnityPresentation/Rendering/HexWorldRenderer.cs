@@ -2919,18 +2919,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
         surfaceY = ActorGroundY(npc.Tile);
 
         // §66: beds sit at hex centres now, so the sleeper always stands on a
-        // NEIGHBOURING tile and two beds can be equally "one tile away". Trust
-        // the sim's own target first — that is the bed she walked to — and fall
-        // back to the nearest by real distance, not by hex ring.
+        // NEIGHBOURING tile. The bed comes ONLY from the sim's own target —
+        // that is the bed she entered (BedSleep.TryEnter держит его в
+        // Execution.TargetObject весь сон; сон на земле несёт null).
         //
-        // ⭐ Баг #122: цель ОБЯЗАНА пройти ту же проверку соседства, что и
-        // запасная ветка ниже. Без неё вид прижимал тело к кровати, до которой
-        // полкарты: симуляция держала лежачую на улице (мокла под дождём,
-        // кровь на земле), а на экране она лежала в кровати. И это не только
-        // «криво нарисовано» — камера кадрирует КОРЕНЬ вида (он на позиции
-        // симуляции), вырез крыш и дождь идут по npc.Tile, поэтому один
-        // необеспеченный прижим читался как три разных бага. Рассинхрон обязан
-        // быть ВИДЕН: тело рисуется там, где оно есть.
+        // ⭐ Баг #122: цель ОБЯЗАНА пройти проверку соседства. Без неё вид
+        // прижимал тело к кровати, до которой полкарты: симуляция держала
+        // лежачую на улице (мокла под дождём, кровь на земле), а на экране она
+        // лежала в кровати. И это не только «криво нарисовано» — камера
+        // кадрирует КОРЕНЬ вида (он на позиции симуляции), вырез крыш и дождь
+        // идут по npc.Tile, поэтому один необеспеченный прижим читался как три
+        // разных бага. Рассинхрон обязан быть ВИДЕН: тело рисуется там, где
+        // оно есть.
+        //
+        // ⭐ Баг #174: здесь была ещё и запасная ветка «ближайшая кровать в
+        // радиусе гекса» для спящих БЕЗ цели. Она приклеивала к кровати ту,
+        // кто по симуляции лёг на землю РЯДОМ (кровать занята соседкой, §29G
+        // кладёт вторую на соседний джанкшен) — на экране две девушки лежали
+        // в одной кровати, а на деле одна из них мокла на земле. Спящая без
+        // TargetObjectId лежит там, где её держит симуляция.
         ObjectSnapshot? bed = null;
         if (npc.TargetObjectId is { } sleepTargetId)
         {
@@ -2942,27 +2949,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 {
                     bed = worldObject;
                     break;
-                }
-            }
-        }
-
-        var bestSq = float.MaxValue;
-        if (bed is null)
-        {
-            foreach (var worldObject in snapshot.Objects)
-            {
-                if (!worldObject.DefinitionId.Contains("bed") ||
-                    HexSpatialMath.HexDistance(worldObject.Tile, npc.Tile) > 1)
-                {
-                    continue;
-                }
-
-                var d = HexSpatialMath.Distance(
-                    HexSpatialMath.TileToWorld(worldObject.Tile), npc.Position);
-                if (d < bestSq)
-                {
-                    bestSq = d;
-                    bed = worldObject;
                 }
             }
         }

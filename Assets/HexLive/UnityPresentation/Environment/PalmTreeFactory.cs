@@ -33,7 +33,8 @@ namespace HexLive.UnityPresentation.Environment
 
         // §121: активатором наведения/клика служит только ствол. Крона — сабмеш
         // LeafGreen того же рендерера, поэтому её нельзя исключить рендерером:
-        // пикинг переопределяется габаритом сабмеша WoodBark. Если ствольный
+        // пикинг переопределяется сабмешем WoodBark — его габарит отбирает
+        // кандидатов, попадание решают его треугольники. Если ствольный
         // сабмеш не нашёлся (другая раскладка меша), компонент не ставится и
         // пальма пикается по-старому — целиком, но не становится некликабельной.
         private static void ConfigureTrunkPicking(GameObject palm)
@@ -77,7 +78,7 @@ namespace HexLive.UnityPresentation.Environment
                             .AddComponent<Views.WorldObjectPickBounds>();
                     }
 
-                    pick.Add(bounds);
+                    pick.AddSubmesh(bounds, i);
                 }
             }
         }

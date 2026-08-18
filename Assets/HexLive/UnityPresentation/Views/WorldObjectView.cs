@@ -13,9 +13,10 @@ namespace HexLive.UnityPresentation.Views
 /// а не поиском по сцене.
 ///
 /// ⭐ Коллайдеров у объектов в этом проекте НЕТ и не заводится. Пикинг здесь
-/// аналитический — луч против <see cref="Renderer.bounds"/>. Добавить
-/// коллайдеры значило бы, среди прочего, начать
-/// попадать в физические тела ткани MagicaCloth на актрисах.
+/// аналитический: <see cref="Renderer.bounds"/> отбирает кандидатов, а
+/// попадание решает луч против треугольников меша (<see cref="MeshRayPicker"/>).
+/// Добавить коллайдеры значило бы, среди прочего, начать попадать в
+/// физические тела ткани MagicaCloth на актрисах.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class WorldObjectView : MonoBehaviour
@@ -53,9 +54,12 @@ public sealed class WorldObjectView : MonoBehaviour
     }
 
     /// <summary>
-    /// Ближайшее пересечение луча с габаритами вида. Габариты, а не меши:
-    /// попасть в кокос надо мышкой, а не пулей, и лишняя точность здесь стоила
-    /// бы перебора треугольников каждый кадр.
+    /// Ближайшее пересечение луча с видимой геометрией вида (§121.1).
+    /// <see cref="Renderer.bounds"/> — только грубый отбор: осевой габарит
+    /// накрывает пустые углы, и раньше костёр «съедал» клики по кокосу и
+    /// колонистке рядом. Победу решает <see cref="MeshRayPicker"/> — луч
+    /// против треугольников меша; рендерер без меш-данных (частицы пламени)
+    /// участвует по-старому лишь когда меш-пригодных в виде нет вовсе.
     /// </summary>
     public bool TryIntersect(Ray ray, out float distance)
     {
@@ -85,6 +89,43 @@ public sealed class WorldObjectView : MonoBehaviour
         {
             return hit;
         }
+
+        var meshCapableSeen = false;
+        for (var i = 0; i < _renderers.Length; i++)
+        {
+            var renderer = _renderers[i];
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (!MeshRayPicker.HasMeshData(renderer))
+            {
+                continue;
+            }
+
+            meshCapableSeen = true;
+            // Меш лежит внутри своего габарита, поэтому вход луча в габарит —
+            // нижняя граница точной дистанции: дальше текущего победителя
+            // треугольники можно не перебирать.
+            if (!renderer.bounds.IntersectRay(ray, out var entry) || entry >= distance)
+            {
+                continue;
+            }
+
+            if (MeshRayPicker.TryIntersect(renderer, ray, out var d) && d < distance)
+            {
+                distance = d;
+                hit = true;
+            }
+        }
+
+        if (meshCapableSeen)
+        {
+            return hit;
+        }
+
+        // Ни одного меша (чисто эффектный вид) — прежнее поведение по габаритам.
         for (var i = 0; i < _renderers.Length; i++)
         {
             var renderer = _renderers[i];

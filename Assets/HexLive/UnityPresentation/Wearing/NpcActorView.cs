@@ -73,10 +73,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // Player picking must follow the rendered, animated body rather than a
-    // single simulation point at the feet. Renderer.bounds is updated by Unity
-    // for skinned meshes, clothing, hair and held props; intersecting the click
-    // ray against those bounds costs work only on an actual click and avoids
-    // baking animated meshes or maintaining physics colliders every frame.
+    // single simulation point at the feet. Renderer.bounds only pre-selects
+    // candidates now (§121.1): the axis-aligned box of a whole skinned body is
+    // fat enough to steal clicks from a coconut at her feet, so the winner is
+    // decided by the ray against the actual triangles (MeshRayPicker, with a
+    // throttled BakeMesh cache for skinned renderers). Renderers without mesh
+    // data (blood VFX, trails) never make a body clickable; the old pure-AABB
+    // path survives only for a view with no mesh renderers at all.
     private readonly List<Renderer> _clickRendererScratch = new();
 
     public bool TryRaycastVisibleGeometry(Ray ray, float maxDistance, out float distance)
@@ -86,6 +89,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         GetComponentsInChildren<Renderer>(true, _clickRendererScratch);
 
         var hit = false;
+        var meshCapableSeen = false;
         for (var i = 0; i < _clickRendererScratch.Count; i++)
         {
             var renderer = _clickRendererScratch[i];
@@ -94,16 +98,53 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 continue;
             }
 
-            var bounds = renderer.bounds;
-            if (bounds.size.sqrMagnitude < 0.000001f ||
-                !bounds.IntersectRay(ray, out var candidate) ||
-                candidate < 0f || candidate >= distance)
+            if (!Views.MeshRayPicker.HasMeshData(renderer))
             {
                 continue;
             }
 
-            distance = candidate;
-            hit = true;
+            meshCapableSeen = true;
+            var bounds = renderer.bounds;
+            // The mesh sits inside its bounds, so the ray's box entry is a
+            // lower bound of the exact distance — triangles beyond the current
+            // winner are never walked.
+            if (bounds.size.sqrMagnitude < 0.000001f ||
+                !bounds.IntersectRay(ray, out var entry) ||
+                entry < 0f || entry >= distance)
+            {
+                continue;
+            }
+
+            if (Views.MeshRayPicker.TryIntersect(renderer, ray, out var candidate) &&
+                candidate < distance)
+            {
+                distance = candidate;
+                hit = true;
+            }
+        }
+
+        if (!meshCapableSeen)
+        {
+            for (var i = 0; i < _clickRendererScratch.Count; i++)
+            {
+                var renderer = _clickRendererScratch[i];
+                if (renderer == null || !renderer.enabled ||
+                    !renderer.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                var bounds = renderer.bounds;
+                if (bounds.size.sqrMagnitude < 0.000001f ||
+                    !bounds.IntersectRay(ray, out var candidate) ||
+                    candidate < 0f || candidate >= distance)
+                {
+                    continue;
+                }
+
+                distance = candidate;
+                hit = true;
+            }
         }
 
         _clickRendererScratch.Clear();

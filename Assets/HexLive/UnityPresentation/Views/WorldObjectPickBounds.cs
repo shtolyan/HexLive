@@ -8,31 +8,77 @@ namespace HexLive.UnityPresentation.Views
 /// <summary>
 /// §121: замена зоны мышиного пикинга для одного вида. Когда компонент висит
 /// под <see cref="WorldObjectView"/>, луч наведения проверяется ТОЛЬКО против
-/// перечисленных локальных габаритов, а не против <c>Renderer.bounds</c> всех
-/// рендереров. Нужен стоящей пальме: её крона — сабмеш того же рендерера, что
-/// и ствол, поэтому баунд рендерера накрывает пол-гекса и съедает наведение на
-/// всё, что лежит под кроной. Активатором остаётся только ствол.
+/// перечисленных зон, а не против рендереров вида. Нужен стоящей пальме: крона
+/// затеняет пол-гекса сверху, и будь она активатором, съедала бы наведение на
+/// всё, что лежит под ней, — активатором остаётся только ствол.
+///
+/// Зона задаётся сабмешем рендерера, на котором висит компонент: габарит
+/// сабмеша служит грубым отбором, а попадание решают его треугольники
+/// (<see cref="MeshRayPicker"/>). Старый вариант «только габарит» остаётся
+/// запасным для зон без меш-данных.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class WorldObjectPickBounds : MonoBehaviour
 {
-    private readonly List<Bounds> _localBounds = new();
+    private readonly struct Zone
+    {
+        public readonly Bounds LocalBounds;
+        public readonly int Submesh; // -1 — попадание решает сам габарит
 
-    public void Add(Bounds localBounds) => _localBounds.Add(localBounds);
+        public Zone(Bounds localBounds, int submesh)
+        {
+            LocalBounds = localBounds;
+            Submesh = submesh;
+        }
+    }
+
+    private readonly List<Zone> _zones = new();
+    private Renderer? _renderer;
+
+    public void Add(Bounds localBounds) => _zones.Add(new Zone(localBounds, -1));
+
+    /// <summary>Точная зона: треугольники одного сабмеша здешнего рендерера.</summary>
+    public void AddSubmesh(Bounds localBounds, int submesh) =>
+        _zones.Add(new Zone(localBounds, submesh));
 
     public bool TryIntersect(Ray ray, out float distance)
     {
         distance = float.MaxValue;
         var hit = false;
         var matrix = transform.localToWorldMatrix;
-        for (var i = 0; i < _localBounds.Count; i++)
+        for (var i = 0; i < _zones.Count; i++)
         {
-            var world = TransformBounds(matrix, _localBounds[i]);
-            if (world.IntersectRay(ray, out var d) && d < distance)
+            var zone = _zones[i];
+            var world = TransformBounds(matrix, zone.LocalBounds);
+            if (!world.IntersectRay(ray, out var entry) || entry >= distance)
             {
-                distance = d;
-                hit = true;
+                continue;
             }
+
+            if (zone.Submesh >= 0)
+            {
+                if (_renderer == null)
+                {
+                    TryGetComponent(out _renderer);
+                }
+
+                if (_renderer != null && MeshRayPicker.HasMeshData(_renderer))
+                {
+                    // Точный тест состоялся: его промах — промах зоны, в
+                    // габарит не проваливаемся, иначе пустой угол снова кликался бы.
+                    if (MeshRayPicker.TryIntersect(
+                            _renderer, zone.Submesh, ray, out var d) && d < distance)
+                    {
+                        distance = d;
+                        hit = true;
+                    }
+
+                    continue;
+                }
+            }
+
+            distance = entry;
+            hit = true;
         }
 
         return hit;

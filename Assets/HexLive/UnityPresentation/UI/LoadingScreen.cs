@@ -440,7 +440,11 @@ namespace HexLive.UnityPresentation.UI
             box.Add(tokenLabel);
             _tokenField = new TextField
             {
-                value = ServerBook.LastToken ?? string.Empty,
+                // §145.3: токен из командной строки (-hexlive-token) главнее
+                // запомненного — он свежее. Один запуск через скрипт засевает
+                // поле; первое «подключиться» запоминает токен в ServerBook,
+                // и дальше игра работает даже с двойного клика без аргументов.
+                value = SessionConfig.ControlToken ?? ServerBook.LastToken ?? string.Empty,
                 style =
                 {
                     marginLeft = 0, marginRight = 0, marginTop = 2, marginBottom = 8,

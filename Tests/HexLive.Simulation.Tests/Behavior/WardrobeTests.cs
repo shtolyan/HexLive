@@ -135,6 +135,35 @@ public sealed class WardrobeTests
         var toDoor = spot - door;
         Assert.That(System.MathF.Sqrt(toDoor.X * toDoor.X + toDoor.Y * toDoor.Y),
             Is.GreaterThanOrEqualTo(1f), "Гардероб встал в дверях.");
+
+        // #178: якорь-к-якорю мало — регрессия чертежа прошла этот тест с
+        // гардеробом в ЦЕНТРЕ комнаты и краем в костре. Контракт полнее:
+        // (а) весь ФУТПРИНТ гардероба вне тлеющего диска очага (0.55R);
+        // (б) гардероб стоит У СТЕНЫ — якорь не дальше 0.5 wu от линии стен
+        //     (апофема минус наибольшая проекция на нормали шести стен).
+        var hearth = interior.First(o => o.DefinitionId == ContentIds.Campfire);
+        var hearthSpot = world.Junctions.Items[hearth.Junctions[0]].WorldPosition;
+        foreach (var junctionId in wardrobe.Junctions)
+        {
+            var d = world.Junctions.Items[junctionId].WorldPosition - hearthSpot;
+            Assert.That(System.MathF.Sqrt(d.X * d.X + d.Y * d.Y),
+                Is.GreaterThanOrEqualTo(0.55f * HexSpatialMath.HexRadius),
+                "Край гардероба внутри тлеющего диска очага.");
+        }
+
+        var anchorLocal = spot - center;
+        var wallProjection = float.MinValue;
+        for (var wall = 0; wall < 6; wall++)
+        {
+            var angle = wall * 60f * System.MathF.PI / 180f;
+            var projection = anchorLocal.X * System.MathF.Cos(angle) +
+                anchorLocal.Y * System.MathF.Sin(angle);
+            wallProjection = System.MathF.Max(wallProjection, projection);
+        }
+
+        Assert.That(HexSpatialMath.HexApothem - wallProjection,
+            Is.LessThanOrEqualTo(0.5f),
+            "Гардероб не у стены — уехал в комнату (регрессия PlaceNearest).");
     }
 
     /// <summary>Дом из старого сейва получает гардероб на загрузке, а не остаётся без него.</summary>

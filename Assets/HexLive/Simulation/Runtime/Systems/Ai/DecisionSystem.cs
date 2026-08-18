@@ -1795,6 +1795,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
               (CountInventory(npc, ContentIds.PalmLeaf) == 0 ||
                (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves) ||
                (bedDeficit && carriedLeaves < 3)) &&
+              PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HarvestTree)) ||
+             // §146.8: валка под билл БРЁВЕН/ДОСОК — не отмена §64.9, а его
+             // обобщение цензом здорового леса: ветка открыта, только пока
+             // пальм в мире больше FellForBuildPalmFloor (на Feud — никогда).
+             // «Сначала подбери с земли» обязательно: срубленная пальма роняет
+             // брёвна НА ЗЕМЛЮ, и без этого условия предикат кормил бы сам
+             // себя (§80) — рубила бы, пока лес не упрётся в ценз.
+             (SimBalance.FellForBuildPalmFloor > 0 &&
+              (siteWantsLogs || siteNeedsBoards) &&
+              ColonyQueries.WorldCountWithTag(world, "Palm") >
+                  SimBalance.FellForBuildPalmFloor &&
+              !HasReachableWithTag(npc, world, "Log") &&
               PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HarvestTree)));
         // §63 r2: with a stone-hungry site open the miner keeps swinging
         // until she carries a real load (3), not the old 2-stone stop.
@@ -3174,7 +3186,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var required = RequiredWoodenProstheticBoards(world, helper);
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.BuildProduct == ContentIds.Workbench &&
+            // §146.8: доски требует и АРХИТЕКТУРНЫЙ сайт своего лагеря — до
+            // этого билл дома (71 доска у Hut1Hex) был недостижим для ИИ:
+            // решение поднимало цель, а исполнение и планировщик, читающие
+            // ЭТОТ метод, выбирали расщепление на палки вместо распила.
+            if ((obj.BuildProduct == ContentIds.Workbench ||
+                 BuildSiteMath.IsArchitecturalBuilding(obj.BuildProduct)) &&
                 DecisionSystem.IsOurSite(world, helper, obj))
             {
                 required = System.Math.Max(required,

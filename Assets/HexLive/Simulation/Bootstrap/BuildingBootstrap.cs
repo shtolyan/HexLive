@@ -210,6 +210,72 @@ public static class BuildingBootstrap
     }
 
     /// <summary>
+    /// §146.5: каждому лагерю большого острова — СВОЙ экземпляр чертежа
+    /// Hut1Hex, застолблённый как обычный §120.8-сайт в 2-4 гексах от костра.
+    /// Экземпляры отдельные затем, чтобы правка игроком СВОЕГО чертежа никогда
+    /// не мутировала дома соседних лагерей. Девушки строят его сами:
+    /// архитектурный лейн §54 активируется самим фактом сайта.
+    /// </summary>
+    public static void StakeCampHutPlans(WorldState world)
+    {
+        // Порядок — ординал фракции (правило BedSiteSystem): порядок словаря
+        // не смеет попадать в реплей.
+        var camps = new List<Agents.Faction>();
+        foreach (var faction in world.FactionHomes.Keys)
+        {
+            if (Runtime.FactionRelations.IsColonyKind(faction))
+            {
+                camps.Add(faction);
+            }
+        }
+
+        camps.Sort((a, b) => ((int)a).CompareTo((int)b));
+
+        foreach (var faction in camps)
+        {
+            var anchor = world.FactionHomes[faction];
+            var candidates = new List<TileCoord>();
+            foreach (var pair in world.Tiles.Items)
+            {
+                var distance = HexSpatialMath.HexDistance(pair.Key, anchor);
+                if (distance >= 2 && distance <= 4)
+                {
+                    candidates.Add(pair.Key);
+                }
+            }
+
+            candidates.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
+            if (candidates.Count == 0)
+            {
+                continue;
+            }
+
+            var draft = Runtime.Blueprints.BuiltInBuildingBlueprints.Hut1Hex();
+            var blueprintId = world.NextPlayerBlueprintId++;
+            world.PlayerBlueprints[blueprintId] = draft;
+
+            // Сидированный старт + обход по кольцу: CreatePlayerBlueprintSite
+            // сам вернёт null на нестроябельном гексе (CanPlaceHut), так что
+            // первый подходящий кандидат и есть площадка.
+            var start = (int)(MathUtil.Hash01(world.Seed, (int)faction, 146, 14651) *
+                candidates.Count) % candidates.Count;
+            WorldObjectState site = null;
+            for (var i = 0; i < candidates.Count && site == null; i++)
+            {
+                var tile = candidates[(start + i) % candidates.Count];
+                site = CreatePlayerBlueprintSite(world, tile, 0f, blueprintId);
+            }
+
+            if (site == null)
+            {
+                // Патологический сид: лагерь остаётся без чертежа — игрок или
+                // прибытия §132 поставят его позже; мир от этого не ломается.
+                world.PlayerBlueprints.Remove(blueprintId);
+            }
+        }
+    }
+
+    /// <summary>
     /// Stakes the player's committed §120 plan as an ordinary unbuilt site.
     /// Everything past this point is the existing furniture-site chain: the
     /// bill is hauled, the modules are raised, and CompleteHut finishes it.

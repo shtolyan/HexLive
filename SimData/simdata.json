@@ -76,6 +76,7 @@
     "SimBalance.DryClothesWetThreshold": 0.349999994,
     "SimBalance.EnergyRate": 0.00179999997,
     "SimBalance.ExhaustedSleepWakeEnergy": 0.449999988,
+    "SimBalance.FellForBuildPalmFloor": 30,
     "SimBalance.FiberPerPlant": 4,
     "SimBalance.FightCommitGraceTicks": 40,
     "SimBalance.FireThawRecovery": 0.25,

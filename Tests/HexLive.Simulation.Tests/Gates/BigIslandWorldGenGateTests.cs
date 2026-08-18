@@ -171,6 +171,40 @@ public sealed class BigIslandWorldGenGateTests
         }
     }
 
+    [Test]
+    public void EveryCampStakesItsOwnEditableHutBlueprint()
+    {
+        foreach (var seed in Seeds)
+        {
+            var world = Build(seed);
+            var sites = world.Entities.Objects.Values
+                .Where(o => o.DefinitionId == Content.ContentIds.BuildSite &&
+                            o.BuildProduct == Content.ContentIds.HutPlan)
+                .ToList();
+
+            Assert.That(sites, Has.Count.EqualTo(3),
+                $"seed {seed}: чертёж Hut1Hex обязан стоять у каждого лагеря (§146.5)");
+
+            var usedBlueprints = new HashSet<int>();
+            foreach (var pair in world.FactionHomes.OrderBy(p => (int)p.Key))
+            {
+                var near = sites.Where(s =>
+                    HexSpatialMath.HexDistance(s.Tile, pair.Value) <= 4).ToList();
+                Assert.That(near, Has.Count.EqualTo(1),
+                    $"seed {seed}: у лагеря {pair.Key} не ровно один чертёж");
+
+                var site = near[0];
+                Assert.That(site.BlueprintId, Is.GreaterThan(0),
+                    $"seed {seed}: сайт лагеря {pair.Key} не привязан к драфту реестра");
+                Assert.That(world.PlayerBlueprints.ContainsKey(site.BlueprintId),
+                    $"seed {seed}: драфт {site.BlueprintId} не зарегистрирован");
+                Assert.That(usedBlueprints.Add(site.BlueprintId),
+                    $"seed {seed}: лагеря делят один драфт — правка игроком своего " +
+                    "чертежа мутировала бы чужие дома (§146.5)");
+            }
+        }
+    }
+
     private static void AssertToolNear(
         WorldState world, TileCoord anchor, string toolId, int seed, Faction camp)
     {

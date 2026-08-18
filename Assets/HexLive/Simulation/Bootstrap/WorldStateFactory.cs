@@ -94,6 +94,13 @@ public sealed class WorldStateFactory
         {
             BuildingBootstrap.SpawnCompletedTestHut(world, Faction.Colony);
         }
+        // §146.5: на большом острове ни одной готовой постройки — только
+        // редактируемый чертёж Hut1Hex у каждого лагеря. ДО SeedHomeKnowledge:
+        // сайт в 2-4 гексах от костра попадает в стартовую память лагеря.
+        if (world.Mode == GameMode.BigIsland)
+        {
+            BuildingBootstrap.StakeCampHutPlans(world);
+        }
         if (bootstrap.Simulation.StakePlayerHutPlan)
         {
             // §120: staked at the plan's own authored facing — passing the

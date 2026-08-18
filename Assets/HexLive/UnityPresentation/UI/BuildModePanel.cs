@@ -315,6 +315,10 @@ namespace HexLive.UnityPresentation.UI
             DeselectSite();
             SuppressSelection(false);
             if (_panel != null) _panel.style.display = DisplayStyle.None;
+            // Стрелки живут в root, вне _panel, и обновляются только пока
+            // IsOpen — без явного скрытия они переживают выход из режима.
+            if (_rotateLeft != null) _rotateLeft.style.display = DisplayStyle.None;
+            if (_rotateRight != null) _rotateRight.style.display = DisplayStyle.None;
         }
 
         private void SuppressSelection(bool suppressed)

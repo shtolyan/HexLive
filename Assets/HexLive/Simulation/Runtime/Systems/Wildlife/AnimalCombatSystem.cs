@@ -89,6 +89,10 @@ public sealed class AnimalCombatSystem : ISimulationSystem
             // variant carries its mob id so the view shows the right body.
             ExecutionSystem.SpawnCarcass(world, dead.Tile, dead.Junction, dead.MobId);
             MobSystem.ForgetDangerAround(world, dead.Tile, 1); // §54.16: the fear dies with the beast
+            // §147.4: свипов смерти ДВА (этот fast и medium в MobSystem) —
+            // хук стоит в обоих; по не-слотовым id он no-op.
+            MobSlots.OnMobRemoved(world, dead.MobId, dead.Id,
+                WildlifeBalance.DogRespawnCheckTicks);
         }
 
         // Only bite victims are swept here; every other death cause keeps its

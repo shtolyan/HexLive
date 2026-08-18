@@ -117,7 +117,11 @@ public static class WorldSaveSerializer
     // на несуществующие тайлы. Блобы ≤50 — всегда Feud.
     // v52 (§146.6): недельные курсоры прибытий по лагерям — словарь в хвосте;
     // старое одиночное поле v40 остаётся и читается в шим (запись Colony).
-    public const int BlobVersion = 52;
+    // v53 (§147.1): патрульные слоты виртуальных зверей вместе с испечёнными
+    // кольцами — урок §46 v4: всё состояние слота в сейве, ничего не
+    // выводится из сида задним числом. Блоб ≤52 читает пустой список, и
+    // ленивая генерация отстраивает слоты заново, если ручки включены.
+    public const int BlobVersion = 53;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -350,6 +354,29 @@ public static class WorldSaveSerializer
         {
             w.Write((int)faction);
             w.Write(world.ColonyArrivalsProcessedByFaction[faction]);
+        }
+
+        // §147.1 (v53): патрульные слоты — целиком, с кольцами.
+        w.Write(world.MobSpawnSlots.Count);
+        foreach (var slot in world.MobSpawnSlots)
+        {
+            w.Write(slot.SlotId);
+            w.Write(slot.MobId ?? string.Empty);
+            w.Write((int)slot.State);
+            w.Write(slot.ReservedMobId);
+            w.Write(slot.HomeJunction.Value);
+            w.Write(slot.CooldownUntilTick);
+            w.Write(slot.StoredHealth);
+            w.Write(slot.CycleIndex);
+            w.Write(slot.Ring.Count);
+            foreach (var waypoint in slot.Ring)
+            {
+                w.Write(waypoint.Junction.Value);
+                w.Write(waypoint.Tile.Q);
+                w.Write(waypoint.Tile.R);
+                w.Write(waypoint.Position.X);
+                w.Write(waypoint.Position.Y);
+            }
         }
 
         w.Write(EndMarker);
@@ -706,6 +733,39 @@ public static class WorldSaveSerializer
             {
                 var faction = (Agents.Faction)r.ReadInt32();
                 world.ColonyArrivalsProcessedByFaction[faction] = r.ReadInt32();
+            }
+        }
+
+        // §147.1 (v53): патрульные слоты с кольцами.
+        world.MobSpawnSlots.Clear();
+        if (version >= 53)
+        {
+            var slotCount = r.ReadInt32();
+            for (var i = 0; i < slotCount; i++)
+            {
+                var slot = new Wildlife.MobSpawnSlot
+                {
+                    SlotId = r.ReadInt32(),
+                    MobId = r.ReadString(),
+                    State = (Wildlife.MobSlotState)r.ReadInt32(),
+                    ReservedMobId = r.ReadInt32(),
+                    HomeJunction = new JunctionId(r.ReadInt32()),
+                    CooldownUntilTick = r.ReadInt32(),
+                    StoredHealth = r.ReadSingle(),
+                    CycleIndex = r.ReadInt32(),
+                };
+                var waypoints = r.ReadInt32();
+                for (var j = 0; j < waypoints; j++)
+                {
+                    slot.Ring.Add(new Wildlife.PatrolWaypoint
+                    {
+                        Junction = new JunctionId(r.ReadInt32()),
+                        Tile = new TileCoord(r.ReadInt32(), r.ReadInt32()),
+                        Position = new Float2(r.ReadSingle(), r.ReadSingle()),
+                    });
+                }
+
+                world.MobSpawnSlots.Add(slot);
             }
         }
 

@@ -56,6 +56,41 @@ public static class WildlifeBalance
     public static float ArrowRecoverChance = 0.4f;
 
     public static int MaxSharks = 2;
+
+    // ─────────────────────────────────────────────────────────────
+    // §147: виртуальные мобы (слоты-патрули).
+    // ─────────────────────────────────────────────────────────────
+    // 0 = механика выключена целиком, работает старый амбиентный спавнер.
+    // >0 = слотовый спавнер ЗАМЕНЯЕТ амбиентный (они не смешиваются; гости
+    // ночного рейда §46 ортогональны и приходят поверх в любом режиме).
+    public static int WolfSlots = 0;
+    public static int CrabSlots = 0;
+    public static int SharkSlots = 0;
+
+    // §146.6-парные ручки большого острова (селекторы ниже).
+    public static int BigIslandWolfSlots = 12;
+    public static int BigIslandCrabSlots = 24;
+    public static int BigIslandSharkSlots = 12;
+
+    // §147.3: радиус материализации — это радиус СУЩЕСТВОВАНИЯ, не агра.
+    // 8 ≥ любого реалистичного радиуса восприятия (§125): волк становится
+    // реальным до того, как девушка его «заметила бы», и §62-тревога
+    // срабатывает как раньше. Настоящий агр (2) применяет обычный RunDog.
+    public static int MobMaterializeRadiusTiles = 8;
+
+    // Крабий радиус больше радиуса охотничьего запроса (4): NPC физически
+    // не может взять в цель виртуального краба.
+    public static int CrabMaterializeRadiusTiles = 5;
+
+    public static int MobPatrolRadiusTiles = 3;
+
+    // Тиков на сегмент кольца превью (= GlideSegmentSeconds 1.0 при 4 Гц).
+    public static int MobPreviewSegmentTicks = 4;
+
+    public static float MobPreviewPauseChance = 0.25f;
+
+    // Селекторы по режиму — в MobSlots (не здесь: гейт «у ручки есть
+    // читатель» не считает Balance/ читателем самого себя).
 }
 
 }

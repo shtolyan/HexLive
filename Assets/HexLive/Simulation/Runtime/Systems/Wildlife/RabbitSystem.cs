@@ -36,8 +36,14 @@ public sealed class RabbitSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        // §147.6: слотовый спавнер заменяет амбиентный (зеркало MobSystem).
+        var crabSlots = MobSlots.CrabSlotsFor(world.Mode);
+        if (crabSlots > 0)
+        {
+            RunCrabSlots(world, crabSlots);
+        }
         // Spec 41.2 v2: the timer lives in WorldState so it survives a save.
-        if (world.Tick >= world.NextRabbitSpawnCheckTick)
+        else if (world.Tick >= world.NextRabbitSpawnCheckTick)
         {
             world.NextRabbitSpawnCheckTick = world.Tick + RespawnCheckTicks;
             while (world.Rabbits.Count < MaxRabbits && TrySpawnRabbit(world))
@@ -56,6 +62,52 @@ public sealed class RabbitSystem : ISimulationSystem
             world.Rabbits.Remove(dead);
             // Spec §54: the kill leaves a carcass to be butchered (no instant loot).
             ExecutionSystem.SpawnCarcass(world, dead.Tile, dead.Junction, "rabbit");
+            // §147.4: слот убитого краба — в кулдаун (не-слотовые id — no-op).
+            MobSlots.OnMobRemoved(world, Content.MobIds.Crab, dead.Id, RespawnCheckTicks);
+        }
+    }
+
+    // §147.3: зеркало RunWolfSlots. Радиус материализации краба (5) больше
+    // радиуса охотничьего запроса (4): NPC физически не может взять в цель
+    // виртуального краба — к моменту выбора цели он уже настоящий.
+    private void RunCrabSlots(WorldState world, int target)
+    {
+        MobSlots.EnsureSlots(world, Content.MobIds.Crab, target);
+        foreach (var slot in world.MobSpawnSlots)
+        {
+            if (slot.MobId != Content.MobIds.Crab)
+            {
+                continue;
+            }
+
+            if (slot.State == Wildlife.MobSlotState.Cooldown &&
+                world.Tick >= slot.CooldownUntilTick)
+            {
+                MobSlots.Rehome(world, slot);
+            }
+
+            if (slot.State != Wildlife.MobSlotState.Virtual ||
+                !MobSlots.TryMaterialize(world, slot,
+                    WildlifeBalance.CrabMaterializeRadiusTiles,
+                    out var waypoint, out var previewPosition))
+            {
+                continue;
+            }
+
+            world.Rabbits.Add(new Wildlife.RabbitState
+            {
+                Id = slot.ReservedMobId,
+                Junction = waypoint.Junction,
+                Tile = waypoint.Tile,
+                Position = previewPosition,
+            });
+            slot.State = Wildlife.MobSlotState.Live;
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "MobAwoke",
+                    $"Crab={slot.ReservedMobId} Slot={slot.SlotId} " +
+                    $"at Tile={waypoint.Tile.Q},{waypoint.Tile.R}");
+            }
         }
     }
 

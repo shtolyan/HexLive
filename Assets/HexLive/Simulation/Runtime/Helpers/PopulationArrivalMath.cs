@@ -33,10 +33,24 @@ internal static class PopulationArrivalMath
         }
     }
 
+    // §146.6: потолки — парные ручки, селектор по режиму мира. Живёт здесь,
+    // а не в WorldBalance: гейт «у ручки есть читатель» не считает Balance/
+    // читателем самого себя.
+    public static int MaxLivingNpcsFor(Bootstrap.GameMode mode) =>
+        mode == Bootstrap.GameMode.BigIsland
+            ? WorldBalance.BigIslandMaxLivingNpcs
+            : WorldBalance.MaxLivingNpcs;
+
+    // Квота ОДНОГО лагеря девушек (для Outsiders остаётся MaxOutsiderNpcs).
+    public static int MaxCampNpcsFor(Bootstrap.GameMode mode) =>
+        mode == Bootstrap.GameMode.BigIsland
+            ? WorldBalance.BigIslandMaxCampNpcs
+            : WorldBalance.MaxColonyNpcs;
+
     public static bool HasRoom(WorldState world, Faction faction)
     {
         // §146.6: потолки выбираются селектором по режиму мира.
-        var worldCap = world == null ? 0 : WorldBalance.MaxLivingNpcsFor(world.Mode);
+        var worldCap = world == null ? 0 : MaxLivingNpcsFor(world.Mode);
         if (world == null || worldCap <= 0 ||
             world.Entities.Npcs.Count >= worldCap)
         {
@@ -46,7 +60,7 @@ internal static class PopulationArrivalMath
         // §146.3: the girl-camp cap is a PER-CAMP quota — each girl faction
         // counts against its own copy of it, the Outsiders against theirs.
         var factionCap = FactionRelations.IsColonyKind(faction)
-            ? WorldBalance.MaxCampNpcsFor(world.Mode)
+            ? MaxCampNpcsFor(world.Mode)
             : WorldBalance.MaxOutsiderNpcs;
         if (factionCap <= 0)
         {

@@ -108,7 +108,9 @@ public sealed class Handshake
     // 6: §146.2 — Mode: клиент регенерирует остров из (seed, mode), поэтому
     //    режим обязан ехать в рукопожатии, иначе topology checksum честно, но
     //    непонятно отвергал бы каждое подключение к BigIsland-миру.
-    public const int ProtocolVersion = 6;
+    // 7: §147.5 — секция MobSlots в снапшоте/дельте (патрульные слоты
+    //    виртуальных зверей; превью клиент считает сам из Seed+Tick).
+    public const int ProtocolVersion = 7;
 
     public int Seed { get; set; }
 

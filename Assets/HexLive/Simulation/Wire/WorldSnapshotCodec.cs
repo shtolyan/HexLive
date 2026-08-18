@@ -106,6 +106,7 @@ public static class WorldSnapshotCodec
         WriteNpcs(snapshot, w, includeDebugDetails);
         WriteCorpses(snapshot, w, includeDebugDetails);
         WriteMobs(snapshot, w);
+        WriteMobSlots(snapshot, w);
         WriteCrabs(snapshot, w);
         WriteSharks(snapshot, w);
         WriteDeathRecords(snapshot, w);
@@ -172,6 +173,7 @@ public static class WorldSnapshotCodec
         ReadNpcs(r, into, includeDebugDetails);
         ReadCorpses(r, into, includeDebugDetails);
         ReadMobs(r, into);
+        ReadMobSlots(r, into);
         ReadCrabs(r, into);
         ReadSharks(r, into);
         ReadDeathRecords(r, into);
@@ -1457,6 +1459,63 @@ public static class WorldSnapshotCodec
         m.AttackStartTick = r.ReadInt32();
         m.CarriedLimbOwnerNpcId = r.ReadInt32();
         m.CarriedLimbPart = r.ReadString();
+    }
+
+    // §147.5: патрульные слоты. Запись меняется только на переходах состояний,
+    // так что дельта-секция в стедистейте не шлёт ни байта.
+    private static void WriteMobSlots(WorldSnapshot snapshot, BinaryWriter w)
+    {
+        var items = snapshot.MobSlots;
+        w.Write(items.Count);
+        for (var i = 0; i < items.Count; i++)
+        {
+            WriteMobSlotRecord(w, items[i]);
+        }
+    }
+
+    internal static void WriteMobSlotRecord(BinaryWriter w, MobSlotSnapshot s)
+    {
+        w.Write(s.SlotId);
+        WireIo.WriteString(w, s.MobId);
+        w.Write(s.State);
+        w.Write(s.ReservedMobId);
+        w.Write(s.CycleIndex);
+        w.Write(s.Ring.Count);
+        for (var i = 0; i < s.Ring.Count; i++)
+        {
+            var waypoint = s.Ring[i];
+            w.Write(waypoint.JunctionId);
+            WireIo.WriteTile(w, waypoint.Tile);
+            WireIo.WriteFloat2(w, waypoint.Position);
+        }
+    }
+
+    private static void ReadMobSlots(BinaryReader r, WorldSnapshot into)
+    {
+        var count = r.ReadInt32();
+        WireIo.Resize(into.MobSlots, count);
+        for (var i = 0; i < count; i++)
+        {
+            ReadMobSlotRecord(r, into.MobSlots[i]);
+        }
+    }
+
+    internal static void ReadMobSlotRecord(BinaryReader r, MobSlotSnapshot s)
+    {
+        s.SlotId = r.ReadInt32();
+        s.MobId = r.ReadString();
+        s.State = r.ReadInt32();
+        s.ReservedMobId = r.ReadInt32();
+        s.CycleIndex = r.ReadInt32();
+        var waypoints = r.ReadInt32();
+        WireIo.Resize(s.Ring, waypoints);
+        for (var i = 0; i < waypoints; i++)
+        {
+            var waypoint = s.Ring[i];
+            waypoint.JunctionId = r.ReadInt32();
+            waypoint.Tile = WireIo.ReadTile(r);
+            waypoint.Position = WireIo.ReadFloat2(r);
+        }
     }
 
     private static void WriteCrabs(WorldSnapshot snapshot, BinaryWriter w)

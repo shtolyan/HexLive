@@ -77,6 +77,9 @@ public sealed class WorldSnapshot
 
     public List<SharkSnapshot> Sharks { get; } = new();
 
+    // §147.5: патрульные слоты (сортированы по SlotId, как остальные секции).
+    public List<MobSlotSnapshot> MobSlots { get; } = new();
+
     public List<TraceEventSnapshot> TraceEvents { get; } = new();
 
     /// <summary>
@@ -201,6 +204,38 @@ public sealed class MobSnapshot
 public sealed class SharkSnapshot
 {
     public int Id { get; set; }
+
+    public TileCoord Tile { get; set; } = TileCoord.Zero;
+
+    public Float2 Position { get; set; } = Float2.Zero;
+}
+
+// §147.5: патрульный слот виртуального зверя. Меняется только на переходах
+// состояний (Virtual→Live→Cooldown→Virtual) — в стедистейте дельта-секция
+// не шлёт ни байта; сами превью клиент считает из (Seed, Tick) чистой
+// функцией MobPreview и кольца ниже.
+public sealed class MobSlotSnapshot
+{
+    public int SlotId { get; set; }
+
+    // "dog" | "crab" | "shark" — вид для выбора вью.
+    public string MobId { get; set; } = string.Empty;
+
+    // Ordinal Wildlife.MobSlotState. Virtual — клиент рисует превью с ключом
+    // вью == ReservedMobId; Live — ничего (запись живого зверя ведёт ТОТ ЖЕ
+    // вью); Cooldown — ничего.
+    public int State { get; set; }
+
+    public int ReservedMobId { get; set; }
+
+    public int CycleIndex { get; set; }
+
+    public List<MobSlotWaypoint> Ring { get; } = new();
+}
+
+public sealed class MobSlotWaypoint
+{
+    public int JunctionId { get; set; }
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 

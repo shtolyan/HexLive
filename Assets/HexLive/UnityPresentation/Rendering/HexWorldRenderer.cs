@@ -4420,6 +4420,52 @@ public sealed class HexWorldRenderer : MonoBehaviour
             UpdateAnimalPose(key, crab.Position, crab.Tile);
         }
 
+        // §147.5: превью виртуальных слотов. Поза считается ЗДЕСЬ из
+        // (Seed, Tick) той же чистой функцией, что проверяет материализацию
+        // сим — ноль байт wire; вью делит ключ с будущим живым зверем
+        // (ReservedMobId), поэтому переход превью→живой бесшовен: объект не
+        // пересоздаётся, поворот и поза продолжаются.
+        foreach (var slot in snapshot.MobSlots)
+        {
+            if (slot.State != (int)HexLive.Simulation.Wildlife.MobSlotState.Virtual ||
+                slot.Ring.Count == 0)
+            {
+                continue; // Live ведёт запись живого зверя, Cooldown невидим
+            }
+
+            var step = HexLive.Simulation.Wildlife.MobPreview.ComputeStep(
+                snapshot.Seed, slot.SlotId, slot.CycleIndex, slot.Ring.Count,
+                snapshot.Tick,
+                HexLive.Simulation.Runtime.WildlifeBalance.MobPreviewSegmentTicks,
+                HexLive.Simulation.Runtime.WildlifeBalance.MobPreviewPauseChance);
+            var from = slot.Ring[step.From];
+            var to = slot.Ring[step.To];
+            var position = step.Paused
+                ? from.Position
+                : HexLive.Simulation.Wildlife.MobPreview.Lerp(
+                    from.Position, to.Position, step.Alpha);
+            var tile = step.Paused || step.Alpha < 0.5f ? from.Tile : to.Tile;
+
+            var isCrab = slot.MobId == HexLive.Simulation.Content.MobIds.Crab;
+            var key = isCrab ? -slot.ReservedMobId - 1 : slot.ReservedMobId;
+            liveKeys.Add(key);
+            var views = isCrab ? _crabViews : _mobViews;
+            if (!views.TryGetValue(slot.ReservedMobId, out var previewView))
+            {
+                previewView = CreateMobView(slot.MobId, slot.ReservedMobId);
+                views[slot.ReservedMobId] = previewView;
+            }
+
+            // FOG-OF-WAR EXPERIMENT: то же правило радиуса, что у живых.
+            var fogHidePreview = _fogActive && !FogSeesTile(tile);
+            if (previewView.activeSelf == fogHidePreview)
+            {
+                previewView.SetActive(!fogHidePreview);
+            }
+
+            UpdateAnimalPose(key, position, tile);
+        }
+
         PruneAnimalViews(_mobViews, liveKeys, negate: false);
         PruneAnimalViews(_crabViews, liveKeys, negate: true);
     }

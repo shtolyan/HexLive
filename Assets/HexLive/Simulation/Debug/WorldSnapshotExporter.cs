@@ -306,6 +306,34 @@ public static class WorldSnapshotExporter
             });
         }
 
+        // §147.5: слоты сортируются по SlotId — порядок world.MobSpawnSlots
+        // это порядок генерации, а не свойство мира (правило секций дельты).
+        snapshot.MobSlots.Clear();
+        foreach (var slot in world.MobSpawnSlots)
+        {
+            var record = new MobSlotSnapshot
+            {
+                SlotId = slot.SlotId,
+                MobId = slot.MobId,
+                State = (int)slot.State,
+                ReservedMobId = slot.ReservedMobId,
+                CycleIndex = slot.CycleIndex,
+            };
+            foreach (var waypoint in slot.Ring)
+            {
+                record.Ring.Add(new MobSlotWaypoint
+                {
+                    JunctionId = waypoint.Junction.Value,
+                    Tile = waypoint.Tile,
+                    Position = waypoint.Position,
+                });
+            }
+
+            snapshot.MobSlots.Add(record);
+        }
+
+        snapshot.MobSlots.Sort((a, b) => a.SlotId.CompareTo(b.SlotId));
+
         snapshot.Mobs.Clear();
         foreach (var dog in world.Mobs)
         {

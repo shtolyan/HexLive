@@ -165,6 +165,12 @@ public sealed class WorldState
     // Spec 29C.3: lightweight wildlife, not NPCs.
     public System.Collections.Generic.List<Wildlife.MobState> Mobs { get; } = new();
 
+    // §147.1: патрульные слоты виртуальных зверей (волки, крабы, акулы —
+    // вперемешку, вид в MobSpawnSlot.MobId). Virtual-слот не владеет
+    // MobState/RabbitState вовсе; блоб v53. Урок §41.2/§46 v4: всё состояние
+    // слота живёт здесь и в сейве, ничего не выводится из сида задним числом.
+    public System.Collections.Generic.List<Wildlife.MobSpawnSlot> MobSpawnSlots { get; } = new();
+
     public int NextMobId { get; set; } = 1;
 
     // Spec 41.2 v2: wildlife respawn-check timers live in the MODEL — as

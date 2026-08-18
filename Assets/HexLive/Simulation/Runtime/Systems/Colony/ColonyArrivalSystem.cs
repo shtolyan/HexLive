@@ -70,8 +70,8 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
                 {
                     Trace.DebugSystem(world, "ColonyArrivalSkippedCapacity",
                         $"Arrival={arrival} Camp={faction} Alive={world.Entities.Npcs.Count} " +
-                        $"WorldCap={WorldBalance.MaxLivingNpcsFor(world.Mode)} " +
-                        $"CampCap={WorldBalance.MaxCampNpcsFor(world.Mode)}");
+                        $"WorldCap={PopulationArrivalMath.MaxLivingNpcsFor(world.Mode)} " +
+                        $"CampCap={PopulationArrivalMath.MaxCampNpcsFor(world.Mode)}");
                 }
                 continue;
             }

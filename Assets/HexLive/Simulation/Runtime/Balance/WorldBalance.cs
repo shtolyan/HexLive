@@ -30,15 +30,10 @@ public static class WorldBalance
     // без рестарта, поэтому один simdata.json несёт оба режима, а селекторы
     // ниже выбирают по world.Mode. 6 стартовых девушек + по одной в неделю
     // в КАЖДЫЙ из трёх лагерей упёрлись бы в Feud-потолки немедленно.
+    // Селекторы по режиму живут в PopulationArrivalMath (не здесь: гейт
+    // «у ручки есть читатель» не считает Balance/ читателем самого себя).
     public static int BigIslandMaxLivingNpcs = 24;
     public static int BigIslandMaxCampNpcs = 6;
-
-    public static int MaxLivingNpcsFor(Bootstrap.GameMode mode) =>
-        mode == Bootstrap.GameMode.BigIsland ? BigIslandMaxLivingNpcs : MaxLivingNpcs;
-
-    // Квота ОДНОГО лагеря девушек (для Outsiders остаётся MaxOutsiderNpcs).
-    public static int MaxCampNpcsFor(Bootstrap.GameMode mode) =>
-        mode == Bootstrap.GameMode.BigIsland ? BigIslandMaxCampNpcs : MaxColonyNpcs;
 
     // Начало календарных дней 7, 14, 21…: одна новая девушка, если оба
     // потолка оставляют ей место. 0 выключает пополнение.

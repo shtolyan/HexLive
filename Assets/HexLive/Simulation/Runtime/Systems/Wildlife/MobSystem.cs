@@ -46,8 +46,20 @@ public sealed class MobSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        // §147.6: слотовый спавнер ЗАМЕНЯЕТ амбиентный, они не смешиваются.
+        // Гости ночного рейда (§46, блок ниже) приходят поверх в любом режиме.
+        var wolfSlots = MobSlots.WolfSlotsFor(world.Mode);
+        if (wolfSlots > 0)
+        {
+            RunWolfSlots(world, wolfSlots);
+            // §147.6: акулы — превью навсегда: SharkSystem не зарегистрирована
+            // (гейт §30), поэтому у их слотов нет ни радиуса материализации,
+            // ни цикла смерти — чистая амбиентная жизнь на кольцах воды.
+            MobSlots.EnsureSlots(world, Content.MobIds.Shark,
+                MobSlots.SharkSlotsFor(world.Mode));
+        }
         // Spec 41.2 v2: the timer lives in WorldState so it survives a save.
-        if (world.Tick >= world.NextMobSpawnCheckTick)
+        else if (world.Tick >= world.NextMobSpawnCheckTick)
         {
             world.NextMobSpawnCheckTick = world.Tick + RespawnCheckTicks;
             while (world.Mobs.Count < MaxDogs)
@@ -153,6 +165,8 @@ public sealed class MobSystem : ISimulationSystem
             // variant carries its mob id so the view shows the right body.
             ExecutionSystem.SpawnCarcass(world, dead.Tile, dead.Junction, dead.MobId);
             ForgetDangerAround(world, dead.Tile, 1); // §54.16: the fear dies with the beast
+            // §147.4: слот убитого уходит в кулдаун (по чужим id — no-op).
+            MobSlots.OnMobRemoved(world, dead.MobId, dead.Id, RespawnCheckTicks);
         }
 
         foreach (var npc in world.Entities.Npcs.Values)
@@ -188,14 +202,19 @@ public sealed class MobSystem : ISimulationSystem
             }
         }
 
-        if (residents <= MaxDogs)
+        // §147.6: в слотовом режиме потолок жителей — число слотов (живых
+        // слотовых волков и так ≤ слотов); MaxDogs с ним не обязан совпадать,
+        // а кап, оставшийся на 2, молча выселял бы материализованных.
+        var wolfSlots = MobSlots.WolfSlotsFor(world.Mode);
+        var residentCap = wolfSlots > 0 ? wolfSlots : MaxDogs;
+        if (residents <= residentCap)
         {
             return;
         }
 
         // Самые новые (наибольший Id) уходят первыми — старожилы остаются.
         var stagger = 0;
-        for (var i = world.Mobs.Count - 1; i >= 0 && residents > MaxDogs; i--)
+        for (var i = world.Mobs.Count - 1; i >= 0 && residents > residentCap; i--)
         {
             var dog = world.Mobs[i];
             if (dog.LeavesAtTick != 0)
@@ -1626,6 +1645,57 @@ public sealed class MobSystem : ISimulationSystem
         }
 
         return false;
+    }
+
+    // §147.3: слотовый проход — генерация лениво, кулдауны, материализация.
+    // O(слоты × NPC) на medium-тик без патфайндинга — копейки; вся дорогая
+    // жизнь начинается только у материализованных, которых держит радиус.
+    private void RunWolfSlots(WorldState world, int target)
+    {
+        MobSlots.EnsureSlots(world, Content.MobIds.Dog, target);
+        foreach (var slot in world.MobSpawnSlots)
+        {
+            if (slot.MobId != Content.MobIds.Dog)
+            {
+                continue;
+            }
+
+            if (slot.State == Wildlife.MobSlotState.Cooldown &&
+                world.Tick >= slot.CooldownUntilTick)
+            {
+                MobSlots.Rehome(world, slot);
+            }
+
+            if (slot.State != Wildlife.MobSlotState.Virtual ||
+                !MobSlots.TryMaterialize(world, slot,
+                    WildlifeBalance.MobMaterializeRadiusTiles,
+                    out var waypoint, out var previewPosition))
+            {
+                continue;
+            }
+
+            // РОВНО в позе превью: Position — точка, где зверя рисовал клиент,
+            // TargetPosition — его вэйпоинт; обычный glide доигрывает сегмент.
+            world.Mobs.Add(new Wildlife.MobState
+            {
+                Id = slot.ReservedMobId,
+                MobId = slot.MobId,
+                Junction = waypoint.Junction,
+                Tile = waypoint.Tile,
+                Position = previewPosition,
+                TargetPosition = waypoint.Position,
+                GlideAnchor = previewPosition,
+                Health = slot.StoredHealth,
+                LeavesAtTick = 0
+            });
+            slot.State = Wildlife.MobSlotState.Live;
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "MobAwoke",
+                    $"Dog={slot.ReservedMobId} Slot={slot.SlotId} " +
+                    $"at Tile={waypoint.Tile.Q},{waypoint.Tile.R}");
+            }
+        }
     }
 
     // leavesAtTick: 0 — ЖИТЕЛЬ (амбиентный респавн, живёт до смерти); >0 —

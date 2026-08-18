@@ -68,6 +68,9 @@ public sealed class CommandCodecCoverageGateTests
             InventoryTransferDirection.Take),
         new PreyPersonCommand(new EntityId(38), new EntityId(83)),
         new AbusePersonCommand(new EntityId(39), new EntityId(84)),
+        new PlaceBuildingPlanCommand(new TileCoord(4, -6), rotationDegrees: 120f),
+        new PlaceFurnitureSiteCommand(
+            "station.drying_rack", new TileCoord(-3, 8), rotationDegrees: 300f),
     };
 
     [Test]

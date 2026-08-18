@@ -3175,6 +3175,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return SimulationUnityMapper.TileHeight + elevation * ElevationStep;
     }
 
+    // §120.7: режим стройки и колышки стройплощадок стоят на тех же опорных
+    // точках, что и собственные виды рендерера, — словарь junction'ов и высота
+    // тайла у рендерера уже есть, второй копии топологии им не положено.
+    public Float2 ObjectAnchorPosition(ObjectSnapshot worldObject) =>
+        GetObjectAnchorFromJunctions(worldObject, _junctionPositions);
+
+    public float GroundTopY(TileCoord coord) => GroundY(coord);
+
     private float ObjectGroundY(ObjectSnapshot worldObject)
     {
         var y = GroundY(worldObject.Tile);

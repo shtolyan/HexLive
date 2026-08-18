@@ -60,6 +60,8 @@ public static class SimulationCommandCodec
         TransferContainer = 22,
         PreyPerson = 23,
         AbusePerson = 24,
+        PlaceBuildingPlan = 25,
+        PlaceFurnitureSite = 26,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -195,6 +197,19 @@ public static class SimulationCommandCodec
                 w.Write(c.Count);
                 w.Write((int)c.Direction);
                 break;
+            case PlaceBuildingPlanCommand c:
+                w.Write((ushort)CommandType.PlaceBuildingPlan);
+                w.Write(c.Tile.Q);
+                w.Write(c.Tile.R);
+                w.Write(c.RotationDegrees);
+                break;
+            case PlaceFurnitureSiteCommand c:
+                w.Write((ushort)CommandType.PlaceFurnitureSite);
+                WireIo.WriteString(w, c.CatalogId);
+                w.Write(c.Tile.Q);
+                w.Write(c.Tile.R);
+                w.Write(c.RotationDegrees);
+                break;
             default:
                 throw new NotSupportedException(
                     $"SimulationCommandCodec: незарегистрированный тип команды " +
@@ -269,6 +284,13 @@ public static class SimulationCommandCodec
                     ReadEntity(r), new ObjectId(r.ReadInt32()), r.ReadInt32(),
                     r.ReadString(), r.ReadInt32(),
                     (InventoryTransferDirection)r.ReadInt32());
+            case CommandType.PlaceBuildingPlan:
+                return new PlaceBuildingPlanCommand(
+                    new TileCoord(r.ReadInt32(), r.ReadInt32()), r.ReadSingle());
+            case CommandType.PlaceFurnitureSite:
+                return new PlaceFurnitureSiteCommand(
+                    r.ReadString(), new TileCoord(r.ReadInt32(), r.ReadInt32()),
+                    r.ReadSingle());
             default:
                 throw new InvalidDataException(
                     $"SimulationCommandCodec: неизвестный номер типа {(ushort)type}.");

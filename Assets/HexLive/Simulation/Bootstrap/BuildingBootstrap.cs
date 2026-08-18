@@ -549,7 +549,7 @@ public static class BuildingBootstrap
     /// raised is the ordinary campfire carrying the household-hearth variant,
     /// exactly as the canonical hut's own hearth is.
     /// </summary>
-    private static string PlanFurnitureProduct(string catalogId) => catalogId switch
+    internal static string PlanFurnitureProduct(string catalogId) => catalogId switch
     {
         "furniture.hearth" => ContentIds.Campfire,
         null or "" => null,
@@ -583,7 +583,18 @@ public static class BuildingBootstrap
         return (logs, stones, leaves, sticks, rope, boards);
     }
 
-    private static void ApplyPlanFurnitureBill(WorldObjectState site, string product)
+    private static void ApplyPlanFurnitureBill(WorldObjectState site, string product) =>
+        ApplyFurnitureBill(site, product, householdHearth: true);
+
+    /// <summary>
+    /// The one authoritative bill per buildable product — §120.7 player staking
+    /// and §120.6 plan staking stamp sites through the same switch, so a
+    /// material can only be forgotten in one place. The campfire is the single
+    /// product with two bills: the plan's indoor hearth versus the ordinary
+    /// outdoor ring.
+    /// </summary>
+    internal static void ApplyFurnitureBill(
+        WorldObjectState site, string product, bool householdHearth)
     {
         switch (product)
         {
@@ -593,10 +604,15 @@ public static class BuildingBootstrap
                 site.BillRope = SimBalance.BedBasicBillRope;
                 site.BillLeaves = SimBalance.BedBasicBillLeaves;
                 break;
-            case ContentIds.Campfire:
+            case ContentIds.Campfire when householdHearth:
                 site.BillSticks = SimBalance.HutHearthBillSticks;
                 site.BillStones = SimBalance.HutHearthBillStones;
                 site.BillRope = SimBalance.HutHearthBillRope;
+                break;
+            case ContentIds.Campfire:
+                site.BillSticks = SimBalance.CampfireBillSticks;
+                site.BillStones = SimBalance.CampfireBillStones;
+                site.BillRope = SimBalance.CampfireBillRope;
                 break;
             case ContentIds.Wardrobe:
                 site.BillBoards = SimBalance.WardrobeBillBoards;
@@ -640,7 +656,7 @@ public static class BuildingBootstrap
     /// The colony has to KNOW a site to haul to it — the same handoff
     /// BedSiteSystem performs when it stakes a bed by the fire.
     /// </summary>
-    private static void RememberPlanSite(WorldState world, WorldObjectState site)
+    internal static void RememberPlanSite(WorldState world, WorldObjectState site)
     {
         var junction = site.Junctions.Count > 0 ? site.Junctions[0] : (JunctionId?)null;
         foreach (var npc in world.Entities.Npcs.Values)

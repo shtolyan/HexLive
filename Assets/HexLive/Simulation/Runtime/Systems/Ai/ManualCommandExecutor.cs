@@ -112,6 +112,12 @@ internal static class ManualCommandExecutor
             case TransferContainerCommand containerTransfer:
                 ApplyTransferContainer(world, containerTransfer, admission);
                 break;
+            case PlaceBuildingPlanCommand placePlan:
+                ApplyPlaceBuildingPlan(world, placePlan, admission);
+                break;
+            case PlaceFurnitureSiteCommand placeFurniture:
+                ApplyPlaceFurnitureSite(world, placeFurniture, admission);
+                break;
             default:
                 admission.Reject("UnsupportedCommand");
                 break;
@@ -171,6 +177,8 @@ internal static class ManualCommandExecutor
         ManageInventoryCommand => "Inventory",
         TransferInventoryCommand => "TransferInventory",
         TransferContainerCommand => "TransferContainer",
+        PlaceBuildingPlanCommand => "PlaceBuildingPlan",
+        PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
         _ => command.GetType().Name
     };
 
@@ -2109,6 +2117,97 @@ internal static class ManualCommandExecutor
 
         npc.Mind.ManualAttackNpcId = null;
         npc.Mind.ManualAttackMobId = null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // §120.7: мировые команды стройки. Актора-NPC у них нет: игрок размечает
+    // площадку, а строят её девушки штатным циклом §120 (доставка → модули →
+    // Complete). Правда о пригодности места живёт ЗДЕСЬ, не в ghost'е UI.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static void ApplyPlaceBuildingPlan(
+        WorldState world, PlaceBuildingPlanCommand command, AdmissionTracker admission)
+    {
+        // CreateHutPlanSite сам проверяет каждый гекс футпринта (CanPlaceHut) и
+        // возвращает null на негодном месте — та же валидация, что у bootstrap.
+        var site = Bootstrap.BuildingBootstrap.CreateHutPlanSite(
+            world, command.Tile,
+            command.RotationDegrees + BuildingRules.DoorLocalOutwardYaw(ContentIds.HutPlan));
+        if (site == null)
+        {
+            admission.Reject("PlacementBlocked");
+            Trace.EmitSystem(world, "ManualOrderRejected",
+                $"Order=PlaceBuildingPlan Reason=PlacementBlocked Tile={command.Tile}");
+            return;
+        }
+
+        Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
+        Trace.EmitSystem(world, "BuildSitePlanned",
+            $"Product={ContentIds.HutPlan} Tile={command.Tile} Site={site.Id.Value}");
+    }
+
+    private static void ApplyPlaceFurnitureSite(
+        WorldState world, PlaceFurnitureSiteCommand command, AdmissionTracker admission)
+    {
+        void RejectWorld(string reason)
+        {
+            admission.Reject(reason);
+            Trace.EmitSystem(world, "ManualOrderRejected",
+                $"Order=PlaceFurnitureSite Reason={reason} Tile={command.Tile}");
+        }
+
+        // Только строка каталога — произвольный id объекта провод не провезёт
+        // до площадки: чужой клиент не может заказать «постройку» волка.
+        if (!BuildCatalogDefinition.TryGet(command.CatalogId, out var entry) ||
+            entry.PlacementKind != BuildCatalogPlacementKind.Furniture)
+        {
+            RejectWorld("UnknownProduct");
+            return;
+        }
+
+        var product = Bootstrap.BuildingBootstrap.PlanFurnitureProduct(command.CatalogId);
+        if (product == null || !world.Content.ObjectDefinitions.ContainsKey(product))
+        {
+            RejectWorld("UnknownProduct");
+            return;
+        }
+
+        if (!world.Tiles.Items.TryGetValue(command.Tile, out var tile) ||
+            !tile.Flags.HasFlag(TileFlags.Walkable) ||
+            tile.Flags.HasFlag(TileFlags.Water) ||
+            tile.Flags.HasFlag(TileFlags.Blocked))
+        {
+            RejectWorld("PlacementBlocked");
+            return;
+        }
+
+        // §66: одна постройка на гекс, всегда в его центре.
+        if (!StructurePlacement.HexFreeForBuild(world, command.Tile))
+        {
+            RejectWorld("HexOccupied");
+            return;
+        }
+
+        if (StructurePlacement.CenterJunction(world, command.Tile) is not { } anchor)
+        {
+            RejectWorld("PlacementBlocked");
+            return;
+        }
+
+        var householdHearth = command.CatalogId == "furniture.hearth";
+        var site = Core.WorldObjectMutations.SpawnObject(
+            world, ContentIds.BuildSite,
+            world.Junctions.Items[anchor].Fragment, command.Tile, anchor);
+        site.BuildProduct = product;
+        if (householdHearth) site.Variant = BuildingRules.HutHearthVariant;
+        site.RotationDegrees = StructurePlacement.QuantizeHexYaw(command.RotationDegrees);
+        // §54.9A: площадка сразу владеет футпринтом будущего изделия — поверх
+        // неё нельзя разметить вторую стройку и через раму не ходят.
+        Core.WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
+        Bootstrap.BuildingBootstrap.ApplyFurnitureBill(site, product, householdHearth);
+        Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
+        Trace.EmitSystem(world, "BuildSitePlanned",
+            $"Product={product} Tile={command.Tile} Site={site.Id.Value}");
     }
 }
 

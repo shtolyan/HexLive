@@ -210,6 +210,18 @@ public static class PrototypeRuntimeBootstrap
         var speedBar = speedRoot.AddComponent<SimSpeedBar>();
         speedBar.SetRunner(runner);
 
+        // §120.7: игровой режим строительства (кнопка «Строить» / клавиша B) —
+        // Sims-лоток, ghost, команды разметки; строят девушки.
+        var buildRoot = new GameObject("HexLive Build Mode");
+        buildRoot.AddComponent<UIDocument>();
+        var buildMode = buildRoot.AddComponent<BuildModePanel>();
+        buildMode.SetRunner(runner);
+        if (worldRenderer != null) buildMode.SetWorldRenderer(worldRenderer);
+
+        // §120.1: колышки размеченных площадок — до первого ингредиента.
+        var stakes = buildRoot.AddComponent<Environment.BuildSiteStakeRenderer>();
+        if (worldRenderer != null) stakes.Construct(runner, worldRenderer);
+
         // Left-side debug buttons: wound / clear / dirtier / cleaner.
         var debugRoot = new GameObject("HexLive Debug Controls");
         debugRoot.AddComponent<UIDocument>();

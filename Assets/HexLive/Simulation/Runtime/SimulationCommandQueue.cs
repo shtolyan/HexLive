@@ -435,6 +435,51 @@ public sealed class SetGroupManualControlCommand : GroupSimulationCommand
     public bool Enabled { get; }
 }
 
+/// <summary>§120.7: разметить дом по утверждённому плану игрока на выбранном
+/// гексе. Команда МИРОВАЯ (актор — колония, не NPC): она создаёт обычную
+/// стройплощадку плана, а дальше девушки носят и строят штатным §120-циклом.
+/// Правду о пригодности места решает исполнитель тем же
+/// <c>BuildingBootstrap.CreateHutPlanSite</c>, что и bootstrap-мир.</summary>
+public sealed class PlaceBuildingPlanCommand : ISimulationCommand
+{
+    public PlaceBuildingPlanCommand(TileCoord tile, float rotationDegrees)
+    {
+        Tile = tile;
+        RotationDegrees = rotationDegrees;
+    }
+
+    public TileCoord Tile { get; }
+
+    /// <summary>Поворот здания; исполнитель квантует к шести симметриям.</summary>
+    public float RotationDegrees { get; }
+
+    public EntityId? TargetEntity => null;
+}
+
+/// <summary>§120.7: разметить одиночное изделие каталога (кровать, гардероб,
+/// верстак, костёр, сушилку, сборник воды) стройплощадкой на выбранном гексе —
+/// §66: одна постройка на гекс, всегда в его центре. Идёт та же цепочка, что у
+/// мечт §64: билль, доставка, стройка, подъём готового предмета.</summary>
+public sealed class PlaceFurnitureSiteCommand : ISimulationCommand
+{
+    public PlaceFurnitureSiteCommand(string catalogId, TileCoord tile, float rotationDegrees)
+    {
+        CatalogId = catalogId ?? string.Empty;
+        Tile = tile;
+        RotationDegrees = rotationDegrees;
+    }
+
+    /// <summary>Строка Build/Buy-каталога (§120), не произвольный id объекта:
+    /// исполнитель отклоняет всё, чего нет в <c>BuildCatalogDefinition</c>.</summary>
+    public string CatalogId { get; }
+
+    public TileCoord Tile { get; }
+
+    public float RotationDegrees { get; }
+
+    public EntityId? TargetEntity => null;
+}
+
 public enum InventoryItemSource
 {
     Carried,

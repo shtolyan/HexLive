@@ -144,6 +144,16 @@ namespace HexLive.UnityPresentation.HutTest
                 if (!string.IsNullOrEmpty(error)) Debug.LogWarning($"[BlueprintEditor] {error}", this);
             }
             ApplyLanguage();
+
+            if (WorldMode)
+            {
+                // Игрок пришёл ЧЕРТИТЬ ДОМ: открываемся сразу в «Строительстве»
+                // на «Пол и контур». Мебельная вкладка у пустого проекта не
+                // рисует ни одной точки (сетка мебели живёт только над полом) —
+                // выглядела мёртвой, и стены/окна было «не найти».
+                SetCatalogMode(BuildCatalogMode.Construction);
+                SetStatus("blueprint.status.world_start", true);
+            }
         }
 
         private void OnDestroy()

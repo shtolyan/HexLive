@@ -1,0 +1,385 @@
+/* Конструктор §120 — вёрстка в языке CharacterPanel: тёмная сине-серая
+ * панель (Panel/Raised), обводка white@10%, золотой акцент активных
+ * элементов. Раскладка — как трей Build/Buy в The Sims: вкладки режимов,
+ * колонка категорий, горизонтальная лента карточек, карточка выбора. */
+
+.hut-constructor-root {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: flex-end;
+    padding-left: 18px;
+    padding-right: 18px;
+    padding-bottom: 14px;
+}
+
+.constructor-panel {
+    width: 1220px;
+    height: 272px;
+    max-width: 97%;
+    background-color: rgba(19, 24, 28, 0.97);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.13);
+    border-right-color: rgba(255, 255, 255, 0.13);
+    border-top-color: rgba(255, 255, 255, 0.13);
+    border-bottom-color: rgba(255, 255, 255, 0.13);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+}
+
+.tray-header {
+    height: 48px;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 10px;
+    padding-right: 10px;
+    background-color: rgba(26, 32, 38, 0.97);
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+    border-top-left-radius: 13px;
+    border-top-right-radius: 13px;
+}
+
+.mode-tabs, .header-actions, .selection-actions, .tray-body, .catalog-list {
+    flex-direction: row;
+}
+
+.mode-tabs {
+    height: 100%;
+    align-items: flex-end;
+}
+
+.mode-tab {
+    width: 156px;
+    height: 38px;
+    margin-right: 6px;
+    color: rgb(154, 166, 173);
+    background-color: rgb(34, 42, 49);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 3px;
+    border-bottom-color: transparent;
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
+    -unity-font-style: bold;
+    font-size: 13px;
+}
+
+.mode-tab:hover, .category-button:hover,
+.icon-button:hover, .header-button:hover, .selection-button:hover {
+    background-color: rgb(44, 54, 63);
+    color: rgb(231, 236, 239);
+}
+
+.mode-tab.active {
+    color: rgb(240, 180, 92);
+    background-color: rgba(19, 24, 28, 0.97);
+    border-bottom-color: rgb(240, 180, 92);
+}
+
+.header-copy {
+    flex-grow: 1;
+    min-width: 0;
+    padding-left: 12px;
+    padding-right: 8px;
+}
+
+.panel-title {
+    color: rgb(240, 180, 92);
+    font-size: 13px;
+    -unity-font-style: bold;
+}
+
+.panel-status, .shortcut-label {
+    color: rgb(154, 166, 173);
+    font-size: 10px;
+    white-space: normal;
+}
+
+.header-actions {
+    align-items: center;
+}
+
+.icon-button, .header-button {
+    height: 32px;
+    margin-left: 6px;
+    color: rgb(231, 236, 239);
+    background-color: rgb(34, 42, 49);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.10);
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.icon-button:disabled, .header-button:disabled, .selection-button:disabled {
+    color: rgb(102, 114, 122);
+    opacity: 0.6;
+}
+
+.icon-button { width: 36px; font-size: 17px; }
+.header-button { min-width: 82px; font-size: 11px; }
+
+.header-button.accent {
+    color: rgb(19, 24, 28);
+    background-color: rgb(240, 180, 92);
+    border-left-color: transparent;
+    border-right-color: transparent;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    -unity-font-style: bold;
+}
+
+.header-button.accent:hover { background-color: rgb(248, 199, 122); color: rgb(19, 24, 28); }
+
+.tray-body {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.category-scroll {
+    width: 176px;
+    padding-top: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+    background-color: rgb(13, 17, 20);
+    border-right-width: 1px;
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-bottom-left-radius: 13px;
+}
+
+.category-list { flex-grow: 1; }
+
+.category-button {
+    height: 32px;
+    margin-bottom: 5px;
+    padding-left: 12px;
+    color: rgb(154, 166, 173);
+    background-color: transparent;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    -unity-text-align: middle-left;
+    font-size: 12px;
+}
+
+.category-button.active {
+    color: rgb(240, 180, 92);
+    background-color: rgb(34, 42, 49);
+    -unity-font-style: bold;
+}
+
+.catalog-area {
+    flex-grow: 1;
+    min-width: 0;
+    padding-top: 9px;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: 7px;
+}
+
+.category-title {
+    height: 20px;
+    color: rgb(231, 236, 239);
+    font-size: 12px;
+    -unity-font-style: bold;
+}
+
+.catalog-scroll {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.catalog-list {
+    align-items: stretch;
+    padding-bottom: 4px;
+}
+
+/* Карточка каталога — как в Sims: превью сверху, имя, короткое описание. */
+.catalog-card {
+    width: 128px;
+    margin-right: 9px;
+    padding-top: 7px;
+    padding-left: 7px;
+    padding-right: 7px;
+    padding-bottom: 7px;
+    background-color: rgb(34, 42, 49);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.10);
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    align-items: stretch;
+}
+
+.catalog-card:hover {
+    background-color: rgb(44, 54, 63);
+    border-left-color: rgba(255, 255, 255, 0.22);
+    border-right-color: rgba(255, 255, 255, 0.22);
+    border-top-color: rgba(255, 255, 255, 0.22);
+    border-bottom-color: rgba(255, 255, 255, 0.22);
+}
+
+.catalog-card.active {
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(240, 180, 92);
+    border-right-color: rgb(240, 180, 92);
+    border-top-color: rgb(240, 180, 92);
+    border-bottom-color: rgb(240, 180, 92);
+    background-color: rgb(44, 54, 63);
+}
+
+/* Превью: рамка под картинку; пока иконка не отрисована — глиф на подложке. */
+.catalog-thumb {
+    height: 82px;
+    margin-bottom: 6px;
+    background-color: rgb(13, 17, 20);
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.catalog-thumb-image {
+    width: 74px;
+    height: 74px;
+}
+
+.catalog-thumb-glyph {
+    color: rgb(154, 166, 173);
+    font-size: 30px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.catalog-card.active .catalog-thumb-glyph { color: rgb(240, 180, 92); }
+
+.catalog-name {
+    color: rgb(231, 236, 239);
+    font-size: 11px;
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.catalog-description {
+    color: rgb(154, 166, 173);
+    font-size: 9px;
+    white-space: normal;
+}
+
+.selection-card {
+    width: 244px;
+    padding-top: 12px;
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-bottom: 10px;
+    background-color: rgba(26, 32, 38, 0.97);
+    border-left-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.10);
+    border-bottom-right-radius: 13px;
+}
+
+.selection-title {
+    color: rgb(240, 180, 92);
+    font-size: 10px;
+    -unity-font-style: bold;
+    margin-bottom: 5px;
+}
+
+.selection-label {
+    color: rgb(231, 236, 239);
+    font-size: 13px;
+    -unity-font-style: bold;
+    margin-bottom: 5px;
+    white-space: normal;
+}
+
+.selection-description {
+    flex-grow: 1;
+    color: rgb(154, 166, 173);
+    font-size: 10px;
+    white-space: normal;
+}
+
+.availability-label {
+    align-self: flex-start;
+    margin-top: 5px;
+    margin-bottom: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    color: rgb(95, 196, 106);
+    background-color: rgba(95, 196, 106, 0.14);
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    font-size: 9px;
+    -unity-font-style: bold;
+}
+
+.availability-label.waiting {
+    color: rgb(232, 178, 60);
+    background-color: rgba(232, 178, 60, 0.14);
+}
+
+.selection-button {
+    flex-grow: 1;
+    height: 30px;
+    margin-right: 6px;
+    color: rgb(231, 236, 239);
+    background-color: rgb(34, 42, 49);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.10);
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+    font-size: 11px;
+}
+
+.selection-button.danger { color: rgb(232, 87, 79); }
+.selection-button.danger:hover { background-color: rgba(232, 87, 79, 0.18); color: rgb(240, 120, 112); }
+.shortcut-label { height: 16px; }

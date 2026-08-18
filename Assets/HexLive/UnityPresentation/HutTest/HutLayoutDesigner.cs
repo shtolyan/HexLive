@@ -12,6 +12,7 @@ using HexLive.UnityPresentation.HutTest.BlueprintEditor;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Views;
+using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -27,6 +28,11 @@ namespace HexLive.UnityPresentation.HutTest
     public sealed class HutLayoutDesigner : MonoBehaviour
     {
         private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
+        // ⚠️ Не совмещать путь со стилем: у .uxml при импорте появляется свой
+        // inline-StyleSheet-сабассет, и Resources.Load<StyleSheet> по общему
+        // пути отдаёт ЕГО — пустой. Панель тогда рисуется голыми кнопками во
+        // весь экран. Поэтому таблица стилей живёт под собственным именем.
+        private const string StyleResource = "HexLive/UI/HutConstructor/HutConstructorStyles";
         private const string DraftId = "hut_constructor_autosave";
         private const float PickRadius = 0.34f;
         private readonly BlueprintCommandHistory _history = new();
@@ -213,7 +219,7 @@ namespace HexLive.UnityPresentation.HutTest
             root.style.flexGrow = 1f;
             root.pickingMode = PickingMode.Ignore;
             var tree = Resources.Load<VisualTreeAsset>(PanelResource);
-            var sheet = Resources.Load<StyleSheet>(PanelResource);
+            var sheet = Resources.Load<StyleSheet>(StyleResource);
             if (tree == null || sheet == null)
             {
                 Debug.LogError("[BlueprintEditor] UI Toolkit resources are missing.", this);
@@ -1156,9 +1162,7 @@ namespace HexLive.UnityPresentation.HutTest
                 SetActive(card, ReferenceEquals(_activeCatalogEntry, entry) ||
                                 _activeCatalogEntry?.DefinitionId == entry.DefinitionId);
 
-                var thumb = new Label(entry.FallbackGlyph);
-                thumb.AddToClassList("catalog-thumb");
-                card.Add(thumb);
+                card.Add(BuildCardThumb(captured));
                 var name = new Label(Loc.Get(entry.NameTerm));
                 name.AddToClassList("catalog-name");
                 card.Add(name);
@@ -1170,6 +1174,58 @@ namespace HexLive.UnityPresentation.HutTest
 
             if (_categoryTitle != null)
                 _categoryTitle.text = Loc.Get(CategoryTerm(_activeCategoryId));
+        }
+
+        /// <summary>
+        /// Превью карточки — как в Sims: картинка предмета, а до её появления
+        /// (или при её отсутствии) глиф на тёмной подложке. Иконки едут тем же
+        /// путём, что у инвентаря (<see cref="ItemIcons"/>, Addressables
+        /// «icon/&lt;definitionId&gt;»): нарисованная для вещи иконка появится
+        /// в каталоге сама, без правок здесь. Load не блокирует и грузит в
+        /// фоне, поэтому карточка недолго опрашивает кэш.
+        /// </summary>
+        private static VisualElement BuildCardThumb(BuildCatalogEntryDefinition entry)
+        {
+            var thumb = new VisualElement();
+            thumb.AddToClassList("catalog-thumb");
+            thumb.pickingMode = PickingMode.Ignore;
+
+            var glyph = new Label(entry.FallbackGlyph);
+            glyph.AddToClassList("catalog-thumb-glyph");
+            glyph.pickingMode = PickingMode.Ignore;
+            thumb.Add(glyph);
+
+            var image = new Image { scaleMode = ScaleMode.ScaleToFit };
+            image.AddToClassList("catalog-thumb-image");
+            image.pickingMode = PickingMode.Ignore;
+            image.style.display = DisplayStyle.None;
+            thumb.Add(image);
+
+            void Apply(Sprite sprite)
+            {
+                image.sprite = sprite;
+                image.style.display = DisplayStyle.Flex;
+                glyph.style.display = DisplayStyle.None;
+            }
+
+            var ready = ItemIcons.Load(entry.DefinitionId);
+            if (ready != null)
+            {
+                Apply(ready);
+                return thumb;
+            }
+
+            // Промахи ItemIcons кэширует, так что опрос дешёвый; предел нужен
+            // лишь затем, чтобы карточка вещи БЕЗ иконки не опрашивала вечно.
+            var attempts = 0;
+            IVisualElementScheduledItem? poll = null;
+            poll = image.schedule.Execute(() =>
+            {
+                var sprite = ItemIcons.Load(entry.DefinitionId);
+                if (sprite != null) Apply(sprite);
+                if (sprite != null || ++attempts > 20) poll?.Pause();
+            }).Every(300);
+            return thumb;
         }
 
         private static string CategoryTerm(string categoryId) => categoryId switch
@@ -1278,8 +1334,10 @@ namespace HexLive.UnityPresentation.HutTest
             Text<Label>(root, "selection-title", "blueprint.selection.title");
             Text<Button>(root, "delete-selection", "blueprint.action.delete");
             Text<Button>(root, "finish-selection", "blueprint.action.finish");
-            Text<Button>(root, "undo", "blueprint.action.undo");
-            Text<Button>(root, "redo", "blueprint.action.redo");
+            // Undo/redo — узкие кнопки-глифы; слово живёт в подсказке, иначе
+            // «Отменить» вылезает из 36px и наезжает на соседей.
+            Tooltip<Button>(root, "undo", "blueprint.action.undo");
+            Tooltip<Button>(root, "redo", "blueprint.action.redo");
             Text<Button>(root, "save", "blueprint.action.save");
             Text<Button>(root, "export", "blueprint.action.export");
             Text<Label>(root, "shortcut-label", "blueprint.shortcuts");
@@ -1299,6 +1357,12 @@ namespace HexLive.UnityPresentation.HutTest
         {
             var element = root.Q<T>(name);
             if (element != null) element.text = Loc.Get(key);
+        }
+
+        private static void Tooltip<T>(VisualElement root, string name, string key) where T : VisualElement
+        {
+            var element = root.Q<T>(name);
+            if (element != null) element.tooltip = Loc.Get(key);
         }
 
         private static void SetActive(VisualElement? element, bool active)

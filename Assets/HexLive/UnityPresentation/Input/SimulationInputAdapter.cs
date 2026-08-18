@@ -208,6 +208,12 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         _hoveredMobId = -1;
     }
 
+    // Предикаты пикера держим полями: они уходят делегатами в
+    // WorldObjectPicker каждый кадр наведения, и создавать их заново значило бы
+    // мусорить в Update.
+    private System.Func<WorldObjectView, bool>? _pickEligible;
+    private System.Func<WorldObjectView, bool>? _pickDefers;
+
     private WorldObjectView? PickObjectUnderCursor(Vector2 mousePos, out float bestDistance)
     {
         bestDistance = float.MaxValue;
@@ -216,27 +222,35 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return null;
         }
 
-        var ray = _camera.ScreenPointToRay(mousePos);
-        WorldObjectView? best = null;
+        _pickEligible ??= view => view.ObjectId >= 0 && HasContextActions(view) &&
+            !IsBeyondSmallPropCull(view);
+        _pickDefers ??= DefersToContents;
+        return WorldObjectPicker.Pick(
+            _camera.ScreenPointToRay(mousePos), _pickEligible, _pickDefers, out bestDistance);
+    }
 
-        var all = WorldObjectView.All;
-        for (var i = 0; i < all.Count; i++)
+    // §121.1 r3: вешалка уступает луч своему содержимому. Признак берётся из
+    // КАТАЛОГА — умеет «повесить», значит это сушилка/гардероб (§35.5B, §133),
+    // и вещь на ней важнее её самой. Списка id здесь нет сознательно: новая
+    // вешалка получит то же поведение без правки ввода.
+    private bool DefersToContents(WorldObjectView view)
+    {
+        if (_runner == null ||
+            !_runner.TryGetObjectDefinition(view.DefinitionId, out var definition) ||
+            definition == null)
         {
-            var view = all[i];
-            if (view == null || view.ObjectId < 0 || !HasContextActions(view) ||
-                IsBeyondSmallPropCull(view))
-            {
-                continue;
-            }
+            return false;
+        }
 
-            if (view.TryIntersect(ray, out var distance) && distance < bestDistance)
+        foreach (var interaction in definition.Interactions)
+        {
+            if (interaction.Type == InteractionType.Hang)
             {
-                bestDistance = distance;
-                best = view;
+                return true;
             }
         }
 
-        return best;
+        return false;
     }
 
     // §121.4: SmallProps-слой отсекается камерой за layerCullDistances — проп

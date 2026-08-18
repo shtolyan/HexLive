@@ -144,6 +144,40 @@ public sealed class WorldObjectView : MonoBehaviour
         return hit;
     }
 
+    /// <summary>
+    /// Объединённый мировой габарит видимых рендереров — для near-miss фазы
+    /// пикинга (<see cref="WorldObjectPicker"/>) и оценки «мелкий проп».
+    /// Переопределение зоны (<see cref="WorldObjectPickBounds"/>) здесь
+    /// сознательно не учитывается: его носит только крупная пальма, а в
+    /// near-miss попадают лишь мелкие виды.
+    /// </summary>
+    public bool TryGetWorldBounds(out Bounds bounds)
+    {
+        bounds = default;
+        var found = false;
+        for (var i = 0; i < _renderers.Length; i++)
+        {
+            var renderer = _renderers[i];
+            if (renderer == null || !renderer.enabled ||
+                !renderer.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (!found)
+            {
+                bounds = renderer.bounds;
+                found = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        return found;
+    }
+
     /// <summary>§121.4: вид под курсором. Читает GarmentWorldCondition, чтобы
     /// его покадровый Sync не затирал property block подсветки.</summary>
     public bool Highlighted => _highlighted;

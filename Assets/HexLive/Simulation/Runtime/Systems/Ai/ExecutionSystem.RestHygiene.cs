@@ -642,7 +642,18 @@ public sealed partial class ExecutionSystem
             // §133: если раздевается у гардероба/сушилки — вещь вешается на неё,
             // а не падает под ноги. Станция переполнилась (вторая купальщица
             // успела раньше) — тогда честная куча на полу, это всё равно дома.
-            var doffed = StowGarmentWithContents(world, npc, garment, step.TargetObject);
+            // #173: план, ПЕРЕСОБРАННЫЙ после прерывания, приходит без станции
+            // в шаге (resume-ветка BuildBathePlan знает только точку возврата) —
+            // тогда станцию разрешаем поздно, по факту «стоит рядом». Стирку не
+            // трогаем: LaundryBatch раздевается у воды и кладёт вещи под стирку.
+            var stowTarget = step.TargetObject;
+            if (stowTarget is null &&
+                npc.Mind.PersonalCarePhase != PersonalCarePhase.LaundryBatch)
+            {
+                stowTarget = StowMath.StationBesideNpc(world, npc);
+            }
+
+            var doffed = StowGarmentWithContents(world, npc, garment, stowTarget);
             // §40.6: remember this exact ground piece so she re-dons it after
             // the swim (the same clothes she took off, not just any garment).
             if (doffed != null)

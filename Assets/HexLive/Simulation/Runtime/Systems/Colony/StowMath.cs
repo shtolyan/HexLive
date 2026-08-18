@@ -99,6 +99,60 @@ public static class StowMath
     }
 
     /// <summary>
+    /// #173: станция (гардероб/сушилка), возле которой колонистка СТОИТ прямо
+    /// сейчас, — по той же геометрии, которой <see cref="StandFor"/> выбирал
+    /// точку раздевания (anchor либо его rim). Возобновлённый после прерывания
+    /// план купания (§133) приходил без станции в шаге, и вещи честно падали
+    /// на пол прямо у сушилки; этим поздним разрешением доф вешает их куда
+    /// положено. Гардероб по-прежнему выигрывает у сушилки; полная станция не
+    /// берётся.
+    /// </summary>
+    public static ObjectId? StationBesideNpc(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } here)
+        {
+            return null;
+        }
+
+        ObjectId? best = null;
+        var bestRank = int.MaxValue;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.Junctions.Count == 0 ||
+                HexSpatialMath.HexDistance(obj.Tile, npc.Tile) > 1 ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
+            {
+                continue;
+            }
+
+            var rank = def.Tags.Contains(ObjectTags.Wardrobe) ? 0
+                : obj.DefinitionId == ContentIds.DryingRack ? 1
+                : -1;
+            if (rank < 0 || rank >= bestRank || ExecutionSystem.RackIsFull(world, obj))
+            {
+                continue;
+            }
+
+            var anchor = obj.Junctions[0];
+            var beside = here.Equals(anchor);
+            if (!beside)
+            {
+                SpatialQueries.CollectStandableAround(world, anchor, _rimScratch, 96,
+                    SpatialQueries.BesideReach(0f), null, InteractionReach.RimMode);
+                beside = _rimScratch.Contains(here);
+            }
+
+            if (beside)
+            {
+                best = obj.Id;
+                bestRank = rank;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
     /// Место у станции: сам её джанкшен, если он проходим, иначе свободный
     /// соседний. Авторский footprint гардероба блокирует anchor намеренно;
     /// interaction остаётся доступен с его внешнего rim.

@@ -646,6 +646,131 @@ public sealed class BatheUndressAtHomeTests
             Assert.That(sawSwimEntry, Is.True, "После прыжка должен начаться штатный tread-переход.");
         });
     }
+
+    /// <summary>
+    /// #173: план, ПЕРЕСОБРАННЫЙ после прерывания, приходит в PrepareBathe без
+    /// станции в шаге (resume-ветка BuildBathePlan помнит только точку
+    /// возврата). Раньше вещь честно падала на пол ПРЯМО У СТАНЦИИ; теперь доф
+    /// разрешает станцию поздно — «стоит рядом» — и вешает на неё.
+    /// </summary>
+    [Test]
+    public void ResumedBatheStillHangsTheGarmentOnTheStationSheStandsAt()
+    {
+        var world = SettledWorld();
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        var wardrobe = Wardrobe(world);
+        var spot = StowMath.FindUndressSpot(world, npc);
+        Assert.That(spot, Is.Not.Null, "Фикстура должна находить гардероб.");
+        Assert.That(spot.Value.StowObject, Is.EqualTo(wardrobe.Id));
+
+        var stand = world.Junctions.Items[spot.Value.Stand];
+        npc.CurrentJunction = stand.Id;
+        npc.Tile = stand.Tiles[0];
+        npc.Position = stand.WorldPosition;
+        npc.WornItems.Clear();
+        var garment = new ItemInstance("underwear.bra_riot")
+        {
+            Dirtiness = 0f,
+            OwnerId = npc.Id.Value
+        };
+        npc.WornItems.Add(garment);
+
+        // Ровно то, что оставляет resume-ветка BuildBathePlan: фаза уже идёт,
+        // шаг знает точку, но НЕ знает станцию (TargetObject нет).
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.Bathing;
+        npc.Mind.RedressShore = stand.Id;
+        npc.Mind.RedressGarments.Clear();
+        npc.Mind.CurrentGoal = GoalType.Bathe;
+        npc.Plan.Goal = GoalType.Bathe;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetJunctionId = stand.Id;
+        npc.Plan.TargetItemDefinitionId = garment.DefinitionId;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PrepareBathe,
+            TargetJunction = stand.Id
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Execution.Status = ExecutionStatus.InProgress;
+        npc.Execution.CurrentInteraction = InteractionType.Undress;
+        npc.Execution.HeldGarment = null;
+        npc.Execution.StartTick = world.Tick;
+        npc.Execution.EndTick = world.Tick; // доф уже дозрел
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.IsMoving = false;
+        npc.Movement.SetStatus(MovementStatus.Arrived);
+
+        new ExecutionSystem().Run(world);
+
+        Assert.That(npc.Mind.RedressGarments, Has.Count.EqualTo(1),
+            "Снятая вещь должна попасть в список возврата.");
+        var doffed = world.Entities.Objects[npc.Mind.RedressGarments[0]];
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.WornItems, Is.Empty, "Вещь так и осталась надетой.");
+            Assert.That(doffed.Junctions[0], Is.EqualTo(wardrobe.Junctions[0]),
+                "Возобновлённый план снова уронил вещь на пол вместо станции рядом.");
+            Assert.That(doffed.Owner, Is.EqualTo(npc.Id));
+        });
+    }
+
+    /// <summary>
+    /// #173 (контроль): стирка НЕ вешает — LaundryBatch кладёт снятое под
+    /// стирку, даже если станция стоит рядом.
+    /// </summary>
+    [Test]
+    public void ResumedLaundryStillLaysThePieceDownForWashing()
+    {
+        var world = SettledWorld();
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        var wardrobe = Wardrobe(world);
+        var spot = StowMath.FindUndressSpot(world, npc);
+        Assert.That(spot, Is.Not.Null);
+
+        var stand = world.Junctions.Items[spot.Value.Stand];
+        npc.CurrentJunction = stand.Id;
+        npc.Tile = stand.Tiles[0];
+        npc.Position = stand.WorldPosition;
+        npc.WornItems.Clear();
+        var garment = new ItemInstance("underwear.bra_riot")
+        {
+            Dirtiness = 0.9f,
+            OwnerId = npc.Id.Value
+        };
+        npc.WornItems.Add(garment);
+
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.LaundryBatch;
+        npc.Mind.RedressShore = stand.Id;
+        npc.Mind.RedressGarments.Clear();
+        npc.Mind.CurrentGoal = GoalType.Bathe;
+        npc.Plan.Goal = GoalType.Bathe;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetJunctionId = stand.Id;
+        npc.Plan.TargetItemDefinitionId = garment.DefinitionId;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PrepareBathe,
+            TargetJunction = stand.Id
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Execution.Status = ExecutionStatus.InProgress;
+        npc.Execution.CurrentInteraction = InteractionType.Undress;
+        npc.Execution.HeldGarment = null;
+        npc.Execution.StartTick = world.Tick;
+        npc.Execution.EndTick = world.Tick;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.IsMoving = false;
+        npc.Movement.SetStatus(MovementStatus.Arrived);
+
+        new ExecutionSystem().Run(world);
+
+        Assert.That(npc.Mind.RedressGarments, Has.Count.EqualTo(1));
+        var doffed = world.Entities.Objects[npc.Mind.RedressGarments[0]];
+        Assert.That(doffed.Junctions[0], Is.Not.EqualTo(wardrobe.Junctions[0]),
+            "Бельё для стирки не должно уезжать на станцию — его сейчас будут стирать.");
+    }
 }
 
 }

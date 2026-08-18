@@ -81,11 +81,13 @@ public sealed class BigIslandWorldGenGateTests
             var yucca = world.Entities.Objects.Values
                 .Count(o => o.DefinitionId == "plant.yucca");
 
-            // §146.7 (ревизия 1): три дома по 16-29 пальм + живой лес после
-            // стройки; верхний предел ловит убежавшую плотность рощ.
-            Assert.That(palms, Is.InRange(110, 200),
+            // §146.7: десять домов по 16-29 пальм + живой лес после стройки;
+            // верхний предел ловит убежавшую плотность рощ. Диапазон привязан
+            // к константе цели, чтобы рост ревизии не рассинхронизировал гейт.
+            var target = PrototypeWorldDefinitionFactory.BigPalmTarget;
+            Assert.That(palms, Is.InRange(target, (int)(target * 1.9f)),
                 $"seed {seed}: пальм {palms} — посев разъехался с §146.7");
-            Assert.That(yucca, Is.InRange(120, 150),
+            Assert.That(yucca, Is.InRange(280, 360),
                 $"seed {seed}: юкки {yucca} — верёвке не из чего виться");
         }
     }

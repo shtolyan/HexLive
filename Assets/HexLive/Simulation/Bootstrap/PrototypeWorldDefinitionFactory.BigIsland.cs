@@ -15,28 +15,30 @@ namespace HexLive.Simulation.Bootstrap
         // §146.2: ревизия генератора. Пишется в блоб сейва и сверяется при
         // загрузке: рост карты меняет число, и сейв от старой геометрии
         // отклоняется честно, а не портится молча.
-        public const int BigIslandWorldGenRevision = 1;
+        // Ревизия 2: рост 46×36 → 72×56 после перф-гейта ревизии 1
+        // (2.5×: 203 тик/с ≈ 4.9 мс/тик, запас до 4 Гц ~50×).
+        public const int BigIslandWorldGenRevision = 2;
 
-        // Границы ревизии 1: 46×36 = 1656 тайлов (Feud — 29×23 = 667).
-        public const int BigMinQ = -21;
-        public const int BigMaxQ = 24;
-        public const int BigMinR = -16;
-        public const int BigMaxR = 19;
+        // Границы ревизии 2: 72×56 = 4032 тайла ≈ 6× Feud (29×23 = 667).
+        public const int BigMinQ = -34;
+        public const int BigMaxQ = 37;
+        public const int BigMinR = -26;
+        public const int BigMaxR = 29;
 
         // §146.4: лагеря разнесены так, чтобы диски InCamp (радиус 6, §72.13)
         // не могли пересечься даже с запасом на прибрежные обходы.
         public const int BigCampCount = 3;
-        public const int BigCampMinSeparationTiles = 16;
+        public const int BigCampMinSeparationTiles = 22;
 
-        // §146.7: цель посева ревизии 1 — три дома по 16-29 пальм + живой лес
-        // после стройки. Ревизия 2 (10 домов) поднимет до ~240/360.
-        private const int BigPalmTarget = 110;
-        private const int BigGroveCount = 12;
-        private const int BigYuccaCount = 150;
-        private const int BigBoulderCount = 40;
-        private const int BigLooseStoneCount = 90;
-        private const int BigDeadfallCount = 10;
-        private const int BigHerbCount = 8;
+        // §146.7: лес на десять домов Hut1Hex (16-29 пальм и ~36 юкк на дом)
+        // плюс живой лес после стройки; остальной посев — по площади.
+        internal const int BigPalmTarget = 240;
+        private const int BigGroveCount = 24;
+        private const int BigYuccaCount = 360;
+        private const int BigBoulderCount = 95;
+        private const int BigLooseStoneCount = 220;
+        private const int BigDeadfallCount = 24;
+        private const int BigHerbCount = 18;
 
         // Якорные узлы для пальм на одном гексе: интерьерные слоты 13 (2,-1),
         // 30 (-1,2), 10 (-1,-1) — треугольник ~1.12 wu стороной. Диск блокировки

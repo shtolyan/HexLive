@@ -675,7 +675,13 @@ public sealed partial class ExecutionSystem
             // она стирает… подошли к краю воды, сняли первую шмотку, начали
             // стирать её… постирали, положили на песок, потом следующую».
             // Поэтому стирка теперь поштучная и с видимым статусом на каждой.
-            if (doffed != null && IsLaundry(doffed))
+            // #175: стирают ТОЛЬКО у воды. Раздевание бывает и дома (§133,
+            // фаза Bathing) — там снятая чуть грязная вещь запускала полный
+            // такт стирки прямо у гардероба, в 18 wu от моря. На берегу же
+            // сначала выправляется тайл (прибытие могло записать внутренний
+            // гекс узла), и только потом решается «у воды ли она».
+            if (doffed != null && IsLaundry(doffed) &&
+                HygieneMath.TryAnchorShoreStand(world, npc))
             {
                 StartGarmentWash(world, npc, doffed);
             }
@@ -733,7 +739,11 @@ public sealed partial class ExecutionSystem
         if (npc.Mind.PersonalCarePhase == PersonalCarePhase.LaundryBatch)
         {
             var dirtyLeft = CountDirtyRedressGarments(world, npc);
-            if (dirtyLeft > 0 && npc.Execution.Status == ExecutionStatus.None)
+            if (dirtyLeft > 0 && npc.Execution.Status == ExecutionStatus.None &&
+                // #175: и достирка — только у воды, с тем же выправлением
+                // тайла. Возобновлённая сцена стояла на береговом узле, но с
+                // ВНУТРЕННИМ тайлом v24-прибытия — стирка шла «не у воды».
+                HygieneMath.TryAnchorShoreStand(world, npc))
             {
                 // Осталась грязная вещь, но не на ней (сняли раньше и не
                 // достирали — прерывание/загрузка). Достирываем поштучно.
@@ -805,7 +815,8 @@ public sealed partial class ExecutionSystem
                 bathShore = replacement.Id;
                 npc.Mind.PersonalCareBathShore = replacement.Id;
                 npc.Plan.TargetJunctionId = replacement.Id;
-                npc.Plan.TargetTile = replacement.Tiles[0];
+                // #175: стоять на сухом тайле берега, не на воде узла.
+                npc.Plan.TargetTile = HygieneMath.DryStandTile(world, replacement);
             }
 
             npc.Plan.Steps.Clear();
@@ -820,9 +831,9 @@ public sealed partial class ExecutionSystem
                 TargetJunction = bathShore
             });
             npc.Plan.TargetJunctionId = bathShore;
-            npc.Plan.TargetTile = world.Junctions.Items[bathShore].Tiles.Count > 0
-                ? world.Junctions.Items[bathShore].Tiles[0]
-                : null;
+            // #175: стоять на сухом тайле берега, не на воде узла.
+            npc.Plan.TargetTile = HygieneMath.DryStandTile(
+                world, world.Junctions.Items[bathShore]);
             npc.Plan.CurrentStepIndex = 0;
             npc.Movement.JunctionPath.Clear();
             npc.Movement.PathIndex = 0;

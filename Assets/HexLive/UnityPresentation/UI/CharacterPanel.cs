@@ -785,7 +785,15 @@ namespace HexLive.UnityPresentation.UI
                 ? $"NPC #{npc.Id.Value}"
                 : Loc.NpcName(npc.DisplayName);
             _roleLabel.text = $"{Loc.Get("panel.role")} · #{npc.Id.Value}";
-            _thoughtValue.text = isDead ? Loc.Get("state.dead") : Loc.Goal(npc.CurrentGoal);
+            // §40.6 r14 (#175): весь черёд поштучной стирки идёт под целью
+            // Bathe, и панель писала «купается», пока она тёрла вещь на песке.
+            // Такт стирки виден по интеракции — показываем «стирает» (термин
+            // цели WashClothes, новых строк нет).
+            _thoughtValue.text = isDead ? Loc.Get("state.dead")
+                : npc.CurrentInteraction == "WashClothes" &&
+                  npc.ExecutionStatus == "InProgress"
+                    ? Loc.Goal("WashClothes")
+                    : Loc.Goal(npc.CurrentGoal);
             RefreshControlToggle(npc); // §121
 
             // Spec §64: the dream pill — show her aspiration, hide it when she has

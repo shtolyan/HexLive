@@ -73,6 +73,75 @@ internal static class HygieneMath
         return false;
     }
 
+    /// <summary>
+    /// §40.6 r14 (#175): тайл, на котором у этого узла СТОЯТ, — первый сухой
+    /// ходибельный. У пограничного узла первым может числиться вода, и план,
+    /// бравший <c>Tiles[0]</c> как цель прибытия, делал целью ВОДУ — а явная
+    /// водная цель у Bathe включает «прибытие = пересечь кромку» (§21.21B
+    /// v25), и стирающая вставала в море. Стоять надо на песке; в воду ведёт
+    /// только шаг SwimBathe со своим водным тайлом.
+    /// </summary>
+    public static TileCoord? DryStandTile(WorldState world, Junction junction)
+    {
+        // Первый проход — сухой тайл, который САМ берег (смежен с водой):
+        // у узла бывает и внутренний сухой тайл, и, встав на него, она
+        // стирала бы не у кромки (замер: seed 12345, тайл 2,10). У узла,
+        // прошедшего StandsOnShore, такой тайл есть всегда.
+        TileCoord? dry = null;
+        foreach (var tile in junction.Tiles)
+        {
+            if (!world.Tiles.Items.TryGetValue(tile, out var state) ||
+                !state.Flags.HasFlag(TileFlags.Walkable) ||
+                state.Flags.HasFlag(TileFlags.Water))
+            {
+                continue;
+            }
+
+            if (IsShoreTile(world, tile))
+            {
+                return tile;
+            }
+
+            dry ??= tile;
+        }
+
+        if (dry is { } inland)
+        {
+            return inland;
+        }
+
+        return junction.Tiles.Count > 0 ? junction.Tiles[0] : null;
+    }
+
+    /// <summary>
+    /// #175: стирка числится в гексе, где стоит стирающая, а прибытие
+    /// (§21.21B v24, «ближняя сторона») могло записать ей ВНУТРЕННИЙ тайл
+    /// берегового узла: физически точка та же, но такт шёл «не у воды»
+    /// (замер: seed 12345, t=60325, тайл 2,10 узла 17253). Перед тактом
+    /// тайл приводится к береговому тайлу её узла тем же щадящим правилом,
+    /// что и <c>PlaceAtEdge</c>: только соседний гекс и не больше одной
+    /// ступени высоты. Возвращает, стоит ли она теперь у воды.
+    /// </summary>
+    public static bool TryAnchorShoreStand(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is { } at &&
+            world.Junctions.Items.TryGetValue(at, out var junction) &&
+            DryStandTile(world, junction) is { } stand &&
+            IsShoreTile(world, stand) &&
+            npc.Tile != stand &&
+            HexSpatialMath.HexDistance(npc.Tile, stand) <= 1 &&
+            world.Tiles.Items.TryGetValue(npc.Tile, out var from) &&
+            world.Tiles.Items.TryGetValue(stand, out var to) &&
+            System.Math.Abs(from.Elevation - to.Elevation) <= 1)
+        {
+            var previous = npc.Tile;
+            npc.Tile = stand;
+            SpatialMutations.MoveEntityToTile(world, npc.Id, previous, stand);
+        }
+
+        return IsBathingTile(world, npc.Tile);
+    }
+
     public static bool IsBathingTile(WorldState world, TileCoord tile)
     {
         if (world.Tiles.Items.TryGetValue(tile, out var here) &&

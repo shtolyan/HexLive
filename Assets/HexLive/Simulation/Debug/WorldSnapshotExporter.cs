@@ -490,6 +490,19 @@ public static class WorldSnapshotExporter
             return garment.DefinitionId;
         }
 
+        // §40.6 r14 (#175): the wash beat scrubs an AUTHORITATIVE ground object
+        // (Execution.TargetObject) — deliberately never a hand-held instance,
+        // so a save/interrupt cannot strand the piece in limbo. Visually it IS
+        // in her hands: the renderer already hides the ground copy during
+        // WashClothes, so without this arm the garment vanished entirely and
+        // she scrubbed empty-handed.
+        if (npc.Execution.CurrentInteraction == InteractionType.WashClothes &&
+            npc.Execution.TargetObject is { } washedId &&
+            world.Entities.Objects.TryGetValue(washedId, out var washed))
+        {
+            return washed.DefinitionId;
+        }
+
         return string.Empty;
     }
 

@@ -215,9 +215,11 @@ public sealed partial class PlanningSystem
             {
                 npc.Plan.TargetObjectId = null;
                 npc.Plan.TargetJunctionId = resumeJunction;
-                npc.Plan.TargetTile = world.Junctions.Items[resumeJunction].Tiles.Count > 0
-                    ? world.Junctions.Items[resumeJunction].Tiles[0]
-                    : null;
+                // #175: стоять — на сухом тайле узла; Tiles[0] пограничного
+                // узла бывает водой, а водная цель у Bathe значит «пересечь
+                // кромку» (§21.21B v25) — и стирка шла стоя в море.
+                npc.Plan.TargetTile = HygieneMath.DryStandTile(
+                    world, world.Junctions.Items[resumeJunction]);
                 npc.Plan.Steps.Add(new PlanStep
                 {
                     Type = PlanStepType.MoveToJunction,
@@ -326,9 +328,11 @@ public sealed partial class PlanningSystem
         // wardrobe; storing it directly in Plan.TargetJunctionId instead made
         // the inverse bug — pathfinding skipped the home leg and stood forever.
         npc.Plan.TargetJunctionId = undressStand;
-        npc.Plan.TargetTile = world.Junctions.Items[undressStand].Tiles.Count > 0
-            ? world.Junctions.Items[undressStand].Tiles[0]
-            : best.Tiles[0];
+        // #175: цель прибытия — сухой тайл (см. DryStandTile): раздеваются и
+        // стирают на песке у кромки, в воду ведёт только шаг SwimBathe.
+        npc.Plan.TargetTile = HygieneMath.DryStandTile(
+                world, world.Junctions.Items[undressStand]) ??
+            HygieneMath.DryStandTile(world, best);
         npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = undressStand });
         npc.Plan.Steps.Add(new PlanStep
         {

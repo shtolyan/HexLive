@@ -15,6 +15,7 @@
 # ссылок не мёртвыми, а ЛЖИВЫМИ — они начнут указывать на чужой текст.
 
 29G   спальные места рядом (0/+1/-1); реализовано, описано только в комментариях ExecutionSystem
+29H   лимит бутылок (MaxCarriedInstances=1); BuildHutTest/BuildHutTestWorld.cs
 87    абьюз/ненависть; 6 файлов, в т.ч. Runtime/Balance/Spec81.cs
 88    абьюз; SimBalance.cs и рядом
 90    абьюз/агрессия; 7 файлов, в т.ч. Runtime/Balance/Spec81.cs

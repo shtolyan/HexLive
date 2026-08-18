@@ -21137,6 +21137,30 @@ MonoBehaviour:
       - 'Токен управления (пусто — зритель)'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'net.lost.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Connection lost'
+      - 'Связь с сервером потеряна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'net.lost.body'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The server is not responding. Press OK to return to the main menu.'
+      - 'Сервер не отвечает. Нажмите ОК, чтобы вернуться в главное меню.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'net.lost.ok'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'OK'
+      - 'ОК'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

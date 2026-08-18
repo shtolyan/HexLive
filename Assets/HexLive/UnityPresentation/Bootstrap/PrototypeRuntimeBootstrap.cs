@@ -245,6 +245,14 @@ public static class PrototypeRuntimeBootstrap
         var menu = menuRoot.AddComponent<GameMenu>();
         menu.SetRunner(runner);
 
+        // §145.3: связь с сервером потеряна насовсем — модальный диалог,
+        // ОК возвращает в главное меню. Без него вечный реконнект выглядел
+        // как зависшая игра.
+        var linkLostRoot = new GameObject("HexLive Connection Lost");
+        linkLostRoot.AddComponent<UIDocument>();
+        var linkLost = linkLostRoot.AddComponent<ConnectionLostDialog>();
+        linkLost.SetRunner(runner);
+
         // Victory/end-of-simulation summary — hidden until the raft launches.
         var endRoot = new GameObject("HexLive End Summary");
         endRoot.AddComponent<UIDocument>();

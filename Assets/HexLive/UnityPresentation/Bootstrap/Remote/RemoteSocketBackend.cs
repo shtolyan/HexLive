@@ -56,6 +56,16 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     // server that is genuinely down is not hammered.
     private static readonly float[] RetryDelaysSeconds = { 0.5f, 1f, 2f, 4f, 8f, 15f };
 
+    /// <summary>
+    /// §145.3: сколько подряд неудачных заходов терпеть, прежде чем честно
+    /// сдаться (LinkState.Failed → модальный диалог и возврат в меню).
+    /// Бесконечный молчаливый реконнект игрок читает как «игра зависла»:
+    /// сервер, погасший вместе с электричеством, от ожидания не вернётся.
+    /// Восемь циклов по расписанию выше — около 45 секунд: любой рестарт
+    /// сервера успевает, любое настоящее «его больше нет» — не мучает.
+    /// </summary>
+    private const int MaxConnectAttempts = 8;
+
     /// <summary>Ping cadence. Also the liveness probe — see <see cref="StallAfterSeconds"/>.</summary>
     private const double PingIntervalSeconds = 2.0;
 
@@ -256,6 +266,12 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
             var delay = RetryDelaysSeconds[Math.Min(_attempt, RetryDelaysSeconds.Length - 1)];
             _attempt++;
+            if (_attempt >= MaxConnectAttempts)
+            {
+                Fail($"No connection after {MaxConnectAttempts} attempts.");
+                return;
+            }
+
             SetState(LinkState.Reconnecting, null);
 
             try

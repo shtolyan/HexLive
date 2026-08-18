@@ -268,6 +268,18 @@ namespace HexLive.UnityPresentation.UI
                 runner.WriteSaveNow();
             }
 
+            ReloadToMainMenu();
+        }
+
+        /// <summary>
+        /// §145.3: общий хвост «в главное меню» — перезагрузка сцены начисто.
+        /// Мир, раннер и все панели умирают вместе со сценой; свежая загрузка
+        /// заново запускает PrototypeRuntimeBootstrap, и LoadingScreen снова
+        /// становится главным меню. Зовут пункт меню (после сохранения) и
+        /// диалог потери связи (там сохранять нечего — мир не наш).
+        /// </summary>
+        internal static void ReloadToMainMenu()
+        {
             // Menu paused the world (timeScale 0); the reload must start from a
             // clean clock, and the overlay flag must not survive into boot.
             IsOpen = false;

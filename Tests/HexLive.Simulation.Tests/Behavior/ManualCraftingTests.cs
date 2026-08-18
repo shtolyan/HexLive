@@ -23,8 +23,16 @@ public sealed class ManualCraftingTests
         (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)
     };
 
+    // ResetToDefaults() один возвращает КОД-дефолты и стирает simdata-тюнинг
+    // для всех фикстур ПОСЛЕ этой: реплей реального сида (жилетка, баг #156) жил
+    // на нетюнингованных рецептах и разъехался, как только виртуальные мобы
+    // §147 сделали его чувствительным. Поверх сброса — заново экспорт §59.3.
     [TearDown]
-    public void ResetRecipes() => RecipeCatalog.ResetToDefaults();
+    public void ResetRecipes()
+    {
+        RecipeCatalog.ResetToDefaults();
+        SimDataFile.Require(RepoPaths.SimData);
+    }
 
     [Test]
     public void GroundCountUsesCenterAndSixNeighborsButRejectsNonFreeObjects()

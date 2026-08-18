@@ -63,9 +63,13 @@ public static class WildlifeBalance
     // 0 = механика выключена целиком, работает старый амбиентный спавнер.
     // >0 = слотовый спавнер ЗАМЕНЯЕТ амбиентный (они не смешиваются; гости
     // ночного рейда §46 ортогональны и приходят поверх в любом режиме).
-    public static int WolfSlots = 0;
-    public static int CrabSlots = 0;
-    public static int SharkSlots = 0;
+    // ⭐ §147.6: включено и в режиме 0 (решение игрока) — прежние популяции
+    // (2 волка, 4 краба, 2 акулы) стали слотами. Это ОСОЗНАННЫЙ сдвиг
+    // поведения мира: спящий волк не охотится, пока рядом никого нет;
+    // эталон golden trace принят заново этим же коммитом.
+    public static int WolfSlots = 2;
+    public static int CrabSlots = 4;
+    public static int SharkSlots = 2;
 
     // §146.6-парные ручки большого острова (селекторы ниже).
     public static int BigIslandWolfSlots = 12;

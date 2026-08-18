@@ -15,7 +15,11 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>
 /// §147: виртуальные мобы. Превью — чистая функция, слоты — сейв-состояние,
 /// материализация — ровно в позе превью с зарезервированным id.
+/// NonParallelizable: AmbientSpawner-тест временно гасит глобальный
+/// WildlifeBalance.WolfSlots, а параллельная фикстура с реплеем реального
+/// сида увидела бы мир без слотов и разъехалась (пойман флейком жилетки).
 /// </summary>
+[NonParallelizable]
 public sealed class MobSlotTests
 {
     private static WorldState BigIsland(int seed = 12345) =>
@@ -173,25 +177,51 @@ public sealed class MobSlotTests
     }
 
     [Test]
-    public void FeudDefaultsKeepTheAmbientSpawner()
+    public void FeudDefaultsRunTheSlotSpawnerToo()
     {
-        // §147.6: включение в режиме 0 — отдельное осознанное решение;
-        // до него дефолты держат механику выключенной и старый спавнер живым.
+        // ⭐ §147.6: включено в ОБОИХ режимах (решение игрока) — прежние
+        // популяции Feud стали слотами; эталон трейсов принят заново.
         Assert.Multiple(() =>
         {
-            Assert.That(WildlifeBalance.WolfSlots, Is.EqualTo(0));
-            Assert.That(WildlifeBalance.CrabSlots, Is.EqualTo(0));
-            Assert.That(WildlifeBalance.SharkSlots, Is.EqualTo(0));
+            Assert.That(WildlifeBalance.WolfSlots, Is.EqualTo(2));
+            Assert.That(WildlifeBalance.CrabSlots, Is.EqualTo(4));
+            Assert.That(WildlifeBalance.SharkSlots, Is.EqualTo(2));
         });
 
         var world = TestWorld.CreateWorld();
         world.Tick = WildlifeBalance.DogRespawnCheckTicks + 4;
         new MobSystem().Run(world);
+        new RabbitSystem().Run(world);
         Assert.Multiple(() =>
         {
-            Assert.That(world.MobSpawnSlots, Is.Empty, "в Feud слоты не рождаются");
-            Assert.That(world.Mobs, Is.Not.Empty, "амбиентный спавнер жив");
+            Assert.That(world.MobSpawnSlots.Count(s => s.MobId == MobIds.Dog),
+                Is.EqualTo(WildlifeBalance.WolfSlots), "волчьи слоты в Feud");
+            Assert.That(world.Mobs, Is.Empty,
+                "амбиентный спавнер заменён: волк существует только у людей");
         });
+    }
+
+    [Test]
+    public void AmbientSpawnerStillWorksWhenSlotsAreOff()
+    {
+        var oldWolves = WildlifeBalance.WolfSlots;
+        try
+        {
+            WildlifeBalance.WolfSlots = 0;
+            var world = TestWorld.CreateWorld();
+            world.Tick = WildlifeBalance.DogRespawnCheckTicks + 4;
+            new MobSystem().Run(world);
+            Assert.Multiple(() =>
+            {
+                Assert.That(world.MobSpawnSlots.Count(s => s.MobId == MobIds.Dog),
+                    Is.EqualTo(0), "0 = механика выключена целиком");
+                Assert.That(world.Mobs, Is.Not.Empty, "амбиентный спавнер жив");
+            });
+        }
+        finally
+        {
+            WildlifeBalance.WolfSlots = oldWolves;
+        }
     }
 }
 

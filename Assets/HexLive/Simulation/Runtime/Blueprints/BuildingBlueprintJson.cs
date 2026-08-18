@@ -25,6 +25,20 @@ namespace HexLive.Simulation.Runtime.Blueprints
             Property(sb, i1, "blueprintId", Quote(draft.BlueprintId), false, newline, space);
             Property(sb, i1, "nextElementId", draft.NextElementId.ToString(CultureInfo.InvariantCulture), false, newline, space);
             Property(sb, i1, "nextRoomId", draft.NextRoomId.ToString(CultureInfo.InvariantCulture), false, newline, space);
+            // §120.8: комнаты без автоконтура стен. Поле опционально — старый
+            // reader его молча пропустит, пустой список не пишется вовсе.
+            if (draft.OpenRooms.Count > 0)
+            {
+                sb.Append(i1).Append("\"openRooms\":").Append(space).Append('[');
+                for (var index = 0; index < draft.OpenRooms.Count; index++)
+                {
+                    if (index > 0) sb.Append(',').Append(space);
+                    sb.Append(draft.OpenRooms[index].ToString(CultureInfo.InvariantCulture));
+                }
+
+                sb.Append("],").Append(newline);
+            }
+
             sb.Append(i1).Append("\"elements\":").Append(space).Append('[');
             if (draft.Elements.Count > 0) sb.Append(newline);
             for (var index = 0; index < draft.Elements.Count; index++)
@@ -96,6 +110,15 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 };
                 if (sourceVersion < 1 || sourceVersion > BuildingBlueprintDraft.CurrentVersion)
                     throw new FormatException($"Версия {sourceVersion} не поддерживается.");
+                // §120.8: опциональное поле — черновик без него читается как
+                // прежде (все комнаты с автоконтуром).
+                if (root.TryGetValue("openRooms", out var openRooms) &&
+                    openRooms is System.Collections.Generic.List<object> openList)
+                {
+                    foreach (var item in openList)
+                        draft.OpenRooms.Add(Convert.ToInt32(item, CultureInfo.InvariantCulture));
+                }
+
                 foreach (var map in Objects(root, "elements")) draft.Elements.Add(ParseElement(map));
                 foreach (var map in Objects(root, "furniture")) draft.Furniture.Add(ParseFurniture(map));
                 Upgrade(draft, sourceVersion);

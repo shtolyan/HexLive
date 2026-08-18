@@ -148,6 +148,15 @@
 
 .header-button.accent:hover { background-color: rgb(248, 199, 122); color: rgb(19, 24, 28); }
 
+/* Активный инструмент шапки (например, «Выбор»). */
+.header-button.active {
+    color: rgb(240, 180, 92);
+    border-left-color: rgba(240, 180, 92, 0.65);
+    border-right-color: rgba(240, 180, 92, 0.65);
+    border-top-color: rgba(240, 180, 92, 0.65);
+    border-bottom-color: rgba(240, 180, 92, 0.65);
+}
+
 .tray-body {
     flex-grow: 1;
     min-height: 0;

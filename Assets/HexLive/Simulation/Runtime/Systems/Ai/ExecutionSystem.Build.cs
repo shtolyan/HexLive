@@ -63,7 +63,7 @@ public sealed partial class ExecutionSystem
             // §120: the plan's footprint is as many hexes as the player floored
             // (three for hut_player_v1). One tile was the canonical hut's own
             // number, not a property of "a building".
-            foreach (var footprintTile in Bootstrap.BuildingBootstrap.FootprintTiles(site))
+            foreach (var footprintTile in Bootstrap.BuildingBootstrap.FootprintTiles(world, site))
             {
                 if (world.Tiles.Items.TryGetValue(footprintTile, out var floorTile))
                 {

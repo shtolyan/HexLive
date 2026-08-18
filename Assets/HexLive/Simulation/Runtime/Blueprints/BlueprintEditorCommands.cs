@@ -151,7 +151,8 @@ namespace HexLive.Simulation.Runtime.Blueprints
         }
 
         public static BlueprintCommandResult CreateRoom(
-            BuildingBlueprintDraft draft, IEnumerable<FloorSectorKey> sectors)
+            BuildingBlueprintDraft draft, IEnumerable<FloorSectorKey> sectors,
+            bool openFloor = false)
         {
             var selected = sectors?.Distinct().ToArray() ?? Array.Empty<FloorSectorKey>();
             return Transact(draft, working =>
@@ -163,6 +164,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 if (selected.Any(occupied.Contains)) return false;
 
                 var roomId = working.AllocateRoomId();
+                // §120.8: «Пол без стен» — настил без автоконтура. Стены к нему
+                // при желании чертятся вручную обычным инструментом.
+                if (openFloor) working.OpenRooms.Add(roomId);
                 foreach (var sector in selected)
                 {
                     working.Elements.Add(new BlueprintElementData
@@ -176,7 +180,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 }
                 RebuildRoomBoundary(working, roomId);
                 return true;
-            }, "Комната создана.");
+            }, openFloor ? "Пол настелен." : "Комната создана.");
         }
 
         public static BlueprintCommandResult ResizeRoom(
@@ -362,6 +366,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     element.RoomId == roomId &&
                     (element.Kind == BlueprintElementKind.FloorSector ||
                      element.Origin == BlueprintElementOrigin.RoomBoundary));
+                working.OpenRooms.Remove(roomId);
                 return true;
             }, "Комната удалена.");
         }
@@ -372,6 +377,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
             target.BlueprintId = source.BlueprintId;
             target.NextElementId = source.NextElementId;
             target.NextRoomId = source.NextRoomId;
+            target.OpenRooms = new List<int>(source.OpenRooms);
             target.Elements = source.Elements.Select(element => element.Clone()).ToList();
             target.Furniture = source.Furniture.Select(item => item.Clone()).ToList();
             target.Normalize();
@@ -420,6 +426,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
             draft.Elements.RemoveAll(element =>
                 element.Origin == BlueprintElementOrigin.RoomBoundary && element.RoomId == roomId &&
                 element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window or BlueprintElementKind.Door);
+            // §120.8: открытый настил границу не отращивает — только снимает
+            // свою прежнюю (ветка выше), если комнату перевели в открытые.
+            if (draft.OpenRooms.Contains(roomId)) return;
             var sectors = draft.Elements.Where(element =>
                     element.Kind == BlueprintElementKind.FloorSector && element.RoomId == roomId)
                 .Select(element => element.FloorSector).ToArray();

@@ -105,6 +105,10 @@ namespace HexLive.UnityPresentation.HutTest
         private float _autosaveDeadline;
         private string _statusKey = "blueprint.status.ready";
 
+        /// <summary>§120.8: активная карточка «Пол без стен» — комната
+        /// создаётся без автоконтура (OpenRooms).</summary>
+        private bool OpenFloorTool => _activeCatalogEntry?.DefinitionId == "architecture.floor.open";
+
         private enum Tool
         {
             None,
@@ -313,6 +317,22 @@ namespace HexLive.UnityPresentation.HutTest
             root.Q<Button>("finish-selection").clicked += FinishSelection;
             root.Q<Button>("undo").clicked += Undo;
             root.Q<Button>("redo").clicked += Redo;
+
+            // Явный инструмент «Выбор» (фидбек игрока: режим выделения был
+            // спрятан за Esc и его «не найти»): сбрасывает карточку, дальше
+            // клик выделяет элемент или комнату — с ручками растягивания.
+            var selectTool = new Button(FinishSelection) { name = "select-tool" };
+            selectTool.AddToClassList("header-button");
+            // «header-actions» в UXML — класс, а не name: искать по классу.
+            root.Q(className: "header-actions")?.Insert(0, selectTool);
+            // Undo/redo глифами игрок не считывает — подписи важнее ширины.
+            foreach (var name in new[] { "undo", "redo" })
+            {
+                var button = root.Q<Button>(name);
+                if (button == null) continue;
+                button.RemoveFromClassList("icon-button");
+                button.AddToClassList("header-button");
+            }
             if (WorldMode)
             {
                 // §120.8: в игре черновик и так автосейвится; две кнопки — это
@@ -455,7 +475,7 @@ namespace HexLive.UnityPresentation.HutTest
             else if (_tool == Tool.Room)
             {
                 var end = NearestSector(local);
-                result = BlueprintEditorCommands.CreateRoom(_gesturePreview,
+                result = BlueprintEditorCommands.CreateRoom(_gesturePreview, openFloor: OpenFloorTool, sectors:
                     RoomDragSectors(_roomStart, end, WholeHexTarget(local, end.Hex)));
             }
             else if (!string.IsNullOrEmpty(_dragFurnitureId))
@@ -499,7 +519,9 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 var end = NearestSector(local);
                 var sectors = RoomDragSectors(_roomStart, end, WholeHexTarget(local, end.Hex));
-                result = Execute(working => BlueprintEditorCommands.CreateRoom(working, sectors));
+                var openFloor = OpenFloorTool;
+                result = Execute(working =>
+                    BlueprintEditorCommands.CreateRoom(working, sectors, openFloor));
             }
             else if (!string.IsNullOrEmpty(_dragFurnitureId))
             {
@@ -1361,6 +1383,7 @@ namespace HexLive.UnityPresentation.HutTest
             var root = _document.rootVisualElement;
             SetActive(root.Q("mode-construction"), _catalogMode == BuildCatalogMode.Construction);
             SetActive(root.Q("mode-furniture"), _catalogMode == BuildCatalogMode.Furniture);
+            SetActive(root.Q("select-tool"), _tool == Tool.None && _activeCatalogEntry == null);
 
             root.Q<Button>("undo").SetEnabled(_history.CanUndo);
             root.Q<Button>("redo").SetEnabled(_history.CanRedo);
@@ -1447,10 +1470,9 @@ namespace HexLive.UnityPresentation.HutTest
             Text<Label>(root, "selection-title", "blueprint.selection.title");
             Text<Button>(root, "delete-selection", "blueprint.action.delete");
             Text<Button>(root, "finish-selection", "blueprint.action.finish");
-            // Undo/redo — узкие кнопки-глифы; слово живёт в подсказке, иначе
-            // «Отменить» вылезает из 36px и наезжает на соседей.
-            Tooltip<Button>(root, "undo", "blueprint.action.undo");
-            Tooltip<Button>(root, "redo", "blueprint.action.redo");
+            Text<Button>(root, "undo", "blueprint.action.undo");
+            Text<Button>(root, "redo", "blueprint.action.redo");
+            Text<Button>(root, "select-tool", "blueprint.action.select");
             Text<Button>(root, "save", WorldMode ? "blueprint.action.exit" : "blueprint.action.save");
             Text<Button>(root, "export", WorldMode ? "blueprint.action.build" : "blueprint.action.export");
             Text<Label>(root, "shortcut-label", "blueprint.shortcuts");

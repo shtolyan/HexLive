@@ -227,7 +227,13 @@ namespace HexLive.Simulation.Runtime.Blueprints
         public string BlueprintId = "draft";
         public int NextElementId = 1;
         public int NextRoomId = 1;
-        public List<BlueprintElementData> Elements = new List<BlueprintElementData>();
+        /// <summary>§120.8: комнаты БЕЗ автоконтура стен («Пол без стен» — терраса,
+    /// настил, фундамент под будущие стены). Обычная комната перестраивает
+    /// границу при каждом изменении; открытая — только снимает её. Поле в JSON
+    /// опционально (отсутствует = пусто), поэтому версия формата не растёт.</summary>
+    public List<int> OpenRooms = new();
+
+    public List<BlueprintElementData> Elements = new List<BlueprintElementData>();
         public List<FurniturePlacementData> Furniture = new List<FurniturePlacementData>();
 
         public BuildingBlueprintDraft Clone()
@@ -239,7 +245,8 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 NextElementId = NextElementId,
                 NextRoomId = NextRoomId,
                 Elements = Elements.Select(element => element.Clone()).ToList(),
-                Furniture = Furniture.Select(item => item.Clone()).ToList()
+                Furniture = Furniture.Select(item => item.Clone()).ToList(),
+                OpenRooms = new List<int>(OpenRooms)
             };
         }
 
@@ -253,6 +260,13 @@ namespace HexLive.Simulation.Runtime.Blueprints
             Elements.Sort(BlueprintElementComparer.Instance);
             Furniture.Sort((left, right) => string.CompareOrdinal(left.Id, right.Id));
             foreach (var item in Furniture) item.YawStep = BlueprintGeometry.NormalizeSector(item.YawStep);
+            // Только живые комнаты, отсортированно — стабильный byte-diff JSON.
+            var openRooms = OpenRooms.Distinct()
+                .Where(roomId => Elements.Any(element =>
+                    element.Kind == BlueprintElementKind.FloorSector && element.RoomId == roomId))
+                .OrderBy(roomId => roomId).ToList();
+            OpenRooms.Clear();
+            OpenRooms.AddRange(openRooms);
         }
 
         private sealed class BlueprintElementComparer : IComparer<BlueprintElementData>

@@ -120,6 +120,34 @@ public sealed class PlayerBlueprintTests
         // Дверь чертежа осталась дверью: вычисление портала не кидает.
         Assert.DoesNotThrow(() => BuildingRules.DoorOutwardYaw(loaded, restored));
     }
+
+    [Test]
+    public void OpenFloorRoomHasNoAutoWallsAndSurvivesJson()
+    {
+        // §120.8: «Пол без стен» — комната без автоконтура; обычная получает
+        // границу, открытая нет, и признак переживает JSON round-trip.
+        var draft = BuiltInBuildingBlueprints.Hut1Hex();
+        var floorHex = BlueprintBuildingPlan.AnchorTile(draft);
+        var open = new FloorSectorKey(new TileCoord(floorHex.Q + 3, floorHex.R), 0);
+        var result = BlueprintEditorCommands.CreateRoom(
+            draft, new[] { open, new FloorSectorKey(open.Hex, 1) }, openFloor: true);
+        Assert.That(result.Succeeded, Is.True, result.Message);
+
+        var openRoomId = draft.Elements
+            .Single(element => element.Kind == BlueprintElementKind.FloorSector &&
+                               element.FloorSector.Equals(open)).RoomId;
+        Assert.That(draft.OpenRooms, Does.Contain(openRoomId));
+        Assert.That(draft.Elements.Any(element =>
+                element.Origin == BlueprintElementOrigin.RoomBoundary &&
+                element.RoomId == openRoomId), Is.False,
+            "Открытый настил не должен отращивать автоконтур стен.");
+
+        var json = BuildingBlueprintJson.Serialize(draft, pretty: false);
+        Assert.That(BuildingBlueprintJson.TryDeserialize(json, out var restored, out var error),
+            Is.True, error);
+        Assert.That(restored.OpenRooms, Does.Contain(openRoomId),
+            "Признак открытой комнаты обязан пережить JSON (сейв и команду).");
+    }
 }
 
 }

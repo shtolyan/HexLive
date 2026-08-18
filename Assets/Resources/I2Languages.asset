@@ -22733,12 +22733,18 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Drag to build \xB7 Q/E rotate \xB7 Del delete \xB7 Cmd/Ctrl+Z undo \xB7
-        RMB/Esc cancel"
+      - "Drag \u2014 build \xB7 Select \u2014 click a piece or room, drag its side
+        handles \xB7 Q/E \u2014 rotate \xB7 Del \u2014 delete \xB7 Cmd/Ctrl+Z \u2014
+        undo \xB7 RMB/Esc \u2014 select mode"
       - "\u0422\u044F\u043D\u0443\u0442\u044C \u2014 \u0441\u0442\u0440\u043E\u0438\u0442\u044C
-        \xB7 Q/E \u2014 \u043F\u043E\u0432\u043E\u0440\u043E\u0442 \xB7 Del \u2014
-        \u0443\u0434\u0430\u043B\u0438\u0442\u044C \xB7 Cmd/Ctrl+Z \u2014 \u043E\u0442\u043C\u0435\u043D\u0430
-        \xB7 \u041F\u041A\u041C/Esc \u2014 \u0432\u044B\u0445\u043E\u0434"
+        \xB7 \xAB\u0412\u044B\u0431\u043E\u0440\xBB \u2014 \u043A\u043B\u0438\u043A
+        \u043F\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0443 \u0438\u043B\u0438
+        \u043A\u043E\u043C\u043D\u0430\u0442\u0435, \u043A\u043E\u043C\u043D\u0430\u0442\u0443
+        \u0442\u044F\u043D\u0443\u0442\u044C \u0437\u0430 \u0440\u0443\u0447\u043A\u0438
+        \u0441\u0442\u043E\u0440\u043E\u043D \xB7 Q/E \u2014 \u043F\u043E\u0432\u043E\u0440\u043E\u0442
+        \xB7 Del \u2014 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \xB7 Cmd/Ctrl+Z
+        \u2014 \u043E\u0442\u043C\u0435\u043D\u0430 \xB7 \u041F\u041A\u041C/Esc \u2014
+        \u0440\u0435\u0436\u0438\u043C \u0432\u044B\u0431\u043E\u0440\u0430"
       Flags: 0101
       Languages_Touch: []
     - Term: blueprint.selection
@@ -23917,6 +23923,35 @@ MonoBehaviour:
         \u0438 \u043A\u043E\u043D\u0442\u0443\u0440\xBB, \u043F\u0440\u043E\u0442\u044F\u043D\u0438\u0442\u0435
         \u043A\u043E\u043C\u043D\u0430\u0442\u0443 \u043F\u043E \u0437\u0435\u043B\u0451\u043D\u043E\u0439
         \u0441\u0435\u0442\u043A\u0435"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: blueprint.action.select
+      TermType: 0
+      Description: 
+      Languages:
+      - Select
+      - "\u0412\u044B\u0431\u043E\u0440"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: blueprint.catalog.floor_open.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Open floor
+      - "\u041F\u043E\u043B \u0431\u0435\u0437 \u0441\u0442\u0435\u043D"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: blueprint.catalog.floor_open.description
+      TermType: 0
+      Description: 
+      Languages:
+      - "A deck without auto walls \u2014 a terrace or a base to wall in by hand
+        later."
+      - "\u041D\u0430\u0441\u0442\u0438\u043B \u0431\u0435\u0437 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0445
+        \u0441\u0442\u0435\u043D \u2014 \u0442\u0435\u0440\u0440\u0430\u0441\u0430
+        \u0438\u043B\u0438 \u043E\u0441\u043D\u043E\u0432\u0430\u043D\u0438\u0435,
+        \u0441\u0442\u0435\u043D\u044B \u043A \u043D\u0435\u043C\u0443 \u0447\u0435\u0440\u0442\u044F\u0442\u0441\u044F
+        \u0432\u0440\u0443\u0447\u043D\u0443\u044E."
       Flags: 0000
       Languages_Touch: []
     CaseInsensitiveTerms: 0

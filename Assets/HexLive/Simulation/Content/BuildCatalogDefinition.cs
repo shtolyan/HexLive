@@ -107,6 +107,11 @@ namespace HexLive.Simulation.Content
             new("architecture.floor.board", BuildCatalogMode.Construction,
                 BuildCatalogCategories.Floor, BuildCatalogPlacementKind.FloorRegion,
                 "blueprint.catalog.floor.name", "blueprint.catalog.floor.description", "⬡", 10),
+            // §120.8: настил без автоконтура — терраса или фундамент; стены к
+            // нему чертятся вручную. Сборка модулей общая с обычным полом.
+            new("architecture.floor.open", BuildCatalogMode.Construction,
+                BuildCatalogCategories.Floor, BuildCatalogPlacementKind.FloorRegion,
+                "blueprint.catalog.floor_open.name", "blueprint.catalog.floor_open.description", "⏹", 11),
             new("architecture.wall.wood", BuildCatalogMode.Construction,
                 BuildCatalogCategories.Walls, BuildCatalogPlacementKind.WallLine,
                 "blueprint.catalog.wall.name", "blueprint.catalog.wall.description", "▥", 20),

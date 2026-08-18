@@ -136,14 +136,11 @@ public static class MeshRayPicker
             ray, out distance);
     }
 
-    private static bool IsReadable(Mesh mesh)
-    {
-#if UNITY_EDITOR
-        return true; // в редакторе CPU-копия есть всегда
-#else
-        return mesh.isReadable;
-#endif
-    }
+    // Никакого editor-исключения: GetVertices/GetTriangles блокируются на
+    // нечитаемом меше И В РЕДАКТОРЕ (проверено кустом Leaf/log_01 — спам
+    // ошибок в консоль на каждый сабмеш). Нечитаемый меш честно выпадает из
+    // точного пикинга; лекарство — Read/Write в импортёре ассета.
+    private static bool IsReadable(Mesh mesh) => mesh.isReadable;
 
     private static MeshData? EnsureStatic(Mesh mesh)
     {

@@ -164,7 +164,7 @@ internal static class TraitMath
     // должно быть можно проверить гейтом, не подделывая двоичный блоб.
     public static void ApplyPreTraitDefaults(NPCState npc)
     {
-        if (npc.Faction == Faction.Colony)
+        if (FactionRelations.IsColonyKind(npc.Faction))
         {
             return;
         }

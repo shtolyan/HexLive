@@ -198,7 +198,7 @@ public sealed class WorldStateFactory
         foreach (var npc in world.Entities.Npcs.Values)
         {
             var id = npc.Id.Value;
-            if (npc.Faction != Faction.Colony)
+            if (!Runtime.FactionRelations.IsColonyKind(npc.Faction))
             {
                 foreach (var piece in outsiderKit)
                 {
@@ -968,7 +968,7 @@ public sealed class WorldStateFactory
         foreach (var id in ids)
         {
             if (!world.Entities.Npcs.TryGetValue(new EntityId(id), out var npc) ||
-                npc.Faction != Faction.Colony)
+                !Runtime.FactionRelations.IsColonyKind(npc.Faction))
             {
                 continue;
             }
@@ -1049,7 +1049,7 @@ public sealed class WorldStateFactory
         // raider would never raid, and the §53 colony band starts at 0.35.
         var traitMin = HexLive.Simulation.Runtime.Spec53.TraitMin;
         var traitMax = HexLive.Simulation.Runtime.Spec53.TraitMax;
-        if (bootstrap.Faction != Faction.Colony)
+        if (!Runtime.FactionRelations.IsColonyKind(bootstrap.Faction))
         {
             traitMin = HexLive.Simulation.Runtime.Spec72.OutsiderCompassionMin;
             traitMax = HexLive.Simulation.Runtime.Spec72.OutsiderCompassionMax;
@@ -1112,7 +1112,7 @@ public sealed class WorldStateFactory
         // machete+knife loadout. §72.14 treats recurring arrivals as their own
         // escalation sequence (axe -> spear -> machete), so adding waves does
         // not silently rebalance the already-soaked opening scenario.
-        if (bootstrap.Faction != Faction.Colony &&
+        if (!Runtime.FactionRelations.IsColonyKind(bootstrap.Faction) &&
             HexLive.Simulation.Runtime.Spec72.OutsiderStartsArmed)
         {
             npc.Inventory.Items.Add(new Agents.ItemInstance("tool.machete"));

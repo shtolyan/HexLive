@@ -41,7 +41,9 @@ internal static class PopulationArrivalMath
             return false;
         }
 
-        var factionCap = faction == Faction.Colony
+        // §146.3: MaxColonyNpcs is a PER-CAMP quota — each girl faction counts
+        // against its own copy of it, the Outsiders against theirs.
+        var factionCap = FactionRelations.IsColonyKind(faction)
             ? WorldBalance.MaxColonyNpcs
             : WorldBalance.MaxOutsiderNpcs;
         if (factionCap <= 0)

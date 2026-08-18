@@ -84,7 +84,7 @@ public sealed class WeatherSystem : ISimulationSystem
             // Entities.Npcs is the living roster. "In our camp" means colony
             // membership, not where she happens to stand at 06:00: a hunter on
             // the far beach is still one of the camp's girls.
-            if (npc.Faction == Faction.Colony && npc.Sex == GarmentSex.Female)
+            if (FactionRelations.IsColonyKind(npc.Faction) && npc.Sex == GarmentSex.Female)
             {
                 count++;
             }

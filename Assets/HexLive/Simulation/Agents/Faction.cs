@@ -19,7 +19,15 @@ public enum Faction
     Colony = 0,
 
     // The hostile survivor(s) camped on the far side of the island.
-    Outsiders = 1
+    Outsiders = 1,
+
+    // §146: the two rival girl camps of the big-island mode. Colony-KIND
+    // (female roster, no raids, §53 compassion band), but not allies of the
+    // player's camp: no shared beds/sites/help, expulsion applies, no combat.
+    // Only worldgen for GameMode.BigIsland ever assigns these.
+    Colony2 = 2,
+
+    Colony3 = 3
 }
 
 }

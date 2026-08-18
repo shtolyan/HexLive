@@ -2067,7 +2067,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var raidOpportunity = 0f;
         var raidAvail = false;
         if (Spec72.Enabled &&
-            npc.Faction != Faction.Colony &&
+            !FactionRelations.IsColonyKind(npc.Faction) &&
             world.Tick >= Spec72.RaidGraceDays * EnvironmentSystem.DayLengthTicks &&
             world.Tick >= npc.Mind.RaidCooldownUntilTick &&
             npc.Needs.Hunger <= Spec72.RaidSelfNeedCeiling &&

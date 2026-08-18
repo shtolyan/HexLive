@@ -603,7 +603,7 @@ public sealed class RaidSystem : ISimulationSystem
 
         foreach (var raider in world.Entities.Npcs.Values)
         {
-            if (raider.Faction == Faction.Colony ||
+            if (FactionRelations.IsColonyKind(raider.Faction) ||
                 raider.Health <= 0f ||
                 raider.Mind.CurrentGoal == GoalType.Raid ||
                 raider.Mind.CurrentGoal == GoalType.Flee ||

@@ -124,7 +124,10 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             return;
         }
 
-        if (!FactionRelations.AreHostile(owner.Faction, intruder.Faction))
+        // §146.3: the scene runs against any non-ally — a rival girl is shown
+        // out too. Whether it may ESCALATE stays a hostility question
+        // (AdvanceDemand).
+        if (FactionRelations.AreAllies(owner.Faction, intruder.Faction))
         {
             Finish(world, owner, intruder, "NoLongerHostile", protectIntruder: false);
             return;
@@ -203,6 +206,25 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             }
             Finish(world, owner, intruder, "Accepted", protectIntruder: false,
                 keepIntruderGoal: true);
+            return;
+        }
+
+        // §146.3: a RIVAL girl always yields — she has a camp of her own to go
+        // to, and girls never fight girls. Escalation to a territorial fight is
+        // reserved for the hostile side. If she cannot reach home right now the
+        // scene ends peacefully and she keeps her grace window.
+        if (!FactionRelations.AreHostile(owner.Faction, intruder.Faction))
+        {
+            var left = MobSystem.TryFleeToCamp(world, intruder,
+                $"Agreed to leave NPC{owner.Id.Value}'s camp");
+            SocialCueSignals.Stamp(world, intruder, "CampExpelAccepted", owner.Id);
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, owner.Id, "CampExpelAccepted",
+                    $"Intruder=NPC{intruder.Id.Value} Rival=1 WentHome={(left ? 1 : 0)}");
+            }
+            Finish(world, owner, intruder, "Accepted", protectIntruder: !left,
+                keepIntruderGoal: left);
             return;
         }
 
@@ -308,7 +330,7 @@ public sealed class CampExpulsionSystem : ISimulationSystem
                 npc.Mind.PendingAbuseFrom is not null ||
                 npc.Execution.CurrentInteraction == InteractionType.Sleep ||
                 world.Tick < npc.Mind.ExpulsionProtectedUntilTick ||
-                !FactionRelations.AreHostile(owner.Faction, npc.Faction) ||
+                FactionRelations.AreAllies(owner.Faction, npc.Faction) ||
                 !ColonyQueries.InCamp(world, npc.Tile, owner.Faction) ||
                 !HasSafeChallengeOdds(world, owner, npc))
             {

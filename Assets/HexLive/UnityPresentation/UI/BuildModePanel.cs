@@ -66,13 +66,32 @@ namespace HexLive.UnityPresentation.UI
         private Label? _availabilityLabel;
         private VisualElement? _categoryList;
         private VisualElement? _catalogList;
+        private Button? _deleteButton;
 
         private BuildCatalogMode _catalogMode = BuildCatalogMode.Furniture;
         private string _activeCategoryId = BuildCatalogCategories.Comfort;
         private string _activeCardId = string.Empty;
 
-        private bool _pausedByUs;
         private bool _selectionSuppressed;
+
+        // Выбранная УЖЕ размеченная пустая площадка: повернуть / снять / Esc.
+        private int? _selectedSiteId;
+        private string _selectedSiteProduct = string.Empty;
+        private TileCoord _selectedSiteTile;
+        private float _selectedSiteRotation;
+        private LineRenderer? _selectionOutline;
+
+        // Стрелки поворота — экранные кнопки, следующие за объектом в мире.
+        private Button? _rotateLeft;
+        private Button? _rotateRight;
+
+        // Сетка «можно/нельзя»: точка на каждом гексе, пока выбрана карточка.
+        private GameObject? _gridRoot;
+        private readonly List<(MeshRenderer Renderer, TileCoord Tile)> _gridDots = new();
+        private Material? _dotFree;
+        private Material? _dotBusy;
+        private Mesh? _dotMesh;
+        private bool _gridDirty;
 
         // Ghost под курсором.
         private GameObject? _ghostRoot;
@@ -112,6 +131,9 @@ namespace HexLive.UnityPresentation.UI
             Loc.LanguageChanged -= ApplyLanguage;
             EndBuildMode();
             IsOpen = false;
+            if (_outlineMaterial != null) Destroy(_outlineMaterial);
+            if (_dotFree != null) Destroy(_dotFree);
+            if (_dotBusy != null) Destroy(_dotBusy);
         }
 
         private void ConfigurePanelSettings()
@@ -147,6 +169,11 @@ namespace HexLive.UnityPresentation.UI
 
             tree.CloneTree(root);
             root.styleSheets.Add(sheet);
+            // ⚠️ Обёртка UXML — полноэкранный absolute-элемент с picking по
+            // умолчанию. На sortingOrder выше остального UI она молча съедала
+            // клики по ростеру и панели персонажа даже с закрытым лотком.
+            var wrapper = root.Q(className: "hut-constructor-root");
+            if (wrapper != null) wrapper.pickingMode = PickingMode.Ignore;
             _panel = root.Q("constructor-panel");
             if (_panel != null)
             {
@@ -167,8 +194,13 @@ namespace HexLive.UnityPresentation.UI
             Hide(root, "redo");
             Hide(root, "save");
             Hide(root, "export");
-            Hide(root, "delete-selection");
             Hide(root, "shortcut-label");
+            _deleteButton = root.Q<Button>("delete-selection");
+            if (_deleteButton != null)
+            {
+                _deleteButton.style.display = DisplayStyle.None;
+                _deleteButton.clicked += CancelSelectedSite;
+            }
 
             root.Q<Button>("mode-construction").clicked += () => SetMode(BuildCatalogMode.Construction);
             root.Q<Button>("mode-furniture").clicked += () => SetMode(BuildCatalogMode.Furniture);
@@ -188,7 +220,25 @@ namespace HexLive.UnityPresentation.UI
             _openButton.style.display = DisplayStyle.None;
             root.Add(_openButton);
 
+            // Стрелки поворота — следуют за ghost'ом/выбранной площадкой в мире.
+            _rotateLeft = MakeRotateArrow(root, "↺", () => Rotate(-1));
+            _rotateRight = MakeRotateArrow(root, "↻", () => Rotate(1));
+
             ApplyLanguage();
+        }
+
+        private static Button MakeRotateArrow(
+            VisualElement root, string glyph, System.Action onClick)
+        {
+            var button = new Button(onClick) { text = glyph };
+            button.AddToClassList("icon-button");
+            button.style.position = Position.Absolute;
+            button.style.width = 36f;
+            button.style.height = 36f;
+            button.style.fontSize = 19f;
+            button.style.display = DisplayStyle.None;
+            root.Add(button);
+            return button;
         }
 
         private static void Hide(VisualElement root, string name)
@@ -209,6 +259,8 @@ namespace HexLive.UnityPresentation.UI
             if (furniture != null) furniture.text = Loc.Get("blueprint.mode.furniture");
             var finish = root.Q<Button>("finish-selection");
             if (finish != null) finish.text = Loc.Get("blueprint.action.finish");
+            var deleteButton = root.Q<Button>("delete-selection");
+            if (deleteButton != null) deleteButton.text = Loc.Get("blueprint.action.delete");
             var selectionTitle = root.Q<Label>("selection-title");
             if (selectionTitle != null) selectionTitle.text = Loc.Get("blueprint.selection.title");
             if (_openButton != null) _openButton.text = Loc.Get("build.mode.button");
@@ -232,11 +284,9 @@ namespace HexLive.UnityPresentation.UI
             // выбранной колонистки закрывается, чтобы не просвечивать под лотком.
             NpcSelection.Clear();
             SuppressSelection(true);
-            if (!_runner.IsPaused)
-            {
-                _runner.TogglePause();
-                _pausedByUs = true;
-            }
+            // Паузу НЕ ставим: на сервере часы операторские (§83.2), и режим
+            // обязан работать одинаково локально и по проводу. Хочет паузу —
+            // игрок ставит её сам штатной панелью скорости.
 
             if (_panel != null) _panel.style.display = DisplayStyle.Flex;
             if (_openButton != null) _openButton.style.display = DisplayStyle.None;
@@ -257,13 +307,8 @@ namespace HexLive.UnityPresentation.UI
             IsOpen = false;
             ClearGhost();
             ClearOverlays();
+            DeselectSite();
             SuppressSelection(false);
-            if (_pausedByUs && _runner != null && _runner.IsPaused)
-            {
-                _runner.TogglePause();
-            }
-
-            _pausedByUs = false;
             if (_panel != null) _panel.style.display = DisplayStyle.None;
         }
 
@@ -410,6 +455,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void SelectCard(string cardId)
         {
+            DeselectSite();
             _activeCardId = cardId;
             _ghostYawSteps = 0;
             BuildGhost();
@@ -420,20 +466,22 @@ namespace HexLive.UnityPresentation.UI
         private void RefreshSelectionCard()
         {
             if (_selectionLabel == null || _selectionDescription == null) return;
-            if (_activeCardId.Length == 0)
+            if (_activeCardId.Length > 0)
+            {
+                var (nameTerm, descriptionTerm) = CardTerms(_activeCardId);
+                _selectionLabel.text = Loc.Get(nameTerm);
+                _selectionDescription.text = Loc.Get(descriptionTerm);
+            }
+            else if (_selectedSiteId is not null)
+            {
+                var (nameTerm, descriptionTerm) = CardTerms(_selectedSiteProduct);
+                _selectionLabel.text = Loc.Get(nameTerm);
+                _selectionDescription.text = Loc.Get(descriptionTerm);
+            }
+            else
             {
                 _selectionLabel.text = Loc.Get("blueprint.selection.none");
                 _selectionDescription.text = Loc.Get("blueprint.catalog.help");
-            }
-            else if (_activeCardId == HutCardId)
-            {
-                _selectionLabel.text = Loc.Get("blueprint.catalog.hut.name");
-                _selectionDescription.text = Loc.Get("blueprint.catalog.hut.description");
-            }
-            else if (BuildCatalogDefinition.TryGet(_activeCardId, out var entry))
-            {
-                _selectionLabel.text = Loc.Get(entry.NameTerm);
-                _selectionDescription.text = Loc.Get(entry.DescriptionTerm);
             }
 
             if (_availabilityLabel != null)
@@ -444,6 +492,31 @@ namespace HexLive.UnityPresentation.UI
                     : "blueprint.availability.ready");
                 _availabilityLabel.EnableInClassList("waiting", waiting);
             }
+
+            if (_deleteButton != null)
+            {
+                _deleteButton.style.display = _selectedSiteId is not null
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
+            }
+        }
+
+        /// <summary>Термины карточки по id карточки ЛИБО по продукту площадки
+        /// (дом-план и furniture.hearth = campfire.spot с hearth-вариантом
+        /// сводятся к своим карточкам каталога).</summary>
+        private static (string NameTerm, string DescriptionTerm) CardTerms(string id)
+        {
+            if (id == HutCardId || id == ContentIds.HutPlan)
+            {
+                return ("blueprint.catalog.hut.name", "blueprint.catalog.hut.description");
+            }
+
+            if (BuildCatalogDefinition.TryGet(id, out var entry))
+            {
+                return (entry.NameTerm, entry.DescriptionTerm);
+            }
+
+            return ("blueprint.selection.none", "blueprint.catalog.help");
         }
 
         private void SetStatus(string term)
@@ -485,9 +558,12 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (_activeCardId.Length > 0)
                 {
-                    _activeCardId = string.Empty;
-                    ClearGhost();
-                    RebuildCatalogUi();
+                    DropActiveCard();
+                }
+                else if (_selectedSiteId is not null)
+                {
+                    DeselectSite();
+                    RefreshSelectionCard();
                 }
                 else
                 {
@@ -499,8 +575,10 @@ namespace HexLive.UnityPresentation.UI
             RefreshSnapshotCache();
             HandleRotation(keyboard);
             UpdateGhost();
+            RefreshGridDots();
             HandlePlacement();
             CheckPendingPlacement();
+            UpdateRotateArrows();
             if (Time.unscaledTime >= _nextOverlayRefresh)
             {
                 _nextOverlayRefresh = Time.unscaledTime + OverlayInterval;
@@ -508,31 +586,69 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
+        private void DropActiveCard()
+        {
+            _activeCardId = string.Empty;
+            ClearGhost();
+            RebuildCatalogUi();
+        }
+
         private void HandleRotation(Keyboard? keyboard)
         {
-            if (keyboard == null || _activeCardId.Length == 0) return;
+            if (keyboard == null) return;
             var delta = 0;
             if (keyboard.qKey.wasPressedThisFrame) delta -= 1;
             if (keyboard.eKey.wasPressedThisFrame) delta += 1;
             if (delta == 0) return;
-            _ghostYawSteps = ((_ghostYawSteps + delta) % 6 + 6) % 6;
-            ApplyGhostTransform();
+            Rotate(delta);
+        }
+
+        /// <summary>Один шаг поворота ±60° — от Q/E и от мировых стрелок.
+        /// Крутится либо ghost под курсором, либо выбранная пустая площадка
+        /// (той же командой симуляции, что видит и сервер).</summary>
+        private void Rotate(int delta)
+        {
+            if (_activeCardId.Length > 0)
+            {
+                _ghostYawSteps = ((_ghostYawSteps + delta) % 6 + 6) % 6;
+                ApplyGhostTransform();
+                return;
+            }
+
+            if (_selectedSiteId is { } siteId && _runner != null)
+            {
+                _selectedSiteRotation = ((_selectedSiteRotation + delta * 60f) % 360f + 360f) % 360f;
+                _runner.EnqueueCommand(new RotateBuildSiteCommand(
+                    new HexLive.Simulation.Common.ObjectId(siteId), _selectedSiteRotation));
+                // Оверлей «полностью построено» перечитает поворот из snapshot.
+                _nextSnapshotRefresh = 0f;
+                InvalidateOverlay(siteId);
+            }
         }
 
         private void HandlePlacement()
         {
             var mouse = Mouse.current;
-            if (mouse == null || _activeCardId.Length == 0 || _ghostTile is not { } tile) return;
-            if (mouse.rightButton.wasPressedThisFrame)
+            if (mouse == null) return;
+            var screen = mouse.position.ReadValue();
+
+            if (mouse.rightButton.wasPressedThisFrame && _activeCardId.Length > 0)
             {
-                _activeCardId = string.Empty;
-                ClearGhost();
-                RebuildCatalogUi();
+                DropActiveCard();
                 return;
             }
 
             if (!mouse.leftButton.wasPressedThisFrame) return;
-            if (PointerOverPanel(mouse.position.ReadValue())) return;
+            if (PointerOverPanel(screen)) return;
+
+            // Без карточки клик по миру — выбор уже размеченной площадки.
+            if (_activeCardId.Length == 0)
+            {
+                TrySelectSite(screen);
+                return;
+            }
+
+            if (_ghostTile is not { } tile) return;
             if (!_ghostValid)
             {
                 SetStatus("build.mode.blocked");
@@ -549,22 +665,29 @@ namespace HexLive.UnityPresentation.UI
                 _runner!.EnqueueCommand(new PlaceFurnitureSiteCommand(_activeCardId, tile, yaw));
             }
 
-            // Симуляция стоит на паузе, а очередь команд опустошается только в
-            // Step() — один явный тик, и площадка есть в snapshot немедленно.
-            _runner.StepSingleTick();
             _pendingTile = tile;
             _pendingDeadline = Time.unscaledTime + 1.5f;
             _nextSnapshotRefresh = 0f;
             _nextOverlayRefresh = 0f;
             SetStatus("build.mode.placed");
+            // По одному предмету за выбор: поставил — карточка отпускается,
+            // можно выбрать поставленное и крутить стрелками.
+            DropActiveCard();
         }
 
-        /// <summary>Команда исполнилась только в симуляции; если через полторы
-        /// секунды на тайле так и нет площадки — место забраковано, честно
-        /// говорим об этом вместо тихого «ничего не произошло».</summary>
+        /// <summary>Команда исполнилась только в симуляции; если площадка так и
+        /// не появилась — место забраковано, честно говорим об этом вместо
+        /// тихого «ничего не произошло». На паузе не проверяем: команда ждёт
+        /// первого тика, это не отказ.</summary>
         private void CheckPendingPlacement()
         {
             if (_pendingTile is not { } tile || Time.unscaledTime < _pendingDeadline) return;
+            if (_runner != null && _runner.IsPaused)
+            {
+                _pendingDeadline = Time.unscaledTime + 0.5f;
+                return;
+            }
+
             _pendingTile = null;
             if (_snapshot == null) return;
             foreach (var obj in _snapshot.Objects)
@@ -573,6 +696,156 @@ namespace HexLive.UnityPresentation.UI
             }
 
             SetStatus("build.mode.blocked");
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Выбор размеченной площадки: повернуть стрелками, снять, Esc.
+        // ─────────────────────────────────────────────────────────────────
+
+        private void TrySelectSite(Vector2 screen)
+        {
+            if (_snapshot == null || !TryPickTile(screen, out var tile)) return;
+            foreach (var obj in _snapshot.Objects)
+            {
+                if (string.IsNullOrEmpty(obj.BuildProduct) || !obj.Tile.Equals(tile)) continue;
+                if (DeliveredTotal(obj) > 0)
+                {
+                    // Начатую стройку не крутят и не сносят — только пустую.
+                    SetStatus("build.mode.blocked");
+                    return;
+                }
+
+                _selectedSiteId = obj.Id.Value;
+                _selectedSiteProduct = obj.BuildProduct;
+                _selectedSiteTile = obj.Tile;
+                _selectedSiteRotation = obj.RotationDegrees;
+                DrawSelectionOutline(obj.Tile);
+                RefreshSelectionCard();
+                return;
+            }
+
+            DeselectSite();
+            RefreshSelectionCard();
+        }
+
+        private static int DeliveredTotal(ObjectSnapshot site)
+        {
+            var delivered = site.DeliveredLogs + site.DeliveredSticks + site.DeliveredRope +
+                            site.DeliveredLeaves + site.DeliveredStones + site.DeliveredBoards;
+            foreach (var element in site.ArchitectureElements)
+            {
+                delivered += element.DeliveredTotal;
+            }
+
+            return delivered;
+        }
+
+        private void DeselectSite()
+        {
+            _selectedSiteId = null;
+            _selectedSiteProduct = string.Empty;
+            if (_selectionOutline != null)
+            {
+                Destroy(_selectionOutline.gameObject);
+                _selectionOutline = null;
+            }
+        }
+
+        private void CancelSelectedSite()
+        {
+            if (_selectedSiteId is not { } siteId || _runner == null) return;
+            _runner.EnqueueCommand(new CancelBuildSiteCommand(
+                new HexLive.Simulation.Common.ObjectId(siteId)));
+            InvalidateOverlay(siteId);
+            DeselectSite();
+            _nextSnapshotRefresh = 0f;
+            _nextOverlayRefresh = 0f;
+            RefreshSelectionCard();
+        }
+
+        private void InvalidateOverlay(int siteId)
+        {
+            if (!_siteOverlays.TryGetValue(siteId, out var overlay)) return;
+            if (overlay != null) Destroy(overlay);
+            _siteOverlays.Remove(siteId);
+        }
+
+        private void DrawSelectionOutline(TileCoord tile)
+        {
+            if (_selectionOutline == null)
+            {
+                var go = new GameObject("Build selection outline");
+                _selectionOutline = go.AddComponent<LineRenderer>();
+                _selectionOutline.useWorldSpace = true;
+                _selectionOutline.loop = true;
+                _selectionOutline.widthMultiplier = 0.06f;
+                _selectionOutline.material = OutlineMaterial();
+                _selectionOutline.shadowCastingMode =
+                    UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+
+            var center = HexSpatialMath.TileToWorld(tile);
+            var y = _worldRenderer != null ? _worldRenderer.GroundTopY(tile) : 0.75f;
+            var points = new Vector3[6];
+            for (var corner = 0; corner < 6; corner++)
+            {
+                var angle = (60f * corner + 30f) * Mathf.Deg2Rad;
+                points[corner] = new Vector3(
+                    center.X + HexSpatialMath.HexRadius * 0.99f * Mathf.Cos(angle),
+                    y + 0.04f,
+                    center.Y + HexSpatialMath.HexRadius * 0.99f * Mathf.Sin(angle));
+            }
+
+            _selectionOutline.positionCount = 6;
+            _selectionOutline.SetPositions(points);
+            var gold = new Color(0.94f, 0.71f, 0.36f, 0.95f);
+            _selectionOutline.startColor = gold;
+            _selectionOutline.endColor = gold;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Мировые стрелки поворота — экранные кнопки у объекта.
+        // ─────────────────────────────────────────────────────────────────
+
+        private void UpdateRotateArrows()
+        {
+            if (_rotateLeft == null || _rotateRight == null) return;
+            Vector3? worldAnchor = null;
+            if (_activeCardId.Length > 0 && _ghostRoot != null && _ghostRoot.activeSelf)
+            {
+                worldAnchor = _ghostRoot.transform.position;
+            }
+            else if (_selectedSiteId is not null && _worldRenderer != null)
+            {
+                var center = HexSpatialMath.TileToWorld(_selectedSiteTile);
+                worldAnchor = new Vector3(
+                    center.X, _worldRenderer.GroundTopY(_selectedSiteTile), center.Y);
+            }
+
+            var panel = _document?.rootVisualElement.panel;
+            if (worldAnchor is not { } anchor || _camera == null || panel == null)
+            {
+                _rotateLeft.style.display = DisplayStyle.None;
+                _rotateRight.style.display = DisplayStyle.None;
+                return;
+            }
+
+            var screen = _camera.WorldToScreenPoint(anchor + Vector3.up * 0.6f);
+            if (screen.z <= 0f)
+            {
+                _rotateLeft.style.display = DisplayStyle.None;
+                _rotateRight.style.display = DisplayStyle.None;
+                return;
+            }
+
+            var panelPoint = RuntimePanelUtils.ScreenToPanel(
+                panel, new Vector2(screen.x, Screen.height - screen.y));
+            _rotateLeft.style.display = DisplayStyle.Flex;
+            _rotateRight.style.display = DisplayStyle.Flex;
+            _rotateLeft.style.left = panelPoint.x - 64f;
+            _rotateLeft.style.top = panelPoint.y - 18f;
+            _rotateRight.style.left = panelPoint.x + 28f;
+            _rotateRight.style.top = panelPoint.y - 18f;
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -607,8 +880,24 @@ namespace HexLive.UnityPresentation.UI
                     definition != null && definition.ObstacleRadius > 0f)
                 {
                     _occupiedHexes.Add(obj.Tile);
+                    continue;
+                }
+
+                // HexFreeForBuild требует СВОБОДНЫЙ центральный junction —
+                // кокос, лежащий точно в центре гекса, отклоняет всю площадку.
+                // Без этой проверки ghost был зелёным, сим отказывал, и клик
+                // «не срабатывал» с первого раза.
+                if (_worldRenderer == null) continue;
+                var anchor = _worldRenderer.ObjectAnchorPosition(obj);
+                var centre = HexSpatialMath.TileToWorld(obj.Tile);
+                if (Mathf.Abs(anchor.X - centre.X) < 0.3f &&
+                    Mathf.Abs(anchor.Y - centre.Y) < 0.3f)
+                {
+                    _occupiedHexes.Add(obj.Tile);
                 }
             }
+
+            _gridDirty = true;
         }
 
         private bool TileBuildable(TileCoord coord) =>
@@ -732,19 +1021,33 @@ namespace HexLive.UnityPresentation.UI
             RefreshSelectionCard();
         }
 
-        /// <summary>Зеркало правил рендерера (§120.2): архитектурный footprint —
-        /// дом, гардероб, домашний очаг — крутится как геометрия (−yaw), прочая
-        /// мебель — character-forward (90−yaw), и sim-угол 0 остаётся авторской
-        /// позой без поворота.</summary>
+        /// <summary>Зеркало полного пайплайна рендерера (§120.2): сначала тот же
+        /// квант, каким исполнитель проштампует площадку (0 нормализуется в 360 —
+        /// НЕ «нетронутый» 0, который вид не вращает), затем архитектурный
+        /// footprint — дом, гардероб, домашний очаг — как геометрия (−yaw), а
+        /// прочая мебель — character-forward (90−yaw). Иначе ghost нулевого шага
+        /// стоит на 90° иначе, чем встанет построенное.</summary>
         private float GhostUnityYaw(float simYaw)
         {
-            if (simYaw == 0f) return 0f;
+            var quantized = StampedHexYaw(simYaw);
             var footprint = _activeCardId == HutCardId ||
                             _activeCardId == ContentIds.Wardrobe ||
                             _activeCardId == "furniture.hearth";
             return footprint
-                ? SimulationUnityMapper.ToUnityFootprintYawDegrees(simYaw)
-                : SimulationUnityMapper.ToUnityYawDegrees(simYaw);
+                ? SimulationUnityMapper.ToUnityFootprintYawDegrees(quantized)
+                : SimulationUnityMapper.ToUnityYawDegrees(quantized);
+        }
+
+        /// <summary>Зеркало internal <c>StructurePlacement.QuantizeHexYaw</c>:
+        /// шесть симметрий 0+60k, и ноль нормализуется в 360 — именно это число
+        /// исполнитель штампует в RotationDegrees площадки.</summary>
+        private static float StampedHexYaw(float degrees)
+        {
+            var d = degrees % 360f;
+            if (d < 0f) d += 360f;
+            var step = (int)Mathf.Floor((d + 30f) / 60f) % 6;
+            var stamped = step * 60f;
+            return stamped <= 0f ? 360f : stamped;
         }
 
         private void DrawFootprintOutline(TileCoord tile, float groundY)
@@ -798,6 +1101,85 @@ namespace HexLive.UnityPresentation.UI
             _ghostOutline = null;
             _ghostTile = null;
             _ghostValid = false;
+            ClearGridDots();
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Сетка «можно/нельзя»: зелёные и красные точки на центрах гексов,
+        // пока выбрана карточка, — как overlay-слой конструктора (§120.0).
+        // ─────────────────────────────────────────────────────────────────
+
+        private void RefreshGridDots()
+        {
+            if (_activeCardId.Length == 0)
+            {
+                ClearGridDots();
+                return;
+            }
+
+            if (_gridRoot == null && _tiles.Count > 0) BuildGridDots();
+            if (!_gridDirty || _gridRoot == null) return;
+            _gridDirty = false;
+            foreach (var (renderer, tile) in _gridDots)
+            {
+                if (renderer == null) continue;
+                renderer.sharedMaterial = TileBuildable(tile) ? DotFree() : DotBusy();
+            }
+        }
+
+        private void BuildGridDots()
+        {
+            ClearGridDots();
+            _gridRoot = new GameObject("Build grid dots");
+            foreach (var pair in _tiles)
+            {
+                if (pair.Value.Water || !pair.Value.Walkable) continue;
+                var centre = HexSpatialMath.TileToWorld(pair.Key);
+                var y = _worldRenderer != null ? _worldRenderer.GroundTopY(pair.Key) : 0.75f;
+                var dot = new GameObject("Dot");
+                dot.transform.SetParent(_gridRoot.transform, false);
+                dot.transform.position = new Vector3(centre.X, y + 0.025f, centre.Y);
+                dot.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                dot.transform.localScale = Vector3.one * 0.16f;
+                var filter = dot.AddComponent<MeshFilter>();
+                filter.sharedMesh = DotMesh();
+                var renderer = dot.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = TileBuildable(pair.Key) ? DotFree() : DotBusy();
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                _gridDots.Add((renderer, pair.Key));
+            }
+        }
+
+        private void ClearGridDots()
+        {
+            if (_gridRoot != null) Destroy(_gridRoot);
+            _gridRoot = null;
+            _gridDots.Clear();
+        }
+
+        private Mesh DotMesh()
+        {
+            if (_dotMesh != null) return _dotMesh;
+            var primitive = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            _dotMesh = primitive.GetComponent<MeshFilter>().sharedMesh;
+            Destroy(primitive);
+            return _dotMesh;
+        }
+
+        private Material DotFree() => _dotFree ??= DotMaterial(
+            "BuildGridDotFree", new Color(0.37f, 0.77f, 0.42f, 0.85f));
+
+        private Material DotBusy() => _dotBusy ??= DotMaterial(
+            "BuildGridDotBusy", new Color(0.91f, 0.34f, 0.31f, 0.7f));
+
+        private static Material DotMaterial(string name, Color color)
+        {
+            var shader = Shader.Find("HexLive/BlueprintOverlay")
+                         ?? Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Unlit/Color");
+            var material = new Material(shader) { name = name, color = color };
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            return material;
         }
 
         // ─────────────────────────────────────────────────────────────────

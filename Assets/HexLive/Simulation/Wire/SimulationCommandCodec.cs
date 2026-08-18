@@ -62,6 +62,8 @@ public static class SimulationCommandCodec
         AbusePerson = 24,
         PlaceBuildingPlan = 25,
         PlaceFurnitureSite = 26,
+        RotateBuildSite = 27,
+        CancelBuildSite = 28,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -210,6 +212,15 @@ public static class SimulationCommandCodec
                 w.Write(c.Tile.R);
                 w.Write(c.RotationDegrees);
                 break;
+            case RotateBuildSiteCommand c:
+                w.Write((ushort)CommandType.RotateBuildSite);
+                w.Write(c.Site.Value);
+                w.Write(c.RotationDegrees);
+                break;
+            case CancelBuildSiteCommand c:
+                w.Write((ushort)CommandType.CancelBuildSite);
+                w.Write(c.Site.Value);
+                break;
             default:
                 throw new NotSupportedException(
                     $"SimulationCommandCodec: незарегистрированный тип команды " +
@@ -291,6 +302,11 @@ public static class SimulationCommandCodec
                 return new PlaceFurnitureSiteCommand(
                     r.ReadString(), new TileCoord(r.ReadInt32(), r.ReadInt32()),
                     r.ReadSingle());
+            case CommandType.RotateBuildSite:
+                return new RotateBuildSiteCommand(
+                    new ObjectId(r.ReadInt32()), r.ReadSingle());
+            case CommandType.CancelBuildSite:
+                return new CancelBuildSiteCommand(new ObjectId(r.ReadInt32()));
             default:
                 throw new InvalidDataException(
                     $"SimulationCommandCodec: неизвестный номер типа {(ushort)type}.");

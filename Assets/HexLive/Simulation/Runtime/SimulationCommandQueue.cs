@@ -480,6 +480,36 @@ public sealed class PlaceFurnitureSiteCommand : ISimulationCommand
     public EntityId? TargetEntity => null;
 }
 
+/// <summary>§120.7: повернуть ПУСТУЮ размеченную площадку (ни одного
+/// доставленного материала). Абсолютный угол; исполнитель квантует и для
+/// дома перепроверяет футпринт новой ориентации.</summary>
+public sealed class RotateBuildSiteCommand : ISimulationCommand
+{
+    public RotateBuildSiteCommand(ObjectId site, float rotationDegrees)
+    {
+        Site = site;
+        RotationDegrees = rotationDegrees;
+    }
+
+    public ObjectId Site { get; }
+
+    public float RotationDegrees { get; }
+
+    public EntityId? TargetEntity => null;
+}
+
+/// <summary>§120.7: снять ПУСТУЮ размеченную площадку. Бесплатно, как и
+/// колышки; площадка с доставленным материалом отклоняется — разбор
+/// начатой стройки — отдельная механика, не тихий despawn ресурсов.</summary>
+public sealed class CancelBuildSiteCommand : ISimulationCommand
+{
+    public CancelBuildSiteCommand(ObjectId site) => Site = site;
+
+    public ObjectId Site { get; }
+
+    public EntityId? TargetEntity => null;
+}
+
 public enum InventoryItemSource
 {
     Carried,

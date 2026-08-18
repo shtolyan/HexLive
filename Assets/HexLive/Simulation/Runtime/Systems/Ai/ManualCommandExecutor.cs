@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -118,6 +119,12 @@ internal static class ManualCommandExecutor
             case PlaceFurnitureSiteCommand placeFurniture:
                 ApplyPlaceFurnitureSite(world, placeFurniture, admission);
                 break;
+            case RotateBuildSiteCommand rotateSite:
+                ApplyRotateBuildSite(world, rotateSite, admission);
+                break;
+            case CancelBuildSiteCommand cancelSite:
+                ApplyCancelBuildSite(world, cancelSite, admission);
+                break;
             default:
                 admission.Reject("UnsupportedCommand");
                 break;
@@ -179,6 +186,8 @@ internal static class ManualCommandExecutor
         TransferContainerCommand => "TransferContainer",
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
         PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
+        RotateBuildSiteCommand => "RotateBuildSite",
+        CancelBuildSiteCommand => "CancelBuildSite",
         _ => command.GetType().Name
     };
 
@@ -2208,6 +2217,125 @@ internal static class ManualCommandExecutor
         Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
         Trace.EmitSystem(world, "BuildSitePlanned",
             $"Product={product} Tile={command.Tile} Site={site.Id.Value}");
+    }
+
+    /// <summary>Пустая ли площадка: ни предмета в складе, ни материала или
+    /// работы в модулях. Повернуть/снять можно только такую — начатая стройка
+    /// не телепортируется и не испаряет доставленное.</summary>
+    private static bool BuildSiteEmpty(WorldState world, WorldObjectState site)
+    {
+        if (site.Contents.Count > 0) return false;
+        foreach (var element in BuildingRules.Elements(world, site))
+        {
+            if (element.DeliveredTotal > 0 || element.WorkDone > 0) return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryTakeBuildSite(
+        WorldState world, ObjectId id, string verb, AdmissionTracker admission,
+        out WorldObjectState site)
+    {
+        void RejectWorld(string reason)
+        {
+            admission.Reject(reason);
+            Trace.EmitSystem(world, "ManualOrderRejected",
+                $"Order={verb} Reason={reason} Site={id.Value}");
+        }
+
+        if (!world.Entities.Objects.TryGetValue(id, out site) ||
+            site.DefinitionId != ContentIds.BuildSite ||
+            string.IsNullOrEmpty(site.BuildProduct))
+        {
+            RejectWorld("NoSuchSite");
+            return false;
+        }
+
+        if (!BuildSiteEmpty(world, site))
+        {
+            RejectWorld("SiteNotEmpty");
+            return false;
+        }
+
+        return true;
+    }
+
+    private static void ApplyRotateBuildSite(
+        WorldState world, RotateBuildSiteCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeBuildSite(world, command.Site, "RotateBuildSite", admission, out var site))
+        {
+            return;
+        }
+
+        if (site.BuildProduct == ContentIds.HutPlan)
+        {
+            var rotation = StructurePlacement.QuantizeHexSymmetryYaw(command.RotationDegrees);
+            var oldFootprint = Bootstrap.BuildingBootstrap.FootprintTiles(
+                ContentIds.HutPlan, site.Tile, site.RotationDegrees);
+            foreach (var tile in Bootstrap.BuildingBootstrap.FootprintTiles(
+                         ContentIds.HutPlan, site.Tile, rotation))
+            {
+                // Свои прежние гексы не проверяются заново: на них стоит сама
+                // площадка, и CanPlaceHut честно счёл бы её чужой постройкой.
+                if (oldFootprint.Contains(tile)) continue;
+                if (Bootstrap.BuildingBootstrap.CanPlaceHut(world, tile)) continue;
+                admission.Reject("PlacementBlocked");
+                Trace.EmitSystem(world, "ManualOrderRejected",
+                    $"Order=RotateBuildSite Reason=PlacementBlocked Site={site.Id.Value}");
+                return;
+            }
+
+            site.RotationDegrees = rotation;
+            foreach (var piece in BuildingRules.ArchitectureObjects(world, site))
+                piece.RotationDegrees = rotation;
+            Bootstrap.BuildingBootstrap.RepairPlanTopology(world, site);
+        }
+        else
+        {
+            // Футпринт мебели повёрнут вместе с рамой: старые узлы отпустить,
+            // новые занять — тем же симметричным SetObstacleBlocking.
+            Core.WorldObjectMutations.SetObstacleBlocking(world, site, blocked: false);
+            site.RotationDegrees = StructurePlacement.QuantizeHexYaw(command.RotationDegrees);
+            Core.WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
+        }
+
+        Trace.EmitSystem(world, "BuildSiteAdjusted",
+            $"Site={site.Id.Value} Product={site.BuildProduct} Rotation={site.RotationDegrees:0}");
+    }
+
+    private static void ApplyCancelBuildSite(
+        WorldState world, CancelBuildSiteCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeBuildSite(world, command.Site, "CancelBuildSite", admission, out var site))
+        {
+            return;
+        }
+
+        if (site.BuildProduct == ContentIds.HutPlan)
+        {
+            // Сначала исчезают модули, затем Repair отпускает всё, чем план
+            // владел (пройдясь по уже пустому списку), и только потом сама
+            // площадка — порядок, при котором не остаётся ничьих Blocked.
+            foreach (var piece in BuildingRules.ArchitectureObjects(world, site).ToArray())
+                Core.WorldObjectMutations.DespawnObject(world, piece.Id);
+            Bootstrap.BuildingBootstrap.RepairPlanTopology(world, site);
+        }
+
+        Core.WorldObjectMutations.DespawnObject(world, site.Id);
+        // Девушки знали площадку как постоянную (§72) — забыть, иначе походы
+        // к призраку. Память по id, поэтому одним проходом.
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Memory.KnownObjects.Remove(site.Id))
+            {
+                npc.Memory.Version++;
+            }
+        }
+
+        Trace.EmitSystem(world, "BuildSiteCancelled",
+            $"Site={site.Id.Value} Product={site.BuildProduct}");
     }
 }
 

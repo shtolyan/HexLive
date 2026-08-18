@@ -227,6 +227,11 @@ namespace HexLive.UnityPresentation.HutTest
             }
             tree.CloneTree(root);
             root.styleSheets.Add(sheet);
+            // Обёртка UXML — полноэкранная и по умолчанию pickable: на высоком
+            // sortingOrder она съедает клики по нижележащим панелям (ростер,
+            // панель персонажа). Кликается только сам лоток.
+            var wrapper = root.Q(className: "hut-constructor-root");
+            if (wrapper != null) wrapper.pickingMode = PickingMode.Ignore;
             _panel = root.Q("constructor-panel");
             if (_panel != null) _panel.pickingMode = PickingMode.Position;
             _statusLabel = root.Q<Label>("status-label");

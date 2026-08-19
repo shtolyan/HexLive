@@ -21,19 +21,26 @@ public static class MobPreview
 
         public int To;
 
+        // Откуда зверь ПРИШЁЛ в From — во время паузы он смотрит туда, куда
+        // шёл, а не в сторону следующей точки.
+        public int PrevFrom;
+
         public float Alpha;
 
         public bool Paused;
     }
 
-    // Соли 1123/1129 (§147.2, реестр солей). segmentTicks — тиков на сегмент
-    // кольца (WildlifeBalance.MobPreviewSegmentTicks; = GlideSegmentSeconds
-    // живого зверя при 4 Гц).
+    // Соли 1123/1129 (§147.2, реестр солей). segmentTicks — тиков на один
+    // отрезок маршрута (WildlifeBalance.MobPreviewSegmentTicks).
+    //
+    // Маршрут обходится ПИНГ-ПОНГОМ (0→K-1→0…), а не кольцом: испечённый
+    // путь — случайная прогулка, и замыкать её последний шаг на первый
+    // означало бы один длинный телепорт-перелёт через весь радиус.
     public static Step ComputeStep(
         int seed, int slotId, int cycleIndex, int ringCount, int tick,
         int segmentTicks, float pauseChance)
     {
-        var step = new Step { From = 0, To = 0, Alpha = 0f, Paused = true };
+        var step = new Step { From = 0, To = 0, PrevFrom = 0, Alpha = 0f, Paused = true };
         if (ringCount <= 1 || segmentTicks <= 0)
         {
             return step;
@@ -48,15 +55,20 @@ public static class MobPreview
         step.Alpha = (t - epoch * segmentTicks) / (float)segmentTicks;
         step.Paused = MathUtil.Hash01(seed, slotId, epoch, 1129) < pauseChance;
 
-        step.From = epoch % ringCount;
-        if (step.From < 0)
+        var period = 2 * (ringCount - 1);
+        var k = (int)(epoch % period);
+        if (k < 0)
         {
-            step.From += ringCount;
+            k += period;
         }
 
-        step.To = (step.From + 1) % ringCount;
+        (step.From, step.To) = PingPong(k, ringCount, period);
+        (step.PrevFrom, _) = PingPong((k - 1 + period) % period, ringCount, period);
         return step;
     }
+
+    private static (int from, int to) PingPong(int k, int ringCount, int period) =>
+        k < ringCount - 1 ? (k, k + 1) : (period - k, period - k - 1);
 
     // Сим-сторона: поза по кольцу слота. nearestIndex — вэйпоинт, чей тайл
     // считается «тайлом превью» для проверки радиуса материализации.
@@ -78,9 +90,7 @@ public static class MobPreview
         if (step.Paused || ring.Count == 1)
         {
             position = ring[step.From].Position;
-            facing = Direction(
-                ring[(step.From - 1 + ring.Count) % ring.Count].Position,
-                ring[step.From].Position);
+            facing = Direction(ring[step.PrevFrom].Position, ring[step.From].Position);
             nearestIndex = step.From;
             return;
         }

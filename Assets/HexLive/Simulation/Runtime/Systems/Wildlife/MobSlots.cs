@@ -264,40 +264,58 @@ internal static class MobSlots
             return;
         }
 
-        // K вэйпоинтов, разведённых по углу вокруг дома, замкнутых в обход по
-        // часовой — ровный патруль вместо случайного дребезга.
+        // Маршрут — СЛУЧАЙНАЯ ПРОГУЛКА короткими шагами (~1 тайл), как моб в
+        // ММОРПГ: туда-сюда в радиусе, без правильной геометрии. Первая версия
+        // раскладывала K точек по углу вокруг дома — получалось кольцо с
+        // далёкими соседями, и превью носилось по нему волчком (замечание
+        // игрока). Соседние точки близко ⇒ при фиксированной длительности
+        // отрезка скорость — неторопливый шаг.
         reach.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
-        var byAngle = new List<(float angle, Spatial.Junction junction)>();
-        foreach (var junction in reach)
+        var walker = home;
+        slot.Ring.Add(new PatrolWaypoint
         {
-            var dx = junction.WorldPosition.X - home.WorldPosition.X;
-            var dy = junction.WorldPosition.Y - home.WorldPosition.Y;
-            if (dx * dx + dy * dy < 0.01f)
+            Junction = home.Id,
+            Tile = homeTile,
+            Position = home.WorldPosition,
+        });
+
+        var stepCandidates = new List<Spatial.Junction>();
+        for (var i = 1; i < RingWaypoints; i++)
+        {
+            stepCandidates.Clear();
+            foreach (var junction in reach)
             {
-                continue;
+                var dx = junction.WorldPosition.X - walker.WorldPosition.X;
+                var dy = junction.WorldPosition.Y - walker.WorldPosition.Y;
+                var sq = dx * dx + dy * dy;
+                // 0.9..3.4 wu — от «не топтаться на месте» до ~1.3 тайла.
+                if (sq >= 0.81f && sq <= 11.56f)
+                {
+                    stepCandidates.Add(junction);
+                }
             }
 
-            byAngle.Add((System.MathF.Atan2(dy, dx), junction));
-        }
+            if (stepCandidates.Count == 0)
+            {
+                break;
+            }
 
-        if (byAngle.Count < 2)
-        {
-            return;
-        }
-
-        byAngle.Sort((a, b) => a.angle != b.angle
-            ? a.angle.CompareTo(b.angle)
-            : a.junction.Id.Value.CompareTo(b.junction.Id.Value));
-        var step = System.Math.Max(1, byAngle.Count / RingWaypoints);
-        for (var i = 0; i < byAngle.Count && slot.Ring.Count < RingWaypoints; i += step)
-        {
-            var junction = byAngle[i].junction;
+            var pick = (int)(MathUtil.Hash01(
+                world.Seed, slot.SlotId, slot.CycleIndex * 131 + i, 1137) *
+                stepCandidates.Count);
+            pick = System.Math.Min(pick, stepCandidates.Count - 1);
+            walker = stepCandidates[pick];
             slot.Ring.Add(new PatrolWaypoint
             {
-                Junction = junction.Id,
-                Tile = junction.Tiles[0],
-                Position = junction.WorldPosition,
+                Junction = walker.Id,
+                Tile = walker.Tiles[0],
+                Position = walker.WorldPosition,
             });
+        }
+
+        if (slot.Ring.Count < 2)
+        {
+            slot.Ring.Clear();
         }
     }
 

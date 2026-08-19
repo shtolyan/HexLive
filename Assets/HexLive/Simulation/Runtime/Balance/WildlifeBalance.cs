@@ -88,10 +88,14 @@ public static class WildlifeBalance
 
     public static int MobPatrolRadiusTiles = 3;
 
-    // Тиков на сегмент кольца превью (= GlideSegmentSeconds 1.0 при 4 Гц).
-    public static int MobPreviewSegmentTicks = 4;
+    // Тиков на один отрезок маршрута превью. Отрезки короткие (~1 тайл,
+    // MobSlots.BakeRing), так что 12 тиков (3 с) — неторопливый шаг зверя,
+    // а не волчок по кольцу (замечание игрока).
+    public static int MobPreviewSegmentTicks = 12;
 
-    public static float MobPreviewPauseChance = 0.25f;
+    // Шанс простоять отрезок на месте. Независимые броски по эпохам дают
+    // естественные серии: прошёл — постоял — прошёл.
+    public static float MobPreviewPauseChance = 0.45f;
 
     // Селекторы по режиму — в MobSlots (не здесь: гейт «у ручки есть
     // читатель» не считает Balance/ читателем самого себя).

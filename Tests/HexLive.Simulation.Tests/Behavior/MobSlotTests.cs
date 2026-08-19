@@ -46,6 +46,17 @@ public sealed class MobSlotTests
         var slot = world.MobSpawnSlots.First(s => s.MobId == MobIds.Dog);
         Assert.That(slot.Ring, Has.Count.GreaterThanOrEqualTo(2));
 
+        // Маршрут — прогулка КОРОТКИМИ шагами (~1 тайл): длинный отрезок при
+        // фиксированной длительности — это снова «волчок по кольцу».
+        for (var i = 1; i < slot.Ring.Count; i++)
+        {
+            var dx = slot.Ring[i].Position.X - slot.Ring[i - 1].Position.X;
+            var dy = slot.Ring[i].Position.Y - slot.Ring[i - 1].Position.Y;
+            var length = System.MathF.Sqrt(dx * dx + dy * dy);
+            Assert.That(length, Is.InRange(0.85f, 3.45f),
+                $"отрезок {i - 1}→{i} = {length:F2} wu — не неторопливый шаг");
+        }
+
         for (var tick = 0; tick < 200; tick += 7)
         {
             MobPreview.PreviewPose(world.Seed, slot, tick,

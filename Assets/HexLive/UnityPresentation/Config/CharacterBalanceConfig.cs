@@ -25,6 +25,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(3, 8)] public int perceptionRadiusTiles = 3;
         [Tooltip("Сколько тиков живёт пространственная память (виденные объекты/опасности).")]
         [Range(300, 9600)] public int memoryTtlTicks = 2400;
+        [Tooltip("§27.18A r2: потолок НЕПОСТОЯННОЙ памяти об объектах — самые давние по LastSeenTick забываются. Лагерные записи постоянны и не считаются.")]
+        [Range(64, 2048)] public int maxKnownObjects = 256;
+        [Tooltip("§118: включён ли спас-подбор обездвиженной (перенос в лагерь). Долг покрытия: ручка была в коде без зеркала.")]
+        public bool strandedRescueEnabled = true;
         [Tooltip("Свежевыигранная цель заперта столько тиков (анти-дребезг аукциона).")]
         [Range(0, 200)] public int goalLockTicks = 24;
         [Tooltip("Насколько лучше должна быть заявка, чтобы сломать замок цели досрочно.")]
@@ -151,16 +155,16 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float starvingBoost = 1f;
         [Tooltip("Выше этого голода/жажды начинает течь HP (смертельный канал застрявшего).")]
         [Range(0.7f, 1f)] public float starveDeathThreshold = 0.95f;
-        [Tooltip("Урон HP за тик, когда И голод И жажда на максимуме.")]
-        [Range(0f, 0.15f)] public float starveDamageBoth = 0.01f;
-        [Tooltip("Урон HP за тик, когда лишь одно (голод ИЛИ жажда) на максимуме.")]
-        [Range(0f, 0.15f)] public float starveDamageOne = 0.006f;
+        [Tooltip("Урон HP за тик, когда И голод И жажда на максимуме (~1.3 суток от последнего глотка до нуля).")]
+        [Range(0f, 0.005f)] public float starveDamageBoth = 0.0006f;
+        [Tooltip("Урон HP за тик, когда лишь одно (голод ИЛИ жажда) на максимуме (дизайн: 2 суток совсем без воды = 100→0).")]
+        [Range(0f, 0.005f)] public float starveDamageOne = 0.00036f;
 
         [Header("Лечение / регенерация")]
         [Tooltip("Естественное лечение и восполнение крови идут только пока голод ниже этого.")]
         [Range(0f, 1f)] public float healHungerGate = 0.6f;
-        [Tooltip("Сколько HP восстанавливается на часть тела за тик (сытой и не раненой).")]
-        [Range(0f, 0.02f)] public float healthRegenPerTick = 0.0030f;
+        [Tooltip("§118.8: сколько HP восстанавливается на часть тела за slow tick (сытой; × множитель отдыха — кровать вдвое быстрее). 1/3000 = двое суток на полную шкалу на ногах, сутки на кровати.")]
+        [Range(0f, 0.02f)] public float healthRegenPerTick = 1f / 3000f;
 
         [Header("Кровь / первая помощь")]
         [Tooltip("Скорость кровопотери = (0.4 − худшая часть) × это. Больше = быстрее истекает.")]
@@ -485,15 +489,28 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float degenerationCutThreshold = 0.20f;
         [Range(0.01f, 1f)] public float degenerationStep = 0.10f;
         [Range(0f, 0.05f)] public float degenerationPerStep = 0.0015f;
-        [Range(0f, 0.1f)] public float bluntRecoveryPerSlowTick = 0.010f;
-        [Range(0f, 0.1f)] public float cutRecoveryPerSlowTick = 0.0033f;
+        [Tooltip("§118.8: темп восстановления ушиба за slow tick (× множитель отдыха). 1/3000 = сутки на кровати на полную шкалу.")]
+        [Range(0f, 0.1f)] public float bluntRecoveryPerSlowTick = 1f / 3000f;
+        [Tooltip("§118.8: темп рубцевания пореза и возврата критической глубины за slow tick (× множитель отдыха).")]
+        [Range(0f, 0.1f)] public float cutRecoveryPerSlowTick = 1f / 3000f;
         [Tooltip("§118.7: во сколько раз медленнее рубцуется НЕперевязанная (но свернувшаяся) рана. 0.25 = вчетверо дольше, чем с бинтом. 0 = как раньше, без повязки не заживает вовсе.")]
         [Range(0f, 1f)] public float naturalScarringFactor = 0.25f;
-        [Range(1f, 16f)] public float groundRestHealMultiplier = 2f;
-        [Range(1f, 16f)] public float leafBedHealMultiplier = 4f;
-        [Range(1f, 16f)] public float basicBedHealMultiplier = 8f;
+        [Tooltip("§118.8: лежание на земле лечение не ускоряет.")]
+        [Range(1f, 16f)] public float groundRestHealMultiplier = 1f;
+        [Tooltip("§118.8: зарезервировано — bed.leaf существует только как сейв-алиас bed.basic, RestFactors эту ручку не читает.")]
+        [Range(1f, 16f)] public float leafBedHealMultiplier = 1.5f;
+        [Tooltip("§118.8: кровать лечит вдвое быстрее — сутки на полную шкалу.")]
+        [Range(1f, 16f)] public float basicBedHealMultiplier = 2f;
         [Range(0f, 1f)] public float leafBedDegenerationMultiplier = 0.5f;
         [Range(0f, 1f)] public float basicBedDegenerationMultiplier = 0f;
+        [Tooltip("§118.8: отлёживание — раненая ниже порога сама ложится и не встаёт до выздоровления.")]
+        public bool woundedRestEnabled = true;
+        [Tooltip("§118.8: ниже этого восстановимого здоровья (среднее по неотсечённым зонам) она ложится.")]
+        [Range(0f, 1f)] public float woundedRestEnterHealth = 0.5f;
+        [Tooltip("§118.8: не встаёт, пока восстановимое здоровье не дойдёт до этого (гистерезис против «лёг-встал»).")]
+        [Range(0f, 1f)] public float woundedRestExitHealth = 0.75f;
+        [Tooltip("§118.8: ставка сна в аукционе для раненой (ср. StarvingBoost 1.0 — еда и вода сильнее).")]
+        [Range(0f, 2f)] public float woundedRestSleepBoost = 0.9f;
         [Range(1, 1200)] public int vitalKnockoutTicks = 80;
         [Range(0f, 0.5f)] public float vitalWakeHealth = 0.05f;
         [Range(0f, 0.5f)] public float bloodWakeHealth = 0.10f;

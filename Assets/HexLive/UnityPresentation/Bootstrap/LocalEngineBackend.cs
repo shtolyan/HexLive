@@ -131,7 +131,11 @@ public sealed class LocalEngineBackend : ISimulationBackend
             return;
         }
 
-        _accumulator += unscaledDeltaTime * _clock.SpeedMultiplier;
+        // PERF/A3: один кадр реального времени вносит в аккумулятор не больше
+        // секунды — кадр-затык (загрузка, GC, компиляция шейдера) на большой
+        // скорости раньше мгновенно наливал полный клэмп и следующий кадр
+        // отрабатывал залпом из 12 тиков, каждый из которых мог быть medium.
+        _accumulator += Mathf.Min(unscaledDeltaTime, 1f) * _clock.SpeedMultiplier;
 
         // Spec 41.1: a frame hitch (spawning, GC, shader compile) must never
         // turn into a catch-up burst of ticks. ~3 game-seconds of backlog max;
@@ -156,16 +160,24 @@ public sealed class LocalEngineBackend : ISimulationBackend
     private void RunUncappedTicks()
     {
         _maxSpeedWatch.Restart();
+        // PERF/A3: бюджет проверяется ПОСЛЕ шага, так что один дорогой шаг
+        // кадр уже растянул; жёсткий кап тиков не даёт дорогим шагам
+        // складываться в непрерывное зависание (сейв, сохранённый на MAX,
+        // стартует прямо в этот путь).
+        var steps = 0;
+        var maxTicks = Mathf.Max(1, _settings.MaxTicksPerFrame);
         do
         {
             _engine.Step();
+            steps++;
             if (_engine.World.Completed)
             {
                 _clock.Pause();
                 break;
             }
         }
-        while (_maxSpeedWatch.Elapsed.TotalMilliseconds < MaxSpeedFrameBudgetMs);
+        while (steps < maxTicks &&
+               _maxSpeedWatch.Elapsed.TotalMilliseconds < MaxSpeedFrameBudgetMs);
     }
 
     public void Pause() => _clock.Pause();

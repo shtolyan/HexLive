@@ -1483,7 +1483,7 @@ public static class BuildingBootstrap
         {
             if (garment == null || garment.Sex == GarmentSex.Male ||
                 !world.Content.ObjectDefinitions.TryGetValue(garment.Id, out var definition) ||
-                !definition.Tags.Contains("Clothing") ||
+                !definition.HasTag("Clothing") ||
                 !IsStarterWardrobeGarment(garment, out var isFootwear))
             {
                 continue;

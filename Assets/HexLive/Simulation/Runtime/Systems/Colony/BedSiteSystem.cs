@@ -195,7 +195,7 @@ public sealed class BedSiteSystem : ISimulationSystem
                 continue;
             }
 
-            if (def.Tags.Contains("Bed"))
+            if (def.HasTag("Bed"))
             {
                 beds++;
                 if (obj.Owner is { } bedOwner)
@@ -207,7 +207,7 @@ public sealed class BedSiteSystem : ISimulationSystem
                     ownerlessBed = obj;
                 }
             }
-            else if (hearth is null && def.Tags.Contains("Campfire"))
+            else if (hearth is null && def.HasTag("Campfire"))
             {
                 hearth = obj;
             }

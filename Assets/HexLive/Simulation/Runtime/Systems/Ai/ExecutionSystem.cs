@@ -514,11 +514,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         continue;
                     }
 
-                    var isBoulder = definition.Tags.Contains("Boulder");
+                    var isBoulder = definition.HasTag("Boulder");
                     // Spec §54: yucca is cut with a BLADE — a knife or an axe (not
                     // a saw or pickaxe); trees still need an axe/saw; boulders the
                     // pickaxe.
-                    var isYucca = definition.Tags.Contains("Yucca");
+                    var isYucca = definition.HasTag("Yucca");
                     var hasChopTool = Content.GearCatalog.HasCapability(
                         npc.Inventory.Items, Content.GearCapability.ChopWood);
                     var hasBlade = Content.GearCatalog.HasCapability(
@@ -544,7 +544,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // other Process action is heavy work and also needs standing.
                 if (interaction.Type == InteractionType.Process)
                 {
-                    var isLightCoconutWork = definition.Tags.Contains("Coconut");
+                    var isLightCoconutWork = definition.HasTag("Coconut");
                     if (!npc.Body.HasUsableHand ||
                         (!isLightCoconutWork && !npc.Body.CanUseToolsOrWeapons))
                     {
@@ -579,7 +579,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 if (interaction.Type == InteractionType.Process &&
                     interaction.RequiredCapabilities.Count == 0)
                 {
-                    var isCoconut = definition.Tags.Contains("Coconut");
+                    var isCoconut = definition.HasTag("Coconut");
                     var hasChopTool = Content.GearCatalog.HasCapability(
                         npc.Inventory.Items, Content.GearCapability.ChopWood);
                     var hasCoconutBlade = DecisionSystem.HasCoconutBlade(npc);
@@ -594,7 +594,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 if (interaction.Type == InteractionType.Drink &&
-                    definition.Tags.Contains("CoconutWater") &&
+                    definition.HasTag("CoconutWater") &&
                     worldObject.ResourceAmount <= 0f)
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
@@ -811,7 +811,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // out the full interaction at a cold fireplace.
                 if (npc.Execution.CurrentInteraction is InteractionType.Observe
                         or InteractionType.FillBottle &&
-                    definition.Tags.Contains("Campfire") &&
+                    definition.HasTag("Campfire") &&
                     worldObject.ResourceAmount <= 0f &&
                     npc.Plan.Goal != GoalType.HaulToFire)
                 {
@@ -1032,7 +1032,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     {
         if (completedInteraction.Type == InteractionType.FillBottle)
         {
-            npc.BottleWater = definition.Tags.Contains("RawWater")
+            npc.BottleWater = definition.HasTag("RawWater")
                 ? WaterKind.Raw : WaterKind.Boiled;
             // Spec §52: one fill = several gulps; refill only when dry.
             npc.BottleCharges = SimBalance.BottleCapacity;
@@ -1102,7 +1102,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else if (completedInteraction.Type == InteractionType.Craft &&
                  npc.Plan.Goal == GoalType.CookMeat &&
-                 definition.Tags.Contains("Campfire"))
+                 definition.HasTag("Campfire"))
         {
             // §54.14 (r2): "cooking" = HANGING the raw chunk on the
             // spit. The roast itself runs in FireSystem while the fire
@@ -1238,7 +1238,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
         }
         else if (completedInteraction.Type == InteractionType.Drink &&
-                 definition.Tags.Contains("CoconutWater"))
+                 definition.HasTag("CoconutWater"))
         {
             worldObject.ResourceAmount = System.MathF.Max(0f, worldObject.ResourceAmount - 1f);
             Trace.Emit(world, npc.Id, "CoconutDrank",
@@ -1276,7 +1276,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else if (completedInteraction.Type == InteractionType.Observe &&
                  npc.Plan.Goal == GoalType.HaulToFire &&
-                 definition.Tags.Contains("Campfire"))
+                 definition.HasTag("Campfire"))
         {
             // Spec §52: set the low-value item down at the hearth (a
             // fireside stockpile) — the pack has room again, and the item
@@ -1452,7 +1452,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
         // §54.14 (r2): PickUp on the CAMPFIRE takes one cooked chunk
         // off the spit — the fire itself never leaves the ground.
-        if (definition.Tags.Contains("Campfire"))
+        if (definition.HasTag("Campfire"))
         {
             TakeMeatFromSpit(world, npc, worldObject);
         }
@@ -1484,7 +1484,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // garment (with any non-tool stash) on the ground.
         else if (npc.Plan.Goal == GoalType.GatherTools &&
             worldObject.Contents.Count > 0 &&
-            !definition.Tags.Contains("Tool"))
+            !definition.HasTag("Tool"))
         {
             RecoverStashedTools(world, npc, worldObject);
         }
@@ -1635,7 +1635,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // Spec 35.2 / §54 (R1): the object is consumed; loot is
         // declared as data (Yields) and scatters on the ground.
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
-        if (definition.Tags.Contains("Boulder"))
+        if (definition.HasTag("Boulder"))
         {
             // §80: число берётся из самой добычи. Зашитая «4» врала
             // (валун даёт 5) во всех строках трейса, а по этим
@@ -1662,7 +1662,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // §54.2: a felled palm leaves a sit-able stump obstacle at its
         // spot. Capture its placement, despawn the palm (unblocks its
         // junction), then spawn the stump there (re-blocks it).
-        var leavesStump = definition.Tags.Contains("Palm");
+        var leavesStump = definition.HasTag("Palm");
         var stumpTile = worldObject.Tile;
         var stumpFragment = worldObject.Fragment;
         var stumpJunction = worldObject.Junctions.Count > 0
@@ -1683,7 +1683,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        if (definition.Tags.Contains("Coconut"))
+        if (definition.HasTag("Coconut"))
         {
             var nextObject = ReplaceWithYields(world, npc, worldObject, completedInteraction.Yields);
             Trace.Emit(world, npc.Id, "CoconutProcessed",
@@ -1700,7 +1700,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // Spec §54: a Process consumes the object and scatters its
         // yields — a log → sticks, a palm crown → leaves.
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
-        var isCrown = definition.Tags.Contains("PalmCrown");
+        var isCrown = definition.HasTag("PalmCrown");
         var yieldCount = 0;
         var sticks = 0;
         var boards = 0;
@@ -1731,7 +1731,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // yield declarations. Butchering a housemate costs comfort
         // (cannibalism).
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
-        var wasCorpse = definition.Tags.Contains("Corpse");
+        var wasCorpse = definition.HasTag("Corpse");
         if (wasCorpse && SimBalance.CannibalismEnabled)
         {
             // Comfort is satisfaction (higher = better) — the penalty

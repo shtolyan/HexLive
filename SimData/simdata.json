@@ -602,6 +602,7 @@
     "AiBalance.LoopRepeatAttempts": 5,
     "AiBalance.LoopRepeatEmitTicks": 600,
     "AiBalance.LoopWindowTicks": 1200,
+    "AiBalance.MaxKnownObjects": 256,
     "AiBalance.MemoryTtlTicks": 2400,
     "AiBalance.PerceptionRadiusTiles": 3,
     "AiBalance.SafeGroundIsletMaxJunctions": 96,

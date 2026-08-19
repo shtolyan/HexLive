@@ -123,37 +123,59 @@ public static class WorldSnapshotExporter
         // Entity lists come out in ASCENDING ID order, always — see SortById.
 
         snapshot.Objects.Clear();
+        // PERF: reuse last tick's record for the same object id — the fresh
+        // ObjectSnapshot per object per tick (plus its four lists) was ~1.3 MB
+        // of garbage every tick on the big island's 1129 objects. A reused
+        // record is re-filled COMPLETELY: every scalar assigned below, every
+        // computed field reset in the reset block, every list cleared.
+        var objectPool = snapshot.ObjectPool;
         foreach (var pair in world.Entities.Objects)
         {
             var obj = pair.Value;
-            var exported = new ObjectSnapshot
+            if (!objectPool.TryGetValue(obj.Id.Value, out var exported))
             {
-                Id = obj.Id,
-                DefinitionId = obj.DefinitionId,
-                Tile = obj.Tile,
-                RotationDegrees = obj.RotationDegrees, // §66: built pieces carry a yaw
-                ResourceAmount = obj.ResourceAmount,
-                Wetness = obj.Wetness,
-                Durability = obj.Durability,
-                Dirtiness = obj.Dirtiness,
-                Bloodiness = obj.Bloodiness,
-                OwnerNpcId = obj.CurrentUser?.Value,
-                Variant = obj.Variant,
-                SpawnTick = obj.SpawnTick,
-                // Spec §54: build-site payload for the progressive-assembly view.
-                BuildProduct = obj.BuildProduct,
-                BillLogs = obj.BillLogs,
-                BillStones = obj.BillStones,
-                BillLeaves = obj.BillLeaves,
-                BillSticks = obj.BillSticks,
-                BillRope = obj.BillRope,
-                BillBoards = obj.BillBoards,
-                CraftWorkRequired = obj.CraftWorkRequired,
-                CraftWorkDone = obj.CraftWorkDone,
-                CraftBatchCount = obj.CraftBatchCount,
-                CraftStationObjectId = obj.CraftStationObjectId?.Value,
-                CraftActive = obj.IsCraftProject && obj.IsOccupied
-            };
+                exported = new ObjectSnapshot();
+            }
+
+            exported.Id = obj.Id;
+            exported.DefinitionId = obj.DefinitionId;
+            exported.Tile = obj.Tile;
+            exported.RotationDegrees = obj.RotationDegrees; // §66: built pieces carry a yaw
+            exported.ResourceAmount = obj.ResourceAmount;
+            exported.Wetness = obj.Wetness;
+            exported.Durability = obj.Durability;
+            exported.Dirtiness = obj.Dirtiness;
+            exported.Bloodiness = obj.Bloodiness;
+            exported.OwnerNpcId = obj.CurrentUser?.Value;
+            exported.Variant = obj.Variant;
+            exported.SpawnTick = obj.SpawnTick;
+            // Spec §54: build-site payload for the progressive-assembly view.
+            exported.BuildProduct = obj.BuildProduct;
+            exported.BillLogs = obj.BillLogs;
+            exported.BillStones = obj.BillStones;
+            exported.BillLeaves = obj.BillLeaves;
+            exported.BillSticks = obj.BillSticks;
+            exported.BillRope = obj.BillRope;
+            exported.BillBoards = obj.BillBoards;
+            exported.CraftWorkRequired = obj.CraftWorkRequired;
+            exported.CraftWorkDone = obj.CraftWorkDone;
+            exported.CraftBatchCount = obj.CraftBatchCount;
+            exported.CraftStationObjectId = obj.CraftStationObjectId?.Value;
+            exported.CraftActive = obj.IsCraftProject && obj.IsOccupied;
+            // Reset everything the code below only increments or appends —
+            // a reused record still carries last tick's values here.
+            exported.DeliveredLogs = 0;
+            exported.DeliveredStones = 0;
+            exported.DeliveredLeaves = 0;
+            exported.DeliveredSticks = 0;
+            exported.DeliveredRope = 0;
+            exported.DeliveredBoards = 0;
+            exported.RoastingRaw = 0;
+            exported.RoastingCooked = 0;
+            exported.CraftIngredients.Clear();
+            exported.Contents.Clear();
+            exported.ArchitectureElements.Clear();
+            exported.Junctions.Clear();
 
             var isSite = !string.IsNullOrEmpty(obj.BuildProduct);
             foreach (var item in obj.Contents)
@@ -235,6 +257,14 @@ public static class WorldSnapshotExporter
             }
 
             snapshot.Objects.Add(exported);
+        }
+
+        // Rebuild the pool as exactly the live set, so records of despawned
+        // objects are dropped rather than pinned forever.
+        objectPool.Clear();
+        for (var poolIndex = 0; poolIndex < snapshot.Objects.Count; poolIndex++)
+        {
+            objectPool[snapshot.Objects[poolIndex].Id.Value] = snapshot.Objects[poolIndex];
         }
 
         snapshot.Npcs.Clear();
@@ -393,11 +423,14 @@ public static class WorldSnapshotExporter
                     break;
                 }
 
-                cached.Walkable = tile.Flags.HasFlag(TileFlags.Walkable);
-                cached.Blocked = tile.Flags.HasFlag(TileFlags.Blocked);
-                cached.Indoor = tile.Flags.HasFlag(TileFlags.Indoor);
-                cached.HasFloor = tile.Flags.HasFlag(TileFlags.HasFloor);
-                cached.Water = tile.Flags.HasFlag(TileFlags.Water);
+                // Bitwise on purpose: Enum.HasFlag boxes both enums on Mono
+                // (and in unoptimized builds) — 4032 tiles × 6 flags × 2 boxes
+                // was ~0.9 MB of garbage per tick, most of the whole export.
+                cached.Walkable = (tile.Flags & TileFlags.Walkable) != 0;
+                cached.Blocked = (tile.Flags & TileFlags.Blocked) != 0;
+                cached.Indoor = (tile.Flags & TileFlags.Indoor) != 0;
+                cached.HasFloor = (tile.Flags & TileFlags.HasFloor) != 0;
+                cached.Water = (tile.Flags & TileFlags.Water) != 0;
                 cached.Elevation = tile.Elevation;
             }
 
@@ -414,11 +447,11 @@ public static class WorldSnapshotExporter
             tiles.Add(new TileSnapshot
             {
                 Coord = tile.Coord,
-                Walkable = tile.Flags.HasFlag(TileFlags.Walkable),
-                Blocked = tile.Flags.HasFlag(TileFlags.Blocked),
-                Indoor = tile.Flags.HasFlag(TileFlags.Indoor),
-                HasFloor = tile.Flags.HasFlag(TileFlags.HasFloor),
-                Water = tile.Flags.HasFlag(TileFlags.Water),
+                Walkable = (tile.Flags & TileFlags.Walkable) != 0,
+                Blocked = (tile.Flags & TileFlags.Blocked) != 0,
+                Indoor = (tile.Flags & TileFlags.Indoor) != 0,
+                HasFloor = (tile.Flags & TileFlags.HasFloor) != 0,
+                Water = (tile.Flags & TileFlags.Water) != 0,
                 Elevation = tile.Elevation
             });
         }
@@ -427,13 +460,32 @@ public static class WorldSnapshotExporter
     private static void ExportJunctions(WorldState world, WorldSnapshot snapshot)
     {
         var junctions = snapshot.Junctions;
+        // Capture BEFORE reading any Blocked state: a write landing between
+        // this read and the sweep below then forces one extra sweep next tick
+        // instead of being silently missed.
+        var blockedVersion = Spatial.Junction.BlockedWriteVersion;
+        var refreshFlags = IncludeDebugDetails || IncludeJunctionFlags;
+
+        // PERF (Aug-2026): the sweep below is ~194k iterations on the big
+        // island — ~74% of the whole export — and all it does in production
+        // mode is re-copy Blocked flags that almost never change. While no
+        // Blocked write happened anywhere (see Junction.BlockedWriteVersion)
+        // and this snapshot already mirrors THIS world, skip it outright.
+        // Debug flag mode keeps sweeping: occupancy flags change every tick.
+        if (!refreshFlags &&
+            junctions.Count == world.Junctions.Items.Count &&
+            snapshot.JunctionsSeedSeen == world.Seed &&
+            snapshot.JunctionsBlockedVersionSeen == blockedVersion)
+        {
+            return;
+        }
+
         if (junctions.Count == world.Junctions.Items.Count)
         {
             // See IncludeJunctionFlags: the identity sweep below stays (it is
             // what detects a world swap, and it is only a struct compare each).
             // Blocked is production movement topology and is always refreshed;
             // the remaining four hash lookups are debug-only work.
-            var refreshFlags = IncludeDebugDetails || IncludeJunctionFlags;
             var i = 0;
             var match = true;
             foreach (var pair in world.Junctions.Items)
@@ -455,6 +507,9 @@ public static class WorldSnapshotExporter
 
             if (match)
             {
+                snapshot.JunctionsSeedSeen = world.Seed;
+                snapshot.JunctionsBlockedVersionSeen = blockedVersion;
+                snapshot.JunctionsBlockedStamp = unchecked((int)blockedVersion);
                 return;
             }
         }
@@ -486,6 +541,10 @@ public static class WorldSnapshotExporter
 
             junctions.Add(js);
         }
+
+        snapshot.JunctionsSeedSeen = world.Seed;
+        snapshot.JunctionsBlockedVersionSeen = blockedVersion;
+        snapshot.JunctionsBlockedStamp = unchecked((int)blockedVersion);
     }
 
     // Per-tick debug refresh: Blocked is the production topology flag and is

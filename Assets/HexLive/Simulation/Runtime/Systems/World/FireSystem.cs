@@ -26,7 +26,7 @@ public sealed class FireSystem : ISimulationSystem
         {
             if (obj.ResourceAmount <= 0f ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                !definition.Tags.Contains("Campfire"))
+                !definition.HasTag("Campfire"))
             {
                 continue;
             }

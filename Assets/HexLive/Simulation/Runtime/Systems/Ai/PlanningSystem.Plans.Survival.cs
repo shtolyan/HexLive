@@ -78,7 +78,7 @@ public sealed partial class PlanningSystem
             if (!perceived.IsReachable ||
                 !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                 !world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) ||
-                !definition.Tags.Contains("Campfire") ||
+                !definition.HasTag("Campfire") ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var fire) ||
                 npc.Memory.IsShunned(fire.Id, world.Tick) ||
                 (fire.IsOccupied && fire.CurrentUser != npc.Id) ||

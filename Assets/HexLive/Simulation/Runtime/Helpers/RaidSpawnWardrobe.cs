@@ -50,7 +50,7 @@ internal static class RaidSpawnWardrobe
         {
             if (garment == null || garment.Sex == GarmentSex.Male || !keep(garment) ||
                 !world.Content.ObjectDefinitions.TryGetValue(garment.Id, out var definition) ||
-                !definition.Tags.Contains("Clothing"))
+                !definition.HasTag("Clothing"))
             {
                 continue;
             }

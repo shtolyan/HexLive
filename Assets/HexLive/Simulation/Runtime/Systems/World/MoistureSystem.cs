@@ -112,11 +112,11 @@ public sealed class MoistureSystem : ISimulationSystem
     private static bool IsLoosePickup(ObjectDefinition definition)
     {
         if (definition.Layer is not null ||
-            definition.Tags.Contains(ObjectTags.Resource) ||
-            definition.Tags.Contains(ObjectTags.Food) ||
-            definition.Tags.Contains(ObjectTags.Tool) ||
-            definition.Tags.Contains(ObjectTags.Weapon) ||
-            definition.Tags.Contains(ObjectTags.Medicine))
+            definition.HasTag(ObjectTags.Resource) ||
+            definition.HasTag(ObjectTags.Food) ||
+            definition.HasTag(ObjectTags.Tool) ||
+            definition.HasTag(ObjectTags.Weapon) ||
+            definition.HasTag(ObjectTags.Medicine))
         {
             return true;
         }
@@ -192,14 +192,32 @@ public sealed class MoistureSystem : ISimulationSystem
         return best;
     }
 
+    // PERF (Aug-2026): все три вопроса ниже — радиус ≤1 тайла, и отвечает на
+    // них ObjectsByTile (образец: TemperatureSystem, WaterCollectorMath).
+    // Старый полный перебор Entities.Objects звался на КАЖДЫЙ лежащий предмет —
+    // ~1.8 млн итераций за slow-тик на большом острове (24 мс замером).
     private static bool NearLitCampfire(WorldState world, TileCoord tile)
     {
-        foreach (var obj in world.Entities.Objects.Values)
+        for (var dq = -1; dq <= 1; dq++)
         {
-            if (obj.DefinitionId == ContentIds.Campfire && obj.ResourceAmount > 0f &&
-                HexSpatialMath.HexDistance(tile, obj.Tile) <= 1)
+            var lo = System.Math.Max(-1, -dq - 1);
+            var hi = System.Math.Min(1, -dq + 1);
+            for (var dr = lo; dr <= hi; dr++)
             {
-                return true;
+                var coord = new TileCoord(tile.Q + dq, tile.R + dr);
+                if (!world.Caches.ObjectsByTile.TryGetValue(coord, out var onTile))
+                {
+                    continue;
+                }
+
+                foreach (var id in onTile)
+                {
+                    if (world.Entities.Objects.TryGetValue(id, out var obj) &&
+                        obj.DefinitionId == ContentIds.Campfire && obj.ResourceAmount > 0f)
+                    {
+                        return true;
+                    }
+                }
             }
         }
 
@@ -218,24 +236,41 @@ public sealed class MoistureSystem : ISimulationSystem
             return 0f;
         }
 
-        foreach (var obj in world.Entities.Objects.Values)
+        // Соседи по джанкшену стоят только на тайлах этого джанкшена — их у
+        // узла не больше трёх, и все они в индексе.
+        var anchor = item.Junctions[0];
+        if (!world.Junctions.Items.TryGetValue(anchor, out var junction))
         {
-            if (obj.Junctions.Count == 0 || !obj.Junctions[0].Equals(item.Junctions[0]))
+            return 0f;
+        }
+
+        foreach (var coord in junction.Tiles)
+        {
+            if (!world.Caches.ObjectsByTile.TryGetValue(coord, out var onTile))
             {
                 continue;
             }
 
-            if (obj.DefinitionId == ContentIds.DryingRack)
+            foreach (var id in onTile)
             {
-                return 5f;
-            }
+                if (!world.Entities.Objects.TryGetValue(id, out var obj) ||
+                    obj.Junctions.Count == 0 || !obj.Junctions[0].Equals(anchor))
+                {
+                    continue;
+                }
 
-            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
-                def.Tags.Contains(ObjectTags.Wardrobe))
-            {
-                return HearthLitOn(world, obj.Tile)
-                    ? Spec133.WardrobeDryMultiplierLit
-                    : Spec133.WardrobeDryMultiplierUnlit;
+                if (obj.DefinitionId == ContentIds.DryingRack)
+                {
+                    return 5f;
+                }
+
+                if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
+                    def.HasTag(ObjectTags.Wardrobe))
+                {
+                    return HearthLitOn(world, obj.Tile)
+                        ? Spec133.WardrobeDryMultiplierLit
+                        : Spec133.WardrobeDryMultiplierUnlit;
+                }
             }
         }
 
@@ -244,10 +279,15 @@ public sealed class MoistureSystem : ISimulationSystem
 
     private static bool HearthLitOn(WorldState world, TileCoord tile)
     {
-        foreach (var obj in world.Entities.Objects.Values)
+        if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var onTile))
         {
-            if (obj.DefinitionId == ContentIds.Campfire && obj.ResourceAmount > 0f &&
-                obj.Tile.Equals(tile))
+            return false;
+        }
+
+        foreach (var id in onTile)
+        {
+            if (world.Entities.Objects.TryGetValue(id, out var obj) &&
+                obj.DefinitionId == ContentIds.Campfire && obj.ResourceAmount > 0f)
             {
                 return true;
             }

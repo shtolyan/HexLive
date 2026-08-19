@@ -74,10 +74,22 @@ namespace HexLive.UnityPresentation.Localization
             return key; // missing keys stay visible in the UI
         }
 
+        // PERF: ключи термов собираются конкатенацией на каждый вызов, а зовут
+        // эти хелперы панели КАЖДЫЙ кадр/тик на каждую девушку. Сам ключ от
+        // языка не зависит — кэш живёт вечно (наборы имён/целей конечны).
+        private static readonly System.Collections.Generic.Dictionary<string, string> _goalKeys = new();
+        private static readonly System.Collections.Generic.Dictionary<string, string> _dreamKeys = new();
+        private static readonly System.Collections.Generic.Dictionary<string, string> _npcNameKeys = new();
+
         /// <summary>Localized short "what they want" phrase for a goal enum name.</summary>
         public static string Goal(string goalName)
         {
-            var key = "goal." + goalName;
+            if (!_goalKeys.TryGetValue(goalName, out var key))
+            {
+                key = "goal." + goalName;
+                _goalKeys[goalName] = key;
+            }
+
             return Has(key) ? Get(key) : goalName;
         }
 
@@ -85,7 +97,12 @@ namespace HexLive.UnityPresentation.Localization
         /// DreamType enum name (e.g. "Campfire" → "Dreams of a campfire").</summary>
         public static string Dream(string dreamName)
         {
-            var key = "dream." + dreamName;
+            if (!_dreamKeys.TryGetValue(dreamName, out var key))
+            {
+                key = "dream." + dreamName;
+                _dreamKeys[dreamName] = key;
+            }
+
             return Has(key) ? Get(key) : dreamName;
         }
 
@@ -104,7 +121,12 @@ namespace HexLive.UnityPresentation.Localization
                 return string.Empty;
             }
 
-            var key = "npc." + nameId.ToLowerInvariant() + ".name";
+            if (!_npcNameKeys.TryGetValue(nameId, out var key))
+            {
+                key = "npc." + nameId.ToLowerInvariant() + ".name";
+                _npcNameKeys[nameId] = key;
+            }
+
             return Has(key) ? Get(key) : nameId;
         }
     }

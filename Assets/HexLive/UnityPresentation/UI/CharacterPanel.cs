@@ -5362,9 +5362,14 @@ namespace HexLive.UnityPresentation.UI
             return button;
         }
 
+        // PERF: скратч вместо новой List каждый кадр — RefreshGroup зовётся
+        // ежекадрово, и аллокация с сортировкой стояли ДО каких-либо гейтов.
+        private readonly List<NpcSnapshot> _groupSelectedScratch = new();
+
         private void RefreshGroup(WorldSnapshot snapshot)
         {
-            var selected = new List<NpcSnapshot>();
+            var selected = _groupSelectedScratch;
+            selected.Clear();
             foreach (var npc in snapshot.Npcs)
             {
                 if (NpcSelection.Contains(npc.Id.Value) &&
@@ -5373,7 +5378,6 @@ namespace HexLive.UnityPresentation.UI
                     selected.Add(npc);
                 }
             }
-            selected.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
             if (selected.Count <= 1) return;
 
             _card.style.display = DisplayStyle.None;
@@ -5389,6 +5393,10 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            // snapshot.Npcs и так в порядке возрастания id (SortById), но
+            // сортировка остаётся страховкой; после тикового гейта она
+            // выполняется раз в тик, а не раз в кадр.
+            selected.Sort(static (a, b) => a.Id.Value.CompareTo(b.Id.Value));
             _refreshedTick = snapshot.Tick;
             _refreshedActorId = -1;
             _groupTitle.text = string.Format(Loc.Get("group.selected"), selected.Count);

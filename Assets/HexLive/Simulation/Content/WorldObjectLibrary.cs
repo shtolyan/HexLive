@@ -50,7 +50,7 @@ namespace HexLive.Simulation.Content
 
                 foreach (var tag in pair.Value.Tags)
                 {
-                    if (!baseDef.Tags.Contains(tag))
+                    if (!baseDef.HasTag(tag))
                     {
                         baseDef.Tags.Add(tag);
                     }

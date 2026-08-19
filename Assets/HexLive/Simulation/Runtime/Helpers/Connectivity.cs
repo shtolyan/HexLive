@@ -260,8 +260,8 @@ internal static class Connectivity
         // молчит о том, что FindPath умеет. Замыкание BFS-ом уже устойчиво к
         // тому, что этот граф перестал быть ацикличным по высотам.
         world.FlatDescendClosure.Clear();
-        var descendEdges = new System.Collections.Generic.Dictionary<int,
-            System.Collections.Generic.HashSet<int>>();
+        var descendEdges = world.FlatDescendEdges;
+        descendEdges.Clear();
         foreach (var junction in world.Junctions.Items.Values)
         {
             if (junction.Blocked ||
@@ -305,55 +305,72 @@ internal static class Connectivity
             }
         }
 
-        var descendEdgeCount = 0;
-        foreach (var pair in descendEdges)
-        {
-            descendEdgeCount += pair.Value.Count;
-            var closure = new System.Collections.Generic.HashSet<int>();
-            var frontier = new System.Collections.Generic.Queue<int>();
-            foreach (var direct in pair.Value)
-            {
-                if (closure.Add(direct))
-                {
-                    frontier.Enqueue(direct);
-                }
-            }
-
-            while (frontier.Count > 0)
-            {
-                var comp = frontier.Dequeue();
-                if (!descendEdges.TryGetValue(comp, out var next))
-                {
-                    continue;
-                }
-
-                foreach (var further in next)
-                {
-                    if (further != pair.Key && closure.Add(further))
-                    {
-                        frontier.Enqueue(further);
-                    }
-                }
-            }
-
-            world.FlatDescendClosure[pair.Key] = closure;
-        }
-
+        // PERF (Aug-2026): замыкание больше НЕ материализуется здесь целиком —
+        // на 194k джанкшенов полный проход по всем компонентам был квадратичным
+        // (~930 МБ и сотни мс за одну перестройку, а перестройку дёргает каждая
+        // стройка). Ответы считает ClosureOf по требованию и кэширует в
+        // FlatDescendClosure; сами ответы бит-в-бит те же — BFS по тем же
+        // рёбрам с тем же исключением самой стартовой компоненты.
         world.ComponentsFlatBuiltVersion = world.TopologyVersion;
         if (SimTrace.Enabled)
         {
             Trace.DebugSystem(world, "ConnectivityFlatRebuilt",
                 $"Components={component} Junctions={world.Junctions.Items.Count} " +
                 $"Largest={world.LargestFlatComponentId}({largestSize}) " +
-                $"DescendEdges={descendEdgeCount}");
+                $"DescendEdgeSources={descendEdges.Count}");
         }
     }
+
+    /// <summary>§57.11: ленивое замыкание спусков компоненты. Первая просьба
+    /// считает BFS по FlatDescendEdges и кэширует; RebuildFlat чистит кэш.</summary>
+    private static System.Collections.Generic.HashSet<int> ClosureOf(WorldState world, int component)
+    {
+        if (world.FlatDescendClosure.TryGetValue(component, out var cached))
+        {
+            return cached;
+        }
+
+        var closure = new System.Collections.Generic.HashSet<int>();
+        if (world.FlatDescendEdges.TryGetValue(component, out var direct))
+        {
+            var frontier = _closureFrontierScratch;
+            frontier.Clear();
+            foreach (var d in direct)
+            {
+                if (closure.Add(d))
+                {
+                    frontier.Enqueue(d);
+                }
+            }
+
+            while (frontier.Count > 0)
+            {
+                var comp = frontier.Dequeue();
+                if (!world.FlatDescendEdges.TryGetValue(comp, out var next))
+                {
+                    continue;
+                }
+
+                foreach (var further in next)
+                {
+                    if (further != component && closure.Add(further))
+                    {
+                        frontier.Enqueue(further);
+                    }
+                }
+            }
+        }
+
+        world.FlatDescendClosure[component] = closure;
+        return closure;
+    }
+
+    private static readonly System.Collections.Generic.Queue<int> _closureFrontierScratch = new();
 
     /// <summary>§57.11: достижима ли компонента b из компоненты a без прыжка,
     /// СЧИТАЯ спуски (направленно). Та же компонента — тривиально да.</summary>
     private static bool FlatReaches(WorldState world, int fa, int fb) =>
-        fa == fb ||
-        (world.FlatDescendClosure.TryGetValue(fa, out var closure) && closure.Contains(fb));
+        fa == fb || ClosureOf(world, fa).Contains(fb);
 
     /// <summary>§57.11: есть ли отсюда БЕЗ ПРЫЖКА дорога (считая спуски) в
     /// самую большую плоскую компоненту. Скоринг §50.9 обязан спросить это ДО
@@ -387,13 +404,10 @@ internal static class Connectivity
         }
 
         world.JunctionComponentsFlatSizes.TryGetValue(comp, out var total);
-        if (world.FlatDescendClosure.TryGetValue(comp, out var closure))
+        foreach (var reachable in ClosureOf(world, comp))
         {
-            foreach (var reachable in closure)
-            {
-                world.JunctionComponentsFlatSizes.TryGetValue(reachable, out var size);
-                total += size;
-            }
+            world.JunctionComponentsFlatSizes.TryGetValue(reachable, out var size);
+            total += size;
         }
 
         return total;

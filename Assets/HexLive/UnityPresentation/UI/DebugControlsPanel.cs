@@ -34,6 +34,14 @@ namespace HexLive.UnityPresentation.UI
         public static bool FogOfWar;
         public static bool FogOfWarSelectedOnly;
 
+        // PERCEPTION-CULLING EXPERIMENT (player request, big-island perf): the
+        // renderer shows ONLY hexes inside the union of the colonists'
+        // perception disks (§125 radius, the same number the sim uses) and
+        // hides every tile/object/mob/NPC view outside it. Visual-only, the
+        // simulation runs the whole island regardless. Default ON to measure;
+        // the toggle flips it live.
+        public static bool PerceptionCulling = true;
+
         [SerializeField] private SimulationRunnerBehaviour _runner;
         [SerializeField] private BugReportPanel _bugReportPanel;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -200,6 +208,12 @@ namespace HexLive.UnityPresentation.UI
             _fogSelectedLabel = (Label)_fogSelectedButton[0];
             box.Add(_fogSelectedButton);
 
+            _cullButton = MakeButton(
+                PerceptionCulling ? "[x] Perception culling" : "[ ] Perception culling",
+                Raised, TogglePerceptionCulling);
+            _cullLabel = (Label)_cullButton[0];
+            box.Add(_cullButton);
+
             _traceButton = MakeButton("[ ] Trace (diagnostics)", Raised, ToggleTrace);
             _traceLabel = (Label)_traceButton[0];
             box.Add(_traceButton);
@@ -303,6 +317,8 @@ namespace HexLive.UnityPresentation.UI
         private Label _fogLabel;
         private VisualElement _fogSelectedButton;
         private Label _fogSelectedLabel;
+        private VisualElement _cullButton;
+        private Label _cullLabel;
 
         private Label _traceLabel;
         private VisualElement _traceButton;
@@ -328,6 +344,17 @@ namespace HexLive.UnityPresentation.UI
             if (_fogLabel != null)
             {
                 _fogLabel.text = FogOfWar ? "[x] Fog of war" : "[ ] Fog of war";
+            }
+        }
+
+        private void TogglePerceptionCulling()
+        {
+            PerceptionCulling = !PerceptionCulling;
+            if (_cullLabel != null)
+            {
+                _cullLabel.text = PerceptionCulling
+                    ? "[x] Perception culling"
+                    : "[ ] Perception culling";
             }
         }
 

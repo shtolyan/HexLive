@@ -442,7 +442,7 @@ internal static class LyingSpot
             return definition.SolidRadius;
         }
 
-        if (!definition.Tags.Contains(ObjectTags.Obstacle))
+        if (!definition.HasTag(ObjectTags.Obstacle))
         {
             return 0f;
         }

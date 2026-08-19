@@ -82,7 +82,7 @@ public static class WorldSnapshotCodec
     /// групп. Дельта шлёт только изменившиеся; замер до/после — в §83.5.
     /// v28: §83.2 r13 — набор runtime-тайлов в дельте едет за флагом «изменился»,
     /// а не каждым кадром. Ключевой кадр по-прежнему несёт его всегда.
-    public const int WireVersion = 28;
+    public const int WireVersion = 29;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -216,6 +216,7 @@ public static class WorldSnapshotCodec
         w.Write(snapshot.Completed);
         WireIo.WriteFloat2(w, snapshot.SunDirection);
         w.Write(snapshot.SunElevationDegrees);
+        w.Write(snapshot.JunctionsBlockedStamp);
     }
 
     internal static void ReadHeaderRecord(BinaryReader r, WorldSnapshot into)
@@ -233,6 +234,7 @@ public static class WorldSnapshotCodec
         into.Completed = r.ReadBoolean();
         into.SunDirection = WireIo.ReadFloat2(r);
         into.SunElevationDegrees = r.ReadSingle();
+        into.JunctionsBlockedStamp = r.ReadInt32();
     }
 
     // ── tiles ─────────────────────────────────────────────────────────────

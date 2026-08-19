@@ -216,8 +216,20 @@ public sealed class WorldState
     // плоским рёбрам и вниз (правила пафйндера для canJump=false). Мир калеки
     // направленный: попасть вниз можно, вернуться — нет, поэтому Reachable
     // без прыжка = та же компонента ИЛИ членство в этом замыкании.
+    //
+    // PERF (Aug-2026, BigIsland): замыкание ЛЕНИВОЕ. Полная материализация по
+    // всем компонентам на перестройке была квадратичной: один RebuildFlat на
+    // 194k джанкшенов аллоцировал ~930 МБ за вызов (тот самый секундный спайк
+    // тика). Здесь копятся только компоненты, про которые кто-то реально
+    // спросил; сырьё для ответа — FlatDescendEdges ниже.
     public System.Collections.Generic.Dictionary<int,
         System.Collections.Generic.HashSet<int>> FlatDescendClosure { get; } = new();
+
+    // §57.11: прямые рёбра спусков компонента→компоненты (без транзитивности).
+    // Строятся в RebuildFlat, замыкание над ними считает Connectivity по
+    // требованию. Кэш, не сейв.
+    public System.Collections.Generic.Dictionary<int,
+        System.Collections.Generic.HashSet<int>> FlatDescendEdges { get; } = new();
 
     // Spec §26.6A r4: the junctions closed by an OBJECT FOOTPRINT (a palm trunk,
     // the fire's ember ring, a bed) — as opposed to TERRAIN (a cliff face, a hut

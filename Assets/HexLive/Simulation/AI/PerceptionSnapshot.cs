@@ -61,14 +61,15 @@ public sealed class PerceptionSnapshot
     public int LastUpdatedTick { get; set; }
 
     // §22.7 кэш вида памяти: FromMemory-записи пересобираются только когда
-    // сменился любой из ключей ниже (тайл NPC, компонента её джанкшена,
-    // топология, состав памяти, умение прыгать). Между пересборками записи
-    // переиспользуются как есть, освежается только Distance — оно считается
-    // от живой позиции каждый medium-тик, как и раньше. Runtime-only: ни в
-    // сейв, ни в провод не ходит.
+    // сменился любой из ключей ниже (компонента её джанкшена, топология,
+    // состав памяти, умение прыгать). Тайла NPC в ключе НЕТ нарочно (PERF,
+    // Aug-2026): он менялся каждым шагом идущей девушки и пересобирал ~1100
+    // записей каждый medium-тик — 2.4 МБ мусора на вызов; исключение «в поле
+    // зрения — берёт живой глаз» переехало в точку потребления, где оно
+    // стоит одну гекс-дистанцию. Между пересборками записи переиспользуются
+    // как есть, освежается только Distance. Runtime-only: ни в сейв, ни в
+    // провод не ходит.
     public List<PerceivedObject> MemoryView { get; } = new();
-
-    public TileCoord MemoryViewTile { get; set; } = TileCoord.Zero;
 
     public int MemoryViewComponent { get; set; } = int.MinValue;
 
@@ -89,6 +90,15 @@ public sealed class PerceptionSnapshot
 
     /// <summary>§125.7: тот же пул для записей по памяти.</summary>
     public Dictionary<EntityId, RememberedAgent> RememberedPool { get; } = new();
+
+    // PERF (Aug-2026): пулы PerceivedObject — по записи на объект, каждое поле
+    // переустанавливается при выдаче, как у AgentPool выше. Пула ДВА нарочно:
+    // MemoryView держит свои записи МЕЖДУ тиками, и одна общая запись, выданная
+    // живому взгляду, мутировала бы застывший вид памяти (FromMemory,
+    // занятость) у себя за спиной. Runtime-only.
+    public Dictionary<ObjectId, PerceivedObject> LiveObjectPool { get; } = new();
+
+    public Dictionary<ObjectId, PerceivedObject> MemoryObjectPool { get; } = new();
 }
 
 public sealed class SelfState

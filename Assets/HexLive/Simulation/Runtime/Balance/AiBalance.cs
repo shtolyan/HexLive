@@ -14,6 +14,12 @@ public static class AiBalance
     // outlives it. Plain ticks, so it does NOT follow the visual clock.
     public static int MemoryTtlTicks = 2400;
 
+    // §27.18A r2: потолок НЕПОСТОЯННОЙ памяти об объектах (лагерные записи
+    // IsPermanent в него не считаются и не вытесняются). При превышении
+    // забываются самые давние по LastSeenTick. Это и есть гарантия, что цена
+    // тика ИИ не растёт с размером острова: Perception.Objects — это память.
+    public static int MaxKnownObjects = 256;
+
     // Spec 23.16/35.4: a freshly won goal is locked this long; only a
     // clearly better bid (LockOverrideDelta) may break the lock, and after
     // it expires a challenger still needs SwitchDelta of margin.

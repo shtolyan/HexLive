@@ -387,7 +387,7 @@ internal static class CraftProjectMath
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                !definition.Tags.Contains(tag)) continue;
+                !definition.HasTag(tag)) continue;
             var distance = HexSpatialMath.HexDistance(npc.Tile, obj.Tile);
             if (distance < bestDistance ||
                 (distance == bestDistance && (best is null || obj.Id.Value < best.Id.Value)))
@@ -538,7 +538,7 @@ internal static class CraftProjectMath
         if (string.IsNullOrEmpty(stationTag)) return station is null;
         return station is not null &&
             world.Content.ObjectDefinitions.TryGetValue(station.DefinitionId, out var definition) &&
-            definition.Tags.Contains(stationTag);
+            definition.HasTag(stationTag);
     }
 
     private static void CopyItem(ItemInstance item, WorldObjectState target)

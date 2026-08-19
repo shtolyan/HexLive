@@ -193,6 +193,39 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly List<(TileCoord Tile, int Radius)> _fogEyes = new();
     private bool _fogActive;
 
+    // PERCEPTION-CULLING EXPERIMENT (player request, big-island perf): the
+    // live world is the union of the LIVING colonists' §125 perception disks.
+    // Everything outside it FREEZES rather than disappears — a memory fog:
+    // tiles and object views stay exactly as last seen (no per-tick sync, no
+    // despawn, no new views), and only the movers (NPCs, mobs, corpses) go
+    // dark, because a wolf frozen mid-stride would be a statue, not a memory.
+    // Purely presentation: the simulation runs the whole island as before.
+    // Eyes and radii come from the snapshot (PerceptionRadiusTiles), so this
+    // works on remote/loopback backends too, unlike the fog experiment above.
+    private readonly List<(TileCoord Tile, int Radius)> _cullEyes = new();
+    private readonly HashSet<TileCoord> _cullVisibleTiles = new();
+    // The frozen hexes as their OWN set, by design: a future pass will restyle
+    // them (grayscale/whiteout shader) by iterating exactly this collection.
+    private readonly HashSet<TileCoord> _cullFrozenTiles = new();
+    // Last tile each object view was synced on — a vanished object keeps its
+    // ghost while that tile is frozen (nobody saw it go), and the ghost dies
+    // the first tick the tile is looked at again.
+    private readonly Dictionary<int, TileCoord> _objectViewTiles = new();
+    private bool _cullActive;
+    // The FIRST render of a world builds every object view, frozen hexes
+    // included — "frozen as last seen" needs a last-seen picture, and a bald
+    // island outside the camps would be a hole, not a memory. After that
+    // build, an object spawned on a frozen hex stays invisible until seen.
+    private bool _cullInitialBuildDone;
+
+    // PERF: пространственный индекс для SnapshotMovementRoute — ключуется
+    // штампом Blocked из снапшота, живёт жизнь мира.
+    private readonly SnapshotMovementRoute.RouteIndex _routeIndex = new();
+
+    /// <summary>The hexes currently outside every colonist's perception —
+    /// frozen as last seen. Exposed for the future "memory" restyle pass.</summary>
+    public IReadOnlyCollection<TileCoord> CullFrozenTiles => _cullFrozenTiles;
+
     // §125.5: кого прячет туман среди ЛЮДЕЙ. Пусто, когда режим «выбранная»
     // выключен: без выбранной прятать людей не от чьего лица.
     private readonly HashSet<int> _fogHiddenNpcs = new();
@@ -590,7 +623,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.CreateSnapshot");
         var snapshot = _runner.CreateSnapshot();
+        UnityEngine.Profiling.Profiler.EndSample();
         if (snapshot is null)
         {
             return;
@@ -623,13 +658,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // a new island — so drop it and let the next line rebuild it.
                 // Without this a same-size island would keep the old positions.
                 _junctionPositions.Clear();
+
+                // New world: the next RenderSnapshot must build every object
+                // view once before the memory fog may freeze anything.
+                _cullInitialBuildDone = false;
+                _objectViewTiles.Clear();
             }
 
+            UnityEngine.Profiling.Profiler.BeginSample("Hex.RenderSnapshot");
             RenderSnapshot(snapshot);
+            UnityEngine.Profiling.Profiler.EndSample();
             _lastRenderedTick = snapshot.Tick;
             _lastSnapshot = snapshot;
         }
 
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.PerFrame");
         UpdateRain(snapshot.IsRaining);
         UpdateEnvironmentWetness(snapshot.IsRaining);
         // §40.18-B: our owned wave params -> the water material, so the mesh
@@ -637,6 +680,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         WaterWave.PushToShader();
         InterpolateMovables(_runner.TickAlpha);
         UpdateHutCutaways(snapshot);
+        UnityEngine.Profiling.Profiler.EndSample();
     }
 
     private static void EnsureFogRingShaderIds()
@@ -1182,6 +1226,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void RenderSnapshot(WorldSnapshot snapshot)
     {
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.TilesWater");
         // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
         _waterCoords.Clear();
         _swimCoords.Clear();
@@ -1247,6 +1292,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             RebuildJunctionLookup(snapshot);
         }
 
+        UnityEngine.Profiling.Profiler.EndSample();
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Prep");
+        // Perception culling rebuilds BEFORE the despawn sweep and the sync
+        // loop below: both consult this tick's frozen set (ghosts, freezes).
+        RebuildPerceptionCulling(snapshot);
+
         // Snapshot-diff despawn (spec 31.15): destroy views whose object
         // disappeared from the simulation (eaten/picked-up apples).
         var liveObjectIds = _liveObjectIdScratch;
@@ -1294,6 +1345,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             if (!liveObjectIds.Contains(key))
             {
+                // Memory fog: an object that vanished on a FROZEN tile keeps
+                // its ghost — nobody saw it go. The first tick its tile is
+                // looked at again, this test fails and the ghost dies normally.
+                if (_cullActive &&
+                    _objectViewTiles.TryGetValue(key, out var ghostTile) &&
+                    _cullFrozenTiles.Contains(ghostTile))
+                {
+                    continue;
+                }
+
                 staleObjectKeys.Add(key);
             }
         }
@@ -1303,6 +1364,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var view = _objectViews[key];
             _objectViews.Remove(key);
             _objectViewParts.Remove(key);
+            _objectViewTiles.Remove(key);
             _prevObjectPositions.Remove(key);
             _currObjectPositions.Remove(key);
 
@@ -1405,14 +1467,31 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        UnityEngine.Profiling.Profiler.EndSample();
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Objects");
         foreach (var worldObject in snapshot.Objects)
         {
             var key = worldObject.Id.Value;
+
+            // Memory fog: an object on a frozen hex is left EXACTLY as last
+            // seen — no sync, no repositioning, no state flips. One spawned
+            // out there gets no view at all until someone looks. This skip is
+            // also the perf point of the experiment: the per-tick cost shrinks
+            // to the hexes the colony actually watches.
+            var hasView = _objectViews.TryGetValue(key, out var objectView);
+            if (_cullActive && _cullFrozenTiles.Contains(worldObject.Tile) &&
+                (hasView || _cullInitialBuildDone))
+            {
+                continue;
+            }
+
+            _objectViewTiles[key] = worldObject.Tile;
+
             // §28.15C v3: у corpse.npc нет своего вида — CreateObjectView отдаёт
             // за него невидимый якорь. Тело рисует сама погибшая
             // (SyncCorpseViews), а объект нужен лишь для «подойти и что-то
             // сделать»: оплакать, обобрать, разделать.
-            if (!_objectViews.TryGetValue(key, out var objectView))
+            if (!hasView)
             {
                 objectView = CreateObjectView(worldObject, _junctionPositions, snapshot.Tick);
                 _objectViews[key] = objectView;
@@ -1665,6 +1744,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
 
+        UnityEngine.Profiling.Profiler.EndSample();
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Actors");
+        // PERF: пространственный индекс маршрутов интерполяции — пересборка
+        // только когда сменился мир или чей-то Blocked (стройка/дверь).
+        if (!_routeIndex.IsCurrent(snapshot.Junctions, snapshot.JunctionsBlockedStamp))
+        {
+            _routeIndex.Rebuild(snapshot.Junctions, snapshot.JunctionsBlockedStamp);
+        }
+
         BindArchitectureElementViews(snapshot);
 
         foreach (var npc in snapshot.Npcs)
@@ -1684,7 +1772,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // мобов; симуляция об этом не знает.
             if (npcView != null)
             {
-                var hiddenByFog = _fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key);
+                var hiddenByFog = (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key))
+                    // Perception culling: every NPC that is not OURS goes dark
+                    // outside our girls' perception — rival camps included.
+                    // Gated on the initial build: the loading screen waits on
+                    // every roster body being presentation-ready, and an
+                    // inactive actor can never finish stitching (§146 hang) —
+                    // so nobody is hidden until the world has fully built once.
+                    || (_cullInitialBuildDone &&
+                        npc.Faction != HexLive.Simulation.Agents.Faction.Colony &&
+                        CullHidesTile(npc.Tile));
                 if (npcView.activeSelf == hiddenByFog)
                 {
                     npcView.SetActive(!hiddenByFog);
@@ -1726,8 +1823,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                         route = new List<Float2>();
                     }
 
+                    // PERF: индексированная перегрузка SnapshotMovementRoute.Build(
+                    // без неё каждая идущая девушка каждый тик сканировала все
+                    // ~194k джанкшенов на «пересекаю ли я стену» — это было
+                    // ~59 мс из 63 мс тикового кадра на большом острове.
                     var routeKind = SnapshotMovementRoute.Build(
-                        snapshot.Junctions,
+                        _routeIndex,
                         new Float2(oldPose.Position.x, oldPose.Position.z),
                         new Float2(targetPose.Position.x, targetPose.Position.z),
                         route);
@@ -1872,6 +1973,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 snapshot.Tick, HexLive.Simulation.Runtime.WorldBalance.DayLengthTicks, _portraitIds);
         }
 
+        UnityEngine.Profiling.Profiler.EndSample();
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.AnimalsCorpses");
         SyncAnimalViews(snapshot);
 
         // A dead housemate leaves a corpse object - her walking view goes.
@@ -1950,6 +2053,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         SyncCorpseViews(snapshot);
         AuditNpcRenderState(snapshot);
+        UnityEngine.Profiling.Profiler.EndSample();
+
+        // Memory fog: the full first build of this world is behind us — from
+        // here on, frozen hexes get no new object views until seen again.
+        _cullInitialBuildDone = true;
     }
 
     // ⭐ Bug #146 watchdog: «девушки не рендерятся, пока не кликнешь». Три
@@ -2148,6 +2256,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     restored.SetDead(ActorGroundY(body.Tile), body.DeathAnimVariant, fresh: false);
                 }
 
+            }
+
+            // Perception culling: a body that is not OURS goes dark with its
+            // hex (a carried body rides its carrier's tile, so it stays
+            // visible exactly while she is). Our own dead stay visible — the
+            // player owns that grief the way she owns the living girls.
+            var cullHideCorpse = _cullInitialBuildDone &&
+                body.Faction != HexLive.Simulation.Agents.Faction.Colony &&
+                CullHidesTile(body.Tile);
+            if (view.activeSelf == cullHideCorpse)
+            {
+                view.SetActive(!cullHideCorpse);
             }
 
             var targetRotation = Quaternion.Euler(
@@ -4317,6 +4437,79 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _fogRingRadius = -1;
     }
 
+    /// <summary>Perception culling: rebuilds the visible-tile union and the
+    /// frozen complement. Runs once per tick, before the object sync loop, so
+    /// <see cref="CullHidesTile"/> answers for this tick's snapshot. Tiles are
+    /// never deactivated — the frozen ones simply stop being updated (and a
+    /// future pass will restyle them from <see cref="CullFrozenTiles"/>).
+    /// Dead colonists contribute no eyes — a wiped camp freezes whole.</summary>
+    private void RebuildPerceptionCulling(WorldSnapshot snapshot)
+    {
+        var active = UI.DebugControlsPanel.PerceptionCulling;
+        if (!active)
+        {
+            if (_cullActive)
+            {
+                // Toggled off mid-play: nothing to reactivate (tiles never went
+                // dark). The object loop resyncs ghosts and creates the views
+                // it skipped this same tick; movers recover in their loops too.
+                _cullActive = false;
+                _cullEyes.Clear();
+                _cullVisibleTiles.Clear();
+                _cullFrozenTiles.Clear();
+            }
+
+            return;
+        }
+
+        _cullActive = true;
+        _cullEyes.Clear();
+        foreach (var npc in snapshot.Npcs)
+        {
+            // Eyes are OUR girls only (player request): the world exists for
+            // the player exactly as far as her own camp perceives it. The
+            // §146 rival camps (Colony2/Colony3) reveal nothing and are
+            // themselves hidden below until one of ours actually sees them.
+            if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f)
+            {
+                _cullEyes.Add((npc.Tile, npc.PerceptionRadiusTiles));
+            }
+        }
+
+        _cullVisibleTiles.Clear();
+        _cullFrozenTiles.Clear();
+        foreach (var pair in _tileViews)
+        {
+            var coord = pair.Key;
+            var seen = false;
+            foreach (var (eyeTile, radius) in _cullEyes)
+            {
+                if (HexSpatialMath.HexDistance(eyeTile, coord) <= radius)
+                {
+                    seen = true;
+                    break;
+                }
+            }
+
+            if (seen)
+            {
+                _cullVisibleTiles.Add(coord);
+            }
+            else
+            {
+                _cullFrozenTiles.Add(coord);
+            }
+        }
+    }
+
+    /// <summary>True when perception culling is on and no living colonist's
+    /// disk covers this tile. A colonist herself is never affected by it — her
+    /// own tile is distance 0 inside her own disk. Movers (NPCs/mobs/corpses)
+    /// on such a tile are hidden; static object views on it are FROZEN
+    /// (skipped by the sync loop) instead.</summary>
+    private bool CullHidesTile(TileCoord tile) =>
+        _cullActive && !_cullVisibleTiles.Contains(tile);
+
     private bool FogSeesTile(TileCoord tile)
     {
         foreach (var (eyeTile, radius) in _fogEyes)
@@ -4346,7 +4539,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             // FOG-OF-WAR EXPERIMENT: a mob exists for the player only while a
             // colonist would notice it (the sim's spot-scan radius).
-            var fogHideMob = _fogActive && !FogSeesTile(dog.Tile);
+            var fogHideMob = (_fogActive && !FogSeesTile(dog.Tile)) || CullHidesTile(dog.Tile);
             if (mobView.activeSelf == fogHideMob)
             {
                 mobView.SetActive(!fogHideMob);
@@ -4411,7 +4604,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             // FOG-OF-WAR EXPERIMENT: same spot-radius rule as the dogs above.
-            var fogHideCrab = _fogActive && !FogSeesTile(crab.Tile);
+            var fogHideCrab = (_fogActive && !FogSeesTile(crab.Tile)) || CullHidesTile(crab.Tile);
             if (crabView.activeSelf == fogHideCrab)
             {
                 crabView.SetActive(!fogHideCrab);
@@ -4457,7 +4650,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             // FOG-OF-WAR EXPERIMENT: то же правило радиуса, что у живых.
-            var fogHidePreview = _fogActive && !FogSeesTile(tile);
+            var fogHidePreview = (_fogActive && !FogSeesTile(tile)) || CullHidesTile(tile);
             if (previewView.activeSelf == fogHidePreview)
             {
                 previewView.SetActive(!fogHidePreview);

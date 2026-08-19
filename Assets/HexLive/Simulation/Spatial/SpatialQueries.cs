@@ -214,8 +214,15 @@ public static class SpatialQueries
         var anchorPos = hasCap && world.Junctions.Items.TryGetValue(anchor, out var anchorJ)
             ? anchorJ.WorldPosition : default;
         var capSq = maxAnchorDist * maxAnchorDist;
-        var visited = new System.Collections.Generic.HashSet<HexLive.Simulation.Common.JunctionId> { anchor };
-        var frontier = new System.Collections.Generic.Queue<HexLive.Simulation.Common.JunctionId>();
+        // PERF (Aug-2026): scratch, not fresh — this rim BFS runs per candidate
+        // in planning and per remembered object in perception; a new HashSet
+        // grows through six capacities on every single call. Same static-scratch
+        // pattern as _touchScratch below (single-threaded sim).
+        var visited = _standableVisitedScratch;
+        visited.Clear();
+        visited.Add(anchor);
+        var frontier = _standableFrontierScratch;
+        frontier.Clear();
         frontier.Enqueue(anchor);
         while (frontier.Count > 0 && visited.Count < maxVisited)
         {
@@ -260,8 +267,17 @@ public static class SpatialQueries
         }
     }
 
+    private static readonly System.Collections.Generic.HashSet<HexLive.Simulation.Common.JunctionId>
+        _standableVisitedScratch = new();
+
+    private static readonly System.Collections.Generic.Queue<HexLive.Simulation.Common.JunctionId>
+        _standableFrontierScratch = new();
+
     // Spec 31C.7: a junction strictly inside water (every owning tile is
     // Water). Shore junctions (mixed land+water) do not count.
+    // Bitwise flag test on purpose: Enum.HasFlag boxes both enums on Mono, and
+    // this predicate runs in every hot loop of the sim (perception, planning,
+    // wildlife candidate builds).
     public static bool IsAllWaterJunction(WorldState world, JunctionId junctionId)
     {
         if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
@@ -273,7 +289,7 @@ public static class SpatialQueries
         foreach (var coord in junction.Tiles)
         {
             if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
-                !tile.Flags.HasFlag(TileFlags.Water))
+                (tile.Flags & TileFlags.Water) == 0)
             {
                 return false;
             }
@@ -398,28 +414,105 @@ public static class SpatialQueries
         return result;
     }
 
+    // PERF (Aug-2026): расходящиеся кольца по сетке позиций вместо линейного
+    // прохода по всем ~194k узлам. Ответ тот же, что у полного arg-min,
+    // включая тай-брейк: минимальная дистанция, при равенстве — меньший id
+    // (старый проход шёл по словарю в порядке возрастания id и держал первый
+    // строгий минимум).
+    private const float JunctionGridCellSize = 3f;
+
     public static JunctionId? FindNearestJunction(WorldState world, Float2 worldPosition)
     {
-        JunctionId? nearest = null;
-        var bestDist = float.MaxValue;
-
-        foreach (var pair in world.Junctions.Items)
+        var caches = world.Caches;
+        if (!caches.JunctionPosGridBuilt)
         {
-            if (pair.Value.Blocked)
+            caches.JunctionPosGrid.Clear();
+            caches.JunctionGridMinX = caches.JunctionGridMinY = int.MaxValue;
+            caches.JunctionGridMaxX = caches.JunctionGridMaxY = int.MinValue;
+            foreach (var pair in world.Junctions.Items)
             {
-                continue; // spec 35.3: never resolve onto a wall
+                var cx = GridCell(pair.Value.WorldPosition.X);
+                var cy = GridCell(pair.Value.WorldPosition.Y);
+                caches.JunctionGridMinX = System.Math.Min(caches.JunctionGridMinX, cx);
+                caches.JunctionGridMaxX = System.Math.Max(caches.JunctionGridMaxX, cx);
+                caches.JunctionGridMinY = System.Math.Min(caches.JunctionGridMinY, cy);
+                caches.JunctionGridMaxY = System.Math.Max(caches.JunctionGridMaxY, cy);
+                var key = GridKey(cx, cy);
+                if (!caches.JunctionPosGrid.TryGetValue(key, out var list))
+                {
+                    list = new System.Collections.Generic.List<HexLive.Simulation.Common.JunctionId>();
+                    caches.JunctionPosGrid[key] = list;
+                }
+
+                list.Add(pair.Key);
             }
 
-            var dist = HexSpatialMath.Distance(worldPosition, pair.Value.WorldPosition);
-            if (dist < bestDist)
+            caches.JunctionPosGridBuilt = true;
+        }
+
+        var cx0 = GridCell(worldPosition.X);
+        var cy0 = GridCell(worldPosition.Y);
+        var maxRing = System.Math.Max(
+            System.Math.Max(System.Math.Abs(cx0 - caches.JunctionGridMinX),
+                System.Math.Abs(caches.JunctionGridMaxX - cx0)),
+            System.Math.Max(System.Math.Abs(cy0 - caches.JunctionGridMinY),
+                System.Math.Abs(caches.JunctionGridMaxY - cy0)));
+        HexLive.Simulation.Common.JunctionId? nearest = null;
+        var bestDistSq = float.MaxValue;
+        for (var ring = 0; ring <= maxRing; ring++)
+        {
+            var lowerBound = (ring - 1) * JunctionGridCellSize;
+            if (nearest.HasValue && lowerBound > 0f && lowerBound * lowerBound > bestDistSq)
             {
-                bestDist = dist;
-                nearest = pair.Key;
+                break;
+            }
+
+            for (var cx = cx0 - ring; cx <= cx0 + ring; cx++)
+            {
+                for (var cy = cy0 - ring; cy <= cy0 + ring; cy++)
+                {
+                    if (ring > 0 &&
+                        System.Math.Abs(cx - cx0) != ring && System.Math.Abs(cy - cy0) != ring)
+                    {
+                        continue; // interior cells were visited on smaller rings
+                    }
+
+                    if (!caches.JunctionPosGrid.TryGetValue(GridKey(cx, cy), out var cell))
+                    {
+                        continue;
+                    }
+
+                    for (var i = 0; i < cell.Count; i++)
+                    {
+                        var id = cell[i];
+                        if (!world.Junctions.Items.TryGetValue(id, out var junction) ||
+                            junction.Blocked)
+                        {
+                            continue; // spec 35.3: never resolve onto a wall
+                        }
+
+                        var dx = worldPosition.X - junction.WorldPosition.X;
+                        var dy = worldPosition.Y - junction.WorldPosition.Y;
+                        var distSq = dx * dx + dy * dy;
+                        if (distSq < bestDistSq ||
+                            (distSq == bestDistSq && nearest.HasValue &&
+                             id.Value < nearest.Value.Value))
+                        {
+                            bestDistSq = distSq;
+                            nearest = id;
+                        }
+                    }
+                }
             }
         }
 
         return nearest;
     }
+
+    private static int GridCell(float v) =>
+        (int)System.MathF.Floor(v / JunctionGridCellSize);
+
+    private static long GridKey(int cx, int cy) => ((long)cx << 32) ^ (uint)cy;
 }
 
 }

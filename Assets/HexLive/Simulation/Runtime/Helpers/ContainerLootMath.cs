@@ -41,8 +41,8 @@ internal static class ContainerLootMath
         // Мера — карманы вещи (InventoryCapacity) и явные теги: рюкзак с
         // нулевыми карманами контейнером не считается, и это правильно.
         return world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-            (definition.Tags.Contains("Remains") ||
-             definition.Tags.Contains("Container") ||
+            (definition.HasTag("Remains") ||
+             definition.HasTag("Container") ||
              definition.InventoryCapacity > 0);
     }
 

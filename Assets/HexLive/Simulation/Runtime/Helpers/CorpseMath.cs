@@ -39,8 +39,8 @@ public static class CorpseMath
     /// <summary>Тело или останки с мешком: оба якоря можно оплакать и обыскать.</summary>
     public static bool IsHumanDead(ObjectDefinition definition) =>
         definition is not null &&
-        (definition.Tags.Contains(ObjectTags.Corpse) ||
-         definition.Tags.Contains(ObjectTags.Remains));
+        (definition.HasTag(ObjectTags.Corpse) ||
+         definition.HasTag(ObjectTags.Remains));
 
     /// <summary>Тело, на которое указывает объект-якорь <c>corpse.npc</c>, или
     /// null, если это не труп человека (звериная туша) либо тело уже забрали

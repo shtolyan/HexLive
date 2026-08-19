@@ -90,7 +90,7 @@ public static class StrayGarmentMath
                 continue;
             }
 
-            if (def.Tags.Contains(ObjectTags.Rack) || def.Tags.Contains(ObjectTags.Wardrobe))
+            if (def.HasTag(ObjectTags.Rack) || def.HasTag(ObjectTags.Wardrobe))
             {
                 return true;
             }

@@ -130,21 +130,52 @@ internal static class MobSlots
     private static List<JunctionId> LandCandidates(WorldState world, string mobId)
     {
         var crab = mobId == Content.MobIds.Crab;
-        var candidates = new List<JunctionId>();
-        foreach (var junction in world.Junctions.Items.Values)
+
+        // §147 PERF: the static half of the filter (blocked/indoor/all-water,
+        // crabs near water) is topology — cached per TopologyVersion, exactly
+        // like MobForbiddenJunctions. The base list is sorted by id once;
+        // filtering below preserves that order, so the final candidate list is
+        // byte-identical to the old scan-then-sort.
+        var baseList = crab ? world.Caches.CrabSlotHomeBase : world.Caches.LandSlotHomeBase;
+        var builtVersion = crab
+            ? world.Caches.CrabSlotHomeBaseBuiltVersion
+            : world.Caches.LandSlotHomeBaseBuiltVersion;
+        if (builtVersion != world.TopologyVersion)
         {
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
-                IsIndoorTile(world, junction.Tiles[0]) ||
-                SpatialQueries.IsAllWaterJunction(world, junction.Id))
+            baseList.Clear();
+            foreach (var junction in world.Junctions.Items.Values)
             {
-                continue;
+                if (junction.Blocked || junction.Tiles.Count == 0 ||
+                    IsIndoorTile(world, junction.Tiles[0]) ||
+                    SpatialQueries.IsAllWaterJunction(world, junction.Id))
+                {
+                    continue;
+                }
+
+                if (crab && !NearWater(world, junction.Tiles[0], 2))
+                {
+                    continue;
+                }
+
+                baseList.Add(junction.Id);
             }
 
-            var tile = junction.Tiles[0];
-            if (crab && !NearWater(world, tile, 2))
+            baseList.Sort((a, b) => a.Value.CompareTo(b.Value));
+            if (crab)
             {
-                continue;
+                world.Caches.CrabSlotHomeBaseBuiltVersion = world.TopologyVersion;
             }
+            else
+            {
+                world.Caches.LandSlotHomeBaseBuiltVersion = world.TopologyVersion;
+            }
+        }
+
+        var candidates = world.Caches.SlotCandidatesScratch;
+        candidates.Clear();
+        foreach (var junctionId in baseList)
+        {
+            var tile = world.Junctions.Items[junctionId].Tiles[0];
 
             // §147.3: дом слота дальше радиуса материализации + запас —
             // свежий слот обязан родиться ПРЕВЬЮ, а не сразу живым зверем
@@ -179,34 +210,56 @@ internal static class MobSlots
 
             if (farEnough)
             {
-                candidates.Add(junction.Id);
+                candidates.Add(junctionId);
             }
         }
 
-        candidates.Sort((a, b) => a.Value.CompareTo(b.Value));
         return candidates;
     }
 
     private static List<JunctionId> SwimCandidates(WorldState world)
     {
-        var candidates = new List<JunctionId>(world.SwimJunctions.Count);
-        foreach (var id in world.SwimJunctions)
+        // Swim junctions are worldgen output — the sorted master is built once
+        // per world; each call re-fills the mutable scratch (EnsureSlots
+        // RemoveAt's from it), instead of allocating ~465 KB per medium tick.
+        var master = world.Caches.SwimSlotCandidatesSorted;
+        if (!world.Caches.SwimSlotCandidatesBuilt)
         {
-            candidates.Add(id);
+            master.Clear();
+            foreach (var id in world.SwimJunctions)
+            {
+                master.Add(id);
+            }
+
+            master.Sort((a, b) => a.Value.CompareTo(b.Value));
+            world.Caches.SwimSlotCandidatesBuilt = true;
         }
 
-        candidates.Sort((a, b) => a.Value.CompareTo(b.Value));
+        var candidates = world.Caches.SlotCandidatesScratch;
+        candidates.Clear();
+        candidates.AddRange(master);
         return candidates;
     }
 
     private static bool NearWater(WorldState world, TileCoord tile, int radius)
     {
-        foreach (var pair in world.Tiles.Items)
+        // §147 PERF: the answer is "is any WATER tile within `radius` of this
+        // tile" — walk the 19-coord neighbourhood with dictionary lookups (the
+        // PerceptionSystem ring shape) instead of scanning all 4032 tiles per
+        // junction; the old form also boxed two enums per HasFlag, which alone
+        // was 19.6 GB of garbage on the first BigIsland tick.
+        for (var dq = -radius; dq <= radius; dq++)
         {
-            if (pair.Value.Flags.HasFlag(TileFlags.Water) &&
-                HexSpatialMath.HexDistance(tile, pair.Key) <= radius)
+            var lo = System.Math.Max(-radius, -dq - radius);
+            var hi = System.Math.Min(radius, -dq + radius);
+            for (var dr = lo; dr <= hi; dr++)
             {
-                return true;
+                var coord = new TileCoord(tile.Q + dq, tile.R + dr);
+                if (world.Tiles.Items.TryGetValue(coord, out var state) &&
+                    (state.Flags & TileFlags.Water) != 0)
+                {
+                    return true;
+                }
             }
         }
 
@@ -224,9 +277,16 @@ internal static class MobSlots
         }
 
         var homeTile = home.Tiles.Count > 0 ? home.Tiles[0] : default;
-        var reach = new List<Spatial.Junction> { home };
-        var visited = new HashSet<JunctionId> { home.Id };
-        var queue = new Queue<Spatial.Junction>();
+        // §147 PERF: world-owned scratch — a shortfall tick used to bake up to
+        // target*12 rings, each allocating its own List+HashSet+Queue.
+        var reach = world.Caches.RingReachScratch;
+        reach.Clear();
+        reach.Add(home);
+        var visited = world.Caches.RingVisitedScratch;
+        visited.Clear();
+        visited.Add(home.Id);
+        var queue = world.Caches.RingQueueScratch;
+        queue.Clear();
         queue.Enqueue(home);
         while (queue.Count > 0)
         {
@@ -279,7 +339,7 @@ internal static class MobSlots
             Position = home.WorldPosition,
         });
 
-        var stepCandidates = new List<Spatial.Junction>();
+        var stepCandidates = world.Caches.RingStepScratch;
         for (var i = 1; i < RingWaypoints; i++)
         {
             stepCandidates.Clear();
@@ -432,7 +492,7 @@ internal static class MobSlots
 
     private static bool IsIndoorTile(WorldState world, TileCoord tile) =>
         world.Tiles.Items.TryGetValue(tile, out var state) &&
-        state.Flags.HasFlag(TileFlags.Indoor);
+        (state.Flags & TileFlags.Indoor) != 0;
 }
 
 }

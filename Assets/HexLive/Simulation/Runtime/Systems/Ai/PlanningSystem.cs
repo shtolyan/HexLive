@@ -1063,7 +1063,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 else if (preferBoiled)
                 {
                     var isBoiled = world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var d) &&
-                        d.Tags.Contains("Campfire");
+                        d.HasTag("Campfire");
                     if (selected is null ||
                         (isBoiled && !selectedBoiled) ||
                         (isBoiled == selectedBoiled && perceived.Distance < selected.Distance))
@@ -1788,7 +1788,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         }
 
         return world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) &&
-            definition.Tags.Contains("Campfire") &&
+            definition.HasTag("Campfire") &&
             world.Entities.Objects.TryGetValue(perceived.Id, out var fire) &&
             BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0;
     }
@@ -1992,21 +1992,21 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.GetFood:
                 // §54.14 (r2): cooked meat hanging on the spit is takeable food —
                 // the campfire itself becomes a GetFood target while any hangs.
-                if (definition.Tags.Contains("Campfire"))
+                if (definition.HasTag("Campfire"))
                 {
                     return world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
                         BuildSiteMath.HangingMeat(spitSource, ContentIds.MeatCooked) > 0;
                 }
 
-                return definition.Tags.Contains("Food") &&
-                    (!definition.Tags.Contains("Coconut") || HasCoconutBlade(npc));
+                return definition.HasTag("Food") &&
+                    (!definition.HasTag("Coconut") || HasCoconutBlade(npc));
             case GoalType.GatherWood:
                 // Spec §54: wood on the ground. A stick is always useful (fuel,
                 // slats, crafts). §54.12: a whole LOG only when logs are billed
                 // somewhere (a site's log stage, the raft) or she can split it
                 // into sticks — the bed's stick stage otherwise sent her home
                 // hugging a useless log.
-                if (!definition.Tags.Contains("Wood"))
+                if (!definition.HasTag("Wood"))
                 {
                     return false;
                 }
@@ -2015,7 +2015,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // палку» — часть ночного затвора, снятого вместе с ним. Общее
                 // правило ниже (целое бревно оставить лежать как цель SplitLog)
                 // и было настоящим содержанием этой ветки.
-                if (!definition.Tags.Contains("Log"))
+                if (!definition.HasTag("Log"))
                 {
                     return true;
                 }
@@ -2025,13 +2025,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     WholeLogsWanted(world, npc);
             case GoalType.SplitLog:
                 // Spec §54: split a log lying on the ground into sticks.
-                return definition.Tags.Contains("Log");
+                return definition.HasTag("Log");
             case GoalType.ChopCrown:
                 // Spec §54.2: chop a felled palm crown into loose leaves.
-                return definition.Tags.Contains("PalmCrown");
+                return definition.HasTag("PalmCrown");
             case GoalType.GatherLeaves:
                 // Spec §54.2: pick a scattered palm leaf off the ground.
-                return definition.Tags.Contains("PalmLeaf");
+                return definition.HasTag("PalmLeaf");
             case GoalType.GatherTools:
                 // §54.15: a bottle parked in the collector's vessel slot is
                 // working furniture, not a dropped tool — retrieval is the
@@ -2044,7 +2044,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
                 // Only a tool that ADDS something: a verb the pack can't do
                 // yet or a better weapon — no hoarding capability-duplicates.
-                if (definition.Tags.Contains("Tool") &&
+                if (definition.HasTag("Tool") &&
                     !npc.Inventory.Items.Contains(perceived.DefinitionId) &&
                     Content.GearCatalog.AddsValueOver(
                         npc.Inventory.Items, perceived.DefinitionId, npc.Body.WeaponHands))
@@ -2058,15 +2058,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     stashContainer.Contents.Count > 0 &&
                     InventoryMath.StashHoldsWantedTool(world, npc, stashContainer);
             case GoalType.GatherHerb:
-                return definition.Tags.Contains("Herb");
+                return definition.HasTag("Herb");
             case GoalType.HarvestYucca:
-                return definition.Tags.Contains("Yucca");
+                return definition.HasTag("Yucca");
             case GoalType.GatherFiber:
-                return definition.Tags.Contains("Fiber");
+                return definition.HasTag("Fiber");
             case GoalType.CookMeat:
                 // §54.14 (r2): hanging meat needs a finished spit (stage 3)
                 // with a free hook — any other lit fire won't do.
-                return definition.Tags.Contains("Campfire") &&
+                return definition.HasTag("Campfire") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var spitFire) &&
                     spitFire.ResourceAmount > 0f &&
                     BuildSiteMath.CampfireSpitComplete(spitFire) &&
@@ -2091,34 +2091,34 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.CraftBow:
             case GoalType.CraftArrows:
                 var stationTag = RecipeCatalog.StationOf(goal);
-                return !string.IsNullOrEmpty(stationTag) && definition.Tags.Contains(stationTag);
+                return !string.IsNullOrEmpty(stationTag) && definition.HasTag(stationTag);
             case GoalType.DryClothes:
                 // §35.5B: only a rack with a free hanger slot (capacity 8).
-                return definition.Tags.Contains("Rack") &&
+                return definition.HasTag("Rack") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var rack) &&
                     !ExecutionSystem.RackIsFull(world, rack);
             case GoalType.GatherStone:
-                return definition.Tags.Contains("Stone");
+                return definition.HasTag("Stone");
             case GoalType.HarvestTree:
-                return definition.Tags.Contains("Palm");
+                return definition.HasTag("Palm");
             case GoalType.MineBoulder:
-                return definition.Tags.Contains("Boulder");
+                return definition.HasTag("Boulder");
             case GoalType.Butcher:
                 // Spec §54: an animal carcass any time; a housemate's body only
                 // as a starvation last resort (cannibalism gate).
-                if (definition.Tags.Contains("Carcass"))
+                if (definition.HasTag("Carcass"))
                 {
                     return true;
                 }
 
-                return definition.Tags.Contains("Corpse") &&
+                return definition.HasTag("Corpse") &&
                     SimBalance.CannibalismEnabled &&
                     npc.Needs.Hunger >= SimBalance.CannibalizeHungerGate;
             case GoalType.Build:
                 // Spec §52: the hut anchor only — a furniture site is a separate goal.
                 // §72.13: и только СВОЯ — иначе чужак достраивал бы хижину колонии.
-                return definition.Tags.Contains("BuildSite") &&
-                    !definition.Tags.Contains("FurnitureSite") &&
+                return definition.HasTag("BuildSite") &&
+                    !definition.HasTag("FurnitureSite") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var hutAnchor) &&
                     DecisionSystem.IsOurSite(world, npc, hutAnchor);
             case GoalType.BuildFurniture:
@@ -2138,14 +2138,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // уходили в чужой лагерь, стоило пройти рядом с ним.
                 return queuedBuildSiteId is { } queuedSite &&
                     queuedSite.Equals(perceived.Id) &&
-                    definition.Tags.Contains("FurnitureSite") &&
+                    definition.HasTag("FurnitureSite") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var fsite) &&
                     BuildSiteMath.IsSite(fsite) &&
                     DecisionSystem.IsOurSite(world, npc, fsite) &&
                     (DecisionSystem.CarriesSiteMaterial(npc, fsite) ||
                      BuildSiteMath.IsStocked(fsite));
             case GoalType.BuildRaft:
-                return definition.Tags.Contains("Raft");
+                return definition.HasTag("Raft");
             case GoalType.Mourn:
                 return CorpseMath.IsHumanDead(definition);
             case GoalType.LootCorpse:
@@ -2158,12 +2158,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     CorpseMath.HasLootableSpoils(world, npc, lootAnchor);
             case GoalType.WarmUp:
                 // Spec 42: only a BURNING fire warms — a cold pit is no target.
-                return definition.Tags.Contains("Campfire") &&
+                return definition.HasTag("Campfire") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var pit) &&
                     pit.ResourceAmount > 0f;
             case GoalType.HaulToFire:
                 // Spec §52: the stockpile is the hearth — any campfire, lit or not.
-                return definition.Tags.Contains("Campfire");
+                return definition.HasTag("Campfire");
             case GoalType.GetWater:
                 // Fetch a whole coconut; Drink will put it on the ground and
                 // open it with a blade before sipping. (The collector draw is

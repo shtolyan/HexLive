@@ -112,7 +112,7 @@ public sealed partial class ExecutionSystem
 
         // §133: у гардероба своя ёмкость — считаем по той станции, о которой речь.
         var capacity = world.Content.ObjectDefinitions.TryGetValue(rack.DefinitionId, out var rackDef) &&
-            rackDef.Tags.Contains(ObjectTags.Wardrobe)
+            rackDef.HasTag(ObjectTags.Wardrobe)
             ? Spec133.WardrobeCapacity
             : SimBalance.RackCapacity;
 
@@ -263,7 +263,7 @@ public sealed partial class ExecutionSystem
 
             foreach (var tag in OtherFurnitureTags)
             {
-                if (def.Tags.Contains(tag) && HexSpatialMath.HexDistance(tile, obj.Tile) <= 1)
+                if (def.HasTag(tag) && HexSpatialMath.HexDistance(tile, obj.Tile) <= 1)
                 {
                     return true;
                 }
@@ -424,7 +424,7 @@ public sealed partial class ExecutionSystem
             var item = stash.Contents[i];
             if (npc.Inventory.Items.Contains(item.DefinitionId) ||
                 !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var def) ||
-                !def.Tags.Contains("Tool") ||
+                !def.HasTag("Tool") ||
                 !InventoryMath.MakeRoomFor(world, npc, item.DefinitionId))
             {
                 continue;
@@ -905,7 +905,7 @@ public sealed partial class ExecutionSystem
     }
 
     private static bool IsPortableCoconutDrink(ObjectDefinition definition, InteractionType verb) =>
-        verb == InteractionType.Drink && definition.Tags.Contains("CoconutWater");
+        verb == InteractionType.Drink && definition.HasTag("CoconutWater");
 
     // Spec 29H: drink in place from the carried bottle — thirst quenched,
     // raw water carries the 30 % sickness roll, then the bottle empties.

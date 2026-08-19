@@ -8,7 +8,27 @@ namespace HexLive.Simulation.Debug
 
 public sealed class WorldSnapshot
 {
+    // PERF: what ExportJunctions last saw — the junction Blocked-write stamp
+    // and the world it belonged to. While both match (and no debug flags are
+    // requested) the exporter skips its ~194k-junction sweep entirely: on the
+    // big island that sweep was ~74% of the whole per-tick export. -1 = never
+    // exported, so the first export always sweeps.
+    internal long JunctionsBlockedVersionSeen = -1;
+    internal int JunctionsSeedSeen;
+
+    // PERF: last tick's object records by id, so a reused snapshot re-fills
+    // them in place instead of allocating ~1.3 MB of fresh ObjectSnapshots
+    // (plus their four lists each) every tick. The exporter resets every
+    // computed field on reuse — see the reset block in Export.
+    internal readonly System.Collections.Generic.Dictionary<int, ObjectSnapshot> ObjectPool = new();
+
     public int Tick { get; set; }
+
+    // PERF (Aug-2026): a stamp that changes whenever any junction's Blocked
+    // flag changed since the previous export. Presentation keys its spatial
+    // route index (SnapshotMovementRoute.RouteIndex) on it, so the index is
+    // rebuilt only when a wall/door actually moved — never per tick.
+    public int JunctionsBlockedStamp { get; set; }
 
     // Spec 29C.1: the seed every chance roll mixes. Consumers that used to read
     // WorldState.Seed directly (the history log picks its file by it) get it here

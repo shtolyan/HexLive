@@ -117,7 +117,7 @@ public sealed class EnvironmentSystem : ISimulationSystem
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
-                def.Tags.Contains("Shade"))
+                def.HasTag("Shade"))
             {
                 _shadowExtra.TryGetValue(obj.Tile, out var prior);
                 _shadowExtra[obj.Tile] = System.Math.Max(prior, def.ShadeSteps);

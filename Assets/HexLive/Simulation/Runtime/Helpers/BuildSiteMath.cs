@@ -45,7 +45,7 @@ internal static class BuildSiteMath
         string.IsNullOrEmpty(site.BuildProduct) ||
         !world.Content.ObjectDefinitions.TryGetValue(
             site.BuildProduct, out var definition) ||
-        !definition.Tags.Contains(ObjectTags.HandBuilt);
+        !definition.HasTag(ObjectTags.HandBuilt);
 
     public static int Delivered(WorldObjectState site, string materialId)
     {

@@ -52,7 +52,33 @@ public sealed class Junction
 
     public List<TileCoord> Tiles { get; } = new();
 
-    public bool Blocked { get; set; }
+    // PERF (Aug-2026, BigIsland): a process-wide stamp of the last Blocked
+    // WRITE. The snapshot exporter walks every junction per tick only to
+    // refresh this one flag — 194 557 iterations on the big island, ~74% of
+    // the whole export. Blocked changes rarely (doors, builds, worldgen), so
+    // the exporter skips the sweep while this stamp is unchanged. It lives in
+    // the SETTER, not at the write sites, because a hand-bumped version is a
+    // second place to forget — the exact trap the delta encoder refuses.
+    // Process-wide on purpose: a bump from another world costs one harmless
+    // extra sweep; a missed bump is impossible.
+    public static long BlockedWriteVersion;
+
+    private bool _blocked;
+
+    public bool Blocked
+    {
+        get => _blocked;
+        set
+        {
+            if (_blocked == value)
+            {
+                return;
+            }
+
+            _blocked = value;
+            System.Threading.Interlocked.Increment(ref BlockedWriteVersion);
+        }
+    }
 
     // Spec 35.3: a door throat. Humans may use it only while !Blocked;
     // animals reject Door in either state.

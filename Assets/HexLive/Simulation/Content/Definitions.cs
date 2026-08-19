@@ -32,6 +32,14 @@ public sealed class ObjectDefinition
 
     public List<string> Tags { get; } = new();
 
+    // PERF (Aug-2026): «есть ли тег» спрашивается из горячих циклов ИИ по
+    // ~50 раз на запись восприятия за medium-тик, и линейный List.Contains
+    // был заметной долей DecisionSystem. Set строится лениво при первом
+    // вопросе: Tags заполняется загрузкой контента и после неё не мутирует.
+    private HashSet<string>? _tagSet;
+
+    public bool HasTag(string tag) => (_tagSet ??= new HashSet<string>(Tags)).Contains(tag);
+
     // 0 = no per-NPC limit. A positive value is a content-authored carrying
     // invariant enforced by the shared inventory admission path. This belongs
     // to the item definition rather than AI goal-specific lists: any current

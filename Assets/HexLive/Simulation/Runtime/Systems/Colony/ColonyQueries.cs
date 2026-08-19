@@ -44,7 +44,7 @@ public static class ColonyQueries
         {
             if (obj.Owner is { } owner && owner.Equals(id) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
-                def.Tags.Contains("Bed"))
+                def.HasTag("Bed"))
             {
                 return obj;
             }
@@ -105,7 +105,7 @@ public static class ColonyQueries
         {
             if (obj.ResourceAmount > 0f &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
-                def.Tags.Contains("Campfire") &&
+                def.HasTag("Campfire") &&
                 InCamp(world, obj.Tile, faction))
             {
                 return true;
@@ -123,7 +123,7 @@ public static class ColonyQueries
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
-                def.Tags.Contains("Campfire") &&
+                def.HasTag("Campfire") &&
                 InCamp(world, obj.Tile, faction))
             {
                 return true;

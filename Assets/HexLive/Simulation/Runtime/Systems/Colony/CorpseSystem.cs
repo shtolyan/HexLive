@@ -67,7 +67,7 @@ public sealed class CorpseSystem : ISimulationSystem
             }
 
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                !definition.Tags.Contains(ObjectTags.Decays))
+                !definition.HasTag(ObjectTags.Decays))
             {
                 continue;
             }

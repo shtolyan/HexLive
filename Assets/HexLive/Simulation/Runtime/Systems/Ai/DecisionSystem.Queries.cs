@@ -285,7 +285,7 @@ public sealed partial class DecisionSystem
 
             // §54.14 (r2): cooked meat hanging on the spit counts as reachable
             // food — the fire is the source object, the meat is what's taken.
-            if (definition.Tags.Contains("Campfire"))
+            if (definition.HasTag("Campfire"))
             {
                 if (world.Entities.Objects.TryGetValue(obj.Id, out var fire) &&
                     BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0 &&
@@ -298,12 +298,12 @@ public sealed partial class DecisionSystem
             }
 
             if (!InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) ||
-                !definition.Tags.Contains("Food"))
+                !definition.HasTag("Food"))
             {
                 continue;
             }
 
-            if (definition.Tags.Contains("Coconut") && !hasBlade)
+            if (definition.HasTag("Coconut") && !hasBlade)
             {
                 continue;
             }
@@ -386,7 +386,7 @@ public sealed partial class DecisionSystem
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
                 !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Tags.Contains(tag))
+                definition.HasTag(tag))
             {
                 return true;
             }
@@ -412,7 +412,7 @@ public sealed partial class DecisionSystem
                 !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 HexSpatialMath.HexDistance(obj.Tile, origin) <= radiusTiles &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Tags.Contains(tag))
+                definition.HasTag(tag))
             {
                 return true;
             }
@@ -596,7 +596,7 @@ public sealed partial class DecisionSystem
         {
             if (obj.IsReachable &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Tags.Contains(tag))
+                definition.HasTag(tag))
             {
                 count++;
             }
@@ -619,7 +619,7 @@ public sealed partial class DecisionSystem
         {
             if (known.Junction is { } j &&
                 world.Content.ObjectDefinitions.TryGetValue(known.DefinitionId, out var def) &&
-                def.Tags.Contains(tag) &&
+                def.HasTag(tag) &&
                 (Connectivity.Reachable(
                      world, from, j, PlanningSystem.CanUseRoutineTraversal(npc)) ||
                  Connectivity.ReachableBeside(
@@ -663,7 +663,7 @@ public sealed partial class DecisionSystem
         {
             if (type == InteractionType.Process)
             {
-                var isLightCoconutWork = def.Tags.Contains("Coconut");
+                var isLightCoconutWork = def.HasTag("Coconut");
                 if (!npc.Body.HasUsableHand ||
                     (!isLightCoconutWork && !npc.Body.CanUseToolsOrWeapons))
                 {
@@ -707,7 +707,7 @@ public sealed partial class DecisionSystem
             if (!npc.Inventory.Items.Contains(obj.DefinitionId) &&
                 InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Tags.Contains("Tool") &&
+                definition.HasTag("Tool") &&
                 Content.GearCatalog.AddsValueOver(
                     npc.Inventory.Items, obj.DefinitionId, npc.Body.WeaponHands))
             {
@@ -734,7 +734,7 @@ public sealed partial class DecisionSystem
             if (!obj.IsReachable ||
                 npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                !definition.Tags.Contains("Campfire"))
+                !definition.HasTag("Campfire"))
             {
                 continue;
             }
@@ -762,7 +762,7 @@ public sealed partial class DecisionSystem
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !world.Content.ObjectDefinitions.TryGetValue(
                     perceived.DefinitionId, out var definition) ||
-                !definition.Tags.Contains("Campfire") ||
+                !definition.HasTag("Campfire") ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var fire) ||
                 fire.ResourceAmount <= 0f ||
                 !FoodMath.SpitHasFreeHook(fire))
@@ -1148,12 +1148,12 @@ public sealed partial class DecisionSystem
         if (producer.Produce is not { } produce ||
             !world.Content.ObjectDefinitions.TryGetValue(
                 produce.ProducedDefinitionId, out var product) ||
-            !product.Tags.Contains("Food"))
+            !product.HasTag("Food"))
         {
             return false;
         }
 
-        return !product.Tags.Contains("Coconut") || HasCoconutBlade(npc);
+        return !product.HasTag("Coconut") || HasCoconutBlade(npc);
     }
 
     // §54.15: the nearest finished collector whose parked bottle this NPC may

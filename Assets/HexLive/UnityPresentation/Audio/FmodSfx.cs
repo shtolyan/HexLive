@@ -131,10 +131,16 @@ namespace HexLive.UnityPresentation.Audio
         // должен совпадать с ид-ом. Простая маска "id_*.*" тут ошибается:
         // общий банк эмоции voice_molly_sad проглотил бы и voice_molly_sad_thirst_0
         // (реплику под конкретный повод), и фолбэк перестал бы быть фолбэком.
-        private static string[] ExactGroupFiles(string dir, string id)
+        //
+        // PERF (Aug-2026): группировка — ОДНИМ рекурсивным обходом дерева.
+        // Прежний ExactGroupFiles ходил Directory.GetFiles(AllDirectories) на
+        // КАЖДУЮ из ~376 групп по дереву в ~4300 файлов — заметный кусок
+        // 11-секундного кадра прогрева. Принадлежность группе та же самая:
+        // ид = стем без последнего "_<вариант>".
+        private static Dictionary<string, List<string>> ScanGroups(string dir)
         {
-            var keep = new List<string>();
-            foreach (var file in Directory.GetFiles(dir, id + "_*.*", SearchOption.AllDirectories))
+            var groups = new Dictionary<string, List<string>>();
+            foreach (var file in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
             {
                 if (!IsAudioFile(file))
                 {
@@ -143,13 +149,22 @@ namespace HexLive.UnityPresentation.Audio
 
                 var stem = Path.GetFileNameWithoutExtension(file);
                 var cut = stem.LastIndexOf('_');
-                if (cut == id.Length && stem.StartsWith(id, System.StringComparison.Ordinal))
+                if (cut <= 0)
                 {
-                    keep.Add(file);
+                    continue;
                 }
+
+                var id = stem[..cut];
+                if (!groups.TryGetValue(id, out var list))
+                {
+                    list = new List<string>();
+                    groups[id] = list;
+                }
+
+                list.Add(file);
             }
 
-            return keep.ToArray();
+            return groups;
         }
 
         // Рядом с каждым звуком Unity кладёт "<файл>.meta". Без этого фильтра
@@ -212,6 +227,9 @@ namespace HexLive.UnityPresentation.Audio
                 core.set3DSettings(0f, 1f, 1f);
 
                 var dir = Path.Combine(Application.streamingAssetsPath, "HexLive/Sfx");
+                var groups = Directory.Exists(dir)
+                    ? ScanGroups(dir)
+                    : new Dictionary<string, List<string>>();
 
                 LoadedDefs.Clear();
                 foreach (var (id, def) in Defs)
@@ -221,34 +239,21 @@ namespace HexLive.UnityPresentation.Audio
 
                 // Голосовые банки персонажей — по факту наличия файлов.
                 // §67.10: реплики живут в подпапках Voices/<char>/ (их сотни на
-                // персонажа), поэтому скан РЕКУРСИВНЫЙ. Ид группы по-прежнему
-                // читается из имени файла, путь не важен.
-                if (Directory.Exists(dir))
+                // персонажа). Ид группы по-прежнему читается из имени файла
+                // (группа = стем без варианта), путь не важен.
+                foreach (var groupId in groups.Keys)
                 {
-                    foreach (var file in Directory.GetFiles(dir, "voice_*", SearchOption.AllDirectories))
+                    if (groupId == "voice" ||
+                        groupId.StartsWith("voice_", System.StringComparison.Ordinal))
                     {
-                        // Только настоящие звуки: ".wav.meta" дал бы группу
-                        // "voice_<char>_<группа>_0.wav" — мусорный ид.
-                        if (!IsAudioFile(file))
-                        {
-                            continue;
-                        }
-
-                        var stem = Path.GetFileNameWithoutExtension(file);
-                        var cut = stem.LastIndexOf('_');
-                        if (cut <= 0)
-                        {
-                            continue;
-                        }
-
-                        LoadedDefs.TryAdd(stem[..cut], VoiceDef);
+                        LoadedDefs.TryAdd(groupId, VoiceDef);
                     }
                 }
 
                 foreach (var (id, def) in LoadedDefs)
                 {
-                    var files = Directory.Exists(dir)
-                        ? ExactGroupFiles(dir, id)
+                    var files = groups.TryGetValue(id, out var groupFiles)
+                        ? groupFiles.ToArray()
                         : System.Array.Empty<string>();
                     System.Array.Sort(files);
                     var list = new List<FMOD.Sound>(files.Length);

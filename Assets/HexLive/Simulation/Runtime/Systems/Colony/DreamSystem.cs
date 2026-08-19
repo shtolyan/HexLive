@@ -109,7 +109,7 @@ public sealed class DreamSystem : ISimulationSystem
                 continue;
             }
 
-            if (!def.Tags.Contains("Bed"))
+            if (!def.HasTag("Bed"))
             {
                 continue;
             }

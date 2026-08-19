@@ -280,7 +280,7 @@ public static class CraftingOptions
             if (!station.Fragment.Equals(npc.Fragment) ||
                 !world.Content.ObjectDefinitions.TryGetValue(
                     station.DefinitionId, out var definition) ||
-                !definition.Tags.Contains(recipe.Station) ||
+                !definition.HasTag(recipe.Station) ||
                 station.Junctions.Count == 0 ||
                 !StationReachable(world, npc, station))
             {

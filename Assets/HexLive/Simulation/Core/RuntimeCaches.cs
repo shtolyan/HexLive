@@ -114,6 +114,57 @@ public sealed class RuntimeCaches
     public List<(JunctionId Junction, float Distance)> CoolingCandidatesScratch { get; } = new();
 
     public HashSet<JunctionId> VoluntaryWaterDoorAvoidScratch { get; } = new();
+
+    // §147 PERF (Aug-2026, BigIsland): slot-home candidates. The naive build
+    // scanned all ~194k junctions — and for crabs ran a per-junction NearWater
+    // that itself scanned all 4032 tiles with a boxing HasFlag: 8.9 s and
+    // 19.6 GB of garbage on the FIRST medium tick, repeated in full by every
+    // Rehome after a crab death. The static part of the filter (blocked /
+    // indoor / all-water / near-water) is topology, so it is cached here and
+    // keyed on TopologyVersion like MobForbiddenJunctions above; the dynamic
+    // part (distance to NPCs and camps) is applied per call into the scratch.
+    public List<JunctionId> CrabSlotHomeBase { get; } = new();
+
+    public int CrabSlotHomeBaseBuiltVersion { get; set; } = -1;
+
+    public List<JunctionId> LandSlotHomeBase { get; } = new();
+
+    public int LandSlotHomeBaseBuiltVersion { get; set; } = -1;
+
+    // Swim junctions are pure worldgen output — built once per world.
+    public List<JunctionId> SwimSlotCandidatesSorted { get; } = new();
+
+    public bool SwimSlotCandidatesBuilt { get; set; }
+
+    // The per-call candidate list EnsureSlots mutates (RemoveAt): reused, not
+    // reallocated — for sharks it was a fresh ~465 KB list EVERY medium tick.
+    public List<JunctionId> SlotCandidatesScratch { get; } = new();
+
+    // PERF (Aug-2026): позиции джанкшенов — вывод worldgen и не меняются;
+    // сетка ячеек для FindNearestJunction строится один раз на мир. Старый
+    // линейный проход по всем ~194k узлам оказался одним из самых горячих
+    // мест скоринга ИИ (ExploreRejectionFor и промахи кэша CurrentJunction).
+    public Dictionary<long, List<JunctionId>> JunctionPosGrid { get; } = new();
+
+    public bool JunctionPosGridBuilt { get; set; }
+
+    public int JunctionGridMinX { get; set; }
+
+    public int JunctionGridMaxX { get; set; }
+
+    public int JunctionGridMinY { get; set; }
+
+    public int JunctionGridMaxY { get; set; }
+
+    // BakeRing BFS scratch — a ring bake allocated a List+HashSet+Queue per
+    // attempt (×144 on a shortfall tick). World-owned, same reason as above.
+    public List<HexLive.Simulation.Spatial.Junction> RingReachScratch { get; } = new();
+
+    public HashSet<JunctionId> RingVisitedScratch { get; } = new();
+
+    public Queue<HexLive.Simulation.Spatial.Junction> RingQueueScratch { get; } = new();
+
+    public List<HexLive.Simulation.Spatial.Junction> RingStepScratch { get; } = new();
 }
 
 }

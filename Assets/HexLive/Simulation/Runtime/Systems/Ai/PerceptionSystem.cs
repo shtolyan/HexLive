@@ -23,6 +23,9 @@ public sealed class PerceptionSystem : ISimulationSystem
 
     private readonly System.Collections.Generic.List<ObjectId> _forgottenScratch = new();
 
+    // §27.18A r2: скратч вытеснения по потолку памяти.
+    private readonly System.Collections.Generic.List<(int LastSeen, ObjectId Id)> _evictScratch = new();
+
     // Живой скан идёт по гекс-кольцу через ObjectsByTile, а не по всем
     // объектам острова: кольцо радиуса r — это 1+3r(r+1) тайлов (37 при r=3)
     // против ~2 300 проверок дистанции на карте 16x. Порядок обхода фиксируем
@@ -112,18 +115,23 @@ public sealed class PerceptionSystem : ISimulationSystem
                     Connectivity.ReachableBeside(world, npcJunction.Value, objJunction.Value,
                         npc.Body.CanJump, obj);
 
-                var perceived = new PerceivedObject
+                // PERF: пул, как AgentPool — запись переживает тик, поэтому
+                // переустанавливается КАЖДОЕ поле.
+                if (!npc.Perception.LiveObjectPool.TryGetValue(obj.Id, out var perceived))
                 {
-                    Id = obj.Id,
-                    DefinitionId = obj.DefinitionId,
-                    FromMemory = false,
-                    Tile = obj.Tile,
-                    Distance = distance,
-                    IsReachable = isReachable,
-                    IsOccupied = obj.IsOccupied,
-                    OccupiedBy = obj.CurrentUser
-                };
+                    perceived = new PerceivedObject();
+                    npc.Perception.LiveObjectPool[obj.Id] = perceived;
+                }
 
+                perceived.Id = obj.Id;
+                perceived.DefinitionId = obj.DefinitionId;
+                perceived.FromMemory = false;
+                perceived.Tile = obj.Tile;
+                perceived.Distance = distance;
+                perceived.IsReachable = isReachable;
+                perceived.IsOccupied = obj.IsOccupied;
+                perceived.OccupiedBy = obj.CurrentUser;
+                perceived.AvailableInteractions.Clear();
                 foreach (var interaction in definition.Interactions)
                 {
                     perceived.AvailableInteractions.Add(interaction.Type);
@@ -141,8 +149,18 @@ public sealed class PerceptionSystem : ISimulationSystem
                 }
 
                 record.DefinitionId = obj.DefinitionId;
-                record.Tile = obj.Tile;
-                record.Junction = objJunction;
+                // Смена тайла/джанкшена у знакомого объекта (подняли и
+                // переложили) бампает версию памяти: вид памяти ключуется ею
+                // и обязан пересобраться, чтобы отдать свежую точку — раньше
+                // это делал за него пересбор на каждый шаг наблюдательницы.
+                if (!record.Tile.Equals(obj.Tile) ||
+                    !NullableJunctionsEqual(record.Junction, objJunction))
+                {
+                    record.Tile = obj.Tile;
+                    record.Junction = objJunction;
+                    npc.Memory.Version++;
+                }
+
                 record.LastSeenTick = world.Tick;
             }
 
@@ -177,6 +195,43 @@ public sealed class PerceptionSystem : ISimulationSystem
                 npc.Memory.Version++;
             }
 
+            // §27.18A r2: потолок непостоянной памяти — самые давние по
+            // LastSeenTick вытесняются (лагерные IsPermanent не считаются и
+            // не вытесняются). Тай-брейк по id — детерминизм соаков.
+            var mortalCount = 0;
+            foreach (var record in npc.Memory.KnownObjects.Values)
+            {
+                if (!record.IsPermanent)
+                {
+                    mortalCount++;
+                }
+            }
+
+            if (mortalCount > AiBalance.MaxKnownObjects)
+            {
+                _evictScratch.Clear();
+                foreach (var record in npc.Memory.KnownObjects.Values)
+                {
+                    if (!record.IsPermanent)
+                    {
+                        _evictScratch.Add((record.LastSeenTick, record.Id));
+                    }
+                }
+
+                _evictScratch.Sort(static (a, b) =>
+                    a.LastSeen != b.LastSeen
+                        ? a.LastSeen.CompareTo(b.LastSeen)
+                        : a.Id.Value.CompareTo(b.Id.Value));
+                var evict = mortalCount - AiBalance.MaxKnownObjects;
+                for (var i = 0; i < evict; i++)
+                {
+                    npc.Memory.KnownObjects.Remove(_evictScratch[i].Id);
+                    npc.Memory.Version++;
+                    if (SimTrace.Enabled) Trace.Debug(world, npc.Id, "MemoryForgotten",
+                        $"Obj={_evictScratch[i].Id.Value} Evicted (memory cap)");
+                }
+            }
+
             // §22.7: remembered-but-unseen objects join the perceived list
             // flagged FromMemory — through a cached view. ReachableBeside is a
             // component-id comparison, so for a fixed topology its answers can
@@ -189,20 +244,18 @@ public sealed class PerceptionSystem : ISimulationSystem
                 : int.MinValue;
             var view = npc.Perception;
             if (!view.MemoryViewBuilt ||
-                !view.MemoryViewTile.Equals(npc.Tile) ||
                 view.MemoryViewComponent != component ||
                 view.MemoryViewTopology != world.TopologyVersion ||
                 view.MemoryViewMemoryVersion != npc.Memory.Version ||
                 view.MemoryViewCanJump != canJump)
             {
+                // PERF: тайла NPC в ключе больше нет — вид строится по ВСЕЙ
+                // памяти, а «в поле зрения — берёт живой глаз» проверяется в
+                // точке потребления ниже. Так идущая девушка не пересобирает
+                // ~1100 записей каждым шагом.
                 view.MemoryView.Clear();
                 foreach (var record in npc.Memory.KnownObjects.Values)
                 {
-                    if (HexSpatialMath.HexDistance(npc.Tile, record.Tile) <= PerceptionRadiusTiles)
-                    {
-                        continue; // live entry already covers it
-                    }
-
                     if (!world.Content.ObjectDefinitions.TryGetValue(record.DefinitionId, out var definition))
                     {
                         continue;
@@ -217,17 +270,21 @@ public sealed class PerceptionSystem : ISimulationSystem
                         Connectivity.ReachableBeside(world, npcJunction.Value, record.Junction.Value,
                             canJump, liveRemembered);
 
-                    var remembered = new PerceivedObject
+                    // PERF: пул, как AgentPool — каждое поле переустанавливается.
+                    if (!view.MemoryObjectPool.TryGetValue(record.Id, out var remembered))
                     {
-                        Id = record.Id,
-                        DefinitionId = record.DefinitionId,
-                        FromMemory = true,
-                        Tile = record.Tile,
-                        IsReachable = isReachable,
-                        IsOccupied = false, // assumed free until seen (spec 27.18A)
-                        OccupiedBy = null
-                    };
+                        remembered = new PerceivedObject();
+                        view.MemoryObjectPool[record.Id] = remembered;
+                    }
 
+                    remembered.Id = record.Id;
+                    remembered.DefinitionId = record.DefinitionId;
+                    remembered.FromMemory = true;
+                    remembered.Tile = record.Tile;
+                    remembered.IsReachable = isReachable;
+                    remembered.IsOccupied = false; // assumed free until seen (spec 27.18A)
+                    remembered.OccupiedBy = null;
+                    remembered.AvailableInteractions.Clear();
                     foreach (var interaction in definition.Interactions)
                     {
                         remembered.AvailableInteractions.Add(interaction.Type);
@@ -237,7 +294,6 @@ public sealed class PerceptionSystem : ISimulationSystem
                 }
 
                 view.MemoryViewBuilt = true;
-                view.MemoryViewTile = npc.Tile;
                 view.MemoryViewComponent = component;
                 view.MemoryViewTopology = world.TopologyVersion;
                 view.MemoryViewMemoryVersion = npc.Memory.Version;
@@ -246,6 +302,11 @@ public sealed class PerceptionSystem : ISimulationSystem
 
             foreach (var remembered in view.MemoryView)
             {
+                if (HexSpatialMath.HexDistance(npc.Tile, remembered.Tile) <= PerceptionRadiusTiles)
+                {
+                    continue; // live entry already covers it
+                }
+
                 remembered.Distance = HexSpatialMath.Distance(
                     npc.Position, HexSpatialMath.TileToWorld(remembered.Tile));
                 npc.Perception.Objects.Add(remembered);
@@ -363,16 +424,18 @@ public sealed class PerceptionSystem : ISimulationSystem
             npc.Perception.Environment.IsCrowded = allies > 1;
             npc.Perception.Environment.IsPrivate = allies <= 0;
 
-            var reachableCount = 0;
-            var occupiedCount = 0;
-            foreach (var obj in npc.Perception.Objects)
-            {
-                if (obj.IsReachable) reachableCount++;
-                if (obj.IsOccupied) occupiedCount++;
-            }
-
             if (SimTrace.Enabled)
             {
+                // Счётчики нужны только строке трейса — не считаются молча.
+                var reachableCount = 0;
+                var occupiedCount = 0;
+                foreach (var obj in npc.Perception.Objects)
+                {
+                    if (obj.IsReachable) reachableCount++;
+                    if (obj.IsOccupied) occupiedCount++;
+                }
+
+                // Гейт — SimTrace.Enabled блоком выше.
                 Trace.Debug(world, npc.Id, "PerceptionUpdated",
                 $"Objects={npc.Perception.Objects.Count} Reachable={reachableCount} Occupied={occupiedCount} " +
                 $"Needs=[{Trace.FormatNeeds(npc.Needs)}] Tile={npc.Tile.Q},{npc.Tile.R} " +
@@ -572,6 +635,9 @@ public sealed class PerceptionSystem : ISimulationSystem
 
         into.Sort(static (a, b) => a.Value.CompareTo(b.Value));
     }
+
+    private static bool NullableJunctionsEqual(JunctionId? a, JunctionId? b) =>
+        a.HasValue == b.HasValue && (!a.HasValue || a.Value.Equals(b.Value));
 
     private static JunctionId? ResolveCurrentJunction(WorldState world, NPCState npc)
     {

@@ -145,7 +145,7 @@ public static class WorldObjectMutations
             definition = productDefinition;
         }
 
-        if (!definition.Tags.Contains("Obstacle"))
+        if (!definition.HasTag("Obstacle"))
         {
             return;
         }

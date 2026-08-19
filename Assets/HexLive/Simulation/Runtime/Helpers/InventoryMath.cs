@@ -299,7 +299,7 @@ internal static class InventoryMath
             }
 
             if (world.Content.ObjectDefinitions.TryGetValue(stashed.DefinitionId, out var def) &&
-                def.Tags.Contains("Tool") &&
+                def.HasTag("Tool") &&
                 // §133: тот же счёт рук, что и на всех остальных путях к
                 // инструменту (WeaponHands, не IntactHands) — иначе у калеки
                 // заначка и земля отвечали по-разному на один вопрос.
@@ -446,7 +446,7 @@ internal static class InventoryMath
         WorldState world, NPCState npc, string definitionId) =>
         !npc.Inventory.Items.Contains(definitionId) &&
         world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
-        definition.Tags.Contains("Tool") &&
+        definition.HasTag("Tool") &&
         Content.GearCatalog.AddsValueOver(
             npc.Inventory.Items, definitionId, npc.Body.WeaponHands);
 

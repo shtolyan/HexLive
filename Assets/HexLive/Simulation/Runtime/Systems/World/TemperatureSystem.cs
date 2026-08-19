@@ -387,7 +387,7 @@ public sealed class TemperatureSystem : ISimulationSystem
                     if (!world.Entities.Objects.TryGetValue(objectId, out var obj) ||
                         obj.ResourceAmount <= 0f ||
                         !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                        !definition.Tags.Contains("Campfire"))
+                        !definition.HasTag("Campfire"))
                     {
                         continue;
                     }

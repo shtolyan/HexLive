@@ -83,7 +83,7 @@ internal static class FoodMath
     public static float ProspectiveNutrition(WorldState world, string definitionId, bool fireUsable)
     {
         if (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
-            definition.Tags.Contains("Campfire"))
+            definition.HasTag("Campfire"))
         {
             return SimBalance.CookedMeatHunger;
         }

@@ -120,7 +120,7 @@ public sealed class WorldStateFactory
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Tags.Contains("Campfire"))
+                definition.HasTag("Campfire"))
             {
                 obj.ResourceAmount = 0f;
             }
@@ -577,17 +577,21 @@ public sealed class WorldStateFactory
         }
     }
 
-    // Everyone starts knowing the island's wilderness — the palms, the boulders,
-    // the deadfall. §72: what they do NOT start knowing is the inside of someone
-    // else's camp. Without that gate the outsider walks off the boat with a
-    // permanent map of the girls' hearth, beds and stores.
+    // §27.18A r2 (решение игрока, Aug-2026): с рождения она знает ТОЛЬКО СВОЙ
+    // ЛАГЕРЬ — очаг, кровати, запасы. Дикий мир (пальмы, валуны, плавник)
+    // больше не сеется: его открывает восприятие §125 и держит ограниченная
+    // память с забыванием. Прежнее «все знают весь остров» было и всезнанием
+    // (на 6× острове — карта в ~1100 объектов у каждой с тика 0), и
+    // множителем цены каждого прохода ИИ: Perception.Objects — это память,
+    // и все ~50 предикатных сканов скоринга ходили по всему острову.
+    // §72-гейт «чужой лагерь не сеется» сохранён внутри нового правила.
     private static void SeedHomeKnowledge(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
             foreach (var obj in world.Entities.Objects.Values)
             {
-                if (CampOwnerOf(world, obj.Tile) is { } campOwner && campOwner != npc.Faction)
+                if (CampOwnerOf(world, obj.Tile) is not { } campOwner || campOwner != npc.Faction)
                 {
                     continue;
                 }

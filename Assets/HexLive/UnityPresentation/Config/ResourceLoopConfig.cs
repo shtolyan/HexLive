@@ -122,5 +122,11 @@ namespace HexLive.UnityPresentation.Config
         [Range(300, 24000)] public int meatRawSpoilTicks = 12000;
         [Tooltip("Жареное мясо держится дольше (жарка = консервация).")]
         [Range(300, 24000)] public int meatCookedSpoilTicks = 20000;
+
+        [Header("Валка под стройку (§146.8 / §54.2 r2)")]
+        [Tooltip("§146.8: пока пальм в мире БОЛЬШЕ этого порога, стройку можно кормить деревом; у порога валка под билл останавливается. 0 = выключено.")]
+        [Range(0, 200)] public int fellForBuildPalmFloor = 30;
+        [Tooltip("§54.2 r2: пока на острове лежит столько крон+листьев, новое дерево не пилят («сначала собери, что лежит»).")]
+        [Range(0, 100)] public int looseHarvestBacklog = 8;
     }
 }

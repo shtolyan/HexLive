@@ -64,7 +64,7 @@ public static class StowMath
 
             // Дом важнее двора: гардероб выигрывает у сушилки, даже если сушилка
             // ближе (прямое решение игрока — «если есть дом, раздеваться дома»).
-            var rank = def.Tags.Contains(ObjectTags.Wardrobe) ? 0
+            var rank = def.HasTag(ObjectTags.Wardrobe) ? 0
                 : obj.DefinitionId == ContentIds.DryingRack ? 1
                 : -1;
             if (rank < 0 || ExecutionSystem.RackIsFull(world, obj) ||
@@ -125,7 +125,7 @@ public static class StowMath
                 continue;
             }
 
-            var rank = def.Tags.Contains(ObjectTags.Wardrobe) ? 0
+            var rank = def.HasTag(ObjectTags.Wardrobe) ? 0
                 : obj.DefinitionId == ContentIds.DryingRack ? 1
                 : -1;
             if (rank < 0 || rank >= bestRank || ExecutionSystem.RackIsFull(world, obj))

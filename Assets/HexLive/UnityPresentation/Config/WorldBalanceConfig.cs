@@ -105,5 +105,40 @@ namespace HexLive.UnityPresentation.Config
         [Header("Акулы")]
         [Tooltip("Максимум акул одновременно.")]
         [Range(0, 6)] public int maxSharks = 2;
+
+        // §146/§147: ручки, добавленные кодом раньше зеркала, — долг покрытия,
+        // который блокировал экспорт SimData (Aug-2026). Дефолты = значения
+        // из кода на момент добавления.
+        [Header("Режимы мира (§146)")]
+        [Tooltip("§146.6: потолок всех живых NPC на большом острове.")]
+        [Range(0, 60)] public int bigIslandMaxLivingNpcs = 24;
+        [Tooltip("§146.6: потолок живых в одном лагере на большом острове.")]
+        [Range(0, 20)] public int bigIslandMaxCampNpcs = 6;
+        [Tooltip("§35.5: множитель естественной сушки ОДЕЖДЫ (мир без костра/солнца).")]
+        [Range(0f, 1f)] public float clothingNaturalDryMultiplier = 0.1f;
+
+        [Header("Виртуальные мобы — слоты-патрули (§147)")]
+        [Tooltip("§147: слоты волков в обычном режиме (Feud). 0 = слоты выключены, работает старый амбиентный спавнер.")]
+        [Range(0, 30)] public int wolfSlots = 2;
+        [Tooltip("§147: слоты крабов в обычном режиме.")]
+        [Range(0, 60)] public int crabSlots = 4;
+        [Tooltip("§147: слоты акул в обычном режиме.")]
+        [Range(0, 30)] public int sharkSlots = 2;
+        [Tooltip("§146.7: слоты волков на большом острове.")]
+        [Range(0, 30)] public int bigIslandWolfSlots = 12;
+        [Tooltip("§146.7: слоты крабов на большом острове.")]
+        [Range(0, 60)] public int bigIslandCrabSlots = 24;
+        [Tooltip("§146.7: слоты акул на большом острове.")]
+        [Range(0, 30)] public int bigIslandSharkSlots = 12;
+        [Tooltip("§147.3: радиус материализации зверя из превью, тайлы от ближайшей девушки.")]
+        [Range(1, 20)] public int mobMaterializeRadiusTiles = 8;
+        [Tooltip("§147.3: радиус материализации краба, тайлы.")]
+        [Range(1, 20)] public int crabMaterializeRadiusTiles = 5;
+        [Tooltip("§147.1: радиус патрульного кольца слота от его дома, тайлы.")]
+        [Range(1, 12)] public int mobPatrolRadiusTiles = 3;
+        [Tooltip("§147.2: длительность одного сегмента прогулки превью, тики.")]
+        [Range(2, 60)] public int mobPreviewSegmentTicks = 12;
+        [Tooltip("§147.2: шанс паузы (стоит, нюхает) вместо шага на сегменте превью.")]
+        [Range(0f, 1f)] public float mobPreviewPauseChance = 0.45f;
     }
 }

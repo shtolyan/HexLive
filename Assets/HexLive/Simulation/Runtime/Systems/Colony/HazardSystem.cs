@@ -41,7 +41,7 @@ public sealed class HazardSystem : ISimulationSystem
             {
                 if (world.Entities.Objects.TryGetValue(objId, out var obj) &&
                     world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
-                    def.Tags.Contains("Hazard"))
+                    def.HasTag("Hazard"))
                 {
                     onHazard = true;
                     break;

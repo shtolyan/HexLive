@@ -29,17 +29,83 @@ public sealed partial class PlanningSystem
         Unreachable
     }
 
+    // PERF (Aug-2026, BigIsland): кандидат Explore по определению лежит в
+    // полосе дистанций ≤12 тайлов от неё (см. ExploreRejectionFor), а обе
+    // точки входа обходили ВСЕ ~194k джанкшенов острова — 57% всей цены
+    // ScoreGoals. Кольцо собирается через Tile.Junctions; junction.Tiles[0]
+    // отстоит от любого своего тайла не больше чем на 1, поэтому радиус
+    // сбора = 12+1. Сортировка по id воспроизводит прежний порядок обхода
+    // словаря (worldgen кладёт джанкшены по возрастанию id и не удаляет их),
+    // так что сидированный выбор в BuildExplorePlan остаётся бит-в-бит тем же.
+    private static readonly System.Collections.Generic.HashSet<JunctionId> _exploreSeenScratch = new();
+
+    private static readonly System.Collections.Generic.List<Junction> _exploreRingScratch = new();
+
+    private const int ExploreRingCollectRadius = 13;
+
+    private static void CollectExploreRing(
+        WorldState world, NPCState npc,
+        System.Collections.Generic.List<Junction> into)
+    {
+        into.Clear();
+        _exploreSeenScratch.Clear();
+        for (var dq = -ExploreRingCollectRadius; dq <= ExploreRingCollectRadius; dq++)
+        {
+            var lo = System.Math.Max(-ExploreRingCollectRadius, -dq - ExploreRingCollectRadius);
+            var hi = System.Math.Min(ExploreRingCollectRadius, -dq + ExploreRingCollectRadius);
+            for (var dr = lo; dr <= hi; dr++)
+            {
+                var coord = new TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
+                if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+                {
+                    continue;
+                }
+
+                foreach (var junctionId in tile.Junctions)
+                {
+                    if (_exploreSeenScratch.Add(junctionId) &&
+                        world.Junctions.Items.TryGetValue(junctionId, out var junction))
+                    {
+                        into.Add(junction);
+                    }
+                }
+            }
+        }
+
+        into.Sort(static (a, b) => a.Id.Value.CompareTo(b.Id.Value));
+    }
+
     /// <summary>One source of truth for the Explore auction and planner.
     /// An exploration bid is invalid when there is no junction the same
     /// planner could actually use; bidding first and discovering that only
     /// after selection produced a permanent Explore/PlanFailed loop.</summary>
     internal static bool HasExploreCandidate(WorldState world, NPCState npc)
     {
-        foreach (var junction in world.Junctions.Items.Values)
+        // Булевому вопросу не нужны ни дедуп, ни сортировка (суб-сетка — это
+        // ~48 узлов НА ТАЙЛ, кольцо радиуса 13 — ~26k узлов; собирать и
+        // сортировать их ради «есть ли хоть один» стоило ~5 мс на вызов).
+        // Обходим тайлы кольца и отвечаем на первом же годном узле; узел,
+        // повторившийся у соседнего тайла, просто отвергнется ещё раз.
+        for (var dq = -ExploreRingCollectRadius; dq <= ExploreRingCollectRadius; dq++)
         {
-            if (ExploreRejectionFor(world, npc, junction) == ExploreRejection.None)
+            var lo = System.Math.Max(-ExploreRingCollectRadius, -dq - ExploreRingCollectRadius);
+            var hi = System.Math.Min(ExploreRingCollectRadius, -dq + ExploreRingCollectRadius);
+            for (var dr = lo; dr <= hi; dr++)
             {
-                return true;
+                var coord = new TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
+                if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+                {
+                    continue;
+                }
+
+                foreach (var junctionId in tile.Junctions)
+                {
+                    if (world.Junctions.Items.TryGetValue(junctionId, out var junction) &&
+                        ExploreRejectionFor(world, npc, junction) == ExploreRejection.None)
+                    {
+                        return true;
+                    }
+                }
             }
         }
 
@@ -213,8 +279,12 @@ public sealed partial class PlanningSystem
 
     private void BuildExplorePlan(WorldState world, NPCState npc)
     {
+        // PERF: то же кольцо, что в HasExploreCandidate; порядок (по id)
+        // совпадает со старым словарным, так что сидированный pick ниже
+        // выбирает ту же точку.
+        CollectExploreRing(world, npc, _exploreRingScratch);
         _exploreCandidates.Clear();
-        foreach (var junction in world.Junctions.Items.Values)
+        foreach (var junction in _exploreRingScratch)
         {
             if (IsExploreCandidate(world, npc, junction))
             {

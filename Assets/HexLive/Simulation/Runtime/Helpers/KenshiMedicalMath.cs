@@ -273,6 +273,15 @@ internal static class KenshiMedicalMath
         }
     }
 
+    // §118.8: the fed positive-bar regen (NeedsDecaySystem) rides the same
+    // rest ladder as blunt/cut/critical recovery, so "a bed heals twice as
+    // fast" is one statement about the whole body, not three.
+    internal static float RestHealMultiplier(WorldState world, NPCState npc)
+    {
+        RestFactors(world, npc, out var heal, out _);
+        return heal;
+    }
+
     private static void RestFactors(
         WorldState world, NPCState npc, out float heal, out float degeneration)
     {
@@ -292,7 +301,12 @@ internal static class KenshiMedicalMath
             return;
         }
 
-        if (bed.DefinitionId == ContentIds.BedBasic)
+        // §118.8: кровать в игре ОДНА — bed.basic; bed.leaf и building.hut_bed
+        // существуют только как read-only алиасы старых сейвов, и загрузчик
+        // (WorldSaveSerializer) переписывает их в bed.basic до первого тика.
+        // Сравниваем через Canonicalize — защита на случай, если алиас всё же
+        // просочится в живой мир, а не признак второй кровати.
+        if (ContentIds.Canonicalize(bed.DefinitionId) == ContentIds.BedBasic)
         {
             heal = Spec118.BasicBedHealMultiplier;
             degeneration = Spec118.BasicBedDegenerationMultiplier;

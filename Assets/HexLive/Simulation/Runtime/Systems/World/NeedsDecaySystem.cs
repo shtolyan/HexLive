@@ -1075,12 +1075,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // so a couple of coconuts never insta-heals a mauling.
             else if (npc.Health < 1f && npc.Needs.Hunger < SimBalance.HealHungerGate)
             {
-                // §45 r5: regen 0.0018 -> 0.0030 (~0.45 per 150 slow ticks) and the gate
-                // eased 0.5 -> 0.6 — the long-run colony hovers at hunger
-                // ~0.5-0.6, so the old gate barely ever opened and bodies
-                // never recovered between sickness/cold/hunger episodes;
-                // every r5-baseline death was a body ground down over days
-                // 15-24 with no regen in between. Still days, not hours.
+                // §45 r5: the gate eased 0.5 -> 0.6 — the long-run colony
+                // hovers at hunger ~0.5-0.6, so the old gate barely ever
+                // opened and bodies never recovered between sickness/cold/
+                // hunger episodes.
+                // §118.8: the rate itself is day-scale now (1/3000 of a part
+                // per slow tick) and rides the SAME rest ladder as the §118
+                // recovery channels — a bed doubles it, standing does not.
+                var restMultiplier = KenshiMedicalMath.RestHealMultiplier(world, npc);
                 foreach (var part in AllBodyParts)
                 {
                     if (npc.Body.IsSevered(part)) continue; // §50: severed zones never regen
@@ -1096,7 +1098,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         // back, grit only decides how quickly she gets there.
                         npc.Body.Parts[part] = System.Math.Min(ceiling,
                             npc.Body.Parts[part] +
-                            SimBalance.HealthRegenPerTick * AttributeMath.HealRateMult(npc));
+                            SimBalance.HealthRegenPerTick * restMultiplier *
+                            AttributeMath.HealRateMult(npc));
                     }
 
                     // Spec 44: the dressing (leaf wrap or gauze) comes off once

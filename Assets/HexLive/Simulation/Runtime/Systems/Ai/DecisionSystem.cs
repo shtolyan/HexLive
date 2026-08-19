@@ -306,6 +306,25 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var sleepUrgencyBoost =
                 Spec49.DeadTiredSeek && npc.Needs.Energy < Spec49.DeadTiredEnergy
                     ? Spec49.DeadTiredSleepBoost : 0f;
+            // ⭐ §118.8: разбитое тело — повод лечь независимо от энергии. Ниже
+            // WoundedRestEnterHealth ставка сна несёт свой буст (база 1−Energy
+            // у выспавшейся раненой — ноль, без буста она бы никогда не легла)
+            // и sleepAvail (ниже) открывается без порога усталости. Голод,
+            // жажда и опасность по-прежнему сильнее: буст ниже StarvingBoost,
+            // а прерыватель сна не даёт лечь, когда надо есть или бежать.
+            // Гистерезис действует и ЗДЕСЬ: уже лежащая держит буст до порога
+            // подъёма (ExitHealth), иначе в зоне 0.5–0.75 досуг перебивал бы
+            // ставку сна и выдёргивал её из кровати мимо ShouldKeepSleeping.
+            var lyingAsleep = npc.Execution.Status == ExecutionStatus.InProgress &&
+                npc.Execution.CurrentInteraction == InteractionType.Sleep;
+            var woundedRest = lyingAsleep
+                ? WoundedRestMath.ShouldKeepLying(npc)
+                : WoundedRestMath.NeedsRest(npc);
+            if (woundedRest)
+            {
+                sleepUrgencyBoost = System.Math.Max(
+                    sleepUrgencyBoost, Spec118.WoundedRestSleepBoost);
+            }
 
             // Spec 28.15C: discovering a body triggers grief on sight.
             foreach (var perceived in npc.Perception.Objects)
@@ -462,8 +481,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // топливный гейт мог запретить сон, пока где-то лежит подбираемая
             // палка, — «иди сначала натаскай дров» это не то, что делает
             // человек, который валится с ног.
+            // §118.8: отлёживание открывает сон и при полной энергии.
             var sleepAvail =
-                npc.Needs.Energy < TraitMath.EffectiveSleepThreshold(npc) &&
+                (npc.Needs.Energy < TraitMath.EffectiveSleepThreshold(npc) ||
+                 woundedRest) &&
                 !ExecutionSystem.HasSleepInterrupt(world, npc) &&
                 PlanningSystem.HasSleepSurface(world, npc);
             // Spec 31C.7A: sit because you need it — and never settle into a

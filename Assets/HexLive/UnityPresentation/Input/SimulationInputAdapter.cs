@@ -63,6 +63,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// <summary>Кем сейчас управляет игрок, или -1.</summary>
     public int ManualNpcId { get; private set; } = -1;
 
+    /// <summary>
+    /// Единственная выделенная живая колонистка — исполнительница приказов из
+    /// контекстного меню, НЕЗАВИСИМО от тумблера 🎮: приказ сам берёт
+    /// управление (см. <see cref="EnsureManual"/>). -1, если выделено не одно.
+    /// </summary>
+    private int OrderNpcId => _selectedColonyIds.Count == 1 ? _selectedColonyIds[0] : -1;
+
     // Режим команд = среди выделенных есть хотя бы одна ручная (🎮). В чистом
     // AI-режиме (🧠) клики только выделяют: сим всё равно отклонит приказ
     // (requireManual в ManualCommandExecutor), а маркер и меню без исполнения
@@ -162,41 +169,49 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var mousePos = mouse.position.ReadValue();
         var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
 
-        _hoveredNpcId = -1;
-        _hoveredMobId = -1;
-        var objectHit = PickObjectUnderCursor(mousePos, out _);
-
-        // §121.1 r2: предмет под курсором ВСЕГДА важнее человека и зверя —
-        // правило игрока: «персонаж как-нибудь прокликнется, предмет — уже
-        // никак». Лежащая на вещах или стоящая на кокосе выбирается по
-        // свободному от вещей пикселю своего тела; глубинного спора и узкого
-        // радиуса-исключения больше нет.
-        if (objectHit == null)
-        {
-            if (TryRaycastNpc(snapshot, mousePos, out var rayNpcId, out _))
-            {
-                _hoveredNpcId = rayNpcId;
-            }
-            else
-            {
-                // Экранный радиус — запасной путь ТОЛЬКО для людей без готового
-                // вида (первые кадры после спавна, примитивы прототипных сцен):
-                // у остальных был честный точный луч, и промах по нему — промах,
-                // а не повод растянуть тело на 70 px вокруг ног. Зверям точного
-                // луча пока нет.
-                _hoveredNpcId = PickNpcByScreenRadius(snapshot, mousePos, out _);
-                if (_hoveredNpcId < 0)
-                {
-                    _hoveredMobId = PickMobUnderCursor(snapshot, mousePos, out _);
-                }
-            }
-        }
+        PickTarget(snapshot, mousePos, out _hoveredNpcId, out _hoveredMobId, out var objectHit);
 
         if (!ReferenceEquals(objectHit, _hovered))
         {
             _hovered?.SetHighlighted(false);
             _hovered = objectHit;
             _hovered?.SetHighlighted(true);
+        }
+    }
+
+    // Общий пикер целей: наведение в ручном режиме и правый клик используют
+    // ОДНУ выборку — иначе подсветилось бы одно, а меню открылось на другом.
+    private void PickTarget(WorldSnapshot? snapshot, Vector2 mousePos,
+        out int npcId, out int mobId, out WorldObjectView? objectHit)
+    {
+        npcId = -1;
+        mobId = -1;
+        objectHit = PickObjectUnderCursor(mousePos, out _);
+
+        // §121.1 r2: предмет под курсором ВСЕГДА важнее человека и зверя —
+        // правило игрока: «персонаж как-нибудь прокликнется, предмет — уже
+        // никак». Лежащая на вещах или стоящая на кокосе выбирается по
+        // свободному от вещей пикселю своего тела; глубинного спора и узкого
+        // радиуса-исключения больше нет.
+        if (objectHit != null)
+        {
+            return;
+        }
+
+        if (TryRaycastNpc(snapshot, mousePos, out var rayNpcId, out _))
+        {
+            npcId = rayNpcId;
+            return;
+        }
+
+        // Экранный радиус — запасной путь ТОЛЬКО для людей без готового вида
+        // (первые кадры после спавна, примитивы прототипных сцен): у остальных
+        // был честный точный луч, и промах по нему — промах, а не повод
+        // растянуть тело на 70 px вокруг ног. Зверям точного луча пока нет.
+        npcId = PickNpcByScreenRadius(snapshot, mousePos, out _);
+        if (npcId < 0)
+        {
+            mobId = PickMobUnderCursor(snapshot, mousePos, out _);
         }
     }
 
@@ -312,12 +327,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var ray = _camera.ScreenPointToRay(mousePos);
         foreach (var person in People(snapshot))
         {
-            // §121.9: свой ЕДИНСТВЕННЫЙ выделенный ручной — легальная цель
+            // §121.9: своя ЕДИНСТВЕННАЯ выделенная — легальная цель
             // ТОЧНОГО луча: клик по ней открывает само-меню. Только точный луч:
             // 70px-фолбэк ниже по-прежнему исключает выделенных, поэтому клик
             // «рядом с ней» остаётся приказом идти / меню объекта.
-            var isSelf = person.Id.Value == ManualNpcId &&
-                _selectedColonyIds.Count == 1 && _manualSelectedIds.Count == 1;
+            var isSelf = person.Id.Value == OrderNpcId;
             if ((NpcSelection.Contains(person.Id.Value) && !isSelf) ||
                 !_worldRenderer.TryGetActorView(person.Id.Value, out var view) ||
                 !view.TryRaycastVisibleGeometry(ray, distance, out var hitDistance))
@@ -446,8 +460,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         {
             ResetGroundClickCadence();
             // §121.9: клик по себе — меню самодействий, не приказ и не выбор.
-            if (_hoveredNpcId == ManualNpcId &&
-                _selectedColonyIds.Count == 1 && _manualSelectedIds.Count == 1)
+            if (_hoveredNpcId == OrderNpcId)
             {
                 OpenSelfMenu(mousePos, _hoveredNpcId);
             }
@@ -492,6 +505,85 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Правый клик (без drag) при выделенной колонистке — контекстное меню
+    /// цели под курсором, БЕЗ требования тумблера 🎮: раньше до «атаковать/
+    /// обобрать» было не добраться иначе как через ручной режим. Приказ из
+    /// меню сам берёт управление (<see cref="EnsureManual"/>), а таймаут
+    /// §121.5 потом штатно возвращает её ИИ.
+    /// </summary>
+    public bool TryHandleContextClick(Vector2 mousePos)
+    {
+        var runner = _runner;
+        if (runner == null || _camera == null || !runner.SupportsNpcCommands ||
+            _selectedColonyIds.Count == 0)
+        {
+            return false;
+        }
+
+        var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+        if (snapshot == null)
+        {
+            return false;
+        }
+
+        PickTarget(snapshot, mousePos, out var npcId, out var mobId, out var objectHit);
+        if (npcId >= 0)
+        {
+            ResetGroundClickCadence();
+            if (npcId == OrderNpcId)
+            {
+                OpenSelfMenu(mousePos, npcId);
+            }
+            else
+            {
+                OpenNpcMenu(mousePos, npcId);
+            }
+
+            return true;
+        }
+
+        if (mobId >= 0)
+        {
+            ResetGroundClickCadence();
+            OpenMobMenu(mousePos, mobId);
+            return true;
+        }
+
+        if (objectHit != null)
+        {
+            ResetGroundClickCadence();
+            OpenObjectMenu(mousePos, objectHit);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Приказ из контекстного меню сам берёт управление: не-ручной
+    // исполнительнице впереди приказа в ту же очередь встаёт SetManualControl,
+    // и сим принимает приказ тем же тиком. Уже ручную не трогаем.
+    private void EnsureManual(int actorId)
+    {
+        if (_runner == null || actorId < 0 || _manualSelectedIds.Contains(actorId))
+        {
+            return;
+        }
+
+        _runner.EnqueueCommand(new SetManualControlCommand(new EntityId(actorId), true));
+    }
+
+    private void EnqueueOrder(int actorId, ISimulationCommand command)
+    {
+        if (_runner == null)
+        {
+            return;
+        }
+
+        EnsureManual(actorId);
+        _runner.EnqueueCommand(command);
+    }
+
     // The first click is dispatched immediately as Walk. If a second release
     // lands close enough and soon enough, its Run order atomically replaces
     // the first one through the normal command queue. Unscaled time keeps the
@@ -528,7 +620,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
-        if (_selectedColonyIds.Count != 1 || ManualNpcId < 0)
+        if (OrderNpcId < 0)
         {
             _entries.Clear();
             _entries.Add(new ContextMenuEntry(
@@ -540,7 +632,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         }
 
         var carried = CarriedItems();
-        var actor = new EntityId(ManualNpcId);
+        var actorId = OrderNpcId;
+        var actor = new EntityId(actorId);
         _entries.Clear();
         foreach (var interaction in definition.Interactions)
         {
@@ -549,7 +642,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             var type = interaction.Type;
             _entries.Add(new ContextMenuEntry(
                 Loc.Get($"interaction.{type}.verb"),
-                () => runner.EnqueueCommand(
+                () => EnqueueOrder(actorId,
                     new InteractCommand(actor, new ObjectId(objectId), type)),
                 ok,
                 ok ? null : Loc.Get("menu.missing_tool")));
@@ -578,7 +671,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             {
                 var bedId = view.ObjectId;
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.put_in_bed"),
-                    () => runner.EnqueueCommand(
+                    () => EnqueueOrder(actorId,
                         new PutPersonInBedCommand(actor, new ObjectId(bedId)))));
             }
         }
@@ -592,7 +685,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         {
             var containerId = view.ObjectId;
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                () => LootTransferPanel.OpenContainer(ManualNpcId, containerId)));
+                () =>
+                {
+                    EnsureManual(actorId);
+                    LootTransferPanel.OpenContainer(actorId, containerId);
+                }));
         }
 
         if (_entries.Count == 0)
@@ -633,7 +730,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
-        var me = ManualNpcId;
+        var me = OrderNpcId;
         NpcSnapshot? carrier = null;
         foreach (var candidate in snapshot.Npcs)
         {
@@ -648,7 +745,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (!dead)
         {
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.attack"),
-                () => EnqueueNpcAttack(runner, me, npcId)));
+                () => EnqueueNpcAttack(me, npcId)));
         }
 
         var lying = dead || target.IsUnconscious || target.IsDying || target.IsFainted ||
@@ -659,7 +756,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // нехватка припаса — тостом NoSupplies. Серость здесь — только про
         // «кто приказывает» (один выделенный ручной, цель не на чужих руках).
         var canOrderSocial = carrier != null && _selectedColonyIds.Count == 1 &&
-            _manualSelectedIds.Count == 1 && carrier.Id.Value != npcId &&
+            carrier.Id.Value != npcId &&
             target.CarriedByNpcId is null;
         var socialBlocked = target.CarriedByNpcId is not null
             ? Loc.Get("menu.carried_by_other")
@@ -667,8 +764,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (!dead && !target.IsUnconscious)
         {
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.talk_to"),
-                () => runner.EnqueueCommand(new TalkToCommand(
-                    new EntityId(carrier!.Id.Value), new EntityId(npcId))),
+                () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
+                    new EntityId(carrier.Id.Value), new EntityId(npcId))),
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
@@ -684,8 +781,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (!dead && lying)
         {
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.treat_limbs"),
-                () => runner.EnqueueCommand(new TreatLimbsCommand(
-                    new EntityId(carrier!.Id.Value), new EntityId(npcId))),
+                () => EnqueueOrder(carrier!.Id.Value, new TreatLimbsCommand(
+                    new EntityId(carrier.Id.Value), new EntityId(npcId))),
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
@@ -700,30 +797,34 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.prey"),
                     () => OpenConfirmMenu(mousePos, NpcTitle(npcId),
                         "menu.dark.prey.confirm",
-                        () => runner.EnqueueCommand(new PreyPersonCommand(
-                            new EntityId(carrier!.Id.Value), new EntityId(npcId))))));
+                        () => EnqueueOrder(carrier!.Id.Value, new PreyPersonCommand(
+                            new EntityId(carrier.Id.Value), new EntityId(npcId))))));
             }
             else if (target.Faction != Faction.Colony && !lying)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.abuse"),
                     () => OpenConfirmMenu(mousePos, NpcTitle(npcId),
                         "menu.dark.abuse.confirm",
-                        () => runner.EnqueueCommand(new AbusePersonCommand(
-                            new EntityId(carrier!.Id.Value), new EntityId(npcId))))));
+                        () => EnqueueOrder(carrier!.Id.Value, new AbusePersonCommand(
+                            new EntityId(carrier.Id.Value), new EntityId(npcId))))));
             }
         }
 
         if (carrier != null && carrier.CarriedNpcId == npcId)
         {
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.put_down_person"),
-                () => runner.EnqueueCommand(
+                () => EnqueueOrder(carrier.Id.Value,
                     new PutDownPersonCommand(new EntityId(carrier.Id.Value)))));
             // §128: «взял — обыскал». Несомый САМИМ носильщиком — легальная
             // цель обыска, обмен идёт прямо в руках.
             if (lying)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                    () => LootTransferPanel.Open(carrier.Id.Value, npcId)));
+                    () =>
+                    {
+                        EnsureManual(carrier.Id.Value);
+                        LootTransferPanel.Open(carrier.Id.Value, npcId);
+                    }));
             }
         }
         // §118.4 r2 (#166): СВОИХ берут на руки всегда — спят они или нет, здоровы
@@ -731,14 +832,14 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         else if (lying || target.Faction == Faction.Colony)
         {
             var canCarry = carrier != null && _selectedColonyIds.Count == 1 &&
-                _manualSelectedIds.Count == 1 && carrier.CarriedNpcId is null &&
+                carrier.CarriedNpcId is null &&
                 target.CarriedByNpcId is null && carrier.Id.Value != npcId;
             var blockedReason = carrier?.CarriedNpcId is not null
                 ? Loc.Get("menu.hands_occupied")
                 : Loc.Get("menu.select_one_character");
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.carry_person"),
-                () => runner.EnqueueCommand(new CarryPersonCommand(
-                    new EntityId(carrier!.Id.Value), new EntityId(npcId))),
+                () => EnqueueOrder(carrier!.Id.Value, new CarryPersonCommand(
+                    new EntityId(carrier.Id.Value), new EntityId(npcId))),
                 canCarry, canCarry ? null : blockedReason));
         }
         // §128 r2 (#164): обыскать можно ЛЮБОГО лежащего — мёртвую, спящую,
@@ -747,7 +848,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (lying && carrier?.CarriedNpcId != npcId)
         {
             var canLoot = carrier != null && _selectedColonyIds.Count == 1 &&
-                _manualSelectedIds.Count == 1 && carrier.Id.Value != npcId &&
+                carrier.Id.Value != npcId &&
                 carrier.CarriedNpcId is null && target.CarriedByNpcId is null;
             // §128: подсказка называет НАСТОЯЩУЮ причину — раньше «на руках у
             // другой» показывало враньё «выберите одного персонажа».
@@ -757,7 +858,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     ? Loc.Get("menu.carried_by_other")
                     : Loc.Get("menu.select_one_character");
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                () => LootTransferPanel.Open(carrier!.Id.Value, npcId),
+                () =>
+                {
+                    EnsureManual(carrier!.Id.Value);
+                    LootTransferPanel.Open(carrier.Id.Value, npcId);
+                },
                 canLoot, canLoot ? null : blockedReason));
         }
         // «Выбрать» — потому что в ручном режиме простой клик по человеку
@@ -784,7 +889,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         _entries.Clear();
         void Add(string key, SelfActionKind kind) => _entries.Add(new ContextMenuEntry(
             Loc.Get(key),
-            () => runner.EnqueueCommand(new SelfActionCommand(actor, kind))));
+            () => EnqueueOrder(npcId, new SelfActionCommand(actor, kind))));
         Add("menu.self.call_help", SelfActionKind.CallForHelp);
         Add("menu.self.treat", SelfActionKind.TreatSelf);
         Add("menu.self.sit", SelfActionKind.GroundSit);
@@ -794,7 +899,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         Add("menu.self.eat", SelfActionKind.EatFromPack);
         Add("menu.self.drink", SelfActionKind.DrinkFromPack);
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.stop"),
-            () => runner.EnqueueCommand(new StopCommand(actor))));
+            () => EnqueueOrder(npcId, new StopCommand(actor))));
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
     }
 
@@ -821,7 +926,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         _entries.Clear();
         void Add(string key, AidKind kind) => _entries.Add(new ContextMenuEntry(
             Loc.Get(key),
-            () => runner.EnqueueCommand(new AidPersonCommand(
+            () => EnqueueOrder(actorId, new AidPersonCommand(
                 new EntityId(actorId), new EntityId(targetId), kind))));
         Add("menu.aid.feed", AidKind.Feed);
         Add("menu.aid.hydrate", AidKind.Hydrate);
@@ -839,10 +944,10 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
-        var me = ManualNpcId;
+        var me = OrderNpcId;
         _entries.Clear();
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.attack"),
-            () => EnqueueMobAttack(runner, me, mobId)));
+            () => EnqueueMobAttack(me, mobId)));
 
         ContextMenuPanel.Open(mousePos, Loc.Get("menu.target.beast"), _entries);
     }
@@ -856,28 +961,60 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         return result;
     }
 
-    private void EnqueueNpcAttack(SimulationRunnerBehaviour runner, int single, int target)
+    // Атака из меню — явный приказ игрока: идёт ВСЕМ выделенным колонисткам,
+    // а не только ручным, и сама берёт их под управление.
+    private List<EntityId> OrderActors()
     {
+        var result = new List<EntityId>(_selectedColonyIds.Count);
+        foreach (var id in _selectedColonyIds) result.Add(new EntityId(id));
+        return result;
+    }
+
+    private void EnsureGroupManual()
+    {
+        if (_runner == null || _manualSelectedIds.Count == _selectedColonyIds.Count)
+        {
+            return;
+        }
+
+        _runner.EnqueueCommand(new SetGroupManualControlCommand(OrderActors(), true));
+    }
+
+    private void EnqueueNpcAttack(int single, int target)
+    {
+        if (_runner == null)
+        {
+            return;
+        }
+
         if (_selectedColonyIds.Count == 1 && single >= 0)
         {
-            runner.EnqueueCommand(new AttackNpcCommand(new EntityId(single), new EntityId(target)));
+            EnqueueOrder(single,
+                new AttackNpcCommand(new EntityId(single), new EntityId(target)));
         }
         else
         {
-            runner.EnqueueCommand(new GroupAttackNpcCommand(
-                SelectedActors(), new EntityId(target)));
+            EnsureGroupManual();
+            _runner.EnqueueCommand(new GroupAttackNpcCommand(
+                OrderActors(), new EntityId(target)));
         }
     }
 
-    private void EnqueueMobAttack(SimulationRunnerBehaviour runner, int single, int target)
+    private void EnqueueMobAttack(int single, int target)
     {
+        if (_runner == null)
+        {
+            return;
+        }
+
         if (_selectedColonyIds.Count == 1 && single >= 0)
         {
-            runner.EnqueueCommand(new AttackMobCommand(new EntityId(single), target));
+            EnqueueOrder(single, new AttackMobCommand(new EntityId(single), target));
         }
         else
         {
-            runner.EnqueueCommand(new GroupAttackMobCommand(SelectedActors(), target));
+            EnsureGroupManual();
+            _runner.EnqueueCommand(new GroupAttackMobCommand(OrderActors(), target));
         }
     }
 
@@ -952,7 +1089,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.Id.Value != ManualNpcId)
+            if (npc.Id.Value != OrderNpcId)
             {
                 continue;
             }

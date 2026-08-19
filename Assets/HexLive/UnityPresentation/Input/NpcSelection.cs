@@ -5,15 +5,17 @@ namespace HexLive.UnityPresentation.Input
 {
     /// <summary>
     /// §123: shared ordered NPC selection. Selection and camera attachment are
-    /// deliberately separate: changing the set requests one frame, while
-    /// activating the exact same subject again toggles follow.
+    /// deliberately separate: programmatic set changes request one frame, while
+    /// user activation (a click on a character) requests follow immediately.
+    /// Follow is released by Escape or by panning (WASD/стрелки), not by a
+    /// second click.
     /// </summary>
     public static class NpcSelection
     {
         public enum CameraRequest
         {
             Frame,
-            ToggleFollow
+            Follow
         }
 
         public static event Action<IReadOnlyList<int>> SelectionChanged;
@@ -56,19 +58,14 @@ namespace HexLive.UnityPresentation.Input
         public static bool Contains(int npcId) => Selected.Contains(npcId);
 
         /// <summary>
-        /// User activation of one portrait/actor. First activation replaces and
-        /// frames; activating the exact same singleton toggles follow.
+        /// User activation of one portrait/actor: the camera focuses on the
+        /// subject and follows it at once. Re-activating the same singleton
+        /// re-frames and keeps following; Escape/панорама release the camera.
         /// </summary>
         public static void Activate(int npcId)
         {
-            if (Selected.Count == 1 && Selected[0] == npcId)
-            {
-                CameraRequested?.Invoke(CameraRequest.ToggleFollow);
-                return;
-            }
-
             Replace(npcId);
-            CameraRequested?.Invoke(CameraRequest.Frame);
+            CameraRequested?.Invoke(CameraRequest.Follow);
         }
 
         /// <summary>Legacy/programmatic exclusive selection with frame.</summary>
@@ -91,19 +88,14 @@ namespace HexLive.UnityPresentation.Input
         public static void ActivateMany(IEnumerable<int> npcIds)
         {
             var replacement = UniqueOrdered(npcIds);
-            if (SameSelection(replacement))
+            if (!SameSelection(replacement))
             {
-                if (replacement.Count > 0)
-                {
-                    CameraRequested?.Invoke(CameraRequest.ToggleFollow);
-                }
-                return;
+                SetSelection(replacement);
             }
 
-            SetSelection(replacement);
             if (replacement.Count > 0)
             {
-                CameraRequested?.Invoke(CameraRequest.Frame);
+                CameraRequested?.Invoke(CameraRequest.Follow);
             }
         }
 

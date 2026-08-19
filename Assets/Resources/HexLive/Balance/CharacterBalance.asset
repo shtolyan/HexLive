@@ -56,10 +56,10 @@ MonoBehaviour:
   starvingClearThreshold: 0.6
   starvingBoost: 1
   starveDeathThreshold: 0.95
-  starveDamageBoth: 0.0078
-  starveDamageOne: 0.006
+  starveDamageBoth: 0.0006
+  starveDamageOne: 0.00036
   healHungerGate: 0.6
-  healthRegenPerTick: 0.003
+  healthRegenPerTick: 0.00033333333
   bleedRateFactor: 0.06
   bloodRefillPerTick: 0.005
   bandageBloodThreshold: 0.35
@@ -199,14 +199,18 @@ MonoBehaviour:
   degenerationCutThreshold: 0.2
   degenerationStep: 0.1
   degenerationPerStep: 0.0015
-  bluntRecoveryPerSlowTick: 0.01
-  cutRecoveryPerSlowTick: 0.0033
+  bluntRecoveryPerSlowTick: 0.00033333333
+  cutRecoveryPerSlowTick: 0.00033333333
   naturalScarringFactor: 0.25
-  groundRestHealMultiplier: 2
-  leafBedHealMultiplier: 4
-  basicBedHealMultiplier: 8
+  groundRestHealMultiplier: 1
+  leafBedHealMultiplier: 1.5
+  basicBedHealMultiplier: 2
   leafBedDegenerationMultiplier: 0.5
   basicBedDegenerationMultiplier: 0
+  woundedRestEnabled: 1
+  woundedRestEnterHealth: 0.5
+  woundedRestExitHealth: 0.75
+  woundedRestSleepBoost: 0.9
   vitalKnockoutTicks: 80
   vitalWakeHealth: 0.05
   bloodWakeHealth: 0.1

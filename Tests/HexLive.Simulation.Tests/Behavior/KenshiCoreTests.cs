@@ -345,7 +345,9 @@ public sealed class KenshiCoreTests
             Assert.That(patient.Body.IsSevered(BodyPart.ArmR), Is.True);
         });
 
-        for (var i = 0; i < 200 && patient.Wounds.Count > 0; i++)
+        // §118.8: рубцевание идёт сутками (1/3000 шкалы за slow tick), культя
+        // severity 0.35 закрывается за ~1050 slow ticks на ногах.
+        for (var i = 0; i < 1200 && patient.Wounds.Count > 0; i++)
         {
             KenshiMedicalMath.Tick(world, patient);
         }
@@ -433,7 +435,9 @@ public sealed class KenshiCoreTests
     }
 
     [Test]
-    public void BasicBed_RecoversBluntDamageAtEightTimesAwakeRate()
+    // §118.8: кровать лечит вдвое быстрее бодрствования (было ×8 — «минус
+    // грудь» закрывалась за полчаса; теперь лечение меряется сутками).
+    public void BasicBed_RecoversBluntDamageAtTwiceAwakeRate()
     {
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
@@ -448,11 +452,15 @@ public sealed class KenshiCoreTests
 
         KenshiMedicalMath.Tick(world, patient);
 
+        var step = Spec118.BluntRecoveryPerSlowTick * Spec118.BasicBedHealMultiplier;
         Assert.Multiple(() =>
         {
-            Assert.That(patient.Body.Parts[BodyPart.LegR], Is.EqualTo(0.28f).Within(0.0001f));
+            Assert.That(Spec118.BasicBedHealMultiplier, Is.EqualTo(2f).Within(0.0001f),
+                "§118.8: bed heals at twice the awake rate — a day for the full bar.");
+            Assert.That(patient.Body.Parts[BodyPart.LegR],
+                Is.EqualTo(0.20f + step).Within(0.0001f));
             Assert.That(patient.Body.Condition(BodyPart.LegR).BluntDamage,
-                Is.EqualTo(0.72f).Within(0.0001f));
+                Is.EqualTo(0.80f - step).Within(0.0001f));
         });
     }
 

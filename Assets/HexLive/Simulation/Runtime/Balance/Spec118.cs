@@ -30,8 +30,16 @@ public class Spec118
     public static float DegenerationCutThreshold = 0.20f;
     public static float DegenerationStep = 0.10f;
     public static float DegenerationPerStep = 0.0015f;
-    public static float BluntRecoveryPerSlowTick = 0.010f;
-    public static float CutRecoveryPerSlowTick = 0.0033f;
+
+    // ⭐ §118.8: лечение меряется СУТКАМИ, не минутами. Все три канала
+    // восстановления (ушиб, порез/крит и сытый реген NeedsDecaySystem) держат
+    // один базовый темп 1/3000 шкалы за slow tick: сутки = 1500 slow ticks,
+    // значит полная шкала 0→100 занимает двое суток на ногах и ровно сутки на
+    // кровати (×2 ниже). «Минус грудь» (крит 1.0 + шкала 1.0) — двое суток на
+    // кровати, четверо без. Прежние 0.010/0.0033 при кроватном ×8 закрывали
+    // разбитую грудь за ~полчаса игрового времени.
+    public static float BluntRecoveryPerSlowTick = 1f / 3000f;
+    public static float CutRecoveryPerSlowTick = 1f / 3000f;
 
     // ⭐ §118.2: во сколько раз МЕДЛЕННЕЕ рубцуется рана, которую никто не
     // перевязал. Свернувшаяся сама рана теперь тоже заживает (иначе разбитая в
@@ -39,11 +47,30 @@ public class Spec118
     // силах открыть кокос), но повязка обязана оставаться заметно лучше — иначе
     // бинты перестают быть нужны. 0.25 = вчетверо дольше.
     public static float NaturalScarringFactor = 0.25f;
-    public static float GroundRestHealMultiplier = 2f;
-    public static float LeafBedHealMultiplier = 4f;
-    public static float BasicBedHealMultiplier = 8f;
+
+    // §118.8: кровать лечит ВДВОЕ быстрее, всё остальное — базовый темп.
+    // Земля больше не ускоряет (лежание само по себе не медицина). Кровать в
+    // игре одна — bed.basic (bed.leaf/building.hut_bed — лишь сейв-алиасы,
+    // загрузчик канонизирует их до первого тика), поэтому Leaf-ручки
+    // зарезервированы и в RestFactors не читаются. Множитель деградации не
+    // тронут: кровать по-прежнему единственное место, где рана не углубляется.
+    public static float GroundRestHealMultiplier = 1f;
+    public static float LeafBedHealMultiplier = 1.5f;
+    public static float BasicBedHealMultiplier = 2f;
     public static float LeafBedDegenerationMultiplier = 0.5f;
     public static float BasicBedDegenerationMultiplier = 0f;
+
+    // ⭐ §118.8: отлёживание. Раненая ниже EnterHealth сама ложится (в кровать,
+    // если она есть) и НЕ встаёт, пока восстановимое здоровье — среднее по
+    // НЕотсечённым зонам — не дойдёт до ExitHealth; полная энергия не повод
+    // вставать. Голод/жажда за потолком прерывания сна и опасность поднимают
+    // как обычно: отлёживаться насмерть нельзя. Гистерезис 0.5→0.75 гасит
+    // дребезг «лёг-встал» на границе. Буст — ставка сна в аукционе, пока
+    // энергия полна и сама по себе сна не просит (ср. StarvingBoost 1.0).
+    public static bool WoundedRestEnabled = true;
+    public static float WoundedRestEnterHealth = 0.5f;
+    public static float WoundedRestExitHealth = 0.75f;
+    public static float WoundedRestSleepBoost = 0.9f;
 
     public static int VitalKnockoutTicks = 80;
     public static float VitalWakeHealth = 0.05f;

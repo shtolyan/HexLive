@@ -69,14 +69,18 @@ namespace HexLive.Simulation.Runtime
         public static float StarvingClearThreshold = 0.60f;  // ...and off (hysteresis)
         public static float StarvingBoost = 1f;              // emergency goal-boost while starving
         public static float StarveDeathThreshold = 0.95f;    // above this, HP starts draining
-        public static float StarveDamageBoth = 0.01f;        // HP/part/slow tick when starved AND parched (÷5 — hunger/thirst was draining HP too fast)
-        public static float StarveDamageOne = 0.006f;        // HP/part/slow tick when only one is maxed (÷5 — hunger/thirst was draining HP too fast)
+        public static float StarveDamageBoth = 0.0006f;      // HP/part/slow tick when starved AND parched (~1.3 days from last sip to zero)
+        public static float StarveDamageOne = 0.00036f;      // HP/part/slow tick when only one is maxed (design: 2 full days with no water at all = 100→0; ramp to 0.95 takes ~238 slow ticks, damage window ~2762 more, day = 1500 slow ticks)
 
         // ─────────────────────────────────────────────────────────────
         // Natural healing / regen.
         // ─────────────────────────────────────────────────────────────
         public static float HealHungerGate = 0.6f;      // fed-heal (and blood refill) only while hunger below this
-        public static float HealthRegenPerTick = 0.0030f; // HP regained per part per slow tick (~0.45 per 150 slow ticks / 10 real min)
+        // §118.8: healing is measured in DAYS now — base 1/3000 of the bar per
+        // slow tick (2 game days awake, 1 day on bed.basic via the ×2 rest
+        // multiplier applied in NeedsDecaySystem). Was 0.0030 (~5 game hours
+        // for a full part), which read as "couple of real hours and she's new".
+        public static float HealthRegenPerTick = 1f / 3000f; // HP per part per slow tick, × rest multiplier
 
         // ─────────────────────────────────────────────────────────────
         // Blood / first aid.

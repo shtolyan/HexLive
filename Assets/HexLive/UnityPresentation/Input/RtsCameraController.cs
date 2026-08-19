@@ -14,13 +14,13 @@ namespace HexLive.UnityPresentation.Input
     /// RTS-style camera built as a single orbit rig around a pivot. Only what
     /// the pivot is attached to changes:
     ///   • Free: the pivot is a loose point magnetised to the hex ground;
-    ///     WASD slides it, while arrows/right-drag/two-finger horizontal
-    ///     swipe rotate and scroll zooms.
-    ///   • Orbit: click an NPC and the pivot follows their body exactly;
-    ///     smoothing delays the catch-up but never changes its target. Escape
-    ///     releases it where it settled — the angle,
-    ///     distance and framing stay put instead of snapping back to a top-down
-    ///     view.
+    ///     WASD and the arrow keys slide it, while right-drag/two-finger
+    ///     horizontal swipe rotate and scroll zooms.
+    ///   • Orbit: click an NPC and the camera focuses on them and follows at
+    ///     once; smoothing delays the catch-up but never changes its target.
+    ///     One Escape (or any pan key) releases it where it settled — the
+    ///     angle, distance and framing stay put instead of snapping back to a
+    ///     top-down view. A second Escape clears the selection.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class RtsCameraController : MonoBehaviour
@@ -64,10 +64,6 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _orbitPositionSmooth = 0.18f;
         [SerializeField] private float _orbitRotationSmooth = 0.08f;
         [SerializeField] private float _pickRadiusPixels = 70f;
-
-        [Header("Keyboard rotation")]
-        [SerializeField] private float _keyboardYawSpeed = 90f;
-        [SerializeField] private float _keyboardPitchSpeed = 70f;
 
         [Header("Trackpad")]
         [Tooltip("Yaw degrees per horizontal scroll unit (two-finger swipe rotates like the arrow keys). Negative flips direction.")]
@@ -132,6 +128,13 @@ namespace HexLive.UnityPresentation.Input
         private bool _selectionDragging;
         private Vector2 _leftPressPosition;
         private Vector2 _selectionDragPosition;
+
+        // Правая кнопка двулика: drag вращает риг, а клик без движения
+        // открывает контекстное меню цели под курсором (атаковать/обобрать…),
+        // не трогая ни выделение, ни слежение. Порог тот же, что у marquee.
+        private bool _rightPressActive;
+        private bool _rightDragging;
+        private Vector2 _rightPressPosition;
         private readonly HashSet<UnityEngine.Object> _selectionInputSuppressors = new();
 
         private Camera _camera;
@@ -201,6 +204,8 @@ namespace HexLive.UnityPresentation.Input
         {
             _leftPressActive = false;
             _selectionDragging = false;
+            _rightPressActive = false;
+            _rightDragging = false;
         }
 
         private void Start()
@@ -280,14 +285,22 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            if (_mode == Mode.Orbit)
+            // Follow: клик по персонажу — камера сразу фокусируется и следует.
+            // Bug #146: скрытую туманом чужачку слежение не берёт — иначе
+            // выделение через карточку отношений выдало бы её позицию (или
+            // тут же молча сбросилось бы в UpdateOrbit).
+            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            if (snapshot != null && !TryGetSelectionFrame(snapshot, out _, out _))
             {
-                ExitOrbit();
+                return;
             }
-            else
+
+            if (_mode != Mode.Orbit)
             {
                 EnterOrbitSelection();
             }
+
+            _pendingFrameSelection = true;
         }
 
         private void LateUpdate()
@@ -307,6 +320,12 @@ namespace HexLive.UnityPresentation.Input
                 else if (UI.LootTransferPanel.IsOpen)
                 {
                     UI.LootTransferPanel.Close();
+                }
+                else if (_mode == Mode.Orbit)
+                {
+                    // Первый Escape только освобождает камеру — выделение
+                    // остаётся; второй уже снимает выделение.
+                    ExitOrbit();
                 }
                 else
                 {
@@ -349,8 +368,8 @@ namespace HexLive.UnityPresentation.Input
             ApplyRig(_freePivot, _panSmooth, _panSmooth);
         }
 
-        // Arrow keys pan only while the pivot is detached. Orbit routes the
-        // same keys through HandleKeyboardRotation instead.
+        // WASD and the arrow keys both pan. In orbit the same keys release the
+        // follow first (HasPanInput) and pan from where the camera settled.
         private void HandleFreePan()
         {
             var keyboard = Keyboard.current;
@@ -418,25 +437,6 @@ namespace HexLive.UnityPresentation.Input
 
             _currentDistance = ZoomedDistance(_currentDistance, scroll);
             _requestedDistance = _currentDistance;
-        }
-
-        private void HandleKeyboardRotation(float maxPitch)
-        {
-            var keyboard = Keyboard.current;
-            if (keyboard == null) return;
-
-            var yaw = 0f;
-            var pitch = 0f;
-            if (keyboard.leftArrowKey.isPressed) yaw -= 1f;
-            if (keyboard.rightArrowKey.isPressed) yaw += 1f;
-            if (keyboard.upArrowKey.isPressed) pitch -= 1f;
-            if (keyboard.downArrowKey.isPressed) pitch += 1f;
-            if (Mathf.Abs(yaw) < 0.01f && Mathf.Abs(pitch) < 0.01f) return;
-
-            _currentYaw += yaw * _keyboardYawSpeed * Time.unscaledDeltaTime;
-            _currentPitch = Mathf.Clamp(
-                _currentPitch + pitch * _keyboardPitchSpeed * Time.unscaledDeltaTime,
-                _orbitMinPitch, maxPitch);
         }
 
         // Трекпад: двухпальцевый горизонтальный свайп (scroll.x) крутит риг,
@@ -645,6 +645,8 @@ namespace HexLive.UnityPresentation.Input
                 }
             }
 
+            HandleRightClickGesture(mouse, pointer);
+
             if (!_leftPressActive || !mouse.leftButton.wasReleasedThisFrame)
             {
                 return;
@@ -660,6 +662,53 @@ namespace HexLive.UnityPresentation.Input
             }
 
             TryHandleLeftClick(pointer, snapshot);
+        }
+
+        // Правый клик без drag — контекстное меню цели. Вращение (drag) при
+        // этом не страдает: жест классифицируется по порогу на отпускании.
+        private void HandleRightClickGesture(Mouse mouse, Vector2 pointer)
+        {
+            if (mouse.rightButton.wasPressedThisFrame)
+            {
+                if (UI.ContextMenuPanel.IsOpen && !UI.ContextMenuPanel.PointerOverPanel)
+                {
+                    UI.ContextMenuPanel.Close();
+                }
+
+                _rightPressActive = !PointerBlockedForWorld();
+                _rightDragging = false;
+                _rightPressPosition = pointer;
+            }
+
+            if (_rightPressActive && mouse.rightButton.isPressed && !_rightDragging &&
+                Vector2.Distance(_rightPressPosition, pointer) >= SelectionDragThresholdPixels)
+            {
+                _rightDragging = true;
+            }
+
+            if (!_rightPressActive || !mouse.rightButton.wasReleasedThisFrame)
+            {
+                return;
+            }
+
+            _rightPressActive = false;
+            if (_rightDragging)
+            {
+                _rightDragging = false;
+                return;
+            }
+
+            if (PointerBlockedForWorld())
+            {
+                return;
+            }
+
+            if (_manualInput == null)
+            {
+                _manualInput = GetComponent<SimulationInputAdapter>();
+            }
+
+            _manualInput?.TryHandleContextClick(pointer);
         }
 
         private static bool PointerBlockedForWorld() =>
@@ -1189,7 +1238,6 @@ namespace HexLive.UnityPresentation.Input
             }
 
             HandleOrbitInput();
-            HandleKeyboardRotation(_orbitMaxPitch);
             HandleScrollYaw();
 
             _currentDistance = Mathf.Clamp(
@@ -1199,11 +1247,15 @@ namespace HexLive.UnityPresentation.Input
             ApplyRig(_smoothedTarget, _orbitTargetSmooth, _orbitPositionSmooth);
         }
 
+        // Стрелки — тоже панорама: в режиме слежения любой pan-ввод отцепляет
+        // камеру, дальше она свободно едет, как после Escape.
         private static bool HasPanInput()
         {
             var keyboard = Keyboard.current;
             return keyboard != null && (keyboard.wKey.isPressed || keyboard.aKey.isPressed ||
-                keyboard.sKey.isPressed || keyboard.dKey.isPressed);
+                keyboard.sKey.isPressed || keyboard.dKey.isPressed ||
+                keyboard.upArrowKey.isPressed || keyboard.downArrowKey.isPressed ||
+                keyboard.leftArrowKey.isPressed || keyboard.rightArrowKey.isPressed);
         }
 
         private void HandleOrbitInput()

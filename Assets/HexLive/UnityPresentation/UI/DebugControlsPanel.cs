@@ -214,6 +214,11 @@ namespace HexLive.UnityPresentation.UI
             _cullLabel = (Label)_cullButton[0];
             box.Add(_cullButton);
 
+            // §148: стиль затенения «памяти» перебирается на глаз прямо в игре.
+            _shadeButton = MakeButton(ShadeLabel(), Raised, CycleMemoryShade);
+            _shadeLabel = (Label)_shadeButton[0];
+            box.Add(_shadeButton);
+
             _traceButton = MakeButton("[ ] Trace (diagnostics)", Raised, ToggleTrace);
             _traceLabel = (Label)_traceButton[0];
             box.Add(_traceButton);
@@ -319,6 +324,8 @@ namespace HexLive.UnityPresentation.UI
         private Label _fogSelectedLabel;
         private VisualElement _cullButton;
         private Label _cullLabel;
+        private VisualElement _shadeButton;
+        private Label _shadeLabel;
 
         private Label _traceLabel;
         private VisualElement _traceButton;
@@ -344,6 +351,23 @@ namespace HexLive.UnityPresentation.UI
             if (_fogLabel != null)
             {
                 _fogLabel.text = FogOfWar ? "[x] Fog of war" : "[ ] Fog of war";
+            }
+        }
+
+        // §148: пять вариантов «как выглядит память» — от «никак» до
+        // выцветшей карты. Перебор кнопкой: это вопрос вкуса, а не числа.
+        private static string ShadeLabel() =>
+            $"Память: {Rendering.HexWorldRenderer.ShadeStyle}";
+
+        private void CycleMemoryShade()
+        {
+            var values = (Rendering.HexWorldRenderer.MemoryShadeStyle[])
+                Enum.GetValues(typeof(Rendering.HexWorldRenderer.MemoryShadeStyle));
+            var next = (Array.IndexOf(values, Rendering.HexWorldRenderer.ShadeStyle) + 1) % values.Length;
+            Rendering.HexWorldRenderer.ShadeStyle = values[next];
+            if (_shadeLabel != null)
+            {
+                _shadeLabel.text = ShadeLabel();
             }
         }
 

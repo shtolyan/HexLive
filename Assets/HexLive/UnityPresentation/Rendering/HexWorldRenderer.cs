@@ -204,6 +204,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // works on remote/loopback backends too, unlike the fog experiment above.
     private readonly List<(TileCoord Tile, int Radius)> _cullEyes = new();
     private readonly HashSet<TileCoord> _cullVisibleTiles = new();
+
+    // §148: КАРТА ПАМЯТИ ИГРОКА — гексы, которые наш лагерь когда-либо видел.
+    // Игрок смотрит на остров глазами своих девушек: никогда не виденный гекс
+    // не нарисован вовсе (ни земли, ни деревьев), виденный, но не видимый
+    // сейчас, стоит замороженной картинкой «как в последний раз».
+    private readonly HashSet<TileCoord> _everSeenTiles = new();
+
+    // §148: где мы в последний раз видели ЧУЖОГО человека. Пока он вне
+    // восприятия, на этом месте висит «?» — тело не рисуется и не кликается.
+    private readonly Dictionary<int, TileCoord> _lastSeenNpcTiles = new();
+
+    private readonly Dictionary<int, GameObject> _unknownNpcMarkers = new();
+
+    // §148: тайлы, чью затенённость уже применили — перекрашиваем только те,
+    // у кого состояние сменилось (иначе это тысячи SetPropertyBlock за тик).
+    private readonly Dictionary<TileCoord, int> _tileShadeApplied = new();
+
+    private readonly Dictionary<Renderer, MaterialPropertyBlock> _tileShadeSaved = new();
+
+    private MaterialPropertyBlock _tileShadeScratch;
     // The frozen hexes as their OWN set, by design: a future pass will restyle
     // them (grayscale/whiteout shader) by iterating exactly this collection.
     private readonly HashSet<TileCoord> _cullFrozenTiles = new();
@@ -1227,6 +1247,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private void RenderSnapshot(WorldSnapshot snapshot)
     {
         UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.TilesWater");
+        // §148: что наш лагерь видит и что помнит — считается ПЕРВЫМ делом:
+        // от этого зависит, какие гексы вообще строить.
+        RebuildPerceptionCulling(snapshot);
+
         // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
         _waterCoords.Clear();
         _swimCoords.Clear();
@@ -1260,7 +1284,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var tile in snapshot.Tiles)
         {
-            if (!_tileViews.ContainsKey(tile.Coord))
+            // §148: земля появляется, только когда её впервые увидели свои.
+            if (!_tileViews.ContainsKey(tile.Coord) && TileDiscovered(tile.Coord))
             {
                 var sand = IsSandTile(tile);
                 _tileViews[tile.Coord] = CreateTileView(tile, sand);
@@ -1294,9 +1319,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         UnityEngine.Profiling.Profiler.EndSample();
         UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Prep");
-        // Perception culling rebuilds BEFORE the despawn sweep and the sync
-        // loop below: both consult this tick's frozen set (ghosts, freezes).
-        RebuildPerceptionCulling(snapshot);
 
         // Snapshot-diff despawn (spec 31.15): destroy views whose object
         // disappeared from the simulation (eaten/picked-up apples).
@@ -1479,8 +1501,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // also the perf point of the experiment: the per-tick cost shrinks
             // to the hexes the colony actually watches.
             var hasView = _objectViews.TryGetValue(key, out var objectView);
-            if (_cullActive && _cullFrozenTiles.Contains(worldObject.Tile) &&
-                (hasView || _cullInitialBuildDone))
+
+            // §148: на НИКОГДА не виденной земле вида нет вовсе — игрок не
+            // знает ни про эту пальму, ни про этот кокос, пока кто-то из
+            // наших туда не дойдёт. Это же и самая крупная экономия: вью
+            // строятся по мере разведки, а не на весь остров сразу.
+            if (!TileDiscovered(worldObject.Tile))
+            {
+                continue;
+            }
+
+            // Виденная, но не видимая сейчас земля ЗАМОРОЖЕНА как память:
+            // существующий вид не трогаем (он и есть «как в последний раз»),
+            // новый — не создаём.
+            if (_cullActive && _cullFrozenTiles.Contains(worldObject.Tile))
             {
                 continue;
             }
@@ -1772,16 +1806,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // мобов; симуляция об этом не знает.
             if (npcView != null)
             {
+                // §148: чужой человек виден, только пока кто-то из наших
+                // держит его гекс в восприятии. Память о нём — это «?» на
+                // последнем известном месте (SyncUnknownNpcMarkers), а не
+                // застывшее тело: тело ушло бы оттуда, и картинка врала бы.
+                var isOurs = npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+                var strangerVisible = isOurs || TileVisibleNow(npc.Tile);
+                if (!isOurs)
+                {
+                    if (strangerVisible)
+                    {
+                        _lastSeenNpcTiles[key] = npc.Tile;
+                    }
+                }
+
                 var hiddenByFog = (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key))
-                    // Perception culling: every NPC that is not OURS goes dark
-                    // outside our girls' perception — rival camps included.
-                    // Gated on the initial build: the loading screen waits on
-                    // every roster body being presentation-ready, and an
-                    // inactive actor can never finish stitching (§146 hang) —
-                    // so nobody is hidden until the world has fully built once.
-                    || (_cullInitialBuildDone &&
-                        npc.Faction != HexLive.Simulation.Agents.Faction.Colony &&
-                        CullHidesTile(npc.Tile));
+                    // Гейт на первую полную сборку: экран загрузки ждёт, пока
+                    // каждое тело ростера дошьётся, а выключенный актёр
+                    // дошиться не может (зависание #146).
+                    || (_cullInitialBuildDone && !strangerVisible);
                 if (npcView.activeSelf == hiddenByFog)
                 {
                     npcView.SetActive(!hiddenByFog);
@@ -2053,6 +2096,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         SyncCorpseViews(snapshot);
         AuditNpcRenderState(snapshot);
+        // §148: «?» вместо тел, которых мы сейчас не видим, и затенение
+        // гексов памяти. Обе строки — чистая презентация поверх готового кадра.
+        SyncUnknownNpcMarkers(snapshot);
+        ApplyMemoryShade();
         UnityEngine.Profiling.Profiler.EndSample();
 
         // Memory fog: the full first build of this world is behind us — from
@@ -4476,30 +4523,213 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        // §148: видимое множество собирается ОТ ГЛАЗ кольцами, а не обходом
+        // всех тайлов острова: дисков единицы, а тайлов тысячи. Заодно это
+        // единственный способ узнать про гекс, вью которого ещё не создан —
+        // на никогда не виденной земле его и не должно быть.
         _cullVisibleTiles.Clear();
-        _cullFrozenTiles.Clear();
-        foreach (var pair in _tileViews)
+        foreach (var (eyeTile, radius) in _cullEyes)
         {
-            var coord = pair.Key;
-            var seen = false;
-            foreach (var (eyeTile, radius) in _cullEyes)
+            for (var dq = -radius; dq <= radius; dq++)
             {
-                if (HexSpatialMath.HexDistance(eyeTile, coord) <= radius)
+                var lo = Mathf.Max(-radius, -dq - radius);
+                var hi = Mathf.Min(radius, -dq + radius);
+                for (var dr = lo; dr <= hi; dr++)
                 {
-                    seen = true;
-                    break;
+                    var coord = new TileCoord(eyeTile.Q + dq, eyeTile.R + dr);
+                    if (_cullVisibleTiles.Add(coord))
+                    {
+                        _everSeenTiles.Add(coord);
+                    }
                 }
             }
+        }
 
-            if (seen)
-            {
-                _cullVisibleTiles.Add(coord);
-            }
-            else
+        // Замороженное = «видели когда-то, но не видим сейчас». Никогда не
+        // виденные гексы не попадают ни туда, ни туда: их просто нет.
+        _cullFrozenTiles.Clear();
+        foreach (var coord in _everSeenTiles)
+        {
+            if (!_cullVisibleTiles.Contains(coord))
             {
                 _cullFrozenTiles.Add(coord);
             }
         }
+    }
+
+    /// <summary>§148: можно ли ЩЁЛКНУТЬ по этому человеку. Свои — всегда;
+    /// чужой — только пока он в восприятии наших. По «?» на последнем
+    /// известном месте клика нет: игрок не знает, там ли он ещё.</summary>
+    public bool IsNpcPickable(int npcId, TileCoord tile, bool isColony) =>
+        !_cullActive || isColony || _cullVisibleTiles.Contains(tile);
+
+    private const float UnknownMarkerLift = 1.15f;
+
+    private readonly HashSet<int> _unknownMarkerLive = new();
+
+    /// <summary>§148: «?» на последнем месте, где наши видели чужого. Тело в
+    /// это время не нарисовано (см. цикл NPC): память о человеке — это метка
+    /// «здесь кто-то был», а не застывшая фигура, которая врала бы о том, что
+    /// он всё ещё стоит там.</summary>
+    private void SyncUnknownNpcMarkers(WorldSnapshot snapshot)
+    {
+        _unknownMarkerLive.Clear();
+        if (_cullActive)
+        {
+            foreach (var npc in snapshot.Npcs)
+            {
+                var key = npc.Id.Value;
+                if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony ||
+                    _cullVisibleTiles.Contains(npc.Tile) ||
+                    !_lastSeenNpcTiles.TryGetValue(key, out var lastSeen))
+                {
+                    continue; // свои, видимые сейчас и никогда не встреченные — не метки
+                }
+
+                _unknownMarkerLive.Add(key);
+                if (!_unknownNpcMarkers.TryGetValue(key, out var marker) || marker == null)
+                {
+                    marker = CreateUnknownNpcMarker();
+                    _unknownNpcMarkers[key] = marker;
+                }
+
+                if (!marker.activeSelf)
+                {
+                    marker.SetActive(true);
+                }
+
+                marker.transform.position = SimulationUnityMapper.ToUnityTilePosition(
+                    lastSeen, GroundY(lastSeen)) + Vector3.up * UnknownMarkerLift;
+            }
+        }
+
+        foreach (var pair in _unknownNpcMarkers)
+        {
+            if (pair.Value != null && pair.Value.activeSelf &&
+                !_unknownMarkerLive.Contains(pair.Key))
+            {
+                pair.Value.SetActive(false);
+            }
+        }
+    }
+
+    private GameObject CreateUnknownNpcMarker()
+    {
+        var root = new GameObject("Unknown NPC ?");
+        root.transform.SetParent(transform, false);
+        // Обычный TextMesh: «?» — ASCII, и беды эмодзи (те рисуются белым
+        // квадратом и требуют спрайтов, §28.15E) у него нет.
+        var text = root.AddComponent<TextMesh>();
+        text.text = "?";
+        text.characterSize = 0.3f;
+        text.fontSize = 96;
+        text.anchor = TextAnchor.MiddleCenter;
+        text.alignment = TextAlignment.Center;
+        text.color = new Color(0.96f, 0.88f, 0.45f);
+        if (root.TryGetComponent<MeshRenderer>(out var renderer))
+        {
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        root.AddComponent<Views.CameraBillboard>();
+        return root;
+    }
+
+    /// <summary>§148: видел ли наш лагерь этот гекс хоть раз. Пока нет — там
+    /// не рисуется ничего: ни земля, ни деревья, ни лежащие вещи.</summary>
+    private bool TileDiscovered(TileCoord tile) =>
+        !_cullActive || _everSeenTiles.Contains(tile);
+
+    /// <summary>§148: видим ли мы гекс ПРЯМО СЕЙЧАС (кто-то из наших держит его
+    /// в восприятии). Живые тела и звери показываются только по этому
+    /// правилу — замороженной картинкой может быть только неподвижный мир.</summary>
+    private bool TileVisibleNow(TileCoord tile) =>
+        !_cullActive || _cullVisibleTiles.Contains(tile);
+
+    // §148: варианты затенения памяти — игрок выбирает на глаз (кнопка в
+    // дебаг-панели). Множитель цвета и подмешиваемый оттенок.
+    internal enum MemoryShadeStyle
+    {
+        Off,        // память светится как живое — видно только по движению
+        Dim,        // просто темнее
+        Grayscale,  // обесцвеченная память
+        Blueprint,  // холодный синий «чертёж»
+        Sepia,      // выцветшая карта
+    }
+
+    internal static MemoryShadeStyle ShadeStyle = MemoryShadeStyle.Grayscale;
+
+    /// <summary>§148: перекрасить гексы памяти. Красим ТОЛЬКО те, чьё
+    /// состояние сменилось: тайлов тысячи, а MaterialPropertyBlock не бесплатен.
+    /// Оригинальный блок каждого рендерера сохраняется и возвращается при
+    /// возврате гекса в живое восприятие (материалы общие на десятки тайлов —
+    /// красить material.color нельзя).</summary>
+    private void ApplyMemoryShade()
+    {
+        var styleKey = (int)ShadeStyle;
+        foreach (var pair in _tileViews)
+        {
+            var view = pair.Value;
+            if (view == null)
+            {
+                continue;
+            }
+
+            var wanted = _cullActive && ShadeStyle != MemoryShadeStyle.Off &&
+                _cullFrozenTiles.Contains(pair.Key)
+                    ? styleKey
+                    : 0;
+            if (_tileShadeApplied.TryGetValue(pair.Key, out var applied) && applied == wanted)
+            {
+                continue;
+            }
+
+            _tileShadeApplied[pair.Key] = wanted;
+            foreach (var renderer in view.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer == null)
+                {
+                    continue;
+                }
+
+                if (!_tileShadeSaved.TryGetValue(renderer, out var saved))
+                {
+                    saved = new MaterialPropertyBlock();
+                    renderer.GetPropertyBlock(saved);
+                    _tileShadeSaved[renderer] = saved;
+                }
+
+                if (wanted == 0)
+                {
+                    renderer.SetPropertyBlock(saved);
+                    continue;
+                }
+
+                _tileShadeScratch ??= new MaterialPropertyBlock();
+                _tileShadeScratch.Clear();
+                var baseColor = renderer.sharedMaterial != null &&
+                    renderer.sharedMaterial.HasProperty(FogRingBaseColor)
+                        ? renderer.sharedMaterial.GetColor(FogRingBaseColor)
+                        : Color.white;
+                _tileShadeScratch.SetColor(FogRingBaseColor, MemoryTint(baseColor));
+                _tileShadeScratch.SetColor(FogRingLegacyColor, MemoryTint(baseColor));
+                renderer.SetPropertyBlock(_tileShadeScratch);
+            }
+        }
+    }
+
+    private static Color MemoryTint(Color source)
+    {
+        var gray = source.r * 0.299f + source.g * 0.587f + source.b * 0.114f;
+        return ShadeStyle switch
+        {
+            MemoryShadeStyle.Dim => new Color(source.r * 0.45f, source.g * 0.45f, source.b * 0.5f, source.a),
+            MemoryShadeStyle.Grayscale => new Color(gray * 0.55f, gray * 0.57f, gray * 0.62f, source.a),
+            MemoryShadeStyle.Blueprint => new Color(gray * 0.30f, gray * 0.45f, gray * 0.75f, source.a),
+            MemoryShadeStyle.Sepia => new Color(gray * 0.62f, gray * 0.52f, gray * 0.38f, source.a),
+            _ => source,
+        };
     }
 
     /// <summary>True when perception culling is on and no living colonist's
@@ -5138,6 +5368,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // the double-blend where separate transparent tile draws overlapped along
     // shared edges. Vertices are baked in world XZ; the object sits at the
     // origin so posWS == the baked coords and the shader wave stays continuous.
+    // §148: ВОДА В ТУМАН НЕ ПОПАДАЕТ — решение игрока. Море рисуется целиком
+    // с первого кадра: так красивее, а «остров-силуэт» никого не смущает —
+    // разведывать всё равно нужно землю, деревья и людей на ней.
     private void EnsureWaterSurface(WorldSnapshot snapshot)
     {
         if (_waterSurface != null)

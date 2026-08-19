@@ -333,6 +333,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             // «рядом с ней» остаётся приказом идти / меню объекта.
             var isSelf = person.Id.Value == OrderNpcId;
             if ((NpcSelection.Contains(person.Id.Value) && !isSelf) ||
+                !CanTargetPerson(person) || // §148: невидимого не выбрать
                 !_worldRenderer.TryGetActorView(person.Id.Value, out var view) ||
                 !view.TryRaycastVisibleGeometry(ray, distance, out var hitDistance))
             {
@@ -358,9 +359,9 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var bestId = -1;
         foreach (var npc in People(snapshot))
         {
-            if (NpcSelection.Contains(npc.Id.Value))
+            if (NpcSelection.Contains(npc.Id.Value) || !CanTargetPerson(npc))
             {
-                continue; // сама себе не цель
+                continue; // сама себе не цель; §148 — невидимого не выбрать
             }
 
             // §121.1 r2: у человека с готовым видом уже был точный луч по его
@@ -395,6 +396,24 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     {
         foreach (var npc in snapshot.Npcs) yield return npc;
         foreach (var corpse in snapshot.Corpses) yield return corpse;
+    }
+
+    /// <summary>§148: по человеку, которого наши сейчас не видят, кликнуть
+    /// нельзя — на его последнем известном месте висит «?», и это ЗНАНИЕ
+    /// игрока, а не цель. Один предикат на все три пути наведения (точный луч,
+    /// экранный радиус, ховер), чтобы «нельзя кликнуть» нельзя было забыть в
+    /// одном из них.</summary>
+    private bool CanTargetPerson(NpcSnapshot person)
+    {
+        if (_worldRenderer == null)
+        {
+            _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
+        }
+
+        return _worldRenderer == null ||
+            _worldRenderer.IsNpcPickable(
+                person.Id.Value, person.Tile,
+                person.Faction == HexLive.Simulation.Agents.Faction.Colony);
     }
 
     private int PickMobUnderCursor(

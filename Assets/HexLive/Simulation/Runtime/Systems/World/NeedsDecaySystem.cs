@@ -558,9 +558,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaUpper);
 
-            // Spec 40.13: stress rises with danger/combat/pain/starvation and
-            // ebbs in calm. A UI param, and a third path to collapse.
-            var stressUp = npc.IsFighting || npc.Memory.Dangers.Count > 0 ||
+            // §110.10: stress responds to danger NOW, not to the long-lived
+            // spatial notebook used for route avoidance. Far-spotted and old
+            // Memory.Dangers are common even during an ordinary workday; using
+            // their Count here pinned healthy colonists at 100% indefinitely.
+            // Fighting, fleeing, a live hostile and the post-hit adrenaline
+            // window preserve every active-threat path.
+            var activeThreat = npc.IsFighting || npc.Mind.CurrentGoal == GoalType.Flee ||
+                npc.Perception.Hostiles.Count > 0 ||
+                DamageReactionSystemHelpers.IsAdrenalineActive(world, npc);
+            var stressUp = activeThreat ||
                 npc.Health < 0.6f || npc.Needs.Hunger >= 0.85f || npc.Needs.Thirst >= 0.85f;
             npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress + (stressUp ? SimBalance.StressUpRate : -SimBalance.StressDownRate));
 

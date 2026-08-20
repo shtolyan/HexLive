@@ -40,6 +40,17 @@ ELEMENTS = {
     "HL_ARCH_HEARTH": "furniture.hearth",
 }
 
+# A targeted deterministic repair should not rewrite seven unrelated binary
+# FBX files merely because Blender's exporter ran again. Empty means the normal
+# full export; a definition id exports exactly that one element.
+requested_element = os.environ.get("HEXLIVE_ARCH_ELEMENT", "").strip()
+if requested_element:
+    selected = {root: definition for root, definition in ELEMENTS.items()
+                if definition == requested_element}
+    if not selected:
+        raise RuntimeError("Unknown HEXLIVE_ARCH_ELEMENT " + requested_element)
+    ELEMENTS = selected
+
 # Empties that must survive export as direct children of the element root, not
 # as stage members: the renderer looks the hearth flame up by this exact name.
 ROOT_MARKERS = ("fire_point",)

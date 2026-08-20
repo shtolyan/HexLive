@@ -111,12 +111,17 @@ pivot = new_empty("HL_Door_Pivot", s2, loc=(0, SEAM, 0))
 # leaf has to be lifted by half its length or it sinks into the ground.
 DOOR_LEAF_LENGTH = 1.37
 DOOR_LEAF_FOOT = 0.06
+# Blender +Z is Unity +Y, while authored +X/+Y arrive as Unity -X/-Z.
+# With the canonical bay-7 hinge the negative swing carries the leaf away from
+# the floored hex. Positive 72 degrees is the inward pose (#181).
+DOOR_OPEN_DEGREES = -72.0
 new_obj("DOOR_leaf",
         plank_slab("DOOR_leaf", DOOR_LEAF_LENGTH, 0.455, 0.075, rng,
                    ("ARCH_SapwoodLight", "ARCH_Sapwood", "ARCH_SapwoodLight"),
                    planks=3, overlap=0.011), pivot,
         loc=(0, 0, DOOR_LEAF_FOOT + DOOR_LEAF_LENGTH * 0.5), rot=(math.radians(90), 0, 0))
-for name, angle in (("HL_Door_State_Closed", 0.0), ("HL_Door_State_Open", math.radians(72))):
+for name, angle in (("HL_Door_State_Closed", 0.0),
+                    ("HL_Door_State_Open", math.radians(DOOR_OPEN_DEGREES))):
     new_empty(name, s2, loc=(0, SEAM, 0), rot=(0, 0, angle))
 door_report = fit_rope(root, "DOOR", 813, BOUNDARY_ROPE_PLAN)
 

@@ -338,6 +338,96 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Кто именно из этих колонисток ещё не готова показаться — и почему.
+    /// Пустая строка = все готовы. Экран загрузки печатает это, когда ждёт
+    /// подозрительно долго: «шторка не поднялась» без имени виноватого —
+    /// симптом, на который уже трижды отвечали правдоподобной догадкой
+    /// (§109.16), а на живом мире сервера ждать можно и вечно.
+    /// </summary>
+    public string DescribeActorsNotReady(IEnumerable<int> ids)
+    {
+        var snapshot = _lastSnapshot ?? (_runner != null && _runner.IsReady
+            ? _runner.CreateSnapshot()
+            : null);
+        if (snapshot == null)
+        {
+            return "снимка мира ещё нет";
+        }
+
+        var parts = new List<string>();
+        foreach (var id in ids)
+        {
+            if (!_actorViews.TryGetValue(id, out var view) || view == null)
+            {
+                parts.Add(_corpseActorViews.ContainsKey(id)
+                    ? $"NPC#{id}: умерла и уехала в трупы"
+                    : $"NPC#{id}: вида нет");
+                continue;
+            }
+
+            NpcSnapshot npc = null;
+            for (var i = 0; i < snapshot.Npcs.Count; i++)
+            {
+                if (snapshot.Npcs[i].Id.Value == id)
+                {
+                    npc = snapshot.Npcs[i];
+                    break;
+                }
+            }
+
+            if (npc == null)
+            {
+                parts.Add($"NPC#{id}: пропала из снимка");
+                continue;
+            }
+
+            var why = view.DescribePresentationBlocker(
+                npc.WornItems, npc.SeveredParts, npc.BodyPartConditions);
+            if (why.Length > 0)
+            {
+                parts.Add($"NPC#{id} {npc.DisplayName}: {why}");
+            }
+        }
+
+        return string.Join("; ", parts);
+    }
+
+    /// <summary>Живые id из переданных — те, кто ещё есть в текущем снимке.
+    /// На сервере мир не ждёт загрузчика: пока он греет панели, колонистка
+    /// может умереть, и её вид переезжает из живого реестра в трупный. Ждать
+    /// её готовности после этого можно вечно.</summary>
+    public void KeepLiveNpcIds(List<int> ids)
+    {
+        var snapshot = _lastSnapshot ?? (_runner != null && _runner.IsReady
+            ? _runner.CreateSnapshot()
+            : null);
+        if (snapshot == null)
+        {
+            return;
+        }
+
+        for (var i = ids.Count - 1; i >= 0; i--)
+        {
+            var alive = false;
+            for (var j = 0; j < snapshot.Npcs.Count; j++)
+            {
+                if (snapshot.Npcs[j].Id.Value == ids[i])
+                {
+                    alive = true;
+                    break;
+                }
+            }
+
+            if (!alive)
+            {
+                Debug.Log($"[Loading] NPC#{ids[i]} исчезла из мира, пока грелась " +
+                    "презентация — снята с ожидания.");
+                ids.RemoveAt(i);
+            }
+        }
+    }
+
     // Spec 28.15E: the last talk-outcome tick popped per NPC, so the "+/-"
     // relationship glyph fires exactly once when a fresh outcome arrives.
     private readonly Dictionary<int, int> _lastTalkResultTick = new();

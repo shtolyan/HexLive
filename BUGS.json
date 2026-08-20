@@ -1,5 +1,5 @@
 {
-    "nextId": 182,
+    "nextId": 183,
     "unityMcpLease": {
         "status": "free",
         "ownerAgent": "",
@@ -3375,7 +3375,7 @@
             "fixCommits": [],
             "fixCommit": "",
             "reportedInVersion": "0.1.39",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -3576,7 +3576,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.39",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -3639,7 +3639,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.39",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4115,7 +4115,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4190,7 +4190,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4244,7 +4244,7 @@
             ],
             "fixCommit": "4407546c595b9a11baa2f15f07e8ba29defa5006",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4313,7 +4313,7 @@
             ],
             "fixCommit": "bf0fc71fc740bdf0843ebb4395ec933eec2d1c67",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4381,7 +4381,7 @@
             ],
             "fixCommit": "3f415fa66dcf261b38c949b553138581373d642c",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4532,7 +4532,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4565,7 +4565,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4645,7 +4645,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4886,7 +4886,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -4916,7 +4916,7 @@
             ],
             "fixCommit": "99768e6b4d8aaace7e46929e8e9db9b536a85f2e",
             "reportedInVersion": "0.1.45",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5055,7 +5055,7 @@
             ],
             "fixCommit": "f78b45cb245ca0af816b4f0cbc3cd1a81be6ac60",
             "reportedInVersion": "0.1.47",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5116,7 +5116,7 @@
             ],
             "fixCommit": "a369b01922d582b262c5d6b388e0ad547dcda16d",
             "reportedInVersion": "0.1.47",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5145,7 +5145,7 @@
             ],
             "fixCommit": "9aebc84f4da75c1fee04297b2ec49aa6571f9fa1",
             "reportedInVersion": "0.1.47",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5174,7 +5174,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.48",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5203,7 +5203,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.48",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5232,7 +5232,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.48",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5261,7 +5261,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.48",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5290,7 +5290,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.48",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5319,7 +5319,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.48",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5348,7 +5348,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.48",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5378,7 +5378,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.50",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5413,7 +5413,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.50",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5447,7 +5447,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.50",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5508,7 +5508,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.52",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5542,7 +5542,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.52",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5571,7 +5571,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.53",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5600,7 +5600,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.53",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5629,7 +5629,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.53",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5658,7 +5658,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5687,7 +5687,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "",
-            "readyForTestInVersion": "0.1.55",
+            "readyForTestInVersion": "0.1.56",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -5744,6 +5744,28 @@
                     "whenUtc": "2026-08-18 18:35 UTC",
                     "author": "claude",
                     "text": "Зафиксировано. Это чистая презентация: направление распахивания створки architecture.door.wood. Отложено вместе с #180 по решению игрока."
+                }
+            ]
+        },
+        {
+            "id": 182,
+            "createdUtc": "2026-08-20 01:22 UTC",
+            "status": "in_progress",
+            "text": "При подключении к серверу загрузочный экран не пропал: по звуку мир уже загрузился, девушки начали говорить, а занавес остался висеть. (Записано агентом со слов игрока.)",
+            "context": "",
+            "assignedAgent": "claude",
+            "agentHandoff": "Ветка ConnectToServer в UnityPresentation/UI/LoadingScreen.cs. Голоса звучат только когда IsReplaying=false, значит зависание ПОСЛЕ показа мира: прогрев панелей или WaitForActors. Лога той сессии нет (Player.log перезаписан локальной новой игрой).",
+            "fixCommits": [],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.56",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-20 01:22 UTC",
+                    "author": "claude",
+                    "text": "Взял в работу. Ждущий цикл теперь называет виноватого поимённо в лог (раз в 5 с) и печатает вехи удалённой загрузки; на живом мире сервера ростер ожидания пересобирается каждый кадр (умершая колонистка уезжает в трупный реестр и её готовности можно ждать вечно), а само ожидание ограничено 30 секундами — см. Spec/41.md §41.6."
                 }
             ]
         }

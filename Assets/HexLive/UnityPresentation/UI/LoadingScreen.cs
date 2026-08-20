@@ -36,6 +36,17 @@ namespace HexLive.UnityPresentation.UI
         // «не морозить экран», который стоил и того и другого.
         private const float FadeSeconds = 0.7f;
 
+        // Диагностика зависшего занавеса. Раз в столько секунд ожидание
+        // ПЕЧАТАЕТ, кого именно ждёт: «экран не пропал» без имени виноватого —
+        // симптом, на который отвечают догадками (§109.16).
+        private const float StallReportSeconds = 5f;
+
+        // Живой мир (сервер) не останавливается ради загрузчика, поэтому
+        // ожидание готовности тел здесь ограничено: после этого занавес
+        // поднимается силой, с ошибкой в лог. Локальный путь ждёт мир на
+        // ПАУЗЕ и остаётся безлимитным, как и был.
+        private const float LiveWorldGiveUpSeconds = 30f;
+
         // §41.3: единственные две ячейки, которые главный поток делит с
         // воркером намотки. Тик — только на чтение (полоса и часы), стоп-флаг —
         // только на запись. volatile здесь не для атомарности (int и bool
@@ -1112,7 +1123,11 @@ namespace HexLive.UnityPresentation.UI
                 HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(0),
                 startPaused: true, initialSpeed: 1f);
 
+            // Вехи удалённой загрузки печатаются В ЛОГ: занавес, который не
+            // ушёл, снаружи выглядит одинаково на любой из пяти фаз, и без
+            // этих строк следующая догадка снова будет ставкой (§109.16).
             var waited = 0f;
+            var nextConnectReport = StallReportSeconds;
             while (!_runner.IsReady)
             {
                 var link = _runner.Link;
@@ -1130,8 +1145,17 @@ namespace HexLive.UnityPresentation.UI
                     link.State == LinkState.Reconnecting
                         ? Loc.Get("loading.reconnecting")
                         : Loc.Get("loading.connecting"));
+                if (waited >= nextConnectReport)
+                {
+                    nextConnectReport += StallReportSeconds;
+                    Debug.LogWarning($"[Loading] подключение {waited:F0} с: " +
+                        $"состояние связи {link.State} {link.Message}");
+                }
+
                 yield return null;
             }
+
+            Debug.Log($"[Loading] сервер подключён за {waited:F1} с, тик {_runner.CurrentTick}");
 
             // The clock needs a couple of frames buffered before it will present
             // anything; showing the island mid-fill would stutter on entry.
@@ -1152,6 +1176,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             var npcs = ListNpcIds();
+            Debug.Log($"[Loading] мир сервера показан, греем панели: {npcs.Count} колонисток");
             for (var i = 0; i < npcs.Count; i++)
             {
                 SetProgress(Mathf.Lerp(0.75f, 0.95f, (i + 1) / (float)npcs.Count),
@@ -1161,7 +1186,8 @@ namespace HexLive.UnityPresentation.UI
                 yield return null;
             }
 
-            yield return WaitForActors(npcs);
+            yield return WaitForActors(npcs, liveWorld: true);
+            Debug.Log("[Loading] занавес уходит");
 
             NpcSelection.Clear();
             NpcSelection.Select(FindOpeningTarget(npcs));
@@ -1229,7 +1255,8 @@ namespace HexLive.UnityPresentation.UI
         // Подпись при этом человеческая: игрок видит «шьём одежду», а не
         // проценты в пустоту.
         private IEnumerator WaitForActors(
-            System.Collections.Generic.List<(int id, string name)> npcs)
+            System.Collections.Generic.List<(int id, string name)> npcs,
+            bool liveWorld = false)
         {
             if (npcs.Count == 0)
             {
@@ -1248,6 +1275,9 @@ namespace HexLive.UnityPresentation.UI
                 ids.Add(npc.id);
             }
 
+            var waited = 0f;
+            var nextReport = StallReportSeconds;
+
             // Queue first is load-bearing short-circuiting. ActorsReady applies
             // the now-cached wardrobe to a paused actor; calling it while an
             // Addressables prewarm is still running could fall through to the
@@ -1261,8 +1291,49 @@ namespace HexLive.UnityPresentation.UI
                 SetProgress(Mathf.Lerp(0.75f, 0.99f, Wearing.Garments.ContentQueue.Progress),
                     Loc.Get(Wearing.Garments.ContentQueue.MessageKey));
                 yield return null;
+
+                waited += Time.unscaledDeltaTime;
+                if (liveWorld)
+                {
+                    // Мир сервера не ждёт загрузчика: пока греются панели,
+                    // колонистка может умереть — её вид уезжает в трупный
+                    // реестр, и «готова ли она» уже никогда не станет правдой.
+                    renderer.KeepLiveNpcIds(ids);
+                    if (ids.Count == 0)
+                    {
+                        yield break;
+                    }
+                }
+
+                if (waited < nextReport)
+                {
+                    continue;
+                }
+
+                nextReport += StallReportSeconds;
+                Debug.LogWarning($"[Loading] жду {waited:F0} с: " +
+                    $"очередь контента {Wearing.Garments.ContentQueue.Remaining} шт " +
+                    $"({Wearing.Garments.ContentQueue.MessageKey}); " +
+                    $"тела — {Describe(renderer.DescribeActorsNotReady(ids))}");
+
+                // На ЖИВОМ мире ждать бесконечно нельзя, и это не отказ от
+                // правила «каждая начатая задача обязана завершиться»: то
+                // правило про Addressables, а здесь ждут ещё и колонистку,
+                // которую мир меняет прямо во время ожидания. Занавес, который
+                // пережил загрузку, — игра, в которую нельзя играть; недошитая
+                // причёска — кадр, который догонит через секунду.
+                if (liveWorld && waited >= LiveWorldGiveUpSeconds)
+                {
+                    Debug.LogError($"[Loading] занавес поднят силой после {waited:F0} с " +
+                        "ожидания на живом мире — см. предыдущую строку, там имя " +
+                        "виноватого.");
+                    yield break;
+                }
             }
         }
+
+        private static string Describe(string blockers) =>
+            string.IsNullOrEmpty(blockers) ? "готовы" : blockers;
 
         /// <summary>Spec 41.3: единственный стоп-кран снятого потолка офлайна —
         /// колония вымерла. `World.Completed` этого не значит (это спуск плота,

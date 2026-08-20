@@ -194,6 +194,49 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         return true;
     }
 
+    /// <summary>
+    /// То же условие, что и <see cref="IsPresentationReady"/>, но словами: ЧТО
+    /// именно держит занавес. Нужен затем, что «экран загрузки не пропал» —
+    /// симптом без адреса: ждать можно причёску, протез или вещь, и без имени
+    /// виноватого следующая догадка снова будет ставкой (§109.16).
+    /// Пустая строка = готова.
+    /// </summary>
+    public string DescribePresentationBlocker(
+        IReadOnlyList<string> wornDefinitionIds,
+        IReadOnlyList<string> severedParts,
+        IReadOnlyList<BodyPartConditionSnapshot> partConditions)
+    {
+        if (_bodyBones == null)
+        {
+            return "тело не построено (BodyBones=null)";
+        }
+
+        if (_pendingHairLoads > 0)
+        {
+            return $"причёска едет ({_pendingHairLoads})";
+        }
+
+        ApplySeveredLimbs(severedParts);
+        SyncProstheticVisuals(partConditions);
+        foreach (var pair in _prostheticVisuals)
+        {
+            if (!pair.Value.IsReady)
+            {
+                return $"протез {pair.Key} едет";
+            }
+        }
+
+        foreach (var simId in wornDefinitionIds)
+        {
+            if (!_equippedSimItems.ContainsKey(simId))
+            {
+                return $"вещь '{simId}' не надета";
+            }
+        }
+
+        return string.Empty;
+    }
+
     private Transform _gazeTarget;
     private float _gazeWeight;
     private float _gazeWeightTarget;

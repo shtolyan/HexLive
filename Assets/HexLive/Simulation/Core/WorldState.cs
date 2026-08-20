@@ -146,6 +146,15 @@ public sealed class WorldState
     // serialized; a loaded world repopulates it on its first tick.
     public System.Collections.Generic.HashSet<Common.TileCoord> ShadedTiles { get; } = new();
 
+    // §148: гексы, которые КОЛОНИЯ когда-либо держала в восприятии. Растёт и
+    // никогда не убывает: разведка — это факт биографии колонии, а не
+    // текущее наблюдение (в отличие от памяти об объектах §27.18A r2, которая
+    // забывается). Пополняется PerceptionSystem, СЕРИАЛИЗУЕТСЯ (иначе после
+    // перезапуска игрок снова смотрел бы на чёрный остров, уже разведанный),
+    // и едет в снапшот полем TileSnapshot.Explored — презентация рисует по
+    // нему туман и не имеет своего мнения о том, что открыто.
+    public System.Collections.Generic.HashSet<Common.TileCoord> ExploredTiles { get; } = new();
+
     // §54.2 r2 (#168): перепись тегов ВСЕХ объектов мира, посчитанная не чаще
     // раза в тик (ColonyQueries.WorldCountWithTag). Запас рощи и «сначала
     // подбери, что лежит» — утверждения про остров, а не про поле зрения.

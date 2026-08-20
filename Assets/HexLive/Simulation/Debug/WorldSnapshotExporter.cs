@@ -431,6 +431,7 @@ public static class WorldSnapshotExporter
                 cached.Indoor = (tile.Flags & TileFlags.Indoor) != 0;
                 cached.HasFloor = (tile.Flags & TileFlags.HasFloor) != 0;
                 cached.Water = (tile.Flags & TileFlags.Water) != 0;
+                cached.Explored = world.ExploredTiles.Contains(tile.Coord); // §148
                 cached.Elevation = tile.Elevation;
             }
 
@@ -452,6 +453,7 @@ public static class WorldSnapshotExporter
                 Indoor = (tile.Flags & TileFlags.Indoor) != 0,
                 HasFloor = (tile.Flags & TileFlags.HasFloor) != 0,
                 Water = (tile.Flags & TileFlags.Water) != 0,
+                Explored = world.ExploredTiles.Contains(tile.Coord), // §148
                 Elevation = tile.Elevation
             });
         }

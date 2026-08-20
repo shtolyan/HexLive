@@ -242,6 +242,11 @@ public sealed class NpcFieldGroupDeltaGateTests
             r.ReadBytes(r.ReadInt32()); // tile block
         }
 
+        if (r.ReadBoolean())
+        {
+            r.ReadBytes(r.ReadInt32()); // §148: explored block
+        }
+
         SkipSection(r); // objects
 
         var gone = r.ReadUInt16();

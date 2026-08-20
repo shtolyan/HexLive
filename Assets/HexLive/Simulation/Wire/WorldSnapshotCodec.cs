@@ -102,6 +102,7 @@ public static class WorldSnapshotCodec
         WriteHeaderRecord(w, snapshot);
 
         WriteTiles(snapshot, w);
+        WriteExplored(snapshot, w);
         WriteObjects(snapshot, w);
         WriteNpcs(snapshot, w, includeDebugDetails);
         WriteCorpses(snapshot, w, includeDebugDetails);
@@ -169,6 +170,7 @@ public static class WorldSnapshotCodec
         ReadHeaderRecord(r, into);
 
         ReadTiles(r, into);
+        ReadExplored(r, into);
         ReadObjects(r, into);
         ReadNpcs(r, into, includeDebugDetails);
         ReadCorpses(r, into, includeDebugDetails);
@@ -278,6 +280,69 @@ public static class WorldSnapshotCodec
                            (tile.HasFloor ? 16 : 0)));
         }
     }
+
+    /// <summary>
+    /// §148: разведанные гексы — своей секцией, а не полем в записи тайла.
+    /// <para>
+    /// Тайлы едут ИЗМЕНЁННЫМ НАБОРОМ (обычно пустым), и подмешать в него
+    /// разведку значило бы гонять весь остров каждый раз, как открылся один
+    /// гекс. Здесь — плоский список координат: он растёт и никогда не убывает,
+    /// а дельта присылает секцию целиком только когда она изменилась (тот же
+    /// приём, что у заголовка и тайлов).
+    /// </para>
+    /// </summary>
+    internal static void WriteExplored(WorldSnapshot snapshot, BinaryWriter w)
+    {
+        var count = 0;
+        foreach (var tile in snapshot.Tiles)
+        {
+            if (tile.Explored) count++;
+        }
+
+        w.Write(count);
+        foreach (var tile in snapshot.Tiles)
+        {
+            if (tile.Explored)
+            {
+                WireIo.WriteTile(w, tile.Coord);
+            }
+        }
+    }
+
+    internal static void ReadExplored(BinaryReader r, WorldSnapshot into)
+    {
+        var count = r.ReadInt32();
+        if (count == 0)
+        {
+            foreach (var tile in into.Tiles)
+            {
+                tile.Explored = false;
+            }
+
+            return;
+        }
+
+        // Словарь, а не линейный поиск по координате: разведанных гексов
+        // тысячи, и поиск в списке дал бы миллионы сравнений на кадр.
+        _exploredLookup.Clear();
+        foreach (var tile in into.Tiles)
+        {
+            tile.Explored = false;
+            _exploredLookup[tile.Coord] = tile;
+        }
+
+        for (var i = 0; i < count; i++)
+        {
+            var coord = WireIo.ReadTile(r);
+            if (_exploredLookup.TryGetValue(coord, out var tile))
+            {
+                tile.Explored = true;
+            }
+        }
+    }
+
+    private static readonly System.Collections.Generic.Dictionary<
+        HexLive.Simulation.Common.TileCoord, TileSnapshot> _exploredLookup = new();
 
     internal static void ReadTiles(BinaryReader r, WorldSnapshot into)
     {

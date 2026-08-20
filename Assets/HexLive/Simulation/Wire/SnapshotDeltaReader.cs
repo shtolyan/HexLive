@@ -68,6 +68,22 @@ public static class SnapshotDeltaReader
             WorldSnapshotCodec.ReadTiles(tileReader, into);
         }
 
+        // §148: разведка — по тому же правилу «прислали, только если изменилось».
+        if (r.ReadBoolean())
+        {
+            var length = r.ReadInt32();
+            if (length < 0 || length > 1_000_000)
+            {
+                throw new InvalidDataException(
+                    $"Delta explored block of {length} bytes is not plausible.");
+            }
+
+            var bytes = r.ReadBytes(length);
+            using var exploredStream = new MemoryStream(bytes);
+            using var exploredReader = new BinaryReader(exploredStream);
+            WorldSnapshotCodec.ReadExplored(exploredReader, into);
+        }
+
         ApplySection(r, into.Objects, o => o.Id.Value,
             (reader, o) => WorldSnapshotCodec.ReadObjectRecord(reader, o));
 

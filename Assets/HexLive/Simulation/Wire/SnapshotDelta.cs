@@ -68,6 +68,8 @@ public sealed class SnapshotDeltaEncoder
 
     private byte[] _header = Array.Empty<byte>();
     private byte[] _tiles = Array.Empty<byte>();
+
+    private byte[] _explored = Array.Empty<byte>(); // §148
     private int _deaths;
 
     private readonly MemoryStream _scratch = new();
@@ -98,6 +100,7 @@ public sealed class SnapshotDeltaEncoder
         _journals.Clear();
         _header = Array.Empty<byte>();
         _tiles = Array.Empty<byte>();
+        _explored = Array.Empty<byte>(); // §148
         _deaths = 0;
         BaselineTick = -1;
     }
@@ -171,6 +174,19 @@ public sealed class SnapshotDeltaEncoder
             w.Write(tiles.Length);
             w.Write(tiles);
             _tiles = tiles;
+        }
+
+        // §148: разведка — тот же приём. Множество только растёт, поэтому
+        // «изменилось» бывает лишь пока колония открывает новую землю; на
+        // разведанном острове секция замолкает навсегда.
+        var explored = Capture(sw => WorldSnapshotCodec.WriteExplored(snapshot, sw));
+        var exploredChanged = !Same(_explored, explored);
+        w.Write(exploredChanged);
+        if (exploredChanged)
+        {
+            w.Write(explored.Length);
+            w.Write(explored);
+            _explored = explored;
         }
 
         WriteSection(w, snapshot.Objects, _objects,

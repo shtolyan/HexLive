@@ -121,7 +121,7 @@ public static class WorldSaveSerializer
     // кольцами — урок §46 v4: всё состояние слота в сейве, ничего не
     // выводится из сида задним числом. Блоб ≤52 читает пустой список, и
     // ленивая генерация отстраивает слоты заново, если ручки включены.
-    public const int BlobVersion = 53;
+    public const int BlobVersion = 54; // §148: + разведанные гексы
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -205,6 +205,15 @@ public static class WorldSaveSerializer
         // Junction Blocked/Door mutate at runtime (obstacles, walls, doors).
         WriteJunctionFlagSet(world, w, static junction => junction.Blocked);
         WriteJunctionFlagSet(world, w, static junction => junction.Door);
+
+        // §148: разведанные гексы. Без них перезапуск возвращал бы игроку
+        // чёрный остров, уже пройденный ногами колонии, — а разведка это
+        // достижение партии, ровно как построенный дом.
+        w.Write(world.ExploredTiles.Count);
+        foreach (var coord in world.ExploredTiles)
+        {
+            WriteTile(w, coord);
+        }
 
         w.Write(world.Entities.Objects.Count);
         foreach (var obj in world.Entities.Objects.Values)
@@ -537,6 +546,18 @@ public static class WorldSaveSerializer
 
         ReadJunctionFlagSet(world, r, static junction => junction.Blocked = true);
         ReadJunctionFlagSet(world, r, static junction => junction.Door = true);
+
+        // §148: разведанное. Старый сейв (до v54) его не нёс — тогда остров
+        // открывается заново, но ходить по нему уже некуда торопиться.
+        world.ExploredTiles.Clear();
+        if (version >= 54)
+        {
+            var exploredCount = r.ReadInt32();
+            for (var i = 0; i < exploredCount; i++)
+            {
+                world.ExploredTiles.Add(ReadTile(r));
+            }
+        }
 
         // Derived reachability cache: rebuilt on first pathfind.
         world.JunctionComponents.Clear();

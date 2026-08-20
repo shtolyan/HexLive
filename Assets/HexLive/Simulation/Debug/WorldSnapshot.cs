@@ -276,6 +276,11 @@ public sealed class TileSnapshot
 
     public bool Water { get; set; }
 
+    // §148: колония держала этот гекс в восприятии хоть раз. Только по нему
+    // презентация решает, рисовать ли землю и то, что на ней: своего мнения
+    // о разведке у вида нет, иначе оно бы расходилось с сейвом.
+    public bool Explored { get; set; }
+
     public int Elevation { get; set; }
 }
 

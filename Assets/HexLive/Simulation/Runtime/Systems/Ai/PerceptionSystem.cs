@@ -77,6 +77,28 @@ public sealed class PerceptionSystem : ISimulationSystem
 
             var npcJunction = ResolveCurrentJunction(world, npc);
 
+            // §148: РАЗВЕДКА. Гекс, который наша девушка держала в восприятии
+            // хоть раз, остаётся разведанным навсегда — это биография колонии,
+            // а не наблюдение, поэтому множество только растёт и едет в сейв.
+            // Радиус тот же личный §125, что у всего остального восприятия.
+            if (npc.Faction == Faction.Colony && npc.Health > 0f)
+            {
+                var exploreRadius = PerceptionMath.RadiusTiles(npc);
+                for (var dq = -exploreRadius; dq <= exploreRadius; dq++)
+                {
+                    var lo = System.Math.Max(-exploreRadius, -dq - exploreRadius);
+                    var hi = System.Math.Min(exploreRadius, -dq + exploreRadius);
+                    for (var dr = lo; dr <= hi; dr++)
+                    {
+                        var seenCoord = new Common.TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
+                        if (world.Tiles.Items.ContainsKey(seenCoord))
+                        {
+                            world.ExploredTiles.Add(seenCoord);
+                        }
+                    }
+                }
+            }
+
             // Live sight (spec 22.7): only objects within the perception
             // radius; every sighting upserts spatial memory (spec 27.18A).
             _visibleScratch.Clear();

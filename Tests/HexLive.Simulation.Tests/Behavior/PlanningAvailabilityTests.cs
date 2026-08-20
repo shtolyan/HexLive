@@ -444,6 +444,74 @@ public sealed class PlanningAvailabilityTests
     }
 
     [Test]
+    public void ArchitecturalShelterPrecedesWaterCollectors_Bug188()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        var junctions = world.Junctions.Items.Values
+            .Where(j => !j.Blocked && j.Tiles.Count > 0)
+            .Take(2)
+            .ToArray();
+
+        var collector = Site(world, npc, junctions[0].Id, junctions[0].Tiles[0],
+            ContentIds.WaterCollector);
+        collector.BillSticks = 8;
+        var hut = Site(world, npc, junctions[1].Id, junctions[1].Tiles[0],
+            ContentIds.HutPlan);
+        hut.BillRope = 12;
+
+        npc.Perception.Objects.Clear();
+        npc.Perception.Objects.Add(Seen(collector));
+        npc.Perception.Objects.Add(Seen(hut));
+
+        Assert.That(DecisionSystem.FindBuildSite(npc, world), Is.SameAs(hut),
+            "A staked house is shelter infrastructure. If water collectors sit ahead of it, " +
+            "the house's rope demand never reaches CraftRope and the visible walls stall.");
+    }
+
+    [Test]
+    public void RopeCraftingReadsAlliedShelterDemandBeyondLocalPerception_Bug188()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        var junctions = world.Junctions.Items.Values
+            .Where(j => !j.Blocked && j.Tiles.Count > 0)
+            .Take(3)
+            .ToArray();
+        Assert.That(junctions, Has.Length.EqualTo(3));
+
+        npc.Needs.Hunger = 0.1f;
+        npc.Needs.Thirst = 0.1f;
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Plan.Status = PlanStatus.None;
+        npc.Execution.Status = ExecutionStatus.None;
+
+        var fire = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Campfire, npc.Fragment, junctions[0].Tiles[0],
+            junctions[0].Id);
+        var fiber = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Fiber, npc.Fragment, junctions[1].Tiles[0],
+            junctions[1].Id);
+        var hut = Site(world, npc, junctions[2].Id, junctions[2].Tiles[0],
+            ContentIds.HutPlan);
+        hut.BillRope = 1;
+
+        npc.Perception.Objects.Clear();
+        var seenFire = Seen(fire);
+        seenFire.AvailableInteractions.Add(InteractionType.Craft);
+        npc.Perception.Objects.Add(seenFire);
+        var seenFiber = Seen(fiber);
+        seenFiber.AvailableInteractions.Add(InteractionType.PickUp);
+        npc.Perception.Objects.Add(seenFiber);
+
+        new DecisionSystem().Run(world);
+
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.CraftRope),
+            "Rope production must answer allied shelter demand even when this NPC " +
+            "sees the fiber and campfire but not the distant house site.");
+    }
+
+    [Test]
     public void BuildFurniturePlannerTargetsTheExactQueuedWaterCollector()
     {
         var world = TestWorld.CreateWorld();

@@ -1052,6 +1052,33 @@ public sealed partial class DecisionSystem : ISimulationSystem
             : buildSite.BuildProduct == ContentIds.WaterCollector
                 ? BuildSiteMath.TotalRemaining(buildSite, material)
                 : BuildSiteMath.Remaining(buildSite, material);
+        // Bug #188: the material pipeline is a colony service, not only a
+        // local-site service.  In the live server save, the nearly complete hut
+        // needed 12 rope at -23,-9, while the girls who could see yucca/fiber
+        // or a campfire did not also see that exact build-site.  Tying
+        // CraftRope to only FindBuildSite(npc) left the house visually stuck
+        // with two walls missing and loose sticks lying nearby.  Keep delivery
+        // target selection local, but let production see allied build-site
+        // demand across the loaded world.
+        int AlliedBuildSiteRemaining(string material)
+        {
+            var remaining = 0;
+            foreach (var obj in world.Entities.Objects.Values)
+            {
+                if (!BuildSiteMath.IsSite(obj) ||
+                    !DecisionSystem.IsOurSite(world, npc, obj))
+                {
+                    continue;
+                }
+
+                var siteRemaining = obj.BuildProduct == ContentIds.WaterCollector
+                    ? BuildSiteMath.TotalRemaining(obj, material)
+                    : BuildSiteMath.Remaining(obj, material);
+                remaining = System.Math.Max(remaining, siteRemaining);
+            }
+
+            return remaining;
+        }
         // §64.9: two readings of the same bill. siteWantsLogs = "the site's
         // current stage is short of logs" (drives the pulls and the
         // don't-split reservation, and must NOT lapse the moment she picks
@@ -2004,12 +2031,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // and bed-site lashings; cloth when a sun-shelter is due; the knife is
         // a survival tool (no butchering without it). Gather fiber to feed
         // rope/cloth, then craft at the fire.
-        var siteRopeTarget = siteNeedsRope && buildSite != null
-            ? PlannedSiteRemaining(BuildSiteMath.MaterialRope)
+        var selectedSiteRope = PlannedSiteRemaining(BuildSiteMath.MaterialRope);
+        var alliedSiteRope = buildWindow
+            ? AlliedBuildSiteRemaining(BuildSiteMath.MaterialRope)
+            : 0;
+        var siteRopeTarget = selectedSiteRope > 0 || alliedSiteRope > 0
+            ? System.Math.Max(selectedSiteRope, alliedSiteRope)
             : 1;
         var medicalRopeTarget = woodenBoardsRequired > 0 ? 2 : (splintSupplyNeeded ? 1 : 0);
         var ropeTarget = System.Math.Max(siteRopeTarget, medicalRopeTarget);
-        var wantRope = (siteNeedsRope && carriedRope < ropeTarget) ||
+        var wantRope = ((siteNeedsRope || alliedSiteRope > 0) && carriedRope < ropeTarget) ||
             (medicalRopeTarget > 0 && carriedRope < medicalRopeTarget) ||
             (!hasBow && hideCount >= 1 && carriedRope == 0);
         var wantCloth = bedDeficit && carriedCloth == 0;

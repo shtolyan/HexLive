@@ -43,9 +43,9 @@ internal static class WoundMath
     // clutter that burns the cap for nothing.
     private static float MinSplittableDamage => SimBalance.MinSplittableDamage;
 
-    // §40.8-H r10: вода смывает кровяную подложку со всех зон. Единственный
-    // путь вниз для BloodSoil — вызывается водяным тиком NeedsDecaySystem и
-    // купанием (Bathe обнуляет через amount >= 1).
+    // §40.8-H r12: физическое мытьё смывает кровяную подложку со всех зон.
+    // Единственный путь вниз для BloodSoil вызывается водным/дождевым тиком
+    // NeedsDecaySystem и купанием (Bathe обнуляет через amount >= 1).
     public static void WashBloodSoil(NPCState npc, float amount)
     {
         if (amount <= 0f)

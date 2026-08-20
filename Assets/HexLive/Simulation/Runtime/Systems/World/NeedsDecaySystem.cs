@@ -667,11 +667,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     : -SimBalance.HygieneDriftLoss;
             npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
                 hygieneDelta);
-            // §40.8-H r10: та же вода смывает кровяную подложку. На суше —
-            // ничего: засохшая кровь, как грязь одежды, держится до мытья.
-            if (standingInWater)
+            // §40.8-H r12: тот же физический wash-path смывает кровяную
+            // подложку. Дождь делает это с тем же десятикратным замедлением,
+            // что и общую гигиену; сухая погода ничего не очищает.
+            if (standingInWater || washingInRain)
             {
-                WoundMath.WashBloodSoil(npc, SimBalance.BloodSoilWashPerTick);
+                var bloodSoilWashFactor = standingInWater
+                    ? 1f
+                    : RainHygieneWashFactor;
+                WoundMath.WashBloodSoil(npc,
+                    SimBalance.BloodSoilWashPerTick * bloodSoilWashFactor);
             }
             foreach (var worn in npc.WornItems)
             {

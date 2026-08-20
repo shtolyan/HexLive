@@ -9,7 +9,7 @@ namespace HexLive.Simulation.Tests.Behavior;
 public sealed class RainHygieneTests
 {
     [Test]
-    public void OutdoorRainRestoresOneTenthOfWaterHygieneRate()
+    public void OutdoorRainWashesSkinAtOneTenthOfWaterRate()
     {
         var world = TestWorld.CreateWorld(149);
         var npc = world.Entities.Npcs.Values.First();
@@ -24,12 +24,17 @@ public sealed class RainHygieneTests
         Assert.That(tile.Flags.HasFlag(TileFlags.Indoor), Is.False, "fixture must be exposed to rain");
 
         npc.Needs.Hygiene = 0.5f;
+        var leg = npc.Body.Condition(BodyPart.LegL);
+        leg.BloodSoil = 0.75f;
         world.Environment.IsRaining = true;
-        var before = npc.Needs.Hygiene;
+        var hygieneBefore = npc.Needs.Hygiene;
+        var bloodSoilBefore = leg.BloodSoil;
 
         new NeedsDecaySystem().Run(world);
 
-        Assert.That(npc.Needs.Hygiene - before,
+        Assert.That(npc.Needs.Hygiene - hygieneBefore,
             Is.EqualTo(SimBalance.HygieneWashGain * 0.1f).Within(0.000001f));
+        Assert.That(bloodSoilBefore - leg.BloodSoil,
+            Is.EqualTo(SimBalance.BloodSoilWashPerTick * 0.1f).Within(0.000001f));
     }
 }

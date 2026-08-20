@@ -34,13 +34,23 @@ namespace HexLive.Server.Mcp
 /// </summary>
 public sealed class McpTools
 {
-    private readonly WorldHost _host;
+    private readonly Func<WorldHost> _currentHost;
     private readonly ControlLeases _leases;
     private readonly SpecLibrary _spec;
 
     public McpTools(WorldHost host, ControlLeases leases, SpecLibrary? spec = null)
+        : this(() => host, leases, spec)
     {
-        _host = host;
+    }
+
+    /// <summary>
+    /// §144.4/§145.5: HTTP endpoint lives longer than any one colony. Resolve
+    /// the current host at the start of every tool call, rather than retaining
+    /// the host that existed when the process mapped <c>/mcp</c>.
+    /// </summary>
+    public McpTools(Func<WorldHost> currentHost, ControlLeases leases, SpecLibrary? spec = null)
+    {
+        _currentHost = currentHost ?? throw new ArgumentNullException(nameof(currentHost));
         _leases = leases;
         _spec = spec ?? SpecLibrary.Discover(null);
     }
@@ -238,74 +248,77 @@ public sealed class McpTools
     /// </summary>
     public string Call(string name, JsonElement arguments, string owner, out bool isError)
     {
+        // Bind exactly once per JSON-RPC tool invocation. A world swap between
+        // calls must be visible; a single call must never mix two worlds.
+        var host = _currentHost();
         isError = false;
         try
         {
             switch (name)
             {
-                case "world_status": return WorldStatus();
-                case "list_colonists": return ListColonists();
+                case "world_status": return WorldStatus(host);
+                case "list_colonists": return ListColonists(host);
                 case "list_leases": return ListLeases();
-                case "read_events": return ReadEvents(arguments);
+                case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
-                case "describe_colonist": return Describe(Int(arguments, "npcId"), out isError);
-                case "acquire_control": return Acquire(Int(arguments, "npcId"), owner, out isError);
-                case "release_control": return Release(Int(arguments, "npcId"), owner, out isError);
-                case "move_to": return MoveTo(arguments, owner, out isError);
-                case "interact": return Interact(arguments, owner, out isError);
-                case "craft_item": return Craft(arguments, owner, out isError);
-                case "attack_npc": return AttackNpc(arguments, owner, out isError);
-                case "attack_mob": return AttackMob(arguments, owner, out isError);
-                case "stop": return Simple(arguments, owner, npc => new StopCommand(npc), out isError);
+                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError);
+                case "acquire_control": return Acquire(host, Int(arguments, "npcId"), owner, out isError);
+                case "release_control": return Release(host, Int(arguments, "npcId"), owner, out isError);
+                case "move_to": return MoveTo(host, arguments, owner, out isError);
+                case "interact": return Interact(host, arguments, owner, out isError);
+                case "craft_item": return Craft(host, arguments, owner, out isError);
+                case "attack_npc": return AttackNpc(host, arguments, owner, out isError);
+                case "attack_mob": return AttackMob(host, arguments, owner, out isError);
+                case "stop": return Simple(host, arguments, owner, npc => new StopCommand(npc), out isError);
                 // ⭐ Обязательные аргументы читаются ДО Submit (вне лямбды):
                 // отказ «нет параметра X» обязан прийти и без лиза — за этим
                 // следит контрактный гейт каталога.
                 case "talk_to":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
-                    return Simple(arguments, owner,
+                    return Simple(host, arguments, owner,
                         npc => new TalkToCommand(npc, target), out isError);
                 }
 
-                case "aid_person": return AidPerson(arguments, owner, out isError);
+                case "aid_person": return AidPerson(host, arguments, owner, out isError);
                 case "treat_limbs":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
-                    return Simple(arguments, owner,
+                    return Simple(host, arguments, owner,
                         npc => new TreatLimbsCommand(npc, target), out isError);
                 }
 
-                case "self_action": return SelfAction(arguments, owner, out isError);
+                case "self_action": return SelfAction(host, arguments, owner, out isError);
                 case "carry_person":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
-                    return Simple(arguments, owner,
+                    return Simple(host, arguments, owner,
                         npc => new CarryPersonCommand(npc, target), out isError);
                 }
 
                 case "put_down_person":
-                    return Simple(arguments, owner, npc => new PutDownPersonCommand(npc), out isError);
+                    return Simple(host, arguments, owner, npc => new PutDownPersonCommand(npc), out isError);
                 case "put_person_in_bed":
                 {
                     var bed = new ObjectId(Int(arguments, "bedObjectId"));
-                    return Simple(arguments, owner,
+                    return Simple(host, arguments, owner,
                         npc => new PutPersonInBedCommand(npc, bed), out isError);
                 }
 
-                case "manage_inventory": return ManageInventory(arguments, owner, out isError);
-                case "transfer_inventory": return TransferInventory(arguments, owner, out isError);
-                case "transfer_container": return TransferContainer(arguments, owner, out isError);
+                case "manage_inventory": return ManageInventory(host, arguments, owner, out isError);
+                case "transfer_inventory": return TransferInventory(host, arguments, owner, out isError);
+                case "transfer_container": return TransferContainer(host, arguments, owner, out isError);
                 case "prey_person":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
-                    return Simple(arguments, owner,
+                    return Simple(host, arguments, owner,
                         npc => new PreyPersonCommand(npc, target), out isError);
                 }
 
                 case "abuse_person":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
-                    return Simple(arguments, owner,
+                    return Simple(host, arguments, owner,
                         npc => new AbusePersonCommand(npc, target), out isError);
                 }
 
@@ -321,10 +334,10 @@ public sealed class McpTools
         }
     }
 
-    private string WorldStatus()
+    private static string WorldStatus(WorldHost host)
     {
-        var census = _host.Census();
-        return _host.Read(world => Json(new Dictionary<string, object?>
+        var census = host.Census();
+        return host.Read(world => Json(new Dictionary<string, object?>
         {
             ["tick"] = world.Tick,
             ["seed"] = world.Seed,
@@ -335,10 +348,10 @@ public sealed class McpTools
             ["colonistsAlive"] = census.alive,
             ["colonistsTotal"] = census.total,
             ["objects"] = census.objects,
-            ["paused"] = _host.IsPaused,
-            ["speedMultiplier"] = _host.SpeedMultiplier,
-            ["ticksPerSecond"] = Math.Round(_host.MeasuredTicksPerSecond, 2),
-            ["averageTickMs"] = Math.Round(_host.AverageTickMs, 2),
+            ["paused"] = host.IsPaused,
+            ["speedMultiplier"] = host.SpeedMultiplier,
+            ["ticksPerSecond"] = Math.Round(host.MeasuredTicksPerSecond, 2),
+            ["averageTickMs"] = Math.Round(host.AverageTickMs, 2),
         }));
     }
 
@@ -405,7 +418,7 @@ public sealed class McpTools
     /// которых он всё равно не сможет соотнести с текущим состоянием.
     /// </para>
     /// </summary>
-    private string ReadEvents(JsonElement arguments)
+    private static string ReadEvents(WorldHost host, JsonElement arguments)
     {
         var limit = OptionalInt(arguments, "limit") ?? 100;
         if (limit is <= 0 or > 500)
@@ -419,7 +432,7 @@ public sealed class McpTools
         // первый же вызов сотни накопленных событий значит забить агенту контекст
         // тем, чего он не вызывал и с текущим состоянием соотнести не может.
         // Кому нужна предыстория — передаёт sinceSeq=1 и получает gap=true.
-        var batch = _host.ReadEvents(OptionalLong(arguments, "sinceSeq"), limit, entityId);
+        var batch = host.ReadEvents(OptionalLong(arguments, "sinceSeq"), limit, entityId);
 
         var rows = new List<object>(batch.Events.Count);
         foreach (var e in batch.Events)
@@ -445,13 +458,13 @@ public sealed class McpTools
             ["truncated"] = batch.Truncated,
             // Меняется при перезапуске процесса и при загрузке сейва. Без него
             // чужой мир, успевший дойти до seq 900, неотличим от нашего.
-            ["sessionEpoch"] = _host.McpSessionEpoch,
+            ["sessionEpoch"] = host.McpSessionEpoch,
         });
     }
 
-    private string ListColonists()
+    private string ListColonists(WorldHost host)
     {
-        return _host.Read(world =>
+        return host.Read(world =>
         {
             var rows = new List<object>();
             foreach (var npc in world.Entities.Npcs.Values)
@@ -507,9 +520,9 @@ public sealed class McpTools
         });
     }
 
-    private string Describe(int npcId, out bool isError)
+    private string Describe(WorldHost host, int npcId, out bool isError)
     {
-        var text = _host.Read(world =>
+        var text = host.Read(world =>
         {
             if (!world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc))
             {
@@ -570,9 +583,9 @@ public sealed class McpTools
         return rows;
     }
 
-    private string Acquire(int npcId, string owner, out bool isError)
+    private string Acquire(WorldHost host, int npcId, string owner, out bool isError)
     {
-        var known = _host.Read(world =>
+        var known = host.Read(world =>
             world.Entities.Npcs.ContainsKey(new EntityId(npcId)));
         if (!known)
         {
@@ -590,7 +603,7 @@ public sealed class McpTools
         // Лиз — это право говорить; ручной режим — это то, что мир слышит.
         // Второе без первого пустило бы к ней ИИ, первое без второго оставило
         // бы приказы без исполнителя, поэтому они всегда вместе.
-        var admission = _host.SubmitManualCommand(
+        var admission = host.SubmitManualCommand(
             new SetManualControlCommand(new EntityId(npcId), true));
 
         isError = !admission.Accepted;
@@ -610,7 +623,7 @@ public sealed class McpTools
         });
     }
 
-    private string Release(int npcId, string owner, out bool isError)
+    private string Release(WorldHost host, int npcId, string owner, out bool isError)
     {
         if (!_leases.TryRenew(npcId, owner, out var heldBy))
         {
@@ -620,7 +633,7 @@ public sealed class McpTools
                 : $"Колонисткой {npcId} владеет другой агент ({heldBy}).";
         }
 
-        var admission = _host.SubmitManualCommand(
+        var admission = host.SubmitManualCommand(
             new SetManualControlCommand(new EntityId(npcId), false));
         _leases.Release(npcId, owner);
 
@@ -634,17 +647,17 @@ public sealed class McpTools
         });
     }
 
-    private string MoveTo(JsonElement arguments, string owner, out bool isError)
+    private string MoveTo(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var x = Number(arguments, "x");
         var y = Number(arguments, "y");
         var run = Bool(arguments, "run", false);
-        return Submit(npcId, owner,
+        return Submit(host, npcId, owner,
             npc => new MoveToCommand(npc, new Float2(x, y), run), out isError);
     }
 
-    private string Interact(JsonElement arguments, string owner, out bool isError)
+    private string Interact(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var objectId = Int(arguments, "objectId");
@@ -656,11 +669,11 @@ public sealed class McpTools
                    string.Join(", ", Enum.GetNames(typeof(InteractionType)));
         }
 
-        return Submit(npcId, owner,
+        return Submit(host, npcId, owner,
             npc => new InteractCommand(npc, new ObjectId(objectId), interaction), out isError);
     }
 
-    private string Craft(JsonElement arguments, string owner, out bool isError)
+    private string Craft(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var goalName = Text(arguments, "recipeGoal");
@@ -678,22 +691,22 @@ public sealed class McpTools
             return $"«{goalName}» — не цель рецепта. Доступные: {string.Join(", ", known)}";
         }
 
-        return Submit(npcId, owner, npc => new CraftItemCommand(npc, goal), out isError);
+        return Submit(host, npcId, owner, npc => new CraftItemCommand(npc, goal), out isError);
     }
 
-    private string AttackNpc(JsonElement arguments, string owner, out bool isError)
+    private string AttackNpc(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var target = Int(arguments, "targetNpcId");
-        return Submit(npcId, owner,
+        return Submit(host, npcId, owner,
             npc => new AttackNpcCommand(npc, new EntityId(target)), out isError);
     }
 
-    private string AttackMob(JsonElement arguments, string owner, out bool isError)
+    private string AttackMob(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var mobId = Int(arguments, "mobId");
-        return Submit(npcId, owner, npc => new AttackMobCommand(npc, mobId), out isError);
+        return Submit(host, npcId, owner, npc => new AttackMobCommand(npc, mobId), out isError);
     }
 
     // ⭐ Во всех хелперах ниже СНАЧАЛА читаются все обязательные аргументы
@@ -702,7 +715,7 @@ public sealed class McpTools
     // независимо от мусора в остальных — за этим следит контрактный гейт.
 
     // §121.9: вид помощи выбирает агент явно — как игрок в подменю.
-    private string AidPerson(JsonElement arguments, string owner, out bool isError)
+    private string AidPerson(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var wardId = Int(arguments, "targetNpcId");
@@ -716,11 +729,11 @@ public sealed class McpTools
         }
 
         var ward = new EntityId(wardId);
-        return Submit(npcId, owner,
+        return Submit(host, npcId, owner,
             npc => new AidPersonCommand(npc, ward, kind), out isError);
     }
 
-    private string SelfAction(JsonElement arguments, string owner, out bool isError)
+    private string SelfAction(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var kindName = Text(arguments, "kind");
@@ -731,11 +744,11 @@ public sealed class McpTools
                    string.Join(", ", Enum.GetNames(typeof(SelfActionKind)));
         }
 
-        return Submit(npcId, owner,
+        return Submit(host, npcId, owner,
             npc => new SelfActionCommand(npc, kind), out isError);
     }
 
-    private string ManageInventory(JsonElement arguments, string owner, out bool isError)
+    private string ManageInventory(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var sourceName = Text(arguments, "source");
@@ -750,11 +763,11 @@ public sealed class McpTools
         }
 
         var item = new InventoryItemRef(source, index, expected);
-        return Submit(npcId, owner,
+        return Submit(host, npcId, owner,
             npc => new ManageInventoryCommand(npc, item, action), out isError);
     }
 
-    private string TransferInventory(JsonElement arguments, string owner, out bool isError)
+    private string TransferInventory(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var otherId = Int(arguments, "otherNpcId");
@@ -773,12 +786,12 @@ public sealed class McpTools
         var count = OptionalInt(arguments, "count") ?? 1;
         var item = new InventoryItemRef(source, index, expected);
         var other = new EntityId(otherId);
-        return Submit(npcId, owner,
+        return Submit(host, npcId, owner,
             npc => new TransferInventoryCommand(npc, other, item, count, direction),
             out isError);
     }
 
-    private string TransferContainer(JsonElement arguments, string owner, out bool isError)
+    private string TransferContainer(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
         var containerId = Int(arguments, "containerObjectId");
@@ -794,7 +807,7 @@ public sealed class McpTools
 
         var count = OptionalInt(arguments, "count") ?? 1;
         var container = new ObjectId(containerId);
-        return Submit(npcId, owner,
+        return Submit(host, npcId, owner,
             npc => new TransferContainerCommand(
                 npc, container, slotIndex, expected, count, direction),
             out isError);
@@ -815,16 +828,16 @@ public sealed class McpTools
         return false;
     }
 
-    private string Simple(JsonElement arguments, string owner,
+    private string Simple(WorldHost host, JsonElement arguments, string owner,
         Func<EntityId, ISimulationCommand> build, out bool isError) =>
-        Submit(Int(arguments, "npcId"), owner, build, out isError);
+        Submit(host, Int(arguments, "npcId"), owner, build, out isError);
 
     /// <summary>
     /// Единственная дорога от инструмента до мира: сверить лиз, отдать команду
     /// шву, вернуть его вердикт как есть. Ни одного «а вот тут можно и без
     /// лиза» — иначе весь смысл владения теряется на первом же исключении.
     /// </summary>
-    private string Submit(int npcId, string owner,
+    private string Submit(WorldHost host, int npcId, string owner,
         Func<EntityId, ISimulationCommand> build, out bool isError)
     {
         if (!_leases.TryRenew(npcId, owner, out var heldBy))
@@ -835,7 +848,7 @@ public sealed class McpTools
                 : $"Колонисткой {npcId} владеет другой агент ({heldBy}).";
         }
 
-        var admission = _host.SubmitManualCommand(build(new EntityId(npcId)));
+        var admission = host.SubmitManualCommand(build(new EntityId(npcId)));
         isError = !admission.Accepted;
         return Json(new Dictionary<string, object?>
         {

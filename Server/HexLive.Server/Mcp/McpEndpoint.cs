@@ -36,10 +36,13 @@ public static class McpEndpoint
 
     private const string SessionHeader = "Mcp-Session-Id";
 
-    public static void Map(WebApplication app, WorldHost host, McpAccessToken token,
+    public static void Map(WebApplication app, WorldSupervisor worlds, McpAccessToken token,
         ControlLeases leases, SpecLibrary? spec = null)
     {
-        var tools = new McpTools(host, leases, spec);
+        // The endpoint has process lifetime; a WorldHost only has colony
+        // lifetime. Resolve through the supervisor for every tools/call so an
+        // admin world swap cannot leave MCP reading or commanding a dead host.
+        var tools = new McpTools(() => worlds.Host, leases, spec);
 
         app.MapPost("/mcp", async (HttpContext context) =>
         {
@@ -148,11 +151,13 @@ public static class McpEndpoint
             var session = context.Request.Headers[SessionHeader].ToString();
             if (!string.IsNullOrWhiteSpace(session))
             {
-                foreach (var npcId in leases.OwnedBy(session))
+                var owner = "mcp:" + session;
+                var host = worlds.Host;
+                foreach (var npcId in leases.OwnedBy(owner))
                 {
                     host.SubmitManualCommand(new HexLive.Simulation.Runtime.SetManualControlCommand(
                         new HexLive.Simulation.Common.EntityId(npcId), false));
-                    leases.Release(npcId, session);
+                    leases.Release(npcId, owner);
                 }
             }
 

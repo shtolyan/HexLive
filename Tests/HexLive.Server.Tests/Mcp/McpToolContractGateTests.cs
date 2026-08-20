@@ -134,6 +134,56 @@ public sealed class McpToolContractGateTests
         });
     }
 
+    [Test]
+    public void WorldSwapResolvesFreshHostClearsLeasesAndCommandsOnlyNewWorld()
+    {
+        var oldHost = CreateHost(seed: 12345);
+        var newHost = CreateHost(seed: 54321);
+        oldHost.EnableMcpEventLog();
+        newHost.EnableMcpEventLog();
+        _hosts.Add(oldHost);
+        _hosts.Add(newHost);
+
+        var current = oldHost;
+        var leases = new ControlLeases(120);
+        var tools = new McpTools(() => current, leases, SpecLibrary.Discover(null));
+        var npcId = FirstNpcId(newHost);
+
+        Assert.That(leases.TryAcquire(npcId, "mcp:old-session", out _, out _), Is.True);
+        using (var before = JsonDocument.Parse(
+                   tools.Call("world_status", EmptyArguments(), "mcp:probe", out var beforeError)))
+        {
+            Assert.That(beforeError, Is.False);
+            Assert.That(before.RootElement.GetProperty("seed").GetInt32(), Is.EqualTo(12345));
+        }
+
+        // Mirrors Program's WorldSwapped handler: leases belong to the old
+        // colony and must not grant ownership over an equal NPC id in the new one.
+        current = newHost;
+        leases.Clear();
+
+        using (var after = JsonDocument.Parse(
+                   tools.Call("world_status", EmptyArguments(), "mcp:probe", out var afterError)))
+        {
+            Assert.That(afterError, Is.False);
+            Assert.That(after.RootElement.GetProperty("seed").GetInt32(), Is.EqualTo(54321));
+        }
+
+        var acquired = tools.Call("acquire_control",
+            JsonDocument.Parse($"{{\"npcId\":{npcId}}}").RootElement.Clone(),
+            "mcp:new-session", out var acquireError);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(acquireError, Is.False, acquired);
+            Assert.That(leases.HolderOf(npcId), Is.EqualTo("mcp:new-session"));
+            Assert.That(IsManual(oldHost, npcId), Is.False,
+                "Команда после swap не должна уходить в замерший старый host.");
+            Assert.That(IsManual(newHost, npcId), Is.True,
+                "Команда после swap должна попасть в актуальный host.");
+        });
+    }
+
     /// <summary>Какой инструмент отдаёт ответ, в котором обещано поле.</summary>
     private static string SourceToolFor(string tool) => tool switch
     {
@@ -188,6 +238,10 @@ public sealed class McpToolContractGateTests
             return min;
         });
 
+    private static bool IsManual(WorldHost host, int npcId) =>
+        host.Read(world => world.Entities.Npcs[
+            new HexLive.Simulation.Common.EntityId(npcId)].Mind.ManualControl);
+
     private static IEnumerable<string> RequiredProperties(JsonElement schema)
     {
         if (!schema.TryGetProperty("required", out var required) ||
@@ -236,8 +290,8 @@ public sealed class McpToolContractGateTests
         };
     }
 
-    private static WorldHost CreateHost() => new(
-        seed: 12345,
+    private static WorldHost CreateHost(int seed = 12345) => new(
+        seed,
         Path.Combine(Path.GetTempPath(), $"hexlive-mcp-gate-{Guid.NewGuid():N}.sav"),
         RepoFile("SimData", "simdata.json"),
         verboseTrace: false);

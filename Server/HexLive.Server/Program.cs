@@ -175,9 +175,9 @@ public static class Program
 
         if (options.McpEnabled)
         {
-            // Хост берётся ОДИН раз, как и у зрителей на accept: админская
-            // «новая колония» подменяет хост, и старые лизы вместе с ним
-            // теряют смысл — реестр чистится по событию WorldSwapped ниже.
+            // MCP endpoint живёт весь процесс, поэтому передаём supervisor, а
+            // не текущий host: каждый tools/call должен увидеть мир, который
+            // существует ПОСЛЕ возможной «новой колонии» в админке.
             var mcpToken = Mcp.McpAccessToken.LoadOrCreate(options.McpTokenPath);
             var leases = controlLeases!;
 
@@ -188,7 +188,7 @@ public static class Program
             // спека едет к нему тем же швом, что и всё остальное.
             var spec = Mcp.SpecLibrary.Discover(options.SpecDir);
 
-            Mcp.McpEndpoint.Map(app, worlds.Host, mcpToken, leases, spec);
+            Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, spec);
             Console.WriteLine(
                 $"[server] mcp control    http://localhost:{options.Port}/mcp " +
                 $"(токен в {options.McpTokenPath}, лиз {leases.TimeoutSeconds} с)");

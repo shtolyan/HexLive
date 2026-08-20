@@ -45,6 +45,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private const float PickRadiusPixels = 70f;
     private const float DoubleClickSeconds = 0.30f;
     private const float DoubleClickRadiusPixels = 18f;
+    // Server lease may be configured as low as five seconds. A selected manual
+    // actor proves the viewer is still actively presenting that control, so a
+    // cheap idempotent heartbeat every two seconds keeps ownership alive while
+    // still letting a disconnected viewer or a cleared selection expire.
+    private const float RemoteLeaseHeartbeatSeconds = 2f;
 
     private Camera? _camera;
     private HexWorldRenderer? _worldRenderer;
@@ -53,6 +58,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private int _hoveredMobId = -1;
     private float _lastGroundClickTime = float.NegativeInfinity;
     private Vector2 _lastGroundClickPosition;
+    private float _nextRemoteLeaseHeartbeatAt;
 
     private readonly List<ContextMenuEntry> _entries = new();
     private readonly List<int> _selectedColonyIds = new();
@@ -95,6 +101,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         }
 
         RefreshControlSelection();
+        RenewRemoteLeaseForSelection();
         if (!CommandMode || PointerBlocked())
         {
             ClearHover();
@@ -154,6 +161,35 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         LootTransferPanel.IsOpen ||
         GameMenu.IsOpen ||
         EndSummaryPanel.IsOpen;
+
+    private void RenewRemoteLeaseForSelection()
+    {
+        var now = Time.unscaledTime;
+        if (_runner == null || !_runner.Link.IsRemote ||
+            !_runner.SupportsNpcCommands || _manualSelectedIds.Count == 0)
+        {
+            // The next genuine manual selection renews immediately instead of
+            // waiting a full interval with a possibly near-expired server lease.
+            _nextRemoteLeaseHeartbeatAt = now;
+            return;
+        }
+
+        if (now < _nextRemoteLeaseHeartbeatAt)
+        {
+            return;
+        }
+
+        _nextRemoteLeaseHeartbeatAt = now + RemoteLeaseHeartbeatSeconds;
+        if (_manualSelectedIds.Count == 1)
+        {
+            _runner.EnqueueCommand(new SetManualControlCommand(
+                new EntityId(_manualSelectedIds[0]), true));
+            return;
+        }
+
+        _runner.EnqueueCommand(new SetGroupManualControlCommand(
+            SelectedActors(), true));
+    }
 
     // ── Наведение ────────────────────────────────────────────────────────
 

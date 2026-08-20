@@ -314,6 +314,15 @@ internal static class ManualCommandExecutor
 
         if (npc.Mind.ManualControl == command.Enabled)
         {
+            // An idempotent remote SetManual(true) is the viewer heartbeat:
+            // renew the simulation's longer inactivity lease together with the
+            // server ownership lease. Otherwise the server says the viewer is
+            // alive while §121.7 silently returns the selected actor to AI.
+            if (command.Enabled)
+            {
+                ManualControlMath.RenewInactivityLease(world, npc);
+            }
+
             return;
         }
 

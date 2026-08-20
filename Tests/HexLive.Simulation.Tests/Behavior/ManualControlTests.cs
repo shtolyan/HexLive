@@ -1021,6 +1021,28 @@ public sealed class ManualControlTests
     // ── 4c. §121.7: таймаут бездействия ──────────────────────────────────
 
     [Test]
+    public void IdempotentManualHeartbeatRenewsTheRealtimeLease()
+    {
+        var realtimeSeconds = 0d;
+        var engine = TestWorld.CreateEngine(
+            clock: new SimulationClock(() => realtimeSeconds));
+        var npc = Colonist(engine.World);
+        TakeControl(engine, npc);
+
+        realtimeSeconds = Spec121.ManualIdleReleaseSeconds - 1d;
+        engine.Commands.Enqueue(new SetManualControlCommand(npc.Id, enabled: true));
+        engine.Step();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Mind.ManualControl, Is.True);
+            Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds,
+                Is.EqualTo(realtimeSeconds),
+                "Idempotent SetManual(true) did not renew the simulation inactivity lease.");
+        });
+    }
+
+    [Test]
     public void SparseWorldTicksDoNotExtendTheRealtimeLease()
     {
         var realtimeSeconds = 0d;

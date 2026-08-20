@@ -177,12 +177,12 @@ recovery address on file.</p>
             .Append(" at ").Append(host.SpeedMultiplier.ToString("0.##")).Append("×</span>");
         body.Append("</div>");
 
-        body.Append(@"<label>Speed</label><div class='row'>
-<form method='post' action='/admin/speed'><input type='hidden' name='speed' value='1'><button>1×</button></form>
-<form method='post' action='/admin/speed'><input type='hidden' name='speed' value='4'><button>4×</button></form>
-<form method='post' action='/admin/speed'><input type='hidden' name='speed' value='16'><button>16×</button></form>
-<form method='post' action='/admin/speed'><input type='hidden' name='speed' value='50'><button>50×</button></form>
-</div>
+        body.Append("<label>Speed</label><div class='row'>")
+            .Append(SpeedButton(host.SpeedMultiplier, 1f))
+            .Append(SpeedButton(host.SpeedMultiplier, 4f))
+            .Append(SpeedButton(host.SpeedMultiplier, 16f))
+            .Append(SpeedButton(host.SpeedMultiplier, 50f))
+            .Append(@"</div>
 <p class='dim' style='margin-bottom:0;font-size:13px'>Fast-forward is an operator tool: it burns
 through colony days for <em>everyone</em> watching and multiplies the stream every viewer receives.
 Connected clients cannot do it — only this panel can.</p></div>");
@@ -269,6 +269,16 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
 
     private static string Stat(string value, string label) =>
         $"<div class='stat'><b>{Escape(value)}</b><span>{Escape(label)}</span></div>";
+
+    private static string SpeedButton(float currentSpeed, float speed)
+    {
+        var value = speed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        var selected = Math.Abs(currentSpeed - speed) < 0.001f;
+        var state = selected ? " class='primary' aria-current='true'" : string.Empty;
+        return $"<form method='post' action='/admin/speed'>" +
+               $"<input type='hidden' name='speed' value='{value}'>" +
+               $"<button type='submit'{state}>{value}×</button></form>";
+    }
 
     private static string Page(string title, string body) =>
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>" +

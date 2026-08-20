@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -135,7 +136,8 @@ public static class AdminEndpoints
             }
 
             var form = await context.Request.ReadFormAsync();
-            if (!float.TryParse(form["speed"], out var speed))
+            if (!float.TryParse(form["speed"].ToString(), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out var speed))
             {
                 return Redirect("/admin");
             }
@@ -144,7 +146,7 @@ public static class AdminEndpoints
             // the whole point of having a panel behind a password.
             worlds.Host.SetSpeedAsOperator(speed);
             Console.WriteLine($"[admin] speed set to {speed}x");
-            return Redirect($"/admin?notice=Speed set to {speed:0.##}×.");
+            return Redirect(SpeedRedirectLocation(speed));
         });
 
         app.MapPost("/admin/password", async (HttpContext context) =>
@@ -272,6 +274,16 @@ public static class AdminEndpoints
     private static IResult Html(string html) => Results.Content(html, "text/html; charset=utf-8");
 
     private static IResult Redirect(string location) => Results.Redirect(location);
+
+    private static string SpeedRedirectLocation(float speed)
+    {
+        // Location is an HTTP header and therefore must stay ASCII. Passing the
+        // multiplication sign through verbatim makes Kestrel reject the response
+        // after the speed was already changed, leaving the browser on an error page.
+        var value = speed.ToString("0.##", CultureInfo.InvariantCulture);
+        var notice = Uri.EscapeDataString($"Speed set to {value}×.");
+        return "/admin?notice=" + notice;
+    }
 }
 
 }

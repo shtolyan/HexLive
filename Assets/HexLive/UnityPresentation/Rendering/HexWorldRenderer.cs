@@ -1911,10 +1911,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 }
 
                 var hiddenByFog = (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key))
-                    // Гейт на первую полную сборку: экран загрузки ждёт, пока
-                    // каждое тело ростера дошьётся, а выключенный актёр
-                    // дошиться не может (зависание #146).
-                    || (_cullInitialBuildDone && !strangerVisible);
+                    // Гейт на ВСЁ ВРЕМЯ ЗАГРУЗКИ, а не на первую сборку: экран
+                    // ждёт, пока каждое тело ростера дошьётся, а выключенный
+                    // актёр дошиться не может (зависание #146). Одной первой
+                    // сборки не хватило (баг #182): причёска приезжает много
+                    // кадров спустя, и девушки соседних лагерей (§146) успевали
+                    // погаснуть прямо посреди своей загрузки — занавес ждал их
+                    // вечно. Под занавесом их всё равно никто не видит.
+                    || (_cullInitialBuildDone && !UI.LoadingScreen.IsActive && !strangerVisible);
                 if (npcView.activeSelf == hiddenByFog)
                 {
                     npcView.SetActive(!hiddenByFog);

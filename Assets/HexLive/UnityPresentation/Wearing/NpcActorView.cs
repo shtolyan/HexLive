@@ -6176,8 +6176,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // Register readiness BEFORE starting the coroutine. StartCoroutine runs
         // immediately until its first yield, so doing this inside SpawnHair
         // leaves a small but real frame-order hole for the loading screen.
+        //
+        // Баг #182: корутина живёт НЕ на актрисе. Unity убивает корутины
+        // выключенного объекта молча, а культинг восприятия гасит девушек
+        // соседних лагерей (§146) — умерев между Begin и End, загрузка
+        // навсегда оставляла очередь непустой и счётчик ненулевым, и занавес
+        // ждал их вечно. Причёска же нужна одинаково и погасшей.
         _pendingHairLoads++;
-        StartCoroutine(SpawnHair(hairstyle));
+        ContentCoroutines.Run(SpawnHair(hairstyle));
     }
 
     // Причёска и её цвет едут ПО АДРЕСУ (Addressables), а значит приезжают не

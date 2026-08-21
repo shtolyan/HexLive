@@ -237,7 +237,7 @@ public sealed partial class DecisionSystem
         var needsSpitNow = npc.Inventory.Items.Contains(ContentIds.MeatRaw);
         return needsSpitNow && hearthUpgrade != null
             ? hearthUpgrade
-            : houseSite ?? collectorSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ??
+            : collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ??
               firstSite ?? starvedSite;
     }
 

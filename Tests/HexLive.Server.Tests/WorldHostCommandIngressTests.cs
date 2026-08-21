@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Wire;
@@ -89,6 +90,7 @@ public sealed class WorldHostCommandIngressTests
             Path.GetTempPath(), $"hexlive-worldhost-command-{Guid.NewGuid():N}.sav");
         return new WorldHost(
             seed: 12345,
+            mode: GameMode.Feud,
             savePath,
             FindRepoFile("SimData", "simdata.json"),
             verboseTrace: false);

@@ -25,6 +25,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
             Property(sb, i1, "blueprintId", Quote(draft.BlueprintId), false, newline, space);
             Property(sb, i1, "nextElementId", draft.NextElementId.ToString(CultureInfo.InvariantCulture), false, newline, space);
             Property(sb, i1, "nextRoomId", draft.NextRoomId.ToString(CultureInfo.InvariantCulture), false, newline, space);
+            Property(sb, i1, "hasAnchor", draft.HasAnchor ? "true" : "false", false, newline, space);
+            Property(sb, i1, "anchorQ", draft.AnchorQ.ToString(CultureInfo.InvariantCulture), false, newline, space);
+            Property(sb, i1, "anchorR", draft.AnchorR.ToString(CultureInfo.InvariantCulture), false, newline, space);
             // §120.8: комнаты без автоконтура стен. Поле опционально — старый
             // reader его молча пропустит, пустой список не пишется вовсе.
             if (draft.OpenRooms.Count > 0)
@@ -106,7 +109,10 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     Version = sourceVersion,
                     BlueprintId = String(root, "blueprintId"),
                     NextElementId = Int(root, "nextElementId"),
-                    NextRoomId = Int(root, "nextRoomId")
+                    NextRoomId = Int(root, "nextRoomId"),
+                    HasAnchor = sourceVersion >= 3 && Bool(root, "hasAnchor"),
+                    AnchorQ = sourceVersion >= 3 ? Int(root, "anchorQ") : 0,
+                    AnchorR = sourceVersion >= 3 ? Int(root, "anchorR") : 0
                 };
                 if (sourceVersion < 1 || sourceVersion > BuildingBlueprintDraft.CurrentVersion)
                     throw new FormatException($"Версия {sourceVersion} не поддерживается.");
@@ -137,6 +143,14 @@ namespace HexLive.Simulation.Runtime.Blueprints
 
         private static void Upgrade(BuildingBlueprintDraft draft, int sourceVersion)
         {
+            if (sourceVersion < 3)
+            {
+                var anchor = BlueprintBuildingPlan.AnchorTile(draft);
+                draft.HasAnchor = true;
+                draft.AnchorQ = anchor.Q;
+                draft.AnchorR = anchor.R;
+            }
+
             if (sourceVersion >= 2) return;
 
             // Draft v1 mistook the geometric centre of every triangular roof
@@ -179,6 +193,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 }
             }
         }
+
+        private static bool Bool(Dictionary<string, object> map, string key) =>
+            map.TryGetValue(key, out var value) && Convert.ToBoolean(value, CultureInfo.InvariantCulture);
 
         private static BlueprintElementData ParseElement(Dictionary<string, object> map)
         {

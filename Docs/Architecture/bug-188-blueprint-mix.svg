@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="740" viewBox="0 0 1120 740">
+  <defs>
+    <style>
+      .bg{fill:#10141d}.panel{fill:#171d29;stroke:#354056;stroke-width:2}.grid{fill:none;stroke:#566177;stroke-width:2;stroke-dasharray:6 6}.floor{fill:#315c86;stroke:#78b8ed;stroke-width:2}.wall{fill:none;stroke:#f0a34a;stroke-width:8;stroke-linecap:round;stroke-linejoin:round}.bad{stroke:#ef6461}.good{stroke:#75d58a}.label{font:700 21px system-ui,sans-serif;fill:#f2f4f8}.text{font:15px system-ui,sans-serif;fill:#c8d0df}.small{font:13px system-ui,sans-serif;fill:#aeb8ca}.count{font:700 17px ui-monospace,monospace;fill:#fff}.arrow{fill:none;stroke:#e9d46f;stroke-width:4;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#e9d46f"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="740"/>
+  <text class="label" x="40" y="45">Баг #188: два чертежа смешались при завершении дома</text>
+  <rect class="panel" x="35" y="75" width="360" height="570" rx="16"/>
+  <rect class="panel" x="425" y="75" width="660" height="570" rx="16"/>
+
+  <text class="label" x="60" y="112">Сохранённая оболочка</text>
+  <text class="text" x="60" y="140">BlueprintId лагеря: hut_1hex</text>
+  <!-- pointy hex R=1.5 wu, scaled 78 px/wu -->
+  <polygon class="floor" points="215,190 316,248 316,365 215,424 114,365 114,248"/>
+  <polyline class="wall bad" points="215,190 316,248 316,365 215,424 114,365 114,248 215,190"/>
+  <line x1="114" y1="300" x2="114" y2="330" stroke="#171d29" stroke-width="13"/>
+  <text class="count" x="150" y="468">1 гекс · 36 модулей</text>
+  <text class="small" x="60" y="510">Эти стены уже были подняты площадкой.</text>
+  <text class="small" x="60" y="534">При замене объекта BlueprintId потерялся.</text>
+
+  <text class="label" x="450" y="112">Fallback-чертёж после потери id</text>
+  <text class="text" x="450" y="140">fallback: hut_player_v1</text>
+  <text class="count" x="850" y="140">3 гекса · 51 модуль</text>
+  <!-- three footprint hexes: centres (0,0), (-1,1), (0,1) -->
+  <polygon class="grid" points="760,327 861,385 861,502 760,561 659,502 659,385"/>
+  <polygon class="grid" points="659,151 760,209 760,326 659,385 558,326 558,209"/>
+  <polygon class="grid" points="861,151 962,209 962,326 861,385 760,326 760,209"/>
+  <!-- authored floor sectors: 6 central + 2 in each adjacent hex -->
+  <polygon class="floor" points="760,444 760,327 861,385 861,502 760,561 659,502 659,385"/>
+  <polygon class="floor" points="659,268 760,209 760,326 659,385"/>
+  <polygon class="floor" points="861,268 861,385 760,326 760,209"/>
+  <polyline class="wall good" points="760,209 861,151 962,209 962,326 861,385 861,502 760,561 659,502 659,385 558,326 558,209 659,151 760,209"/>
+  <text class="small" x="450" y="600">Два соседних гекса заняты только секторами пола:</text>
+  <text class="small" x="450" y="624">это и есть сохранённая «половинчатая» геометрия.</text>
+
+  <path class="arrow" d="M385 300 C445 260 455 215 525 205"/>
+  <text class="text" x="397" y="245">BlueprintId = 0</text>
+  <text class="small" x="430" y="267">fallback после raise</text>
+
+  <rect x="35" y="662" width="1050" height="66" rx="12" fill="#202838"/>
+  <circle cx="65" cy="695" r="9" fill="#315c86" stroke="#78b8ed" stroke-width="2"/>
+  <text class="text" x="83" y="701">сектор пола</text>
+  <line x1="205" y1="695" x2="245" y2="695" class="wall bad"/>
+  <text class="text" x="261" y="701">старая оболочка</text>
+  <line x1="445" y1="695" x2="485" y2="695" class="wall good"/>
+  <text class="text" x="501" y="701">контур после ремонта</text>
+  <text class="small" x="835" y="720">R=1.5 wu · build-step=0.5 wu</text>
+</svg>

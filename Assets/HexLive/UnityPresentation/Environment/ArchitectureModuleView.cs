@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Debug;
+using HexLive.UnityPresentation.HutTest;
 using HexLive.UnityPresentation.Spatial;
 using UnityEngine;
 
@@ -58,13 +59,22 @@ namespace HexLive.UnityPresentation.Environment
             EnsureModel(piece, element);
             if (_model == null) return;
 
+            // While the real owner is being edited, the authoritative preview
+            // occupies exactly the same coordinates. Hide only the live model
+            // (the world object and its shadows/topology remain untouched) to
+            // avoid z-fighting and doubled walls. The next snapshot after the
+            // editor closes restores it through this same branch.
+            var editorHidden = piece.ArchitectureOwnerObjectId is { } ownerId &&
+                HutLayoutDesigner.EditingOwnerObjectId == ownerId;
+
             // §120.1: a roof panel whose posts are not up yet does not exist. It
             // is not an empty frame waiting for leaves — it is nothing at all,
             // exactly like the §52 build-site with nothing hauled in yet. Same
             // answer when the model is missing: never a placeholder primitive.
             // The MODEL is what hides, never this object's own view: the view is
             // the world object, and the render diff owns whether it is active.
-            if (_model.activeSelf != element.Buildable) _model.SetActive(element.Buildable);
+            var shouldShow = element.Buildable && !editorHidden;
+            if (_model.activeSelf != shouldShow) _model.SetActive(shouldShow);
 
             // §129: the door leaf follows the simulation's door state.
             if (_door != null && _door.IsOpen != piece.IsDoorOpen) _door.SetOpen(piece.IsDoorOpen);

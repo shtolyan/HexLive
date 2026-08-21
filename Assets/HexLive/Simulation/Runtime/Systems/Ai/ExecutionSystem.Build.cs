@@ -194,6 +194,13 @@ public sealed partial class ExecutionSystem
             // would snuff the live fire and reset its fuel.
             if (site.DefinitionId == site.BuildProduct)
             {
+                if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct))
+                {
+                    // An edited, already raised house builds its delta in
+                    // place. Closing the bill must still recompute Indoor,
+                    // footprint furniture and topology just like first raise.
+                    Bootstrap.BuildingBootstrap.CompleteHut(world, site);
+                }
                 site.BuildProduct = string.Empty;
                 Trace.Emit(world, npc.Id, "FurnitureBuilt",
                     $"{site.DefinitionId} upgrades finished in place at Tile={site.Tile.Q},{site.Tile.R}");
@@ -231,6 +238,12 @@ public sealed partial class ExecutionSystem
         // lying side-on to the fire, not on whatever default the prefab has.
         var yaw = site.RotationDegrees;
         var variant = site.Variant;
+        // Bug #188: a player blueprint is instance data.  Losing this id while
+        // replacing build.site with building.hut_plan made the finished house
+        // fall back to the current committed plan: the already raised walls
+        // stayed one-hex, while CompleteHut staked furniture from a three-hex
+        // plan.  Carry the exact draft identity across the replacement.
+        var blueprintId = site.BlueprintId;
         var architectureOwner = site.Id;
         WorldObjectMutations.DespawnObject(world, site.Id);
         if (junction is not { } j)
@@ -240,6 +253,7 @@ public sealed partial class ExecutionSystem
 
         var raised = WorldObjectMutations.SpawnObject(world, product, fragment, tile, j);
         raised.Owner = owner;
+        raised.BlueprintId = blueprintId;
         raised.RotationDegrees = yaw;
         if (!string.IsNullOrEmpty(variant)) raised.Variant = variant;
         ApplyIndoorFurnitureFootprint(world, raised);

@@ -75,6 +75,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
         /// </summary>
         public static TileCoord AnchorTile(BuildingBlueprintDraft draft)
         {
+            if (draft.HasAnchor) return new TileCoord(draft.AnchorQ, draft.AnchorR);
             var counts = new Dictionary<TileCoord, int>();
             foreach (var element in draft.Elements)
             {

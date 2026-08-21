@@ -3,6 +3,7 @@ using System.Linq;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Runtime.Blueprints;
@@ -151,6 +152,102 @@ public sealed class PlayerBlueprintTests
             Is.True, error);
         Assert.That(restored.OpenRooms, Does.Contain(openRoomId),
             "Признак открытой комнаты обязан пережить JSON (сейв и команду).");
+    }
+
+    [Test]
+    public void ExistingHouseRoomExtensionKeepsOwnerAndFinishedModules()
+    {
+        var engine = TestWorld.CreateEngine(12345);
+        var world = engine.World;
+        var hut = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.HutPlan && string.IsNullOrEmpty(obj.BuildProduct));
+        var originalPlan = world.PlayerBlueprints[hut.BlueprintId];
+        var originalAnchor = BlueprintBuildingPlan.AnchorTile(originalPlan);
+        var original = BuildingRules.ArchitectureObjects(world, hut)
+            .ToDictionary(piece => piece.ArchitectureElements[0].SlotKey,
+                piece => (piece.Id, State: piece.ArchitectureElements[0].Clone()));
+
+        BuildingBlueprintDraft applied = null;
+        foreach (var direction in HexDirection.All)
+        {
+            var candidate = originalPlan.Clone();
+            var hex = new TileCoord(
+                originalAnchor.Q + direction.DQ,
+                originalAnchor.R + direction.DR);
+            var sectors = Enumerable.Range(0, 6)
+                .Select(sector => new FloorSectorKey(hex, sector)).ToArray();
+            var edit = BlueprintEditorCommands.CreateRoom(candidate, sectors);
+            if (!edit.Succeeded) continue;
+            var admission = engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(
+                hut.Id, BuildingBlueprintJson.Serialize(candidate, pretty: false)));
+            if (!admission.Accepted) continue;
+            applied = candidate;
+            break;
+        }
+
+        Assert.That(applied, Is.Not.Null,
+            "У стартовой хижины должен найтись хотя бы один свободный сосед для расширения.");
+        Assert.That(world.Entities.Objects.ContainsKey(hut.Id), Is.True,
+            "Редактирование не должно заменять footprint-owner другим объектом.");
+        Assert.That(hut.BuildProduct, Is.EqualTo(ContentIds.HutPlan),
+            "Новые модули достраиваются как delta-site на существующем owner.");
+        Assert.That(BlueprintBuildingPlan.AnchorTile(world.PlayerBlueprints[hut.BlueprintId]),
+            Is.EqualTo(originalAnchor), "Расширение не имеет права пересчитать anchor и сдвинуть дом.");
+
+        var after = BuildingRules.ArchitectureObjects(world, hut)
+            .ToDictionary(piece => piece.ArchitectureElements[0].SlotKey);
+        foreach (var pair in original)
+        {
+            if (!after.TryGetValue(pair.Key, out var piece)) continue;
+            var state = piece.ArchitectureElements[0];
+            Assert.That(piece.Id, Is.EqualTo(pair.Value.Id), $"{pair.Key}: ObjectId changed");
+            Assert.That(state.Complete, Is.True, $"{pair.Key}: finished module was reset");
+            Assert.That(state.LocalX, Is.EqualTo(pair.Value.State.LocalX).Within(0.0001f));
+            Assert.That(state.LocalZ, Is.EqualTo(pair.Value.State.LocalZ).Within(0.0001f));
+        }
+        Assert.That(after.Values.Any(piece => !piece.ArchitectureElements[0].Complete), Is.True,
+            "Добавленная комната должна состоять из реальных незавершённых модулей.");
+
+        BuildingRules.SyncHutElements(world, hut);
+        Assert.That(original.Keys.Where(after.ContainsKey).All(key =>
+            after[key].ArchitectureElements[0].Complete), Is.True,
+            "Первый sync доставок пристройки не должен разобрать готовую часть дома.");
+    }
+
+    [Test]
+    public void SnapshotExposesOnlyOwnerBlueprintForExistingBuildingEditor()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var hut = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.HutPlan && string.IsNullOrEmpty(obj.BuildProduct));
+        var snapshot = WorldSnapshotExporter.Export(world);
+        var owner = snapshot.Objects.Single(obj => obj.Id == hut.Id);
+        Assert.That(owner.BuildingBlueprintJson, Is.Not.Empty);
+        Assert.That(BuildingBlueprintJson.TryDeserialize(
+            owner.BuildingBlueprintJson, out var draft, out var error), Is.True, error);
+        Assert.That(BlueprintBuildingPlan.Modules(draft), Is.Not.Empty);
+        Assert.That(snapshot.Objects.Where(obj => obj.ArchitectureOwnerObjectId == hut.Id.Value)
+            .All(obj => string.IsNullOrEmpty(obj.BuildingBlueprintJson)), Is.True,
+            "JSON редактора едет один раз на owner, а не в каждом LEGO-модуле.");
+    }
+
+    [Test]
+    public void ExistingArchitectureEditorCannotSilentlyDuplicateFurniture()
+    {
+        var engine = TestWorld.CreateEngine(12345);
+        var world = engine.World;
+        var hut = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.HutPlan && string.IsNullOrEmpty(obj.BuildProduct));
+        var before = world.PlayerBlueprints[hut.BlueprintId];
+        var tampered = before.Clone();
+        tampered.Furniture[0].YawStep++;
+
+        var admission = engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(
+            hut.Id, BuildingBlueprintJson.Serialize(tampered, pretty: false)));
+
+        Assert.That(admission.Accepted, Is.False);
+        Assert.That(world.PlayerBlueprints[hut.BlueprintId], Is.SameAs(before),
+            "Отклонённая мебельная правка не должна частично заменить план мира.");
     }
 }
 

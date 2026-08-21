@@ -11,6 +11,7 @@ using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.HutTest.BlueprintEditor;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Spatial;
 using HexLive.UnityPresentation.Views;
 using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEngine;
@@ -38,6 +39,9 @@ namespace HexLive.UnityPresentation.HutTest
         {
             public Vector3 AnchorWorldPosition;
             public Simulation.Common.TileCoord AnchorTile;
+            public float RotationDegrees;
+            public ObjectId? ExistingOwner;
+            public BuildingBlueprintDraft? InitialDraft;
             public Action<BuildingBlueprintDraft> OnBuild;
             public Action OnClosed;
         }
@@ -47,9 +51,11 @@ namespace HexLive.UnityPresentation.HutTest
         /// <summary>Открыт ли конструктор поверх игрового мира — кнопка
         /// «Строить» BuildModePanel прячется, пока игрок чертит.</summary>
         public static bool WorldEditorOpen { get; private set; }
+        public static int? EditingOwnerObjectId { get; private set; }
 
         private WorldPlacementConfig _worldPlacement;
         private bool WorldMode => _worldPlacement != null;
+        private bool EditingExisting => _worldPlacement?.ExistingOwner != null;
 
         private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
         private const string WorldDraftId = "game_project_autosave";
@@ -126,7 +132,11 @@ namespace HexLive.UnityPresentation.HutTest
         {
             _worldPlacement = PendingWorldPlacement;
             PendingWorldPlacement = null;
-            if (WorldMode) WorldEditorOpen = true;
+            if (WorldMode)
+            {
+                WorldEditorOpen = true;
+                EditingOwnerObjectId = _worldPlacement.ExistingOwner?.Value;
+            }
             _document = GetComponent<UIDocument>();
             ConfigurePanelSettings();
             BuildUi();
@@ -139,7 +149,18 @@ namespace HexLive.UnityPresentation.HutTest
             _camera = Camera.main;
             SuppressWorldSelection();
             var draftId = WorldMode ? WorldDraftId : DraftId;
-            if (!_store.TryLoad(draftId, out _draft, out var error))
+            var error = string.Empty;
+            if (_worldPlacement?.InitialDraft != null)
+            {
+                _draft = _worldPlacement.InitialDraft.Clone();
+                var anchor = BlueprintBuildingPlan.AnchorTile(_draft);
+                _draft.HasAnchor = true;
+                _draft.AnchorQ = anchor.Q;
+                _draft.AnchorR = anchor.R;
+                _draft.BlueprintId = $"building_{_worldPlacement.ExistingOwner?.Value ?? 0}";
+                _draft.Normalize();
+            }
+            else if (!_store.TryLoad(draftId, out _draft, out error))
             {
                 // Игровой проект начинается с ЧИСТОГО листа: игрок чертит свой
                 // дом, а не редактирует эталон dev-сцены.
@@ -170,6 +191,8 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 // Превью — отдельный корневой GO; в игре за собой прибираем.
                 WorldEditorOpen = false;
+                if (EditingOwnerObjectId == _worldPlacement.ExistingOwner?.Value)
+                    EditingOwnerObjectId = null;
                 if (_preview != null) Destroy(_preview.gameObject);
                 if (_handles != null) Destroy(_handles.gameObject);
                 _worldPlacement.OnClosed?.Invoke();
@@ -235,8 +258,15 @@ namespace HexLive.UnityPresentation.HutTest
                 // renderer'ы не трогаем — вокруг живой мир, не тест-стенд.
                 if (_draft == null) return;
                 var worldRoot = new GameObject("Blueprint constructor preview");
+                var rotation = Quaternion.Euler(0f,
+                    SimulationUnityMapper.ToUnityFootprintYawDegrees(
+                        _worldPlacement.RotationDegrees), 0f);
+                var planAnchor = BlueprintGeometry.ToWorld(
+                    BlueprintGeometry.HexCenter(BlueprintBuildingPlan.AnchorTile(_draft)));
+                var localAnchor = new Vector3(planAnchor.X, 0f, planAnchor.Y);
                 worldRoot.transform.SetPositionAndRotation(
-                    _worldPlacement.AnchorWorldPosition, Quaternion.identity);
+                    _worldPlacement.AnchorWorldPosition - rotation * localAnchor,
+                    rotation);
                 _preview = worldRoot.AddComponent<BlueprintPreviewRenderer>();
                 RebuildPreview();
                 _initialized = true;
@@ -358,6 +388,11 @@ namespace HexLive.UnityPresentation.HutTest
                 // «Выйти» (закрыть без стройки) и «Построить» (отдать драфт).
                 root.Q<Button>("save").clicked += CloseWorldMode;
                 root.Q<Button>("export").clicked += BuildAndClose;
+                if (EditingExisting)
+                {
+                    var furnitureMode = root.Q<Button>("mode-furniture");
+                    if (furnitureMode != null) furnitureMode.style.display = DisplayStyle.None;
+                }
             }
             else
             {
@@ -832,6 +867,10 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void SaveDraft(bool announce)
         {
+            // An existing house is authoritative world state, not a reusable
+            // local draft. Only the Apply command may mutate it; do not let an
+            // old persistentDataPath autosave replace the next world/session.
+            if (EditingExisting) return;
             try
             {
                 var path = _store.Save(_draft);
@@ -1207,6 +1246,8 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void SetCatalogMode(BuildCatalogMode mode)
         {
+            if (EditingExisting && mode == BuildCatalogMode.Furniture)
+                mode = BuildCatalogMode.Construction;
             _catalogMode = mode;
             _activeCatalogEntry = null;
             _outdoorGridTile = null;
@@ -1493,7 +1534,9 @@ namespace HexLive.UnityPresentation.HutTest
             Text<Button>(root, "redo", "blueprint.action.redo");
             Text<Button>(root, "select-tool", "blueprint.action.select");
             Text<Button>(root, "save", WorldMode ? "blueprint.action.exit" : "blueprint.action.save");
-            Text<Button>(root, "export", WorldMode ? "blueprint.action.build" : "blueprint.action.export");
+            Text<Button>(root, "export", EditingExisting
+                ? "blueprint.action.apply"
+                : WorldMode ? "blueprint.action.build" : "blueprint.action.export");
             Text<Label>(root, "shortcut-label", "blueprint.shortcuts");
             RebuildCatalogUi();
             SetStatus(_statusKey, true);

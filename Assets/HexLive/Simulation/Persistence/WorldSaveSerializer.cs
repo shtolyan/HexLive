@@ -856,7 +856,10 @@ public static class WorldSaveSerializer
         }
         foreach (var plan in plansToRepair)
         {
-            BuildingRules.RefreshHutElementGeometry(world, plan);
+            if (plan.DefinitionId == ContentIds.HutPlan)
+                BuildingRules.ReconcileCompletedHutElements(world, plan);
+            else
+                BuildingRules.RefreshHutElementGeometry(world, plan);
             HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairPlanTopology(world, plan);
             if (plan.DefinitionId == ContentIds.HutPlan)
                 HexLive.Simulation.Bootstrap.BuildingBootstrap.StakePlanFurnitureSites(world, plan);

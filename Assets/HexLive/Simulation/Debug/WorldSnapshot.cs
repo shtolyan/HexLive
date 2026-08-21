@@ -381,6 +381,11 @@ public sealed class ObjectSnapshot
     // §120 v2: top-level LEGO piece -> invisible building footprint owner.
     public int? ArchitectureOwnerObjectId { get; set; }
 
+    // §120.9: authoritative composition of an editable building owner. Empty
+    // for ordinary objects and individual LEGO pieces. This is editor input,
+    // not render geometry (modules still render from ArchitectureElements).
+    public string BuildingBlueprintJson { get; set; } = string.Empty;
+
     public bool IsDoorOpen { get; set; } = true;
 
     // §119: an unfinished item exists in the world from the first work cycle.

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using HexLive.Simulation.Bootstrap;
 using HexLive.Server.Mcp;
 using NUnit.Framework;
 
@@ -292,6 +293,7 @@ public sealed class McpToolContractGateTests
 
     private static WorldHost CreateHost(int seed = 12345) => new(
         seed,
+        GameMode.Feud,
         Path.Combine(Path.GetTempPath(), $"hexlive-mcp-gate-{Guid.NewGuid():N}.sav"),
         RepoFile("SimData", "simdata.json"),
         verboseTrace: false);

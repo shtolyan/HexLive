@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using HexLive.Simulation.Bootstrap;
 using HexLive.Server.Llm;
 
 namespace HexLive.Server
@@ -48,6 +49,19 @@ public static class Program
 
         if (options is null)
         {
+            return 1;
+        }
+
+        try
+        {
+            options.ContinueExistingSaveIfPresent(Console.WriteLine);
+        }
+        catch (Exception ex) when (
+            ex is IOException ||
+            ex is InvalidDataException ||
+            ex is UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"[fatal] {ex.Message}");
             return 1;
         }
 
@@ -334,30 +348,50 @@ public sealed class ServerOptions
 {
     public int Seed { get; private set; } = 12345;
 
-    // §146: which scenario a fresh world is generated as. An existing save
-    // wins over worldgen as always — but only if its header carries the SAME
-    // mode; a mismatch starts fresh rather than corrupting.
-    public HexLive.Simulation.Bootstrap.GameMode Mode { get; private set; } =
-        HexLive.Simulation.Bootstrap.GameMode.Feud;
+    // §146: which scenario a FRESH world is generated as. If --save points at
+    // an existing file, its header overrides both --seed and --mode at startup:
+    // resuming a colony must be the safe default, even when the operator forgets
+    // that yesterday's world was BigIsland and today's shell still says Feud.
+    public GameMode Mode { get; private set; } = GameMode.Feud;
 
     // Shared by --mode and the admin panel's new-world form.
-    public static bool TryParseMode(string? value, out HexLive.Simulation.Bootstrap.GameMode mode)
+    public static bool TryParseMode(string? value, out GameMode mode)
     {
         switch (value?.Trim().ToLowerInvariant())
         {
             case "feud":
             case "0":
-                mode = HexLive.Simulation.Bootstrap.GameMode.Feud;
+                mode = GameMode.Feud;
                 return true;
             case "bigisland":
             case "big-island":
             case "1":
-                mode = HexLive.Simulation.Bootstrap.GameMode.BigIsland;
+                mode = GameMode.BigIsland;
                 return true;
             default:
-                mode = HexLive.Simulation.Bootstrap.GameMode.Feud;
+                mode = GameMode.Feud;
                 return false;
         }
+    }
+
+    public void ContinueExistingSaveIfPresent(Action<string>? log = null)
+    {
+        var header = ServerSaveHeader.ReadIfPresent(SavePath);
+        if (header is null)
+        {
+            return;
+        }
+
+        if (Seed != header.Value.Seed || Mode != header.Value.Mode)
+        {
+            log?.Invoke(
+                $"[server] continuing existing save: seed {header.Value.Seed}, " +
+                $"mode {header.Value.Mode}, tick {header.Value.Tick} " +
+                $"(startup requested seed {Seed}, mode {Mode})");
+        }
+
+        Seed = header.Value.Seed;
+        Mode = header.Value.Mode;
     }
 
     public int Port { get; private set; } = 5123;
@@ -568,6 +602,66 @@ public sealed class ServerOptions
         }
 
         return false;
+    }
+}
+
+internal readonly struct ServerSaveHeader
+{
+    private const int SaveMagic = unchecked((int)0x48584C53); // "HXLS"
+    private const int CurrentSaveVersion = 2;
+
+    private ServerSaveHeader(int seed, GameMode mode, int tick)
+    {
+        Seed = seed;
+        Mode = mode;
+        Tick = tick;
+    }
+
+    public int Seed { get; }
+
+    public GameMode Mode { get; }
+
+    public int Tick { get; }
+
+    public static ServerSaveHeader? ReadIfPresent(string savePath)
+    {
+        var fullPath = Path.GetFullPath(savePath);
+        if (!File.Exists(fullPath))
+        {
+            return null;
+        }
+
+        using var file = File.OpenRead(fullPath);
+        using var reader = new BinaryReader(file);
+        if (file.Length < sizeof(int) * 5)
+        {
+            throw new InvalidDataException(
+                $"Save file '{fullPath}' is too short to identify safely; refusing to start over it.");
+        }
+
+        if (reader.ReadInt32() != SaveMagic)
+        {
+            throw new InvalidDataException(
+                $"Save file '{fullPath}' has an unknown header; refusing to start over it.");
+        }
+
+        var version = reader.ReadInt32();
+        if (version != 1 && version != CurrentSaveVersion)
+        {
+            throw new InvalidDataException(
+                $"Save file '{fullPath}' has unsupported version {version}; refusing to start over it.");
+        }
+
+        var seed = reader.ReadInt32();
+        var mode = version >= 2 ? (GameMode)reader.ReadInt32() : GameMode.Feud;
+        if (!Enum.IsDefined(typeof(GameMode), mode))
+        {
+            throw new InvalidDataException(
+                $"Save file '{fullPath}' names unsupported world mode {(int)mode}; refusing to start over it.");
+        }
+
+        var tick = reader.ReadInt32();
+        return new ServerSaveHeader(seed, mode, tick);
     }
 }
 

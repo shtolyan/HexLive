@@ -221,12 +221,22 @@ namespace HexLive.Simulation.Runtime.Blueprints
 
     public sealed class BuildingBlueprintDraft
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int Version = CurrentVersion;
         public string BlueprintId = "draft";
         public int NextElementId = 1;
         public int NextRoomId = 1;
+        /// <summary>
+        /// Stable world anchor of an authored building. Earlier drafts derived
+        /// it from the hex with the most floor sectors; growing a room into a
+        /// lexicographically earlier hex could therefore move an already built
+        /// house. V3 persists the anchor explicitly. Old drafts acquire their
+        /// former derived anchor during JSON upgrade.
+        /// </summary>
+        public bool HasAnchor;
+        public int AnchorQ;
+        public int AnchorR;
         /// <summary>§120.8: комнаты БЕЗ автоконтура стен («Пол без стен» — терраса,
     /// настил, фундамент под будущие стены). Обычная комната перестраивает
     /// границу при каждом изменении; открытая — только снимает её. Поле в JSON
@@ -244,6 +254,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 BlueprintId = BlueprintId,
                 NextElementId = NextElementId,
                 NextRoomId = NextRoomId,
+                HasAnchor = HasAnchor,
+                AnchorQ = AnchorQ,
+                AnchorR = AnchorR,
                 Elements = Elements.Select(element => element.Clone()).ToList(),
                 Furniture = Furniture.Select(item => item.Clone()).ToList(),
                 OpenRooms = new List<int>(OpenRooms)

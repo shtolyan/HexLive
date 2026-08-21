@@ -200,6 +200,45 @@ public static class BuildingRules
         return Blueprints.CommittedBuildingPlans.PlayerHut;
     }
 
+    private static Blueprints.BuildingBlueprintDraft _legacyEditablePlan;
+
+    /// <summary>
+    /// Authoritative editable composition of a real building. A HutPlan reads
+    /// its instance blueprint; a pre-constructor Hut1Hex is exposed as the
+    /// equivalent built-in modular draft so the editor can upgrade it instead
+    /// of treating "not born from a player draft" as "not editable".
+    /// </summary>
+    internal static Blueprints.BuildingBlueprintDraft EditablePlanFor(
+        WorldState world, WorldObjectState owner)
+    {
+        if (owner == null) return null;
+        if (ProductOf(owner) == ContentIds.HutPlan) return PlanFor(world, owner);
+        if (ProductOf(owner) != ContentIds.Hut1Hex) return null;
+        return _legacyEditablePlan ??= Blueprints.BuiltInBuildingBlueprints.Hut1Hex();
+    }
+
+    private sealed class SerializedBlueprint
+    {
+        public string Json = string.Empty;
+    }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+        Blueprints.BuildingBlueprintDraft, SerializedBlueprint> _serializedBlueprints = new();
+
+    /// <summary>Snapshot projection used only when the player opens an existing
+    /// house. Cached by immutable blueprint instance, so snapshots do not
+    /// serialize every house every tick.</summary>
+    internal static string EditablePlanJsonFor(WorldState world, WorldObjectState owner)
+    {
+        var plan = EditablePlanFor(world, owner);
+        return plan == null
+            ? string.Empty
+            : _serializedBlueprints.GetValue(plan, value => new SerializedBlueprint
+            {
+                Json = Blueprints.BuildingBlueprintJson.Serialize(value, pretty: false)
+            }).Json;
+    }
+
     // Конверсия модулей произвольного чертежа кэшируется по ссылке на драфт:
     // после стейка драфт неизменяем, а Modules() на каждый вызов не бесплатен.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
@@ -419,6 +458,113 @@ public static class BuildingRules
         WorldState world, WorldObjectState owner) =>
         ArchitectureObjects(world, owner).Select(piece => piece.ArchitectureElements[0]);
 
+    /// <summary>
+    /// Reconciles a revised blueprint with the real top-level LEGO objects of
+    /// an existing house. Stable SlotKeys keep unchanged modules (and their
+    /// ObjectIds/progress); removed slots despawn, and new slots start as
+    /// ordinary unfinished modules. A wall/opening replacement shares its bay
+    /// key and therefore reuses as much delivered material as the new module
+    /// can physically accept.
+    /// </summary>
+    internal static (int Sticks, int Boards, int Rope, int Leaves) ReconcileHutElements(
+        WorldState world, WorldObjectState owner, ISet<string> completeNewSlots = null)
+    {
+        if (world == null || owner == null) return default;
+        var definitions = DefinitionsFor(world, owner);
+        var wanted = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
+        var pieces = ArchitectureObjects(world, owner).ToArray();
+        var byKey = new Dictionary<string, WorldObjectState>(StringComparer.Ordinal);
+        var nextElementId = 1;
+        foreach (var piece in pieces)
+        {
+            var state = piece.ArchitectureElements[0];
+            nextElementId = Math.Max(nextElementId, state.ElementId + 1);
+            if (!wanted.ContainsKey(state.SlotKey) || byKey.ContainsKey(state.SlotKey))
+            {
+                WorldObjectMutations.DespawnObject(world, piece.Id);
+                continue;
+            }
+
+            byKey[state.SlotKey] = piece;
+        }
+
+        var anchor = owner.Junctions.Count > 0
+            ? owner.Junctions[0]
+            : StructurePlacement.CenterJunction(world, owner.Tile);
+        if (anchor is not { } anchorId) return default;
+
+        foreach (var definition in definitions)
+        {
+            if (!byKey.TryGetValue(definition.Key, out var piece))
+            {
+                piece = WorldObjectMutations.SpawnObject(
+                    world, DefinitionId(definition.Kind), owner.Fragment, owner.Tile, anchorId);
+                piece.ArchitectureOwnerId = owner.Id;
+                piece.RotationDegrees = owner.RotationDegrees;
+                piece.ArchitectureElements.Add(new ArchitectureElementState
+                {
+                    ElementId = nextElementId++,
+                    SlotKey = definition.Key,
+                    Layer = PlacementLayer.Architecture
+                });
+                byKey[definition.Key] = piece;
+            }
+
+            var element = piece.ArchitectureElements[0];
+            var wasComplete = element.Complete ||
+                              completeNewSlots?.Contains(definition.Key) == true;
+            element.DefinitionId = DefinitionId(definition.Kind);
+            piece.DefinitionId = element.DefinitionId;
+            element.SlotIndex = definition.Index;
+            element.Layer = PlacementLayer.Architecture;
+            element.LocalX = definition.LocalX;
+            element.LocalZ = definition.LocalZ;
+            element.LocalYaw = definition.LocalYaw;
+            element.RequiredSticks = definition.Sticks;
+            element.RequiredBoards = definition.Boards;
+            element.RequiredRope = definition.Rope;
+            element.RequiredLeaves = definition.Leaves;
+            element.DeliveredSticks = Math.Min(element.DeliveredSticks, definition.Sticks);
+            element.DeliveredBoards = Math.Min(element.DeliveredBoards, definition.Boards);
+            element.DeliveredRope = Math.Min(element.DeliveredRope, definition.Rope);
+            element.DeliveredLeaves = Math.Min(element.DeliveredLeaves, definition.Leaves);
+            if (wasComplete)
+            {
+                element.DeliveredSticks = definition.Sticks;
+                element.DeliveredBoards = definition.Boards;
+                element.DeliveredRope = definition.Rope;
+                element.DeliveredLeaves = definition.Leaves;
+                element.WorkDone = element.WorkRequired;
+                element.Buildable = true;
+            }
+            else
+            {
+                // Contents is the authoritative delivered pool. Reallocation
+                // below rebuilds every unfinished module deterministically.
+                element.DeliveredSticks = 0;
+                element.DeliveredBoards = 0;
+                element.DeliveredRope = 0;
+                element.DeliveredLeaves = 0;
+                element.WorkDone = 0;
+                element.Buildable = definition.Kind != BuildingElementKind.Roof;
+            }
+            piece.RotationDegrees = owner.RotationDegrees;
+        }
+
+        var elements = Elements(world, owner).ToArray();
+        RefreshRoofBuildability(elements);
+        var bill = (Sticks: 0, Boards: 0, Rope: 0, Leaves: 0);
+        foreach (var element in elements)
+        {
+            if (element.Complete) continue;
+            bill.Sticks += element.RequiredSticks;
+            bill.Boards += element.RequiredBoards;
+            bill.Rope += element.RequiredRope;
+            bill.Leaves += element.RequiredLeaves;
+        }
+        return bill;
+    }
+
     public static void ReparentElements(WorldState world, ObjectId oldOwner, WorldObjectState newOwner)
     {
         foreach (var piece in world.Entities.Objects.Values)
@@ -534,11 +680,21 @@ public static class BuildingRules
     public static void SyncHutElements(WorldState world, WorldObjectState owner)
     {
         EnsureHutElements(world, owner);
-        var definitions = DefinitionsFor(owner);
+        // Bug #188: the world-aware overload exists precisely because a
+        // BlueprintId may name Hut1Hex while the committed plan is three-hex.
+        // Allocating deliveries from the static product silently mixed them.
+        var definitions = DefinitionsFor(world, owner);
         var elements = Elements(world, owner).ToArray();
         var byKey = elements.ToDictionary(element => element.SlotKey);
+        // A completed HutPlan can become a site in place while an extension is
+        // built. Its finished modules are the existing house, not material in
+        // the new delivery pile; resetting them here would make the whole house
+        // collapse to stage zero after the first new stick arrived.
+        var extendingCompletedBuilding = IsCompletedBuilding(owner) &&
+            owner.BuildProduct == ContentIds.HutPlan;
         foreach (var element in elements)
         {
+            if (extendingCompletedBuilding && element.Complete) continue;
             element.DeliveredSticks = 0;
             element.DeliveredBoards = 0;
             element.DeliveredRope = 0;
@@ -550,8 +706,12 @@ public static class BuildingRules
         var boards = Count(owner, ContentIds.Board);
         var rope = Count(owner, ContentIds.Rope);
         var leaves = Count(owner, ContentIds.PalmLeaf);
-        var nonRoof = definitions.FindAll(definition => definition.Kind != BuildingElementKind.Roof);
-        var roofs = definitions.FindAll(definition => definition.Kind == BuildingElementKind.Roof);
+        var nonRoof = definitions.FindAll(definition =>
+            definition.Kind != BuildingElementKind.Roof &&
+            (!extendingCompletedBuilding || !byKey[definition.Key].Complete));
+        var roofs = definitions.FindAll(definition =>
+            definition.Kind == BuildingElementKind.Roof &&
+            (!extendingCompletedBuilding || !byKey[definition.Key].Complete));
         Shuffle(nonRoof, owner.Id.Value ^ 0x4B1D);
         Shuffle(roofs, owner.Id.Value ^ 0x72A9);
         SyncAllocate(nonRoof, byKey, ref sticks, ref boards, ref rope, ref leaves, true);
@@ -607,6 +767,85 @@ public static class BuildingRules
             element.LocalZ = definition.LocalZ;
             element.LocalYaw = definition.LocalYaw;
         }
+    }
+
+    /// <summary>
+    /// Makes a completed plan building's top-level architecture objects match
+    /// its authoritative blueprint exactly.  Old #188 saves can contain the
+    /// one-hex module set under an owner that already fell back to the current
+    /// three-hex plan.  A geometry refresh can move shared keys but cannot add
+    /// the missing sectors or remove obsolete bays, so load repair must
+    /// reconcile the set as well as the coordinates.
+    /// </summary>
+    public static void ReconcileCompletedHutElements(WorldState world, WorldObjectState owner)
+    {
+        if (world == null || owner == null || !IsCompletedBuilding(owner)) return;
+
+        var definitions = DefinitionsFor(world, owner);
+        var desired = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
+        var actual = ArchitectureObjects(world, owner).ToArray();
+        var kept = new HashSet<string>(StringComparer.Ordinal);
+        var remove = new List<ObjectId>();
+
+        foreach (var piece in actual)
+        {
+            var element = piece.ArchitectureElements[0];
+            if (!desired.TryGetValue(element.SlotKey, out var definition) ||
+                !kept.Add(element.SlotKey))
+            {
+                remove.Add(piece.Id);
+                continue;
+            }
+
+            ApplyDefinition(element, definition, completed: true);
+            piece.Tile = owner.Tile;
+            piece.Fragment = owner.Fragment;
+            piece.RotationDegrees = owner.RotationDegrees;
+        }
+
+        foreach (var id in remove)
+            WorldObjectMutations.DespawnObject(world, id);
+
+        var anchor = owner.Junctions.Count > 0
+            ? owner.Junctions[0]
+            : StructurePlacement.CenterJunction(world, owner.Tile);
+        if (anchor is not { } anchorId) return;
+
+        foreach (var definition in definitions)
+        {
+            if (kept.Contains(definition.Key)) continue;
+            var piece = WorldObjectMutations.SpawnObject(
+                world, DefinitionId(definition.Kind), owner.Fragment, owner.Tile, anchorId);
+            piece.ArchitectureOwnerId = owner.Id;
+            piece.RotationDegrees = owner.RotationDegrees;
+            var element = new ArchitectureElementState();
+            ApplyDefinition(element, definition, completed: true);
+            piece.ArchitectureElements.Add(element);
+        }
+    }
+
+    private static void ApplyDefinition(
+        ArchitectureElementState element, Definition definition, bool completed)
+    {
+        element.ElementId = definition.Index + 1;
+        element.DefinitionId = DefinitionId(definition.Kind);
+        element.SlotKey = definition.Key;
+        element.SlotIndex = definition.Index;
+        element.Layer = PlacementLayer.Architecture;
+        element.LocalX = definition.LocalX;
+        element.LocalZ = definition.LocalZ;
+        element.LocalYaw = definition.LocalYaw;
+        element.RequiredSticks = definition.Sticks;
+        element.RequiredBoards = definition.Boards;
+        element.RequiredRope = definition.Rope;
+        element.RequiredLeaves = definition.Leaves;
+        if (!completed) return;
+        element.Buildable = true;
+        element.DeliveredSticks = definition.Sticks;
+        element.DeliveredBoards = definition.Boards;
+        element.DeliveredRope = definition.Rope;
+        element.DeliveredLeaves = definition.Leaves;
+        element.WorkDone = element.WorkRequired;
     }
 
     public static float DoorOutwardYaw(WorldObjectState owner)

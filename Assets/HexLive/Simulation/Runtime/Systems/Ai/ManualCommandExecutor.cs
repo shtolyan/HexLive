@@ -122,6 +122,9 @@ internal static class ManualCommandExecutor
             case PlaceBuildingBlueprintCommand placeBlueprint:
                 ApplyPlaceBuildingBlueprint(world, placeBlueprint, admission);
                 break;
+            case UpdateBuildingBlueprintCommand updateBlueprint:
+                ApplyUpdateBuildingBlueprint(world, updateBlueprint, admission);
+                break;
             case RotateBuildSiteCommand rotateSite:
                 ApplyRotateBuildSite(world, rotateSite, admission);
                 break;
@@ -190,6 +193,7 @@ internal static class ManualCommandExecutor
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
         PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
         PlaceBuildingBlueprintCommand => "PlaceBuildingBlueprint",
+        UpdateBuildingBlueprintCommand => "UpdateBuildingBlueprint",
         RotateBuildSiteCommand => "RotateBuildSite",
         CancelBuildSiteCommand => "CancelBuildSite",
         _ => command.GetType().Name
@@ -2320,6 +2324,15 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        if (!draft.HasAnchor)
+        {
+            var anchor = Blueprints.BlueprintBuildingPlan.AnchorTile(draft);
+            draft.HasAnchor = true;
+            draft.AnchorQ = anchor.Q;
+            draft.AnchorR = anchor.R;
+            draft.Normalize();
+        }
+
         var blueprintId = world.NextPlayerBlueprintId++;
         world.PlayerBlueprints[blueprintId] = draft;
         var site = Bootstrap.BuildingBootstrap.CreatePlayerBlueprintSite(
@@ -2336,6 +2349,48 @@ internal static class ManualCommandExecutor
         Trace.EmitSystem(world, "BuildSitePlanned",
             $"Product={ContentIds.HutPlan} Blueprint={blueprintId} " +
             $"Tile={command.Tile} Site={site.Id.Value}");
+    }
+
+    private static void ApplyUpdateBuildingBlueprint(
+        WorldState world, UpdateBuildingBlueprintCommand command, AdmissionTracker admission)
+    {
+        void RejectWorld(string reason)
+        {
+            admission.Reject(reason);
+            Trace.EmitSystem(world, "ManualOrderRejected",
+                $"Order=UpdateBuildingBlueprint Reason={reason} Owner={command.Owner.Value}");
+        }
+
+        if (string.IsNullOrEmpty(command.BlueprintJson) ||
+            command.BlueprintJson.Length > MaxBlueprintJsonChars ||
+            !Blueprints.BuildingBlueprintJson.TryDeserialize(
+                command.BlueprintJson, out var draft, out _))
+        {
+            RejectWorld("InvalidBlueprint");
+            return;
+        }
+
+        var hasFloor = draft.Elements.Any(element =>
+            element.Kind == Blueprints.BlueprintElementKind.FloorSector);
+        var hasDoor = draft.Elements.Any(element =>
+            element.Kind == Blueprints.BlueprintElementKind.Door);
+        if (!hasFloor || !hasDoor ||
+            !world.Entities.Objects.TryGetValue(command.Owner, out var owner))
+        {
+            RejectWorld(!hasFloor || !hasDoor ? "InvalidBlueprint" : "NotEditableBuilding");
+            return;
+        }
+
+        if (!Bootstrap.BuildingBootstrap.ApplyBlueprintRevision(
+                world, owner, draft, out var error))
+        {
+            RejectWorld(error);
+            return;
+        }
+
+        Trace.EmitSystem(world, "BuildingBlueprintUpdated",
+            $"Owner={owner.Id.Value} Blueprint={owner.BlueprintId} " +
+            $"Modules={draft.Elements.Count}");
     }
 
     private static void ApplyRotateBuildSite(

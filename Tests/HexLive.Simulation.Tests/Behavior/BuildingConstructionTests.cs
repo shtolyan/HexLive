@@ -8,6 +8,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
@@ -259,6 +260,84 @@ public sealed class BuildingConstructionTests
         Assert.That(loadedElement.WorkDone, Is.Zero);
         Assert.That(loadedElement.LocalYaw, Is.EqualTo(canonicalYaw).Within(0.001f),
             "Blueprint geometry is catalog data; even a current-version broken save must not preserve drifted slots.");
+    }
+
+    [Test]
+    public void RaisedPlayerHouseKeepsItsExactBlueprint_Bug188()
+    {
+        var world = TestWorld.CreateWorld(18801);
+        var draft = BuiltInBuildingBlueprints.Hut1Hex();
+        var blueprintId = world.NextPlayerBlueprintId++;
+        world.PlayerBlueprints[blueprintId] = draft;
+        var tile = FindPlanTile(world, draft);
+        var site = BuildingBootstrap.CreatePlayerBlueprintSite(
+            world, tile, rotationDegrees: 0f, blueprintId);
+        Assert.That(site, Is.Not.Null);
+
+        var bill = BlueprintBuildingPlan.Bill(BlueprintBuildingPlan.Modules(draft));
+        Deliver(site, ContentIds.Stick, bill.Sticks);
+        Deliver(site, ContentIds.Board, bill.Boards);
+        Deliver(site, ContentIds.Rope, bill.Rope);
+        Deliver(site, ContentIds.PalmLeaf, bill.Leaves);
+        BuildingRules.SyncHutElements(world, site);
+        Assert.That(BuildingRules.Elements(world, site).All(element => element.Complete), Is.True,
+            "Распределение материалов обязано читать чертёж площадки, а не committed fallback.");
+
+        var raised = ExecutionSystem.RaiseFurnitureSite(
+            world, site, site.Fragment, site.Junctions[0]);
+        Assert.That(raised, Is.Not.Null);
+        Assert.That(raised.BlueprintId, Is.EqualTo(blueprintId),
+            "build.site → building.hut_plan не имеет права терять instance BlueprintId.");
+        Assert.That(BuildingRules.PlanFor(world, raised), Is.SameAs(draft));
+        Assert.That(BuildingRules.Elements(world, raised).Select(element => element.SlotKey),
+            Is.EquivalentTo(BlueprintBuildingPlan.Modules(draft).Select(module => module.Key)));
+
+        var furnitureProducts = world.Entities.Objects.Values
+            .Where(obj => obj.DefinitionId == ContentIds.BuildSite &&
+                          BuildingBootstrap.FootprintTiles(world, raised).Contains(obj.Tile))
+            .Select(obj => obj.BuildProduct).Where(product => !string.IsNullOrEmpty(product))
+            .ToArray();
+        Assert.That(furnitureProducts, Has.Length.EqualTo(draft.Furniture.Count),
+            "Мебель должна стейкаться из того же one-hex blueprint, что и стены.");
+    }
+
+    [Test]
+    public void LoadRepairsCompletedHouseWhoseShellAndFurnitureUsedDifferentPlans_Bug188()
+    {
+        const int seed = 18802;
+        var world = TestWorld.CreateWorld(seed);
+        var stale = BuiltInBuildingBlueprints.Hut1Hex();
+        var staleId = world.NextPlayerBlueprintId++;
+        world.PlayerBlueprints[staleId] = stale;
+        var tile = FindPlanTile(world, CommittedBuildingPlans.PlayerHut);
+        var site = BuildingBootstrap.CreatePlayerBlueprintSite(world, tile, 0f, staleId);
+        Assert.That(site, Is.Not.Null);
+
+        // Exact old failure: the site had already raised its 36 one-hex pieces,
+        // then the replacement owner lost BlueprintId before CompleteHut.  Its
+        // furniture therefore came from the 51-module committed three-hex plan.
+        site.BlueprintId = 0;
+        var broken = ExecutionSystem.RaiseFurnitureSite(
+            world, site, site.Fragment, site.Junctions[0]);
+        Assert.That(BuildingRules.Elements(world, broken).ToArray(), Has.Length.EqualTo(36));
+        Assert.That(BlueprintBuildingPlan.Modules(BuildingRules.PlanFor(world, broken)),
+            Has.Count.EqualTo(51));
+
+        using var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSaveSerializer.Write(world, writer);
+        blob.Position = 0;
+        var loaded = TestWorld.CreateWorld(seed);
+        using (var reader = new BinaryReader(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSaveSerializer.Read(loaded, reader);
+
+        var repaired = loaded.Entities.Objects[broken.Id];
+        var expected = BlueprintBuildingPlan.Modules(BuildingRules.PlanFor(loaded, repaired));
+        Assert.That(BuildingRules.Elements(loaded, repaired).Select(element => element.SlotKey),
+            Is.EquivalentTo(expected.Select(module => module.Key)),
+            "Load repair обязан добавить отсутствующие half-hex sectors и убрать старые bays.");
+        Assert.That(BuildingRules.Elements(loaded, repaired).All(element => element.Complete), Is.True);
+        Assert.That(BuildingBootstrap.FootprintTiles(loaded, repaired), Has.Count.EqualTo(3));
     }
 
     [Test]
@@ -729,6 +808,13 @@ public sealed class BuildingConstructionTests
         BillRope = BuildingRules.TotalRope,
         BillLeaves = BuildingRules.TotalLeaves
     };
+
+    private static TileCoord FindPlanTile(WorldState world, BuildingBlueprintDraft plan) =>
+        world.Tiles.Items.Keys
+            .OrderBy(tile => tile.Q).ThenBy(tile => tile.R)
+            .First(tile => BuildingBootstrap.FootprintTiles(plan, tile, 0f)
+                .All(footprint => BuildingBootstrap.CanPlaceHut(world, footprint)) &&
+                StructurePlacement.CenterJunction(world, tile) is not null);
 
     private static void SetIndoor(WorldState world, TileCoord coord, bool indoor)
     {

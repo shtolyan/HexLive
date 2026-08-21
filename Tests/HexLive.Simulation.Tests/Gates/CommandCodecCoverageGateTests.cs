@@ -74,7 +74,9 @@ public sealed class CommandCodecCoverageGateTests
         new RotateBuildSiteCommand(new ObjectId(217), rotationDegrees: 180f),
         new CancelBuildSiteCommand(new ObjectId(218)),
         new PlaceBuildingBlueprintCommand(
-            "{\"version\":2}", new TileCoord(7, -2), rotationDegrees: 60f),
+            "{\"version\":3}", new TileCoord(7, -2), rotationDegrees: 60f),
+        new UpdateBuildingBlueprintCommand(
+            new ObjectId(219), "{\"version\":3,\"blueprintId\":\"edit\"}"),
     };
 
     [Test]

@@ -504,6 +504,24 @@ public sealed class PlaceBuildingBlueprintCommand : ISimulationCommand
     public EntityId? TargetEntity => null;
 }
 
+/// <summary>§120.9: replace the composition of an existing modular building.
+/// Owner is the footprint aggregate, never an individual wall object. The
+/// executor validates placement and reconciles the draft by stable SlotKey.</summary>
+public sealed class UpdateBuildingBlueprintCommand : ISimulationCommand
+{
+    public UpdateBuildingBlueprintCommand(ObjectId owner, string blueprintJson)
+    {
+        Owner = owner;
+        BlueprintJson = blueprintJson ?? string.Empty;
+    }
+
+    public ObjectId Owner { get; }
+
+    public string BlueprintJson { get; }
+
+    public EntityId? TargetEntity => null;
+}
+
 /// <summary>§120.7: повернуть ПУСТУЮ размеченную площадку (ни одного
 /// доставленного материала). Абсолютный угол; исполнитель квантует и для
 /// дома перепроверяет футпринт новой ориентации.</summary>

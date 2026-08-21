@@ -671,6 +671,48 @@ dotnet run --project Server/HexLive.Server -- --port 5123
 Then start the game with `-hexlive-server ws://localhost:5123/watch`. `--help`
 lists the rest (`--seed`, `--save`, `--autosave`, `--simdata`, `--debug-details`).
 
+### Updating/restarting the local server without losing password or save
+
+The server state is not just the executable. The save file, admin account,
+player token, MCP token, simdata export, and log must travel as one directory.
+For the local player machine the canonical runtime directory is:
+
+```bash
+/Users/shtolyan/hex-girls/server
+```
+
+Use absolute paths when replacing the server process:
+
+```bash
+cd /Users/shtolyan/hex-girls/server
+./bin/HexLive.Server \
+  --port 5123 \
+  --save /Users/shtolyan/hex-girls/server/bigisland-30430.sav \
+  --simdata /Users/shtolyan/hex-girls/server/simdata.json \
+  --control
+```
+
+Never launch a player-facing server with a save in `/tmp`, from a build output
+directory, or from an arbitrary current working directory. The admin password
+hash lives beside the save as `hexlive-admin.txt`; changing the save directory
+changes the admin account file. A server update must therefore:
+
+1. Find the currently running command (`lsof -nP -iTCP:5123 -sTCP:LISTEN` and
+   `ps -p <pid> -o command`).
+2. Preserve the same `--save` directory unless the player explicitly asks for a
+   different world.
+3. Verify the target directory contains the expected `hexlive-admin.txt` and
+   `simdata.json`.
+4. Start the replacement with absolute `--save` and `--simdata` paths.
+5. Read the first server log lines and confirm they say:
+   `save file <expected path>` and `admin account <same directory>/hexlive-admin.txt`.
+
+The binary must also protect the operator: if the target save already exists,
+startup reads its header and continues that save's seed and world mode. Command
+line `--seed`/`--mode` are only fresh-world defaults. If an existing save cannot
+be identified safely, the server must refuse to start rather than creating a new
+world that autosave could write over the old one.
+
 Presentation talks ONLY to `ISimulationSource` (`UnityPresentation/Bootstrap/`).
 Behind it sits an `ISimulationBackend`:
 

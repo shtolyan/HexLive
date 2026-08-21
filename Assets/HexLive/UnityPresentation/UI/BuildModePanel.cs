@@ -72,6 +72,7 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement? _categoryList;
         private VisualElement? _catalogList;
         private Button? _deleteButton;
+        private Button? _editButton;
 
         private BuildCatalogMode _catalogMode = BuildCatalogMode.Furniture;
         private string _activeCategoryId = BuildCatalogCategories.Comfort;
@@ -84,6 +85,9 @@ namespace HexLive.UnityPresentation.UI
         private string _selectedSiteProduct = string.Empty;
         private TileCoord _selectedSiteTile;
         private float _selectedSiteRotation;
+        private bool _selectedCanRotate;
+        private bool _selectedCanCancel;
+        private string _selectedBlueprintJson = string.Empty;
         private LineRenderer? _selectionOutline;
 
         // Стрелки поворота — экранные кнопки, следующие за объектом в мире.
@@ -206,6 +210,14 @@ namespace HexLive.UnityPresentation.UI
                 _deleteButton.style.display = DisplayStyle.None;
                 _deleteButton.clicked += CancelSelectedSite;
             }
+            var selectionActions = root.Q(className: "selection-actions");
+            if (selectionActions != null)
+            {
+                _editButton = new Button(EditSelectedBuilding);
+                _editButton.AddToClassList("selection-button");
+                _editButton.style.display = DisplayStyle.None;
+                selectionActions.Insert(0, _editButton);
+            }
 
             root.Q<Button>("mode-construction").clicked += () => SetMode(BuildCatalogMode.Construction);
             root.Q<Button>("mode-furniture").clicked += () => SetMode(BuildCatalogMode.Furniture);
@@ -266,6 +278,7 @@ namespace HexLive.UnityPresentation.UI
             if (finish != null) finish.text = Loc.Get("blueprint.action.finish");
             var deleteButton = root.Q<Button>("delete-selection");
             if (deleteButton != null) deleteButton.text = Loc.Get("blueprint.action.delete");
+            if (_editButton != null) _editButton.text = Loc.Get("blueprint.action.edit_building");
             var selectionTitle = root.Q<Label>("selection-title");
             if (selectionTitle != null) selectionTitle.text = Loc.Get("blueprint.selection.title");
             if (_openButton != null) _openButton.text = Loc.Get("build.mode.button");
@@ -506,7 +519,14 @@ namespace HexLive.UnityPresentation.UI
 
             if (_deleteButton != null)
             {
-                _deleteButton.style.display = _selectedSiteId is not null
+                _deleteButton.style.display = _selectedCanCancel
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
+            }
+            if (_editButton != null)
+            {
+                _editButton.style.display = _selectedSiteId is not null &&
+                    !string.IsNullOrEmpty(_selectedBlueprintJson)
                     ? DisplayStyle.Flex
                     : DisplayStyle.None;
             }
@@ -522,7 +542,7 @@ namespace HexLive.UnityPresentation.UI
                 return ("blueprint.catalog.project.name", "blueprint.catalog.project.description");
             }
 
-            if (id == HutCardId || id == ContentIds.HutPlan)
+            if (id == HutCardId || id == ContentIds.HutPlan || id == ContentIds.Hut1Hex)
             {
                 return ("blueprint.catalog.hut.name", "blueprint.catalog.hut.description");
             }
@@ -632,7 +652,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            if (_selectedSiteId is { } siteId && _runner != null)
+            if (_selectedCanRotate && _selectedSiteId is { } siteId && _runner != null)
             {
                 _selectedSiteRotation = ((_selectedSiteRotation + delta * 60f) % 360f + 360f) % 360f;
                 _runner.EnqueueCommand(new RotateBuildSiteCommand(
@@ -730,27 +750,52 @@ namespace HexLive.UnityPresentation.UI
         private void TrySelectSite(Vector2 screen)
         {
             if (_snapshot == null || !TryPickTile(screen, out var tile)) return;
+            // Empty sites retain their rotate/cancel affordances. An
+            // architectural site with progress is still editable, but never
+            // silently rotated or deleted as a whole.
             foreach (var obj in _snapshot.Objects)
             {
                 if (string.IsNullOrEmpty(obj.BuildProduct) || !obj.Tile.Equals(tile)) continue;
-                if (DeliveredTotal(obj) > 0)
-                {
-                    // Начатую стройку не крутят и не сносят — только пустую.
-                    SetStatus("build.mode.blocked");
-                    return;
-                }
+                var empty = DeliveredTotal(obj) == 0;
+                SelectWorldObject(obj, canRotate: empty, canCancel: empty);
+                return;
+            }
 
-                _selectedSiteId = obj.Id.Value;
-                _selectedSiteProduct = obj.BuildProduct;
-                _selectedSiteTile = obj.Tile;
-                _selectedSiteRotation = obj.RotationDegrees;
-                DrawSelectionOutline(obj.Tile);
-                RefreshSelectionCard();
+            // A finished multi-hex house is selectable from any tile of its
+            // actual footprint, not only from the invisible owner's anchor.
+            foreach (var obj in _snapshot.Objects)
+            {
+                if (string.IsNullOrEmpty(obj.BuildingBlueprintJson) ||
+                    !BlueprintOccupies(obj, tile)) continue;
+                SelectWorldObject(obj, canRotate: false, canCancel: false);
                 return;
             }
 
             DeselectSite();
             RefreshSelectionCard();
+        }
+
+        private void SelectWorldObject(ObjectSnapshot obj, bool canRotate, bool canCancel)
+        {
+            _selectedSiteId = obj.Id.Value;
+            _selectedSiteProduct = string.IsNullOrEmpty(obj.BuildProduct)
+                ? obj.DefinitionId
+                : obj.BuildProduct;
+            _selectedSiteTile = obj.Tile;
+            _selectedSiteRotation = obj.RotationDegrees;
+            _selectedCanRotate = canRotate;
+            _selectedCanCancel = canCancel;
+            _selectedBlueprintJson = obj.BuildingBlueprintJson;
+            DrawSelectionOutline(obj);
+            RefreshSelectionCard();
+        }
+
+        private static bool BlueprintOccupies(ObjectSnapshot owner, TileCoord tile)
+        {
+            if (!BuildingBlueprintJson.TryDeserialize(
+                    owner.BuildingBlueprintJson, out var draft, out _)) return false;
+            return Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
+                draft, owner.Tile, owner.RotationDegrees).Contains(tile);
         }
 
         private static int DeliveredTotal(ObjectSnapshot site)
@@ -769,6 +814,9 @@ namespace HexLive.UnityPresentation.UI
         {
             _selectedSiteId = null;
             _selectedSiteProduct = string.Empty;
+            _selectedCanRotate = false;
+            _selectedCanCancel = false;
+            _selectedBlueprintJson = string.Empty;
             if (_selectionOutline != null)
             {
                 Destroy(_selectionOutline.gameObject);
@@ -778,7 +826,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void CancelSelectedSite()
         {
-            if (_selectedSiteId is not { } siteId || _runner == null) return;
+            if (!_selectedCanCancel || _selectedSiteId is not { } siteId || _runner == null) return;
             _runner.EnqueueCommand(new CancelBuildSiteCommand(
                 new HexLive.Simulation.Common.ObjectId(siteId)));
             InvalidateOverlay(siteId);
@@ -788,6 +836,43 @@ namespace HexLive.UnityPresentation.UI
             RefreshSelectionCard();
         }
 
+        private void EditSelectedBuilding()
+        {
+            if (_selectedSiteId is not { } ownerId || _runner == null ||
+                _worldRenderer == null ||
+                !BuildingBlueprintJson.TryDeserialize(
+                    _selectedBlueprintJson, out var draft, out _))
+            {
+                SetStatus("build.mode.blocked");
+                return;
+            }
+
+            var runner = _runner;
+            var anchorTile = _selectedSiteTile;
+            var rotation = _selectedSiteRotation;
+            var anchorWorld = SimulationUnityMapper.ToUnityTilePosition(
+                anchorTile, _worldRenderer.GroundTopY(anchorTile));
+            EndBuildMode();
+
+            HutLayoutDesigner.PendingWorldPlacement = new HutLayoutDesigner.WorldPlacementConfig
+            {
+                AnchorWorldPosition = anchorWorld,
+                AnchorTile = anchorTile,
+                RotationDegrees = rotation,
+                ExistingOwner = new ObjectId(ownerId),
+                InitialDraft = draft,
+                OnBuild = updated => runner.EnqueueCommand(
+                    new UpdateBuildingBlueprintCommand(
+                        new ObjectId(ownerId),
+                        BuildingBlueprintJson.Serialize(updated, pretty: false))),
+                OnClosed = null
+            };
+
+            var editorRoot = new GameObject("HexLive Existing Building Editor");
+            editorRoot.AddComponent<UIDocument>();
+            editorRoot.AddComponent<HutLayoutDesigner>();
+        }
+
         private void InvalidateOverlay(int siteId)
         {
             if (!_siteOverlays.TryGetValue(siteId, out var overlay)) return;
@@ -795,34 +880,45 @@ namespace HexLive.UnityPresentation.UI
             _siteOverlays.Remove(siteId);
         }
 
-        private void DrawSelectionOutline(TileCoord tile)
+        private void DrawSelectionOutline(ObjectSnapshot owner)
         {
             if (_selectionOutline == null)
             {
                 var go = new GameObject("Build selection outline");
                 _selectionOutline = go.AddComponent<LineRenderer>();
                 _selectionOutline.useWorldSpace = true;
-                _selectionOutline.loop = true;
+                _selectionOutline.loop = false;
                 _selectionOutline.widthMultiplier = 0.06f;
                 _selectionOutline.material = OutlineMaterial();
                 _selectionOutline.shadowCastingMode =
                     UnityEngine.Rendering.ShadowCastingMode.Off;
             }
 
-            var center = HexSpatialMath.TileToWorld(tile);
-            var y = _worldRenderer != null ? _worldRenderer.GroundTopY(tile) : 0.75f;
-            var points = new Vector3[6];
-            for (var corner = 0; corner < 6; corner++)
+            IReadOnlyList<TileCoord> footprint = new[] { owner.Tile };
+            if (!string.IsNullOrEmpty(owner.BuildingBlueprintJson) &&
+                BuildingBlueprintJson.TryDeserialize(
+                    owner.BuildingBlueprintJson, out var draft, out _))
             {
-                var angle = (60f * corner + 30f) * Mathf.Deg2Rad;
-                points[corner] = new Vector3(
-                    center.X + HexSpatialMath.HexRadius * 0.99f * Mathf.Cos(angle),
-                    y + 0.04f,
-                    center.Y + HexSpatialMath.HexRadius * 0.99f * Mathf.Sin(angle));
+                footprint = Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
+                    draft, owner.Tile, owner.RotationDegrees);
             }
 
-            _selectionOutline.positionCount = 6;
-            _selectionOutline.SetPositions(points);
+            var points = new List<Vector3>(footprint.Count * 7);
+            foreach (var tile in footprint)
+            {
+                var center = HexSpatialMath.TileToWorld(tile);
+                var y = _worldRenderer != null ? _worldRenderer.GroundTopY(tile) : 0.75f;
+                for (var corner = 0; corner <= 6; corner++)
+                {
+                    var angle = (60f * corner + 30f) * Mathf.Deg2Rad;
+                    points.Add(new Vector3(
+                        center.X + HexSpatialMath.HexRadius * 0.99f * Mathf.Cos(angle),
+                        y + 0.04f,
+                        center.Y + HexSpatialMath.HexRadius * 0.99f * Mathf.Sin(angle)));
+                }
+            }
+            _selectionOutline.positionCount = points.Count;
+            _selectionOutline.SetPositions(points.ToArray());
             var gold = new Color(0.94f, 0.71f, 0.36f, 0.95f);
             _selectionOutline.startColor = gold;
             _selectionOutline.endColor = gold;
@@ -840,7 +936,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 worldAnchor = _ghostRoot.transform.position;
             }
-            else if (_selectedSiteId is not null && _worldRenderer != null)
+            else if (_selectedCanRotate && _selectedSiteId is not null && _worldRenderer != null)
             {
                 var center = HexSpatialMath.TileToWorld(_selectedSiteTile);
                 worldAnchor = new Vector3(

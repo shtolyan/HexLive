@@ -287,9 +287,19 @@ public static class BuildingBootstrap
         // placement check rather than after the site exists.
         var rotation = StructurePlacement.QuantizeHexSymmetryYaw(
             facingYaw - BuildingRules.DoorLocalOutwardYaw(ContentIds.HutPlan));
-        return CreatePlanSite(
-            world, tile, rotation,
-            Runtime.Blueprints.CommittedBuildingPlans.PlayerHut, blueprintId: 0);
+        // Bug #188: even a catalog/committed plan becomes INSTANCE DATA once
+        // it is staked.  Register a clone so a later game version cannot change
+        // the geometry below a half-built site, and so RaiseFurnitureSite can
+        // carry one authoritative id into the finished building.
+        var blueprintId = world.NextPlayerBlueprintId++;
+        var plan = Runtime.Blueprints.CommittedBuildingPlans.PlayerHut.Clone();
+        world.PlayerBlueprints[blueprintId] = plan;
+        var site = CreatePlanSite(world, tile, rotation, plan, blueprintId);
+        if (site == null)
+        {
+            world.PlayerBlueprints.Remove(blueprintId);
+        }
+        return site;
     }
 
     /// <summary>
@@ -310,6 +320,150 @@ public static class BuildingBootstrap
         return CreatePlanSite(
             world, tile, StructurePlacement.QuantizeHexSymmetryYaw(rotationDegrees),
             plan, blueprintId);
+    }
+
+    /// <summary>
+    /// Applies a constructor revision to the real building owner already in the
+    /// world. Unchanged SlotKeys keep their top-level LEGO objects and progress;
+    /// only the delta is reconciled. A finished owner becomes an in-place
+    /// HutPlan build site while new modules are hauled, so the old house is not
+    /// despawned/replaced by a second aggregate.
+    /// </summary>
+    internal static bool ApplyBlueprintRevision(
+        WorldState world, WorldObjectState owner,
+        Runtime.Blueprints.BuildingBlueprintDraft source, out string error)
+    {
+        error = string.Empty;
+        var previous = BuildingRules.EditablePlanFor(world, owner);
+        if (world == null || owner == null || previous == null || source == null)
+        {
+            error = "NotEditableBuilding";
+            return false;
+        }
+
+        var draft = source.Clone();
+        var stableAnchor = Runtime.Blueprints.BlueprintBuildingPlan.AnchorTile(previous);
+        draft.HasAnchor = true;
+        draft.AnchorQ = stableAnchor.Q;
+        draft.AnchorR = stableAnchor.R;
+        draft.Normalize();
+        if (!SameFurniture(previous, draft))
+        {
+            error = "FurnitureEditUnsupported";
+            return false;
+        }
+
+        var oldFootprint = FootprintTiles(world, owner).ToHashSet();
+        var newFootprint = FootprintTiles(draft, owner.Tile, owner.RotationDegrees);
+        if (!world.Tiles.Items.TryGetValue(owner.Tile, out var ownerTile))
+        {
+            error = "PlacementBlocked";
+            return false;
+        }
+        foreach (var tile in newFootprint)
+        {
+            if (!world.Tiles.Items.TryGetValue(tile, out var candidate) ||
+                candidate.Elevation != ownerTile.Elevation)
+            {
+                error = "PlacementBlocked";
+                return false;
+            }
+            if (!oldFootprint.Contains(tile) && !CanPlaceHut(world, tile))
+            {
+                error = "PlacementBlocked";
+                return false;
+            }
+        }
+
+        var oldKeys = previous.Elements
+            .Select(Runtime.Blueprints.BlueprintBuildingPlan.SlotKey)
+            .ToHashSet(StringComparer.Ordinal);
+        var newKeys = draft.Elements
+            .Select(Runtime.Blueprints.BlueprintBuildingPlan.SlotKey)
+            .ToHashSet(StringComparer.Ordinal);
+        var removedStructuralSlot = previous.Elements.Any(element =>
+            !newKeys.Contains(Runtime.Blueprints.BlueprintBuildingPlan.SlotKey(element)) &&
+            element.Kind is Runtime.Blueprints.BlueprintElementKind.Wall or
+                Runtime.Blueprints.BlueprintElementKind.Window or
+                Runtime.Blueprints.BlueprintElementKind.Door or
+                Runtime.Blueprints.BlueprintElementKind.RoofSector);
+        var removedFloorSlot = previous.Elements.Any(element =>
+            element.Kind == Runtime.Blueprints.BlueprintElementKind.FloorSector &&
+            !newKeys.Contains(Runtime.Blueprints.BlueprintBuildingPlan.SlotKey(element)));
+
+        var legacyCompleted = owner.DefinitionId == ContentIds.Hut1Hex &&
+                              BuildingRules.IsCompletedBuilding(owner);
+        ISet<string> completeLegacySlots = legacyCompleted ? oldKeys : null;
+
+        if (owner.BlueprintId == 0)
+            owner.BlueprintId = world.NextPlayerBlueprintId++;
+        world.PlayerBlueprints[owner.BlueprintId] = draft;
+        if (owner.DefinitionId == ContentIds.Hut1Hex) owner.DefinitionId = ContentIds.HutPlan;
+        if (owner.BuildProduct == ContentIds.Hut1Hex) owner.BuildProduct = ContentIds.HutPlan;
+
+        var bill = BuildingRules.ReconcileHutElements(
+            world, owner, completeLegacySlots);
+        owner.BillSticks = Math.Max(bill.Sticks,
+            owner.Contents.Count(item => item.DefinitionId == ContentIds.Stick));
+        owner.BillBoards = Math.Max(bill.Boards,
+            owner.Contents.Count(item => item.DefinitionId == ContentIds.Board));
+        owner.BillRope = Math.Max(bill.Rope,
+            owner.Contents.Count(item => item.DefinitionId == ContentIds.Rope));
+        owner.BillLeaves = Math.Max(bill.Leaves,
+            owner.Contents.Count(item => item.DefinitionId == ContentIds.PalmLeaf));
+        owner.BillLogs = 0;
+        owner.BillStones = 0;
+
+        var unfinished = bill.Sticks + bill.Boards + bill.Rope + bill.Leaves > 0;
+        owner.BuildProduct = unfinished ? ContentIds.HutPlan : string.Empty;
+        if (unfinished) BuildingRules.SyncHutElements(world, owner);
+
+        foreach (var tile in oldFootprint)
+        {
+            if (!world.Tiles.Items.TryGetValue(tile, out var state)) continue;
+            if (!newFootprint.Contains(tile) || removedStructuralSlot)
+                state.Flags &= ~(TileFlags.Indoor | TileFlags.Roofed);
+            if (!newFootprint.Contains(tile) || removedFloorSlot)
+                state.Flags &= ~TileFlags.HasFloor;
+        }
+        foreach (var tile in newFootprint)
+        {
+            if (oldFootprint.Contains(tile) || !world.Tiles.Items.TryGetValue(tile, out var state))
+                continue;
+            state.Flags &= ~(TileFlags.HasFloor | TileFlags.Indoor | TileFlags.Roofed);
+        }
+
+        RepairPlanTopology(world, owner);
+        if (unfinished)
+        {
+            RememberPlanSite(world, owner);
+        }
+        else
+        {
+            CompleteHut(world, owner);
+        }
+        return true;
+    }
+
+    private static bool SameFurniture(
+        Runtime.Blueprints.BuildingBlueprintDraft left,
+        Runtime.Blueprints.BuildingBlueprintDraft right)
+    {
+        if (left.Furniture.Count != right.Furniture.Count) return false;
+        var byId = left.Furniture.ToDictionary(item => item.Id, StringComparer.Ordinal);
+        foreach (var item in right.Furniture)
+        {
+            if (!byId.TryGetValue(item.Id, out var other) ||
+                other.DefinitionId != item.DefinitionId ||
+                other.TileQ != item.TileQ || other.TileR != item.TileR ||
+                other.JunctionSlot != item.JunctionSlot ||
+                Runtime.Blueprints.BlueprintGeometry.NormalizeSector(other.YawStep) !=
+                Runtime.Blueprints.BlueprintGeometry.NormalizeSector(item.YawStep))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static WorldObjectState CreatePlanSite(

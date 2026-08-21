@@ -82,7 +82,8 @@ public static class WorldSnapshotCodec
     /// групп. Дельта шлёт только изменившиеся; замер до/после — в §83.5.
     /// v28: §83.2 r13 — набор runtime-тайлов в дельте едет за флагом «изменился»,
     /// а не каждым кадром. Ключевой кадр по-прежнему несёт его всегда.
-    public const int WireVersion = 29;
+    /// v30: §120.9 editable building owners expose their authoritative draft.
+    public const int WireVersion = 30;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -491,6 +492,9 @@ public static class WorldSnapshotCodec
         w.Write(o.Bloodiness);
         w.Write(o.SpawnTick);
         WireIo.WriteJunctions(w, o.Junctions);
+        // Usually empty and therefore one byte. It is deliberately outside the
+        // exhausted ObjectParts byte: only architecture owners pay the JSON.
+        WireIo.WriteString(w, o.BuildingBlueprintJson);
 
         // §128.5: содержимое вещи. Своего бита в ObjectParts ему не досталось —
         // байт флагов занят все восемь; расширять его до ushort ради поля,
@@ -618,6 +622,7 @@ public static class WorldSnapshotCodec
             o.Bloodiness = r.ReadSingle();
             o.SpawnTick = r.ReadInt32();
             WireIo.ReadJunctions(r, o.Junctions);
+            o.BuildingBlueprintJson = r.ReadString();
 
             // §128.5: содержимое вещи — счётчик пишется всегда (см. writer).
             o.Contents.Clear();

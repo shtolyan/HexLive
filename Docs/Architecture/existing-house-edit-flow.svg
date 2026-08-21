@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="660" viewBox="0 0 1120 660">
+  <defs>
+    <style>
+      .bg{fill:#10141d}.panel{fill:#171d29;stroke:#354056;stroke-width:2}.hex{fill:#294d3e;stroke:#73c89c;stroke-width:3}.added{fill:#2d557d;stroke:#76b7ec;stroke-width:3}.wall{fill:none;stroke:#efa44e;stroke-width:8;stroke-linecap:round}.removed{fill:none;stroke:#ef6865;stroke-width:8;stroke-dasharray:10 9}.module{fill:#f2ba63}.new{fill:#7fc6f3}.label{font:700 22px system-ui,sans-serif;fill:#f3f5f8}.text{font:16px system-ui,sans-serif;fill:#cbd3df}.small{font:13px ui-monospace,monospace;fill:#adb8c9}.arrow{fill:none;stroke:#ead871;stroke-width:4;marker-end:url(#a)}
+    </style>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#ead871"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="660"/>
+  <text class="label" x="38" y="44">§120.9 — правка живого дома, не создание второго чертежа</text>
+  <rect class="panel" x="34" y="72" width="500" height="510" rx="16"/>
+  <rect class="panel" x="566" y="72" width="520" height="510" rx="16"/>
+
+  <text class="label" x="60" y="112">До: существующий owner</text>
+  <text class="text" x="60" y="140">R=1.5 wu · секция стены=0.5 wu</text>
+  <!-- pointy hex, scale 100 px/wu: corners at (±129.9,±75),(0,±150) -->
+  <polygon class="hex" points="285,175 415,250 415,400 285,475 155,400 155,250"/>
+  <polyline class="wall" points="285,175 415,250 415,400 285,475 155,400 155,250 285,175"/>
+  <circle class="module" cx="285" cy="175" r="8"/><circle class="module" cx="415" cy="250" r="8"/>
+  <circle class="module" cx="415" cy="400" r="8"/><circle class="module" cx="285" cy="475" r="8"/>
+  <circle class="module" cx="155" cy="400" r="8"/><circle class="module" cx="155" cy="250" r="8"/>
+  <text class="small" x="126" y="525">owner #ID · SlotKey каждого LEGO-модуля</text>
+  <text class="text" x="90" y="555">Клик по любому гексу → «Редактировать дом»</text>
+
+  <text class="label" x="592" y="112">После: растянута комната</text>
+  <text class="text" x="592" y="140">старый anchor и старые ObjectId сохранены</text>
+  <polygon class="hex" points="696,175 826,250 826,400 696,475 566,400 566,250"/>
+  <polygon class="added" points="956,175 1086,250 1086,400 956,475 826,400 826,250"/>
+  <!-- old shared boundary is removed; outer boundary gains new wall modules -->
+  <line class="removed" x1="826" y1="250" x2="826" y2="400"/>
+  <polyline class="wall" points="696,175 826,250"/>
+  <polyline class="wall" points="826,250 956,175 1086,250 1086,400 956,475 826,400"/>
+  <polyline class="wall" points="826,400 696,475 566,400 566,250 696,175"/>
+  <circle class="new" cx="869" cy="225" r="8"/><circle class="new" cx="913" cy="200" r="8"/>
+  <circle class="new" cx="1043" cy="225" r="8"/><circle class="new" cx="1086" cy="325" r="8"/>
+  <circle class="new" cx="1043" cy="425" r="8"/><circle class="new" cx="913" cy="450" r="8"/>
+  <circle class="new" cx="869" cy="425" r="8"/>
+  <text class="small" x="620" y="525">reconcile: unchanged keep state · new start at 0</text>
+  <text class="text" x="620" y="555">NPC достраивают только голубую дельту</text>
+
+  <path class="arrow" d="M500 330 C545 290 575 290 615 330"/>
+  <rect x="34" y="606" width="1052" height="34" rx="10" fill="#202838"/>
+  <text class="small" x="55" y="628">зелёный — готовая часть  ·  голубой — новые модули  ·  красный пунктир — снятая roomBoundary</text>
+</svg>

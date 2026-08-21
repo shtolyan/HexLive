@@ -351,7 +351,7 @@ namespace HexLive.Simulation.Tests.Blueprints
             });
 
             var json = BuildingBlueprintJson.Serialize(legacy)
-                .Replace("\"version\": 2", "\"version\": 1");
+                .Replace("\"version\": 3", "\"version\": 1");
             Assert.That(BuildingBlueprintJson.TryDeserialize(json, out var migrated, out var error), Is.True, error);
             Assert.That(migrated.Version, Is.EqualTo(BuildingBlueprintDraft.CurrentVersion));
             Assert.That(migrated.Elements.Any(element =>

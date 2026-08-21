@@ -249,6 +249,7 @@ public static class WorldSnapshotExporter
                 });
             }
             exported.ArchitectureOwnerObjectId = obj.ArchitectureOwnerId?.Value;
+            exported.BuildingBlueprintJson = Runtime.BuildingRules.EditablePlanJsonFor(world, obj);
             exported.IsDoorOpen = obj.IsDoorOpen;
 
             foreach (var junctionId in obj.Junctions)

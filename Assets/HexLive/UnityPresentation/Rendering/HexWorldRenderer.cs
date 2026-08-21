@@ -1081,6 +1081,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        // Bug #189: BigIsland is about 256×127 wu, while this deliberately
+        // dense emitter is only 60×60 wu. Keeping that volume at world origin
+        // made rain visible over the old island centre and nowhere near a camp
+        // at the expanded edges. Follow the viewing camera instead of inflating
+        // one island-wide particle box (which would multiply live particles by
+        // roughly nine). Existing particles stay in world space, so moving the
+        // emitter only changes where NEW drops are born and never drags rain
+        // sideways across the terrain.
+        if (_cutawayCamera == null) _cutawayCamera = Camera.main;
+        var focus = _cutawayCamera != null
+            ? _cutawayCamera.transform.position
+            : transform.position;
+        var emitterY = transform.TransformPoint(new Vector3(0f, 30f, 0f)).y;
+        _rain.transform.position = new Vector3(focus.x, emitterY, focus.z);
+
         if (raining && !_rain.isPlaying)
         {
             _rain.Play();

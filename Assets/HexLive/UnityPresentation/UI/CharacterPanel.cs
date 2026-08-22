@@ -328,6 +328,8 @@ namespace HexLive.UnityPresentation.UI
         private const float CharacterCardHeight = 286f;
         private const float FloatingInventoryGap = 12f;
         private const float InventoryWindowBottom = PanelBottomOffset + CharacterCardHeight + FloatingInventoryGap;
+        private const float InventoryWindowMaxWidth = 940f;
+        private const float InventoryWindowMaxHeight = 700f;
 
         // Both viewports keep the doll RenderTexture's exact aspect, so
         // BackgroundSizeType.Contain has nothing left to letterbox. The health
@@ -1514,8 +1516,8 @@ namespace HexLive.UnityPresentation.UI
             _inventoryWindow = new VisualElement();
             _inventoryWindow.style.position = Position.Absolute;
             _inventoryWindow.style.bottom = InventoryWindowBottom;
-            _inventoryWindow.style.width = 940f;
-            _inventoryWindow.style.height = 620f;
+            _inventoryWindow.style.width = InventoryWindowMaxWidth;
+            _inventoryWindow.style.height = InventoryWindowMaxHeight;
             _inventoryWindow.style.backgroundColor = Panel;
             SetBorder(_inventoryWindow, StrokeStrong, 1f);
             SetRadius(_inventoryWindow, 16f);
@@ -1588,6 +1590,7 @@ namespace HexLive.UnityPresentation.UI
             _invItemsPane.style.flexGrow = 1f;
             _invItemsPane.style.flexShrink = 1f;
             _invItemsPane.style.minWidth = 0f;
+            _invItemsPane.style.minHeight = 0f;
             _invItemsPane.style.paddingRight = 5f;
             _invItemsPane.style.overflow = Overflow.Visible;
 
@@ -2838,9 +2841,11 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var width = Mathf.Min(940f, Mathf.Max(1f, _root.layout.width - 32f));
+            var width = Mathf.Min(
+                InventoryWindowMaxWidth, Mathf.Max(1f, _root.layout.width - 32f));
             var availableHeight = _root.layout.height - InventoryWindowBottom - 16f;
-            var height = Mathf.Min(620f, Mathf.Max(300f, availableHeight));
+            var height = Mathf.Min(
+                InventoryWindowMaxHeight, Mathf.Max(300f, availableHeight));
             _inventoryWindow.style.width = width;
             _inventoryWindow.style.height = height;
             _inventoryWindow.style.left = Mathf.Max(8f, (_root.layout.width - width) * 0.5f);

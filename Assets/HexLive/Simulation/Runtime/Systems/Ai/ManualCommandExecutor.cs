@@ -465,7 +465,9 @@ internal static class ManualCommandExecutor
         ClearAttackOrder(world, npc);
 
         if (npc.CurrentJunction is not { } start ||
-            !Connectivity.Reachable(world, start, destination, npc.Body.CanJump))
+            !Connectivity.Reachable(
+                world, start, destination,
+                PlanningSystem.CanUseCriticalTraversal(npc)))
         {
             Reject(world, npc.Id, "MoveTo", "Unreachable", admission);
             npc.Mind.CurrentGoal = GoalType.None;

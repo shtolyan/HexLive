@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="980" viewBox="0 0 980 980">
+  <defs>
+    <style>
+      .bg{fill:#10151e}.panel{fill:#171e2a;stroke:#344058;stroke-width:2}.low{fill:#315d83;stroke:#82c6ef;stroke-width:3}.high{fill:#704b35;stroke:#eda861;stroke-width:3}.same{fill:#344b45;stroke:#76c49a;stroke-width:3}.title{font:700 26px system-ui,sans-serif;fill:#f4f6fa}.label{font:700 17px system-ui,sans-serif;fill:#f4f6fa}.text{font:15px system-ui,sans-serif;fill:#c8d1df}.mono{font:14px ui-monospace,monospace;fill:#dce5f2}.arrow{fill:none;stroke:#f4dc67;stroke-width:7;stroke-linecap:round;marker-end:url(#head)}
+    </style>
+    <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#f4dc67"/></marker>
+  </defs>
+  <rect class="bg" width="980" height="980"/>
+  <text class="title" x="42" y="48">Баг #191: аварийный выход из одноступенчатой ямы</text>
+  <rect class="panel" x="32" y="72" width="620" height="570" rx="18"/>
+  <rect class="panel" x="675" y="72" width="273" height="570" rx="18"/>
+
+  <!-- Pointy-top hexes, R=1.5 wu, scale=80 px/wu. Centre tile (26,-11). -->
+  <polygon class="low" points="342,285 446,345 446,465 342,525 238,465 238,345"/>
+  <polygon class="high" points="550,285 654,345 654,465 550,525 446,465 446,345"/>
+  <polygon class="high" points="446,465 550,525 550,645 446,705 342,645 342,525" transform="translate(0,-90)"/>
+  <polygon class="high" points="238,465 342,525 342,645 238,705 134,645 134,525" transform="translate(0,-90)"/>
+  <polygon class="high" points="134,285 238,345 238,465 134,525 30,465 30,345"/>
+  <polygon class="same" points="446,105 550,165 550,285 446,345 342,285 342,165"/>
+  <polygon class="same" points="238,105 342,165 342,285 238,345 134,285 134,165"/>
+
+  <text class="label" x="286" y="395">яма e1</text>
+  <text class="mono" x="270" y="420">tile (26,-11)</text>
+  <text class="mono" x="272" y="444">старт внутри ямы</text>
+  <text class="label" x="500" y="395">e2</text>
+  <text class="label" x="75" y="395">e2</text>
+  <text class="label" x="405" y="575">e2</text>
+  <text class="label" x="190" y="575">e2</text>
+  <text class="label" x="405" y="225">e1</text>
+  <text class="label" x="195" y="225">e1</text>
+
+  <path class="arrow" d="M365 365 C430 315 485 305 535 330"/>
+  <text class="mono" x="420" y="290">край e2 · step +1</text>
+
+  <text class="label" x="700" y="115">Замер save</text>
+  <text class="mono" x="700" y="147">seed -33169400</text>
+  <text class="mono" x="700" y="171">tick 24457</text>
+  <text class="mono" x="700" y="195">NPC 1: .74 / .62</text>
+  <text class="mono" x="700" y="219">NPC 2: .74 / .74</text>
+  <text class="text" x="700" y="258">Обычный прыжок:</text>
+  <text class="mono" x="700" y="282">обе ноги ≥ .75</text>
+  <text class="text" x="700" y="323">Аварийный подъём:</text>
+  <text class="mono" x="700" y="347">обе ноги ≥ .40</text>
+  <text class="text" x="700" y="385">Разрешён только для:</text>
+  <text class="mono" x="700" y="411">ReachSafeGround</text>
+  <text class="mono" x="700" y="435">Flee / Homeward</text>
+  <text class="mono" x="700" y="459">прямого приказа</text>
+  <text class="text" x="700" y="505">Бытовые маршруты</text>
+  <text class="text" x="700" y="529">сохраняют строгий</text>
+  <text class="text" x="700" y="553">порог и не водят</text>
+  <text class="text" x="700" y="577">раненых по горам.</text>
+
+  <text class="text" x="42" y="676">HexRadius=1.5 wu · ElevationStep=0.55 wu · переход e1→e2 = один climb seam</text>
+  <rect class="panel" x="32" y="720" width="916" height="210" rx="18"/>
+  <text class="label" x="62" y="760">До исправления</text>
+  <text class="text" x="62" y="794">спуск e2→e1 разрешён</text>
+  <text class="text" x="62" y="823">Body.CanJump=false</text>
+  <text class="text" x="62" y="852">все e1→e2 отклонены</text>
+  <path class="arrow" d="M300 820 L430 820"/>
+  <text class="label" x="465" y="760">После исправления</text>
+  <text class="text" x="465" y="794">обычные цели: без изменений</text>
+  <text class="text" x="465" y="823">аварийная цель/приказ: scramble</text>
+  <text class="text" x="465" y="852">путь наверх принят</text>
+  <text class="mono" x="62" y="895">Утраченная/полностью отказавшая нога (&lt; .40) по-прежнему запрещает подъём.</text>
+</svg>

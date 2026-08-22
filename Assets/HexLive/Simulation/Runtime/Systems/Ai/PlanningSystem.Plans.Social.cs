@@ -142,16 +142,16 @@ public sealed partial class PlanningSystem
         npc.Mind.IsDehydrated || npc.Mind.IsStarving ||
         npc.Needs.Energy <= Spec49.DeadTiredEnergy;
 
-    /// <summary>Last-resort ledge traversal for a survival route. The ordinary
-    /// jump threshold is deliberately strict (both legs at 0.75), but treating
-    /// 0.68/0.79 as absolute immobility stranded a dehydrated exile on one
-    /// ledge until death. A conscious body with both legs still supporting a
-    /// crawl may make the risky scramble only while food/water is critical;
-    /// ordinary travel and a lost/fully collapsed leg remain no-jump.</summary>
+    /// <summary>Last-resort ledge traversal for an explicit or survival route.
+    /// The ordinary jump threshold is deliberately strict (both legs at 0.75),
+    /// but treating 0.74/0.62 as absolute immobility let a survivor step DOWN
+    /// into a one-hex depression and made every upward exit unreachable
+    /// (bug #191). A conscious body with both legs still supporting a crawl may
+    /// make the risky scramble for ReachSafeGround, Flee/Homeward or a player
+    /// order; routine travel and a lost/fully collapsed leg remain no-jump.</summary>
     internal static bool CanUseCriticalTraversal(NPCState npc) =>
         npc.Body.CanJump ||
-        ((npc.Mind.IsDehydrated || npc.Mind.IsStarving) &&
-         npc.Body.LimbFunction(BodyPart.LegL) >= BodyState.CrawlLegFunctionThreshold &&
+        (npc.Body.LimbFunction(BodyPart.LegL) >= BodyState.CrawlLegFunctionThreshold &&
          npc.Body.LimbFunction(BodyPart.LegR) >= BodyState.CrawlLegFunctionThreshold);
 
     /// <summary>A critical swimmer needs an actual dry graph destination

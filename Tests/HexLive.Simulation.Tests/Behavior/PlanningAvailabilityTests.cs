@@ -120,7 +120,7 @@ public sealed class PlanningAvailabilityTests
     }
 
     [Test]
-    public void EmergencyTraversalNeedsCriticalNeedAndTwoSupportingLegs()
+    public void EmergencyTraversalNeedsTwoSupportingCrawlLegsNotCriticalNeed()
     {
         var npc = TestWorld.CreateWorld().Entities.Npcs.Values.First();
         npc.Body.Parts[BodyPart.LegL] = 0.68f;
@@ -128,12 +128,10 @@ public sealed class PlanningAvailabilityTests
 
         Assert.That(npc.Body.CanJump, Is.False,
             "Fixture must be below the ordinary two-leg jump threshold.");
-        Assert.That(PlanningSystem.CanUseCriticalTraversal(npc), Is.False,
-            "Ordinary travel must not receive the survival exception.");
-
-        npc.Mind.IsDehydrated = true;
         Assert.That(PlanningSystem.CanUseCriticalTraversal(npc), Is.True,
-            "A critical, still crawl-capable body may scramble off the trap.");
+            "A still crawl-capable body may scramble off a one-way trap before thirst becomes critical.");
+        Assert.That(PlanningSystem.CanUseRoutineTraversal(npc), Is.False,
+            "Ordinary errands must keep the stricter healthy-leg traversal gate.");
 
         npc.Body.Parts[BodyPart.LegL] =
             BodyState.CrawlLegFunctionThreshold - 0.01f;

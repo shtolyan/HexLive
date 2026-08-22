@@ -365,13 +365,13 @@ public sealed class PathfindingSystem : ISimulationSystem
                     GoalType.ReachSafeGround or GoalType.Homeward ||
                 (npc.Mind.CurrentGoal == GoalType.Explore &&
                  PlanningSystem.ExploreMustAvoidDeepWater(npc));
-            // §121.5: приказ игрока принят по Body.CanJump (обе ноги ≥ 0.75) —
-            // путь обязан верить ТОМУ ЖЕ предикату. Бытовой гейт (нога ≥ 0.9,
-            // SafeGroundLegAlert) давал раненой в зазоре 0.75…0.90 принять
-            // приказ и молча уронить его через секунду (PathFailure): маршрут
-            // с прыжком, который приём обещал, патфайндер резал.
+            // §121.5 / bug #191: an explicit order uses the same narrow
+            // crawl-supported emergency scramble as its admission gate. The
+            // old Body.CanJump-only rule trapped 0.74/0.62 girls in a one-hex
+            // depression: descent was legal, every upward exit was rejected.
+            // Routine goals still use the stricter traversal predicate below.
             var canJump = npc.Mind.CurrentGoal is GoalType.PlayerOrder or GoalType.PlayerAttack
-                ? npc.Body.CanJump
+                ? PlanningSystem.CanUseCriticalTraversal(npc)
                 : emergencyTraversal
                     ? PlanningSystem.CanUseCriticalTraversal(npc)
                     : PlanningSystem.CanUseRoutineTraversal(npc);

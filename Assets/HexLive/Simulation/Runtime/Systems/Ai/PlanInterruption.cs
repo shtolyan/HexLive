@@ -130,7 +130,7 @@ public static class PlanInterruption
         var resumePatientId = dropped ?? remembered;
         if (resumePatientId is not { } patientId ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
-            !FactionRelations.AreAllies(npc, patient) ||
+            !CampDiplomacyMath.CanProvideCare(world, npc, patient) ||
             !KenshiRescueMath.NeedsRescue(world, patient))
         {
             CancelInterruptedRescue(world, npc);

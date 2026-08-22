@@ -210,6 +210,28 @@ public sealed class ManualSocialOrderTests
             "Отказ обязан называть настоящую причину: помощь стоит припаса (§53.7).");
     }
 
+    [Test]
+    public void AidToOutsiderIsRejectedBeforeSuppliesAreSpent()
+    {
+        var engine = TestWorld.CreateEngine(1461210);
+        var world = engine.World;
+        var helper = TwoColonists(world)[0];
+        var outsider = world.Entities.Npcs.Values.Single(n =>
+            n.Faction == Faction.Outsiders);
+        TakeControl(engine, helper);
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new AidPersonCommand(helper.Id, outsider.Id, AidKind.Feed));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(admission.Status,
+                Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+            Assert.That(admission.Reason, Is.EqualTo("NotAlly"));
+            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+        });
+    }
+
     // ── Шина / протез ────────────────────────────────────────────────────
 
     [Test]

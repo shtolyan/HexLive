@@ -477,6 +477,15 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // §146.12: revalidate the directed care boundary on arrival/execution.
+        // A saved/manual plan cannot smuggle aid across to an Outsider, and a
+        // relationship that became outright hostile cancels the old promise.
+        if (!CampDiplomacyMath.CanProvideCare(world, npc, target))
+        {
+            AbortAid(world, npc, $"Cannot help NPC{targetId.Value}");
+            return;
+        }
+
         // MovementSystem waits 40 ticks for a housemate standing on the
         // reserved approach, then clears the path for a re-route. Re-routing to
         // the unchanged occupied target created an endless 41-tick loop. Abort

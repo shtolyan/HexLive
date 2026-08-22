@@ -363,10 +363,12 @@ public sealed class PerceptionSystem : ISimulationSystem
                     (npcJunction.Value.Equals(otherJunction.Value) ||
                      (component >= 0 &&
                       component == Connectivity.ComponentOf(world, otherJunction.Value, canJump)));
-                // §72: which pile this one goes on. Hostiles skip the whole §53
-                // suffering assessment — nobody reads another faction's plight.
-                var isAlly = FactionRelations.AreAllies(npc, other);
+                // §72/§146.12: hostility decides the social pile, while the
+                // separate directed care factor decides whether and how strongly
+                // this observer responds to the person's plight.
                 var isHostile = FactionRelations.AreHostile(world, npc, other);
+                var careWillingness =
+                    CampDiplomacyMath.CareWillingness(world, npc, other);
 
                 var relationship = npc.Social.GetOrCreate(other.Id);
 
@@ -401,8 +403,10 @@ public sealed class PerceptionSystem : ISimulationSystem
                 // которой помощница переоценивает подопечную по прибытии.
                 // Значение снято один раз за прогон (_aidScratch, O(N)).
                 var (aidKind, suffering) = _aidScratch[other.Id];
-                perceivedAgent.Suffering = isAlly ? suffering : 0f;
-                perceivedAgent.AidKind = isAlly ? aidKind : AidKind.None;
+                perceivedAgent.Suffering = suffering * careWillingness;
+                perceivedAgent.AidKind = careWillingness > 0f
+                    ? aidKind
+                    : AidKind.None;
                 perceivedAgent.IsDying = other.IsDying; // §105
 
                 if (!isHostile)
@@ -430,10 +434,10 @@ public sealed class PerceptionSystem : ISimulationSystem
                 met.LastSeenTick = world.Tick;
                 // §125.7: запоминается ВЕРДИКТ (чем помочь и насколько плохо),
                 // а не улики — он уже посчитан выше на этот тик и стоит одного
-                // присваивания. Чужую беду не запоминаем, как и не воспринимаем:
-                // зеркало фракционного гейта строкой ниже.
-                met.Suffering = isAlly ? suffering : 0f;
-                met.AidKind = isAlly ? aidKind : AidKind.None;
+                // присваивания. Направленная готовность §146.12 сохраняет в
+                // память уже взвешенный вердикт, а Outsiders получают ноль.
+                met.Suffering = suffering * careWillingness;
+                met.AidKind = careWillingness > 0f ? aidKind : AidKind.None;
                 met.Helpless = other.IsDying || other.IsUnconscious(world.Tick);
             }
 

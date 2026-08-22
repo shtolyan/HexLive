@@ -9,7 +9,7 @@ using HexLive.Simulation.Spatial;
 namespace HexLive.Simulation.Runtime
 {
 
-/// <summary>§116 assigns one free allied rescuer to one helpless ally.</summary>
+/// <summary>§116/§146.12 assigns one willing rescuer to one helpless person.</summary>
 public sealed class RescueSystem : ISimulationSystem
 {
     public string Name => nameof(RescueSystem);
@@ -68,7 +68,8 @@ public sealed class RescueSystem : ISimulationSystem
             var best = int.MaxValue;
             foreach (var candidate in world.Entities.Npcs.Values)
             {
-                if (candidate.Id == helper.Id || !FactionRelations.AreAllies(helper, candidate) ||
+                if (candidate.Id == helper.Id ||
+                    !CampDiplomacyMath.CanProvideCare(world, helper, candidate) ||
                     !KenshiRescueMath.NeedsRescue(world, candidate) ||
                     IsClaimedByOtherActiveHelper(world, helper, candidate))
                 {
@@ -104,7 +105,7 @@ public sealed class RescueSystem : ISimulationSystem
     {
         if (helper.Mind.ProstheticAidTargetId is not { } patientId ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
-            !FactionRelations.AreAllies(helper, patient) ||
+            !CampDiplomacyMath.CanProvideCare(world, helper, patient) ||
             !KenshiProstheticMath.TryGetPledgedBedTransport(
                 world, helper, patient, out _, out _))
         {
@@ -124,7 +125,7 @@ public sealed class RescueSystem : ISimulationSystem
         }
 
         if (!world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
-            !FactionRelations.AreAllies(helper, patient) ||
+            !CampDiplomacyMath.CanProvideCare(world, helper, patient) ||
             !KenshiRescueMath.NeedsRescue(world, patient) ||
             IsClaimedByOtherActiveHelper(world, helper, patient))
         {
@@ -256,7 +257,8 @@ public sealed class RescueSystem : ISimulationSystem
         var goal = GoalType.None;
         foreach (var candidate in world.Entities.Npcs.Values)
         {
-            if (candidate.Id == helper.Id || !FactionRelations.AreAllies(helper, candidate) ||
+            if (candidate.Id == helper.Id ||
+                !CampDiplomacyMath.CanProvideCare(world, helper, candidate) ||
                 candidate.Health <= 0f || candidate.IsBeingCarried ||
                 candidate.Mind.PendingAidFrom is not null)
             {

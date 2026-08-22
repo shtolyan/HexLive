@@ -14,8 +14,9 @@ public sealed class PerceptionSnapshot
 
     // §72/§146.12: visible NON-HOSTILES. In Feud/BigIsland that still means
     // allies only; in the solo-camp modes it also includes neutral visitors so
-    // the ordinary Socialize loop can cross camp borders. Aid severity remains
-    // zero for a neutral until the camps really merge.
+    // the ordinary Socialize loop can cross camp borders. §146.12 scales Aid
+    // severity by directed friendship and gives a dying neutral a humanitarian
+    // floor; Outsiders remain zero across the faction boundary.
     public List<PerceivedAgent> Agents { get; } = new();
 
     // §72: agents this observer is actually at war with. In §146.12 that is

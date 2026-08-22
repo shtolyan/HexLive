@@ -558,18 +558,37 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaUpper);
 
-            // §110.10: stress responds to danger NOW, not to the long-lived
+            // §110.10/§146.12: stress responds to danger NOW, not to the long-lived
             // spatial notebook used for route avoidance. Far-spotted and old
             // Memory.Dangers are common even during an ordinary workday; using
             // their Count here pinned healthy colonists at 100% indefinitely.
-            // Fighting, fleeing, a live hostile and the post-hit adrenaline
-            // window preserve every active-threat path.
-            var activeThreat = npc.IsFighting || npc.Mind.CurrentGoal == GoalType.Flee ||
-                npc.Perception.Hostiles.Count > 0 ||
+            // Fighting, fleeing and the post-hit adrenaline window remain full
+            // threats. A visible human is separate: Outsiders/open war are 1.0,
+            // while personal dislike toward the observer scales the rise from
+            // zero to one. Merely seeing a neutral camp therefore costs nothing.
+            var fullThreat = npc.IsFighting || npc.Mind.CurrentGoal == GoalType.Flee ||
                 DamageReactionSystemHelpers.IsAdrenalineActive(world, npc);
-            var stressUp = activeThreat ||
+            var bodyCrisis =
                 npc.Health < 0.6f || npc.Needs.Hunger >= 0.85f || npc.Needs.Thirst >= 0.85f;
-            npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress + (stressUp ? SimBalance.StressUpRate : -SimBalance.StressDownRate));
+            var humanThreat = CampDiplomacyMath.VisibleHumanThreatFactor(world, npc);
+            var stressDelta = fullThreat || bodyCrisis
+                ? SimBalance.StressUpRate
+                : humanThreat > 0f
+                    ? SimBalance.StressUpRate * humanThreat
+                    : -SimBalance.StressDownRate;
+            npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress + stressDelta);
+
+            // §28/§146.12: friendship is active support, including across camp
+            // borders. RunTalk owns only the initiator's interaction state, so
+            // the shared helper also recognises the passive listener. Relief is
+            // directed: each side receives exactly her own positive affinity.
+            var friendshipRelief =
+                CampDiplomacyMath.ActiveConversationReliefFactor(world, npc);
+            if (friendshipRelief > 0f)
+            {
+                npc.Needs.Stress = MathUtil.Clamp01(
+                    npc.Needs.Stress - SimBalance.StressDownRate * friendshipRelief);
+            }
 
             // §110: слёзы отпускают САМИ — это и есть смысл разрядки, поэтому
             // облегчение идёт поверх формулы выше, а не вместо неё. Без него
@@ -940,10 +959,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 foreach (var other in world.Entities.Npcs.Values)
                 {
                     if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
-                        // §72: charity is for your own side. (Theft below is
-                        // deliberately NOT gated — a starving outsider robbing
-                        // the girls is exactly the friction we want.)
-                        !FactionRelations.AreAllies(npc, other) ||
+                        // §146.12: a friend from another solo camp can share too;
+                        // the directed care predicate still seals Outsiders off.
+                        !CampDiplomacyMath.CanProvideCare(world, other, npc) ||
                         other.Needs.Hunger >= 0.4f || other.IsFighting ||
                         other.Mind.CurrentGoal == GoalType.Flee ||
                         other.CurrentJunction is not { } giverJct)

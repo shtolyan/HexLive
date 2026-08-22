@@ -866,6 +866,12 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        if (!CampDiplomacyMath.CanProvideCare(world, npc, partner))
+        {
+            Reject(world, npc.Id, "Aid", "NotAlly", admission);
+            return;
+        }
+
         // Без сознания помогать МОЖНО (стабилизация §53.8); нельзя — несомой
         // на чужих руках и той, у кого нет узла (геометрии подхода не к чему).
         if (partner.CarriedByNpcId is not null ||
@@ -929,6 +935,12 @@ internal static class ManualCommandExecutor
             patient.Health <= 0f)
         {
             Reject(world, npc.Id, "TreatLimbs", "TargetGone", admission);
+            return;
+        }
+
+        if (!CampDiplomacyMath.CanProvideCare(world, npc, patient))
+        {
+            Reject(world, npc.Id, "TreatLimbs", "NotAlly", admission);
             return;
         }
 

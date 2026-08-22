@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -21,9 +22,148 @@ public static class CampDiplomacyMath
     public const float MergeAffinityThreshold = 0.50f;
     public const float DesperateLootHungerThreshold = 0.90f;
     public const float VisitSocialThreshold = 0.55f;
+    public const float EmergencyCareFloor = 0.75f;
 
     public static bool IsSoloCampMode(GameMode mode) =>
         mode is GameMode.HugeIsland or GameMode.Maniac;
+
+    /// <summary>
+    /// §146.12: directed willingness to spend supplies and time on another
+    /// person. Existing allies retain full care. In six-camp worlds friendship
+    /// opens cross-camp care gradually, while a dying neutral receives a
+    /// humanitarian floor. The Outsider boundary stays closed in both
+    /// directions; outsiders can still care for their own faction.
+    /// </summary>
+    public static float CareWillingness(
+        WorldState world, NPCState helper, NPCState patient)
+    {
+        if (helper is null || patient is null || helper.Id.Equals(patient.Id) ||
+            helper.Health <= 0f || patient.Health <= 0f)
+        {
+            return 0f;
+        }
+
+        if (FactionRelations.AreAllies(helper, patient))
+        {
+            return 1f;
+        }
+
+        if (helper.Faction == Faction.Outsiders ||
+            patient.Faction == Faction.Outsiders ||
+            !IsSoloCampMode(world.Mode) ||
+            !FactionRelations.IsGirlCamp(helper.Faction) ||
+            !FactionRelations.IsGirlCamp(patient.Faction) ||
+            FactionRelations.AreHostile(world, helper, patient))
+        {
+            return 0f;
+        }
+
+        var affinity = helper.Social.Relationships.TryGetValue(
+                patient.Id, out var relationship)
+            ? relationship.Affinity
+            : 0f;
+        var willingness = MathUtil.Clamp01(Math.Max(0f, affinity));
+        var keepsAcceptedCarePromise =
+            patient.Mind.PendingAidFrom == helper.Id &&
+            helper.Mind.CurrentGoal is GoalType.Aid or GoalType.Rescue or
+                GoalType.Splint or GoalType.FitProsthetic;
+        return patient.IsDying || keepsAcceptedCarePromise
+            ? Math.Max(EmergencyCareFloor, willingness)
+            : willingness;
+    }
+
+    public static bool CanProvideCare(
+        WorldState world, NPCState helper, NPCState patient) =>
+        CareWillingness(world, helper, patient) > 0f;
+
+    /// <summary>
+    /// §110.10/§146.12: worst current human threat in direct perception.
+    /// Open-war factions and Outsiders are a full threat. Otherwise fear is
+    /// driven by how much the seen person dislikes the observer, not by the
+    /// observer merely noticing another camp.
+    /// </summary>
+    public static float VisibleHumanThreatFactor(WorldState world, NPCState observer)
+    {
+        var worst = 0f;
+
+        void Measure(PerceivedAgent seen)
+        {
+            if (!world.Entities.Npcs.TryGetValue(seen.Id, out var person) ||
+                person.Health <= 0f)
+            {
+                return;
+            }
+
+            if (FactionRelations.AreHostile(
+                    world, person.Faction, observer.Faction))
+            {
+                worst = 1f;
+                return;
+            }
+
+            var incomingAffinity = person.Social.Relationships.TryGetValue(
+                    observer.Id, out var relationship)
+                ? relationship.Affinity
+                : 0f;
+            worst = Math.Max(worst,
+                MathUtil.Clamp01(Math.Max(0f, -incomingAffinity)));
+        }
+
+        foreach (var seen in observer.Perception.Agents)
+        {
+            Measure(seen);
+        }
+        foreach (var seen in observer.Perception.Hostiles)
+        {
+            Measure(seen);
+        }
+
+        return worst;
+    }
+
+    /// <summary>
+    /// §28/§146.12: a real active conversation relieves each participant by
+    /// her own directed friendship. The listener is passive in RunTalk, so the
+    /// reciprocal scan is required to find her initiator.
+    /// </summary>
+    public static float ActiveConversationReliefFactor(
+        WorldState world, NPCState participant)
+    {
+        NPCState partner = null;
+        if (participant.Execution.Status == ExecutionStatus.InProgress &&
+            participant.Execution.CurrentInteraction == InteractionType.Talk &&
+            participant.Plan.TargetAgentId is { } targetId)
+        {
+            world.Entities.Npcs.TryGetValue(targetId, out partner);
+        }
+
+        if (partner is null)
+        {
+            foreach (var candidate in world.Entities.Npcs.Values)
+            {
+                if (candidate.Execution.Status == ExecutionStatus.InProgress &&
+                    candidate.Execution.CurrentInteraction == InteractionType.Talk &&
+                    candidate.Plan.TargetAgentId == participant.Id)
+                {
+                    partner = candidate;
+                    break;
+                }
+            }
+        }
+
+        if (partner is null ||
+            (participant.Faction == Faction.Outsiders) !=
+                (partner.Faction == Faction.Outsiders) ||
+            FactionRelations.AreHostile(world, participant, partner))
+        {
+            return 0f;
+        }
+
+        return participant.Social.Relationships.TryGetValue(
+                partner.Id, out var relationship)
+            ? MathUtil.Clamp01(Math.Max(0f, relationship.Affinity))
+            : 0f;
+    }
 
     public static bool CanLoot(
         WorldState world, NPCState looter, NPCState victim)

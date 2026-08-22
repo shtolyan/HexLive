@@ -707,7 +707,8 @@ internal static class MortalityHelpers
         foreach (var other in world.Entities.Npcs.Values)
         {
             if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
-                !FactionRelations.AreAllies(npc, other) || !other.IsDying ||
+                !CampDiplomacyMath.CanProvideCare(world, npc, other) ||
+                !other.IsDying ||
                 other.IsBeingCarried || other.Mind.PendingAidFrom is not null)
             {
                 continue;
@@ -763,7 +764,7 @@ internal static class MortalityHelpers
             {
                 allied += power;
             }
-            else
+            else if (FactionRelations.AreHostile(world, other, npc))
             {
                 hostile += power;
             }

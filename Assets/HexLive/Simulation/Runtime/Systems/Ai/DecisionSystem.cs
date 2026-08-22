@@ -3273,7 +3273,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
     {
         foreach (var patient in world.Entities.Npcs.Values)
         {
-            if (patient.Health <= 0f || !FactionRelations.AreAllies(helper, patient))
+            if (patient.Health <= 0f ||
+                !CampDiplomacyMath.CanProvideCare(world, helper, patient))
             {
                 continue;
             }

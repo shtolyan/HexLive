@@ -26,6 +26,79 @@ public sealed class CampDiplomacyTests
     private static NPCState Girl(WorldState world, Faction faction) =>
         world.Entities.Npcs.Values.Single(n => n.Faction == faction);
 
+    private static (WorldState world, NPCState observer, NPCState neighbour,
+        NPCState outsider) BuildSmallSoloCampWorld(int seed)
+    {
+        var world = TestWorld.CreateWorld(seed);
+        world.Mode = GameMode.HugeIsland;
+        var girls = world.Entities.Npcs.Values
+            .Where(n => n.Faction == Faction.Colony)
+            .OrderBy(n => n.Id.Value)
+            .ToArray();
+        Assert.That(girls, Has.Length.GreaterThanOrEqualTo(2));
+        girls[1].Faction = Faction.Colony2;
+        var outsider = world.Entities.Npcs.Values.Single(n =>
+            n.Faction == Faction.Outsiders);
+        new PerceptionSystem().Run(world);
+        return (world, girls[0], girls[1], outsider);
+    }
+
+    private static void MoveBeside(
+        WorldState world, NPCState person, NPCState anchor)
+    {
+        var destinationId = SpatialQueries.GetPassableNeighbors(
+                world, anchor.CurrentJunction!.Value)
+            .First(id => SpatialQueries.IsJunctionFree(world, id));
+        var destination = world.Junctions.Items[destinationId];
+        if (person.CurrentJunction is { } previousJunction)
+        {
+            SpatialMutations.FreeJunction(world, previousJunction, person.Id);
+            SpatialMutations.ReleaseJunctionReservation(
+                world, previousJunction, person.Id);
+        }
+
+        var previousTile = person.Tile;
+        person.Tile = destination.Tiles.Count > 0
+            ? destination.Tiles[0]
+            : anchor.Tile;
+        person.Fragment = destination.Fragment;
+        person.Position = destination.WorldPosition;
+        person.CurrentJunction = destinationId;
+        SpatialMutations.MoveEntityToTile(
+            world, person.Id, previousTile, person.Tile);
+        SpatialMutations.OccupyJunction(world, destinationId, person.Id);
+    }
+
+    private static void MoveOutOfSight(
+        WorldState world, NPCState person, NPCState anchor)
+    {
+        if (person.CurrentJunction is { } previousJunction)
+        {
+            SpatialMutations.FreeJunction(world, previousJunction, person.Id);
+            SpatialMutations.ReleaseJunctionReservation(
+                world, previousJunction, person.Id);
+        }
+
+        var previousTile = person.Tile;
+        person.Tile = new TileCoord(anchor.Tile.Q + 1000, anchor.Tile.R + 1000);
+        person.Position = HexSpatialMath.TileToWorld(person.Tile);
+        person.CurrentJunction = null;
+        SpatialMutations.MoveEntityToTile(
+            world, person.Id, previousTile, person.Tile);
+    }
+
+    private static void NeutralizeIncomingRelations(
+        WorldState world, NPCState observer)
+    {
+        foreach (var person in world.Entities.Npcs.Values)
+        {
+            if (!person.Id.Equals(observer.Id))
+            {
+                person.Social.GetOrCreate(observer.Id).Affinity = 0f;
+            }
+        }
+    }
+
     [Test]
     public void SoloCampsAreNeutralUntilHatredAndLootNeedsAMotive()
     {
@@ -74,6 +147,138 @@ public sealed class CampDiplomacyTests
                 "Нейтральная ответная сторона не должна мгновенно наследовать чужую ненависть.");
             Assert.That(CampDiplomacyMath.CanLoot(world, host, guest), Is.True);
         });
+    }
+
+    [Test]
+    public void NeutralNeighbourCostsNoStressIncomingHatredScalesAndOutsiderIsFullThreat()
+    {
+        var (world, observer, neighbour, outsider) =
+            BuildSmallSoloCampWorld(1461201);
+        MoveOutOfSight(world, outsider, observer);
+        MoveBeside(world, neighbour, observer);
+        NeutralizeIncomingRelations(world, observer);
+        observer.Needs.Hunger = 0.1f;
+        observer.Needs.Thirst = 0.1f;
+        observer.Health = 1f;
+        neighbour.Social.GetOrCreate(observer.Id).Affinity = 0f;
+
+        new PerceptionSystem().Run(world);
+        observer.Needs.Stress = 0.5f;
+        new NeedsDecaySystem().Run(world);
+        Assert.That(observer.Needs.Stress,
+            Is.EqualTo(0.5f - SimBalance.StressDownRate).Within(0.000001f),
+            "Нейтральная соседка не является источником стресса.");
+
+        neighbour.Social.GetOrCreate(observer.Id).Affinity = -0.4f;
+        new PerceptionSystem().Run(world);
+        observer.Needs.Stress = 0.5f;
+        new NeedsDecaySystem().Run(world);
+        Assert.That(observer.Needs.Stress,
+            Is.EqualTo(0.5f + SimBalance.StressUpRate * 0.4f)
+                .Within(0.000001f),
+            "Страх должен зависеть от направленной ненависти к наблюдательнице.");
+
+        MoveBeside(world, outsider, observer);
+        new PerceptionSystem().Run(world);
+        observer.Needs.Stress = 0.5f;
+        new NeedsDecaySystem().Run(world);
+        Assert.That(observer.Needs.Stress,
+            Is.EqualTo(0.5f + SimBalance.StressUpRate).Within(0.000001f),
+            "Видимый Outsider всегда даёт полный человеческий фактор угрозы.");
+    }
+
+    [Test]
+    public void ActiveCrossCampConversationRelievesEachFriendByHerOwnAffinity()
+    {
+        var (world, initiator, listener, _) =
+            BuildSmallSoloCampWorld(1461202);
+        var outsider = world.Entities.Npcs.Values.Single(n =>
+            n.Faction == Faction.Outsiders);
+        MoveOutOfSight(world, outsider, initiator);
+        MoveBeside(world, listener, initiator);
+        NeutralizeIncomingRelations(world, initiator);
+        NeutralizeIncomingRelations(world, listener);
+        initiator.Needs.Hunger = listener.Needs.Hunger = 0.1f;
+        initiator.Needs.Thirst = listener.Needs.Thirst = 0.1f;
+        initiator.Health = listener.Health = 1f;
+        initiator.Needs.Stress = listener.Needs.Stress = 0.5f;
+        initiator.Social.GetOrCreate(listener.Id).Affinity = 0.8f;
+        listener.Social.GetOrCreate(initiator.Id).Affinity = 0.25f;
+        initiator.Execution.Status = ExecutionStatus.InProgress;
+        initiator.Execution.CurrentInteraction = InteractionType.Talk;
+        initiator.Plan.TargetAgentId = listener.Id;
+
+        new PerceptionSystem().Run(world);
+        new NeedsDecaySystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(initiator.Needs.Stress,
+                Is.EqualTo(0.5f - SimBalance.StressDownRate * 1.8f)
+                    .Within(0.000001f));
+            Assert.That(listener.Needs.Stress,
+                Is.EqualTo(0.5f - SimBalance.StressDownRate * 1.25f)
+                    .Within(0.000001f),
+                "Пассивная слушательница тоже получает своё направленное облегчение.");
+        });
+    }
+
+    [Test]
+    public void FriendshipScalesCrossCampAidDyingNeutralIsRescuedAndOutsiderIsExcluded()
+    {
+        var (world, helper, patient, outsider) =
+            BuildSmallSoloCampWorld(1461203);
+        MoveBeside(world, patient, helper);
+        patient.Health = 0.3f;
+        patient.Needs.Hunger = 0.1f;
+        patient.Needs.Thirst = 0.1f;
+        patient.Needs.Blood = 1f;
+        helper.Social.GetOrCreate(patient.Id).Affinity = 0f;
+
+        new PerceptionSystem().Run(world);
+        var neutralView = helper.Perception.Agents.Single(a =>
+            a.Id.Equals(patient.Id));
+        Assert.Multiple(() =>
+        {
+            Assert.That(neutralView.AidKind, Is.EqualTo(AidKind.None));
+            Assert.That(neutralView.Suffering, Is.Zero);
+        });
+
+        helper.Social.GetOrCreate(patient.Id).Affinity = 0.8f;
+        new PerceptionSystem().Run(world);
+        var friendView = helper.Perception.Agents.Single(a =>
+            a.Id.Equals(patient.Id));
+        Assert.Multiple(() =>
+        {
+            Assert.That(friendView.AidKind, Is.EqualTo(AidKind.Medicate));
+            Assert.That(friendView.Suffering,
+                Is.EqualTo(0.7f * 0.8f).Within(0.000001f),
+                "Тяжесть обычной помощи масштабируется дружбой помощницы.");
+            Assert.That(CampDiplomacyMath.CareWillingness(
+                world, helper, outsider), Is.Zero,
+                "Женский лагерь не помогает Outsiders даже при ручной симпатии.");
+        });
+
+        helper.Social.GetOrCreate(patient.Id).Affinity = 0f;
+        patient.Mind.DyingCause = DyingCause.BloodLoss;
+        Assert.That(CampDiplomacyMath.CareWillingness(world, helper, patient),
+            Is.EqualTo(CampDiplomacyMath.EmergencyCareFloor));
+
+        helper.Mind.CurrentGoal = GoalType.None;
+        helper.Plan.Status = PlanStatus.None;
+        helper.Execution.Status = ExecutionStatus.None;
+        new RescueSystem().Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.Rescue));
+            Assert.That(helper.Plan.TargetAgentId, Is.EqualTo(patient.Id));
+            Assert.That(patient.Mind.PendingAidFrom, Is.EqualTo(helper.Id));
+        });
+
+        patient.Mind.DyingCause = DyingCause.None;
+        Assert.That(CampDiplomacyMath.CareWillingness(world, helper, patient),
+            Is.EqualTo(CampDiplomacyMath.EmergencyCareFloor),
+            "Принятое спасение продолжается после первичной стабилизации.");
     }
 
     [Test]

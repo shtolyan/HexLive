@@ -313,11 +313,13 @@ internal static class CombatHelpSystem
         var aidKind = AidAssessment.Assess(victim, world.Tick, out var severity);
         foreach (var hearer in world.Entities.Npcs.Values)
         {
+            var careWillingness =
+                CampDiplomacyMath.CareWillingness(world, hearer, victim);
             if (hearer.Id.Equals(victim.Id) ||
                 hearer.Health <= 0f ||
                 hearer.IsUnconscious(world.Tick) ||
                 hearer.Execution.CurrentInteraction == InteractionType.Sleep || // §60: сон глух
-                !FactionRelations.AreAllies(hearer, victim) ||
+                careWillingness <= 0f ||
                 HexSpatialMath.HexDistance(hearer.Tile, victim.Tile) >
                     Spec57.HelpCryMortalRadiusTiles)
             {
@@ -337,14 +339,16 @@ internal static class CombatHelpSystem
             met.Tile = victim.Tile;
             met.Junction = victim.CurrentJunction;
             met.LastSeenTick = world.Tick - 1;
-            met.Suffering = severity;
+            met.Suffering = severity * careWillingness;
             met.AidKind = aidKind;
             met.Helpless = true;
             SocialCueSignals.Stamp(world, hearer, "MoanHeard", victim.Id);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, hearer.Id, "MoanHeard",
-                    $"Victim=NPC{victim.Id.Value} Suffering={severity:F2} Kind={aidKind}");
+                    $"Victim=NPC{victim.Id.Value} " +
+                    $"Suffering={met.Suffering:F2} Care={careWillingness:F2} " +
+                    $"Kind={aidKind}");
             }
         }
     }

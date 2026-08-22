@@ -146,7 +146,8 @@ public sealed class ProstheticAidSystem : ISimulationSystem
     private static void ValidatePledge(WorldState world, NPCState helper)
     {
         if (!TryGetPledge(world, helper, out var patient, out var part) ||
-            patient.Health <= 0f || !FactionRelations.AreAllies(helper, patient) ||
+            patient.Health <= 0f ||
+            !CampDiplomacyMath.CanProvideCare(world, helper, patient) ||
             !patient.Body.IsSevered(part) ||
             patient.Body.Condition(part).Prosthetic is not null)
         {
@@ -176,7 +177,7 @@ public sealed class ProstheticAidSystem : ISimulationSystem
         foreach (var candidate in world.Entities.Npcs.Values)
         {
             if (candidate.Id == helper.Id || candidate.Health <= 0f ||
-                !FactionRelations.AreAllies(helper, candidate)) continue;
+                !CampDiplomacyMath.CanProvideCare(world, helper, candidate)) continue;
             foreach (var part in new[] { BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR })
             {
                 if (!NeedsReplacement(candidate, part) || IsClaimed(world, candidate.Id, part)) continue;
@@ -221,7 +222,8 @@ public sealed class ProstheticAidSystem : ISimulationSystem
         foreach (var rival in world.Entities.Npcs.Values)
         {
             if (rival.Id == helper.Id || rival.Health <= 0f ||
-                !FactionRelations.AreAllies(rival, patient) || rival.CompassionTrait < 0.25f)
+                !CampDiplomacyMath.CanProvideCare(world, rival, patient) ||
+                rival.CompassionTrait < 0.25f)
                 continue;
             var rivalScore = AidScore(rival, patient);
             if (rivalScore > score + 0.001f ||

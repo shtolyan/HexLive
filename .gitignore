@@ -100,3 +100,10 @@ __pycache__/
 # .meta files Unity generates next to ignored Blender backups.
 *.blend1.meta
 _ArtSource/Voice/lipsync_analysis.json
+
+# com.unity.test-framework.performance пишет эти заглушки в Assets/Resources
+# при каждом прогоне перф-тестов и оставляет их пустыми. Локальный мусор.
+/[Aa]ssets/Resources/PerformanceTestRunInfo.json
+/[Aa]ssets/Resources/PerformanceTestRunInfo.json.meta
+/[Aa]ssets/Resources/PerformanceTestRunSettings.json
+/[Aa]ssets/Resources/PerformanceTestRunSettings.json.meta

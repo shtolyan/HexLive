@@ -1224,7 +1224,13 @@ public static class WorldSnapshotExporter
                 BluntDamage = condition.BluntDamage,
                 SplintSupport = condition.SplintSupport,
                 HitBias = condition.HitBias,
-                BloodSoil = condition.BloodSoil,
+                // #185: the visible hygiene invariant belongs at the snapshot
+                // boundary, so it also repairs old saves and future cleaning
+                // paths that reach fully clean without knowing about BloodSoil.
+                // Open wounds are exported separately and remain visible.
+                BloodSoil = npc.Needs.Hygiene >= 1f
+                    ? 0f
+                    : condition.BloodSoil,
                 Severed = npc.Body.IsSevered(part.Key),
                 BandageKind = npc.BandagedZones.Contains(part.Key) ? "herbal" :
                     npc.GauzeZones.Contains(part.Key) ? "gauze" : string.Empty

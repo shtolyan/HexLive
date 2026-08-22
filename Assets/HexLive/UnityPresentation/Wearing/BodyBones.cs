@@ -450,6 +450,7 @@ public sealed class BodyBones : MonoBehaviour
 
         _wears[key] = newWear;
         _wearKeys[newWear] = key;
+        RefreshUnderwearVisibility();
         UpdateGenitals();
         RefreshHeel();
         RefreshHairVisibility();
@@ -518,35 +519,48 @@ public sealed class BodyBones : MonoBehaviour
         }
 
         var layerDict = _byLayer[wear.Layer];
-        var wearLayer = _byLayer[VisualWearLayer.Wear];
-        var underwear = _byLayer[VisualWearLayer.Underwear];
-
         foreach (var slot in wear.Slots)
         {
             if (layerDict.TryGetValue(slot, out var occupant) && occupant == wear)
             {
                 layerDict.Remove(slot);
             }
-
-            // Whatever underwear was hidden beneath becomes visible again,
-            // unless another outer garment still covers that slot.
-            if (wearLayer.TryGetValue(slot, out var stillOn) && stillOn.HeedHideUnderwearSlot(slot))
-            {
-                continue;
-            }
-
-            if (underwear.TryGetValue(slot, out var under))
-            {
-                under.Show();
-            }
         }
 
         Destroy(wear.gameObject);
         _wears.Remove(key);
         _wearKeys.Remove(wear);
+        RefreshUnderwearVisibility();
         UpdateGenitals();
         RefreshHeel();
         RefreshHairVisibility();
+    }
+
+    // §31B.4A: noHideUnderwearSlots is an exception owned by one garment, not
+    // permission to punch through every layer below it. Underwear is visible
+    // only when no equipped Wear OR Outerwear garment masks any of its slots.
+    // Recompute from the final outfit after every mutation so equip/take-off
+    // order cannot leave a stale Show() from a different layer.
+    private void RefreshUnderwearVisibility()
+    {
+        foreach (var underwear in _byLayer[VisualWearLayer.Underwear].Values)
+        {
+            var hidden = false;
+            foreach (var slot in underwear.Slots)
+            {
+                if ((_byLayer[VisualWearLayer.Wear].TryGetValue(slot, out var wear) &&
+                     wear.HeedHideUnderwearSlot(slot)) ||
+                    (_byLayer[VisualWearLayer.Outerwear].TryGetValue(slot, out var outerwear) &&
+                     outerwear.HeedHideUnderwearSlot(slot)))
+                {
+                    hidden = true;
+                    break;
+                }
+            }
+
+            if (hidden) underwear.Hide();
+            else underwear.Show();
+        }
     }
 
     // §72: восстановленная логика molly_copy (в §31B.3 её сознательно срезали —

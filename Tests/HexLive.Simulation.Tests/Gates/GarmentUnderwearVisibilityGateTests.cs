@@ -51,4 +51,27 @@ public sealed class GarmentUnderwearVisibilityGateTests
         Assert.That(prefab, Does.Contain("noHideUnderwearSlots: 04000000"),
             "VisualWearSlot.Chest (4) must remain visible under the shipped vest.");
     }
+
+    [Test]
+    public void RuntimeRecomputesUnderwearAgainstWearAndOuterwearTogether()
+    {
+        var bodyBonesPath = Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Wearing",
+            "BodyBones.cs");
+        var source = File.ReadAllText(bodyBonesPath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("private void RefreshUnderwearVisibility()"));
+            Assert.That(source, Does.Contain(
+                "_byLayer[VisualWearLayer.Wear].TryGetValue(slot"),
+                "Wear trousers must keep masking underwear even when Outerwear exposes the slot.");
+            Assert.That(source, Does.Contain(
+                "_byLayer[VisualWearLayer.Outerwear].TryGetValue(slot"),
+                "Outerwear must still contribute its own independent mask.");
+            Assert.That(source.Split("RefreshUnderwearVisibility();").Length - 1,
+                Is.GreaterThanOrEqualTo(2),
+                "Both equip and take-off must recompute from the final layered outfit.");
+        });
+    }
 }

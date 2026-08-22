@@ -17,7 +17,7 @@ MonoBehaviour:
   displayName: Ranger Jacket
   category: 5
   variantMaterials: []
-  layer: 1
+  layer: 2
   covers: 01000000
   warmth: 0.3
   armor: 0.06

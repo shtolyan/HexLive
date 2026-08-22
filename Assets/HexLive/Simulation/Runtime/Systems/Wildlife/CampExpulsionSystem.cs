@@ -10,7 +10,7 @@ namespace HexLive.Simulation.Runtime
 {
 
 /// <summary>
-/// §115: хозяин лагеря подходит к враждебному чужаку, требует уйти и
+/// §117: хозяин лагеря подходит к враждебному чужаку, требует уйти и
 /// только после отказа открывает FightScene. Система идёт после MobSystem,
 /// потому что тот каждый Medium-проход сбрасывает IsFighting.
 /// </summary>
@@ -124,9 +124,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             return;
         }
 
-        // §146.3: the scene runs against any non-ally — a rival girl is shown
-        // out too. Whether it may ESCALATE stays a hostility question
-        // (AdvanceDemand).
+        // §146.3: every different camp is hostile. The explicit rescue alliance
+        // Colony <-> Castaway is the only cross-faction scene cancellation.
         if (FactionRelations.AreAllies(owner.Faction, intruder.Faction))
         {
             Finish(world, owner, intruder, "NoLongerHostile", protectIntruder: false);
@@ -191,10 +190,12 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             return;
         }
 
-        // Не только «хочет уступить», но и реально может уйти: нет пути домой —
-        // нет ложного «окей», остаётся драться.
-        if ((intruder.Health < Spec82.TerritorySubmitHealth ||
-             HasCriticalNeed(intruder)) &&
+        // §117: обе стороны читают один и тот же видимый расклад. Чужак
+        // уступает, если его Force заметно ниже, а не из-за отдельного порога
+        // HP; здоровье, худшая часть, руки, оружие, Strength/Combat и броня уже
+        // входят в Force. Но согласие настоящее только при достижимом доме:
+        // нет пути спокойно уйти — нет ложного «окей», конфликт остаётся.
+        if (ShouldSubmitToExpulsion(world, owner, intruder) &&
             MobSystem.TryFleeToCamp(world, intruder,
                 $"Agreed to leave NPC{owner.Id.Value}'s camp"))
         {
@@ -206,25 +207,6 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             }
             Finish(world, owner, intruder, "Accepted", protectIntruder: false,
                 keepIntruderGoal: true);
-            return;
-        }
-
-        // §146.3: a RIVAL girl always yields — she has a camp of her own to go
-        // to, and girls never fight girls. Escalation to a territorial fight is
-        // reserved for the hostile side. If she cannot reach home right now the
-        // scene ends peacefully and she keeps her grace window.
-        if (!FactionRelations.AreHostile(owner.Faction, intruder.Faction))
-        {
-            var left = MobSystem.TryFleeToCamp(world, intruder,
-                $"Agreed to leave NPC{owner.Id.Value}'s camp");
-            SocialCueSignals.Stamp(world, intruder, "CampExpelAccepted", owner.Id);
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, owner.Id, "CampExpelAccepted",
-                    $"Intruder=NPC{intruder.Id.Value} Rival=1 WentHome={(left ? 1 : 0)}");
-            }
-            Finish(world, owner, intruder, "Accepted", protectIntruder: !left,
-                keepIntruderGoal: left);
             return;
         }
 
@@ -386,6 +368,20 @@ public sealed class CampExpulsionSystem : ISimulationSystem
     internal static bool HasSafeChallengeOdds(
         WorldState world, NPCState owner, NPCState intruder) =>
         AbuseMath.Force(world, owner) >= AbuseMath.Force(world, intruder);
+
+    // §117: the challenged NPC independently decides whether refusing is worth
+    // the expected injury. A ratio keeps this symmetric across sex/faction and
+    // automatically reacts to any future weapon or armor added to GearCatalog.
+    internal static float StandGroundForceRatio(
+        WorldState world, NPCState owner, NPCState intruder) =>
+        AbuseMath.Force(world, intruder) /
+        System.Math.Max(AbuseMath.Force(world, owner), 0.0001f);
+
+    internal static bool ShouldSubmitToExpulsion(
+        WorldState world, NPCState owner, NPCState intruder) =>
+        HasCriticalNeed(intruder) ||
+        StandGroundForceRatio(world, owner, intruder) <
+            Spec82.TerritoryStandGroundForceRatio;
 
     private static void StopForScene(WorldState world, NPCState npc, EntityId peerId)
     {

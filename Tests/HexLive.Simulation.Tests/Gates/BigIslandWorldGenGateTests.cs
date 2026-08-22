@@ -27,7 +27,7 @@ public sealed class BigIslandWorldGenGateTests
             PrototypeWorldDefinitionFactory.Create(seed, GameMode.BigIsland));
 
     [Test]
-    public void ThreeRivalCampsExistAndOutsidersDoNot()
+    public void ThreeHostileCampsExistAndOutsidersDoNot()
     {
         foreach (var seed in Seeds)
         {
@@ -37,6 +37,15 @@ public sealed class BigIslandWorldGenGateTests
             {
                 Faction.Colony, Faction.Colony2, Faction.Colony3
             }), $"seed {seed}: три лагеря девушек и никакого чужака (§146.4)");
+            Assert.Multiple(() =>
+            {
+                Assert.That(FactionRelations.AreHostile(Faction.Colony, Faction.Colony2),
+                    Is.True);
+                Assert.That(FactionRelations.AreHostile(Faction.Colony, Faction.Colony3),
+                    Is.True);
+                Assert.That(FactionRelations.AreHostile(Faction.Colony2, Faction.Colony3),
+                    Is.True);
+            });
         }
     }
 

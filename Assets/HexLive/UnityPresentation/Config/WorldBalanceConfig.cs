@@ -114,6 +114,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 60)] public int bigIslandMaxLivingNpcs = 24;
         [Tooltip("§146.6: потолок живых в одном лагере на большом острове.")]
         [Range(0, 20)] public int bigIslandMaxCampNpcs = 6;
+        [Tooltip("§146.9: потолок всех живых NPC на огромном острове.")]
+        [Range(0, 80)] public int hugeIslandMaxLivingNpcs = 42;
+        [Tooltip("§146.9: потолок живых в одном из шести лагерей.")]
+        [Range(0, 20)] public int hugeIslandMaxCampNpcs = 6;
         [Tooltip("§35.5: множитель естественной сушки ОДЕЖДЫ (мир без костра/солнца).")]
         [Range(0f, 1f)] public float clothingNaturalDryMultiplier = 0.1f;
 
@@ -130,6 +134,12 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 60)] public int bigIslandCrabSlots = 24;
         [Tooltip("§146.7: слоты акул на большом острове.")]
         [Range(0, 30)] public int bigIslandSharkSlots = 12;
+        [Tooltip("§146.9: слоты волков на огромном острове.")]
+        [Range(0, 60)] public int hugeIslandWolfSlots = 24;
+        [Tooltip("§146.9: слоты крабов на огромном острове.")]
+        [Range(0, 100)] public int hugeIslandCrabSlots = 48;
+        [Tooltip("§146.9: слоты акул на огромном острове.")]
+        [Range(0, 60)] public int hugeIslandSharkSlots = 24;
         [Tooltip("§147.3: радиус материализации зверя из превью, тайлы от ближайшей девушки.")]
         [Range(1, 20)] public int mobMaterializeRadiusTiles = 8;
         [Tooltip("§147.3: радиус материализации краба, тайлы.")]

@@ -35,6 +35,11 @@ public static class WorldBalance
     public static int BigIslandMaxLivingNpcs = 24;
     public static int BigIslandMaxCampNpcs = 6;
 
+    // §146.9: six camps may each grow from one to six women; five outsider
+    // seats remain inside the shared cap (6×6 + 5 = 41, one spare event seat).
+    public static int HugeIslandMaxLivingNpcs = 42;
+    public static int HugeIslandMaxCampNpcs = 6;
+
     // Начало календарных дней 7, 14, 21…: одна новая девушка, если оба
     // потолка оставляют ей место. 0 выключает пополнение.
     public static int ColonyArrivalIntervalDays = 7;

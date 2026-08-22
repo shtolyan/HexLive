@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
@@ -70,13 +71,46 @@ namespace HexLive.UnityPresentation.UI
         private TextField _serverField;
         private TextField _tokenField;
 
-        // §146: which scenario "New game" starts. The row expands into the two
-        // mode rows (the Connect-row pattern); the last pick is remembered so
-        // the next new game defaults to it. Continue/Restart ignore this and
-        // take the mode from the save header.
+        // §146/§146.9: New game opens a dedicated scalable mode panel. The last
+        // pick is remembered; Continue/Restart still take mode from the save.
         private HexLive.Simulation.Bootstrap.GameMode _newGameMode;
         private VisualElement _newGameBox;
+        private VisualElement _newGameModeArtwork;
+        private Label _newGameModeTitle;
+        private Label _newGameModeDescription;
+        private readonly Dictionary<HexLive.Simulation.Bootstrap.GameMode, Button>
+            _newGameModeButtons = new();
         private const string NewGameModePref = "HexLive.NewGameMode";
+
+        private readonly struct NewGameModeOption
+        {
+            public readonly HexLive.Simulation.Bootstrap.GameMode Mode;
+            public readonly string TitleTerm;
+            public readonly string DescriptionTerm;
+            public readonly string ArtClass;
+
+            public NewGameModeOption(
+                HexLive.Simulation.Bootstrap.GameMode mode,
+                string titleTerm, string descriptionTerm, string artClass)
+            {
+                Mode = mode;
+                TitleTerm = titleTerm;
+                DescriptionTerm = descriptionTerm;
+                ArtClass = artClass;
+            }
+        }
+
+        private static readonly NewGameModeOption[] NewGameModeOptions =
+        {
+            new(HexLive.Simulation.Bootstrap.GameMode.Feud,
+                "menu.newgame.mode.feud", "menu.newgame.mode.feud.description", "art-feud"),
+            new(HexLive.Simulation.Bootstrap.GameMode.BigIsland,
+                "menu.newgame.mode.bigisland", "menu.newgame.mode.bigisland.description",
+                "art-bigisland"),
+            new(HexLive.Simulation.Bootstrap.GameMode.HugeIsland,
+                "menu.newgame.mode.hugeisland", "menu.newgame.mode.hugeisland.description",
+                "art-hugeisland"),
+        };
 
         private VisualElement _root;
         private VisualElement _menuBox;
@@ -248,12 +282,10 @@ namespace HexLive.UnityPresentation.UI
                 _menuChosen = true;
             }));
 
-            // §146: "New game" opens the mode choice instead of starting
-            // immediately — two worlds now live behind this row.
+            // §146: New game opens the dedicated scenario browser.
             card.Add(MakeMenuRow("plus", Loc.Get("menu.newgame"),
                 primary: false, enabled: true, () => ToggleNewGameBox()));
             _newGameBox = BuildNewGameBox();
-            card.Add(_newGameBox);
 
             // Watch a world running on a server instead of building one here.
             // The row expands into an address field rather than opening another
@@ -315,6 +347,7 @@ namespace HexLive.UnityPresentation.UI
 
             _menuBox.Add(card);
             _root.Add(_menuBox);
+            _root.Add(_newGameBox);
 
             // Bottom gradient strip carrying the title/status/progress, so
             // text stays readable over any art. Hidden while the menu is up.
@@ -500,44 +533,87 @@ namespace HexLive.UnityPresentation.UI
             _menuChosen = true;
         }
 
-        // §146: the two scenarios behind "New game". Rows, not a dropdown —
-        // the whole menu is rows, and two options do not earn a widget.
+        // §146/§146.9: one separate, data-driven panel for every scenario.
+        // Adding the next mode is one descriptor + localization/art, not a new
+        // main-menu branch.
         private VisualElement BuildNewGameBox()
         {
-            var box = new VisualElement
+            var template = Resources.Load<VisualTreeAsset>("HexLive/UI/GameModePanel");
+            if (template == null)
             {
-                style =
+                Debug.LogError("[HexLive] Missing Resources/HexLive/UI/GameModePanel.uxml");
+                return new VisualElement { name = "missingGameModePanel" };
+            }
+
+            var host = template.CloneTree();
+            host.AddToClassList("game-mode-host");
+            host.Q<Label>("panelTitle").text = Loc.Get("menu.newgame.mode.panel.kicker");
+            host.Q<Label>("panelSubtitle").text = Loc.Get("menu.newgame.mode.panel.title");
+            host.Q<Button>("closeButton").clicked += () =>
+                host.RemoveFromClassList("is-open");
+
+            _newGameModeArtwork = host.Q<VisualElement>("modeArtwork");
+            _newGameModeTitle = host.Q<Label>("modeTitle");
+            _newGameModeDescription = host.Q<Label>("modeDescription");
+
+            var list = host.Q<ScrollView>("modeList");
+            _newGameModeButtons.Clear();
+            foreach (var option in NewGameModeOptions)
+            {
+                var captured = option;
+                var button = new Button(() => SelectNewGameMode(captured.Mode))
                 {
-                    display = DisplayStyle.None,
-                    paddingLeft = 24, paddingRight = 12, paddingBottom = 4
-                }
-            };
+                    text = Loc.Get(option.TitleTerm)
+                };
+                button.AddToClassList("game-mode-button");
+                list.Add(button);
+                _newGameModeButtons[option.Mode] = button;
+            }
+
+            var start = host.Q<Button>("startButton");
+            start.text = Loc.Get("menu.newgame.mode.start");
+            start.clicked += StartSelectedNewGame;
 
             var remembered = PlayerPrefs.GetInt(NewGameModePref, 0);
-            _newGameMode = remembered == (int)HexLive.Simulation.Bootstrap.GameMode.BigIsland
-                ? HexLive.Simulation.Bootstrap.GameMode.BigIsland
-                : HexLive.Simulation.Bootstrap.GameMode.Feud;
-
-            AddNewGameModeRow(box, "menu.newgame.mode.feud",
-                HexLive.Simulation.Bootstrap.GameMode.Feud);
-            AddNewGameModeRow(box, "menu.newgame.mode.bigisland",
-                HexLive.Simulation.Bootstrap.GameMode.BigIsland);
-            return box;
+            _newGameMode = remembered switch
+            {
+                (int)HexLive.Simulation.Bootstrap.GameMode.BigIsland =>
+                    HexLive.Simulation.Bootstrap.GameMode.BigIsland,
+                (int)HexLive.Simulation.Bootstrap.GameMode.HugeIsland =>
+                    HexLive.Simulation.Bootstrap.GameMode.HugeIsland,
+                _ => HexLive.Simulation.Bootstrap.GameMode.Feud
+            };
+            SelectNewGameMode(_newGameMode);
+            return host;
         }
 
-        private void AddNewGameModeRow(
-            VisualElement box, string term, HexLive.Simulation.Bootstrap.GameMode mode)
+        private void SelectNewGameMode(HexLive.Simulation.Bootstrap.GameMode mode)
         {
-            var row = MakeMenuRow("play", Loc.Get(term), primary: false, enabled: true, () =>
+            _newGameMode = mode;
+            foreach (var pair in _newGameModeButtons)
             {
-                _newGameMode = mode;
-                PlayerPrefs.SetInt(NewGameModePref, (int)mode);
-                PlayerPrefs.Save();
-                _continueChosen = false;
-                _menuChosen = true;
-            });
-            row.style.height = 36;
-            box.Add(row);
+                pair.Value.EnableInClassList("is-selected", pair.Key == mode);
+            }
+
+            foreach (var option in NewGameModeOptions)
+            {
+                _newGameModeArtwork.RemoveFromClassList(option.ArtClass);
+                if (option.Mode != mode) continue;
+                _newGameModeArtwork.AddToClassList(option.ArtClass);
+                _newGameModeTitle.text = Loc.Get(option.TitleTerm);
+                _newGameModeDescription.text = Loc.Get(option.DescriptionTerm);
+            }
+
+            PlayerPrefs.SetInt(NewGameModePref, (int)mode);
+            PlayerPrefs.Save();
+        }
+
+        private void StartSelectedNewGame()
+        {
+            _continueChosen = false;
+            _restartChosen = false;
+            _newGameBox?.RemoveFromClassList("is-open");
+            _menuChosen = true;
         }
 
         private void ToggleNewGameBox()
@@ -547,8 +623,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var opening = _newGameBox.style.display == DisplayStyle.None;
-            _newGameBox.style.display = opening ? DisplayStyle.Flex : DisplayStyle.None;
+            _newGameBox.ToggleInClassList("is-open");
         }
 
         private void ToggleConnectRow(VisualElement card)

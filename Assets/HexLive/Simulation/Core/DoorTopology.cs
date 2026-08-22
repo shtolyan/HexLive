@@ -66,7 +66,10 @@ public static class DoorTopology
     }
 
     private static readonly Faction[] AllFactions =
-        { Faction.Colony, Faction.Outsiders, Faction.Colony2, Faction.Colony3 };
+        {
+            Faction.Colony, Faction.Outsiders, Faction.Colony2, Faction.Colony3,
+            Faction.Colony4, Faction.Colony5, Faction.Colony6, Faction.Castaway
+        };
 
     private static void EnsureDoorCaches(WorldState world)
     {

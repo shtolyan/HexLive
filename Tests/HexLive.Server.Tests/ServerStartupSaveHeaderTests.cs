@@ -59,6 +59,25 @@ public sealed class ServerStartupSaveHeaderTests
     }
 
     [Test]
+    public void HugeIsland_IsAcceptedByCliAndPersistedByV2Header()
+    {
+        var fresh = ServerOptions.Parse(new[] { "--mode", "hugeisland" });
+        Assert.That(fresh!.Mode, Is.EqualTo(GameMode.HugeIsland));
+
+        var save = Path.Combine(_directory, "hugeisland.sav");
+        WriteSaveHeader(save, version: 2, seed: 24680,
+            mode: GameMode.HugeIsland, tick: 7654);
+        var resumed = ServerOptions.Parse(new[] { "--save", save });
+        resumed!.ContinueExistingSaveIfPresent();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Seed, Is.EqualTo(24680));
+            Assert.That(resumed.Mode, Is.EqualTo(GameMode.HugeIsland));
+        });
+    }
+
+    [Test]
     public void ExistingUnknownSave_IsRejectedInsteadOfBeingOverwritten()
     {
         var save = Path.Combine(_directory, "corrupt.sav");

@@ -15,8 +15,12 @@ public enum GameMode
     Feud = 0,
 
     // §146.1: the big island — ~6× the tiles, dense passable groves, three
-    // rival girl camps (§146.3), no human enemies, no starting buildings.
-    BigIsland = 1
+    // hostile girl camps (§146.3), no Outsider faction, no starting buildings.
+    BigIsland = 1,
+
+    // §146.9: ~2× BigIsland, six solo girl camps, the central outsider camp,
+    // shore loot and the wounded shipwreck-survivor event.
+    HugeIsland = 2
 }
 
 }

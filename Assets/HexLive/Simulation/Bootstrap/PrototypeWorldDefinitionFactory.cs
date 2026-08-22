@@ -49,12 +49,12 @@ namespace HexLive.Simulation.Bootstrap
             var over = Override;
             if (over != null) return over(seed);
 
-            if (mode == GameMode.BigIsland)
+            return mode switch
             {
-                return CreateBigIsland(seed);
-            }
-
-            return CreateFeud(seed);
+                GameMode.BigIsland => CreateBigIsland(seed),
+                GameMode.HugeIsland => CreateHugeIsland(seed),
+                _ => CreateFeud(seed)
+            };
         }
 
         private static WorldBootstrapDefinition CreateFeud(

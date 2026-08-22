@@ -76,6 +76,11 @@ public static class WildlifeBalance
     public static int BigIslandCrabSlots = 24;
     public static int BigIslandSharkSlots = 12;
 
+    // §146.9: roughly twice the land/water area of BigIsland.
+    public static int HugeIslandWolfSlots = 24;
+    public static int HugeIslandCrabSlots = 48;
+    public static int HugeIslandSharkSlots = 24;
+
     // §147.3: радиус материализации — это радиус СУЩЕСТВОВАНИЯ, не агра.
     // 8 ≥ любого реалистичного радиуса восприятия (§125): волк становится
     // реальным до того, как девушка его «заметила бы», и §62-тревога

@@ -40,6 +40,77 @@ namespace HexLive.Simulation.Bootstrap
         private const int BigDeadfallCount = 24;
         private const int BigHerbCount = 18;
 
+        // §146.9: «Огромный остров» — ровно следующий append-only режим.
+        // 102×80 = 8160 тайлов, то есть 2.02× карты BigIsland (4032 тайла).
+        // Шесть лагерей получают по одной девушке, а центральная стоянка
+        // чужаков включает обычные §72.14 волны раз в три дня.
+        public const int HugeIslandWorldGenRevision = 1;
+        public const int HugeMinQ = -49;
+        public const int HugeMaxQ = 52;
+        public const int HugeMinR = -38;
+        public const int HugeMaxR = 41;
+        public const int HugeCampCount = 6;
+        public const int HugeCampMinSeparationTiles = 22;
+        internal const int HugePalmTarget = 480;
+
+        private readonly struct LargeIslandSettings
+        {
+            public readonly GameMode Mode;
+            public readonly int MinQ;
+            public readonly int MaxQ;
+            public readonly int MinR;
+            public readonly int MaxR;
+            public readonly int CampCount;
+            public readonly int CampMinSeparationTiles;
+            public readonly int GirlsPerCamp;
+            public readonly int PalmTarget;
+            public readonly int GroveCount;
+            public readonly int YuccaCount;
+            public readonly int BoulderCount;
+            public readonly int LooseStoneCount;
+            public readonly int DeadfallCount;
+            public readonly int HerbCount;
+            public readonly bool HasCentralOutsiderCamp;
+
+            public LargeIslandSettings(
+                GameMode mode, int minQ, int maxQ, int minR, int maxR,
+                int campCount, int campMinSeparationTiles, int girlsPerCamp,
+                int palmTarget, int groveCount, int yuccaCount, int boulderCount,
+                int looseStoneCount, int deadfallCount, int herbCount,
+                bool hasCentralOutsiderCamp)
+            {
+                Mode = mode;
+                MinQ = minQ;
+                MaxQ = maxQ;
+                MinR = minR;
+                MaxR = maxR;
+                CampCount = campCount;
+                CampMinSeparationTiles = campMinSeparationTiles;
+                GirlsPerCamp = girlsPerCamp;
+                PalmTarget = palmTarget;
+                GroveCount = groveCount;
+                YuccaCount = yuccaCount;
+                BoulderCount = boulderCount;
+                LooseStoneCount = looseStoneCount;
+                DeadfallCount = deadfallCount;
+                HerbCount = herbCount;
+                HasCentralOutsiderCamp = hasCentralOutsiderCamp;
+            }
+        }
+
+        private static readonly LargeIslandSettings BigIslandSettings = new(
+            GameMode.BigIsland, BigMinQ, BigMaxQ, BigMinR, BigMaxR,
+            BigCampCount, BigCampMinSeparationTiles, 2,
+            BigPalmTarget, BigGroveCount, BigYuccaCount, BigBoulderCount,
+            BigLooseStoneCount, BigDeadfallCount, BigHerbCount,
+            hasCentralOutsiderCamp: false);
+
+        private static readonly LargeIslandSettings HugeIslandSettings = new(
+            GameMode.HugeIsland, HugeMinQ, HugeMaxQ, HugeMinR, HugeMaxR,
+            HugeCampCount, HugeCampMinSeparationTiles, 1,
+            HugePalmTarget, 48, 720, 190, 440, 48, 36,
+            hasCentralOutsiderCamp: true);
+
         // Якорные узлы для пальм на одном гексе: интерьерные слоты 13 (2,-1),
         // 30 (-1,2), 10 (-1,-1) — треугольник ~1.12 wu стороной. Диск блокировки
         // пальмы 0.45 wu (~7 узлов из 61), три таких не сливаются, и между
@@ -53,6 +124,17 @@ namespace HexLive.Simulation.Bootstrap
 
         internal static WorldBootstrapDefinition CreateBigIsland(int seed)
         {
+            return CreateLargeIsland(seed, BigIslandSettings);
+        }
+
+        internal static WorldBootstrapDefinition CreateHugeIsland(int seed)
+        {
+            return CreateLargeIsland(seed, HugeIslandSettings);
+        }
+
+        private static WorldBootstrapDefinition CreateLargeIsland(
+            int seed, LargeIslandSettings settings)
+        {
             var definition = new WorldBootstrapDefinition
             {
                 Simulation = new SimulationBootstrapSettings
@@ -61,7 +143,7 @@ namespace HexLive.Simulation.Bootstrap
                     MediumTickInterval = 4,
                     SlowTickInterval = 16,
                     Seed = seed,
-                    Mode = GameMode.BigIsland,
+                    Mode = settings.Mode,
                     SpawnCompletedTestHut = false
                 },
                 Environment = new EnvironmentBootstrap
@@ -72,20 +154,33 @@ namespace HexLive.Simulation.Bootstrap
             };
 
             var fragment = definition.Fragments[0];
-            for (var q = BigMinQ; q <= BigMaxQ; q++)
+            for (var q = settings.MinQ; q <= settings.MaxQ; q++)
             {
-                for (var r = BigMinR; r <= BigMaxR; r++)
+                for (var r = settings.MinR; r <= settings.MaxR; r++)
                 {
                     fragment.Tiles.Add(Tile(q, r));
                 }
             }
 
-            AddBigElevation(fragment, seed);
-            var anchors = PickCampAnchors(fragment, seed);
+            AddBigElevation(fragment, seed, settings);
+            var anchors = PickCampAnchors(fragment, seed, settings);
             FinalizeWater(fragment);
-            AddBigForests(definition, fragment, seed, anchors);
-            AddBigScatter(definition, fragment, seed, anchors);
-            AddBigColonists(definition, anchors);
+
+            var resourceAnchors = new List<TileCoord>(anchors);
+            TileCoord? outsiderCamp = null;
+            if (settings.HasCentralOutsiderCamp)
+            {
+                outsiderCamp = PickCentralOutsiderCamp(fragment, anchors, seed);
+                if (outsiderCamp is { } camp)
+                {
+                    MarkCampSanctuary(fragment, camp);
+                    resourceAnchors.Add(camp);
+                }
+            }
+
+            AddBigForests(definition, fragment, seed, resourceAnchors, settings);
+            AddBigScatter(definition, fragment, seed, resourceAnchors, settings);
+            AddBigColonists(definition, anchors, settings.GirlsPerCamp);
 
             for (var i = 0; i < anchors.Count; i++)
             {
@@ -97,6 +192,17 @@ namespace HexLive.Simulation.Bootstrap
                 });
             }
 
+            if (outsiderCamp is { } outsider)
+            {
+                definition.FactionHomes.Add(new FactionHomeBootstrap
+                {
+                    Faction = Agents.Faction.Outsiders,
+                    TileQ = outsider.Q,
+                    TileR = outsider.R
+                });
+                AddHugeOpeningOutsider(definition, outsider);
+            }
+
             return definition;
         }
 
@@ -104,21 +210,145 @@ namespace HexLive.Simulation.Bootstrap
         {
             0 => Agents.Faction.Colony,
             1 => Agents.Faction.Colony2,
-            _ => Agents.Faction.Colony3,
+            2 => Agents.Faction.Colony3,
+            3 => Agents.Faction.Colony4,
+            4 => Agents.Faction.Colony5,
+            _ => Agents.Faction.Colony6,
         };
+
+        // §146.9: стоянка чужаков читается как центр острова, а не «ещё один
+        // седьмой береговой лагерь». Берём ближайшую к геометрическому центру
+        // низину, но не ближе десяти гексов к любой девушке; из равных первых
+        // 24 точек выбираем по сиду, чтобы миры не складывались в один штамп.
+        private static TileCoord? PickCentralOutsiderCamp(
+            FragmentBootstrap fragment, List<TileCoord> girlCamps, int seed)
+        {
+            var center = new TileCoord(
+                (HugeMinQ + HugeMaxQ) / 2,
+                (HugeMinR + HugeMaxR) / 2);
+            var candidates = new List<(TileCoord tile, int centerDistance)>();
+            foreach (var tile in fragment.Tiles)
+            {
+                if (tile.Water || !tile.Walkable || tile.Blocked ||
+                    tile.Elevation < 1 || tile.Elevation > 2)
+                {
+                    continue;
+                }
+
+                var coord = new TileCoord(tile.Q, tile.R);
+                var clear = true;
+                foreach (var camp in girlCamps)
+                {
+                    if (HexSpatialMath.HexDistance(coord, camp) < 10)
+                    {
+                        clear = false;
+                        break;
+                    }
+                }
+
+                if (clear)
+                {
+                    candidates.Add((coord, HexSpatialMath.HexDistance(coord, center)));
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                return null;
+            }
+
+            candidates.Sort((a, b) =>
+            {
+                var byDistance = a.centerDistance.CompareTo(b.centerDistance);
+                if (byDistance != 0) return byDistance;
+                var byQ = a.tile.Q.CompareTo(b.tile.Q);
+                return byQ != 0 ? byQ : a.tile.R.CompareTo(b.tile.R);
+            });
+            var pool = System.Math.Min(24, candidates.Count);
+            var pick = (int)(MathUtil.Hash01(seed, pool, 146, 14641) * pool);
+            return candidates[System.Math.Min(pool - 1, pick)].tile;
+        }
+
+        private static void MarkCampSanctuary(FragmentBootstrap fragment, TileCoord camp)
+        {
+            var byCoord = new Dictionary<(int, int), TileBootstrap>();
+            foreach (var tile in fragment.Tiles)
+            {
+                byCoord[(tile.Q, tile.R)] = tile;
+            }
+
+            if (byCoord.TryGetValue((camp.Q, camp.R), out var center))
+            {
+                center.Indoor = true;
+            }
+
+            foreach (var direction in HexDirection.All)
+            {
+                if (byCoord.TryGetValue((camp.Q + direction.DQ, camp.R + direction.DR),
+                        out var around) &&
+                    around.Walkable && !around.Water && around.Elevation >= 1)
+                {
+                    around.Indoor = true;
+                }
+            }
+        }
+
+        private static void AddHugeOpeningOutsider(
+            WorldBootstrapDefinition definition, TileCoord camp)
+        {
+            if (!HexLive.Simulation.Runtime.Spec72.Enabled ||
+                HexLive.Simulation.Runtime.Spec72.OutsiderCount <= 0)
+            {
+                return;
+            }
+
+            definition.Npcs.Add(new NpcBootstrap
+            {
+                Id = 101,
+                DisplayName = "Kshishtof",
+                ActorMesh = "Kshishtof",
+                Faction = Agents.Faction.Outsiders,
+                FragmentId = 1,
+                TileQ = camp.Q,
+                TileR = camp.R,
+                Hunger = 0.50f,
+                Thirst = 0.45f,
+                Energy = 0.70f,
+                Comfort = 0.40f,
+                Social = 0.30f,
+                ThermalDiscomfort = 0.50f,
+                Attributes =
+                {
+                    [Agents.AttributeKind.Strength] = HexLive.Simulation.Runtime.Spec72.OutsiderStrength,
+                    [Agents.AttributeKind.Agility] = HexLive.Simulation.Runtime.Spec72.OutsiderAgility,
+                    [Agents.AttributeKind.Endurance] = HexLive.Simulation.Runtime.Spec72.OutsiderEndurance,
+                    [Agents.AttributeKind.Toughness] = HexLive.Simulation.Runtime.Spec72.OutsiderToughness,
+                    [Agents.AttributeKind.Hardiness] = HexLive.Simulation.Runtime.Spec72.OutsiderHardiness,
+                    [Agents.AttributeKind.Wits] = HexLive.Simulation.Runtime.Spec72.OutsiderWits,
+                    [Agents.AttributeKind.Perception] = HexLive.Simulation.Runtime.Spec72.OutsiderPerception,
+                },
+                Traits = new List<string>
+                {
+                    Agents.TraitKind.Abuser.ToString(),
+                    Agents.TraitKind.Slob.ToString()
+                }
+            });
+        }
 
         // Тот же язык рельефа, что у Feud (шум × спад), с двумя отличиями:
         // спад эллиптический (карта шире, чем выше — круговой спад топил бы
         // север и юг), и добавлена низкочастотная октава — на большой карте
         // двухоктавный шум читается как рябь без крупного рельефа.
-        private static void AddBigElevation(FragmentBootstrap fragment, int seed)
+        private static void AddBigElevation(
+            FragmentBootstrap fragment, int seed, LargeIslandSettings settings)
         {
             var center = HexSpatialMath.TileToWorld(new TileCoord(
-                (BigMinQ + BigMaxQ) / 2, (BigMinR + BigMaxR) / 2));
+                (settings.MinQ + settings.MaxQ) / 2,
+                (settings.MinR + settings.MaxR) / 2));
             var eastEdge = HexSpatialMath.TileToWorld(new TileCoord(
-                BigMaxQ, (BigMinR + BigMaxR) / 2));
+                settings.MaxQ, (settings.MinR + settings.MaxR) / 2));
             var southEdge = HexSpatialMath.TileToWorld(new TileCoord(
-                (BigMinQ + BigMaxQ) / 2, BigMaxR));
+                (settings.MinQ + settings.MaxQ) / 2, settings.MaxR));
             var halfX = System.Math.Abs(eastEdge.X - center.X);
             var halfY = System.Math.Abs(southEdge.Y - center.Y);
 
@@ -138,8 +368,8 @@ namespace HexLive.Simulation.Bootstrap
                 var elevation = (int)System.MathF.Round(height * 6f);
                 elevation = System.Math.Min(5, elevation);
 
-                if (tile.Q <= BigMinQ || tile.Q >= BigMaxQ ||
-                    tile.R <= BigMinR || tile.R >= BigMaxR)
+                if (tile.Q <= settings.MinQ || tile.Q >= settings.MaxQ ||
+                    tile.R <= settings.MinR || tile.R >= settings.MaxR)
                 {
                     elevation = 0;
                 }
@@ -169,7 +399,8 @@ namespace HexLive.Simulation.Bootstrap
         // карты; первый якорь — сидированный выбор, следующие — из «дальней
         // трети» по минимальной дистанции до уже выбранных, с детерминированным
         // ослаблением порога на патологических сидах.
-        private static List<TileCoord> PickCampAnchors(FragmentBootstrap fragment, int seed)
+        private static List<TileCoord> PickCampAnchors(
+            FragmentBootstrap fragment, int seed, LargeIslandSettings settings)
         {
             var byCoord = new Dictionary<(int, int), TileBootstrap>();
             foreach (var tile in fragment.Tiles)
@@ -225,8 +456,8 @@ namespace HexLive.Simulation.Bootstrap
             {
                 if (!mainland.Contains((tile.Q, tile.R)) ||
                     tile.Elevation < 1 || tile.Elevation > 2 ||
-                    tile.Q < BigMinQ + 5 || tile.Q > BigMaxQ - 5 ||
-                    tile.R < BigMinR + 5 || tile.R > BigMaxR - 5)
+                    tile.Q < settings.MinQ + 5 || tile.Q > settings.MaxQ - 5 ||
+                    tile.R < settings.MinR + 5 || tile.R > settings.MaxR - 5)
                 {
                     continue;
                 }
@@ -253,10 +484,11 @@ namespace HexLive.Simulation.Bootstrap
                 anchors.Add(first);
             }
 
-            for (var campIndex = 1; campIndex < BigCampCount; campIndex++)
+            for (var campIndex = 1; campIndex < settings.CampCount; campIndex++)
             {
                 TileCoord? picked = null;
-                for (var separation = BigCampMinSeparationTiles; separation >= 6 && picked == null;
+                for (var separation = settings.CampMinSeparationTiles;
+                     separation >= 6 && picked == null;
                      separation -= 2)
                 {
                     var fits = new List<(TileCoord tile, int minDist)>();
@@ -317,8 +549,8 @@ namespace HexLive.Simulation.Bootstrap
             // срезает утёсы, чтобы лагерь никогда не начинался на скале.
             foreach (var tile in fragment.Tiles)
             {
-                if (tile.Q <= BigMinQ || tile.Q >= BigMaxQ ||
-                    tile.R <= BigMinR || tile.R >= BigMaxR)
+                if (tile.Q <= settings.MinQ || tile.Q >= settings.MaxQ ||
+                    tile.R <= settings.MinR || tile.R >= settings.MaxR)
                 {
                     continue; // внешняя кромка карты остаётся морем
                 }
@@ -342,7 +574,7 @@ namespace HexLive.Simulation.Bootstrap
         // пересечение двух рощ не удваивает лес и не зависит от порядка.
         private static void AddBigForests(
             WorldBootstrapDefinition definition, FragmentBootstrap fragment, int seed,
-            List<TileCoord> anchors)
+            List<TileCoord> anchors, LargeIslandSettings settings)
         {
             var byCoord = new Dictionary<(int, int), TileBootstrap>();
             foreach (var tile in fragment.Tiles)
@@ -350,7 +582,7 @@ namespace HexLive.Simulation.Bootstrap
                 byCoord[(tile.Q, tile.R)] = tile;
             }
 
-            var centers = PickGroveCenters(fragment, seed, anchors);
+            var centers = PickGroveCenters(fragment, seed, anchors, settings);
             var planted = new HashSet<(int, int)>();
             var nextId = 200;
             var palms = 0;
@@ -432,7 +664,7 @@ namespace HexLive.Simulation.Bootstrap
 
             loose.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
             var attempt = 0;
-            while (palms < BigPalmTarget && loose.Count > 0)
+            while (palms < settings.PalmTarget && loose.Count > 0)
             {
                 var pick = (int)(MathUtil.Hash01(seed, loose.Count, attempt++, 14613) * loose.Count);
                 pick = System.Math.Min(pick, loose.Count - 1);
@@ -446,14 +678,15 @@ namespace HexLive.Simulation.Bootstrap
         }
 
         private static List<TileCoord> PickGroveCenters(
-            FragmentBootstrap fragment, int seed, List<TileCoord> anchors)
+            FragmentBootstrap fragment, int seed, List<TileCoord> anchors,
+            LargeIslandSettings settings)
         {
             var candidates = new List<TileCoord>();
             foreach (var tile in fragment.Tiles)
             {
                 if (tile.Water || !tile.Walkable || tile.Elevation < 1 || tile.Elevation > 3 ||
-                    tile.Q < BigMinQ + 3 || tile.Q > BigMaxQ - 3 ||
-                    tile.R < BigMinR + 3 || tile.R > BigMaxR - 3)
+                    tile.Q < settings.MinQ + 3 || tile.Q > settings.MaxQ - 3 ||
+                    tile.R < settings.MinR + 3 || tile.R > settings.MaxR - 3)
                 {
                     continue;
                 }
@@ -479,8 +712,8 @@ namespace HexLive.Simulation.Bootstrap
 
             var centers = new List<TileCoord>();
             var attempt = 0;
-            while (centers.Count < BigGroveCount && candidates.Count > 0 &&
-                   attempt < BigGroveCount * 8)
+            while (centers.Count < settings.GroveCount && candidates.Count > 0 &&
+                   attempt < settings.GroveCount * 8)
             {
                 var pick = (int)(MathUtil.Hash01(seed, candidates.Count, attempt++, 14607) *
                     candidates.Count);
@@ -515,7 +748,7 @@ namespace HexLive.Simulation.Bootstrap
         // блокируют узлы и ложатся где угодно.
         private static void AddBigScatter(
             WorldBootstrapDefinition definition, FragmentBootstrap fragment, int seed,
-            List<TileCoord> anchors)
+            List<TileCoord> anchors, LargeIslandSettings settings)
         {
             var taken = new HashSet<(int, int)>();
             foreach (var existing in definition.Objects)
@@ -581,11 +814,11 @@ namespace HexLive.Simulation.Bootstrap
                 }
             }
 
-            Place(open, "rock.boulder", BigBoulderCount, 14615, 1);
-            Place(open, "resource.stone", BigLooseStoneCount, 14617, 2);
-            Place(open, "plant.yucca", BigYuccaCount, 14619, 1);
-            Place(open, "forest.deadfall", BigDeadfallCount, 14621, 2);
-            Place(open, "herb.bush", BigHerbCount, 14623, 1);
+            Place(open, "rock.boulder", settings.BoulderCount, 14615, 1);
+            Place(open, "resource.stone", settings.LooseStoneCount, 14617, 2);
+            Place(open, "plant.yucca", settings.YuccaCount, 14619, 1);
+            Place(open, "forest.deadfall", settings.DeadfallCount, 14621, 2);
+            Place(open, "herb.bush", settings.HerbCount, 14623, 1);
 
             // Дикие запасные инструменты — глушь вознаграждает разведку (§40.12).
             Place(open, "tool.pickaxe_stone", 2, 14625, 2);
@@ -606,12 +839,13 @@ namespace HexLive.Simulation.Bootstrap
             }
         }
 
-        // §146.4: по 2 девушки на лагерь — якорь и кольцо-1. Профили нужд
+        // §146.4/§146.9: заданное режимом число девушек на лагерь — якорь и
+        // кольцо-1. Профили нужд
         // рассинхронизированы ГЛОБАЛЬНЫМ индексом (формулы §33.4 из Feud):
         // шесть девушек не встанут в очередь к одной нужде даже в разных
         // лагерях, а прибытия §132 доведут состав со временем.
         private static void AddBigColonists(
-            WorldBootstrapDefinition definition, List<TileCoord> anchors)
+            WorldBootstrapDefinition definition, List<TileCoord> anchors, int girlsPerCamp)
         {
             for (var campIndex = 0; campIndex < anchors.Count; campIndex++)
             {
@@ -622,9 +856,9 @@ namespace HexLive.Simulation.Bootstrap
                     seats.Add(new TileCoord(anchor.Q + dir.DQ, anchor.R + dir.DR));
                 }
 
-                for (var j = 0; j < 2; j++)
+                for (var j = 0; j < girlsPerCamp; j++)
                 {
-                    var i = campIndex * 2 + j;
+                    var i = campIndex * girlsPerCamp + j;
                     definition.Npcs.Add(new NpcBootstrap
                     {
                         // 1,2 / 11,12 / 21,22 — десятка на лагерь: прибытия и

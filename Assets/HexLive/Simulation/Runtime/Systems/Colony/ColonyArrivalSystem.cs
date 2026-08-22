@@ -91,7 +91,8 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
     private static bool TrySpawn(WorldState world, Faction faction, TileCoord home, int arrival)
     {
         // Полоса в 500 id на лагерь: Colony остаётся на прежних 2000+ (сейвы
-        // режима 0 не двигаются), Colony2 — 3000+, Colony3 — 3500+. Рейдеры
+        // режима 0 не двигаются), Colony2 — 3000+, Colony3 — 3500+ и далее
+        // полосами по 500 вплоть до Colony6. Рейдеры
         // живут на 1000+, стартовые девушки — на 1..22: пересечений нет.
         var id = new EntityId(RuntimeColonistIdBase + (int)faction * 500 + arrival);
         if (world.Entities.Npcs.ContainsKey(id) || world.Entities.Corpses.ContainsKey(id))

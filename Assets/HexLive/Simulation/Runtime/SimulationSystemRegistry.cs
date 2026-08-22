@@ -30,6 +30,9 @@ public static class SimulationSystemRegistry
         engine.Register(new PathfindingSystem());
         engine.Register(new MovementSystem());
         engine.Register(new ExecutionSystem());
+        // §146.10: create the shore event before Perception/Rescue so the
+        // ordinary aid machinery can see the wounded castaway immediately.
+        engine.Register(new ShipwreckSurvivorSystem());
         engine.Register(new PerceptionSystem());
         engine.Register(new RescueSystem());
         // §32.15: opt-in LLM adapter. The shipped constructor is double-safe:
@@ -51,7 +54,7 @@ public static class SimulationSystemRegistry
         // a landing at a boundary joins the ordinary faction/GOAP machinery in
         // the same medium pass.
         engine.Register(new RaidWaveSystem());
-        // §115: после MobSystem (перезажечь боевую сцепку), до RaidSystem
+        // §117: после MobSystem (перезажечь боевую сцепку), до RaidSystem
         // (чтобы общая метла пар увидела живое обоснование Expel).
         engine.Register(new CampExpulsionSystem());
         // §72: AFTER MobSystem — it clears IsFighting for every NPC each medium

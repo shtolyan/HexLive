@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="GameModePanel.uss" />
+  <ui:VisualElement name="gameModePanel" class="game-mode-panel">
+    <ui:VisualElement class="game-mode-header">
+      <ui:VisualElement>
+        <ui:Label name="panelTitle" class="game-mode-kicker" />
+        <ui:Label name="panelSubtitle" class="game-mode-heading" />
+      </ui:VisualElement>
+      <ui:Button name="closeButton" text="×" class="game-mode-close" />
+    </ui:VisualElement>
+    <ui:VisualElement class="game-mode-body">
+      <ui:ScrollView name="modeList" class="game-mode-list" />
+      <ui:VisualElement class="game-mode-detail">
+        <ui:VisualElement name="modeArtwork" class="game-mode-art art-feud" />
+        <ui:Label name="modeTitle" class="game-mode-title" />
+        <ui:Label name="modeDescription" class="game-mode-description" />
+        <ui:Button name="startButton" class="game-mode-start" />
+      </ui:VisualElement>
+    </ui:VisualElement>
+  </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,180 @@
+:root {
+  --mode-panel: rgba(12, 18, 24, 0.96);
+  --mode-border: rgba(255, 255, 255, 0.14);
+  --mode-text: #e7edf2;
+  --mode-muted: #aeb9c2;
+  --mode-gold: #f0b45c;
+}
+
+.game-mode-host {
+  position: absolute;
+  left: 370px;
+  bottom: 40px;
+  width: 760px;
+  height: 560px;
+  display: none;
+}
+
+.game-mode-host.is-open {
+  display: flex;
+}
+
+.game-mode-panel {
+  flex-grow: 1;
+  padding: 22px;
+  background-color: var(--mode-panel);
+  border-left-width: 1px;
+  border-right-width: 1px;
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+  border-left-color: var(--mode-border);
+  border-right-color: var(--mode-border);
+  border-top-color: var(--mode-border);
+  border-bottom-color: var(--mode-border);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
+.game-mode-header {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.game-mode-kicker {
+  color: var(--mode-gold);
+  font-size: 12px;
+  -unity-font-style: bold;
+  letter-spacing: 2px;
+}
+
+.game-mode-heading {
+  color: var(--mode-text);
+  font-size: 25px;
+  -unity-font-style: bold;
+  margin-top: 3px;
+}
+
+.game-mode-close {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  font-size: 27px;
+  color: var(--mode-muted);
+  background-color: rgba(255, 255, 255, 0.06);
+  border-left-width: 0;
+  border-right-width: 0;
+  border-top-width: 0;
+  border-bottom-width: 0;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.game-mode-close:hover {
+  color: var(--mode-text);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.game-mode-body {
+  flex-grow: 1;
+  flex-direction: row;
+}
+
+.game-mode-list {
+  width: 245px;
+  margin-right: 18px;
+}
+
+.game-mode-button {
+  height: 72px;
+  margin-bottom: 9px;
+  padding-left: 15px;
+  padding-right: 12px;
+  color: var(--mode-text);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-left-width: 2px;
+  border-right-width: 0;
+  border-top-width: 0;
+  border-bottom-width: 0;
+  border-left-color: transparent;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  -unity-text-align: middle-left;
+  white-space: normal;
+}
+
+.game-mode-button:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+.game-mode-button.is-selected {
+  color: var(--mode-gold);
+  background-color: rgba(240, 180, 92, 0.12);
+  border-left-color: var(--mode-gold);
+}
+
+.game-mode-detail {
+  flex-grow: 1;
+}
+
+.game-mode-art {
+  height: 245px;
+  margin-bottom: 16px;
+  background-color: #1a2630;
+  -unity-background-scale-mode: scale-and-crop;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+.art-feud,
+.art-bigisland {
+  background-image: url("project://database/Assets/Resources/HexLive/UI/loading_island.png");
+}
+
+.art-hugeisland {
+  background-image: url("project://database/Assets/Resources/HexLive/UI/mode_huge_island.png");
+}
+
+.game-mode-title {
+  color: var(--mode-text);
+  font-size: 23px;
+  -unity-font-style: bold;
+  margin-bottom: 8px;
+}
+
+.game-mode-description {
+  flex-grow: 1;
+  color: var(--mode-muted);
+  font-size: 14px;
+  white-space: normal;
+}
+
+.game-mode-start {
+  height: 48px;
+  margin-top: 14px;
+  color: #17130e;
+  font-size: 16px;
+  -unity-font-style: bold;
+  background-color: var(--mode-gold);
+  border-left-width: 0;
+  border-right-width: 0;
+  border-top-width: 0;
+  border-bottom-width: 0;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.game-mode-start:hover {
+  background-color: #f5c478;
+}

@@ -166,6 +166,8 @@ public static class GameEventTypes
         // тикает каждый медленный тик и залил бы историю.
         "Collapsed",
         "Rescued",
+        "ShipwreckSurvivorAppeared",
+        "ShipwreckSurvivorJoined",
 
         // Distress
         "DireStraits",

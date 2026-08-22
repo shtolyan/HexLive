@@ -23986,6 +23986,62 @@ MonoBehaviour:
       - 'Выживание на большом острове'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.newgame.mode.panel.kicker'
+      TermType: 0
+      Description:
+      Languages:
+      - 'NEW GAME'
+      - 'НОВАЯ ИГРА'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.panel.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose a game mode'
+      - 'Выберите режим игры'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.feud.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The classic island: one colony, an established home and hostile outsiders.'
+      - 'Классический остров: одна колония, готовый дом и враждебные чужаки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.bigisland.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Three mutually hostile camps with two women each, dense forests and no outsiders.'
+      - 'Три враждебных друг другу лагеря по две девушки, густые леса и никаких чужаков.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.hugeisland'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Huge island: six camps'
+      - 'Огромный остров: шесть лагерей'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.hugeisland.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Six mutually hostile solo camps, one central outsider camp, frequent arrivals, clothing scattered across the island and a wounded shipwreck survivor who can be saved.'
+      - 'Шесть враждебных друг другу одиночных лагерей, центральная стоянка чужаков, регулярные прибытия, одежда по всему острову и раненая потерпевшая, которую можно спасти.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.start'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Start new game'
+      - 'Начать новую игру'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

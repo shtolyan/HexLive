@@ -139,9 +139,14 @@ public static class WorldSaveSerializer
         // §146.2 (v51): режим и ревизия worldgen'а — вторая половина ключа
         // «на какой геометрии написан этот блоб» (первая — сид).
         w.Write((int)world.Mode);
-        w.Write(world.Mode == Bootstrap.GameMode.BigIsland
-            ? Bootstrap.PrototypeWorldDefinitionFactory.BigIslandWorldGenRevision
-            : 0);
+        w.Write(world.Mode switch
+        {
+            Bootstrap.GameMode.BigIsland =>
+                Bootstrap.PrototypeWorldDefinitionFactory.BigIslandWorldGenRevision,
+            Bootstrap.GameMode.HugeIsland =>
+                Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
+            _ => 0
+        });
         w.Write(world.Tick);
         w.Write(world.NextRuntimeObjectId);
         w.Write(world.RaftProgress);
@@ -420,9 +425,14 @@ public static class WorldSaveSerializer
         if (version >= 51)
         {
             var revision = r.ReadInt32();
-            var expected = world.Mode == Bootstrap.GameMode.BigIsland
-                ? Bootstrap.PrototypeWorldDefinitionFactory.BigIslandWorldGenRevision
-                : 0;
+            var expected = world.Mode switch
+            {
+                Bootstrap.GameMode.BigIsland =>
+                    Bootstrap.PrototypeWorldDefinitionFactory.BigIslandWorldGenRevision,
+                Bootstrap.GameMode.HugeIsland =>
+                    Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
+                _ => 0
+            };
             if (revision != expected)
             {
                 throw new InvalidDataException(

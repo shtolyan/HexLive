@@ -310,7 +310,7 @@ public sealed class NPCMind
     // обнуляется, недоигранной драке взяться неоткуда.
     public int TerritoryCooldownUntilTick { get; set; }
 
-    // §115: transient-сцена выгона; Expel при сохранении сбрасывается.
+    // §117: transient-сцена выгона; Expel при сохранении сбрасывается.
     public HexLive.Simulation.Common.EntityId? ExpulsionTargetNpcId { get; set; }
 
     public HexLive.Simulation.Common.EntityId? PendingExpulsionFrom { get; set; }
@@ -613,7 +613,7 @@ public enum GoalType
     // не трогал. Дописана в конец — сейв хранит цели ординалом.
     LootHelpless,
 
-    // §115: прогнать враждебного NPC из своего лагеря. Append-only: сейв хранит ординал.
+    // §117: прогнать враждебного NPC из своего лагеря. Append-only: сейв хранит ординал.
     Expel,
 
     // §116 append-only: rescue/medical intent and craft outputs.

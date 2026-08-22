@@ -192,7 +192,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
-            // §115: expulsion is an authored two-person scene.  The scene
+            // §117: expulsion is an authored two-person scene.  The scene
             // system assigns it outside the auction and owns its approach,
             // demand and possible fight until Finish clears the state.  Letting
             // the ordinary scores run in the one-tick gap before its plan was

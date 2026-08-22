@@ -97,7 +97,7 @@ public sealed class WorldStateFactory
         // §146.5: на большом острове ни одной готовой постройки — только
         // редактируемый чертёж Hut1Hex у каждого лагеря. ДО SeedHomeKnowledge:
         // сайт в 2-4 гексах от костра попадает в стартовую память лагеря.
-        if (world.Mode == GameMode.BigIsland)
+        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland)
         {
             BuildingBootstrap.StakeCampHutPlans(world);
         }
@@ -225,6 +225,18 @@ public sealed class WorldStateFactory
             Wear(npc, startBriefs, MathUtil.Hash01(world.Seed, id, 11, 4201));
             Wear(npc, startBras, MathUtil.Hash01(world.Seed, id, 13, 4203));
 
+            // §146.9: the HugeIsland opening is deliberately harsher than the
+            // shared castaway baseline. The complete outfit is exactly one
+            // random bra, one random pair of panties and one real backpack;
+            // every outer garment and every tool has to be found in the world.
+            if (world.Mode == GameMode.HugeIsland)
+            {
+                Wear(npc, startBackpacks, MathUtil.Hash01(world.Seed, id, 18, 4208));
+                Runtime.EquipmentMath.StripConflictingWorn(world, npc);
+                Runtime.EquipmentMath.Recalculate(world, npc);
+                continue;
+            }
+
             if (MathUtil.Hash01(world.Seed, id, 14, 4204) < 0.5f)
             {
                 Wear(npc, startShorts, MathUtil.Hash01(world.Seed, id, 15, 4205));
@@ -246,7 +258,160 @@ public sealed class WorldStateFactory
             Runtime.EquipmentMath.Recalculate(world, npc);
         }
 
+        if (world.Mode == GameMode.HugeIsland)
+        {
+            SeedHugeIslandGarments(world);
+        }
+
         return world;
+    }
+
+    // §146.9: 132 real garment objects. Every one of the six girl camps gets
+    // pants, footwear and ten varied pieces in rings 1..6; sixty more reward
+    // longer trips through the interior. The §63 surf gift remains unchanged
+    // and adds fresh wet clothing every fifth visible day.
+    private static void SeedHugeIslandGarments(WorldState world)
+    {
+        var wardrobe = new List<GarmentParams>();
+        var pants = new List<GarmentParams>();
+        var footwear = new List<GarmentParams>();
+        foreach (var garment in GarmentLibrary.Active)
+        {
+            if (garment == null || garment.Sex == GarmentSex.Male ||
+                garment.Category is GarmentCategory.Underwear or GarmentCategory.Bag)
+            {
+                continue;
+            }
+
+            wardrobe.Add(garment);
+            if (BuildingBootstrap.IsStarterWardrobePants(garment)) pants.Add(garment);
+            if (BuildingBootstrap.IsStarterWardrobeBoots(garment)) footwear.Add(garment);
+        }
+
+        wardrobe.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+        pants.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+        footwear.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+        if (wardrobe.Count == 0)
+        {
+            return;
+        }
+
+        var camps = new List<(Faction faction, TileCoord home)>();
+        foreach (var pair in world.FactionHomes)
+        {
+            if (FactionRelations.IsColonyKind(pair.Key) && pair.Key != Faction.Castaway)
+            {
+                camps.Add((pair.Key, pair.Value));
+            }
+        }
+        camps.Sort((a, b) => ((int)a.faction).CompareTo((int)b.faction));
+
+        var allPoints = new List<(TileCoord tile, JunctionId junction, FragmentId fragment)>();
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                SpatialQueries.IsAllWaterJunction(world, junction.Id) ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id))
+            {
+                continue;
+            }
+
+            TileCoord? dry = null;
+            foreach (var tileCoord in junction.Tiles)
+            {
+                if (world.Tiles.Items.TryGetValue(tileCoord, out var tileState) &&
+                    tileState.Flags.HasFlag(TileFlags.Walkable) &&
+                    !tileState.Flags.HasFlag(TileFlags.Water) &&
+                    !tileState.Flags.HasFlag(TileFlags.Blocked))
+                {
+                    dry = tileCoord;
+                    break;
+                }
+            }
+
+            if (dry is { } tile)
+            {
+                allPoints.Add((tile, junction.Id, junction.Fragment));
+            }
+        }
+        allPoints.Sort((a, b) => a.junction.Value.CompareTo(b.junction.Value));
+
+        void Drop(
+            List<(TileCoord tile, JunctionId junction, FragmentId fragment)> pool,
+            GarmentParams garment, int salt)
+        {
+            if (pool.Count == 0 || garment == null)
+            {
+                return;
+            }
+
+            var pick = (int)(MathUtil.Hash01(world.Seed, pool.Count, salt, 14661) * pool.Count);
+            pick = Math.Min(pool.Count - 1, pick);
+            var point = pool[pick];
+            pool.RemoveAt(pick);
+            allPoints.RemoveAll(candidate => candidate.junction == point.junction);
+
+            var spawned = WorldObjectMutations.SpawnObject(
+                world, garment.Id, point.fragment, point.tile, point.junction);
+            spawned.Durability = 0.65f + 0.30f *
+                MathUtil.Hash01(world.Seed, salt, point.junction.Value, 14663);
+            spawned.Dirtiness = 0.05f + 0.20f *
+                MathUtil.Hash01(world.Seed, salt, point.junction.Value, 14665);
+            spawned.Wetness = 0.10f *
+                MathUtil.Hash01(world.Seed, salt, point.junction.Value, 14667);
+        }
+
+        for (var campIndex = 0; campIndex < camps.Count; campIndex++)
+        {
+            var home = camps[campIndex].home;
+            var usedGarments = new HashSet<string>();
+            var near = allPoints.FindAll(point =>
+            {
+                var distance = HexSpatialMath.HexDistance(point.tile, home);
+                return distance is >= 1 and <= 6;
+            });
+
+            if (pants.Count > 0)
+            {
+                var garment = pants[(int)(MathUtil.Hash01(
+                    world.Seed, campIndex, pants.Count, 14651) * pants.Count) % pants.Count];
+                usedGarments.Add(garment.Id);
+                Drop(near, garment, 14670 + campIndex * 100);
+            }
+            if (footwear.Count > 0)
+            {
+                var garment = footwear[(int)(MathUtil.Hash01(
+                    world.Seed, campIndex, footwear.Count, 14653) * footwear.Count) % footwear.Count];
+                usedGarments.Add(garment.Id);
+                Drop(near, garment, 14671 + campIndex * 100);
+            }
+
+            var varied = wardrobe.FindAll(garment => !usedGarments.Contains(garment.Id));
+            for (var i = 0; i < 10 && near.Count > 0 && varied.Count > 0; i++)
+            {
+                var pick = (int)(MathUtil.Hash01(
+                    world.Seed, campIndex, i, 14655) * varied.Count) % varied.Count;
+                var garment = varied[pick];
+                varied.RemoveAt(pick);
+                Drop(near, garment, 14672 + campIndex * 100 + i);
+            }
+        }
+
+        var far = allPoints.FindAll(point =>
+        {
+            var nearest = int.MaxValue;
+            foreach (var camp in camps)
+            {
+                nearest = Math.Min(nearest, HexSpatialMath.HexDistance(point.tile, camp.home));
+            }
+            return nearest >= 7;
+        });
+        for (var i = 0; i < 60 && far.Count > 0; i++)
+        {
+            var garment = wardrobe[(int)(MathUtil.Hash01(
+                world.Seed, i, wardrobe.Count, 14657) * wardrobe.Count) % wardrobe.Count];
+            Drop(far, garment, 15200 + i);
+        }
     }
 
     // Один пул стартовой одежды: всё женское из ЖИВОГО гардероба, что подходит
@@ -850,7 +1015,7 @@ public sealed class WorldStateFactory
         // §146.4: пролив и второй островок — деталь острова Feud; его рамка
         // считается от Feud-констант MaxQ/MaxR и на другой карте не значит
         // ничего.
-        if (world.Mode == GameMode.BigIsland)
+        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland)
         {
             return;
         }
@@ -1098,35 +1263,31 @@ public sealed class WorldStateFactory
         TraitMath.Roll(npc, world.Seed, bootstrap.Id);
         ApplyTraitOverrides(npc, bootstrap);
 
-        // Spec 29H: everyone carries a personal water bottle (starts empty) — the
-        // only starting kit. §54 cold start: the spear is no longer handed out,
-        // it must be crafted (1 stick at the fire), like every other tool.
-        npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
-
-        // §40.3 / §44: the starting first-aid reserve is real cargo. Every
-        // dressing remains a separate instance, while identical wraps share a
-        // visible ten-item stack (medkit gauzes first, then herbal wraps).
-        //
-        // ⭐ §139.5: запас УДВОЕН, 4 -> 8 повязок и 1 -> 2 таблетки. Основная
-        // причина смерти колонистки за первые сутки — BledOut, и разбор смертей
-        // показал, что умирают они С ПУСТОЙ аптечкой: у Лены в инвентаре к
-        // концу остались бутылка, копьё, кирка, нож, молоток, пила и зажигалка,
-        // а бинтов — ни одного. Значит упирались не в решение «перевязаться», а
-        // в наличие. Повязки СТАКУЮТСЯ (одна ячейка на десяток), поэтому
-        // удвоение почти ничего не стоит по слотам — то есть не приближает
-        // §52-дедлок «полный рюкзак», которым уже отравлены походы за водой.
-        for (var i = 0; i < 4; i++)
+        // §146.9: the six HugeIsland starters receive no hidden cargo. Their
+        // complete kit is the worn bra + panties + backpack installed later;
+        // bottles, medicine, tools and outer clothing are world loot. Every
+        // other mode keeps the established survival reserve byte-for-byte.
+        var nakedHugeStarter = world.Mode == GameMode.HugeIsland &&
+            Runtime.FactionRelations.IsColonyKind(bootstrap.Faction);
+        if (!nakedHugeStarter)
         {
-            npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: false));
-        }
+            // Spec 29H: everyone carries a personal empty water bottle.
+            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
 
-        for (var i = 0; i < 4; i++)
-        {
-            npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: true));
-        }
+            // §40.3 / §44 / §139.5: eight bandages and two pills.
+            for (var i = 0; i < 4; i++)
+            {
+                npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: false));
+            }
 
-        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
-        npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
+            for (var i = 0; i < 4; i++)
+            {
+                npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: true));
+            }
+
+            npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
+            npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
+        }
 
         // §72 / §79: the authored opening outsider keeps his established
         // machete+knife loadout. §72.14 treats recurring arrivals as their own

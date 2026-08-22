@@ -975,7 +975,7 @@ public sealed class RaidSystem : ISimulationSystem
         }
     }
 
-    // Общий вход в налёт; §115 использует его, если проигравшему некуда бежать.
+    // Общий вход в налёт; §117 использует его, если проигравшему некуда бежать.
     internal static void StartRaidOn(WorldState world, NPCState raider, NPCState victim, string why)
     {
         // §121: ручной сам на охоту не выходит.

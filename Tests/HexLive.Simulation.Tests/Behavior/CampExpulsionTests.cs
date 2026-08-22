@@ -10,7 +10,7 @@ using NUnit.Framework;
 namespace HexLive.Simulation.Tests.Behavior
 {
 
-/// <summary>§115: требование, ответ и исход драки за лагерь.</summary>
+/// <summary>§117: требование, оценка риска и исход драки за лагерь.</summary>
 public sealed class CampExpulsionTests
 {
     private static (WorldState world, NPCState colonist, NPCState outsider) Pair()
@@ -143,6 +143,36 @@ public sealed class CampExpulsionTests
     }
 
     [Test]
+    public void ChallengedNpcUsesTheSameForceFormulaToChoosePeaceOrDamageRisk()
+    {
+        var (world, owner, intruder) = Pair();
+        owner.Inventory.Items.Clear();
+        intruder.Inventory.Items.Clear();
+        owner.Health = intruder.Health = 1f;
+        owner.EquippedArmor = intruder.EquippedArmor = 0f;
+        owner.Attributes.Strength = intruder.Attributes.Strength = 0.5f;
+        owner.Skills.Combat = intruder.Skills.Combat = 0f;
+
+        owner.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
+        Assert.Multiple(() =>
+        {
+            Assert.That(CampExpulsionSystem.StandGroundForceRatio(world, owner, intruder),
+                Is.LessThan(Spec82.TerritoryStandGroundForceRatio));
+            Assert.That(CampExpulsionSystem.ShouldSubmitToExpulsion(world, owner, intruder),
+                Is.True, "Безоружная против мачете должна предпочесть спокойный уход.");
+        });
+
+        intruder.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
+        Assert.Multiple(() =>
+        {
+            Assert.That(CampExpulsionSystem.StandGroundForceRatio(world, owner, intruder),
+                Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(CampExpulsionSystem.ShouldSubmitToExpulsion(world, owner, intruder),
+                Is.False, "Равный расклад должен допускать враждебный отказ и драку.");
+        });
+    }
+
+    [Test]
     public void WorseOddsDoNotClaimIntruderOrStartFight()
     {
         var (world, owner, intruder) = Pair();
@@ -234,11 +264,14 @@ public sealed class CampExpulsionTests
     }
 
     [Test]
-    public void ExactlyHalfHealthRefusesAndStartsThreeBlowFight()
+    public void EqualForceRefusesAndStartsThreeBlowFight()
     {
         var (world, owner, intruder) = Pair();
         PutAtCamp(world, owner, intruder);
-        intruder.Health = 0.5f;
+        owner.Health = intruder.Health = 0.5f;
+        owner.Attributes.Strength = intruder.Attributes.Strength = 0.5f;
+        owner.Skills.Combat = intruder.Skills.Combat = 0f;
+        intruder.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
         CampExpulsionSystem.BeginChallenge(world, owner, intruder);
         owner.Mind.ExpulsionPhase = 1;
         owner.Mind.ExpulsionPhaseStartedTick = world.Tick - Spec82.TerritoryResponseDelayTicks;
@@ -250,6 +283,55 @@ public sealed class CampExpulsionTests
         Assert.That(owner.Mind.SceneBlowsPlanned, Is.EqualTo(3));
         Assert.That(owner.Mind.CombatOpponentNpcId, Is.EqualTo(intruder.Id));
         Assert.That(intruder.Mind.CombatOpponentNpcId, Is.EqualTo(owner.Id));
+    }
+
+    [Test]
+    public void DifferentGirlCampsAreHostileAndRefusalEscalatesToRealFight()
+    {
+        var (world, owner, intruder) = Pair();
+        intruder.Faction = Faction.Colony2;
+        world.FactionHomes[Faction.Colony2] = world.FactionHomes[Faction.Outsiders];
+        PutAtCamp(world, owner, intruder);
+        owner.Attributes.Strength = intruder.Attributes.Strength = 0.5f;
+        owner.Skills.Combat = intruder.Skills.Combat = 0f;
+        intruder.Inventory.Items.Add(new ItemInstance(GearCatalog.Machete));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(FactionRelations.AreAllies(owner, intruder), Is.False);
+            Assert.That(FactionRelations.AreHostile(owner, intruder), Is.True);
+        });
+
+        CampExpulsionSystem.BeginChallenge(world, owner, intruder);
+        owner.Mind.ExpulsionPhase = 1;
+        owner.Mind.ExpulsionPhaseStartedTick =
+            world.Tick - Spec82.TerritoryResponseDelayTicks;
+        intruder.Mind.CurrentGoal = GoalType.Expel;
+
+        CampExpulsionSystem.AdvanceDemand(world, owner, intruder);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(owner.Mind.ExpulsionPhase, Is.EqualTo(2));
+            Assert.That(owner.Mind.SceneBlowsPlanned, Is.EqualTo(3));
+            Assert.That(owner.Mind.CombatOpponentNpcId, Is.EqualTo(intruder.Id));
+            Assert.That(intruder.Mind.CombatOpponentNpcId, Is.EqualTo(owner.Id));
+            Assert.That(owner.IsFighting, Is.True);
+            Assert.That(intruder.IsFighting, Is.True);
+        });
+
+        var ownerHealth = owner.Health;
+        var intruderHealth = intruder.Health;
+        var combat = new HumanCombatSystem();
+        for (var tick = 0; tick < 120 &&
+             owner.Health >= ownerHealth && intruder.Health >= intruderHealth; tick++)
+        {
+            world.Tick++;
+            combat.Run(world);
+        }
+
+        Assert.That(owner.Health < ownerHealth || intruder.Health < intruderHealth,
+            Is.True, "Отказ соседнего лагеря должен перейти не во флаг, а в реальный урон.");
     }
 
     [Test]

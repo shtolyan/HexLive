@@ -368,6 +368,11 @@ public sealed class ServerOptions
             case "1":
                 mode = GameMode.BigIsland;
                 return true;
+            case "hugeisland":
+            case "huge-island":
+            case "2":
+                mode = GameMode.HugeIsland;
+                return true;
             default:
                 mode = GameMode.Feud;
                 return false;
@@ -499,7 +504,7 @@ public sealed class ServerOptions
                     if (!TryParseMode(args[++i], out var mode))
                     {
                         Console.Error.WriteLine(
-                            $"Unknown mode '{args[i]}' — feud or bigisland.");
+                            $"Unknown mode '{args[i]}' — feud, bigisland or hugeisland.");
                         return null;
                     }
                     options.Mode = mode;
@@ -560,7 +565,7 @@ public sealed class ServerOptions
                     Console.WriteLine(
                         "HexLive server\n" +
                         "  --seed N         world seed (default 12345)\n" +
-                        "  --mode NAME      game mode for a fresh world: feud | bigisland (default feud)\n" +
+                        "  --mode NAME      fresh world mode: feud | bigisland | hugeisland (default feud)\n" +
                         "  --port N         listen port (default 5123)\n" +
                         "  --save PATH      save file (default hexlive-server.sav)\n" +
                         "  --simdata PATH   exported catalogs (default SimData/simdata.json)\n" +

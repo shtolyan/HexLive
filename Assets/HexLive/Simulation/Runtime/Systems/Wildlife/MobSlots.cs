@@ -18,20 +18,26 @@ internal static class MobSlots
 
     // §146.6-парные ручки: селекторы по режиму мира (0 = механика выключена,
     // работает старый амбиентный спавнер).
-    internal static int WolfSlotsFor(HexLive.Simulation.Bootstrap.GameMode mode) =>
-        mode == HexLive.Simulation.Bootstrap.GameMode.BigIsland
-            ? WildlifeBalance.BigIslandWolfSlots
-            : WildlifeBalance.WolfSlots;
+    internal static int WolfSlotsFor(HexLive.Simulation.Bootstrap.GameMode mode) => mode switch
+    {
+        HexLive.Simulation.Bootstrap.GameMode.BigIsland => WildlifeBalance.BigIslandWolfSlots,
+        HexLive.Simulation.Bootstrap.GameMode.HugeIsland => WildlifeBalance.HugeIslandWolfSlots,
+        _ => WildlifeBalance.WolfSlots
+    };
 
-    internal static int CrabSlotsFor(HexLive.Simulation.Bootstrap.GameMode mode) =>
-        mode == HexLive.Simulation.Bootstrap.GameMode.BigIsland
-            ? WildlifeBalance.BigIslandCrabSlots
-            : WildlifeBalance.CrabSlots;
+    internal static int CrabSlotsFor(HexLive.Simulation.Bootstrap.GameMode mode) => mode switch
+    {
+        HexLive.Simulation.Bootstrap.GameMode.BigIsland => WildlifeBalance.BigIslandCrabSlots,
+        HexLive.Simulation.Bootstrap.GameMode.HugeIsland => WildlifeBalance.HugeIslandCrabSlots,
+        _ => WildlifeBalance.CrabSlots
+    };
 
-    internal static int SharkSlotsFor(HexLive.Simulation.Bootstrap.GameMode mode) =>
-        mode == HexLive.Simulation.Bootstrap.GameMode.BigIsland
-            ? WildlifeBalance.BigIslandSharkSlots
-            : WildlifeBalance.SharkSlots;
+    internal static int SharkSlotsFor(HexLive.Simulation.Bootstrap.GameMode mode) => mode switch
+    {
+        HexLive.Simulation.Bootstrap.GameMode.BigIsland => WildlifeBalance.BigIslandSharkSlots,
+        HexLive.Simulation.Bootstrap.GameMode.HugeIsland => WildlifeBalance.HugeIslandSharkSlots,
+        _ => WildlifeBalance.SharkSlots
+    };
 
     // ── Генерация ────────────────────────────────────────────────────────
 

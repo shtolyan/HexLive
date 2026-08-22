@@ -109,7 +109,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                        (gj.Equals(huntedJunction) ||
                         IsAdjacentJunction(world, gj, huntedJunction))));
 
-                // §115: do not re-path on EVERY single junction crossed by a
+                // §117: do not re-path on EVERY single junction crossed by a
                 // walking intruder. Seed 632 rebuilt Expel 20 times in 96
                 // ticks, repeatedly discarding a viable route. The scene
                 // itself detects striking range; an active route only becomes

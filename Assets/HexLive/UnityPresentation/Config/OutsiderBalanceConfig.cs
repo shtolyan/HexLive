@@ -235,8 +235,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 12)] public int territoryRadiusTiles = 5;
         [Tooltip("Пауза между выгонами, чтобы не молотил одну и ту же без передышки.")]
         [Range(0, 2400)] public int territoryCooldownTicks = 300;
-        [Tooltip("Ниже этой доли здоровья чужак соглашается уйти; ровно на пороге отказывается.")]
-        [Range(0f, 1f)] public float territorySubmitHealth = 0.5f;
+        [Tooltip("§117: минимальное отношение Force(чужака)/Force(хозяина), при котором чужак рискует дракой. Ниже — уходит, если есть путь домой.")]
+        [Range(0f, 1f)] public float territoryStandGroundForceRatio = 0.8f;
         [Tooltip("Пауза между требованием и ответом.")]
         [Range(0, 120)] public int territoryResponseDelayTicks = 8;
         [Tooltip("Сколько ударов хозяин объявляет в сцене.")]

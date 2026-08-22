@@ -6,7 +6,7 @@ using HexLive.Simulation.Spatial;
 namespace HexLive.Simulation.Runtime
 {
 
-// §115: план только подводит хозяина к чужаку. Реплика, выбор и бой
+// §117: план только подводит хозяина к чужаку. Реплика, выбор и бой
 // принадлежат CampExpulsionSystem. TargetAgentId намеренно пуст:
 // общий ExecutionSystem иначе примет это за приглашение поговорить.
 public sealed partial class PlanningSystem

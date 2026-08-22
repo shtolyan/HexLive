@@ -21,13 +21,24 @@ public enum Faction
     // The hostile survivor(s) camped on the far side of the island.
     Outsiders = 1,
 
-    // §146: the two rival girl camps of the big-island mode. Colony-KIND
-    // (female roster, no raids, §53 compassion band), but not allies of the
-    // player's camp: no shared beds/sites/help, expulsion applies, no combat.
-    // Only worldgen for GameMode.BigIsland ever assigns these.
+    // §146: the other hostile girl camps of the large-island modes. Colony-KIND
+    // (female roster, no Outsider waves, §53 compassion band), but enemies of
+    // the player's camp: no shared beds/sites/help, expulsion may become combat.
+    // Worldgen for BigIsland and HugeIsland assigns these.
     Colony2 = 2,
 
-    Colony3 = 3
+    Colony3 = 3,
+
+    // §146.9: three more independent hostile girl camps on HugeIsland. They
+    // keep the same relation as Colony2/3: allies only inside their own camp.
+    Colony4 = 4,
+    Colony5 = 5,
+    Colony6 = 6,
+
+    // §146.10: a wounded woman washed ashore near the player's camp. Colony
+    // treats her as an aid/rescue ally, but she is not player-controlled until
+    // food, water and treatment bring her above the recruitment thresholds.
+    Castaway = 7
 }
 
 }

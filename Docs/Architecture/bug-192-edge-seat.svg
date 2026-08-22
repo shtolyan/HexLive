@@ -8,7 +8,7 @@
   <text class="title" x="42" y="52">Баг #192: допустимая геометрия сидения на кромке</text>
 
   <rect class="panel" x="35" y="82" width="500" height="465" rx="22"/>
-  <text class="head" x="62" y="122">До: неоднозначная вершина принималась</text>
+  <text class="head" x="62" y="122">До: выбиралась пара e2/e0</text>
   <polygon class="e2" points="215,175 297,222 297,317 215,364 133,317 133,222"/>
   <polygon class="e1" points="379,270 461,317 461,412 379,459 297,412 297,317"/>
   <polygon class="e0" points="215,365 297,412 297,507 215,554 133,507 133,412"/>
@@ -18,21 +18,23 @@
   <circle class="bad" cx="297" cy="317" r="15"/>
   <line class="cross" x1="270" y1="290" x2="324" y2="344"/>
   <line class="cross" x1="324" y1="290" x2="270" y2="344"/>
-  <text class="text" x="62" y="585">Один junction касается e0/e1/e2: перепад 2 ступени.</text>
-  <text class="text" x="62" y="613">Перенос тела безопасно отменялся, но Sit уже начинался.</text>
+  <text class="text" x="62" y="585">Один junction касается e0/e1/e2: есть две пары.</text>
+  <text class="text" x="62" y="613">Пара e2/e0 оставляла первую позу на нижнем гексе.</text>
 
   <rect class="panel" x="565" y="82" width="500" height="465" rx="22"/>
-  <text class="head" x="592" y="122">После: только чистая кромка в одну ступень</text>
+  <text class="head" x="592" y="122">После: выбирается верх пары e2/e1</text>
   <polygon class="e2" points="750,175 832,222 832,317 750,364 668,317 668,222"/>
   <polygon class="e1" points="914,270 996,317 996,412 914,459 832,412 832,317"/>
+  <polygon class="e0" points="750,365 832,412 832,507 750,554 668,507 668,412"/>
   <text class="head" x="735" y="278">e2</text>
   <text class="head" x="899" y="373">e1</text>
+  <text class="head" x="735" y="468">e0</text>
   <line class="seat" x1="822" y1="307" x2="842" y2="327"/>
   <circle class="good" cx="832" cy="317" r="15"/>
   <text class="mono" x="650" y="485">standTile = e2</text>
   <text class="mono" x="650" y="515">facing → e1</text>
-  <text class="text" x="592" y="585">План, исполнение и snapshot используют один предикат.</text>
-  <text class="text" x="592" y="613">Неверная кромка отбрасывается до начала взаимодействия.</text>
+  <text class="text" x="592" y="585">Допустима только пара с Δe = 1; опора всегда e2.</text>
+  <text class="text" x="592" y="613">Snapshot поднимает первую позу до верхнего гекса.</text>
 
   <text class="mono" x="42" y="642">HexRadius = 1.5 wu · ElevationStep = 0.55 wu · допустимый Δe = ровно 1</text>
 </svg>

@@ -9,7 +9,7 @@ namespace HexLive.Simulation.Tests.Behavior;
 public sealed class EdgeSeatGeometryTests
 {
     [Test]
-    public void LandSeatRequiresOneUnambiguousElevationStep_Bug192()
+    public void LandSeatChoosesUpperTileOfOneStepPairAtThreeLevelJunction_Bug192()
     {
         var world = TestWorld.CreateWorld();
         world.Tiles.Items.Clear();
@@ -42,14 +42,19 @@ public sealed class EdgeSeatGeometryTests
             Assert.That(HexSpatialMath.Distance(facing, Float2.Zero), Is.GreaterThan(0f));
         });
 
-        // A three-level vertex contains a tempting e2/e1 pair, but the same
-        // physical point also touches e0. Starting Sit there used to leave the
-        // first pose on the low side when PlaceAtEdge rejected the 2-step snap.
+        // A three-level vertex contains both e2/e1 (valid) and e2/e0 (invalid)
+        // pairs. The vertex remains usable, but its seat must be the high side
+        // of the one-step pair so the first rendered pose rises to e2.
         AddTile(world, thirdLevel, elevation: 0, junctionId);
         junction.Tiles.Add(thirdLevel);
 
         Assert.That(PlanningSystem.TryGetEdgeSeatGeometry(
-            world, junction, waterOnly: false, out _, out _), Is.False);
+            world, junction, waterOnly: false, out standTile, out facing), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(standTile, Is.EqualTo(high));
+            Assert.That(HexSpatialMath.Distance(facing, Float2.Zero), Is.GreaterThan(0f));
+        });
     }
 
     private static void AddTile(

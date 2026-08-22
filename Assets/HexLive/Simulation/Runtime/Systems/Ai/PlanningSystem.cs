@@ -1666,33 +1666,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
             return false;
         }
 
-        // §31C / bug #192: a land seat is one clean one-step edge. A vertex
-        // shared by e0/e1/e2 used to pass because it contained at least one
-        // high/low pair; PlaceAtEdge then correctly refused to teleport the
-        // sitter across the two-step side, but the Sit interaction still
-        // started and left her half buried on the lower tile. Reject the whole
-        // ambiguous vertex so planning and placement ask the same question.
-        if (!waterOnly)
-        {
-            var minElevation = int.MaxValue;
-            var maxElevation = int.MinValue;
-            foreach (var coord in junction.Tiles)
-            {
-                if (!world.Tiles.Items.TryGetValue(coord, out var tile))
-                {
-                    continue;
-                }
-
-                minElevation = System.Math.Min(minElevation, tile.Elevation);
-                maxElevation = System.Math.Max(maxElevation, tile.Elevation);
-            }
-
-            if (minElevation == int.MaxValue || maxElevation - minElevation != 1)
-            {
-                return false;
-            }
-        }
-
         Tile high = null;
         Tile low = null;
         var bestPairDistance = float.MaxValue;
@@ -1726,6 +1699,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
                 else
                 {
+                    // §31C / bug #192 rework: a junction may touch e0/e1/e2,
+                    // but the seat is still the clean one-step e2/e1 EDGE at
+                    // that point. Never choose the tempting e2/e0 pair; its
+                    // two-step height made the first pose depend on which tile
+                    // the path happened to leave under the actor. Returning
+                    // pairHigh also makes the snapshot lift the pose to e2.
                     if (a.Elevation <= b.Elevation ||
                         !a.Flags.HasFlag(TileFlags.Walkable) ||
                         a.Elevation - b.Elevation != 1)

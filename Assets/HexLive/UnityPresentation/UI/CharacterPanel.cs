@@ -7,6 +7,7 @@ using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -27,6 +28,7 @@ namespace HexLive.UnityPresentation.UI
     public sealed partial class CharacterPanel : MonoBehaviour
     {
         [SerializeField] private SimulationRunnerBehaviour _runner;
+        private HexWorldRenderer _worldRenderer;
 
         [Tooltip("Extra UI scale on top of the 1080p reference. 1 = design size.")]
         [SerializeField] private float _uiScale = 1f;
@@ -5675,6 +5677,13 @@ namespace HexLive.UnityPresentation.UI
             foreach (var npc in ordered)
             {
                 if (npc.Health <= 0f) continue;
+                if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony)
+                {
+                    _worldRenderer ??= FindAnyObjectByType<HexWorldRenderer>();
+                    if (_worldRenderer == null ||
+                        !_worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, false))
+                        continue;
+                }
                 var card = BuildRosterCard(npc);
                 if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony)
                     _clanRosterList.Add(card);

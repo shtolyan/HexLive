@@ -439,17 +439,20 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// игрока, а не цель. Один предикат на все три пути наведения (точный луч,
     /// экранный радиус, ховер), чтобы «нельзя кликнуть» нельзя было забыть в
     /// одном из них.</summary>
-    private bool CanTargetPerson(NpcSnapshot person)
+    internal bool CanTargetPerson(NpcSnapshot person)
     {
+        if (person.Faction == HexLive.Simulation.Agents.Faction.Colony)
+        {
+            return true;
+        }
+
         if (_worldRenderer == null)
         {
             _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
         }
 
-        return _worldRenderer == null ||
-            _worldRenderer.IsNpcPickable(
-                person.Id.Value, person.Tile,
-                person.Faction == HexLive.Simulation.Agents.Faction.Colony);
+        return _worldRenderer != null &&
+            _worldRenderer.IsNpcPickable(person.Id.Value, person.Tile, false);
     }
 
     private int PickMobUnderCursor(

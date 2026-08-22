@@ -136,6 +136,7 @@ namespace HexLive.UnityPresentation.Input
         private bool _rightDragging;
         private Vector2 _rightPressPosition;
         private readonly HashSet<UnityEngine.Object> _selectionInputSuppressors = new();
+        private readonly List<int> _visibleSelectionScratch = new();
 
         private Camera _camera;
         private HexWorldRenderer _worldRenderer;
@@ -348,6 +349,7 @@ namespace HexLive.UnityPresentation.Input
         private void UpdateFree()
         {
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            PruneInvisibleSelection(snapshot);
             if (_pendingFrameSelection && snapshot != null)
             {
                 _pendingFrameSelection = false;
@@ -848,7 +850,8 @@ namespace HexLive.UnityPresentation.Input
 
                 foreach (var npc in PickablePeople(snapshot))
                 {
-                    if (!_worldRenderer.TryGetActorView(npc.Id.Value, out var view) ||
+                    if (!CanTargetPerson(npc) ||
+                        !_worldRenderer.TryGetActorView(npc.Id.Value, out var view) ||
                         !view.TryRaycastVisibleGeometry(ray, nearestViewDistance, out var hitDistance))
                     {
                         continue;
@@ -875,8 +878,8 @@ namespace HexLive.UnityPresentation.Input
 
             foreach (var npc in PickablePeople(snapshot))
             {
-                if (_worldRenderer != null &&
-                    _worldRenderer.TryGetActorView(npc.Id.Value, out _))
+                if (!CanTargetPerson(npc) || (_worldRenderer != null &&
+                    _worldRenderer.TryGetActorView(npc.Id.Value, out _)))
                 {
                     continue;
                 }
@@ -940,6 +943,65 @@ namespace HexLive.UnityPresentation.Input
         {
             foreach (var npc in snapshot.Npcs) yield return npc;
             foreach (var corpse in snapshot.Corpses) yield return corpse;
+        }
+
+        private bool CanTargetPerson(NpcSnapshot person)
+        {
+            _manualInput ??= GetComponent<SimulationInputAdapter>();
+            return _manualInput != null && _manualInput.CanTargetPerson(person);
+        }
+
+        // #187: a contact leaving perception must leave selection in the same
+        // snapshot. Otherwise follow-selection and fog visibility alternate
+        // between revealing and hiding the outsider every frame.
+        private void PruneInvisibleSelection(WorldSnapshot snapshot)
+        {
+            if (snapshot == null || !NpcSelection.HasSelection)
+            {
+                return;
+            }
+
+            _visibleSelectionScratch.Clear();
+            var ids = NpcSelection.SelectedIds;
+            for (var i = 0; i < ids.Count; i++)
+            {
+                var id = ids[i];
+                var found = false;
+                foreach (var npc in snapshot.Npcs)
+                {
+                    if (npc.Id.Value != id)
+                    {
+                        continue;
+                    }
+
+                    found = CanTargetPerson(npc);
+                    break;
+                }
+
+                if (!found)
+                {
+                    foreach (var corpse in snapshot.Corpses)
+                    {
+                        if (corpse.Id.Value != id)
+                        {
+                            continue;
+                        }
+
+                        found = CanTargetPerson(corpse);
+                        break;
+                    }
+                }
+
+                if (found)
+                {
+                    _visibleSelectionScratch.Add(id);
+                }
+            }
+
+            if (_visibleSelectionScratch.Count != ids.Count)
+            {
+                NpcSelection.ReplaceMany(_visibleSelectionScratch, requestFrame: false);
+            }
         }
 
         private bool TryPickHex(
@@ -1204,6 +1266,12 @@ namespace HexLive.UnityPresentation.Input
         {
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
             if (snapshot == null)
+            {
+                return;
+            }
+
+            PruneInvisibleSelection(snapshot);
+            if (_mode != Mode.Orbit)
             {
                 return;
             }

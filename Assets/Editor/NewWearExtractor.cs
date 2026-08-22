@@ -2120,15 +2120,16 @@ public static class NewWearExtractor
 
         WriteSlotList(so.FindProperty("slots"), g.Slots);
 
-        // Исключения «бельё видно насквозь» и флаг волос ставятся ГЛАЗАМИ, в
-        // тестовой сцене, и манифест о них ничего не знает. Пересбор обязан их
-        // сохранить — ровно как сохраняет подгонку размера выше: иначе одна
-        // команда «пересобрать» молча стирает вечер работы, и понять это можно
-        // только заметив, что бельё снова спряталось.
+        // Исключения видимости белья/нижней одежды и флаг волос ставятся
+        // ГЛАЗАМИ, в тестовой сцене, и манифест о них ничего не знает. Пересбор
+        // обязан их сохранить — ровно как сохраняет подгонку размера выше:
+        // иначе одна команда «пересобрать» молча стирает вечер работы.
         var previous = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(g));
         var tunedWear = previous != null ? previous.GetComponent<Wear>() : null;
         WriteSlotList(so.FindProperty("noHideUnderwearSlots"),
             tunedWear != null ? tunedWear.NoHideUnderwearSlots.ToArray() : g.NoHide);
+        WriteSlotList(so.FindProperty("hideWearSlots"),
+            tunedWear != null ? tunedWear.HideWearSlots.ToArray() : System.Array.Empty<VisualWearSlot>());
         so.FindProperty("layer").enumValueIndex = (int)g.Layer;
         so.FindProperty("gender").enumValueIndex = (int)VisualGender.Female;
         // Явное правило манифеста сильнее сохранённой ручной настройки. Для

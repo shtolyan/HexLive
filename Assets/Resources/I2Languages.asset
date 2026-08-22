@@ -268,6 +268,14 @@ MonoBehaviour:
       - "\u0411\u0435\u043B\u044C\u0451 \u0432\u0438\u0434\u043D\u043E \u0432 \u0441\u043B\u043E\u0442\u0430\u0445:"
       Flags: 0101
       Languages_Touch: []
+    - Term: wardrobe.hides_wear
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hides clothing beneath in:'
+      - "\u0421\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u043E\u0434\u0435\u0436\u0434\u0443 \u0432 \u0441\u043B\u043E\u0442\u0430\u0445:"
+      Flags: 0101
+      Languages_Touch: []
     - Term: wardrobe.layer_underwear
       TermType: 0
       Description: 

@@ -119,6 +119,8 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private readonly Dictionary<VisualWearLayer, VisualElement> _layerButtons = new();
     private VisualElement _hidesHairToggle;
     private VisualElement _noHideRow;
+    private Label _hideWearTitle;
+    private VisualElement _hideWearRow;
     private TextField _commentField;
 
     // Заметки об осмотре. Живут рядом с манифестами поставок, а не в префабе:
@@ -1610,6 +1612,17 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _noHideRow.style.marginBottom = 6f;
         box.Add(_noHideRow);
 
+        _hideWearTitle = new Label(Loc.Get("wardrobe.hides_wear"));
+        _hideWearTitle.style.color = Muted;
+        _hideWearTitle.style.fontSize = 10;
+        box.Add(_hideWearTitle);
+
+        _hideWearRow = new VisualElement();
+        _hideWearRow.style.flexDirection = FlexDirection.Row;
+        _hideWearRow.style.flexWrap = Wrap.Wrap;
+        _hideWearRow.style.marginBottom = 6f;
+        box.Add(_hideWearRow);
+
         _commentField = new TextField { multiline = true };
         _commentField.style.marginBottom = 6f;
         _commentField.style.minHeight = 46f;
@@ -1691,6 +1704,51 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             chip.style.paddingLeft = 6f;
             chip.style.paddingRight = 6f;
             _noHideRow.Add(chip);
+        }
+    }
+
+    private void ToggleHideWear(VisualWearSlot slot)
+    {
+        if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry) ||
+            entry.Asset.Layer != VisualWearLayer.Outerwear)
+        {
+            return;
+        }
+
+        entry.Asset.SetHideWear(slot, !entry.Asset.HidesWearSlot(slot));
+        MarkDirtyAndRedress(entry);
+    }
+
+    // Только Outerwear имеет нижележащий Wear-слой. Подсвеченный слот означает
+    // «скрыть одежду под этой вещью»; пустая маска — безопасный default.
+    private void RebuildHideWearRow(WearEntry entry)
+    {
+        if (_hideWearTitle == null || _hideWearRow == null)
+        {
+            return;
+        }
+
+        _hideWearRow.Clear();
+        var applicable = entry != null && entry.Asset != null &&
+            entry.Asset.Layer == VisualWearLayer.Outerwear;
+        _hideWearTitle.style.display = applicable ? DisplayStyle.Flex : DisplayStyle.None;
+        _hideWearRow.style.display = applicable ? DisplayStyle.Flex : DisplayStyle.None;
+        if (!applicable)
+        {
+            return;
+        }
+
+        foreach (var slot in entry.Asset.Slots)
+        {
+            var pick = slot;
+            var hidden = entry.Asset.HidesWearSlot(pick);
+            var chip = MakeButton(slot.ToString(), hidden ? AccentSel : Raised,
+                () => ToggleHideWear(pick));
+            chip.style.marginRight = 3f;
+            chip.style.marginBottom = 3f;
+            chip.style.paddingLeft = 6f;
+            chip.style.paddingRight = 6f;
+            _hideWearRow.Add(chip);
         }
     }
 
@@ -2091,6 +2149,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         }
 
         RebuildNoHideRow(entry);
+        RebuildHideWearRow(entry);
 
         if (_commentField != null)
         {

@@ -450,6 +450,7 @@ public sealed class BodyBones : MonoBehaviour
 
         _wears[key] = newWear;
         _wearKeys[newWear] = key;
+        RefreshWearVisibility();
         RefreshUnderwearVisibility();
         UpdateGenitals();
         RefreshHeel();
@@ -530,6 +531,7 @@ public sealed class BodyBones : MonoBehaviour
         Destroy(wear.gameObject);
         _wears.Remove(key);
         _wearKeys.Remove(wear);
+        RefreshWearVisibility();
         RefreshUnderwearVisibility();
         UpdateGenitals();
         RefreshHeel();
@@ -563,6 +565,29 @@ public sealed class BodyBones : MonoBehaviour
         }
     }
 
+    // §31B.4A: Outerwear may optionally mask the Wear garment beneath it.
+    // Empty by default: an authored slot hides lower clothing only when the
+    // outer garment explicitly lists it in hideWearSlots.
+    private void RefreshWearVisibility()
+    {
+        foreach (var wear in _byLayer[VisualWearLayer.Wear].Values)
+        {
+            var hidden = false;
+            foreach (var slot in wear.Slots)
+            {
+                if (_byLayer[VisualWearLayer.Outerwear].TryGetValue(slot, out var outerwear) &&
+                    outerwear.HidesWearSlot(slot))
+                {
+                    hidden = true;
+                    break;
+                }
+            }
+
+            if (hidden) wear.Hide();
+            else wear.Show();
+        }
+    }
+
     // §72: восстановленная логика molly_copy (в §31B.3 её сознательно срезали —
     // девушкам она не нужна). Видно ТОЛЬКО когда слот Pelvis свободен на всех
     // трёх слоях: бельё, одежда, верхняя.
@@ -592,44 +617,14 @@ public sealed class BodyBones : MonoBehaviour
     {
         foreach (var wear in _wears.Values)
         {
-            if (!visible)
-            {
-                wear.Hide();
-                continue;
-            }
+            if (visible) wear.Show();
+            else wear.Hide();
+        }
 
-            if (wear.Layer != VisualWearLayer.Underwear)
-            {
-                wear.Show();
-                continue;
-            }
-
-            var hiddenByOuter = false;
-            foreach (var slot in wear.Slots)
-            {
-                if (_byLayer[VisualWearLayer.Wear].TryGetValue(slot, out var outer1) &&
-                    outer1.HeedHideUnderwearSlot(slot))
-                {
-                    hiddenByOuter = true;
-                    break;
-                }
-
-                if (_byLayer[VisualWearLayer.Outerwear].TryGetValue(slot, out var outer2) &&
-                    outer2.HeedHideUnderwearSlot(slot))
-                {
-                    hiddenByOuter = true;
-                    break;
-                }
-            }
-
-            if (hiddenByOuter)
-            {
-                wear.Hide();
-            }
-            else
-            {
-                wear.Show();
-            }
+        if (visible)
+        {
+            RefreshWearVisibility();
+            RefreshUnderwearVisibility();
         }
     }
 

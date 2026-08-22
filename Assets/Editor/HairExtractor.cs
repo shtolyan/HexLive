@@ -804,6 +804,7 @@ public static class HairExtractor
         so.FindProperty("configs").arraySize = 0;
         so.FindProperty("slots").arraySize = 0;
         so.FindProperty("noHideUnderwearSlots").arraySize = 0;
+        so.FindProperty("hideWearSlots").arraySize = 0;
         so.FindProperty("layer").enumValueIndex = (int)VisualWearLayer.Wear;
         so.FindProperty("gender").enumValueIndex = (int)VisualGender.Female;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -828,7 +829,6 @@ public static class HairExtractor
     }
 }
 #endif
-
 
 
 

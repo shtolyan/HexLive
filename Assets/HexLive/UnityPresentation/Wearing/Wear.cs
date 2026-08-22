@@ -13,6 +13,7 @@ public sealed class Wear : MonoBehaviour
     [SerializeField] private List<WearConfig> configs = new();
     [SerializeField] private List<VisualWearSlot> slots = new();
     [SerializeField] private List<VisualWearSlot> noHideUnderwearSlots = new();
+    [SerializeField] private List<VisualWearSlot> hideWearSlots = new();
     [SerializeField] private VisualWearLayer layer;
     [SerializeField] private VisualGender gender = VisualGender.Female;
 
@@ -306,6 +307,33 @@ public sealed class Wear : MonoBehaviour
     }
 
     public IReadOnlyList<VisualWearSlot> NoHideUnderwearSlots => noHideUnderwearSlots;
+
+    /// <summary>Скрывает ли эта вещь одежду слоя Wear в указанном слоте.</summary>
+    /// <remarks>
+    /// Это независимая авторская маска для Outerwear. По умолчанию список
+    /// пуст: футболка, штаны и другая одежда под курткой остаются видимыми.
+    /// </remarks>
+    public bool HidesWearSlot(VisualWearSlot slot)
+    {
+        return hideWearSlots.Contains(slot);
+    }
+
+    public IReadOnlyList<VisualWearSlot> HideWearSlots => hideWearSlots;
+
+    public void SetHideWear(VisualWearSlot slot, bool hide)
+    {
+        if (hide)
+        {
+            if (!hideWearSlots.Contains(slot))
+            {
+                hideWearSlots.Add(slot);
+            }
+        }
+        else
+        {
+            hideWearSlots.Remove(slot);
+        }
+    }
 
     /// <summary>Скрывать ли бельё в этом слоте (правится из тестовой сцены).</summary>
     /// <remarks>

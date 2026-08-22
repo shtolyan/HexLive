@@ -1095,6 +1095,45 @@ namespace HexLive.UnityPresentation.UI
                 else wear.Hide();
             }
 
+            // Outerwear can explicitly hide a lower Wear garment slot. The
+            // mask is empty by default and applies only while Outerwear is in
+            // the cumulative layer cut, so browsing the Wear tab still shows
+            // the shirt or trousers being authored beneath the jacket.
+            foreach (var lowerWear in _cloneWears)
+            {
+                if (!_equippedCloneWears.Contains(lowerWear) ||
+                    lowerWear.Layer != VisualWearLayer.Wear ||
+                    (int)VisualWearLayer.Outerwear > (int)visibleLayer)
+                {
+                    continue;
+                }
+
+                var hiddenByOuterwear = false;
+                foreach (var slot in lowerWear.Slots)
+                {
+                    foreach (var outerwear in _cloneWears)
+                    {
+                        if (!_equippedCloneWears.Contains(outerwear) ||
+                            outerwear.Layer != VisualWearLayer.Outerwear ||
+                            !outerwear.HidesWearSlot(slot))
+                        {
+                            continue;
+                        }
+
+                        foreach (var outerSlot in outerwear.Slots)
+                        {
+                            if (outerSlot != slot) continue;
+                            hiddenByOuterwear = true;
+                            break;
+                        }
+                        if (hiddenByOuterwear) break;
+                    }
+                    if (hiddenByOuterwear) break;
+                }
+
+                if (hiddenByOuterwear) lowerWear.Hide();
+            }
+
             // Reapply the same whole-garment underwear rule used by BodyBones.
             // Bags deliberately do not participate: they sit over the outfit
             // but do not make bras, briefs or socks disappear.

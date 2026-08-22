@@ -24034,6 +24034,22 @@ MonoBehaviour:
       - 'Шесть враждебных друг другу одиночных лагерей, центральная стоянка чужаков, регулярные прибытия, одежда по всему острову и раненая потерпевшая, которую можно спасти.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.newgame.mode.maniac'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Maniac'
+      - 'Маньяк'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.maniac.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A huge populated island. Play as a fully armored woman with every attribute at 10 and a machete in her hands.'
+      - 'Огромный населённый остров. Играйте за полностью бронированную женщину со всеми характеристиками 10 и мачете в руках.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.newgame.mode.start'
       TermType: 0
       Description:

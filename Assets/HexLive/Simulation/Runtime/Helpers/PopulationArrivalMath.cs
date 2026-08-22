@@ -40,6 +40,7 @@ internal static class PopulationArrivalMath
     {
         Bootstrap.GameMode.BigIsland => WorldBalance.BigIslandMaxLivingNpcs,
         Bootstrap.GameMode.HugeIsland => WorldBalance.HugeIslandMaxLivingNpcs,
+        Bootstrap.GameMode.Maniac => WorldBalance.HugeIslandMaxLivingNpcs,
         _ => WorldBalance.MaxLivingNpcs
     };
 
@@ -48,6 +49,7 @@ internal static class PopulationArrivalMath
     {
         Bootstrap.GameMode.BigIsland => WorldBalance.BigIslandMaxCampNpcs,
         Bootstrap.GameMode.HugeIsland => WorldBalance.HugeIslandMaxCampNpcs,
+        Bootstrap.GameMode.Maniac => WorldBalance.HugeIslandMaxCampNpcs,
         _ => WorldBalance.MaxColonyNpcs
     };
 

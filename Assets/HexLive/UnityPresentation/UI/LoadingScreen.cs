@@ -110,6 +110,9 @@ namespace HexLive.UnityPresentation.UI
             new(HexLive.Simulation.Bootstrap.GameMode.HugeIsland,
                 "menu.newgame.mode.hugeisland", "menu.newgame.mode.hugeisland.description",
                 "art-hugeisland"),
+            new(HexLive.Simulation.Bootstrap.GameMode.Maniac,
+                "menu.newgame.mode.maniac", "menu.newgame.mode.maniac.description",
+                "art-maniac"),
         };
 
         private VisualElement _root;
@@ -581,6 +584,8 @@ namespace HexLive.UnityPresentation.UI
                     HexLive.Simulation.Bootstrap.GameMode.BigIsland,
                 (int)HexLive.Simulation.Bootstrap.GameMode.HugeIsland =>
                     HexLive.Simulation.Bootstrap.GameMode.HugeIsland,
+                (int)HexLive.Simulation.Bootstrap.GameMode.Maniac =>
+                    HexLive.Simulation.Bootstrap.GameMode.Maniac,
                 _ => HexLive.Simulation.Bootstrap.GameMode.Feud
             };
             SelectNewGameMode(_newGameMode);

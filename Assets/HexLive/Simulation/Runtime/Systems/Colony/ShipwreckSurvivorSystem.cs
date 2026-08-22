@@ -11,7 +11,7 @@ namespace HexLive.Simulation.Runtime
 
 /// <summary>
 /// §146.10: one deterministic wounded woman is washed ashore near the player's
-/// HugeIsland camp. She is aid-compatible but not controllable; after treatment,
+/// HugeIsland/Maniac camp. She is aid-compatible but not controllable; after treatment,
 /// food and water she changes faction once and joins Colony.
 /// </summary>
 public sealed class ShipwreckSurvivorSystem : ISimulationSystem
@@ -27,7 +27,7 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
-        if (world.Mode != GameMode.HugeIsland)
+        if (world.Mode is not (GameMode.HugeIsland or GameMode.Maniac))
         {
             return;
         }

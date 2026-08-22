@@ -164,8 +164,10 @@ public sealed class SoakOptions
                                 HexLive.Simulation.Bootstrap.GameMode.BigIsland,
                             "hugeisland" or "huge-island" or "2" =>
                                 HexLive.Simulation.Bootstrap.GameMode.HugeIsland,
+                            "maniac" or "3" =>
+                                HexLive.Simulation.Bootstrap.GameMode.Maniac,
                             var other => throw new ArgumentException(
-                                $"--mode {other}: feud | bigisland | hugeisland"),
+                                $"--mode {other}: feud | bigisland | hugeisland | maniac"),
                         };
                         break;
                     case "--simdata":
@@ -276,7 +278,7 @@ public sealed class SoakOptions
   --state-hash-every N    добавлять в трассу хэш полного кадра раз в N тиков
 
   --arena NAME            prototype (по умолчанию) | abuse — арена §91
-  --mode NAME             feud | bigisland | hugeisland — режим §146
+  --mode NAME             feud | bigisland | hugeisland | maniac — режим §146
   --combat-frames         по-тиковая раскадровка боя: замах/попадание/готовность
   --journal N             §136: напечатать дневник NPC N — что она сама
                           записала о своих днях. 12000 тиков = 12 записей

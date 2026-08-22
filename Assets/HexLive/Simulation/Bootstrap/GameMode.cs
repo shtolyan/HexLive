@@ -20,7 +20,11 @@ public enum GameMode
 
     // §146.9: ~2× BigIsland, six solo girl camps, the central outsider camp,
     // shore loot and the wounded shipwreck-survivor event.
-    HugeIsland = 2
+    HugeIsland = 2,
+
+    // §146.11: HugeIsland topology and population, but the player-controlled
+    // woman starts maxed, armored and armed with a machete.
+    Maniac = 3
 }
 
 }

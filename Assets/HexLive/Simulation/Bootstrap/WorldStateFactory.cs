@@ -97,7 +97,7 @@ public sealed class WorldStateFactory
         // §146.5: на большом острове ни одной готовой постройки — только
         // редактируемый чертёж Hut1Hex у каждого лагеря. ДО SeedHomeKnowledge:
         // сайт в 2-4 гексах от костра попадает в стартовую память лагеря.
-        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland)
+        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland or GameMode.Maniac)
         {
             BuildingBootstrap.StakeCampHutPlans(world);
         }
@@ -225,13 +225,19 @@ public sealed class WorldStateFactory
             Wear(npc, startBriefs, MathUtil.Hash01(world.Seed, id, 11, 4201));
             Wear(npc, startBras, MathUtil.Hash01(world.Seed, id, 13, 4203));
 
-            // §146.9: the HugeIsland opening is deliberately harsher than the
+            // §146.9/§146.11: these large-island openings are deliberately harsher than the
             // shared castaway baseline. The complete outfit is exactly one
             // random bra, one random pair of panties and one real backpack;
-            // every outer garment and every tool has to be found in the world.
-            if (world.Mode == GameMode.HugeIsland)
+            // every outer garment and every tool has to be found in the world,
+            // except the authored armor and machete of Maniac's player starter.
+            if (world.Mode is GameMode.HugeIsland or GameMode.Maniac)
             {
                 Wear(npc, startBackpacks, MathUtil.Hash01(world.Seed, id, 18, 4208));
+                if (world.Mode == GameMode.Maniac &&
+                    npc.Faction == Faction.Colony && id == 1)
+                {
+                    EquipManiacStarter(world, npc);
+                }
                 Runtime.EquipmentMath.StripConflictingWorn(world, npc);
                 Runtime.EquipmentMath.Recalculate(world, npc);
                 continue;
@@ -258,7 +264,7 @@ public sealed class WorldStateFactory
             Runtime.EquipmentMath.Recalculate(world, npc);
         }
 
-        if (world.Mode == GameMode.HugeIsland)
+        if (world.Mode is GameMode.HugeIsland or GameMode.Maniac)
         {
             SeedHugeIslandGarments(world);
         }
@@ -412,6 +418,41 @@ public sealed class WorldStateFactory
                 world.Seed, i, wardrobe.Count, 14657) * wardrobe.Count) % wardrobe.Count];
             Drop(far, garment, 15200 + i);
         }
+    }
+
+    // §146.11: an authored, female-compatible maximum-protection loadout.
+    // These are ordinary catalog items: slot conflicts, per-part armor,
+    // durability and ownership all use the same path as any other outfit.
+    private static void EquipManiacStarter(WorldState world, NPCState npc)
+    {
+        string[] armorKit =
+        {
+            "clothing.cap_riot",
+            "clothing.corset_anarchy",
+            "clothing.armguards_fighter",
+            "clothing.pants_biker",
+            "clothing.vest_stars",
+            "clothing.greaves_tod",
+        };
+
+        foreach (var definitionId in armorKit)
+        {
+            if (!world.Content.ObjectDefinitions.ContainsKey(definitionId) ||
+                !GarmentLibrary.FitsSex(npc.Sex, definitionId))
+            {
+                continue;
+            }
+
+            npc.WornItems.Add(new ItemInstance(definitionId)
+            {
+                OwnerId = npc.Id.Value
+            });
+        }
+
+        npc.Inventory.Items.Add(new ItemInstance("tool.machete")
+        {
+            OwnerId = npc.Id.Value
+        });
     }
 
     // Один пул стартовой одежды: всё женское из ЖИВОГО гардероба, что подходит
@@ -1015,7 +1056,7 @@ public sealed class WorldStateFactory
         // §146.4: пролив и второй островок — деталь острова Feud; его рамка
         // считается от Feud-констант MaxQ/MaxR и на другой карте не значит
         // ничего.
-        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland)
+        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland or GameMode.Maniac)
         {
             return;
         }
@@ -1263,11 +1304,12 @@ public sealed class WorldStateFactory
         TraitMath.Roll(npc, world.Seed, bootstrap.Id);
         ApplyTraitOverrides(npc, bootstrap);
 
-        // §146.9: the six HugeIsland starters receive no hidden cargo. Their
+        // §146.9/§146.11: HugeIsland-style starters receive no hidden cargo. Their
         // complete kit is the worn bra + panties + backpack installed later;
-        // bottles, medicine, tools and outer clothing are world loot. Every
-        // other mode keeps the established survival reserve byte-for-byte.
-        var nakedHugeStarter = world.Mode == GameMode.HugeIsland &&
+        // bottles, medicine, tools and outer clothing are world loot. Maniac's
+        // player gets the explicit armor+machete exception later; every other
+        // mode keeps the established survival reserve byte-for-byte.
+        var nakedHugeStarter = (world.Mode is GameMode.HugeIsland or GameMode.Maniac) &&
             Runtime.FactionRelations.IsColonyKind(bootstrap.Faction);
         if (!nakedHugeStarter)
         {

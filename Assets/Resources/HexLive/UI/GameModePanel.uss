@@ -144,6 +144,10 @@
   background-image: url("project://database/Assets/Resources/HexLive/UI/mode_huge_island.png");
 }
 
+.art-maniac {
+  background-image: url("project://database/Assets/Resources/HexLive/UI/mode_maniac.png");
+}
+
 .game-mode-title {
   color: var(--mode-text);
   font-size: 23px;

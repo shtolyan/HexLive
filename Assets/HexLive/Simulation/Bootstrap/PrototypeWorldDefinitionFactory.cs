@@ -39,8 +39,9 @@ namespace HexLive.Simulation.Bootstrap
         /// </summary>
         public static Func<int, WorldBootstrapDefinition> Override;
 
-        // §146.1: one entry point, two scenarios. The Feud body below is the
-        // shipped island, byte-for-byte; BigIsland lives in its own partial.
+        // §146.1/§146.11: one entry point for every append-only scenario. The
+        // Feud body below is the shipped island, byte-for-byte; large-island
+        // variants live in their own shared partial.
         // The dev-scene Override wins regardless of mode — those scenes are
         // deliberately mode-less.
         public static WorldBootstrapDefinition Create(
@@ -53,6 +54,7 @@ namespace HexLive.Simulation.Bootstrap
             {
                 GameMode.BigIsland => CreateBigIsland(seed),
                 GameMode.HugeIsland => CreateHugeIsland(seed),
+                GameMode.Maniac => CreateManiac(seed),
                 _ => CreateFeud(seed)
             };
         }

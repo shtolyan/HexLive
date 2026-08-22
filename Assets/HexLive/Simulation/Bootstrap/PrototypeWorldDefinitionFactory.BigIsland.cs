@@ -111,6 +111,14 @@ namespace HexLive.Simulation.Bootstrap
             HugePalmTarget, 48, 720, 190, 440, 48, 36,
             hasCentralOutsiderCamp: true);
 
+        // §146.11: same authored island recipe as HugeIsland. Mode remains its
+        // own append-only world identity; only the Colony starter differs.
+        private static readonly LargeIslandSettings ManiacSettings = new(
+            GameMode.Maniac, HugeMinQ, HugeMaxQ, HugeMinR, HugeMaxR,
+            HugeCampCount, HugeCampMinSeparationTiles, 1,
+            HugePalmTarget, 48, 720, 190, 440, 48, 36,
+            hasCentralOutsiderCamp: true);
+
         // Якорные узлы для пальм на одном гексе: интерьерные слоты 13 (2,-1),
         // 30 (-1,2), 10 (-1,-1) — треугольник ~1.12 wu стороной. Диск блокировки
         // пальмы 0.45 wu (~7 узлов из 61), три таких не сливаются, и между
@@ -130,6 +138,11 @@ namespace HexLive.Simulation.Bootstrap
         internal static WorldBootstrapDefinition CreateHugeIsland(int seed)
         {
             return CreateLargeIsland(seed, HugeIslandSettings);
+        }
+
+        internal static WorldBootstrapDefinition CreateManiac(int seed)
+        {
+            return CreateLargeIsland(seed, ManiacSettings);
         }
 
         private static WorldBootstrapDefinition CreateLargeIsland(
@@ -859,7 +872,7 @@ namespace HexLive.Simulation.Bootstrap
                 for (var j = 0; j < girlsPerCamp; j++)
                 {
                     var i = campIndex * girlsPerCamp + j;
-                    definition.Npcs.Add(new NpcBootstrap
+                    var npc = new NpcBootstrap
                     {
                         // 1,2 / 11,12 / 21,22 — десятка на лагерь: прибытия и
                         // чужие id (101+, 1000+, 2000+) не пересекаются никогда.
@@ -874,7 +887,23 @@ namespace HexLive.Simulation.Bootstrap
                         Comfort = 0.35f + 0.07f * (i % 3),
                         Social = 0.45f + 0.09f * (i % 3),
                         ThermalDiscomfort = 0.60f - 0.09f * (i % 3),
-                    });
+                    };
+
+                    // §146.11: normalized 1.0 is displayed as 10/10. Only id=1
+                    // belongs to the player-controlled Colony camp.
+                    if (definition.Simulation.Mode == GameMode.Maniac &&
+                        campIndex == 0 && j == 0)
+                    {
+                        npc.Attributes[Agents.AttributeKind.Strength] = 1f;
+                        npc.Attributes[Agents.AttributeKind.Agility] = 1f;
+                        npc.Attributes[Agents.AttributeKind.Endurance] = 1f;
+                        npc.Attributes[Agents.AttributeKind.Toughness] = 1f;
+                        npc.Attributes[Agents.AttributeKind.Hardiness] = 1f;
+                        npc.Attributes[Agents.AttributeKind.Wits] = 1f;
+                        npc.Attributes[Agents.AttributeKind.Perception] = 1f;
+                    }
+
+                    definition.Npcs.Add(npc);
                 }
             }
         }

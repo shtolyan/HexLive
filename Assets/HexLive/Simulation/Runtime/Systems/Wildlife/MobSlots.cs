@@ -22,6 +22,7 @@ internal static class MobSlots
     {
         HexLive.Simulation.Bootstrap.GameMode.BigIsland => WildlifeBalance.BigIslandWolfSlots,
         HexLive.Simulation.Bootstrap.GameMode.HugeIsland => WildlifeBalance.HugeIslandWolfSlots,
+        HexLive.Simulation.Bootstrap.GameMode.Maniac => WildlifeBalance.HugeIslandWolfSlots,
         _ => WildlifeBalance.WolfSlots
     };
 
@@ -29,6 +30,7 @@ internal static class MobSlots
     {
         HexLive.Simulation.Bootstrap.GameMode.BigIsland => WildlifeBalance.BigIslandCrabSlots,
         HexLive.Simulation.Bootstrap.GameMode.HugeIsland => WildlifeBalance.HugeIslandCrabSlots,
+        HexLive.Simulation.Bootstrap.GameMode.Maniac => WildlifeBalance.HugeIslandCrabSlots,
         _ => WildlifeBalance.CrabSlots
     };
 
@@ -36,6 +38,7 @@ internal static class MobSlots
     {
         HexLive.Simulation.Bootstrap.GameMode.BigIsland => WildlifeBalance.BigIslandSharkSlots,
         HexLive.Simulation.Bootstrap.GameMode.HugeIsland => WildlifeBalance.HugeIslandSharkSlots,
+        HexLive.Simulation.Bootstrap.GameMode.Maniac => WildlifeBalance.HugeIslandSharkSlots,
         _ => WildlifeBalance.SharkSlots
     };
 

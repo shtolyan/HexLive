@@ -145,6 +145,8 @@ public static class WorldSaveSerializer
                 Bootstrap.PrototypeWorldDefinitionFactory.BigIslandWorldGenRevision,
             Bootstrap.GameMode.HugeIsland =>
                 Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
+            Bootstrap.GameMode.Maniac =>
+                Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
             _ => 0
         });
         w.Write(world.Tick);
@@ -430,6 +432,8 @@ public static class WorldSaveSerializer
                 Bootstrap.GameMode.BigIsland =>
                     Bootstrap.PrototypeWorldDefinitionFactory.BigIslandWorldGenRevision,
                 Bootstrap.GameMode.HugeIsland =>
+                    Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
+                Bootstrap.GameMode.Maniac =>
                     Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
                 _ => 0
             };

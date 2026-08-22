@@ -78,6 +78,25 @@ public sealed class ServerStartupSaveHeaderTests
     }
 
     [Test]
+    public void Maniac_IsAcceptedByCliAndPersistedByV2Header()
+    {
+        var fresh = ServerOptions.Parse(new[] { "--mode", "maniac" });
+        Assert.That(fresh!.Mode, Is.EqualTo(GameMode.Maniac));
+
+        var save = Path.Combine(_directory, "maniac.sav");
+        WriteSaveHeader(save, version: 2, seed: 31337,
+            mode: GameMode.Maniac, tick: 9876);
+        var resumed = ServerOptions.Parse(new[] { "--save", save });
+        resumed!.ContinueExistingSaveIfPresent();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Seed, Is.EqualTo(31337));
+            Assert.That(resumed.Mode, Is.EqualTo(GameMode.Maniac));
+        });
+    }
+
+    [Test]
     public void ExistingUnknownSave_IsRejectedInsteadOfBeingOverwritten()
     {
         var save = Path.Combine(_directory, "corrupt.sav");

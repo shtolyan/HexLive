@@ -223,6 +223,7 @@ Connected clients cannot do it — only this panel can.</p></div>");
 <option value='feud'>Feud with outsiders (classic island)</option>
 <option value='bigisland'>Big island survival (3 camps)</option>
 <option value='hugeisland'>Huge island survival (6 camps + outsiders)</option>
+<option value='maniac'>Maniac (maxed armored woman + machete)</option>
 </select>
 <div class='row' style='margin-top:12px'><button class='danger'>Start a new world</button>
 <span class='dim' style='font-size:13px'>The existing save is archived, not deleted.</span></div></form>");

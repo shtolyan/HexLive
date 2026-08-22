@@ -9,17 +9,17 @@ namespace HexLive.Simulation.Tests.Gates;
 public sealed class BikerPantsScaleContractTests
 {
     [Test]
-    public void EveryActressGetsExactlyOneStandardScaleStep_Bug190()
+    public void EveryActressGetsSecondRequestedScaleStep_Bug194()
     {
         var prefab = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLiveContent", "Wear",
             "clothing.pants_biker", "BikerPants.prefab"));
         var expected = new Dictionary<int, float>
         {
-            [0] = 1.01f,
-            [1] = 1.04f,
-            [2] = 1.01f,
-            [5] = 1.01f
+            [0] = 1.02f,
+            [1] = 1.05f,
+            [2] = 1.02f,
+            [5] = 1.02f
         };
 
         var matches = Regex.Matches(prefab,
@@ -31,7 +31,7 @@ public sealed class BikerPantsScaleContractTests
             var scale = float.Parse(match.Groups["scale"].Value, CultureInfo.InvariantCulture);
             Assert.That(expected, Does.ContainKey(actor));
             Assert.That(scale, Is.EqualTo(expected[actor]),
-                $"ActorName={actor} must retain her authored fit plus exactly +0.01.");
+                $"ActorName={actor} must retain her authored fit plus both requested +0.01 steps.");
         }
     }
 }

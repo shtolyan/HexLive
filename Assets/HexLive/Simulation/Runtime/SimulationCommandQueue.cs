@@ -298,6 +298,29 @@ public sealed class TalkToCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>
+/// §146.12: merge the player's camp with a neighbouring girl camp after both
+/// sides have more than 50% affinity. <c>UseTargetCamp</c> chooses whether the
+/// neighbour's camp is occupied as the shared home; false invites her home.
+/// </summary>
+public sealed class MergeCampsCommand : ISimulationCommand
+{
+    public MergeCampsCommand(EntityId npc, EntityId target, bool useTargetCamp)
+    {
+        Npc = npc;
+        Target = target;
+        UseTargetCamp = useTargetCamp;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public bool UseTargetCamp { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§121.9: помочь конкретной колонистке ЯВНЫМ видом помощи (§53).
 /// Вид выбирает игрок — в этом смысл ручного режима; расход припаса и сама
 /// помощь идут тем же RunAid, что у автономной помощницы.</summary>

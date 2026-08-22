@@ -824,6 +824,39 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
+        // §146.12: two explicit diplomatic outcomes over the same command
+        // bus. Both directed affinities must be >50%; the simulation repeats
+        // every check and owns the actual atomic merge.
+        var neighbourCamp = !dead && carrier != null &&
+            carrier.Faction == Faction.Colony &&
+            target.Faction is Faction.Colony2 or Faction.Colony3 or
+                Faction.Colony4 or Faction.Colony5 or Faction.Colony6;
+        if (neighbourCamp)
+        {
+            var mutualAffinity = AffinityTo(carrier!, npcId) > 0.50f &&
+                AffinityTo(target, carrier!.Id.Value) > 0.50f;
+            var closeEnough = HexSpatialMath.Distance(
+                carrier.Position, target.Position) <= HexSpatialMath.HexRadius * 2f;
+            var canMerge = canOrderSocial && !lying && mutualAffinity && closeEnough;
+            var mergeHint = lying
+                ? Loc.Get("toast.order_rejected.TargetUnavailable")
+                : !mutualAffinity
+                    ? Loc.Get("menu.camp_merge.need_relation")
+                    : !closeEnough
+                        ? Loc.Get("menu.camp_merge.need_nearby")
+                        : socialBlocked;
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.camp_merge.invite"),
+                () => EnqueueOrder(carrier!.Id.Value, new MergeCampsCommand(
+                    new EntityId(carrier.Id.Value), new EntityId(npcId),
+                    useTargetCamp: false)),
+                canMerge, canMerge ? null : mergeHint));
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.camp_merge.occupy"),
+                () => EnqueueOrder(carrier!.Id.Value, new MergeCampsCommand(
+                    new EntityId(carrier.Id.Value), new EntityId(npcId),
+                    useTargetCamp: true)),
+                canMerge, canMerge ? null : mergeHint));
+        }
+
         // Помочь можно и лежащей без сознания (§53.8 стабилизация) — поэтому
         // условие мягче, чем у разговора.
         if (!dead)
@@ -927,6 +960,19 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             () => NpcSelection.Select(npcId)));
 
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    private static float AffinityTo(NpcSnapshot source, int otherId)
+    {
+        foreach (var relation in source.RelationshipDetails)
+        {
+            if (relation.OtherId == otherId)
+            {
+                return relation.Affinity;
+            }
+        }
+
+        return 0f;
     }
 
     // §121.9: само-меню — то, что колонистка делает сама с собой. Пункты

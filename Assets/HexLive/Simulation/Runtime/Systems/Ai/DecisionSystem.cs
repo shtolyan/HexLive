@@ -2597,8 +2597,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var fitToWander = !npc.Body.IsCrawling &&
             npc.Health >= AiBalance.ExploreHealthFloor;
         var exploreAvail = PlanningSystem.HasExploreCandidate(world, npc) && fitToWander;
+        // §146.12: loneliness turns ordinary 3..8-tile exploration into a
+        // multi-leg visit toward a camp whose member she has already met.
+        var campVisitBonus = CampDiplomacyMath.VisitScoreBonus(world, npc);
         AddGoalScore(npc, world.Tick, GoalType.Explore,
-            0.05f + exploreJitter + wellRested, exploreAvail);
+            0.05f + exploreJitter + wellRested + campVisitBonus, exploreAvail);
 
         AddGoalScore(npc, world.Tick, GoalType.Idle, 0.05f, true);
 

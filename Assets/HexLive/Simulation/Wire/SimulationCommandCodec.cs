@@ -67,6 +67,7 @@ public static class SimulationCommandCodec
         PlaceBuildingBlueprint = 29,
         UpdateBuildingBlueprint = 30,
         SetOutfitLock = 31,
+        MergeCamps = 32,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -82,6 +83,12 @@ public static class SimulationCommandCodec
                 w.Write((ushort)CommandType.SetOutfitLock);
                 WriteEntity(w, c.Npc);
                 w.Write(c.Enabled);
+                break;
+            case MergeCampsCommand c:
+                w.Write((ushort)CommandType.MergeCamps);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.Target);
+                w.Write(c.UseTargetCamp);
                 break;
             case MoveToCommand c:
                 w.Write((ushort)CommandType.MoveTo);
@@ -258,6 +265,9 @@ public static class SimulationCommandCodec
                 return new SetManualControlCommand(ReadEntity(r), r.ReadBoolean());
             case CommandType.SetOutfitLock:
                 return new SetOutfitLockCommand(ReadEntity(r), r.ReadBoolean());
+            case CommandType.MergeCamps:
+                return new MergeCampsCommand(
+                    ReadEntity(r), ReadEntity(r), r.ReadBoolean());
             case CommandType.MoveTo:
                 return new MoveToCommand(
                     ReadEntity(r), WireIo.ReadFloat2(r), r.ReadBoolean());

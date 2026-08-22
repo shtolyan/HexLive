@@ -156,7 +156,7 @@ public sealed class PathfindingSystem : ISimulationSystem
         foreach (var hostile in world.Entities.Npcs.Values)
         {
             if (hostile.Health <= 0f ||
-                !FactionRelations.AreHostile(hostile.Faction, forFaction) ||
+                !FactionRelations.AreHostile(world, hostile.Faction, forFaction) ||
                 hostile.CurrentJunction is not { } hostileJunction)
             {
                 continue;

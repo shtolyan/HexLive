@@ -280,6 +280,15 @@ public sealed partial class ExecutionSystem
                 $"Fam={listenerRel.Familiarity:F2} (+{TalkRelationshipGain:F2}) " +
                 $"Aff={listenerRel.Affinity:F2} ({affinityDelta:+0.00;-0.00})");
 
+            // §146.12: a successful cross-camp conversation is also the one
+            // natural decision point for a voluntary alliance. The merge
+            // helper rechecks both directed affinities and the world mode.
+            if (!quarreled)
+            {
+                CampDiplomacyMath.TryMerge(
+                    world, npc, target, CampHomeChoice.Automatic, out _);
+            }
+
             if (target.Mind.PendingTalkFrom is { } inviterId && inviterId.Equals(npc.Id))
             {
                 target.Mind.PendingTalkFrom = null;

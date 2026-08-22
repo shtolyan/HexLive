@@ -1,4 +1,5 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Core;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -10,10 +11,9 @@ namespace HexLive.Simulation.Runtime
 // It lives in Runtime (not Agents) so every system file sees it with no extra
 // using, and so the §72 kill-switch is a plain field access.
 //
-// §146.3: different camps on the large islands are openly hostile. The only
-// cross-faction alliance is Colony <-> Castaway while the survivor event is
-// being rescued. Cooperation asks AreAllies; aggression asks AreHostile; both
-// still collapse to the pre-§72 one-family behaviour behind the kill-switch.
+// §146.3/§146.12: the faction-only overload is the legacy/open-war matrix.
+// Callers that own a WorldState must use the world-aware overload: solo camps
+// start neutral there, while personal hate can make one direction hostile.
 public static class FactionRelations
 {
     public static bool AreAllies(Faction a, Faction b)
@@ -37,8 +37,40 @@ public static class FactionRelations
     // camp membership stays the faction itself.
     public static bool IsColonyKind(Faction f) => f != Faction.Outsiders;
 
+    public static bool IsGirlCamp(Faction f) =>
+        f is Faction.Colony or Faction.Colony2 or Faction.Colony3 or
+            Faction.Colony4 or Faction.Colony5 or Faction.Colony6;
+
     public static bool AreHostile(Faction a, Faction b) =>
         Spec72.Enabled && !AreAllies(a, b);
+
+    public static bool AreHostile(WorldState world, Faction a, Faction b)
+    {
+        if (!Spec72.Enabled || AreAllies(a, b))
+        {
+            return false;
+        }
+
+        return !CampDiplomacyMath.IsSoloCampMode(world.Mode) ||
+               !IsGirlCamp(a) || !IsGirlCamp(b);
+    }
+
+    public static bool AreHostile(WorldState world, NPCState actor, NPCState target)
+    {
+        if (AreHostile(world, actor.Faction, target.Faction))
+        {
+            return true;
+        }
+
+        return CampDiplomacyMath.IsSoloCampMode(world.Mode) &&
+               actor.Faction != target.Faction &&
+               IsGirlCamp(actor.Faction) && IsGirlCamp(target.Faction) &&
+               actor.Social.GetOrCreate(target.Id).Affinity <=
+                   CampDiplomacyMath.HatredAffinityThreshold;
+    }
+
+    public static bool AreNeutral(WorldState world, NPCState actor, NPCState target) =>
+        !AreAllies(actor, target) && !AreHostile(world, actor, target);
 
     public static bool AreAllies(NPCState a, NPCState b) => AreAllies(a.Faction, b.Faction);
 

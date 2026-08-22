@@ -48,6 +48,7 @@ namespace HexLive.UnityPresentation.History
                 "TalkRequested" => F("history.TalkRequested", actor, target),
                 "TalkStarted" => F("history.TalkStarted", actor, target),
                 "TalkCompleted" => F("history.TalkCompleted", actor, target),
+                "CampsMerged" => F("history.CampsMerged", actor),
                 "TalkQuarreled" => F("history.TalkQuarreled", actor, target),
                 "TalkWaitTimeout" => F("history.TalkWaitTimeout", actor),
                 // §108: сговор против чужака и чем он кончился.
@@ -186,6 +187,7 @@ namespace HexLive.UnityPresentation.History
                 "TalkRequested" => F("history.detail.TalkRequested", Token(record.Message, "Affinity=")),
                 "TalkStarted" => F("history.detail.TalkStarted", TalkTopic(Token(record.Message, "Topic="))),
                 "TalkCompleted" => Loc.Get("history.detail.TalkCompleted"),
+                "CampsMerged" => Loc.Get("history.detail.CampsMerged"),
                 "TalkQuarreled" => Loc.Get("history.detail.TalkQuarreled"),
                 "TalkWaitTimeout" => Loc.Get("history.detail.TalkWaitTimeout"),
                 "RelationshipChanged" => RelationshipDetail(record.Message),
@@ -245,7 +247,7 @@ namespace HexLive.UnityPresentation.History
 
         private static GameHistoryTone Tone(string type)
         {
-            if (type is "Aided" or "AidRequested" or "AidStarted" or "TalkCompleted" or "TalkRequested" or
+            if (type is "Aided" or "AidRequested" or "AidStarted" or "TalkCompleted" or "CampsMerged" or "TalkRequested" or
                 "TalkStarted" or "FoodShared" or "RelationshipChanged" or "Mourned" or
                 "Rescued" or // §105: её вытащили — это про людей, а не про урон
                 "HelpCryAnswered")

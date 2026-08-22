@@ -59,6 +59,15 @@ public sealed partial class ExecutionSystem
                 : InventoryItemSource.Carried;
         var source = take ? other : looter;
         var destination = take ? looter : other;
+
+        if (take && world.Entities.Npcs.ContainsKey(other.Id) &&
+            looter.Faction != other.Faction &&
+            !CampDiplomacyMath.CanLoot(world, looter, other))
+        {
+            FailPlayerInventoryTransfer(world, looter, "NoLootMotive");
+            return;
+        }
+
         var itemRef = new InventoryItemRef(
             itemSource, index, looter.Plan.TargetItemDefinitionId ?? string.Empty);
 
@@ -79,7 +88,8 @@ public sealed partial class ExecutionSystem
         PlayerInventoryTransferMath.MoveResolved(
             world, source, destination, itemRef, moving, contents);
 
-        if (take && FactionRelations.AreHostile(looter.Faction, other.Faction))
+        if (take && world.Entities.Npcs.ContainsKey(other.Id) &&
+            looter.Faction != other.Faction)
         {
             CombatHelpSystem.RallyLootWitnesses(world, other, looter.Id);
             SocialCueSignals.StampItem(

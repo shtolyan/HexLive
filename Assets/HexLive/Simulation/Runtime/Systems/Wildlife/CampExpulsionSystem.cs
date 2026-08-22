@@ -64,7 +64,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         // она бы отобрала управление на обеих сторонах (хозяин идёт сам,
         // чужака сцена держит на месте). Есть ручной — сцены нет; выгонять
         // чужака игрок волен приказом атаки.
-        if (ManualControlMath.IsManual(owner) || ManualControlMath.IsManual(intruder) ||
+        if (!FactionRelations.AreHostile(world, owner, intruder) ||
+            ManualControlMath.IsManual(owner) || ManualControlMath.IsManual(intruder) ||
             HasCriticalNeed(owner) || HasChallengeInjury(owner) ||
             !HasSafeChallengeOdds(world, owner, intruder))
         {
@@ -124,9 +125,9 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             return;
         }
 
-        // §146.3: every different camp is hostile. The explicit rescue alliance
-        // Colony <-> Castaway is the only cross-faction scene cancellation.
-        if (FactionRelations.AreAllies(owner.Faction, intruder.Faction))
+        // §146.12: a neutral guest is welcome. A scene survives only while the
+        // owner still considers this exact intruder hostile (including hate).
+        if (!FactionRelations.AreHostile(world, owner, intruder))
         {
             Finish(world, owner, intruder, "NoLongerHostile", protectIntruder: false);
             return;
@@ -312,7 +313,7 @@ public sealed class CampExpulsionSystem : ISimulationSystem
                 npc.Mind.PendingAbuseFrom is not null ||
                 npc.Execution.CurrentInteraction == InteractionType.Sleep ||
                 world.Tick < npc.Mind.ExpulsionProtectedUntilTick ||
-                FactionRelations.AreAllies(owner.Faction, npc.Faction) ||
+                !FactionRelations.AreHostile(world, owner, npc) ||
                 !ColonyQueries.InCamp(world, npc.Tile, owner.Faction) ||
                 !HasSafeChallengeOdds(world, owner, npc))
             {

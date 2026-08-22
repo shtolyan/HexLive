@@ -254,7 +254,7 @@ public static class AbuseMath
     {
         if (mark.Id.Equals(abuser.Id) ||
             mark.Health <= 0f ||
-            !FactionRelations.AreHostile(abuser.Faction, mark.Faction))
+            !FactionRelations.AreHostile(world, abuser, mark))
         {
             return false;
         }

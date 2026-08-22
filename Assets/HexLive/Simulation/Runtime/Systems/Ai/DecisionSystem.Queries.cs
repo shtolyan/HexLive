@@ -242,7 +242,7 @@ public sealed partial class DecisionSystem
         foreach (var other in world.Entities.Npcs.Values)
         {
             if (other.Health > 0f && !other.Id.Equals(npc.Id) &&
-                FactionRelations.AreHostile(other.Faction, npc.Faction))
+                FactionRelations.AreHostile(world, other, npc))
             {
                 return true;
             }

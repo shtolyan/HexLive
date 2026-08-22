@@ -850,7 +850,7 @@ internal static class MortalityHelpers
                 continue;
             }
 
-            var hostile = FactionRelations.AreHostile(npc, other) ||
+            var hostile = FactionRelations.AreHostile(world, npc, other) ||
                 other.Mind.CurrentGoal == GoalType.Prey; // §56
             if (hostile &&
                 HexSpatialMath.HexDistance(other.Tile, npc.Tile) <= Spec105.PlayDeadRadiusTiles)

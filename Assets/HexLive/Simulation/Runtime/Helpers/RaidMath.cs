@@ -201,7 +201,7 @@ public static class RaidMath
         var bestDistance = int.MaxValue;
         foreach (var pair in world.FactionHomes)
         {
-            if (!FactionRelations.AreHostile(pair.Key, raider.Faction))
+            if (!FactionRelations.AreHostile(world, pair.Key, raider.Faction))
             {
                 continue;
             }

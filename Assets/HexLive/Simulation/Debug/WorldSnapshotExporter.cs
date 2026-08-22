@@ -917,7 +917,8 @@ public static class WorldSnapshotExporter
             Hairstyle = npc.Hairstyle,
             VoiceBank = npc.VoiceBank,
             Faction = npc.Faction,
-            IsHostileToColony = Runtime.FactionRelations.AreHostile(npc.Faction, Faction.Colony),
+            IsHostileToColony = Runtime.FactionRelations.AreHostile(
+                world, npc.Faction, Faction.Colony),
             Tile = npc.Tile,
             Position = npc.Position,
             RotationDegrees = npc.RotationDegrees,

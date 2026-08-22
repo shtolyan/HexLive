@@ -77,14 +77,14 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // keeps (AnimalCombatSystem.ClampToHoldDistance).
             HoldStandOff(world, actor, opponent);
 
-            var hunting = FactionRelations.AreHostile(actor, opponent) &&
+            var hunting = FactionRelations.AreHostile(world, actor, opponent) &&
                 actor.Mind.CurrentGoal == GoalType.GroupHunt &&
                 actor.Mind.GroupHuntTargetNpcId is { } huntTarget &&
                 huntTarget.Equals(opponent.Id);
-            var raiding = FactionRelations.AreHostile(actor, opponent) &&
+            var raiding = FactionRelations.AreHostile(world, actor, opponent) &&
                 ((actor.Mind.RaidTargetNpcId is { } raidTarget && raidTarget.Equals(opponent.Id)) ||
                  (actor.Mind.AbuseTargetNpcId is { } abuseTarget && abuseTarget.Equals(opponent.Id)));
-            var expelling = FactionRelations.AreHostile(actor, opponent) &&
+            var expelling = FactionRelations.AreHostile(world, actor, opponent) &&
                 actor.Mind.CurrentGoal == GoalType.Expel &&
                 actor.Mind.ExpulsionTargetNpcId is { } expelTarget &&
                 expelTarget.Equals(opponent.Id);

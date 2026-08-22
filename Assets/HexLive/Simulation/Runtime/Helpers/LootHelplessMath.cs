@@ -41,7 +41,7 @@ public static class LootHelplessMath
             // ровно те три состояния, в которых тело точно не ответит. Спящая и
             // плачущая §110 в сознании, и тихий грабёж спящей — кража §40.5.
             !victim.IsUnconscious(world.Tick) ||
-            !FactionRelations.AreHostile(looter.Faction, victim.Faction) ||
+            !CampDiplomacyMath.CanLoot(world, looter, victim) ||
             !HasLootFor(world, looter, victim))
         {
             return false;

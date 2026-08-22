@@ -230,6 +230,9 @@ public static class JournalCatalog
         // ── социальное ──────────────────────────────────────────────────────
         r["TalkQuarreled"] = new JournalRule(68, JournalRole.FirstNpc, mirrorWeight: 68);
         r["TalkCompleted"] = new JournalRule(34, JournalRole.FirstNpc, mirrorWeight: 30);
+        // §146.12: договор о едином доме — крупная запись обеих переговорщиц.
+        r["CampsMerged"] = new JournalRule(
+            90, JournalRole.Token, "Target=", mirrorWeight: 90);
         r["TalkStarted"] = new JournalRule(22, JournalRole.FirstNpc,
             extra: JournalExtra.Token, extraToken: "Topic=");
         r["TalkRequested"] = new JournalRule(16, JournalRole.FirstNpc);

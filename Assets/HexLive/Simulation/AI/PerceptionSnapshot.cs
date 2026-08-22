@@ -12,16 +12,14 @@ public sealed class PerceptionSnapshot
 
     public List<PerceivedObject> Objects { get; } = new();
 
-    // §72: ALLIES ONLY. Every pre-§72 consumer (Socialize, §53 Aid, the ambient
-    // companion trickle, the talk/aid target picks) keeps reading this list
-    // unchanged — which is the point: a cooperation path physically cannot
-    // reach an enemy, instead of having to remember a gate. Note there is no
-    // distance filter here and never was: this is the whole roster, so an
-    // ungated enemy would be a chat and aid target island-wide from tick 1.
+    // §72/§146.12: visible NON-HOSTILES. In Feud/BigIsland that still means
+    // allies only; in the solo-camp modes it also includes neutral visitors so
+    // the ordinary Socialize loop can cross camp borders. Aid severity remains
+    // zero for a neutral until the camps really merge.
     public List<PerceivedAgent> Agents { get; } = new();
 
-    // §72: agents we are at war with. Read only by the threat layer (the ⚠️
-    // sighting, the detour ring) and by the raider's own target assessment.
+    // §72: agents this observer is actually at war with. In §146.12 that is
+    // still every Outsider, plus a neighbouring girl she personally hates.
     public List<PerceivedAgent> Hostiles { get; } = new();
 
     // §125.7: ПО ПАМЯТИ — те, кого она сейчас не видит, но помнит по последней

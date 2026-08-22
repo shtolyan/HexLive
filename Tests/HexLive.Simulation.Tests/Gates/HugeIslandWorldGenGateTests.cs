@@ -60,11 +60,14 @@ public sealed class HugeIslandWorldGenGateTests
             {
                 for (var b = a + 1; b < girlFactions.Length; b++)
                 {
-                    Assert.That(FactionRelations.AreHostile(
-                            girlFactions[a], girlFactions[b]), Is.True,
-                        $"seed {seed}: {girlFactions[a]}/{girlFactions[b]} должны враждовать");
+                    Assert.That(FactionRelations.AreHostile(world,
+                            girlFactions[a], girlFactions[b]), Is.False,
+                        $"seed {seed}: {girlFactions[a]}/{girlFactions[b]} должны быть нейтральны");
                 }
             }
+            Assert.That(FactionRelations.AreHostile(world,
+                    Faction.Colony, Faction.Outsiders), Is.True,
+                $"seed {seed}: чужаки остаются врагами всех лагерей");
             Assert.That(world.Entities.Npcs.Values.Count(npc => npc.Faction == Faction.Outsiders),
                 Is.EqualTo(1), $"seed {seed}: стартовый чужак");
 

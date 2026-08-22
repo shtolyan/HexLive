@@ -149,7 +149,7 @@ internal static class KenshiRescueMath
         {
             if (other.Id != patient.Id && other.Health > 0f &&
                 !other.IsUnconscious(world.Tick) &&
-                FactionRelations.AreHostile(other, patient) &&
+                FactionRelations.AreHostile(world, other, patient) &&
                 HexSpatialMath.HexDistance(other.Tile, patient.Tile) <= Spec118.RescueThreatRadiusTiles)
             {
                 return true;
@@ -646,7 +646,7 @@ internal static class KenshiRescueMath
 
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            if (npc.Health > 0f && FactionRelations.AreHostile(npc, patient) &&
+            if (npc.Health > 0f && FactionRelations.AreHostile(world, npc, patient) &&
                 HexSpatialMath.HexDistance(npc.Tile, tile) <= Spec118.RescueThreatRadiusTiles)
             {
                 return false;

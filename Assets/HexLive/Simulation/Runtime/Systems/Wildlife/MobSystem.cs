@@ -1941,7 +1941,7 @@ public sealed class MobSystem : ISimulationSystem
                 // sweep leaves the colony depressed and afraid of the ground
                 // they just won on — a silent difficulty multiplier hiding in
                 // the death path. Winning the fight reads as relief instead.
-                if (FactionRelations.AreHostile(witness, npc))
+                if (FactionRelations.AreHostile(world, witness, npc))
                 {
                     witness.Needs.Comfort = MathUtil.Clamp(
                         witness.Needs.Comfort + Spec72.EnemyDeathRelief, 0f, 1f);

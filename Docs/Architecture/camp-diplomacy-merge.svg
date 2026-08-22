@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <defs>
+    <style>
+      .bg{fill:#0e1720}.panel{fill:#141f2a;stroke:#344657;stroke-width:2}.title{font:700 28px system-ui,sans-serif;fill:#f4ead6}.head{font:700 20px system-ui,sans-serif;fill:#f4ead6}.text{font:16px system-ui,sans-serif;fill:#d9e2e8}.small{font:14px system-ui,sans-serif;fill:#9fb0bc}.tiny{font:12px system-ui,sans-serif;fill:#8ca0ad}.home-a{fill:#1f6f83;fill-opacity:.38;stroke:#5bc0d6;stroke-width:3}.home-b{fill:#356b43;fill-opacity:.42;stroke:#7bc88c;stroke-width:3}.former{fill:#4d5963;fill-opacity:.18;stroke:#75818a;stroke-width:2;stroke-dasharray:8 7}.route{fill:none;stroke:#f0bd68;stroke-width:5}.measure{fill:none;stroke:#90a5b2;stroke-width:2}.neutral{fill:none;stroke:#88b8cc;stroke-width:3;stroke-dasharray:8 6}.danger{fill:#d46161}.npc-a{fill:#73d0e1;stroke:#e9fbff;stroke-width:2}.npc-b{fill:#9add9b;stroke:#f1fff1;stroke-width:2}.shared{fill:#f0bd68}.rule{fill:#1b2a36;stroke:#344657;stroke-width:1.5}.node{fill:#718391}.gridline{stroke:#283845;stroke-width:1}
+    </style>
+    <pattern id="nodes" width="20" height="34.641016" patternUnits="userSpaceOnUse">
+      <circle class="node" cx="0" cy="0" r="1.2" opacity=".42"/>
+      <circle class="node" cx="10" cy="17.320508" r="1.2" opacity=".42"/>
+    </pattern>
+    <marker id="arrow-gold" markerWidth="11" markerHeight="11" refX="9" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L10,3.5 z" fill="#f0bd68"/>
+    </marker>
+    <marker id="arrow-muted" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#90a5b2"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1400" height="900"/>
+  <text class="title" x="42" y="50">§146.12 · Визиты и объединение одиночных лагерей</text>
+  <text class="small" x="42" y="76">Масштаб карты вычислен из axial-проекции HexSpatialMath; 20 px = √3 × HexRadius = 2.598 wu</text>
+
+  <rect class="panel" x="35" y="96" width="820" height="356" rx="18"/>
+  <text class="head" x="60" y="130">До объединения · два нейтральных лагеря</text>
+  <rect x="55" y="145" width="780" height="280" fill="url(#nodes)"/>
+
+  <!-- MaxCampRadiusTiles=6. Axial corners mapped with x=20(q+r/2), y=17.320508r. -->
+  <polygon class="home-a" points="390,255 330,358.923 210,358.923 150,255 210,151.077 330,151.077"/>
+  <polygon class="home-b" points="830,255 770,358.923 650,358.923 590,255 650,151.077 770,151.077"/>
+  <circle class="npc-a" cx="270" cy="255" r="10"/>
+  <circle class="npc-b" cx="710" cy="255" r="10"/>
+  <text class="text" x="185" y="386">Лагерь A · радиус 6</text>
+  <text class="text" x="625" y="386">Лагерь B · радиус 6</text>
+
+  <!-- HugeCampMinSeparationTiles=22, horizontal axial direction: 22×20=440 px. -->
+  <path class="measure" d="M270 166 L270 113 M710 166 L710 113 M276 118 L704 118" marker-end="url(#arrow-muted)"/>
+  <text class="small" x="416" y="108">минимум 22 гекса</text>
+
+  <!-- Three legal Explore legs, each exactly 6 tiles (within the 3..8 contract). -->
+  <path class="route" d="M282 255 L380 255" marker-end="url(#arrow-gold)"/>
+  <path class="route" d="M402 255 L500 255" marker-end="url(#arrow-gold)"/>
+  <path class="route" d="M522 255 L620 255" marker-end="url(#arrow-gold)"/>
+  <circle class="shared" cx="390" cy="255" r="6"/>
+  <circle class="shared" cx="510" cy="255" r="6"/>
+  <circle class="shared" cx="630" cy="255" r="6"/>
+  <text class="tiny" x="318" y="242">6 гексов</text>
+  <text class="tiny" x="438" y="242">6 гексов</text>
+  <text class="tiny" x="558" y="242">6 гексов</text>
+  <text class="small" x="286" y="414">Каждый Explore-шаг остаётся штатным: 3…8 гексов и только с уменьшением дистанции</text>
+
+  <rect class="panel" x="875" y="96" width="490" height="356" rx="18"/>
+  <text class="head" x="900" y="130">Правила встречи</text>
+  <rect class="rule" x="900" y="152" width="440" height="66" rx="11"/>
+  <path class="neutral" d="M925 181 L995 181"/>
+  <text class="text" x="1014" y="178">По умолчанию нейтральны</text>
+  <text class="small" x="1014" y="200">не нападают, не прогоняют, общаются</text>
+
+  <rect class="rule" x="900" y="230" width="440" height="78" rx="11"/>
+  <circle class="danger" cx="935" cy="269" r="10"/>
+  <text class="text" x="962" y="258">Вражда: Affinity ≤ −0.50</text>
+  <text class="small" x="962" y="281">Лут: ненависть или Hunger ≥ 0.90</text>
+  <text class="small" x="962" y="301">Outsiders всегда остаются врагами</text>
+
+  <!-- Talk inset uses its own declared 12 px/wu scale: radius 3.0 wu = 36 px. -->
+  <rect class="rule" x="900" y="320" width="440" height="104" rx="11"/>
+  <circle cx="945" cy="367" r="36" fill="#4ea4bd" fill-opacity=".14" stroke="#5bc0d6" stroke-width="2"/>
+  <circle class="npc-a" cx="945" cy="367" r="9"/>
+  <circle class="npc-b" cx="975" cy="367" r="9"/>
+  <text class="text" x="1012" y="354">Разговор: ≤ 3.0 wu</text>
+  <text class="small" x="1012" y="377">2 × HexRadius (1.5 wu)</text>
+  <text class="small" x="1012" y="400">Для объединения обе Affinity &gt; 0.50</text>
+
+  <rect class="panel" x="35" y="474" width="1330" height="376" rx="18"/>
+  <text class="head" x="60" y="510">После объединения · выбран один основной дом</text>
+  <rect x="55" y="530" width="780" height="290" fill="url(#nodes)"/>
+
+  <!-- Same exact locations and radius as above: physical world does not teleport. -->
+  <polygon class="former" points="390,650 330,753.923 210,753.923 150,650 210,546.077 330,546.077"/>
+  <polygon class="home-b" points="830,650 770,753.923 650,753.923 590,650 650,546.077 770,546.077"/>
+  <circle class="npc-a" cx="690" cy="650" r="10"/>
+  <circle class="npc-b" cx="730" cy="650" r="10"/>
+  <path class="route" d="M285 650 C395 570 520 570 675 640" marker-end="url(#arrow-gold)"/>
+  <text class="text" x="177" y="784">Бывший FactionHome удалён</text>
+  <text class="text" x="621" y="784">Общий основной лагерь</text>
+  <text class="small" x="112" y="808">Постройки и запасы остаются в мире и доступны общей фракции</text>
+
+  <rect class="rule" x="875" y="536" width="440" height="262" rx="14"/>
+  <text class="head" x="900" y="570">Атомарная смена</text>
+  <circle class="shared" cx="915" cy="606" r="6"/><text class="text" x="935" y="612">Одна каноническая фракция</text>
+  <circle class="shared" cx="915" cy="642" r="6"/><text class="text" x="935" y="648">Один выбранный FactionHome</text>
+  <circle class="shared" cx="915" cy="678" r="6"/><text class="text" x="935" y="684">Общие помощь, сайты и квота</text>
+  <circle class="shared" cx="915" cy="714" r="6"/><text class="text" x="935" y="720">Курсор прибытий = max(A, B)</text>
+  <circle class="shared" cx="915" cy="750" r="6"/><text class="text" x="935" y="756">Одно событие CampsMerged</text>
+
+  <text class="small" x="42" y="880">Константы: HugeCampMinSeparationTiles=22 · MaxCampRadiusTiles=6 · Explore=3…8 tiles · InteractionReach.Talk=3.0 wu</text>
+</svg>

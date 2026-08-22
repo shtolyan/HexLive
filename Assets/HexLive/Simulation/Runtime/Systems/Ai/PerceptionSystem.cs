@@ -342,7 +342,7 @@ public sealed class PerceptionSystem : ISimulationSystem
             var agentRadius = PerceptionMath.RadiusTiles(npc);
             CollectAgentsInRadius(world, npc, agentRadius, _agentScratch);
 
-            var allies = 0;
+            var nonHostiles = 0;
             foreach (var otherId in _agentScratch)
             {
                 if (!world.Entities.Npcs.TryGetValue(otherId, out var other))
@@ -366,6 +366,7 @@ public sealed class PerceptionSystem : ISimulationSystem
                 // §72: which pile this one goes on. Hostiles skip the whole §53
                 // suffering assessment — nobody reads another faction's plight.
                 var isAlly = FactionRelations.AreAllies(npc, other);
+                var isHostile = FactionRelations.AreHostile(world, npc, other);
 
                 var relationship = npc.Social.GetOrCreate(other.Id);
 
@@ -404,10 +405,10 @@ public sealed class PerceptionSystem : ISimulationSystem
                 perceivedAgent.AidKind = isAlly ? aidKind : AidKind.None;
                 perceivedAgent.IsDying = other.IsDying; // §105
 
-                if (isAlly)
+                if (!isHostile)
                 {
                     npc.Perception.Agents.Add(perceivedAgent);
-                    allies++;
+                    nonHostiles++;
                 }
                 else
                 {
@@ -440,11 +441,11 @@ public sealed class PerceptionSystem : ISimulationSystem
             BuildRememberedAgents(world, npc);
             CollectMobsInRadius(world, npc, agentRadius);
 
-            // §72 «компания» = СОЮЗНИЦЫ, и с §125 — только те, кого она видит:
-            // подруга на другом конце острова больше не согревает.
-            npc.Perception.Environment.NearbyAgentsCount = allies;
-            npc.Perception.Environment.IsCrowded = allies > 1;
-            npc.Perception.Environment.IsPrivate = allies <= 0;
+            // §146.12: a friendly visitor is real company too. Hostiles never
+            // count, and §125 still requires a live sighting.
+            npc.Perception.Environment.NearbyAgentsCount = nonHostiles;
+            npc.Perception.Environment.IsCrowded = nonHostiles > 1;
+            npc.Perception.Environment.IsPrivate = nonHostiles <= 0;
 
             if (SimTrace.Enabled)
             {

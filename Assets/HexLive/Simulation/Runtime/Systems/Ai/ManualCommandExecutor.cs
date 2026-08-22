@@ -77,6 +77,9 @@ internal static class ManualCommandExecutor
             case TalkToCommand talkTo:
                 ApplyTalkTo(world, talkTo, admission);
                 break;
+            case MergeCampsCommand mergeCamps:
+                ApplyMergeCamps(world, mergeCamps, admission);
+                break;
             case AidPersonCommand aidPerson:
                 ApplyAidPerson(world, aidPerson, admission);
                 break;
@@ -181,6 +184,7 @@ internal static class ManualCommandExecutor
         StopCommand => "Stop",
         CraftItemCommand => "Craft",
         TalkToCommand => "TalkTo",
+        MergeCampsCommand => "MergeCamps",
         AidPersonCommand => "Aid",
         TreatLimbsCommand => "TreatLimbs",
         SelfActionCommand => "SelfAction",
@@ -762,6 +766,68 @@ internal static class ManualCommandExecutor
         }
     }
 
+    private static void ApplyMergeCamps(
+        WorldState world, MergeCampsCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "MergeCamps", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc) || npc.Body.IsProne || npc.IsFighting)
+        {
+            Reject(world, npc.Id, "MergeCamps", "Incapacitated", admission);
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Target, out var target) ||
+            target.Health <= 0f)
+        {
+            Reject(world, npc.Id, "MergeCamps", "TargetGone", admission);
+            return;
+        }
+
+        if (target.IsUnconscious(world.Tick) || target.Body.IsProne ||
+            target.IsFighting || target.CarriedByNpcId is not null)
+        {
+            Reject(world, npc.Id, "MergeCamps", "TargetUnavailable", admission);
+            return;
+        }
+
+        if (!CampDiplomacyMath.CanMerge(world, npc, target, out var reason))
+        {
+            Reject(world, npc.Id, "MergeCamps", reason, admission);
+            return;
+        }
+
+        if (HexSpatialMath.Distance(npc.Position, target.Position) > InteractionReach.Talk)
+        {
+            Reject(world, npc.Id, "MergeCamps", "TooFarToTalk", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Объединение лагерей", keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+        var choice = command.UseTargetCamp
+            ? CampHomeChoice.SecondCamp
+            : CampHomeChoice.FirstCamp;
+        if (!CampDiplomacyMath.TryMerge(world, npc, target, choice, out reason))
+        {
+            Reject(world, npc.Id, "MergeCamps", reason, admission);
+            return;
+        }
+
+        SocialCueSignals.Stamp(world, npc, "TalkSuccess", target.Id);
+        SocialCueSignals.Stamp(world, target, "TalkSuccess", npc.Id);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=MergeCamps Target=NPC{target.Id.Value} " +
+                $"Home={(command.UseTargetCamp ? "Target" : "Ours")}");
+        }
+    }
+
     // §121.9: помочь ЯВНЫМ видом помощи (§53). Вид выбирает игрок; припас
     // проверяется тем же предикатом, что у ИИ (AidSupply.Has). «Нужна ли ей
     // именно эта помощь» на приёме сознательно не проверяется — по прибытии
@@ -1202,7 +1268,7 @@ internal static class ManualCommandExecutor
         // §81: сцена строится на враждебности (Ratio/AnswersBack) — своих не
         // травят приказом; беспомощного обирают §111 (обыском), спящую сцена
         // не разыгрывает, из святилища и воды жертву не достать.
-        if (!FactionRelations.AreHostile(npc.Faction, mark.Faction))
+        if (!FactionRelations.AreHostile(world, npc, mark))
         {
             Reject(world, npc.Id, "Abuse", "NotHostile", admission);
             return;
@@ -1589,6 +1655,18 @@ internal static class ManualCommandExecutor
                 world, looter, command.Other, out var other, out var carriedBySelf))
         {
             Reject(world, looter.Id, "TransferInventory", "PersonNotAvailable", admission);
+            return;
+        }
+
+        // §146.12: an explicit player order uses the same moral boundary as
+        // autonomous looting. Own camp/corpses keep §128 semantics; a living
+        // neutral neighbour needs hate or desperate hunger.
+        if (command.Direction == InventoryTransferDirection.Take &&
+            world.Entities.Npcs.ContainsKey(other.Id) &&
+            looter.Faction != other.Faction &&
+            !CampDiplomacyMath.CanLoot(world, looter, other))
+        {
+            Reject(world, looter.Id, "TransferInventory", "NoLootMotive", admission);
             return;
         }
 

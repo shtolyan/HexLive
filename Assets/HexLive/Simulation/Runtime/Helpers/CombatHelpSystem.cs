@@ -396,7 +396,7 @@ internal static class CombatHelpSystem
             // exactly then, when a lone stranger is picking them off one by one.
             var attackerIsOutsider = attackerId is { } outsiderId &&
                 world.Entities.Npcs.TryGetValue(outsiderId, out var attackerNpc) &&
-                FactionRelations.AreHostile(attackerNpc, victim);
+                FactionRelations.AreHostile(world, attackerNpc, victim);
             var skipAffinityGate = attackerIsOutsider && Spec72.RallyIgnoresAffinityVsOutsider;
 
             var relationship = helper.Social.GetOrCreate(victim.Id);

@@ -112,7 +112,7 @@ public static class DoorTopology
             var owner = OwnerFaction(world, door);
             foreach (var faction in AllFactions)
             {
-                if (!FactionRelations.AreHostile(faction, owner))
+                if (!FactionRelations.AreHostile(world, faction, owner))
                 {
                     continue;
                 }

@@ -304,9 +304,41 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        var pick = (int)(MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 991) * _exploreCandidates.Count);
-        pick = System.Math.Min(pick, _exploreCandidates.Count - 1);
-        var destination = _exploreCandidates[pick];
+        Junction destination = null;
+        Faction visitFaction = default;
+        TileCoord visitHome = default;
+        var visiting = CampDiplomacyMath.TryFindVisitCamp(
+            world, npc, out visitFaction, out visitHome);
+        if (visiting)
+        {
+            var currentDistance = HexSpatialMath.HexDistance(npc.Tile, visitHome);
+            var bestDistance = currentDistance;
+            foreach (var candidate in _exploreCandidates)
+            {
+                var tile = candidate.Tiles.Count > 0 ? candidate.Tiles[0] : npc.Tile;
+                var distance = HexSpatialMath.HexDistance(tile, visitHome);
+                if (distance < bestDistance ||
+                    (distance == bestDistance && destination is not null &&
+                     candidate.Id.Value < destination.Id.Value))
+                {
+                    bestDistance = distance;
+                    destination = candidate;
+                }
+            }
+
+            // A local obstacle can make every legal 3..8-tile endpoint point
+            // sideways or back. Fall through to ordinary wandering instead of
+            // installing a visit leg that provably makes no progress.
+            visiting = destination is not null;
+        }
+
+        if (destination is null)
+        {
+            var pick = (int)(MathUtil.Hash01(
+                world.Seed, world.Tick, npc.Id.Value, 991) * _exploreCandidates.Count);
+            pick = System.Math.Min(pick, _exploreCandidates.Count - 1);
+            destination = _exploreCandidates[pick];
+        }
 
         // Reachability check: destination must connect to where we stand.
         if (npc.CurrentJunction is not { } startJunction ||
@@ -337,9 +369,13 @@ public sealed partial class PlanningSystem
         npc.Plan.Status = PlanStatus.Active;
         if (SimTrace.Enabled)
         {
-            Trace.Debug(world, npc.Id, "ExplorePlanned",
+            Trace.Debug(world, npc.Id, visiting ? "CampVisitPlanned" : "ExplorePlanned",
                 $"To Junction={destination.Id.Value} " +
-                $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} Steps=[MoveToJunction]");
+                $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} " +
+                (visiting
+                    ? $"Camp={visitFaction} Home={visitHome.Q},{visitHome.R} "
+                    : string.Empty) +
+                "Steps=[MoveToJunction]");
         }
     }
 

@@ -62,7 +62,7 @@ public static class GroupHuntMath
         foreach (var candidate in world.Entities.Npcs.Values)
         {
             if (candidate.Health <= 0f ||
-                !FactionRelations.AreHostile(candidate, a))
+                !FactionRelations.AreHostile(world, a, candidate))
             {
                 continue;
             }

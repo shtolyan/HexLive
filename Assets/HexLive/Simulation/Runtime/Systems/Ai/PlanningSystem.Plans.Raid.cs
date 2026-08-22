@@ -23,7 +23,7 @@ public sealed partial class PlanningSystem
         if (npc.Mind.RaidTargetNpcId is { } targetId &&
             world.Entities.Npcs.TryGetValue(targetId, out var committed) &&
             committed.Health > 0f &&
-            FactionRelations.AreHostile(npc, committed))
+            FactionRelations.AreHostile(world, npc, committed))
         {
             // Give-up checks, in the order they cost least to evaluate. Each one
             // mirrors a valve the dogs already have (§29C.4A) — a hunter that

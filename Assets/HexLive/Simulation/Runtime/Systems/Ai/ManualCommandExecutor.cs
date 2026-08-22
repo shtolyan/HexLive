@@ -44,6 +44,9 @@ internal static class ManualCommandExecutor
             case SetManualControlCommand setManual:
                 ApplySetManual(world, setManual, admission);
                 break;
+            case SetOutfitLockCommand setOutfitLock:
+                ApplySetOutfitLock(world, setOutfitLock, admission);
+                break;
             case MoveToCommand moveTo:
                 ApplyMoveTo(world, moveTo, admission);
                 break;
@@ -167,6 +170,7 @@ internal static class ManualCommandExecutor
     private static string OrderName(ISimulationCommand command) => command switch
     {
         SetManualControlCommand => "SetManual",
+        SetOutfitLockCommand => "SetOutfitLock",
         MoveToCommand => "MoveTo",
         InteractCommand => "Interact",
         AttackNpcCommand => "AttackNpc",
@@ -352,6 +356,24 @@ internal static class ManualCommandExecutor
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualControlChanged", "Enabled=1");
+        }
+    }
+
+    private static void ApplySetOutfitLock(
+        WorldState world, SetOutfitLockCommand command, AdmissionTracker admission)
+    {
+        if (!PlayerAuthority.CanMutateInventory(world, command.Npc, out var npc) ||
+            npc.Health <= 0f)
+        {
+            Reject(world, command.Npc, "SetOutfitLock", "NotOwned", admission);
+            return;
+        }
+
+        npc.Mind.OutfitLocked = command.Enabled;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "OutfitLockChanged",
+                $"Enabled={(command.Enabled ? 1 : 0)}");
         }
     }
 
@@ -1471,6 +1493,14 @@ internal static class ManualCommandExecutor
         }
 
         var item = source[command.Item.Index];
+        if (npc.Mind.OutfitLocked &&
+            (command.Action == InventoryAction.Wear ||
+             command.Item.Source == InventoryItemSource.Worn))
+        {
+            Reject(world, npc.Id, "Inventory", "OutfitLocked", admission);
+            return;
+        }
+
         var stepType = PlanStepType.PlayerDropCarried;
         switch (command.Action)
         {

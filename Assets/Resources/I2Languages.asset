@@ -20841,12 +20841,44 @@ MonoBehaviour:
         \u043C\u0435\u0441\u0442\u0430"
       Flags: 0101
       Languages_Touch: []
+    - Term: toast.order_rejected.OutfitLocked
+      TermType: 0
+      Description:
+      Languages:
+      - Outfit is locked
+      - "Одежда закреплена"
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.action.wear
       TermType: 0
       Description: 
       Languages:
       - Wear
       - "\u041D\u0430\u0434\u0435\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.outfit_lock
+      TermType: 0
+      Description:
+      Languages:
+      - Lock outfit
+      - "Закрепить одежду"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.outfit_lock.tooltip
+      TermType: 0
+      Description:
+      Languages:
+      - Prevent changing this outfit; washing returns the exact same garment
+      - "Запретить переодевание; после стирки возвращается та же самая вещь"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.outfit_locked
+      TermType: 0
+      Description:
+      Languages:
+      - Outfit is locked. Unlock it to wear or remove clothing.
+      - "Одежда закреплена. Выключите запрет, чтобы надеть или снять вещь."
       Flags: 0101
       Languages_Touch: []
     - Term: inv.action.stow

@@ -110,7 +110,8 @@ public sealed class Handshake
     //    непонятно отвергал бы каждое подключение к BigIsland-миру.
     // 7: §147.5 — секция MobSlots в снапшоте/дельте (патрульные слоты
     //    виртуальных зверей; превью клиент считает сам из Seed+Tick).
-    public const int ProtocolVersion = 7;
+    // 8: §133.9 — SetOutfitLockCommand и авторитетный OutfitLocked в NPC.
+    public const int ProtocolVersion = 8;
 
     public int Seed { get; set; }
 

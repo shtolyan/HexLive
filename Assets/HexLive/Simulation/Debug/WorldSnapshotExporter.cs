@@ -981,6 +981,7 @@ public static class WorldSnapshotExporter
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
             IsManualControl = npc.Mind.ManualControl, // §121
+            OutfitLocked = npc.Mind.OutfitLocked, // §133.9
             CurrentDream = npc.Mind.CurrentDream.ToString(),
             PlanStatus = npc.Plan.Status.ToString(),
             MovementStatus = npc.Movement.Status.ToString(),

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620">
+  <defs>
+    <style>
+      .bg{fill:#10151e}.panel{fill:#171e2a;stroke:#344058;stroke-width:2}.title{font:700 28px system-ui,sans-serif;fill:#f4f6fa}.head{font:700 20px system-ui,sans-serif;fill:#f4f6fa}.text{font:16px system-ui,sans-serif;fill:#c8d1df}.small{font:14px system-ui,sans-serif;fill:#98a6ba}.gold{fill:#d7aa54}.cyan{fill:#4bb4c8}.muted{fill:#596579}.line{stroke:#596579;stroke-width:3;fill:none}.ok{stroke:#76c49a;stroke-width:3;fill:none}.stop{stroke:#ef6b73;stroke-width:3;fill:none}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#596579"/></marker>
+  </defs>
+  <rect class="bg" width="1100" height="620"/>
+  <text class="title" x="42" y="52">Баг #193: закрепление текущего наряда</text>
+
+  <rect class="panel" x="35" y="82" width="1030" height="104" rx="20"/>
+  <text class="head" x="62" y="119">Заголовок окна инвентаря · 940 × 620 px</text>
+  <text class="text" x="62" y="157">🎒 Инвентарь   6/12 ячеек</text>
+  <rect x="720" y="112" width="260" height="44" rx="10" fill="#101a23" stroke="#596579"/>
+  <text class="text" x="738" y="140">Закрепить одежду</text>
+  <rect x="912" y="122" width="48" height="24" rx="12" fill="#5d4a29"/>
+  <circle class="gold" cx="948" cy="134" r="9"/>
+  <text class="small" x="992" y="140">✕</text>
+
+  <rect class="panel" x="35" y="220" width="315" height="310" rx="20"/>
+  <text class="head" x="62" y="260">Обычная смена одежды</text>
+  <text class="text" x="62" y="305">Dress / Undress</text>
+  <text class="text" x="62" y="342">Надеть из рюкзака</text>
+  <text class="text" x="62" y="379">Снять или выбросить</text>
+  <path class="stop" d="M92 418 L292 418"/>
+  <path class="stop" d="M175 400 L209 436 M209 400 L175 436"/>
+  <text class="small" x="62" y="478">При lock=ON команда отклоняется</text>
+  <text class="small" x="62" y="503">с Reason=OutfitLocked.</text>
+
+  <path class="line" d="M350 375 C390 375 390 375 430 375" marker-end="url(#arrow)"/>
+
+  <rect class="panel" x="430" y="220" width="635" height="310" rx="20"/>
+  <text class="head" x="457" y="260">Единственное исключение: стирка</text>
+  <rect x="462" y="300" width="145" height="72" rx="12" fill="#222c3b" stroke="#596579"/>
+  <text class="text" x="484" y="330">ItemInstance</text>
+  <text class="small" x="484" y="354">надето</text>
+  <path class="line" d="M607 336 L680 336" marker-end="url(#arrow)"/>
+  <rect x="681" y="300" width="145" height="72" rx="12" fill="#222c3b" stroke="#4bb4c8"/>
+  <text class="text" x="707" y="330">ObjectId</text>
+  <text class="small" x="700" y="354">стирается</text>
+  <path class="line" d="M826 336 L899 336" marker-end="url(#arrow)"/>
+  <rect x="900" y="300" width="135" height="72" rx="12" fill="#222c3b" stroke="#76c49a"/>
+  <text class="text" x="919" y="330">Та же вещь</text>
+  <text class="small" x="926" y="354">надета</text>
+  <path class="ok" d="M488 414 C620 462 852 462 1008 414"/>
+  <text class="text" x="570" y="485">Тот же id, владелец, прочность и содержимое карманов</text>
+
+  <text class="small" x="42" y="579">Snapshot → CharacterPanel; SetOutfitLockCommand → simulation; save blob v55</text>
+</svg>

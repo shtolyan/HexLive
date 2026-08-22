@@ -121,7 +121,8 @@ public static class WorldSaveSerializer
     // кольцами — урок §46 v4: всё состояние слота в сейве, ничего не
     // выводится из сида задним числом. Блоб ≤52 читает пустой список, и
     // ленивая генерация отстраивает слоты заново, если ручки включены.
-    public const int BlobVersion = 54; // §148: + разведанные гексы
+    // v55 (§133.9, #193): сохраняемый запрет смены одежды per NPC.
+    public const int BlobVersion = 55;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1637,6 +1638,9 @@ public static class WorldSaveSerializer
             WriteNullableString(w, entry.Chore1);
             WriteNullableString(w, entry.Chore2);
         }
+
+        // §133.9 / v55: append-only хвост NPC-записи.
+        w.Write(npc.Mind.OutfitLocked);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2225,6 +2229,10 @@ public static class WorldSaveSerializer
 
             npc.Journal.LoadFrom(entries);
         }
+
+        // §133.9: старый сейв не содержал пользовательского запрета, поэтому
+        // его одежда остаётся в прежнем свободном режиме.
+        npc.Mind.OutfitLocked = version >= 55 && r.ReadBoolean();
 
         return npc;
     }

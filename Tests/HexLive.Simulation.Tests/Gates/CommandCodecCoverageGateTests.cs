@@ -31,6 +31,7 @@ public sealed class CommandCodecCoverageGateTests
     private static readonly ISimulationCommand[] Stamped =
     {
         new SetManualControlCommand(new EntityId(11), true),
+        new SetOutfitLockCommand(new EntityId(111), true),
         new MoveToCommand(new EntityId(12), new Float2(3.5f, -7.25f), run: true),
         new InteractCommand(new EntityId(13), new ObjectId(77), InteractionType.Harvest),
         new AttackNpcCommand(new EntityId(14), new EntityId(41)),

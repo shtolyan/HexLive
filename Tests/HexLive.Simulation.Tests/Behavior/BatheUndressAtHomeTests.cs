@@ -565,8 +565,9 @@ public sealed class BatheUndressAtHomeTests
             // Пин версии блоба: он поднимается сознательно и только вместе с
             // читателем старого формата. 48 → 49 в §35.4 r2 (флаг крыши, #167);
             // 53 → 54 в §148 (разведанные гексы; старый сейв читается, туман
-            // просто открывается заново).
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(54));
+            // просто открывается заново); 54 → 55 в §133.9 (#193,
+            // сохраняемый запрет смены одежды).
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(55));
         });
     }
 
@@ -771,6 +772,83 @@ public sealed class BatheUndressAtHomeTests
         var doffed = world.Entities.Objects[npc.Mind.RedressGarments[0]];
         Assert.That(doffed.Junctions[0], Is.Not.EqualTo(wardrobe.Junctions[0]),
             "Бельё для стирки не должно уезжать на станцию — его сейчас будут стирать.");
+    }
+
+    [Test]
+    public void LockedLaundryRedressesTheExactPieceWithoutBodyBath_Bug193()
+    {
+        var world = SettledWorld(1104);
+        var npc = world.Entities.Npcs.Values.First(candidate =>
+            candidate.Faction == Faction.Colony &&
+            HygieneMath.FindReachableBathShore(world, candidate) is not null);
+        var shore = HygieneMath.FindReachableBathShore(world, npc)!;
+        npc.CurrentJunction = shore.Id;
+        npc.Tile = shore.Tiles.First(tile =>
+            world.Tiles.Items.TryGetValue(tile, out var state) &&
+            !state.Flags.HasFlag(TileFlags.Water));
+        npc.Position = shore.WorldPosition;
+        npc.Needs.Hygiene = 0f;
+        npc.WornItems.Clear();
+        var garment = new ItemInstance("underwear.bra_riot")
+        {
+            Dirtiness = 0.9f,
+            Durability = 0.73f,
+            OwnerId = npc.Id.Value
+        };
+        npc.WornItems.Add(garment);
+        npc.Mind.OutfitLocked = true;
+        npc.Mind.CurrentGoal = GoalType.Bathe;
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.LaundryBatch;
+        npc.Mind.PersonalCareBathShore = shore.Id;
+        npc.Mind.RedressShore = shore.Id;
+        npc.Mind.RedressGarments.Clear();
+        npc.Plan.Goal = GoalType.Bathe;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetJunctionId = shore.Id;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PrepareBathe,
+            TargetJunction = shore.Id,
+            TimeoutEndTick = shore.Id.Value
+        });
+        npc.Movement.IsMoving = false;
+        npc.Movement.SetStatus(MovementStatus.Arrived);
+
+        var execution = new ExecutionSystem();
+        execution.Run(world); // start doff
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world); // exact piece becomes a world object; wash starts
+        var washedObjectId = npc.Mind.RedressGarments.Single();
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world); // wash completes
+        execution.Run(world); // lock forces laundry -> redress, never SwimBathe
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Mind.PersonalCarePhase, Is.EqualTo(PersonalCarePhase.Redress));
+            Assert.That(npc.Plan.Steps.Any(step => step.Type == PlanStepType.SwimBathe), Is.False);
+            Assert.That(npc.Plan.Steps.Any(step => step.Type == PlanStepType.RedressAfterBathe), Is.True);
+            Assert.That(npc.Mind.RedressGarments.Single(), Is.EqualTo(washedObjectId));
+        });
+
+        npc.Plan.CurrentStepIndex = npc.Plan.Steps.FindIndex(
+            step => step.Type == PlanStepType.RedressAfterBathe);
+        execution.Run(world); // start redress beat
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world); // re-don exact remembered object
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(washedObjectId), Is.False);
+            Assert.That(npc.WornItems, Has.Count.EqualTo(1));
+            Assert.That(npc.WornItems[0].DefinitionId, Is.EqualTo(garment.DefinitionId));
+            Assert.That(npc.WornItems[0].Durability, Is.EqualTo(0.73f).Within(0.0001f));
+            Assert.That(npc.WornItems[0].Dirtiness, Is.Zero);
+            Assert.That(npc.Mind.OutfitLocked, Is.True);
+            Assert.That(npc.Needs.Hygiene, Is.Zero,
+                "Закреплённый наряд разрешает стирку, но не скрытое купание.");
+        });
     }
 }
 

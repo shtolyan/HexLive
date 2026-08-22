@@ -83,7 +83,8 @@ public static class WorldSnapshotCodec
     /// v28: §83.2 r13 — набор runtime-тайлов в дельте едет за флагом «изменился»,
     /// а не каждым кадром. Ключевой кадр по-прежнему несёт его всегда.
     /// v30: §120.9 editable building owners expose their authoritative draft.
-    public const int WireVersion = 30;
+    /// v31: §133.9 per-NPC outfit lock for the inventory header switch.
+    public const int WireVersion = 31; // §133.9: NpcSnapshot.OutfitLocked
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -986,6 +987,7 @@ public static class WorldSnapshotCodec
         w.Write(n.KnownObjectCount);
         WireIo.WriteNullableInt(w, n.GoalLockEndTick);
         w.Write(n.IsManualControl); // §121
+        w.Write(n.OutfitLocked); // §133.9
     }
 
     private static void WriteNpcInventory(BinaryWriter w, NpcSnapshot n)
@@ -1326,6 +1328,7 @@ public static class WorldSnapshotCodec
         n.KnownObjectCount = r.ReadInt32();
         n.GoalLockEndTick = WireIo.ReadNullableInt(r);
         n.IsManualControl = r.ReadBoolean(); // §121
+        n.OutfitLocked = r.ReadBoolean(); // §133.9
     }
 
     private static void ReadNpcInventory(BinaryReader r, NpcSnapshot n)

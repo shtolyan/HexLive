@@ -739,6 +739,9 @@ public sealed class NpcSnapshot
     /// иначе кнопка показывала бы одно, а персонаж делал другое.</summary>
     public bool IsManualControl { get; set; }
 
+    /// <summary>§133.9: player froze this NPC's current outfit.</summary>
+    public bool OutfitLocked { get; set; }
+
     // Spec §64: the colonist's current dream (aspiration) — the DreamType name,
     // localized by presentation into the character-panel dream pill. "None" when
     // she has nothing left to dream of.

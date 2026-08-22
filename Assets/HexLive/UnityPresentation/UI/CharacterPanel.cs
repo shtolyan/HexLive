@@ -127,6 +127,13 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _inventoryWindow;
         private Label _inventoryTitle;
         private Label _inventoryCapacity;
+        // §133.9 / #193: authoritative per-NPC outfit lock shown in the
+        // inventory header. The switch never caches authority: snapshot wins.
+        private VisualElement _outfitLockButton;
+        private VisualElement _outfitLockTrack;
+        private VisualElement _outfitLockThumb;
+        private Label _outfitLockLabel;
+        private bool _outfitLockedNow;
         // §138: the backpack and manual recipe browser share one floating
         // window. Crafting is local-only and never exists for group/AI views.
         private VisualElement _inventoryTabs;
@@ -1545,6 +1552,8 @@ namespace HexLive.UnityPresentation.UI
             _inventoryCapacity.style.marginLeft = 9f;
             header.Add(_inventoryCapacity);
 
+            header.Add(BuildOutfitLockToggle());
+
             var close = new Label("✕");
             close.style.color = TextDim;
             close.style.fontSize = 15;
@@ -1756,6 +1765,87 @@ namespace HexLive.UnityPresentation.UI
                     PositionInventoryDetail();
                 }
             });
+        }
+
+        private VisualElement BuildOutfitLockToggle()
+        {
+            var button = new VisualElement { name = "inventory-outfit-lock" };
+            button.style.height = 28f;
+            button.style.marginRight = 12f;
+            button.style.paddingLeft = 9f;
+            button.style.paddingRight = 7f;
+            button.style.flexDirection = FlexDirection.Row;
+            button.style.alignItems = Align.Center;
+            button.style.backgroundColor = IdentityGlass;
+            SetBorder(button, StrokeStrong, 1f);
+            SetRadius(button, 9f);
+            button.tooltip = Loc.Get("inv.outfit_lock.tooltip");
+
+            _outfitLockLabel = new Label(Loc.Get("inv.outfit_lock"));
+            _outfitLockLabel.style.fontSize = 11f;
+            _outfitLockLabel.style.color = TextDim;
+            _outfitLockLabel.style.marginRight = 8f;
+            _outfitLockLabel.pickingMode = PickingMode.Ignore;
+            button.Add(_outfitLockLabel);
+
+            _outfitLockTrack = new VisualElement();
+            _outfitLockTrack.style.width = 38f;
+            _outfitLockTrack.style.height = 20f;
+            _outfitLockTrack.style.backgroundColor = Track;
+            SetRadius(_outfitLockTrack, 10f);
+            _outfitLockTrack.pickingMode = PickingMode.Ignore;
+
+            _outfitLockThumb = new VisualElement();
+            _outfitLockThumb.style.position = Position.Absolute;
+            _outfitLockThumb.style.left = 3f;
+            _outfitLockThumb.style.top = 3f;
+            _outfitLockThumb.style.width = 14f;
+            _outfitLockThumb.style.height = 14f;
+            _outfitLockThumb.style.backgroundColor = TextDim;
+            SetRadius(_outfitLockThumb, 7f);
+            _outfitLockThumb.pickingMode = PickingMode.Ignore;
+            _outfitLockTrack.Add(_outfitLockThumb);
+            button.Add(_outfitLockTrack);
+
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                ToggleOutfitLock();
+                evt.StopPropagation();
+            });
+            _outfitLockButton = button;
+            return button;
+        }
+
+        private void ToggleOutfitLock()
+        {
+            if (_runner == null || !_runner.SupportsNpcCommands ||
+                !_inventoryMutable || _inventoryActorId < 0)
+            {
+                return;
+            }
+
+            _runner.EnqueueCommand(new SetOutfitLockCommand(
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId),
+                !_outfitLockedNow));
+        }
+
+        private void RefreshOutfitLockToggle(NpcSnapshot npc)
+        {
+            _outfitLockedNow = npc.OutfitLocked;
+            if (_outfitLockButton == null)
+            {
+                return;
+            }
+
+            _outfitLockButton.style.opacity = _inventoryMutable ? 1f : 0.45f;
+            _outfitLockButton.pickingMode = _inventoryMutable
+                ? PickingMode.Position : PickingMode.Ignore;
+            _outfitLockTrack.style.backgroundColor = npc.OutfitLocked
+                ? new Color(Gold.r, Gold.g, Gold.b, 0.34f) : Track;
+            _outfitLockThumb.style.left = npc.OutfitLocked ? 21f : 3f;
+            _outfitLockThumb.style.backgroundColor = npc.OutfitLocked ? Gold : TextDim;
+            _outfitLockLabel.style.color = npc.OutfitLocked ? Text : TextDim;
+            SetBorderColor(_outfitLockButton, npc.OutfitLocked ? GoldDim : StrokeStrong);
         }
 
         private void BuildInventoryTabs()
@@ -3392,6 +3482,7 @@ namespace HexLive.UnityPresentation.UI
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
                 npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f;
+            RefreshOutfitLockToggle(npc);
             if (!_inventoryOpen)
             {
                 return;
@@ -3458,6 +3549,7 @@ namespace HexLive.UnityPresentation.UI
                 + "|" + string.Join(",", npc.InventoryWater)
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots
                 + "|" + npc.HeldItemId + "|" + npc.FavoriteWeaponId
+                + "|lock=" + (npc.OutfitLocked ? "1" : "0")
                 + "|" + InventoryLayoutSignature(npc);
             if (sig == _invSig)
             {
@@ -3766,16 +3858,19 @@ namespace HexLive.UnityPresentation.UI
             BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness);
 
             var wearable = def != null && def.Layer.HasValue;
-            _invPrimaryAction.style.display = _inventoryMutable && (worn || wearable)
+            var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
+            _invPrimaryAction.style.display = _inventoryMutable &&
+                (worn || wearable) && !outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invDropAction.style.display = _inventoryMutable
+            _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn)
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invReadOnlyLabel.style.display = _inventoryMutable
-                ? DisplayStyle.None : DisplayStyle.Flex;
+            _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
+                ? DisplayStyle.Flex : DisplayStyle.None;
             _invPrimaryActionLabel.text = Loc.Get(worn
                 ? "inv.action.stow" : "inv.action.wear");
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
-            _invReadOnlyLabel.text = Loc.Get("inv.readonly");
+            _invReadOnlyLabel.text = Loc.Get(outfitChangeBlocked
+                ? "inv.outfit_locked" : "inv.readonly");
 
             _invDetailView.style.display = DisplayStyle.Flex;
             _invDetailView.BringToFront();
@@ -6980,6 +7075,11 @@ namespace HexLive.UnityPresentation.UI
             if (_inventoryTitle != null)
             {
                 _inventoryTitle.text = Loc.Get("panel.inventory");
+            }
+            if (_outfitLockLabel != null)
+            {
+                _outfitLockLabel.text = Loc.Get("inv.outfit_lock");
+                _outfitLockButton.tooltip = Loc.Get("inv.outfit_lock.tooltip");
             }
 
             if (_inventoryBackpackTabLabel != null)

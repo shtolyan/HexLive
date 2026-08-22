@@ -24,6 +24,14 @@ namespace HexLive.Simulation.Runtime
                 _ => InventoryAction.Drop
             };
 
+            if (npc.Mind.OutfitLocked &&
+                (step.Type is PlanStepType.PlayerWearInventory or
+                    PlanStepType.PlayerStowWorn or PlanStepType.PlayerDropWorn))
+            {
+                FailPlayerInventory(world, npc, "OutfitLocked");
+                return;
+            }
+
             var list = source == InventoryItemSource.Carried
                 ? npc.Inventory.Items
                 : npc.WornItems;

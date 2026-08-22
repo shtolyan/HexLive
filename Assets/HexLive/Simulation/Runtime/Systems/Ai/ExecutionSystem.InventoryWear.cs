@@ -501,6 +501,30 @@ public sealed partial class ExecutionSystem
 
     private static void RunUndressItem(WorldState world, NPCState npc, PlanStep step)
     {
+        if (npc.Mind.OutfitLocked)
+        {
+            // The toggle may arrive after the visual handoff, when ordinary
+            // Undress has already moved the authoritative instance from worn
+            // to HeldGarment. Put that SAME instance back before cancelling;
+            // clearing the hand here used to destroy the garment outright.
+            if (npc.Execution.HeldGarment is { } held &&
+                !npc.WornItems.Contains(held))
+            {
+                npc.WornItems.Add(held);
+                EquipmentMath.Recalculate(world, npc);
+            }
+
+            npc.Plan.Status = PlanStatus.Failed;
+            npc.Execution.HeldGarment = null;
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Execution.CurrentInteraction = null;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "UndressBlocked", "Reason=OutfitLocked");
+            }
+            return;
+        }
+
         var itemId = npc.Plan.TargetItemDefinitionId;
 
         // §133: если план вёл домой — раздеваемся, только дойдя до места.

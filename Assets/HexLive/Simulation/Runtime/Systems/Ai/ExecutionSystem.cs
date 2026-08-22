@@ -1536,6 +1536,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
+        if (npc.Mind.OutfitLocked)
+        {
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "DressBlocked",
+                    $"Obj={worldObject.Id.Value} Reason=OutfitLocked");
+            }
+            return false;
+        }
+
         // §133: чужое надевают только с разрешения, и разрешение ОДНОРАЗОВОЕ —
         // сгорает здесь же. Планировщик до сюда чужое без «да» не пропускает;
         // это последний рубеж на случай, если вещь сменила хозяйку по дороге.

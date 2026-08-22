@@ -945,7 +945,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.Sit,
             (1f - npc.Needs.Comfort) * 0.5f + (1f - npc.Needs.Stamina) * 0.25f +
                 TraitMath.LeisureBonus(npc), ctx.SitAvail);
-        AddGoalScore(npc, world.Tick, GoalType.Dress, ctx.DressNeed, ctx.DressAvail);
+        AddGoalScore(npc, world.Tick, GoalType.Dress, ctx.DressNeed,
+            ctx.DressAvail && !npc.Mind.OutfitLocked);
         // Spec 28.15B: dislike lowers the urge, embarrassment causes
         // post-quarrel withdrawal.
         AddGoalScore(npc, world.Tick, GoalType.Socialize, 1f - npc.Needs.Social, ctx.SocializeAvail,
@@ -2390,7 +2391,28 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // washer fetch a garment, fail the dry second leg, eat briefly and
         // restore the same active WashClothes plan forever.
         var groomingSurvivalSafe = !PlanningSystem.ExploreMustAvoidDeepWater(npc);
-        var batheAvail = caresAboutGrooming && groomingSurvivalSafe &&
+        // §133.9 / #193: a locked outfit may leave the body only for washing.
+        // Dirty worn pieces still enter LaundryBatch and are re-donned by exact
+        // object id; clean clothing blocks an ordinary body bath.
+        var lockedLaundryRequired = false;
+        var hasNonHolsterGarment = false;
+        foreach (var item in npc.WornItems)
+        {
+            if (HolsterCatalog.IsHolster(item.DefinitionId))
+            {
+                continue;
+            }
+
+            hasNonHolsterGarment = true;
+            if (MathUtil.Clamp01(item.Dirtiness + item.Bloodiness) >=
+                SimBalance.WashClothesNeedThreshold)
+            {
+                lockedLaundryRequired = true;
+            }
+        }
+        var outfitAllowsBathe = !npc.Mind.OutfitLocked || ctx.PendingRedress ||
+            lockedLaundryRequired || !hasNonHolsterGarment;
+        var batheAvail = caresAboutGrooming && groomingSurvivalSafe && outfitAllowsBathe &&
             (ctx.PendingRedress ||
              // §126: чистюле хватает меньшей грязи, чтобы взяться (множитель к
              // ПОРОГУ — ставку она потом выигрывает по общей формуле).
@@ -2411,7 +2433,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
               // «поспать», их нет и на «поплавать».
               npc.Needs.Energy >= TraitMath.EffectiveSleepThreshold(npc) &&
               HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons));
-        if (groomingSurvivalSafe &&
+        if (groomingSurvivalSafe && outfitAllowsBathe &&
             npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
         {
             batheAvail = true;
@@ -2546,7 +2568,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §133: при известном чужаке не раздеваются вовсе — ни до белья, ни до
         // куртки. Гейт тот же предикат, что поднимает встречное «прикройся»,
         // поэтому Dress и Undress не могут перещёлкиваться друг за другом.
-        var undressAvail = ctx.EffectiveTemp > 24f && npc.Needs.ThermalDiscomfort >= 0.4f &&
+        var undressAvail = !npc.Mind.OutfitLocked &&
+            ctx.EffectiveTemp > 24f && npc.Needs.ThermalDiscomfort >= 0.4f &&
             !ModestyMath.OutsiderKnown(world, npc) &&
             FindRemovableItem(npc, world) is not null;
         AddGoalScore(npc, world.Tick, GoalType.Undress, npc.Needs.ThermalDiscomfort, undressAvail);

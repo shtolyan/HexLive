@@ -114,6 +114,22 @@ public sealed class SetManualControlCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§133.9: freeze or release one NPC's current outfit.</summary>
+public sealed class SetOutfitLockCommand : ISimulationCommand
+{
+    public SetOutfitLockCommand(EntityId npc, bool enabled)
+    {
+        Npc = npc;
+        Enabled = enabled;
+    }
+
+    public EntityId Npc { get; }
+
+    public bool Enabled { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§121: идти в точку. Точка, а не узел: клик игрока приходит по
 /// поверхности мира, а ближайший узел — уже дело симуляции.
 /// Run=false — одиночный клик, Run=true — двойной.</summary>

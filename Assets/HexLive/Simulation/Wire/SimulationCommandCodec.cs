@@ -66,6 +66,7 @@ public static class SimulationCommandCodec
         CancelBuildSite = 28,
         PlaceBuildingBlueprint = 29,
         UpdateBuildingBlueprint = 30,
+        SetOutfitLock = 31,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -74,6 +75,11 @@ public static class SimulationCommandCodec
         {
             case SetManualControlCommand c:
                 w.Write((ushort)CommandType.SetManualControl);
+                WriteEntity(w, c.Npc);
+                w.Write(c.Enabled);
+                break;
+            case SetOutfitLockCommand c:
+                w.Write((ushort)CommandType.SetOutfitLock);
                 WriteEntity(w, c.Npc);
                 w.Write(c.Enabled);
                 break;
@@ -250,6 +256,8 @@ public static class SimulationCommandCodec
         {
             case CommandType.SetManualControl:
                 return new SetManualControlCommand(ReadEntity(r), r.ReadBoolean());
+            case CommandType.SetOutfitLock:
+                return new SetOutfitLockCommand(ReadEntity(r), r.ReadBoolean());
             case CommandType.MoveTo:
                 return new MoveToCommand(
                     ReadEntity(r), WireIo.ReadFloat2(r), r.ReadBoolean());

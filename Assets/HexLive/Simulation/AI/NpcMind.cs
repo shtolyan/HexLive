@@ -435,6 +435,12 @@ public sealed class NPCMind
     // из игры так же, как то, во что она одета.
     public bool ManualControl { get; set; }
 
+    // §133.9 / bug #193: player-owned outfit latch. While enabled, ordinary
+    // Dress/Undress and player wear/stow/drop commands cannot change clothing.
+    // Laundry remains transactional: it may doff one dirty instance and must
+    // put that exact ItemInstance back on when the wash finishes.
+    public bool OutfitLocked { get; set; }
+
     // §121.7 (v46 legacy): сохранённый слот прежнего потикового таймаута.
     // Больше не участвует в поведении, но остаётся в модели, чтобы не менять
     // бинарный формат существующих сейвов.

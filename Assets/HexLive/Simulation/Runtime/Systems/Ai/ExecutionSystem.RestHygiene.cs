@@ -608,6 +608,40 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // §133.9 / #193: the switch can be enabled while a clean-clothes bath
+        // is already walking or doffing. Stop before one more garment leaves
+        // the body. Pieces already laid down remain in RedressGarments and go
+        // straight back through the exact-id redress path; with no pile yet,
+        // cancel the bath without changing body hygiene.
+        if (npc.Mind.OutfitLocked &&
+            npc.Mind.PersonalCarePhase == PersonalCarePhase.Bathing)
+        {
+            if (npc.Execution.HeldGarment is { } held &&
+                !npc.WornItems.Contains(held))
+            {
+                npc.WornItems.Add(held);
+                EquipmentMath.Recalculate(world, npc);
+            }
+            npc.Execution.HeldGarment = null;
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Execution.CurrentInteraction = null;
+            npc.Execution.StartTick = 0;
+            npc.Execution.EndTick = 0;
+            npc.Plan.TargetItemDefinitionId = null;
+            npc.Mind.PersonalCarePhase = PersonalCarePhase.Redress;
+            if (TryBeginPostBatheRedress(world, npc, shore))
+            {
+                return;
+            }
+
+            npc.Mind.PersonalCarePhase = PersonalCarePhase.None;
+            npc.Mind.PersonalCareBathShore = null;
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand,
+                "Bathe cancelled: outfit locked");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
         // §40.6: remember where she is undressing so she can come back for the
         // pile after her swim (the list is filled as each piece drops below).
         // If §133 undresses at home, this is the home return point. A second
@@ -1116,6 +1150,7 @@ public sealed partial class ExecutionSystem
     /// настоял. Порог тот же, по которому купание вообще становится нуждой.
     /// </summary>
     private static bool WantsBodyBath(NPCState npc) =>
+        !npc.Mind.OutfitLocked &&
         1f - npc.Needs.Hygiene >=
             SimBalance.BatheNeedThreshold * TraitMath.GroomingThresholdMult(npc);
 

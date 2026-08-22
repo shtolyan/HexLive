@@ -272,10 +272,11 @@ public sealed class WorldStateFactory
         return world;
     }
 
-    // §146.9: 132 real garment objects. Every one of the six girl camps gets
-    // pants, footwear and ten varied pieces in rings 1..6; sixty more reward
-    // longer trips through the interior. The §63 surf gift remains unchanged
-    // and adds fresh wet clothing every fifth visible day.
+    // §146.9: 50 real garment objects. Every one of the six girl camps gets
+    // pants, footwear and three varied pieces in rings 1..6; twenty more reward
+    // longer trips through the interior. Essentials stay guaranteed while the
+    // optional wardrobe is about three times sparser than the former 132-piece
+    // layout. §63 applies the same reduction to the surf cadence.
     private static void SeedHugeIslandGarments(WorldState world)
     {
         var wardrobe = new List<GarmentParams>();
@@ -393,7 +394,7 @@ public sealed class WorldStateFactory
             }
 
             var varied = wardrobe.FindAll(garment => !usedGarments.Contains(garment.Id));
-            for (var i = 0; i < 10 && near.Count > 0 && varied.Count > 0; i++)
+            for (var i = 0; i < 3 && near.Count > 0 && varied.Count > 0; i++)
             {
                 var pick = (int)(MathUtil.Hash01(
                     world.Seed, campIndex, i, 14655) * varied.Count) % varied.Count;
@@ -412,7 +413,7 @@ public sealed class WorldStateFactory
             }
             return nearest >= 7;
         });
-        for (var i = 0; i < 60 && far.Count > 0; i++)
+        for (var i = 0; i < 20 && far.Count > 0; i++)
         {
             var garment = wardrobe[(int)(MathUtil.Hash01(
                 world.Seed, i, wardrobe.Count, 14657) * wardrobe.Count) % wardrobe.Count];

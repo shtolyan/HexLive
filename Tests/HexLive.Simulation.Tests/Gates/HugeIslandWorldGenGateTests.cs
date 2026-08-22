@@ -177,8 +177,8 @@ public sealed class HugeIslandWorldGenGateTests
             var drops = world.Entities.Objects.Values
                 .Where(obj => GarmentLibrary.Active.Any(g => g.Id == obj.DefinitionId))
                 .ToArray();
-            Assert.That(drops, Has.Length.GreaterThanOrEqualTo(120),
-                $"seed {seed}: одежды для исследования слишком мало");
+            Assert.That(drops, Has.Length.EqualTo(50),
+                $"seed {seed}: шестилагерный режим должен создавать ровно 50 вещей");
 
             foreach (var camp in world.FactionHomes.Where(pair =>
                          pair.Key != Faction.Outsiders))
@@ -194,8 +194,8 @@ public sealed class HugeIslandWorldGenGateTests
                     HexSpatialMath.HexDistance(obj.Tile, camp.Value) <= 6), Is.True,
                     $"seed {seed}: {camp.Key} без обуви рядом");
                 Assert.That(nearby.Select(obj => obj.DefinitionId).Distinct().Count(),
-                    Is.GreaterThanOrEqualTo(12),
-                    $"seed {seed}: {camp.Key} должен получить 12 разных вещей рядом");
+                    Is.GreaterThanOrEqualTo(5),
+                    $"seed {seed}: {camp.Key} должен получить 5 разных вещей рядом");
             }
         }
     }

@@ -5,6 +5,7 @@ using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
 
@@ -65,12 +66,14 @@ public sealed class WeatherSystem : ISimulationSystem
         // the tide beaches one random girl-compatible garment per living girl
         // in the player's colony. Tick 0 is the beginning of day one, not a
         // delivery; the first delivery is tick 5*DayLengthTicks (day 6, 06:00).
+        // §146.9 makes the six-camp modes three times sparser: every 15 days.
         // The schedule is deterministic and follows the actual game clock, not
         // the short weather/raid event cycle.
         var elapsedDays = world.Tick / EnvironmentSystem.DayLengthTicks;
+        var surfGiftIntervalDays = SurfGiftIntervalDaysFor(world.Mode);
         if (world.Tick > 0 &&
             world.Tick % EnvironmentSystem.DayLengthTicks == 0 &&
-            elapsedDays % SurfGiftIntervalDays == 0)
+            elapsedDays % surfGiftIntervalDays == 0)
         {
             TrySpawnSurfGarments(world, elapsedDays, CountColonyGirls(world));
         }
@@ -194,10 +197,22 @@ public sealed class WeatherSystem : ISimulationSystem
     private static int StormRaftLogLoss => WorldBalance.StormRaftLogLoss;
     private static int StormSurgeOffsetTicks => WorldBalance.StormSurgeOffsetTicks;
 
-    // §63 surf gift cadence in complete visual days. Defensive clamp keeps a
-    // malformed remote simdata value from causing a modulo-by-zero crash.
-    private static int SurfGiftIntervalDays =>
-        System.Math.Max(1, WorldBalance.SurfGiftIntervalDays);
+    // §63/§146.9 surf gift cadence in complete visual days. Defensive clamps
+    // keep malformed remote simdata values from causing modulo-by-zero or
+    // integer overflow; HugeIsland and Maniac deliberately receive one third
+    // as many deliveries as the regular modes.
+    private static int SurfGiftIntervalDaysFor(GameMode mode)
+    {
+        var regularInterval = System.Math.Max(1, WorldBalance.SurfGiftIntervalDays);
+        if (mode is not (GameMode.HugeIsland or GameMode.Maniac))
+        {
+            return regularInterval;
+        }
+
+        return regularInterval > int.MaxValue / 3
+            ? int.MaxValue
+            : regularInterval * 3;
+    }
 }
 
 }

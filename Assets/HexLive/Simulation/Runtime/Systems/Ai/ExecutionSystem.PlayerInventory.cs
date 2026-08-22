@@ -134,7 +134,7 @@ namespace HexLive.Simulation.Runtime
             FinishPlayerInventory(npc, PlanStatus.Completed);
         }
 
-        private static void WearCarriedItem(WorldState world, NPCState npc, ItemInstance item)
+        internal static void WearCarriedItem(WorldState world, NPCState npc, ItemInstance item)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var newDefinition))
                 return;

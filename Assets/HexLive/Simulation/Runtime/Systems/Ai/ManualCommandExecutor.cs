@@ -1560,81 +1560,19 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        var source = command.Item.Source == InventoryItemSource.Carried
-            ? npc.Inventory.Items
-            : npc.WornItems;
-        if (command.Item.Index < 0 || command.Item.Index >= source.Count ||
-            source[command.Item.Index].DefinitionId != command.Item.ExpectedDefinitionId)
+        if (!PlayerInventoryCommandExecutor.TryApply(
+                world, npc, command.Item, command.Action, out var reason))
         {
-            Reject(world, npc.Id, "Inventory", "StaleItem", admission);
+            Reject(world, npc.Id, "Inventory", reason, admission);
             return;
         }
 
-        var item = source[command.Item.Index];
-        if (npc.Mind.OutfitLocked &&
-            (command.Action == InventoryAction.Wear ||
-             command.Item.Source == InventoryItemSource.Worn))
-        {
-            Reject(world, npc.Id, "Inventory", "OutfitLocked", admission);
-            return;
-        }
-
-        var stepType = PlanStepType.PlayerDropCarried;
-        switch (command.Action)
-        {
-            case InventoryAction.Wear:
-                if (command.Item.Source != InventoryItemSource.Carried ||
-                    !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var wearDef) ||
-                    wearDef.Layer is null)
-                {
-                    Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
-                    return;
-                }
-                stepType = PlanStepType.PlayerWearInventory;
-                break;
-            case InventoryAction.Stow:
-                if (command.Item.Source != InventoryItemSource.Worn)
-                {
-                    Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
-                    return;
-                }
-                stepType = PlanStepType.PlayerStowWorn;
-                break;
-            case InventoryAction.Drop:
-                stepType = command.Item.Source == InventoryItemSource.Worn
-                    ? PlanStepType.PlayerDropWorn
-                    : PlanStepType.PlayerDropCarried;
-                break;
-            default:
-                Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
-                return;
-        }
-
-        if (!PlayerInventoryMath.FitsAfter(world, npc, command.Item, command.Action))
-        {
-            Reject(world, npc.Id, "Inventory", "InsufficientSpace", admission);
-            return;
-        }
-
-        ClearForNewOrder(world, npc, "Ручное изменение инвентаря");
-        ClearAttackOrder(world, npc);
-        npc.Plan.Goal = GoalType.PlayerInventory;
-        npc.Plan.TargetItemDefinitionId = item.DefinitionId;
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = stepType,
-            // Source index already exists in the serialized step shape. It is
-            // not a timeout for these append-only inventory step types.
-            TimeoutEndTick = command.Item.Index
-        });
-        npc.Plan.CurrentStepIndex = 0;
-        npc.Plan.Status = PlanStatus.Active;
-        npc.Mind.CurrentGoal = GoalType.PlayerInventory;
         if (SimTrace.Enabled)
         {
-            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+            Trace.Debug(world, npc.Id, "PlayerInventoryCompleted",
                 $"Order=Inventory Action={command.Action} Source={command.Item.Source} " +
-                $"Index={command.Item.Index} Def={item.DefinitionId}");
+                $"Index={command.Item.Index} Def={command.Item.ExpectedDefinitionId} " +
+                $"GoalPreserved={npc.Mind.CurrentGoal}");
         }
     }
 

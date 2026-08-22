@@ -317,35 +317,46 @@ namespace HexLive.Simulation.Tests.Behavior
         }
 
         [Test]
-        public void PlayerInventoryWearSurvivesSaveMidAnimation()
+        public void PlayerInventoryWearIsImmediateAndPreservesAiPlan()
         {
             var engine = TestWorld.CreateEngine();
             var npc = Colonists(engine.World, 1)[0];
-            npc.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants));
+            var formerOwner = engine.World.Entities.Npcs.Values.First(other => other.Id != npc.Id);
+            npc.Mind.ManualControl = false;
+            npc.Mind.CurrentGoal = GoalType.Explore;
+            npc.Plan.Goal = GoalType.Explore;
+            npc.Plan.Status = PlanStatus.Active;
+            var preservedStep = new PlanStep
+            {
+                Type = PlanStepType.Wait,
+                TimeoutEndTick = engine.World.Tick + 40
+            };
+            npc.Plan.Steps.Clear();
+            npc.Plan.Steps.Add(preservedStep);
+
+            var pants = new ItemInstance(ContentIds.LeatherPants)
+                { OwnerId = formerOwner.Id.Value };
+            npc.Inventory.Items.Add(pants);
             var index = npc.Inventory.Items.Count - 1;
-            engine.Commands.Enqueue(new ManageInventoryCommand(npc.Id,
+            var result = engine.ApplyManualCommand(new ManageInventoryCommand(npc.Id,
                 new InventoryItemRef(InventoryItemSource.Carried, index, ContentIds.LeatherPants),
                 InventoryAction.Wear));
-            Step(engine, 5);
-            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerInventory));
 
-            using var buffer = new MemoryStream();
-            using (var writer = new BinaryWriter(buffer, System.Text.Encoding.UTF8, leaveOpen: true))
-                WorldSaveSerializer.Write(engine.World, writer);
-            buffer.Position = 0;
-            var reloaded = TestWorld.CreateWorld();
-            using (var reader = new BinaryReader(buffer, System.Text.Encoding.UTF8, leaveOpen: true))
-                WorldSaveSerializer.Read(reloaded, reader);
-
-            var resumed = Resume(reloaded);
-            Step(resumed, 6);
-            var loadedNpc = reloaded.Entities.Npcs[npc.Id];
             Assert.Multiple(() =>
             {
-                Assert.That(loadedNpc.WornItems.Any(i => i.DefinitionId == ContentIds.LeatherPants),
-                    Is.True);
-                Assert.That(loadedNpc.Inventory.Items.Count(i =>
-                    i.DefinitionId == ContentIds.LeatherPants), Is.EqualTo(0));
+                Assert.That(result.Accepted, Is.True);
+                Assert.That(npc.Mind.ManualControl, Is.False,
+                    "Inventory management must stay available in AI mode.");
+                Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Explore));
+                Assert.That(npc.Plan.Goal, Is.EqualTo(GoalType.Explore));
+                Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active));
+                Assert.That(npc.Plan.Steps, Has.Count.EqualTo(1));
+                Assert.That(npc.Plan.Steps[0], Is.SameAs(preservedStep));
+                Assert.That(npc.WornItems.Any(item => ReferenceEquals(item, pants)), Is.True);
+                Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, pants)), Is.False);
+                Assert.That(engine.World.Events.Items.Any(e =>
+                    e.Type.Contains("WearPermission") && e.EntityId == npc.Id.Value), Is.False,
+                    "An explicit player action must not start an owner-permission scene.");
             });
         }
 

@@ -1335,28 +1335,18 @@ public static class WorldSnapshotExporter
             world.Junctions.Items.TryGetValue(sitJunctionId, out var sitJunction) &&
             sitJunction.Tiles.Count > 1)
         {
-            var minElevation = int.MaxValue;
-            var maxElevation = int.MinValue;
-            foreach (var coord in sitJunction.Tiles)
-            {
-                if (world.Tiles.Items.TryGetValue(coord, out var seatTile))
-                {
-                    minElevation = System.Math.Min(minElevation, seatTile.Elevation);
-                    maxElevation = System.Math.Max(maxElevation, seatTile.Elevation);
-                }
-            }
-
-            npcSnapshot.IsLedgeSit = npcSnapshot.CurrentInteraction == "WashClothes"
-                ? Runtime.PlanningSystem.TryGetEdgeSeatGeometry(
-                    world, sitJunction, waterOnly: true, out _, out _)
-                : maxElevation - minElevation == 1;
+            var waterOnly = npcSnapshot.CurrentInteraction == "WashClothes";
+            npcSnapshot.IsLedgeSit = Runtime.PlanningSystem.TryGetEdgeSeatGeometry(
+                world, sitJunction, waterOnly, out var seatStandTile, out _);
 
             // How far below the seat (higher tile) her own tile sits: 0 if
             // she stands on the higher tile (a land/water rim — sit right on
             // her edge, no lift), 1 if she perches up from the lower tile.
             var standElevation = world.Tiles.Items.TryGetValue(npc.Tile, out var standSeat)
-                ? standSeat.Elevation : maxElevation;
-            npcSnapshot.LedgeSeatStepsUp = System.Math.Max(0, maxElevation - standElevation);
+                ? standSeat.Elevation : 0;
+            var seatElevation = world.Tiles.Items.TryGetValue(seatStandTile, out var seatStand)
+                ? seatStand.Elevation : standElevation;
+            npcSnapshot.LedgeSeatStepsUp = System.Math.Max(0, seatElevation - standElevation);
         }
 
         foreach (var relation in npc.Social.Relationships)

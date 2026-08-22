@@ -128,26 +128,15 @@ public static class AdminEndpoints
             return Redirect("/admin?notice=World resumed.");
         }));
 
-        app.MapPost("/admin/speed", async (HttpContext context) =>
-        {
-            if (!SignedIn(context, sessions))
+        Func<HttpContext, Task<IResult>> speedHandler = context => HandleSpeed(
+            context, sessions, speed =>
             {
-                return Redirect("/admin");
-            }
-
-            var form = await context.Request.ReadFormAsync();
-            if (!float.TryParse(form["speed"].ToString(), NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out var speed))
-            {
-                return Redirect("/admin");
-            }
-
-            // The operator may fast-forward; a viewer may not. That asymmetry is
-            // the whole point of having a panel behind a password.
-            worlds.Host.SetSpeedAsOperator(speed);
-            Console.WriteLine($"[admin] speed set to {speed}x");
-            return Redirect(SpeedRedirectLocation(speed));
-        });
+                // The operator may fast-forward; a viewer may not. That asymmetry is
+                // the whole point of having a panel behind a password.
+                worlds.Host.SetSpeedAsOperator(speed);
+                Console.WriteLine($"[admin] speed set to {speed}x");
+            });
+        app.MapPost("/admin/speed", speedHandler);
 
         app.MapPost("/admin/password", async (HttpContext context) =>
         {
@@ -275,14 +264,26 @@ public static class AdminEndpoints
 
     private static IResult Redirect(string location) => Results.Redirect(location);
 
-    private static string SpeedRedirectLocation(float speed)
+    private static async Task<IResult> HandleSpeed(
+        HttpContext context, AdminSessions sessions, Action<float> setSpeed)
     {
-        // Location is an HTTP header and therefore must stay ASCII. Passing the
-        // multiplication sign through verbatim makes Kestrel reject the response
-        // after the speed was already changed, leaving the browser on an error page.
-        var value = speed.ToString("0.##", CultureInfo.InvariantCulture);
-        var notice = Uri.EscapeDataString($"Speed set to {value}×.");
-        return "/admin?notice=" + notice;
+        if (!SignedIn(context, sessions))
+        {
+            return Redirect("/admin");
+        }
+
+        var form = await context.Request.ReadFormAsync();
+        if (!float.TryParse(form["speed"].ToString(), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out var speed) || !float.IsFinite(speed))
+        {
+            return Redirect("/admin");
+        }
+
+        setSpeed(speed);
+        // #184 rework: this POST has exactly one stable destination. No notice,
+        // locale, proxy or percent-decoding can turn it into a missing route;
+        // Dashboard reads the authoritative speed and highlights its button.
+        return Redirect("/admin");
     }
 }
 

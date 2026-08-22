@@ -1,6 +1,11 @@
 using System;
+using System.IO;
 using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 using HexLive.Server.Admin;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace HexLive.Server.Tests.Admin
@@ -9,15 +14,31 @@ namespace HexLive.Server.Tests.Admin
 public sealed class AdminSpeedContractTests
 {
     [Test]
-    public void SpeedRedirectLocation_EncodesUnicodeAndStaysAscii()
+    public async Task SpeedPost_ChangesSpeedAndRedirectsToCanonicalDashboard()
     {
-        var location = InvokePrivate<string>(typeof(AdminEndpoints),
-            "SpeedRedirectLocation", 4f);
+        var sessions = new AdminSessions();
+        var token = sessions.CreateSession();
+        var context = new DefaultHttpContext();
+        context.RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider();
+        context.Request.Method = "POST";
+        context.Request.ContentType = "application/x-www-form-urlencoded";
+        context.Request.Headers.Cookie = "hexlive_admin=" + token;
+        var body = Encoding.UTF8.GetBytes("speed=16");
+        context.Request.Body = new MemoryStream(body);
+        context.Request.ContentLength = body.Length;
+        context.Response.Body = new MemoryStream();
+
+        var applied = 0f;
+        var task = InvokePrivate<Task<IResult>>(typeof(AdminEndpoints),
+            "HandleSpeed", context, sessions, new Action<float>(value => applied = value));
+        var result = await task;
+        await result.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
-            Assert.That(location, Is.EqualTo("/admin?notice=Speed%20set%20to%204%C3%97."));
-            Assert.That(location, Does.Not.Match("[^\\x00-\\x7F]"));
+            Assert.That(applied, Is.EqualTo(16f));
+            Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status302Found));
+            Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/admin"));
         });
     }
 

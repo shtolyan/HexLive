@@ -5,6 +5,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -158,26 +159,53 @@ public sealed class ManualSelfActionTests
     }
 
     [Test]
-    public void GroundSleepOrderInstallsTheStandardGroundPlan()
+    public void GroundSleepOrderStaysInsideTheCurrentHex_Bug196()
     {
         var engine = TestWorld.CreateEngine();
         var world = engine.World;
         var npc = Colonists(world)[0];
         TakeControl(engine, npc);
 
+        var hearthTile = world.Entities.Objects.Values
+            .First(obj => obj.DefinitionId == ContentIds.Campfire).Tile;
+        var remote = world.Tiles.Items.Values
+            .Where(tile => tile.Flags.HasFlag(TileFlags.Walkable) &&
+                           !tile.Flags.HasFlag(TileFlags.Water) &&
+                           HexSpatialMath.HexDistance(tile.Coord, hearthTile) > 8)
+            .OrderBy(tile => tile.Coord.Q).ThenBy(tile => tile.Coord.R)
+            .Select(tile => (Tile: tile, Solved: LyingSpot.TrySolveOnTile(
+                world, npc, tile.Coord, out var placement), Placement: placement))
+            .First(candidate => candidate.Solved &&
+                                SpatialQueries.IsJunctionFree(world, candidate.Placement.Node));
+        if (npc.CurrentJunction is { } oldJunction)
+        {
+            SpatialMutations.FreeJunction(world, oldJunction, npc.Id);
+        }
+        var oldTile = npc.Tile;
+        npc.Tile = remote.Tile.Coord;
+        SpatialMutations.MoveEntityToTile(world, npc.Id, oldTile, npc.Tile);
+        npc.CurrentJunction = remote.Placement.Node;
+        npc.Position = world.Junctions.Items[remote.Placement.Node].WorldPosition;
+        SpatialMutations.OccupyJunction(world, remote.Placement.Node, npc.Id);
+
         var admission = ManualCommandExecutor.Apply(
             world, new SelfActionCommand(npc.Id, SelfActionKind.GroundSleep));
 
+        Assert.That(admission.Status,
+            Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            $"GroundSleep отклонён: {admission.Reason}");
+        var target = npc.Plan.Steps[^1].TargetJunction;
+
         Assert.Multiple(() =>
         {
-            Assert.That(admission.Status,
-                Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
-                $"GroundSleep отклонён: {admission.Reason}");
             Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Sleep),
                 "Самодействие носит РОДНУЮ цель (§138).");
             Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active));
             Assert.That(npc.Plan.Steps[^1].Type, Is.EqualTo(PlanStepType.GroundSleep),
-                "План обязан быть тем же, что строит BuildGroundSleepPlan.");
+                "План обязан использовать штатный GroundSleep, а не отдельное действие вида.");
+            Assert.That(target, Is.Not.Null);
+            Assert.That(world.Junctions.Items[target!.Value].Tiles, Does.Contain(npc.Tile),
+                "Ручной приказ лечь не должен уводить персонажа в лагерь или на соседний гекс.");
         });
 
         // Цель переживает решающий проход — грабля §138 закрыта белым списком.

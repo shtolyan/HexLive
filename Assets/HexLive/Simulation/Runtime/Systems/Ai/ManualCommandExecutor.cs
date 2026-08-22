@@ -1092,7 +1092,7 @@ internal static class ManualCommandExecutor
             case SelfActionKind.GroundSleep:
                 InstallSelfPlan(world, npc, admission, GoalType.Sleep,
                     "Приказ лечь спать", "NoGroundSpot",
-                    () => ManualPlanner.BuildGroundSleepPlan(world, npc));
+                    () => ManualPlanner.BuildLocalGroundSleepPlan(world, npc));
                 break;
 
             case SelfActionKind.Bathe:

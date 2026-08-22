@@ -755,10 +755,47 @@ public sealed partial class PlanningSystem
         return spot;
     }
 
+    // Bug #196: an explicit player order means "lie down here", not "run
+    // home and use the autonomous camp search".  Keep the same full-body
+    // solver, reservation and reachability rules, but constrain the candidate
+    // to the hex the character currently occupies.
+    private static JunctionId? FindGroundSleepSpotOnTile(
+        WorldState world, NPCState npc, TileCoord tileCoord)
+    {
+        if (!world.Tiles.Items.TryGetValue(tileCoord, out var tile) ||
+            !tile.Flags.HasFlag(TileFlags.Walkable) ||
+            tile.Flags.HasFlag(TileFlags.Water) ||
+            tile.Junctions.Count == 0 ||
+            npc.CurrentJunction is not { } from)
+        {
+            return null;
+        }
+
+        return LyingSpot.TrySolveOnTile(world, npc, tileCoord, out var placement) &&
+               (placement.Node == from || SpatialQueries.IsJunctionFree(world, placement.Node)) &&
+               Connectivity.Reachable(world, from, placement.Node, CanUseRoutineTraversal(npc))
+            ? placement.Node
+            : null;
+    }
+
     // §121.9: internal — ручной приказ ставит тот же план тем же билдером.
     internal void BuildGroundSleepPlan(WorldState world, NPCState npc)
     {
         var spot = FindGroundSleepSpot(world, npc, out var anchor);
+        InstallGroundSleepPlan(world, npc, spot, $"Hearth={anchor}");
+    }
+
+    /// <summary>§121.9: manual sleep stays inside the actor's current hex.</summary>
+    internal void BuildLocalGroundSleepPlan(WorldState world, NPCState npc)
+    {
+        var tile = npc.Tile;
+        var spot = FindGroundSleepSpotOnTile(world, npc, tile);
+        InstallGroundSleepPlan(world, npc, spot, $"ManualTile={tile}");
+    }
+
+    private void InstallGroundSleepPlan(
+        WorldState world, NPCState npc, JunctionId? spot, string traceContext)
+    {
         if (spot is not { } lieSpot ||
             !SpatialMutations.TryReserveJunction(world, lieSpot, npc.Id, world.Tick, 96))
         {
@@ -780,7 +817,7 @@ public sealed partial class PlanningSystem
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "GroundSleepPlanned",
-                $"Junction={lieSpot.Value} Hearth={anchor}");
+                $"Junction={lieSpot.Value} {traceContext}");
         }
     }
 

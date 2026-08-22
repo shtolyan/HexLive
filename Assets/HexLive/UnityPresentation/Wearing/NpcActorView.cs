@@ -786,6 +786,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // per-frame correction.
     private float _layingSurfaceY;
     private SkinnedMeshRenderer[] _bodySkins;
+    // Bare body renderers only. Hair is also a skinned mesh, but its loose
+    // strands can hang below the actual body in a death pose; using that bound
+    // as the support point lifts the whole corpse visibly above the ground.
+    private readonly List<SkinnedMeshRenderer> _corpseSupportSkins = new();
     private Vector3 _lastPosition;
     private float _lastYaw;
     private float _moveEpsilon = 0.01f;
@@ -3603,16 +3607,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        var lowestY = float.PositiveInfinity;
-        if (_bodySkins != null)
+        var lowestY = LowestVisibleSkinY(_corpseSupportSkins);
+        if (float.IsPositiveInfinity(lowestY) && _bodySkins != null)
         {
-            foreach (var skin in _bodySkins)
-            {
-                if (skin != null && skin.enabled && skin.gameObject.activeInHierarchy)
-                {
-                    lowestY = Mathf.Min(lowestY, skin.bounds.min.y);
-                }
-            }
+            // Legacy/custom actor fallback: if material classification found
+            // no bare body, retain the old all-renderer measurement rather
+            // than pinning an otherwise valid pose by its root.
+            lowestY = LowestVisibleSkinY(_bodySkins);
         }
 
         if (float.IsPositiveInfinity(lowestY))
@@ -3623,6 +3624,27 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _bodyRoot.position += Vector3.up * (_deathSurfaceY - lowestY);
+    }
+
+    private static float LowestVisibleSkinY(
+        System.Collections.Generic.IReadOnlyList<SkinnedMeshRenderer> skins)
+    {
+        var lowestY = float.PositiveInfinity;
+        if (skins == null)
+        {
+            return lowestY;
+        }
+
+        for (var i = 0; i < skins.Count; i++)
+        {
+            var skin = skins[i];
+            if (skin != null && skin.enabled && skin.gameObject.activeInHierarchy)
+            {
+                lowestY = Mathf.Min(lowestY, skin.bounds.min.y);
+            }
+        }
+
+        return lowestY;
     }
 
     // §29C.3-hit: a standing damage stagger. The renderer feeds every snapshot's
@@ -6392,6 +6414,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void BuildSkinTintTargets()
     {
         _skinTintTargets.Clear();
+        _corpseSupportSkins.Clear();
         if (_bodySkins == null)
         {
             return;
@@ -6423,6 +6446,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 if (IsSkinMaterialName(mats[i].name))
                 {
                     _skinTintTargets.Add((skin, i));
+                    if (!_corpseSupportSkins.Contains(skin))
+                    {
+                        _corpseSupportSkins.Add(skin);
+                    }
                 }
             }
         }

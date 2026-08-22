@@ -96,7 +96,7 @@ MonoBehaviour:
     heightOffset: 0
     mesh: {fileID: 4300000, guid: a9cfd051254ee274e8ad19868f7d8785, type: 2}
   slots: 03000000
-  noHideUnderwearSlots: 
+  noHideUnderwearSlots: 03000000
   layer: 1
   gender: 1
   heel:

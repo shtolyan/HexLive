@@ -319,19 +319,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Wear
   configs:
   - actorName: 0
-    scale: 1
+    scale: 1.05
     heightOffset: 0
     mesh: {fileID: 4300000, guid: ebab4c11ad9532d40bf65cebaa6d8104, type: 2}
   - actorName: 1
-    scale: 1
+    scale: 1.05
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 7531b73f0241eb14a8af512d9b2dda18, type: 2}
   - actorName: 2
-    scale: 1
+    scale: 1.05
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 1d34826334d09724d8d485a4dba164b0, type: 2}
   - actorName: 5
-    scale: 1
+    scale: 1.05
     heightOffset: 0
     mesh: {fileID: 4300000, guid: a9d6cd5de42554f44820ad717e74f36d, type: 2}
   slots: 0f0000001000000011000000120000001300000014000000

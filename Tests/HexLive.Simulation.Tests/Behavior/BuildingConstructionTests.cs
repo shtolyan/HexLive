@@ -302,6 +302,46 @@ public sealed class BuildingConstructionTests
     }
 
     [Test]
+    public void RaisedHalfSectorHouseKeepsItsThreeHexBlueprint_Bug188()
+    {
+        var world = TestWorld.CreateWorld(18803);
+        var draft = CommittedBuildingPlans.PlayerHut.Clone();
+        var blueprintId = world.NextPlayerBlueprintId++;
+        world.PlayerBlueprints[blueprintId] = draft;
+        var tile = FindPlanTile(world, draft);
+        var site = BuildingBootstrap.CreatePlayerBlueprintSite(
+            world, tile, rotationDegrees: 0f, blueprintId);
+        Assert.That(site, Is.Not.Null);
+
+        var modules = BlueprintBuildingPlan.Modules(draft);
+        var bill = BlueprintBuildingPlan.Bill(modules);
+        Deliver(site, ContentIds.Stick, bill.Sticks);
+        Deliver(site, ContentIds.Board, bill.Boards);
+        Deliver(site, ContentIds.Rope, bill.Rope);
+        Deliver(site, ContentIds.PalmLeaf, bill.Leaves);
+        BuildingRules.SyncHutElements(world, site);
+
+        var raised = ExecutionSystem.RaiseFurnitureSite(
+            world, site, site.Fragment, site.Junctions[0]);
+
+        Assert.That(raised, Is.Not.Null);
+        Assert.That(raised.BlueprintId, Is.EqualTo(blueprintId));
+        Assert.That(BuildingBootstrap.FootprintTiles(world, raised), Has.Count.EqualTo(3),
+            "Частичные сектора двух соседних гексов должны остаться в footprint готового дома.");
+        Assert.That(BuildingRules.Elements(world, raised).Select(element => element.SlotKey),
+            Is.EquivalentTo(modules.Select(module => module.Key)),
+            "Стены, пол и крыша должны подняться из того же half-sector чертежа.");
+
+        var furnitureProducts = world.Entities.Objects.Values
+            .Where(obj => obj.DefinitionId == ContentIds.BuildSite &&
+                          BuildingBootstrap.FootprintTiles(world, raised).Contains(obj.Tile))
+            .Select(obj => obj.BuildProduct).Where(product => !string.IsNullOrEmpty(product))
+            .ToArray();
+        Assert.That(furnitureProducts, Has.Length.EqualTo(draft.Furniture.Count),
+            "Мебель и архитектура обязаны использовать одну версию трёхгексового плана.");
+    }
+
+    [Test]
     public void LoadRepairsCompletedHouseWhoseShellAndFurnitureUsedDifferentPlans_Bug188()
     {
         const int seed = 18802;

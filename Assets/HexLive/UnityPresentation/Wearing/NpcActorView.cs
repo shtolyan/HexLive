@@ -1642,6 +1642,62 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // до ближайшей остановки.
     public bool IsPortraitPoseSettled => _gait <= PortraitStillGait;
 
+    /// <summary>
+    /// §80: actual head envelope for the small round photo.  The shared face
+    /// anchor says where the eyes are, but it cannot say how tall this NPC's
+    /// current hairstyle is.  A fixed camera distance therefore clipped buns,
+    /// headdresses and tall hair even though the face itself was centred.
+    /// </summary>
+    public void GetPortraitHeadExtents(
+        Vector3 faceCenter, Vector3 faceRight, Vector3 faceUp, float scale,
+        out float above, out float below, out float halfWidth)
+    {
+        // Anatomical envelope around the eye-derived anchor.  It is also the
+        // complete answer for a bald actor or while a renderer has no bounds.
+        above = 0.16f * scale;
+        below = 0.12f * scale;
+        halfWidth = 0.13f * scale;
+
+        var hair = _bodyBones != null ? _bodyBones.HairInstance : null;
+        if (hair == null)
+        {
+            return;
+        }
+
+        // Hair may be a skinned mesh with stitched bones outside its original
+        // prefab root. Renderer.bounds is already the current world envelope;
+        // projecting all eight AABB corners keeps the calculation independent
+        // of FBX local axes and of the actor's current world yaw.
+        foreach (var renderer in hair.GetComponentsInChildren<Renderer>(true))
+        {
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            var bounds = renderer.bounds;
+            if (bounds.size.sqrMagnitude < 0.000001f)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < 8; i++)
+            {
+                var corner = new Vector3(
+                    (i & 1) == 0 ? bounds.min.x : bounds.max.x,
+                    (i & 2) == 0 ? bounds.min.y : bounds.max.y,
+                    (i & 4) == 0 ? bounds.min.z : bounds.max.z);
+                var delta = corner - faceCenter;
+                var vertical = Vector3.Dot(delta, faceUp);
+                above = Mathf.Max(above, vertical);
+                // Long hair may continue down the back; framing all of that
+                // would turn a face portrait into a full-body thumbnail.  The
+                // lower edge is anatomical, while top and width include hair.
+                halfWidth = Mathf.Max(halfWidth, Mathf.Abs(Vector3.Dot(delta, faceRight)));
+            }
+        }
+    }
+
     // §130: уместно ли ей сейчас стрельнуть глазами в объектив. Фотогеничность
     // отсекает лежащих/плывущих/запрокинутых; сверх того — не мёртвая, не
     // ragdoll, не в бою и не в слезах (улыбка в камеру посреди драки или

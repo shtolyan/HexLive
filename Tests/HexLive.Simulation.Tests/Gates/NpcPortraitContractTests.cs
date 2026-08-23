@@ -36,21 +36,49 @@ public sealed class NpcPortraitContractTests
     }
 
     [Test]
-    public void PhotoOwnsItsFrameInsteadOfBorrowingTheCardAnchor()
+    public void PhotoFramesTheActualHeadAndCurrentHair()
+    {
+        var cache = File.ReadAllText(Presentation("UI", "NpcPortraitCache.cs"));
+        var actor = File.ReadAllText(Presentation("Wearing", "NpcActorView.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(actor, Does.Contain("GetPortraitHeadExtents("));
+            Assert.That(actor, Does.Contain("_bodyBones.HairInstance"),
+                "The frame must include the hairstyle that is actually worn now.");
+            Assert.That(actor, Does.Contain("renderer.bounds"));
+            Assert.That(cache, Does.Contain("actor.GetPortraitHeadExtents("));
+            Assert.That(cache, Does.Contain("var aim = face + up * ((above - below) * 0.5f)"));
+            Assert.That(cache, Does.Contain("Mathf.Tan(_camera.fieldOfView * 0.5f"));
+            Assert.That(cache, Does.Contain("FrameMargin"));
+            Assert.That(cache, Does.Contain("TryAimPortraitCamera(out _)"),
+                "The final aim must be recomputed at camera render time; LateUpdate " +
+                "order cannot promise that IK has already moved the head.");
+            Assert.That(cache, Does.Contain("LookRotation(aim - eye"));
+            Assert.That(cache, Does.Not.Contain("HeadCentreLiftMeters"));
+            Assert.That(cache, Does.Not.Contain("FaceDistanceMeters"));
+        });
+    }
+
+    [Test]
+    public void PhotoCanTemporarilyRenderAFogHiddenActorWithoutRevealingHer()
     {
         var cache = File.ReadAllText(Presentation("UI", "NpcPortraitCache.cs"));
 
         Assert.Multiple(() =>
         {
-            Assert.That(cache, Does.Contain("HeadCentreLiftMeters"),
-                "The shared face anchor is composed for the WIDE card; the round " +
-                "photo needs the head centred with its hair.");
-            Assert.That(cache, Does.Contain("var aim = face + up * (HeadCentreLiftMeters * scale)"));
-            Assert.That(cache, Does.Contain("eye = aim + forward * (FaceDistanceMeters * scale)"),
-                "Aim and lens must rise together — lifting the lens alone tilts " +
-                "the camera and shoots her from above.");
-            Assert.That(cache, Does.Contain("LookRotation(aim - eye"));
-            Assert.That(cache, Does.Not.Contain("EyeLiftMeters"));
+            Assert.That(cache, Does.Contain("TryGetActorView(npcId"));
+            Assert.That(cache, Does.Contain("_subjectWasActive = _portraitSubject.activeSelf"));
+            Assert.That(cache, Does.Contain("_portraitSubject.SetActive(true)"));
+            Assert.That(cache, Does.Contain("_portraitSubject.SetActive(false)"));
+            Assert.That(cache, Does.Contain("_camera.cullingMask = 1 << _portraitLayer"));
+            Assert.That(cache, Does.Contain("IsolatePortraitSubject()"));
+            Assert.That(cache, Does.Contain("RestorePortraitSubjectAfterRender()"));
+            Assert.That(cache, Does.Contain("RenderPipelineManager.beginCameraRendering"));
+            Assert.That(cache, Does.Contain("Camera.onPreCull"));
+            Assert.That(cache, Does.Not.Contain("1 << actorsLayer"),
+                "A broad Actors mask both misses inactive actors and allows photobombs.");
+            Assert.That(cache, Does.Not.Contain("_camera.Render()"));
         });
     }
 }

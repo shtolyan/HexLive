@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.UnityPresentation.Rendering;
+using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -25,9 +26,9 @@ namespace HexLive.UnityPresentation.UI
     ///  * SpriteRenderer пузыря умеет Sprite, а Sprite.Create не принимает
     ///    RenderTexture — нужен именно Texture2D.
     ///
-    /// Кадрирование взято у PortraitStage дословно: камера висит перед лицом по
-    /// СОБСТВЕННЫМ осям лицевого рига, поэтому голова может вертеться сколько
-    /// угодно (LookAtIK её и вертит), а лицо в кадре стоит ровно.
+    /// Камера висит перед лицом по СОБСТВЕННЫМ осям лицевого рига и
+    /// каждый кадр заново вмещает фактическую голову с текущей причёской. Поэтому поза
+    /// не может увести лицо за границу круглого снимка.
     /// </summary>
     public sealed class NpcPortraitCache : MonoBehaviour
     {
@@ -36,21 +37,12 @@ namespace HexLive.UnityPresentation.UI
         // — меньше 2 МБ.
         private const int TextureSize = 192;
 
-        // §80 r3: КАДР СНИМКА — свой, а не позаимствованный у карточки.
-        //
-        // Общий лицевой якорь (§107.4 r2) стоит на 2 см НИЖЕ линии глаз: так
-        // скомпонована ШИРОКАЯ фотография в identity-card. В круглом снимке та
-        // же точка читается как «голова уехала вверх» — макушка с волосами
-        // упирается в край маски, а под подбородком остаётся пусто. Поэтому
-        // снимок поднимает точку прицела над общим якорем и отходит чуть
-        // дальше: центр круга приходится на середину головы ВМЕСТЕ с волосами,
-        // и причёске есть куда не влезть.
-        //
-        // Обе величины — на модели ростом 1.7 м, домножаются на мировой
-        // масштаб. Это ручки кадра: двигать их, а не якорь, иначе поедет и
-        // карточка, которая скомпонована иначе.
-        private const float FaceDistanceMeters = 0.86f;
-        private const float HeadCentreLiftMeters = 0.05f;
+        // §80 r4: the round photo owns an adaptive frame.  A fixed distance
+        // cannot fit both a bald head and a tall bun: the actor supplies the
+        // current head/hair envelope and the camera solves its distance from
+        // that envelope plus a small safety margin for the circular mask.
+        private const float FrameMargin = 1.18f;
+        private const float MinimumLensDistanceMeters = 0.72f;
 
         // Фон ПРОЗРАЧНЫЙ: снимок — вырезка персонажа, а не плашка. Тёмную
         // подложку под неё рисует та панель, которой она нужна.
@@ -81,14 +73,25 @@ namespace HexLive.UnityPresentation.UI
         private Camera _camera;
         private Light _flash;
         private HexWorldRenderer _worldRenderer;
-        private bool _maskResolved;
+        private int _portraitLayer;
+
+        // The photographed actor is isolated exactly like PortraitStage's live
+        // card: only the bake camera sees it.  This is also what lets a fog-
+        // hidden (inactive) world view be photographed without revealing the
+        // stranger to the player's main camera for a frame.
+        private NpcActorView _portraitActor;
+        private GameObject _portraitSubject;
+        private bool _subjectWasActive;
+        private bool _layersOverridden;
+        private readonly List<Transform> _portraitTransforms = new(96);
+        private readonly List<int> _savedLayers = new(96);
 
         private readonly Dictionary<int, Texture2D> _portraits = new();
         private readonly Dictionary<int, Sprite> _sprites = new();
         private readonly Dictionary<int, int> _bakedAtTick = new();
         private readonly Dictionary<int, int> _bakedDay = new();
 
-        // Съёмка идёт несколько кадров: навести и заморозить камеру → дать
+        // Съёмка идёт несколько кадров: навести камеру → дать
         // взгляду доехать до объектива → отрисовать → прочитать пиксели.
         // camera.Render() в обход порядка URP по-прежнему нельзя.
         private enum BakePhase
@@ -195,6 +198,13 @@ namespace HexLive.UnityPresentation.UI
 
         private void Awake()
         {
+            _portraitLayer = LayerMask.NameToLayer("Portrait");
+            if (_portraitLayer < 0)
+            {
+                _portraitLayer = 31;
+                Debug.LogError("[NpcPortrait] Portrait layer is missing; using private layer 31.");
+            }
+
             _scratch = new RenderTexture(TextureSize, TextureSize, 16, RenderTextureFormat.ARGB32)
             {
                 name = "NpcPortraitScratch",
@@ -212,7 +222,7 @@ namespace HexLive.UnityPresentation.UI
             _camera.fieldOfView = 22f;
             _camera.nearClipPlane = 0.03f;
             _camera.farClipPlane = 60f;
-            _camera.cullingMask = ~(1 << 5);
+            _camera.cullingMask = 1 << _portraitLayer;
             _camera.enabled = false;
 
             // Вспышка висит на самой камере — свет всегда ровно оттуда, откуда
@@ -230,6 +240,8 @@ namespace HexLive.UnityPresentation.UI
 
             RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
             RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
+            Camera.onPreCull += OnCameraPreCull;
+            Camera.onPostRender += OnCameraPostRender;
         }
 
         // Вспышка горит РОВНО на отрисовку портретной камеры. В том же кадре
@@ -237,9 +249,17 @@ namespace HexLive.UnityPresentation.UI
         // выключен — поэтому в игре вспышки не видно.
         private void OnBeginCameraRendering(ScriptableRenderContext ctx, Camera cam)
         {
-            if (_flash != null && cam == _camera)
+            if (cam == _camera)
             {
-                _flash.enabled = true;
+                IsolatePortraitSubject();
+                // Script LateUpdate order is not a contract. NpcActorView/IK
+                // may have moved the head after this cache's LateUpdate, so the
+                // final camera pose is solved again at the render boundary.
+                TryAimPortraitCamera(out _);
+                if (_flash != null)
+                {
+                    _flash.enabled = true;
+                }
             }
         }
 
@@ -249,6 +269,28 @@ namespace HexLive.UnityPresentation.UI
             {
                 _flash.enabled = false;
             }
+
+            if (cam == _camera)
+            {
+                RestorePortraitSubjectAfterRender();
+            }
+        }
+
+        private void OnCameraPreCull(Camera cam)
+        {
+            if (cam == _camera)
+            {
+                IsolatePortraitSubject();
+                TryAimPortraitCamera(out _);
+            }
+        }
+
+        private void OnCameraPostRender(Camera cam)
+        {
+            if (cam == _camera)
+            {
+                RestorePortraitSubjectAfterRender();
+            }
         }
 
         private void LateUpdate()
@@ -256,18 +298,6 @@ namespace HexLive.UnityPresentation.UI
             if (_camera == null)
             {
                 return;
-            }
-
-            // Только слой Actors: персонаж со всей его грязью, загаром, ранами и
-            // одеждой на чистом фоне, без окружения.
-            if (!_maskResolved)
-            {
-                var actorsLayer = LayerMask.NameToLayer("Actors");
-                if (actorsLayer >= 0)
-                {
-                    _camera.cullingMask = 1 << actorsLayer;
-                    _maskResolved = true;
-                }
             }
 
             // Затвор: камера уже отрисовала кого просили — забрать пиксели.
@@ -293,13 +323,17 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            if (!_worldRenderer.TryGetNpcFace(
-                    _pendingNpcId, out var face, out var forward, out var up, out var scale) ||
-                !_worldRenderer.IsNpcPhotogenic(_pendingNpcId))
+            if (_phase == BakePhase.Idle && !PreparePortraitSubject(_pendingNpcId))
             {
-                // Тела ещё нет в мире, или она лежит/плывёт — не портрет.
-                // Отложим: снимок ничего не стоит, а кривой кадр останется на
-                // сутки в каждой вкладке отношений.
+                FinishBake();
+                return;
+            }
+
+            if (_portraitActor == null || !_portraitActor.IsPhotogenic ||
+                !_portraitActor.IsPortraitPoseSettled || !TryAimPortraitCamera(out var eye))
+            {
+                // Hair is still loading, or the current body pose is unsuitable.
+                // Restore an inactive fog-hidden subject before retrying later.
                 FinishBake();
                 return;
             }
@@ -311,8 +345,6 @@ namespace HexLive.UnityPresentation.UI
             // моменту съёмки уезжало из кадра. Гнаться сама за собой она больше
             // не может: на время съёмки вес головы у LookAtIK нулевой, кость
             // стоит как стояла, ведут только зрачки.
-            AimAt(face, forward, up, scale, out var eye);
-
             switch (_phase)
             {
                 case BakePhase.Converge:
@@ -333,15 +365,40 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        // Единственное место, где решается кадр: перед лицом, по осям лицевого
-        // рига, на фиксированном расстоянии — одна и та же точка съёмки у всех.
-        private void AimAt(Vector3 face, Vector3 forward, Vector3 up, float scale, out Vector3 eye)
+        private bool TryAimPortraitCamera(out Vector3 eye)
         {
-            // Прицел и объектив поднимаются ВМЕСТЕ. Поднять один объектив — это
-            // наклонить камеру, то есть снимать сверху; ровно поэтому прежний
-            // подъём объектива был занулён, а не увеличен.
-            var aim = face + up * (HeadCentreLiftMeters * scale);
-            eye = aim + forward * (FaceDistanceMeters * scale);
+            eye = Vector3.zero;
+            if (_portraitActor == null ||
+                !_portraitActor.TryGetFace(
+                    out var face, out var forward, out var up, out var scale))
+            {
+                return false;
+            }
+
+            AimAt(_portraitActor, face, forward, up, scale, out eye);
+            return true;
+        }
+
+        // Единственное место, где решается кадр: перед лицом, по осям лицевого
+        // рига, на расстоянии, которое вмещает фактическую голову и причёску.
+        private void AimAt(
+            NpcActorView actor, Vector3 face, Vector3 forward, Vector3 up, float scale,
+            out Vector3 eye)
+        {
+            var right = Vector3.Cross(up, forward).normalized;
+            actor.GetPortraitHeadExtents(
+                face, right, up, scale, out var above, out var below, out var halfWidth);
+
+            // Frame the actual head + current hairstyle, not an average head.
+            // The lower edge remains anatomical so long hair down the back does
+            // not shrink the face into a full-body thumbnail.
+            var aim = face + up * ((above - below) * 0.5f);
+            var halfHeight = (above + below) * 0.5f;
+            var halfExtent = Mathf.Max(halfHeight, halfWidth) * FrameMargin;
+            var distance = halfExtent /
+                Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            distance = Mathf.Max(distance, MinimumLensDistanceMeters * scale);
+            eye = aim + forward * distance;
 
             // Горизонт держим по МИРУ, а не по темечку: наклон головы иначе
             // заваливает весь кадр, и в круглой аватарке это читается как брак
@@ -350,6 +407,97 @@ namespace HexLive.UnityPresentation.UI
 
             _camera.transform.position = eye;
             _camera.transform.rotation = Quaternion.LookRotation(aim - eye, levelUp);
+        }
+
+        private bool PreparePortraitSubject(int npcId)
+        {
+            if (_portraitActor != null)
+            {
+                return true;
+            }
+
+            if (_worldRenderer == null ||
+                !_worldRenderer.TryGetActorView(npcId, out var actor) || actor == null)
+            {
+                return false;
+            }
+
+            _portraitActor = actor;
+            _portraitSubject = actor.gameObject;
+            _subjectWasActive = _portraitSubject.activeSelf;
+            if (!_subjectWasActive)
+            {
+                _portraitSubject.SetActive(true);
+                // Keep a fog-hidden actor invisible to every ordinary camera
+                // throughout gaze convergence, not only during the bake pass.
+                IsolatePortraitSubject();
+            }
+
+            return true;
+        }
+
+        private void IsolatePortraitSubject()
+        {
+            if (_layersOverridden || _portraitSubject == null)
+            {
+                return;
+            }
+
+            _portraitTransforms.Clear();
+            _savedLayers.Clear();
+            _portraitSubject.GetComponentsInChildren(true, _portraitTransforms);
+            for (var i = 0; i < _portraitTransforms.Count; i++)
+            {
+                var target = _portraitTransforms[i];
+                _savedLayers.Add(target.gameObject.layer);
+                target.gameObject.layer = _portraitLayer;
+            }
+
+            _layersOverridden = true;
+        }
+
+        private void RestorePortraitLayers()
+        {
+            if (!_layersOverridden)
+            {
+                return;
+            }
+
+            var count = Mathf.Min(_portraitTransforms.Count, _savedLayers.Count);
+            for (var i = 0; i < count; i++)
+            {
+                var target = _portraitTransforms[i];
+                if (target != null)
+                {
+                    target.gameObject.layer = _savedLayers[i];
+                }
+            }
+
+            _layersOverridden = false;
+            _portraitTransforms.Clear();
+            _savedLayers.Clear();
+        }
+
+        private void RestorePortraitSubjectAfterRender()
+        {
+            RestorePortraitLayers();
+            if (_portraitSubject != null && !_subjectWasActive)
+            {
+                _portraitSubject.SetActive(false);
+            }
+        }
+
+        private void RestorePortraitSubject()
+        {
+            RestorePortraitLayers();
+            if (_portraitSubject != null && !_subjectWasActive)
+            {
+                _portraitSubject.SetActive(false);
+            }
+
+            _portraitActor = null;
+            _portraitSubject = null;
+            _subjectWasActive = false;
         }
 
         // Снять взгляд и закрыть съёмку. Вызывается на КАЖДОМ выходе, в том
@@ -363,6 +511,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _gazeHeld = false;
+            RestorePortraitSubject();
             _pendingNpcId = -1;
             _phase = BakePhase.Idle;
             _nextBakeTime = Time.unscaledTime + BakeSpacingSeconds;
@@ -406,7 +555,7 @@ namespace HexLive.UnityPresentation.UI
             if (!_bakedAtTick.ContainsKey(npcId))
             {
                 Debug.Log($"[NpcPortrait] baked npc={npcId} " +
-                          $"dist={FaceDistanceMeters:0.###} lift={HeadCentreLiftMeters:0.###} " +
+                          $"frame=actual-head margin={FrameMargin:0.##} " +
                           $"fov={_camera.fieldOfView:0.#} flash={FlashIntensity:0.##}");
             }
 
@@ -459,11 +608,14 @@ namespace HexLive.UnityPresentation.UI
         {
             RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
             RenderPipelineManager.endCameraRendering -= OnEndCameraRendering;
+            Camera.onPreCull -= OnCameraPreCull;
+            Camera.onPostRender -= OnCameraPostRender;
 
             if (_gazeHeld && _worldRenderer != null && _pendingNpcId >= 0)
             {
                 _worldRenderer.EndPortraitGaze(_pendingNpcId);
             }
+            RestorePortraitSubject();
 
             if (_camera != null)
             {

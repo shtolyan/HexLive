@@ -188,6 +188,7 @@ public sealed class ManualSelfActionTests
         var world = engine.World;
         var npc = Colonists(world)[0];
         TakeControl(engine, npc);
+        npc.Needs.Energy = 1f;
 
         var hearthTile = world.Entities.Objects.Values
             .First(obj => obj.DefinitionId == ContentIds.Campfire).Tile;
@@ -231,18 +232,35 @@ public sealed class ManualSelfActionTests
                 "Ручной приказ лечь не должен уводить персонажа в лагерь или на соседний гекс.");
         });
 
-        // Цель переживает решающий проход — грабля §138 закрыта белым списком.
-        for (var i = 0; i < 48; i++)
+        // Дожидаемся фактического сна: так тест задевает и ручной
+        // sweep, и штатный путь/укладку, но не смешивает проверку с боями
+        // и погодой следующих двух минут мира.
+        for (var i = 0; i < 48 &&
+             npc.Execution.CurrentInteraction != InteractionType.Sleep; i++)
         {
             engine.Step();
         }
 
-        Assert.That(
-            world.Events.Items.Any(e => e.Type == "ManualForbiddenGoalDropped" &&
-                e.EntityId == npc.Id.Value),
-            Is.False,
-            "Sweep §121.6 r2 снёс принятый приказ — цель забыли внести в " +
-            "MayRetainGoalWhileManual.");
+        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep),
+            "Ручной GroundSleep не дошёл до фактической укладки.");
+        npc.Execution.EndTick = world.Tick;
+        engine.Step();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                world.Events.Items.Any(e => e.Type == "ManualForbiddenGoalDropped" &&
+                    e.EntityId == npc.Id.Value),
+                Is.False,
+                "Sweep §121.6 r2 снёс принятый приказ — цель забыли внести в " +
+                "MayRetainGoalWhileManual.");
+            Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep),
+                "Bug #206: ручная колонистка с полной энергией встала на " +
+                "первой 100-тиковой границе GroundSleep.");
+            Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active));
+            Assert.That(npc.Execution.EndTick, Is.GreaterThan(world.Tick),
+                "Блок сна не перевзвёлся на следующие 100 тиков.");
+        });
     }
 }
 

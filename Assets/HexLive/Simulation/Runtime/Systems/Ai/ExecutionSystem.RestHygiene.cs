@@ -375,11 +375,15 @@ public sealed partial class ExecutionSystem
         }
 
         // An explicit player order is not a request to refill the energy bar;
-        // it is a persistent "stay in bed" order (the same way a Kenshi job
-        // remains assigned). A rested manual character therefore keeps lying
-        // until Stop/new order interrupts the plan. Real danger and critical
-        // hunger/thirst still win through the common interrupt gate above.
-        if (npc.Mind.ManualControl && npc.Plan.Goal == GoalType.PlayerOrder &&
+        // it is a persistent "stay asleep" order (the same way a Kenshi job
+        // remains assigned). Bed interaction orders carry PlayerOrder, while
+        // the §121.9 self-action deliberately carries the native Sleep goal so
+        // it can reuse the autonomous GroundSleep executor. Both forms must
+        // therefore stay down until Stop/new order interrupts the plan. Real
+        // danger and critical hunger/thirst still win through the common gate.
+        var manualSleepOrder = npc.Plan.Goal == GoalType.PlayerOrder ||
+            npc.Plan.Goal == GoalType.Sleep && npc.Mind.CurrentGoal == GoalType.Sleep;
+        if (npc.Mind.ManualControl && manualSleepOrder &&
             npc.Execution.CurrentInteraction == InteractionType.Sleep)
         {
             return true;

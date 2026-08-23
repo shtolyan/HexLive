@@ -2410,18 +2410,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.CoolOff,
             0.1f + 0.5f * coolOffUrge, coolOffAvail);
 
-        // Laundry audit (Jul 2026): dirty WORN clothing pulls Bathe — she
-        // undresses at the shore anyway, and the beached pile is what the
-        // existing WashClothes chain can actually target (worn dirt was
-        // otherwise invisible to it: garments sat at dirt 0.7-1.0 forever).
         // §40.6: an owed post-bathe redress forces Bathe to stay selected —
         // its plan is what walks her back to the pile and re-dresses her.
         // batheNeed pinned high so a wet-chill Dress urge can't outbid the
         // very goal that will put her clothes back on.
         var batheNeed = ctx.PendingRedress
             ? 1f
-            : System.MathF.Max(1f - npc.Needs.Hygiene,
-                EquipmentMath.WorstDirtiness(npc) * SimBalance.BatheWornDirtWeight);
+            : 1f - npc.Needs.Hygiene;
         // §63: no spa while bleeding out — a mauled girl (blood < 0.6)
         // planned an 80-tick wash at the far shore between bleed ticks.
         // §89: неряхе на быт ПЛЕВАТЬ (см. подробный комментарий у стирки
@@ -2438,28 +2433,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // washer fetch a garment, fail the dry second leg, eat briefly and
         // restore the same active WashClothes plan forever.
         var groomingSurvivalSafe = !PlanningSystem.ExploreMustAvoidDeepWater(npc);
-        // §133.9 / #193: a locked outfit may leave the body only for washing.
-        // Dirty worn pieces still enter LaundryBatch and are re-donned by exact
-        // object id; clean clothing blocks an ordinary body bath.
-        var lockedLaundryRequired = false;
-        var hasNonHolsterGarment = false;
-        foreach (var item in npc.WornItems)
-        {
-            if (HolsterCatalog.IsHolster(item.DefinitionId))
-            {
-                continue;
-            }
-
-            hasNonHolsterGarment = true;
-            if (MathUtil.Clamp01(item.Dirtiness + item.Bloodiness) >=
-                SimBalance.WashClothesNeedThreshold)
-            {
-                lockedLaundryRequired = true;
-            }
-        }
-        var outfitAllowsBathe = !npc.Mind.OutfitLocked || ctx.PendingRedress ||
-            lockedLaundryRequired || !hasNonHolsterGarment;
-        var batheAvail = caresAboutGrooming && groomingSurvivalSafe && outfitAllowsBathe &&
+        // Outfit lock preserves the chosen outfit; bathing temporarily removes
+        // and restores those exact pieces, so it must not block body washing.
+        var batheAvail = caresAboutGrooming && groomingSurvivalSafe &&
             (ctx.PendingRedress ||
              // §126: чистюле хватает меньшей грязи, чтобы взяться (множитель к
              // ПОРОГУ — ставку она потом выигрывает по общей формуле).
@@ -2480,7 +2456,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
               // «поспать», их нет и на «поплавать».
               npc.Needs.Energy >= TraitMath.EffectiveSleepThreshold(npc) &&
               HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons));
-        if (groomingSurvivalSafe && outfitAllowsBathe &&
+        if (groomingSurvivalSafe &&
             npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
         {
             batheAvail = true;

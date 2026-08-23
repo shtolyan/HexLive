@@ -125,8 +125,7 @@ MonoBehaviour:
   batheNeedThreshold: 0.4
   batheDurationTicks: 100
   washClothesDurationTicks: 80
-  washClothesNeedThreshold: 0.2
-  batheWornDirtWeight: 0.9
+  washClothesNeedThreshold: 0.1
   dryClothesWetThreshold: 0.35
   staminaRestGain: 0.1524
   staminaWorkDrain: 0.0329

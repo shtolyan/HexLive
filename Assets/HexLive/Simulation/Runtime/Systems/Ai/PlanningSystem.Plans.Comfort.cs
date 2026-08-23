@@ -204,9 +204,12 @@ public sealed partial class PlanningSystem
         else if (npc.Mind.PersonalCarePhase is PersonalCarePhase.LaundryBatch or
                  PersonalCarePhase.Bathing)
         {
+            // Old saves may resume the removed combined phase. From now on it
+            // means only "finish this bath"; laundry is planned separately.
+            npc.Mind.PersonalCarePhase = PersonalCarePhase.Bathing;
             var stillDoffing = npc.WornItems.Any(item =>
                 !HolsterCatalog.IsHolster(item.DefinitionId));
-            var resume = npc.Mind.PersonalCarePhase == PersonalCarePhase.LaundryBatch || stillDoffing
+            var resume = stillDoffing
                 ? npc.Mind.RedressShore
                 : npc.Mind.PersonalCareBathShore;
             if (resume is { } resumeJunction &&
@@ -276,11 +279,7 @@ public sealed partial class PlanningSystem
         // у самой воды) остаётся запасным: без дома или без пути от дома к воде.
         var undressStand = best.Id;
         ObjectId? stowObject = null;
-        var laundryRequired = npc.WornItems.Any(item =>
-            !HolsterCatalog.IsHolster(item.DefinitionId) &&
-            MathUtil.Clamp01(item.Dirtiness + item.Bloodiness) >=
-                SimBalance.WashClothesNeedThreshold);
-        if (!laundryRequired && StowMath.FindUndressSpot(world, npc) is { } spot &&
+        if (StowMath.FindUndressSpot(world, npc) is { } spot &&
             HygieneMath.HasBathApproachRoute(world, npc, from, spot.Stand) &&
             HygieneMath.HasBathApproachRoute(world, npc, spot.Stand, best.Id) &&
             // ⭐ ...НО ТОЛЬКО ЕСЛИ ДОМ РЯДОМ С ВОДОЙ. Здесь стояла одна лишь
@@ -317,9 +316,7 @@ public sealed partial class PlanningSystem
         npc.Plan.TargetObjectId = stowObject;
         npc.Mind.RedressShore = undressStand;
         npc.Mind.PersonalCareBathShore = best.Id;
-        npc.Mind.PersonalCarePhase = laundryRequired
-            ? PersonalCarePhase.LaundryBatch
-            : PersonalCarePhase.Bathing;
+        npc.Mind.PersonalCarePhase = PersonalCarePhase.Bathing;
         // Pathfinding consumes Plan.TargetJunctionId, so while the first leg
         // goes home it must remain the home work point. Preserve the ACTUAL
         // shore on PrepareBathe.TimeoutEndTick (an integer payload, as used by
@@ -364,6 +361,82 @@ public sealed partial class PlanningSystem
             return;
         }
 
+        // §40.6: personal laundry is deliberately independent from Bathe.
+        // Pick one owned garment, worn first and inventory second; execution
+        // keeps repeating this same plan at the shore until the queue is clean.
+        ItemInstance laundry = null;
+        var source = 0;
+        foreach (var item in npc.WornItems)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var def) &&
+                def.Layer is not null &&
+                MathUtil.Clamp01(item.Dirtiness + item.Bloodiness) >=
+                    SimBalance.WashClothesNeedThreshold)
+            {
+                laundry = item;
+                source = 1;
+                break;
+            }
+        }
+
+        if (laundry is null)
+        {
+            foreach (var item in npc.Inventory.Items)
+            {
+                if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var def) &&
+                    def.Layer is not null &&
+                    MathUtil.Clamp01(item.Dirtiness + item.Bloodiness) >=
+                        SimBalance.WashClothesNeedThreshold)
+                {
+                    laundry = item;
+                    source = 2;
+                    break;
+                }
+            }
+        }
+
+        // Laundry needs the dry side of a real water edge (the same geometry
+        // execution validates), not merely a bath entry junction.
+        var laundryShore = world.Junctions.Items.Values
+            .Where(junction =>
+                TryGetEdgeSeatGeometry(world, junction, waterOnly: true, out _, out _) &&
+                JunctionAvailableFor(world, junction.Id, npc.Id) &&
+                Connectivity.Reachable(world, from, junction.Id, CanUseRoutineTraversal(npc)))
+            .OrderBy(junction =>
+                HexSpatialMath.Distance(npc.Position, junction.WorldPosition))
+            .FirstOrDefault();
+        if (laundry is null || laundryShore is null ||
+            !SpatialMutations.TryReserveJunction(world, laundryShore.Id, npc.Id,
+                world.Tick, SimBalance.WashClothesDurationTicks * 8 + 192))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.WashClothes);
+            return;
+        }
+
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetItemDefinitionId = laundry.DefinitionId;
+        npc.Plan.TargetJunctionId = laundryShore.Id;
+        TryGetEdgeSeatGeometry(world, laundryShore, waterOnly: true,
+            out var laundryStandTile, out _);
+        npc.Plan.TargetTile = laundryStandTile;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = laundryShore.Id
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.WashClothes,
+            TargetJunction = laundryShore.Id,
+            Interaction = InteractionType.WashClothes,
+            LaundryFromInventory = source == 2
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        return;
+
+#pragma warning disable CS0162 // Legacy ground-laundry planner retained for save compatibility.
         WorldObjectState best = null;
         JunctionId bestTarget = default;
         TileCoord bestStandTile = default;
@@ -484,6 +557,7 @@ public sealed partial class PlanningSystem
                 $"FetchVia={fetchStand.Value} Edge={bestTarget.Value} " +
                 $"StandTile={bestStandTile.Q},{bestStandTile.R}");
         }
+#pragma warning restore CS0162
     }
 
     // Spec 29G: does perception offer real furniture for this interaction?

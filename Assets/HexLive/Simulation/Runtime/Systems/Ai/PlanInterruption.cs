@@ -246,7 +246,25 @@ public static class PlanInterruption
             // its source list until the final tick so a mid-action save is
             // self-contained. Abort must therefore not duplicate that visual
             // hand reference onto the ground.
-            var stillOwned = npc.Mind.CurrentGoal == GoalType.PlayerInventory &&
+            var laundryStep = npc.Mind.CurrentGoal == GoalType.WashClothes &&
+                npc.Plan.CurrentStepIndex >= 0 &&
+                npc.Plan.CurrentStepIndex < npc.Plan.Steps.Count
+                ? npc.Plan.Steps[npc.Plan.CurrentStepIndex]
+                : null;
+            var restoredLaundry = false;
+            if (laundryStep?.LaundryFromInventory == true)
+            {
+                npc.Inventory.Items.Add(held);
+                restoredLaundry = true;
+            }
+            else if (laundryStep is { Type: PlanStepType.WashClothes })
+            {
+                npc.WornItems.Add(held);
+                EquipmentMath.Recalculate(world, npc);
+                restoredLaundry = true;
+            }
+
+            var stillOwned = restoredLaundry || npc.Mind.CurrentGoal == GoalType.PlayerInventory &&
                 (npc.Inventory.Items.Exists(item => ReferenceEquals(item, held)) ||
                  npc.WornItems.Exists(item => ReferenceEquals(item, held)));
             var dropped = stillOwned ? null : ExecutionSystem.DropItemAtFeet(world, npc, held);

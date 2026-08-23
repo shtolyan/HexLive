@@ -260,21 +260,10 @@ namespace HexLive.Simulation.Runtime
         // §40.6 r2 (laundry-in-hand): 80 ticks — the piece is doffed off the
         // body / picked up off the shore into the hand and scrubbed there.
         public static int WashClothesDurationTicks = 80;
-        // §88: 0.2 — это ПОЧТИ ЧИСТАЯ вещь. Порог был настолько низким, что
-        // одежда переползала его за считанные часы носки, и человек регулярно
-        // бросал дела и шёл через полкарты стирать то, на чём глазу не видно
-        // грязи. Пятно должно быть заметным, чтобы за ним идти.
-        public static float WashClothesNeedThreshold = 0.45f;
-
-        // Laundry audit (Jul 2026): worn dirt never reached the wash chain —
-        // DirtyGarmentWashNeed only scans garments ALREADY lying on a bathing
-        // tile, so clothes were washed just 9-16 times per 40 days and worn
-        // pieces sat at dirt 0.7-1.0 forever. Dirty WORN clothing also pulls
-        // Bathe (body hygiene chain): batheNeed takes
-        // max(1-Hygiene, worstWornDirt × this weight). Since §40.6 r2 the
-        // wash chain reads worn dirt DIRECTLY (weight 0.75 in the auction),
-        // so it usually outbids this pull and washes the piece in hand.
-        public static float BatheWornDirtWeight = 0.9f;
+        // §40.6: мелкие следы ниже 10% не запускают стирку и не
+        // рисуются на одежде. Один порог не даёт логике и виду
+        // расходиться на пограничных значениях.
+        public static float WashClothesNeedThreshold = 0.10f;
 
         // Drying audit (Jul 2026): DryClothes gated on wetness > 0.5 — after a
         // wash (wet 1.0) passive on-body drying closes that window in ~0.2

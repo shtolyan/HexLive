@@ -107,6 +107,12 @@ namespace HexLive.UnityPresentation.Wearing
                 return;
             }
 
+            if (Mathf.Clamp01(dirtiness + bloodiness) < 0.10f)
+            {
+                dirtiness = 0f;
+                bloodiness = 0f;
+            }
+
             var rawTear = Mathf.InverseLerp(TearBiteDurability, 0f, Mathf.Clamp01(durability));
             var tear = Mathf.Pow(rawTear, TearProgressGamma);
             var wet = Mathf.Clamp01(wetness);

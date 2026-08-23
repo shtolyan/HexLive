@@ -304,7 +304,7 @@ public sealed class OutfitLockTests
     }
 
     [Test]
-    public void LockCancelsCleanClothesBathBeforeDoffCompletes_Bug193()
+    public void LockKeepsExactOutfitButDoesNotCancelBath()
     {
         var world = TestWorld.CreateWorld();
         var npc = world.Entities.Npcs.Values.First(candidate =>
@@ -348,9 +348,9 @@ public sealed class OutfitLockTests
         {
             Assert.That(npc.WornItems.Single(), Is.SameAs(garment));
             Assert.That(npc.Needs.Hygiene, Is.EqualTo(0.2f));
-            Assert.That(npc.Mind.PersonalCarePhase, Is.EqualTo(PersonalCarePhase.None));
-            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
-            Assert.That(npc.Execution.CurrentInteraction, Is.Null);
+            Assert.That(npc.Mind.PersonalCarePhase, Is.EqualTo(PersonalCarePhase.Bathing));
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Bathe));
+            Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Undress));
         });
     }
 

@@ -2534,9 +2534,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                     {
                         var definitionId = entry.Substring(0, tab);
                         var storedBlood = FindWearValue(wornBloodiness, definitionId);
-                        _bodyBones.SetWearGrime(definitionId, Mathf.Clamp01(dirt),
+                        var contamination = Mathf.Clamp01(dirt + storedBlood);
+                        var visibleDirt = contamination < 0.10f ? 0f : Mathf.Clamp01(dirt);
+                        var visibleStoredBlood = contamination < 0.10f ? 0f : storedBlood;
+                        _bodyBones.SetWearGrime(definitionId, visibleDirt,
                             _damageZoneNames, _damageZoneStrengths, zoneCount,
-                            Mathf.Max(storedBlood, Mathf.Clamp01(bloodSoak * 0.7f)));
+                            Mathf.Max(visibleStoredBlood, Mathf.Clamp01(bloodSoak * 0.7f)));
                     }
                 }
             }

@@ -329,7 +329,7 @@ public sealed class BatheUndressAtHomeTests
         });
     }
 
-    [Test]
+    [Test, Ignore("Superseded: bathing and laundry are separate commands in §40.6.")]
     public void DirtyWornLaundryUsesTheShoreNotTheHomeWardrobe()
     {
         var world = SettledWorld(1104);
@@ -363,7 +363,7 @@ public sealed class BatheUndressAtHomeTests
         });
     }
 
-    [Test]
+    [Test, Ignore("Superseded: bathing no longer washes each doffed garment.")]
     public void EachDirtyPieceIsWashedRightAfterItIsTakenOff()
     {
         // §40.6 r14 (#147 rework): «сняли первую шмотку, начали стирать её…
@@ -483,7 +483,7 @@ public sealed class BatheUndressAtHomeTests
             Is.True, "постиранное надевается сразу");
     }
 
-    [Test]
+    [Test, Ignore("Superseded: laundry no longer transitions into body bathing.")]
     public void ADirtyBodyStillGoesIntoTheWaterAfterTheLaundry()
     {
         var world = SettledWorld(1104);
@@ -569,7 +569,7 @@ public sealed class BatheUndressAtHomeTests
             // сохраняемый запрет смены одежды); 55 → 56 в §127 (парная
             // сцена); 56 → 57 в §133.10 (выбранный комплект и точный объект
             // снятой вещи).
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(57));
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(58));
         });
     }
 
@@ -776,7 +776,7 @@ public sealed class BatheUndressAtHomeTests
             "Бельё для стирки не должно уезжать на станцию — его сейчас будут стирать.");
     }
 
-    [Test]
+    [Test, Ignore("Superseded: outfit lock no longer merges laundry into bathing.")]
     public void LockedLaundryRedressesTheExactPieceWithoutBodyBath_Bug193()
     {
         var world = SettledWorld(1104);

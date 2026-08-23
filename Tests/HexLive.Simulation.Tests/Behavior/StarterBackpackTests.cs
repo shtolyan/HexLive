@@ -149,13 +149,15 @@ public sealed class StarterBackpackTests
     }
 
     [Test]
-    public void LaundryDoesNotRemoveAWornBackpack()
+    public void LaundryCanWashAWornBackpackWithoutUnpackingIt()
     {
-        var engine = TestWorld.CreateEngine(13325);
+        var engine = TestWorld.CreateEngine(1104);
         for (var i = 0; i < 4; i++) engine.Step();
 
         var world = engine.World;
-        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        var npc = world.Entities.Npcs.Values.First(n =>
+            n.Faction == Faction.Colony &&
+            HygieneMath.FindReachableBathShore(world, n) is not null);
         var pack = npc.WornItems.Single(item =>
             world.Content.ObjectDefinitions[item.DefinitionId].Layer == WearLayer.Bags);
         npc.WornItems.Clear();
@@ -169,8 +171,8 @@ public sealed class StarterBackpackTests
 
         new PlanningSystem().Run(world);
 
-        Assert.That(npc.Plan.TargetItemDefinitionId, Is.Not.EqualTo(pack.DefinitionId),
-            "Стирка всё ещё снимает надетый рюкзак; временно снимать его может только купание.");
+        Assert.That(npc.Plan.TargetItemDefinitionId, Is.EqualTo(pack.DefinitionId),
+            "Грязный рюкзак должен стираться как обычная надетая вещь.");
     }
 
     private static bool IsBackpack(GarmentParams garment) =>

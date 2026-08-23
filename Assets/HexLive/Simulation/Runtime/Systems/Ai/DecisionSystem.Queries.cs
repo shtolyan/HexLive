@@ -838,36 +838,33 @@ public sealed partial class DecisionSystem
     {
         var need = 0f;
 
-        // §88: лежащие на берегу вещи считаются ТОЛЬКО те, что она видит.
-        // Раньше перебирался весь мир: любая грязная тряпка на другом конце
-        // острова поднимала кому угодно нужду стирать, и человек шёл через всю
-        // карту к вещи, о существовании которой знать не мог. Чужак при этом
-        // стирал ещё и одежду девушек. Восприятие — та же мера, что у соседних
-        // гейтов (см. KnowsReachableWarmthUpgrade).
-        foreach (var perceived in npc.Perception.Objects)
+        // §40.6: стирка — уход за СВОЕЙ одеждой, отдельный от
+        // купания. Сначала оцениваем надетое, затем одежду в
+        // инвентаре. Лежащие в мире чужие вещи в эту команду не
+        // входят.
+        foreach (var item in npc.WornItems)
         {
-            if (!perceived.IsReachable ||
-                !ObjectUsableBy(perceived, npc.Id) ||
-                !world.Entities.Objects.TryGetValue(perceived.Id, out var obj))
+            if (!world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
+                definition.Layer is null)
             {
                 continue;
             }
 
-            var contamination = MathUtil.Clamp01(obj.Dirtiness + obj.Bloodiness);
-            if (contamination <= need ||
-                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                definition.Layer is null ||
-                !HygieneMath.IsBathingTile(world, obj.Tile))
-            {
-                continue;
-            }
-
-            need = contamination;
+            need = System.MathF.Max(need,
+                MathUtil.Clamp01(item.Dirtiness + item.Bloodiness));
         }
 
-        // #147: worn dirt belongs to the combined Bathe transaction. Its one
-        // LaundryBatch cleans every doffed dirty piece before the body bath;
-        // the standalone WashClothes goal remains only for ground laundry.
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
+                definition.Layer is null)
+            {
+                continue;
+            }
+
+            need = System.MathF.Max(need,
+                MathUtil.Clamp01(item.Dirtiness + item.Bloodiness));
+        }
         return need;
     }
 

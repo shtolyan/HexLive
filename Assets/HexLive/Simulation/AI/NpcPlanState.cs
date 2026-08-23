@@ -44,6 +44,10 @@ public sealed class PlanStep
     public InteractionType? Interaction { get; set; }
 
     public int? TimeoutEndTick { get; set; }
+
+    // §40.6 r16: source ownership for one personal-laundry iteration.
+    // False = worn (return to body), true = inventory (return to inventory).
+    public bool LaundryFromInventory { get; set; }
 }
 
 public enum PlanStepType

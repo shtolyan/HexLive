@@ -5449,8 +5449,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (model != null)
         {
             _handProp = Instantiate(model, hand);
+            // A native Resources prefab may survive Player stripping while
+            // its imported mesh sub-asset does not. Do not accept that empty
+            // shell as a successful prop: the shared procedural fallback is
+            // preferable to drinking from an invisible bottle.
+            if (!ObjectFit.HasRenderableGeometry(_handProp))
+            {
+                Destroy(_handProp);
+                _handProp = null;
+            }
         }
-        else
+
+        if (_handProp == null)
         {
             var built = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(itemId);
             if (built == null)

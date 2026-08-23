@@ -2348,6 +2348,46 @@ MonoBehaviour:
       - "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u043C\u0438\u0440"
       Flags: 0101
       Languages_Touch: []
+    - Term: menu.worlds.delete
+      TermType: 0
+      Description:
+      Languages:
+      - "Delete"
+      - "\u0423\u0434\u0430\u043B\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.delete.warning
+      TermType: 0
+      Description:
+      Languages:
+      - "This cannot be undone"
+      - "\u042D\u0442\u043E \u043D\u0435\u043B\u044C\u0437\u044F \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.delete.confirm
+      TermType: 0
+      Description:
+      Languages:
+      - "Delete forever"
+      - "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.delete.cancel
+      TermType: 0
+      Description:
+      Languages:
+      - "Cancel"
+      - "\u041E\u0442\u043C\u0435\u043D\u0430"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.delete.failed
+      TermType: 0
+      Description:
+      Languages:
+      - "Could not delete"
+      - "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0443\u0434\u0430\u043B\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: menu.connect
       TermType: 0
       Description: 

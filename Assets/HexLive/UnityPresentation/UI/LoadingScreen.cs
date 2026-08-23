@@ -576,13 +576,14 @@ namespace HexLive.UnityPresentation.UI
 
             foreach (var world in _worlds)
             {
-                list.Add(BuildWorldCard(world));
+                list.Add(BuildWorldCard(world, list, empty));
             }
 
             return host;
         }
 
-        private VisualElement BuildWorldCard(SaveWorldInfo world)
+        private VisualElement BuildWorldCard(
+            SaveWorldInfo world, ScrollView list, VisualElement empty)
         {
             var card = new VisualElement();
             card.AddToClassList("world-card");
@@ -619,12 +620,66 @@ namespace HexLive.UnityPresentation.UI
             copy.Add(date);
             card.Add(copy);
 
+            var actions = new VisualElement();
+            actions.AddToClassList("world-card-actions");
+
             var load = new Button(() => ResumeWorld(world))
             {
                 text = Loc.Get("menu.worlds.load")
             };
             load.AddToClassList("world-card-action");
-            card.Add(load);
+            load.AddToClassList("world-card-load");
+            actions.Add(load);
+
+            var warning = new Label(Loc.Get("menu.worlds.delete.warning"));
+            warning.AddToClassList("world-card-delete-warning");
+            actions.Add(warning);
+
+            var confirmingDelete = false;
+            var delete = new Button();
+            delete.text = Loc.Get("menu.worlds.delete");
+            delete.AddToClassList("world-card-delete");
+            actions.Add(delete);
+
+            var cancel = new Button();
+            cancel.text = Loc.Get("menu.worlds.delete.cancel");
+            cancel.AddToClassList("world-card-delete-cancel");
+            actions.Add(cancel);
+
+            cancel.clicked += () =>
+            {
+                confirmingDelete = false;
+                actions.RemoveFromClassList("is-confirming");
+                delete.text = Loc.Get("menu.worlds.delete");
+            };
+            delete.clicked += () =>
+            {
+                if (!confirmingDelete)
+                {
+                    confirmingDelete = true;
+                    actions.AddToClassList("is-confirming");
+                    delete.text = Loc.Get("menu.worlds.delete.confirm");
+                    return;
+                }
+
+                if (!SaveGame.DeleteWorld(world.Id))
+                {
+                    confirmingDelete = false;
+                    actions.RemoveFromClassList("is-confirming");
+                    delete.text = Loc.Get("menu.worlds.delete.failed");
+                    return;
+                }
+
+                _worlds = SaveGame.ListWorlds();
+                card.RemoveFromHierarchy();
+                if (_worlds.Count == 0)
+                {
+                    list.AddToClassList("is-empty");
+                    empty.AddToClassList("is-visible");
+                }
+            };
+
+            card.Add(actions);
 
             return card;
         }

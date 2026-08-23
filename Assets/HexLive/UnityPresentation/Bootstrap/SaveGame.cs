@@ -222,6 +222,50 @@ namespace HexLive.UnityPresentation.Bootstrap
             return true;
         }
 
+        /// <summary>Permanently removes one explicitly selected local-world
+        /// directory. The menu owns confirmation; this boundary owns path
+        /// validation and remembered-selection cleanup.</summary>
+        public static bool DeleteWorld(string worldId)
+        {
+            EnsureLegacyMigrated();
+            if (!IsSafeWorldId(worldId))
+            {
+                return false;
+            }
+
+            var directory = Path.Combine(SavesRoot, worldId);
+            if (!Directory.Exists(directory))
+            {
+                return false;
+            }
+
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[HexLive] Local world delete failed ({worldId}): {e.Message}");
+                return false;
+            }
+
+            if (string.Equals(_activeWorldId, worldId, StringComparison.Ordinal))
+            {
+                _activeWorldId = null;
+                _activeWorldPending = false;
+                _pendingSeed = 0;
+                _pendingMode = 0;
+            }
+
+            if (PlayerPrefs.GetString(ActiveWorldPref, string.Empty) == worldId)
+            {
+                PlayerPrefs.DeleteKey(ActiveWorldPref);
+                PlayerPrefs.Save();
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// All readable local worlds, newest save first. Invalid/corrupt folders
         /// are left on disk for recovery, but are not offered as playable slots.

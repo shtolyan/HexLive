@@ -846,7 +846,8 @@ internal static class MortalityHelpers
         {
             if (other.Id.Equals(npc.Id) ||
                 other.Health <= 0f ||
-                other.IsUnconscious(world.Tick))
+                other.IsUnconscious(world.Tick) ||
+                other.IsPlayingDead(world.Tick))
             {
                 continue;
             }

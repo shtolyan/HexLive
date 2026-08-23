@@ -413,6 +413,42 @@ public sealed class PlayDeadTests
             Is.Null.Or.Property("Id").Not.EqualTo(mark.Id),
             "§81: абьюзер тоже теряет к ней интерес.");
     }
+
+    /// <summary>
+    /// Баг #209: два враждебных человека, которые уже лежат, не являются друг
+    /// для друга активной угрозой. Иначе пара притворяющихся мёртвыми взаимно
+    /// перевзводит окно и лежит лицом друг к другу до жёсткого потолка.
+    /// </summary>
+    [Test]
+    public void DownHostileHuman_DoesNotKeepTheOtherPlayingDead_Bug209()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var people = world.Entities.Npcs.Values.Take(2).ToArray();
+        var survivor = people[0];
+        var hostile = people[1];
+
+        world.Mobs.Clear();
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Faction = Faction.Colony;
+        }
+        hostile.Faction = Faction.Outsiders;
+        hostile.Tile = survivor.Tile;
+
+        hostile.Mind.PlayDeadUntilTick = world.Tick + Spec105.PlayDeadHoldTicks;
+        Assert.That(MortalityHelpers.HostileNearby(world, survivor), Is.False,
+            "Притворяющийся мёртвым человек не удерживает врага лежать рядом.");
+
+        hostile.Mind.PlayDeadUntilTick = 0;
+        hostile.Mind.FaintedUntilTick = world.Tick + 100;
+        Assert.That(MortalityHelpers.HostileNearby(world, survivor), Is.False,
+            "Бессознательный человек тоже не является активной угрозой.");
+
+        hostile.Mind.FaintedUntilTick = 0;
+        Assert.That(MortalityHelpers.HostileNearby(world, survivor), Is.True,
+            "Контроль: тот же бодрствующий враг рядом обязан удерживать притворство.");
+    }
 }
 
 }

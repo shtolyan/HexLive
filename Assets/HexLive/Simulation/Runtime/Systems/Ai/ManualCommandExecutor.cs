@@ -1159,6 +1159,14 @@ internal static class ManualCommandExecutor
                 break;
 
             case SelfActionKind.GroundSleep:
+                var groundSleepReason = ExecutionSystem.GetSleepInterruptReason(
+                    world, npc, manualOrder: true);
+                if (groundSleepReason is not null)
+                {
+                    Reject(world, npc.Id, "SelfAction", groundSleepReason, admission);
+                    ExecutionSystem.StampSleepRefusal(world, npc, groundSleepReason);
+                    return;
+                }
                 InstallSelfPlan(world, npc, admission, GoalType.Sleep,
                     "Приказ лечь спать", "NoGroundSpot",
                     () => ManualPlanner.BuildLocalGroundSleepPlan(world, npc));
@@ -1954,6 +1962,18 @@ internal static class ManualCommandExecutor
         {
             Reject(world, npc.Id, "Interact", "NoSuchAction", admission);
             return;
+        }
+
+        if (command.Interaction == InteractionType.Sleep)
+        {
+            var sleepReason = ExecutionSystem.GetSleepInterruptReason(
+                world, npc, manualOrder: true);
+            if (sleepReason is not null)
+            {
+                Reject(world, npc.Id, "Interact", sleepReason, admission);
+                ExecutionSystem.StampSleepRefusal(world, npc, sleepReason);
+                return;
+            }
         }
 
         // Тот же ANY-OF гейт, что стоит на входе в ExecutionSystem. Здесь он —

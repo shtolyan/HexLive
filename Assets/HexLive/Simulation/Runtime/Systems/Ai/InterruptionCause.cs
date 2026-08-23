@@ -50,6 +50,13 @@ public enum InterruptionCause
     // ручной выключен и такую цель не починит, поэтому её снимает ручной
     // проход — и обязан пройти, иначе колонистка встаёт столбом.
     ManualPolicySweep,
+
+    // ── СОН: принятый ручной приказ прерван конкретной телесной причиной.
+    // Имена отдельные, чтобы игрок видел не общее «ошибка выполнения», а
+    // опасность, голод или жажду (§49.13 / баг #216). ──
+    SleepDanger,
+    SleepHunger,
+    SleepThirst,
 }
 
 public static class InterruptionCauses
@@ -79,6 +86,9 @@ public static class InterruptionCauses
             case InterruptionCause.AbuseMark:
             case InterruptionCause.CorneredFight:
             case InterruptionCause.ManualPolicySweep:
+            case InterruptionCause.SleepDanger:
+            case InterruptionCause.SleepHunger:
+            case InterruptionCause.SleepThirst:
                 return true;
             default:
                 return false;

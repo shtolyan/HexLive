@@ -800,7 +800,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // promptly; §49 r2 не нужен латч, чтобы она вернулась
                     // досыпать, — энергия всё ещё под порогом, и ставка сна
                     // поднимется сама, как только кризис снят.
-                    if (HasSleepInterrupt(world, npc, alreadyAsleep: true))
+                    var sleepInterruptReason = GetSleepInterruptReason(
+                        world, npc, alreadyAsleep: true);
+                    if (sleepInterruptReason is not null)
                     {
                         if (SimTrace.Enabled)
                         {
@@ -808,7 +810,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                                 $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
                                 $"Danger={npc.Memory.Dangers.Count}");
                         }
-                        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Critical need interrupted sleep");
+                        PlanInterruption.TryAbort(
+                            world, npc, SleepInterruptionCause(sleepInterruptReason),
+                            $"Sleep interrupted: {sleepInterruptReason}");
+                        StampSleepRefusal(world, npc, sleepInterruptReason);
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
                     }

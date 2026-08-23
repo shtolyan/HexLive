@@ -141,8 +141,10 @@ public sealed partial class ExecutionSystem
                 EffectImpactCadence.Fast);
         }
 
-        var interruptedSleep = kind == InteractionType.Sleep &&
-            HasSleepInterrupt(world, npc, alreadyAsleep: true);
+        var sleepInterruptReason = kind == InteractionType.Sleep
+            ? GetSleepInterruptReason(world, npc, alreadyAsleep: true)
+            : null;
+        var interruptedSleep = sleepInterruptReason is not null;
         if (!interruptedSleep && npc.Execution.EndTick - world.Tick > 0)
         {
             return;
@@ -156,6 +158,13 @@ public sealed partial class ExecutionSystem
                     $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
                     $"Danger={npc.Memory.Dangers.Count}");
             }
+
+            PlanInterruption.TryAbort(
+                world, npc, SleepInterruptionCause(sleepInterruptReason!),
+                $"Sleep interrupted: {sleepInterruptReason}");
+            StampSleepRefusal(world, npc, sleepInterruptReason!);
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
         }
 
         // Spec §49: sleep in ONE continuous lie. Instead of ending the
@@ -390,9 +399,7 @@ public sealed partial class ExecutionSystem
         // it can reuse the autonomous GroundSleep executor. Both forms must
         // therefore stay down until Stop/new order interrupts the plan. Real
         // danger and critical hunger/thirst still win through the common gate.
-        var manualSleepOrder = npc.Plan.Goal == GoalType.PlayerOrder ||
-            npc.Plan.Goal == GoalType.Sleep && npc.Mind.CurrentGoal == GoalType.Sleep;
-        if (npc.Mind.ManualControl && manualSleepOrder &&
+        if (IsManualSleepOrder(npc) &&
             npc.Execution.CurrentInteraction == InteractionType.Sleep)
         {
             return true;
@@ -420,7 +427,19 @@ public sealed partial class ExecutionSystem
     // interrupt condition is already true produced the lie-down/stand-up loop
     // (Molly, thirst 0.79 ≥ 0.6: the first sleep tick woke her, the auction
     // put her right back to bed, forever).
-    internal static bool HasSleepInterrupt(WorldState world, NPCState npc, bool alreadyAsleep = false)
+    internal static bool HasSleepInterrupt(WorldState world, NPCState npc, bool alreadyAsleep = false) =>
+        GetSleepInterruptReason(world, npc, alreadyAsleep) is not null;
+
+    /// <summary>
+    /// One named answer for both admission and the next sleep tick. A direct
+    /// player order may override an old danger MEMORY, but never a threat the
+    /// character currently sees or fresh adrenaline. This keeps autonomous
+    /// caution intact while removing the visible lie-down/get-up loop from a
+    /// deliberate order.
+    /// </summary>
+    internal static string? GetSleepInterruptReason(
+        WorldState world, NPCState npc, bool alreadyAsleep = false,
+        bool manualOrder = false)
     {
         // A live threat always ends (or forbids) sleep — never bed down next to
         // a mob, and a fresh scare (adrenaline) keeps her on her feet. §65: by
@@ -443,9 +462,13 @@ public sealed partial class ExecutionSystem
         var roofed = world.Tiles.Items.TryGetValue(npc.Tile, out var restTile) &&
             restTile.Flags.HasFlag(TileFlags.Indoor);
         var scared = world.Tick < npc.Mind.AdrenalineUntilTick;
-        if (scared || (HasRecentDanger(world, npc) && !roofed))
+        var seesLiveThreat = npc.Perception.Hostiles.Count > 0 ||
+            npc.Perception.Mobs.Count > 0;
+        var playerInsists = manualOrder || IsManualSleepOrder(npc);
+        if (scared || seesLiveThreat ||
+            (!playerInsists && HasRecentDanger(world, npc) && !roofed))
         {
-            return true;
+            return "SleepDanger";
         }
 
         // §65: a dead-tired body tolerates MODERATE hunger/thirst rather than
@@ -472,7 +495,38 @@ public sealed partial class ExecutionSystem
             }
         }
 
-        return npc.Needs.Hunger >= hungerCeiling || npc.Needs.Thirst >= thirstCeiling;
+        if (npc.Needs.Hunger >= hungerCeiling)
+        {
+            return "SleepHungry";
+        }
+
+        return npc.Needs.Thirst >= thirstCeiling ? "SleepThirsty" : null;
+    }
+
+    private static bool IsManualSleepOrder(NPCState npc)
+    {
+        var manualSleepGoal = npc.Plan.Goal == GoalType.PlayerOrder ||
+            npc.Plan.Goal == GoalType.Sleep && npc.Mind.CurrentGoal == GoalType.Sleep;
+        return npc.Mind.ManualControl && manualSleepGoal;
+    }
+
+    internal static InterruptionCause SleepInterruptionCause(string reason) => reason switch
+    {
+        "SleepDanger" => InterruptionCause.SleepDanger,
+        "SleepHungry" => InterruptionCause.SleepHunger,
+        "SleepThirsty" => InterruptionCause.SleepThirst,
+        _ => InterruptionCause.ExecutionFailure
+    };
+
+    internal static void StampSleepRefusal(WorldState world, NPCState npc, string reason)
+    {
+        var cue = reason switch
+        {
+            "SleepHungry" => "SleepRejected:Hunger",
+            "SleepThirsty" => "SleepRejected:Thirst",
+            _ => "SleepRejected:Danger"
+        };
+        SocialCueSignals.Stamp(world, npc, cue, null);
     }
 
     // §65: does the girl have a RECENT-enough danger to forbid sleep? The danger

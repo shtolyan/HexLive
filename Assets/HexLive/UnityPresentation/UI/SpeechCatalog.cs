@@ -305,6 +305,13 @@ public static class SpeechCatalog
         // иконку), а кричит она про чужака, а не про зверюгу.
         ["DangerStranger"] = new("Warning", "fear_stranger"),
 
+        // §49.13: immediate answer to a rejected/interrupted sleep order.
+        // These are deliberately silent: the icon names the body reason while
+        // the character panel gives the localized sentence.
+        ["SleepRejected:Danger"] = new("Warning", null, Rank.Alarm),
+        ["SleepRejected:Hunger"] = new("Hunger", null, Rank.Action),
+        ["SleepRejected:Thirst"] = new("Thirst", null, Rank.Action),
+
         // ---- взаимопомощь (§53) ------------------------------------------
         ["AidRequest"] = new("Food", "sad_aid_ask"),
         ["AidIncoming"] = new("Food", "happy_aid_give"),

@@ -32,6 +32,10 @@ public static class Spec127
     public const float ForcedPelvisDamageMin = 0.05f;
     public const float ForcedPelvisDamageMax = 0.08f;
 
+    // One full scene can move either extreme of the normalized stress scale
+    // all the way to its authored outcome (§127.12).
+    public const float StressChangePerTick = 1f / DurationTicks;
+
     public const float MinPlaybackSpeed = 0.1f;
     public const float MaxPlaybackSpeed = 1f;
     public const float ClimaxPlaybackSpeed = 0.5f;

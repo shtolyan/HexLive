@@ -228,6 +228,12 @@ public static class JournalCatalog
         r["Butchered"] = new JournalRule(56, extra: JournalExtra.LeadingWord);
 
         // ── социальное ──────────────────────────────────────────────────────
+        r["RomanceCompleted"] = new JournalRule(
+            88, JournalRole.FirstNpc, mirrorWeight: 88);
+        // Дневниковая запись принадлежит жертве: вес инициатора равен нулю,
+        // зеркало получает максимальный приоритет и называет виновника.
+        r["RomanceForced"] = new JournalRule(
+            0, JournalRole.FirstNpc, mirrorWeight: 100);
         r["TalkQuarreled"] = new JournalRule(68, JournalRole.FirstNpc, mirrorWeight: 68);
         r["TalkCompleted"] = new JournalRule(34, JournalRole.FirstNpc, mirrorWeight: 30);
         // §146.12: договор о едином доме — крупная запись обеих переговорщиц.

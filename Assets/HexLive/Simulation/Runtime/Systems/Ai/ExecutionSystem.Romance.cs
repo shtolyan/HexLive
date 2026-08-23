@@ -184,6 +184,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        ApplyRomanceStressTick(leader, partner, forced);
         if (world.Tick < leader.Execution.EndTick)
         {
             return;
@@ -242,6 +243,12 @@ public sealed partial class ExecutionSystem
         var female = leader.Sex == GarmentSex.Female ? leader : partner;
         female.Body.Condition(BodyPart.Pelvis).IntimacySoil = 1f;
 
+        // The per-tick movement below is deliberately capped here too: a
+        // loaded/fast-forwarded world may reach the completion tick without
+        // presentation ever having observed every intermediate frame.
+        leader.Needs.Stress = 0f;
+        partner.Needs.Stress = forced ? 1f : 0f;
+
         if (forced)
         {
             leader.Needs.Social = MathUtil.Clamp01(
@@ -273,10 +280,20 @@ public sealed partial class ExecutionSystem
             SocialCueSignals.Stamp(world, partner, "RomanceCompleted", leader.Id);
         }
 
-        Trace.Emit(world, leader.Id, "RomanceCompleted",
-            $"Partner=NPC{partner.Id.Value} Forced={forced} " +
+        Trace.Emit(world, leader.Id,
+            forced ? "RomanceForced" : "RomanceCompleted",
+            $"NPC{partner.Id.Value} Forced={forced} " +
             $"Pose={leader.Mind.RomanceClipKey}");
         FinishRomancePair(world, leader, partner);
+    }
+
+    private static void ApplyRomanceStressTick(NPCState leader, NPCState partner,
+        bool forced)
+    {
+        leader.Needs.Stress = MathUtil.Clamp01(
+            leader.Needs.Stress - Spec127.StressChangePerTick);
+        partner.Needs.Stress = MathUtil.Clamp01(partner.Needs.Stress +
+            (forced ? Spec127.StressChangePerTick : -Spec127.StressChangePerTick));
     }
 
     private static void ImproveMutualRelationship(NPCState source, NPCState target)

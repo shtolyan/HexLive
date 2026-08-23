@@ -89,6 +89,8 @@ public sealed class RomanceInteractionTests
         male.Mind.ManualControl = true;
         male.Needs.Social = 0.05f;
         female.Needs.Social = 0.05f;
+        male.Needs.Stress = 0.8f;
+        female.Needs.Stress = 0.6f;
         male.WornItems.Add(new ItemInstance("FCO Pants Male"));
         male.WornItems.Add(new ItemInstance("FCO Legs Straps Male"));
         female.WornItems.Add(new ItemInstance("underwear.thong_anarchy"));
@@ -126,8 +128,24 @@ public sealed class RomanceInteractionTests
                 "Боковые набедренники должны лежать на земле, а не оставаться на мужчине.");
         });
 
+        var maleStressAtStart = male.Needs.Stress;
+        var femaleStressAtStart = female.Needs.Stress;
+        var execution = new ExecutionSystem();
+        for (var tick = 0; tick < 100; tick++)
+        {
+            world.Tick++;
+            execution.Run(world);
+        }
+        Assert.Multiple(() =>
+        {
+            Assert.That(male.Needs.Stress, Is.LessThan(maleStressAtStart));
+            Assert.That(female.Needs.Stress, Is.LessThan(femaleStressAtStart));
+            Assert.That(male.Needs.Stress, Is.GreaterThan(0f),
+                "Стресс должен снижаться постепенно, а не исчезать при старте.");
+        });
+
         world.Tick = male.Execution.EndTick;
-        new ExecutionSystem().Run(world);
+        execution.Run(world);
 
         Assert.Multiple(() =>
         {
@@ -138,6 +156,12 @@ public sealed class RomanceInteractionTests
                 Is.EqualTo(0.65f).Within(0.0001f));
             Assert.That(male.Mind.RomancePartnerNpcId, Is.Null);
             Assert.That(female.Execution.Status, Is.EqualTo(ExecutionStatus.None));
+            Assert.That(male.Needs.Stress, Is.Zero);
+            Assert.That(female.Needs.Stress, Is.Zero);
+            Assert.That(male.Journal.PendingType, Is.EqualTo("RomanceCompleted"));
+            Assert.That(female.Journal.PendingType, Is.EqualTo("RomanceCompleted"));
+            Assert.That(male.Journal.PendingSubjectId, Is.EqualTo(female.Id));
+            Assert.That(female.Journal.PendingSubjectId, Is.EqualTo(male.Id));
         });
 
         WoundMath.WashBloodSoil(female, 0.25f);
@@ -156,6 +180,8 @@ public sealed class RomanceInteractionTests
         aggressor.Mind.ManualControl = true;
         aggressor.Needs.Social = 0f;
         victim.Needs.Social = 0.9f;
+        aggressor.Needs.Stress = 0.8f;
+        victim.Needs.Stress = 0.2f;
         var beforePelvis = victim.Body.Parts[BodyPart.Pelvis];
         var beforeTrust = victim.Social.GetOrCreate(aggressor.Id).Trust;
 
@@ -168,8 +194,24 @@ public sealed class RomanceInteractionTests
         new ExecutionSystem().Run(world);
         Assert.That(aggressor.Mind.RomanceForced, Is.True);
 
+        var aggressorStressAtStart = aggressor.Needs.Stress;
+        var victimStressAtStart = victim.Needs.Stress;
+        var execution = new ExecutionSystem();
+        for (var tick = 0; tick < 100; tick++)
+        {
+            world.Tick++;
+            execution.Run(world);
+        }
+        Assert.Multiple(() =>
+        {
+            Assert.That(aggressor.Needs.Stress, Is.LessThan(aggressorStressAtStart));
+            Assert.That(victim.Needs.Stress, Is.GreaterThan(victimStressAtStart));
+            Assert.That(victim.Needs.Stress, Is.LessThan(1f),
+                "Травма должна нарастать постепенно, а не скачком при старте.");
+        });
+
         world.Tick = aggressor.Execution.EndTick;
-        new ExecutionSystem().Run(world);
+        execution.Run(world);
 
         var damage = beforePelvis - victim.Body.Parts[BodyPart.Pelvis];
         Assert.Multiple(() =>
@@ -183,6 +225,12 @@ public sealed class RomanceInteractionTests
                 Is.EqualTo(world.Tick + Spec127.VictimCryingTicks));
             Assert.That(victim.Body.Condition(BodyPart.Pelvis).IntimacySoil,
                 Is.EqualTo(1f));
+            Assert.That(aggressor.Needs.Stress, Is.Zero);
+            Assert.That(victim.Needs.Stress, Is.EqualTo(1f));
+            Assert.That(victim.Journal.PendingType, Is.EqualTo("RomanceForced"));
+            Assert.That(victim.Journal.PendingSubjectId, Is.EqualTo(aggressor.Id));
+            Assert.That(aggressor.Journal.PendingType, Is.Not.EqualTo("RomanceForced"),
+                "Принудительная сцена должна попасть в дневник жертвы, а не нормализоваться записью инициатора.");
         });
     }
 

@@ -16,6 +16,7 @@ namespace HexLive.UnityPresentation.UI
 // font). We deliberately do NOT use a legacy TextMesh glyph: Unity's dynamic
 // font path renders colour-bitmap emoji fonts as empty/white "tofu", which is
 // why the old glyph bubble came out blank.
+[DefaultExecutionOrder(1000)]
 public sealed class NpcSpeechBubble : MonoBehaviour
 {
     private const float HeightOffset = 0.34f;    // world units above the head bone
@@ -239,7 +240,11 @@ public sealed class NpcSpeechBubble : MonoBehaviour
             _cam = Camera.main;
         }
 
-        // Position at the head + fixed lift; billboard to the camera.
+        // Position at the head + fixed lift; billboard to the camera. This
+        // component runs after ordinary LateUpdate users: RomancePairView
+        // authors the male root there, so calculating the bubble first left
+        // his icon rotated by the pair's final root correction for one frame
+        // (and continuously while that correction was changing).
         var basePos = _anchor.position + Vector3.up * HeightOffset;
         transform.position = basePos;
         if (_cam != null)

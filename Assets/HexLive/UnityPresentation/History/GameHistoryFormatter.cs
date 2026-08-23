@@ -47,6 +47,8 @@ namespace HexLive.UnityPresentation.History
                 "RelationshipChanged" => FormatRelationship(record, actor),
                 "TalkRequested" => F("history.TalkRequested", actor, target),
                 "TalkStarted" => F("history.TalkStarted", actor, target),
+                "RomanceCompleted" => F("history.RomanceCompleted", actor, target),
+                "RomanceForced" => F("history.RomanceForced", actor, target),
                 "TalkCompleted" => F("history.TalkCompleted", actor, target),
                 "CampsMerged" => F("history.CampsMerged", actor),
                 "TalkQuarreled" => F("history.TalkQuarreled", actor, target),
@@ -247,7 +249,7 @@ namespace HexLive.UnityPresentation.History
 
         private static GameHistoryTone Tone(string type)
         {
-            if (type is "Aided" or "AidRequested" or "AidStarted" or "TalkCompleted" or "CampsMerged" or "TalkRequested" or
+            if (type is "Aided" or "AidRequested" or "AidStarted" or "RomanceCompleted" or "TalkCompleted" or "CampsMerged" or "TalkRequested" or
                 "TalkStarted" or "FoodShared" or "RelationshipChanged" or "Mourned" or
                 "Rescued" or // §105: её вытащили — это про людей, а не про урон
                 "HelpCryAnswered")
@@ -263,7 +265,7 @@ namespace HexLive.UnityPresentation.History
             }
 
             if (type is "NpcDied" or "BledOut" or "StarvedToDeath" or "VitalPartDestroyed" or "Drowned" or
-                "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "SharkBite" or "LimbSevered" or
+                "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "RomanceForced" or "SharkBite" or "LimbSevered" or
                 "MobTookLimb" or // §135: добычу унесли в зубах — это красная строка
                 "Collapsed" or // §105: она при смерти — тревожнее этого в колонии ничего нет
                 "HelpCry" or "HelpMoan" or // §57.10: слабый зов умирающей — красная строка

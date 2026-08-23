@@ -190,6 +190,8 @@ public static class GameEventTypes
 
         // Social
         "RelationshipChanged",
+        "RomanceCompleted",
+        "RomanceForced",
         "TalkCompleted",
         // §146.12: два самостоятельных лагеря договорились жить вместе.
         "CampsMerged",

@@ -18946,6 +18946,22 @@ MonoBehaviour:
         \u0441 {1}."
       Flags: 0101
       Languages_Touch: []
+    - Term: history.RomanceCompleted
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} and {1} shared an intimate moment.'
+      - '{0} и {1} провели время в романтической близости.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: history.RomanceForced
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} forced himself on {1}.'
+      - '{0} изнасиловал {1}.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: history.CampsMerged
       TermType: 0
       Description:
@@ -22496,6 +22512,30 @@ MonoBehaviour:
       - "\u041A\u0440\u043E\u0432\u0438 \u0442\u0430\u043A \u043C\u043D\u043E\u0433\u043E.
         \u042F \u043D\u0435 \u0437\u043D\u0430\u043B\u0430, \u0447\u0442\u043E \u0432\u043E
         \u043C\u043D\u0435 \u0441\u0442\u043E\u043B\u044C\u043A\u043E."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: journal.RomanceCompleted.did.v0
+      TermType: 0
+      Description:
+      Languages:
+      - 'That was wonderful. {0} and I had such a lovely time together.'
+      - 'Это было чудесно. Мы с {0} так хорошо провели время вместе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: journal.RomanceCompleted.got.v0
+      TermType: 0
+      Description:
+      Languages:
+      - 'That was wonderful. {0} and I had such a lovely time together.'
+      - 'Это было чудесно. Мы с {0} так хорошо провели время вместе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: journal.RomanceForced.got.v0
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} raped me. I feel sick even remembering it.'
+      - '{0} изнасиловал меня. Мне мерзко даже вспоминать об этом.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.me.dative

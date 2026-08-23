@@ -51,7 +51,11 @@ public sealed class TacticalMapUiContractTests
             Assert.That(uxml, Does.Not.Contain("worldMapOverlay"));
             Assert.That(panel, Does.Contain("_worldRenderer.PlayerVisibilityReady"));
             Assert.That(panel, Does.Contain("IsTileVisibleToPlayer(tile.Coord)"));
-            Assert.That(panel, Does.Contain("TryMoveSelectionFromMap(point"));
+            Assert.That(panel, Does.Contain("_cameraController?.MoveToMapPoint(point)"));
+            Assert.That(panel, Does.Not.Contain("TryMoveSelectionFromMap(point"));
+            Assert.That(camera, Does.Contain("public void MoveToMapPoint(Float2 point)"));
+            Assert.That(camera, Does.Contain("MoveToMapPoint(mapPoint)"));
+            Assert.That(camera, Does.Not.Contain("TryMoveSelectionFromMap(mapPoint"));
             Assert.That(camera, Does.Contain("_orbitMaxDistance = 260f"));
             Assert.That(camera, Does.Contain("TacticalMapActive"));
             Assert.That(camera, Does.Contain("TryPickTacticalMapPoint"));

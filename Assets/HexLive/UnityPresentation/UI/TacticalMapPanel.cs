@@ -37,6 +37,7 @@ namespace HexLive.UnityPresentation.UI
         private TacticalMapView? _miniMap;
         private HexWorldRenderer? _worldRenderer;
         private SimulationInputAdapter? _input;
+        private RtsCameraController? _cameraController;
         private Camera? _camera;
         private readonly TacticalMapFrame _frame = new();
         private readonly Dictionary<int, RememberedMarker> _rememberedMarkers = new();
@@ -160,6 +161,11 @@ namespace HexLive.UnityPresentation.UI
             if (_input == null && _camera != null)
             {
                 _input = _camera.GetComponent<SimulationInputAdapter>();
+            }
+
+            if (_cameraController == null && _camera != null)
+            {
+                _cameraController = _camera.GetComponent<RtsCameraController>();
             }
         }
 
@@ -376,7 +382,7 @@ namespace HexLive.UnityPresentation.UI
             var local = new Vector2(evt.localPosition.x, evt.localPosition.y);
             if (map.TryMapToWorld(local, out var point))
             {
-                _input?.TryMoveSelectionFromMap(point, evt.clickCount > 1);
+                _cameraController?.MoveToMapPoint(point);
             }
         }
 

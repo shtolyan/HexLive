@@ -209,6 +209,19 @@ namespace HexLive.UnityPresentation.Input
         /// world-space sprite representation of the island.</summary>
         public bool TacticalMapActive => _smoothedDistance >= _tacticalMapStartDistance;
 
+        /// <summary>
+        /// §150.1: centers the free camera on a point selected on the tactical
+        /// map. The map is navigation UI, so this deliberately does not issue
+        /// a movement order or alter the current NPC selection.
+        /// </summary>
+        public void MoveToMapPoint(Float2 point)
+        {
+            _mode = Mode.Free;
+            _hasSmoothedTarget = false;
+            SetFreePivotAt(new Vector3(point.X, 0f, point.Y));
+            _pivotVelocity = Vector3.zero;
+        }
+
         private void CancelPointerGesture()
         {
             _leftPressActive = false;
@@ -795,26 +808,20 @@ namespace HexLive.UnityPresentation.Input
 
         // Left-click first tries an NPC, then falls back to the map hex under
         // the cursor. Dispatch happens on release so the same press can become
-        // a selection marquee without also issuing a move order.
+        // a selection marquee without also activating a map point.
         private void TryHandleLeftClick(Vector2 mousePosition, WorldSnapshot snapshot = null)
         {
             if (PointerBlockedForWorld()) return;
 
             // §150 r2: at altitude the visible island is real world-space
             // sprites, not a fullscreen UI. Intersect their flat plane and
-            // issue the same explicit RTS map order; do not raycast the hidden
-            // actor meshes or the authored terrain underneath.
+            // move the camera pivot there; do not raycast the hidden actor
+            // meshes or the authored terrain underneath.
             if (TacticalMapActive)
             {
-                if (_manualInput == null)
+                if (TryPickTacticalMapPoint(mousePosition, snapshot, out var mapPoint))
                 {
-                    _manualInput = GetComponent<SimulationInputAdapter>();
-                }
-
-                if (NpcSelection.HasSelection &&
-                    TryPickTacticalMapPoint(mousePosition, snapshot, out var mapPoint))
-                {
-                    _manualInput?.TryMoveSelectionFromMap(mapPoint, run: false);
+                    MoveToMapPoint(mapPoint);
                 }
 
                 return;

@@ -295,6 +295,109 @@ public sealed class ManualCraftingTests
     }
 
     [Test]
+    public void ManualStoneAxeOrderFinishesTheRealTunedRecipe()
+    {
+        var engine = TestWorld.CreateEngine(1365566998);
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        SimDataFile.Require(RepoPaths.SimData);
+        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.AxeStone);
+        Add(npc, ContentIds.Stick, 1);
+        Add(npc, ContentIds.Stone, 1);
+
+        var option = Option(world, npc, GoalType.CraftAxe);
+        Assert.Multiple(() =>
+        {
+            Assert.That(option.CanCraft, Is.True);
+            Assert.That(option.StationTag, Is.Empty,
+                "The shipped stone axe is a hand craft, not a campfire job.");
+            Assert.That(option.WorkRequired, Is.Zero,
+                "A fresh order has no project progress yet.");
+        });
+
+        engine.Commands.Enqueue(new CraftItemCommand(npc.Id, GoalType.CraftAxe));
+        StepUntil(engine, () =>
+            npc.Inventory.Items.Any(item => item.DefinitionId == ContentIds.AxeStone) &&
+            npc.Mind.CurrentGoal == GoalType.None &&
+            npc.Plan.Status == PlanStatus.Completed,
+            300);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Count(item =>
+                item.DefinitionId == ContentIds.AxeStone), Is.EqualTo(1));
+            Assert.That(world.Entities.Objects.Values.Any(obj =>
+                obj.DefinitionId == ContentIds.AxeStone && obj.IsCraftProject), Is.False);
+        });
+    }
+
+    [Test]
+    public void ManualStoneAxeWalksToTheRemoteGroundBillBeforeCrafting()
+    {
+        var engine = TestWorld.CreateEngine(1365566998);
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            other.Mind.ManualControl = true;
+        }
+        SimDataFile.Require(RepoPaths.SimData);
+        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.AxeStone);
+        Add(npc, ContentIds.Stick, 1);
+        var remote = world.Tiles.Items.Keys.First(tile =>
+            world.Tiles.Items[tile].Junctions.Count > 0 &&
+            HexSpatialMath.HexDistance(tile, npc.Tile) >= 3 &&
+            HexSpatialMath.HexDistance(tile, npc.Tile) <= 5 &&
+            Connectivity.Reachable(
+                world, npc.CurrentJunction.Value,
+                world.Tiles.Items[tile].Junctions[0], npc.Body.CanJump));
+        Spawn(world, npc, ContentIds.Stone, remote);
+
+        var option = Option(world, npc, GoalType.CraftAxe);
+        Assert.Multiple(() =>
+        {
+            Assert.That(option.CanCraft, Is.True);
+            Assert.That(option.WorkTile, Is.EqualTo(remote));
+            Assert.That(option.WorkJunction, Is.Not.EqualTo(npc.CurrentJunction));
+        });
+
+        engine.Commands.Enqueue(new CraftItemCommand(npc.Id, GoalType.CraftAxe));
+        engine.Step();
+        Assert.That(npc.Plan.Steps.Select(step => step.Type), Is.EqualTo(new[]
+        {
+            PlanStepType.MoveToJunction,
+            PlanStepType.CraftInPlace
+        }));
+
+        for (var tick = 0; tick < 600 && npc.Plan.Status != PlanStatus.Failed &&
+             !(npc.Inventory.Items.Any(item => item.DefinitionId == ContentIds.AxeStone) &&
+               npc.Plan.Status == PlanStatus.Completed); tick++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(npc.Inventory.Items.Any(item =>
+            item.DefinitionId == ContentIds.AxeStone) &&
+            npc.Plan.Status == PlanStatus.Completed, Is.True,
+            $"tile={npc.Tile} junction={npc.CurrentJunction?.Value} " +
+            $"target={npc.Plan.TargetJunctionId?.Value} move={npc.Movement.Status}/" +
+            $"{npc.Movement.JunctionPath.Count} plan={npc.Plan.Status}/" +
+            $"{npc.Plan.CurrentStepIndex} exec={npc.Execution.Status}/" +
+            $"{npc.Execution.CurrentInteraction} stones=" +
+            $"{string.Join(',', world.Entities.Objects.Values.Where(o => o.DefinitionId == ContentIds.Stone).Select(o => $"{o.Id.Value}@{o.Tile}"))}; " +
+            string.Join(" | ", world.Events.Items.Where(e =>
+                e.Type is "ExecFailed" or "PlanFailed" or "ManualOrderRejected")
+                .Select(e => $"{e.Type}:{e.Message}")));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Tile, Is.EqualTo(remote));
+            Assert.That(npc.Inventory.Items.Count(item =>
+                item.DefinitionId == ContentIds.AxeStone), Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public void CookingCountsRawMeatOnlyInInventoryAndHangsItOnTheSpit()
     {
         var engine = TestWorld.CreateEngine(138007);

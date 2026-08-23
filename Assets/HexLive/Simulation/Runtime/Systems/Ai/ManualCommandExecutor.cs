@@ -2077,6 +2077,20 @@ internal static class ManualCommandExecutor
 
         if (string.IsNullOrEmpty(option.StationTag))
         {
+            // Bug #197: an in-place recipe may be payable only around a
+            // reachable ground pile. The option deliberately reports that
+            // pile's junction; make it an actual leg of the manual plan
+            // instead of leaving RunCraftInPlace waiting there forever.
+            if (option.WorkJunction is { } workJunction &&
+                (npc.CurrentJunction is not { } currentJunction ||
+                 !currentJunction.Equals(workJunction)))
+            {
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.MoveToJunction,
+                    TargetJunction = workJunction
+                });
+            }
             npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.CraftInPlace });
         }
         else

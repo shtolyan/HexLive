@@ -127,7 +127,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
-            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.CraftInPlace)
+            // §138 / bug #197: a remote ground bill adds a movement leg before
+            // the in-place craft, so the terminal step owns this executor.
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type == PlanStepType.CraftInPlace)
             {
                 RunCraftInPlace(world, npc);
                 continue;

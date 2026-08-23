@@ -100,12 +100,6 @@ internal static class PlayerInventoryTransferMath
             return false;
         }
 
-        if (itemRef.Source == InventoryItemSource.Worn &&
-            HasWearConflict(world, destination, moving[0]))
-        {
-            return false;
-        }
-
         var sourceCarried = new List<ItemInstance>(source.Inventory.Items);
         var sourceWorn = new List<ItemInstance>(source.WornItems);
         var sourceList = itemRef.Source == InventoryItemSource.Carried
@@ -124,7 +118,18 @@ internal static class PlayerInventoryTransferMath
         var destinationWorn = new List<ItemInstance>(destination.WornItems);
         if (itemRef.Source == InventoryItemSource.Worn)
         {
-            destinationWorn.Add(moving[0]);
+            // §128.2: a free compatible body slot wins. If it is occupied, the
+            // transferred garment is folded into ordinary carry space instead
+            // of making the whole loot gesture fail. Its former pocket
+            // contents are separate physical items and must fit there too.
+            if (HasWearConflict(world, destination, moving[0]))
+            {
+                destinationCarried.Add(moving[0]);
+            }
+            else
+            {
+                destinationWorn.Add(moving[0]);
+            }
             destinationCarried.AddRange(contents);
         }
         else
@@ -153,7 +158,14 @@ internal static class PlayerInventoryTransferMath
         if (itemRef.Source == InventoryItemSource.Worn)
         {
             RemoveReference(source.WornItems, moving[0]);
-            destination.WornItems.Add(moving[0]);
+            if (HasWearConflict(world, destination, moving[0]))
+            {
+                destination.Inventory.Items.Add(moving[0]);
+            }
+            else
+            {
+                destination.WornItems.Add(moving[0]);
+            }
             foreach (var item in contents)
             {
                 RemoveReference(source.Inventory.Items, item);

@@ -152,7 +152,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
-    public void InventoryFlattensEveryRealSlotWithoutRenderingContainerOwners()
+    public void InventorySeparatesCarriedSlotsAndAuthoritativeWornItems()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
         var rebuildStart = source.IndexOf(
@@ -178,12 +178,36 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(rebuild, Does.Contain("foreach (var slot in container.Slots)"));
             Assert.That(rebuild, Does.Contain("_invItemsContent.Add(cell)"));
             Assert.That(rebuild, Does.Not.Contain("OwnerItemDefinitionId"));
-            Assert.That(rebuild, Does.Not.Contain("WornItems"));
+            Assert.That(rebuild, Does.Contain("if (_clothesPage)"));
+            Assert.That(rebuild, Does.Contain("npc.WornItems.Count"));
+            Assert.That(rebuild, Does.Contain("BuildWornItemCell("));
             Assert.That(slot, Does.Not.Contain("AcceptedItemDefinitionId"),
                 "Typed empty cells must not leak holster/container semantics into the flat grid.");
             Assert.That(slot, Does.Not.Contain("InventoryContainerTitle"));
             Assert.That(source, Does.Not.Contain("inventory-card-hero"));
             Assert.That(source, Does.Not.Contain("inventory-unified-card"));
+        });
+    }
+
+    [Test]
+    public void ClothesTabUsesIconsAndPreservesTheWornSourceIndex()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var localization = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("inventory-tab-clothes"));
+            Assert.That(source, Does.Contain("Loc.Get(\"inv.tab.clothes\")"));
+            Assert.That(source, Does.Contain("name = \"inventory-worn-item\""));
+            Assert.That(source, Does.Contain("LoadItemIcon(itemId)"));
+            Assert.That(source, Does.Contain(
+                "cell, itemId, true, durability, water, stacks, wetness, dirtiness"));
+            Assert.That(source, Does.Contain("_invSelectedSourceIndex = sourceIndex"));
+            Assert.That(localization, Does.Contain("Term: inv.tab.clothes"));
+            Assert.That(localization, Does.Contain("- Clothes"));
+            Assert.That(localization, Does.Contain("\\u041E\\u0434\\u0435\\u0436\\u0434\\u0430"));
         });
     }
 

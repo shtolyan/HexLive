@@ -176,7 +176,7 @@ public sealed class PlayerInventoryTransferTests
     }
 
     [Test]
-    public void FilledGarmentCannotReplaceAnOccupiedWearSlot()
+    public void FilledGarmentFallsBackToCarryWhenWearSlotIsOccupied()
     {
         var (engine, looter, other) = Scene(allied: false);
         const string incomingId = "test.loot.incoming_jacket";
@@ -197,11 +197,42 @@ public sealed class PlayerInventoryTransferTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(other.WornItems.Any(i => ReferenceEquals(i, incoming)), Is.True);
-            Assert.That(other.Inventory.Items.Any(i => ReferenceEquals(i, pocketItem)), Is.True);
+            Assert.That(other.WornItems.Any(i => ReferenceEquals(i, incoming)), Is.False);
+            Assert.That(other.Inventory.Items.Any(i => ReferenceEquals(i, pocketItem)), Is.False);
             Assert.That(looter.WornItems.Any(i => ReferenceEquals(i, occupied)), Is.True);
             Assert.That(looter.WornItems.Any(i => ReferenceEquals(i, incoming)), Is.False,
-                "A bundle may only enter a genuinely free wear slot.");
+                "An occupied body slot must never be replaced implicitly.");
+            Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, incoming)), Is.True,
+                "The second garment must use a free inventory slot.");
+            Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, pocketItem)), Is.True,
+                "The transferred bundle must remain atomic when folded into carry space.");
+        });
+    }
+
+    [Test]
+    public void WornGarmentWithOccupiedSlotStillRejectsWhenCarryIsFull()
+    {
+        var (engine, looter, other) = Scene(allied: false);
+        const string incomingId = "test.loot.incoming_boots";
+        const string occupiedId = "test.loot.occupied_boots";
+        AddGarment(engine.World, incomingId, 0, BodyPart.LegL);
+        AddGarment(engine.World, occupiedId, 0, BodyPart.LegL);
+        var incoming = new ItemInstance(incomingId);
+        other.WornItems.Add(incoming);
+        looter.WornItems.Add(new ItemInstance(occupiedId));
+        EquipmentMath.RecalculateCapacity(engine.World, looter);
+        while (looter.Inventory.Items.Count < looter.Inventory.Capacity)
+        {
+            looter.Inventory.Items.Add(new ItemInstance("tool.hammer"));
+        }
+
+        Transfer(engine, looter, other, InventoryTransferDirection.Take,
+            InventoryItemSource.Worn, 0, incomingId, 1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(other.WornItems.Any(i => ReferenceEquals(i, incoming)), Is.True);
+            Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, incoming)), Is.False);
         });
     }
 

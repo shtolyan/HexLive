@@ -143,8 +143,10 @@ namespace HexLive.UnityPresentation.UI
         // window. Crafting is local-only and never exists for group/AI views.
         private VisualElement _inventoryTabs;
         private VisualElement _inventoryBackpackTab;
+        private VisualElement _inventoryClothesTab;
         private VisualElement _inventoryCraftTab;
         private Label _inventoryBackpackTabLabel;
+        private Label _inventoryClothesTabLabel;
         private Label _inventoryCraftTabLabel;
         private VisualElement _craftView;
         private VisualElement _craftRecipeGrid;
@@ -164,6 +166,7 @@ namespace HexLive.UnityPresentation.UI
         private int _selectedCraftGoal = -1;
         private string _craftSig;
         private bool _craftPage;
+        private bool _clothesPage;
         private bool _craftAvailable;
         private VisualElement _invListView;   // elastic flat grid + aspect-locked doll
         private VisualElement _invItemsPane;
@@ -1875,10 +1878,20 @@ namespace HexLive.UnityPresentation.UI
             _inventoryBackpackTabLabel.text = Loc.Get("craft.tab.backpack");
             _inventoryBackpackTab.RegisterCallback<MouseDownEvent>(evt =>
             {
-                SelectInventoryPage(craft: false);
+                SelectInventoryPage(craft: false, clothes: false);
                 evt.StopPropagation();
             });
             _inventoryTabs.Add(_inventoryBackpackTab);
+
+            _inventoryClothesTab = BuildInventoryTab(
+                "inventory-tab-clothes", "👕", out _inventoryClothesTabLabel);
+            _inventoryClothesTabLabel.text = Loc.Get("inv.tab.clothes");
+            _inventoryClothesTab.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                SelectInventoryPage(craft: false, clothes: true);
+                evt.StopPropagation();
+            });
+            _inventoryTabs.Add(_inventoryClothesTab);
 
             _inventoryCraftTab = BuildInventoryTab(
                 "inventory-tab-craft", "🛠", out _inventoryCraftTabLabel);
@@ -2044,9 +2057,10 @@ namespace HexLive.UnityPresentation.UI
             _craftView.Add(_craftDetail);
         }
 
-        private void SelectInventoryPage(bool craft)
+        private void SelectInventoryPage(bool craft, bool clothes = false)
         {
             _craftPage = craft && _craftAvailable;
+            _clothesPage = !_craftPage && clothes;
             if (_invListView != null)
             {
                 _invListView.style.display = _craftPage
@@ -2064,6 +2078,8 @@ namespace HexLive.UnityPresentation.UI
             }
 
             HideItemDetail();
+            _invSig = null;
+            _refreshedTick = -1;
             _characterDollStage?.SetMode(_craftPage
                 ? CharacterDollMode.Hidden : CharacterDollMode.Inventory);
             RefreshInventoryTabStyle();
@@ -2076,18 +2092,24 @@ namespace HexLive.UnityPresentation.UI
 
         private void RefreshInventoryTabStyle()
         {
-            if (_inventoryBackpackTab == null || _inventoryCraftTab == null)
+            if (_inventoryBackpackTab == null || _inventoryClothesTab == null ||
+                _inventoryCraftTab == null)
             {
                 return;
             }
 
-            _inventoryBackpackTab.style.backgroundColor = _craftPage
-                ? Color.clear : Raised;
+            _inventoryBackpackTab.style.backgroundColor = !_craftPage && !_clothesPage
+                ? Raised : Color.clear;
+            _inventoryClothesTab.style.backgroundColor = _clothesPage
+                ? Raised : Color.clear;
             _inventoryCraftTab.style.backgroundColor = _craftPage
                 ? Raised : Color.clear;
-            _inventoryBackpackTabLabel.style.color = _craftPage ? TextDim : Text;
+            _inventoryBackpackTabLabel.style.color = _craftPage || _clothesPage ? TextDim : Text;
+            _inventoryClothesTabLabel.style.color = _clothesPage ? Text : TextDim;
             _inventoryCraftTabLabel.style.color = _craftPage ? Text : TextDim;
-            SetBorder(_inventoryBackpackTab, _craftPage ? Color.clear : StrokeStrong, 1f);
+            SetBorder(_inventoryBackpackTab,
+                !_craftPage && !_clothesPage ? StrokeStrong : Color.clear, 1f);
+            SetBorder(_inventoryClothesTab, _clothesPage ? GoldDim : Color.clear, 1f);
             SetBorder(_inventoryCraftTab, _craftPage ? GoldDim : Color.clear, 1f);
         }
 
@@ -2798,7 +2820,7 @@ namespace HexLive.UnityPresentation.UI
                 _craftPage = false;
                 FitInventoryWindow();
                 _inventoryWindow.style.display = DisplayStyle.Flex;
-                SelectInventoryPage(craft: false);
+                SelectInventoryPage(craft: false, clothes: false);
                 _characterDollStage?.SetMode(CharacterDollMode.Inventory);
                 _characterDollStage?.SetVisibleWearLayer(_invVisibleWearLayer);
                 RefreshInventoryWearLayerButtonStyle();
@@ -2811,6 +2833,7 @@ namespace HexLive.UnityPresentation.UI
         {
             _inventoryOpen = false;
             _craftPage = false;
+            _clothesPage = false;
             _invHoverDetailFocus = false;
             _invSelectedId = null;
             _invDetailAnchor = null;
@@ -3560,6 +3583,7 @@ namespace HexLive.UnityPresentation.UI
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots
                 + "|" + npc.HeldItemId + "|" + npc.FavoriteWeaponId
                 + "|lock=" + (npc.OutfitLocked ? "1" : "0")
+                + "|page=" + (_clothesPage ? "clothes" : "backpack")
                 + "|" + InventoryLayoutSignature(npc);
             if (sig == _invSig)
             {
@@ -3567,8 +3591,9 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _invSig = sig;
-            RebuildItemList(npc, carriedDurability, carriedWater, carriedStacks,
-                carriedWetness, carriedDirtiness);
+            RebuildItemList(npc, wornDurability, carriedDurability, carriedWater,
+                carriedStacks, wornWetness, carriedWetness, wornDirtiness,
+                carriedDirtiness);
 
             // Keep the detail view coherent: if the shown item is still present,
             // re-render it (its wetness/durability may have moved); else drop back.
@@ -3589,7 +3614,14 @@ namespace HexLive.UnityPresentation.UI
                     // Если старый индекс больше не указывает на этот предмет,
                     // перечитать его из layout, а не тащить протухший.
                     var refreshedIndex = _invSelectedSourceIndex;
-                    if (!_invSelectedWorn)
+                    if (_invSelectedWorn)
+                    {
+                        var stillValid = refreshedIndex >= 0 &&
+                            refreshedIndex < npc.WornItems.Count &&
+                            npc.WornItems[refreshedIndex] == _invSelectedId;
+                        if (!stillValid) refreshedIndex = -1;
+                    }
+                    else
                     {
                         var stillValid = refreshedIndex >= 0 &&
                             npc.InventoryContainers.Exists(c => c.Slots.Exists(s =>
@@ -3614,10 +3646,13 @@ namespace HexLive.UnityPresentation.UI
 
         private void RebuildItemList(
             NpcSnapshot npc,
+            Dictionary<string, float> wornDurability,
             Dictionary<string, float> carriedDurability,
             Dictionary<string, WaterContainerState> carriedWater,
             Dictionary<string, int> carriedStacks,
+            Dictionary<string, float> wornWetness,
             Dictionary<string, float> carriedWetness,
+            Dictionary<string, float> wornDirtiness,
             Dictionary<string, float> carriedDirtiness)
         {
             _invItemsContent.Clear();
@@ -3629,22 +3664,35 @@ namespace HexLive.UnityPresentation.UI
             _invHoveredWornId = string.Empty;
             _invHeldSlotMarked = false;
 
-            // The layout still owns the deterministic physical placement, but
-            // presentation deliberately flattens it. Every real slot appears
-            // exactly once, in snapshot order; the worn containers themselves
-            // never become inventory items or headings.
-            foreach (var container in npc.InventoryContainers)
+            if (_clothesPage)
             {
-                foreach (var slot in container.Slots)
+                // §123.5 / #204: mesh picking on the doll remains a convenient
+                // shortcut, but never the only way to reach worn gear. This
+                // stable list uses the authoritative WornItems index.
+                for (var wornIndex = 0; wornIndex < npc.WornItems.Count; wornIndex++)
                 {
-                    var cell = BuildInventorySlotCell(
-                        npc, slot, carriedDurability, carriedWater, carriedStacks,
-                        carriedWetness, carriedDirtiness);
-                    if (container.Kind == InventoryContainerKind.Overflow)
+                    _invItemsContent.Add(BuildWornItemCell(
+                        npc.WornItems[wornIndex], wornIndex, wornDurability,
+                        carriedWater, carriedStacks, wornWetness, wornDirtiness));
+                }
+            }
+            else
+            {
+                // The layout owns deterministic physical placement. Every real
+                // carried slot appears exactly once, in snapshot order.
+                foreach (var container in npc.InventoryContainers)
+                {
+                    foreach (var slot in container.Slots)
                     {
-                        SetBorder(cell, Warn, 2f);
+                        var cell = BuildInventorySlotCell(
+                            npc, slot, carriedDurability, carriedWater, carriedStacks,
+                            carriedWetness, carriedDirtiness);
+                        if (container.Kind == InventoryContainerKind.Overflow)
+                        {
+                            SetBorder(cell, Warn, 2f);
+                        }
+                        _invItemsContent.Add(cell);
                     }
-                    _invItemsContent.Add(cell);
                 }
             }
 
@@ -3793,6 +3841,73 @@ namespace HexLive.UnityPresentation.UI
             return cell;
         }
 
+        private VisualElement BuildWornItemCell(
+            string itemId,
+            int sourceIndex,
+            Dictionary<string, float> durability,
+            Dictionary<string, WaterContainerState> water,
+            Dictionary<string, int> stacks,
+            Dictionary<string, float> wetness,
+            Dictionary<string, float> dirtiness)
+        {
+            var cell = new VisualElement { name = "inventory-worn-item" };
+            cell.style.width = InventoryCellSizes[0];
+            cell.style.height = InventoryCellSizes[0];
+            cell.style.marginRight = InventoryGaps[0];
+            cell.style.marginBottom = InventoryGaps[0];
+            cell.style.alignItems = Align.Center;
+            cell.style.justifyContent = Justify.Center;
+            cell.style.position = Position.Relative;
+            cell.style.backgroundColor = Track;
+            SetBorder(cell, GoldDim, 1f);
+            SetRadius(cell, 12f);
+            _invSlotCells.Add(cell);
+
+            var def = ResolveDef(itemId);
+            var info = ResolveItemInfo(itemId, def);
+            var icon = LoadItemIcon(itemId);
+            if (icon != null)
+            {
+                var image = new Image { sprite = icon, scaleMode = ScaleMode.ScaleToFit };
+                image.style.width = InventoryCellSizes[0] - 14f;
+                image.style.height = InventoryCellSizes[0] - 14f;
+                image.pickingMode = PickingMode.Ignore;
+                image.AddToClassList("inventory-slot-icon");
+                cell.Add(image);
+                _invSlotIcons.Add(image);
+            }
+            else
+            {
+                var glyph = new Label(info.Emoji);
+                glyph.style.fontSize = 58f;
+                glyph.pickingMode = PickingMode.Ignore;
+                glyph.AddToClassList("inventory-slot-glyph");
+                cell.Add(glyph);
+                _invSlotGlyphs.Add(glyph);
+            }
+
+            var wornBadge = new Label(Loc.Get("inv.worn"));
+            wornBadge.style.position = Position.Absolute;
+            wornBadge.style.left = 3f;
+            wornBadge.style.top = 1f;
+            wornBadge.style.color = Gold;
+            wornBadge.style.fontSize = 7.5f;
+            wornBadge.style.unityFontStyleAndWeight = FontStyle.Bold;
+            wornBadge.pickingMode = PickingMode.Ignore;
+            wornBadge.AddToClassList("inventory-slot-badge");
+            cell.Add(wornBadge);
+            _invSlotBadges.Add(wornBadge);
+            cell.tooltip = ItemName(def, info);
+
+            RememberItemAnchor(itemId, true, cell);
+            cell.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(cell, Gold));
+            cell.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(cell, GoldDim));
+            RegisterInventoryItemInteraction(
+                cell, itemId, true, durability, water, stacks, wetness, dirtiness,
+                sourceIndex);
+            return cell;
+        }
+
         private void RememberItemAnchor(string itemId, bool worn, VisualElement anchor)
         {
             var key = ItemAnchorKey(itemId, worn);
@@ -3831,7 +3946,7 @@ namespace HexLive.UnityPresentation.UI
         {
             _invSelectedId = id;
             _invSelectedWorn = worn;
-            _invSelectedSourceIndex = worn ? -1 : sourceIndex;
+            _invSelectedSourceIndex = sourceIndex;
             SetHoveredWorn(worn ? id : string.Empty);
             if (placement != InventoryDetailPlacement.Preserve)
             {
@@ -3899,13 +4014,18 @@ namespace HexLive.UnityPresentation.UI
             {
                 // WornItems снапшота параллелен симовому списку — индекс по
                 // нему честный.
-                index = -1;
-                for (var i = 0; i < npc.WornItems.Count; i++)
+                index = _invSelectedSourceIndex;
+                if (index < 0 || index >= npc.WornItems.Count ||
+                    npc.WornItems[index] != _invSelectedId)
                 {
-                    if (npc.WornItems[i] == _invSelectedId)
+                    index = -1;
+                    for (var i = 0; i < npc.WornItems.Count; i++)
                     {
-                        index = i;
-                        break;
+                        if (npc.WornItems[i] == _invSelectedId)
+                        {
+                            index = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -7125,6 +7245,10 @@ namespace HexLive.UnityPresentation.UI
             if (_inventoryBackpackTabLabel != null)
             {
                 _inventoryBackpackTabLabel.text = Loc.Get("craft.tab.backpack");
+            }
+            if (_inventoryClothesTabLabel != null)
+            {
+                _inventoryClothesTabLabel.text = Loc.Get("inv.tab.clothes");
             }
             if (_inventoryCraftTabLabel != null)
             {

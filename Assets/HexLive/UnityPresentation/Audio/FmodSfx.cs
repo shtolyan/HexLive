@@ -102,7 +102,10 @@ namespace HexLive.UnityPresentation.Audio
             // регулятор громкости; Studio держит то же значение (см. CLAUDE.md).
             [Sfx.LoopJungleDay] = new Def(0.106f, 0f, 0f, 0f, loop: true, spatial: false),
             [Sfx.LoopCrickets] = new Def(0.40f, 0f, 0f, 0f, loop: true, spatial: false),
-            [Sfx.LoopFire] = new Def(0.60f, 0.9f, 13f, 0f, loop: true),
+            // Баг #213: 13 wu заканчивались ниже обычной RTS-камеры, поэтому
+            // видимый костёр практически всегда звучал как немой. Оставляем
+            // источник локальным, но даём треску рабочее окно приближения.
+            [Sfx.LoopFire] = new Def(0.85f, 1.2f, 28f, 0f, loop: true),
             [Sfx.LoopRain] = new Def(0.50f, 0f, 0f, 0f, loop: true, spatial: false),
         };
 

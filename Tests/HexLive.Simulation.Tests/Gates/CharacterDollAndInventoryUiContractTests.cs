@@ -21,6 +21,37 @@ public sealed class CharacterDollAndInventoryUiContractTests
         }.Concat(parts).ToArray());
 
     [Test]
+    public void InventoryAndLootControlsDependOnAuthorityNotControlMode_Bug215()
+    {
+        var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var loot = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+        var input = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
+        var refreshStart = panel.IndexOf(
+            "private void RefreshInventory(WorldSnapshot snapshot, NpcSnapshot npc)",
+            StringComparison.Ordinal);
+        var refreshEnd = panel.IndexOf(
+            "private static string InventoryLayoutSignature", refreshStart,
+            StringComparison.Ordinal);
+        Assert.That(refreshStart, Is.GreaterThanOrEqualTo(0));
+        Assert.That(refreshEnd, Is.GreaterThan(refreshStart));
+        var inventoryGate = panel[refreshStart..refreshEnd];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(inventoryGate, Does.Contain("_runner.SupportsNpcCommands"));
+            Assert.That(inventoryGate, Does.Contain("_runner.CanControlNpc(npc.Id)"));
+            Assert.That(inventoryGate, Does.Not.Contain("npc.IsManualControl"));
+            Assert.That(panel, Does.Contain("new SetOutfitLockCommand("));
+            Assert.That(panel, Does.Contain("!_inventoryMutable"));
+            Assert.That(loot, Does.Contain("_runner.CanControlNpc(looter.Id)"));
+            Assert.That(loot, Does.Not.Contain("looter.IsManualControl"));
+            Assert.That(Regex.Matches(input, @"EnsureManual\(").Count, Is.EqualTo(2),
+                "Only the helper and ordinary world-order path may take manual control; " +
+                "opening inventory transfer panels must not.");
+        });
+    }
+
+    [Test]
     public void CharacterPanelUsesOneLargeFlatGridAndContainsNoScroller()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));

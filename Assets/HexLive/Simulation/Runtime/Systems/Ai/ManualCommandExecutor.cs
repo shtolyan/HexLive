@@ -313,9 +313,13 @@ internal static class ManualCommandExecutor
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
         npc.Mind.GoalLock = null;
-        // §121.7: любая принятая команда продлевает lease внимания игрока
-        // (сюда приходят только принятые — TryTakeOrder уже отработал).
-        ManualControlMath.RenewInactivityLease(world, npc);
+        // §121.7: принятая РУЧНАЯ команда продлевает lease внимания игрока.
+        // Mode-independent inventory transfers §123/§128 also pass here, but
+        // must neither switch AI mode nor create a dormant manual lease.
+        if (npc.Mind.ManualControl)
+        {
+            ManualControlMath.RenewInactivityLease(world, npc);
+        }
     }
 
     private static void ApplySetManual(
@@ -1650,9 +1654,10 @@ internal static class ManualCommandExecutor
     private static void ApplyTransferInventory(
         WorldState world, TransferInventoryCommand command, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Looter, "TransferInventory",
-                requireManual: true, admission, out var looter))
+        if (!PlayerAuthority.CanMutateInventory(world, command.Looter, out var looter) ||
+            looter.Health <= 0f)
         {
+            Reject(world, command.Looter, "TransferInventory", "NotOwned", admission);
             return;
         }
 
@@ -1791,9 +1796,10 @@ internal static class ManualCommandExecutor
     private static void ApplyTransferContainer(
         WorldState world, TransferContainerCommand command, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Looter, "TransferContainer",
-                requireManual: true, admission, out var looter))
+        if (!PlayerAuthority.CanMutateInventory(world, command.Looter, out var looter) ||
+            looter.Health <= 0f)
         {
+            Reject(world, command.Looter, "TransferContainer", "NotOwned", admission);
             return;
         }
 

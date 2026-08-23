@@ -157,6 +157,8 @@ public sealed class PlayerCharacterAssignmentsTests
     public void ServerRejectsAnUnassignedActorAndTheWholeMixedGroup()
     {
         var assigned = new HashSet<int> { 1, 2 };
+        var item = new InventoryItemRef(
+            InventoryItemSource.Carried, 0, "tool.hammer");
 
         Assert.Multiple(() =>
         {
@@ -164,6 +166,21 @@ public sealed class PlayerCharacterAssignmentsTests
                 new SetManualControlCommand(new EntityId(1), true), assigned), Is.True);
             Assert.That(PlayerCommandAssignment.Allows(
                 new SetManualControlCommand(new EntityId(3), true), assigned), Is.False);
+            Assert.That(PlayerCommandAssignment.Allows(
+                new SetOutfitLockCommand(new EntityId(1), true), assigned), Is.True);
+            Assert.That(PlayerCommandAssignment.Allows(
+                new SetOutfitLockCommand(new EntityId(3), true), assigned), Is.False);
+            Assert.That(PlayerCommandAssignment.Allows(
+                new ManageInventoryCommand(new EntityId(1), item, InventoryAction.Drop),
+                assigned), Is.True);
+            Assert.That(PlayerCommandAssignment.Allows(
+                new TransferInventoryCommand(
+                    new EntityId(3), new EntityId(2), item, 1,
+                    InventoryTransferDirection.Take), assigned), Is.False);
+            Assert.That(PlayerCommandAssignment.Allows(
+                new TransferContainerCommand(
+                    new EntityId(1), new ObjectId(7), 0, "tool.hammer", 1,
+                    InventoryTransferDirection.Take), assigned), Is.True);
             Assert.That(PlayerCommandAssignment.Allows(
                 new SetGroupManualControlCommand(
                     new[] { new EntityId(1), new EntityId(3) }, true), assigned), Is.False,

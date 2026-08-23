@@ -640,7 +640,9 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// цели под курсором, БЕЗ требования тумблера 🎮: раньше до «атаковать/
     /// обобрать» было не добраться иначе как через ручной режим. Приказ из
     /// меню сам берёт управление (<see cref="EnsureManual"/>), а таймаут
-    /// §121.5 потом штатно возвращает её ИИ.
+    /// §121.5 потом штатно возвращает её ИИ. Исключение — управление
+    /// инвентарём §123/§128: оно доступно в обоих режимах и не переключает
+    /// тумблер управления.
     /// </summary>
     public bool TryHandleContextClick(Vector2 mousePos)
     {
@@ -830,11 +832,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         {
             var containerId = view.ContextObjectId;
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                () =>
-                {
-                    EnsureManual(actorId);
-                    LootTransferPanel.OpenContainer(actorId, containerId);
-                }));
+                () => LootTransferPanel.OpenContainer(actorId, containerId)));
         }
 
         if (_entries.Count == 0)
@@ -1009,11 +1007,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             if (lying)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                    () =>
-                    {
-                        EnsureManual(carrier.Id.Value);
-                        LootTransferPanel.Open(carrier.Id.Value, npcId);
-                    }));
+                    () => LootTransferPanel.Open(carrier.Id.Value, npcId)));
             }
         }
         // §118.4 r2 (#166): СВОИХ берут на руки всегда — спят они или нет, здоровы
@@ -1047,11 +1041,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     ? Loc.Get("menu.carried_by_other")
                     : Loc.Get("menu.select_one_character");
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                () =>
-                {
-                    EnsureManual(carrier!.Id.Value);
-                    LootTransferPanel.Open(carrier.Id.Value, npcId);
-                },
+                () => LootTransferPanel.Open(carrier!.Id.Value, npcId),
                 canLoot, canLoot ? null : blockedReason));
         }
         // «Выбрать» — потому что в ручном режиме простой клик по человеку

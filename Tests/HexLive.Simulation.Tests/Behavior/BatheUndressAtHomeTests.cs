@@ -567,7 +567,7 @@ public sealed class BatheUndressAtHomeTests
             // 53 → 54 в §148 (разведанные гексы; старый сейв читается, туман
             // просто открывается заново); 54 → 55 в §133.9 (#193,
             // сохраняемый запрет смены одежды).
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(55));
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(56));
         });
     }
 

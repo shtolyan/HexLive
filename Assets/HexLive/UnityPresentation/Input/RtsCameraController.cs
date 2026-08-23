@@ -41,7 +41,7 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _maxHeight = 20f;
 
         [Tooltip("Доля дистанции за ОДИН щелчок колеса: 0.12 = на 12% ближе/дальше. " +
-                 "Весь диапазон 0.7…22 wu проходится примерно за 29 щелчков.")]
+                 "После 32 wu мир переходит в тактическую карту; потолок 260 wu.")]
         [SerializeField] private float _zoomPerScrollTick = 0.12f;
 
         [Tooltip("Потолок накопленного за кадр скролла в щелчках. Трекпад шлёт поток " +
@@ -55,7 +55,7 @@ namespace HexLive.UnityPresentation.Input
         [Header("Orbit")]
         [SerializeField] private float _orbitDistance = 9f;
         [SerializeField] private float _orbitMinDistance = 0.7f; // close-up: face fills the frame
-        [SerializeField] private float _orbitMaxDistance = 22f;
+        [SerializeField] private float _orbitMaxDistance = 260f;
         [SerializeField] private float _orbitRotationSpeed = 0.2f;
         [SerializeField] private float _orbitPitch = 25f;
         [SerializeField] private float _orbitMinPitch = 5f;
@@ -77,6 +77,10 @@ namespace HexLive.UnityPresentation.Input
 
         [Tooltip("How smoothly the pivot catches up with the NPC. The NPC itself is always the target.")]
         [SerializeField] private float _orbitTargetSmooth = 0.18f;
+
+        [Header("Tactical map")]
+        [Tooltip("§150 r2: distance where 3D renderers switch to world-space map sprites.")]
+        [SerializeField] private float _tacticalMapStartDistance = 32f;
 
         private enum Mode
         {
@@ -201,6 +205,10 @@ namespace HexLive.UnityPresentation.Input
 
         public bool SelectionInputSuppressed => _selectionInputSuppressors.Count > 0;
 
+        /// <summary>§150 r2: the same camera crossed into the flattened,
+        /// world-space sprite representation of the island.</summary>
+        public bool TacticalMapActive => _smoothedDistance >= _tacticalMapStartDistance;
+
         private void CancelPointerGesture()
         {
             _leftPressActive = false;
@@ -260,6 +268,7 @@ namespace HexLive.UnityPresentation.Input
         {
             NpcSelection.SelectionChanged -= OnSelectionChanged;
             NpcSelection.CameraRequested -= OnCameraRequested;
+            _worldRenderer?.SetTacticalMapMode(false);
         }
 
         // §123: selection no longer implies follow. Losing every selected actor
@@ -311,6 +320,11 @@ namespace HexLive.UnityPresentation.Input
                 _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
             }
 
+            if (_worldRenderer == null)
+            {
+                _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
+            }
+
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
@@ -342,6 +356,8 @@ namespace HexLive.UnityPresentation.Input
             {
                 UpdateFree();
             }
+
+            _worldRenderer?.SetTacticalMapMode(TacticalMapActive);
         }
 
         // ---- Free mode -------------------------------------------------------
@@ -413,14 +429,14 @@ namespace HexLive.UnityPresentation.Input
         // к [-1, 1] НА ВСЕХ платформах: один щелчок колеса = ровно 1.0, а не 120,
         // как Windows отдаёт в сыром виде (WHEEL_DELTA). Прежняя формула
         // (scroll * _zoomSpeed * 0.01) молча считала единицу большой и давала
-        // 0.015 wu за щелчок — ~1420 щелчков на диапазон 0.7…22 wu. На трекпаде
+        // 0.015 wu за щелчок — ~1420 щелчков уже на старом диапазоне 0.7…22 wu. На трекпаде
         // это тонуло в потоке событий и выглядело нормально, а на мыши под
         // Windows читалось как «зум почти не работает» (баг #113).
         //
         // Шаг ПРОПОРЦИОНАЛЬНЫЙ (умножение, не сложение): щелчок меняет дистанцию
         // на фиксированный процент, поэтому вблизи он мелкий, вдали крупный, и
         // ощущается одинаково в любой точке диапазона. Весь диапазон —
-        // ln(22/0.7) / 0.12 ≈ 29 щелчков.
+        // До §150-map threshold 32 wu — ~32 щелчка, до потолка 260 — ~50.
         private float ZoomedDistance(float distance, float scroll)
         {
             var ticks = Mathf.Clamp(scroll, -_maxScrollTicksPerFrame, _maxScrollTicksPerFrame);
@@ -705,6 +721,11 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
+            if (TacticalMapActive)
+            {
+                return;
+            }
+
             if (_manualInput == null)
             {
                 _manualInput = GetComponent<SimulationInputAdapter>();
@@ -714,7 +735,8 @@ namespace HexLive.UnityPresentation.Input
         }
 
         private static bool PointerBlockedForWorld() =>
-            NpcSelection.PointerOverUi || UI.HexInspectorPanel.PointerOverPanel ||
+            NpcSelection.PointerOverUi || UI.TacticalMapPanel.PointerOverMap ||
+            UI.HexInspectorPanel.PointerOverPanel ||
             UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen ||
             UI.GameMenu.IsOpen ||
             UI.EndSummaryPanel.IsOpen;
@@ -729,7 +751,7 @@ namespace HexLive.UnityPresentation.Input
             var ids = new List<int>();
             foreach (var npc in snapshot.Npcs)
             {
-                if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony || npc.Health <= 0f)
+                if (_runner == null || !_runner.CanControlNpc(npc.Id) || npc.Health <= 0f)
                 {
                     continue;
                 }
@@ -778,6 +800,26 @@ namespace HexLive.UnityPresentation.Input
         {
             if (PointerBlockedForWorld()) return;
 
+            // §150 r2: at altitude the visible island is real world-space
+            // sprites, not a fullscreen UI. Intersect their flat plane and
+            // issue the same explicit RTS map order; do not raycast the hidden
+            // actor meshes or the authored terrain underneath.
+            if (TacticalMapActive)
+            {
+                if (_manualInput == null)
+                {
+                    _manualInput = GetComponent<SimulationInputAdapter>();
+                }
+
+                if (NpcSelection.HasSelection &&
+                    TryPickTacticalMapPoint(mousePosition, snapshot, out var mapPoint))
+                {
+                    _manualInput?.TryMoveSelectionFromMap(mapPoint, run: false);
+                }
+
+                return;
+            }
+
             var shift = Keyboard.current != null &&
                 (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
 
@@ -812,6 +854,46 @@ namespace HexLive.UnityPresentation.Input
             {
                 HexSelection.Select(coord);
             }
+        }
+
+        private bool TryPickTacticalMapPoint(
+            Vector2 mousePosition, WorldSnapshot snapshot, out Float2 point)
+        {
+            point = Float2.Zero;
+            if (snapshot == null || snapshot.Tiles.Count == 0)
+            {
+                return false;
+            }
+
+            _camera ??= GetComponent<Camera>();
+            if (_camera == null)
+            {
+                return false;
+            }
+
+            var plane = new Plane(
+                Vector3.up, new Vector3(0f, HexWorldRenderer.TacticalMapPlaneY, 0f));
+            var ray = _camera.ScreenPointToRay(mousePosition);
+            if (!plane.Raycast(ray, out var distance) || distance <= 0f)
+            {
+                return false;
+            }
+
+            var hit = ray.GetPoint(distance);
+            var world = new Float2(hit.x, hit.z);
+            var coord = HexSpatialMath.WorldToTile(world);
+            for (var i = 0; i < snapshot.Tiles.Count; i++)
+            {
+                if (!snapshot.Tiles[i].Coord.Equals(coord))
+                {
+                    continue;
+                }
+
+                point = world;
+                return true;
+            }
+
+            return false;
         }
 
         // Left-click on an NPC -> enter orbit mode.
@@ -908,7 +990,7 @@ namespace HexLive.UnityPresentation.Input
             return false;
         }
 
-        private static bool ApplyNpcPick(WorldSnapshot snapshot, int npcId, bool additiveOnly)
+        private bool ApplyNpcPick(WorldSnapshot snapshot, int npcId, bool additiveOnly)
         {
             foreach (var npc in snapshot.Npcs)
             {
@@ -916,7 +998,7 @@ namespace HexLive.UnityPresentation.Input
                 var shift = Keyboard.current != null &&
                     (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
                 if ((additiveOnly || shift) &&
-                    npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f)
+                    _runner != null && _runner.CanControlNpc(npc.Id) && npc.Health > 0f)
                 {
                     NpcSelection.Toggle(npcId);
                     return true;
@@ -947,13 +1029,25 @@ namespace HexLive.UnityPresentation.Input
 
         private bool CanTargetPerson(NpcSnapshot person)
         {
-            _manualInput ??= GetComponent<SimulationInputAdapter>();
-            return _manualInput != null && _manualInput.CanTargetPerson(person);
+            var owned = _runner != null && _runner.CanControlNpc(person.Id);
+            if (owned)
+            {
+                return true;
+            }
+
+            if (_worldRenderer == null)
+            {
+                _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
+            }
+
+            return _worldRenderer != null && _worldRenderer.IsNpcPickable(
+                person.Id.Value, person.Tile, false);
         }
 
-        // #187: a contact leaving perception must leave selection in the same
-        // snapshot. Otherwise follow-selection and fog visibility alternate
-        // between revealing and hiding the outsider every frame.
+        // §150: a contact leaving the player's perception disappears from the
+        // roster and from selection in the same tick. If it was the only
+        // follow target, SelectionChanged runs ExitOrbit and preserves the
+        // last smoothed pivot (§131.2).
         private void PruneInvisibleSelection(WorldSnapshot snapshot)
         {
             if (snapshot == null || !NpcSelection.HasSelection)
@@ -1366,6 +1460,24 @@ namespace HexLive.UnityPresentation.Input
             if (_worldRenderer == null)
             {
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
+            }
+
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Id.Value == npcId && !CanTargetPerson(npc))
+                {
+                    target = Vector3.zero;
+                    return false;
+                }
+            }
+
+            foreach (var corpse in snapshot.Corpses)
+            {
+                if (corpse.Id.Value == npcId && !CanTargetPerson(corpse))
+                {
+                    target = Vector3.zero;
+                    return false;
+                }
             }
 
             // Bug #146: selecting a hidden outsider through a relationship

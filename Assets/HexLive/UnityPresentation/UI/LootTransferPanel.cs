@@ -202,7 +202,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         var looter = FindNpc(snapshot, looterId);
         var other = FindNpc(snapshot, otherId);
         // §128: несомый — цель, только если он на руках у САМОГО обыскивающего.
-        if (looter == null || other == null || looter.Faction != Faction.Colony ||
+        if (looter == null || other == null || !_runner.CanControlNpc(looter.Id) ||
             looter.Health <= 0f || !looter.IsManualControl || !IsLootable(other) ||
             (other.CarriedByNpcId is not null && other.CarriedByNpcId != looterId))
         {
@@ -236,7 +236,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         var snapshot = _runner.CreateSnapshot();
         var looter = FindNpc(snapshot, looterId);
         var container = FindContainer(snapshot, objectId);
-        if (looter == null || container == null || looter.Faction != Faction.Colony ||
+        if (looter == null || container == null || !_runner.CanControlNpc(looter.Id) ||
             looter.Health <= 0f || !looter.IsManualControl)
         {
             return;
@@ -442,7 +442,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         {
             var container = FindContainer(snapshot, _otherObjectId);
             if (looter == null || container == null || looter.Health <= 0f ||
-                looter.Faction != Faction.Colony || !looter.IsManualControl)
+                !_runner.CanControlNpc(looter.Id) || !looter.IsManualControl)
             {
                 Hide();
                 return;
@@ -466,7 +466,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
         var other = FindNpc(snapshot, _otherId);
         if (looter == null || other == null || looter.Health <= 0f ||
-            looter.Faction != Faction.Colony || !looter.IsManualControl ||
+            !_runner.CanControlNpc(looter.Id) || !looter.IsManualControl ||
             !IsLootable(other) ||
             (other.CarriedByNpcId is not null && other.CarriedByNpcId != _looterId))
         {

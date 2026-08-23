@@ -52,13 +52,16 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _groupPortraits;
         private bool _groupAllManual;
 
-        // §123: the right roster is visible even with no selection.
+        // §123/§150: the right roster is visible even with no selection, but
+        // non-owned people enter it only while personally perceived.
         private VisualElement _roster;
         private VisualElement _clanRosterList;
         private VisualElement _outsiderRosterList;
+        private VisualElement _outsiderRosterSection;
         private Label _clanRosterHeader;
         private Label _outsiderRosterHeader;
         private int _rosterTick = int.MinValue;
+        private bool _rosterVisibilityReady;
         private readonly List<RosterBinding> _rosterBindings = new();
 
         private sealed class RosterBinding
@@ -2092,7 +2095,7 @@ namespace HexLive.UnityPresentation.UI
         {
             var eligible = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 && npc.IsManualControl && npc.Health > 0f &&
-                npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+                _runner.CanControlNpc(npc.Id);
             _craftOptions.Clear();
             _craftAvailable = eligible && _runner.TryGetCraftingOptions(
                 new HexLive.Simulation.Common.EntityId(npc.Id.Value), _craftOptions);
@@ -3488,7 +3491,7 @@ namespace HexLive.UnityPresentation.UI
             _inventoryActorId = npc.Id.Value;
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
-                npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f;
+                _runner.CanControlNpc(npc.Id) && npc.Health > 0f;
             RefreshOutfitLockToggle(npc);
             if (!_inventoryOpen)
             {
@@ -5475,7 +5478,7 @@ namespace HexLive.UnityPresentation.UI
             foreach (var npc in snapshot.Npcs)
             {
                 if (NpcSelection.Contains(npc.Id.Value) &&
-                    npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f)
+                    _runner != null && _runner.CanControlNpc(npc.Id) && npc.Health > 0f)
                 {
                     selected.Add(npc);
                 }
@@ -5572,7 +5575,11 @@ namespace HexLive.UnityPresentation.UI
         {
             var result = new List<HexLive.Simulation.Common.EntityId>(NpcSelection.Count);
             foreach (var id in NpcSelection.SelectedIds)
-                result.Add(new HexLive.Simulation.Common.EntityId(id));
+            {
+                var entityId = new HexLive.Simulation.Common.EntityId(id);
+                if (_runner != null && _runner.CanControlNpc(entityId))
+                    result.Add(entityId);
+            }
             return result;
         }
 
@@ -5611,12 +5618,14 @@ namespace HexLive.UnityPresentation.UI
             _roster.Add(clanHeader);
             _clanRosterList = new VisualElement();
             _roster.Add(_clanRosterList);
+            _outsiderRosterSection = new VisualElement();
             var outsidersHeader = RosterHeader(
                 "roster.outsiders", null, out _outsiderRosterHeader);
             outsidersHeader.style.marginTop = 9f;
-            _roster.Add(outsidersHeader);
+            _outsiderRosterSection.Add(outsidersHeader);
             _outsiderRosterList = new VisualElement();
-            _roster.Add(_outsiderRosterList);
+            _outsiderRosterSection.Add(_outsiderRosterList);
+            _roster.Add(_outsiderRosterSection);
             _root.Add(_roster);
         }
 
@@ -5652,7 +5661,7 @@ namespace HexLive.UnityPresentation.UI
             var ids = new List<int>();
             foreach (var npc in snapshot.Npcs)
             {
-                if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f)
+                if (_runner != null && _runner.CanControlNpc(npc.Id) && npc.Health > 0f)
                     ids.Add(npc.Id.Value);
             }
             ids.Sort();
@@ -5666,29 +5675,46 @@ namespace HexLive.UnityPresentation.UI
             NpcSelection.RightUiCoverage = _root.layout.width > 1f
                 ? Mathf.Clamp01(244f / _root.layout.width)
                 : 0.13f;
-            if (snapshot.Tick == _rosterTick) return;
+            _worldRenderer ??= FindAnyObjectByType<HexWorldRenderer>();
+            var visibilityReady = _worldRenderer != null &&
+                _worldRenderer.PlayerVisibilityReady;
+            if (snapshot.Tick == _rosterTick &&
+                visibilityReady == _rosterVisibilityReady) return;
             _rosterTick = snapshot.Tick;
+            _rosterVisibilityReady = visibilityReady;
             _rosterBindings.Clear();
             _clanRosterList.Clear();
             _outsiderRosterList.Clear();
+
+            var visibleOutsiders = 0;
 
             var ordered = new List<NpcSnapshot>(snapshot.Npcs);
             ordered.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
             foreach (var npc in ordered)
             {
                 if (npc.Health <= 0f) continue;
-                if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony)
+                var owned = _runner != null && _runner.CanControlNpc(npc.Id);
+                if (!owned && (_worldRenderer == null ||
+                    !_worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, false)))
                 {
-                    _worldRenderer ??= FindAnyObjectByType<HexWorldRenderer>();
-                    if (_worldRenderer == null ||
-                        !_worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, false))
-                        continue;
+                    continue;
                 }
+
                 var card = BuildRosterCard(npc);
                 if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony)
                     _clanRosterList.Add(card);
                 else
+                {
                     _outsiderRosterList.Add(card);
+                    visibleOutsiders++;
+                }
+            }
+
+            if (_outsiderRosterSection != null)
+            {
+                _outsiderRosterSection.style.display = visibleOutsiders > 0
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
             }
         }
 
@@ -5779,12 +5805,12 @@ namespace HexLive.UnityPresentation.UI
             card.Add(dot);
 
             var actorId = npc.Id.Value;
-            var colony = npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+            var controllable = _runner != null && _runner.CanControlNpc(npc.Id);
             card.RegisterCallback<MouseDownEvent>(evt =>
             {
                 var shift = Keyboard.current != null &&
                     (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
-                if (colony && shift) NpcSelection.Toggle(actorId);
+                if (controllable && shift) NpcSelection.Toggle(actorId);
                 else NpcSelection.Activate(actorId);
                 evt.StopPropagation();
             });
@@ -6455,7 +6481,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             var available = _runner != null && _runner.SupportsNpcCommands &&
-                npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f;
+                _runner.CanControlNpc(npc.Id) && npc.Health > 0f;
             _controlAvailable = available;
             var readable = _runner != null;
             _controlButton.style.display = readable ? DisplayStyle.Flex : DisplayStyle.None;

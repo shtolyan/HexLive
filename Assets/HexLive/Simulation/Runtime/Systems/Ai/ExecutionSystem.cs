@@ -224,6 +224,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     RunAbuse(world, npc);
                 }
+                else if (npc.Mind.CurrentGoal == GoalType.Romance)
+                {
+                    RunRomance(world, npc);
+                }
                 // §111: обыск лежащего. Ветка обязана стоять ДО фолбэка на
                 // Talk — по той же причине, по которой её понадобилось заводить
                 // налёту: план тоже носит TargetAgentId, и без неё лутер

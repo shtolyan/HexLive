@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -7,6 +8,8 @@ using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Spatial;
+using HexLive.UnityPresentation.TwoPeopleTest;
+using HexLive.UnityPresentation.UI;
 using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
 
@@ -281,6 +284,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // Spec 31B.5: actor-backed views (Marta/Molly/Jana bodies); primitive
     // capsules remain the fallback when no actor prefab matches.
     private readonly Dictionary<int, NpcActorView> _actorViews = new();
+    private readonly Dictionary<int, RomancePairView> _romancePairs = new();
+    private readonly HashSet<int> _activeRomancePairs = new();
+    private readonly List<int> _staleRomancePairs = new();
 
     /// <summary>
     /// Построены ли уже тела для всех этих колонисток. Нужно экрану загрузки:
@@ -457,9 +463,33 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private Transform? _junctionsRoot;
     private Transform? _objectsRoot;
     private Transform? _npcsRoot;
+    private Transform? _tacticalMapRoot;
     private int _lastRenderedTick = -1;
 
     private WorldSnapshot? _lastSnapshot;
+
+    // §150 r2: the distant map is a WORLD representation, not a UIDocument.
+    // At altitude every ordinary Renderer is force-hidden without changing its
+    // own enabled state, while flat SpriteRenderers occupy the canonical X/Z
+    // hex coordinates. The same camera can therefore keep orbiting and tilting.
+    public static float TacticalMapPlaneY => SimulationUnityMapper.TileHeight + 0.04f;
+
+    private bool _tacticalMapMode;
+    private int _tacticalMapSeed = int.MinValue;
+    private readonly HashSet<Renderer> _tacticalSuppressedRenderers = new();
+    private readonly Dictionary<TileCoord, SpriteRenderer> _tacticalTileSprites = new();
+    private readonly Dictionary<TacticalMarkerTileKey, SpriteRenderer> _tacticalMarkerSprites = new();
+    private readonly Dictionary<int, SpriteRenderer> _tacticalPeopleSprites = new();
+    private readonly Dictionary<int, TacticalRememberedMarker> _tacticalRememberedMarkers = new();
+    private readonly HashSet<int> _tacticalVisibleMarkerIds = new();
+    private readonly List<int> _tacticalStaleMarkerIds = new();
+    private readonly HashSet<TacticalMarkerTileKey> _tacticalLiveMarkerKeys = new();
+    private readonly HashSet<int> _tacticalLivePeopleIds = new();
+
+    private static Sprite? _tacticalHexSprite;
+    private static Sprite? _tacticalPalmSprite;
+    private static Sprite? _tacticalResourceSprite;
+    private static Sprite? _tacticalPersonSprite;
 
     private readonly struct Pose
     {
@@ -716,6 +746,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _fogRingScratch = new MaterialPropertyBlock();
     }
 
+    private void OnDisable()
+    {
+        if (_tacticalMapMode)
+        {
+            SetTacticalMapMode(false);
+        }
+    }
+
     private void Update()
     {
         // While offline ticks wind forward, stay dark: winding is pure headless
@@ -789,6 +827,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // swell always matches what WaterWave.Height gives the swimmer.
         WaterWave.PushToShader();
         InterpolateMovables(_runner.TickAlpha);
+        if (_tacticalMapMode)
+        {
+            SyncTacticalPeopleSprites(snapshot);
+        }
         UpdateHutCutaways(snapshot);
         UnityEngine.Profiling.Profiler.EndSample();
     }
@@ -994,6 +1036,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         return _bloodStains;
+    }
+
+    // §127: the completion splat is independent from the washable projector
+    // on the woman's skin. It stays at the scene location on the terrain.
+    private HexLive.UnityPresentation.Environment.GroundIntimacyStains? _intimacyStains;
+
+    private HexLive.UnityPresentation.Environment.GroundIntimacyStains EnsureIntimacyStains()
+    {
+        if (_intimacyStains == null)
+        {
+            var go = new GameObject("IntimacyGroundStains");
+            go.transform.SetParent(transform, false);
+            _intimacyStains =
+                go.AddComponent<HexLive.UnityPresentation.Environment.GroundIntimacyStains>();
+        }
+
+        return _intimacyStains;
     }
 
     // Spec 40.2-C: blood spilled while in the water billows on the surface
@@ -1915,7 +1974,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // держит его гекс в восприятии. Память о нём — это «?» на
                 // последнем известном месте (SyncUnknownNpcMarkers), а не
                 // застывшее тело: тело ушло бы оттуда, и картинка врала бы.
-                var isOurs = npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+                var isOurs = IsPlayerOwned(npc);
                 var strangerVisible = isOurs || TileVisibleNow(npc.Tile);
                 if (!isOurs)
                 {
@@ -2053,6 +2112,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             SyncActorView(snapshot, npc);
 
+            // §127: the sim's completion cue is the one-shot edge. Sampling
+            // the live hip bone here preserves the authored pose offset, then
+            // only Y is lowered to the ground directly beneath that pelvis.
+            _actorViews.TryGetValue(key, out var intimacyActor);
+            SyncGroundIntimacyStain(snapshot, npc, intimacyActor, targetPos);
+
             // Spec 40.2-B/C: a bleeding girl drips blood. On land it pools at
             // her feet; IN THE WATER (iteration 1: detected via _npcOnWater) it
             // billows on the surface around her instead — different spawn, no
@@ -2067,6 +2132,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 EnsureBloodStains().OnNpcTick(key, npc.Blood, targetPos, snapshot.Tick);
             }
         }
+
+        SyncRomancePairs(snapshot);
 
         // Spec 40.2-B/C r2 / bug #22: a body with an open wound keeps feeding
         // the existing cosmetic blood pipeline for a finite period after the
@@ -2105,6 +2172,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         _bloodStains?.Advance(snapshot.Tick);
         _waterBlood?.Advance(snapshot.Tick);
+        _intimacyStains?.Advance(snapshot.Tick, snapshot.IsRaining);
 
         UpdateGrassFlattening(snapshot);
 
@@ -2209,6 +2277,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // гексов памяти. Обе строки — чистая презентация поверх готового кадра.
         SyncUnknownNpcMarkers(snapshot);
         ApplyMemoryShade();
+        if (_tacticalMapMode)
+        {
+            SyncTacticalMapSnapshot(snapshot);
+            RefreshTacticalWorldRendererSuppression();
+        }
         UnityEngine.Profiling.Profiler.EndSample();
 
         // Memory fog: the full first build of this world is behind us — from
@@ -2486,6 +2559,123 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     // Spec 31B.5: wardrobe, walk animation, and gaze follow the snapshot.
+    private void SyncRomancePairs(WorldSnapshot snapshot)
+    {
+        _activeRomancePairs.Clear();
+        var catalog = Resources.Load<RomancePoseCatalog>(
+            RomancePoseCatalog.ResourcesPath);
+        if (catalog != null)
+        {
+            foreach (var female in snapshot.Npcs)
+            {
+                if (female.CurrentInteraction != "Romance" ||
+                    female.RomancePartnerNpcId is not { } partnerId ||
+                    female.ActorMesh is "Kshishtof" or "Tonny" ||
+                    !catalog.TryGet(female.RomanceClipKey, out var entry) ||
+                    entry.femaleLoop == null || entry.maleLoop == null ||
+                    !_actorViews.TryGetValue(female.Id.Value, out var femaleView) ||
+                    !_actorViews.TryGetValue(partnerId, out var maleView))
+                {
+                    continue;
+                }
+
+                NpcSnapshot? male = null;
+                foreach (var candidate in snapshot.Npcs)
+                {
+                    if (candidate.Id.Value == partnerId)
+                    {
+                        male = candidate;
+                        break;
+                    }
+                }
+                if (male == null || male.CurrentInteraction != "Romance") continue;
+
+                if (!_romancePairs.TryGetValue(female.Id.Value, out var pair) ||
+                    pair == null)
+                {
+                    pair = femaleView.GetComponent<RomancePairView>();
+                    if (pair == null)
+                    {
+                        pair = femaleView.gameObject.AddComponent<RomancePairView>();
+                    }
+                    _romancePairs[female.Id.Value] = pair;
+                }
+
+                var anchor = SimulationUnityMapper.ToUnityPosition(
+                    new Float2(female.RomanceAnchorX, female.RomanceAnchorY),
+                    ActorGroundY(female.Tile));
+                var rotation = Quaternion.Euler(0f,
+                    SimulationUnityMapper.ToUnityYawDegrees(
+                        female.RomanceFacingDegrees), 0f);
+                pair.Sync(femaleView, maleView, entry,
+                    female.Id.Value, partnerId,
+                    snapshot.Tick, female.ExecutionStartTick,
+                    female.ExecutionEndTick, snapshot.TickDeltaTime,
+                    anchor, rotation,
+                    _runner != null && !_runner.IsPaused
+                        ? _runner.SpeedMultiplier : 1f,
+                    female.RomanceForced);
+                _activeRomancePairs.Add(female.Id.Value);
+            }
+        }
+
+        _staleRomancePairs.Clear();
+        foreach (var existing in _romancePairs)
+        {
+            if (!_activeRomancePairs.Contains(existing.Key))
+            {
+                existing.Value?.Stop();
+                _staleRomancePairs.Add(existing.Key);
+            }
+        }
+        foreach (var stale in _staleRomancePairs)
+        {
+            _romancePairs.Remove(stale);
+        }
+    }
+
+    private readonly Dictionary<int, int> _lastIntimacyGroundCueTick = new();
+
+    private void SyncGroundIntimacyStain(WorldSnapshot snapshot, NpcSnapshot npc,
+        NpcActorView? actorView, Vector3 fallbackPosition)
+    {
+        var npcId = npc.Id.Value;
+        if (!_lastIntimacyGroundCueTick.TryGetValue(npcId, out var seenTick))
+        {
+            // Loading an old cue must not create a puddle under wherever the
+            // woman happens to stand after loading; only a new completion edge
+            // in this renderer session owns a precise animated pelvis pose.
+            _lastIntimacyGroundCueTick[npcId] = npc.SocialCueTick;
+            return;
+        }
+
+        if (npc.SocialCueTick == seenTick)
+        {
+            return;
+        }
+
+        _lastIntimacyGroundCueTick[npcId] = npc.SocialCueTick;
+        var completed = npc.SocialCueKind == "RomanceCompleted" ||
+            npc.SocialCueKind == "RomanceTraumatized";
+        if (!completed || npc.SocialCueTick != snapshot.Tick ||
+            npc.ActorMesh is "Kshishtof" or "Tonny" ||
+            _waterCoords.Contains(npc.Tile))
+        {
+            return;
+        }
+
+        var pelvis = fallbackPosition;
+        if (actorView != null && actorView.TryGetBodyCenter(out var animatedPelvis))
+        {
+            pelvis.x = animatedPelvis.x;
+            pelvis.z = animatedPelvis.z;
+        }
+
+        pelvis.y = ActorGroundY(GroundTileUnder(npc));
+        EnsureIntimacyStains().Spawn(npcId, pelvis, snapshot.Tick,
+            !_indoorCoords.Contains(npc.Tile));
+    }
+
     private void SyncActorView(WorldSnapshot snapshot, NpcSnapshot npc)
     {
         if (!_actorViews.TryGetValue(npc.Id.Value, out var actorView) || actorView == null)
@@ -4626,7 +4816,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // the player exactly as far as her own camp perceives it. The
             // §146 rival camps (Colony2/Colony3) reveal nothing and are
             // themselves hidden below until one of ours actually sees them.
-            if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony && npc.Health > 0f)
+            if (IsPlayerOwned(npc) && npc.Health > 0f)
             {
                 _cullEyes.Add((npc.Tile, npc.PerceptionRadiusTiles));
             }
@@ -4678,11 +4868,462 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
-    /// <summary>§148: можно ли ЩЁЛКНУТЬ по этому человеку. Свои — всегда;
-    /// чужой — только пока он в восприятии наших. По «?» на последнем
+    /// <summary>§150: можно ли ЩЁЛКНУТЬ по этому человеку. Назначенные этому
+    /// игроку — всегда; любой другой — только пока он в восприятии его глаз. По «?» на последнем
     /// известном месте клика нет: игрок не знает, там ли он ещё.</summary>
-    public bool IsNpcPickable(int npcId, TileCoord tile, bool isColony) =>
-        !_cullActive || isColony || _cullVisibleTiles.Contains(tile);
+    public bool IsNpcPickable(int npcId, TileCoord tile, bool isPlayerOwned) =>
+        isPlayerOwned || (PlayerVisibilityReady &&
+            (!_cullActive || _cullVisibleTiles.Contains(tile)));
+
+    /// <summary>§150: renderer completed at least one perception pass. Until
+    /// then every non-owned contact and every resource tile stays closed: UI
+    /// execution order must never turn the authoritative first snapshot into
+    /// one frame of omniscience (or permanent map memory).</summary>
+    public bool PlayerVisibilityReady => _lastRenderedTick >= 0;
+
+    /// <summary>§150: тот же live-предикат гекса для мира, ростера и карты.</summary>
+    public bool IsTileVisibleToPlayer(TileCoord tile) =>
+        PlayerVisibilityReady && (!_cullActive || _cullVisibleTiles.Contains(tile));
+
+    private bool IsPlayerOwned(NpcSnapshot npc) =>
+        _runner != null
+            ? _runner.CanControlNpc(npc.Id)
+            : npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+
+    /// <summary>§150 r2: switch the live world between authored 3D renderers
+    /// and the flattened sprite map. GameObjects, animation and simulation stay
+    /// alive; forceRenderingOff is presentation-only and preserves each
+    /// renderer's own enabled state for the return flight.</summary>
+    public void SetTacticalMapMode(bool enabled)
+    {
+        if (_tacticalMapMode == enabled)
+        {
+            return;
+        }
+
+        _tacticalMapMode = enabled;
+        if (!enabled)
+        {
+            if (_tacticalMapRoot != null)
+            {
+                _tacticalMapRoot.gameObject.SetActive(false);
+            }
+
+            foreach (var renderer in _tacticalSuppressedRenderers)
+            {
+                if (renderer != null)
+                {
+                    renderer.forceRenderingOff = false;
+                }
+            }
+
+            _tacticalSuppressedRenderers.Clear();
+            return;
+        }
+
+        EnsureTacticalMapRoot();
+        _tacticalMapRoot!.gameObject.SetActive(true);
+        var snapshot = _lastSnapshot ?? (_runner != null && _runner.IsReady
+            ? _runner.CreateSnapshot()
+            : null);
+        if (snapshot != null && PlayerVisibilityReady)
+        {
+            SyncTacticalMapSnapshot(snapshot);
+        }
+
+        RefreshTacticalWorldRendererSuppression();
+    }
+
+    private void EnsureTacticalMapRoot()
+    {
+        if (_tacticalMapRoot != null)
+        {
+            return;
+        }
+
+        _tacticalMapRoot = CreateRoot("Tactical Map Sprites");
+        _tacticalMapRoot.gameObject.SetActive(_tacticalMapMode);
+    }
+
+    private void RefreshTacticalWorldRendererSuppression()
+    {
+        if (!_tacticalMapMode)
+        {
+            return;
+        }
+
+        EnsureTacticalMapRoot();
+        var renderers = GetComponentsInChildren<Renderer>(true);
+        for (var i = 0; i < renderers.Length; i++)
+        {
+            var renderer = renderers[i];
+            if (renderer == null || renderer.transform.IsChildOf(_tacticalMapRoot!))
+            {
+                continue;
+            }
+
+            renderer.forceRenderingOff = true;
+            _tacticalSuppressedRenderers.Add(renderer);
+        }
+    }
+
+    private void SyncTacticalMapSnapshot(WorldSnapshot snapshot)
+    {
+        EnsureTacticalMapRoot();
+        if (_tacticalMapSeed != snapshot.Seed)
+        {
+            ResetTacticalMapSprites(snapshot.Seed);
+        }
+
+        for (var i = 0; i < snapshot.Tiles.Count; i++)
+        {
+            var tile = snapshot.Tiles[i];
+            if (!_tacticalTileSprites.TryGetValue(tile.Coord, out var renderer) ||
+                renderer == null)
+            {
+                renderer = CreateTacticalSpriteRenderer(
+                    $"Map Hex {tile.Coord.Q},{tile.Coord.R}",
+                    TacticalHexSprite(), sortingOrder: 0, scale: 1f);
+                _tacticalTileSprites[tile.Coord] = renderer;
+                var world = HexSpatialMath.TileToWorld(tile.Coord);
+                renderer.transform.position = new Vector3(
+                    world.X, TacticalMapPlaneY, world.Y);
+            }
+
+            renderer.color = TacticalMapPalette.TileColor(
+                tile.Water,
+                tile.Explored,
+                IsTileVisibleToPlayer(tile.Coord),
+                tile.Elevation);
+        }
+
+        SyncTacticalRememberedMarkers(snapshot);
+        SyncTacticalPeopleSprites(snapshot);
+    }
+
+    private void SyncTacticalRememberedMarkers(WorldSnapshot snapshot)
+    {
+        _tacticalVisibleMarkerIds.Clear();
+        for (var i = 0; i < snapshot.Objects.Count; i++)
+        {
+            var worldObject = snapshot.Objects[i];
+            if (!IsTileVisibleToPlayer(worldObject.Tile) ||
+                !TacticalMapPalette.TryClassify(worldObject.DefinitionId, out var kind))
+            {
+                continue;
+            }
+
+            var id = worldObject.Id.Value;
+            _tacticalVisibleMarkerIds.Add(id);
+            _tacticalRememberedMarkers[id] = new TacticalRememberedMarker(
+                worldObject.Tile, kind);
+        }
+
+        _tacticalStaleMarkerIds.Clear();
+        foreach (var pair in _tacticalRememberedMarkers)
+        {
+            if (IsTileVisibleToPlayer(pair.Value.Tile) &&
+                !_tacticalVisibleMarkerIds.Contains(pair.Key))
+            {
+                _tacticalStaleMarkerIds.Add(pair.Key);
+            }
+        }
+
+        for (var i = 0; i < _tacticalStaleMarkerIds.Count; i++)
+        {
+            _tacticalRememberedMarkers.Remove(_tacticalStaleMarkerIds[i]);
+        }
+
+        _tacticalLiveMarkerKeys.Clear();
+        foreach (var pair in _tacticalRememberedMarkers)
+        {
+            var marker = pair.Value;
+            var key = new TacticalMarkerTileKey(marker.Tile, marker.Kind);
+            if (!_tacticalLiveMarkerKeys.Add(key))
+            {
+                continue;
+            }
+
+            if (!_tacticalMarkerSprites.TryGetValue(key, out var renderer) || renderer == null)
+            {
+                var sprite = marker.Kind == TacticalMapMarkerKind.Palm
+                    ? TacticalPalmSprite()
+                    : TacticalResourceSprite();
+                renderer = CreateTacticalSpriteRenderer(
+                    $"Map {marker.Kind} {marker.Tile.Q},{marker.Tile.R}",
+                    sprite, sortingOrder: 10, scale: 0.72f);
+                _tacticalMarkerSprites[key] = renderer;
+                var world = HexSpatialMath.TileToWorld(marker.Tile);
+                renderer.transform.position = new Vector3(
+                    world.X, TacticalMapPlaneY + 0.018f, world.Y);
+            }
+
+            var baseColor = marker.Kind == TacticalMapMarkerKind.Palm
+                ? TacticalMapPalette.Palm
+                : TacticalMapPalette.Resource;
+            renderer.color = TacticalMapPalette.WithAlpha(
+                baseColor, IsTileVisibleToPlayer(marker.Tile) ? 1f : 0.38f);
+            if (!renderer.gameObject.activeSelf)
+            {
+                renderer.gameObject.SetActive(true);
+            }
+        }
+
+        foreach (var pair in _tacticalMarkerSprites)
+        {
+            if (pair.Value != null && pair.Value.gameObject.activeSelf &&
+                !_tacticalLiveMarkerKeys.Contains(pair.Key))
+            {
+                pair.Value.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private void SyncTacticalPeopleSprites(WorldSnapshot snapshot)
+    {
+        if (!_tacticalMapMode || _tacticalMapRoot == null)
+        {
+            return;
+        }
+
+        _tacticalLivePeopleIds.Clear();
+        for (var i = 0; i < snapshot.Npcs.Count; i++)
+        {
+            var npc = snapshot.Npcs[i];
+            var owned = IsPlayerOwned(npc);
+            if (!IsNpcPickable(npc.Id.Value, npc.Tile, owned))
+            {
+                continue;
+            }
+
+            var id = npc.Id.Value;
+            _tacticalLivePeopleIds.Add(id);
+            if (!_tacticalPeopleSprites.TryGetValue(id, out var renderer) || renderer == null)
+            {
+                renderer = CreateTacticalSpriteRenderer(
+                    $"Map Person {id}", TacticalPersonSprite(),
+                    sortingOrder: 20, scale: 0.43f);
+                _tacticalPeopleSprites[id] = renderer;
+            }
+
+            var point = npc.Position;
+            if (_npcViews.TryGetValue(id, out var npcView) && npcView != null)
+            {
+                var viewPosition = npcView.transform.position;
+                point = new Float2(viewPosition.x, viewPosition.z);
+            }
+
+            renderer.transform.position = new Vector3(
+                point.X, TacticalMapPlaneY + 0.036f, point.Y);
+            renderer.transform.localScale = Vector3.one *
+                (HexLive.UnityPresentation.Input.NpcSelection.Contains(id) ? 0.58f : 0.43f);
+            renderer.color = TacticalMapPalette.PersonColor(
+                owned, npc.IsHostileToColony);
+            if (!renderer.gameObject.activeSelf)
+            {
+                renderer.gameObject.SetActive(true);
+            }
+        }
+
+        foreach (var pair in _tacticalPeopleSprites)
+        {
+            if (pair.Value != null && pair.Value.gameObject.activeSelf &&
+                !_tacticalLivePeopleIds.Contains(pair.Key))
+            {
+                pair.Value.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private SpriteRenderer CreateTacticalSpriteRenderer(
+        string label, Sprite sprite, int sortingOrder, float scale)
+    {
+        EnsureTacticalMapRoot();
+        var go = new GameObject(label);
+        go.transform.SetParent(_tacticalMapRoot!, false);
+        go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        go.transform.localScale = Vector3.one * scale;
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.sortingOrder = sortingOrder;
+        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
+        return renderer;
+    }
+
+    private void ResetTacticalMapSprites(int seed)
+    {
+        _tacticalMapSeed = seed;
+        if (_tacticalMapRoot != null)
+        {
+            for (var i = _tacticalMapRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_tacticalMapRoot.GetChild(i).gameObject);
+            }
+        }
+
+        _tacticalTileSprites.Clear();
+        _tacticalMarkerSprites.Clear();
+        _tacticalPeopleSprites.Clear();
+        _tacticalRememberedMarkers.Clear();
+        _tacticalVisibleMarkerIds.Clear();
+        _tacticalStaleMarkerIds.Clear();
+        _tacticalLiveMarkerKeys.Clear();
+        _tacticalLivePeopleIds.Clear();
+    }
+
+    private static Sprite TacticalHexSprite()
+    {
+        if (_tacticalHexSprite != null) return _tacticalHexSprite;
+        const int width = 78;
+        const int height = 90;
+        var texture = NewTacticalTexture(width, height, "Tactical Hex");
+        var pixels = new Color32[width * height];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                // Match BuildHexPrismMesh exactly: pointy-top, vertices at
+                // -30° + 60°i, width √3R and height 2R. The previous test
+                // (√3|x| + |y| <= √3) described a flat-top hex squeezed into
+                // this pointy-top texture, hence both the 30° footprint drift
+                // and the triangular holes between neighbouring sprites.
+                var px = (x + 0.5f - width * 0.5f) / (height * 0.5f);
+                var py = (y + 0.5f - height * 0.5f) / (height * 0.5f);
+                var edge = Mathf.Abs(py) + Mathf.Abs(px) / HexSpatialMath.Sqrt3;
+                var inside = Mathf.Abs(px) <= HexSpatialMath.HexApothemFactor &&
+                    edge <= 1f;
+                if (!inside) continue;
+                const float border = 0.035f;
+                var inner = Mathf.Abs(px) <= HexSpatialMath.HexApothemFactor - border &&
+                    edge <= 1f - border;
+                pixels[y * width + x] = inner
+                    ? new Color32(255, 255, 255, 255)
+                    : new Color32(35, 48, 46, 255);
+            }
+        }
+
+        texture.SetPixels32(pixels);
+        texture.Apply(false, false);
+        _tacticalHexSprite = Sprite.Create(
+            texture, new Rect(0f, 0f, width, height), new Vector2(0.5f, 0.5f),
+            height / (HexSpatialMath.HexRadius * 2f));
+        _tacticalHexSprite.name = "Tactical Hex";
+        return _tacticalHexSprite;
+    }
+
+    private static Sprite TacticalPalmSprite()
+    {
+        if (_tacticalPalmSprite != null) return _tacticalPalmSprite;
+        _tacticalPalmSprite = CreateGlyphSprite("Tactical Palm", (x, y) =>
+            DistanceToSegment(x, y, 16f, 5f, 16f, 19f) <= 1.65f ||
+            DistanceToSegment(x, y, 16f, 18f, 5f, 9f) <= 1.65f ||
+            DistanceToSegment(x, y, 16f, 18f, 16f, 28f) <= 1.65f ||
+            DistanceToSegment(x, y, 16f, 18f, 27f, 9f) <= 1.65f);
+        return _tacticalPalmSprite;
+    }
+
+    private static Sprite TacticalResourceSprite()
+    {
+        if (_tacticalResourceSprite != null) return _tacticalResourceSprite;
+        _tacticalResourceSprite = CreateGlyphSprite("Tactical Resource", (x, y) =>
+            Mathf.Abs(x - 15.5f) + Mathf.Abs(y - 15.5f) <= 10.5f);
+        return _tacticalResourceSprite;
+    }
+
+    private static Sprite TacticalPersonSprite()
+    {
+        if (_tacticalPersonSprite != null) return _tacticalPersonSprite;
+        _tacticalPersonSprite = CreateGlyphSprite("Tactical Person", (x, y) =>
+        {
+            var dx = x - 15.5f;
+            var dy = y - 15.5f;
+            return dx * dx + dy * dy <= 10f * 10f;
+        });
+        return _tacticalPersonSprite;
+    }
+
+    private static Sprite CreateGlyphSprite(
+        string name, Func<float, float, bool> contains)
+    {
+        const int size = 32;
+        var texture = NewTacticalTexture(size, size, name);
+        var pixels = new Color32[size * size];
+        for (var y = 0; y < size; y++)
+        {
+            for (var x = 0; x < size; x++)
+            {
+                if (contains(x + 0.5f, y + 0.5f))
+                {
+                    pixels[y * size + x] = new Color32(255, 255, 255, 255);
+                }
+            }
+        }
+
+        texture.SetPixels32(pixels);
+        texture.Apply(false, false);
+        var sprite = Sprite.Create(
+            texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+        sprite.name = name;
+        return sprite;
+    }
+
+    private static Texture2D NewTacticalTexture(int width, int height, string name)
+    {
+        var texture = new Texture2D(width, height, TextureFormat.RGBA32, false, true)
+        {
+            name = name,
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+        return texture;
+    }
+
+    private static float DistanceToSegment(
+        float px, float py, float ax, float ay, float bx, float by)
+    {
+        var abx = bx - ax;
+        var aby = by - ay;
+        var lengthSquared = abx * abx + aby * aby;
+        var t = lengthSquared <= 0.0001f
+            ? 0f
+            : Mathf.Clamp01(((px - ax) * abx + (py - ay) * aby) / lengthSquared);
+        var dx = px - (ax + abx * t);
+        var dy = py - (ay + aby * t);
+        return Mathf.Sqrt(dx * dx + dy * dy);
+    }
+
+    private readonly struct TacticalRememberedMarker
+    {
+        public readonly TileCoord Tile;
+        public readonly TacticalMapMarkerKind Kind;
+
+        public TacticalRememberedMarker(TileCoord tile, TacticalMapMarkerKind kind)
+        {
+            Tile = tile;
+            Kind = kind;
+        }
+    }
+
+    private readonly struct TacticalMarkerTileKey : IEquatable<TacticalMarkerTileKey>
+    {
+        public readonly TileCoord Tile;
+        public readonly TacticalMapMarkerKind Kind;
+
+        public TacticalMarkerTileKey(TileCoord tile, TacticalMapMarkerKind kind)
+        {
+            Tile = tile;
+            Kind = kind;
+        }
+
+        public bool Equals(TacticalMarkerTileKey other) =>
+            Tile.Equals(other.Tile) && Kind == other.Kind;
+
+        public override bool Equals(object? obj) =>
+            obj is TacticalMarkerTileKey other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(Tile, (int)Kind);
+    }
 
     private const float UnknownMarkerLift = 1.15f;
 
@@ -4700,7 +5341,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             foreach (var npc in snapshot.Npcs)
             {
                 var key = npc.Id.Value;
-                if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony ||
+                if (IsPlayerOwned(npc) ||
                     _cullVisibleTiles.Contains(npc.Tile) ||
                     !_lastSeenNpcTiles.TryGetValue(key, out var lastSeen))
                 {

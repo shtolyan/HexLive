@@ -81,6 +81,8 @@ public sealed class LoopbackBackend : ISimulationBackend
     // Play, ровно как забытое поле снапшота.
     public bool SupportsNpcCommands => true;
 
+    public bool CanControlNpc(EntityId npc) => _inner.CanControlNpc(npc);
+
     // Список рецептов — подсказка UI, не команда: правду о доступности всё
     // равно решает ManualCommandExecutor.ApplyCraft. Делегат внутрь, чтобы
     // вкладка «Крафт» жила в loopback вместе с приказами.

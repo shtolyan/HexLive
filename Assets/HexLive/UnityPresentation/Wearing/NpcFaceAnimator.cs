@@ -162,6 +162,8 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     private float _surprisePulse;
     private float _pain;             // 0 none .. 1 writhing (fresh bleeding wounds)
     private bool _cameraAttention;   // §130: смотрит в объектив — лёгкая улыбка
+    private bool _romance;
+    private bool _romanceDistressed;
 
     private int _talkIndex = -1;     // эмоция реплики (§67.8)
     private float _talkUntil;
@@ -177,7 +179,7 @@ public sealed class NpcFaceAnimator : MonoBehaviour
 
     // Индексы часто нужных выражений, разрешённые один раз в Construct.
     private int _idxPain, _idxCry, _idxAngry, _idxSurprise, _idxCamera;
-    private int _idxMoodSmile, _idxMoodSad;
+    private int _idxMoodSmile, _idxMoodSad, _idxRomanceHappy, _idxFear;
 
     public void Construct(SkinnedMeshRenderer[] bodySkins)
     {
@@ -225,6 +227,8 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         _idxCamera = SharedCatalog.FindIndex("04");
         _idxMoodSmile = SharedCatalog.FindIndex("05");
         _idxMoodSad = SharedCatalog.FindIndex("x_sad");
+        _idxRomanceHappy = SharedCatalog.FindIndex("06");
+        _idxFear = SharedCatalog.FindIndex("x_fear");
 
         _blinkTimer = Random.Range(BlinkInterval.x, BlinkInterval.y);
         enabled = _eyeTargets.Count > 0 || _rig.Count > 0;
@@ -272,6 +276,14 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     public void SetCrying(bool crying)
     {
         _crying = crying;
+    }
+
+    /// <summary>§127: held face for a paired scene. Consensual participants
+    /// are visibly delighted; a forced victim keeps the authored fear face.</summary>
+    public void SetRomance(bool active, bool distressed)
+    {
+        _romance = active;
+        _romanceDistressed = active && distressed;
     }
 
     // §67.8: короткая эмоция на время голосовой реплики — оверлей поверх
@@ -394,6 +406,11 @@ public sealed class NpcFaceAnimator : MonoBehaviour
                 level = 80f;
             }
         }
+        else if (_romance)
+        {
+            index = _romanceDistressed ? _idxFear : _idxRomanceHappy;
+            level = _romanceDistressed ? 92f : 88f;
+        }
         else if (_talkIndex >= 0 && Time.time < _talkUntil)
         {
             index = _talkIndex;
@@ -455,6 +472,8 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         // --- Blink, ПОВЕРХ выражения (закрывающееся веко всегда побеждает).
         // База — то, что текущее выражение положило в EyesClosedL/R
         // (расширенные глаза = отрицательная база).
+        var blinkOpenSpeed = _romance ? 55f : BlinkOpenSpeed;
+        var blinkRest = _romance ? 28f : 0f;
         if (_sleeping)
         {
             _blinkWeight = Mathf.MoveTowards(_blinkWeight, 100f, SleepEyeSpeed * dt);
@@ -462,7 +481,7 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         }
         else if (_eyesHold)
         {
-            _blinkWeight = Mathf.MoveTowards(_blinkWeight, 0f, BlinkOpenSpeed * dt);
+            _blinkWeight = Mathf.MoveTowards(_blinkWeight, blinkRest, blinkOpenSpeed * dt);
             _blinkPhase = -1f;
         }
         else if (_blinkPhase < 0f)
@@ -474,7 +493,7 @@ public sealed class NpcFaceAnimator : MonoBehaviour
                 _blinkPhase = 0f;
             }
 
-            _blinkWeight = Mathf.MoveTowards(_blinkWeight, 0f, BlinkOpenSpeed * dt);
+            _blinkWeight = Mathf.MoveTowards(_blinkWeight, blinkRest, blinkOpenSpeed * dt);
         }
         else if (_blinkPhase < 1f)
         {
@@ -486,8 +505,8 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         }
         else
         {
-            _blinkWeight = Mathf.MoveTowards(_blinkWeight, 0f, BlinkOpenSpeed * dt);
-            if (_blinkWeight <= 0.5f)
+            _blinkWeight = Mathf.MoveTowards(_blinkWeight, blinkRest, blinkOpenSpeed * dt);
+            if (_blinkWeight <= blinkRest + 0.5f)
             {
                 _blinkPhase = -1f;
             }

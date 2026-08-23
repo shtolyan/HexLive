@@ -244,7 +244,9 @@ public enum InteractionType
     // §137: праздный отдых — незанятая колонистка садится на землю там, где
     // стоит. Дописано в конец, по той же причине, что и всё выше: сейв хранит
     // текущее взаимодействие ординалом.
-    Rest
+    Rest,
+    // §127: paired romantic scene. Append-only: saves store the ordinal.
+    Romance
 }
 
 }

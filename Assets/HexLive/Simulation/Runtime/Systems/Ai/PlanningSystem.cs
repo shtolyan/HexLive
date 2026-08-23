@@ -446,6 +446,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.Romance)
+            {
+                BuildRomancePlan(world, npc);
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Aid)
             {
                 BuildAidPlan(world, npc);

@@ -28,6 +28,11 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
             public Vector3 maleEuler;
             [Tooltip("true = офсет настроен и сохранён игроком; false = дефолт, ещё не тюнили.")]
             public bool authored;
+            [Header("Runtime paired clips")]
+            public AnimationClip femaleLoop;
+            public AnimationClip maleLoop;
+            public AnimationClip femaleClimax;
+            public AnimationClip maleClimax;
             [Tooltip("Веса Dicktator-пресетов гениталий ДЛЯ ЭТОЙ позы (у каждой позы свои).")]
             public List<GenitalShape> genitalShapes = new List<GenitalShape>();
         }

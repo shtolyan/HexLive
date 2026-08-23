@@ -1940,6 +1940,78 @@ MonoBehaviour:
       - "\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: menu.worlds
+      TermType: 0
+      Description:
+      Languages:
+      - Worlds
+      - "\u041C\u0438\u0440\u044B"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.kicker
+      TermType: 0
+      Description:
+      Languages:
+      - LOCAL WORLDS
+      - "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0415 \u041C\u0418\u0420\u042B"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.title
+      TermType: 0
+      Description:
+      Languages:
+      - Saved worlds
+      - "\u0421\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0435 \u043C\u0438\u0440\u044B"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.description
+      TermType: 0
+      Description:
+      Languages:
+      - Every local colony has its own save. Starting or visiting another world will not overwrite it.
+      - "\u0423 \u043A\u0430\u0436\u0434\u043E\u0439 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u0438\u0438 \u0441\u0432\u043E\u0451 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435. \u041D\u043E\u0432\u044B\u0439 \u043C\u0438\u0440 \u0438\u043B\u0438 \u0438\u0433\u0440\u0430 \u043D\u0430 \u0441\u0435\u0440\u0432\u0435\u0440\u0435 \u0435\u0433\u043E \u043D\u0435 \u0437\u0430\u0442\u0440\u0443\u0442."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.empty.title
+      TermType: 0
+      Description:
+      Languages:
+      - No saved worlds yet
+      - "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0445 \u043C\u0438\u0440\u043E\u0432"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.empty.description
+      TermType: 0
+      Description:
+      Languages:
+      - Start a new game. Its first save will appear here automatically.
+      - "\u041D\u0430\u0447\u043D\u0438\u0442\u0435 \u043D\u043E\u0432\u0443\u044E \u0438\u0433\u0440\u0443 \u2014 \u0435\u0451 \u043F\u0435\u0440\u0432\u043E\u0435 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.meta
+      TermType: 0
+      Description:
+      Languages:
+      - "Day {0}  \u00B7  Seed {1}"
+      - "\u0414\u0435\u043D\u044C {0}  \u00B7  \u0421\u0438\u0434 {1}"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.saved
+      TermType: 0
+      Description:
+      Languages:
+      - 'Last played: {0}'
+      - "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u044F\u044F \u0438\u0433\u0440\u0430: {0}"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.worlds.load
+      TermType: 0
+      Description:
+      Languages:
+      - Load world
+      - "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u043C\u0438\u0440"
+      Flags: 0101
+      Languages_Touch: []
     - Term: menu.connect
       TermType: 0
       Description: 
@@ -23483,6 +23555,14 @@ MonoBehaviour:
       - "\u041F\u043E\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: menu.romance
+      TermType: 0
+      Description:
+      Languages:
+      - Romantic intimacy
+      - "\u0420\u043E\u043C\u0430\u043D\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0431\u043B\u0438\u0437\u043E\u0441\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: menu.camp_merge.invite
       TermType: 0
       Description:
@@ -23851,6 +23931,22 @@ MonoBehaviour:
         \u0441\u0446\u0435\u043D\u0443 \u0442\u0440\u0430\u0432\u043B\u0438"
       Flags: 0101
       Languages_Touch: []
+    - Term: menu.dark.force_romance
+      TermType: 0
+      Description:
+      Languages:
+      - Force intimacy…
+      - "\u041F\u0440\u0438\u043D\u0443\u0434\u0438\u0442\u044C \u043A \u0431\u043B\u0438\u0437\u043E\u0441\u0442\u0438…"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.dark.force_romance.confirm
+      TermType: 0
+      Description:
+      Languages:
+      - Confirm forced intimacy
+      - "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044C \u043F\u0440\u0438\u043D\u0443\u0436\u0434\u0435\u043D\u0438\u0435"
+      Flags: 0101
+      Languages_Touch: []
     - Term: toast.order_rejected.NotAlly
       TermType: 0
       Description: 
@@ -23877,6 +23973,15 @@ MonoBehaviour:
       - Another player or agent controls her
       - "\u0415\u044E \u0443\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0434\u0440\u0443\u0433\u043E\u0439
         \u0438\u0433\u0440\u043E\u043A \u0438\u043B\u0438 \u0430\u0433\u0435\u043D\u0442"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NotAssigned
+      TermType: 0
+      Description:
+      Languages:
+      - This character is not assigned to you
+      - "\u042D\u0442\u043E\u0442 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u0436
+        \u043D\u0435 \u0437\u0430\u043A\u0440\u0435\u043F\u043B\u0451\u043D \u0437\u0430 \u0432\u0430\u043C\u0438"
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NoLease

@@ -287,6 +287,15 @@ public sealed partial class ExecutionSystem
             {
                 CampDiplomacyMath.TryMerge(
                     world, npc, target, CampHomeChoice.Automatic, out _);
+
+                // §127: romance is an escalation of successful communication,
+                // not an unrelated auction goal. Strong mutual consent plus a
+                // deterministic scene roll turns this same nearby pair into the
+                // authored interaction without making them approach twice.
+                if (TryContinueTalkAsRomance(world, npc, target))
+                {
+                    return;
+                }
             }
 
             if (target.Mind.PendingTalkFrom is { } inviterId && inviterId.Equals(npc.Id))

@@ -1400,6 +1400,46 @@
      "ru": "Моё. Хорошее моё"
     }
    ]
+  },
+  {
+   "code": "F1",
+   "id": "happy_romance",
+   "priority": "P1",
+   "hook": "добровольная близость (§127 Loop/Climax)",
+   "lines": [
+    {
+     "text": "[soft, breathy, pleased] Aaa...",
+     "ru": "Мягкий радостный вздох «а-а»"
+    },
+    {
+     "text": "[warm, breathy, pleased] Mmm...",
+     "ru": "Довольное протяжное «м-м»"
+    },
+    {
+     "text": "[delighted, breathy] Ah... mmm...",
+     "ru": "Тихий вздох наслаждения"
+    }
+   ]
+  },
+  {
+   "code": "F2",
+   "id": "cry_romance_forced",
+   "priority": "P1",
+   "hook": "принудительная близость (§127)",
+   "lines": [
+    {
+     "text": "[crying, frightened] Nho! Mifo...",
+     "ru": "Плач: «Ох! Не могу...»"
+    },
+    {
+     "text": "[screaming, terrified] Zada! Zada!",
+     "ru": "Крик: «Прочь! Прочь!»"
+    },
+    {
+     "text": "[sobbing, weak] Nhooo... bi...",
+     "ru": "Рыдание: «Ох... больно...»"
+    }
+   ]
   }
  ]
 }

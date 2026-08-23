@@ -1,0 +1,12 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="TacticalMapPanel.uss" />
+  <ui:VisualElement name="tacticalMapRoot" class="tactical-map-root" picking-mode="Ignore">
+    <ui:VisualElement name="miniMapCard" class="tactical-map-mini" picking-mode="Position">
+      <ui:Label name="miniMapCollapse" text="‹" class="tactical-map-collapse" picking-mode="Position" />
+      <ui:VisualElement name="miniMapHost" class="tactical-map-host" picking-mode="Position" />
+    </ui:VisualElement>
+    <ui:VisualElement name="miniMapExpandTab" class="tactical-map-expand map-hidden" picking-mode="Position">
+      <ui:Label text="›" class="tactical-map-expand-arrow" picking-mode="Ignore" />
+    </ui:VisualElement>
+  </ui:VisualElement>
+</ui:UXML>

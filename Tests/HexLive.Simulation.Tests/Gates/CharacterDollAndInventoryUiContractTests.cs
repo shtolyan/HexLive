@@ -90,13 +90,15 @@ public sealed class CharacterDollAndInventoryUiContractTests
             // вкладка крафта живёт, список рецептов делегируется внутрь
             // (правду о доступности всё равно решает ManualCommandExecutor).
             Assert.That(loopback, Does.Contain("_inner.TryGetCraftingOptions"));
-            Assert.That(remote, Does.Contain("return false"));
-            Assert.That(localization, Does.Contain("Term: 'craft.tab.craft'"));
-            Assert.That(localization, Does.Contain("'Craft'"));
-            Assert.That(localization, Does.Contain("'Крафт'"));
-            Assert.That(localization, Does.Contain("Term: 'craft.create'"));
-            Assert.That(localization, Does.Contain("Term: 'craft.continue'"));
-            Assert.That(localization, Does.Contain("Term: 'craft.working'"));
+            Assert.That(remote, Does.Contain("FrameKind.CraftingOptions"));
+            Assert.That(remote, Does.Contain("_craftingOptions.TryGetValue"));
+            Assert.That(remote, Does.Contain("into.AddRange(options)"));
+            Assert.That(localization, Does.Contain("Term: craft.tab.craft"));
+            Assert.That(localization, Does.Contain("- Craft"));
+            Assert.That(localization, Does.Contain("\\u041A\\u0440\\u0430\\u0444\\u0442"));
+            Assert.That(localization, Does.Contain("Term: craft.create"));
+            Assert.That(localization, Does.Contain("Term: craft.continue"));
+            Assert.That(localization, Does.Contain("Term: craft.working"));
         });
     }
 

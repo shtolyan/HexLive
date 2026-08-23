@@ -109,6 +109,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 
     public bool SupportsNpcCommands => _backend?.SupportsNpcCommands ?? false;
 
+    public bool CanControlNpc(EntityId npc) => _backend?.CanControlNpc(npc) ?? false;
+
     public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
     {
         if (_backend is not null)

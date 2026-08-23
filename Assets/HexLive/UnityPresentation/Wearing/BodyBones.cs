@@ -24,6 +24,7 @@ public sealed class BodyBones : MonoBehaviour
     private ActorName _actorMesh;
     private Wear _hairInstance;
     private readonly List<GameObject> _hairBones = new();
+    private bool _forceGenitalsVisible;
 
     public Transform WearTransform => wearTransform;
 
@@ -36,6 +37,7 @@ public sealed class BodyBones : MonoBehaviour
     public void Construct(ActorName actorMesh)
     {
         _actorMesh = actorMesh;
+        _forceGenitalsVisible = false;
         _bonesMap.Clear();
         _wears.Clear();
         _wearKeys.Clear();
@@ -589,8 +591,9 @@ public sealed class BodyBones : MonoBehaviour
     }
 
     // §72: восстановленная логика molly_copy (в §31B.3 её сознательно срезали —
-    // девушкам она не нужна). Видно ТОЛЬКО когда слот Pelvis свободен на всех
-    // трёх слоях: бельё, одежда, верхняя.
+    // девушкам она не нужна). В обычном состоянии видно ТОЛЬКО когда слот
+    // Pelvis свободен на всех трёх слоях: бельё, одежда, верхняя. §127.11
+    // временно переопределяет это правило внутри парной сцены.
     //
     // Гендерного гейта нет и не нужно: у всех четырёх девушек поле genitals
     // пустое (fileID: 0), заполнено оно только у Kshishtof, так что ранний
@@ -607,7 +610,20 @@ public sealed class BodyBones : MonoBehaviour
             _byLayer[VisualWearLayer.Wear].ContainsKey(VisualWearSlot.Pelvis) ||
             _byLayer[VisualWearLayer.Outerwear].ContainsKey(VisualWearSlot.Pelvis);
 
-        genitals.SetActive(!covered);
+        genitals.SetActive(_forceGenitalsVisible || !covered);
+    }
+
+    /// <summary>§127.11: paired scenes explicitly expose the authored male
+    /// genital mesh. The ordinary wardrobe rule resumes when the scene ends.</summary>
+    public void SetGenitalsForcedVisible(bool visible)
+    {
+        if (_forceGenitalsVisible == visible)
+        {
+            return;
+        }
+
+        _forceGenitalsVisible = visible;
+        UpdateGenitals();
     }
 
     // Debug: hide every equipped garment (skin inspection) / show them back.

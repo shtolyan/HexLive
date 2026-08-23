@@ -48,7 +48,10 @@ public sealed class HandshakeCompressionGateTests
             EventSeq = 123456789L,
             TopologyChecksum = 0xBADDBEF4,
             SimData = "{\"version\":5}",
+            ControlEnabled = true,
+            ControlOwner = "ws:00000000000000000000000000000007",
         };
+        sent.AssignedNpcIds.AddRange(new[] { 1, 9 });
 
         var got = Decode(Encode(sent));
 
@@ -63,6 +66,9 @@ public sealed class HandshakeCompressionGateTests
             Assert.That(got.EventSeq, Is.EqualTo(sent.EventSeq));
             Assert.That(got.TopologyChecksum, Is.EqualTo(sent.TopologyChecksum));
             Assert.That(got.SimData, Is.EqualTo(sent.SimData));
+            Assert.That(got.ControlEnabled, Is.True);
+            Assert.That(got.ControlOwner, Is.EqualTo(sent.ControlOwner));
+            Assert.That(got.AssignedNpcIds, Is.EqualTo(new[] { 1, 9 }));
         });
     }
 

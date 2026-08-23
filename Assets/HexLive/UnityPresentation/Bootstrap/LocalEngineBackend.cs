@@ -73,6 +73,9 @@ public sealed class LocalEngineBackend : ISimulationBackend
 
     public bool SupportsNpcCommands => true;
 
+    public bool CanControlNpc(EntityId npc) =>
+        PlayerAuthority.CanControl(_engine.World, npc, out _);
+
     public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into) =>
         CraftingOptions.TryFill(_engine.World, npc, into);
 

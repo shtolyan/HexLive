@@ -28,7 +28,7 @@ namespace HexLive.Simulation.Wire
 /// </summary>
 public static class SimulationCommandCodec
 {
-    public const int WireVersion = 1;
+    public const int WireVersion = 2;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -68,6 +68,7 @@ public static class SimulationCommandCodec
         UpdateBuildingBlueprint = 30,
         SetOutfitLock = 31,
         MergeCamps = 32,
+        RomancePerson = 33,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -139,6 +140,12 @@ public static class SimulationCommandCodec
                 w.Write((ushort)CommandType.TalkTo);
                 WriteEntity(w, c.Npc);
                 WriteEntity(w, c.Target);
+                break;
+            case RomancePersonCommand c:
+                w.Write((ushort)CommandType.RomancePerson);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.Target);
+                w.Write(c.Forced);
                 break;
             case AidPersonCommand c:
                 w.Write((ushort)CommandType.AidPerson);
@@ -292,6 +299,9 @@ public static class SimulationCommandCodec
                 return new CraftItemCommand(ReadEntity(r), (GoalType)r.ReadInt32());
             case CommandType.TalkTo:
                 return new TalkToCommand(ReadEntity(r), ReadEntity(r));
+            case CommandType.RomancePerson:
+                return new RomancePersonCommand(
+                    ReadEntity(r), ReadEntity(r), r.ReadBoolean());
             case CommandType.AidPerson:
                 return new AidPersonCommand(
                     ReadEntity(r), ReadEntity(r), (AidKind)r.ReadInt32());

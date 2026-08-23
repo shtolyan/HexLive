@@ -67,7 +67,7 @@ internal static class NpcControlPolicy
     /// появляется только из принятой команды ManualCommandExecutor.
     /// </summary>
     public static bool IsManualSocialOrSelfGoal(GoalType goal) =>
-        goal is GoalType.Socialize or GoalType.Aid
+        goal is GoalType.Socialize or GoalType.Romance or GoalType.Aid
              or GoalType.Splint or GoalType.FitProsthetic
              or GoalType.TreatWounds
              or GoalType.Sleep or GoalType.Sit

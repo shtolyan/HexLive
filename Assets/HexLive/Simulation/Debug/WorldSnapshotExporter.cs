@@ -991,6 +991,12 @@ public static class WorldSnapshotExporter
             // тело замороженным, а не дышащим в позе сна.
             ExecutionStatus = npc.Execution.Status.ToString(),
             CurrentInteraction = npc.Execution.CurrentInteraction?.ToString() ?? "-",
+            RomancePartnerNpcId = npc.Mind.RomancePartnerNpcId?.Value,
+            RomanceClipKey = npc.Mind.RomanceClipKey,
+            RomanceForced = npc.Mind.RomanceForced,
+            RomanceAnchorX = npc.Mind.RomanceAnchorX,
+            RomanceAnchorY = npc.Mind.RomanceAnchorY,
+            RomanceFacingDegrees = npc.Mind.RomanceFacingDegrees,
             HeldItemId = ResolveHeldItem(world, npc),
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
@@ -1231,6 +1237,7 @@ public static class WorldSnapshotExporter
                 BloodSoil = npc.Needs.Hygiene >= 1f
                     ? 0f
                     : condition.BloodSoil,
+                IntimacySoil = condition.IntimacySoil,
                 Severed = npc.Body.IsSevered(part.Key),
                 BandageKind = npc.BandagedZones.Contains(part.Key) ? "herbal" :
                     npc.GauzeZones.Contains(part.Key) ? "gauze" : string.Empty

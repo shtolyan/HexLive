@@ -715,7 +715,7 @@ MonoBehaviour:
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 734bf146e5aed124781ef636d9ea4e30, type: 2}
   - actorName: 1
-    scale: 1.04
+    scale: 1.05
     heightOffset: 0
     mesh: {fileID: 4300000, guid: edab26d5fc664714fa0328be2d70b406, type: 2}
   - actorName: 2
@@ -728,6 +728,7 @@ MonoBehaviour:
     mesh: {fileID: 4300000, guid: 637653218d3d60b48a0e7f268de4bddc, type: 2}
   slots: 11000000120000001300000014000000
   noHideUnderwearSlots: 
+  hideWearSlots: 
   layer: 2
   gender: 1
   heel:

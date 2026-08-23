@@ -154,7 +154,12 @@ public static class SpeechCatalog
         // помощи: над рыдающей помощница именно ГОВОРИТ, это вся её работа.
         ["happy_console"] = new("Console", Rank.Action, 12f),
         ["happy_aid_thanks"] = new("Thanks", Rank.Action, 12f),
-        ["sad_aid_ask"] = new("Help", Rank.Action, 20f)
+        ["sad_aid_ask"] = new("Help", Rank.Action, 20f),
+
+        // ---- F. paired intimacy (§127) ---------------------------------
+        ["happy_romance"] = new("Flirt", Rank.Action, 6f),
+        // Distress must cut through the initiator and any nearby small talk.
+        ["cry_romance_forced"] = new("Grief", Rank.Alarm, 7f)
     };
 
     private static readonly HashSet<string> WarnedMissing = new();

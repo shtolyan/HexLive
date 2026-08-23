@@ -150,6 +150,13 @@ public static class PlanInterruption
     private static EntityId? AbortCore(
         WorldState world, NPCState npc, string reason, bool keepCarriedPerson)
     {
+        if (npc.Mind.RomancePartnerNpcId is not null)
+        {
+            ExecutionSystem.AbortRomancePair(world, npc, reason,
+                leaveVictimCrying: npc.Mind.RomanceForced &&
+                    npc.Execution.CurrentInteraction == InteractionType.Romance);
+        }
+
         // §138/§121.7: an interrupted long manual craft is still player
         // activity. Restart the idle-release window before the plan fields are
         // cleared, otherwise a prosthetic order older than five minutes would
@@ -205,6 +212,13 @@ public static class PlanInterruption
             invited.Mind.PendingTalkFrom is { } inviter && inviter.Equals(npc.Id))
         {
             invited.Mind.PendingTalkFrom = null;
+        }
+        if (npc.Plan.TargetAgentId is { } romanceInvitedId &&
+            world.Entities.Npcs.TryGetValue(romanceInvitedId, out var romanceInvited) &&
+            romanceInvited.Mind.PendingRomanceFrom is { } romanceInviter &&
+            romanceInviter.Equals(npc.Id))
+        {
+            romanceInvited.Mind.PendingRomanceFrom = null;
         }
 
         if (npc.Plan.TargetJunctionId is { } jId)

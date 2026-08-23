@@ -59,6 +59,11 @@ internal static class WoundMath
             {
                 condition.BloodSoil = MathUtil.Clamp01(condition.BloodSoil - amount);
             }
+            if (condition.IntimacySoil > 0f)
+            {
+                condition.IntimacySoil = MathUtil.Clamp01(
+                    condition.IntimacySoil - amount);
+            }
         }
     }
 

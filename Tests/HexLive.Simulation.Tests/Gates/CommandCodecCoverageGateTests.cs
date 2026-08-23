@@ -42,6 +42,7 @@ public sealed class CommandCodecCoverageGateTests
         new StopCommand(new EntityId(19)),
         new CraftItemCommand(new EntityId(20), GoalType.CraftBandage),
         new TalkToCommand(new EntityId(21), new EntityId(112)),
+        new RomancePersonCommand(new EntityId(212), new EntityId(313), forced: true),
         new MergeCampsCommand(new EntityId(211), new EntityId(312), useTargetCamp: true),
         new AidPersonCommand(new EntityId(22), new EntityId(122), AidKind.Hydrate),
         new TreatLimbsCommand(new EntityId(23), new EntityId(132)),

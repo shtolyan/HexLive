@@ -84,7 +84,8 @@ public static class WorldSnapshotCodec
     /// а не каждым кадром. Ключевой кадр по-прежнему несёт его всегда.
     /// v30: §120.9 editable building owners expose their authoritative draft.
     /// v31: §133.9 per-NPC outfit lock for the inventory header switch.
-    public const int WireVersion = 31; // §133.9: NpcSnapshot.OutfitLocked
+    /// v32: §127 paired romance state and washable pelvis stain.
+    public const int WireVersion = 32;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -961,6 +962,12 @@ public static class WorldSnapshotCodec
         WireIo.WriteString(w, n.ExecutionStatus);
         WireIo.WriteString(w, n.CurrentInteraction);
         WireIo.WriteString(w, n.HeldItemId);
+        WireIo.WriteNullableInt(w, n.RomancePartnerNpcId);
+        WireIo.WriteString(w, n.RomanceClipKey);
+        w.Write(n.RomanceForced);
+        w.Write(n.RomanceAnchorX);
+        w.Write(n.RomanceAnchorY);
+        w.Write(n.RomanceFacingDegrees);
 
         // social cues
         WireIo.WriteString(w, n.TalkTopic);
@@ -1076,6 +1083,7 @@ public static class WorldSnapshotCodec
             w.Write(part.SplintSupport);
             w.Write(part.HitBias);
             w.Write(part.BloodSoil);
+            w.Write(part.IntimacySoil);
             w.Write(part.Severed);
             WireIo.WriteString(w, part.BandageKind);
             w.Write(part.Prosthetic != null);
@@ -1304,6 +1312,12 @@ public static class WorldSnapshotCodec
         n.ExecutionStatus = r.ReadString();
         n.CurrentInteraction = r.ReadString();
         n.HeldItemId = r.ReadString();
+        n.RomancePartnerNpcId = WireIo.ReadNullableInt(r);
+        n.RomanceClipKey = r.ReadString();
+        n.RomanceForced = r.ReadBoolean();
+        n.RomanceAnchorX = r.ReadSingle();
+        n.RomanceAnchorY = r.ReadSingle();
+        n.RomanceFacingDegrees = r.ReadSingle();
 
         n.TalkTopic = r.ReadString();
         n.TalkTopicPeerId = WireIo.ReadNullableInt(r);
@@ -1419,6 +1433,7 @@ public static class WorldSnapshotCodec
             part.SplintSupport = r.ReadSingle();
             part.HitBias = r.ReadSingle();
             part.BloodSoil = r.ReadSingle();
+            part.IntimacySoil = r.ReadSingle();
             part.Severed = r.ReadBoolean();
             part.BandageKind = r.ReadString();
             part.Prosthetic = r.ReadBoolean()

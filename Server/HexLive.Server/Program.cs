@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,8 +53,10 @@ public static class Program
             return 1;
         }
 
+        bool continueExistingWorld;
         try
         {
+            continueExistingWorld = File.Exists(Path.GetFullPath(options.SavePath));
             options.ContinueExistingSaveIfPresent(Console.WriteLine);
         }
         catch (Exception ex) when (
@@ -106,6 +109,7 @@ public static class Program
         // только открыта хоть одна дверь управления.
         ControlLeases? controlLeases = null;
         AccessTokenFile? playerToken = null;
+        PlayerCharacterAssignments? playerAssignments = null;
         if (options.ControlEnabled || options.McpEnabled)
         {
             controlLeases = new ControlLeases(options.McpLeaseSeconds);
@@ -115,6 +119,17 @@ public static class Program
         {
             playerToken = AccessTokenFile.LoadOrCreate(
                 options.PlayerTokenPath, "PLAYER CONTROL — first run", "hexplay_");
+            try
+            {
+                playerAssignments = PlayerCharacterAssignments.Load(
+                    options.PlayerAssignmentsPath, continueExistingWorld);
+            }
+            catch (Exception ex) when (
+                ex is IOException or InvalidDataException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine($"[fatal] {ex.Message}");
+                return 1;
+            }
         }
 
         Console.CancelKeyPress += (_, e) =>
@@ -142,10 +157,16 @@ public static class Program
                 return;
             }
 
+            // Host, simdata and cancellation belong to one atomic world
+            // generation (§149); a world-swap must not splice old assignments
+            // into the new host between three separate property reads.
+            var viewerSession = worlds.CaptureViewerSession();
+
             // §145.3: токен игрока — заголовками HTTP-upgrade, ДО принятия
             // сокета. Неверный или отсутствующий токен не рвёт соединение:
             // это прежний анонимный зритель, ControlEnabled=false в рукопожатии.
             string? controlOwner = null;
+            IReadOnlyList<int>? assignedNpcIds = null;
             if (playerToken is not null && controlLeases is not null)
             {
                 var authorization = context.Request.Headers.Authorization.ToString();
@@ -154,9 +175,16 @@ public static class Program
                     playerToken.Matches(authorization.Substring(bearerPrefix.Length).Trim()))
                 {
                     var clientId = context.Request.Headers["X-HexLive-Client-Id"].ToString().Trim();
-                    controlOwner = "ws:" + (string.IsNullOrEmpty(clientId)
-                        ? context.Connection.Id
-                        : clientId);
+                    if (PlayerCharacterAssignments.TryNormalizePlayerId(
+                            clientId, out var playerId))
+                    {
+                        controlOwner = "ws:" + playerId;
+                        assignedNpcIds = playerAssignments!.Reconcile(
+                            viewerSession.Host, playerId,
+                            PlayerCharacterAssignments.DefaultCharacterLimit,
+                            viewerSession.Lifetime,
+                            viewerSession.WorldGeneration);
+                    }
                 }
             }
 
@@ -168,12 +196,13 @@ public static class Program
             // time: an admin "new world" swaps the host, refreshes the simdata
             // and cancels this token, closing the connection so the client
             // reconnects into the new world instead of pinging a frozen one.
-            var viewer = new ViewerConnection(worlds.Host, socket, worlds.SimData,
+            var viewer = new ViewerConnection(viewerSession.Host, socket, viewerSession.SimData,
                 options.IncludeDebugDetails, controlOwner,
-                controlOwner is null ? null : controlLeases);
+                controlOwner is null ? null : controlLeases,
+                assignedNpcIds);
             try
             {
-                await viewer.RunAsync(worlds.ViewerLifetime);
+                await viewer.RunAsync(viewerSession.Lifetime);
             }
             catch (OperationCanceledException)
             {
@@ -217,6 +246,7 @@ public static class Program
             Console.WriteLine(
                 $"[server] player control ws://localhost:{options.Port}/watch " +
                 $"(токен в {options.PlayerTokenPath}, лиз {controlLeases!.TimeoutSeconds} с; " +
+                $"назначения в {options.PlayerAssignmentsPath}; " +
                 "клиенту: -hexlive-token <токен|путь>)");
         }
 
@@ -226,6 +256,8 @@ public static class Program
         worlds.WorldSwapped += () =>
         {
             controlLeases?.Clear();
+            var viewerSession = worlds.CaptureViewerSession();
+            playerAssignments?.SwitchWorld(viewerSession.WorldGeneration);
             if (options.McpEnabled)
             {
                 worlds.Host.EnableMcpEventLog();
@@ -466,6 +498,11 @@ public sealed class ServerOptions
 
     public string PlayerTokenPath =>
         Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-player.txt");
+
+    /// <summary>§149: постоянные назначения playerId → npcIds живут рядом с
+    /// тем же сейвом и переносятся вместе с серверным runtime-каталогом.</summary>
+    public string PlayerAssignmentsPath =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-players.json");
 
     public int McpLeaseSeconds { get; private set; } = ControlLeases.DefaultTimeoutSeconds;
 

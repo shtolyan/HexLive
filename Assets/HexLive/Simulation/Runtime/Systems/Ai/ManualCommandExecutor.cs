@@ -77,6 +77,9 @@ internal static class ManualCommandExecutor
             case TalkToCommand talkTo:
                 ApplyTalkTo(world, talkTo, admission);
                 break;
+            case RomancePersonCommand romance:
+                ApplyRomancePerson(world, romance, admission);
+                break;
             case MergeCampsCommand mergeCamps:
                 ApplyMergeCamps(world, mergeCamps, admission);
                 break;
@@ -184,6 +187,7 @@ internal static class ManualCommandExecutor
         StopCommand => "Stop",
         CraftItemCommand => "Craft",
         TalkToCommand => "TalkTo",
+        RomancePersonCommand c => c.Forced ? "ForceRomance" : "Romance",
         MergeCampsCommand => "MergeCamps",
         AidPersonCommand => "Aid",
         TreatLimbsCommand => "TreatLimbs",
@@ -763,6 +767,66 @@ internal static class ManualCommandExecutor
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
                 $"Order=TalkTo Target=NPC{partner.Id.Value}");
+        }
+    }
+
+    private static void ApplyRomancePerson(
+        WorldState world, RomancePersonCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc,
+                command.Forced ? "ForceRomance" : "Romance",
+                requireManual: true, admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc) || command.Target.Equals(npc.Id))
+        {
+            Reject(world, npc.Id, "Romance", "Incapacitated", admission);
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Target, out var partner) ||
+            partner.CurrentJunction is not { } partnerJunction ||
+            partner.Health <= 0f)
+        {
+            Reject(world, npc.Id, "Romance", "TargetUnavailable", admission);
+            return;
+        }
+
+        if (command.Forced && !Spec121.ManualDarkOrdersEnabled)
+        {
+            Reject(world, npc.Id, "Romance", "FeatureDisabled", admission);
+            return;
+        }
+
+        var allowed = command.Forced
+            ? RomanceMath.CanForce(world, npc, partner)
+            : RomanceMath.CanConsent(world, npc, partner);
+        if (!allowed)
+        {
+            Reject(world, npc.Id, "Romance",
+                command.Forced ? "CannotForce" : "NoMutualConsent", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc,
+            command.Forced ? "Приказ принудить" : "Романтическое приглашение",
+            keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+        if (!PlanningSystem.TryInstallRomancePlan(world, npc, partner,
+                partnerJunction, command.Forced, out _))
+        {
+            npc.Mind.CurrentGoal = GoalType.None;
+            Reject(world, npc.Id, "Romance", "Unreachable", admission);
+            return;
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order={(command.Forced ? "ForceRomance" : "Romance")} " +
+                $"Target=NPC{partner.Id.Value}");
         }
     }
 

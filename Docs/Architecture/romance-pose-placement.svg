@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#78b8ff"/>
+    </marker>
+    <style>
+      .title{font:700 24px sans-serif;fill:#f3f5f7}.label{font:16px sans-serif;fill:#e6ebf0}
+      .small{font:14px sans-serif;fill:#b8c2cc}.hex{fill:#17222d;stroke:#7c8996;stroke-width:2}
+      .high{fill:#41252b;stroke:#ef6b73;stroke-width:3}.node{fill:#52606d}.near{fill:#55d6be;stroke:#d9fff8;stroke-width:2}
+      .woman{fill:#ff8fb8;stroke:#fff;stroke-width:2}.man{fill:#77aaff;stroke:#fff;stroke-width:2}
+      .excluded{fill:none;stroke:#ffad4a;stroke-width:2;stroke-dasharray:7 6}.measure{stroke:#78b8ff;stroke-width:2;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1080" height="620" fill="#0e151c"/>
+  <text x="36" y="42" class="title">§127 — размещение парной позы у кромки (как станет)</text>
+
+  <!-- Flat-topped simulation hex, R = 1.5 wu. Scale: 150 px / wu. -->
+  <polygon class="hex" points="385,90 580,202.5 580,427.5 385,540 190,427.5 190,202.5"/>
+  <polygon class="high" points="580,202.5 775,90 970,202.5 970,427.5 775,540 580,427.5"/>
+  <text x="272" y="577" class="label">проходимый гекс, R = 1,5 wu</text>
+  <text x="670" y="577" class="label">сосед: +1 ступень / ≥+2 стена</text>
+
+  <!-- Dim interior grid; edge row projection is 0.974 wu. -->
+  <g opacity="0.75">
+    <circle class="node" cx="310" cy="250" r="5"/><circle class="node" cx="310" cy="315" r="5"/><circle class="node" cx="310" cy="380" r="5"/>
+    <circle class="node" cx="385" cy="185" r="5"/><circle class="node" cx="385" cy="250" r="5"/><circle class="node" cx="385" cy="315" r="5"/><circle class="node" cx="385" cy="380" r="5"/><circle class="node" cx="385" cy="445" r="5"/>
+    <circle class="node" cx="460" cy="185" r="5"/><circle class="node" cx="460" cy="445" r="5"/>
+  </g>
+  <line x1="531.1" y1="178" x2="531.1" y2="452" stroke="#55d6be" stroke-width="2" stroke-dasharray="5 5"/>
+  <circle class="near" cx="531.1" cy="250" r="8"/><circle class="near" cx="531.1" cy="315" r="8"/><circle class="near" cx="531.1" cy="380" r="8"/><circle class="near" cx="531.1" cy="445" r="8"/>
+  <text x="205" y="112" class="small">тусклые точки — штатная субсетка, шаг 0,375 wu</text>
+  <text x="470" y="138" class="small">ближняя линия: dot = 0,974 wu ≥ 0,9</text>
+
+  <!-- Pair anchor and catalog offset, schematic around one valid near-edge node. -->
+  <circle class="woman" cx="531.1" cy="315" r="15"/>
+  <text x="481" y="306" class="label">она — якорь</text>
+  <line class="measure" x1="531.1" y1="315" x2="582.1" y2="321"/>
+  <circle class="man" cx="582.1" cy="321" r="15"/>
+  <text x="596" y="314" class="label">он — TRS каталога</text>
+  <text x="596" y="335" class="small">Wall: local (−0,04; −0,34)</text>
+  <text x="596" y="355" class="small">Sitting: local (−0,01; −0,16)</text>
+
+  <circle class="excluded" cx="531.1" cy="315" r="82.5"/>
+  <circle class="excluded" cx="582.1" cy="321" r="82.5"/>
+  <text x="400" y="488" class="small">оранжевые зоны: другой NPC ближе 0,55 wu запрещает кандидат</text>
+
+  <g transform="translate(38 505)">
+    <circle class="near" cx="8" cy="8" r="7"/><text x="24" y="14" class="small">допустимый женский узел</text>
+    <circle class="woman" cx="8" cy="38" r="8"/><text x="24" y="44" class="small">женский корень пары</text>
+    <circle class="man" cx="200" cy="38" r="8"/><text x="216" y="44" class="small">мужской корень по сохранённому офсету</text>
+  </g>
+</svg>

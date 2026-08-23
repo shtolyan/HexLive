@@ -18,6 +18,10 @@ MonoBehaviour:
     malePosition: {x: 0, y: 0, z: -0.37999994}
     maleEuler: {x: -0, y: 0, z: 0}
     authored: 1
+    femaleLoop: {fileID: 7400000, guid: 7bc9e46e73441814fb04b3249c9a97a7, type: 2}
+    maleLoop: {fileID: 7400000, guid: 7c11d9504a8d7574ab3c293a72cba3a2, type: 2}
+    femaleClimax: {fileID: 7400000, guid: 7156588893aa63c40b58058753059c06, type: 2}
+    maleClimax: {fileID: 7400000, guid: 70577d2405c1930468a2a73975b9dd7e, type: 2}
     genitalShapes:
     - shape: Flacid Preset 01
       weight: 0
@@ -40,6 +44,10 @@ MonoBehaviour:
     malePosition: {x: 0.059999995, y: 0, z: -0.17}
     maleEuler: {x: -0, y: 0, z: 0}
     authored: 1
+    femaleLoop: {fileID: 7400000, guid: 25a1926b21652ec4d97d7fc72eaeefb6, type: 2}
+    maleLoop: {fileID: 7400000, guid: 5fd2c6d6a042afe47869fd392f96d1fa, type: 2}
+    femaleClimax: {fileID: 7400000, guid: 76765d43e1562c54d870de4c203ba61d, type: 2}
+    maleClimax: {fileID: 7400000, guid: e6f8ecc8f882f6b4ea691a53b71a9f04, type: 2}
     genitalShapes:
     - shape: Flacid Preset 01
       weight: 0
@@ -57,6 +65,10 @@ MonoBehaviour:
     malePosition: {x: -0.01, y: 0, z: -0.15999998}
     maleEuler: {x: 0, y: 358, z: 0}
     authored: 1
+    femaleLoop: {fileID: 7400000, guid: b24db2db7078fc64da09b1f7de9ddd7a, type: 2}
+    maleLoop: {fileID: 7400000, guid: 991208fd805bfbe4a9847acb268b3845, type: 2}
+    femaleClimax: {fileID: 7400000, guid: 5d74830600b447f418a3f48a9d653440, type: 2}
+    maleClimax: {fileID: 7400000, guid: ab1140c3cfbeed843b0c7bf70d944c8d, type: 2}
     genitalShapes:
     - shape: Flacid Preset 01
       weight: 0
@@ -74,6 +86,10 @@ MonoBehaviour:
     malePosition: {x: -0.03, y: 0, z: -0.29999998}
     maleEuler: {x: -0, y: 8, z: 0}
     authored: 1
+    femaleLoop: {fileID: 7400000, guid: 858c96a5ab2267249b603b52cbc8536f, type: 2}
+    maleLoop: {fileID: 7400000, guid: 79e7a040c87bf5647baf555a208010fb, type: 2}
+    femaleClimax: {fileID: 7400000, guid: 2f31a562f8137ba42af67cd7dadf0f68, type: 2}
+    maleClimax: {fileID: 7400000, guid: e27b45d633f89d542a949a077649fb7c, type: 2}
     genitalShapes:
     - shape: Flacid Preset 01
       weight: 16.166662
@@ -91,6 +107,10 @@ MonoBehaviour:
     malePosition: {x: -0.01, y: 0, z: -0.3899999}
     maleEuler: {x: -0, y: 0, z: 0}
     authored: 1
+    femaleLoop: {fileID: 7400000, guid: 7f9321e2e6989d344ac4955873d8e6b0, type: 2}
+    maleLoop: {fileID: 7400000, guid: 9545482262c853d43b72cfa638447680, type: 2}
+    femaleClimax: {fileID: 7400000, guid: 518cbe8489767d14fb36979a0e36bb0d, type: 2}
+    maleClimax: {fileID: 7400000, guid: 040048121591da84198f7db70662bbe5, type: 2}
     genitalShapes:
     - shape: Flacid Preset 01
       weight: 30.9074
@@ -108,6 +128,10 @@ MonoBehaviour:
     malePosition: {x: -0.04, y: 0, z: -0.33999997}
     maleEuler: {x: -0, y: 0, z: 0}
     authored: 1
+    femaleLoop: {fileID: 7400000, guid: 0082758dff8229e40b4c8c026e7be0e0, type: 2}
+    maleLoop: {fileID: 7400000, guid: ad185922ceafcc0428ed86f10028b421, type: 2}
+    femaleClimax: {fileID: 7400000, guid: 79ece035d9897b749b316af915c41863, type: 2}
+    maleClimax: {fileID: 7400000, guid: c4a02595c6d80ce458eddd59f0bbb9df, type: 2}
     genitalShapes:
     - shape: Flacid Preset 01
       weight: 20.005318

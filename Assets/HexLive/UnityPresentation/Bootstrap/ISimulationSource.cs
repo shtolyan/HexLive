@@ -171,9 +171,18 @@ public interface ISimulationSource
     /// </summary>
     bool SupportsNpcCommands { get; }
 
-    /// <summary>§138 local-only read model for the backpack crafting tab.
-    /// Returns false when this client does not own authoritative command
-    /// execution; remote and wire-rehearsal UIs hide the tab.</summary>
+    /// <summary>
+    /// §149: право ЭТОГО клиента приказывать конкретной NPC. В local/loopback
+    /// это прежняя <c>Faction.Colony</c>; remote читает постоянный список из
+    /// handshake. <see cref="SupportsNpcCommands"/> отвечает только за наличие
+    /// канала и потому не различает двух игроков одного мира.
+    /// </summary>
+    bool CanControlNpc(EntityId npc);
+
+    /// <summary>§138 authoritative read model for the backpack crafting tab.
+    /// Local reads the world directly; remote reads the latest per-viewer
+    /// server push. Returns false when this client cannot craft as that NPC or
+    /// no authoritative options have arrived yet.</summary>
     bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into);
 
     /// <summary>

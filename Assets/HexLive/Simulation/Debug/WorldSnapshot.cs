@@ -755,6 +755,15 @@ public sealed class NpcSnapshot
 
     public string CurrentInteraction { get; set; } = string.Empty;
 
+    // §127: paired-scene presentation contract. Both participants carry
+    // identical key/anchor/timing and point at each other.
+    public int? RomancePartnerNpcId { get; set; }
+    public string RomanceClipKey { get; set; } = string.Empty;
+    public bool RomanceForced { get; set; }
+    public float RomanceAnchorX { get; set; }
+    public float RomanceAnchorY { get; set; }
+    public float RomanceFacingDegrees { get; set; }
+
     // The concrete inventory object that should be visible in the acting hand
     // for the current interaction. Empty means empty hands.
     public string HeldItemId { get; set; } = string.Empty;
@@ -982,6 +991,7 @@ public sealed class BodyPartConditionSnapshot
     // §40.8-H r10: накопительная кровяная подложка (спеклы вида) — растёт от
     // ран, смывается водой; не производная от Health.
     public float BloodSoil { get; set; }
+    public float IntimacySoil { get; set; }
     public bool Severed { get; set; }
     public string BandageKind { get; set; } = string.Empty;
     public ProstheticSnapshot Prosthetic { get; set; }

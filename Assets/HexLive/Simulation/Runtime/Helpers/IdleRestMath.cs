@@ -57,6 +57,7 @@ internal static class IdleRestMath
             npc.Mind.PendingAbuseFrom is not null ||
             npc.Mind.PendingExpulsionFrom is not null ||
             npc.Mind.PendingTalkFrom is not null ||
+            npc.Mind.PendingRomanceFrom is not null ||
             npc.Mind.PendingAidFrom is not null)
         {
             return true;

@@ -497,8 +497,10 @@ set, so pass anything short.
 
 1. **Воспроизвести ТЕКУЩИЙ мир — это значит прочитать ТЕКУЩИЙ СЕЙВ**, а не
    крутить worldgen с тем же сидом (сейв стоит на своём тике, мир уже другой):
-   `~/Library/Application Support/DefaultCompany/HexLive/hexlive_save.dat`,
-   заголовок 28 байт (`HXLV`, version, seed, tick, unixSeconds, speed), дальше
+   `~/Library/Application Support/DefaultCompany/HexLive/saves/<world-id>/world.dat`
+   (`<world-id>` выбран в PlayerPrefs `HexLive.LocalWorldId`, либо берётся
+   новейший `world.json`), заголовок v3 32 байта (`HXLV`, version, seed, tick,
+   unixSeconds, speed, mode; legacy v2 — 28 байт без mode), дальше
    `WorldSaveSerializer.Read` поверх `PrototypeWorldDefinitionFactory.Create(seed)`.
    Дальше — потиковая печать того, на что жалуются: позиция, угол, желаемый
    угол, статус движения, шаг пути. Форма беды видна за минуту.
@@ -674,7 +676,8 @@ lists the rest (`--seed`, `--save`, `--autosave`, `--simdata`, `--debug-details`
 ### Updating/restarting the local server without losing password or save
 
 The server state is not just the executable. The save file, admin account,
-player token, MCP token, simdata export, and log must travel as one directory.
+player token, persistent player-to-character assignments (`hexlive-players.json`),
+MCP token, simdata export, and log must travel as one directory.
 For the local player machine the canonical runtime directory is:
 
 ```bash

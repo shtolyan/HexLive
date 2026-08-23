@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -64,8 +65,9 @@ public enum FrameKind : byte
     /// Client → server: приказ NPC (§121.9/§83) — int32 correlationId + команда
     /// в <see cref="SimulationCommandCodec"/>. Принимается только от
     /// авторизованного соединения (токен игрока в рукопожатии HTTP-upgrade);
-    /// владение колонисткой решает реестр лиз на сервере, правду о приказе —
-    /// единственный валидатор ManualCommandExecutor.
+    /// право на колонистку решает постоянное назначение §149, активный поток
+    /// защищает реестр лиз, а правду о приказе — единственный валидатор
+    /// ManualCommandExecutor.
     /// </summary>
     NpcCommand = 10,
 
@@ -77,6 +79,14 @@ public enum FrameKind : byte
     /// у потока нет адресата, и отказ одного игрока видели бы все зрители.
     /// </summary>
     CommandResult = 11,
+
+    /// <summary>
+    /// Server → client: §138 authoritative crafting read models for only the
+    /// characters assigned to this viewer (§149). Replaces the previous
+    /// remote-only hole where CraftItemCommand travelled but its UI options did
+    /// not.
+    /// </summary>
+    CraftingOptions = 12,
 }
 
 public enum CommandKind : byte
@@ -111,7 +121,9 @@ public sealed class Handshake
     // 7: §147.5 — секция MobSlots в снапшоте/дельте (патрульные слоты
     //    виртуальных зверей; превью клиент считает сам из Seed+Tick).
     // 8: §133.9 — SetOutfitLockCommand и авторитетный OutfitLocked в NPC.
-    public const int ProtocolVersion = 8;
+    // 9: §149.3 — AssignedNpcIds: постоянный ростер именно этого игрока.
+    // 10: §138.2 — per-viewer FrameKind.CraftingOptions.
+    public const int ProtocolVersion = 10;
 
     public int Seed { get; set; }
 
@@ -153,6 +165,11 @@ public sealed class Handshake
     /// «занято таким-то». Пустая строка у анонима.</summary>
     public string ControlOwner { get; set; } = string.Empty;
 
+    /// <summary>§149: постоянные персонажи именно этого playerId. Это поле
+    /// handshake, а не WorldSnapshot: у двух зрителей одного мира списки
+    /// различаются.</summary>
+    public List<int> AssignedNpcIds { get; } = new();
+
     public void Write(BinaryWriter w)
     {
         w.Write(ProtocolVersion);
@@ -167,6 +184,11 @@ public sealed class Handshake
         WriteSimData(w, SimData ?? string.Empty);
         w.Write(ControlEnabled);
         w.Write(ControlOwner ?? string.Empty);
+        w.Write(AssignedNpcIds.Count);
+        for (var i = 0; i < AssignedNpcIds.Count; i++)
+        {
+            w.Write(AssignedNpcIds[i]);
+        }
     }
 
     public static Handshake Read(BinaryReader r)
@@ -178,7 +200,7 @@ public sealed class Handshake
                 $"Handshake protocol version {version}, expected {ProtocolVersion}.");
         }
 
-        return new Handshake
+        var handshake = new Handshake
         {
             Seed = r.ReadInt32(),
             Mode = r.ReadInt32(),
@@ -192,6 +214,20 @@ public sealed class Handshake
             ControlEnabled = r.ReadBoolean(),
             ControlOwner = r.ReadString(),
         };
+
+        var assignedCount = r.ReadInt32();
+        if (assignedCount < 0 || assignedCount > 1024)
+        {
+            throw new InvalidDataException(
+                $"Handshake claims {assignedCount} assigned NPCs — not plausible.");
+        }
+
+        for (var i = 0; i < assignedCount; i++)
+        {
+            handshake.AssignedNpcIds.Add(r.ReadInt32());
+        }
+
+        return handshake;
     }
 
     /// <summary>
@@ -407,6 +443,24 @@ public static class Frame
             WireIo.ReadNullableInt(reader),
             reader.ReadString(),
             reader.ReadString());
+    }
+
+    // ── §138: authoritative remote crafting read model ──────────────────
+
+    public static byte[] CraftingOptions(CraftingOptionsSnapshot snapshot)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8);
+        CraftingOptionsCodec.Write(snapshot, writer);
+        writer.Flush();
+        return Wrap(FrameKind.CraftingOptions, stream.ToArray());
+    }
+
+    public static CraftingOptionsSnapshot ReadCraftingOptions(byte[] payload)
+    {
+        using var stream = new MemoryStream(payload);
+        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        return CraftingOptionsCodec.Read(reader);
     }
 
     private static byte[] WithLong(FrameKind kind, long value)

@@ -24,8 +24,9 @@ namespace HexLive.Server
 /// §121.9: авторизованный токеном игрок — больше не только зритель. Его
 /// соединение несёт owner (<c>ws:&lt;guid&gt;</c>), и кадры
 /// <see cref="FrameKind.NpcCommand"/> проходят: потолок кадра → rate-limit →
-/// реестр лиз → <c>WorldHost.SubmitManualCommand</c> (единственный валидатор —
-/// тот же <c>ManualCommandExecutor</c>) → синхронный
+/// постоянное назначение §149 → реестр лиз →
+/// <c>WorldHost.SubmitManualCommand</c> (единственный валидатор — тот же
+/// <c>ManualCommandExecutor</c>) → синхронный
 /// <see cref="FrameKind.CommandResult"/> с вердиктом. Сервер не верит клиенту
 /// НИЧЕГО: «агент не может больше игрока» (§144.3) распространяется на игрока
 /// по сети буквально, а часы остаются операторскими (§83.2).
@@ -51,6 +52,8 @@ public sealed class ViewerConnection
     private readonly bool _includeDebugDetails;
     private readonly string? _controlOwner;
     private readonly ControlLeases? _leases;
+    private readonly HashSet<int>? _assignedNpcIds;
+    private byte[]? _lastCraftingOptionsFrame;
 
     private double _rateTokens = CommandBurst;
     private DateTimeOffset _rateStamp = DateTimeOffset.UtcNow;
@@ -64,7 +67,8 @@ public sealed class ViewerConnection
 
     public ViewerConnection(
         WorldHost host, WebSocket socket, string simData, bool includeDebugDetails,
-        string? controlOwner = null, ControlLeases? leases = null)
+        string? controlOwner = null, ControlLeases? leases = null,
+        IReadOnlyList<int>? assignedNpcIds = null)
     {
         _host = host;
         _socket = socket;
@@ -72,15 +76,19 @@ public sealed class ViewerConnection
         _includeDebugDetails = includeDebugDetails;
         _controlOwner = controlOwner;
         _leases = leases;
+        _assignedNpcIds = assignedNpcIds is null
+            ? null
+            : new HashSet<int>(assignedNpcIds);
     }
 
-    private bool ControlEnabled => _controlOwner is not null && _leases is not null;
+    private bool ControlEnabled =>
+        _controlOwner is not null && _leases is not null && _assignedNpcIds is not null;
 
     public async Task RunAsync(CancellationToken cancel)
     {
         _eventSeq = _host.HighestEventSeq;
 
-        await SendAsync(Frame.Handshake(new Handshake
+        var handshake = new Handshake
         {
             Seed = _host.Seed,
             Mode = (int)_host.Mode,
@@ -93,7 +101,14 @@ public sealed class ViewerConnection
             SimData = _simData,
             ControlEnabled = ControlEnabled,
             ControlOwner = _controlOwner ?? string.Empty,
-        }), cancel).ConfigureAwait(false);
+        };
+        if (_assignedNpcIds is not null)
+        {
+            handshake.AssignedNpcIds.AddRange(_assignedNpcIds);
+            handshake.AssignedNpcIds.Sort();
+        }
+
+        await SendAsync(Frame.Handshake(handshake), cancel).ConfigureAwait(false);
 
         // Commands arrive on their own loop so a silent client never blocks the
         // frames going out.
@@ -143,6 +158,8 @@ public sealed class ViewerConnection
                         await SendAsync(Frame.Wrap(FrameKind.Events, events), cancel).ConfigureAwait(false);
                     }
 
+                    await SendCraftingOptionsIfChangedAsync(cancel).ConfigureAwait(false);
+
                     continue;
                 }
 
@@ -159,6 +176,49 @@ public sealed class ViewerConnection
         }
 
         await reader.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// §138.2: the UI reads the same server-side CraftingOptions calculation
+    /// that CraftItemCommand will repeat at admission. The batch is private to
+    /// this viewer because its NPC list is private (§149). Identical batches
+    /// are suppressed; progress/resources/manual state naturally make a new
+    /// frame when the visible answer changes.
+    /// </summary>
+    private async Task SendCraftingOptionsIfChangedAsync(CancellationToken cancel)
+    {
+        if (!ControlEnabled)
+        {
+            return;
+        }
+
+        var frame = _host.Read(world => Frame.CraftingOptions(
+            PlayerCraftingOptions.Capture(world, _assignedNpcIds!)));
+        if (FramesEqual(frame, _lastCraftingOptionsFrame))
+        {
+            return;
+        }
+
+        _lastCraftingOptionsFrame = frame;
+        await SendAsync(frame, cancel).ConfigureAwait(false);
+    }
+
+    private static bool FramesEqual(byte[] left, byte[]? right)
+    {
+        if (right is null || left.Length != right.Length)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Length; i++)
+        {
+            if (left[i] != right[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private async Task ReadCommandsAsync(CancellationToken cancel)
@@ -325,6 +385,15 @@ public sealed class ViewerConnection
         var leases = _leases!;
         var owner = _controlOwner!;
 
+        // §149.3: постоянное назначение проверяется ДО временного лиза. Лиз
+        // отвечает «кто сейчас командует», но не может сам выдать игроку новую
+        // колонистку. Группа проходит только целиком.
+        if (!AllActorsAssigned(command))
+        {
+            refusal = "NotAssigned";
+            return false;
+        }
+
         switch (command)
         {
             case SetManualControlCommand setManual:
@@ -401,6 +470,9 @@ public sealed class ViewerConnection
                 return true;
         }
     }
+
+    private bool AllActorsAssigned(ISimulationCommand command)
+        => PlayerCommandAssignment.Allows(command, _assignedNpcIds!);
 
     private bool TakeRateToken()
     {

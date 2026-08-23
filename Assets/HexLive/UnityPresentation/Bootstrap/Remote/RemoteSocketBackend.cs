@@ -110,6 +110,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     private readonly List<int> _arrivedTicks = new();
     private readonly List<byte[]> _eventFrames = new();
     private Handshake? _handshake;
+    private readonly Dictionary<int, List<CraftRecipeOption>> _craftingOptions = new();
     private bool _handshakeIsNew;
     private LinkState _state = LinkState.Connecting;
     private string? _message;
@@ -178,13 +179,30 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         }
     }
 
+    public bool CanControlNpc(EntityId npc)
+    {
+        lock (_inbox)
+        {
+            return _handshake?.ControlEnabled == true &&
+                   _handshake.AssignedNpcIds.Contains(npc.Value);
+        }
+    }
+
     public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
     {
-        // Рецепты пока не ездят по проводу: вкладка «Крафт» на удалёнке
-        // пуста. Приказ CraftItemCommand при этом валиден — MCP-агент шлёт
-        // его по каталогу рецептов; окно UI догонит отдельным кадром.
         into.Clear();
-        return false;
+        lock (_inbox)
+        {
+            if (_handshake?.ControlEnabled != true ||
+                !_handshake.AssignedNpcIds.Contains(npc.Value) ||
+                !_craftingOptions.TryGetValue(npc.Value, out var options))
+            {
+                return false;
+            }
+
+            into.AddRange(options);
+            return true;
+        }
     }
 
     public void EnqueueCommand(ISimulationCommand command)
@@ -362,6 +380,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                         _snapshotFrames.Clear();
                         _arrivedTicks.Clear();
                         _eventFrames.Clear();
+                        _craftingOptions.Clear();
                     }
                 }
 
@@ -399,6 +418,25 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                 }
 
                 break;
+
+            case FrameKind.CraftingOptions:
+            {
+                var snapshot = Frame.ReadCraftingOptions(payload);
+                lock (_inbox)
+                {
+                    _craftingOptions.Clear();
+                    for (var i = 0; i < snapshot.Npcs.Count; i++)
+                    {
+                        var npc = snapshot.Npcs[i];
+                        if (_handshake?.AssignedNpcIds.Contains(npc.NpcId) == true)
+                        {
+                            _craftingOptions[npc.NpcId] = npc.Options;
+                        }
+                    }
+                }
+
+                break;
+            }
 
             case FrameKind.Events:
                 lock (_inbox)

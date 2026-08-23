@@ -41,6 +41,7 @@ public sealed class WorldSupervisor : IDisposable
     private CancellationTokenSource _viewerLifetime;
     private Thread _thread;
     private string _simData;
+    private int _worldGeneration;
 
     public WorldSupervisor(int seed, HexLive.Simulation.Bootstrap.GameMode mode,
         string savePath, string simDataPath, bool verboseTrace,
@@ -113,6 +114,20 @@ public sealed class WorldSupervisor : IDisposable
     }
 
     /// <summary>
+    /// §149: viewer handshake, assignment and lifetime must name ONE world.
+    /// Reading the three properties separately allowed an admin world-swap to
+    /// splice an old roster into a new host between reads.
+    /// </summary>
+    public ViewerSession CaptureViewerSession()
+    {
+        lock (_swap)
+        {
+            return new ViewerSession(
+                _host, _simData, _viewerLifetime.Token, _worldGeneration);
+        }
+    }
+
+    /// <summary>
     /// Throws the current colony away and starts a fresh one.
     /// <para>
     /// Destructive and irreversible, which is why the caller (the admin panel)
@@ -146,6 +161,7 @@ public sealed class WorldSupervisor : IDisposable
             _hostLifetime = CancellationTokenSource.CreateLinkedTokenSource(_appShutdown);
             _thread = StartThread(_host, _hostLifetime.Token);
             _simData = File.ReadAllText(_simDataPath);
+            _worldGeneration++;
             Console.WriteLine($"[world] NEW WORLD started, seed {seed}");
         }
 
@@ -202,6 +218,23 @@ public sealed class WorldSupervisor : IDisposable
             _viewerLifetime.Dispose();
         }
     }
+}
+
+public readonly struct ViewerSession
+{
+    public ViewerSession(
+        WorldHost host, string simData, CancellationToken lifetime, int worldGeneration)
+    {
+        Host = host;
+        SimData = simData;
+        Lifetime = lifetime;
+        WorldGeneration = worldGeneration;
+    }
+
+    public WorldHost Host { get; }
+    public string SimData { get; }
+    public CancellationToken Lifetime { get; }
+    public int WorldGeneration { get; }
 }
 
 }

@@ -298,6 +298,24 @@ public sealed class TalkToCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§127: initiate a paired romantic interaction. Forced is an
+/// explicit dark order; the simulation still revalidates sex, faction, trait,
+/// health, reach and interruption conditions.</summary>
+public sealed class RomancePersonCommand : ISimulationCommand
+{
+    public RomancePersonCommand(EntityId npc, EntityId target, bool forced)
+    {
+        Npc = npc;
+        Target = target;
+        Forced = forced;
+    }
+
+    public EntityId Npc { get; }
+    public EntityId Target { get; }
+    public bool Forced { get; }
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>
 /// §146.12: merge the player's camp with a neighbouring girl camp after both
 /// sides have more than 50% affinity. <c>UseTargetCamp</c> chooses whether the

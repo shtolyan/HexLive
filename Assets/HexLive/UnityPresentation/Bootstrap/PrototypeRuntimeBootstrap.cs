@@ -251,6 +251,13 @@ public static class PrototypeRuntimeBootstrap
         var historyPanel = historyRoot.AddComponent<GameHistoryPanel>();
         historyPanel.SetRunner(runner);
 
+        // §150: one procedural map rendered compactly below history and again
+        // as the high-altitude world overlay.
+        var mapRoot = new GameObject("HexLive Tactical Map");
+        mapRoot.AddComponent<UIDocument>();
+        var tacticalMap = mapRoot.AddComponent<TacticalMapPanel>();
+        tacticalMap.SetRunner(runner);
+
         // Escape menu (continue / quit) — Escape with nothing selected.
         var menuRoot = new GameObject("HexLive Game Menu");
         menuRoot.AddComponent<UIDocument>();

@@ -574,6 +574,15 @@ public sealed partial class ExecutionSystem
         npc.Mind.RaidCooldownUntilTick = System.Math.Max(
             npc.Mind.RaidCooldownUntilTick, world.Tick + Spec81.AbuseRaidLockoutTicks);
 
+        // §127: after a submitted, contact-motivated abuse scene the abuser
+        // may escalate while both are already in reach. Loot-motivated scenes
+        // stop after the item; a failed resistance never transitions.
+        if (submitted && taken is null &&
+            TryContinueAbuseAsForcedRomance(world, npc, mark))
+        {
+            return;
+        }
+
         npc.Plan.Status = PlanStatus.Completed;
         npc.Plan.Steps.Clear();
         npc.Plan.TargetObjectId = null;

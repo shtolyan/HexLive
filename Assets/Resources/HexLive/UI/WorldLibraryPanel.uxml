@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="WorldLibraryPanel.uss" />
+  <ui:VisualElement name="worldLibraryPanel" class="world-library-panel">
+    <ui:VisualElement class="world-library-header">
+      <ui:VisualElement>
+        <ui:Label name="panelKicker" class="world-library-kicker" />
+        <ui:Label name="panelTitle" class="world-library-heading" />
+      </ui:VisualElement>
+      <ui:Button name="closeButton" text="×" class="world-library-close" />
+    </ui:VisualElement>
+    <ui:Label name="panelDescription" class="world-library-description" />
+    <ui:ScrollView name="worldList" class="world-library-list" />
+    <ui:VisualElement name="emptyState" class="world-library-empty">
+      <ui:Label name="emptyTitle" class="world-library-empty-title" />
+      <ui:Label name="emptyDescription" class="world-library-empty-description" />
+    </ui:VisualElement>
+  </ui:VisualElement>
+</ui:UXML>

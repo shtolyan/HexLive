@@ -768,6 +768,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Face life (blink + mood expression) on the body blend shapes.
     private NpcFaceAnimator _face;
+    private bool _romanceVisual;
+    private bool _romanceDistressed;
+    private bool _romanceLookAtWasEnabled;
+    private bool _romanceFullBodyWasEnabled;
 
     private bool _laying;
     private bool _crying; // §110: лежит и рыдает (поза + лицо отличаются от сна)
@@ -2025,6 +2029,32 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// <summary>§118.4: аниматор тела — CarriedPoseFollower целится в кости.</summary>
     internal Animator BodyAnimator => _animator;
 
+    internal void SetRomanceVisual(bool active, bool distressed)
+    {
+        _bodyBones?.SetGenitalsForcedVisible(
+            active && ActorSex.Of(_actorMesh) == VisualGender.Male);
+
+        if (_romanceVisual != active)
+        {
+            if (active)
+            {
+                _romanceLookAtWasEnabled = _lookAtIK != null && _lookAtIK.enabled;
+                _romanceFullBodyWasEnabled = _fullBodyIK != null && _fullBodyIK.enabled;
+                if (_lookAtIK != null) _lookAtIK.enabled = false;
+                if (_fullBodyIK != null) _fullBodyIK.enabled = false;
+            }
+            else
+            {
+                if (_lookAtIK != null) _lookAtIK.enabled = _romanceLookAtWasEnabled;
+                if (_fullBodyIK != null) _fullBodyIK.enabled = _romanceFullBodyWasEnabled;
+            }
+            _romanceVisual = active;
+        }
+
+        _romanceDistressed = active && distressed;
+        _face?.SetRomance(active, _romanceDistressed);
+    }
+
     /// <summary>§118.4: рэгдоллом владеет физика — поверх неё не штампуем.</summary>
     internal bool RagdollActive => _ragdollActive;
 
@@ -2224,6 +2254,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Spec 40.8-D: wounds/bandages paint into the skin textures; the decal
         // projectors then skip them (dirt/sweat/rain stay projector-based).
+        var intimacySoil = 0f;
+        if (partConditions != null)
+        {
+            foreach (var part in partConditions)
+            {
+                if (part.Part == BodyPart.Pelvis)
+                {
+                    intimacySoil = part.IntimacySoil;
+                    break;
+                }
+            }
+        }
+
         if (PaintWoundsIntoTexture && _skinPainter != null)
         {
             _woundScratch.Clear();
@@ -2349,12 +2392,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // retired (SweatDropletProjectors).
             _skinDecals.Sync(null, _uncoveredScratch, hygiene,
                 SweatDropletProjectors ? thermal : 0f,
-                Mathf.Max(_clothRainWetness, _skinWetness), null);
+                Mathf.Max(_clothRainWetness, _skinWetness), null, null,
+                intimacySoil);
         }
         else
         {
             _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness, _bandagedScratch,
-                _gauzeScratch);
+                _gauzeScratch, intimacySoil);
         }
 
         // Wet sheen: hot skin glistens — and rain-soaked skin the same way
@@ -7536,7 +7580,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Spec 40.13: while ragdolled (faint/corpse) the bones belong to
         // physics — no procedural pose layer may write over them.
-        if (!_ragdollActive)
+        if (!_ragdollActive && !_romanceVisual)
         {
             // Layer the current action's arm swing over the animated pose.
             ApplyActionPose();

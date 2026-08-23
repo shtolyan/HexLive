@@ -13,7 +13,7 @@ Hard requirements from the game (spec §67.6/§67.7):
   * >= 3 variants per group, so a repeated situation does not repeat a sound
 
 Usage:
-  python3 _ArtSource/Voice/generate_voices.py                # everything (189 x 4)
+  python3 _ArtSource/Voice/generate_voices.py                # everything (216 x 5)
   python3 _ArtSource/Voice/generate_voices.py --priority P1   # the playable core
   python3 _ArtSource/Voice/generate_voices.py --chars molly,jana --groups sad_hunger
   python3 _ArtSource/Voice/generate_voices.py --dry-run       # plan only, no API calls
@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import array
+import hashlib
 import json
 import os
 import pathlib
@@ -174,6 +175,27 @@ def write_wav(path: pathlib.Path, pcm: bytes) -> float:
     return len(pcm) / 2 / RATE
 
 
+def ensure_unity_meta(path: pathlib.Path) -> None:
+    """StreamingAssets still need committed Unity metas. Use a stable guid so
+    headless generation and an open Editor cannot race to invent two ids."""
+    if not path.exists():
+        return
+    meta = pathlib.Path(str(path) + ".meta")
+    if meta.exists():
+        return
+    relative = path.relative_to(ROOT).as_posix()
+    guid = hashlib.sha256(("hexlive-voice-meta:" + relative).encode()).hexdigest()[:32]
+    meta.write_text(
+        "fileFormatVersion: 2\n"
+        f"guid: {guid}\n"
+        "DefaultImporter:\n"
+        "  externalObjects: {}\n"
+        "  userData: \n"
+        "  assetBundleName: \n"
+        "  assetBundleVariant: \n",
+        encoding="utf-8")
+
+
 # ---------------------------------------------------------------- api
 
 def synth(api_key: str, voice_id: str, text: str, cfg: dict, model: str, seed: int) -> bytes:
@@ -251,10 +273,12 @@ def main() -> int:
               and (not args.groups or g["id"] in args.groups.split(","))]
 
     jobs = []
+    targets = []
     for char, cfg in chars.items():
         for g in groups:
             for n, line in enumerate(g["lines"]):
                 path = OUTDIR / char / f"voice_{char}_{g['id']}_{n}.wav"
+                targets.append(path)
                 if args.fix_capped:
                     # Only the takes that ran into the cap — they end mid-word.
                     if not path.exists() or wav_seconds(path) < MAX_SECONDS - 0.01:
@@ -325,6 +349,10 @@ def main() -> int:
 
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         list(pool.map(run, jobs))
+
+    for path in targets:
+        ensure_unity_meta(path)
+        ensure_unity_meta(path.with_suffix(".vis"))
 
     print(f"\nmade={len(made)} failed={len(failures)}")
     if made:

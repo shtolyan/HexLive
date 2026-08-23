@@ -381,6 +381,35 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 }
             }
 
+            // §127: romantic invitations use the same stationary handshake,
+            // but their claim is typed separately so an ordinary talk cannot
+            // consume it. Forced invitations are still broken by emergencies;
+            // the leader revalidates the branch on arrival.
+            if (npc.Mind.PendingRomanceFrom is { } romanceFrom)
+            {
+                var stale = !world.Entities.Npcs.TryGetValue(romanceFrom, out var inviter) ||
+                    inviter.Mind.CurrentGoal != GoalType.Romance ||
+                    inviter.Plan.TargetAgentId != npc.Id;
+                if (stale || npc.Mind.IsStarving || npc.Mind.IsDehydrated ||
+                    world.Tick - npc.Mind.PendingRomanceSinceTick > TalkWaitTimeoutTicks)
+                {
+                    npc.Mind.PendingRomanceFrom = null;
+                }
+                else if (npc.Execution.Status != ExecutionStatus.InProgress ||
+                         npc.Execution.CurrentInteraction != InteractionType.Romance)
+                {
+                    if (npc.Plan.Status == PlanStatus.Active ||
+                        npc.Execution.Status == ExecutionStatus.InProgress)
+                    {
+                        PlanInterruption.TryAbort(world, npc,
+                            InterruptionCause.SceneInitiator,
+                            $"Waiting for romance from NPC{romanceFrom.Value}");
+                    }
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    continue;
+                }
+            }
+
             // Spec §53: self-heal a stale aid claim — valid only while the helper
             // still exists, still targets this NPC, and is still on an Aid goal.
             if (npc.Mind.PendingAidFrom is { } aidFromId &&
@@ -669,7 +698,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             // Spec 28.8 handshake: while someone is coming over to talk,
             // don't initiate a talk yourself.
-            if (npc.Mind.PendingTalkFrom is not null)
+            if (npc.Mind.PendingTalkFrom is not null ||
+                npc.Mind.PendingRomanceFrom is not null)
             {
                 socializeAvail = false;
             }

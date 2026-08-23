@@ -19,7 +19,10 @@ namespace HexLive.UnityPresentation.Wearing
     /// </summary>
     public sealed class SkinDecals : MonoBehaviour
     {
-        private enum DecalType { Scratch, Blood, Dirt, Sweat, Bandage, Gauze }
+        private enum DecalType
+        {
+            Scratch, Blood, Dirt, Sweat, Bandage, Gauze, IntimacyStain
+        }
 
         private sealed class Zone
         {
@@ -120,7 +123,8 @@ namespace HexLive.UnityPresentation.Wearing
         /// </summary>
         public void Sync(IReadOnlyList<string> wounds, HashSet<string> uncovered,
             float hygiene, float thermal, float rainWet = 0f,
-            HashSet<string> bandaged = null, HashSet<string> gauzed = null)
+            HashSet<string> bandaged = null, HashSet<string> gauzed = null,
+            float intimacySoil = 0f)
         {
             if (_bones == null || _bodyRoot == null)
             {
@@ -216,6 +220,21 @@ namespace HexLive.UnityPresentation.Wearing
                 if (uncovered.Contains(DirtSpread[i]))
                 {
                     Want($"dirt.{i}", DecalType.Dirt, DirtSpread[i], i * 29 + 7);
+                }
+            }
+
+            // §127: one pale, slightly transparent blood-shaped projector on
+            // the female pelvis. Its authoritative soil value fades with the
+            // same water/rain/bathe path as BloodSoil.
+            var intimacy = Mathf.Clamp01(intimacySoil);
+            if (intimacy > 0.01f && uncovered.Contains("Pelvis"))
+            {
+                const string key = "intimacy.pelvis";
+                Want(key, DecalType.IntimacyStain, "Pelvis", 127);
+                if (_decals.TryGetValue(key, out var stain) && stain != null &&
+                    stain.TryGetComponent<DecalProjector>(out var stainProjector))
+                {
+                    stainProjector.fadeFactor = intimacy * 0.78f;
                 }
             }
 
@@ -317,6 +336,7 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 DecalType.Scratch => 0.095f,
                 DecalType.Blood => 0.075f,
+                DecalType.IntimacyStain => 0.095f,
                 DecalType.Sweat => 0.070f, // droplet spray patch
                 DecalType.Bandage => 0.110f, // dressing covers the wound area
                 DecalType.Gauze => 0.110f, // gauze wrap covers the wound area
@@ -412,6 +432,9 @@ namespace HexLive.UnityPresentation.Wearing
                 // grains + clumps like the logo's weathered grime — the old
                 // procedural blobs read as flat paint.
                 DecalType.Dirt => Resources.Load<Texture2D>("HexLive/Decals/dirt_dust"),
+                // Intentionally procedural: the silhouette is a copy of the
+                // blood pool, recoloured ivory and made more transparent.
+                DecalType.IntimacyStain => null,
                 _ => null
             };
 
@@ -475,6 +498,7 @@ namespace HexLive.UnityPresentation.Wearing
                     {
                         DecalType.Scratch => ScratchPixel(u, v),
                         DecalType.Blood => BloodPixel(u, v),
+                        DecalType.IntimacyStain => IntimacyPixel(u, v),
                         DecalType.Dirt => DirtPixel(u, v),
                         DecalType.Bandage => GauzePixel(u, v),
                         DecalType.Gauze => GauzePixel(u, v),
@@ -544,6 +568,16 @@ namespace HexLive.UnityPresentation.Wearing
             var heart = Mathf.Clamp01((0.13f - r) / 0.13f);
             var col = Color.Lerp(new Color(0.52f, 0.05f, 0.04f), new Color(0.24f, 0.01f, 0.01f), heart);
             return new Color(col.r, col.g, col.b, alpha * 0.95f);
+        }
+
+        private static Color IntimacyPixel(float u, float v)
+        {
+            var blood = BloodPixel(u, v);
+            var edge = Mathf.Clamp01(blood.a / 0.95f);
+            var ivory = Color.Lerp(
+                new Color(0.82f, 0.86f, 0.82f),
+                new Color(1f, 0.99f, 0.94f), edge);
+            return new Color(ivory.r, ivory.g, ivory.b, edge * 0.62f);
         }
 
         // Dirt: layered earthy grime — big soft patch, darker mud speckles,

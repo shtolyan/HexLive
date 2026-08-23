@@ -1,10 +1,14 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using UnityEngine;
 using UnityEngine.UIElements;
+using PresentationSimulationMode = HexLive.UnityPresentation.Bootstrap.SimulationMode;
 
 namespace HexLive.UnityPresentation.UI
 {
@@ -62,6 +66,12 @@ namespace HexLive.UnityPresentation.UI
         private bool _menuChosen;
         private bool _continueChosen;
         private bool _restartChosen;
+
+        // §41.8: every local colony is its own catalog entry. The active slot
+        // only changes when Continue or a card in the world library chooses it.
+        private IReadOnlyList<SaveWorldInfo> _worlds;
+        private VisualElement _worldLibraryBox;
+        private readonly List<Texture2D> _worldPreviewTextures = new();
 
         // §Server: chosen "watch a server" instead of building a world here.
         // The addresses themselves live in ServerBook, which also remembers
@@ -148,11 +158,21 @@ namespace HexLive.UnityPresentation.UI
             // Safety: if the coroutine died mid-wind (an in-play domain reload
             // kills coroutines silently), don't leave the renderer muted.
             IsReplaying = false;
+
+            foreach (var texture in _worldPreviewTextures)
+            {
+                if (texture != null)
+                {
+                    Destroy(texture);
+                }
+            }
+            _worldPreviewTextures.Clear();
         }
 
         public void Begin(SimulationRunnerBehaviour runner)
         {
             _runner = runner;
+            _worlds = SaveGame.ListWorlds();
             _save = SaveGame.TryReadHeader();
             BuildUi();
             StartCoroutine(Run());
@@ -285,6 +305,13 @@ namespace HexLive.UnityPresentation.UI
                 _menuChosen = true;
             }));
 
+            // Local worlds stay reachable even when Continue points at the
+            // last remote server. This is the durable way back from online
+            // play into any single-player colony (§41.8).
+            card.Add(MakeMenuRow("worlds", Loc.Get("menu.worlds"),
+                primary: false, enabled: true, () => ToggleWorldLibrary()));
+            _worldLibraryBox = BuildWorldLibraryBox();
+
             // §146: New game opens the dedicated scenario browser.
             card.Add(MakeMenuRow("plus", Loc.Get("menu.newgame"),
                 primary: false, enabled: true, () => ToggleNewGameBox()));
@@ -350,6 +377,7 @@ namespace HexLive.UnityPresentation.UI
 
             _menuBox.Add(card);
             _root.Add(_menuBox);
+            _root.Add(_worldLibraryBox);
             _root.Add(_newGameBox);
 
             // Bottom gradient strip carrying the title/status/progress, so
@@ -514,6 +542,169 @@ namespace HexLive.UnityPresentation.UI
             return box;
         }
 
+        // §41.8: dedicated local-world browser. UXML/USS own the reusable
+        // shell; cards are data-driven because every directory under saves/
+        // is a world, not a fixed slot count.
+        private VisualElement BuildWorldLibraryBox()
+        {
+            var template = Resources.Load<VisualTreeAsset>("HexLive/UI/WorldLibraryPanel");
+            if (template == null)
+            {
+                Debug.LogError("[HexLive] Missing Resources/HexLive/UI/WorldLibraryPanel.uxml");
+                return new VisualElement { name = "missingWorldLibraryPanel" };
+            }
+
+            var host = template.CloneTree();
+            host.AddToClassList("world-library-host");
+            host.Q<Label>("panelKicker").text = Loc.Get("menu.worlds.kicker");
+            host.Q<Label>("panelTitle").text = Loc.Get("menu.worlds.title");
+            host.Q<Label>("panelDescription").text = Loc.Get("menu.worlds.description");
+            host.Q<Button>("closeButton").clicked += () =>
+                host.RemoveFromClassList("is-open");
+
+            var list = host.Q<ScrollView>("worldList");
+            var empty = host.Q<VisualElement>("emptyState");
+            host.Q<Label>("emptyTitle").text = Loc.Get("menu.worlds.empty.title");
+            host.Q<Label>("emptyDescription").text = Loc.Get("menu.worlds.empty.description");
+
+            if (_worlds == null || _worlds.Count == 0)
+            {
+                list.AddToClassList("is-empty");
+                empty.AddToClassList("is-visible");
+                return host;
+            }
+
+            foreach (var world in _worlds)
+            {
+                list.Add(BuildWorldCard(world));
+            }
+
+            return host;
+        }
+
+        private VisualElement BuildWorldCard(SaveWorldInfo world)
+        {
+            var card = new VisualElement();
+            card.AddToClassList("world-card");
+
+            var previewFrame = new VisualElement();
+            previewFrame.AddToClassList("world-card-preview-frame");
+            var preview = new Image { scaleMode = ScaleMode.ScaleAndCrop };
+            preview.AddToClassList("world-card-preview");
+            preview.image = LoadWorldPreview(world) ??
+                Resources.Load<Texture2D>("HexLive/UI/loading_island");
+            previewFrame.Add(preview);
+            card.Add(previewFrame);
+
+            var copy = new VisualElement();
+            copy.AddToClassList("world-card-copy");
+
+            var title = new Label(WorldModeTitle(world.Header.mode));
+            title.AddToClassList("world-card-title");
+            copy.Add(title);
+
+            var day = HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(world.Header.tick);
+            var meta = new Label(string.Format(
+                Loc.Get("menu.worlds.meta"), day, world.Header.seed));
+            meta.AddToClassList("world-card-meta");
+            copy.Add(meta);
+
+            var dateCulture = Loc.Current == Language.Russian
+                ? CultureInfo.GetCultureInfo("ru-RU")
+                : CultureInfo.GetCultureInfo("en-US");
+            var savedLocal = DateTimeOffset.FromUnixTimeSeconds(world.LastSavedUnixSeconds)
+                .ToLocalTime().ToString("g", dateCulture);
+            var date = new Label(string.Format(Loc.Get("menu.worlds.saved"), savedLocal));
+            date.AddToClassList("world-card-date");
+            copy.Add(date);
+            card.Add(copy);
+
+            var load = new Button(() => ResumeWorld(world))
+            {
+                text = Loc.Get("menu.worlds.load")
+            };
+            load.AddToClassList("world-card-action");
+            card.Add(load);
+
+            return card;
+        }
+
+        private Texture2D LoadWorldPreview(SaveWorldInfo world)
+        {
+            if (!world.HasPreview)
+            {
+                return null;
+            }
+
+            Texture2D texture = null;
+            try
+            {
+                texture = new Texture2D(2, 2, TextureFormat.RGB24, false);
+                if (!ImageConversion.LoadImage(
+                        texture, File.ReadAllBytes(world.PreviewPath), false))
+                {
+                    Destroy(texture);
+                    return null;
+                }
+
+                texture.name = "WorldPreview_" + world.Id;
+                _worldPreviewTextures.Add(texture);
+                return texture;
+            }
+            catch (Exception e)
+            {
+                if (texture != null)
+                {
+                    Destroy(texture);
+                }
+                Debug.LogWarning($"[HexLive] World preview unreadable ({world.Id}): {e.Message}");
+                return null;
+            }
+        }
+
+        private static string WorldModeTitle(int mode)
+        {
+            foreach (var option in NewGameModeOptions)
+            {
+                if ((int)option.Mode == mode)
+                {
+                    return Loc.Get(option.TitleTerm);
+                }
+            }
+
+            return Loc.Get("menu.newgame.mode.feud");
+        }
+
+        private void ResumeWorld(SaveWorldInfo world)
+        {
+            if (!SaveGame.SelectWorld(world.Id))
+            {
+                return;
+            }
+
+            _save = world.Header;
+            _connectChosen = false;
+            _restartChosen = false;
+            _continueChosen = true;
+            if (SessionConfig.Mode == PresentationSimulationMode.Remote)
+            {
+                SessionConfig.UseServer(null);
+            }
+            _worldLibraryBox?.RemoveFromClassList("is-open");
+            _menuChosen = true;
+        }
+
+        private void ToggleWorldLibrary()
+        {
+            if (_worldLibraryBox == null)
+            {
+                return;
+            }
+
+            _newGameBox?.RemoveFromClassList("is-open");
+            _worldLibraryBox.ToggleInClassList("is-open");
+        }
+
         /// <summary>
         /// Accepts whatever was typed or clicked and leaves the menu. The URL is
         /// only REMEMBERED here, not yet proven — a bad address is remembered
@@ -533,6 +724,7 @@ namespace HexLive.UnityPresentation.UI
 
             _connectChosen = true;
             _continueChosen = false;
+            _worldLibraryBox?.RemoveFromClassList("is-open");
             _menuChosen = true;
         }
 
@@ -628,6 +820,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            _worldLibraryBox?.RemoveFromClassList("is-open");
             _newGameBox.ToggleInClassList("is-open");
         }
 
@@ -642,6 +835,8 @@ namespace HexLive.UnityPresentation.UI
             _connectBox.style.display = opening ? DisplayStyle.Flex : DisplayStyle.None;
             if (opening)
             {
+                _worldLibraryBox?.RemoveFromClassList("is-open");
+                _newGameBox?.RemoveFromClassList("is-open");
                 _serverField?.Focus();
             }
         }
@@ -752,6 +947,30 @@ namespace HexLive.UnityPresentation.UI
                         p.Stroke();
                         break;
 
+                    case "worlds":
+                        // Two saved-world cards: a compact stack with a small
+                        // horizon mark, readable at the menu's 20 px icon size.
+                        p.lineWidth = 2.2f;
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.22f, s * 0.12f));
+                        p.LineTo(new Vector2(s * 0.86f, s * 0.12f));
+                        p.LineTo(new Vector2(s * 0.86f, s * 0.64f));
+                        p.Stroke();
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.12f, s * 0.30f));
+                        p.LineTo(new Vector2(s * 0.76f, s * 0.30f));
+                        p.LineTo(new Vector2(s * 0.76f, s * 0.86f));
+                        p.LineTo(new Vector2(s * 0.12f, s * 0.86f));
+                        p.ClosePath();
+                        p.Stroke();
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.22f, s * 0.70f));
+                        p.LineTo(new Vector2(s * 0.38f, s * 0.52f));
+                        p.LineTo(new Vector2(s * 0.51f, s * 0.65f));
+                        p.LineTo(new Vector2(s * 0.66f, s * 0.47f));
+                        p.Stroke();
+                        break;
+
                     case "gear":
                         p.lineWidth = 3.4f;
                         for (var i = 0; i < 8; i++)
@@ -856,6 +1075,14 @@ namespace HexLive.UnityPresentation.UI
                 yield break;
             }
 
+            // A previous session may have been remote. Any local choice —
+            // Continue, Restart or New Game — must switch the backend back to
+            // Local before Configure creates it (§41.8).
+            if (SessionConfig.Mode == PresentationSimulationMode.Remote)
+            {
+                SessionConfig.UseServer(null);
+            }
+
             int seed;
             // §146.2: the mode is part of the world's identity. Continue and
             // Restart take it from the save header; only New game asks the menu.
@@ -870,16 +1097,13 @@ namespace HexLive.UnityPresentation.UI
             }
             else
             {
-                // Spec 41.4: new game wipes the save and rolls a fresh world.
-                // Restart keeps the CURRENT island — the save's seed rebuilds
-                // the same topology from day 1. Dev one-shot override lets a
-                // known island seed be restarted cleanly without keeping the
-                // old mutable save.
+                // §41.8: New Game and Restart allocate a NEW world directory.
+                // Restart keeps the current island's seed/mode, but its older
+                // progress remains in the catalog and can always be loaded.
                 var restartSeed = _restartChosen && _save != null ? _save.seed : (int?)null;
                 mode = _restartChosen && _save != null
                     ? (HexLive.Simulation.Bootstrap.GameMode)_save.mode
                     : _newGameMode;
-                SaveGame.Delete();
                 if (restartSeed.HasValue)
                 {
                     seed = restartSeed.Value;
@@ -888,6 +1112,7 @@ namespace HexLive.UnityPresentation.UI
                 {
                     seed = System.Environment.TickCount;
                 }
+                SaveGame.CreateWorld(seed, mode);
                 _targetTick = 0;
                 Debug.Log(restartSeed.HasValue
                     ? $"[HexLive] Restart same island: seed {seed} ({mode})"
@@ -932,9 +1157,9 @@ namespace HexLive.UnityPresentation.UI
                     if (!SaveGame.TryRestore(restoreEngine.World))
                     {
                         Debug.LogWarning("[HexLive] Save restore failed — starting a new world.");
-                        SaveGame.Delete();
                         seed = System.Environment.TickCount;
                         _targetTick = 0;
+                        SaveGame.CreateWorld(seed, mode);
                         _runner.Configure(
                             HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed, mode),
                             startPaused: true, initialSpeed: 1f);

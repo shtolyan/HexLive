@@ -322,6 +322,10 @@ public sealed class BodyPartCondition
     // ран и реген HP её НЕ трогают — голод/жажда/жара/болезнь тело не красят.
     public float BloodSoil { get; set; }
 
+    // §127: washable pale intimacy stain. Only Pelvis is authored today;
+    // kept per-zone beside BloodSoil so save/wire/decal lifetime has one owner.
+    public float IntimacySoil { get; set; }
+
     public ProstheticState Prosthetic { get; set; }
 }
 

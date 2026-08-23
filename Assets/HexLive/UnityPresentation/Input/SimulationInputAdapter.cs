@@ -6,6 +6,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Rendering;
@@ -137,7 +138,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         foreach (var npc in snapshot.Npcs)
         {
             if (!NpcSelection.Contains(npc.Id.Value) ||
-                npc.Faction != Faction.Colony || npc.Health <= 0f)
+                !_runner.CanControlNpc(npc.Id) || npc.Health <= 0f)
             {
                 continue;
             }
@@ -156,6 +157,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
     private static bool PointerBlocked() =>
         NpcSelection.PointerOverUi ||
+        TacticalMapPanel.PointerOverMap ||
         HexInspectorPanel.PointerOverPanel ||
         ContextMenuPanel.BlocksWorldPointer ||
         LootTransferPanel.IsOpen ||
@@ -441,7 +443,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// одном из них.</summary>
     internal bool CanTargetPerson(NpcSnapshot person)
     {
-        if (person.Faction == HexLive.Simulation.Agents.Faction.Colony)
+        var owned = _runner != null && _runner.CanControlNpc(person.Id);
+        if (owned)
         {
             return true;
         }
@@ -564,6 +567,75 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     }
 
     /// <summary>
+    /// §150: an explicit RTS click on either map size. Unlike an ordinary
+    /// world-ground click (§121.1), the map gesture takes control of every
+    /// living selected actor this client owns, then queues the normal move
+    /// command behind that control edge in the same tick.
+    /// </summary>
+    public bool TryMoveSelectionFromMap(Float2 point, bool run)
+    {
+        var runner = _runner;
+        if (runner == null || !runner.IsReady || !runner.SupportsNpcCommands ||
+            !NpcSelection.HasSelection)
+        {
+            return false;
+        }
+
+        var snapshot = runner.CreateSnapshot();
+        if (snapshot == null)
+        {
+            return false;
+        }
+
+        var actors = new List<EntityId>();
+        var manual = new HashSet<int>();
+        foreach (var npc in snapshot.Npcs)
+        {
+            if (!NpcSelection.Contains(npc.Id.Value) || npc.Health <= 0f ||
+                !runner.CanControlNpc(npc.Id))
+            {
+                continue;
+            }
+
+            actors.Add(npc.Id);
+            if (npc.IsManualControl)
+            {
+                manual.Add(npc.Id.Value);
+            }
+        }
+
+        if (actors.Count == 0)
+        {
+            return false;
+        }
+
+        actors.Sort((a, b) => a.Value.CompareTo(b.Value));
+        if (actors.Count == 1)
+        {
+            var actor = actors[0];
+            if (!manual.Contains(actor.Value))
+            {
+                runner.EnqueueCommand(new SetManualControlCommand(actor, true));
+            }
+
+            runner.EnqueueCommand(new MoveToCommand(actor, point, run));
+        }
+        else
+        {
+            if (manual.Count != actors.Count)
+            {
+                runner.EnqueueCommand(new SetGroupManualControlCommand(actors, true));
+            }
+
+            runner.EnqueueCommand(new GroupMoveCommand(actors, point, run));
+        }
+
+        DestinationMarker.Show(
+            SimulationUnityMapper.ToUnityPosition(point, GroundMarkerY(point)));
+        return true;
+    }
+
+    /// <summary>
     /// Правый клик (без drag) при выделенной колонистке — контекстное меню
     /// цели под курсором, БЕЗ требования тумблера 🎮: раньше до «атаковать/
     /// обобрать» было не добраться иначе как через ручной режим. Приказ из
@@ -623,7 +695,9 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     // и сим принимает приказ тем же тиком. Уже ручную не трогаем.
     private void EnsureManual(int actorId)
     {
-        if (_runner == null || actorId < 0 || _manualSelectedIds.Contains(actorId))
+        if (_runner == null || actorId < 0 ||
+            !_runner.CanControlNpc(new EntityId(actorId)) ||
+            _manualSelectedIds.Contains(actorId))
         {
             return;
         }
@@ -825,6 +899,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
                     new EntityId(carrier.Id.Value), new EntityId(npcId))),
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.romance"),
+                () => EnqueueOrder(carrier!.Id.Value, new RomancePersonCommand(
+                    new EntityId(carrier.Id.Value), new EntityId(npcId),
+                    forced: false)),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
         // §146.12: two explicit diplomatic outcomes over the same command
@@ -898,6 +977,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                         "menu.dark.abuse.confirm",
                         () => EnqueueOrder(carrier!.Id.Value, new AbusePersonCommand(
                             new EntityId(carrier.Id.Value), new EntityId(npcId))))));
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.force_romance"),
+                    () => OpenConfirmMenu(mousePos, NpcTitle(npcId),
+                        "menu.dark.force_romance.confirm",
+                        () => EnqueueOrder(carrier!.Id.Value,
+                            new RomancePersonCommand(
+                                new EntityId(carrier.Id.Value),
+                                new EntityId(npcId), forced: true)))));
             }
         }
 

@@ -53,6 +53,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 // Socialize/Aid: ни авто-нужд, ни таймаута (оба ждут None), а
                 // планировщик для ручной выключен и цель не починит.
                 case GoalType.Socialize:
+                case GoalType.Romance:
                 case GoalType.Aid:
                 case GoalType.Splint:
                 case GoalType.FitProsthetic:

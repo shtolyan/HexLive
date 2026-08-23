@@ -209,6 +209,30 @@ public sealed class NPCMind
 
     public int PendingTalkSinceTick { get; set; }
 
+    // §127: the same transient handshake as PendingTalkFrom, but kept
+    // separate so a romantic invitation cannot be mistaken for ordinary chat.
+    public HexLive.Simulation.Common.EntityId? PendingRomanceFrom { get; set; }
+
+    public int PendingRomanceSinceTick { get; set; }
+
+    // Authoritative paired-scene state mirrored onto both participants and
+    // persisted so a mid-scene save resumes the same authored pose and clock.
+    public HexLive.Simulation.Common.EntityId? RomancePartnerNpcId { get; set; }
+
+    public HexLive.Simulation.Common.EntityId? RomanceLeaderNpcId { get; set; }
+
+    public string RomanceClipKey { get; set; } = string.Empty;
+
+    public bool RomanceForced { get; set; }
+
+    public float RomanceAnchorX { get; set; }
+
+    public float RomanceAnchorY { get; set; }
+
+    public float RomanceFacingDegrees { get; set; }
+
+    public int RomanceCooldownUntilTick { get; set; }
+
     // §133: чужую вещь надевают только с разрешения, и спрашивают КАЖДЫЙ раз.
     // Отсюда две памятки, обе НЕ персистятся (идиома PendingTalkFrom): полученное
     // «да» на конкретную вещь — оно одноразовое и сгорает при надевании — и
@@ -668,7 +692,11 @@ public enum GoalType
     // Explore: у Explore случайная дальняя точка, а здесь ровно одна — якорь
     // лагеря, и доступна она в противоположной ситуации (Explore — сытой и
     // целой, Homeward — израненной или той, кому нечем утолить нужду).
-    Homeward
+    Homeward,
+
+    // §127 append-only: consensual or forced paired intimacy. The concrete
+    // branch and authored pose live in transient Romance* fields above.
+    Romance
 }
 
 public sealed class GoalScore

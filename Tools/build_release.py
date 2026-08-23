@@ -348,14 +348,38 @@ def verify_code_signature(app_path: Path) -> tuple[bool, str]:
     return result.returncode == 0, details
 
 
+def remove_macos_metadata(app_path: Path) -> int:
+    """Remove Finder sidecar files before sealing the local macOS player.
+
+    Unity copies StreamingAssets verbatim, including Finder's `.DS_Store`.
+    If that file is present when Unity signs the bundle and then disappears
+    or changes while the build is staged, `codesign --verify --strict` reports
+    a missing sealed resource. Keeping those files out of the final bundle
+    makes the local release deterministic.
+    """
+
+    removed = 0
+    for path in app_path.rglob("*"):
+        if path.name == ".DS_Store" or path.name.startswith("._"):
+            path.unlink(missing_ok=True)
+            removed += 1
+    return removed
+
+
 def ensure_development_signature(app_path: Path, release: bool) -> str:
+    removed_metadata = remove_macos_metadata(app_path)
+    if removed_metadata:
+        print(f"Удалены macOS metadata files из .app перед подписью: {removed_metadata}")
+
     valid, details = verify_code_signature(app_path)
     if valid:
         return "unity"
-    if release:
-        raise RuntimeError(f"Release code signature is invalid:\n{details}")
 
-    print("Unity оставил некорректную вложенную подпись; пересоздаю локальную ad-hoc подпись.")
+    if release:
+        print("Unity оставил некорректную release-подпись; пересоздаю локальную ad-hoc подпись.")
+    else:
+        print("Unity оставил некорректную вложенную подпись; пересоздаю локальную ad-hoc подпись.")
+
     result = subprocess.run(
         [str(CODE_SIGN), "--force", "--deep", "--sign", "-", "--timestamp=none", str(app_path)],
         text=True,

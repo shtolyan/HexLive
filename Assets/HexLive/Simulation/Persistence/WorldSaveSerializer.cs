@@ -122,7 +122,8 @@ public static class WorldSaveSerializer
     // выводится из сида задним числом. Блоб ≤52 читает пустой список, и
     // ленивая генерация отстраивает слоты заново, если ручки включены.
     // v55 (§133.9, #193): сохраняемый запрет смены одежды per NPC.
-    public const int BlobVersion = 55;
+    // v56 (§127): парная сцена, её cooldown и смываемый IntimacySoil.
+    public const int BlobVersion = 56;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1614,6 +1615,7 @@ public static class WorldSaveSerializer
         {
             w.Write((int)part);
             w.Write(npc.Body.Condition(part).BloodSoil);
+            w.Write(npc.Body.Condition(part).IntimacySoil);
         }
 
         // §136 / v45: дневник. Пишется ТОЛЬКО кольцо закрытых записей —
@@ -1641,6 +1643,17 @@ public static class WorldSaveSerializer
 
         // §133.9 / v55: append-only хвост NPC-записи.
         w.Write(npc.Mind.OutfitLocked);
+
+        // §127 / v56: paired scene must survive a save on either participant;
+        // the leader's active plan owns completion and clears both mirrors.
+        WriteNullableEntity(w, npc.Mind.RomancePartnerNpcId);
+        WriteNullableEntity(w, npc.Mind.RomanceLeaderNpcId);
+        WriteNullableString(w, npc.Mind.RomanceClipKey);
+        w.Write(npc.Mind.RomanceForced);
+        w.Write(npc.Mind.RomanceAnchorX);
+        w.Write(npc.Mind.RomanceAnchorY);
+        w.Write(npc.Mind.RomanceFacingDegrees);
+        w.Write(npc.Mind.RomanceCooldownUntilTick);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2195,9 +2208,11 @@ public static class WorldSaveSerializer
             {
                 var part = (BodyPart)r.ReadInt32();
                 var soil = r.ReadSingle();
+                var intimacySoil = version >= 56 ? r.ReadSingle() : 0f;
                 if (npc.Body.Conditions.TryGetValue(part, out var condition))
                 {
                     condition.BloodSoil = soil;
+                    condition.IntimacySoil = intimacySoil;
                 }
             }
         }
@@ -2233,6 +2248,18 @@ public static class WorldSaveSerializer
         // §133.9: старый сейв не содержал пользовательского запрета, поэтому
         // его одежда остаётся в прежнем свободном режиме.
         npc.Mind.OutfitLocked = version >= 55 && r.ReadBoolean();
+
+        if (version >= 56)
+        {
+            npc.Mind.RomancePartnerNpcId = ReadNullableEntity(r);
+            npc.Mind.RomanceLeaderNpcId = ReadNullableEntity(r);
+            npc.Mind.RomanceClipKey = ReadNullableString(r) ?? string.Empty;
+            npc.Mind.RomanceForced = r.ReadBoolean();
+            npc.Mind.RomanceAnchorX = r.ReadSingle();
+            npc.Mind.RomanceAnchorY = r.ReadSingle();
+            npc.Mind.RomanceFacingDegrees = r.ReadSingle();
+            npc.Mind.RomanceCooldownUntilTick = r.ReadInt32();
+        }
 
         return npc;
     }

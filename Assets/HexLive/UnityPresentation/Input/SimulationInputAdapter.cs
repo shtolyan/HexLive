@@ -1100,6 +1100,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         Add("menu.self.wash", SelfActionKind.WashClothes);
         Add("menu.self.eat", SelfActionKind.EatFromPack);
         Add("menu.self.drink", SelfActionKind.DrinkFromPack);
+        Add("menu.self.go_home", SelfActionKind.GoHome);
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.stop"),
             () => EnqueueOrder(npcId, new StopCommand(actor))));
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);

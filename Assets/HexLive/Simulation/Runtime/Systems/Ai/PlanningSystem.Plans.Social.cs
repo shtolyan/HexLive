@@ -471,7 +471,7 @@ public sealed partial class PlanningSystem
     /// ног почти нет, — ей нужен тот же аварийный проход, что и §50.9
     /// (спуски по направленному графу, §57.11).
     /// </summary>
-    private void BuildHomewardPlan(WorldState world, NPCState npc)
+    internal void BuildHomewardPlan(WorldState world, NPCState npc)
     {
         if (npc.CurrentJunction is not { } from ||
             ColonyQueries.Home(world, npc.Faction) is not { } home)

@@ -34,6 +34,29 @@ public sealed class ManualSelfActionTests
     }
 
     [Test]
+    public void GoHomeOrderBuildsUrgentRouteIntoOwnCamp()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonists(world)[0];
+        TakeControl(engine, npc);
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new SelfActionCommand(npc.Id, SelfActionKind.GoHome));
+
+        Assert.That(admission.Status,
+            Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            $"GoHome отклонён: {admission.Reason}");
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Homeward));
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active));
+        Assert.That(npc.Plan.TargetTile, Is.Not.Null);
+        Assert.That(ColonyQueries.InCamp(
+            world, npc.Plan.TargetTile!.Value, npc.Faction), Is.True);
+        Assert.That(GoalCatalog.UrgencyFor(GoalType.Homeward),
+            Is.EqualTo(UrgencyClass.Hurry));
+    }
+
+    [Test]
     public void EatFromPackOrderEatsEvenBelowTheAutoNeedThreshold()
     {
         var engine = TestWorld.CreateEngine();

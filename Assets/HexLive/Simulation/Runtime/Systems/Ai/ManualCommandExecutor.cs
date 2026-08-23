@@ -1199,6 +1199,12 @@ internal static class ManualCommandExecutor
                 npc.Mind.CurrentGoal = GoalType.Drink;
                 break;
 
+            case SelfActionKind.GoHome:
+                InstallSelfPlan(world, npc, admission, GoalType.Homeward,
+                    "Приказ бежать домой", "NoRouteToCamp",
+                    () => ManualPlanner.BuildHomewardPlan(world, npc));
+                break;
+
             default:
                 admission.Reject("UnsupportedCommand");
                 return;

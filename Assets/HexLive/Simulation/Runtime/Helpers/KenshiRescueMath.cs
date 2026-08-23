@@ -343,7 +343,12 @@ internal static class KenshiRescueMath
         SpatialQueries.CollectStandableAround(
             world, target.Junctions[0], candidates, 96,
             SpatialQueries.BesideReach(obstacleRadius), target,
-            SpatialQueries.RimPurpose.Route);
+            // This is the FINAL interaction side, not merely evidence that a
+            // route exists somewhere near the object. Reach crosses the bed's
+            // own footprint but stops at hut walls/closed doors/third objects;
+            // Route allowed an outside rim point and PutDownAtDestination then
+            // tucked the patient through the wall (bug #212).
+            SpatialQueries.RimPurpose.Reach);
 
         candidates.Sort((a, b) =>
         {

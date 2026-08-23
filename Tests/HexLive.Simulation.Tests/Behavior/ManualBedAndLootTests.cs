@@ -126,6 +126,91 @@ public sealed class ManualBedAndLootTests
     }
 
     [Test]
+    public void PutPersonInBedChoosesTheRoomSideOfTheWall_Bug212()
+    {
+        var world = TestWorld.CreateWorld(-33186804);
+        TestWorld.SpawnLegacyKitHut(world);
+        var pair = world.Entities.Npcs.Values
+            .Where(npc => npc.Faction == Faction.Colony)
+            .Take(2)
+            .ToArray();
+        var carrier = pair[0];
+        var patient = pair[1];
+
+        WorldObjectState bed = null;
+        JunctionId outsideRim = default;
+        var routeRim = new System.Collections.Generic.List<JunctionId>();
+        var reachRim = new System.Collections.Generic.List<JunctionId>();
+        foreach (var candidateBed in world.Entities.Objects.Values.Where(
+                     candidate => candidate.DefinitionId == ContentIds.BedBasic &&
+                                  candidate.Junctions.Count > 0))
+        {
+            var radius = world.Content.ObjectDefinitions[candidateBed.DefinitionId].ObstacleRadius;
+            SpatialQueries.CollectStandableAround(
+                world, candidateBed.Junctions[0], routeRim, 96,
+                SpatialQueries.BesideReach(radius), candidateBed,
+                SpatialQueries.RimPurpose.Route);
+            SpatialQueries.CollectStandableAround(
+                world, candidateBed.Junctions[0], reachRim, 96,
+                SpatialQueries.BesideReach(radius), candidateBed,
+                SpatialQueries.RimPurpose.Reach);
+            var reachSet = reachRim.ToHashSet();
+            var throughWall = routeRim.FirstOrDefault(junction =>
+                !reachSet.Contains(junction) &&
+                SpatialQueries.IsJunctionFree(world, junction));
+            if (!throughWall.Equals(default(JunctionId)))
+            {
+                bed = candidateBed;
+                outsideRim = throughWall;
+                break;
+            }
+        }
+
+        Assert.That(bed, Is.Not.Null,
+            "В производственном доме не нашлась кровать с внешним Route-only подходом.");
+
+        // Isolate the final-stand decision at the reported outside rim. The old
+        // Route rim accepted this zero-length approach and tucked through the
+        // wall; Reach must either plan a legal room-side approach or reject the
+        // command when the carried body cannot traverse the doorway.
+        if (carrier.CurrentJunction is { } carrierJunction)
+        {
+            SpatialMutations.FreeJunction(world, carrierJunction, carrier.Id);
+        }
+        carrier.CurrentJunction = outsideRim;
+        carrier.Position = world.Junctions.Items[outsideRim].WorldPosition;
+        patient.Mind.FaintedUntilTick = world.Tick + 100000;
+        ExecutionSystem.ReleaseClaims(world, patient);
+        if (patient.CurrentJunction is { } patientJunction)
+        {
+            SpatialMutations.FreeJunction(world, patientJunction, patient.Id);
+        }
+        patient.CurrentJunction = null;
+        patient.CarriedByNpcId = carrier.Id;
+        carrier.CarriedNpcId = patient.Id;
+        bed.IsOccupied = false;
+        bed.CurrentUser = null;
+
+        var began = KenshiRescueMath.TryBeginManualBedPlacement(
+            world, carrier, patient, bed);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(!began || carrier.Plan.TargetJunctionId != outsideRim, Is.True,
+                "Bug #212: укладка всё ещё завершается со стороны стены.");
+            Assert.That(!began || reachRim.Contains(carrier.Plan.TargetJunctionId!.Value), Is.True,
+                "Финальная точка не принадлежит досягаемому ободу кровати.");
+            Assert.That(!began || SpatialQueries.CanTouchAcross(
+                    world, carrier.Plan.TargetJunctionId.Value, bed.Junctions[0],
+                    SpatialQueries.BesideReach(
+                        world.Content.ObjectDefinitions[bed.DefinitionId].ObstacleRadius),
+                    bed, SpatialQueries.RimPurpose.Reach),
+                Is.True,
+                "С финального узла кровать нельзя коснуться без прохода сквозь барьер.");
+        });
+    }
+
+    [Test]
     public void OccupiedBedRejectsThePutOrder()
     {
         var (engine, carrier, patient) = CarryScene();

@@ -209,7 +209,7 @@ public static class WorldSnapshotExporter
                 Runtime.ContainerLootMath.IsLootable(world, obj))
             {
                 _containerCellsScratch.Clear();
-                Runtime.ContainerLootMath.BuildCells(obj, _containerCellsScratch);
+                Runtime.ContainerLootMath.BuildCells(world, obj, _containerCellsScratch);
                 for (var cell = 0; cell < _containerCellsScratch.Count; cell++)
                 {
                     var (itemId, count, sourceIndex) = _containerCellsScratch[cell];

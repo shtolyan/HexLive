@@ -137,6 +137,20 @@ public sealed class LootTransferUiContractTests
             Assert.That(localization, Does.Contain("'Обмен вещами'"));
         });
     }
+
+    [Test]
+    public void EmptyRemainsAndWardrobeOpenTheTwoSidedContainerPanel()
+    {
+        var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(adapter, Does.Contain("definition.HasTag(ObjectTags.Remains)"));
+            Assert.That(adapter, Does.Contain("definition.HasTag(ObjectTags.Wardrobe)"));
+            Assert.That(adapter, Does.Contain("if (isContainer && interaction.Type == InteractionType.Loot) continue"));
+            Assert.That(adapter, Does.Contain("LootTransferPanel.OpenContainer(actorId, containerId)"));
+        });
+    }
 }
 
 }

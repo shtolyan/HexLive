@@ -60,7 +60,8 @@ public sealed partial class ExecutionSystem
         if (take)
         {
             if (!ContainerLootMath.TryResolve(
-                    container, slotIndex, expected, count, out var moving))
+                    world, container, slotIndex, expected, count,
+                    out var moving, out var groundSources))
             {
                 FailContainerTransfer(world, looter, "StaleItem");
                 return;
@@ -72,7 +73,8 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            ContainerLootMath.TakeFromContainer(container, looter, moving);
+            ContainerLootMath.TakeFromContainer(
+                world, container, looter, moving, groundSources);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, looter.Id, "ContainerTransferred",
@@ -93,7 +95,13 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            ContainerLootMath.GiveToContainer(container, looter, moving);
+            if (!ContainerLootMath.CanAccept(world, container, moving))
+            {
+                FailContainerTransfer(world, looter, "InsufficientSpace");
+                return;
+            }
+
+            ContainerLootMath.GiveToContainer(world, container, looter, moving);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, looter.Id, "ContainerTransferred",

@@ -763,12 +763,28 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
+        // One coherent frame for the generic actions and all state-derived
+        // additions below. Empty tagged containers (including a wardrobe) are
+        // still valid drop targets even though Contents has no cells yet.
+        var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+        var clicked = FindObject(snapshot, view.ObjectId);
+        var isContainer = clicked != null &&
+            (clicked.Contents.Count > 0 ||
+             definition.HasTag(ObjectTags.Remains) ||
+             definition.HasTag("Container") ||
+             definition.HasTag(ObjectTags.Wardrobe) ||
+             definition.InventoryCapacity > 0);
+
         var carried = CarriedItems();
         var actorId = OrderNpcId;
         var actor = new EntityId(actorId);
         _entries.Clear();
         foreach (var interaction in definition.Interactions)
         {
+            // §128.5 / bug #199: a container's Loot action opens the two-sided
+            // inventory panel; the old one-item interaction must not create a
+            // duplicate identically named menu entry beside it.
+            if (isContainer && interaction.Type == InteractionType.Loot) continue;
             var ok = HasEveryTool(carried, interaction);
             var objectId = view.ContextObjectId;
             var type = interaction.Type;
@@ -779,13 +795,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 ok,
                 ok ? null : Loc.Get("menu.missing_tool")));
         }
-
-        // One coherent frame for all state-derived additions below. Besides
-        // avoiding repeated snapshot exports, this prevents a server tick from
-        // changing the owner/container answer halfway through one menu build.
-        var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
-
-        var clicked = FindObject(snapshot, view.ObjectId);
 
         // §124.1: у несущей человека клик по кровати добавляет «Положить» —
         // рядом со «Спать» из каталога. Занятость кровати авторитетно решает
@@ -815,12 +824,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         }
 
         // §128.5: ОБЫСКАТЬ ВЕЩЬ — истлевшее тело, снятый рюкзак, аптечку.
-        // Признак берётся из снапшота: симуляция кладёт в объект содержимое
-        // только у настоящих контейнеров, поэтому непустой список — это и есть
-        // ответ «здесь есть что взять», а не догадка по id.
-        if (clicked != null && clicked.Contents.Count > 0)
+        // Пустой мешок или шкаф тоже открывается: это не только источник,
+        // но и назначение для перетаскивания вещей из левой панели.
+        if (isContainer)
         {
-            var containerId = view.ObjectId;
+            var containerId = view.ContextObjectId;
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
                 () =>
                 {

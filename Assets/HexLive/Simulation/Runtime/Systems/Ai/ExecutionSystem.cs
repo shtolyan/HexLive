@@ -631,7 +631,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // enough to friction/hand-drill it (§45 r5).
                 if (interaction.Type == InteractionType.Fuel)
                 {
-                    var hasWoodNow = npc.Inventory.Items.Contains(ContentIds.Stick);
+                    var hasWoodNow = npc.Inventory.Items.Contains(ContentIds.Stick) ||
+                        ContainerLootMath.HasQueuedCampfireFuel(world, worldObject);
                     // §45 r5 parity: the DECISION layer already lets a genuinely
                     // cold girl SELECT TendFire without the one colony lighter
                     // (canFrictionLight = ThermalComfort < -0.35). Execution must
@@ -1272,10 +1273,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else if (completedInteraction.Type == InteractionType.Fuel)
         {
-            // Spec 29E.3 / §54: one stick per fueling, half a day of fire.
-            npc.Inventory.Items.Remove(ContentIds.Stick);
+            // Spec 29E.3 / §54 / §151: AI keeps its old one-stick path; a
+            // player may instead light a cold, pre-stocked pit from the first
+            // buffered piece (log = four sticks, board/other wood = one).
+            var fuel = ContainerLootMath.FuelTicksPerStick;
+            if (npc.Inventory.Items.Contains(ContentIds.Stick))
+            {
+                npc.Inventory.Items.Remove(ContentIds.Stick);
+            }
+            else if (!ContainerLootMath.TryConsumeCampfireFuel(
+                         world, worldObject, out fuel))
+            {
+                return false;
+            }
             var wasLit = worldObject.ResourceAmount > 0f;
-            worldObject.ResourceAmount += 1200f;
+            worldObject.ResourceAmount += fuel;
             Trace.Emit(world, npc.Id, wasLit ? "FireFueled" : "FireLit",
                 $"{worldObject.DefinitionId} Fuel={worldObject.ResourceAmount:F0} ticks");
             worldObject.IsOccupied = false;

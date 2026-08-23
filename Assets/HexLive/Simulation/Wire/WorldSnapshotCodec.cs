@@ -521,6 +521,9 @@ public static class WorldSnapshotCodec
             // следующего ключевого кадра (гейт покрытия провода ловит ровно это).
             WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
         }
+        // §151: always present beside Contents for the same reason as its
+        // count. Zero is the legacy/unbounded container projection.
+        w.Write(o.ContainerCapacity);
 
         if ((parts & ObjectParts.Owner) != 0)
         {
@@ -641,6 +644,7 @@ public static class WorldSnapshotCodec
                     AcceptedItemDefinitionId = r.ReadString()
                 });
             }
+            o.ContainerCapacity = r.ReadInt32();
 
             // Absent parts must be CLEARED, not left alone: these records are
             // reused across frames, so an object that stops being a build site

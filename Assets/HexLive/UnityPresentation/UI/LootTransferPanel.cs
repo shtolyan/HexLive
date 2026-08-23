@@ -535,9 +535,10 @@ public sealed class LootTransferPanel : MonoBehaviour
         _leftTitle.text = Loc.NpcName(looter.DisplayName);
         _rightTitle.text = ItemName(container.DefinitionId);
         _leftCapacity.text = $"{looter.InventoryUsedSlots}/{looter.InventoryCapacity}";
-        var stored = 0;
-        foreach (var slot in container.Contents) stored += Mathf.Max(1, slot.StackCount);
-        _rightCapacity.text = stored.ToString();
+        var stored = container.Contents.Count;
+        _rightCapacity.text = container.ContainerCapacity > 0
+            ? $"{stored}/{container.ContainerCapacity}"
+            : stored.ToString();
         BuildInventoryProjection(_leftContent, looter);
         BuildContainerProjection(_rightContent, container);
         _densityTier = 0;
@@ -552,7 +553,7 @@ public sealed class LootTransferPanel : MonoBehaviour
     /// </summary>
     private void BuildContainerProjection(VisualElement parent, ObjectSnapshot container)
     {
-        if (container.Contents.Count == 0)
+        if (container.Contents.Count == 0 && container.ContainerCapacity <= 0)
         {
             var empty = new Label(Loc.Get("loot.empty"));
             empty.style.color = TextMute;
@@ -587,6 +588,15 @@ public sealed class LootTransferPanel : MonoBehaviour
             // местом в Contents: симуляция разрешает её тем же перечислением,
             // что построило эту сетку, и сверяет ожидаемый id.
             slots.Add(BuildSlot(-container.Id.Value, slot, null, useCellIndex: true));
+        }
+        for (var index = container.Contents.Count;
+             index < container.ContainerCapacity; index++)
+        {
+            slots.Add(BuildSlot(-container.Id.Value, new InventorySlotSnapshot
+            {
+                Index = index,
+                SourceIndex = -1
+            }, null, useCellIndex: true));
         }
 
         card.Add(slots);

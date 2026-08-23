@@ -414,6 +414,10 @@ public sealed class ObjectSnapshot
     // Пусто у подавляющего большинства объектов, поэтому на проводе это ноль.
     public List<InventorySlotSnapshot> Contents { get; } = new();
 
+    // §151: 0 = безразмерный старый контейнер; положительное число рисует
+    // свободные ячейки станции и служит только проекцией авторитетного правила.
+    public int ContainerCapacity { get; set; }
+
     public List<JunctionId> Junctions { get; } = new();
 }
 

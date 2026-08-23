@@ -771,7 +771,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
         var clicked = FindObject(snapshot, view.ObjectId);
         var isContainer = clicked != null &&
-            (clicked.Contents.Count > 0 ||
+            (clicked.ContainerCapacity > 0 ||
+             clicked.Contents.Count > 0 ||
              definition.HasTag(ObjectTags.Remains) ||
              definition.HasTag("Container") ||
              definition.HasTag(ObjectTags.Wardrobe) ||

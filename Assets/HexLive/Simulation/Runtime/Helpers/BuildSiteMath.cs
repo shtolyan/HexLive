@@ -52,7 +52,11 @@ internal static class BuildSiteMath
         var n = 0;
         foreach (var item in site.Contents)
         {
-            if (item.DefinitionId == materialId)
+            // §151: палка в трёхслотовом запасе костра — топливо, а не
+            // доставленная стойка вертела. Маркер живёт на экземпляре и
+            // переживает save/load вместе с остальными полями ItemInstance.
+            if (item.DefinitionId == materialId &&
+                !ContainerLootMath.IsQueuedCampfireFuel(site, item))
             {
                 n++;
             }

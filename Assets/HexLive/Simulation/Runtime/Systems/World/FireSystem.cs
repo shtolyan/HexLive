@@ -37,6 +37,17 @@ public sealed class FireSystem : ISimulationSystem
             var burn = FuelBurnPerSlowTick(world, obj);
 
             obj.ResourceAmount = System.Math.Max(0f, obj.ResourceAmount - burn);
+            // §151: the three visible storage slots are a queue, not a second
+            // abstract fuel number. Only a fire that was already burning feeds
+            // itself; a cold pile still needs the ordinary ignition action.
+            if (obj.ResourceAmount <= 0f &&
+                ContainerLootMath.TryConsumeCampfireFuel(world, obj, out var queuedFuel))
+            {
+                obj.ResourceAmount += queuedFuel;
+                Trace.EmitSystem(world, "FireFueled",
+                    $"{obj.DefinitionId} auto-fed from buffer, " +
+                    $"Fuel={obj.ResourceAmount:F0} ticks");
+            }
             if (obj.ResourceAmount <= 0f)
             {
                 Trace.EmitSystem(world, "FireOut",

@@ -26,10 +26,28 @@ namespace HexLive.Simulation.Runtime
 /// </summary>
 internal static class ContainerLootMath
 {
+    public const int CampfireFuelCapacity = 3;
+    public const float FuelTicksPerStick = 1200f;
+
+    // ItemInstance has no free enum field. Wood does not otherwise use its
+    // ResourceAmount, so this persisted negative value is an unambiguous §151
+    // discriminator between queued fuel and the campfire's construction bill.
+    private const float QueuedFuelMarker = -151f;
+
     /// <summary>Из этого можно доставать и в это можно класть.</summary>
     public static bool IsLootable(WorldState world, WorldObjectState obj)
     {
         if (obj is null)
+        {
+            return false;
+        }
+
+        // Доставленные материалы стройки не становятся лутом только потому,
+        // что технически живут в Contents. Живой костёр — узкое исключение:
+        // BuildCells показывает у него лишь помеченный топливный запас.
+        if (obj.IsCraftProject ||
+            (!string.IsNullOrEmpty(obj.BuildProduct) &&
+             obj.DefinitionId != ContentIds.Campfire))
         {
             return false;
         }
@@ -45,19 +63,41 @@ internal static class ContainerLootMath
         return world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
             (definition.HasTag("Remains") ||
              definition.HasTag("Container") ||
+             definition.HasTag(ObjectTags.Rack) ||
              definition.HasTag(ObjectTags.Wardrobe) ||
+             definition.HasTag(ObjectTags.Campfire) ||
+             obj.DefinitionId == ContentIds.WaterCollector ||
              definition.InventoryCapacity > 0);
     }
+
+    private static bool IsRack(WorldState world, WorldObjectState obj) =>
+        world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+        definition.HasTag(ObjectTags.Rack);
 
     private static bool IsWardrobe(WorldState world, WorldObjectState obj) =>
         world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
         definition.HasTag(ObjectTags.Wardrobe);
 
+    private static bool IsCampfire(WorldState world, WorldObjectState obj) =>
+        world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+        definition.HasTag(ObjectTags.Campfire);
+
+    public static int Capacity(WorldState world, WorldObjectState obj)
+    {
+        if (IsCampfire(world, obj)) return CampfireFuelCapacity;
+        if (obj.DefinitionId == ContentIds.WaterCollector) return 1;
+        if (IsWardrobe(world, obj)) return Spec133.WardrobeCapacity;
+        if (IsRack(world, obj)) return SimBalance.RackCapacity;
+        return 0;
+    }
+
     private static List<WorldObjectState> WardrobeGarments(
         WorldState world, WorldObjectState wardrobe)
     {
         var result = new List<WorldObjectState>();
-        if (!IsWardrobe(world, wardrobe) || wardrobe.Junctions.Count == 0)
+        if ((!IsRack(world, wardrobe) &&
+             wardrobe.DefinitionId != ContentIds.WaterCollector) ||
+            wardrobe.Junctions.Count == 0)
         {
             return result;
         }
@@ -70,7 +110,7 @@ internal static class ContainerLootMath
                 !string.IsNullOrEmpty(candidate.BuildProduct) ||
                 !world.Content.ObjectDefinitions.TryGetValue(
                     candidate.DefinitionId, out var definition) ||
-                definition.Layer is null)
+                !AcceptsExternalObject(wardrobe, definition, candidate.DefinitionId))
             {
                 continue;
             }
@@ -80,6 +120,58 @@ internal static class ContainerLootMath
 
         result.Sort((left, right) => left.Id.Value.CompareTo(right.Id.Value));
         return result;
+    }
+
+    private static bool AcceptsExternalObject(
+        WorldObjectState container, ObjectDefinition definition, string itemId) =>
+        container.DefinitionId == ContentIds.WaterCollector
+            ? itemId == ContentIds.Bottle
+            : definition.Layer is not null;
+
+    private static bool IsStoredItem(
+        WorldState world, WorldObjectState obj, ItemInstance item) =>
+        !IsCampfire(world, obj) || IsQueuedCampfireFuel(obj, item);
+
+    public static bool IsQueuedCampfireFuel(
+        WorldObjectState container, ItemInstance item) =>
+        container?.DefinitionId == ContentIds.Campfire &&
+        item is not null && item.ResourceAmount == QueuedFuelMarker;
+
+    private static bool IsWood(WorldState world, ItemInstance item) =>
+        world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) &&
+        definition.HasTag(ObjectTags.Wood);
+
+    private static float FuelTicks(ItemInstance item) =>
+        item.DefinitionId == ContentIds.Log
+            ? FuelTicksPerStick * 4f
+            : FuelTicksPerStick;
+
+    /// <summary>§151: consume the oldest queued stack member into active fuel.</summary>
+    public static bool TryConsumeCampfireFuel(
+        WorldState world, WorldObjectState fire, out float fuelTicks)
+    {
+        fuelTicks = 0f;
+        for (var i = 0; i < fire.Contents.Count; i++)
+        {
+            var item = fire.Contents[i];
+            if (!IsQueuedCampfireFuel(fire, item) || !IsWood(world, item)) continue;
+            fire.Contents.RemoveAt(i);
+            item.ResourceAmount = 0f;
+            fuelTicks = FuelTicks(item);
+            return true;
+        }
+
+        return false;
+    }
+
+    public static bool HasQueuedCampfireFuel(WorldState world, WorldObjectState fire)
+    {
+        foreach (var item in fire.Contents)
+        {
+            if (IsQueuedCampfireFuel(fire, item) && IsWood(world, item)) return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -121,27 +213,34 @@ internal static class ContainerLootMath
         WorldState world, WorldObjectState obj,
         List<(string ItemId, int Count, int SourceIndex)> cells)
     {
-        BuildCells(obj, cells);
+        cells.Clear();
+        for (var index = 0; index < obj.Contents.Count; index++)
+        {
+            var item = obj.Contents[index];
+            if (!IsStoredItem(world, obj, item)) continue;
+            AddCell(cells, item.DefinitionId, index);
+        }
         foreach (var garment in WardrobeGarments(world, obj))
         {
-            var merged = false;
-            if (InventoryState.IsStackable(garment.DefinitionId))
-            {
-                for (var cell = 0; cell < cells.Count; cell++)
-                {
-                    if (cells[cell].ItemId != garment.DefinitionId) continue;
-                    cells[cell] = (cells[cell].ItemId, cells[cell].Count + 1,
-                        cells[cell].SourceIndex);
-                    merged = true;
-                    break;
-                }
-            }
+            AddCell(cells, garment.DefinitionId, cells.Count);
+        }
+    }
 
-            if (!merged)
+    private static void AddCell(
+        List<(string ItemId, int Count, int SourceIndex)> cells,
+        string itemId, int sourceIndex)
+    {
+        if (InventoryState.IsStackable(itemId))
+        {
+            for (var cell = 0; cell < cells.Count; cell++)
             {
-                cells.Add((garment.DefinitionId, 1, cells.Count));
+                if (cells[cell].ItemId != itemId) continue;
+                cells[cell] = (itemId, cells[cell].Count + 1, cells[cell].SourceIndex);
+                return;
             }
         }
+
+        cells.Add((itemId, 1, sourceIndex));
     }
 
     /// <summary>
@@ -171,7 +270,7 @@ internal static class ContainerLootMath
         var take = requestedCount <= 0 ? 1 : System.Math.Min(requestedCount, cell.Count);
         foreach (var item in obj.Contents)
         {
-            if (item.DefinitionId != cell.ItemId)
+            if (item.DefinitionId != cell.ItemId || !IsStoredItem(world, obj, item))
             {
                 continue;
             }
@@ -226,15 +325,27 @@ internal static class ContainerLootMath
     public static bool CanAccept(
         WorldState world, WorldObjectState obj, IReadOnlyList<ItemInstance> moving)
     {
-        if (!IsWardrobe(world, obj)) return true;
-        var addedGarments = 0;
+        var isRack = IsRack(world, obj);
+        var isCollector = obj.DefinitionId == ContentIds.WaterCollector;
+        var isCampfire = IsCampfire(world, obj);
         foreach (var item in moving)
         {
-            if (world.Content.ObjectDefinitions.TryGetValue(
-                    item.DefinitionId, out var definition) && definition.Layer is not null)
-                addedGarments++;
+            if (!world.Content.ObjectDefinitions.TryGetValue(
+                    item.DefinitionId, out var definition) ||
+                (isRack && definition.Layer is null) ||
+                (isCollector && item.DefinitionId != ContentIds.Bottle) ||
+                (isCampfire && !definition.HasTag(ObjectTags.Wood)))
+            {
+                return false;
+            }
         }
-        return WardrobeGarments(world, obj).Count + addedGarments <= Spec133.WardrobeCapacity;
+
+        var capacity = Capacity(world, obj);
+        if (capacity <= 0) return true;
+        var projected = new List<(string ItemId, int Count, int SourceIndex)>();
+        BuildCells(world, obj, projected);
+        foreach (var item in moving) AddCell(projected, item.DefinitionId, projected.Count);
+        return projected.Count <= capacity;
     }
 
     public static void TakeFromContainer(
@@ -244,6 +355,7 @@ internal static class ContainerLootMath
         foreach (var item in moving)
         {
             obj.Contents.Remove(item);
+            if (IsQueuedCampfireFuel(obj, item)) item.ResourceAmount = 0f;
             looter.Inventory.Items.Add(item);
         }
 
@@ -260,9 +372,13 @@ internal static class ContainerLootMath
         foreach (var item in moving)
         {
             looter.Inventory.Items.Remove(item);
-            if (IsWardrobe(world, obj) && obj.Junctions.Count > 0 &&
+            var externalStorage =
+                (IsRack(world, obj) || obj.DefinitionId == ContentIds.WaterCollector) &&
+                obj.Junctions.Count > 0;
+            if (externalStorage &&
                 world.Content.ObjectDefinitions.TryGetValue(
-                    item.DefinitionId, out var definition) && definition.Layer is not null)
+                    item.DefinitionId, out var definition) &&
+                AcceptsExternalObject(obj, definition, item.DefinitionId))
             {
                 var stored = WorldObjectMutations.SpawnObject(
                     world, item.DefinitionId, obj.Fragment, obj.Tile, obj.Junctions[0]);
@@ -273,6 +389,11 @@ internal static class ContainerLootMath
                 stored.Bloodiness = item.Bloodiness;
                 stored.ResourceAmount = item.ResourceAmount;
                 stored.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : looter.Id;
+            }
+            else if (IsCampfire(world, obj))
+            {
+                item.ResourceAmount = QueuedFuelMarker;
+                obj.Contents.Add(item);
             }
             else
             {

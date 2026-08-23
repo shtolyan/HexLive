@@ -200,14 +200,14 @@ public static class WorldSnapshotExporter
                 }
             }
 
-            // §128.5: содержимое вещи для панели обыска — ТОЛЬКО у настоящих
-            // контейнеров (истлевшее тело, снятый рюкзак, аптечка). Стройка
-            // тоже держит вещи в Contents, но это доставленные материалы, а не
-            // мешок: показывать их как карманы значило бы предложить игроку
-            // разобрать недостроенную кровать через окно обмена.
-            if (!isSite && !obj.IsCraftProject &&
+            // §128.5 / §151: BuildCells сам отделяет содержимое станции от её
+            // строительного bill. Поэтому живой костёр может одновременно
+            // оставаться upgrade-site и показывать только свой топливный буфер.
+            if (!obj.IsCraftProject &&
                 Runtime.ContainerLootMath.IsLootable(world, obj))
             {
+                exported.ContainerCapacity =
+                    Runtime.ContainerLootMath.Capacity(world, obj);
                 _containerCellsScratch.Clear();
                 Runtime.ContainerLootMath.BuildCells(world, obj, _containerCellsScratch);
                 for (var cell = 0; cell < _containerCellsScratch.Count; cell++)

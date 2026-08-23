@@ -377,11 +377,12 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        npc.Mind.OutfitLocked = command.Enabled;
+        OutfitMaintenanceMath.SetLockedOutfit(world, npc, command.Enabled);
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "OutfitLockChanged",
-                $"Enabled={(command.Enabled ? 1 : 0)}");
+                $"Enabled={(command.Enabled ? 1 : 0)} " +
+                $"Selected={npc.Mind.DesiredOutfit.Count}");
         }
     }
 

@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680">
   <defs>
     <style>
-      .bg{fill:#0d1418}.panel{fill:#162128;stroke:#58717c;stroke-width:2}.title{fill:#edf4f3;font:700 25px sans-serif}.label{fill:#cbd8d8;font:16px sans-serif}.small{fill:#95a8a9;font:14px sans-serif}.cyan{fill:#43d8f2}.gold{fill:#ffc95a}.red{fill:#ff5955}.arrow{stroke:#6fd2e4;stroke-width:3;fill:none;marker-end:url(#m)}.water{fill:#0e2936}.seen{fill:#568653;stroke:#203c2c}.memory{fill:#46514a;stroke:#28332e}.unknown{fill:#17201e;stroke:#26312d}.mapline{stroke:#a8c8cf;stroke-width:2;fill:none}.footprint{fill:none;stroke:#ffc95a;stroke-width:4}
+      .bg{fill:#0d1418}.panel{fill:#162128;stroke:#58717c;stroke-width:2}.title{fill:#edf4f3;font:700 25px sans-serif}.label{fill:#cbd8d8;font:16px sans-serif}.small{fill:#95a8a9;font:14px sans-serif}.cyan{fill:#43d8f2}.gold{fill:#ffc95a}.red{fill:#ff5955}.camp{fill:#ff6a24;stroke:#392014;stroke-width:2}.cloth{fill:#c180d4;stroke:#eaf6f7;stroke-width:1}.skin{fill:#efbd91}.hair{fill:#4d3027}.arrow{stroke:#6fd2e4;stroke-width:3;fill:none;marker-end:url(#m)}.water{fill:#0e2936}.seen{fill:#568653;stroke:#203c2c}.memory{fill:#46514a;stroke:#28332e}.unknown{fill:#17201e;stroke:#26312d}.mapline{stroke:#a8c8cf;stroke-width:2;fill:none}.footprint{fill:none;stroke:#ffc95a;stroke-width:4}
     </style>
     <marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#6fd2e4"/></marker>
   </defs>
   <rect class="bg" width="1200" height="680"/>
-  <text class="title" x="44" y="44">§150 r4 · Мини-карта в HUD, дальняя карта — в самом мире</text>
+  <text class="title" x="44" y="44">§150 r5 · Живые контакты и вещи на мини-карте</text>
 
   <rect class="panel" x="44" y="78" width="320" height="286" rx="16"/>
   <rect class="water" x="57" y="143" width="294" height="151" rx="8"/>
@@ -20,12 +20,18 @@
     <path class="unknown" transform="translate(83.139 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
     <path class="seen" transform="translate(110.852 0)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
     <path class="water" transform="translate(138.565 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <circle class="cyan" cx="55.426" cy="0" r="7"/>
-    <circle class="red" cx="111" cy="0" r="6"/>
-    <path class="gold" d="M28 37 L36 48 L28 59 L20 48 Z"/>
+    <circle class="cyan" cx="55.426" cy="0" r="11"/>
+    <circle class="skin" cx="55.426" cy="-1" r="7"/>
+    <path class="hair" d="M48 -3 Q55 -12 63 -3 Q60 -9 55 -10 Q50 -9 48 -3 Z"/>
+    <path class="red" d="M101 -9 L106 -4 L111 -8 L116 -4 L121 -9 L118 7 L111 12 L104 7 Z"/>
+    <path class="camp" d="M23 58 C15 51 19 40 28 34 C26 43 37 44 34 54 C32 60 27 62 23 58 Z"/>
+    <rect class="cloth" x="72" y="38" width="10" height="10" rx="1"/>
+    <rect class="cloth" x="84" y="38" width="10" height="10" rx="1"/>
+    <rect class="cloth" x="72" y="50" width="10" height="10" rx="1"/>
+    <path class="gold" d="M138 36 L145 48 L138 60 L131 48 Z"/>
   </g>
-  <text class="small" x="66" y="313">⬢ живое · ◇ ресурс · ● видимый персонаж</text>
-  <text class="small" x="66" y="339">остров вписан по суше · море — единый фон</text>
+  <text class="small" x="66" y="313">лицо · волк · домашний костёр · одежда</text>
+  <text class="small" x="66" y="339">только восприятие · море — единый фон</text>
 
   <path class="arrow" d="M382 215 C425 215 432 215 473 215"/>
   <text class="small" x="392" y="194">тот же мир и камера</text>
@@ -56,13 +62,13 @@
   <text class="label" x="68" y="434">Единый контур</text>
   <rect x="72" y="458" width="220" height="90" rx="10" fill="#1b2a31" stroke="#537481"/>
   <text class="label" x="92" y="488">WorldSnapshot</text>
-  <text class="small" x="92" y="515">Tiles · Objects · NPCs</text>
+  <text class="small" x="92" y="515">Tiles · Objects · NPCs · Mobs</text>
   <text class="small" x="92" y="537">ExploredTiles</text>
   <path class="arrow" d="M303 502 L414 502"/>
   <rect x="428" y="452" width="288" height="104" rx="10" fill="#1b2a31" stroke="#537481"/>
   <text class="label" x="450" y="482">CanControlNpc + perception</text>
   <text class="small" x="450" y="508">3D · sprites · ростер · follow</text>
-  <text class="small" x="450" y="532">один live-предикат гекса</text>
+  <text class="small" x="450" y="532">портреты + ItemIcons → один UI mesh</text>
   <path class="arrow" d="M728 502 L834 502"/>
   <rect x="848" y="452" width="268" height="104" rx="10" fill="#1b2a31" stroke="#537481"/>
   <text class="label" x="870" y="482">UI click / world ray → Float2</text>

@@ -598,6 +598,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // off) — suppress the ordinary warmth-filtered Dress so it can't
             // hijack her and put back only the one warming garment.
             var pendingRedress = npc.Mind.RedressGarments.Count > 0;
+            // §133.10: a locked outfit is a desired set. The helper performs a
+            // full scan only every OutfitAuditIntervalTicks, then keeps one
+            // exact dry ground object armed while the return trip is active.
+            var maintainSelectedOutfit =
+                OutfitMaintenanceMath.RefreshMaintenanceTarget(world, npc);
             // §133: рядом чужак, а таз или грудь открыты — прикрыться СРОЧНО,
             // мимо холодовых ворот: тут дело не в тепле, и бельё годится, даже
             // если брони в нём ноль. Броню при этом всё так же хотят
@@ -616,18 +621,20 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 }
             }
             var wantsBackpack = !wearsBackpack && KnowsReachableBackpack(npc, world);
-            var dressAvail = !pendingRedress && (wantsBackpack || wantsArmor || wantsCover ||
-                (npc.Needs.ThermalDiscomfort >= SimBalance.DressThermalThreshold &&
-                 effectiveTemp < SimBalance.DressColdTemp && // spec 42: dress against REAL cold only —
-                 // a merely-cool girl (14..16) must not circle the wardrobe all
-                 // day while the fire/water chain starves (worn=183/soak once)
-                 npc.EquippedWarmth < SimBalance.DressWarmthCeiling && // already bundled up: more cloth
-                 // won't fix 10°C — the campfire will (stops armor-swap churn)
-                 HasInteraction(npc, InteractionType.Dress) &&
-                 // §52.7: ...and only when something in reach is a REAL warmth
-                 // upgrade — no trek to an equal/worse shirt (the girl's own
-                 // example: a top over an identical top warms her by nothing).
-                 KnowsReachableWarmthUpgrade(npc, world)));
+            var dressAvail = maintainSelectedOutfit ||
+                (!npc.Mind.OutfitLocked && !pendingRedress &&
+                 (wantsBackpack || wantsArmor || wantsCover ||
+                  (npc.Needs.ThermalDiscomfort >= SimBalance.DressThermalThreshold &&
+                   effectiveTemp < SimBalance.DressColdTemp && // spec 42: dress against REAL cold only —
+                   // a merely-cool girl (14..16) must not circle the wardrobe all
+                   // day while the fire/water chain starves (worn=183/soak once)
+                   npc.EquippedWarmth < SimBalance.DressWarmthCeiling && // already bundled up: more cloth
+                   // won't fix 10°C — the campfire will (stops armor-swap churn)
+                   HasInteraction(npc, InteractionType.Dress) &&
+                   // §52.7: ...and only when something in reach is a REAL warmth
+                   // upgrade — no trek to an equal/worse shirt (the girl's own
+                   // example: a top over an identical top warms her by nothing).
+                   KnowsReachableWarmthUpgrade(npc, world))));
             // §82: обгорела — прикройся. Раньше одеваться заставляла ТОЛЬКО
             // температура, поэтому в жаркий комфортный полдень девушка ходила
             // раздетой и горела, не понимая, что с ней происходит: краснота
@@ -652,6 +659,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             {
                 // §52: restoring nine lost carry slots beats ordinary work.
                 dressNeed = System.Math.Max(dressNeed, 1f);
+            }
+            if (maintainSelectedOutfit)
+            {
+                // Persistent selected-outfit work outranks ordinary chores, but
+                // the emergency lane below still suppresses it for danger,
+                // starvation and dehydration.
+                dressNeed = System.Math.Max(
+                    dressNeed, Spec133.OutfitMaintenanceNeed);
             }
 
             // Spec 28.6 / 28.15A: Socialize needs a reachable non-busy agent;
@@ -976,7 +991,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
             (1f - npc.Needs.Comfort) * 0.5f + (1f - npc.Needs.Stamina) * 0.25f +
                 TraitMath.LeisureBonus(npc), ctx.SitAvail);
         AddGoalScore(npc, world.Tick, GoalType.Dress, ctx.DressNeed,
-            ctx.DressAvail && !npc.Mind.OutfitLocked);
+            ctx.DressAvail &&
+            (!npc.Mind.OutfitLocked ||
+             npc.Mind.OutfitMaintenanceTargetObjectId is not null));
         // Spec 28.15B: dislike lowers the urge, embarrassment causes
         // post-quarrel withdrawal.
         AddGoalScore(npc, world.Tick, GoalType.Socialize, 1f - npc.Needs.Social, ctx.SocializeAvail,

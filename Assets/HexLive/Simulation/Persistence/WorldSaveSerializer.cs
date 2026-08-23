@@ -123,7 +123,9 @@ public static class WorldSaveSerializer
     // ленивая генерация отстраивает слоты заново, если ручки включены.
     // v55 (§133.9, #193): сохраняемый запрет смены одежды per NPC.
     // v56 (§127): парная сцена, её cooldown и смываемый IntimacySoil.
-    public const int BlobVersion = 56;
+    // v57 (§133.10): выбранный комплект и точные ObjectId снятых вещей. Без
+    // этого загрузка посреди сушки оставляла закреплённого NPC голым навсегда.
+    public const int BlobVersion = 57;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1654,6 +1656,15 @@ public static class WorldSaveSerializer
         w.Write(npc.Mind.RomanceAnchorY);
         w.Write(npc.Mind.RomanceFacingDegrees);
         w.Write(npc.Mind.RomanceCooldownUntilTick);
+
+        // §133.10 / v57: persistent selected outfit. Audit cadence and the
+        // armed maintenance target are derived and intentionally not saved.
+        w.Write(npc.Mind.DesiredOutfit.Count);
+        foreach (var piece in npc.Mind.DesiredOutfit)
+        {
+            w.Write(piece.DefinitionId);
+            WriteNullableObject(w, piece.GroundObjectId);
+        }
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2259,6 +2270,33 @@ public static class WorldSaveSerializer
             npc.Mind.RomanceAnchorY = r.ReadSingle();
             npc.Mind.RomanceFacingDegrees = r.ReadSingle();
             npc.Mind.RomanceCooldownUntilTick = r.ReadInt32();
+        }
+
+        if (version >= 57)
+        {
+            var desiredCount = r.ReadInt32();
+            for (var i = 0; i < desiredCount; i++)
+            {
+                npc.Mind.DesiredOutfit.Add(new DesiredOutfitPiece
+                {
+                    DefinitionId = r.ReadString(),
+                    GroundObjectId = ReadNullableObject(r)
+                });
+            }
+        }
+        else if (npc.Mind.OutfitLocked)
+        {
+            // v55-v56 knew only the veto. Preserve the visible current set as
+            // the initial desired outfit; off-body drying pieces had no saved
+            // identity in that format and cannot be guessed without stealing
+            // a spare from the wardrobe.
+            foreach (var worn in npc.WornItems)
+            {
+                npc.Mind.DesiredOutfit.Add(new DesiredOutfitPiece
+                {
+                    DefinitionId = worn.DefinitionId
+                });
+            }
         }
 
         return npc;

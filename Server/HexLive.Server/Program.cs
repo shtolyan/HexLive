@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using HexLive.Simulation.Bootstrap;
@@ -142,8 +143,14 @@ public static class Program
         var autosave = Task.Run(() => AutosaveAsync(worlds, options.AutosaveSeconds, lifetime.Token));
         var status = Task.Run(() => StatusAsync(worlds, lifetime.Token));
 
-        var builder = WebApplication.CreateBuilder();
+        var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions
+        {
+            Args = Array.Empty<string>(),
+            ContentRootPath = AppContext.BaseDirectory,
+        });
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
+        builder.Services.AddRouting();
+        builder.WebHost.UseKestrel();
         builder.WebHost.UseUrls($"http://0.0.0.0:{options.Port}");
         var app = builder.Build();
         app.UseWebSockets();

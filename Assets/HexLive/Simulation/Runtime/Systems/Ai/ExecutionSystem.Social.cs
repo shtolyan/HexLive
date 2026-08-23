@@ -4,6 +4,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
@@ -13,6 +14,19 @@ namespace HexLive.Simulation.Runtime
 
 public sealed partial class ExecutionSystem
 {
+    private static void RecordSocialImpact(
+        NPCState npc,
+        NeedKind need,
+        EffectKind kind,
+        bool positive)
+    {
+        npc.EffectImpacts.Record(
+            need,
+            kind,
+            positive ? EffectImpactDirection.Positive : EffectImpactDirection.Negative,
+            EffectImpactCadence.Fast);
+    }
+
     // Spec 28.15A: agent-targeted Talk. The listener stays passive — only the
     // initiator runs this state machine; both sides receive gains at the end.
     // Spec 29C.9 (iter 30): a real conversation, not a one-second exchange.
@@ -214,6 +228,8 @@ public sealed partial class ExecutionSystem
             {
                 npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + QuarrelInitiatorSocialGain);
                 target.Needs.Social = MathUtil.Clamp01(target.Needs.Social + QuarrelListenerSocialGain);
+                RecordSocialImpact(npc, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
+                RecordSocialImpact(target, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
                 initiatorRel.Affinity = MathUtil.Clamp(initiatorRel.Affinity - QuarrelAffinityLoss, -1f, 1f);
                 listenerRel.Affinity = MathUtil.Clamp(listenerRel.Affinity - QuarrelAffinityLoss, -1f, 1f);
                 npc.Social.Embarrassment = MathUtil.Clamp01(npc.Social.Embarrassment + QuarrelEmbarrassment);
@@ -231,6 +247,8 @@ public sealed partial class ExecutionSystem
             {
                 npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + TalkInitiatorSocialGain);
                 target.Needs.Social = MathUtil.Clamp01(target.Needs.Social + TalkListenerSocialGain);
+                RecordSocialImpact(npc, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
+                RecordSocialImpact(target, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
                 initiatorRel.Affinity = MathUtil.Clamp(initiatorRel.Affinity + TalkRelationshipGain, -1f, 1f);
                 listenerRel.Affinity = MathUtil.Clamp(listenerRel.Affinity + TalkRelationshipGain, -1f, 1f);
                 SocialCueSignals.Stamp(world, npc, "TalkSuccess", target.Id);
@@ -431,6 +449,7 @@ public sealed partial class ExecutionSystem
                 // §76: a good listener talks someone down further.
                 target.Needs.Stress = MathUtil.Clamp01(target.Needs.Stress -
                     Spec53.ConsoleStressRelief * AttributeMath.SocialGainMult(helper));
+                RecordSocialImpact(target, NeedKind.Stress, EffectKind.FriendlyTalk, positive: true);
                 // Sitting with her shortens the mourning a little.
                 if (world.Tick < target.Mind.GrievingUntilTick)
                 {
@@ -452,6 +471,7 @@ public sealed partial class ExecutionSystem
                 // Comforting someone eases the comforter's own tension a touch.
                 helper.Needs.Stress = MathUtil.Clamp01(
                     helper.Needs.Stress - Spec53.ConsoleStressRelief * 0.3f);
+                RecordSocialImpact(helper, NeedKind.Stress, EffectKind.FriendlyTalk, positive: true);
 
                 // §110: она утешала СТОЯ НА КОЛЕНЯХ (§53.6 — молитвенная поза
                 // над лежащей), и подняться с колен занимает целый клип. Без

@@ -47,6 +47,29 @@ public static class Spec133
     /// брошенная в поле кофта — меньшее зло. Это и есть «крайний случай».
     /// </summary>
     public const float UndressAtHomeMaxDiscomfort = 0.85f;
+
+    // ── Закреплённый выбранный комплект ──────────────────────────────────
+    /// <summary>
+    /// Период фоновой сверки: 16 тиков = около четырёх секунд штатного времени.
+    /// Активный возврат проверяется каждый medium-pass лишь чтобы не оборвать
+    /// уже начатый путь; совпадающий комплект не сканируется каждый тик.
+    /// </summary>
+    public const int OutfitAuditIntervalTicks = 16;
+
+    /// <summary>Небольшой разброс первого аудита между NPC.</summary>
+    public const int OutfitAuditStaggerTicks = 4;
+
+    /// <summary>
+    /// Ставка восстановления комплекта: выше бытовых дел и обычного сна, ниже
+    /// критической еды/воды, боя и спасения.
+    /// </summary>
+    public const float OutfitMaintenanceNeed = 1.2f;
+
+    /// <summary>
+    /// На тело возвращается действительно высохшая вещь; 5% оставлены как
+    /// защита от float-хвоста естественной сушки.
+    /// </summary>
+    public const float OutfitRedressWetnessMax = 0.05f;
 }
 
 }

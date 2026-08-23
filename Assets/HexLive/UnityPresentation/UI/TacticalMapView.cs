@@ -17,8 +17,10 @@ namespace HexLive.UnityPresentation.UI
     internal sealed class TacticalMapView : VisualElement
     {
         private const float IslandPadding = 8f;
+        private static readonly ushort[] QuadIndices = { 0, 1, 2, 2, 3, 0 };
 
         private TacticalMapFrame? _frame;
+        private readonly Vertex[] _quadVertices = new Vertex[4];
 
         public TacticalMapView()
         {
@@ -109,7 +111,9 @@ namespace HexLive.UnityPresentation.UI
             }
 
             DrawMarkers(painter, frame, map, hexRadius);
-            DrawPeople(painter, frame, map, hexRadius);
+            DrawDroppedItems(context, painter, frame, map, hexRadius);
+            DrawMobs(painter, frame, map, hexRadius);
+            DrawPeople(context, painter, frame, map, hexRadius);
             DrawCameraFootprint(painter, frame, map);
         }
 
@@ -121,8 +125,12 @@ namespace HexLive.UnityPresentation.UI
             {
                 var marker = frame.Markers[i];
                 var center = ToUi(marker.Center, frame, map);
-                var alpha = marker.Live ? 1f : 0.38f;
-                if (marker.Kind == TacticalMapMarkerKind.Palm)
+                var alpha = marker.Live || marker.AlwaysKnown ? 1f : 0.38f;
+                if (marker.Kind == TacticalMapMarkerKind.Camp)
+                {
+                    DrawCamp(painter, center, Mathf.Max(size, 4.3f), alpha, marker.Lit);
+                }
+                else if (marker.Kind == TacticalMapMarkerKind.Palm)
                 {
                     painter.strokeColor = TacticalMapPalette.WithAlpha(
                         TacticalMapPalette.Palm, alpha);
@@ -152,10 +160,173 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        private void DrawPeople(
+        private static void DrawCamp(
+            Painter2D painter, Vector2 center, float size, float alpha, bool lit)
+        {
+            painter.fillColor = TacticalMapPalette.WithAlpha(
+                TacticalMapPalette.CampRing, alpha * 0.92f);
+            painter.BeginPath();
+            painter.Arc(center, size * 1.05f, Angle.Degrees(0f), Angle.Degrees(360f));
+            painter.Fill();
+
+            painter.fillColor = TacticalMapPalette.WithAlpha(
+                lit ? TacticalMapPalette.CampFire : TacticalMapPalette.CampCold,
+                alpha);
+            painter.BeginPath();
+            painter.MoveTo(center + new Vector2(0f, -size * 0.92f));
+            painter.BezierCurveTo(
+                center + new Vector2(size * 0.76f, -size * 0.12f),
+                center + new Vector2(size * 0.54f, size * 0.78f),
+                center + new Vector2(0f, size * 0.88f));
+            painter.BezierCurveTo(
+                center + new Vector2(-size * 0.72f, size * 0.55f),
+                center + new Vector2(-size * 0.62f, -size * 0.20f),
+                center + new Vector2(0f, -size * 0.92f));
+            painter.Fill();
+        }
+
+        private void DrawDroppedItems(
+            MeshGenerationContext context,
+            Painter2D painter,
+            TacticalMapFrame frame,
+            MapTransform map,
+            float hexRadius)
+        {
+            var index = 0;
+            while (index < frame.DroppedItems.Count)
+            {
+                var first = frame.DroppedItems[index];
+                var end = index + 1;
+                while (end < frame.DroppedItems.Count &&
+                       frame.DroppedItems[end].Tile.Equals(first.Tile))
+                {
+                    end++;
+                }
+
+                var count = end - index;
+                var columns = Mathf.Min(4, Mathf.CeilToInt(Mathf.Sqrt(count)));
+                var rows = Mathf.CeilToInt(count / (float)columns);
+                var cell = Mathf.Clamp(hexRadius * 0.78f, 7f, 11f);
+                const float gap = 1f;
+                var width = columns * cell + (columns - 1) * gap;
+                var height = rows * cell + (rows - 1) * gap;
+                var origin = ToUi(first.Center, frame, map) -
+                    new Vector2(width * 0.5f, height * 0.5f);
+
+                for (var itemIndex = index; itemIndex < end; itemIndex++)
+                {
+                    var local = itemIndex - index;
+                    var row = local / columns;
+                    var column = local % columns;
+                    var cellRect = new Rect(
+                        origin.x + column * (cell + gap),
+                        origin.y + row * (cell + gap),
+                        cell,
+                        cell);
+                    var item = frame.DroppedItems[itemIndex];
+                    var alpha = item.Live ? 1f : 0.48f;
+
+                    painter.fillColor = TacticalMapPalette.WithAlpha(
+                        TacticalMapPalette.ClothingPlate, alpha);
+                    painter.BeginPath();
+                    TraceRect(painter, cellRect);
+                    painter.Fill();
+
+                    if (item.Icon != null)
+                    {
+                        DrawSprite(context, item.Icon, cellRect, new Color(1f, 1f, 1f, alpha));
+                    }
+                    else
+                    {
+                        // The addressable icon is non-blocking. This tidy
+                        // placeholder survives only until the next 4 Hz paint.
+                        painter.fillColor = TacticalMapPalette.WithAlpha(
+                            TacticalMapPalette.ClothingFallback, alpha);
+                        var inset = cellRect.width * 0.22f;
+                        painter.BeginPath();
+                        TraceRect(painter, new Rect(
+                            cellRect.x + inset,
+                            cellRect.y + inset,
+                            cellRect.width - inset * 2f,
+                            cellRect.height - inset * 2f));
+                        painter.Fill();
+                    }
+
+                    painter.strokeColor = TacticalMapPalette.WithAlpha(
+                        TacticalMapPalette.ClothingBorder, alpha);
+                    painter.lineWidth = 0.75f;
+                    painter.BeginPath();
+                    TraceRect(painter, cellRect);
+                    painter.Stroke();
+                }
+
+                index = end;
+            }
+        }
+
+        private static void DrawMobs(
             Painter2D painter, TacticalMapFrame frame, MapTransform map, float hexRadius)
         {
-            var radius = Mathf.Clamp(hexRadius * 0.34f, 2.2f, 7f);
+            var size = Mathf.Clamp(hexRadius * 0.62f, 4.2f, 8f);
+            for (var i = 0; i < frame.Mobs.Count; i++)
+            {
+                var mob = frame.Mobs[i];
+                var center = ToUi(mob.Position, frame, map);
+                painter.fillColor = TacticalMapPalette.MobColor(mob.Kind);
+                painter.strokeColor = TacticalMapPalette.MobColor(mob.Kind);
+                painter.lineWidth = Mathf.Max(1f, size * 0.22f);
+                painter.lineCap = LineCap.Round;
+                painter.lineJoin = LineJoin.Round;
+
+                if (mob.Kind == TacticalMapMobKind.Crab)
+                {
+                    painter.BeginPath();
+                    painter.Arc(center, size * 0.48f, Angle.Degrees(0f), Angle.Degrees(360f));
+                    painter.Fill();
+                    painter.BeginPath();
+                    painter.MoveTo(center - new Vector2(size * 0.45f, 0f));
+                    painter.LineTo(center - new Vector2(size, size * 0.55f));
+                    painter.MoveTo(center + new Vector2(size * 0.45f, 0f));
+                    painter.LineTo(center + new Vector2(size, -size * 0.55f));
+                    painter.Stroke();
+                }
+                else if (mob.Kind == TacticalMapMobKind.Shark)
+                {
+                    painter.BeginPath();
+                    painter.MoveTo(center + new Vector2(0f, -size));
+                    painter.LineTo(center + new Vector2(size * 0.82f, size * 0.72f));
+                    painter.LineTo(center + new Vector2(-size * 0.48f, size * 0.42f));
+                    painter.ClosePath();
+                    painter.Fill();
+                }
+                else
+                {
+                    // Wolf/dog head: two ears make it distinct from a person.
+                    painter.BeginPath();
+                    painter.MoveTo(center + new Vector2(-size, -size * 0.82f));
+                    painter.LineTo(center + new Vector2(-size * 0.35f, -size * 0.42f));
+                    painter.LineTo(center + new Vector2(0f, -size * 0.72f));
+                    painter.LineTo(center + new Vector2(size * 0.35f, -size * 0.42f));
+                    painter.LineTo(center + new Vector2(size, -size * 0.82f));
+                    painter.LineTo(center + new Vector2(size * 0.56f, size * 0.58f));
+                    painter.LineTo(center + new Vector2(0f, size));
+                    painter.LineTo(center + new Vector2(-size * 0.56f, size * 0.58f));
+                    painter.ClosePath();
+                    painter.Fill();
+                }
+            }
+        }
+
+        private void DrawPeople(
+            MeshGenerationContext context,
+            Painter2D painter,
+            TacticalMapFrame frame,
+            MapTransform map,
+            float hexRadius)
+        {
+            // Contacts remain legible even when an 8160-tile island makes one
+            // hex only a couple of pixels wide.
+            var radius = Mathf.Clamp(hexRadius * 0.82f, 7f, 12f);
             for (var i = 0; i < frame.People.Count; i++)
             {
                 var person = frame.People[i];
@@ -165,6 +336,30 @@ namespace HexLive.UnityPresentation.UI
                 painter.BeginPath();
                 painter.Arc(center, radius, Angle.Degrees(0f), Angle.Degrees(360f));
                 painter.Fill();
+
+                if (person.Portrait != null)
+                {
+                    // PortraitCache photographs have transparent backgrounds;
+                    // keeping the quad inside the coloured disc gives a round
+                    // avatar without a per-contact VisualElement or mask.
+                    var portraitSize = radius * 1.62f;
+                    DrawTexture(
+                        context,
+                        person.Portrait,
+                        new Rect(
+                            center.x - portraitSize * 0.5f,
+                            center.y - portraitSize * 0.5f,
+                            portraitSize,
+                            portraitSize),
+                        new Rect(0f, 0f, 1f, 1f),
+                        Color.white);
+                }
+
+                painter.strokeColor = TacticalMapPalette.PersonBorder;
+                painter.lineWidth = Mathf.Clamp(radius * 0.16f, 1f, 1.8f);
+                painter.BeginPath();
+                painter.Arc(center, radius, Angle.Degrees(0f), Angle.Degrees(360f));
+                painter.Stroke();
 
                 if (!person.Selected)
                 {
@@ -177,6 +372,57 @@ namespace HexLive.UnityPresentation.UI
                 painter.Arc(center, radius * 1.65f, Angle.Degrees(0f), Angle.Degrees(360f));
                 painter.Stroke();
             }
+        }
+
+        private void DrawSprite(
+            MeshGenerationContext context, Sprite sprite, Rect rect, Color tint)
+        {
+            var texture = sprite.texture;
+            if (texture == null || texture.width <= 0 || texture.height <= 0)
+            {
+                return;
+            }
+
+            var source = sprite.textureRect;
+            var uv = new Rect(
+                source.x / texture.width,
+                source.y / texture.height,
+                source.width / texture.width,
+                source.height / texture.height);
+            DrawTexture(context, texture, rect, uv, tint);
+        }
+
+        private void DrawTexture(
+            MeshGenerationContext context,
+            Texture texture,
+            Rect rect,
+            Rect uv,
+            Color tint)
+        {
+            var mesh = context.Allocate(4, 6, texture);
+#if !UNITY_2023_1_OR_NEWER
+            var atlas = mesh.uvRegion;
+            uv = new Rect(
+                atlas.x + uv.x * atlas.width,
+                atlas.y + uv.y * atlas.height,
+                uv.width * atlas.width,
+                uv.height * atlas.height);
+#endif
+            _quadVertices[0].position = new Vector3(rect.xMin, rect.yMax, Vertex.nearZ);
+            _quadVertices[1].position = new Vector3(rect.xMin, rect.yMin, Vertex.nearZ);
+            _quadVertices[2].position = new Vector3(rect.xMax, rect.yMin, Vertex.nearZ);
+            _quadVertices[3].position = new Vector3(rect.xMax, rect.yMax, Vertex.nearZ);
+            _quadVertices[0].uv = new Vector2(uv.xMin, uv.yMin);
+            _quadVertices[1].uv = new Vector2(uv.xMin, uv.yMax);
+            _quadVertices[2].uv = new Vector2(uv.xMax, uv.yMax);
+            _quadVertices[3].uv = new Vector2(uv.xMax, uv.yMin);
+            for (var i = 0; i < _quadVertices.Length; i++)
+            {
+                _quadVertices[i].tint = tint;
+            }
+
+            mesh.SetAllVertices(_quadVertices);
+            mesh.SetAllIndices(QuadIndices);
         }
 
         private void DrawCameraFootprint(
@@ -289,9 +535,19 @@ namespace HexLive.UnityPresentation.UI
         public static readonly Color TileLine = new(0.08f, 0.12f, 0.10f, 0.62f);
         public static readonly Color Palm = new(0.35f, 0.88f, 0.43f, 0.98f);
         public static readonly Color Resource = new(1f, 0.69f, 0.25f, 0.98f);
+        public static readonly Color CampRing = new(0.28f, 0.18f, 0.10f, 0.98f);
+        public static readonly Color CampFire = new(1f, 0.42f, 0.12f, 1f);
+        public static readonly Color CampCold = new(0.72f, 0.54f, 0.36f, 1f);
+        public static readonly Color ClothingPlate = new(0.08f, 0.11f, 0.13f, 0.94f);
+        public static readonly Color ClothingBorder = new(0.78f, 0.88f, 0.92f, 0.92f);
+        public static readonly Color ClothingFallback = new(0.72f, 0.47f, 0.82f, 0.96f);
         public static readonly Color OwnNpc = new(0.22f, 0.85f, 1f, 1f);
         public static readonly Color FriendlyNpc = new(0.87f, 0.91f, 0.86f, 1f);
         public static readonly Color HostileNpc = new(1f, 0.31f, 0.30f, 1f);
+        public static readonly Color PersonBorder = new(0.94f, 0.98f, 1f, 0.96f);
+        public static readonly Color Wolf = new(0.98f, 0.29f, 0.25f, 1f);
+        public static readonly Color Crab = new(1f, 0.55f, 0.18f, 1f);
+        public static readonly Color Shark = new(0.38f, 0.72f, 0.87f, 1f);
         public static readonly Color Selected = new(1f, 0.80f, 0.31f, 1f);
         public static readonly Color CameraFrame = new(0.92f, 0.96f, 1f, 0.82f);
 
@@ -311,12 +567,25 @@ namespace HexLive.UnityPresentation.UI
         public static Color PersonColor(bool owned, bool hostile) =>
             owned ? OwnNpc : hostile ? HostileNpc : FriendlyNpc;
 
+        public static Color MobColor(TacticalMapMobKind kind) => kind switch
+        {
+            TacticalMapMobKind.Crab => Crab,
+            TacticalMapMobKind.Shark => Shark,
+            _ => Wolf
+        };
+
         public static Color WithAlpha(Color color, float alpha) =>
             new(color.r, color.g, color.b, color.a * alpha);
 
         public static bool TryClassify(
             string definitionId, out TacticalMapMarkerKind kind)
         {
+            if (definitionId == "campfire.spot")
+            {
+                kind = TacticalMapMarkerKind.Camp;
+                return true;
+            }
+
             if (definitionId.StartsWith("tree.", StringComparison.Ordinal) ||
                 definitionId.StartsWith("plant.", StringComparison.Ordinal))
             {
@@ -344,6 +613,8 @@ namespace HexLive.UnityPresentation.UI
         public readonly HashSet<TileCoord> TileCoords = new();
         public readonly HashSet<TileCoord> VisibleTiles = new();
         public readonly List<TacticalMapMarker> Markers = new();
+        public readonly List<TacticalMapDroppedItem> DroppedItems = new();
+        public readonly List<TacticalMapMob> Mobs = new();
         public readonly List<TacticalMapPerson> People = new();
         public readonly List<Float2> CameraFootprint = new();
 
@@ -359,6 +630,8 @@ namespace HexLive.UnityPresentation.UI
             TileCoords.Clear();
             VisibleTiles.Clear();
             Markers.Clear();
+            DroppedItems.Clear();
+            Mobs.Clear();
             People.Clear();
             CameraFootprint.Clear();
             HasBounds = false;
@@ -423,7 +696,9 @@ namespace HexLive.UnityPresentation.UI
     internal enum TacticalMapMarkerKind
     {
         Palm,
-        Resource
+        Resource,
+        Camp,
+        Clothing
     }
 
     internal readonly struct TacticalMapMarker
@@ -431,29 +706,113 @@ namespace HexLive.UnityPresentation.UI
         public readonly Float2 Center;
         public readonly TacticalMapMarkerKind Kind;
         public readonly bool Live;
+        public readonly bool Lit;
+        public readonly bool AlwaysKnown;
 
-        public TacticalMapMarker(TileCoord tile, TacticalMapMarkerKind kind, bool live)
+        public TacticalMapMarker(
+            TileCoord tile,
+            TacticalMapMarkerKind kind,
+            bool live,
+            bool lit,
+            bool alwaysKnown)
         {
             Center = HexSpatialMath.TileToWorld(tile);
             Kind = kind;
             Live = live;
+            Lit = lit;
+            AlwaysKnown = alwaysKnown;
+        }
+    }
+
+    internal readonly struct TacticalMapDroppedItem
+    {
+        public readonly TileCoord Tile;
+        public readonly Float2 Center;
+        public readonly int ObjectId;
+        public readonly string DefinitionId;
+        public readonly Sprite? Icon;
+        public readonly bool Live;
+
+        public TacticalMapDroppedItem(
+            TileCoord tile,
+            int objectId,
+            string definitionId,
+            Sprite? icon,
+            bool live)
+        {
+            Tile = tile;
+            Center = HexSpatialMath.TileToWorld(tile);
+            ObjectId = objectId;
+            DefinitionId = definitionId;
+            Icon = icon;
+            Live = live;
+        }
+    }
+
+    internal enum TacticalMapMobKind
+    {
+        Wolf,
+        Crab,
+        Shark,
+        Other
+    }
+
+    internal readonly struct TacticalMapMob
+    {
+        public readonly Float2 Position;
+        public readonly TacticalMapMobKind Kind;
+
+        public TacticalMapMob(Float2 position, TacticalMapMobKind kind)
+        {
+            Position = position;
+            Kind = kind;
+        }
+
+        public static TacticalMapMobKind Classify(string mobId)
+        {
+            if (string.Equals(mobId, "crab", StringComparison.OrdinalIgnoreCase))
+            {
+                return TacticalMapMobKind.Crab;
+            }
+
+            if (string.Equals(mobId, "shark", StringComparison.OrdinalIgnoreCase))
+            {
+                return TacticalMapMobKind.Shark;
+            }
+
+            if (mobId.IndexOf("dog", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                mobId.IndexOf("wolf", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return TacticalMapMobKind.Wolf;
+            }
+
+            return TacticalMapMobKind.Other;
         }
     }
 
     internal readonly struct TacticalMapPerson
     {
+        public readonly int NpcId;
         public readonly Float2 Position;
         public readonly bool Owned;
         public readonly bool Hostile;
         public readonly bool Selected;
+        public readonly Texture2D? Portrait;
 
         public TacticalMapPerson(
-            Float2 position, bool owned, bool hostile, bool selected)
+            int npcId,
+            Float2 position,
+            bool owned,
+            bool hostile,
+            bool selected,
+            Texture2D? portrait)
         {
+            NpcId = npcId;
             Position = position;
             Owned = owned;
             Hostile = hostile;
             Selected = selected;
+            Portrait = portrait;
         }
     }
 }

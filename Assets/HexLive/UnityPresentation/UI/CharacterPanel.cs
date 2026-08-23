@@ -100,11 +100,16 @@ namespace HexLive.UnityPresentation.UI
         private Label _effectTooltipIcon;
         private Label _effectTooltipTitle;
         private Label _effectTooltipDesc;
+        private VisualElement _effectTooltipImpacts;
+        private NpcSnapshot _currentTooltipNpc;
+        private NeedKind? _hoveredNeed;
+        private VisualElement _hoveredNeedAnchor;
         // Only rebuild the chips when the SET of effects changes, so hovering
         // stays stable across ticks (intensity-only shifts recolour in place).
         private readonly List<EffectKind> _effectSigKinds = new();
         private readonly List<string> _effectSigDetails = new();
         private readonly List<EffectView> _effectParseScratch = new();
+        private readonly List<EffectImpactView> _effectImpactParseScratch = new();
 
         // Spec §51: character inventory — a backpack button on the identity
         // column opens the body/container layout. Its existing item card is a
@@ -425,6 +430,7 @@ namespace HexLive.UnityPresentation.UI
         private struct NeedBinding
         {
             public NeedConfig Config;
+            public VisualElement Cell;
             public Label Label;
             public Label Pct;
             public VisualElement Fill;
@@ -800,6 +806,7 @@ namespace HexLive.UnityPresentation.UI
 
             _refreshedTick = snapshot.Tick;
             _refreshedActorId = npc.Id.Value;
+            _currentTooltipNpc = npc;
 
             // §74: DisplayName is a name ID; the player sees the localized term.
             _nameLabel.text = string.IsNullOrEmpty(npc.DisplayName)
@@ -1040,6 +1047,11 @@ namespace HexLive.UnityPresentation.UI
             }
 
             UpdateThermal(npc.ThermalComfort);
+
+            if (_hoveredNeed is { } hovered && _hoveredNeedAnchor != null)
+            {
+                ShowNeedTooltip(hovered, _hoveredNeedAnchor, npc);
+            }
         }
 
         // §76: the character sheet. Both pages are refreshed whichever tab is
@@ -1309,6 +1321,11 @@ namespace HexLive.UnityPresentation.UI
             _effectTooltipDesc.style.whiteSpace = WhiteSpace.Normal;
             _effectTooltip.Add(_effectTooltipDesc);
 
+            _effectTooltipImpacts = new VisualElement();
+            _effectTooltipImpacts.style.marginTop = 5f;
+            _effectTooltipImpacts.style.display = DisplayStyle.None;
+            _effectTooltip.Add(_effectTooltipImpacts);
+
             _root.Add(_effectTooltip);
         }
 
@@ -1317,6 +1334,12 @@ namespace HexLive.UnityPresentation.UI
             public EffectKind Kind;
             public float Intensity;
             public string DetailKey;
+        }
+
+        private struct EffectImpactView
+        {
+            public EffectKind Kind;
+            public EffectImpactDirection Direction;
         }
 
         // Rebuild the chip row from the snapshot's "Kind\tintensity" list —
@@ -1472,8 +1495,125 @@ namespace HexLive.UnityPresentation.UI
                 : new Color(0.949f, 0.769f, 0.753f); // soft red for debuffs
             _effectTooltipDesc.text = Loc.Get(
                 string.IsNullOrEmpty(detailKey) ? def.DescKey : detailKey);
+            _effectTooltipDesc.style.display = DisplayStyle.Flex;
+            _effectTooltipImpacts.style.display = DisplayStyle.None;
 
             PopTooltipAbove(_effectsRow);
+        }
+
+        // §48.7: the stat card does not infer causes from the final number.
+        // It renders only the rows recorded by the simulation at the real
+        // mutation sites and delivered through NpcSnapshot.EffectImpacts.
+        private void ShowNeedTooltip(NeedKind need, VisualElement anchor, NpcSnapshot npc)
+        {
+            if (_effectTooltip == null || npc == null)
+            {
+                return;
+            }
+
+            var parsed = _effectImpactParseScratch;
+            parsed.Clear();
+            foreach (var raw in npc.EffectImpacts)
+            {
+                var fields = raw.Split('\t');
+                if (fields.Length < 3 ||
+                    !Enum.TryParse(fields[0], out NeedKind rowNeed) || rowNeed != need ||
+                    !Enum.TryParse(fields[1], out EffectKind kind) ||
+                    !EffectCatalog.TryGet(kind, out _) ||
+                    !Enum.TryParse(fields[2], out EffectImpactDirection direction))
+                {
+                    continue;
+                }
+
+                if (!HasVisibleImpact(parsed, kind, direction))
+                {
+                    parsed.Add(new EffectImpactView { Kind = kind, Direction = direction });
+                }
+            }
+
+            parsed.Sort((a, b) =>
+            {
+                var direction = a.Direction.CompareTo(b.Direction); // Negative first.
+                return direction != 0 ? direction : a.Kind.CompareTo(b.Kind);
+            });
+
+            _effectTooltipIcon.text = "↕";
+            _effectTooltipTitle.text = Loc.Get(NeedLocKey(need));
+            _effectTooltipTitle.style.color = Text;
+            _effectTooltipDesc.text = Loc.Get(
+                parsed.Count > 0 ? "effect.impacts.current" : "effect.impacts.none");
+            _effectTooltipDesc.style.display = DisplayStyle.Flex;
+
+            _effectTooltipImpacts.Clear();
+            foreach (var impact in parsed)
+            {
+                _effectTooltipImpacts.Add(BuildNeedImpactRow(impact));
+            }
+            _effectTooltipImpacts.style.display = parsed.Count > 0
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+
+            PopTooltipAbove(_sheetTooltipAnchor ?? anchor);
+        }
+
+        private static bool HasVisibleImpact(
+            List<EffectImpactView> impacts,
+            EffectKind kind,
+            EffectImpactDirection direction)
+        {
+            for (var i = 0; i < impacts.Count; i++)
+            {
+                if (impacts[i].Kind == kind && impacts[i].Direction == direction)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private VisualElement BuildNeedImpactRow(EffectImpactView impact)
+        {
+            var def = EffectCatalog.Get(impact.Kind);
+            var positive = impact.Direction == EffectImpactDirection.Positive;
+            var color = positive ? Good : new Color(0.949f, 0.769f, 0.753f);
+
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.marginTop = 5f;
+            row.style.paddingTop = 5f;
+            row.style.paddingBottom = 5f;
+            row.style.paddingLeft = 8f;
+            row.style.paddingRight = 8f;
+            row.style.backgroundColor = new Color(color.r, color.g, color.b, 0.08f);
+            SetRadius(row, 7f);
+
+            var icon = new Label(def.Emoji);
+            icon.style.fontSize = 18;
+            icon.style.width = 28f;
+            icon.style.flexShrink = 0f;
+            icon.pickingMode = PickingMode.Ignore;
+            row.Add(icon);
+
+            var title = new Label(Loc.Get(def.TitleKey));
+            title.style.color = Text;
+            title.style.fontSize = 12;
+            title.style.flexGrow = 1f;
+            title.style.whiteSpace = WhiteSpace.Normal;
+            title.pickingMode = PickingMode.Ignore;
+            row.Add(title);
+
+            var arrow = new Label(positive ? "↑" : "↓");
+            arrow.style.color = color;
+            arrow.style.fontSize = 18;
+            arrow.style.unityFontStyleAndWeight = FontStyle.Bold;
+            arrow.style.marginLeft = 8f;
+            arrow.style.flexShrink = 0f;
+            arrow.pickingMode = PickingMode.Ignore;
+            row.Add(arrow);
+
+            return row;
         }
 
         // Always the SAME spot for a given row: pinned to the anchor's left edge
@@ -1508,6 +1648,8 @@ namespace HexLive.UnityPresentation.UI
             _effectTooltipTitle.text = Loc.Get(config.Key);
             _effectTooltipTitle.style.color = Text;
             _effectTooltipDesc.text = Loc.Get(config.Key + ".desc");
+            _effectTooltipDesc.style.display = DisplayStyle.Flex;
+            _effectTooltipImpacts.style.display = DisplayStyle.None;
             PopTooltipAbove(anchor);
         }
 
@@ -4869,6 +5011,51 @@ namespace HexLive.UnityPresentation.UI
             };
         }
 
+        // §48.7: NeedConfig still uses localization keys because that is what
+        // the rest of the panel binds. Keep this mapping exhaustive so a newly
+        // displayed parameter cannot silently open another parameter's ledger.
+        private static NeedKind NeedKindFor(string key)
+        {
+            return key switch
+            {
+                "need.hunger" => NeedKind.Hunger,
+                "need.thirst" => NeedKind.Thirst,
+                "need.energy" => NeedKind.Energy,
+                "need.comfort" => NeedKind.Comfort,
+                "need.social" => NeedKind.Social,
+                "need.temperature" => NeedKind.Temperature,
+                "need.stamina" => NeedKind.Stamina,
+                "need.blood" => NeedKind.Blood,
+                "need.hygiene" => NeedKind.Hygiene,
+                "need.stress" => NeedKind.Stress,
+                "need.compassion" => NeedKind.Compassion,
+                "need.breath" => NeedKind.Breath,
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(key), key, "Unknown character-panel need key")
+            };
+        }
+
+        private static string NeedLocKey(NeedKind need)
+        {
+            return need switch
+            {
+                NeedKind.Hunger => "need.hunger",
+                NeedKind.Thirst => "need.thirst",
+                NeedKind.Energy => "need.energy",
+                NeedKind.Comfort => "need.comfort",
+                NeedKind.Social => "need.social",
+                NeedKind.Temperature => "need.temperature",
+                NeedKind.Stamina => "need.stamina",
+                NeedKind.Blood => "need.blood",
+                NeedKind.Hygiene => "need.hygiene",
+                NeedKind.Stress => "need.stress",
+                NeedKind.Compassion => "need.compassion",
+                NeedKind.Breath => "need.breath",
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(need), need, "Unknown character-panel parameter")
+            };
+        }
+
         private void UpdateRelations(NpcSnapshot npc)
         {
             if (npc.RelationshipDetails.Count == 0)
@@ -6949,6 +7136,10 @@ namespace HexLive.UnityPresentation.UI
 
         private void SelectSheetTab(SheetTab tab)
         {
+            _hoveredNeed = null;
+            _hoveredNeedAnchor = null;
+            HideEffectTooltip();
+
             _sheetTab = tab;
             _needsContainer.style.display = tab == SheetTab.Needs ? DisplayStyle.Flex : DisplayStyle.None;
             _natureContainer.style.display = tab == SheetTab.Nature ? DisplayStyle.Flex : DisplayStyle.None;
@@ -7059,6 +7250,7 @@ namespace HexLive.UnityPresentation.UI
             cell.style.paddingRight = 16f;
             cell.style.marginTop = 9f;
             cell.style.marginBottom = 9f;
+            SetRadius(cell, 8f);
 
             var icon = new VectorIcon(VectorIcon.Kind.Thermal, Thermal);
             icon.style.width = 20f;
@@ -7114,6 +7306,26 @@ namespace HexLive.UnityPresentation.UI
 
             body.Add(track);
             cell.Add(body);
+
+            cell.RegisterCallback<MouseEnterEvent>(_ =>
+            {
+                _hoveredNeed = NeedKind.Temperature;
+                _hoveredNeedAnchor = cell;
+                cell.style.backgroundColor = Raised;
+                ShowNeedTooltip(NeedKind.Temperature, cell, _currentTooltipNpc);
+            });
+            cell.RegisterCallback<MouseLeaveEvent>(_ =>
+            {
+                if (_hoveredNeed == NeedKind.Temperature)
+                {
+                    _hoveredNeed = null;
+                    _hoveredNeedAnchor = null;
+                }
+
+                cell.style.backgroundColor = Color.clear;
+                HideEffectTooltip();
+            });
+
             return cell;
         }
 
@@ -7127,6 +7339,9 @@ namespace HexLive.UnityPresentation.UI
             cell.style.paddingRight = 16f;
             cell.style.marginTop = 9f;
             cell.style.marginBottom = 9f;
+            SetRadius(cell, 8f);
+
+            var need = NeedKindFor(config.Key);
 
             var icon = new VectorIcon(config.Icon, config.Color);
             icon.style.width = 20f;
@@ -7166,9 +7381,29 @@ namespace HexLive.UnityPresentation.UI
 
             cell.Add(body);
 
+            cell.RegisterCallback<MouseEnterEvent>(_ =>
+            {
+                _hoveredNeed = need;
+                _hoveredNeedAnchor = cell;
+                cell.style.backgroundColor = Raised;
+                ShowNeedTooltip(need, cell, _currentTooltipNpc);
+            });
+            cell.RegisterCallback<MouseLeaveEvent>(_ =>
+            {
+                if (_hoveredNeed == need)
+                {
+                    _hoveredNeed = null;
+                    _hoveredNeedAnchor = null;
+                }
+
+                cell.style.backgroundColor = Color.clear;
+                HideEffectTooltip();
+            });
+
             _needBindings.Add(new NeedBinding
             {
                 Config = config,
+                Cell = cell,
                 Label = label,
                 Pct = pct,
                 Fill = fill

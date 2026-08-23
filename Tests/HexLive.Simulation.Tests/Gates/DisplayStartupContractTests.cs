@@ -25,6 +25,8 @@ namespace HexLive.Simulation.Tests.Gates
                 // renders several times the authored Full HD pixel count.
                 Assert.That(settings, Does.Contain("fullscreenMode: 0"));
                 Assert.That(settings, Does.Contain("defaultIsNativeResolution: 0"));
+                Assert.That(settings, Does.Contain("macRetinaSupport: 0"),
+                    "macOS Player must render one Full HD pixel surface, not a Retina backing surface");
 
                 Assert.That(policy, Does.Contain("RuntimeInitializeLoadType.BeforeSceneLoad"));
                 Assert.That(policy, Does.Contain("-hexlive-native-resolution"));

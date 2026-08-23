@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace HexLive.Simulation.Tests.Gates
 {
 
-/// <summary>§150 r4: the collapsible HUD minimap, world-space sprite map,
+/// <summary>§150 r5: the collapsible HUD minimap, world-space sprite map,
 /// personal visibility and RTS commands keep sharing the same seams.</summary>
 public sealed class TacticalMapUiContractTests
 {
@@ -47,6 +47,21 @@ public sealed class TacticalMapUiContractTests
             Assert.That(view, Does.Not.Contain("TacticalMapPalette.OceanLine"));
             Assert.That(panel, Does.Contain("new TacticalMapView()"));
             Assert.That(panel, Does.Contain("SetMiniCollapsed(true)"));
+            Assert.That(panel, Does.Contain("SetPortraitCache(NpcPortraitCache"));
+            Assert.That(panel, Does.Contain("ItemIcons.Load(marker.DefinitionId)"));
+            Assert.That(panel, Does.Contain("snapshot.Mobs.Count"));
+            Assert.That(panel, Does.Contain("snapshot.Crabs.Count"));
+            Assert.That(panel, Does.Contain("snapshot.Sharks.Count"));
+            Assert.That(panel, Does.Contain("_storedGarmentJunctions"));
+            Assert.That(panel, Does.Contain("_emittedMarkerKeys.Clear()"));
+            Assert.That(panel, Does.Contain("if (!visible && !homeCamp)"));
+            Assert.That(view, Does.Contain("DrawCamp(painter"));
+            Assert.That(view, Does.Contain("marker.Live || marker.AlwaysKnown"));
+            Assert.That(view, Does.Contain("frame.DroppedItems"));
+            Assert.That(view, Does.Contain("Mathf.Min(4, Mathf.CeilToInt(Mathf.Sqrt(count)))"));
+            Assert.That(view, Does.Contain("context.Allocate(4, 6, texture)"));
+            Assert.That(view, Does.Contain("Mathf.Clamp(hexRadius * 0.82f, 7f, 12f)"));
+            Assert.That(view, Does.Contain("TacticalMapMobKind.Shark"));
             Assert.That(uxml, Does.Contain("miniMapExpandTab"));
             Assert.That(uxml, Does.Not.Contain("worldMapOverlay"));
             Assert.That(panel, Does.Contain("_worldRenderer.PlayerVisibilityReady"));
@@ -66,12 +81,15 @@ public sealed class TacticalMapUiContractTests
             Assert.That(renderer, Does.Contain("renderer.forceRenderingOff = true"));
             Assert.That(renderer, Does.Contain("go.AddComponent<SpriteRenderer>()"));
             Assert.That(renderer, Does.Contain("TacticalHexSprite()"));
+            Assert.That(renderer, Does.Contain("TacticalCampSprite()"));
+            Assert.That(renderer, Does.Contain("if (!homeCamp && !IsTileVisibleToPlayer"));
             Assert.That(renderer, Does.Contain(
                 "Mathf.Abs(py) + Mathf.Abs(px) / HexSpatialMath.Sqrt3"));
             Assert.That(renderer, Does.Contain(
                 "Mathf.Abs(px) <= HexSpatialMath.HexApothemFactor"));
             Assert.That(roster, Does.Contain("_worldRenderer.IsNpcPickable"));
             Assert.That(bootstrap, Does.Contain("new GameObject(\"HexLive Tactical Map\")"));
+            Assert.That(bootstrap, Does.Contain("tacticalMap.SetPortraitCache(portraitCache)"));
             Assert.That(input, Does.Contain("new SetManualControlCommand(actor, true)"));
             Assert.That(input, Does.Contain("new MoveToCommand(actor, point, run)"));
         });

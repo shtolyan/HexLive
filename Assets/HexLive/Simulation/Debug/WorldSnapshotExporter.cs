@@ -1194,6 +1194,22 @@ public static class WorldSnapshotExporter
             npcSnapshot.Effects.Add(encoded);
         }
 
+        // §48.7: systems wrote these rows beside the real parameter mutation.
+        // The bridge does not infer causes from final values and sends no
+        // changing magnitude, keeping this Character group delta-friendly.
+        foreach (var impact in npc.EffectImpacts.Items)
+        {
+            var encoded = $"{impact.Need}\t{impact.Kind}\t{impact.Direction}";
+            // Fast and slow owners may both describe the same cause. Cadence
+            // stays separate inside the ledger so either owner can clear its
+            // own row without erasing the other, but cadence is deliberately
+            // absent from the wire contract: export one visible triple only.
+            if (!npcSnapshot.EffectImpacts.Contains(encoded))
+            {
+                npcSnapshot.EffectImpacts.Add(encoded);
+            }
+        }
+
         // §76: the character sheet. Looped off AttributeSet.All/SkillSet.All so
         // adding a seventh attribute never means remembering this file.
         foreach (var kind in Agents.AttributeSet.All)

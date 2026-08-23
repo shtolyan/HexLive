@@ -4,6 +4,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
@@ -116,6 +117,11 @@ public sealed class MovementSystem : ISimulationSystem
         npc.Mind.IsRunning = false;
         npc.Needs.Breath = MathUtil.Clamp01(
             npc.Needs.Breath + SimBalance.BreathIdleRecoverPerTick);
+        npc.EffectImpacts.Record(
+            NeedKind.Breath,
+            EffectKind.BreathRecovery,
+            EffectImpactDirection.Positive,
+            EffectImpactCadence.Fast);
         if (npc.Needs.Breath >= SimBalance.BreathReArm)
         {
             npc.Mind.BreathSpent = false;
@@ -345,6 +351,11 @@ public sealed class MovementSystem : ISimulationSystem
         KenshiRescueMath.SyncAll(world);
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            // §48.7: Movement is the first fast owner and starts the fast
+            // influence frame; ExecutionSystem appends timed-interaction rows
+            // later in this same layer.
+            npc.EffectImpacts.Clear(EffectImpactCadence.Fast);
+
             // §21.21B v17: a hop in the air outranks EVERYTHING below, including
             // the early-outs. A plan change clears the path and IsMoving, and
             // while this ran further down she was simply abandoned mid-flight —
@@ -365,6 +376,11 @@ public sealed class MovementSystem : ISimulationSystem
                 npc.Mind.IsRunning = false;
                 npc.Needs.Breath = MathUtil.Clamp01(
                     npc.Needs.Breath + SimBalance.BreathIdleRecoverPerTick);
+                npc.EffectImpacts.Record(
+                    NeedKind.Breath,
+                    EffectKind.BreathRecovery,
+                    EffectImpactDirection.Positive,
+                    EffectImpactCadence.Fast);
                 if (npc.Needs.Breath >= SimBalance.BreathReArm)
                 {
                     npc.Mind.BreathSpent = false;
@@ -1069,6 +1085,11 @@ public sealed class MovementSystem : ISimulationSystem
             npc.Needs.Breath = MathUtil.Clamp01(npc.Needs.Breath + (running
                 ? -SimBalance.BreathDrainPerTick * AttributeMath.BreathDrainMult(npc)
                 : SimBalance.BreathWalkRecoverPerTick));
+            npc.EffectImpacts.Record(
+                NeedKind.Breath,
+                running ? EffectKind.Sprinting : EffectKind.BreathRecovery,
+                running ? EffectImpactDirection.Negative : EffectImpactDirection.Positive,
+                EffectImpactCadence.Fast);
 
             // §76.13: wind is built by running out of it. Only while actually
             // sprinting — a walk costs her nothing and teaches her nothing.

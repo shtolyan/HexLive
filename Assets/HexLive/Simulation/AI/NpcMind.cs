@@ -461,9 +461,25 @@ public sealed class NPCMind
 
     // §133.9 / bug #193: player-owned outfit latch. While enabled, ordinary
     // Dress/Undress and player wear/stow/drop commands cannot change clothing.
-    // Laundry remains transactional: it may doff one dirty instance and must
-    // put that exact ItemInstance back on when the wash finishes.
+    // §133.10 upgrades the latch into a persistent selected outfit: enabling it
+    // snapshots the worn definitions below, and a periodic high-priority pull
+    // restores any exact ground object temporarily removed for laundry/drying.
     public bool OutfitLocked { get; set; }
+
+    /// <summary>
+    /// §133.10: the selected outfit captured when <see cref="OutfitLocked"/>
+    /// turns on. Entries remain while their garment is worn, drying, carried
+    /// home, temporarily unreachable, or absent; <c>GroundObjectId</c> follows
+    /// the exact loose instance whenever one exists.
+    /// </summary>
+    public List<DesiredOutfitPiece> DesiredOutfit { get; } = new();
+
+    // §133.10: derived scheduler state. The desired set and its exact ground
+    // ids are persistent; audit cadence and the currently actionable target
+    // are cheap to rebuild after load and therefore deliberately transient.
+    public int NextOutfitMaintenanceTick { get; set; }
+
+    public HexLive.Simulation.Common.ObjectId? OutfitMaintenanceTargetObjectId { get; set; }
 
     // §121.7 (v46 legacy): сохранённый слот прежнего потикового таймаута.
     // Больше не участвует в поведении, но остаётся в модели, чтобы не менять
@@ -505,6 +521,18 @@ public sealed class NPCMind
     public List<GoalScore> LastScores { get; } = new();
 
     public DecisionResult LastDecision { get; set; } = new();
+}
+
+/// <summary>
+/// One persistent member of §133.10's selected outfit. DefinitionId preserves
+/// the chosen colourway/set identity; GroundObjectId preserves the physical
+/// loose garment while it is off the body.
+/// </summary>
+public sealed class DesiredOutfitPiece
+{
+    public string DefinitionId { get; set; } = string.Empty;
+
+    public HexLive.Simulation.Common.ObjectId? GroundObjectId { get; set; }
 }
 
 /// <summary>

@@ -1,4 +1,5 @@
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Memory;
@@ -618,6 +619,11 @@ public sealed class NPCState
         HexLive.Simulation.Runtime.AttributeMath.MeleeDamageMult(this);
 
     public NPCNeeds Needs { get; } = new();
+
+    // §48.7: transient truth about what is moving the visible parameters now.
+    // Systems write this beside the real mutation; save/load ignores it and
+    // the next fast/slow pass reconstructs it from live state.
+    public EffectImpactLedger EffectImpacts { get; } = new();
 
     public NPCMind Mind { get; } = new();
 

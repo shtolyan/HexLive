@@ -4,6 +4,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
@@ -314,6 +315,7 @@ public sealed partial class ExecutionSystem
         }
 
         StashOverflowInDroppedGarment(world, npc, garment, dropped);
+        OutfitMaintenanceMath.TrackGroundPiece(world, npc, garment, dropped);
         return dropped;
     }
 
@@ -401,6 +403,8 @@ public sealed partial class ExecutionSystem
                 $"{garment.DefinitionId} onto Obj={station.Id.Value} " +
                 $"({station.DefinitionId}) holds [{string.Join(",", _garmentSpillScratch)}]");
         }
+
+        OutfitMaintenanceMath.TrackGroundPiece(world, npc, garment, hung);
 
         return hung;
     }
@@ -981,6 +985,19 @@ public sealed partial class ExecutionSystem
         var share = 1f / DrinkBottleDurationTicks;
         npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst - thirstTotal * share);
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfortTotal * share);
+        npc.EffectImpacts.Record(
+            NeedKind.Thirst,
+            EffectKind.Drinking,
+            EffectImpactDirection.Positive,
+            EffectImpactCadence.Fast);
+        if (comfortTotal > 0f)
+        {
+            npc.EffectImpacts.Record(
+                NeedKind.Comfort,
+                EffectKind.Drinking,
+                EffectImpactDirection.Positive,
+                EffectImpactCadence.Fast);
+        }
 
         if (npc.Execution.EndTick - world.Tick > 0)
         {
@@ -1012,6 +1029,11 @@ public sealed partial class ExecutionSystem
                 }
                 npc.Health = npc.Body.Mean();
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.2f);
+                npc.EffectImpacts.Record(
+                    NeedKind.Comfort,
+                    EffectKind.Sick,
+                    EffectImpactDirection.Negative,
+                    EffectImpactCadence.Fast);
                 // §105: через общую развилку (пол 0.1 не даёт болезни доломать
                 // грудь — ветка живёт ради единственности ответа).
                 MortalityHelpers.ResolveTrauma(

@@ -923,6 +923,10 @@ public sealed class NpcSnapshot
     // concrete reason for coma/fainting/crying/dying in the hover tooltip.
     public List<string> Effects { get; } = new();
 
+    // §48.7: "NeedKind\tEffectKind\tPositive|Negative" for the current
+    // parameter hover cards. Stable directions only; no flapping float rate.
+    public List<string> EffectImpacts { get; } = new();
+
     // Spec §76: the character sheet. "Strength\t0.62" per innate attribute,
     // "Combat\t0.31" per learned trade — same tab-separated idiom as Effects.
     public List<string> Attributes { get; } = new();

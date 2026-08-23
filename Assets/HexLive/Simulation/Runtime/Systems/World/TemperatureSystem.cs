@@ -4,6 +4,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
@@ -88,6 +89,20 @@ public sealed class TemperatureSystem : ISimulationSystem
 
             var signed = MoveBodyTowards(prevBody, bodyTarget, bodyRate);
             npc.Needs.ThermalComfort = signed;
+            var previousMagnitude = System.Math.Abs(prevBody);
+            var targetMagnitude = System.Math.Abs(bodyTarget);
+            if (previousMagnitude > 0.001f || targetMagnitude > 0.001f)
+            {
+                var thermalRelief = targetMagnitude < previousMagnitude ||
+                    System.Math.Abs(signed) < previousMagnitude;
+                npc.EffectImpacts.Record(
+                    NeedKind.Temperature,
+                    recoverySource == "fire" ? EffectKind.Cozy : EffectKind.AmbientTemperature,
+                    thermalRelief
+                        ? EffectImpactDirection.Positive
+                        : EffectImpactDirection.Negative,
+                    EffectImpactCadence.Slow);
+            }
             var bodyTemp = TemperatureFromSigned(signed);
 
             // Spec 42: realistic cold — 10°C in underwear (warmth ~0.02) is
@@ -258,6 +273,11 @@ public sealed class TemperatureSystem : ISimulationSystem
                 if (npc.SunExposure > 0.5f)
                 {
                     npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.02f);
+                    npc.EffectImpacts.Record(
+                        NeedKind.Comfort,
+                        EffectKind.Sunstroke,
+                        EffectImpactDirection.Negative,
+                        EffectImpactCadence.Slow);
                 }
 
                 if (npc.SunExposure >= 1f)
@@ -289,6 +309,11 @@ public sealed class TemperatureSystem : ISimulationSystem
                         npc.Body.Parts[burntPart] - SimBalance.SunburnBurnDamage);
                     npc.Health = npc.Body.Mean();
                     npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.15f);
+                    npc.EffectImpacts.Record(
+                        NeedKind.Comfort,
+                        EffectKind.Sunstroke,
+                        EffectImpactDirection.Negative,
+                        EffectImpactCadence.Slow);
                     npc.SunExposure = 0.5f;
                     // §105: через общую развилку (SunburnVitalFloor так же не
                     // даёт солнцу оторвать голову — см. комментарий выше).

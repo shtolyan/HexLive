@@ -2,12 +2,14 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Spatial;
+using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -36,12 +38,15 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement? _miniCollapse;
         private TacticalMapView? _miniMap;
         private HexWorldRenderer? _worldRenderer;
+        private NpcPortraitCache? _portraitCache;
         private SimulationInputAdapter? _input;
         private RtsCameraController? _cameraController;
         private Camera? _camera;
         private readonly TacticalMapFrame _frame = new();
         private readonly Dictionary<int, RememberedMarker> _rememberedMarkers = new();
         private readonly HashSet<int> _visibleMarkerIds = new();
+        private readonly HashSet<JunctionId> _storedGarmentJunctions = new();
+        private readonly HashSet<MarkerTileKey> _emittedMarkerKeys = new();
         private readonly List<int> _staleMarkerIds = new();
         private int _lastTick = int.MinValue;
         private int _lastSeed = int.MinValue;
@@ -51,6 +56,9 @@ namespace HexLive.UnityPresentation.UI
         public static bool PointerOverMap { get; private set; }
 
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
+
+        public void SetPortraitCache(NpcPortraitCache portraitCache) =>
+            _portraitCache = portraitCache;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => PointerOverMap = false;
@@ -153,6 +161,11 @@ namespace HexLive.UnityPresentation.UI
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
             }
 
+            if (_portraitCache == null)
+            {
+                _portraitCache = FindAnyObjectByType<NpcPortraitCache>();
+            }
+
             if (_camera == null)
             {
                 _camera = Camera.main;
@@ -195,9 +208,14 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 _nextPresentationRefreshAt = Time.unscaledTime + PresentationRefreshSeconds;
+                _frame.Markers.Clear();
+                _frame.DroppedItems.Clear();
                 _frame.People.Clear();
+                _frame.Mobs.Clear();
                 _frame.CameraFootprint.Clear();
+                EmitRememberedMarkers();
                 RefreshPeople(snapshot, runner);
+                RefreshMobs(snapshot);
                 RefreshCameraFootprint();
                 _miniMap.SetFrame(_frame);
                 return;
@@ -220,27 +238,81 @@ namespace HexLive.UnityPresentation.UI
                     tile.Coord, tile.Water, tile.Explored, visible, tile.Elevation));
             }
 
-            RefreshRememberedMarkers(snapshot);
+            RefreshRememberedMarkers(snapshot, runner);
             RefreshPeople(snapshot, runner);
+            RefreshMobs(snapshot);
             RefreshCameraFootprint();
             _miniMap.SetFrame(_frame);
         }
 
-        private void RefreshRememberedMarkers(WorldSnapshot snapshot)
+        private void RefreshRememberedMarkers(
+            WorldSnapshot snapshot, SimulationRunnerBehaviour runner)
         {
+            // Garments sharing a rack/wardrobe junction are stored, not lying
+            // on the ground. They stay visible in the furniture itself but do
+            // not masquerade as a dropped-clothing pile on the minimap.
+            _storedGarmentJunctions.Clear();
+            for (var i = 0; i < snapshot.Objects.Count; i++)
+            {
+                var furniture = snapshot.Objects[i];
+                if (furniture.Junctions.Count > 0 &&
+                    (furniture.DefinitionId == "station.drying_rack" ||
+                     furniture.DefinitionId == "furniture.wardrobe"))
+                {
+                    _storedGarmentJunctions.Add(furniture.Junctions[0]);
+                }
+            }
+
             _visibleMarkerIds.Clear();
             for (var i = 0; i < snapshot.Objects.Count; i++)
             {
                 var worldObject = snapshot.Objects[i];
-                if (!_frame.VisibleTiles.Contains(worldObject.Tile) ||
-                    !TacticalMapPalette.TryClassify(worldObject.DefinitionId, out var kind))
+                var homeCamp = worldObject.DefinitionId == ContentIds.Campfire ||
+                    worldObject.BuildProduct == ContentIds.Campfire;
+                var visible = _frame.VisibleTiles.Contains(worldObject.Tile);
+                if (!visible && !homeCamp)
                 {
                     continue;
                 }
 
                 var id = worldObject.Id.Value;
+                var clothing = !homeCamp && IsClothing(runner, worldObject.DefinitionId);
+                if (clothing && worldObject.Junctions.Count > 0 &&
+                    _storedGarmentJunctions.Contains(worldObject.Junctions[0]))
+                {
+                    // It was visibly picked up from the ground and hung up.
+                    // Forget the old drop even if its former tile is fogged.
+                    _visibleMarkerIds.Add(id);
+                    _rememberedMarkers.Remove(id);
+                    continue;
+                }
+
+                TacticalMapMarkerKind kind;
+                if (homeCamp)
+                {
+                    kind = TacticalMapMarkerKind.Camp;
+                }
+                else if (clothing)
+                {
+                    kind = TacticalMapMarkerKind.Clothing;
+                }
+                else if (!TacticalMapPalette.TryClassify(
+                             worldObject.DefinitionId, out kind))
+                {
+                    continue;
+                }
+
                 _visibleMarkerIds.Add(id);
-                _rememberedMarkers[id] = new RememberedMarker(worldObject.Tile, kind);
+                var lit = visible
+                    ? worldObject.DefinitionId == ContentIds.Campfire &&
+                      worldObject.ResourceAmount > 0f
+                    : _rememberedMarkers.TryGetValue(id, out var previous) && previous.Lit;
+                _rememberedMarkers[id] = new RememberedMarker(
+                    worldObject.Tile,
+                    kind,
+                    worldObject.DefinitionId,
+                    lit,
+                    homeCamp);
             }
 
             // A marker is disproved only by looking at its tile again and not
@@ -261,21 +333,71 @@ namespace HexLive.UnityPresentation.UI
                 _rememberedMarkers.Remove(_staleMarkerIds[i]);
             }
 
+            EmitRememberedMarkers();
+        }
+
+        private void EmitRememberedMarkers()
+        {
+            _frame.Markers.Clear();
+            _frame.DroppedItems.Clear();
+
             // Aggregate identical tile/kind markers. A palm grove remains one
             // readable glyph instead of turning the small map into confetti.
-            var emitted = new HashSet<MarkerTileKey>();
+            // Clothing is the deliberate exception: every piece is retained
+            // and the view arranges those pieces into a stable square grid.
+            _emittedMarkerKeys.Clear();
             foreach (var pair in _rememberedMarkers)
             {
                 var marker = pair.Value;
+                var live = _frame.VisibleTiles.Contains(marker.Tile);
+                if (marker.Kind == TacticalMapMarkerKind.Clothing)
+                {
+                    _frame.DroppedItems.Add(new TacticalMapDroppedItem(
+                        marker.Tile,
+                        pair.Key,
+                        marker.DefinitionId,
+                        ItemIcons.Load(marker.DefinitionId),
+                        live));
+                    continue;
+                }
+
                 var key = new MarkerTileKey(marker.Tile, marker.Kind);
-                if (!emitted.Add(key))
+                if (!_emittedMarkerKeys.Add(key))
                 {
                     continue;
                 }
 
                 _frame.Markers.Add(new TacticalMapMarker(
-                    marker.Tile, marker.Kind, _frame.VisibleTiles.Contains(marker.Tile)));
+                    marker.Tile, marker.Kind, live, marker.Lit, marker.AlwaysKnown));
             }
+
+            _frame.DroppedItems.Sort(CompareDroppedItems);
+        }
+
+        private static int CompareDroppedItems(
+            TacticalMapDroppedItem left, TacticalMapDroppedItem right)
+        {
+            var q = left.Tile.Q.CompareTo(right.Tile.Q);
+            if (q != 0) return q;
+            var r = left.Tile.R.CompareTo(right.Tile.R);
+            return r != 0 ? r : left.ObjectId.CompareTo(right.ObjectId);
+        }
+
+        private static bool IsClothing(
+            SimulationRunnerBehaviour runner, string definitionId)
+        {
+            if (runner.TryGetObjectDefinition(definitionId, out var definition) &&
+                definition != null)
+            {
+                var category = ItemCatalog.Classify(definition);
+                return category == ItemCategory.Clothing || category == ItemCategory.Armor;
+            }
+
+            // Safe fallback for a frame received before the content table is
+            // ready. Imported garments normally take the definition path.
+            return definitionId.StartsWith("clothing.", StringComparison.Ordinal) ||
+                definitionId.StartsWith("underwear.", StringComparison.Ordinal) ||
+                definitionId.StartsWith("armor.", StringComparison.Ordinal);
         }
 
         private void RefreshPeople(WorldSnapshot snapshot, SimulationRunnerBehaviour runner)
@@ -291,11 +413,55 @@ namespace HexLive.UnityPresentation.UI
                     continue;
                 }
 
+                Texture2D? portrait = null;
+                if (_portraitCache != null &&
+                    !_portraitCache.TryGet(npc.Id.Value, out portrait))
+                {
+                    _portraitCache.RequestNow(npc.Id.Value);
+                }
+
                 _frame.People.Add(new TacticalMapPerson(
+                    npc.Id.Value,
                     npc.Position,
                     owned,
                     npc.IsHostileToColony,
-                    NpcSelection.Contains(npc.Id.Value)));
+                    NpcSelection.Contains(npc.Id.Value),
+                    portrait));
+            }
+        }
+
+        private void RefreshMobs(WorldSnapshot snapshot)
+        {
+            for (var i = 0; i < snapshot.Mobs.Count; i++)
+            {
+                var mob = snapshot.Mobs[i];
+                if (mob.Health <= 0f || !_frame.VisibleTiles.Contains(mob.Tile))
+                {
+                    continue;
+                }
+
+                _frame.Mobs.Add(new TacticalMapMob(
+                    mob.Position, TacticalMapMob.Classify(mob.MobId)));
+            }
+
+            for (var i = 0; i < snapshot.Crabs.Count; i++)
+            {
+                var crab = snapshot.Crabs[i];
+                if (_frame.VisibleTiles.Contains(crab.Tile))
+                {
+                    _frame.Mobs.Add(new TacticalMapMob(
+                        crab.Position, TacticalMapMobKind.Crab));
+                }
+            }
+
+            for (var i = 0; i < snapshot.Sharks.Count; i++)
+            {
+                var shark = snapshot.Sharks[i];
+                if (_frame.VisibleTiles.Contains(shark.Tile))
+                {
+                    _frame.Mobs.Add(new TacticalMapMob(
+                        shark.Position, TacticalMapMobKind.Shark));
+                }
             }
         }
 
@@ -308,17 +474,16 @@ namespace HexLive.UnityPresentation.UI
             }
 
             var ground = new Plane(Vector3.up, new Vector3(0f, SimulationUnityMapper.TileHeight, 0f));
-            var corners = new[]
+            for (var i = 0; i < 4; i++)
             {
-                new Vector2(0f, 0f),
-                new Vector2(Screen.width, 0f),
-                new Vector2(Screen.width, Screen.height),
-                new Vector2(0f, Screen.height)
-            };
-
-            for (var i = 0; i < corners.Length; i++)
-            {
-                var ray = camera.ScreenPointToRay(corners[i]);
+                var corner = i switch
+                {
+                    0 => new Vector2(0f, 0f),
+                    1 => new Vector2(Screen.width, 0f),
+                    2 => new Vector2(Screen.width, Screen.height),
+                    _ => new Vector2(0f, Screen.height)
+                };
+                var ray = camera.ScreenPointToRay(corner);
                 if (!ground.Raycast(ray, out var distance) || distance <= 0f)
                 {
                     _frame.CameraFootprint.Clear();
@@ -390,11 +555,22 @@ namespace HexLive.UnityPresentation.UI
         {
             public readonly TileCoord Tile;
             public readonly TacticalMapMarkerKind Kind;
+            public readonly string DefinitionId;
+            public readonly bool Lit;
+            public readonly bool AlwaysKnown;
 
-            public RememberedMarker(TileCoord tile, TacticalMapMarkerKind kind)
+            public RememberedMarker(
+                TileCoord tile,
+                TacticalMapMarkerKind kind,
+                string definitionId,
+                bool lit,
+                bool alwaysKnown)
             {
                 Tile = tile;
                 Kind = kind;
+                DefinitionId = definitionId;
+                Lit = lit;
+                AlwaysKnown = alwaysKnown;
             }
         }
 

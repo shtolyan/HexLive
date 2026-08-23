@@ -60,8 +60,33 @@ namespace HexLive.Simulation.Agents.Effects
                       // часов она еле ходит и мгновенно выдыхается
         Crying,       // §110: сломалась от стресса — лежит и рыдает. В сознании,
                       // поэтому НЕ Fainted; вытесняет Stressed, пока идёт плач
-        PlayingDead   // §105.14: очнулась при враге и не встаёт — лежит и
+        PlayingDead,  // §105.14: очнулась при враге и не встаёт — лежит и
                       // притворяется трупом, пока он не потеряет к ней интерес
+
+        // ── §48.7: live parameter influences ─────────────────────────────
+        // These share the catalog/icons/localization with status chips, but
+        // are surfaced in the affected parameter's hover card. Append-only for
+        // the same compatibility reason as the §105 entries above.
+        NaturalDecay,
+        Sleeping,
+        DirtyClothes,
+        NearbyCompany,
+        WitnessingSuffering,
+        EveryoneSafe,
+        Working,
+        Resting,
+        Threatened,
+        BodyCrisis,
+        Calm,
+        FriendlyTalk,
+        Washing,
+        RainWashed,
+        BloodRecovery,
+        Sprinting,
+        BreathRecovery,
+        AmbientTemperature,
+        Eating,
+        Drinking
     }
 
     // Colours the chip ring and sorts the row: buffs read green, debuffs red.

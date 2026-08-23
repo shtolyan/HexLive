@@ -804,17 +804,24 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     break;
                 }
             }
-            var preferBackpack = interactionType == InteractionType.Dress &&
+            var selectedOutfitTarget = interactionType == InteractionType.Dress &&
+                npc.Mind.OutfitLocked
+                    ? npc.Mind.OutfitMaintenanceTargetObjectId
+                    : null;
+            var preferBackpack = selectedOutfitTarget is null &&
+                interactionType == InteractionType.Dress &&
                 !wearsBackpack && DecisionSystem.KnowsReachableBackpack(npc, world);
 
             // Spec 29C.4A: a threatened underarmored NPC dressing up prefers
             // the best armor over the nearest garment.
-            var preferArmor = interactionType == InteractionType.Dress &&
+            var preferArmor = selectedOutfitTarget is null &&
+                interactionType == InteractionType.Dress &&
                 npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f;
             // §133: при чужаке первым делом закрывают таз и грудь — и выбирают
             // по этому, а не по теплу и не по броне. Бельё здесь полноценный
             // ответ: оно ничего не греет и не защищает, но закрывает.
-            var preferCover = interactionType == InteractionType.Dress &&
+            var preferCover = selectedOutfitTarget is null &&
+                interactionType == InteractionType.Dress &&
                 ModestyMath.OutsiderKnown(world, npc) &&
                 ModestyMath.MissingCover(world, npc) &&
                 DecisionSystem.KnowsReachablePermittedCover(npc, world);
@@ -870,6 +877,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                     npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                     !perceived.AvailableInteractions.Contains(interactionType.Value))
+                {
+                    continue;
+                }
+
+                // §133.10: selected-outfit maintenance never substitutes a
+                // warmer/closer garment for the exact piece it remembers.
+                if (selectedOutfitTarget is { } selectedPiece &&
+                    !perceived.Id.Equals(selectedPiece))
                 {
                     continue;
                 }
@@ -963,7 +978,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
-                if (interactionType == InteractionType.Dress && !preferBackpack && !preferArmor && !preferCover &&
+                if (interactionType == InteractionType.Dress && selectedOutfitTarget is null &&
+                    !preferBackpack && !preferArmor && !preferCover &&
                     EquipmentMath.WarmthGainFromWearing(world, npc, perceived.DefinitionId) <
                         SimBalance.DressWarmthGainMin)
                 {
@@ -1000,7 +1016,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
                 }
 
-                if (preferBackpack)
+                if (selectedOutfitTarget is not null)
+                {
+                    selected = perceived;
+                }
+                else if (preferBackpack)
                 {
                     var mine = world.Entities.Objects.TryGetValue(perceived.Id, out var backpack) &&
                         backpack.Owner == npc.Id;

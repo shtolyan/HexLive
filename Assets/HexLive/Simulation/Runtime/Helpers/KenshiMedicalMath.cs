@@ -1,4 +1,5 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -50,6 +51,11 @@ internal static class KenshiMedicalMath
         if (totalBleed > 0f)
         {
             BodyDamageResolver.DrainBlood(npc, totalBleed);
+            npc.EffectImpacts.Record(
+                NeedKind.Blood,
+                EffectKind.Bleeding,
+                EffectImpactDirection.Negative,
+                EffectImpactCadence.Slow);
             Trace.Emit(world, npc.Id, "Bleeding",
                 $"Loss={totalBleed:F4} Blood={npc.Needs.Blood:F3} " +
                 $"Deficit={npc.Body.BloodDeficit:F3}");
@@ -96,6 +102,11 @@ internal static class KenshiMedicalMath
         {
             BodyDamageResolver.RestoreBlood(npc,
                 SimBalance.BloodRefillPerTick * healMultiplier);
+            npc.EffectImpacts.Record(
+                NeedKind.Blood,
+                EffectKind.BloodRecovery,
+                EffectImpactDirection.Positive,
+                EffectImpactCadence.Slow);
         }
 
         npc.Health = npc.IsDying

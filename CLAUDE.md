@@ -258,9 +258,10 @@ in committed simulation/blueprint data, and fixtures must use the same factory
 and loading path as the ordinary game.
 
 - **Desktop Player display contract:** every macOS/desktop Player launch must
-  request `1920×1080` with `FullScreenMode.FullScreenWindow` before the first
-  scene renders. Keep `ProjectSettings` defaults at the same Full HD values;
-  do not rely on Unity's persisted resolution from an older build.
+  request `1920×1080` with `FullScreenMode.ExclusiveFullScreen` before the first
+  scene renders. Keep `ProjectSettings` defaults at the same Full HD values,
+  with macOS Retina support disabled; do not rely on Unity's persisted
+  resolution from an older build.
 - Art style is **flat low-poly / faceted / cartoon** — no noise/procedural textures.
 - **Localization (spec §58): never author strings in C#.** All player-facing
   strings are I2 Localization terms in `Assets/Resources/I2Languages.asset`

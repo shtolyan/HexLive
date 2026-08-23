@@ -1049,6 +1049,7 @@ public static class WorldSnapshotCodec
     private static void WriteNpcCharacter(BinaryWriter w, NpcSnapshot n)
     {
         WireIo.WriteStrings(w, n.Effects);
+        WireIo.WriteStrings(w, n.EffectImpacts); // §48.7
         // §76: innate attributes, learned skills, perks.
         WireIo.WriteStrings(w, n.Attributes);
         WireIo.WriteStrings(w, n.Skills);
@@ -1403,6 +1404,7 @@ public static class WorldSnapshotCodec
     private static void ReadNpcCharacter(BinaryReader r, NpcSnapshot n)
     {
         WireIo.ReadStrings(r, n.Effects);
+        WireIo.ReadStrings(r, n.EffectImpacts); // §48.7
         WireIo.ReadStrings(r, n.Attributes);
         WireIo.ReadStrings(r, n.Skills);
         n.PerceptionRadiusTiles = r.ReadInt32();

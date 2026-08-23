@@ -491,6 +491,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static Sprite? _tacticalHexSprite;
     private static Sprite? _tacticalPalmSprite;
     private static Sprite? _tacticalResourceSprite;
+    private static Sprite? _tacticalCampSprite;
     private static Sprite? _tacticalPersonSprite;
 
     private readonly struct Pose
@@ -5034,8 +5035,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
         for (var i = 0; i < snapshot.Objects.Count; i++)
         {
             var worldObject = snapshot.Objects[i];
-            if (!IsTileVisibleToPlayer(worldObject.Tile) ||
-                !TacticalMapPalette.TryClassify(worldObject.DefinitionId, out var kind))
+            var homeCamp = worldObject.DefinitionId == ContentIds.Campfire ||
+                worldObject.BuildProduct == ContentIds.Campfire;
+            if (!homeCamp && !IsTileVisibleToPlayer(worldObject.Tile))
+            {
+                continue;
+            }
+
+            TacticalMapMarkerKind kind;
+            if (homeCamp)
+            {
+                kind = TacticalMapMarkerKind.Camp;
+            }
+            else if (!TacticalMapPalette.TryClassify(worldObject.DefinitionId, out kind))
             {
                 continue;
             }
@@ -5073,9 +5085,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (!_tacticalMarkerSprites.TryGetValue(key, out var renderer) || renderer == null)
             {
-                var sprite = marker.Kind == TacticalMapMarkerKind.Palm
-                    ? TacticalPalmSprite()
-                    : TacticalResourceSprite();
+                var sprite = marker.Kind switch
+                {
+                    TacticalMapMarkerKind.Palm => TacticalPalmSprite(),
+                    TacticalMapMarkerKind.Camp => TacticalCampSprite(),
+                    _ => TacticalResourceSprite()
+                };
                 renderer = CreateTacticalSpriteRenderer(
                     $"Map {marker.Kind} {marker.Tile.Q},{marker.Tile.R}",
                     sprite, sortingOrder: 10, scale: 0.72f);
@@ -5085,11 +5100,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     world.X, TacticalMapPlaneY + 0.018f, world.Y);
             }
 
-            var baseColor = marker.Kind == TacticalMapMarkerKind.Palm
-                ? TacticalMapPalette.Palm
-                : TacticalMapPalette.Resource;
+            var baseColor = marker.Kind switch
+            {
+                TacticalMapMarkerKind.Palm => TacticalMapPalette.Palm,
+                TacticalMapMarkerKind.Camp => TacticalMapPalette.CampFire,
+                _ => TacticalMapPalette.Resource
+            };
             renderer.color = TacticalMapPalette.WithAlpha(
-                baseColor, IsTileVisibleToPlayer(marker.Tile) ? 1f : 0.38f);
+                baseColor,
+                marker.Kind == TacticalMapMarkerKind.Camp ||
+                IsTileVisibleToPlayer(marker.Tile) ? 1f : 0.38f);
             if (!renderer.gameObject.activeSelf)
             {
                 renderer.gameObject.SetActive(true);
@@ -5256,6 +5276,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _tacticalResourceSprite = CreateGlyphSprite("Tactical Resource", (x, y) =>
             Mathf.Abs(x - 15.5f) + Mathf.Abs(y - 15.5f) <= 10.5f);
         return _tacticalResourceSprite;
+    }
+
+    private static Sprite TacticalCampSprite()
+    {
+        if (_tacticalCampSprite != null) return _tacticalCampSprite;
+        _tacticalCampSprite = CreateGlyphSprite("Tactical Camp", (x, y) =>
+        {
+            // Broad-bottom flame silhouette, deliberately readable when the
+            // world-space layer is viewed at a shallow camera pitch.
+            var dx = Mathf.Abs(x - 15.5f);
+            var dy = y - 15.5f;
+            return dy >= -10f && dy <= 10f &&
+                dx <= Mathf.Lerp(3.2f, 9.5f, Mathf.InverseLerp(-10f, 10f, dy));
+        });
+        return _tacticalCampSprite;
     }
 
     private static Sprite TacticalPersonSprite()

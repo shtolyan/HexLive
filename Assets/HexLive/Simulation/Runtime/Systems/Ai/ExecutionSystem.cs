@@ -4,6 +4,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
@@ -1542,7 +1543,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        if (npc.Mind.OutfitLocked)
+        var restoringSelectedOutfit =
+            OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject);
+        if (npc.Mind.OutfitLocked && !restoringSelectedOutfit)
         {
             worldObject.IsOccupied = false;
             worldObject.CurrentUser = null;
@@ -1557,7 +1560,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // §133: чужое надевают только с разрешения, и разрешение ОДНОРАЗОВОЕ —
         // сгорает здесь же. Планировщик до сюда чужое без «да» не пропускает;
         // это последний рубеж на случай, если вещь сменила хозяйку по дороге.
-        if (ClothingOwnership.FellowOwner(world, npc, worldObject) is { } fellowOwner)
+        if (!restoringSelectedOutfit &&
+            ClothingOwnership.FellowOwner(world, npc, worldObject) is { } fellowOwner)
         {
             if (!PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick))
             {
@@ -1601,6 +1605,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         _dressPourScratch.Clear();
         _dressPourScratch.AddRange(worldObject.Contents);
         worldObject.Contents.Clear();
+        if (restoringSelectedOutfit)
+        {
+            OutfitMaintenanceMath.MarkWorn(world, npc, worldObject.Id);
+        }
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
         EquipmentMath.Recalculate(world, npc);
         foreach (var stashed in _dressPourScratch)
@@ -1636,11 +1644,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // HER POCKET. The cooldown opens a window for TendFire &
         // GetWater between wardrobe attempts.
         npc.Mind.Cooldowns.RemoveAll(c => c.Goal == GoalType.Dress);
-        npc.Mind.Cooldowns.Add(new GoalCooldown
+        if (!restoringSelectedOutfit)
         {
-            Goal = GoalType.Dress,
-            EndTick = world.Tick + AiBalance.DressCooldownTicks
-        });
+            npc.Mind.Cooldowns.Add(new GoalCooldown
+            {
+                Goal = GoalType.Dress,
+                EndTick = world.Tick + AiBalance.DressCooldownTicks
+            });
+        }
 
         return true;
     }
@@ -1813,6 +1824,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             hung.Owner = wetWorn.OwnerId != 0
                 ? new EntityId(wetWorn.OwnerId)
                 : npc.Id;
+            OutfitMaintenanceMath.TrackGroundPiece(world, npc, wetWorn, hung);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ItemHung",
@@ -2553,6 +2565,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     {
         npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + effects.HungerDelta * k);
         npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + effects.ThirstDelta * k);
+        if (effects.HungerDelta != 0f)
+        {
+            RecordInteractionImpact(
+                npc, NeedKind.Hunger, EffectKind.Eating, effects.HungerDelta < 0f);
+        }
+        if (effects.ThirstDelta != 0f)
+        {
+            RecordInteractionImpact(
+                npc, NeedKind.Thirst, EffectKind.Drinking, effects.ThirstDelta < 0f);
+        }
         // §42 / bug #150: positive Energy is sleep-only. Keep negative effects
         // data-compatible, but an old/external catalog cannot quietly turn a
         // chair, stump, meal or any future awake interaction into recovery.
@@ -2562,9 +2584,40 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 : 0f;
         npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + energyDelta * k);
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + effects.ComfortDelta * k);
+        if (energyDelta != 0f)
+        {
+            RecordInteractionImpact(
+                npc,
+                NeedKind.Energy,
+                energyDelta > 0f ? EffectKind.Sleeping : EffectKind.Working,
+                energyDelta > 0f);
+        }
+        if (effects.ComfortDelta != 0f)
+        {
+            RecordInteractionImpact(
+                npc,
+                NeedKind.Comfort,
+                npc.Execution.CurrentInteraction == InteractionType.Sleep
+                    ? EffectKind.Sleeping
+                    : EffectKind.Resting,
+                effects.ComfortDelta > 0f);
+        }
         npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(npc.Needs.ThermalDiscomfort + effects.ThermalDelta * k);
         // Spec 31A.5A: warmth/armor are no longer touched here — they are
         // recomputed from the worn-items list by EquipmentMath.
+    }
+
+    private static void RecordInteractionImpact(
+        NPCState npc,
+        NeedKind need,
+        EffectKind kind,
+        bool positive)
+    {
+        npc.EffectImpacts.Record(
+            need,
+            kind,
+            positive ? EffectImpactDirection.Positive : EffectImpactDirection.Negative,
+            EffectImpactCadence.Fast);
     }
 
     private static InteractionType? GetPlannedInteractionType(NPCPlanState plan)

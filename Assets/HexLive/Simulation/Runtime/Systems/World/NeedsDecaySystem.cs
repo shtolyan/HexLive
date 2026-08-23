@@ -4,6 +4,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
@@ -16,6 +17,19 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     public string Name => nameof(NeedsDecaySystem);
 
     public TickLayer Layer => TickLayer.Slow;
+
+    private static void RecordImpact(
+        NPCState npc,
+        NeedKind need,
+        EffectKind effect,
+        bool positive)
+    {
+        npc.EffectImpacts.Record(
+            need,
+            effect,
+            positive ? EffectImpactDirection.Positive : EffectImpactDirection.Negative,
+            EffectImpactCadence.Slow);
+    }
 
     // Balance knobs (SimBalance / HexTuningConfig). The old const names are
     // kept as live shims so every call site below is untouched.
@@ -279,6 +293,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 continue;
             }
 
+            // §48.7: NeedsDecay owns the beginning of the slow influence
+            // frame. TemperatureSystem runs later in the same layer and adds
+            // its own row without erasing these.
+            npc.EffectImpacts.Clear(EffectImpactCadence.Slow);
+
             // §52: definitions may cap how many physical instances one NPC can
             // carry. Normal acquisition enforces this before pickup; this pass
             // repairs old saves and legacy direct-add paths without deleting
@@ -338,8 +357,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // the previous slow tick's signed comfort; cold side is free (a
             // shivering body does not sweat). SOFT knob: SweatThirstFactor.
             var sweat = 1f + SweatThirstFactor * System.Math.Max(0f, npc.Needs.ThermalComfort);
-            npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + HungerRate * metabolism);
-            npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + ThirstRate * metabolism * sweat);
+            var hungerDrift = HungerRate * metabolism;
+            var thirstDrift = ThirstRate * metabolism;
+            npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + hungerDrift);
+            npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + thirstDrift * sweat);
+            RecordImpact(npc, NeedKind.Hunger, EffectKind.NaturalDecay, positive: false);
+            RecordImpact(npc, NeedKind.Thirst, EffectKind.NaturalDecay, positive: false);
+            if (sweat > 1f)
+            {
+                RecordImpact(npc, NeedKind.Thirst, EffectKind.Hot, positive: false);
+            }
             // §76: Endurance is the "can stay up" half of the stat — she runs
             // down toward sleep slower. (Fighting still suspends the drain
             // entirely, as before.)
@@ -364,6 +391,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     Spec76.AttributeTrainPerHardshipTick);
             }
             npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - energyDrain);
+            if (energyDrain > 0f)
+            {
+                RecordImpact(npc, NeedKind.Energy, EffectKind.NaturalDecay, positive: false);
+            }
 
             // §54.11 r2: the ONE sleep-energy channel. Ground/coma use the
             // 8-hour base; bed.basic adds the matching increment for 4 hours.
@@ -372,19 +403,32 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             if (sleeping)
             {
                 var wake = SimBalance.SleepEnergyBaseBonus;
+                if (SimBalance.SleepEnergyBaseBonus > 0f)
+                {
+                    RecordImpact(npc, NeedKind.Energy, EffectKind.Sleeping, positive: true);
+                }
                 if (TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f)
                 {
                     wake += SimBalance.SleepEnergyFireBonus;
+                    if (SimBalance.SleepEnergyFireBonus > 0f)
+                    {
+                        RecordImpact(npc, NeedKind.Energy, EffectKind.Cozy, positive: true);
+                    }
                 }
 
                 if (npc.Execution.TargetObject is { } bedId &&
                     world.Entities.Objects.TryGetValue(bedId, out var bedObj))
                 {
-                    wake += bedObj.DefinitionId switch
+                    var bedBonus = bedObj.DefinitionId switch
                     {
                         ContentIds.BedBasic => SimBalance.SleepEnergyBasicBedBonus,
                         _ => 0f
                     };
+                    wake += bedBonus;
+                    if (bedBonus > 0f)
+                    {
+                        RecordImpact(npc, NeedKind.Energy, EffectKind.Snug, positive: true);
+                    }
                 }
 
                 npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + wake);
@@ -406,17 +450,24 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // (spec §49.8; drives the "Cozy" status chip too).
             if (sleeping && Spec49.SleepComfort)
             {
+                var sleepComfort = SleepComfortPerSlowTick(world, npc);
                 npc.Needs.Comfort = MathUtil.Clamp01(
-                    npc.Needs.Comfort + SleepComfortPerSlowTick(world, npc));
+                    npc.Needs.Comfort + sleepComfort);
+                if (sleepComfort > 0f)
+                {
+                    RecordImpact(npc, NeedKind.Comfort, EffectKind.Sleeping, positive: true);
+                }
             }
             else if (TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f)
             {
                 npc.Needs.Comfort = MathUtil.Clamp01(
                     npc.Needs.Comfort + Spec49.AwakeFireComfortGain);
+                RecordImpact(npc, NeedKind.Comfort, EffectKind.Cozy, positive: true);
             }
             else
             {
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - ComfortRate);
+                RecordImpact(npc, NeedKind.Comfort, EffectKind.NaturalDecay, positive: false);
             }
 
             // §49.7: wet clothes cling — being soaked shaves a little comfort on
@@ -435,6 +486,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             if (maxWornWet > 0.5f)
             {
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - Spec49.WetComfortPenalty);
+                RecordImpact(npc, NeedKind.Comfort, EffectKind.Soaked, positive: false);
             }
 
 
@@ -443,6 +495,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             {
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort -
                     dirtyClothing * SimBalance.DirtyClothingComfortLoss);
+                RecordImpact(npc, NeedKind.Comfort, EffectKind.DirtyClothes, positive: false);
             }
 
             // Spec §49: passive "second action" socialising — being near an
@@ -454,12 +507,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // ПОЛНОСТЬЮ — человек ложился общительным, а вставал одиноким, хотя
             // во сне не с кем и не поговорить. Для чужака это било вдвойне: его
             // Social и так не закрывается ничем, кроме насилия.
-            npc.Needs.Social = MathUtil.Clamp01(
-                npc.Needs.Social - SocialRate * (sleeping ? Spec85.SleepSocialFactor : 1f));
+            var socialDrift = SocialRate * (sleeping ? Spec85.SleepSocialFactor : 1f);
+            npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social - socialDrift);
+            RecordImpact(npc, NeedKind.Social, EffectKind.NaturalDecay, positive: false);
             if (Spec49.AmbientSocial && !sleeping && npc.Needs.Social < AmbientSocialCap && HasNearbyCompanion(npc))
             {
                 npc.Needs.Social = System.Math.Min(
                     AmbientSocialCap, npc.Needs.Social + AmbientSocialGain);
+                RecordImpact(npc, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
             }
 
             // Spec §53: compassion is SPENT witnessing un-helped suffering nearby
@@ -478,10 +533,18 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         worstNearby = agent.Suffering;
                     }
                 }
-                npc.Needs.Compassion = worstNearby >= Spec53.SufferingThreshold
-                    ? MathUtil.Clamp01(npc.Needs.Compassion -
-                        Spec53.CompassionRate * worstNearby * npc.CompassionTrait)
-                    : MathUtil.Clamp01(npc.Needs.Compassion + Spec53.RecoverRate);
+                if (worstNearby >= Spec53.SufferingThreshold)
+                {
+                    npc.Needs.Compassion = MathUtil.Clamp01(npc.Needs.Compassion -
+                        Spec53.CompassionRate * worstNearby * npc.CompassionTrait);
+                    RecordImpact(npc, NeedKind.Compassion, EffectKind.WitnessingSuffering, positive: false);
+                }
+                else
+                {
+                    npc.Needs.Compassion = MathUtil.Clamp01(
+                        npc.Needs.Compassion + Spec53.RecoverRate);
+                    RecordImpact(npc, NeedKind.Compassion, EffectKind.EveryoneSafe, positive: true);
+                }
             }
 
             // Spec §49: raw-water gut-rot damage-over-time — pay down the bounded
@@ -516,6 +579,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             if (world.Tick < npc.Mind.SickUntilTick)
             {
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - SickComfortPerSlowTick);
+                RecordImpact(npc, NeedKind.Comfort, EffectKind.Sick, positive: false);
             }
 
             // Spec 40.1: stamina. Its ceiling is how fed/rested/comfortable the
@@ -557,6 +621,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 : staminaCeiling;
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaUpper);
+            RecordImpact(
+                npc,
+                NeedKind.Stamina,
+                resting ? EffectKind.Resting : working ? EffectKind.Working : EffectKind.Resting,
+                positive: staminaDelta >= 0f);
+            if (convalescing)
+            {
+                RecordImpact(npc, NeedKind.Stamina, EffectKind.Convalescent, positive: false);
+            }
 
             // §110.10/§146.12: stress responds to danger NOW, not to the long-lived
             // spatial notebook used for route avoidance. Far-spotted and old
@@ -577,6 +650,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     ? SimBalance.StressUpRate * humanThreat
                     : -SimBalance.StressDownRate;
             npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress + stressDelta);
+            RecordImpact(
+                npc,
+                NeedKind.Stress,
+                fullThreat ? EffectKind.Threatened
+                    : bodyCrisis ? EffectKind.BodyCrisis
+                    : humanThreat > 0f ? EffectKind.Threatened
+                    : EffectKind.Calm,
+                positive: stressDelta < 0f);
 
             // §28/§146.12: friendship is active support, including across camp
             // borders. RunTalk owns only the initiator's interaction state, so
@@ -588,6 +669,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             {
                 npc.Needs.Stress = MathUtil.Clamp01(
                     npc.Needs.Stress - SimBalance.StressDownRate * friendshipRelief);
+                RecordImpact(npc, NeedKind.Stress, EffectKind.FriendlyTalk, positive: true);
             }
 
             // §110: слёзы отпускают САМИ — это и есть смысл разрядки, поэтому
@@ -602,6 +684,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             {
                 npc.Needs.Stress = MathUtil.Clamp01(
                     npc.Needs.Stress - SimBalance.CryingStressRelief);
+                RecordImpact(npc, NeedKind.Stress, EffectKind.Crying, positive: true);
             }
 
             // Spec 40.13: collapse. Utterly spent stamina AND a body pushed to
@@ -693,6 +776,13 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     : -SimBalance.HygieneDriftLoss;
             npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
                 hygieneDelta);
+            RecordImpact(
+                npc,
+                NeedKind.Hygiene,
+                standingInWater ? EffectKind.Washing
+                    : washingInRain ? EffectKind.RainWashed
+                    : EffectKind.NaturalDecay,
+                positive: hygieneDelta > 0f);
             // §40.8-H r12: тот же физический wash-path смывает кровяную
             // подложку. Дождь делает это с тем же десятикратным замедлением,
             // что и общую гигиену; сухая погода ничего не очищает.
@@ -781,6 +871,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
                     npc.Health = npc.Body.Mean();
                     npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.25f); // spec 42
+                    RecordImpact(npc, NeedKind.Blood, EffectKind.Bandaged, positive: true);
                     Trace.Emit(world, npc.Id, "Bandaged",
                         $"Dressed the wounds (Health={npc.Health:F2})");
                 }
@@ -803,6 +894,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
                     npc.Health = npc.Body.Mean();
                     npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.15f); // spec 42
+                    RecordImpact(npc, NeedKind.Blood, EffectKind.BloodRecovery, positive: true);
                     Trace.Emit(world, npc.Id, "Medicated",
                         $"Took a pill at the brink (Health={npc.Health:F2})");
                 }
@@ -830,6 +922,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     }
 
                     npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - bleed);
+                    RecordImpact(
+                        npc,
+                        NeedKind.Blood,
+                        bleed > 0f ? EffectKind.Bleeding : EffectKind.BloodRecovery,
+                        positive: bleed <= 0f);
                     if (npc.Needs.Blood <= 0f)
                     {
                         // §105: кровь на нуле больше не убивает В ТОТ ЖЕ ТИК —
@@ -862,6 +959,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     : TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f ? 2f
                     : 1f;
                 npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + SimBalance.BloodRefillPerTick * bloodPace); // spec 44
+                RecordImpact(npc, NeedKind.Blood, EffectKind.BloodRecovery, positive: true);
             }
 
             // Spec §60: blood at the coma line — whatever drained it (the

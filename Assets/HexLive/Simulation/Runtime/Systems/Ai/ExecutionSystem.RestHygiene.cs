@@ -4,6 +4,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
@@ -131,6 +132,14 @@ public sealed partial class ExecutionSystem
         // is how ground sitting became a hidden second recovery stream.
         var restShare = durationTicks > 0 ? 1f / durationTicks : 1f;
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfort * restShare);
+        if (comfort != 0f)
+        {
+            npc.EffectImpacts.Record(
+                NeedKind.Comfort,
+                kind == InteractionType.Sleep ? EffectKind.Sleeping : EffectKind.Resting,
+                comfort > 0f ? EffectImpactDirection.Positive : EffectImpactDirection.Negative,
+                EffectImpactCadence.Fast);
+        }
 
         var interruptedSleep = kind == InteractionType.Sleep &&
             HasSleepInterrupt(world, npc, alreadyAsleep: true);
@@ -968,6 +977,11 @@ public sealed partial class ExecutionSystem
 
         npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
             1f / SimBalance.BatheDurationTicks);
+        npc.EffectImpacts.Record(
+            NeedKind.Hygiene,
+            EffectKind.Washing,
+            EffectImpactDirection.Positive,
+            EffectImpactCadence.Fast);
 
         // ⭐ §49.11: ВЫМОТАЛАСЬ В ВОДЕ — НА БЕРЕГ, не домываться. Вырубиться на
         // глубине значит утонуть (§60.7), и вытащить её оттуда нельзя: спасение
@@ -1106,6 +1120,7 @@ public sealed partial class ExecutionSystem
             _dressPourScratch.Clear();
             _dressPourScratch.AddRange(garment.Contents);
             garment.Contents.Clear();
+            OutfitMaintenanceMath.MarkWorn(world, npc, id);
             WorldObjectMutations.DespawnObject(world, id);
             EquipmentMath.Recalculate(world, npc);
             foreach (var stashed in _dressPourScratch)

@@ -257,6 +257,7 @@ public static class PrototypeRuntimeBootstrap
         mapRoot.AddComponent<UIDocument>();
         var tacticalMap = mapRoot.AddComponent<TacticalMapPanel>();
         tacticalMap.SetRunner(runner);
+        tacticalMap.SetPortraitCache(portraitCache);
 
         // Escape menu (continue / quit) — Escape with nothing selected.
         var menuRoot = new GameObject("HexLive Game Menu");

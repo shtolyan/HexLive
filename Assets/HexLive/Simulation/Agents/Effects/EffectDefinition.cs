@@ -111,6 +111,30 @@ namespace HexLive.Simulation.Agents.Effects
             // §105.14: притворяется мёртвой — лежит и не выдаёт себя.
             Add(EffectKind.PlayingDead, EffectPolarity.Debuff, EffectCategory.Mind, "🫥");
 
+            // §48.7: active causes shown under the parameter they currently
+            // move. They deliberately do not become permanent status chips;
+            // the EffectImpactLedger supplies their live surface.
+            Add(EffectKind.NaturalDecay, EffectPolarity.Debuff, EffectCategory.Survival, "⌛");
+            Add(EffectKind.Sleeping, EffectPolarity.Buff, EffectCategory.Survival, "🌙");
+            Add(EffectKind.DirtyClothes, EffectPolarity.Debuff, EffectCategory.Hygiene, "👕");
+            Add(EffectKind.NearbyCompany, EffectPolarity.Buff, EffectCategory.Mind, "👥");
+            Add(EffectKind.WitnessingSuffering, EffectPolarity.Debuff, EffectCategory.Mind, "🫶");
+            Add(EffectKind.EveryoneSafe, EffectPolarity.Buff, EffectCategory.Mind, "💗");
+            Add(EffectKind.Working, EffectPolarity.Debuff, EffectCategory.Survival, "🔨");
+            Add(EffectKind.Resting, EffectPolarity.Buff, EffectCategory.Survival, "🪑");
+            Add(EffectKind.Threatened, EffectPolarity.Debuff, EffectCategory.Mind, "⚠️");
+            Add(EffectKind.BodyCrisis, EffectPolarity.Debuff, EffectCategory.Survival, "🆘");
+            Add(EffectKind.Calm, EffectPolarity.Buff, EffectCategory.Mind, "🕊️");
+            Add(EffectKind.FriendlyTalk, EffectPolarity.Buff, EffectCategory.Mind, "💬");
+            Add(EffectKind.Washing, EffectPolarity.Buff, EffectCategory.Hygiene, "🛁");
+            Add(EffectKind.RainWashed, EffectPolarity.Buff, EffectCategory.Hygiene, "🌧️");
+            Add(EffectKind.BloodRecovery, EffectPolarity.Buff, EffectCategory.Injury, "❤️");
+            Add(EffectKind.Sprinting, EffectPolarity.Debuff, EffectCategory.Survival, "🏃");
+            Add(EffectKind.BreathRecovery, EffectPolarity.Buff, EffectCategory.Survival, "🌬️");
+            Add(EffectKind.AmbientTemperature, EffectPolarity.Debuff, EffectCategory.Environment, "🌡️");
+            Add(EffectKind.Eating, EffectPolarity.Buff, EffectCategory.Survival, "🥥");
+            Add(EffectKind.Drinking, EffectPolarity.Buff, EffectCategory.Survival, "🥤");
+
             return map;
         }
     }

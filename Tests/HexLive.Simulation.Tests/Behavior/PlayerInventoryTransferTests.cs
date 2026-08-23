@@ -300,7 +300,7 @@ public sealed class PlayerInventoryTransferTests
     }
 
     [Test]
-    public void FilledGarmentCannotBeStowedInsideAnotherPocket()
+    public void FilledGarmentCanBeStowedWhenProjectedFlatLayoutHasSpace_Bug214()
     {
         var world = TestWorld.CreateWorld();
         var npc = world.Entities.Npcs.Values.First();
@@ -313,15 +313,46 @@ public sealed class PlayerInventoryTransferTests
         EquipmentMath.RecalculateCapacity(world, npc);
         var reference = new InventoryItemRef(
             InventoryItemSource.Worn, 0, garmentId);
+        var garmentLayout = InventoryLayoutBuilder.Build(world, npc).Containers.Single(c =>
+            c.Kind == InventoryContainerKind.Garment && c.OwnerSourceIndex == 0);
+
+        Assert.That(garmentLayout.Slots.Any(slot =>
+            slot.ItemDefinitionId == "tool.hammer"), Is.True,
+            "The repro item must really occupy the worn garment's derived pocket.");
+        Assert.That(PlayerInventoryCommandExecutor.TryApply(
+            world, npc, reference, InventoryAction.Stow, out var reason), Is.True, reason);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.WornItems, Is.Empty);
+            Assert.That(npc.Inventory.Items.Any(item => item.DefinitionId == garmentId), Is.True);
+            Assert.That(npc.Inventory.Items.Any(item => item.DefinitionId == "tool.hammer"), Is.True,
+                "Pocket contents stay in the single flat item store after the layout is rebuilt.");
+            Assert.That(npc.Inventory.UsedSlots, Is.LessThanOrEqualTo(npc.Inventory.Capacity));
+        });
+    }
+
+    [Test]
+    public void FilledGarmentStillRejectsStowWhenProjectedFlatLayoutIsFull_Bug214()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Inventory.Items.Clear();
+        npc.WornItems.Clear();
+        const string garmentId = "test.loot.full_jacket";
+        AddGarment(world, garmentId, 2, BodyPart.Torso);
+        npc.WornItems.Add(new ItemInstance(garmentId));
+        EquipmentMath.RecalculateCapacity(world, npc);
+        for (var i = 0; i < npc.Inventory.Capacity; i++)
+        {
+            npc.Inventory.Items.Add(AddPlainItem(world, "test.loot.full_cargo." + i));
+        }
+        var reference = new InventoryItemRef(
+            InventoryItemSource.Worn, 0, garmentId);
 
         Assert.That(PlayerInventoryMath.FitsAfter(
             world, npc, reference, InventoryAction.Stow), Is.False,
-            "A jacket with a real item in its derived pocket cannot be nested.");
-
-        npc.Inventory.Items.Clear();
-        Assert.That(PlayerInventoryMath.FitsAfter(
-            world, npc, reference, InventoryAction.Stow), Is.True,
-            "An empty garment may still be folded into ordinary free carry space.");
+            "Stowing must still be rejected when the rebuilt flat layout has no capacity.");
     }
 
     [Test]

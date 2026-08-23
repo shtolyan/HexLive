@@ -63,16 +63,10 @@ namespace HexLive.Simulation.Runtime
                     // projected-capacity preflight.
                     return true;
                 }
-                if (action == InventoryAction.Stow &&
-                    (!InventoryLayoutBuilder.TryCollectOwnedContents(
-                         world, npc, itemRef.Index, out var pocketContents) ||
-                     pocketContents.Count > 0))
-                {
-                    // A filled container may move as one worn bundle in §128,
-                    // but it may never become a nested pocket inside another
-                    // flat inventory container.
-                    return false;
-                }
+                // Garment-pocket ownership is only a derived presentation
+                // detail. Stow keeps those items in the same flat carried
+                // store; the projected layout below decides whether all of
+                // them plus the folded garment have real cells (§123.5).
                 worn.RemoveAt(itemRef.Index);
                 if (action == InventoryAction.Stow) carried.Add(item);
                 else return false;

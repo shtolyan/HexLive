@@ -289,7 +289,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private bool DefersToContents(WorldObjectView view)
     {
         if (_runner == null ||
-            !_runner.TryGetObjectDefinition(view.DefinitionId, out var definition) ||
+            !_runner.TryGetObjectDefinition(view.ContextDefinitionId, out var definition) ||
             definition == null)
         {
             return false;
@@ -337,7 +337,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     // by OpenObjectMenu and ManualCommandExecutor; this is only hit selection.
     private bool HasContextActions(WorldObjectView view) =>
         _runner != null &&
-        _runner.TryGetObjectDefinition(view.DefinitionId, out var definition) &&
+        _runner.TryGetObjectDefinition(view.ContextDefinitionId, out var definition) &&
         definition != null && definition.Interactions.Count > 0;
 
     // Точное попадание луча в видимую геометрию тела — с ДИСТАНЦИЕЙ, чтобы
@@ -746,7 +746,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     {
         var runner = _runner;
         if (runner == null ||
-            !runner.TryGetObjectDefinition(view.DefinitionId, out var definition) ||
+            !runner.TryGetObjectDefinition(view.ContextDefinitionId, out var definition) ||
             definition == null)
         {
             return;
@@ -759,7 +759,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 Loc.Get("menu.select_one_character"), () => { }, false,
                 Loc.Get("menu.select_one_character")));
             ContextMenuPanel.Open(
-                mousePos, ObjectTitle(definition, view.DefinitionId), _entries);
+                mousePos, ObjectTitle(definition, view.ContextDefinitionId), _entries);
             return;
         }
 
@@ -770,7 +770,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         foreach (var interaction in definition.Interactions)
         {
             var ok = HasEveryTool(carried, interaction);
-            var objectId = view.ObjectId;
+            var objectId = view.ContextObjectId;
             var type = interaction.Type;
             _entries.Add(new ContextMenuEntry(
                 Loc.Get($"interaction.{type}.verb"),
@@ -780,12 +780,18 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 ok ? null : Loc.Get("menu.missing_tool")));
         }
 
+        // One coherent frame for all state-derived additions below. Besides
+        // avoiding repeated snapshot exports, this prevents a server tick from
+        // changing the owner/container answer halfway through one menu build.
+        var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+
+        var clicked = FindObject(snapshot, view.ObjectId);
+
         // §124.1: у несущей человека клик по кровати добавляет «Положить» —
         // рядом со «Спать» из каталога. Занятость кровати авторитетно решает
         // симуляция (Occupied придёт тостом): в ObjectSnapshot её нет.
         if (HexLive.Simulation.Content.ContentIds.IsBed(view.DefinitionId))
         {
-            var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
             NpcSnapshot? me = null;
             if (snapshot != null)
             {
@@ -812,8 +818,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // Признак берётся из снапшота: симуляция кладёт в объект содержимое
         // только у настоящих контейнеров, поэтому непустой список — это и есть
         // ответ «здесь есть что взять», а не догадка по id.
-        if (TryFindObject(runner, view.ObjectId) is { } container &&
-            container.Contents.Count > 0)
+        if (clicked != null && clicked.Contents.Count > 0)
         {
             var containerId = view.ObjectId;
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
@@ -829,12 +834,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
-        ContextMenuPanel.Open(mousePos, ObjectTitle(definition, view.DefinitionId), _entries);
+        ContextMenuPanel.Open(mousePos, ObjectTitle(definition, view.ContextDefinitionId), _entries);
     }
 
-    private static ObjectSnapshot? TryFindObject(ISimulationSource runner, int objectId)
+    private static ObjectSnapshot? FindObject(WorldSnapshot? snapshot, int objectId)
     {
-        var snapshot = runner.IsReady ? runner.CreateSnapshot() : null;
         if (snapshot == null)
         {
             return null;

@@ -35,12 +35,22 @@ public sealed class WorldObjectView : MonoBehaviour
 
     public string DefinitionId { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Контекстная цель может отличаться от нарисованного объекта: отдельная
+    /// секция недостроенного модульного дома проксирует меню на footprint-owner.
+    /// Геометрия и подсветка при этом остаются у самой секции.
+    /// </summary>
+    public int ContextObjectId { get; private set; } = -1;
+
+    public string ContextDefinitionId { get; private set; } = string.Empty;
+
     public IReadOnlyList<Renderer> Renderers => _renderers;
 
     public void Init(int objectId, string definitionId)
     {
         ObjectId = objectId;
         DefinitionId = definitionId ?? string.Empty;
+        ClearContextProxy();
         _renderers = GetComponentsInChildren<Renderer>(true);
         _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
     }
@@ -49,8 +59,21 @@ public sealed class WorldObjectView : MonoBehaviour
     {
         ObjectId = objectId;
         DefinitionId = definitionId ?? string.Empty;
+        ClearContextProxy();
         _renderers = renderers ?? Array.Empty<Renderer>();
         _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
+    }
+
+    public void SetContextProxy(int objectId, string definitionId)
+    {
+        ContextObjectId = objectId;
+        ContextDefinitionId = definitionId ?? string.Empty;
+    }
+
+    public void ClearContextProxy()
+    {
+        ContextObjectId = ObjectId;
+        ContextDefinitionId = DefinitionId;
     }
 
     /// <summary>

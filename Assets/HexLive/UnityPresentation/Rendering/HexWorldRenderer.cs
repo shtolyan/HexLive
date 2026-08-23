@@ -78,6 +78,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // piece. The canonical hut_1hex is NOT here: its pieces are slots of one
     // shared HutAssembly mesh, and their views stay bare id markers.
     private readonly HashSet<int> _planBuildingOwners = new();
+    private readonly HashSet<int> _unfinishedPlanBuildingOwners = new();
 
     // §120: the ANCHOR junction of every plan building, by owner id. A module's
     // LocalX/LocalZ is measured from it, and one module — the door — no longer
@@ -114,6 +115,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         public HexLive.UnityPresentation.Environment.CraftProjectVisual CraftProject;
         public HexLive.UnityPresentation.Environment.HutAssembly Hut;
         public HexLive.UnityPresentation.Environment.ArchitectureModuleView Module;
+        public Views.WorldObjectView ObjectView;
     }
 
     private readonly Dictionary<int, ObjectViewParts> _objectViewParts = new();
@@ -1490,6 +1492,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         liveObjectIds.Clear();
         _hutCutawayViews.Clear();
         _planBuildingOwners.Clear();
+        _unfinishedPlanBuildingOwners.Clear();
         _planOwnerAnchors.Clear();
         _planRaisedOwners.Clear();
         _planFootprintTiles.Clear();
@@ -1507,6 +1510,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 var ownerKey = worldObject.Id.Value;
                 _planBuildingOwners.Add(ownerKey);
+                if (worldObject.BuildProduct == ContentIds.HutPlan)
+                {
+                    _unfinishedPlanBuildingOwners.Add(ownerKey);
+                }
                 // Every module of this building is placed from THIS point; the
                 // module's own junction is not it (see _planOwnerAnchors).
                 _planOwnerAnchors[ownerKey] =
@@ -1734,16 +1741,36 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     worldObject.BuildProduct != ContentIds.Hut1Hex &&
                     worldObject.DefinitionId != ContentIds.HutPlan &&
                     worldObject.BuildProduct != ContentIds.HutPlan;
-                if (!selectableAggregate && objectView.TryGetComponent<Views.WorldObjectView>(out var aggregateView))
-                    aggregateView.enabled = false;
-                if (selectableAggregate && objectView.GetComponent<Views.WorldObjectView>() == null)
+                var contextView = objectView.GetComponent<Views.WorldObjectView>();
+                if (!selectableAggregate && contextView != null)
+                    contextView.enabled = false;
+                if (selectableAggregate && contextView == null)
                 {
-                    objectView.AddComponent<Views.WorldObjectView>()
-                        .Init(key, worldObject.DefinitionId);
+                    contextView = objectView.AddComponent<Views.WorldObjectView>();
+                    contextView.Init(key, worldObject.DefinitionId);
                 }
+                var cachedParts = _objectViewParts[key];
+                cachedParts.ObjectView = contextView;
+                _objectViewParts[key] = cachedParts;
             }
 
             _objectViewParts.TryGetValue(key, out var parts);
+
+            // Bug #198: a visible module of an unfinished plan is the click
+            // surface for its invisible footprint-owner. Refreshing the proxy
+            // from the snapshot also removes the Build action at completion.
+            if (parts.ObjectView != null)
+            {
+                if (worldObject.ArchitectureOwnerObjectId is { } ownerId &&
+                    _unfinishedPlanBuildingOwners.Contains(ownerId))
+                {
+                    parts.ObjectView.SetContextProxy(ownerId, ContentIds.BuildSite);
+                }
+                else
+                {
+                    parts.ObjectView.ClearContextProxy();
+                }
+            }
 
             if (worldObject.DefinitionId == ContentIds.Hut1Hex && parts.Hut != null)
             {

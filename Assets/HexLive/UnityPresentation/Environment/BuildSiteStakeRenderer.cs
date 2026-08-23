@@ -175,6 +175,15 @@ namespace HexLive.UnityPresentation.Environment
                 AddStake(root.transform, new Vector3(point.X, groundY, point.Y));
             }
 
+            // Bug #198: these stakes are the only visible geometry of a fresh
+            // site, but until now they lived outside HexWorldRenderer's object
+            // view and therefore could neither highlight nor receive a click.
+            // Register the derived marker as a proxy for the authoritative
+            // build.site; the normal object menu then supplies the catalogued
+            // Build interaction and sends the real site ObjectId to the sim.
+            root.AddComponent<Views.WorldObjectView>()
+                .Init(site.Id.Value, site.DefinitionId);
+
             return root;
         }
 

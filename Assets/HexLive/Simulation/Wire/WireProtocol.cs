@@ -123,7 +123,8 @@ public sealed class Handshake
     // 8: §133.9 — SetOutfitLockCommand и авторитетный OutfitLocked в NPC.
     // 9: §149.3 — AssignedNpcIds: постоянный ростер именно этого игрока.
     // 10: §138.2 — per-viewer FrameKind.CraftingOptions.
-    public const int ProtocolVersion = 10;
+    // 11: snapshot v33 — owner ids of physical inventory/clothing items.
+    public const int ProtocolVersion = 11;
 
     public int Seed { get; set; }
 

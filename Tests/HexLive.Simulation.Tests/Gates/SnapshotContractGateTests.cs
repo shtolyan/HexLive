@@ -137,9 +137,10 @@ public sealed class SnapshotContractGateTests
         var npc = world.Entities.Npcs.Values.First();
         npc.Inventory.Items.Clear();
         npc.WornItems.Clear();
-        npc.Inventory.Items.Add("tool.knife");
+        npc.Inventory.Items.Add(new ItemInstance("tool.knife") { OwnerId = 73 });
         npc.Inventory.Items.Add("resource.stick");
         npc.Inventory.Items.Add("resource.stick");
+        npc.WornItems.Add(new ItemInstance("underwear.bra_riot") { OwnerId = 91 });
         EquipmentMath.RecalculateCapacity(world, npc);
 
         var exported = Find(WorldSnapshotExporter.Export(world), npc.Id.Value);
@@ -157,6 +158,10 @@ public sealed class SnapshotContractGateTests
         Assert.That(exported.FavoriteWeaponId, Is.EqualTo("tool.knife"));
         Assert.That(exported.InventoryItems, Does.Contain("tool.knife"),
             "Legacy item fields stay until the existing detail card has fully migrated.");
+        Assert.That(exported.InventoryOwnerIds[0], Is.EqualTo(73),
+            "Carried owner must use the same physical index as slot.SourceIndex.");
+        Assert.That(exported.WornOwnerIds, Is.EqualTo(new[] { 91 }),
+            "Worn owner ids must stay parallel to WornItems.");
     }
 
     /// <summary>

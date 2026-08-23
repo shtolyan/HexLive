@@ -1060,6 +1060,7 @@ public static class WorldSnapshotExporter
         var stackOrder = new List<string>();
         foreach (var item in npc.Inventory.Items)
         {
+            npcSnapshot.InventoryOwnerIds.Add(item.OwnerId);
             if (!InventoryState.IsStackable(item.DefinitionId))
             {
                 continue;
@@ -1116,6 +1117,7 @@ public static class WorldSnapshotExporter
             npcSnapshot.WornDirtiness.Add($"{item.DefinitionId}\t{Num(item.Dirtiness)}");
             npcSnapshot.WornBloodiness.Add($"{item.DefinitionId}\t{Num(item.Bloodiness)}");
             npcSnapshot.WornItems.Add(item);
+            npcSnapshot.WornOwnerIds.Add(item.OwnerId);
         }
 
         // Spec §52.8: which typed holster slots are actually filled right now —

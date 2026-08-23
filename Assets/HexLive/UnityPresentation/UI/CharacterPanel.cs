@@ -248,6 +248,10 @@ namespace HexLive.UnityPresentation.UI
         private Dictionary<string, int> _invCarriedStacks = new();
         private Dictionary<string, float> _invWornWetness = new();
         private Dictionary<string, float> _invWornDirtiness = new();
+        private List<int> _invCarriedOwnerIds = new();
+        private List<int> _invWornOwnerIds = new();
+        private List<string> _invWornItemIds = new();
+        private readonly Dictionary<int, string> _invOwnerNames = new();
         private MeleeStatsSnapshot _meleeStats = new();
 
         // Spec §57: limb-health window — click the HP row to pop a floating
@@ -856,7 +860,7 @@ namespace HexLive.UnityPresentation.UI
             UpdateEffects(npc);
             UpdateRelations(npc);
             _meleeStats = npc.MeleeStats ?? new MeleeStatsSnapshot();
-            RefreshInventory(npc);
+            RefreshInventory(snapshot, npc);
             RefreshHealth(npc);
 
             // §136: бейдж считается ВСЕГДА — он и существует ради того, чтобы
@@ -3497,7 +3501,7 @@ namespace HexLive.UnityPresentation.UI
 
         // Called from Refresh() while the window is open. Rebuilds the list only
         // when the item set or a garment's live condition changes.
-        private void RefreshInventory(NpcSnapshot npc)
+        private void RefreshInventory(WorldSnapshot snapshot, NpcSnapshot npc)
         {
             if (_inventoryActorId >= 0 && _inventoryActorId != npc.Id.Value)
             {
@@ -3570,6 +3574,10 @@ namespace HexLive.UnityPresentation.UI
             _invCarriedStacks = carriedStacks;
             _invWornWetness = wornWetness;
             _invWornDirtiness = wornDirtiness;
+            _invCarriedOwnerIds = npc.InventoryOwnerIds;
+            _invWornOwnerIds = npc.WornOwnerIds;
+            _invWornItemIds = npc.WornItems;
+            RefreshInventoryOwnerNames(snapshot);
 
             var sig = string.Join(",", npc.WornItems) + "|" + string.Join(",", npc.InventoryItems)
                 + "|" + string.Join(",", npc.WornWetness) + "|" + string.Join(",", npc.WornDurability)
@@ -3580,9 +3588,11 @@ namespace HexLive.UnityPresentation.UI
                 + "|" + string.Join(",", npc.InventoryDirtiness)
                 + "|" + string.Join(",", npc.InventoryBloodiness)
                 + "|" + string.Join(",", npc.InventoryWater)
+                + "|" + string.Join(",", npc.InventoryOwnerIds)
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots
                 + "|" + npc.HeldItemId + "|" + npc.FavoriteWeaponId
                 + "|lock=" + (npc.OutfitLocked ? "1" : "0")
+                + "|wornOwners=" + string.Join(",", npc.WornOwnerIds)
                 + "|page=" + (_clothesPage ? "clothes" : "backpack")
                 + "|" + InventoryLayoutSignature(npc);
             if (sig == _invSig)
@@ -3980,7 +3990,9 @@ namespace HexLive.UnityPresentation.UI
             _invDetailCategory.style.color = accent;
             _invDetailDesc.text = ItemDesc(def, info);
 
-            BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness);
+            BuildItemStats(
+                def, info, worn, durability, water, stacks, wetness, dirtiness,
+                ResolveInventoryOwnerId(id, worn, sourceIndex));
 
             var wearable = def != null && def.Layer.HasValue;
             var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
@@ -4212,13 +4224,19 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
-            Dictionary<string, float> dirtiness)
+            Dictionary<string, float> dirtiness,
+            int ownerId)
         {
             _invDetailStats.Clear();
             var affinity = ItemAffinity.For(_boundActorId, info.DefinitionId);
             _invDetailStats.Add(MakeStatRow(
                 Loc.Get("inv.affinity"), $"{Mathf.RoundToInt(affinity * 100f)}%",
                 Color.Lerp(Warn, Gold, affinity)));
+            if (def != null && def.Layer.HasValue)
+            {
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.owner"), InventoryOwnerName(ownerId), TextDim));
+            }
             if (!worn && stacks.TryGetValue(info.DefinitionId, out var stackCount) && stackCount > 1)
             {
                 _invDetailStats.Add(MakeStatRow(
@@ -4376,6 +4394,50 @@ namespace HexLive.UnityPresentation.UI
 
         private static string SignedPercent(float multiplier) =>
             SignedBonusPercent(multiplier - 1f);
+
+        private void RefreshInventoryOwnerNames(WorldSnapshot snapshot)
+        {
+            _invOwnerNames.Clear();
+            if (snapshot == null) return;
+            foreach (var owner in snapshot.Npcs)
+            {
+                _invOwnerNames[owner.Id.Value] = owner.DisplayName;
+            }
+            foreach (var owner in snapshot.Corpses)
+            {
+                _invOwnerNames[owner.Id.Value] = owner.DisplayName;
+            }
+        }
+
+        private int ResolveInventoryOwnerId(string itemId, bool worn, int sourceIndex)
+        {
+            var owners = worn ? _invWornOwnerIds : _invCarriedOwnerIds;
+            if (sourceIndex >= 0 && sourceIndex < owners.Count)
+            {
+                return owners[sourceIndex];
+            }
+
+            // Doll picking identifies the visible garment by definition rather
+            // than source index. Duplicate definitions are rare; the stable
+            // Clothes tab always supplies the exact physical index.
+            if (worn)
+            {
+                for (var i = 0; i < _invWornItemIds.Count && i < owners.Count; i++)
+                {
+                    if (_invWornItemIds[i] == itemId) return owners[i];
+                }
+            }
+            return 0;
+        }
+
+        private string InventoryOwnerName(int ownerId)
+        {
+            if (ownerId <= 0) return Loc.Get("inv.owner.none");
+            return _invOwnerNames.TryGetValue(ownerId, out var nameId) &&
+                   !string.IsNullOrEmpty(nameId)
+                ? Loc.NpcName(nameId)
+                : Loc.Get("inv.owner.unknown");
+        }
 
         private static Color StatComparisonColor(
             float baseline,

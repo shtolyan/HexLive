@@ -127,6 +127,24 @@ public sealed class NpcFieldGroupDeltaGateTests
     }
 
     [Test]
+    public void ChangingGarmentOwnerCarriesOnlyItsPhysicalItemGroup()
+    {
+        var snapshot = OneNpc();
+        var encoder = new SnapshotDeltaEncoder();
+        encoder.Encode(snapshot, false);
+
+        snapshot.Tick++;
+        snapshot.Npcs[0].WornOwnerIds[0] = 42;
+        var wornMask = NpcMaskOf(encoder.Encode(snapshot, false));
+        Assert.That(wornMask, Is.EqualTo(1 << WorldSnapshotCodec.NpcGroup.Wear));
+
+        snapshot.Tick++;
+        snapshot.Npcs[0].InventoryOwnerIds[0] = 84;
+        var carriedMask = NpcMaskOf(encoder.Encode(snapshot, false));
+        Assert.That(carriedMask, Is.EqualTo(1 << WorldSnapshotCodec.NpcGroup.Inventory));
+    }
+
+    [Test]
     public void AnUnchangedColonistCostsNothingAtAll()
     {
         var snapshot = OneNpc();
@@ -205,8 +223,10 @@ public sealed class NpcFieldGroupDeltaGateTests
         var snapshot = new WorldSnapshot { Tick = 1 };
         var npc = new NpcSnapshot { Id = new EntityId(1), DisplayName = "npc.mira.name" };
         npc.WornItems.Add("wear.top");
+        npc.WornOwnerIds.Add(1);
         npc.WornDirtiness.Add("0.10");
         npc.InventoryItems.Add("tool.knife");
+        npc.InventoryOwnerIds.Add(1);
         npc.Attributes.Add("Strength:7");
         snapshot.Npcs.Add(npc);
         return snapshot;

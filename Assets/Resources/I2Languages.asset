@@ -4523,6 +4523,30 @@ MonoBehaviour:
       - "\u041D\u0440\u0430\u0432\u0438\u0442\u0441\u044F"
       Flags: 0101
       Languages_Touch: []
+    - Term: inv.owner
+      TermType: 0
+      Description:
+      Languages:
+      - Owner
+      - "\u0412\u043B\u0430\u0434\u0435\u043B\u0435\u0446"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.owner.none
+      TermType: 0
+      Description:
+      Languages:
+      - Nobody
+      - "\u041D\u0438\u0447\u044C\u044F"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.owner.unknown
+      TermType: 0
+      Description:
+      Languages:
+      - Unknown
+      - "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E"
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.status
       TermType: 0
       Description: 

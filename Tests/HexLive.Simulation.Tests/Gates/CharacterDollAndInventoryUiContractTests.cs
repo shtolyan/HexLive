@@ -212,6 +212,26 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
+    public void ClothingCardShowsThePhysicalItemsLocalizedOwner()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var localization = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("npc.InventoryOwnerIds"));
+            Assert.That(source, Does.Contain("npc.WornOwnerIds"));
+            Assert.That(source, Does.Contain("ResolveInventoryOwnerId(id, worn, sourceIndex)"));
+            Assert.That(source, Does.Contain("Loc.Get(\"inv.owner\")"));
+            Assert.That(source, Does.Contain("Loc.NpcName(nameId)"));
+            Assert.That(localization, Does.Contain("Term: inv.owner"));
+            Assert.That(localization, Does.Contain("Term: inv.owner.none"));
+            Assert.That(localization, Does.Contain("Term: inv.owner.unknown"));
+        });
+    }
+
+    [Test]
     public void DroppingIsAnExplicitDetailActionWithoutBottomDragZone()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));

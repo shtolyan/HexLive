@@ -85,7 +85,8 @@ public static class WorldSnapshotCodec
     /// v30: §120.9 editable building owners expose their authoritative draft.
     /// v31: §133.9 per-NPC outfit lock for the inventory header switch.
     /// v32: §127 paired romance state and washable pelvis stain.
-    public const int WireVersion = 32;
+    /// v33: §133/#205 physical carried/worn item owner ids for inventory cards.
+    public const int WireVersion = 33;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -1000,6 +1001,7 @@ public static class WorldSnapshotCodec
     private static void WriteNpcInventory(BinaryWriter w, NpcSnapshot n)
     {
         WireIo.WriteStrings(w, n.InventoryItems);
+        WireIo.WriteInts(w, n.InventoryOwnerIds);
         w.Write(n.InventoryUsedSlots);
         WireIo.WriteStrings(w, n.InventoryStacks);
         WireIo.WriteStrings(w, n.InventoryDurability);
@@ -1036,6 +1038,7 @@ public static class WorldSnapshotCodec
     private static void WriteNpcWear(BinaryWriter w, NpcSnapshot n)
     {
         WireIo.WriteStrings(w, n.WornItems);
+        WireIo.WriteInts(w, n.WornOwnerIds);
         WireIo.WriteStrings(w, n.HolsteredItems);
         WireIo.WriteStrings(w, n.WornDurability);
         WireIo.WriteStrings(w, n.WornWetness);
@@ -1348,6 +1351,7 @@ public static class WorldSnapshotCodec
     private static void ReadNpcInventory(BinaryReader r, NpcSnapshot n)
     {
         WireIo.ReadStrings(r, n.InventoryItems);
+        WireIo.ReadInts(r, n.InventoryOwnerIds);
         n.InventoryUsedSlots = r.ReadInt32();
         WireIo.ReadStrings(r, n.InventoryStacks);
         WireIo.ReadStrings(r, n.InventoryDurability);
@@ -1388,6 +1392,7 @@ public static class WorldSnapshotCodec
     private static void ReadNpcWear(BinaryReader r, NpcSnapshot n)
     {
         WireIo.ReadStrings(r, n.WornItems);
+        WireIo.ReadInts(r, n.WornOwnerIds);
         WireIo.ReadStrings(r, n.HolsteredItems);
         WireIo.ReadStrings(r, n.WornDurability);
         WireIo.ReadStrings(r, n.WornWetness);

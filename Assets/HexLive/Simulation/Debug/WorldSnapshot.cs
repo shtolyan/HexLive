@@ -853,6 +853,11 @@ public sealed class NpcSnapshot
 
     public List<string> InventoryItems { get; } = new();
 
+    // §133 / #205: physical InventoryState.Items order, parallel to the
+    // authoritative SourceIndex used by InventoryContainerSnapshot slots.
+    // Zero means ownerless.
+    public List<int> InventoryOwnerIds { get; } = new();
+
     // §51/§52: typed, derived layout for the inventory window. InventoryItems
     // stays temporarily for the existing item card and old presentation paths;
     // neither list is an authoritative store (InventoryState.Items is).
@@ -884,6 +889,10 @@ public sealed class NpcSnapshot
     public List<string> InventoryWater { get; } = new();
 
     public List<string> WornItems { get; } = new();
+
+    // Physical index is identical to WornItems. Kept separate from the display
+    // id list so duplicate garments can still show the correct owner.
+    public List<int> WornOwnerIds { get; } = new();
 
     // Spec §52.8: tool ids currently parked in a worn holster's typed weapon
     // slots. Presentation pins each to the matching tool.* anchor of the worn

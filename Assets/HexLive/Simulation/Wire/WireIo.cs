@@ -64,6 +64,13 @@ internal static class WireIo
         }
     }
 
+    public static void WriteInts(BinaryWriter w, List<int> values)
+    {
+        w.Write(values?.Count ?? 0);
+        if (values == null) return;
+        for (var i = 0; i < values.Count; i++) w.Write(values[i]);
+    }
+
     public static void WriteJunctions(BinaryWriter w, List<JunctionId> values)
     {
         if (values == null)
@@ -118,6 +125,13 @@ internal static class WireIo
         {
             into.Add(r.ReadString());
         }
+    }
+
+    public static void ReadInts(BinaryReader r, List<int> into)
+    {
+        into.Clear();
+        var count = r.ReadInt32();
+        for (var i = 0; i < count; i++) into.Add(r.ReadInt32());
     }
 
     public static void ReadJunctions(BinaryReader r, List<JunctionId> into)

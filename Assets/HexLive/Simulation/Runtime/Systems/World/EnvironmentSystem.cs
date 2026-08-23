@@ -110,17 +110,31 @@ public sealed class EnvironmentSystem : ISimulationSystem
         var risePerStep = System.MathF.Tan(elevationDeg * System.MathF.PI / 180f)
             * (stepWorld / ElevationWorldStep);
 
-        // Canopy/wall blockers: the definition's ShadeSteps on their tile
-        // (matched to the rendered mesh height — palm 7, tent 2); a canopy
-        // tile is also always shaded itself (standing under the palm).
+        // Canopies cast from the SAME junction anchor used by the renderer.
+        // Treating them as if they stood at TileToWorld(obj.Tile) displaced a
+        // palm shadow by the tile-centre→junction offset even though the light
+        // direction and height were already shared with Unity (bug #207).
+        // A canopy's declared tile remains shaded itself: it is the gameplay
+        // cell occupied by the crown/trunk.
         _shadowExtra.Clear();
+        _objectShadowCasters.Clear();
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
                 def.HasTag("Shade"))
             {
-                _shadowExtra.TryGetValue(obj.Tile, out var prior);
-                _shadowExtra[obj.Tile] = System.Math.Max(prior, def.ShadeSteps);
+                var anchor = HexSpatialMath.TileToWorld(obj.Tile);
+                if (obj.Junctions.Count > 0 &&
+                    world.Junctions.Items.TryGetValue(obj.Junctions[0], out var junction))
+                {
+                    anchor = junction.WorldPosition;
+                }
+
+                var baseElevation = world.Tiles.Items.TryGetValue(obj.Tile, out var objectTile)
+                    ? objectTile.Elevation
+                    : 0;
+                _objectShadowCasters.Add(new ObjectShadowCaster(
+                    anchor, obj.Tile, baseElevation + def.ShadeSteps));
                 world.ShadedTiles.Add(obj.Tile);
             }
         }
@@ -169,9 +183,63 @@ public sealed class EnvironmentSystem : ISimulationSystem
                 }
             }
         }
+
+        CastObjectShadows(world, sunDir, elevationDeg, stepWorld);
     }
 
     private static readonly System.Collections.Generic.Dictionary<TileCoord, float> _shadowExtra = new();
+
+    private static readonly System.Collections.Generic.List<ObjectShadowCaster> _objectShadowCasters = new();
+
+    private readonly struct ObjectShadowCaster
+    {
+        public ObjectShadowCaster(Float2 anchor, TileCoord tile, float height)
+        {
+            Anchor = anchor;
+            Tile = tile;
+            Height = height;
+        }
+
+        public Float2 Anchor { get; }
+        public TileCoord Tile { get; }
+        public float Height { get; }
+    }
+
+    private static void CastObjectShadows(
+        WorldState world, Float2 sunDir, float elevationDeg, float stepWorld)
+    {
+        var tanElevation = System.MathF.Tan(elevationDeg * System.MathF.PI / 180f);
+        // Half-step samples are no farther apart than a hex apothem, so a ray
+        // cannot jump across a tile it visibly crosses. This stays O(casters ×
+        // ray length), unlike scanning the whole island once per palm.
+        const int samplesPerStep = 2;
+        var sampleDistance = stepWorld / samplesPerStep;
+        var sampleCount = ShadowRaySteps * samplesPerStep;
+
+        foreach (var caster in _objectShadowCasters)
+        {
+            for (var sampleIndex = 1; sampleIndex <= sampleCount; sampleIndex++)
+            {
+                var distance = sampleDistance * sampleIndex;
+                var sample = new Float2(
+                    caster.Anchor.X - sunDir.X * distance,
+                    caster.Anchor.Y - sunDir.Y * distance);
+                var targetCoord = HexSpatialMath.WorldToTile(sample);
+                if (targetCoord.Equals(caster.Tile) ||
+                    !world.Tiles.Items.TryGetValue(targetCoord, out var targetTile))
+                {
+                    continue;
+                }
+
+                var sunLineHeight = targetTile.Elevation +
+                    tanElevation * distance / ElevationWorldStep;
+                if (caster.Height >= sunLineHeight)
+                {
+                    world.ShadedTiles.Add(targetCoord);
+                }
+            }
+        }
+    }
 
     // Inverse of HexSpatialMath.TileToWorld (linear) with axial rounding.
     private static TileCoord WorldToTile(Float2 world)

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
@@ -54,6 +55,94 @@ public sealed class SunRoofExposureTests
             pair.Value.Flags.HasFlag(TileFlags.Roofed));
 
         Assert.That(TemperatureSystem.EffectiveUv(world, roofed.Key), Is.EqualTo(0f));
+    }
+
+    [Test]
+    public void PalmShadowStartsAtItsRenderedJunction_NotTheTileCentre_Bug207()
+    {
+        var world = TestWorld.CreateWorld(1365566998);
+        var palm = world.Entities.Objects.Values.First(obj =>
+            obj.DefinitionId == "tree.palm" && obj.Junctions.Count > 0);
+        var anchor = world.Junctions.Items[palm.Junctions[0]].WorldPosition;
+        var legacyAnchor = HexSpatialMath.TileToWorld(palm.Tile);
+        Assert.That(HexSpatialMath.Distance(anchor, legacyAnchor), Is.GreaterThan(0.1f),
+            "Тесту нужна пальма, посаженная на junction, а не в центре гекса.");
+
+        world.Entities.Objects.Clear();
+        world.Entities.Objects[palm.Id] = palm;
+        foreach (var tile in world.Tiles.Items.Values)
+        {
+            tile.Elevation = 1;
+            tile.Flags &= ~TileFlags.Roofed;
+        }
+
+        TileCoord? anchoredOnly = null;
+        TileCoord? legacyOnly = null;
+        // Start with the exact report tick, then sweep the same seed's daylight
+        // arc: the report can be filed a few in-game minutes after the player
+        // first notices the moving mismatch.
+        var probeTicks = new[] { 200160 }.Concat(
+            Enumerable.Range(1, 15)
+                .Select(slice => EnvironmentSystem.DayLengthTicks * slice / 32));
+        foreach (var probeTick in probeTicks)
+        {
+            world.Tick = probeTick;
+            new EnvironmentSystem().Run(world);
+            var sun = world.SunDirection;
+            var elevation = world.SunElevationDegrees;
+            var anchoredProjection = Projection(world, anchor, sun, elevation, palm.Tile);
+            var legacyProjection = Projection(world, legacyAnchor, sun, elevation, palm.Tile);
+            var anchoredCandidate = anchoredProjection
+                .Where(tile => !legacyProjection.Contains(tile))
+                .Select(tile => (TileCoord?)tile)
+                .FirstOrDefault();
+            var legacyCandidate = legacyProjection
+                .Where(tile => !anchoredProjection.Contains(tile))
+                .Select(tile => (TileCoord?)tile)
+                .FirstOrDefault();
+            if (anchoredCandidate is not null && legacyCandidate is not null)
+            {
+                anchoredOnly = anchoredCandidate;
+                legacyOnly = legacyCandidate;
+                break;
+            }
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(anchoredOnly, Is.Not.Null,
+                "Не нашлось гекса, который затеняет реальный junction пальмы.");
+            Assert.That(legacyOnly, Is.Not.Null,
+                "Тест не отличает старую тень из центра тайла от junction-тени.");
+        });
+        Assert.That(world.ShadedTiles.Contains(anchoredOnly!.Value), Is.True,
+            "Симуляция не затенила гекс на рендерном луче от junction пальмы.");
+        Assert.That(world.ShadedTiles.Contains(legacyOnly!.Value), Is.False,
+            "Осталась фантомная тень от центра гекса, где пальмы нет.");
+    }
+
+    private static System.Collections.Generic.HashSet<TileCoord> Projection(
+        WorldState world, Float2 caster, Float2 sun, float elevationDeg, TileCoord source)
+    {
+        var result = new System.Collections.Generic.HashSet<TileCoord> { source };
+        var stepWorld = HexSpatialMath.HexRadius * HexSpatialMath.Sqrt3;
+        var sampleDistance = stepWorld / 2f;
+        var tanElevation = System.MathF.Tan(elevationDeg * System.MathF.PI / 180f);
+        for (var sampleIndex = 1;
+             sampleIndex <= WorldBalance.ShadowRaySteps * 2;
+             sampleIndex++)
+        {
+            var distance = sampleDistance * sampleIndex;
+            var coord = HexSpatialMath.WorldToTile(new Float2(
+                caster.X - sun.X * distance,
+                caster.Y - sun.Y * distance));
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile)) continue;
+            var sunLine = tile.Elevation +
+                tanElevation * distance / WorldBalance.ElevationWorldStep;
+            if (1f + 7f >= sunLine) result.Add(coord);
+        }
+
+        return result;
     }
 
     [Test]

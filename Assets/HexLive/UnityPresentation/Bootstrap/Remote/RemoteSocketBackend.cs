@@ -89,6 +89,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     private readonly CancellationTokenSource _shutdown = new();
 
     private ClientWebSocket? _socket;
+    private CancellationToken _connectionCancel;
 
     // §121.9: корреляция приказ→вердикт и локально синтезированные события
     // отказа (см. Dispatch: CommandResult). Кладутся на сокет-потоке,
@@ -242,9 +243,10 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         {
             SetState(_attempt == 0 ? LinkState.Connecting : LinkState.Reconnecting, null);
 
+            using var connectionLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+            using var socket = new ClientWebSocket();
             try
             {
-                using var socket = new ClientWebSocket();
                 // §121.9: токен и стабильный id клиента едут заголовками
                 // HTTP-upgrade — не в query string, где они текли бы в логи.
                 if (_controlToken is not null)
@@ -254,12 +256,23 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                     socket.Options.SetRequestHeader("X-HexLive-Client-Id", _clientId);
                 }
 
-                _socket = socket;
-                await socket.ConnectAsync(new Uri(_url), cancel).ConfigureAwait(false);
+                await socket.ConnectAsync(new Uri(_url), connectionLifetime.Token)
+                    .ConfigureAwait(false);
 
-                _attempt = 0;
-                _sinceLastFrame.Restart();
-                await PumpAsync(socket, cancel).ConfigureAwait(false);
+                lock (_inbox)
+                {
+                    // Liveness belongs to THIS WebSocket. Carrying an unanswered
+                    // ping from the dead socket into the replacement prevents the
+                    // replacement from ever sending its own probe and makes it get
+                    // aborted ten seconds later in an endless reconnect loop.
+                    _pongPending = false;
+                    _pingMilliseconds = -1;
+                    _sinceLastFrame.Restart();
+                    _socket = socket;
+                    _connectionCancel = connectionLifetime.Token;
+                }
+
+                await PumpAsync(socket, connectionLifetime.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -277,7 +290,29 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             }
             finally
             {
-                _socket = null;
+                // A send from the old connection must not keep the shared send
+                // gate forever and starve pings, commands and keyframe requests
+                // on the replacement socket. Cancel it and force the old socket
+                // awake before publishing that there is no current connection.
+                connectionLifetime.Cancel();
+                try
+                {
+                    socket.Abort();
+                }
+                catch (Exception)
+                {
+                    // The socket is already gone; cleanup is complete enough.
+                }
+
+                lock (_inbox)
+                {
+                    if (ReferenceEquals(_socket, socket))
+                    {
+                        _socket = null;
+                        _connectionCancel = default;
+                        _pongPending = false;
+                    }
+                }
             }
 
             lock (_inbox)
@@ -313,45 +348,56 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     {
         var chunk = new byte[64 * 1024];
         using var message = new MemoryStream();
+        using var pumpLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancel);
 
-        var pinger = Task.Run(() => PingLoopAsync(socket, cancel), cancel);
-
-        while (!cancel.IsCancellationRequested && socket.State == WebSocketState.Open)
+        var pinger = PingLoopAsync(socket, pumpLifetime.Token);
+        try
         {
-            message.SetLength(0);
-            while (true)
+            while (!cancel.IsCancellationRequested && socket.State == WebSocketState.Open)
             {
-                // NOTE: cancelling a ReceiveAsync ABORTS the socket (it goes to
-                // Aborted and every later call throws). So the only token here
-                // is shutdown — never a per-receive timeout. Liveness is the
-                // ping loop's job instead.
-                var result = await socket.ReceiveAsync(new ArraySegment<byte>(chunk), cancel)
-                    .ConfigureAwait(false);
-                if (result.MessageType == WebSocketMessageType.Close)
+                message.SetLength(0);
+                while (true)
                 {
-                    await pinger.ConfigureAwait(false);
-                    return;
+                    // Cancelling this token intentionally aborts only the current
+                    // connection. A receive timeout still belongs to PingLoop,
+                    // but a replacement socket must be able to retire this pump.
+                    var result = await socket.ReceiveAsync(new ArraySegment<byte>(chunk), cancel)
+                        .ConfigureAwait(false);
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        return;
+                    }
+
+                    message.Write(chunk, 0, result.Count);
+                    if (result.EndOfMessage)
+                    {
+                        break;
+                    }
                 }
 
-                message.Write(chunk, 0, result.Count);
-                if (result.EndOfMessage)
+                var bytes = message.ToArray();
+                if (bytes.Length < 1)
                 {
-                    break;
+                    continue;
                 }
-            }
 
-            var bytes = message.ToArray();
-            if (bytes.Length < 1)
-            {
-                continue;
+                var payload = new byte[bytes.Length - 1];
+                Buffer.BlockCopy(bytes, 1, payload, 0, payload.Length);
+                Dispatch((FrameKind)bytes[0], payload);
             }
-
-            var payload = new byte[bytes.Length - 1];
-            Buffer.BlockCopy(bytes, 1, payload, 0, payload.Length);
-            Dispatch((FrameKind)bytes[0], payload);
         }
-
-        await pinger.ConfigureAwait(false);
+        finally
+        {
+            pumpLifetime.Cancel();
+            try
+            {
+                await pinger.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when this receive pump is retired.
+            }
+        }
     }
 
     private void Dispatch(FrameKind kind, byte[] payload)
@@ -365,6 +411,11 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                     var handshake = Handshake.Read(reader);
                     lock (_inbox)
                     {
+                        // A TCP/WebSocket upgrade is not a successful reconnect:
+                        // only a valid protocol handshake proves this session is
+                        // usable. Otherwise a peer that accepts and then hangs
+                        // would reset the retry budget forever.
+                        _attempt = 0;
                         _handshake = handshake;
                         _handshakeIsNew = true;
                         _state = LinkState.Live;
@@ -553,7 +604,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
                 if (!waiting)
                 {
-                    await SendSerializedAsync(socket, Frame.Ping(Stopwatch.GetTimestamp()))
+                    await SendSerializedAsync(socket, Frame.Ping(Stopwatch.GetTimestamp()), cancel)
                         .ConfigureAwait(false);
                 }
 
@@ -953,22 +1004,33 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     private void Send(byte[] frame)
     {
-        var socket = _socket;
-        if (socket == null || socket.State != WebSocketState.Open)
+        ClientWebSocket? socket;
+        CancellationToken connectionCancel;
+        lock (_inbox)
+        {
+            socket = _socket;
+            connectionCancel = _connectionCancel;
+        }
+
+        if (socket == null || socket.State != WebSocketState.Open ||
+            connectionCancel.IsCancellationRequested)
         {
             return;
         }
 
         // Fire and forget: a command is advisory, and blocking the main thread
         // on the network would be a far worse bug than a dropped pause.
-        _ = SendSerializedAsync(socket, frame);
+        _ = SendSerializedAsync(socket, frame, connectionCancel);
     }
 
-    private async Task SendSerializedAsync(WebSocket socket, byte[] frame)
+    private async Task SendSerializedAsync(
+        WebSocket socket,
+        byte[] frame,
+        CancellationToken connectionCancel)
     {
         try
         {
-            await _sendGate.WaitAsync(_shutdown.Token).ConfigureAwait(false);
+            await _sendGate.WaitAsync(connectionCancel).ConfigureAwait(false);
         }
         catch (Exception)
         {
@@ -978,7 +1040,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         try
         {
             await socket.SendAsync(new ArraySegment<byte>(frame), WebSocketMessageType.Binary, true,
-                _shutdown.Token).ConfigureAwait(false);
+                connectionCancel).ConfigureAwait(false);
         }
         catch (Exception)
         {

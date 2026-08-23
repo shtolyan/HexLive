@@ -182,6 +182,8 @@ Shader "HexLive/GarmentTear"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _LIGHT_COOKIES
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -210,7 +212,12 @@ Shader "HexLive/GarmentTear"
                 output.positionCS = positions.positionCS;
                 output.positionWS = positions.positionWS;
                 output.normalWS = normals.normalWS;
-                output.tangentWS = half4(normals.tangentWS, input.tangentOS.w);
+                // Skinned garment variants are commonly mirrored. Omitting
+                // the transform sign flips tangent-space normals only after
+                // the tear shader swap, which reads as lost/flying relief.
+                output.tangentWS = half4(
+                    normals.tangentWS,
+                    input.tangentOS.w * GetOddNegativeScale());
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 return output;
             }
@@ -265,10 +272,12 @@ Shader "HexLive/GarmentTear"
                 normalTS = normalize(lerp(normalTS,
                     half3(normalTS.xy + detailNormalTS.xy, normalTS.z * detailNormalTS.z),
                     detailNormalMask));
+                half3 geometricNormalWS = NormalizeNormalPerPixel(input.normalWS);
+                half3 tangentWS = normalize(input.tangentWS.xyz);
                 half sgn = input.tangentWS.w;
-                half3 bitangent = sgn * cross(input.normalWS, input.tangentWS.xyz);
+                half3 bitangent = sgn * cross(geometricNormalWS, tangentWS);
                 half3 normalWS = normalize(TransformTangentToWorld(
-                    normalTS, half3x3(input.tangentWS.xyz, bitangent, input.normalWS)));
+                    normalTS, half3x3(tangentWS, bitangent, geometricNormalWS)));
                 normalWS *= isFront ? 1 : -1; // inside of the cloth via Cull Off
 
                 InputData inputData = (InputData)0;
@@ -277,6 +286,13 @@ Shader "HexLive/GarmentTear"
                 inputData.viewDirectionWS = normalize(GetWorldSpaceViewDir(input.positionWS));
                 inputData.shadowCoord = TransformWorldToShadowCoord(input.positionWS);
                 inputData.bakedGI = SampleSH(normalWS);
+                // UniversalFragmentPBR expects these fields initialized. The
+                // old zeroed shadowMask multiplied additional point/spot
+                // lights away, so torn cloth ignored campfires and lamps.
+                inputData.vertexLighting = VertexLighting(input.positionWS, normalWS);
+                inputData.normalizedScreenSpaceUV =
+                    GetNormalizedScreenSpaceUV(input.positionCS);
+                inputData.shadowMask = half4(1, 1, 1, 1);
 
                 // Per-pixel metallic/smoothness from the authored map (white
                 // default = the old constants): losing the gloss map on the

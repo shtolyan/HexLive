@@ -57,16 +57,22 @@ public static class FactionRelations
 
     public static bool AreHostile(WorldState world, NPCState actor, NPCState target)
     {
-        if (AreHostile(world, actor.Faction, target.Faction))
+        if (!Spec72.Enabled || AreAllies(actor, target))
         {
-            return true;
+            return false;
         }
 
-        return CampDiplomacyMath.IsSoloCampMode(world.Mode) &&
-               actor.Faction != target.Faction &&
-               IsGirlCamp(actor.Faction) && IsGirlCamp(target.Faction) &&
-               actor.Social.GetOrCreate(target.Id).Affinity <=
-                   CampDiplomacyMath.HatredAffinityThreshold;
+        // §146.12: in a solo-camp world a human is an enemy because THIS
+        // observer hates them, never merely because their faction label says
+        // "outsider". This deliberately includes Outsiders.
+        if (CampDiplomacyMath.IsSoloCampMode(world.Mode))
+        {
+            return actor.Faction != target.Faction &&
+                   actor.Social.GetOrCreate(target.Id).Affinity <=
+                       CampDiplomacyMath.HatredAffinityThreshold;
+        }
+
+        return AreHostile(world, actor.Faction, target.Faction);
     }
 
     public static bool AreNeutral(WorldState world, NPCState actor, NPCState target) =>

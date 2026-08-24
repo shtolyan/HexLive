@@ -147,6 +147,47 @@ public sealed class PathfindingSystem : ISimulationSystem
         }
 
         hostileRingTicks[forFaction] = world.Tick;
+        return BuildHostileRing(world, ring, hostileQueue, hostile =>
+            FactionRelations.AreHostile(world, hostile.Faction, forFaction));
+    }
+
+    // §146.12: the route ring must use the same directed verdict as perception.
+    // A faction-keyed ring cannot represent personal hatred, hence this small
+    // per-observer tick cache in solo-camp modes.
+    public static System.Collections.Generic.HashSet<JunctionId> HostileRing(
+        WorldState world, NPCState observer)
+    {
+        if (!CampDiplomacyMath.IsSoloCampMode(world.Mode))
+        {
+            return HostileRing(world, observer.Faction);
+        }
+
+        var rings = world.Caches.PersonalHostileRings;
+        var ticks = world.Caches.PersonalHostileRingBuiltTicks;
+        if (!rings.TryGetValue(observer.Id, out var ring))
+        {
+            ring = new System.Collections.Generic.HashSet<JunctionId>();
+            rings[observer.Id] = ring;
+            ticks[observer.Id] = -1;
+        }
+
+        if (ticks[observer.Id] == world.Tick)
+        {
+            return ring;
+        }
+
+        ticks[observer.Id] = world.Tick;
+        return BuildHostileRing(world, ring, world.Caches.HostileRingQueue,
+            hostile => !hostile.Id.Equals(observer.Id) &&
+                       FactionRelations.AreHostile(world, observer, hostile));
+    }
+
+    private static System.Collections.Generic.HashSet<JunctionId> BuildHostileRing(
+        WorldState world,
+        System.Collections.Generic.HashSet<JunctionId> ring,
+        System.Collections.Generic.Queue<JunctionId> queue,
+        System.Func<NPCState, bool> isHostile)
+    {
         ring.Clear();
         if (!Spec72.Enabled)
         {
@@ -155,22 +196,21 @@ public sealed class PathfindingSystem : ISimulationSystem
 
         foreach (var hostile in world.Entities.Npcs.Values)
         {
-            if (hostile.Health <= 0f ||
-                !FactionRelations.AreHostile(world, hostile.Faction, forFaction) ||
+            if (hostile.Health <= 0f || !isHostile(hostile) ||
                 hostile.CurrentJunction is not { } hostileJunction)
             {
                 continue;
             }
 
-            hostileQueue.Clear();
+            queue.Clear();
             if (ring.Add(hostileJunction))
             {
-                hostileQueue.Enqueue(hostileJunction);
+                queue.Enqueue(hostileJunction);
             }
 
-            while (hostileQueue.Count > 0)
+            while (queue.Count > 0)
             {
-                var currentId = hostileQueue.Dequeue();
+                var currentId = queue.Dequeue();
                 if (!world.Junctions.Items.TryGetValue(currentId, out var junction))
                 {
                     continue;
@@ -200,7 +240,7 @@ public sealed class PathfindingSystem : ISimulationSystem
                     }
 
                     ring.Add(neighborId);
-                    hostileQueue.Enqueue(neighborId);
+                    queue.Enqueue(neighborId);
                 }
             }
         }
@@ -214,7 +254,7 @@ public sealed class PathfindingSystem : ISimulationSystem
         WorldState world, NPCState npc)
     {
         var mobs = AvoidsThreatRings(npc) ? DangerRing(world) : null;
-        var people = AvoidsHostileRings(npc) ? HostileRing(world, npc.Faction) : null;
+        var people = AvoidsHostileRings(npc) ? HostileRing(world, npc) : null;
 
         if (people is null || people.Count == 0)
         {

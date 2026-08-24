@@ -78,9 +78,9 @@ public static class CampDiplomacyMath
 
     /// <summary>
     /// §110.10/§146.12: worst current human threat in direct perception.
-    /// Open-war factions and Outsiders are a full threat. Otherwise fear is
-    /// driven by how much the seen person dislikes the observer, not by the
-    /// observer merely noticing another camp.
+    /// Open-war factions are a full threat. In solo-camp worlds fear is driven
+    /// by how much the seen person dislikes the observer, not by their faction
+    /// label (including Outsiders).
     /// </summary>
     public static float VisibleHumanThreatFactor(WorldState world, NPCState observer)
     {
@@ -94,7 +94,8 @@ public static class CampDiplomacyMath
                 return;
             }
 
-            if (FactionRelations.AreHostile(
+            if (!IsSoloCampMode(world.Mode) &&
+                FactionRelations.AreHostile(
                     world, person.Faction, observer.Faction))
             {
                 worst = 1f;

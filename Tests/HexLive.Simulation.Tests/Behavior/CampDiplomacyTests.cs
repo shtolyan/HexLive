@@ -150,7 +150,7 @@ public sealed class CampDiplomacyTests
     }
 
     [Test]
-    public void NeutralNeighbourCostsNoStressIncomingHatredScalesAndOutsiderIsFullThreat()
+    public void NeutralHumansDoNotAlarmWakeOrStressUntilPersonalHatred()
     {
         var (world, observer, neighbour, outsider) =
             BuildSmallSoloCampWorld(1461201);
@@ -178,13 +178,40 @@ public sealed class CampDiplomacyTests
                 .Within(0.000001f),
             "Страх должен зависеть от направленной ненависти к наблюдательнице.");
 
+        neighbour.Social.GetOrCreate(observer.Id).Affinity = 0f;
         MoveBeside(world, outsider, observer);
+        observer.Social.GetOrCreate(outsider.Id).Affinity = 0f;
+        outsider.Social.GetOrCreate(observer.Id).Affinity = 0f;
         new PerceptionSystem().Run(world);
         observer.Needs.Stress = 0.5f;
         new NeedsDecaySystem().Run(world);
-        Assert.That(observer.Needs.Stress,
-            Is.EqualTo(0.5f + SimBalance.StressUpRate).Within(0.000001f),
-            "Видимый Outsider всегда даёт полный человеческий фактор угрозы.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(observer.Perception.Agents.Any(a => a.Id.Equals(outsider.Id)), Is.True,
+                "Нейтральный чужак должен оставаться обычным видимым человеком.");
+            Assert.That(observer.Perception.Hostiles.Any(a => a.Id.Equals(outsider.Id)), Is.False);
+            Assert.That(observer.Needs.Stress,
+                Is.EqualTo(0.5f - SimBalance.StressDownRate).Within(0.000001f));
+            Assert.That(ExecutionSystem.GetSleepInterruptReason(
+                world, observer, alreadyAsleep: true), Is.Null,
+                "Нейтральный чужак не должен будить спящего.");
+            Assert.That(PathfindingSystem.HostileRing(world, observer),
+                Does.Not.Contain(outsider.CurrentJunction!.Value),
+                "Маршрут не должен огибать нейтрального человека как угрозу.");
+        });
+
+        observer.Social.GetOrCreate(outsider.Id).Affinity =
+            CampDiplomacyMath.HatredAffinityThreshold;
+        world.Tick++;
+        new PerceptionSystem().Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(observer.Perception.Hostiles.Any(a => a.Id.Equals(outsider.Id)), Is.True);
+            Assert.That(ExecutionSystem.GetSleepInterruptReason(
+                world, observer, alreadyAsleep: true), Is.EqualTo("SleepDanger"));
+            Assert.That(PathfindingSystem.HostileRing(world, observer),
+                Does.Contain(outsider.CurrentJunction!.Value));
+        });
     }
 
     [Test]

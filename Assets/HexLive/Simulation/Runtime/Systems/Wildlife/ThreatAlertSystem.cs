@@ -347,7 +347,7 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             return;
         }
 
-        var ring = PathfindingSystem.HostileRing(world, npc.Faction);
+        var ring = PathfindingSystem.HostileRing(world, npc);
         for (var i = npc.Movement.PathIndex; i < npc.Movement.JunctionPath.Count; i++)
         {
             if (!ring.Contains(npc.Movement.JunctionPath[i]))

@@ -90,6 +90,12 @@ public sealed class RuntimeCaches
 
     public Dictionary<Faction, int> HostileRingBuiltTicks { get; } = new();
 
+    // §146.12: solo-camp hostility is directed per person, so a faction-keyed
+    // ring would make one woman's grudge force every camp-mate to detour.
+    public Dictionary<EntityId, HashSet<JunctionId>> PersonalHostileRings { get; } = new();
+
+    public Dictionary<EntityId, int> PersonalHostileRingBuiltTicks { get; } = new();
+
     public Queue<JunctionId> HostileRingQueue { get; } = new();
 
     public HashSet<JunctionId> CombinedDangerRingScratch { get; } = new();

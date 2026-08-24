@@ -509,7 +509,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // Spec 35.2: trees need an axe or saw; boulders need the pickaxe.
                 if (interaction.Type == InteractionType.Harvest)
                 {
-                    if (!npc.Body.CanUseToolsOrWeapons)
+                    // §44/#221: stripping the medicinal bush is the one
+                    // hand-harvest. Its data declares no capability on purpose;
+                    // do not route it through the tree/boulder tool blanket.
+                    var isHerbBush = definition.HasTag("HerbBush");
+                    if (!isHerbBush && !npc.Body.CanUseToolsOrWeapons)
                     {
                         if (npc.Plan.TargetObjectId is { } producer)
                         {
@@ -531,7 +535,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         npc.Inventory.Items, Content.GearCapability.ChopWood);
                     var hasBlade = Content.GearCatalog.HasCapability(
                         npc.Inventory.Items, Content.GearCapability.Cut);
-                    var toolOk = isBoulder
+                    var toolOk = isHerbBush
+                        ? true
+                        : isBoulder
                         ? Content.GearCatalog.HasCapability(
                             npc.Inventory.Items, Content.GearCapability.Mine)
                         : isYucca
@@ -1342,6 +1348,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 return false;
             }
+        }
+        else if (definition.HasTag("HerbBush"))
+        {
+            Trace.Emit(world, npc.Id, "HerbStripped",
+                $"{worldObject.DefinitionId} stripped -> leaves scattered");
         }
         else
         {

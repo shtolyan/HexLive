@@ -606,6 +606,44 @@ public sealed class ManualControlTests
     }
 
     [Test]
+    public void ManualHarvestStripsHealingHerbWithoutAnAxe()
+    {
+        var engine = TestWorld.CreateEngine(2777345);
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Knife));
+
+        var here = npc.CurrentJunction!.Value;
+        var neighbor = SpatialQueries.GetPassableNeighbors(world, here)
+            .First(id => SpatialQueries.IsJunctionFree(world, id));
+        var tile = world.Junctions.Items[neighbor].Tiles[0];
+        var herb = WorldObjectMutations.SpawnObject(
+            world, "herb.bush", new FragmentId(1), tile, neighbor);
+        var leavesBefore = world.Entities.Objects.Values.Count(o =>
+            o.DefinitionId == ContentIds.HerbLeaf);
+
+        engine.Commands.Enqueue(new InteractCommand(
+            npc.Id, herb.Id, InteractionType.Harvest));
+        engine.Step();
+        for (var i = 0; i < MediumTicks * 10 &&
+             world.Entities.Objects.ContainsKey(herb.Id); i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(herb.Id), Is.False,
+                "Ручной приказ дошёл до куста, но исполнитель не завершил сбор.");
+            Assert.That(world.Entities.Objects.Values.Count(o =>
+                    o.DefinitionId == ContentIds.HerbLeaf) - leavesBefore,
+                Is.EqualTo(3));
+        });
+    }
+
+    [Test]
     public void ManualSleepUsesApproachJunctionAndStaysInBedUntilCancelled()
     {
         var engine = TestWorld.CreateEngine();

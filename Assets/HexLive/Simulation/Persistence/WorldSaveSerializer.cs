@@ -902,6 +902,11 @@ public static class WorldSaveSerializer
             HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairWardrobeAnchor(world, hut);
         }
 
+        // §120.10: direct architecture has no blueprint owner to appear in the
+        // two repair loops above. Its absolute SlotKeys and per-piece bills are
+        // already saved; rebuild derived geometry, roof gates and topology.
+        Runtime.Blueprints.FreeArchitectureRules.RefreshAll(world);
+
         MigrateRetiredGarments(world, world.Entities.Npcs.Values);
         MigrateRetiredGarments(world, world.Entities.Corpses.Values);
     }

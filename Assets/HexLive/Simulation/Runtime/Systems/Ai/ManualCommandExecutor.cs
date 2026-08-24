@@ -134,6 +134,9 @@ internal static class ManualCommandExecutor
             case UpdateBuildingBlueprintCommand updateBlueprint:
                 ApplyUpdateBuildingBlueprint(world, updateBlueprint, admission);
                 break;
+            case ApplyFreeArchitectureCommand freeArchitecture:
+                ApplyFreeArchitecture(world, freeArchitecture, admission);
+                break;
             case RotateBuildSiteCommand rotateSite:
                 ApplyRotateBuildSite(world, rotateSite, admission);
                 break;
@@ -206,6 +209,7 @@ internal static class ManualCommandExecutor
         PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
         PlaceBuildingBlueprintCommand => "PlaceBuildingBlueprint",
         UpdateBuildingBlueprintCommand => "UpdateBuildingBlueprint",
+        ApplyFreeArchitectureCommand => "ApplyFreeArchitecture",
         RotateBuildSiteCommand => "RotateBuildSite",
         CancelBuildSiteCommand => "CancelBuildSite",
         _ => command.GetType().Name
@@ -2562,6 +2566,23 @@ internal static class ManualCommandExecutor
         Trace.EmitSystem(world, "BuildingBlueprintUpdated",
             $"Owner={owner.Id.Value} Blueprint={owner.BlueprintId} " +
             $"Modules={draft.Elements.Count}");
+    }
+
+    private static void ApplyFreeArchitecture(
+        WorldState world, ApplyFreeArchitectureCommand command, AdmissionTracker admission)
+    {
+        if (!Blueprints.FreeArchitectureRules.Apply(
+                world, command.Placements, command.RemovedSlotKeys, out var error))
+        {
+            admission.Reject(error);
+            Trace.EmitSystem(world, "ManualOrderRejected",
+                $"Order=ApplyFreeArchitecture Reason={error} " +
+                $"Place={command.Placements.Count} Remove={command.RemovedSlotKeys.Count}");
+            return;
+        }
+
+        Trace.EmitSystem(world, "FreeArchitectureChanged",
+            $"Place={command.Placements.Count} Remove={command.RemovedSlotKeys.Count}");
     }
 
     private static void ApplyRotateBuildSite(

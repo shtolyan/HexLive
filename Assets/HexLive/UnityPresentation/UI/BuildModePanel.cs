@@ -49,6 +49,7 @@ namespace HexLive.UnityPresentation.UI
         /// <summary>§120.8: карточка «Свой проект» — клик по гексу открывает
         /// конструктор прямо в мире, «Построить» шлёт чертёж командой.</summary>
         private const string ProjectCardId = "custom.project";
+        private const string FreeConstructionCardId = "free.architecture";
         private const float SnapshotInterval = 0.25f;
         private const float OverlayInterval = 1f;
 
@@ -371,9 +372,9 @@ namespace HexLive.UnityPresentation.UI
             RebuildCatalogUi();
         }
 
-        /// <summary>Игровая вкладка «Строительство» — одна карточка целого дома
-        /// по утверждённому плану; свободная поэлементная архитектура остаётся
-        /// в конструкторе HutTest (§120.7).</summary>
+        /// <summary>Игровая вкладка «Строительство» разводит готовый дом,
+        /// пустой авторский чертёж и прямое поэлементное строительство в мире.
+        /// Последнее не создаёт ни проекта, ни здания-агрегата (§120.10).</summary>
         private void RebuildCatalogUi()
         {
             if (_categoryList == null || _catalogList == null || _document == null) return;
@@ -391,6 +392,8 @@ namespace HexLive.UnityPresentation.UI
                 AddCard(HutCardId, "blueprint.catalog.hut.name", "blueprint.catalog.hut.description", "⌂");
                 AddCard(ProjectCardId, "blueprint.catalog.project.name",
                     "blueprint.catalog.project.description", "✎");
+                AddCard(FreeConstructionCardId, "blueprint.catalog.free.name",
+                    "blueprint.catalog.free.description", "⌁");
             }
             else
             {
@@ -480,6 +483,11 @@ namespace HexLive.UnityPresentation.UI
         private void SelectCard(string cardId)
         {
             DeselectSite();
+            if (cardId == FreeConstructionCardId)
+            {
+                OpenFreeConstruction();
+                return;
+            }
             _activeCardId = cardId;
             _ghostYawSteps = 0;
             BuildGhost();
@@ -540,6 +548,11 @@ namespace HexLive.UnityPresentation.UI
             if (id == ProjectCardId)
             {
                 return ("blueprint.catalog.project.name", "blueprint.catalog.project.description");
+            }
+
+            if (id == FreeConstructionCardId)
+            {
+                return ("blueprint.catalog.free.name", "blueprint.catalog.free.description");
             }
 
             if (id == HutCardId || id == ContentIds.HutPlan || id == ContentIds.Hut1Hex)
@@ -1250,6 +1263,80 @@ namespace HexLive.UnityPresentation.UI
             var editorRoot = new GameObject("HexLive Blueprint Editor");
             editorRoot.AddComponent<UIDocument>();
             editorRoot.AddComponent<HutLayoutDesigner>();
+        }
+
+        /// <summary>
+        /// §120.10: opens the constructor as an absolute projection of the live
+        /// world. The tile under the camera only supplies terrain elevation; it
+        /// is not a building anchor and is never written into a project.
+        /// Every successful gesture is sent as direct LEGO-piece deltas.
+        /// </summary>
+        private void OpenFreeConstruction()
+        {
+            var runner = _runner;
+            var worldRenderer = _worldRenderer;
+            if (runner == null || worldRenderer == null) return;
+
+            _nextSnapshotRefresh = 0f;
+            RefreshSnapshotCache();
+            if (_snapshot == null) return;
+
+            TileCoord referenceTile;
+            var center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            if (!TryPickTile(center, out referenceTile))
+            {
+                var fallback = _snapshot.Tiles.FirstOrDefault(tile =>
+                    tile.Walkable && !tile.Water && !tile.Blocked);
+                if (fallback == null)
+                {
+                    SetStatus("build.mode.blocked");
+                    return;
+                }
+                referenceTile = fallback.Coord;
+            }
+
+            var projection = FreeWorldProjection(_snapshot);
+            var elevation = worldRenderer.GroundTopY(referenceTile);
+            EndBuildMode();
+
+            HutLayoutDesigner.PendingWorldPlacement = new HutLayoutDesigner.WorldPlacementConfig
+            {
+                AnchorWorldPosition = new Vector3(0f, elevation, 0f),
+                AnchorTile = referenceTile,
+                DirectWorldConstruction = true,
+                InitialDraft = projection,
+                OnApplyFreeArchitecture = (placements, removals) =>
+                    runner.EnqueueCommand(new ApplyFreeArchitectureCommand(placements, removals)),
+                OnClosed = null
+            };
+
+            var editorRoot = new GameObject("HexLive Free Construction");
+            editorRoot.AddComponent<UIDocument>();
+            editorRoot.AddComponent<HutLayoutDesigner>();
+        }
+
+        private static BuildingBlueprintDraft FreeWorldProjection(WorldSnapshot snapshot)
+        {
+            var draft = new BuildingBlueprintDraft
+            {
+                BlueprintId = "free_world_projection",
+                HasAnchor = true,
+                AnchorQ = 0,
+                AnchorR = 0
+            };
+            foreach (var obj in snapshot.Objects.OrderBy(obj => obj.Id.Value))
+            {
+                if (!FreeArchitectureRules.IsFreePiece(obj)) continue;
+                var state = obj.ArchitectureElements[0];
+                if (!FreeArchitectureRules.TryDecode(
+                        state.DefinitionId, state.SlotKey, out var element)) continue;
+                element.Id = $"free_{obj.Id.Value}";
+                element.Origin = BlueprintElementOrigin.Manual;
+                draft.Elements.Add(element);
+            }
+            draft.NextElementId = draft.Elements.Count + 1;
+            draft.Normalize();
+            return draft;
         }
 
         private void ClearGhost()

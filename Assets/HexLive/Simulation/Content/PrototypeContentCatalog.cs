@@ -1292,7 +1292,7 @@ public static class PrototypeContentCatalog
             {
                 Id = id,
                 DisplayName = name,
-                Tags = { "Architecture" }
+                Tags = { "Architecture", ObjectTags.HandBuilt }
             };
         }
         AddArchitecturePiece("architecture.support.wood", "Wooden support");

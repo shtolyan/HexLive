@@ -255,6 +255,13 @@ namespace HexLive.Simulation.Runtime
         public static float BloodSoilWashPerTick = 0.05f;
         public static float ClothingDirtGain = 0.00035f;
         public static float DirtyClothingComfortLoss = 0.002f;
+        // Clean-clothes comfort bands: tiny wash residue is not dirt. Pristine
+        // clothes feel pleasant, 10-20% is neutral, 20-60% ramps gently into
+        // the legacy penalty, and 60-100% keeps the legacy rate unchanged.
+        public const float CleanClothingComfortBonusThreshold = 0.10f;
+        public const float CleanClothingDirtThreshold = 0.20f;
+        public const float DirtyClothingFullPenaltyThreshold = 0.60f;
+        public const float CleanClothingComfortMaxGain = 0.0002f;
         public static float BatheNeedThreshold = 0.4f;
         public static int BatheDurationTicks = 100; // 100 ticks / 25 real seconds
         // §40.6 r2 (laundry-in-hand): 80 ticks — the piece is doffed off the

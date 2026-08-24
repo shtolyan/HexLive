@@ -491,10 +491,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
 
             var dirtyClothing = EquipmentMath.AverageDirtiness(npc);
-            if (dirtyClothing > 0f)
+            var clothingComfortDelta = EquipmentMath.ClothingDirtComfortDelta(dirtyClothing);
+            if (clothingComfortDelta > 0f && npc.WornItems.Count > 0)
             {
-                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort -
-                    dirtyClothing * SimBalance.DirtyClothingComfortLoss);
+                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + clothingComfortDelta);
+                RecordImpact(npc, NeedKind.Comfort, EffectKind.CleanClothes, positive: true);
+            }
+            else if (clothingComfortDelta < 0f)
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + clothingComfortDelta);
                 RecordImpact(npc, NeedKind.Comfort, EffectKind.DirtyClothes, positive: false);
             }
 

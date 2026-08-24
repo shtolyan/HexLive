@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Runtime.Blueprints;
+using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -576,6 +578,96 @@ public sealed class UpdateBuildingBlueprintCommand : ISimulationCommand
     public ObjectId Owner { get; }
 
     public string BlueprintJson { get; }
+
+    public EntityId? TargetEntity => null;
+}
+
+/// <summary>
+/// §120.10: one canonical, absolute architecture LEGO placement in the live
+/// world. This is deliberately not a BuildingBlueprintDraft: the tile is only
+/// the physical anchor used to render/build this ONE piece, while the geometry
+/// key is already in the world's global build lattice.
+/// </summary>
+public sealed class FreeArchitecturePlacementData
+{
+    public FreeArchitecturePlacementData(
+        BlueprintElementKind kind,
+        TileCoord anchorTile,
+        HexBuildNodeKey node,
+        BuildSegmentKey segment,
+        FloorSectorKey floorSector,
+        RoofSectorKey roofSector)
+    {
+        Kind = kind;
+        AnchorTile = anchorTile;
+        Node = node;
+        Segment = segment;
+        FloorSector = floorSector;
+        RoofSector = roofSector;
+    }
+
+    public BlueprintElementKind Kind { get; }
+    public TileCoord AnchorTile { get; }
+    public HexBuildNodeKey Node { get; }
+    public BuildSegmentKey Segment { get; }
+    public FloorSectorKey FloorSector { get; }
+    public RoofSectorKey RoofSector { get; }
+
+    public BlueprintElementData ToElement(string id) => new BlueprintElementData
+    {
+        Id = id ?? string.Empty,
+        Kind = Kind,
+        Origin = BlueprintElementOrigin.Manual,
+        Node = Node,
+        Segment = Segment,
+        FloorSector = FloorSector,
+        RoofSector = RoofSector
+    };
+
+    public string SlotKey => BlueprintBuildingPlan.SlotKey(ToElement("free"));
+
+    public static FreeArchitecturePlacementData FromElement(BlueprintElementData element)
+    {
+        var anchor = element.Kind switch
+        {
+            BlueprintElementKind.FloorSector => element.FloorSector.Hex,
+            BlueprintElementKind.RoofSector => element.RoofSector.Hex,
+            BlueprintElementKind.Support => HexSpatialMath.WorldToTile(
+                BlueprintGeometry.ToWorld(element.Node)),
+            _ => HexSpatialMath.WorldToTile(new Float2(
+                (BlueprintGeometry.ToWorld(element.Segment.A).X +
+                 BlueprintGeometry.ToWorld(element.Segment.B).X) * 0.5f,
+                (BlueprintGeometry.ToWorld(element.Segment.A).Y +
+                 BlueprintGeometry.ToWorld(element.Segment.B).Y) * 0.5f))
+        };
+        return new FreeArchitecturePlacementData(
+            element.Kind, anchor, element.Node, element.Segment,
+            element.FloorSector, element.RoofSector);
+    }
+}
+
+/// <summary>
+/// §120.10: atomically apply one direct world-building gesture. Placements are
+/// independent construction objects; removed slot keys are direct demolition,
+/// not deletion of a plan. A wall drag or room drag therefore crosses the wire
+/// as one user transaction without ever creating a blueprint registry entry.
+/// </summary>
+public sealed class ApplyFreeArchitectureCommand : ISimulationCommand
+{
+    public ApplyFreeArchitectureCommand(
+        IReadOnlyList<FreeArchitecturePlacementData> placements,
+        IReadOnlyList<string> removedSlotKeys)
+    {
+        Placements = placements is null
+            ? new List<FreeArchitecturePlacementData>()
+            : new List<FreeArchitecturePlacementData>(placements);
+        RemovedSlotKeys = removedSlotKeys is null
+            ? new List<string>()
+            : new List<string>(removedSlotKeys);
+    }
+
+    public IReadOnlyList<FreeArchitecturePlacementData> Placements { get; }
+    public IReadOnlyList<string> RemovedSlotKeys { get; }
 
     public EntityId? TargetEntity => null;
 }

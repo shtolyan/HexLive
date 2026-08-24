@@ -86,7 +86,8 @@ namespace HexLive.Simulation.Agents.Effects
         BreathRecovery,
         AmbientTemperature,
         Eating,
-        Drinking
+        Drinking,
+        CleanClothes
     }
 
     // Colours the chip ring and sorts the row: buffs read green, debuffs red.

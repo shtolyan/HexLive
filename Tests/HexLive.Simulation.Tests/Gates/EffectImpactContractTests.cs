@@ -24,6 +24,7 @@ public sealed class EffectImpactContractTests
         EffectKind.NaturalDecay,
         EffectKind.Sleeping,
         EffectKind.DirtyClothes,
+        EffectKind.CleanClothes,
         EffectKind.NearbyCompany,
         EffectKind.WitnessingSuffering,
         EffectKind.EveryoneSafe,
@@ -89,6 +90,53 @@ public sealed class EffectImpactContractTests
                     impact.Direction == EffectImpactDirection.Negative &&
                     impact.Cadence == EffectImpactCadence.Slow),
                 Is.True);
+        });
+    }
+
+    [TestCase(0.00f,  0.0002f)]
+    [TestCase(0.05f,  0.0001f)]
+    [TestCase(0.10f,  0f)]
+    [TestCase(0.15f,  0f)]
+    [TestCase(0.20f,  0f)]
+    [TestCase(0.40f, -0.0004f)]
+    [TestCase(0.60f, -0.0012f)]
+    [TestCase(1.00f, -0.0020f)]
+    public void ClothingDirtComfortUsesCleanNeutralMildAndFullBands(
+        float dirtiness, float expectedDelta)
+    {
+        Assert.That(EquipmentMath.ClothingDirtComfortDelta(dirtiness),
+            Is.EqualTo(expectedDelta).Within(0.000001f));
+    }
+
+    [Test]
+    public void FreshClothesRecordPositiveComfortWithoutDirtyTooltip()
+    {
+        var world = TestWorld.CreateWorld(4828);
+        var npc = world.Entities.Npcs.Values.First();
+        npc.WornItems.Clear();
+        npc.WornItems.Add(new ItemInstance("clothing.jacket_autumn")
+        {
+            Dirtiness = 0.05f,
+            OwnerId = npc.Id.Value,
+        });
+        npc.Needs.Comfort = 0.5f;
+
+        new NeedsDecaySystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Needs.Comfort,
+                Is.GreaterThan(0.5f - SimBalance.ComfortRate),
+                "Свежая одежда должна добавлять комфорт поверх обычного бодрствующего спада.");
+            Assert.That(npc.EffectImpacts.Items.Any(impact =>
+                    impact.Need == NeedKind.Comfort &&
+                    impact.Kind == EffectKind.CleanClothes &&
+                    impact.Direction == EffectImpactDirection.Positive),
+                Is.True);
+            Assert.That(npc.EffectImpacts.Items.Any(impact =>
+                    impact.Need == NeedKind.Comfort &&
+                    impact.Kind == EffectKind.DirtyClothes),
+                Is.False, "Чистая одежда не должна называться грязной в hover-подсказке.");
         });
     }
 

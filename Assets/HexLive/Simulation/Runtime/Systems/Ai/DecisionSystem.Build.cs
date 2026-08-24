@@ -193,7 +193,8 @@ public sealed partial class DecisionSystem
                     furnitureSite ??= site;
                 }
             }
-            else if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct))
+            else if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct) ||
+                     BuildSiteMath.IsFreeArchitectureSite(site))
             {
                 // §120: a HOUSE is the colony's shelter, not a comfort upgrade.
                 // Left as the unranked `firstSite` fallback it is starved

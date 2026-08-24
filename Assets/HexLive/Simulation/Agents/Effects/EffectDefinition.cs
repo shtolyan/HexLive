@@ -117,6 +117,7 @@ namespace HexLive.Simulation.Agents.Effects
             Add(EffectKind.NaturalDecay, EffectPolarity.Debuff, EffectCategory.Survival, "⌛");
             Add(EffectKind.Sleeping, EffectPolarity.Buff, EffectCategory.Survival, "🌙");
             Add(EffectKind.DirtyClothes, EffectPolarity.Debuff, EffectCategory.Hygiene, "👕");
+            Add(EffectKind.CleanClothes, EffectPolarity.Buff, EffectCategory.Hygiene, "✨");
             Add(EffectKind.NearbyCompany, EffectPolarity.Buff, EffectCategory.Mind, "👥");
             Add(EffectKind.WitnessingSuffering, EffectPolarity.Debuff, EffectCategory.Mind, "🫶");
             Add(EffectKind.EveryoneSafe, EffectPolarity.Buff, EffectCategory.Mind, "💗");

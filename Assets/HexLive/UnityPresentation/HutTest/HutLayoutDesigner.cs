@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
@@ -42,7 +43,13 @@ namespace HexLive.UnityPresentation.HutTest
             public float RotationDegrees;
             public ObjectId? ExistingOwner;
             public BuildingBlueprintDraft? InitialDraft;
+            /// <summary>§120.10: edit the live world's independent LEGO pieces.
+            /// The draft is only a presentation projection for gestures/ghosts;
+            /// every accepted gesture is sent immediately as a world delta.</summary>
+            public bool DirectWorldConstruction;
             public Action<BuildingBlueprintDraft> OnBuild;
+            public Action<IReadOnlyList<FreeArchitecturePlacementData>,
+                IReadOnlyList<string>> OnApplyFreeArchitecture;
             public Action OnClosed;
         }
 
@@ -52,13 +59,15 @@ namespace HexLive.UnityPresentation.HutTest
         /// «Строить» BuildModePanel прячется, пока игрок чертит.</summary>
         public static bool WorldEditorOpen { get; private set; }
         public static int? EditingOwnerObjectId { get; private set; }
+        public static bool DirectWorldEditorOpen { get; private set; }
 
         private WorldPlacementConfig _worldPlacement;
         private bool WorldMode => _worldPlacement != null;
         private bool EditingExisting => _worldPlacement?.ExistingOwner != null;
+        private bool DirectWorldConstruction =>
+            _worldPlacement?.DirectWorldConstruction == true;
 
         private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
-        private const string WorldDraftId = "game_project_autosave";
         // ⚠️ Не совмещать путь со стилем: у .uxml при импорте появляется свой
         // inline-StyleSheet-сабассет, и Resources.Load<StyleSheet> по общему
         // пути отдаёт ЕГО — пустой. Панель тогда рисуется голыми кнопками во
@@ -93,6 +102,7 @@ namespace HexLive.UnityPresentation.HutTest
         private string _activeCategoryId = BuildCatalogCategories.Comfort;
         private BuildCatalogEntryDefinition? _activeCatalogEntry;
         private TileCoord? _outdoorGridTile;
+        private TileCoord? _directArchitectureGridTile;
         private string _selectedId = string.Empty;
         private int _selectedRoomId;
         private bool _gestureActive;
@@ -136,6 +146,7 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 WorldEditorOpen = true;
                 EditingOwnerObjectId = _worldPlacement.ExistingOwner?.Value;
+                DirectWorldEditorOpen = DirectWorldConstruction;
             }
             _document = GetComponent<UIDocument>();
             ConfigurePanelSettings();
@@ -148,25 +159,52 @@ namespace HexLive.UnityPresentation.HutTest
             _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
             _camera = Camera.main;
             SuppressWorldSelection();
-            var draftId = WorldMode ? WorldDraftId : DraftId;
+            var draftId = DraftId;
             var error = string.Empty;
             if (_worldPlacement?.InitialDraft != null)
             {
                 _draft = _worldPlacement.InitialDraft.Clone();
-                var anchor = BlueprintBuildingPlan.AnchorTile(_draft);
-                _draft.HasAnchor = true;
-                _draft.AnchorQ = anchor.Q;
-                _draft.AnchorR = anchor.R;
-                _draft.BlueprintId = $"building_{_worldPlacement.ExistingOwner?.Value ?? 0}";
+                if (DirectWorldConstruction)
+                {
+                    // Absolute world build keys. (0,0) is only the identity
+                    // projection origin, never a player-selected house anchor.
+                    _draft.HasAnchor = true;
+                    _draft.AnchorQ = 0;
+                    _draft.AnchorR = 0;
+                    _draft.BlueprintId = "free_world_projection";
+                }
+                else
+                {
+                    var anchor = BlueprintBuildingPlan.AnchorTile(_draft);
+                    _draft.HasAnchor = true;
+                    _draft.AnchorQ = anchor.Q;
+                    _draft.AnchorR = anchor.R;
+                    _draft.BlueprintId = $"building_{_worldPlacement.ExistingOwner?.Value ?? 0}";
+                }
                 _draft.Normalize();
+            }
+            else if (WorldMode)
+            {
+                // World «Свой проект» ALWAYS starts empty. The old
+                // The retired world autosave was the source of the stale broken hut
+                // leaking into every new project. Direct mode is empty too if
+                // the caller has no live projection yet.
+                _draft = new BuildingBlueprintDraft();
+                _draft.BlueprintId = draftId;
+                if (DirectWorldConstruction)
+                {
+                    _draft.HasAnchor = true;
+                    _draft.AnchorQ = 0;
+                    _draft.AnchorR = 0;
+                    _draft.BlueprintId = "free_world_projection";
+                }
             }
             else if (!_store.TryLoad(draftId, out _draft, out error))
             {
-                // Игровой проект начинается с ЧИСТОГО листа: игрок чертит свой
-                // дом, а не редактирует эталон dev-сцены.
-                _draft = WorldMode ? new BuildingBlueprintDraft() : BuiltInBuildingBlueprints.Hut1Hex();
+                _draft = BuiltInBuildingBlueprints.Hut1Hex();
                 _draft.BlueprintId = draftId;
-                if (!string.IsNullOrEmpty(error)) Debug.LogWarning($"[BlueprintEditor] {error}", this);
+                if (!string.IsNullOrEmpty(error))
+                    Debug.LogWarning($"[BlueprintEditor] {error}", this);
             }
             ApplyLanguage();
 
@@ -177,7 +215,17 @@ namespace HexLive.UnityPresentation.HutTest
                 // рисует ни одной точки (сетка мебели живёт только над полом) —
                 // выглядела мёртвой, и стены/окна было «не найти».
                 SetCatalogMode(BuildCatalogMode.Construction);
-                SetStatus("blueprint.status.world_start", true);
+                if (DirectWorldConstruction)
+                {
+                    var wall = BuildCatalogDefinition.ForMode(BuildCatalogMode.Construction)
+                        .First(entry => entry.DefinitionId == "architecture.wall.wood");
+                    SelectCatalogEntry(wall);
+                    SetStatus("blueprint.status.free_start", true);
+                }
+                else
+                {
+                    SetStatus("blueprint.status.world_start", true);
+                }
             }
         }
 
@@ -191,6 +239,7 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 // Превью — отдельный корневой GO; в игре за собой прибираем.
                 WorldEditorOpen = false;
+                DirectWorldEditorOpen = false;
                 if (EditingOwnerObjectId == _worldPlacement.ExistingOwner?.Value)
                     EditingOwnerObjectId = null;
                 if (_preview != null) Destroy(_preview.gameObject);
@@ -258,6 +307,20 @@ namespace HexLive.UnityPresentation.HutTest
                 // renderer'ы не трогаем — вокруг живой мир, не тест-стенд.
                 if (_draft == null) return;
                 var worldRoot = new GameObject("Blueprint constructor preview");
+                if (DirectWorldConstruction)
+                {
+                    // Absolute geometry: keep X/Z at the world's own origin.
+                    // AnchorWorldPosition contributes elevation only, so no hex
+                    // is chosen before the player begins drawing.
+                    worldRoot.transform.SetPositionAndRotation(
+                        new Vector3(0f, _worldPlacement.AnchorWorldPosition.y, 0f),
+                        Quaternion.identity);
+                    _preview = worldRoot.AddComponent<BlueprintPreviewRenderer>();
+                    RebuildPreview();
+                    _initialized = true;
+                    return;
+                }
+
                 var rotation = Quaternion.Euler(0f,
                     SimulationUnityMapper.ToUnityFootprintYawDegrees(
                         _worldPlacement.RotationDegrees), 0f);
@@ -387,8 +450,16 @@ namespace HexLive.UnityPresentation.HutTest
                 // §120.8: в игре черновик и так автосейвится; две кнопки — это
                 // «Выйти» (закрыть без стройки) и «Построить» (отдать драфт).
                 root.Q<Button>("save").clicked += CloseWorldMode;
-                root.Q<Button>("export").clicked += BuildAndClose;
-                if (EditingExisting)
+                if (DirectWorldConstruction)
+                {
+                    var export = root.Q<Button>("export");
+                    if (export != null) export.style.display = DisplayStyle.None;
+                }
+                else
+                {
+                    root.Q<Button>("export").clicked += BuildAndClose;
+                }
+                if (EditingExisting || DirectWorldConstruction)
                 {
                     var furnitureMode = root.Q<Button>("mode-furniture");
                     if (furnitureMode != null) furnitureMode.style.display = DisplayStyle.None;
@@ -465,6 +536,16 @@ namespace HexLive.UnityPresentation.HutTest
             var screen = mouse.position.ReadValue();
             if (PointerOverPanel(screen)) return;
             if (!TryLocalPoint(screen, out var local)) return;
+
+            if (DirectWorldConstruction && _catalogMode == BuildCatalogMode.Construction)
+            {
+                var tile = WorldToTile(local.x, local.z);
+                if (_directArchitectureGridTile != tile)
+                {
+                    _directArchitectureGridTile = tile;
+                    RebuildPreview();
+                }
+            }
 
             if (!_gestureActive && _activeCatalogEntry != null) UpdateCatalogGhost(local);
             if (mouse.leftButton.wasPressedThisFrame) PointerDown(local, screen);
@@ -698,10 +779,12 @@ namespace HexLive.UnityPresentation.HutTest
         private BlueprintCommandResult Execute(Func<BuildingBlueprintDraft, BlueprintCommandResult> gesture)
         {
             ClearRotationPreview();
+            var before = DirectWorldConstruction ? _draft.Clone() : null;
             var result = _history.Execute(_draft, gesture);
             if (result.Succeeded)
             {
-                _autosaveDeadline = Time.unscaledTime + 0.35f;
+                if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
+                else _autosaveDeadline = Time.unscaledTime + 0.35f;
                 RebuildPreview();
             }
             RefreshUiState();
@@ -828,10 +911,12 @@ namespace HexLive.UnityPresentation.HutTest
         private void Undo()
         {
             ClearRotationPreview();
+            var before = DirectWorldConstruction ? _draft.Clone() : null;
             if (!_history.Undo(_draft)) return;
+            if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
             _selectedId = string.Empty;
             _selectedIds.Clear();
-            _autosaveDeadline = Time.unscaledTime + 0.2f;
+            if (!DirectWorldConstruction) _autosaveDeadline = Time.unscaledTime + 0.2f;
             RebuildPreview();
             RefreshUiState();
             SetStatus("blueprint.status.undo", true);
@@ -840,10 +925,12 @@ namespace HexLive.UnityPresentation.HutTest
         private void Redo()
         {
             ClearRotationPreview();
+            var before = DirectWorldConstruction ? _draft.Clone() : null;
             if (!_history.Redo(_draft)) return;
+            if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
             _selectedId = string.Empty;
             _selectedIds.Clear();
-            _autosaveDeadline = Time.unscaledTime + 0.2f;
+            if (!DirectWorldConstruction) _autosaveDeadline = Time.unscaledTime + 0.2f;
             RebuildPreview();
             RefreshUiState();
             SetStatus("blueprint.status.redo", true);
@@ -870,7 +957,7 @@ namespace HexLive.UnityPresentation.HutTest
             // An existing house is authoritative world state, not a reusable
             // local draft. Only the Apply command may mutate it; do not let an
             // old persistentDataPath autosave replace the next world/session.
-            if (EditingExisting) return;
+            if (WorldMode) return;
             try
             {
                 var path = _store.Save(_draft);
@@ -900,7 +987,8 @@ namespace HexLive.UnityPresentation.HutTest
         {
             if (_preview == null) return;
             _preview.Rebuild(_draft, _mode, _selectedId, selectedIds: _selectedIds,
-                extraFurnitureGridTiles: OutdoorGridTiles());
+                extraFurnitureGridTiles: OutdoorGridTiles(),
+                extraArchitectureGridTiles: DirectArchitectureGridTiles());
             RebuildHandles();
         }
 
@@ -916,7 +1004,7 @@ namespace HexLive.UnityPresentation.HutTest
             var invalid = result.Candidate != null && !result.Validation.IsValid;
             _preview.Rebuild(candidate, _mode, _selectedId,
                 junctionConflicts, buildConflicts, changed, invalid, _selectedIds,
-                OutdoorGridTiles());
+                OutdoorGridTiles(), DirectArchitectureGridTiles());
         }
 
         private IEnumerable<TileCoord> OutdoorGridTiles()
@@ -924,6 +1012,14 @@ namespace HexLive.UnityPresentation.HutTest
             if (_catalogMode == BuildCatalogMode.Furniture &&
                 _activeCategoryId == BuildCatalogCategories.Outdoor &&
                 _outdoorGridTile is { } tile)
+                yield return tile;
+        }
+
+        private IEnumerable<TileCoord> DirectArchitectureGridTiles()
+        {
+            if (DirectWorldConstruction &&
+                _catalogMode == BuildCatalogMode.Construction &&
+                _directArchitectureGridTile is { } tile)
                 yield return tile;
         }
 
@@ -949,6 +1045,36 @@ namespace HexLive.UnityPresentation.HutTest
                     changed.Add(item.Id);
             }
             return changed;
+        }
+
+        /// <summary>
+        /// §120.10: translate the editor gesture into an authoritative world
+        /// delta. The draft remains a local projection used by preview/history;
+        /// no JSON and no blueprint id crosses this boundary.
+        /// </summary>
+        private void DispatchDirectDelta(
+            BuildingBlueprintDraft before, BuildingBlueprintDraft after)
+        {
+            var callback = _worldPlacement?.OnApplyFreeArchitecture;
+            if (!DirectWorldConstruction || callback == null) return;
+
+            var beforeBySlot = before.Elements.ToDictionary(
+                BlueprintBuildingPlan.SlotKey, StringComparer.Ordinal);
+            var afterBySlot = after.Elements.ToDictionary(
+                BlueprintBuildingPlan.SlotKey, StringComparer.Ordinal);
+            var removals = beforeBySlot
+                .Where(pair => !afterBySlot.TryGetValue(pair.Key, out var next) ||
+                               next.Kind != pair.Value.Kind)
+                .Select(pair => pair.Key)
+                .OrderBy(key => key, StringComparer.Ordinal)
+                .ToArray();
+            var placements = afterBySlot
+                .Where(pair => !beforeBySlot.TryGetValue(pair.Key, out var previous) ||
+                               previous.Kind != pair.Value.Kind)
+                .Select(pair => FreeArchitecturePlacementData.FromElement(pair.Value))
+                .ToArray();
+            if (placements.Length == 0 && removals.Length == 0) return;
+            callback(placements, removals);
         }
 
         private static JunctionKey[] FurnitureConflicts(BuildingBlueprintDraft draft) =>
@@ -1536,7 +1662,9 @@ namespace HexLive.UnityPresentation.HutTest
             Text<Button>(root, "save", WorldMode ? "blueprint.action.exit" : "blueprint.action.save");
             Text<Button>(root, "export", EditingExisting
                 ? "blueprint.action.apply"
-                : WorldMode ? "blueprint.action.build" : "blueprint.action.export");
+                : WorldMode && !DirectWorldConstruction
+                    ? "blueprint.action.build"
+                    : "blueprint.action.export");
             Text<Label>(root, "shortcut-label", "blueprint.shortcuts");
             RebuildCatalogUi();
             SetStatus(_statusKey, true);

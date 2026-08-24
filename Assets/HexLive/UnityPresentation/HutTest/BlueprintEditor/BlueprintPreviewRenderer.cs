@@ -50,6 +50,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         private HashSet<HexBuildNodeKey> _buildConflicts = new();
         private HashSet<string> _ghostIds = new();
         private HashSet<HexLive.Simulation.Common.TileCoord> _extraFurnitureGridTiles = new();
+        private HashSet<HexLive.Simulation.Common.TileCoord> _extraArchitectureGridTiles = new();
         private bool _invalidGhost;
 
         public BuildingBlueprintDraft? Draft => _draft;
@@ -63,7 +64,8 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             IEnumerable<string>? ghostIds = null,
             bool invalidGhost = false,
             IEnumerable<string>? selectedIds = null,
-            IEnumerable<HexLive.Simulation.Common.TileCoord>? extraFurnitureGridTiles = null)
+            IEnumerable<HexLive.Simulation.Common.TileCoord>? extraFurnitureGridTiles = null,
+            IEnumerable<HexLive.Simulation.Common.TileCoord>? extraArchitectureGridTiles = null)
         {
             EnsureRoots();
             ClearChildren(_elementRoot!);
@@ -90,6 +92,9 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
                 : new HashSet<string>();
             _extraFurnitureGridTiles = extraFurnitureGridTiles != null
                 ? new HashSet<HexLive.Simulation.Common.TileCoord>(extraFurnitureGridTiles)
+                : new HashSet<HexLive.Simulation.Common.TileCoord>();
+            _extraArchitectureGridTiles = extraArchitectureGridTiles != null
+                ? new HashSet<HexLive.Simulation.Common.TileCoord>(extraArchitectureGridTiles)
                 : new HashSet<HexLive.Simulation.Common.TileCoord>();
             _invalidGhost = invalidGhost;
 
@@ -297,6 +302,14 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
                         nodes.Add(element.Segment.A);
                         nodes.Add(element.Segment.B);
                     }
+                }
+                foreach (var tile in _extraArchitectureGridTiles)
+                {
+                    var center = BlueprintGeometry.HexCenter(tile);
+                    for (var q = -3; q <= 3; q++)
+                    for (var r = -3; r <= 3; r++)
+                        if (Math.Max(Math.Abs(q), Math.Max(Math.Abs(r), Math.Abs(q + r))) <= 3)
+                            nodes.Add(center + new HexBuildNodeKey(q, r));
                 }
                 if (nodes.Count == 0)
                     for (var q = -3; q <= 3; q++)

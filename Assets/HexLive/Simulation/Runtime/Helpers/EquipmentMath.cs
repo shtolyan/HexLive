@@ -45,6 +45,36 @@ internal static class EquipmentMath
         return worst;
     }
 
+    /// <summary>§48.7: signed slow-tick Comfort delta from average worn dirt.
+    /// Positive means freshly clean clothes, zero is the clean/neutral band,
+    /// negative is the dirt penalty. The upper band deliberately preserves the
+    /// pre-existing full penalty exactly.</summary>
+    internal static float ClothingDirtComfortDelta(float dirtiness)
+    {
+        var dirt = MathUtil.Clamp01(dirtiness);
+        if (dirt < SimBalance.CleanClothingComfortBonusThreshold)
+        {
+            var freshness = 1f - dirt / SimBalance.CleanClothingComfortBonusThreshold;
+            return freshness * SimBalance.CleanClothingComfortMaxGain;
+        }
+
+        if (dirt <= SimBalance.CleanClothingDirtThreshold)
+        {
+            return 0f;
+        }
+
+        var legacyPenalty = dirt * SimBalance.DirtyClothingComfortLoss;
+        if (dirt >= SimBalance.DirtyClothingFullPenaltyThreshold)
+        {
+            return -legacyPenalty;
+        }
+
+        var mildFactor = (dirt - SimBalance.CleanClothingDirtThreshold) /
+                         (SimBalance.DirtyClothingFullPenaltyThreshold -
+                          SimBalance.CleanClothingDirtThreshold);
+        return -legacyPenalty * mildFactor;
+    }
+
     public static void Recalculate(WorldState world, NPCState npc)
     {
         var warmth = 0f;

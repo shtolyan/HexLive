@@ -64,8 +64,11 @@ namespace HexLive.UnityPresentation.Environment
             // (the world object and its shadows/topology remain untouched) to
             // avoid z-fighting and doubled walls. The next snapshot after the
             // editor closes restores it through this same branch.
-            var editorHidden = piece.ArchitectureOwnerObjectId is { } ownerId &&
-                HutLayoutDesigner.EditingOwnerObjectId == ownerId;
+            var editorHidden =
+                (piece.ArchitectureOwnerObjectId is { } ownerId &&
+                 HutLayoutDesigner.EditingOwnerObjectId == ownerId) ||
+                (HutLayoutDesigner.DirectWorldEditorOpen &&
+                 piece.ArchitectureOwnerObjectId == piece.Id.Value);
 
             // §120.1: a roof panel whose posts are not up yet does not exist. It
             // is not an empty frame waiting for leaves — it is nothing at all,

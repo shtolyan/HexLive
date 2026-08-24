@@ -5,6 +5,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Runtime.Blueprints;
 
 namespace HexLive.Simulation.Wire
 {
@@ -69,6 +70,7 @@ public static class SimulationCommandCodec
         SetOutfitLock = 31,
         MergeCamps = 32,
         RomancePerson = 33,
+        ApplyFreeArchitecture = 34,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -255,6 +257,28 @@ public static class SimulationCommandCodec
                 w.Write(c.Owner.Value);
                 WireIo.WriteString(w, c.BlueprintJson);
                 break;
+            case ApplyFreeArchitectureCommand c:
+                w.Write((ushort)CommandType.ApplyFreeArchitecture);
+                w.Write(c.Placements.Count);
+                foreach (var placement in c.Placements)
+                {
+                    w.Write((int)placement.Kind);
+                    w.Write(placement.AnchorTile.Q);
+                    w.Write(placement.AnchorTile.R);
+                    w.Write(placement.Node.Q);
+                    w.Write(placement.Node.R);
+                    WriteBuildNode(w, placement.Segment.A);
+                    WriteBuildNode(w, placement.Segment.B);
+                    w.Write(placement.FloorSector.Hex.Q);
+                    w.Write(placement.FloorSector.Hex.R);
+                    w.Write(placement.FloorSector.Sector);
+                    w.Write(placement.RoofSector.Hex.Q);
+                    w.Write(placement.RoofSector.Hex.R);
+                    w.Write(placement.RoofSector.Sector);
+                }
+                w.Write(c.RemovedSlotKeys.Count);
+                foreach (var slotKey in c.RemovedSlotKeys) WireIo.WriteString(w, slotKey);
+                break;
             default:
                 throw new NotSupportedException(
                     $"SimulationCommandCodec: незарегистрированный тип команды " +
@@ -356,6 +380,33 @@ public static class SimulationCommandCodec
             case CommandType.UpdateBuildingBlueprint:
                 return new UpdateBuildingBlueprintCommand(
                     new ObjectId(r.ReadInt32()), r.ReadString());
+            case CommandType.ApplyFreeArchitecture:
+            {
+                var placementCount = r.ReadInt32();
+                if (placementCount < 0 || placementCount > 512)
+                    throw new InvalidDataException("Invalid free architecture placement count.");
+                var placements = new List<FreeArchitecturePlacementData>(placementCount);
+                for (var i = 0; i < placementCount; i++)
+                {
+                    var kind = (BlueprintElementKind)r.ReadInt32();
+                    var anchor = new TileCoord(r.ReadInt32(), r.ReadInt32());
+                    var node = new HexBuildNodeKey(r.ReadInt32(), r.ReadInt32());
+                    var segment = new BuildSegmentKey(ReadBuildNode(r), ReadBuildNode(r));
+                    var floor = new FloorSectorKey(
+                        new TileCoord(r.ReadInt32(), r.ReadInt32()), r.ReadInt32());
+                    var roof = new RoofSectorKey(
+                        new TileCoord(r.ReadInt32(), r.ReadInt32()), r.ReadInt32());
+                    placements.Add(new FreeArchitecturePlacementData(
+                        kind, anchor, node, segment, floor, roof));
+                }
+
+                var removalCount = r.ReadInt32();
+                if (removalCount < 0 || removalCount > 512)
+                    throw new InvalidDataException("Invalid free architecture removal count.");
+                var removals = new List<string>(removalCount);
+                for (var i = 0; i < removalCount; i++) removals.Add(r.ReadString());
+                return new ApplyFreeArchitectureCommand(placements, removals);
+            }
             default:
                 throw new InvalidDataException(
                     $"SimulationCommandCodec: неизвестный номер типа {(ushort)type}.");
@@ -363,6 +414,15 @@ public static class SimulationCommandCodec
     }
 
     private static void WriteEntity(BinaryWriter w, EntityId id) => w.Write(id.Value);
+
+    private static void WriteBuildNode(BinaryWriter w, HexBuildNodeKey node)
+    {
+        w.Write(node.Q);
+        w.Write(node.R);
+    }
+
+    private static HexBuildNodeKey ReadBuildNode(BinaryReader r) =>
+        new(r.ReadInt32(), r.ReadInt32());
 
     private static EntityId ReadEntity(BinaryReader r) => new(r.ReadInt32());
 

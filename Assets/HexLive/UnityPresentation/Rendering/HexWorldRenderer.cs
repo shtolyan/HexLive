@@ -5,6 +5,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Spatial;
@@ -4005,7 +4006,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             var marker = new GameObject($"Architecture {worldObject.DefinitionId} #{worldObject.Id.Value}");
             marker.transform.SetParent(_objectsRoot, false);
-            if (IsPlanBuildingModule(worldObject))
+            if (IsPlanBuildingModule(worldObject) ||
+                FreeArchitectureRules.IsFreePiece(worldObject))
             {
                 marker.AddComponent<HexLive.UnityPresentation.Environment.ArchitectureModuleView>()
                     .Sync(worldObject);
@@ -5972,7 +5974,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // piece to the navigation throat, and drawing from there applied
                 // the door's own offset twice (measured 1.299 wu straight out
                 // through the wall line, and only on the door).
-                if (worldObject.ArchitectureOwnerObjectId is { } planOwnerKey &&
+                if (FreeArchitectureRules.IsFreePiece(worldObject))
+                {
+                    // A direct LEGO object owns itself. Its LocalX/LocalZ were
+                    // measured from this tile centre; a door may rebind its one
+                    // Junction to the throat for pathfinding, but that must not
+                    // move the visible leaf a second time.
+                    pos = HexSpatialMath.TileToWorld(worldObject.Tile);
+                }
+                else if (worldObject.ArchitectureOwnerObjectId is { } planOwnerKey &&
                     IsPlanBuildingModule(worldObject) &&
                     _planOwnerAnchors.TryGetValue(planOwnerKey, out var ownerAnchor))
                 {

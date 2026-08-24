@@ -6,6 +6,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Wire;
 using NUnit.Framework;
 
@@ -80,6 +81,19 @@ public sealed class CommandCodecCoverageGateTests
             "{\"version\":3}", new TileCoord(7, -2), rotationDegrees: 60f),
         new UpdateBuildingBlueprintCommand(
             new ObjectId(219), "{\"version\":3,\"blueprintId\":\"edit\"}"),
+        new ApplyFreeArchitectureCommand(
+            new[]
+            {
+                new FreeArchitecturePlacementData(
+                    BlueprintElementKind.Wall,
+                    new TileCoord(2, -1),
+                    new HexBuildNodeKey(7, -4),
+                    new BuildSegmentKey(
+                        new HexBuildNodeKey(7, -4), new HexBuildNodeKey(8, -4)),
+                    new FloorSectorKey(new TileCoord(9, -3), 4),
+                    new RoofSectorKey(new TileCoord(-5, 6), 2))
+            },
+            new[] { "bay:1,2>2,2", "floor:3,-1:5" }),
     };
 
     [Test]

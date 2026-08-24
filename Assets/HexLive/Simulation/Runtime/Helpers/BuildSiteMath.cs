@@ -7,6 +7,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Social;
+using HexLive.Simulation.Runtime.Blueprints;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -38,6 +39,9 @@ internal static class BuildSiteMath
     /// </summary>
     public static bool IsArchitecturalBuilding(string buildProduct) =>
         buildProduct == ContentIds.Hut1Hex || buildProduct == ContentIds.HutPlan;
+
+    public static bool IsFreeArchitectureSite(WorldObjectState site) =>
+        FreeArchitectureRules.IsFreePiece(site) && !string.IsNullOrEmpty(site.BuildProduct);
 
     /// <summary>Authored construction method shared by bidding and execution.
     /// A missing/unknown product is conservative and still requires a hammer.</summary>
@@ -156,6 +160,13 @@ internal static class BuildSiteMath
     // (unstaged sites: campfire, hut pieces).
     public static int Remaining(WorldObjectState site, string materialId)
     {
+        if (IsFreeArchitectureSite(site) && !site.ArchitectureElements[0].Buildable)
+        {
+            // A roof may be planned immediately, but it is not a work target
+            // and requests no materials until its exact support edge is up.
+            return 0;
+        }
+
         if (IsArchitecturalBuilding(site.BuildProduct))
         {
             // §120 modular grammar: wall/floor/support cubes are independent,
@@ -228,7 +239,8 @@ internal static class BuildSiteMath
     }
 
     public static bool IsSite(WorldObjectState obj) =>
-        obj != null && !string.IsNullOrEmpty(obj.BuildProduct);
+        obj != null && !string.IsNullOrEmpty(obj.BuildProduct) &&
+        (!IsFreeArchitectureSite(obj) || obj.ArchitectureElements[0].Buildable);
 
     // §54.14 (r2): FUNCTIONAL stage checks on a live campfire. Delivered
     // materials stay in Contents after the bill closes, so these read the same

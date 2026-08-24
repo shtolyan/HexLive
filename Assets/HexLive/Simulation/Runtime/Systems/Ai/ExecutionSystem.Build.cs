@@ -57,6 +57,11 @@ public sealed partial class ExecutionSystem
             Bootstrap.BuildingBootstrap.RepairPlanTopology(world, site);
         }
 
+        if (moved > 0 && BuildSiteMath.IsFreeArchitectureSite(site))
+        {
+            Blueprints.FreeArchitectureRules.SyncProgress(world, site);
+        }
+
         if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct) &&
             BuildingRules.FloorComplete(world, site))
         {
@@ -194,6 +199,14 @@ public sealed partial class ExecutionSystem
             // would snuff the live fire and reset its fuel.
             if (site.DefinitionId == site.BuildProduct)
             {
+                if (BuildSiteMath.IsFreeArchitectureSite(site))
+                {
+                    Blueprints.FreeArchitectureRules.Complete(world, site);
+                    Trace.Emit(world, npc.Id, "FurnitureBuilt",
+                        $"{site.DefinitionId} direct architecture finished at " +
+                        $"Tile={site.Tile.Q},{site.Tile.R}");
+                    return;
+                }
                 if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct))
                 {
                     // An edited, already raised house builds its delta in

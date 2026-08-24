@@ -3,6 +3,9 @@ using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Spatial;
+using HexLive.UnityPresentation.Input;
+using HexLive.UnityPresentation.Rendering;
+using HexLive.UnityPresentation.Spatial;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -11,8 +14,8 @@ namespace HexLive.UnityPresentation.UI
     /// <summary>
     /// §150: compact procedural minimap. It owns no simulation state: the
     /// controller supplies a point-in-time frame and this element only paints
-    /// it and performs the exact inverse map transform for clicks. The distant
-    /// map is rendered in world space by HexWorldRenderer, not by this UI.
+    /// it and performs the exact inverse map transform for clicks. The same
+    /// frame also feeds the non-intercepting distant-world marker canvas.
     /// </summary>
     internal sealed class TacticalMapView : VisualElement
     {
@@ -113,6 +116,7 @@ namespace HexLive.UnityPresentation.UI
             DrawMarkers(painter, frame, map, hexRadius);
             DrawDroppedItems(context, painter, frame, map, hexRadius);
             DrawMobs(painter, frame, map, hexRadius);
+            DrawUnknownPeople(painter, frame, map, hexRadius);
             DrawPeople(context, painter, frame, map, hexRadius);
             DrawCameraFootprint(painter, frame, map);
         }
@@ -232,7 +236,24 @@ namespace HexLive.UnityPresentation.UI
                     TraceRect(painter, cellRect);
                     painter.Fill();
 
-                    if (item.Icon != null)
+                    if (item.Overflow)
+                    {
+                        painter.strokeColor = TacticalMapPalette.WithAlpha(
+                            TacticalMapPalette.ClothingFallback, alpha);
+                        painter.lineWidth = 1.1f;
+                        for (var stack = 0; stack < 3; stack++)
+                        {
+                            var inset = cellRect.width * (0.18f + stack * 0.11f);
+                            painter.BeginPath();
+                            TraceRect(painter, new Rect(
+                                cellRect.x + inset,
+                                cellRect.y + inset,
+                                cellRect.width - inset * 2f,
+                                cellRect.height - inset * 2f));
+                            painter.Stroke();
+                        }
+                    }
+                    else if (item.Icon != null)
                     {
                         DrawSprite(context, item.Icon, cellRect, new Color(1f, 1f, 1f, alpha));
                     }
@@ -314,6 +335,32 @@ namespace HexLive.UnityPresentation.UI
                     painter.ClosePath();
                     painter.Fill();
                 }
+            }
+        }
+
+        private static void DrawUnknownPeople(
+            Painter2D painter, TacticalMapFrame frame, MapTransform map, float hexRadius)
+        {
+            var size = Mathf.Clamp(hexRadius * 0.62f, 4.2f, 8f);
+            for (var i = 0; i < frame.UnknownPeople.Count; i++)
+            {
+                var center = ToUi(frame.UnknownPeople[i].Position, frame, map);
+                painter.strokeColor = TacticalMapPalette.WithAlpha(
+                    TacticalMapPalette.Selected, 0.72f);
+                painter.lineWidth = Mathf.Max(1f, size * 0.18f);
+                painter.lineCap = LineCap.Round;
+                painter.BeginPath();
+                painter.Arc(center - new Vector2(0f, size * 0.2f), size * 0.58f,
+                    Angle.Degrees(200f), Angle.Degrees(520f));
+                painter.MoveTo(center + new Vector2(0f, size * 0.28f));
+                painter.LineTo(center + new Vector2(0f, size * 0.68f));
+                painter.Stroke();
+                painter.fillColor = TacticalMapPalette.WithAlpha(
+                    TacticalMapPalette.Selected, 0.72f);
+                painter.BeginPath();
+                painter.Arc(center + new Vector2(0f, size * 0.95f), size * 0.12f,
+                    Angle.Degrees(0f), Angle.Degrees(360f));
+                painter.Fill();
             }
         }
 
@@ -522,8 +569,540 @@ namespace HexLive.UnityPresentation.UI
         }
     }
 
-    /// <summary>Shared visual language for the HUD minimap and the world-space
-    /// sprite map. Keeping palette and object classification here prevents the
+    /// <summary>
+    /// §150: one generated, input-transparent overlay for every distant-world
+    /// contact. It owns no GameObjects and no child element per marker.
+    /// </summary>
+    internal sealed class DistantWorldMarkersView : VisualElement
+    {
+        private static readonly ushort[] QuadIndices = { 0, 1, 2, 2, 3, 0 };
+        private readonly Vertex[] _quadVertices = new Vertex[4];
+        private TacticalMapFrame? _frame;
+        private Camera? _camera;
+        private RtsCameraController? _controller;
+        private HexWorldRenderer? _worldRenderer;
+        private bool _wasVisible;
+
+        public DistantWorldMarkersView()
+        {
+            pickingMode = PickingMode.Ignore;
+            generateVisualContent += OnGenerateVisualContent;
+        }
+
+        public void SetFrame(TacticalMapFrame frame)
+        {
+            _frame = frame;
+            MarkDirtyRepaint();
+        }
+
+        public void SetPresentation(
+            Camera? camera,
+            RtsCameraController? controller,
+            HexWorldRenderer? worldRenderer)
+        {
+            _camera = camera;
+            _controller = controller;
+            _worldRenderer = worldRenderer;
+        }
+
+        public void RefreshForCamera()
+        {
+            var visible = _controller != null &&
+                (_controller.OverviewBlend > 0.001f || _controller.FloraBlend > 0.001f);
+            if (visible || _wasVisible)
+            {
+                MarkDirtyRepaint();
+            }
+            _wasVisible = visible;
+        }
+
+        private void OnGenerateVisualContent(MeshGenerationContext context)
+        {
+            var frame = _frame;
+            var controller = _controller;
+            if (frame == null || controller == null || _camera == null ||
+                _worldRenderer == null || panel == null)
+            {
+                return;
+            }
+
+            var overviewAlpha = controller.OverviewBlend;
+            var floraAlpha = controller.FloraBlend;
+            if (overviewAlpha <= 0.001f && floraAlpha <= 0.001f)
+            {
+                return;
+            }
+
+            var distanceT = Mathf.InverseLerp(
+                32f, 260f, controller.SmoothedDistance);
+            var detailScale = Mathf.Lerp(1f, 0.62f, distanceT);
+            var painter = context.painter2D;
+
+            DrawStaticMarkers(painter, frame, overviewAlpha, floraAlpha, detailScale);
+            DrawItems(context, painter, frame, overviewAlpha, detailScale);
+            DrawMobs(painter, frame, overviewAlpha, detailScale);
+            DrawUnknownPeople(painter, frame, overviewAlpha, detailScale);
+            DrawPeople(context, painter, frame, overviewAlpha, distanceT);
+        }
+
+        private void DrawStaticMarkers(
+            Painter2D painter,
+            TacticalMapFrame frame,
+            float overviewAlpha,
+            float floraAlpha,
+            float scale)
+        {
+            for (var i = 0; i < frame.Markers.Count; i++)
+            {
+                var marker = frame.Markers[i];
+                var alpha = marker.Kind == TacticalMapMarkerKind.Palm
+                    ? floraAlpha
+                    : overviewAlpha;
+                alpha *= marker.Live || marker.AlwaysKnown ? 1f : 0.48f;
+                if (alpha <= 0.001f ||
+                    !TryProject(marker.Center, marker.Tile, 0.62f, out var center))
+                {
+                    continue;
+                }
+
+                if (marker.Kind == TacticalMapMarkerKind.Camp)
+                {
+                    DrawCamp(painter, center, 9.5f * scale, alpha, marker.Lit);
+                }
+                else if (marker.Kind == TacticalMapMarkerKind.Palm)
+                {
+                    var size = 10f * scale;
+                    painter.strokeColor = TacticalMapPalette.WithAlpha(
+                        TacticalMapPalette.Palm, alpha);
+                    painter.lineCap = LineCap.Round;
+                    painter.lineWidth = Mathf.Max(1.25f, 2.4f * scale);
+                    painter.BeginPath();
+                    painter.MoveTo(center + new Vector2(0f, size));
+                    painter.LineTo(center - new Vector2(0f, size));
+                    painter.MoveTo(center);
+                    painter.LineTo(center + new Vector2(-size, -size * 0.55f));
+                    painter.MoveTo(center);
+                    painter.LineTo(center + new Vector2(size, -size * 0.55f));
+                    painter.Stroke();
+                }
+                else
+                {
+                    var size = 7f * scale;
+                    painter.fillColor = TacticalMapPalette.WithAlpha(
+                        TacticalMapPalette.Resource, alpha);
+                    painter.BeginPath();
+                    painter.MoveTo(center + new Vector2(0f, -size));
+                    painter.LineTo(center + new Vector2(size, 0f));
+                    painter.LineTo(center + new Vector2(0f, size));
+                    painter.LineTo(center + new Vector2(-size, 0f));
+                    painter.ClosePath();
+                    painter.Fill();
+                }
+            }
+        }
+
+        private static void DrawCamp(
+            Painter2D painter, Vector2 center, float size, float alpha, bool lit)
+        {
+            painter.fillColor = TacticalMapPalette.WithAlpha(
+                TacticalMapPalette.CampRing, alpha * 0.92f);
+            painter.BeginPath();
+            painter.Arc(center, size * 1.12f, Angle.Degrees(0f), Angle.Degrees(360f));
+            painter.Fill();
+
+            painter.fillColor = TacticalMapPalette.WithAlpha(
+                lit ? TacticalMapPalette.CampFire : TacticalMapPalette.CampCold, alpha);
+            painter.BeginPath();
+            painter.MoveTo(center + new Vector2(0f, -size));
+            painter.BezierCurveTo(
+                center + new Vector2(size * 0.78f, -size * 0.10f),
+                center + new Vector2(size * 0.48f, size * 0.76f),
+                center + new Vector2(0f, size * 0.9f));
+            painter.BezierCurveTo(
+                center + new Vector2(-size * 0.7f, size * 0.5f),
+                center + new Vector2(-size * 0.6f, -size * 0.2f),
+                center + new Vector2(0f, -size));
+            painter.Fill();
+        }
+
+        private void DrawItems(
+            MeshGenerationContext context,
+            Painter2D painter,
+            TacticalMapFrame frame,
+            float overviewAlpha,
+            float scale)
+        {
+            var index = 0;
+            while (index < frame.DroppedItems.Count)
+            {
+                var first = frame.DroppedItems[index];
+                var end = index + 1;
+                while (end < frame.DroppedItems.Count &&
+                       frame.DroppedItems[end].Tile.Equals(first.Tile))
+                {
+                    end++;
+                }
+
+                if (!TryProject(first.Center, first.Tile, 0.5f, out var center))
+                {
+                    index = end;
+                    continue;
+                }
+
+                var count = end - index;
+                var cell = 20f * scale;
+                var gap = Mathf.Max(1f, 2f * scale);
+                var columns = Mathf.Min(2, count);
+                var rows = Mathf.CeilToInt(count / 2f);
+                var origin = center - new Vector2(
+                    (columns * cell + (columns - 1) * gap) * 0.5f,
+                    (rows * cell + (rows - 1) * gap) * 0.5f);
+
+                for (var i = index; i < end; i++)
+                {
+                    var item = frame.DroppedItems[i];
+                    var local = i - index;
+                    var alpha = overviewAlpha * (item.Live ? 1f : 0.48f);
+                    var rect = new Rect(
+                        origin.x + (local % 2) * (cell + gap),
+                        origin.y + (local / 2) * (cell + gap),
+                        cell,
+                        cell);
+                    painter.fillColor = TacticalMapPalette.WithAlpha(
+                        TacticalMapPalette.ClothingPlate, alpha);
+                    painter.BeginPath();
+                    TraceRect(painter, rect);
+                    painter.Fill();
+
+                    if (item.Overflow)
+                    {
+                        painter.strokeColor = TacticalMapPalette.WithAlpha(
+                            TacticalMapPalette.ClothingFallback, alpha);
+                        painter.lineWidth = Mathf.Max(1f, 1.4f * scale);
+                        for (var stack = 0; stack < 3; stack++)
+                        {
+                            var inset = rect.width * (0.16f + stack * 0.12f);
+                            painter.BeginPath();
+                            TraceRect(painter, new Rect(
+                                rect.x + inset,
+                                rect.y + inset,
+                                rect.width - inset * 2f,
+                                rect.height - inset * 2f));
+                            painter.Stroke();
+                        }
+                    }
+                    else if (item.Icon != null)
+                    {
+                        DrawSprite(context, item.Icon, rect, new Color(1f, 1f, 1f, alpha));
+                    }
+                    else
+                    {
+                        painter.fillColor = TacticalMapPalette.WithAlpha(
+                            TacticalMapPalette.ClothingFallback, alpha);
+                        painter.BeginPath();
+                        painter.Arc(rect.center, rect.width * 0.22f,
+                            Angle.Degrees(0f), Angle.Degrees(360f));
+                        painter.Fill();
+                    }
+
+                    painter.strokeColor = TacticalMapPalette.WithAlpha(
+                        TacticalMapPalette.ClothingBorder, alpha);
+                    painter.lineWidth = 1f;
+                    painter.BeginPath();
+                    TraceRect(painter, rect);
+                    painter.Stroke();
+                }
+
+                index = end;
+            }
+        }
+
+        private void DrawMobs(
+            Painter2D painter,
+            TacticalMapFrame frame,
+            float overviewAlpha,
+            float scale)
+        {
+            var size = 8.5f * scale;
+            for (var i = 0; i < frame.Mobs.Count; i++)
+            {
+                var mob = frame.Mobs[i];
+                Vector2 center;
+                if (mob.Id >= 0 && _worldRenderer != null &&
+                    _worldRenderer.TryGetAnimalViewPosition(
+                        mob.Id, mob.IsCrab, out var viewPosition))
+                {
+                    if (!TryProject(viewPosition + Vector3.up * 0.5f, out center))
+                    {
+                        continue;
+                    }
+                }
+                else if (!TryProject(
+                             mob.Position,
+                             HexSpatialMath.WorldToTile(mob.Position),
+                             0.5f,
+                             out center))
+                {
+                    continue;
+                }
+
+                var color = TacticalMapPalette.WithAlpha(
+                    TacticalMapPalette.MobColor(mob.Kind), overviewAlpha);
+                painter.fillColor = color;
+                painter.strokeColor = color;
+                painter.lineWidth = Mathf.Max(1f, size * 0.2f);
+                painter.lineCap = LineCap.Round;
+                painter.lineJoin = LineJoin.Round;
+                if (mob.Kind == TacticalMapMobKind.Crab)
+                {
+                    painter.BeginPath();
+                    painter.Arc(center, size * 0.48f,
+                        Angle.Degrees(0f), Angle.Degrees(360f));
+                    painter.Fill();
+                    painter.BeginPath();
+                    painter.MoveTo(center - new Vector2(size * 0.45f, 0f));
+                    painter.LineTo(center - new Vector2(size, size * 0.55f));
+                    painter.MoveTo(center + new Vector2(size * 0.45f, 0f));
+                    painter.LineTo(center + new Vector2(size, -size * 0.55f));
+                    painter.Stroke();
+                }
+                else if (mob.Kind == TacticalMapMobKind.Shark)
+                {
+                    painter.BeginPath();
+                    painter.MoveTo(center + new Vector2(0f, -size));
+                    painter.LineTo(center + new Vector2(size * 0.82f, size * 0.72f));
+                    painter.LineTo(center + new Vector2(-size * 0.48f, size * 0.42f));
+                    painter.ClosePath();
+                    painter.Fill();
+                }
+                else
+                {
+                    painter.BeginPath();
+                    painter.MoveTo(center + new Vector2(-size, -size * 0.82f));
+                    painter.LineTo(center + new Vector2(-size * 0.35f, -size * 0.42f));
+                    painter.LineTo(center + new Vector2(0f, -size * 0.72f));
+                    painter.LineTo(center + new Vector2(size * 0.35f, -size * 0.42f));
+                    painter.LineTo(center + new Vector2(size, -size * 0.82f));
+                    painter.LineTo(center + new Vector2(size * 0.56f, size * 0.58f));
+                    painter.LineTo(center + new Vector2(0f, size));
+                    painter.LineTo(center + new Vector2(-size * 0.56f, size * 0.58f));
+                    painter.ClosePath();
+                    painter.Fill();
+                }
+            }
+        }
+
+        private void DrawUnknownPeople(
+            Painter2D painter,
+            TacticalMapFrame frame,
+            float overviewAlpha,
+            float scale)
+        {
+            var size = 8f * scale;
+            for (var i = 0; i < frame.UnknownPeople.Count; i++)
+            {
+                var unknown = frame.UnknownPeople[i];
+                if (!TryProject(unknown.Position, unknown.Tile, 0.75f, out var center))
+                {
+                    continue;
+                }
+
+                painter.strokeColor = TacticalMapPalette.WithAlpha(
+                    TacticalMapPalette.Selected, overviewAlpha * 0.72f);
+                painter.lineWidth = Mathf.Max(1.2f, 2f * scale);
+                painter.lineCap = LineCap.Round;
+                painter.BeginPath();
+                painter.Arc(center - new Vector2(0f, size * 0.25f), size * 0.62f,
+                    Angle.Degrees(200f), Angle.Degrees(520f));
+                painter.MoveTo(center + new Vector2(0f, size * 0.3f));
+                painter.LineTo(center + new Vector2(0f, size * 0.72f));
+                painter.Stroke();
+                painter.fillColor = TacticalMapPalette.WithAlpha(
+                    TacticalMapPalette.Selected, overviewAlpha * 0.72f);
+                painter.BeginPath();
+                painter.Arc(center + new Vector2(0f, size), size * 0.13f,
+                    Angle.Degrees(0f), Angle.Degrees(360f));
+                painter.Fill();
+            }
+        }
+
+        private void DrawPeople(
+            MeshGenerationContext context,
+            Painter2D painter,
+            TacticalMapFrame frame,
+            float overviewAlpha,
+            float distanceT)
+        {
+            var diameter = Mathf.Lerp(26f, 16f, distanceT);
+            var radius = diameter * 0.5f;
+            for (var i = 0; i < frame.People.Count; i++)
+            {
+                var person = frame.People[i];
+                var tile = HexSpatialMath.WorldToTile(person.Position);
+                Vector2 center;
+                if (_worldRenderer != null &&
+                    _worldRenderer.TryGetNpcViewPosition(person.NpcId, out var viewPosition))
+                {
+                    if (!TryProject(
+                            viewPosition + Vector3.up * SimulationUnityMapper.CameraTargetHeight,
+                            out center))
+                    {
+                        continue;
+                    }
+                }
+                else if (!TryProject(person.Position, tile,
+                             SimulationUnityMapper.CameraTargetHeight, out center))
+                {
+                    continue;
+                }
+
+                var faction = TacticalMapPalette.WithAlpha(
+                    TacticalMapPalette.PersonColor(person.Owned, person.Hostile),
+                    overviewAlpha);
+                painter.fillColor = faction;
+                painter.BeginPath();
+                painter.Arc(center, radius, Angle.Degrees(0f), Angle.Degrees(360f));
+                painter.Fill();
+
+                if (person.Portrait != null)
+                {
+                    var portraitSize = diameter * 0.82f;
+                    DrawTexture(
+                        context,
+                        person.Portrait,
+                        new Rect(
+                            center.x - portraitSize * 0.5f,
+                            center.y - portraitSize * 0.5f,
+                            portraitSize,
+                            portraitSize),
+                        new Rect(0f, 0f, 1f, 1f),
+                        new Color(1f, 1f, 1f, overviewAlpha));
+                }
+
+                painter.strokeColor = TacticalMapPalette.WithAlpha(
+                    TacticalMapPalette.PersonBorder, overviewAlpha);
+                painter.lineWidth = Mathf.Max(1f, radius * 0.14f);
+                painter.BeginPath();
+                painter.Arc(center, radius, Angle.Degrees(0f), Angle.Degrees(360f));
+                painter.Stroke();
+
+                if (person.Dead)
+                {
+                    var badge = center + new Vector2(radius * 0.72f, radius * 0.72f);
+                    painter.strokeColor = TacticalMapPalette.WithAlpha(
+                        Color.white, overviewAlpha);
+                    painter.lineWidth = Mathf.Max(1.2f, radius * 0.18f);
+                    painter.BeginPath();
+                    painter.MoveTo(badge - Vector2.one * radius * 0.25f);
+                    painter.LineTo(badge + Vector2.one * radius * 0.25f);
+                    painter.MoveTo(badge + new Vector2(-1f, 1f) * radius * 0.25f);
+                    painter.LineTo(badge + new Vector2(1f, -1f) * radius * 0.25f);
+                    painter.Stroke();
+                }
+
+                if (person.Selected)
+                {
+                    painter.strokeColor = TacticalMapPalette.WithAlpha(
+                        TacticalMapPalette.Selected, overviewAlpha);
+                    painter.lineWidth = Mathf.Max(1.5f, radius * 0.24f);
+                    painter.BeginPath();
+                    painter.Arc(center, radius * 1.28f,
+                        Angle.Degrees(0f), Angle.Degrees(360f));
+                    painter.Stroke();
+                }
+            }
+        }
+
+        private bool TryProject(
+            Float2 point, TileCoord tile, float lift, out Vector2 local) =>
+            TryProject(new Vector3(
+                point.X,
+                (_worldRenderer?.GroundTopY(tile) ?? SimulationUnityMapper.TileHeight) + lift,
+                point.Y), out local);
+
+        private bool TryProject(Vector3 world, out Vector2 local)
+        {
+            local = Vector2.zero;
+            if (_camera == null || panel == null)
+            {
+                return false;
+            }
+
+            var screen = _camera.WorldToScreenPoint(world);
+            if (screen.z <= 0f)
+            {
+                return false;
+            }
+
+            var panelPosition = RuntimePanelUtils.ScreenToPanel(
+                panel, new Vector2(screen.x, screen.y));
+            local = WorldToLocal(panelPosition);
+            var rect = contentRect;
+            return local.x >= rect.xMin - 32f && local.x <= rect.xMax + 32f &&
+                local.y >= rect.yMin - 32f && local.y <= rect.yMax + 32f;
+        }
+
+        private void DrawSprite(
+            MeshGenerationContext context, Sprite sprite, Rect rect, Color tint)
+        {
+            var texture = sprite.texture;
+            if (texture == null || texture.width <= 0 || texture.height <= 0)
+            {
+                return;
+            }
+
+            var source = sprite.textureRect;
+            DrawTexture(context, texture, rect, new Rect(
+                source.x / texture.width,
+                source.y / texture.height,
+                source.width / texture.width,
+                source.height / texture.height), tint);
+        }
+
+        private void DrawTexture(
+            MeshGenerationContext context,
+            Texture texture,
+            Rect rect,
+            Rect uv,
+            Color tint)
+        {
+            var mesh = context.Allocate(4, 6, texture);
+#if !UNITY_2023_1_OR_NEWER
+            var atlas = mesh.uvRegion;
+            uv = new Rect(
+                atlas.x + uv.x * atlas.width,
+                atlas.y + uv.y * atlas.height,
+                uv.width * atlas.width,
+                uv.height * atlas.height);
+#endif
+            _quadVertices[0].position = new Vector3(rect.xMin, rect.yMax, Vertex.nearZ);
+            _quadVertices[1].position = new Vector3(rect.xMin, rect.yMin, Vertex.nearZ);
+            _quadVertices[2].position = new Vector3(rect.xMax, rect.yMin, Vertex.nearZ);
+            _quadVertices[3].position = new Vector3(rect.xMax, rect.yMax, Vertex.nearZ);
+            _quadVertices[0].uv = new Vector2(uv.xMin, uv.yMin);
+            _quadVertices[1].uv = new Vector2(uv.xMin, uv.yMax);
+            _quadVertices[2].uv = new Vector2(uv.xMax, uv.yMax);
+            _quadVertices[3].uv = new Vector2(uv.xMax, uv.yMin);
+            for (var i = 0; i < _quadVertices.Length; i++)
+            {
+                _quadVertices[i].tint = tint;
+            }
+            mesh.SetAllVertices(_quadVertices);
+            mesh.SetAllIndices(QuadIndices);
+        }
+
+        private static void TraceRect(Painter2D painter, Rect rect)
+        {
+            painter.MoveTo(new Vector2(rect.xMin, rect.yMin));
+            painter.LineTo(new Vector2(rect.xMax, rect.yMin));
+            painter.LineTo(new Vector2(rect.xMax, rect.yMax));
+            painter.LineTo(new Vector2(rect.xMin, rect.yMax));
+            painter.ClosePath();
+        }
+    }
+
+    /// <summary>Shared visual language for the HUD minimap and distant-world
+    /// markers. Keeping palette and object classification here prevents the
     /// two representations from drifting apart again.</summary>
     internal static class TacticalMapPalette
     {
@@ -616,6 +1195,7 @@ namespace HexLive.UnityPresentation.UI
         public readonly List<TacticalMapDroppedItem> DroppedItems = new();
         public readonly List<TacticalMapMob> Mobs = new();
         public readonly List<TacticalMapPerson> People = new();
+        public readonly List<TacticalMapUnknownPerson> UnknownPeople = new();
         public readonly List<Float2> CameraFootprint = new();
 
         public float MinX { get; private set; }
@@ -633,6 +1213,7 @@ namespace HexLive.UnityPresentation.UI
             DroppedItems.Clear();
             Mobs.Clear();
             People.Clear();
+            UnknownPeople.Clear();
             CameraFootprint.Clear();
             HasBounds = false;
         }
@@ -698,11 +1279,12 @@ namespace HexLive.UnityPresentation.UI
         Palm,
         Resource,
         Camp,
-        Clothing
+        Item
     }
 
     internal readonly struct TacticalMapMarker
     {
+        public readonly TileCoord Tile;
         public readonly Float2 Center;
         public readonly TacticalMapMarkerKind Kind;
         public readonly bool Live;
@@ -711,12 +1293,14 @@ namespace HexLive.UnityPresentation.UI
 
         public TacticalMapMarker(
             TileCoord tile,
+            Float2 anchor,
             TacticalMapMarkerKind kind,
             bool live,
             bool lit,
             bool alwaysKnown)
         {
-            Center = HexSpatialMath.TileToWorld(tile);
+            Tile = tile;
+            Center = anchor;
             Kind = kind;
             Live = live;
             Lit = lit;
@@ -732,20 +1316,27 @@ namespace HexLive.UnityPresentation.UI
         public readonly string DefinitionId;
         public readonly Sprite? Icon;
         public readonly bool Live;
+        public readonly int Importance;
+        public readonly bool Overflow;
 
         public TacticalMapDroppedItem(
             TileCoord tile,
             int objectId,
             string definitionId,
             Sprite? icon,
-            bool live)
+            bool live,
+            Float2 anchor,
+            int importance,
+            bool overflow = false)
         {
             Tile = tile;
-            Center = HexSpatialMath.TileToWorld(tile);
+            Center = anchor;
             ObjectId = objectId;
             DefinitionId = definitionId;
             Icon = icon;
             Live = live;
+            Importance = importance;
+            Overflow = overflow;
         }
     }
 
@@ -759,11 +1350,16 @@ namespace HexLive.UnityPresentation.UI
 
     internal readonly struct TacticalMapMob
     {
+        public readonly int Id;
+        public readonly bool IsCrab;
         public readonly Float2 Position;
         public readonly TacticalMapMobKind Kind;
 
-        public TacticalMapMob(Float2 position, TacticalMapMobKind kind)
+        public TacticalMapMob(
+            int id, bool isCrab, Float2 position, TacticalMapMobKind kind)
         {
+            Id = id;
+            IsCrab = isCrab;
             Position = position;
             Kind = kind;
         }
@@ -798,6 +1394,7 @@ namespace HexLive.UnityPresentation.UI
         public readonly bool Hostile;
         public readonly bool Selected;
         public readonly Texture2D? Portrait;
+        public readonly bool Dead;
 
         public TacticalMapPerson(
             int npcId,
@@ -805,7 +1402,8 @@ namespace HexLive.UnityPresentation.UI
             bool owned,
             bool hostile,
             bool selected,
-            Texture2D? portrait)
+            Texture2D? portrait,
+            bool dead)
         {
             NpcId = npcId;
             Position = position;
@@ -813,6 +1411,21 @@ namespace HexLive.UnityPresentation.UI
             Hostile = hostile;
             Selected = selected;
             Portrait = portrait;
+            Dead = dead;
+        }
+    }
+
+    internal readonly struct TacticalMapUnknownPerson
+    {
+        public readonly int NpcId;
+        public readonly TileCoord Tile;
+        public readonly Float2 Position;
+
+        public TacticalMapUnknownPerson(int npcId, TileCoord tile)
+        {
+            NpcId = npcId;
+            Tile = tile;
+            Position = HexSpatialMath.TileToWorld(tile);
         }
     }
 }

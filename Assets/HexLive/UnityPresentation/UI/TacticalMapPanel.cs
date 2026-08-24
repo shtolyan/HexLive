@@ -17,10 +17,8 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// §150: binds the procedural minimap to its compact, collapsible HUD card.
-    /// The distant world map is deliberately NOT UI: HexWorldRenderer swaps
-    /// its 3D renderers for world-space sprites while the same camera remains
-    /// free to orbit and tilt. Map orders still enter the simulation queue.
+    /// §150: binds one visibility-safe contact frame to the compact HUD map and
+    /// the full-screen, input-transparent distant-world marker canvas.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class TacticalMapPanel : MonoBehaviour
@@ -37,6 +35,7 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement? _miniExpandTab;
         private VisualElement? _miniCollapse;
         private TacticalMapView? _miniMap;
+        private DistantWorldMarkersView? _distantWorldMarkers;
         private HexWorldRenderer? _worldRenderer;
         private NpcPortraitCache? _portraitCache;
         private SimulationInputAdapter? _input;
@@ -47,6 +46,8 @@ namespace HexLive.UnityPresentation.UI
         private readonly HashSet<int> _visibleMarkerIds = new();
         private readonly HashSet<JunctionId> _storedGarmentJunctions = new();
         private readonly HashSet<MarkerTileKey> _emittedMarkerKeys = new();
+        private readonly HashSet<MarkerTileDefinitionKey> _emittedItemTypes = new();
+        private readonly List<RememberedItemCandidate> _itemCandidates = new();
         private readonly List<int> _staleMarkerIds = new();
         private int _lastTick = int.MinValue;
         private int _lastSeed = int.MinValue;
@@ -92,6 +93,7 @@ namespace HexLive.UnityPresentation.UI
         {
             ResolveDependencies();
             RefreshMapFrame();
+            _distantWorldMarkers?.RefreshForCamera();
             RefreshPointerState();
         }
 
@@ -120,8 +122,9 @@ namespace HexLive.UnityPresentation.UI
             _miniExpandTab = root.Q<VisualElement>("miniMapExpandTab");
             _miniCollapse = root.Q<VisualElement>("miniMapCollapse");
             var miniHost = root.Q<VisualElement>("miniMapHost");
+            var markerHost = root.Q<VisualElement>("distantWorldMarkersHost");
             if (_root == null || _miniCard == null || _miniExpandTab == null ||
-                _miniCollapse == null || miniHost == null)
+                _miniCollapse == null || miniHost == null || markerHost == null)
             {
                 Debug.LogError("§150 Tactical map visual tree is incomplete.");
                 return;
@@ -130,6 +133,10 @@ namespace HexLive.UnityPresentation.UI
             _miniMap = new TacticalMapView();
             _miniMap.AddToClassList("tactical-map-canvas");
             miniHost.Add(_miniMap);
+
+            _distantWorldMarkers = new DistantWorldMarkersView();
+            _distantWorldMarkers.AddToClassList("distant-world-markers-canvas");
+            markerHost.Add(_distantWorldMarkers);
 
             _miniMap.RegisterCallback<PointerUpEvent>(OnMapPointerUp);
             _miniCollapse.RegisterCallback<PointerDownEvent>(evt =>
@@ -180,6 +187,9 @@ namespace HexLive.UnityPresentation.UI
             {
                 _cameraController = _camera.GetComponent<RtsCameraController>();
             }
+
+            _distantWorldMarkers?.SetPresentation(
+                _camera, _cameraController, _worldRenderer);
         }
 
         private void RefreshMapFrame()
@@ -211,6 +221,7 @@ namespace HexLive.UnityPresentation.UI
                 _frame.Markers.Clear();
                 _frame.DroppedItems.Clear();
                 _frame.People.Clear();
+                _frame.UnknownPeople.Clear();
                 _frame.Mobs.Clear();
                 _frame.CameraFootprint.Clear();
                 EmitRememberedMarkers();
@@ -218,6 +229,7 @@ namespace HexLive.UnityPresentation.UI
                 RefreshMobs(snapshot);
                 RefreshCameraFootprint();
                 _miniMap.SetFrame(_frame);
+                _distantWorldMarkers?.SetFrame(_frame);
                 return;
             }
 
@@ -243,6 +255,7 @@ namespace HexLive.UnityPresentation.UI
             RefreshMobs(snapshot);
             RefreshCameraFootprint();
             _miniMap.SetFrame(_frame);
+            _distantWorldMarkers?.SetFrame(_frame);
         }
 
         private void RefreshRememberedMarkers(
@@ -276,8 +289,9 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 var id = worldObject.Id.Value;
-                var clothing = !homeCamp && IsClothing(runner, worldObject.DefinitionId);
-                if (clothing && worldObject.Junctions.Count > 0 &&
+                var portable = !homeCamp && IsPortable(runner, worldObject.DefinitionId);
+                var garment = portable && IsClothing(runner, worldObject.DefinitionId);
+                if (garment && worldObject.Junctions.Count > 0 &&
                     _storedGarmentJunctions.Contains(worldObject.Junctions[0]))
                 {
                     // It was visibly picked up from the ground and hung up.
@@ -292,12 +306,16 @@ namespace HexLive.UnityPresentation.UI
                 {
                     kind = TacticalMapMarkerKind.Camp;
                 }
-                else if (clothing)
+                else if (worldObject.DefinitionId.StartsWith("tree.", StringComparison.Ordinal) ||
+                         worldObject.DefinitionId.StartsWith("plant.", StringComparison.Ordinal))
                 {
-                    kind = TacticalMapMarkerKind.Clothing;
+                    kind = TacticalMapMarkerKind.Palm;
                 }
-                else if (!TacticalMapPalette.TryClassify(
-                             worldObject.DefinitionId, out kind))
+                else if (portable)
+                {
+                    kind = TacticalMapMarkerKind.Item;
+                }
+                else
                 {
                     continue;
                 }
@@ -309,8 +327,10 @@ namespace HexLive.UnityPresentation.UI
                     : _rememberedMarkers.TryGetValue(id, out var previous) && previous.Lit;
                 _rememberedMarkers[id] = new RememberedMarker(
                     worldObject.Tile,
+                    _worldRenderer!.ObjectAnchorPosition(worldObject),
                     kind,
                     worldObject.DefinitionId,
+                    Importance(runner, worldObject.DefinitionId),
                     lit,
                     homeCamp);
             }
@@ -341,23 +361,25 @@ namespace HexLive.UnityPresentation.UI
             _frame.Markers.Clear();
             _frame.DroppedItems.Clear();
 
-            // Aggregate identical tile/kind markers. A palm grove remains one
-            // readable glyph instead of turning the small map into confetti.
-            // Clothing is the deliberate exception: every piece is retained
-            // and the view arranges those pieces into a stable square grid.
+            // Aggregate palms/camps, then retain at most one icon per distinct
+            // portable definition. Per tile: <=4 types stay exact; >4 becomes
+            // the three most important definitions plus one stack glyph.
             _emittedMarkerKeys.Clear();
+            _emittedItemTypes.Clear();
+            _itemCandidates.Clear();
             foreach (var pair in _rememberedMarkers)
             {
                 var marker = pair.Value;
                 var live = _frame.VisibleTiles.Contains(marker.Tile);
-                if (marker.Kind == TacticalMapMarkerKind.Clothing)
+                if (marker.Kind == TacticalMapMarkerKind.Item)
                 {
-                    _frame.DroppedItems.Add(new TacticalMapDroppedItem(
-                        marker.Tile,
-                        pair.Key,
-                        marker.DefinitionId,
-                        ItemIcons.Load(marker.DefinitionId),
-                        live));
+                    var typeKey = new MarkerTileDefinitionKey(
+                        marker.Tile, marker.DefinitionId);
+                    if (_emittedItemTypes.Add(typeKey))
+                    {
+                        _itemCandidates.Add(new RememberedItemCandidate(
+                            pair.Key, marker, live));
+                    }
                     continue;
                 }
 
@@ -368,10 +390,73 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 _frame.Markers.Add(new TacticalMapMarker(
-                    marker.Tile, marker.Kind, live, marker.Lit, marker.AlwaysKnown));
+                    marker.Tile,
+                    marker.Anchor,
+                    marker.Kind,
+                    live,
+                    marker.Lit,
+                    marker.AlwaysKnown));
+            }
+
+            _itemCandidates.Sort(CompareItemCandidates);
+            var index = 0;
+            while (index < _itemCandidates.Count)
+            {
+                var first = _itemCandidates[index];
+                var end = index + 1;
+                while (end < _itemCandidates.Count &&
+                       _itemCandidates[end].Marker.Tile.Equals(first.Marker.Tile))
+                {
+                    end++;
+                }
+
+                var count = end - index;
+                var exactCount = count > 4 ? 3 : count;
+                for (var i = 0; i < exactCount; i++)
+                {
+                    var candidate = _itemCandidates[index + i];
+                    var marker = candidate.Marker;
+                    _frame.DroppedItems.Add(new TacticalMapDroppedItem(
+                        marker.Tile,
+                        candidate.ObjectId,
+                        marker.DefinitionId,
+                        ItemIcons.Load(marker.DefinitionId),
+                        candidate.Live,
+                        marker.Anchor,
+                        marker.Importance));
+                }
+
+                if (count > 4)
+                {
+                    _frame.DroppedItems.Add(new TacticalMapDroppedItem(
+                        first.Marker.Tile,
+                        int.MaxValue,
+                        string.Empty,
+                        null,
+                        first.Live,
+                        first.Marker.Anchor,
+                        0,
+                        overflow: true));
+                }
+
+                index = end;
             }
 
             _frame.DroppedItems.Sort(CompareDroppedItems);
+        }
+
+        private static int CompareItemCandidates(
+            RememberedItemCandidate left, RememberedItemCandidate right)
+        {
+            var q = left.Marker.Tile.Q.CompareTo(right.Marker.Tile.Q);
+            if (q != 0) return q;
+            var r = left.Marker.Tile.R.CompareTo(right.Marker.Tile.R);
+            if (r != 0) return r;
+            var importance = right.Marker.Importance.CompareTo(left.Marker.Importance);
+            if (importance != 0) return importance;
+            var definition = string.CompareOrdinal(
+                left.Marker.DefinitionId, right.Marker.DefinitionId);
+            return definition != 0 ? definition : left.ObjectId.CompareTo(right.ObjectId);
         }
 
         private static int CompareDroppedItems(
@@ -400,34 +485,88 @@ namespace HexLive.UnityPresentation.UI
                 definitionId.StartsWith("armor.", StringComparison.Ordinal);
         }
 
+        private static bool IsPortable(
+            SimulationRunnerBehaviour runner, string definitionId)
+        {
+            if (runner.TryGetObjectDefinition(definitionId, out var definition) &&
+                definition != null)
+            {
+                if (definition.Layer.HasValue ||
+                    ItemCatalog.Classify(definition) != ItemCategory.Misc)
+                {
+                    return true;
+                }
+
+                for (var i = 0; i < definition.Interactions.Count; i++)
+                {
+                    if (definition.Interactions[i].Type == InteractionType.PickUp)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return definitionId.StartsWith("food.", StringComparison.Ordinal) ||
+                definitionId.StartsWith("tool.", StringComparison.Ordinal) ||
+                definitionId.StartsWith("item.", StringComparison.Ordinal) ||
+                definitionId.StartsWith("resource.", StringComparison.Ordinal) ||
+                definitionId.StartsWith("clothing.", StringComparison.Ordinal) ||
+                definitionId.StartsWith("underwear.", StringComparison.Ordinal) ||
+                definitionId.StartsWith("armor.", StringComparison.Ordinal);
+        }
+
+        private static int Importance(
+            SimulationRunnerBehaviour runner, string definitionId) =>
+            runner.TryGetObjectDefinition(definitionId, out var definition) &&
+            definition != null
+                ? ItemCatalog.Importance(definition)
+                : ItemCatalog.ImportanceById(definitionId);
+
         private void RefreshPeople(WorldSnapshot snapshot, SimulationRunnerBehaviour runner)
         {
             for (var i = 0; i < snapshot.Npcs.Count; i++)
             {
-                var npc = snapshot.Npcs[i];
-                var owned = runner.CanControlNpc(npc.Id);
-                var visible = _worldRenderer != null &&
-                    _worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, owned);
-                if (!visible)
-                {
-                    continue;
-                }
-
-                Texture2D? portrait = null;
-                if (_portraitCache != null &&
-                    !_portraitCache.TryGet(npc.Id.Value, out portrait))
-                {
-                    _portraitCache.RequestNow(npc.Id.Value);
-                }
-
-                _frame.People.Add(new TacticalMapPerson(
-                    npc.Id.Value,
-                    npc.Position,
-                    owned,
-                    npc.IsHostileToColony,
-                    NpcSelection.Contains(npc.Id.Value),
-                    portrait));
+                AddPerson(snapshot.Npcs[i], runner, dead: false);
             }
+
+            for (var i = 0; i < snapshot.Corpses.Count; i++)
+            {
+                AddPerson(snapshot.Corpses[i], runner, dead: true);
+            }
+        }
+
+        private void AddPerson(
+            NpcSnapshot npc, SimulationRunnerBehaviour runner, bool dead)
+        {
+            var owned = runner.CanControlNpc(npc.Id);
+            var visible = _worldRenderer != null &&
+                _worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, owned);
+            if (!visible)
+            {
+                if (!dead && !owned && _worldRenderer != null &&
+                    _worldRenderer.TryGetLastSeenNpcTile(npc.Id.Value, out var lastSeen))
+                {
+                    _frame.UnknownPeople.Add(new TacticalMapUnknownPerson(
+                        npc.Id.Value, lastSeen));
+                }
+                return;
+            }
+
+            Texture2D? portrait = null;
+            if (_portraitCache != null &&
+                !_portraitCache.TryGet(npc.Id.Value, out portrait))
+            {
+                _portraitCache.RequestNow(npc.Id.Value);
+            }
+
+            _frame.People.Add(new TacticalMapPerson(
+                npc.Id.Value,
+                npc.Position,
+                owned,
+                npc.IsHostileToColony,
+                NpcSelection.Contains(npc.Id.Value),
+                portrait,
+                dead));
         }
 
         private void RefreshMobs(WorldSnapshot snapshot)
@@ -441,7 +580,7 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 _frame.Mobs.Add(new TacticalMapMob(
-                    mob.Position, TacticalMapMob.Classify(mob.MobId)));
+                    mob.Id, false, mob.Position, TacticalMapMob.Classify(mob.MobId)));
             }
 
             for (var i = 0; i < snapshot.Crabs.Count; i++)
@@ -450,7 +589,7 @@ namespace HexLive.UnityPresentation.UI
                 if (_frame.VisibleTiles.Contains(crab.Tile))
                 {
                     _frame.Mobs.Add(new TacticalMapMob(
-                        crab.Position, TacticalMapMobKind.Crab));
+                        crab.Id, true, crab.Position, TacticalMapMobKind.Crab));
                 }
             }
 
@@ -460,7 +599,7 @@ namespace HexLive.UnityPresentation.UI
                 if (_frame.VisibleTiles.Contains(shark.Tile))
                 {
                     _frame.Mobs.Add(new TacticalMapMob(
-                        shark.Position, TacticalMapMobKind.Shark));
+                        -1, false, shark.Position, TacticalMapMobKind.Shark));
                 }
             }
         }
@@ -554,24 +693,66 @@ namespace HexLive.UnityPresentation.UI
         private readonly struct RememberedMarker
         {
             public readonly TileCoord Tile;
+            public readonly Float2 Anchor;
             public readonly TacticalMapMarkerKind Kind;
             public readonly string DefinitionId;
+            public readonly int Importance;
             public readonly bool Lit;
             public readonly bool AlwaysKnown;
 
             public RememberedMarker(
                 TileCoord tile,
+                Float2 anchor,
                 TacticalMapMarkerKind kind,
                 string definitionId,
+                int importance,
                 bool lit,
                 bool alwaysKnown)
             {
                 Tile = tile;
+                Anchor = anchor;
                 Kind = kind;
                 DefinitionId = definitionId;
+                Importance = importance;
                 Lit = lit;
                 AlwaysKnown = alwaysKnown;
             }
+        }
+
+        private readonly struct RememberedItemCandidate
+        {
+            public readonly int ObjectId;
+            public readonly RememberedMarker Marker;
+            public readonly bool Live;
+
+            public RememberedItemCandidate(
+                int objectId, RememberedMarker marker, bool live)
+            {
+                ObjectId = objectId;
+                Marker = marker;
+                Live = live;
+            }
+        }
+
+        private readonly struct MarkerTileDefinitionKey : IEquatable<MarkerTileDefinitionKey>
+        {
+            private readonly TileCoord _tile;
+            private readonly string _definitionId;
+
+            public MarkerTileDefinitionKey(TileCoord tile, string definitionId)
+            {
+                _tile = tile;
+                _definitionId = definitionId;
+            }
+
+            public bool Equals(MarkerTileDefinitionKey other) =>
+                _tile.Equals(other._tile) &&
+                string.Equals(_definitionId, other._definitionId, StringComparison.Ordinal);
+
+            public override bool Equals(object? obj) =>
+                obj is MarkerTileDefinitionKey other && Equals(other);
+
+            public override int GetHashCode() => HashCode.Combine(_tile, _definitionId);
         }
 
         private readonly struct MarkerTileKey : IEquatable<MarkerTileKey>

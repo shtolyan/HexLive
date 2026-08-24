@@ -41,7 +41,7 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _maxHeight = 20f;
 
         [Tooltip("Доля дистанции за ОДИН щелчок колеса: 0.12 = на 12% ближе/дальше. " +
-                 "После 32 wu мир переходит в тактическую карту; потолок 260 wu.")]
+                 "После 32 wu остаётся настоящий мир, но мелкие детали заменяются маркерами; потолок 260 wu.")]
         [SerializeField] private float _zoomPerScrollTick = 0.12f;
 
         [Tooltip("Потолок накопленного за кадр скролла в щелчках. Трекпад шлёт поток " +
@@ -78,9 +78,15 @@ namespace HexLive.UnityPresentation.Input
         [Tooltip("How smoothly the pivot catches up with the NPC. The NPC itself is always the target.")]
         [SerializeField] private float _orbitTargetSmooth = 0.18f;
 
-        [Header("Tactical map")]
-        [Tooltip("§150 r2: distance where 3D renderers switch to world-space map sprites.")]
-        [SerializeField] private float _tacticalMapStartDistance = 32f;
+        [Header("Distant overview")]
+        [Tooltip("§150: мелкие детали скрываются после этого порога.")]
+        [SerializeField] private float _overviewHideDistance = 32f;
+        [Tooltip("§150: мелкие детали возвращаются только после этого порога.")]
+        [SerializeField] private float _overviewShowDistance = 28f;
+        [Tooltip("§150: пальмы и прочая flora скрываются после этого порога.")]
+        [SerializeField] private float _floraHideDistance = 64f;
+        [Tooltip("§150: настоящие меши flora возвращаются после этого порога.")]
+        [SerializeField] private float _floraShowDistance = 56f;
 
         private enum Mode
         {
@@ -115,6 +121,8 @@ namespace HexLive.UnityPresentation.Input
         private float _pitchVelocity;
         private float _distanceVelocity;
         private float _requestedDistance;
+        private bool _overviewActive;
+        private bool _floraHidden;
         private Vector3 _smoothedPivot;
         private Vector3 _pivotVelocity;
         private bool _hasSmoothedPivot;
@@ -205,9 +213,24 @@ namespace HexLive.UnityPresentation.Input
 
         public bool SelectionInputSuppressed => _selectionInputSuppressors.Count > 0;
 
-        /// <summary>§150 r2: the same camera crossed into the flattened,
-        /// world-space sprite representation of the island.</summary>
-        public bool TacticalMapActive => _smoothedDistance >= _tacticalMapStartDistance;
+        /// <summary>§150: overview is still the real 3D world. Hysteresis keeps
+        /// detail renderers from flickering while zoom smoothing crosses 32 wu.</summary>
+        public bool OverviewActive => _overviewActive;
+
+        /// <summary>§150: marker cross-fade from the full-detail world.</summary>
+        public float OverviewBlend => _overviewActive
+            ? 1f
+            : Mathf.InverseLerp(
+                _overviewShowDistance, _overviewHideDistance, _smoothedDistance);
+
+        /// <summary>§150: palm glyph cross-fade before their meshes hide.</summary>
+        public float FloraBlend => _floraHidden
+            ? 1f
+            : Mathf.InverseLerp(
+                _floraShowDistance, _floraHideDistance, _smoothedDistance);
+
+        /// <summary>Current smoothed lens-to-pivot distance in world units.</summary>
+        public float SmoothedDistance => _smoothedDistance;
 
         /// <summary>
         /// §150.1: centers the free camera on a point selected on the tactical
@@ -281,7 +304,9 @@ namespace HexLive.UnityPresentation.Input
         {
             NpcSelection.SelectionChanged -= OnSelectionChanged;
             NpcSelection.CameraRequested -= OnCameraRequested;
-            _worldRenderer?.SetTacticalMapMode(false);
+            _overviewActive = false;
+            _floraHidden = false;
+            _worldRenderer?.SetOverviewDetail(false, false);
         }
 
         // §123: selection no longer implies follow. Losing every selected actor
@@ -370,7 +395,36 @@ namespace HexLive.UnityPresentation.Input
                 UpdateFree();
             }
 
-            _worldRenderer?.SetTacticalMapMode(TacticalMapActive);
+            RefreshOverviewProfile();
+        }
+
+        private void RefreshOverviewProfile()
+        {
+            if (_overviewActive)
+            {
+                if (_smoothedDistance <= _overviewShowDistance)
+                {
+                    _overviewActive = false;
+                }
+            }
+            else if (_smoothedDistance >= _overviewHideDistance)
+            {
+                _overviewActive = true;
+            }
+
+            if (_floraHidden)
+            {
+                if (_smoothedDistance <= _floraShowDistance)
+                {
+                    _floraHidden = false;
+                }
+            }
+            else if (_smoothedDistance >= _floraHideDistance)
+            {
+                _floraHidden = true;
+            }
+
+            _worldRenderer?.SetOverviewDetail(_overviewActive, _floraHidden);
         }
 
         // ---- Free mode -------------------------------------------------------
@@ -734,7 +788,7 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            if (TacticalMapActive)
+            if (OverviewActive)
             {
                 return;
             }
@@ -813,13 +867,23 @@ namespace HexLive.UnityPresentation.Input
         {
             if (PointerBlockedForWorld()) return;
 
-            // §150 r2: at altitude the visible island is real world-space
-            // sprites, not a fullscreen UI. Intersect their flat plane and
-            // move the camera pivot there; do not raycast the hidden actor
-            // meshes or the authored terrain underneath.
-            if (TacticalMapActive)
+            // §150: distant overview still shows the real terrain. A person
+            // marker remains selectable; otherwise an explored terrain hex
+            // merely recentres the free camera. No manual/context command is
+            // allowed to enter the simulation queue at this scale.
+            if (OverviewActive)
             {
-                if (TryPickTacticalMapPoint(mousePosition, snapshot, out var mapPoint))
+                var shift = Keyboard.current != null &&
+                    (Keyboard.current.leftShiftKey.isPressed ||
+                     Keyboard.current.rightShiftKey.isPressed);
+                if (TryPickOverviewPerson(mousePosition, snapshot, shift))
+                {
+                    HexSelection.Clear();
+                    return;
+                }
+
+                if (TryPickHex(mousePosition, out var overviewCoord, snapshot) &&
+                    TryGetExploredTileCenter(snapshot, overviewCoord, out var mapPoint))
                 {
                     MoveToMapPoint(mapPoint);
                 }
@@ -863,44 +927,75 @@ namespace HexLive.UnityPresentation.Input
             }
         }
 
-        private bool TryPickTacticalMapPoint(
-            Vector2 mousePosition, WorldSnapshot snapshot, out Float2 point)
+        private static bool TryGetExploredTileCenter(
+            WorldSnapshot snapshot, TileCoord coord, out Float2 point)
         {
             point = Float2.Zero;
-            if (snapshot == null || snapshot.Tiles.Count == 0)
+            if (snapshot == null)
             {
                 return false;
             }
 
-            _camera ??= GetComponent<Camera>();
-            if (_camera == null)
-            {
-                return false;
-            }
-
-            var plane = new Plane(
-                Vector3.up, new Vector3(0f, HexWorldRenderer.TacticalMapPlaneY, 0f));
-            var ray = _camera.ScreenPointToRay(mousePosition);
-            if (!plane.Raycast(ray, out var distance) || distance <= 0f)
-            {
-                return false;
-            }
-
-            var hit = ray.GetPoint(distance);
-            var world = new Float2(hit.x, hit.z);
-            var coord = HexSpatialMath.WorldToTile(world);
             for (var i = 0; i < snapshot.Tiles.Count; i++)
             {
-                if (!snapshot.Tiles[i].Coord.Equals(coord))
+                var tile = snapshot.Tiles[i];
+                if (!tile.Coord.Equals(coord) || !tile.Explored)
                 {
                     continue;
                 }
 
-                point = world;
+                point = HexSpatialMath.TileToWorld(coord);
                 return true;
             }
 
             return false;
+        }
+
+        private bool TryPickOverviewPerson(
+            Vector2 mousePosition, WorldSnapshot snapshot, bool additiveOnly)
+        {
+            if (snapshot == null || _camera == null)
+            {
+                return false;
+            }
+
+            var markerDiameter = Mathf.Lerp(
+                26f, 16f, Mathf.InverseLerp(
+                    _overviewHideDistance, _orbitMaxDistance, _smoothedDistance));
+            var pickRadius = markerDiameter * 0.5f + 4f;
+            var bestDistance = pickRadius;
+            var bestId = -1;
+            foreach (var person in PickablePeople(snapshot))
+            {
+                if (!CanTargetPerson(person))
+                {
+                    continue;
+                }
+
+                var world = SimulationUnityMapper.ToUnityPosition(
+                    person.Position, SimulationUnityMapper.CameraTargetHeight);
+                if (_worldRenderer != null &&
+                    _worldRenderer.TryGetNpcViewPosition(person.Id.Value, out var viewPosition))
+                {
+                    world = viewPosition + Vector3.up * SimulationUnityMapper.CameraTargetHeight;
+                }
+
+                var screen = _camera.WorldToScreenPoint(world);
+                if (screen.z <= 0f)
+                {
+                    continue;
+                }
+
+                var distance = Vector2.Distance(
+                    mousePosition, new Vector2(screen.x, screen.y));
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestId = person.Id.Value;
+                }
+            }
+
+            return bestId >= 0 && ApplyNpcPick(snapshot, bestId, additiveOnly);
         }
 
         // Left-click on an NPC -> enter orbit mode.

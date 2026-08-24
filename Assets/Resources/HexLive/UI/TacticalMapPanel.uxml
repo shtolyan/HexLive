@@ -1,6 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
   <ui:Style src="TacticalMapPanel.uss" />
   <ui:VisualElement name="tacticalMapRoot" class="tactical-map-root" picking-mode="Ignore">
+    <ui:VisualElement name="distantWorldMarkersHost" class="distant-world-markers-host" picking-mode="Ignore" />
     <ui:VisualElement name="miniMapCard" class="tactical-map-mini" picking-mode="Position">
       <ui:Label name="miniMapCollapse" text="‹" class="tactical-map-collapse" picking-mode="Position" />
       <ui:VisualElement name="miniMapHost" class="tactical-map-host" picking-mode="Position" />

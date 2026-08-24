@@ -6,6 +6,15 @@
     bottom: 0;
 }
 
+.distant-world-markers-host,
+.distant-world-markers-canvas {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
 .tactical-map-mini {
     position: absolute;
     left: 52px;

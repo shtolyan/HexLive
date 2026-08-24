@@ -1,32 +1,15 @@
-using System;
 using System.IO;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Gates
 {
 
-/// <summary>§150 r5: the collapsible HUD minimap, world-space sprite map,
-/// personal visibility and RTS commands keep sharing the same seams.</summary>
+/// <summary>§150: the HUD minimap and distant markers share one honest frame,
+/// while distant zoom keeps the real world and never issues RTS commands.</summary>
 public sealed class TacticalMapUiContractTests
 {
     [Test]
-    public void TacticalSpriteMaskContainsCanonicalPointyTopPrismVertices()
-    {
-        const float sqrt3 = 1.7320508f;
-        const float apothem = sqrt3 * 0.5f;
-        for (var i = 0; i < 6; i++)
-        {
-            var angle = MathF.PI / 180f * (60f * i - 30f);
-            var x = MathF.Cos(angle);
-            var y = MathF.Sin(angle);
-            var edge = MathF.Abs(y) + MathF.Abs(x) / sqrt3;
-            Assert.That(MathF.Abs(x), Is.LessThanOrEqualTo(apothem + 0.0001f));
-            Assert.That(edge, Is.LessThanOrEqualTo(1.0001f));
-        }
-    }
-
-    [Test]
-    public void TacticalMapUsesCanonicalHexMathVisibilityAndCommandQueue()
+    public void DistantOverviewKeepsWorldUsesOneMarkerViewAndBlocksCommands()
     {
         var view = Read("Assets", "HexLive", "UnityPresentation", "UI", "TacticalMapView.cs");
         var panel = Read("Assets", "HexLive", "UnityPresentation", "UI", "TacticalMapPanel.cs");
@@ -48,22 +31,38 @@ public sealed class TacticalMapUiContractTests
             Assert.That(panel, Does.Contain("new TacticalMapView()"));
             Assert.That(panel, Does.Contain("SetMiniCollapsed(true)"));
             Assert.That(panel, Does.Contain("SetPortraitCache(NpcPortraitCache"));
+            Assert.That(panel, Does.Contain("new DistantWorldMarkersView()"));
             Assert.That(panel, Does.Contain("ItemIcons.Load(marker.DefinitionId)"));
+            Assert.That(panel, Does.Contain("IsPortable(runner"));
+            Assert.That(panel, Does.Contain("InteractionType.PickUp"));
+            Assert.That(panel, Does.Contain("ItemCatalog.Classify(definition)"));
+            Assert.That(panel, Does.Contain("exactCount = count > 4 ? 3 : count"));
+            Assert.That(panel, Does.Contain("overflow: true"));
             Assert.That(panel, Does.Contain("snapshot.Mobs.Count"));
             Assert.That(panel, Does.Contain("snapshot.Crabs.Count"));
             Assert.That(panel, Does.Contain("snapshot.Sharks.Count"));
             Assert.That(panel, Does.Contain("_storedGarmentJunctions"));
             Assert.That(panel, Does.Contain("_emittedMarkerKeys.Clear()"));
+            Assert.That(panel, Does.Contain("_emittedItemTypes.Clear()"));
             Assert.That(panel, Does.Contain("if (!visible && !homeCamp)"));
             Assert.That(view, Does.Contain("DrawCamp(painter"));
             Assert.That(view, Does.Contain("marker.Live || marker.AlwaysKnown"));
             Assert.That(view, Does.Contain("frame.DroppedItems"));
-            Assert.That(view, Does.Contain("Mathf.Min(4, Mathf.CeilToInt(Mathf.Sqrt(count)))"));
             Assert.That(view, Does.Contain("context.Allocate(4, 6, texture)"));
             Assert.That(view, Does.Contain("Mathf.Clamp(hexRadius * 0.82f, 7f, 12f)"));
             Assert.That(view, Does.Contain("TacticalMapMobKind.Shark"));
+            Assert.That(view, Does.Contain("internal sealed class DistantWorldMarkersView"));
+            Assert.That(view, Does.Contain("pickingMode = PickingMode.Ignore"));
+            Assert.That(view, Does.Not.Contain("new GameObject("));
+            Assert.That(view, Does.Not.Contain("SpriteRenderer"));
+            Assert.That(view, Does.Contain("RuntimePanelUtils.ScreenToPanel"));
+            Assert.That(view, Does.Contain("TryGetNpcViewPosition(person.NpcId"));
+            Assert.That(view, Does.Contain("TryGetAnimalViewPosition"));
+            Assert.That(view, Does.Contain("Mathf.Lerp(26f, 16f, distanceT)"));
+            Assert.That(view, Does.Contain("frame.UnknownPeople"));
+            Assert.That(view, Does.Contain("person.Dead"));
             Assert.That(uxml, Does.Contain("miniMapExpandTab"));
-            Assert.That(uxml, Does.Not.Contain("worldMapOverlay"));
+            Assert.That(uxml, Does.Contain("distantWorldMarkersHost"));
             Assert.That(panel, Does.Contain("_worldRenderer.PlayerVisibilityReady"));
             Assert.That(panel, Does.Contain("IsTileVisibleToPlayer(tile.Coord)"));
             Assert.That(panel, Does.Contain("_cameraController?.MoveToMapPoint(point)"));
@@ -72,27 +71,54 @@ public sealed class TacticalMapUiContractTests
             Assert.That(camera, Does.Contain("MoveToMapPoint(mapPoint)"));
             Assert.That(camera, Does.Not.Contain("TryMoveSelectionFromMap(mapPoint"));
             Assert.That(camera, Does.Contain("_orbitMaxDistance = 260f"));
-            Assert.That(camera, Does.Contain("TacticalMapActive"));
-            Assert.That(camera, Does.Contain("TryPickTacticalMapPoint"));
+            Assert.That(camera, Does.Contain("public bool OverviewActive"));
+            Assert.That(camera, Does.Contain("public float OverviewBlend"));
+            Assert.That(camera, Does.Contain("public float FloraBlend"));
+            Assert.That(camera, Does.Contain("public float SmoothedDistance"));
+            Assert.That(camera, Does.Contain("_overviewHideDistance = 32f"));
+            Assert.That(camera, Does.Contain("_overviewShowDistance = 28f"));
+            Assert.That(camera, Does.Contain("_floraHideDistance = 64f"));
+            Assert.That(camera, Does.Contain("_floraShowDistance = 56f"));
+            Assert.That(camera, Does.Contain("TryPickOverviewPerson"));
+            Assert.That(camera, Does.Contain("TryGetExploredTileCenter"));
+            Assert.That(camera, Does.Contain("_worldRenderer?.SetOverviewDetail"));
             Assert.That(camera, Does.Contain("PruneInvisibleSelection(snapshot)"));
+            Assert.That(camera, Does.Not.Contain("TacticalMapActive"));
+            Assert.That(camera, Does.Not.Contain("TryPickTacticalMapPoint"));
             Assert.That(renderer, Does.Contain("IsPlayerOwned(npc)"));
             Assert.That(renderer, Does.Contain("public bool PlayerVisibilityReady"));
-            Assert.That(renderer, Does.Contain("public void SetTacticalMapMode(bool enabled)"));
+            Assert.That(renderer, Does.Contain(
+                "public void SetOverviewDetail(bool hideSmallDetails, bool hideFlora)"));
             Assert.That(renderer, Does.Contain("renderer.forceRenderingOff = true"));
-            Assert.That(renderer, Does.Contain("go.AddComponent<SpriteRenderer>()"));
-            Assert.That(renderer, Does.Contain("TacticalHexSprite()"));
-            Assert.That(renderer, Does.Contain("TacticalCampSprite()"));
-            Assert.That(renderer, Does.Contain("if (!homeCamp && !IsTileVisibleToPlayer"));
-            Assert.That(renderer, Does.Contain(
-                "Mathf.Abs(py) + Mathf.Abs(px) / HexSpatialMath.Sqrt3"));
-            Assert.That(renderer, Does.Contain(
-                "Mathf.Abs(px) <= HexSpatialMath.HexApothemFactor"));
+            Assert.That(renderer, Does.Contain("_overviewSavedForceRenderingOff"));
+            Assert.That(renderer, Does.Contain("_overviewSmallRenderers"));
+            Assert.That(renderer, Does.Contain("_overviewFloraRenderers"));
+            Assert.That(renderer, Does.Contain("BeginOverviewPortraitReveal"));
+            Assert.That(renderer, Does.Contain("EndOverviewPortraitReveal"));
+            Assert.That(renderer, Does.Contain("InteractionType.PickUp"));
+            Assert.That(renderer, Does.Contain("_rackJunctions.Contains"));
+            Assert.That(renderer, Does.Not.Contain("SetTacticalMapMode"));
+            Assert.That(renderer, Does.Not.Contain("TacticalHexSprite"));
+            Assert.That(renderer, Does.Not.Contain("TacticalMapPlaneY"));
+            Assert.That(renderer, Does.Not.Contain("Tactical Map Sprites"));
             Assert.That(roster, Does.Contain("_worldRenderer.IsNpcPickable"));
             Assert.That(bootstrap, Does.Contain("new GameObject(\"HexLive Tactical Map\")"));
             Assert.That(bootstrap, Does.Contain("tacticalMap.SetPortraitCache(portraitCache)"));
             Assert.That(input, Does.Contain("new SetManualControlCommand(actor, true)"));
             Assert.That(input, Does.Contain("new MoveToCommand(actor, point, run)"));
         });
+
+        var overviewBranch = camera.IndexOf(
+            "if (OverviewActive)",
+            camera.IndexOf("private void TryHandleLeftClick", System.StringComparison.Ordinal),
+            System.StringComparison.Ordinal);
+        var manualClick = camera.IndexOf(
+            "TryHandleManualClick(mousePosition)",
+            overviewBranch,
+            System.StringComparison.Ordinal);
+        Assert.That(overviewBranch, Is.GreaterThanOrEqualTo(0));
+        Assert.That(manualClick, Is.GreaterThan(overviewBranch),
+            "Overview selection/recentre branch must return before manual commands.");
     }
 
     private static string Read(params string[] path)

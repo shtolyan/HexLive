@@ -837,3 +837,149 @@ world, save-and-shutdown, password and recovery email.
 clamped (capped at 200×). A shared world wound forward burns colony days for
 everyone watching and multiplies every viewer's stream — so the Unity speed bar
 greys out >1× on a remote link, and the server enforces it regardless.
+
+## ⭐ Обновление production-сервера 62.146.235.120
+
+Это канонический runbook для уже развёрнутого VPS. Любой агент обновляет его
+одинаково; импровизированный `dotnet run` в `/root`, новый каталог с сейвом или
+ручной запуск вне systemd — не обновление production.
+
+### Доступ и неизменяемый runtime-контракт
+
+- SSH-алиас: `hexlive-server` (`root@62.146.235.120`). В общей среде агентов он
+  записан в `~/.ssh/config`, отдельный ключ лежит в
+  `~/.ssh/hexlive_62_146_235_120_ed25519` с mode 0600. Проверка всегда
+  беспарольная: `ssh -o BatchMode=yes hexlive-server true`. Если она не прошла,
+  остановиться и попросить игрока восстановить ключ; не искать и не сохранять
+  root-пароль в репозитории, shell history, логе или чате.
+- systemd unit: `hexlive.service`; порт: `5123`; публичный viewer:
+  `ws://62.146.235.120:5123/watch`.
+- Версионные бинарники: `/opt/hexlive/releases/<full-git-sha>`; активная версия —
+  атомарный symlink `/opt/hexlive/current`.
+- **Вся постоянная жизнь сервера** находится в `/var/lib/hexlive`: `world.sav`,
+  `simdata.json`, `hexlive-admin.txt`, `hexlive-player.txt` и
+  `hexlive-players.json`. Никогда не удалять каталог, не менять `--save`, не
+  создавать новый admin account/token и не подменять seed/mode при обновлении.
+  Локальная копия player token для клиента лежит в
+  `~/.config/hexlive/servers/62.146.235.120/player-token` с mode 0600; её
+  содержимое не печатать.
+
+### 1. Preflight
+
+Разворачивается **полный SHA коммита**, а не незафиксированное рабочее дерево.
+Не делать `git pull`, commit или reset без отдельной просьбы игрока. Живые
+изменения `BUGS.json` сохранять и не включать в релиз. Сначала записать SHA и
+состояние production:
+
+```bash
+git rev-parse HEAD
+git status --short
+ssh -o BatchMode=yes hexlive-server \
+  'systemctl is-active hexlive.service; readlink -f /opt/hexlive/current; \
+   stat -c "%a %U:%G %n" /var/lib/hexlive /var/lib/hexlive/world.sav \
+   /var/lib/hexlive/simdata.json /var/lib/hexlive/hexlive-admin.txt \
+   /var/lib/hexlive/hexlive-player.txt; curl --fail --silent http://127.0.0.1:5123/'
+```
+
+Ожидаются `active`, release под `/opt/hexlive/releases/`, каталог state 0750 и
+секреты/сейв 0600 пользователя `hexlive`. До сборки соблюсти общее правило выше:
+Unity Editor должен быть закрыт. Собрать из чистого временного `git archive`,
+чтобы не компилировать случайные dirty-файлы и не писать build output в рабочую
+копию. В одной shell-сессии:
+
+```bash
+deploy_sha="$(git rev-parse HEAD)"
+deploy_tmp="$(mktemp -d /private/tmp/hexlive-server.XXXXXX)"
+trap 'rm -rf "$deploy_tmp"' EXIT
+mkdir "$deploy_tmp/src"
+git archive -o "$deploy_tmp/source.tar" "$deploy_sha" \
+  HexLive.Simulation.Standalone.csproj Server \
+  Tests/HexLive.Server.Tests Tests/HexLive.Simulation.Tests \
+  Assets/HexLive/Simulation \
+  Assets/HexLive/UnityPresentation/AbuseTest/AbuseTestWorld.cs \
+  Assets/HexLive/UnityPresentation/Wearing/PresentationSpeed.cs \
+  SimData Spec spec.md Tools
+tar -xf "$deploy_tmp/source.tar" -C "$deploy_tmp/src"
+cd "$deploy_tmp/src"
+```
+
+Обязательные проверки из этого temp checkout:
+
+```bash
+dotnet test Tests/HexLive.Server.Tests --configuration Release --nologo
+dotnet test Tests/HexLive.Simulation.Tests --configuration Release --nologo
+```
+
+Обе должны пройти. Известный красный общий suite не замалчивать: развёртывание
+такого коммита допустимо только по явному указанию игрока, с перечислением
+падающих тестов в отчёте; серверные тесты не пропускаются никогда.
+
+### 2. Публикация и загрузка
+
+Внутри временного архива выполнить self-contained publish именно для Linux x64:
+
+```bash
+dotnet publish Server/HexLive.Server/HexLive.Server.csproj \
+  --configuration Release --runtime linux-x64 --self-contained true \
+  --nologo --disable-build-servers --output "$deploy_tmp/publish"
+install -m 0644 SimData/simdata.json "$deploy_tmp/publish/simdata.json"
+deploy_archive="$deploy_tmp/hexlive-server-$deploy_sha.tar.gz"
+COPYFILE_DISABLE=1 tar -czf "$deploy_archive" -C "$deploy_tmp/publish" .
+deploy_archive_sha="$(shasum -a 256 "$deploy_archive" | awk '{print $1}')"
+printf '%s  %s\n' "$deploy_archive_sha" "$deploy_archive"
+scp "$deploy_archive" hexlive-server:/tmp/
+```
+
+На сервере сверить `$deploy_archive_sha` **до** распаковки; локальные переменные
+сами через SSH не переносятся, поэтому передать точные значения аргументами или
+вставить уже вычисленные строки — не посылать на remote shell буквальные
+placeholders. Распаковать сначала в новый staging-каталог и только готовый
+каталог переименовать в `/opt/hexlive/releases/<FULL_SHA>`. Старые releases не
+удалять — они являются rollback. Бинарники принадлежат `root:root` и не пишут в
+свой release. Скопировать новый `simdata.json` в
+`/var/lib/hexlive/simdata.json` как `hexlive:hexlive` mode 0600, предварительно
+сохранив rollback-копию текущего.
+
+Перед переключением запомнить точную цель `/opt/hexlive/current` и SHA-256
+`hexlive-admin.txt`/`hexlive-player.txt` (сравнивать хеши, не выводить секреты).
+Новый symlink создавать рядом и заменять через `mv -Tf`, затем:
+
+```bash
+systemctl restart hexlive.service
+systemctl is-active hexlive.service
+journalctl -u hexlive.service -n 80 --no-pager
+```
+
+В журнале не показывать рамки первого запуска с паролем/token. Проверить строки
+`save file /var/lib/hexlive/world.sav` и
+`admin account /var/lib/hexlive/hexlive-admin.txt`, отсутствие `[fatal]`, а также
+что новый `[world] seed ... tick ...` продолжает прежний мир. Если новый процесс
+не стал healthy за 30 секунд, **сразу** вернуть прежний symlink и прежний
+`simdata.json`, запустить `systemctl restart hexlive.service`, проверить старую
+версию и только затем диагностировать новую.
+
+### 3. Проверка снаружи и завершение
+
+```bash
+curl --fail --silent --show-error --max-time 10 \
+  http://62.146.235.120:5123/
+curl --http1.1 --silent --output /dev/null --write-out '%{http_code}\n' \
+  --max-time 3 -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+  -H 'Sec-WebSocket-Version: 13' \
+  -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+  http://62.146.235.120:5123/watch
+```
+
+Вторая команда должна напечатать `101`; timeout после upgrade допустим, потому
+что WebSocket остаётся открытым. Затем сделать один контролируемый restart и
+доказать, что tick продолжился, `world.sav` остался 0600 `hexlive:hexlive`, а
+хеши admin account и player token не изменились. Только после этого удалить
+точный загруженный файл из `/tmp`; локальный `mktemp` удалить через trap. В
+финальном отчёте указать полный deployed SHA, старую и новую цель symlink,
+результаты тестов, HTTP/WS-проверок и restart/save-проверки.
+
+⚠️ `/admin` и player control пока доступны по plain HTTP/WS. До появления
+TLS-proxy не вводить пароль и не передавать token через публичный интернет:
+использовать SSH-туннель, например
+`ssh -N -L 15123:127.0.0.1:5123 hexlive-server`, и подключаться к
+`ws://localhost:15123/watch`.

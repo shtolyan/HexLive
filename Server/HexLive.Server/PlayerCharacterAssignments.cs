@@ -172,7 +172,13 @@ public sealed class PlayerCharacterAssignments
             var assignable = new List<int>();
             foreach (var npc in world.Entities.Npcs.Values)
             {
-                if (npc.Faction != Faction.Colony)
+                // §149.2: девушка ЛЮБОГО лагеря, не только Faction.Colony.
+                // В HugeIsland/Maniac лагерей шесть и в каждом ОДНА девушка, так
+                // что «только свой лагерь» исчерпывался первым подключившимся, а
+                // второй игрок молча не получал никого. Castaway (§146.10) и
+                // Outsiders сюда не попадают — отсюда IsGirlCamp, а не более
+                // широкий IsColonyKind.
+                if (!FactionRelations.IsGirlCamp(npc.Faction))
                 {
                     continue;
                 }

@@ -232,6 +232,32 @@ public sealed class PlayerCharacterAssignmentsTests
         });
     }
 
+    // §149.2: в HugeIsland/Maniac в каждом из шести лагерей ОДНА девушка.
+    // Пока выдавалась только Faction.Colony, свой лагерь исчерпывался первым
+    // подключившимся, и второй игрок молча оставался ни с чем — сетевая игра
+    // вдвоём была невозможна by design. Теперь второму достаётся девушка
+    // соседнего лагеря.
+    [Test]
+    public void SecondPlayerOnHugeIslandGetsAGirlFromANeighbouringCamp()
+    {
+        using var hugeIsland = CreateHost(GameMode.HugeIsland, "huge-two-players.sav");
+        var assignments = PlayerCharacterAssignments.Load(
+            Path.Combine(_directory, "huge-two-players.json"), continueExistingWorld: false);
+
+        var mac = assignments.Reconcile(hugeIsland, Id(21), characterLimit: 1);
+        var windows = assignments.Reconcile(hugeIsland, Id(22), characterLimit: 1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(mac, Is.EqualTo(new[] { 1 }),
+                "Первый игрок получает первую свободную по возрастанию id.");
+            Assert.That(windows, Has.Count.EqualTo(1),
+                "Второй игрок обязан получить персонажа: девушек шесть, лагерей шесть.");
+            Assert.That(windows[0], Is.Not.EqualTo(mac[0]),
+                "Двум игрокам никогда не выдаётся одна и та же девушка.");
+        });
+    }
+
     [Test]
     public void RealModeRostersMatchTheOneAndTwoCharacterArchitecture()
     {

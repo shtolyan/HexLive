@@ -6070,7 +6070,13 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 var card = BuildRosterCard(npc);
-                if (npc.Faction == HexLive.Simulation.Agents.Faction.Colony)
+                // §149: «свой» — это КЕМ Я УПРАВЛЯЮ, а не чья фракция. В
+                // HugeIsland/Maniac сервер выдаёт девушку любого лагеря, и
+                // раскладка по фракции отправляла её в «Чужаки» — выданный
+                // персонаж выглядел как невыданный. Faction.Colony остаётся
+                // рядом ради анонимного зрителя и локальной игры, где владения
+                // нет вовсе, а клан показывать надо.
+                if (owned || npc.Faction == HexLive.Simulation.Agents.Faction.Colony)
                     _clanRosterList.Add(card);
                 else
                 {

@@ -909,6 +909,15 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         _ready = true;
         Debug.Log($"[HexLive] Watching seed {handshake.Seed} from tick {handshake.Tick} " +
                   $"(topology 0x{checksum:X8} matches).");
+
+        // §149: права ПОЛУЧЕННЫЕ, а не запрошенные. Без этой строки лог отвечал
+        // только «к чему подключился» и молчал о том, чем разрешено управлять:
+        // мёртвый тумблер на выданной колонистке выглядел точно так же, как
+        // отсутствие назначения, и различить их можно было лишь по серверному
+        // hexlive-players.json.
+        Debug.Log($"[HexLive] Control: enabled={handshake.ControlEnabled} " +
+                  $"owner={(string.IsNullOrEmpty(handshake.ControlOwner) ? "—" : handshake.ControlOwner)} " +
+                  $"assigned=[{string.Join(",", handshake.AssignedNpcIds)}]");
     }
 
     private void DecodeEvents(List<byte[]> frames)

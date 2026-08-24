@@ -4666,7 +4666,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // contacts. Hiding housemates made a talk target disappear while
             // her selected partner spoke to empty space; clicking the missing
             // roster entry then exempted that id and looked like a spawn.
-            if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony &&
+            if (!IsPlayerOwnedNpc(npc) &&
                 npc.Id.Value != selectedId && !FogSeesTile(npc.Tile))
             {
                 _fogHiddenNpcs.Add(npc.Id.Value);
@@ -4679,14 +4679,27 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // valid colony observer; on first use choose the lowest-id living colonist
     // deterministically. With no living colonist return -1: selected-only then
     // has no eyes and cannot reveal the selected outsider by accident.
-    private static int ResolveFogObserverId(
+    // §149: приоритет у той, КЕМ ИГРОК УПРАВЛЯЕТ. Иначе на сервере глазами
+    // мира становилась колонистка чужого лагеря с наименьшим id, а собственная
+    // выданная девушка оставалась в тумане. Локально и у анонимного зрителя
+    // поведение прежнее: там управляемые и есть колония, либо владения нет
+    // вовсе и работает запасной путь по Faction.Colony.
+    private int ResolveFogObserverId(
         WorldSnapshot snapshot, int requestedId, int previousId)
     {
+        var firstOwnedId = int.MaxValue;
         var firstColonyId = int.MaxValue;
         var previousIsValid = false;
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony || npc.Health <= 0f)
+            if (npc.Health <= 0f)
+            {
+                continue;
+            }
+
+            var controllable = _runner != null && _runner.CanControlNpc(npc.Id);
+            var colony = npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+            if (!controllable && !colony)
             {
                 continue;
             }
@@ -4697,12 +4710,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             previousIsValid |= npc.Id.Value == previousId;
-            firstColonyId = System.Math.Min(firstColonyId, npc.Id.Value);
+            if (controllable)
+            {
+                firstOwnedId = System.Math.Min(firstOwnedId, npc.Id.Value);
+            }
+
+            if (colony)
+            {
+                firstColonyId = System.Math.Min(firstColonyId, npc.Id.Value);
+            }
         }
 
         if (previousIsValid)
         {
             return previousId;
+        }
+
+        if (firstOwnedId != int.MaxValue)
+        {
+            return firstOwnedId;
         }
 
         return firstColonyId == int.MaxValue ? -1 : firstColonyId;
@@ -5565,6 +5591,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// (skipped by the sync loop) instead.</summary>
     private bool CullHidesTile(TileCoord tile) =>
         _cullActive && !_cullVisibleTiles.Contains(tile);
+
+    /// <summary>
+    /// §149: «моя» — та, КЕМ Я УПРАВЛЯЮ, а не та, чья фракция `Colony`. На
+    /// сервере в HugeIsland/Maniac выдаётся девушка любого лагеря, и завязка на
+    /// одну фракцию прятала выданную соседку в тумане и уводила выбор по
+    /// умолчанию на колонистку, которой игрок командовать не может.
+    /// `Faction.Colony` остаётся рядом ради локальной игры и анонимного
+    /// зрителя: там владения нет вовсе, а клан показывать надо.
+    /// </summary>
+    private bool IsPlayerOwnedNpc(NpcSnapshot npc) =>
+        npc.Faction == HexLive.Simulation.Agents.Faction.Colony ||
+        (_runner != null && _runner.CanControlNpc(npc.Id));
 
     private bool FogSeesTile(TileCoord tile)
     {

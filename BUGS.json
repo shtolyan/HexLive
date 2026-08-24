@@ -7138,13 +7138,14 @@
             "text": "Функция \"закрепить одежду\" и любое управление одеждой: снять, там, выкинуть, любое управление инвентарем должно быть доступно из ИИ-мода и из ручного мода, из обоих режимов, при условии, что есть доступ управления к персонажу.",
             "context": "seed=1365566998 tick=316849 npc=1",
             "assignedAgent": "/root/bug210",
-            "agentHandoff": "Исправлено /root/bug210 без Unity MCP и без пересечения с незавершёнными правками /root по комфорту одежды. Pin Clothes, wear/stow/drop и оба окна передачи теперь зависят от авторитетного права управления, а не AI/Manual mode. Убраны три принудительных EnsureManual и четыре UI-гейта IsManualControl; TransferInventory/TransferContainer серверно проверяют PlayerAuthority.CanMutateInventory. Физический обмен временно использует PlayerInventory plan, но не меняет ManualControl и не создаёт manual lease; чужие NPC остаются read-only, серверное assignment-ограничение покрыто тестом. Тесты: bug/UI 5/5, server authorization 1/1, PlayerInventoryTransferTests 15/15, SpecStructureGate 6/6. Коммит 450d62d7357a4e768d8b7e25a051e08e2a36716f.",
+            "agentHandoff": "Rework исправлен на серверной границе: PlayerCommandAuthorization сначала проверяет постоянное назначение NPC, затем пропускает SetOutfitLock/ManageInventory/TransferInventory/TransferContainer без создания или продления manual lease. Чужой NPC отклоняется NotAssigned, обычные приказы без lease — NoLease. Файлы: ViewerConnection.cs, PlayerCommandAuthorization.cs, PlayerCharacterAssignmentsTests.cs, Spec/145.md. Тесты: server assignment/leases 17/17, SpecStructureGate 6/6. Риск: нужен повтор из fresh network client в AI-режиме.",
             "fixCommits": [
-                "450d62d7357a4e768d8b7e25a051e08e2a36716f"
+                "450d62d7357a4e768d8b7e25a051e08e2a36716f",
+                "05557f8d2b7626864f8d96f81cc8f99f0c40aa80"
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.65",
-            "readyForTestInVersion": "0.1.66",
+            "readyForTestInVersion": "",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7157,6 +7158,16 @@
                     "whenUtc": "2026-08-23 14:14 UTC",
                     "author": "codex",
                     "text": "Исправил управление инвентарём в AI-режиме. «Закрепить одежду», надеть, снять, выбросить и передать вещи теперь доступны владельцу в обоих режимах. Открытие обыска больше не переключает персонажа в ручной режим; физическая передача временно занимает планом, но сохраняет AI/Manual mode. Чужие персонажи остаются только для чтения, сервер повторно проверяет назначенного игроку NPC. Тесты 5/5, сервер 1/1, связанные передачи 15/15 и SpecStructureGate 6/6 прошли. Коммит 450d62d7357a4e768d8b7e25a051e08e2a36716f. Готово к проверке игроком."
+                },
+                {
+                    "whenUtc": "2026-08-24 03:06 UTC",
+                    "author": "codex",
+                    "text": "Повторный тест не прошёл: в AI-режиме сервер отвечает «Возьмите управление». Вернул баг #215 в работу тому же агенту. Проверяем пропущенный сетевой lease-gate: право владельца на одежду должно работать без ручного lease и не переключать персонажа из AI."
+                },
+                {
+                    "whenUtc": "2026-08-24 03:18 UTC",
+                    "author": "codex",
+                    "text": "Исправил пропущенную серверную проверку: закрепление одежды, надевание, снятие, выброс и передача вещей назначенного игроку NPC теперь проходят без manual-control lease и не захватывают его. Для чужого NPC сохранён отказ NotAssigned, а обычные приказы по-прежнему требуют lease. Тесты server assignment/leases 17/17 и SpecStructureGate 6/6 прошли. Коммит 05557f8d2b7626864f8d96f81cc8f99f0c40aa80. Готово к повторной проверке на fresh client."
                 }
             ]
         },

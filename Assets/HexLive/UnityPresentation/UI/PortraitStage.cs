@@ -172,7 +172,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void BuildNeonSet(Transform cameraTransform)
         {
-            var shader = Resources.Load<Shader>(NeonGridShaderPath);
+            var shader = HexLive.UnityPresentation.Content.AtomicResources.Load<Shader>(NeonGridShaderPath);
             if (shader == null || !shader.isSupported)
             {
                 Debug.LogWarning(

@@ -26,7 +26,7 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
     public sealed class TwoPeopleTestBootstrap : MonoBehaviour
     {
         private const string ClipsRoot = "Assets/ImportedActors/AnimLibrary/Sex Animation Clips";
-        private const string CatalogAssetPath = "Assets/Resources/HexLive/Romance/RomancePoseCatalog.asset";
+        private const string CatalogAssetPath = "Assets/HexLiveContent/RuntimeSource/Romance/RomancePoseCatalog.asset";
 
         [Header("Актёры")]
         [Tooltip("Женский актёр (якорь пары): Jana, Molly, Jolly, Marta.")]
@@ -171,7 +171,7 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
         private GameObject SpawnActor(string actorName, Transform parent, out Animator animator)
         {
             animator = null;
-            var prefab = Resources.Load<GameObject>($"HexLive/Actors/{actorName}");
+            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>($"HexLive/Actors/{actorName}");
             if (prefab == null)
             {
                 Debug.LogError($"[TwoPeopleTest] Actor prefab 'HexLive/Actors/{actorName}' not found");
@@ -309,7 +309,7 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
 #if UNITY_EDITOR
             _catalog = AssetDatabase.LoadAssetAtPath<RomancePoseCatalog>(CatalogAssetPath);
 #else
-            _catalog = Resources.Load<RomancePoseCatalog>(RomancePoseCatalog.ResourcesPath);
+            _catalog = HexLive.UnityPresentation.Content.AtomicResources.Load<RomancePoseCatalog>(RomancePoseCatalog.ResourcesPath);
 #endif
         }
 

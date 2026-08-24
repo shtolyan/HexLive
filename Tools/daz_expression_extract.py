@@ -12,7 +12,7 @@ list of (blendshape, weight%) — no new morphs, no re-export.
 Usage:
     python3 Tools/daz_expression_extract.py \
         "<unpacked-product>/Data/Daz 3D/Genesis 3/Female/Morphs/<vendor>/<pack>" \
-        --out Assets/Resources/HexLive/FaceExpressions/CuteFun.json
+        --out Assets/HexLiveContent/RuntimeSource/FaceExpressions/CuteFun.json
 
 Reads every *.dsf (gzipped or plain JSON) in the given morphs directory,
 normalizes the target dial names to the blendshape names our G3F FBX exports

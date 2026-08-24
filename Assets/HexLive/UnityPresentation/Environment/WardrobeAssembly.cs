@@ -31,7 +31,7 @@ namespace HexLive.UnityPresentation.Environment
             if (_clothingSlotsResolved) return;
             _clothingSlotsResolved = true;
 
-            var prefab = Resources.Load<GameObject>(ResourcePath);
+            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(ResourcePath);
             if (prefab == null) return;
 
             // The FBX's imported root carries Unity's Blender-axis conversion.
@@ -58,7 +58,7 @@ namespace HexLive.UnityPresentation.Environment
 
         public static GameObject? BuildFinished()
         {
-            var prefab = Resources.Load<GameObject>(ResourcePath);
+            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(ResourcePath);
             if (prefab == null) return null;
 
             // Same contract as BedAssembly: presentation owns an identity root;

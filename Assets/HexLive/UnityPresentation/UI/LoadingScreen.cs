@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using UnityEngine;
@@ -1110,6 +1111,28 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
+        private static float ContentProgress()
+        {
+            var queue = Wearing.Garments.ContentQueue.Progress;
+            var service = ContentAssetService.Instance;
+            if (service.DownloadTotalBytes <= 0 || service.DownloadedBytes == 0)
+            {
+                return queue;
+            }
+
+            var bytes = Mathf.Clamp01(
+                (float)(service.DownloadedBytes / (double)service.DownloadTotalBytes));
+            return Mathf.Min(queue, bytes);
+        }
+
+        private static string ContentStatus()
+        {
+            var service = ContentAssetService.Instance;
+            return string.IsNullOrWhiteSpace(service.Status)
+                ? Loc.Get(Wearing.Garments.ContentQueue.MessageKey)
+                : service.Status;
+        }
+
         private IEnumerator Run()
         {
             // Spec 41.4: menu first — nothing exists until the player picks.
@@ -1137,6 +1160,30 @@ namespace HexLive.UnityPresentation.UI
             {
                 SessionConfig.UseServer(null);
             }
+
+            var simDataReady = false;
+            var simDataApplied = false;
+            Config.ExternalBalanceTuning.LoadAtomic(success =>
+            {
+                simDataApplied = success;
+                simDataReady = true;
+            });
+            while (!simDataReady)
+            {
+                SetProgress(0.02f, ContentStatus());
+                yield return null;
+            }
+            if (!simDataApplied)
+            {
+                ShowContentFailure(ContentAssetService.Instance.LastError);
+                yield break;
+            }
+
+            Wearing.Garments.WardrobeMeta.Load();
+
+            // Explicit developer override wins over the verified production
+            // object, but is never discovered implicitly beside the Player.
+            Config.ExternalBalanceTuning.LoadAndApply();
 
             int seed;
             // §146.2: the mode is part of the world's identity. Continue and
@@ -1381,8 +1428,7 @@ namespace HexLive.UnityPresentation.UI
             while (hasReplay && !Wearing.Garments.ContentQueue.IsIdle)
             {
                 SetProgress(
-                    0.55f + 0.1f * Wearing.Garments.ContentQueue.Progress,
-                    Loc.Get(Wearing.Garments.ContentQueue.MessageKey));
+                    0.55f + 0.1f * ContentProgress(), ContentStatus());
                 yield return null;
             }
 
@@ -1412,7 +1458,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             // ⭐ Тела должны быть ПОСТРОЕНЫ до того, как поднимется шторка.
-            // С переходом на Addressables одежда и причёска приезжают не
+            // С переходом на атомарный кэш одежда и причёска приезжают не
             // мгновенно, и выбор «первой» стал попадать в момент, когда
             // выбирать ещё некого: раньше он срабатывал по счастливой
             // случайности. Игрок не должен видеть, как это достраивается.
@@ -1609,10 +1655,23 @@ namespace HexLive.UnityPresentation.UI
             StartCoroutine(Run());
         }
 
+        private void ShowContentFailure(string message)
+        {
+            IsReplaying = false;
+            SetProgress(0f, Loc.Get("loading.content.failed") +
+                (string.IsNullOrWhiteSpace(message) ? string.Empty : "\n" + message));
+            _menuChosen = false;
+            if (_menuBox != null)
+            {
+                _menuBox.style.display = DisplayStyle.Flex;
+            }
+            StartCoroutine(Run());
+        }
+
         // Ждём, пока мир будет ГОТОВ ПОКАЗАТЬСЯ: тела построены и очередь
         // контента пуста. Без таймаута — и это не смелость, а следствие
         // устройства: каждая начатая задача обязана завершиться, потому что
-        // Addressables завершает операцию всегда, и успехом, и провалом.
+        // атомарный загрузчик завершает операцию всегда, и успехом, и провалом.
         // Задача, начатая без завершения, — ошибка в загрузчике, и лечить её
         // страховкой на экране значит прятать её от себя.
         //
@@ -1644,7 +1703,7 @@ namespace HexLive.UnityPresentation.UI
 
             // Queue first is load-bearing short-circuiting. ActorsReady applies
             // the now-cached wardrobe to a paused actor; calling it while an
-            // Addressables prewarm is still running could fall through to the
+            // atomic-content prewarm is still running could fall through to the
             // synchronous GetVisuals path from inside this coroutine — the
             // exact WaitForCompletion deadlock fixed in 105199ce.
             while (!Wearing.Garments.ContentQueue.IsIdle || !renderer.ActorsReady(ids))
@@ -1652,8 +1711,7 @@ namespace HexLive.UnityPresentation.UI
                 // Прогресс НАСТОЯЩИЙ: сделано из всего, что заказано. Полоска
                 // на этом участке живёт в верхней четверти — терраген и прогрев
                 // панелей уже позади.
-                SetProgress(Mathf.Lerp(0.75f, 0.99f, Wearing.Garments.ContentQueue.Progress),
-                    Loc.Get(Wearing.Garments.ContentQueue.MessageKey));
+                SetProgress(Mathf.Lerp(0.75f, 0.99f, ContentProgress()), ContentStatus());
                 yield return null;
 
                 waited += Time.unscaledDeltaTime;
@@ -1682,7 +1740,7 @@ namespace HexLive.UnityPresentation.UI
 
                 // На ЖИВОМ мире ждать бесконечно нельзя, и это не отказ от
                 // правила «каждая начатая задача обязана завершиться»: то
-                // правило про Addressables, а здесь ждут ещё и колонистку,
+                // правило про атомарный загрузчик, а здесь ждут ещё и колонистку,
                 // которую мир меняет прямо во время ожидания. Занавес, который
                 // пережил загрузку, — игра, в которую нельзя играть; недошитая
                 // причёска — кадр, который догонит через секунду.

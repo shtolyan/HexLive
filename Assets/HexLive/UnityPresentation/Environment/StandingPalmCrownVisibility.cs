@@ -50,7 +50,7 @@ namespace HexLive.UnityPresentation.Environment
 
         public static bool Apply(GameObject palm)
         {
-            var shader = Resources.Load<Shader>(ShaderResource) ?? Shader.Find(ShaderName);
+            var shader = HexLive.UnityPresentation.Content.AtomicResources.Load<Shader>(ShaderResource) ?? Shader.Find(ShaderName);
             if (shader == null)
             {
                 if (!_missingShaderWarned)

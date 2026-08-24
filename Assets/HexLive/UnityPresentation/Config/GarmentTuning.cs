@@ -18,7 +18,19 @@ namespace HexLive.UnityPresentation.Config
     {
         public static void LoadAndApply()
         {
-            var catalog = Resources.Load<GarmentCatalog>(GarmentCatalog.ResourcePath);
+            GarmentCatalog catalog;
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<GarmentCatalog>(
+                    "Assets/HexLiveContent/RuntimeSource/GarmentCatalog.asset");
+            }
+            else
+#endif
+            {
+                catalog = HexLive.UnityPresentation.Content.AtomicResources.Load<GarmentCatalog>(
+                    GarmentCatalog.ResourcePath);
+            }
             if (catalog == null)
             {
                 // No asset yet (e.g. before the editor tool has been run) —

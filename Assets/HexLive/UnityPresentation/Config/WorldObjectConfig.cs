@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.Simulation.Content;
 using UnityEngine;
 
@@ -265,7 +266,24 @@ namespace HexLive.UnityPresentation.Config
         public static void LoadAndApply()
         {
             WorldObjectLibrary.Clear();
-            var configs = Resources.LoadAll<WorldObjectConfig>(WorldObjectConfig.ResourceFolder);
+            WorldObjectConfig[] configs;
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                configs = UnityEditor.AssetDatabase.FindAssets(
+                        "t:WorldObjectConfig",
+                        new[] { "Assets/HexLiveContent/RuntimeSource/WorldObjects" })
+                    .Select(guid => UnityEditor.AssetDatabase.LoadAssetAtPath<WorldObjectConfig>(
+                        UnityEditor.AssetDatabase.GUIDToAssetPath(guid)))
+                    .Where(value => value != null)
+                    .ToArray();
+            }
+            else
+#endif
+            {
+                configs = HexLive.UnityPresentation.Content.AtomicResources.LoadAll<WorldObjectConfig>(
+                    WorldObjectConfig.ResourceFolder);
+            }
             if (configs == null)
             {
                 return;

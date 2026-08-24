@@ -83,7 +83,7 @@ public sealed class HexStepJumpTestBootstrap : MonoBehaviour
         // inheriting a zero scale therefore moves the model under a frozen pose.
         Time.timeScale = 1f;
         _values = JumpValues.InitialDefaults;
-        _config = Resources.Load<HexTuningConfig>("HexLive/HexTuningConfig");
+        _config = HexLive.UnityPresentation.Content.AtomicResources.Load<HexTuningConfig>("HexLive/HexTuningConfig");
         if (_config != null)
         {
             // Стартуем с того, что реально играет игра, а не с код-дефолтов.

@@ -37,7 +37,7 @@ namespace HexLive.Editor
             foreach (var entry in manifest.entries ?? Array.Empty<Entry>())
             {
                 if (entry.mode != "native" && entry.mode != "existing-native") continue;
-                var path = "Assets/Resources/HexLive/Objects/" + entry.native;
+                var path = "Assets/HexLiveContent/RuntimeSource/Objects/" + entry.native;
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (prefab == null)
                 {

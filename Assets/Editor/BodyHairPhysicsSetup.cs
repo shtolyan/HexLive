@@ -29,10 +29,10 @@ public static class BodyHairPhysicsSetup
 {
     static readonly string[] BodyPrefabs =
     {
-        "Assets/Resources/HexLive/Actors/Jana.prefab",
-        "Assets/Resources/HexLive/Actors/Molly.prefab",
-        "Assets/Resources/HexLive/Actors/Marta.prefab",
-        "Assets/Resources/HexLive/Actors/Jolly.prefab",
+        "Assets/HexLiveContent/RuntimeSource/Actors/Jana.prefab",
+        "Assets/HexLiveContent/RuntimeSource/Actors/Molly.prefab",
+        "Assets/HexLiveContent/RuntimeSource/Actors/Marta.prefab",
+        "Assets/HexLiveContent/RuntimeSource/Actors/Jolly.prefab",
     };
 
     [MenuItem("HexLive/Physics/Setup Breast Jiggle (all girls)")]

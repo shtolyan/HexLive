@@ -66,7 +66,7 @@ internal sealed class ProstheticVisual
     public Transform Grip { get; }
 
     /// <summary>
-    /// A failed Addressables operation is also complete: the simulation and
+    /// A failed atomic-content operation is also complete: the simulation and
     /// Grip stay usable, and the loading curtain must not wait forever.
     /// </summary>
     public bool IsReady => _loadCompleted;
@@ -104,7 +104,7 @@ internal sealed class ProstheticVisual
 
     /// <summary>
     /// Direct-bone factory shared by the live actor and the skeleton-only
-    /// health doll. The model arrives asynchronously from Addressables; the
+    /// health doll. The model arrives asynchronously from the verified cache; the
     /// wrapper and optional grip exist immediately.
     /// </summary>
     internal static ProstheticVisual Create(

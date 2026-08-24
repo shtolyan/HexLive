@@ -294,7 +294,7 @@ namespace HexLive.UnityPresentation.Wearing
                 return cached;
             }
 
-            var set = Resources.Load<SkinPositionMapSet>(
+            var set = HexLive.UnityPresentation.Content.AtomicResources.Load<SkinPositionMapSet>(
                 $"{PaintPointMap.ResourceFolder}/{key}");
             if (set == null)
             {
@@ -310,7 +310,10 @@ namespace HexLive.UnityPresentation.Wearing
                 set = null;
             }
 
-            Cache[key] = set;
+            if (set != null)
+            {
+                Cache[key] = set;
+            }
             return set;
         }
 

@@ -18,7 +18,7 @@ using UnityEngine;
 //    Assets/ImportedActors/Wear/<Folder>/Meshes/<Actor>.mesh   (per girl)
 //    Assets/ImportedActors/Wear/<Folder>/Materials/<mat>.mat   (URP Lit)
 //    Assets/ImportedActors/Wear/<Folder>/Textures/*            (copied earlier)
-//    Assets/Resources/HexLive/Wear/<simId>/<Name>.prefab       (Wear prefab)
+//    Assets/HexLiveContent/Wear/<simId>/<Name>.prefab       (Wear prefab)
 //
 //  The prefab follows the molly_copy wear contract (spec §31B.2): root Wear
 //  component + its own bone subtree under "hip" + one SkinnedMeshRenderer;
@@ -37,7 +37,7 @@ using UnityEngine;
 public static class NewWearExtractor
 {
     private const string ImportRoot = "Assets/ImportedActors/Wear";
-    private const string WearRoot = "Assets/Resources/HexLive/Wear";
+    private const string WearRoot = "Assets/HexLiveContent/Wear";
 
     // Where the automated pipeline drops its manifests — now the ONLY source of
     // garments. tools/wardrobe writes the JSON and the extractor picks it up, so
@@ -130,7 +130,7 @@ public static class NewWearExtractor
         public string[] DropMaterials = { };
         public string Folder;       // ImportedActors/Wear/<Folder>
         public string Name;         // prefab + root GameObject name
-        public string SimId;        // Resources/HexLive/Wear/<SimId>/
+        public string SimId;        // HexLiveContent/Wear/<SimId>/
         public VisualWearLayer Layer;
         public VisualWearSlot[] Slots;
         public VisualWearSlot[] NoHide = { };

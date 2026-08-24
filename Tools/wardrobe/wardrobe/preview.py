@@ -120,7 +120,7 @@ json.dump(results, open(job["report"], "w", encoding="utf-8"), ensure_ascii=Fals
 
 
 def render(drop: str, manifest_data: dict, resolution: int = 512) -> dict:
-    """Render one thumbnail per garment into Resources/HexLive/WearPreviews."""
+    """Render one thumbnail per garment into HexLiveContent/WearPreviews."""
     if not config.BLENDER.exists():
         return {"ok": False, "errors": [f"Blender не найден: {config.BLENDER}"]}
 

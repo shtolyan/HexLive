@@ -1,25 +1,38 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Content;
+using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace HexLive.UnityPresentation.Wearing
 {
 
-/// <summary>
-/// The eight fitted-prosthetic models live in the external HexLiveContent
-/// catalog. Handles stay cached for the session: the set is tiny and the same
-/// model can be requested by the world actor and the health doll.
-/// </summary>
+/// <summary>Each fitted prosthetic is an independent §152 object and bundle.</summary>
 internal static class ProstheticContent
 {
-    private static readonly Dictionary<string, AsyncOperationHandle<GameObject>> Prefabs = new();
+    private static readonly Dictionary<string, ContentAssetHandle<GameObject>> Prefabs = new();
+    private static readonly HashSet<string> Loading = new();
+    private static readonly Dictionary<string, List<Action<GameObject>>> Waiters = new();
     private static readonly HashSet<string> ReportedFailures = new();
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        foreach (var handle in Prefabs.Values) handle?.Dispose();
+        Prefabs.Clear();
+        Loading.Clear();
+        Waiters.Clear();
+        ReportedFailures.Clear();
+    }
+
     internal static string Address(BodyPart part, string definitionId, bool mechanical)
+    {
+        var id = ObjectId(part, definitionId, mechanical);
+        return string.IsNullOrEmpty(id) ? string.Empty : "prosthetic/" + id;
+    }
+
+    private static string ObjectId(BodyPart part, string definitionId, bool mechanical)
     {
         if (part is not (BodyPart.ArmL or BodyPart.ArmR or BodyPart.LegL or BodyPart.LegR))
         {
@@ -33,7 +46,7 @@ internal static class ProstheticContent
             ? "mechanical"
             : "wood";
         var side = part is BodyPart.ArmL or BodyPart.LegL ? "l" : "r";
-        return $"prosthetic/{limb}/{tier}/{side}";
+        return $"{limb}.{tier}.{side}";
     }
 
     internal static void Load(
@@ -42,54 +55,57 @@ internal static class ProstheticContent
         bool mechanical,
         Action<GameObject> completed)
     {
-        var address = Address(part, definitionId, mechanical);
-        if (string.IsNullOrEmpty(address))
+        var id = ObjectId(part, definitionId, mechanical);
+        if (string.IsNullOrEmpty(id))
         {
             completed?.Invoke(null);
             return;
         }
 
-        if (Prefabs.TryGetValue(address, out var cached) && !cached.IsValid())
+        if (Prefabs.TryGetValue(id, out var cached))
         {
-            Prefabs.Remove(address);
-        }
-
-        if (!Prefabs.TryGetValue(address, out var handle))
-        {
-            ContentQueue.Begin(ContentQueue.Kind.Prosthetic);
-            handle = Addressables.LoadAssetAsync<GameObject>(address);
-            Prefabs[address] = handle;
-            handle.Completed += _ => ContentQueue.End(ContentQueue.Kind.Prosthetic);
-        }
-
-        if (handle.IsDone)
-        {
-            Complete(address, handle, completed);
+            completed?.Invoke(cached.Asset);
             return;
         }
 
-        handle.Completed += loaded => Complete(address, loaded, completed);
-    }
-
-    private static void Complete(
-        string address,
-        AsyncOperationHandle<GameObject> handle,
-        Action<GameObject> completed)
-    {
-        if (handle.Status == AsyncOperationStatus.Succeeded && handle.Result != null)
+        if (!Waiters.TryGetValue(id, out var callbacks))
         {
-            completed?.Invoke(handle.Result);
+            callbacks = new List<Action<GameObject>>();
+            Waiters[id] = callbacks;
+        }
+        if (completed != null)
+        {
+            callbacks.Add(completed);
+        }
+        if (!Loading.Add(id))
+        {
             return;
         }
 
-        if (ReportedFailures.Add(address))
+        ContentQueue.Begin(ContentQueue.Kind.Prosthetic);
+        ContentAssetService.Instance.LoadMain<GameObject>("prosthetic", id, loaded =>
         {
-            Debug.LogError($"[ProstheticContent] внешний контент не загрузился по адресу " +
-                           $"«{address}». Проверь группу HexLive.Prosthetics, полный каталог " +
-                           "и установленный prosthetic bundle.");
-        }
+            ContentQueue.End(ContentQueue.Kind.Prosthetic);
+            Loading.Remove(id);
+            var prefab = loaded?.Asset;
+            if (loaded != null)
+            {
+                Prefabs[id] = loaded;
+            }
+            else if (ReportedFailures.Add(id))
+            {
+                Debug.LogError(
+                    $"[ProstheticContent] объект prosthetic/{id} не загрузился; " +
+                    "общего prosthetic/catalog fallback больше нет.");
+            }
 
-        completed?.Invoke(null);
+            var pending = Waiters[id].ToArray();
+            Waiters.Remove(id);
+            foreach (var callback in pending)
+            {
+                callback(prefab);
+            }
+        });
     }
 }
 

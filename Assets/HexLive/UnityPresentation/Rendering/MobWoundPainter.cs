@@ -50,17 +50,18 @@ public sealed class MobWoundPainter : MonoBehaviour, HexLive.UnityPresentation.W
     /// curtain instead of on the first landed bite (File.Read burst).</summary>
     public static void Prewarm()
     {
-        if (_artLoaded)
+        if (_artLoaded && _texSplash != null &&
+            System.Array.TrueForAll(_woundOver, value => value != null))
         {
             return;
         }
 
         _artLoaded = true;
-        _texSplash = Resources.Load<Texture2D>("HexLive/Decals/blood_splash");
+        _texSplash = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splash");
         _woundOver = new Texture2D?[WoundVariantNames.Length];
         for (var i = 0; i < WoundVariantNames.Length; i++)
         {
-            _woundOver[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
+            _woundOver[i] = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
         }
     }
 

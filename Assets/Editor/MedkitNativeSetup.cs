@@ -9,13 +9,13 @@ namespace HexLive.Editor
     public static class MedkitNativeSetup
     {
         private const string MeshPath =
-            "Assets/Resources/HexLive/Objects/item_medkit_native_mesh.fbx";
+            "Assets/HexLiveContent/RuntimeSource/Objects/item_medkit_native_mesh.fbx";
         private const string TexturePath =
-            "Assets/Resources/HexLive/Objects/item_medkit_albedo.png";
+            "Assets/HexLiveContent/RuntimeSource/Objects/item_medkit_albedo.png";
         private const string MaterialPath =
-            "Assets/Resources/HexLive/Objects/MedkitTextured.mat";
+            "Assets/HexLiveContent/RuntimeSource/Objects/MedkitTextured.mat";
         private const string PrefabPath =
-            "Assets/Resources/HexLive/Objects/item.medkit.prefab";
+            "Assets/HexLiveContent/RuntimeSource/Objects/item.medkit.prefab";
 
         public static void Configure()
         {

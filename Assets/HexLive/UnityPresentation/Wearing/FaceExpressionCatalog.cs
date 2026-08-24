@@ -47,7 +47,7 @@ public sealed class FaceExpressionCatalog
     public static FaceExpressionCatalog Load(string resourcePath = "HexLive/FaceExpressions/CuteFun")
     {
         var catalog = new FaceExpressionCatalog();
-        var asset = Resources.Load<TextAsset>(resourcePath);
+        var asset = HexLive.UnityPresentation.Content.AtomicResources.Load<TextAsset>(resourcePath);
         if (asset == null)
         {
             Debug.LogWarning($"[FaceExpressionCatalog] '{resourcePath}' not found in Resources");

@@ -458,7 +458,7 @@ namespace HexLive.UnityPresentation.Wearing
                 return cached;
             }
 
-            var tex = Resources.Load<Texture2D>($"HexLive/Decals/bandage_wrap_{zoneName}");
+            var tex = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/bandage_wrap_{zoneName}");
             _wrapOverlays[zoneName] = tex;
             return tex;
         }
@@ -473,7 +473,7 @@ namespace HexLive.UnityPresentation.Wearing
                 return cached;
             }
 
-            var tex = Resources.Load<Texture2D>($"HexLive/Decals/bandage_wrap_{zoneName}_n");
+            var tex = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/bandage_wrap_{zoneName}_n");
             _wrapNormals[zoneName] = tex;
             return tex;
         }
@@ -2627,24 +2627,24 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             _stampTexturesLoaded = true;
-            _texSplash = Resources.Load<Texture2D>("HexLive/Decals/blood_splash");
-            _texStain = Resources.Load<Texture2D>("HexLive/Decals/blood_stain");
-            _texScratch = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch");
-            _texSplat = Resources.Load<Texture2D>("HexLive/Decals/blood_splat");
+            _texSplash = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splash");
+            _texStain = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_stain");
+            _texScratch = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/wound_scratch");
+            _texSplat = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splat");
             // Every dressing uses the same white gauze artwork. The simulation
             // still records whether the consumed item was herbal or medkit, but
             // that provenance must not swap a wound's visible material.
-            _texGauze = Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap") ?? MakeGauzeTexture();
+            _texGauze = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/gauze_wrap") ?? MakeGauzeTexture();
             _texBandage = _texGauze;
             _wrapOverlays.Clear();
             _wrapNormals.Clear();
-            _texBleed = Resources.Load<Texture2D>("HexLive/Decals/bandage_bleed");
-            _texSplashN = Resources.Load<Texture2D>("HexLive/Decals/blood_splash_n");
-            _texScratchN = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch_n");
-            _texSplatN = Resources.Load<Texture2D>("HexLive/Decals/blood_splat_n");
-            _texSweatN = Resources.Load<Texture2D>("HexLive/Decals/sweat_drops_n");
-            _texScratchG = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch_g");
-            _texSplatG = Resources.Load<Texture2D>("HexLive/Decals/blood_splat_g");
+            _texBleed = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/bandage_bleed");
+            _texSplashN = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splash_n");
+            _texScratchN = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/wound_scratch_n");
+            _texSplatN = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splat_n");
+            _texSweatN = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/sweat_drops_n");
+            _texScratchG = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/wound_scratch_g");
+            _texSplatG = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splat_g");
             // r11: фиолетовая версия сплаттера для синяков — перекраска того
             // же арта, поэтому строго ПОСЛЕ его загрузки. Раз за сессию.
             _texBruise ??= MakeBruiseTexture(_texStain ?? _texSplat ?? _texSplash);
@@ -2657,11 +2657,11 @@ namespace HexLive.UnityPresentation.Wearing
             _woundNormal = new Texture2D?[WoundVariantNames.Length];
             for (var i = 0; i < WoundVariantNames.Length; i++)
             {
-                _woundOver[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
-                _woundGloss[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}_g");
+                _woundOver[i] = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
+                _woundGloss[i] = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}_g");
                 // Most variants have no _n — WoundVariant falls back to the
                 // shared blood-bead normal for those.
-                _woundNormal[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}_n");
+                _woundNormal[i] = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}_n");
             }
 
             var decodeShader = Shader.Find("Hidden/HexLive/NormalDecodeBlit");

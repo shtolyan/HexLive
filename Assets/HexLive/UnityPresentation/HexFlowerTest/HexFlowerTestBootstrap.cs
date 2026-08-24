@@ -32,8 +32,8 @@ namespace HexLive.UnityPresentation.HexFlowerTest
     public sealed class HexFlowerTestBootstrap : MonoBehaviour
     {
         private const string ClipsRoot = "Assets/ImportedActors/AnimLibrary/Sex Animation Clips";
-        private const string PoseCatalogAssetPath = "Assets/Resources/HexLive/Romance/RomancePoseCatalog.asset";
-        private const string SetCatalogAssetPath = "Assets/Resources/HexLive/Romance/RomanceSetCatalog.asset";
+        private const string PoseCatalogAssetPath = "Assets/HexLiveContent/RuntimeSource/Romance/RomancePoseCatalog.asset";
+        private const string SetCatalogAssetPath = "Assets/HexLiveContent/RuntimeSource/Romance/RomanceSetCatalog.asset";
         private const float ElevationStep = 0.55f; // same constant as HexWorldRenderer
         private const int MinElevation = 1;        // game land levels are 1..3
         private const int MaxElevation = 3;
@@ -344,7 +344,7 @@ namespace HexLive.UnityPresentation.HexFlowerTest
         private GameObject SpawnActor(string name, out Animator animator)
         {
             animator = null;
-            var prefab = Resources.Load<GameObject>($"HexLive/Actors/{name}");
+            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>($"HexLive/Actors/{name}");
             if (prefab == null)
             {
                 Debug.LogError($"[HexFlowerTest] Actor prefab 'HexLive/Actors/{name}' not found");
@@ -513,8 +513,8 @@ namespace HexLive.UnityPresentation.HexFlowerTest
             _poseCatalog = AssetDatabase.LoadAssetAtPath<RomancePoseCatalog>(PoseCatalogAssetPath);
             _setCatalog = AssetDatabase.LoadAssetAtPath<RomanceSetCatalog>(SetCatalogAssetPath);
 #else
-            _poseCatalog = Resources.Load<RomancePoseCatalog>(RomancePoseCatalog.ResourcesPath);
-            _setCatalog = Resources.Load<RomanceSetCatalog>(RomanceSetCatalog.ResourcesPath);
+            _poseCatalog = HexLive.UnityPresentation.Content.AtomicResources.Load<RomancePoseCatalog>(RomancePoseCatalog.ResourcesPath);
+            _setCatalog = HexLive.UnityPresentation.Content.AtomicResources.Load<RomanceSetCatalog>(RomanceSetCatalog.ResourcesPath);
 #endif
         }
 

@@ -11,7 +11,7 @@ using HexLive.UnityPresentation.Wearing;
 //  fitted mesh). Imported garments often carry Molly/Jolly/Marta configs but
 //  no Jana (=5), so Jana falls back to the default mesh and looks wrong.
 //
-//  This walks every Wear prefab under Resources/HexLive/Wear and, where a Jana
+//  This walks every Wear prefab under HexLiveContent/Wear and, where a Jana
 //  config is missing, adds one:
 //    * mesh = the sibling "Jana.mesh" next to an existing config's mesh
 //             (that's the mesh we pulled from jana all wear.fbx), or
@@ -24,7 +24,7 @@ using HexLive.UnityPresentation.Wearing;
 public static class JanaWearConfigUpdater
 {
     const int JanaActor = 5;            // ActorName.Jana
-    const string WearRoot = "Assets/Resources/HexLive/Wear";
+    const string WearRoot = "Assets/HexLiveContent/Wear";
 
     [MenuItem("HexLive/Wear/Add Jana To All Garments")]
     static void Apply()

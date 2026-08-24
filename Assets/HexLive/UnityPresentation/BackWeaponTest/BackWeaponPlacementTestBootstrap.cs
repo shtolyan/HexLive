@@ -229,7 +229,7 @@ namespace HexLive.UnityPresentation.BackWeaponTest
         private void SpawnRandomBareTorso()
         {
             _actorName = ActorChoices[UnityEngine.Random.Range(0, ActorChoices.Length)];
-            var prefab = Resources.Load<GameObject>("HexLive/Actors/" + _actorName);
+            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Actors/" + _actorName);
             if (prefab == null)
             {
                 _status = "Actor prefab missing: " + _actorName;

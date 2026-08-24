@@ -7,7 +7,7 @@ using UnityEditor;
 using UnityEngine;
 
 // ---------------------------------------------------------------------------
-//  Настройка FMOD на банки, которые лежат в РЕПОЗИТОРИИ.
+//  Настройка FMOD без копирования банков в Player (§152).
 //
 //  Зачем это код, а не «сделай руками по вики». `FMODStudioSettings.asset`
 //  живёт внутри `Assets/Plugins/FMOD/Resources/`, а вся эта папка —
@@ -15,25 +15,16 @@ using UnityEngine;
 //  проектом: каждая переустановка интеграции и каждая новая машина начинают с
 //  чистого листа, и «почему нет звука» приходится вспоминать заново.
 //
-//  Договор проекта (CLAUDE.md §67.12): игра берёт ГОТОВЫЕ банки
-//  `Assets/StreamingAssets/FMODBanks/*.bank`, которые закоммичены. Проект FMOD
-//  Studio (`FMODStudio/HexLive/HexLive.fspro`) — источник правды для микса, но
-//  его сборка `Build/` под ignore и на машине без FMOD Studio её нет вообще.
-//  Поэтому Single Platform Build прямо на staged-банки, а не на .fspro:
-//  указать .fspro на такой машине — значит попросить FMOD искать банки,
-//  которых не существует.
-//
-//  Источник и приёмник копирования при этом СОВПАДАЮТ, и это безопасно
-//  намеренно: `EventManager.CopyToStreamingAssets` сравнивает полные пути и
-//  выходит РАНЬШЕ, чем чистит «устаревшие» файлы, — иначе шаг копирования
-//  удалил бы закоммиченные банки.
+//  Банки остаются authoring-source в HexLiveContent/AudioSource и публикуются
+//  как raw audio objects. Runtime получает каждый файл через SHA cache.
+//  ImportType.AssetBundle здесь означает только «не копировать SourceBankPath
+//  в StreamingAssets при Player build»; FMOD bundle pipeline не запускается.
 //
 //  Menu: HexLive ▸ FMOD ▸ Настроить на банки из репозитория
 // ---------------------------------------------------------------------------
 public static class HexLiveFmodSetup
 {
-    private const string BankFolderName = "FMODBanks";
-    private const string SourceBankPath = "Assets/StreamingAssets/" + BankFolderName;
+    private const string SourceBankPath = "Assets/HexLiveContent/AudioSource/FMODBanks";
     private const string MasterBankName = "Master";
 
     [MenuItem("HexLive/FMOD/Настроить на банки из репозитория")]
@@ -159,42 +150,21 @@ public static class HexLiveFmodSetup
         settings.SourceProjectPath = string.Empty;
         settings.SourceBankPath = SourceBankPath;
 
-        // Рантайм собирает путь как streamingAssetsPath + TargetSubFolder, а
-        // TargetSubFolder для StreamingAssets — это TargetBankFolder. Пустое
-        // значение здесь означало бы «банки лежат в корне StreamingAssets», и
-        // Master.bank не нашёлся бы.
-        settings.ImportType = ImportType.StreamingAssets;
-        settings.TargetBankFolder = BankFolderName;
-
-        // §67.12: банки ГРУЗЯТСЯ, иначе события стартуют и умирают на нуле.
-        settings.BankLoadType = BankLoadType.All;
-        settings.AutomaticEventLoading = true;
+        settings.ImportType = ImportType.AssetBundle;
+        settings.TargetBankFolder = string.Empty;
+        settings.BankLoadType = BankLoadType.None;
+        settings.AutomaticEventLoading = false;
+        settings.AutomaticSampleLoading = false;
         settings.HideSetupWizard = true;
-
-        EditorUtility.SetDirty(settings);
-
-        // Пересканировать банки ОБЯЗАТЕЛЬНО до сохранения: список
-        // `MasterBanks` наполняет `EventManager.OnCacheChange`, а при
-        // `BankLoadType.All` рантайм грузит ровно то, что в этом списке
-        // (`RuntimeManager.BanksToLoad`). Сохранить ассет раньше — значит
-        // записать пустой список и получить игру без единого звука, причём
-        // без единой ошибки в консоли.
-        EventManager.RefreshBanks();
+        settings.MasterBanks?.Clear();
+        settings.Banks?.Clear();
+        settings.BanksToLoad?.Clear();
         EditorUtility.SetDirty(settings);
         AssetDatabase.SaveAssets();
 
-        if (settings.MasterBanks == null || settings.MasterBanks.Count == 0)
-        {
-            throw new InvalidOperationException(
-                $"После пересканирования {SourceBankPath} список MasterBanks пуст — " +
-                "при BankLoadType.All рантайм не загрузит ни одного банка и звука не будет.");
-        }
-
         var total = banks.Sum(path => new FileInfo(path).Length);
         return $"[FMOD] настроено на {SourceBankPath}: банок {banks.Length} " +
-               $"({total} байт), ImportType=StreamingAssets, TargetBankFolder={BankFolderName}, " +
-               $"BankLoadType=All, MasterBanks=[{string.Join(", ", settings.MasterBanks)}], " +
-               $"Banks=[{string.Join(", ", settings.Banks)}]. " +
+               $"({total} байт), automatic Player copy=off, BankLoadType=None. " +
                $"Версия интеграции 0x{FMOD.VERSION.number:x8}.";
     }
 }

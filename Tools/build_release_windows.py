@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
-"""Build a versioned HexLive Windows player with its Addressables content.
+"""Build a versioned content-free HexLive Windows player.
 
-Windows sibling of Tools/build_release.py (which stays macOS-only). Differences
-that are platform reality, not policy drift:
-
-  * The Addressables content IS rebuilt here (first Unity invocation) — this
-    machine has no prebuilt shared HexLiveContent to reuse, and a catalog
-    without icons/prosthetics must be refused, same as on macOS.
-  * Unity Auto Refresh prefs live in the registry (hashed value names), not in
+Windows sibling of Tools/build_release.py (which stays macOS-only). Unity Auto
+Refresh prefs live in the registry (hashed value names), not in
     `defaults`; they are forced to 1 for batchmode and restored afterwards.
-  * No codesign. The "latest player" pointer is an NTFS junction (no admin
+There is no codesign. The "latest player" pointer is an NTFS junction (no admin
     rights needed), not a symlink.
 
 Layout mirrors macOS:
   ~/hex-girls/Releases/v<version>/HexLive/HexLive.exe       the player
-  ~/hex-girls/Releases/v<version>/HexLive/HexLiveContent    junction -> shared
-  ~/hex-girls/HexLiveContent/StandaloneWindows64/           shared bundles
   ~/hex-girls/HexLive/                                      junction -> latest player
+
+Player builds never invoke a content build and never copy or link bundles.
+Atomic content is resolved at runtime through the Asset API.
 """
 
 from __future__ import annotations
@@ -29,7 +25,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -48,8 +43,6 @@ ROOT = Path(__file__).resolve().parents[1]
 PLATFORM = "StandaloneWindows64"
 DEFAULT_DISTRIBUTION = Path.home() / "hex-girls"
 DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
-DEFAULT_CONTENT = DEFAULT_DISTRIBUTION / "HexLiveContent"
-BUILT_CONTENT = ROOT / "Build" / "AddressableContent" / PLATFORM
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
 BUG_TRACKER = ROOT / "BUGS.json"
@@ -59,7 +52,6 @@ LEGACY_BUG_TRACKER = (
 )
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
 PLAYER_METHOD = "HexLive.UnityDebug.Editor.HexLiveReleaseBuilder.BuildWindows"
-CONTENT_METHOD = "HexLiveContentBatchBuild.Build"
 AUTO_REFRESH_BACKUP = ROOT / "Library" / "HexLiveBuildAutoRefreshBackup-Windows.json"
 UNITY_PREFS_KEY = r"Software\Unity Technologies\Unity Editor 5.x"
 AUTO_REFRESH_PREFIXES = ("kAutoRefreshMode", "kAutoRefresh")
@@ -68,8 +60,8 @@ AUTO_REFRESH_PREFIXES = ("kAutoRefreshMode", "kAutoRefresh")
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Build HexLive for Windows: Addressables content first, then the "
-            "player, then publish them together with the Git/bug report."
+            "Build the content-free HexLive Windows player and publish it "
+            "with the Git/bug report."
         )
     )
     parser.add_argument(
@@ -83,15 +75,6 @@ def parse_args() -> argparse.Namespace:
         help="print the planned version, commits, bugs, and paths without building",
     )
     parser.add_argument(
-        "--skip-content",
-        action="store_true",
-        help=(
-            "reuse the existing Build/AddressableContent instead of rebuilding "
-            "it (retry after a player-side failure only; the catalog is still "
-            "validated for completeness)"
-        ),
-    )
-    parser.add_argument(
         "--unity",
         type=Path,
         help="path to Unity.exe (normally discovered from ProjectVersion.txt)",
@@ -101,12 +84,6 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_RELEASES,
         help=f"release directory (default: {DEFAULT_RELEASES})",
-    )
-    parser.add_argument(
-        "--content-root",
-        type=Path,
-        default=DEFAULT_CONTENT,
-        help=f"shared external HexLiveContent directory (default: {DEFAULT_CONTENT})",
     )
     return parser.parse_args()
 
@@ -406,128 +383,6 @@ def temporary_unity_auto_refresh():
             print("Исходные Unity Auto Refresh prefs восстановлены.")
 
 
-# --- Addressables content ---------------------------------------------------
-
-
-def select_external_catalog(platform_dir: Path) -> dict[str, Any]:
-    if not platform_dir.is_dir():
-        raise RuntimeError(f"External Addressables directory is missing: {platform_dir}")
-
-    bundle_count = sum(1 for path in platform_dir.glob("*.bundle") if path.is_file())
-    prosthetic_bundle_count = sum(
-        1
-        for path in platform_dir.glob("*.bundle")
-        if path.is_file() and "prosthetic" in path.name.lower()
-    )
-    metadata_count = sum(1 for path in platform_dir.glob("*.json") if path.is_file())
-    if bundle_count == 0:
-        raise RuntimeError(f"No Addressables bundles found in {platform_dir}")
-
-    candidates: list[tuple[float, Path, Path]] = []
-    for catalog in platform_dir.glob("catalog_*.bin"):
-        if not catalog.is_file():
-            continue
-        catalog_bytes = catalog.read_bytes()
-        # An icon-only patch is not a valid bootstrap for a Player. The full
-        # catalog must expose all four runtime content doors; a pre-prosthetics
-        # catalog is stale for current code and must also be refused.
-        if not all(
-            marker in catalog_bytes
-            for marker in (b"wear/", b"hair/", b"hexlive.icons", b"prosthetic/")
-        ):
-            continue
-        catalog_hash = catalog.with_suffix(".hash")
-        if not catalog_hash.is_file() or not catalog_hash.read_text(encoding="utf-8").strip():
-            continue
-        candidates.append((catalog.stat().st_mtime, catalog, catalog_hash))
-
-    if not candidates:
-        raise RuntimeError(
-            f"No full wear/hair/icons/prosthetics catalog with a matching hash found in {platform_dir}"
-        )
-    if prosthetic_bundle_count == 0:
-        raise RuntimeError(f"No prosthetic Addressables bundle found in {platform_dir}")
-
-    _, catalog, catalog_hash = max(candidates, key=lambda item: item[0])
-    return {
-        "catalog": catalog,
-        "hash": catalog_hash,
-        "bundleCount": bundle_count,
-        "prostheticBundleCount": prosthetic_bundle_count,
-        "metadataCount": metadata_count,
-    }
-
-
-def sync_shared_content(content_source: Path) -> None:
-    """Mirror the freshly built bundles into the shared distribution folder."""
-    target = content_source / PLATFORM
-    target.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
-        [
-            "robocopy",
-            str(BUILT_CONTENT),
-            str(target),
-            "/MIR",
-            "/MT:8",
-            "/NFL",
-            "/NDL",
-            "/NJH",
-            "/NP",
-        ],
-        check=False,
-    )
-    # Robocopy: 0-7 are success grades, 8+ are failures.
-    if result.returncode >= 8:
-        raise RuntimeError(f"robocopy failed with code {result.returncode}")
-
-
-def install_external_content_bootstrap(
-    player_dir: Path,
-    content_catalog: dict[str, Any],
-) -> None:
-    runtime_dir = player_dir / "HexLive_Data" / "StreamingAssets" / "aa"
-    settings_path = runtime_dir / "settings.json"
-    if not settings_path.is_file():
-        raise RuntimeError(f"Addressables runtime settings are missing from Player: {settings_path}")
-
-    catalog = Path(content_catalog["catalog"])
-    catalog_hash = Path(content_catalog["hash"])
-    settings = read_json(settings_path)
-    locations = settings.get("m_CatalogLocations")
-    if not isinstance(locations, list):
-        raise RuntimeError(f"Addressables catalog locations are malformed: {settings_path}")
-
-    remote_updated = False
-    cache_updated = False
-    for location in locations:
-        if not isinstance(location, dict):
-            continue
-        keys = location.get("m_Keys")
-        key = keys[0] if isinstance(keys, list) and keys else ""
-        if key == "AddressablesMainContentCatalogRemoteHash":
-            location["m_InternalId"] = (
-                "{UnityEngine.Application.dataPath}/../HexLiveContent/" + PLATFORM + "/"
-                + catalog_hash.name
-            )
-            remote_updated = True
-        elif key == "AddressablesMainContentCatalogCacheHash":
-            location["m_InternalId"] = (
-                "{UnityEngine.Application.persistentDataPath}/com.unity.addressables/"
-                + catalog_hash.name
-            )
-            cache_updated = True
-
-    if not remote_updated or not cache_updated:
-        raise RuntimeError(f"Could not retarget Addressables catalog locations in {settings_path}")
-
-    shutil.copy2(catalog, runtime_dir / "catalog.bin")
-    shutil.copy2(catalog_hash, runtime_dir / "catalog.hash")
-    settings_path.write_text(
-        json.dumps(settings, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8",
-    )
-
-
 # --- Junctions (no admin rights required, unlike symlinks) ------------------
 
 
@@ -585,7 +440,6 @@ def print_plan(
     final_dir: Path,
     git_info: dict[str, Any],
     tracker: dict[str, Any],
-    content_plan: str,
 ) -> None:
     ready = active_reports(tracker, {"ready_for_test"})
     open_reports = active_reports(tracker, {"created", "rework", "in_progress"})
@@ -612,7 +466,7 @@ def print_plan(
     for report in ready:
         print(f"  #{report.get('id')}  {short_text(report.get('text'), 120)}")
     print(f"Открытые/в работе и ещё не готовые: {len(open_reports)}")
-    print(f"Контент: {content_plan}")
+    print("Контент: только через Asset API; Player не собирает и не копирует bundles.")
     print(f"Папка билда: {final_dir}")
 
 
@@ -648,9 +502,6 @@ def write_reports(
     bugs_at_start: dict[str, Any],
     bugs_at_end: dict[str, Any],
     unity_summary: dict[str, Any],
-    content_source: Path,
-    content_catalog: dict[str, Any],
-    content_rebuilt: bool,
 ) -> dict[str, Any]:
     included = active_reports(bugs_at_start, {"ready_for_test"})
     included_ids = {report.get("id") for report in included}
@@ -662,8 +513,6 @@ def write_reports(
     not_ready = active_reports(bugs_at_end, {"created", "rework", "in_progress"})
     built_at = unity_summary.get("builtAtUtc") or dt.datetime.now(dt.timezone.utc).isoformat()
     artifact = final_dir / "HexLive" / "HexLive.exe"
-    content_available = (content_source / PLATFORM).is_dir()
-
     manifest: dict[str, Any] = {
         "version": version,
         "builtAtUtc": built_at,
@@ -678,16 +527,12 @@ def write_reports(
             "readyAfterBuildStartedNotIncluded": [bug_record(report) for report in late_ready],
             "notReady": [bug_record(report) for report in not_ready],
         },
-        "externalContent": {
-            "source": str(content_source),
-            "available": content_available,
+        "assetService": {
+            "source": "api",
+            "endpoint": "-hexlive-assets or derived from ws/wss server address",
             "rebuiltByPlayerBuild": False,
-            "rebuiltByThisScript": content_rebuilt,
-            "catalog": str(content_catalog["catalog"]),
-            "catalogHash": str(content_catalog["hash"]),
-            "bundleCount": content_catalog["bundleCount"],
-            "prostheticBundleCount": content_catalog["prostheticBundleCount"],
-            "metadataCount": content_catalog["metadataCount"],
+            "catalogInPlayer": False,
+            "bundlesBesidePlayer": False,
         },
     }
     (staging / "build-manifest.json").write_text(
@@ -703,14 +548,10 @@ def write_reports(
     )
     dirty = git_info["workingTree"]
     dirty_lines = [f"- `{line[:2]}` `{line[3:]}`" for line in dirty] if dirty else ["Нет."]
-    rebuilt_note = "пересобран этим скриптом" if content_rebuilt else "переиспользован без пересборки"
     content_note = (
-        f"Каталог `{content_catalog['catalog']}` ({rebuilt_note}), разложен в "
-        f"`{content_source}`: {content_catalog['bundleCount']} bundle, "
-        f"из них prosthetic — {content_catalog['prostheticBundleCount']}, "
-        f"{content_catalog['metadataCount']} meta JSON."
-        if content_available
-        else f"ВНИМАНИЕ: внешний каталог `{content_source / PLATFORM}` не найден."
+        "Player не собирает и не содержит игровые bundles или каталог. "
+        "Актуальные атомарные объекты клиент получает через Asset API; endpoint "
+        "задаётся `-hexlive-assets` либо выводится из адреса ws/wss-сервера."
     )
 
     markdown = [
@@ -757,9 +598,9 @@ def write_reports(
         f"- Размер Player: `{int(unity_summary.get('totalBytes', 0))} байт`",
         f"- Предупреждения / ошибки: `{unity_summary.get('warnings', '?')} / "
         f"{unity_summary.get('errors', '?')}`",
-        f"- Лог плеера: `unity-build.log`; лог контента: `unity-content-build.log`",
+        f"- Лог плеера: `unity-build.log`",
         "",
-        "## Внешний контент",
+        "## Атомарный контент",
         "",
         content_note,
         "",
@@ -840,7 +681,6 @@ def tail_log(log_path: Path) -> None:
 def main() -> int:
     args = parse_args()
     releases = args.output_root.expanduser().resolve()
-    content_source = args.content_root.expanduser().resolve()
     version, version_reason = planned_version()
     variant = "release" if args.release else "development"
     final_dir = releases / f"v{version}"
@@ -849,12 +689,7 @@ def main() -> int:
     require_empty_legacy_bug_tracker()
     bugs_at_start = read_bug_tracker()
 
-    content_plan = (
-        f"переиспользую {BUILT_CONTENT} (--skip-content)"
-        if args.skip_content
-        else f"пересоберу в {BUILT_CONTENT}, затем разложу в {content_source / PLATFORM}"
-    )
-    print_plan(version, version_reason, variant, final_dir, git_info, bugs_at_start, content_plan)
+    print_plan(version, version_reason, variant, final_dir, git_info, bugs_at_start)
     sys.stdout.flush()
     if args.dry_run:
         print("DRY RUN: Unity не запускалась, версия и файлы не изменены.")
@@ -873,35 +708,7 @@ def main() -> int:
     exe_path = player_dir / "HexLive.exe"
     unity_summary_path = staging / "unity-summary.json"
     player_log_path = staging / "unity-build.log"
-    content_log_path = staging / "unity-content-build.log"
-
     with temporary_unity_auto_refresh():
-        if not args.skip_content:
-            # Build artefact only; wipe so a stale pre-prosthetics catalog can
-            # never win the newest-valid-catalog selection below.
-            if BUILT_CONTENT.exists():
-                shutil.rmtree(BUILT_CONTENT)
-            code = run_unity(
-                unity,
-                ["-executeMethod", CONTENT_METHOD],
-                content_log_path,
-                "Addressables-контент",
-            )
-            if code != 0:
-                print(f"Сборка контента не удалась. Диагностика в {staging}", file=sys.stderr)
-                tail_log(content_log_path)
-                return code or 1
-
-        content_catalog = select_external_catalog(BUILT_CONTENT)
-        print(
-            "Контент собран: "
-            f"{content_catalog['catalog'].name} "
-            f"({content_catalog['bundleCount']} bundle, prosthetic — "
-            f"{content_catalog['prostheticBundleCount']}, "
-            f"{content_catalog['metadataCount']} meta JSON)"
-        )
-        sync_shared_content(content_source)
-
         player_arguments = [
             "-executeMethod",
             PLAYER_METHOD,
@@ -934,11 +741,6 @@ def main() -> int:
     }
     bugs_at_end = require_successful_version_finalize(version, included_bug_ids)
 
-    # Point the shipped catalog references at the shared folder, then link it
-    # beside the exe: dataPath/.. resolves to the player folder on Windows.
-    install_external_content_bootstrap(player_dir, content_catalog)
-    make_junction(player_dir / "HexLiveContent", content_source)
-
     manifest = write_reports(
         staging,
         final_dir,
@@ -948,9 +750,6 @@ def main() -> int:
         bugs_at_start,
         bugs_at_end,
         unity_summary,
-        content_source,
-        content_catalog,
-        not args.skip_content,
     )
     publish_staging(staging, final_dir)
     write_last_success(releases, manifest)

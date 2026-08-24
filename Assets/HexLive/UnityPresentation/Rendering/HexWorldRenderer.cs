@@ -8,6 +8,7 @@ using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Spatial;
 using HexLive.UnityPresentation.TwoPeopleTest;
 using HexLive.UnityPresentation.UI;
@@ -294,7 +295,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// <summary>
     /// Построены ли уже тела для всех этих колонисток. Нужно экрану загрузки:
     /// выбрать «первую» можно только когда она есть, а с переходом на
-    /// Addressables её одежда и причёска приезжают не мгновенно. Раньше выбор
+    /// Из атомарного кэша её одежда и причёска приезжают не мгновенно. Раньше выбор
     /// успевал сработать по счастливой случайности — теперь его надо дождаться.
     /// </summary>
     public bool ActorsReady(IEnumerable<int> ids)
@@ -2585,7 +2586,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private void SyncRomancePairs(WorldSnapshot snapshot)
     {
         _activeRomancePairs.Clear();
-        var catalog = Resources.Load<RomancePoseCatalog>(
+        var catalog = HexLive.UnityPresentation.Content.AtomicResources.Load<RomancePoseCatalog>(
             RomancePoseCatalog.ResourcesPath);
         if (catalog != null)
         {
@@ -2839,7 +2840,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var cueKey = $"{npc.SocialCueTick}:{npc.SocialCueKind}:" +
                 $"{npc.SocialCuePeerId ?? -1}:{npc.SocialCueItemId}";
 
-            // Addressable icons are intentionally non-blocking. Keep polling
+            // Owner-bundle icons are intentionally non-blocking. Keep polling
             // only while the same cue still owns the bubble; the director
             // rejects a late result after any newer alarm or conversation.
             if (_pendingSocialCueItemKey.TryGetValue(npc.Id.Value, out var pendingKey))
@@ -3909,7 +3910,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // tuned asset carries its distortion/foam texture with it. A runtime
         // COPY: the controller tints it per frame, and tinting the loaded
         // asset directly would dirty the .mat on disk in the editor.
-        var definitive = Resources.Load<Material>("HexLive/Water/StylizedWaterDefinitive");
+        var definitive = HexLive.UnityPresentation.Content.AtomicResources.Load<Material>("HexLive/Water/StylizedWaterDefinitive");
         if (definitive != null)
         {
             _waterMaterial = new Material(definitive);
@@ -4273,7 +4274,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         // §118.5 / bug #103: loose prosthetics live in the same external
-        // Addressables catalog as fitted devices. Return an async anchor now;
+        // live registry as fitted devices. Return an async anchor now;
         // ProstheticWorldDropView fills it when the selected L/R model arrives.
         // A missing bundle stays visibly absent and logged — it must never fall
         // through to Resources or the generic diagnostic sphere.
@@ -4484,7 +4485,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         root.transform.SetParent(_objectsRoot, false);
 
         var variant = worldObject.Variant == "1" ? "b" : "a";
-        var sprite = Resources.Load<Sprite>($"HexLive/Remains/human_remains_{variant}");
+        var sprite = HexLive.UnityPresentation.Content.AtomicResources.Load<Sprite>($"HexLive/Remains/human_remains_{variant}");
         if (sprite != null)
         {
             var visual = new GameObject("SkeletonAndLootBag");
@@ -5674,7 +5675,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 31B.5: the girls get real bodies; primitives are the fallback.
         if (!string.IsNullOrEmpty(npc.ActorMesh))
         {
-            var actorPrefab = Resources.Load<GameObject>($"HexLive/Actors/{npc.ActorMesh}");
+            var actorPrefab = ContentPrefabCache.GetOrRequest("actor", npc.ActorMesh);
             if (actorPrefab != null)
             {
                 var actorRoot = new GameObject($"NPC {npc.Id.Value} ({npc.DisplayName})");

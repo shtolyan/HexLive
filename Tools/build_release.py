@@ -11,7 +11,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 from typing import Any
@@ -20,7 +19,6 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DISTRIBUTION = Path.home() / "hex-girls"
 DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
-DEFAULT_CONTENT = DEFAULT_DISTRIBUTION / "HexLiveContent"
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
 BUG_TRACKER = ROOT / "BUGS.json"
@@ -63,12 +61,6 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_RELEASES,
         help=f"release directory (default: {DEFAULT_RELEASES})",
-    )
-    parser.add_argument(
-        "--content-root",
-        type=Path,
-        default=DEFAULT_CONTENT,
-        help=f"existing external HexLiveContent directory (default: {DEFAULT_CONTENT})",
     )
     return parser.parse_args()
 
@@ -477,105 +469,6 @@ def markdown_bug_list(reports: list[dict[str, Any]], include_status: bool = Fals
     return lines
 
 
-def select_external_catalog(content_source: Path) -> dict[str, Any]:
-    platform_dir = content_source / "StandaloneOSX"
-    if not platform_dir.is_dir():
-        raise RuntimeError(f"External Addressables directory is missing: {platform_dir}")
-
-    bundle_count = sum(1 for path in platform_dir.glob("*.bundle") if path.is_file())
-    prosthetic_bundle_count = sum(
-        1
-        for path in platform_dir.glob("*.bundle")
-        if path.is_file() and "prosthetic" in path.name.lower()
-    )
-    metadata_count = sum(1 for path in platform_dir.glob("*.json") if path.is_file())
-    if bundle_count == 0:
-        raise RuntimeError(f"No Addressables bundles found in {platform_dir}")
-
-    candidates: list[tuple[float, Path, Path]] = []
-    for catalog in platform_dir.glob("catalog_*.bin"):
-        if not catalog.is_file():
-            continue
-        catalog_bytes = catalog.read_bytes()
-        # An icon-only patch is not a valid bootstrap for a Player. The full
-        # catalog must expose all four runtime content doors. A stale full
-        # wardrobe catalog is not enough after fitted prostheses moved out of
-        # Resources: the executable would have the loader but no model bundle.
-        if not all(
-            marker in catalog_bytes
-            for marker in (b"wear/", b"hair/", b"hexlive.icons", b"prosthetic/")
-        ):
-            continue
-        catalog_hash = catalog.with_suffix(".hash")
-        if not catalog_hash.is_file() or not catalog_hash.read_text(encoding="utf-8").strip():
-            continue
-        candidates.append((catalog.stat().st_mtime, catalog, catalog_hash))
-
-    if not candidates:
-        raise RuntimeError(
-            f"No full wear/hair/icons/prosthetics catalog with a matching hash found in {platform_dir}"
-        )
-    if prosthetic_bundle_count == 0:
-        raise RuntimeError(f"No prosthetic Addressables bundle found in {platform_dir}")
-
-    _, catalog, catalog_hash = max(candidates, key=lambda item: item[0])
-    return {
-        "catalog": catalog,
-        "hash": catalog_hash,
-        "bundleCount": bundle_count,
-        "prostheticBundleCount": prosthetic_bundle_count,
-        "metadataCount": metadata_count,
-    }
-
-
-def install_external_content_bootstrap(
-    app_path: Path,
-    content_source: Path,
-    content_catalog: dict[str, Any],
-) -> None:
-    runtime_dir = app_path / "Contents" / "Resources" / "Data" / "StreamingAssets" / "aa"
-    settings_path = runtime_dir / "settings.json"
-    if not settings_path.is_file():
-        raise RuntimeError(f"Addressables runtime settings are missing from Player: {settings_path}")
-
-    catalog = Path(content_catalog["catalog"])
-    catalog_hash = Path(content_catalog["hash"])
-    settings = read_json(settings_path)
-    locations = settings.get("m_CatalogLocations")
-    if not isinstance(locations, list):
-        raise RuntimeError(f"Addressables catalog locations are malformed: {settings_path}")
-
-    remote_updated = False
-    cache_updated = False
-    for location in locations:
-        if not isinstance(location, dict):
-            continue
-        keys = location.get("m_Keys")
-        key = keys[0] if isinstance(keys, list) and keys else ""
-        if key == "AddressablesMainContentCatalogRemoteHash":
-            location["m_InternalId"] = (
-                "{UnityEngine.Application.dataPath}/../HexLiveContent/StandaloneOSX/"
-                + catalog_hash.name
-            )
-            remote_updated = True
-        elif key == "AddressablesMainContentCatalogCacheHash":
-            location["m_InternalId"] = (
-                "{UnityEngine.Application.persistentDataPath}/com.unity.addressables/"
-                + catalog_hash.name
-            )
-            cache_updated = True
-
-    if not remote_updated or not cache_updated:
-        raise RuntimeError(f"Could not retarget Addressables catalog locations in {settings_path}")
-
-    shutil.copy2(catalog, runtime_dir / "catalog.bin")
-    shutil.copy2(catalog_hash, runtime_dir / "catalog.hash")
-    settings_path.write_text(
-        json.dumps(settings, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8",
-    )
-
-
 def write_reports(
     staging: Path,
     final_dir: Path,
@@ -585,8 +478,6 @@ def write_reports(
     bugs_at_start: dict[str, Any],
     bugs_at_end: dict[str, Any],
     unity_summary: dict[str, Any],
-    content_source: Path,
-    content_catalog: dict[str, Any],
     signature: str,
 ) -> dict[str, Any]:
     included = active_reports(bugs_at_start, {"ready_for_test"})
@@ -600,8 +491,6 @@ def write_reports(
     built_at = unity_summary.get("builtAtUtc") or dt.datetime.now(dt.timezone.utc).isoformat()
     artifact = final_dir / "HexLive.app"
     report_path = final_dir / "BUILD_REPORT.md"
-    content_available = (content_source / "StandaloneOSX").is_dir()
-
     manifest: dict[str, Any] = {
         "version": version,
         "builtAtUtc": built_at,
@@ -616,15 +505,12 @@ def write_reports(
             "readyAfterBuildStartedNotIncluded": [bug_record(report) for report in late_ready],
             "notReady": [bug_record(report) for report in not_ready],
         },
-        "externalContent": {
-            "source": str(content_source),
-            "available": content_available,
+        "assetService": {
+            "source": "api",
+            "endpoint": "-hexlive-assets or derived from ws/wss server address",
             "rebuiltByPlayerBuild": False,
-            "catalog": str(content_catalog["catalog"]),
-            "catalogHash": str(content_catalog["hash"]),
-            "bundleCount": content_catalog["bundleCount"],
-            "prostheticBundleCount": content_catalog["prostheticBundleCount"],
-            "metadataCount": content_catalog["metadataCount"],
+            "catalogInPlayer": False,
+            "bundlesBesidePlayer": False,
         },
     }
     (staging / "build-manifest.json").write_text(
@@ -641,13 +527,9 @@ def write_reports(
     dirty = git_info["workingTree"]
     dirty_lines = [f"- `{line[:2]}` `{line[3:]}`" for line in dirty] if dirty else ["Нет."]
     content_note = (
-        f"Переиспользован внешний каталог `{content_catalog['catalog']}` из "
-        f"`{content_source}` через `HexLiveContent`: "
-        f"{content_catalog['bundleCount']} bundle, "
-        f"из них prosthetic — {content_catalog['prostheticBundleCount']}, "
-        f"{content_catalog['metadataCount']} meta JSON. Player Build контент не пересобирал."
-        if content_available
-        else f"ВНИМАНИЕ: внешний каталог `{content_source / 'StandaloneOSX'}` не найден."
+        "Player не собирает и не содержит игровые bundles или каталог. "
+        "Актуальные атомарные объекты клиент получает через Asset API; endpoint "
+        "задаётся `-hexlive-assets` либо выводится из адреса ws/wss-сервера."
     )
 
     markdown = [
@@ -697,7 +579,7 @@ def write_reports(
         f"- Подпись приложения: `{signature}`",
         f"- Лог: [unity-build.log]({(final_dir / 'unity-build.log').as_uri()})",
         "",
-        "## Внешний контент",
+        "## Атомарный контент",
         "",
         content_note,
         "",
@@ -736,8 +618,6 @@ def update_latest_player_link(releases: Path, artifact: Path) -> Path:
 def main() -> int:
     args = parse_args()
     releases = args.output_root.expanduser().resolve()
-    content_source = args.content_root.expanduser().resolve()
-    content_catalog = select_external_catalog(content_source)
     version, version_reason = planned_version()
     variant = "release" if args.release else "development"
     final_dir = releases / f"v{version}"
@@ -747,11 +627,7 @@ def main() -> int:
     bugs_at_start = read_bug_tracker()
 
     print_plan(version, version_reason, variant, final_dir, git_info, bugs_at_start)
-    print(
-        "Внешний контент: "
-        f"{content_catalog['catalog']} "
-        f"({content_catalog['bundleCount']} bundle, {content_catalog['metadataCount']} meta JSON)"
-    )
+    print("Контент: только через Asset API; Player не собирает и не копирует bundles.")
     sys.stdout.flush()
     if args.dry_run:
         print("DRY RUN: Unity не запускалась, версия и файлы не изменены.")
@@ -820,9 +696,6 @@ def main() -> int:
         if isinstance(report.get("id"), int)
     }
     bugs_at_end = require_successful_version_finalize(version, included_bug_ids)
-    install_external_content_bootstrap(app_path, content_source, content_catalog)
-    content_link = staging / "HexLiveContent"
-    content_link.symlink_to(content_source, target_is_directory=True)
     signature = ensure_development_signature(app_path, args.release)
 
     manifest = write_reports(
@@ -834,8 +707,6 @@ def main() -> int:
         bugs_at_start,
         bugs_at_end,
         unity_summary,
-        content_source,
-        content_catalog,
         signature,
     )
     staging.rename(final_dir)

@@ -20,7 +20,7 @@ from mathutils import Vector
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-OBJECT_ROOT = PROJECT_ROOT / "Assets/Resources/HexLive/Objects"
+OBJECT_ROOT = PROJECT_ROOT / "Assets/HexLiveContent/RuntimeSource/Objects"
 SOURCE_ROOT = PROJECT_ROOT / "Assets/ArtSource/Crafting"
 STICK_FBX = OBJECT_ROOT / "resource.stick.fbx"
 BOARD_FBX = OBJECT_ROOT / "resource.board.fbx"

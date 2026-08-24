@@ -21,8 +21,8 @@ using UnityEngine;
 /// </summary>
 internal static class WearIconShooter
 {
-    private const string WearRoot = "Assets/Resources/HexLive/Wear";
-    private const string IconRoot = "Assets/Resources/HexLive/UI/Items";
+    private const string WearRoot = "Assets/HexLiveContent/Wear";
+    private const string IconRoot = "Assets/HexLiveContent/Icons";
     private const int Size = 512;
 
     // Mostly front, turned a little and seen slightly from above. The angle is

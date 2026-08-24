@@ -14,7 +14,7 @@ namespace HexLive.UnityPresentation.Environment
 
         public static GameObject? Build(float frondLength, int frondCount)
         {
-            var frondPrefab = Resources.Load<GameObject>(
+            var frondPrefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(
                 "HexLive/Objects/palm_frond_native");
             if (frondPrefab == null || !ObjectFit.HasRenderableGeometry(frondPrefab))
             {

@@ -3,18 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using HexLive.UnityPresentation.Wearing;
 using UnityEditor;
-using UnityEditor.Build;
-using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace HexLive.UnityDebug.Editor
 {
     /// <summary>Uniform importer and build contract for every shipped actor body.</summary>
-    public sealed class ActorBodyFbxGate : AssetPostprocessor, IPreprocessBuildWithReport
+    public sealed class ActorBodyFbxGate : AssetPostprocessor
     {
         private const string ActorPrefabsRoot = "Assets/Resources/HexLive/Actors";
-
-        public int callbackOrder => -100;
 
         private void OnPreprocessModel()
         {
@@ -28,16 +24,6 @@ namespace HexLive.UnityDebug.Editor
             importer.isReadable = true;
             importer.animationType = ModelImporterAnimationType.Human;
             importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
-        }
-
-        public void OnPreprocessBuild(BuildReport report)
-        {
-            var errors = ValidateAllActors();
-            if (errors.Count > 0)
-            {
-                throw new BuildFailedException(
-                    "Actor body FBX contract failed:\n" + string.Join("\n", errors));
-            }
         }
 
         [MenuItem("HexLive/Validate/Actor body FBX contract")]

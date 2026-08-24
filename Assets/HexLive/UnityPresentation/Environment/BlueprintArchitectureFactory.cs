@@ -118,7 +118,7 @@ namespace HexLive.UnityPresentation.Environment
         {
             if (!ModelPrefabs.TryGetValue(definitionId, out var prefab))
             {
-                prefab = Resources.Load<GameObject>("HexLive/Objects/" + definitionId);
+                prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Objects/" + definitionId);
                 ModelPrefabs[definitionId] = prefab;
             }
             if (prefab == null) return null;

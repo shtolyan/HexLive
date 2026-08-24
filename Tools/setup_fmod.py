@@ -19,7 +19,7 @@ Two sources, because both happen in practice:
     python3 Tools/setup_fmod.py --package  D:/dl/fmodstudio20314.unitypackage
     python3 Tools/setup_fmod.py --from-folder  //mac/HexLive/Assets/Plugins/FMOD
 
-The version must match the banks. `Assets/StreamingAssets/FMODBanks/Master.bank`
+The version must match the banks. `Assets/HexLiveContent/AudioSource/FMODBanks/Master.bank`
 carries its format version in the FMT chunk (146 = FMOD 2.03.x); this script
 reads it and refuses an integration from a different major.minor line, since a
 2.01 runtime answers ERR_HEADER_MISMATCH on a 2.03 bank and the game goes silent
@@ -40,7 +40,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 STUB = ROOT / "Assets" / "HexLive" / "UnityPresentation" / "Audio" / "FmodStub.local.cs"
 FMOD_PLUGIN = ROOT / "Assets" / "Plugins" / "FMOD"
-MASTER_BANK = ROOT / "Assets" / "StreamingAssets" / "FMODBanks" / "Master.bank"
+MASTER_BANK = (ROOT / "Assets" / "HexLiveContent" / "AudioSource" /
+               "FMODBanks" / "Master.bank")
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
 
 # Bank FMT-chunk format version -> the FMOD line that writes it. Only the lines
@@ -356,8 +357,9 @@ def main() -> int:
 
     print(
         "\nГотово: интеграция на месте и проект компилируется. Осталось настроить "
-        "FMODStudioSettings (Single Platform Build → Assets/StreamingAssets/FMODBanks, "
-        "BankLoadType = All) и пересобрать плеер."
+        "FMODStudioSettings (authoring source → Assets/HexLiveContent/AudioSource/FMODBanks, "
+        "ImportType = AssetBundle, BankLoadType = None): Player не копирует банки, "
+        "а raw audio records загружаются через ContentAssetService."
     )
     return 0
 

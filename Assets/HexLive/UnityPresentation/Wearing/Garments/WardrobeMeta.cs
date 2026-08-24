@@ -1,203 +1,120 @@
+using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using HexLive.Simulation.Content;
+using HexLive.UnityPresentation.Content;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Wearing.Garments
 {
 
-// Чтение мет-файлов, лежащих РЯДОМ с бандлами.
-//
-// Это и есть замыкание всей затеи: бандл несёт арт, мета несёт данные, а игра
-// на старте читает меты и узнаёт о вещах, которых не было в момент её сборки.
-// Положил два файла в папку контента — и вещь в игре, без пересборки exe.
-//
-// Почему файлом рядом, а не внутри бандла: чтобы РЕШИТЬ, надевать ли эту вещь
-// (трусы это или лифчик, чей слой, какие статы), не нужно открывать бандл — а
-// открыть его значит поднять меши и текстуры вещи, которую ещё не выбрали.
-//
-// Мета ПЕРЕКРЫВАЕТ то, что собрано в коде и ассетах: контент — последнее слово,
-// иначе правку статов пришлось бы выпускать вместе с игрой.
+/// <summary>Applies small live-record metadata without opening object bundles.</summary>
 public static class WardrobeMeta
 {
-    // Тот же единый корень, из которого Addressables берёт бандлы. На macOS
-    // он лежит рядом с .app (не внутри пакета), поэтому несколько новых билдов
-    // в одной папке используют один комплект контента.
-    private static string ContentRoot => ExternalContentPath.Root;
-
-    /// <summary>Сколько вещей приехало метами — для проверки и лога.</summary>
+    private static bool _subscribed;
     public static int LoadedItems { get; private set; }
 
-    private static bool _loaded;
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        _subscribed = false;
+        LoadedItems = 0;
+    }
 
-    /// <summary>
-    /// Прочитать все меты и влить в таблицы. Зовётся на старте один раз; повтор
-    /// — тихий no-op, чтобы перезаход в мир не перезаливал таблицы поверх себя.
-    /// </summary>
     public static void Load()
     {
-        if (_loaded)
+        var service = ContentAssetService.Instance;
+        if (!_subscribed)
+        {
+            _subscribed = true;
+            service.RegistryRefreshed += Apply;
+        }
+        Apply();
+        service.RefreshRegistry();
+    }
+
+    private static void Apply()
+    {
+        var records = ContentAssetService.Instance.Records("wear");
+        var remote = new Dictionary<string, GarmentParams>(StringComparer.Ordinal);
+        foreach (var record in records)
+        {
+            var parameters = ToParams(record);
+            if (parameters == null)
+            {
+                continue;
+            }
+            remote[parameters.Id] = parameters;
+            RegisterSlots(record.id, record.metadata?["slots"] as JArray);
+        }
+        if (remote.Count == 0)
         {
             return;
         }
 
-        _loaded = true;
-
-        var root = Path.GetFullPath(ContentRoot);
-        if (!Directory.Exists(root))
-        {
-            // Законный случай: в редакторе контент не собран, играем на том,
-            // что в проекте. Не ошибка и не предупреждение.
-            return;
-        }
-
-        var byId = new Dictionary<string, GarmentParams>();
-        var files = 0;
-
-        foreach (var path in Directory.GetFiles(root, "*.json", SearchOption.AllDirectories))
-        {
-            var name = Path.GetFileName(path);
-            // Рядом лежат служебные файлы самих Addressables — их не трогаем.
-            if (name.StartsWith("catalog") || name.StartsWith("settings") ||
-                name.StartsWith("link") || name.StartsWith("AddressablesLink"))
-            {
-                continue;
-            }
-
-            MetaFile meta;
-            try
-            {
-                meta = JsonUtility.FromJson<MetaFile>(File.ReadAllText(path));
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"[Мета] {name} не читается: {e.Message}");
-                continue;
-            }
-
-            if (meta?.items == null)
-            {
-                continue;
-            }
-
-            files++;
-            foreach (var item in meta.items)
-            {
-                if (item == null || string.IsNullOrEmpty(item.id))
-                {
-                    continue;
-                }
-
-                byId[item.id] = ToParams(item, meta.artId);
-                RegisterSlots(item);
-            }
-        }
-
-        if (byId.Count == 0)
-        {
-            return;
-        }
-
-        // Всё, чего в метах нет, остаётся из кода и ассетов: комплект чужака
-        // §72 контентом не раздаётся и должен пережить эту заливку.
-        var merged = new List<GarmentParams>(byId.Count);
-        foreach (var known in GarmentLibrary.Active)
-        {
-            if (!byId.ContainsKey(known.Id))
-            {
-                merged.Add(known);
-            }
-        }
-
-        merged.AddRange(byId.Values);
+        var merged = GarmentLibrary.Active
+            .Where(value => !remote.ContainsKey(value.Id)).ToList();
+        merged.AddRange(remote.Values);
         GarmentLibrary.Override(merged);
-
-        LoadedItems = byId.Count;
-        Debug.Log($"[Мета] прочитано файлов {files}, вещей {LoadedItems}; " +
-                  $"в таблице всего {merged.Count}.");
+        LoadedItems = remote.Count;
+        Debug.Log($"[Мета] из live registry применено вещей: {LoadedItems}; " +
+                  "sidecar JSON и Addressables catalog не читаются.");
     }
 
-    private static void RegisterSlots(MetaItem item)
+    private static GarmentParams ToParams(ContentRecord record)
     {
-        if (item.slots == null || item.slots.Length == 0)
+        var metadata = record.metadata;
+        if (metadata == null || metadata["layer"] == null)
         {
-            return;
+            return null;
         }
 
-        var slots = new List<WearSlot>(item.slots.Length);
-        foreach (var name in item.slots)
-        {
-            if (System.Enum.TryParse<WearSlot>(name, out var slot))
-            {
-                slots.Add(slot);
-            }
-        }
-
-        if (slots.Count > 0)
-        {
-            WearSlotCatalog.Register(item.id, slots.ToArray());
-        }
-    }
-
-    private static GarmentParams ToParams(MetaItem item, string artId)
-    {
-        var covers = new List<BodyPart>();
-        if (item.covers != null)
-        {
-            foreach (var name in item.covers)
-            {
-                if (System.Enum.TryParse<BodyPart>(name, out var part))
-                {
-                    covers.Add(part);
-                }
-            }
-        }
-
-        System.Enum.TryParse<WearLayer>(item.layer, out var layer);
-        System.Enum.TryParse<GarmentSex>(item.sex, out var sex);
-
+        Enum.TryParse(metadata.Value<string>("layer"), out WearLayer layer);
+        Enum.TryParse(metadata.Value<string>("sex"), out GarmentSex sex);
+        var covers = Values<BodyPart>(metadata["covers"] as JArray);
         return new GarmentParams(
-            item.id,
-            string.IsNullOrEmpty(item.nameEn) ? item.id : item.nameEn,
+            record.id,
+            metadata.Value<string>("displayName") ?? record.id,
             layer,
-            item.warmth,
-            item.armor,
-            item.thermalDelta,
-            item.dressDurationTicks > 0 ? item.dressDurationTicks : 8,
-            item.capacity,
+            metadata.Value<float?>("warmth") ?? 0f,
+            metadata.Value<float?>("armor") ?? 0f,
+            metadata.Value<float?>("thermalDelta") ?? 0f,
+            metadata.Value<int?>("dressDurationTicks") ?? 8,
+            metadata.Value<int?>("capacity") ?? 0,
             sex,
-            covers.ToArray())
+            covers)
         {
-            PrototypeId = string.IsNullOrEmpty(artId) ? item.id : artId,
+            // One logical item owns one independently versioned payload even
+            // when its authoring prefab was cloned from an art prototype.
+            PrototypeId = record.id,
         };
     }
 
-    // JsonUtility требует конкретных полей; лишнее в файле он молча игнорирует,
-    // что здесь и нужно — мету будут дополнять, а старая игра должна её пережить.
-    [System.Serializable]
-    private sealed class MetaFile
+    private static void RegisterSlots(string id, JArray values)
     {
-        public string artId;
-        public MetaItem[] items;
+        var slots = Values<WearSlot>(values);
+        if (slots.Length > 0)
+        {
+            WearSlotCatalog.Register(id, slots);
+        }
     }
 
-    [System.Serializable]
-    private sealed class MetaItem
+    private static T[] Values<T>(JArray values) where T : struct
     {
-        public string id;
-        public string layer;
-        public string[] covers;
-        public string[] slots;
-        public float warmth;
-        public float armor;
-        public float thermalDelta;
-        public int dressDurationTicks;
-        public int capacity;
-        public string sex;
-        public string nameEn;
-        public string nameRu;
-        public string descEn;
-        public string descRu;
+        if (values == null)
+        {
+            return Array.Empty<T>();
+        }
+        var result = new List<T>();
+        foreach (var value in values)
+        {
+            if (Enum.TryParse(value.Value<string>(), out T parsed))
+            {
+                result.Add(parsed);
+            }
+        }
+        return result.ToArray();
     }
 }
 

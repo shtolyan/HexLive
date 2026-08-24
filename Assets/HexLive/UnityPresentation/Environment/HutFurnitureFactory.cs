@@ -46,7 +46,7 @@ public static class HutFurnitureFactory
     /// </summary>
     public static GameObject BuildHearth()
     {
-        var authored = Resources.Load<GameObject>(HearthPrefabPath);
+        var authored = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(HearthPrefabPath);
         if (authored != null)
         {
             var host = new GameObject("Integrated hut hearth");

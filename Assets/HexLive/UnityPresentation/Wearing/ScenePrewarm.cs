@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.Simulation.Core;
+using HexLive.UnityPresentation.Content;
 
 namespace HexLive.UnityPresentation.Wearing
 {
@@ -14,11 +16,10 @@ namespace HexLive.UnityPresentation.Wearing
 // блокирующее чтение с диска в первом же кадре игры. Такую пропажу видно не в
 // логе, а как «игра дёрнулась, когда я открыл рюкзак».
 //
-// ⭐ ПРАВИЛО: новая семья addressable-контента, зависящего от состояния мира,
+// ⭐ ПРАВИЛО: новая семья атомарного контента, зависящего от состояния мира,
 // добавляет сюда свой проход. Контент, который от мира НЕ зависит (иконки —
-// один бандл на 0.73 МБ, модели предметов и оружия — папка Resources целиком),
-// греется безусловно в SimulationRunnerBehaviour.WarmContent и здесь ему делать
-// нечего.
+// часть bundle владельца) никогда не греется целиком: иначе экран загрузки
+// скачал бы весь реестр.
 //
 // ⚠️ Читает Entities.* — значит, только с главного потока и только когда мир не
 // мотается воркером (§41.3). Вызывается ДВАЖДЫ: до намотки (чтобы загрузка шла
@@ -34,9 +35,78 @@ public static class ScenePrewarm
             return;
         }
 
+        ResolveWorkingSet(world);
         WarmWear(world);
+        WarmActors(world);
         WarmHair(world);
         WarmProsthetics(world);
+        WarmObjects(world);
+        WarmMobs(world);
+    }
+
+    private static void ResolveWorkingSet(WorldState world)
+    {
+        var keys = new Dictionary<string, ContentObjectKey>();
+        void Add(string type, string id)
+        {
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                keys[type + "/" + id] = new ContentObjectKey { type = type, id = id };
+            }
+        }
+
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            Add("actor", npc.ActorMesh);
+            Add("hair", npc.Hairstyle);
+            foreach (var garment in npc.WornItems)
+            {
+                Add("wear", garment.DefinitionId);
+            }
+            foreach (var part in npc.Body.Parts)
+            {
+                if (npc.Body.Condition(part.Key)?.Prosthetic is not { } prosthetic)
+                {
+                    continue;
+                }
+                var address = ProstheticContent.Address(
+                    prosthetic.Part, prosthetic.DefinitionId, prosthetic.Mechanical);
+                if (address.StartsWith("prosthetic/", System.StringComparison.Ordinal))
+                {
+                    Add("prosthetic", address[11..]);
+                }
+            }
+        }
+
+        foreach (var corpse in world.Entities.Corpses.Values)
+        {
+            Add("actor", corpse.ActorMesh);
+            Add("hair", corpse.Hairstyle);
+            foreach (var garment in corpse.WornItems)
+            {
+                Add("wear", garment.DefinitionId);
+            }
+        }
+
+        foreach (var value in world.Entities.Objects.Values)
+        {
+            Add(value.DefinitionId.StartsWith("building.", System.StringComparison.Ordinal)
+                ? "building" : "object", value.DefinitionId);
+        }
+        foreach (var mob in world.Mobs)
+        {
+            Add("mob", mob.MobId);
+        }
+
+        ContentAssetService.Instance.Resolve(keys.Values, missing =>
+        {
+            if (missing.Count > 0)
+            {
+                UnityEngine.Debug.LogWarning(
+                    "[AtomicContent] сервер не разрешил: " +
+                    string.Join(", ", missing.Select(value => value.type + "/" + value.id)));
+            }
+        });
     }
 
     /// <summary>Одежда: надетая на живых и мёртвых плюс валяющаяся на земле.
@@ -106,6 +176,63 @@ public static class ScenePrewarm
         foreach (var style in styles)
         {
             HairContent.Prewarm(style);
+        }
+    }
+
+    private static void WarmActors(WorldState world)
+    {
+        var actors = new HashSet<string>();
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (!string.IsNullOrEmpty(npc.ActorMesh))
+            {
+                actors.Add(npc.ActorMesh);
+            }
+        }
+
+        foreach (var corpse in world.Entities.Corpses.Values)
+        {
+            if (!string.IsNullOrEmpty(corpse.ActorMesh))
+            {
+                actors.Add(corpse.ActorMesh);
+            }
+        }
+
+        foreach (var actor in actors)
+        {
+            ContentPrefabCache.Prewarm("actor", actor);
+        }
+    }
+
+    private static void WarmObjects(WorldState world)
+    {
+        foreach (var worldObject in world.Entities.Objects.Values)
+        {
+            if (string.IsNullOrEmpty(worldObject.DefinitionId))
+            {
+                continue;
+            }
+
+            var type = worldObject.DefinitionId.StartsWith("building.",
+                System.StringComparison.Ordinal) ? "building" : "object";
+            ContentPrefabCache.Prewarm(type, worldObject.DefinitionId);
+        }
+    }
+
+    private static void WarmMobs(WorldState world)
+    {
+        var ids = new HashSet<string>();
+        foreach (var mob in world.Mobs)
+        {
+            if (!string.IsNullOrEmpty(mob.MobId))
+            {
+                ids.Add(mob.MobId);
+            }
+        }
+
+        foreach (var id in ids)
+        {
+            ContentPrefabCache.Prewarm("mob", id);
         }
     }
 

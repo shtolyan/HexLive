@@ -26,7 +26,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
         private const string GarmentsRoot =
             "Assets/HexLive/UnityPresentation/Wearing/Garments/Assets";
         private const string CatalogPath =
-            "Assets/Resources/HexLive/GarmentCatalog.asset";
+            "Assets/HexLiveContent/RuntimeSource/GarmentCatalog.asset";
 
         [MenuItem("HexLive/Garments/Rebuild Catalog From Defaults")]
         public static void Rebuild()
@@ -106,7 +106,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
             }
 
             EnsureFolder("Assets/Resources");
-            EnsureFolder("Assets/Resources/HexLive");
+            EnsureFolder("Assets/HexLiveContent/RuntimeSource");
 
             var catalog = AssetDatabase.LoadAssetAtPath<GarmentCatalog>(CatalogPath);
             if (catalog == null)

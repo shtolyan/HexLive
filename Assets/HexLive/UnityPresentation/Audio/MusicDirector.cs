@@ -17,8 +17,8 @@ namespace HexLive.UnityPresentation.Audio
     ///     тишина там читается как «звук сломался»;
     ///   • ИГРА — первый трек через минуту-две, дальше 5–11 минут тишины.
     ///
-    /// Треков может быть сколько угодно: всё, что лежит в
-    /// StreamingAssets/HexLive/Music. Файлы с именем "menu_*" — плейлист меню,
+    /// Треков может быть сколько угодно: live records `audio/*` с
+    /// `metadata.kind=music`. Имена `menu_*` образуют плейлист меню,
     /// остальные — игровой; пустой плейлист падает на общий список, поэтому
     /// один-единственный трек обслуживает оба режима (§70.2).
     /// Часы у директора НЕсмасштабированные: меню Escape ставит Time.timeScale
@@ -65,7 +65,7 @@ namespace HexLive.UnityPresentation.Audio
             var tracks = FmodSfx.MusicTracks;
             Debug.Log(tracks.Length > 0
                 ? $"[Music] {tracks.Length} track(s): {string.Join(", ", tracks)}"
-                : "[Music] no tracks in StreamingAssets/HexLive/Music — silence");
+                : "[Music] no verified audio/music records yet — silence");
         }
 
         private void OnDestroy() => FmodSfx.StopMusic();

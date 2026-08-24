@@ -312,7 +312,11 @@ public sealed class GroundBloodStains : MonoBehaviour
         // demo `..._Static_Projected` prefabs; we only drive size + fadeFactor
         // per stain on our tick-driven lifecycle. Shared instances: fadeFactor
         // and size are DecalProjector fields, not material state.
-        var bases = Resources.LoadAll<Material>("HexLive/BloodStainMats");
+        var bases = HexLive.UnityPresentation.Content.AtomicResources.LoadAll<Material>("HexLive/BloodStainMats");
+        if (bases.Length == 0)
+        {
+            return;
+        }
         System.Array.Sort(bases, (a, b) => string.CompareOrdinal(a.name, b.name));
         _variantCount = bases.Length;
         _stainMats = new Material[_variantCount, AgeBuckets];

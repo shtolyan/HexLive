@@ -256,7 +256,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         // plus a skirt), and they must not collide on the equip key.
         var perGroup = new Dictionary<string, int>();
 
-        // Арт вещей уехал из Resources в Addressables. Браузер — редакторный,
+        // Арт вещей уехал из Resources в атомарные owner bundles. Браузер — редакторный,
         // поэтому берёт префабы прямо с диска: ему нужен весь список сразу,
         // а не то, что уже собрано в бандлы.
         foreach (var prefab in LoadWearPrefabsForBrowser())
@@ -414,7 +414,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _phaseTime = 0f;
         ApplyActorFilter();
 
-        var prefab = Resources.Load<GameObject>($"HexLive/Actors/{girl}");
+        var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>($"HexLive/Actors/{girl}");
         if (prefab == null)
         {
             Debug.LogError($"Actor prefab 'HexLive/Actors/{girl}' not found");

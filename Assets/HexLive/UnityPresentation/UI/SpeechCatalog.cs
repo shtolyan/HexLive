@@ -331,7 +331,7 @@ public static class SpeechCatalog
         ["MedicalAidRejected"] = new("Warning", null, Rank.Alarm),
 
         // ---- §111.12: the concrete item sprite replaces this fallback once
-        // its Addressable finishes loading. Loot itself is silent.
+        // its owner bundle finishes loading. Loot itself is silent.
         ["LootHelplessTook"] = new("Gift", null, Rank.Action),
 
         // ---- разговор ------------------------------------------------------

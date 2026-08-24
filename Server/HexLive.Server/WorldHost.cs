@@ -150,6 +150,33 @@ public sealed class WorldHost : IDisposable
         _llmProviderDiagnostics?.DrainSummary();
 
     /// <summary>
+    /// §149.4: кладёт в мир СОЮЗ назначений всех игроков — единственное, из
+    /// чего симуляция узнаёт «эта девушка в руках игрока». Реестр назначений
+    /// живёт на сервере, симуляция его не сохраняет и по проводу не шлёт;
+    /// набор переустанавливается целиком, а не по одному игроку, потому что
+    /// это состояние, а не дельта: отключившегося надо уметь и убрать.
+    /// Замок тот же, что держит тик, — иначе граница прав читалась бы на
+    /// полушаге.
+    /// </summary>
+    public void SetPlayerControlledNpcs(IReadOnlyCollection<int> npcIds)
+    {
+        if (npcIds is null)
+        {
+            throw new ArgumentNullException(nameof(npcIds));
+        }
+
+        lock (_gate)
+        {
+            var owned = _engine.World.PlayerControlledNpcs;
+            owned.Clear();
+            foreach (var npcId in npcIds)
+            {
+                owned.Add(npcId);
+            }
+        }
+    }
+
+    /// <summary>
     /// Читает мир под тем же замком, что держит тик, — единственный законный
     /// способ ответить на вопрос «что там сейчас» из чужого потока.
     /// <para>

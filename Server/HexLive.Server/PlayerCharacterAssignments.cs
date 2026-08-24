@@ -203,6 +203,8 @@ public sealed class PlayerCharacterAssignments
         // The assignment lock serializes both the final cancellation check and
         // the generation transition. A late old-world viewer cannot roll the
         // registry back after a new-world viewer has already assigned NPCs.
+        IReadOnlyList<int> result;
+        int[] union;
         lock (_gate)
         {
             if (worldLifetime.IsCancellationRequested)
@@ -221,8 +223,35 @@ public sealed class PlayerCharacterAssignments
                 _players.Clear();
             }
 
-            return Reconcile(playerId, roster.retainable, roster.assignable, characterLimit);
+            var assigned = Reconcile(
+                playerId, roster.retainable, roster.assignable, characterLimit);
+            union = AllAssignedIdsLocked();
+            result = assigned;
         }
+
+        // §149.4: симуляция обязана знать, КЕМ сейчас владеют игроки. Своя
+        // граница прав у сервера уже есть, но за ней стоит вторая — §123
+        // внутри симуляции, — и она до §149.4 знала лишь `Faction.Colony`:
+        // выданная девушка соседнего лагеря проходила сервер и молча
+        // отбивалась симуляцией с «NotOwned». Публикуем ВЕСЬ союз назначений,
+        // а не одного игрока: набор в мире — это состояние, а не дельта.
+        host.SetPlayerControlledNpcs(union);
+        return result;
+    }
+
+    /// <summary>Союз назначений всех игроков. Вызывать под <c>_gate</c>.</summary>
+    private int[] AllAssignedIdsLocked()
+    {
+        var union = new SortedSet<int>();
+        foreach (var player in _players)
+        {
+            foreach (var npcId in player.NpcIds)
+            {
+                union.Add(npcId);
+            }
+        }
+
+        return union.ToArray();
     }
 
     /// <summary>

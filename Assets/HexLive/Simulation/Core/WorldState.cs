@@ -94,6 +94,18 @@ public sealed class WorldState
     // objects on tiles that do not exist.
     public Bootstrap.GameMode Mode { get; set; } = Bootstrap.GameMode.Feud;
 
+    // ⭐ §149.4: чьи девушки СЕЙЧАС в руках у сетевых игроков — id, выданные
+    // сервером из `hexlive-players.json`. До §149 симуляция знала ровно одну
+    // «игрокову» фракцию (`Faction.Colony`), и это было верно, пока игрок был
+    // один: выданная сервером девушка соседнего лагеря проходила серверную
+    // границу прав, а потом молча отбивалась самой симуляцией с «NotOwned» —
+    // персонаж выдан, а управлять им нельзя.
+    //
+    // Поле РАНТАЙМОВОЕ: в сейв не пишется и по проводу не едет. Назначения
+    // живут в реестре сервера и переустанавливаются им при каждом Reconcile;
+    // в локальной игре набор пуст, и права считаются ровно как до §149.
+    public System.Collections.Generic.HashSet<int> PlayerControlledNpcs { get; } = new();
+
     // §132/§146.6: schedule cursors for the weekly arrivals, one per girl camp.
     // They count processed opportunities, not living arrivals (no backlog).
     public System.Collections.Generic.Dictionary<Agents.Faction, int>

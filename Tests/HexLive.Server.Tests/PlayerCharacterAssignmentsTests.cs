@@ -305,6 +305,74 @@ public sealed class PlayerCharacterAssignmentsTests
         });
     }
 
+    // ⭐ §149.4: выдача — половина дела. За серверной границей прав стоит
+    // вторая, внутри симуляции (§123), и она знала одну «игрокову» фракцию —
+    // Faction.Colony. Поэтому выданная девушка СОСЕДНЕГО лагеря проходила
+    // сервер и молча отбивалась симуляцией с «NotOwned»: персонаж выдан,
+    // тумблер не переключается, приказы не доходят. Тест меряет именно акт —
+    // взяла ли она ручное управление, — а не факт назначения.
+    [Test]
+    public void AssignedGirlFromANeighbouringCampCanBeTakenUnderManualControl()
+    {
+        using var host = CreateHost(GameMode.HugeIsland, "huge-manual.sav");
+        var assignments = PlayerCharacterAssignments.Load(
+            Path.Combine(_directory, "huge-manual.json"), continueExistingWorld: false);
+
+        var first = assignments.Reconcile(host, Id(41), characterLimit: 1);
+        var second = assignments.Reconcile(host, Id(42), characterLimit: 1);
+        Assert.That(second, Is.Not.Empty, "Второй игрок обязан получить персонажа.");
+
+        var neighbour = second[0];
+        var faction = host.Read(world =>
+            world.Entities.Npcs[new EntityId(neighbour)].Faction);
+        var admission = host.SubmitManualCommand(
+            new SetManualControlCommand(new EntityId(neighbour), true));
+        var manual = host.Read(world =>
+            world.Entities.Npcs[new EntityId(neighbour)].Mind.ManualControl);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first, Is.EqualTo(new[] { 1 }));
+            Assert.That(faction, Is.Not.EqualTo(HexLive.Simulation.Agents.Faction.Colony),
+                "Смысл теста — именно ЧУЖОЙ лагерь; иначе он проходит и на старом гейте.");
+            Assert.That(admission.Accepted, Is.True,
+                "Симуляция обязана признать выданную девушку игроковой.");
+            Assert.That(manual, Is.True, "Тумблер должен реально переключиться.");
+        });
+    }
+
+    // §149.4: право приходит из реестра назначений и не должно течь на всех
+    // подряд — иначе одиночная игра получила бы шесть лагерей в управление.
+    [Test]
+    public void AnUnassignedGirlFromANeighbouringCampStaysUnderAi()
+    {
+        using var host = CreateHost(GameMode.HugeIsland, "huge-unassigned.sav");
+        var assignments = PlayerCharacterAssignments.Load(
+            Path.Combine(_directory, "huge-unassigned.json"), continueExistingWorld: false);
+        assignments.Reconcile(host, Id(43), characterLimit: 1);
+
+        var stranger = host.Read(world =>
+        {
+            foreach (var npc in world.Entities.Npcs.Values)
+            {
+                if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony &&
+                    !world.PlayerControlledNpcs.Contains(npc.Id.Value) &&
+                    FactionRelations.IsGirlCamp(npc.Faction))
+                {
+                    return npc.Id.Value;
+                }
+            }
+
+            return -1;
+        });
+
+        Assert.That(stranger, Is.GreaterThan(0), "В HugeIsland лагерей шесть.");
+        var admission = host.SubmitManualCommand(
+            new SetManualControlCommand(new EntityId(stranger), true));
+        Assert.That(admission.Accepted, Is.False,
+            "Невыданная девушка чужого лагеря остаётся под ИИ.");
+    }
+
     [Test]
     public void ServerCraftingReadModelContainsOnlyAssignedManualCharacters()
     {

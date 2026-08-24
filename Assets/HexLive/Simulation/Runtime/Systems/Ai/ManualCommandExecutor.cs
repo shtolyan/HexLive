@@ -257,7 +257,12 @@ internal static class ManualCommandExecutor
             return false;
         }
 
-        if (npc.Faction != Faction.Colony)
+        // §149.4: право спрашиваем у ЕДИНСТВЕННОГО гейта (§123), а не пишем
+        // фракцию второй раз своими словами. Вторая формулировка и разошлась:
+        // сервер выдавал девушку соседнего лагеря, а этот `!= Colony` отбивал
+        // каждый её приказ «NotOwned» — тумблер не переключался, и выданный
+        // персонаж выглядел неуправляемым.
+        if (!PlayerAuthority.IsPlayerOwned(world, npc))
         {
             Reject(world, id, verb, "NotOwned", admission);
             return false;

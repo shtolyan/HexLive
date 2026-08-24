@@ -2339,7 +2339,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.Faction != HexLive.Simulation.Agents.Faction.Colony) continue;
+            // §149: сторож смотрит за СВОИМИ, а не за фракцией `Colony`. На
+            // сервере чужая колонистка законно погашена вырезом §150 (глаза
+            // выреза — только управляемые), и сторож писал про неё «вид
+            // НЕАКТИВЕН» как про поломку — ровно в том логе, по которому
+            // разбирают настоящую.
+            if (!IsPlayerOwned(npc)) continue;
             var id = npc.Id.Value;
 
             if (!_npcViews.TryGetValue(id, out var view) || view == null)

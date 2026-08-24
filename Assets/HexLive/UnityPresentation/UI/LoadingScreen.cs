@@ -1422,7 +1422,9 @@ namespace HexLive.UnityPresentation.UI
             // выбран и панель открыта. Clear первым — чтобы SelectionChanged
             // сработал даже если прогрев оставил её выбранной.
             NpcSelection.Clear();
-            NpcSelection.Select(FindOpeningTarget(npcs));
+            var openingTarget = FindOpeningTarget(npcs);
+            ReportOpeningTarget(openingTarget, npcs);
+            NpcSelection.Select(openingTarget);
 
             // Let the character bar finish one layout pass, then place the
             // camera synchronously. The world is paused, so its ordinary
@@ -1550,7 +1552,9 @@ namespace HexLive.UnityPresentation.UI
             Debug.Log("[Loading] занавес уходит");
 
             NpcSelection.Clear();
-            NpcSelection.Select(FindOpeningTarget(npcs));
+            var openingTarget = FindOpeningTarget(npcs);
+            ReportOpeningTarget(openingTarget, npcs);
+            NpcSelection.Select(openingTarget);
             yield return null;
             // §131: стартовый кадр — слежение включено, камера у головы,
             // спереди-сбоку и низко (константы OpeningShot* контроллера).
@@ -1730,7 +1734,14 @@ namespace HexLive.UnityPresentation.UI
                 // §72: the opening camera frames one of OURS. The outsider is
                 // the highest id, so an ungated roster could open the run
                 // orbiting the man hunting them.
-                if (npc.IsHostileToColony)
+                //
+                // §149: «наша» по ПРАВАМ идёт первым слагаемым. Вне режима
+                // соло-лагерей (§146.3) чужой лагерь враждебен `Colony`, так
+                // что выданная сервером девушка из соседнего лагеря отсеялась
+                // бы этим самым гейтом — её бы не прогрели, не дождались тела и
+                // не выбрали на старте.
+                if (npc.IsHostileToColony &&
+                    !(_runner != null && _runner.CanControlNpc(npc.Id)))
                 {
                     continue;
                 }
@@ -1746,10 +1757,53 @@ namespace HexLive.UnityPresentation.UI
         // colonist on the roster instead. The list is already gated to our own
         // faction (§72) and comes in snapshot order, i.e. ascending id, so this
         // is the girl the world was built around on every seed.
-        private static int FindOpeningTarget(
+        //
+        // ⭐ §149: но «первая по списку» — это НЕ «моя». На сервере выданная
+        // девушка может быть из любого лагеря (§149.2), а список идёт по
+        // возрастанию id, так что первой оказывалась чужая колонистка. Дальше
+        // всё сходилось одно к одному: камера уезжала к ней, вырез §150 стоял
+        // вокруг СВОЕЙ (глаза выреза — только управляемые), и игрок получал
+        // тёмное пятно «где-то в центре карты»; а `PruneInvisibleSelection`
+        // тем же кадром снимал выделение с невидимой чужой — панель открывалась
+        // на ком угодно, только не на подопечной, и тумблер управления был
+        // погашен. Поэтому стартовый кадр — на той, КЕМ ИГРОК УПРАВЛЯЕТ.
+        // Локально ответ прежний: там управляемые и есть `Faction.Colony`.
+        private int FindOpeningTarget(
             System.Collections.Generic.List<(int id, string name)> npcs)
         {
+            for (var i = 0; i < npcs.Count; i++)
+            {
+                if (_runner != null && _runner.CanControlNpc(
+                        new HexLive.Simulation.Common.EntityId(npcs[i].id)))
+                {
+                    return npcs[i].id;
+                }
+            }
+
             return npcs.Count > 0 ? npcs[0].id : -1;
+        }
+
+        /// <summary>§109.16: одна строка, по которой видно, КОГО выбрал старт и
+        /// почему. Пустой ростер, чужая девушка и мёртвый тумблер снаружи
+        /// выглядят одинаково — тёмный экран без выделения.</summary>
+        private void ReportOpeningTarget(
+            int targetId, System.Collections.Generic.List<(int id, string name)> npcs)
+        {
+            var roster = new System.Text.StringBuilder();
+            for (var i = 0; i < npcs.Count; i++)
+            {
+                var owned = _runner != null && _runner.CanControlNpc(
+                    new HexLive.Simulation.Common.EntityId(npcs[i].id));
+                if (roster.Length > 0) roster.Append(", ");
+                roster.Append(npcs[i].id).Append(owned ? "+" : "-");
+            }
+
+            var targetOwned = targetId >= 0 && _runner != null &&
+                _runner.CanControlNpc(new HexLive.Simulation.Common.EntityId(targetId));
+            Debug.Log($"[Loading] стартовый выбор: npc={targetId} " +
+                $"{(targetOwned ? "СВОЯ" : "ЧУЖАЯ/нет прав")}; " +
+                $"приказы {(_runner != null && _runner.SupportsNpcCommands ? "разрешены" : "запрещены")}; " +
+                $"ростер [{roster}]");
         }
     }
 }

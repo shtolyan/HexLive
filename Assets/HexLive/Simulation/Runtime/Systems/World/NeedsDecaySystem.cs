@@ -600,7 +600,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 (0.30f + 0.35f * (1f - npc.Needs.Hunger) + 0.25f * npc.Needs.Energy +
                  0.10f * npc.Needs.Comfort) * AttributeMath.StaminaCeilingMult(npc));
             var resting = npc.Execution.CurrentInteraction is
-                InteractionType.Sit or InteractionType.Sleep ||
+                InteractionType.Sit or InteractionType.Sleep or InteractionType.Rest ||
                 npc.Mind.ComaCause != ComaCause.None || // §60: a coma rests the body too
                 npc.IsDying;                            // §105: и лежащая на грани тоже
             var working = npc.Execution.Status == ExecutionStatus.InProgress && !resting;

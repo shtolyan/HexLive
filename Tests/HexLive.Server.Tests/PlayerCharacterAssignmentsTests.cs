@@ -189,6 +189,50 @@ public sealed class PlayerCharacterAssignmentsTests
     }
 
     [Test]
+    public void AssignedPlayerCanManageInventoryWithoutTakingManualControl()
+    {
+        var assigned = new HashSet<int> { 1 };
+        var leases = new ControlLeases();
+        var item = new InventoryItemRef(
+            InventoryItemSource.Carried, 0, "tool.hammer");
+        ISimulationCommand[] inventoryCommands =
+        {
+            new SetOutfitLockCommand(new EntityId(1), true),
+            new ManageInventoryCommand(new EntityId(1), item, InventoryAction.Drop),
+            new TransferInventoryCommand(
+                new EntityId(1), new EntityId(2), item, 1,
+                InventoryTransferDirection.Take),
+            new TransferContainerCommand(
+                new EntityId(1), new ObjectId(7), 0, "tool.hammer", 1,
+                InventoryTransferDirection.Take),
+        };
+
+        foreach (var command in inventoryCommands)
+        {
+            Assert.That(PlayerCommandAuthorization.TryAuthorize(
+                    command, assigned, leases, "ws:player", out var refusal),
+                Is.True, $"{command.GetType().Name}: {refusal}");
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(leases.Snapshot(), Is.Empty,
+                "Inventory management must neither acquire nor renew manual control.");
+            Assert.That(PlayerCommandAuthorization.TryAuthorize(
+                    new ManageInventoryCommand(new EntityId(2), item, InventoryAction.Drop),
+                    assigned, leases, "ws:player", out var unassignedRefusal),
+                Is.False);
+            Assert.That(unassignedRefusal, Is.EqualTo("NotAssigned"));
+            Assert.That(PlayerCommandAuthorization.TryAuthorize(
+                    new MoveToCommand(new EntityId(1), new Float2(1f, 2f)),
+                    assigned, leases, "ws:player", out var movementRefusal),
+                Is.False);
+            Assert.That(movementRefusal, Is.EqualTo("NoLease"),
+                "Only inventory/garment actions bypass the manual-control lease.");
+        });
+    }
+
+    [Test]
     public void RealModeRostersMatchTheOneAndTwoCharacterArchitecture()
     {
         using var bigIsland = CreateHost(GameMode.BigIsland, "big.sav");

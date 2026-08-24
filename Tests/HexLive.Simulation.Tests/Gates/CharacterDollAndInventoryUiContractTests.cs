@@ -52,7 +52,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
-    public void CharacterPanelUsesOneLargeFlatGridAndContainsNoScroller()
+    public void CharacterPanelUsesOneLargeFlatInventoryGridAndOnlyRelationsScroll()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
 
@@ -64,8 +64,12 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Contain("_invItemsPane.style.flexGrow = 1f"));
             Assert.That(source, Does.Not.Contain("_invItemsPane.style.width = Length.Percent(50f)"));
             Assert.That(source, Does.Not.Contain("_invDollPane.style.width = Length.Percent(50f)"));
-            Assert.That(source, Does.Not.Contain("new ScrollView"));
-            Assert.That(source, Does.Not.Contain("Scroller"));
+            Assert.That(source, Does.Contain("new ScrollView(ScrollViewMode.Horizontal)"));
+            Assert.That(source, Does.Contain("relationship-scroll"));
+            Assert.That(source, Does.Contain("b.LastInteractionTick.CompareTo(a.LastInteractionTick)"));
+            Assert.That(source, Does.Not.Contain("var maxTabs = Mathf.Min(relations.Count, 5)"));
+            Assert.That(source, Does.Not.Contain("new ScrollView(ScrollViewMode.Vertical)"));
+            Assert.That(source, Does.Not.Contain("_inventoryScroll"));
             Assert.That(source, Does.Not.Contain("_invLeftColumn"));
             Assert.That(source, Does.Not.Contain("_invCenterColumn"));
             Assert.That(source, Does.Not.Contain("_invRightColumn"));

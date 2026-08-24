@@ -86,7 +86,8 @@ public static class WorldSnapshotCodec
     /// v31: §133.9 per-NPC outfit lock for the inventory header switch.
     /// v32: §127 paired romance state and washable pelvis stain.
     /// v33: §133/#205 physical carried/worn item owner ids for inventory cards.
-    public const int WireVersion = 33;
+    /// v34: #218 per-pair last interaction tick for relationship ordering.
+    public const int WireVersion = 34;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -1139,6 +1140,7 @@ public static class WorldSnapshotCodec
             w.Write(rel.Trust);
             w.Write(rel.Familiarity);
             w.Write(rel.Affinity);
+            w.Write(rel.LastInteractionTick);
         }
     }
 
@@ -1489,6 +1491,7 @@ public static class WorldSnapshotCodec
             rel.Trust = r.ReadSingle();
             rel.Familiarity = r.ReadSingle();
             rel.Affinity = r.ReadSingle();
+            rel.LastInteractionTick = r.ReadInt32();
         }
 
     }

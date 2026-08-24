@@ -1079,6 +1079,8 @@ public sealed class RelationshipSnapshot
     public float Familiarity { get; set; }
 
     public float Affinity { get; set; }
+
+    public int LastInteractionTick { get; set; }
 }
 
 public sealed class GoalScoreSnapshot

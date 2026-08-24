@@ -503,6 +503,8 @@ public sealed partial class ExecutionSystem
         rel.Affinity = MathUtil.Clamp(rel.Affinity - Spec81.AbuseAffinityLoss, -1f, 1f);
         rel.Trust = MathUtil.Clamp(rel.Trust - Spec81.AbuseTrustLoss, -1f, 1f);
         rel.Familiarity = MathUtil.Clamp01(rel.Familiarity + 0.05f);
+        npc.Social.MarkInteraction(mark.Id, world.Tick);
+        mark.Social.MarkInteraction(npc.Id, world.Tick);
 
         // Бесплатный «минус» над её головой — тем же каналом, которым §28.15E
         // показывает исход разговора.

@@ -1402,7 +1402,8 @@ public static class WorldSnapshotExporter
                     : otherNpc.DisplayName,
                 Trust = relation.Value.Trust,
                 Familiarity = relation.Value.Familiarity,
-                Affinity = relation.Value.Affinity
+                Affinity = relation.Value.Affinity,
+                LastInteractionTick = relation.Value.LastInteractionTick
             });
         }
 

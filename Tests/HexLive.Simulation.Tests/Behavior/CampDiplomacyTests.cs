@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
@@ -5,7 +6,9 @@ using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Memory;
+using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
@@ -146,6 +149,38 @@ public sealed class CampDiplomacyTests
             Assert.That(FactionRelations.AreHostile(world, guest, host), Is.False,
                 "Нейтральная ответная сторона не должна мгновенно наследовать чужую ненависть.");
             Assert.That(CampDiplomacyMath.CanLoot(world, host, guest), Is.True);
+        });
+    }
+
+    [Test]
+    public void RelationshipInteractionOrderSurvivesSaveAndSnapshotExport()
+    {
+        var world = TestWorld.CreateWorld(218);
+        var people = world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).Take(2).ToArray();
+        people[0].Social.MarkInteraction(people[1].Id, 4321);
+
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        stream.Position = 0;
+        var loaded = TestWorld.CreateWorld(218);
+        using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(loaded, reader);
+        }
+
+        var relation = loaded.Entities.Npcs[people[0].Id]
+            .Social.Relationships[people[1].Id];
+        var exported = WorldSnapshotExporter.Export(loaded).Npcs
+            .Single(n => n.Id.Equals(people[0].Id)).RelationshipDetails
+            .Single(r => r.OtherId == people[1].Id.Value);
+        Assert.Multiple(() =>
+        {
+            Assert.That(relation.LastInteractionTick, Is.EqualTo(4321));
+            Assert.That(exported.LastInteractionTick, Is.EqualTo(4321));
         });
     }
 

@@ -5080,6 +5080,12 @@ namespace HexLive.UnityPresentation.UI
             relations.AddRange(npc.RelationshipDetails);
             relations.Sort((a, b) =>
             {
+                var byRecent = b.LastInteractionTick.CompareTo(a.LastInteractionTick);
+                if (byRecent != 0)
+                {
+                    return byRecent;
+                }
+
                 var byAffinity = Mathf.Abs(b.Affinity).CompareTo(Mathf.Abs(a.Affinity));
                 return byAffinity != 0
                     ? byAffinity
@@ -5139,6 +5145,7 @@ namespace HexLive.UnityPresentation.UI
                 Trust = r.Trust;
                 Familiarity = r.Familiarity;
                 Affinity = r.Affinity;
+                LastInteractionTick = r.LastInteractionTick;
             }
 
             public readonly int OtherId;
@@ -5146,10 +5153,12 @@ namespace HexLive.UnityPresentation.UI
             public readonly float Trust;
             public readonly float Familiarity;
             public readonly float Affinity;
+            public readonly int LastInteractionTick;
 
             public bool Matches(RelationshipSnapshot r) =>
                 OtherId == r.OtherId && OtherName == r.OtherName &&
-                Trust == r.Trust && Familiarity == r.Familiarity && Affinity == r.Affinity;
+                Trust == r.Trust && Familiarity == r.Familiarity &&
+                Affinity == r.Affinity && LastInteractionTick == r.LastInteractionTick;
         }
 
         private readonly List<RelationSig> _relationSig = new();
@@ -5189,57 +5198,28 @@ namespace HexLive.UnityPresentation.UI
 
         private VisualElement BuildRelationTabs(List<RelationshipSnapshot> relations, int selectedId, NpcSnapshot npc)
         {
-            var tabs = new VisualElement();
+            var scroll = new ScrollView(ScrollViewMode.Horizontal);
+            scroll.name = "relationship-scroll";
+            scroll.style.height = 58f;
+            scroll.style.flexShrink = 0f;
+            scroll.style.marginBottom = 8f;
+            scroll.style.backgroundColor = new Color(0.054f, 0.069f, 0.080f, 0.72f);
+            scroll.horizontalScrollerVisibility = ScrollerVisibility.Auto;
+            scroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+            SetBorder(scroll, Stroke, 1f);
+            SetRadius(scroll, 10f);
+
+            var tabs = scroll.contentContainer;
             tabs.style.flexDirection = FlexDirection.Row;
             tabs.style.alignItems = Align.Center;
             tabs.style.height = 48f;
-            tabs.style.flexShrink = 0f;
-            tabs.style.marginBottom = 8f;
-            tabs.style.backgroundColor = new Color(0.054f, 0.069f, 0.080f, 0.72f);
-            SetBorder(tabs, Stroke, 1f);
-            SetRadius(tabs, 10f);
-            tabs.style.overflow = Overflow.Hidden;
 
-            var maxTabs = Mathf.Min(relations.Count, 5);
-            for (var i = 0; i < maxTabs; i++)
+            for (var i = 0; i < relations.Count; i++)
             {
                 tabs.Add(BuildRelationTab(relations[i], relations[i].OtherId == selectedId, npc));
             }
 
-            if (relations.Count > maxTabs)
-            {
-                var more = new Label($"+{relations.Count - maxTabs}");
-                more.style.color = TextDim;
-                more.style.fontSize = 12;
-                more.style.unityFontStyleAndWeight = FontStyle.Bold;
-                more.style.unityTextAlign = TextAnchor.MiddleCenter;
-                more.style.width = 34f;
-                more.style.flexShrink = 0f;
-                tabs.Add(more);
-            }
-
-            var plusWrap = new VisualElement();
-            plusWrap.style.width = 52f;
-            plusWrap.style.height = Length.Percent(100);
-            plusWrap.style.flexShrink = 0f;
-            plusWrap.style.alignItems = Align.Center;
-            plusWrap.style.justifyContent = Justify.Center;
-            plusWrap.style.backgroundColor = new Color(1f, 1f, 1f, 0.035f);
-            SetBorder(plusWrap, new Color(1f, 1f, 1f, 0.06f), 1f);
-
-            var plus = new Label("+");
-            plus.style.color = TextDim;
-            plus.style.fontSize = 24;
-            plus.style.unityFontStyleAndWeight = FontStyle.Bold;
-            plus.style.unityTextAlign = TextAnchor.MiddleCenter;
-            plus.style.width = 32f;
-            plus.style.height = 32f;
-            SetRadius(plus, 16f);
-            SetBorder(plus, StrokeStrong, 1f);
-            plusWrap.Add(plus);
-            tabs.Add(plusWrap);
-
-            return tabs;
+            return scroll;
         }
 
         private VisualElement BuildRelationTab(RelationshipSnapshot rel, bool selected, NpcSnapshot npc)
@@ -5248,9 +5228,9 @@ namespace HexLive.UnityPresentation.UI
             tab.style.flexDirection = FlexDirection.Row;
             tab.style.alignItems = Align.Center;
             tab.style.height = Length.Percent(100);
-            tab.style.flexGrow = 1f;
-            tab.style.flexShrink = 1f;
-            tab.style.minWidth = 76f;
+            tab.style.flexGrow = 0f;
+            tab.style.flexShrink = 0f;
+            tab.style.width = selected ? 150f : 128f;
             tab.style.paddingLeft = 9f;
             tab.style.paddingRight = 9f;
             tab.style.backgroundColor = selected

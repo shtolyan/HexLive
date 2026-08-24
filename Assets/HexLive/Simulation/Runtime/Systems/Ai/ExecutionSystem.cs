@@ -376,6 +376,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     {
                         var resentRel = npc.Social.GetOrCreate(occupant);
                         resentRel.Affinity = MathUtil.Clamp(resentRel.Affinity - 0.08f, -1f, 1f);
+                        npc.Social.MarkInteraction(occupant, world.Tick);
                         npc.Execution.LastTalkResultTick = world.Tick;
                         npc.Execution.LastTalkAffinityDelta = -0.08f;
                         SocialCueSignals.Stamp(world, npc, "Resentment", occupant);

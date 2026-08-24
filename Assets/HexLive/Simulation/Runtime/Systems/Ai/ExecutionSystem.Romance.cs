@@ -284,6 +284,8 @@ public sealed partial class ExecutionSystem
             forced ? "RomanceForced" : "RomanceCompleted",
             $"NPC{partner.Id.Value} Forced={forced} " +
             $"Pose={leader.Mind.RomanceClipKey}");
+        leader.Social.MarkInteraction(partner.Id, world.Tick);
+        partner.Social.MarkInteraction(leader.Id, world.Tick);
         FinishRomancePair(world, leader, partner);
     }
 

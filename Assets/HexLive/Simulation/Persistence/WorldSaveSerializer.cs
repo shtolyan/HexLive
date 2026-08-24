@@ -125,7 +125,9 @@ public static class WorldSaveSerializer
     // v56 (§127): парная сцена, её cooldown и смываемый IntimacySoil.
     // v57 (§133.10): выбранный комплект и точные ObjectId снятых вещей. Без
     // этого загрузка посреди сушки оставляла закреплённого NPC голым навсегда.
-    public const int BlobVersion = 58;
+    // v59 (#218): последний прямой социальный контакт в каждой направленной
+    // записи отношений; старые записи получают 0 и стабильный fallback-порядок.
+    public const int BlobVersion = 59;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1517,6 +1519,7 @@ public static class WorldSaveSerializer
             w.Write(pair.Value.Trust);
             w.Write(pair.Value.Familiarity);
             w.Write(pair.Value.Affinity);
+            w.Write(pair.Value.LastInteractionTick);
         }
 
         w.Write(npc.Inventory.Capacity);
@@ -2084,7 +2087,8 @@ public static class WorldSaveSerializer
             {
                 Trust = r.ReadSingle(),
                 Familiarity = r.ReadSingle(),
-                Affinity = r.ReadSingle()
+                Affinity = r.ReadSingle(),
+                LastInteractionTick = version >= 59 ? r.ReadInt32() : 0
             };
         }
 

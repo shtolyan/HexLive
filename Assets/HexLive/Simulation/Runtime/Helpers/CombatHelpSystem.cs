@@ -558,6 +558,8 @@ internal static class CombatHelpSystem
         rescuer.Execution.LastTalkAffinityDelta = delta;
         victim.Execution.LastTalkResultTick = world.Tick;
         victim.Execution.LastTalkAffinityDelta = delta;
+        rescuer.Social.MarkInteraction(victim.Id, world.Tick);
+        victim.Social.MarkInteraction(rescuer.Id, world.Tick);
 
         Trace.Emit(world, rescuer.Id, "RelationshipChanged",
             $"NPC{rescuer.Id.Value}->NPC{victim.Id.Value} " +

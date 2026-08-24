@@ -21,6 +21,11 @@ public sealed class SocialState
 
         return relationship;
     }
+
+    public void MarkInteraction(EntityId other, int tick)
+    {
+        GetOrCreate(other).LastInteractionTick = tick;
+    }
 }
 
 public sealed class RelationshipData
@@ -30,6 +35,9 @@ public sealed class RelationshipData
     public float Familiarity { get; set; }
 
     public float Affinity { get; set; }
+
+    /// <summary>§218: latest direct social contact with this person.</summary>
+    public int LastInteractionTick { get; set; }
 }
 
 // Spec 28.3: what perception carries about another agent.

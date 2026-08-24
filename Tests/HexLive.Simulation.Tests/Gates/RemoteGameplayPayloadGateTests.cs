@@ -31,6 +31,7 @@ public sealed class RemoteGameplayPayloadGateTests
             Trust = 0.25f,
             Familiarity = 0.5f,
             Affinity = -0.75f,
+            LastInteractionTick = 654,
         });
 
         // Чисто отладочное — оно как раз ехать не должно.
@@ -51,6 +52,7 @@ public sealed class RemoteGameplayPayloadGateTests
             Assert.That(got.RelationshipDetails[0].OtherName, Is.EqualTo("npc.jolly.name"));
             Assert.That(got.RelationshipDetails[0].Trust, Is.EqualTo(0.25f));
             Assert.That(got.RelationshipDetails[0].Affinity, Is.EqualTo(-0.75f));
+            Assert.That(got.RelationshipDetails[0].LastInteractionTick, Is.EqualTo(654));
 
             Assert.That(got.GoalScores, Is.Empty, "дампы панели поехали без спроса — это мегабайты в тик");
             Assert.That(got.KnownObjects, Is.Empty);

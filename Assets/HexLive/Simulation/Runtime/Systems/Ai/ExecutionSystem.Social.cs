@@ -149,6 +149,8 @@ public sealed partial class ExecutionSystem
                         $"after talk refusal");
                 }
 
+                npc.Social.MarkInteraction(target.Id, world.Tick);
+                target.Social.MarkInteraction(npc.Id, world.Tick);
                 SocialCueSignals.Stamp(world, npc, "TalkRejected", target.Id);
                 SocialCueSignals.Stamp(world, target, "TalkRefused", npc.Id);
                 Trace.Emit(world, npc.Id, "InteractionRejected",
@@ -268,6 +270,8 @@ public sealed partial class ExecutionSystem
             npc.Execution.LastTalkAffinityDelta = affinityDelta;
             target.Execution.LastTalkResultTick = world.Tick;
             target.Execution.LastTalkAffinityDelta = affinityDelta;
+            npc.Social.MarkInteraction(target.Id, world.Tick);
+            target.Social.MarkInteraction(npc.Id, world.Tick);
 
             // §76: both sides practised the conversation, so both learn from it.
             SkillTrace.Award(world, npc, InteractionType.Talk, Spec49.TalkDuration);
@@ -799,6 +803,8 @@ public sealed partial class ExecutionSystem
             npc.Execution.LastTalkAffinityDelta = gain;
             target.Execution.LastTalkResultTick = world.Tick;
             target.Execution.LastTalkAffinityDelta = gain;
+            npc.Social.MarkInteraction(target.Id, world.Tick);
+            target.Social.MarkInteraction(npc.Id, world.Tick);
             SocialCueSignals.Stamp(world, npc, "AidCompleted", target.Id);
             SocialCueSignals.Stamp(world, target, "AidCompleted", npc.Id);
 

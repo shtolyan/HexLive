@@ -325,6 +325,10 @@ public static class SpeechCatalog
         ["AidStarted:Console"] = new("Console", "happy_aid_give"),
         ["AidStarted"] = new("Food", "happy_aid_give"),
         ["AidCompleted"] = new("Food", "happy_aid_thanks"),
+        // §121.9: немедленный ответ на невозможный ручной медицинский приказ.
+        // Точную нехватку пишет локализованный тост, пузырь даёт заметный
+        // жёлтый восклицательный знак над исполнительницей.
+        ["MedicalAidRejected"] = new("Warning", null, Rank.Alarm),
 
         // ---- §111.12: the concrete item sprite replaces this fallback once
         // its Addressable finishes loading. Loot itself is silent.

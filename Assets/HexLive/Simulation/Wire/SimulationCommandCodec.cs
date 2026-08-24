@@ -71,6 +71,7 @@ public static class SimulationCommandCodec
         MergeCamps = 32,
         RomancePerson = 33,
         ApplyFreeArchitecture = 34,
+        MedicalAid = 35,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -157,6 +158,11 @@ public static class SimulationCommandCodec
                 break;
             case TreatLimbsCommand c:
                 w.Write((ushort)CommandType.TreatLimbs);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.Target);
+                break;
+            case MedicalAidCommand c:
+                w.Write((ushort)CommandType.MedicalAid);
                 WriteEntity(w, c.Npc);
                 WriteEntity(w, c.Target);
                 break;
@@ -331,6 +337,8 @@ public static class SimulationCommandCodec
                     ReadEntity(r), ReadEntity(r), (AidKind)r.ReadInt32());
             case CommandType.TreatLimbs:
                 return new TreatLimbsCommand(ReadEntity(r), ReadEntity(r));
+            case CommandType.MedicalAid:
+                return new MedicalAidCommand(ReadEntity(r), ReadEntity(r));
             case CommandType.SelfAction:
                 return new SelfActionCommand(
                     ReadEntity(r), (SelfActionKind)r.ReadInt32());

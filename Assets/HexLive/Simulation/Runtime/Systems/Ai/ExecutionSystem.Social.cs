@@ -509,7 +509,8 @@ public sealed partial class ExecutionSystem
         // §146.12: revalidate the directed care boundary on arrival/execution.
         // A saved/manual plan cannot smuggle aid across to an Outsider, and a
         // relationship that became outright hostile cancels the old promise.
-        if (!CampDiplomacyMath.CanProvideCare(world, npc, target))
+        if (!ManualControlMath.IsManual(npc) &&
+            !CampDiplomacyMath.CanProvideCare(world, npc, target))
         {
             AbortAid(world, npc, $"Cannot help NPC{targetId.Value}");
             return;
@@ -588,7 +589,29 @@ public sealed partial class ExecutionSystem
             }
 
             // Re-check on arrival: she may have recovered / died on the way.
-            var kindNow = AssessAidKind(target, world.Tick, out var severity);
+            // Unified manual medicine is deliberately narrower than general
+            // §53 aid: hunger cannot turn the player's medical order into food.
+            var medicalOrder = false;
+            foreach (var step in npc.Plan.Steps)
+            {
+                if (step.Interaction == InteractionType.MedicalAid)
+                {
+                    medicalOrder = true;
+                    break;
+                }
+            }
+
+            AidKind kindNow;
+            float severity;
+            if (medicalOrder)
+            {
+                kindNow = AidAssessment.AssessMedical(target, world.Tick);
+                severity = kindNow == AidKind.None ? 0f : 1f;
+            }
+            else
+            {
+                kindNow = AssessAidKind(target, world.Tick, out severity);
+            }
             if (kindNow == AidKind.None || severity < Spec53.SufferingThreshold)
             {
                 AbortAid(world, npc, $"NPC{targetId.Value} no longer needs aid");

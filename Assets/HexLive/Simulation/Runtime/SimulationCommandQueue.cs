@@ -362,11 +362,30 @@ public sealed class AidPersonCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
-/// <summary>§121.9: наложить шину или приладить протез (§116/§118). Что именно —
-/// решает та же математика, что у реактивного ИИ: сперва шина, затем протез.</summary>
+/// <summary>§121.9: приладить или починить протез (§116/§118). Медицинская
+/// помощь (перевязка, лекарство, шина) идёт отдельным единым приказом.</summary>
 public sealed class TreatLimbsCommand : ISimulationCommand
 {
     public TreatLimbsCommand(EntityId npc, EntityId target)
+    {
+        Npc = npc;
+        Target = target;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>§121.9: единая медицинская помощь. Исполнительница сама выбирает
+/// актуальное доступное действие: остановить кровь/обработать рану (включая
+/// свежую культю), дать лекарство или наложить шину. Протез остаётся отдельным
+/// осознанным приказом.</summary>
+public sealed class MedicalAidCommand : ISimulationCommand
+{
+    public MedicalAidCommand(EntityId npc, EntityId target)
     {
         Npc = npc;
         Target = target;

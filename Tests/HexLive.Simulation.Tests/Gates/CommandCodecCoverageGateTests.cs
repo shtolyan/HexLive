@@ -47,6 +47,7 @@ public sealed class CommandCodecCoverageGateTests
         new MergeCampsCommand(new EntityId(211), new EntityId(312), useTargetCamp: true),
         new AidPersonCommand(new EntityId(22), new EntityId(122), AidKind.Hydrate),
         new TreatLimbsCommand(new EntityId(23), new EntityId(132)),
+        new MedicalAidCommand(new EntityId(223), new EntityId(332)),
         new SelfActionCommand(new EntityId(24), SelfActionKind.WashClothes),
         new GroupMoveCommand(
             new[] { new EntityId(25), new EntityId(26) },

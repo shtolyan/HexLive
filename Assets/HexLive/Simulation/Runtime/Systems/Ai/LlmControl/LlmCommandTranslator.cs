@@ -172,6 +172,16 @@ public static class LlmCommandTranslator
                 command = new TreatLimbsCommand(npcId, patient);
                 return true;
 
+            case LlmCommandKind.MedicalAid:
+                if (!RequirePeer(decision, npcId, "MedicalAid", out var medicalPatient,
+                        out errorReason))
+                {
+                    return false;
+                }
+
+                command = new MedicalAidCommand(npcId, medicalPatient);
+                return true;
+
             case LlmCommandKind.SelfAction:
                 if (decision.SelfAction is not { } selfAction)
                 {

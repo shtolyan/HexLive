@@ -950,17 +950,16 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 canMerge, canMerge ? null : mergeHint));
         }
 
-        // Помочь можно и лежащей без сознания (§53.8 стабилизация) — поэтому
-        // условие мягче, чем у разговора.
+        // Обычная помощь (еда/вода/утешение) остаётся отдельной от медицины.
         if (!dead)
         {
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.aid"),
                 () => OpenAidMenu(mousePos, carrier!.Id.Value, npcId),
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
-        }
-
-        if (!dead && lying)
-        {
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.medical_aid"),
+                () => EnqueueOrder(carrier!.Id.Value, new MedicalAidCommand(
+                    new EntityId(carrier.Id.Value), new EntityId(npcId))),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.treat_limbs"),
                 () => EnqueueOrder(carrier!.Id.Value, new TreatLimbsCommand(
                     new EntityId(carrier.Id.Value), new EntityId(npcId))),
@@ -1107,7 +1106,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         ContextMenuPanel.Open(mousePos, title, _entries);
     }
 
-    // §121.9: подменю видов помощи (§53). Пять видов всегда активны — правду
+    // §121.9: подменю немедицинской помощи (§53). Три вида всегда активны — правду
     // о припасе и нужде знает симуляция, отказ придёт честным тостом.
     private void OpenAidMenu(Vector2 mousePos, int actorId, int targetId)
     {
@@ -1124,8 +1123,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 new EntityId(actorId), new EntityId(targetId), kind))));
         Add("menu.aid.feed", AidKind.Feed);
         Add("menu.aid.hydrate", AidKind.Hydrate);
-        Add("menu.aid.treat", AidKind.Treat);
-        Add("menu.aid.medicate", AidKind.Medicate);
         Add("menu.aid.console", AidKind.Console);
         ContextMenuPanel.Open(mousePos, NpcTitle(targetId), _entries);
     }

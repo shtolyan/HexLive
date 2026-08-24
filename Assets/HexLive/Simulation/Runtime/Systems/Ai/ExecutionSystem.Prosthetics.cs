@@ -14,7 +14,8 @@ public sealed partial class ExecutionSystem
     {
         if (helper.Plan.TargetAgentId is not { } patientId ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
-            !CampDiplomacyMath.CanProvideCare(world, helper, patient))
+            (!ManualControlMath.IsManual(helper) &&
+             !CampDiplomacyMath.CanProvideCare(world, helper, patient)))
         {
             AbortLimbCare(world, helper, null, "patient missing or hostile");
             return;

@@ -89,6 +89,9 @@ internal static class ManualCommandExecutor
             case TreatLimbsCommand treatLimbs:
                 ApplyTreatLimbs(world, treatLimbs, admission);
                 break;
+            case MedicalAidCommand medicalAid:
+                ApplyMedicalAid(world, medicalAid, admission);
+                break;
             case SelfActionCommand selfAction:
                 ApplySelfAction(world, selfAction, admission);
                 break;
@@ -194,6 +197,7 @@ internal static class ManualCommandExecutor
         MergeCampsCommand => "MergeCamps",
         AidPersonCommand => "Aid",
         TreatLimbsCommand => "TreatLimbs",
+        MedicalAidCommand => "MedicalAid",
         SelfActionCommand => "SelfAction",
         PreyPersonCommand => "Prey",
         AbusePersonCommand => "Abuse",
@@ -986,8 +990,152 @@ internal static class ManualCommandExecutor
         }
     }
 
-    // §121.9: наложить шину или приладить протез. Что именно — решает та же
-    // математика, что у реактивного ИИ (§116): сперва шина, затем протез.
+    // §121.9: единая медицинская помощь. Игрок выбирает пациентку, а не вид
+    // расходника: исполнительница сама делает самое срочное из того, что
+    // сейчас нужно и чем она располагает. Протез намеренно не входит сюда.
+    private static void ApplyMedicalAid(
+        WorldState world, MedicalAidCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "MedicalAid", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            RejectMedical(world, npc, "Incapacitated", admission);
+            return;
+        }
+
+        if (command.Target.Equals(npc.Id))
+        {
+            RejectMedical(world, npc, "TargetSelf", admission);
+            return;
+        }
+
+        if (!world.Entities.Npcs.TryGetValue(command.Target, out var patient) ||
+            patient.Health <= 0f)
+        {
+            RejectMedical(world, npc, "TargetGone", admission);
+            return;
+        }
+
+        if (patient.CarriedByNpcId is not null)
+        {
+            RejectMedical(world, npc, "TargetUnavailable", admission);
+            return;
+        }
+
+        var needsDressing = AidAssessment.NeedsDressing(patient);
+        var needsSplint = Spec118.SplintsEnabled &&
+            KenshiProstheticMath.TryFindSplintPart(patient, out _);
+        var needsMedicine = AidAssessment.NeedsMedicine(patient, world.Tick);
+
+        // Сначала останавливаем кровь/закрываем открытую рану, затем
+        // фиксируем конечность, затем лечим болезнь. Если самого срочного
+        // припаса нет, всё равно оказываем другую возможную помощь.
+        if (needsDressing && AidSupply.Has(world, npc, AidKind.Treat))
+        {
+            if (TryInstallManualMedicalAid(world, npc, patient, AidKind.Treat))
+            {
+                return;
+            }
+
+            RejectMedical(world, npc, "Unreachable", admission);
+            return;
+        }
+
+        if (needsSplint && KenshiProstheticMath.HasItem(npc, ContentIds.Splint))
+        {
+            ClearForNewOrder(world, npc, "Приказ оказать медицинскую помощь");
+            ClearAttackOrder(world, npc);
+            if (RescueSystem.TryInstallLimbCarePlan(world, npc, patient, GoalType.Splint))
+            {
+                TraceMedicalAccepted(world, npc, patient, "Splint");
+                return;
+            }
+
+            npc.Mind.CurrentGoal = GoalType.None;
+            RejectMedical(world, npc, "Unreachable", admission);
+            return;
+        }
+
+        if (needsMedicine && AidSupply.Has(world, npc, AidKind.Medicate))
+        {
+            if (TryInstallManualMedicalAid(world, npc, patient, AidKind.Medicate))
+            {
+                return;
+            }
+
+            RejectMedical(world, npc, "Unreachable", admission);
+            return;
+        }
+
+        var reason = needsDressing ? "NoBandage"
+            : needsSplint ? "NoSplint"
+            : needsMedicine ? "NoMedicine"
+            : "NotNeeded";
+        RejectMedical(world, npc, reason, admission);
+    }
+
+    private static bool TryInstallManualMedicalAid(
+        WorldState world, NPCState npc, NPCState patient, AidKind kind)
+    {
+        if (patient.CurrentJunction is not { } patientJunction)
+        {
+            return false;
+        }
+
+        ClearForNewOrder(world, npc, "Приказ оказать медицинскую помощь",
+            keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+        AidAssessment.Assess(patient, world.Tick, out var suffering);
+        if (!PlanningSystem.TryInstallAidPlan(
+                world, npc, patient, patient.Id, kind, patient.Tile,
+                suffering, patientJunction, fromMemory: false, out _))
+        {
+            npc.Mind.CurrentGoal = GoalType.None;
+            return false;
+        }
+
+        npc.Plan.Goal = GoalType.Aid;
+        npc.Mind.CurrentGoal = GoalType.Aid;
+        // RunAid normally re-evaluates all §53 needs on arrival. Mark this
+        // particular plan so hunger/thirst cannot turn a medical order into
+        // feeding; it will re-evaluate only medical needs instead.
+        foreach (var step in npc.Plan.Steps)
+        {
+            if (step.Type == PlanStepType.Interact)
+            {
+                step.Interaction = InteractionType.MedicalAid;
+            }
+        }
+        TraceMedicalAccepted(world, npc, patient, kind.ToString());
+        return true;
+    }
+
+    private static void TraceMedicalAccepted(
+        WorldState world, NPCState npc, NPCState patient, string action)
+    {
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=MedicalAid Action={action} Target=NPC{patient.Id.Value}");
+        }
+    }
+
+    private static void RejectMedical(
+        WorldState world, NPCState npc, string reason, AdmissionTracker admission)
+    {
+        // Жёлтый восклицательный знак над исполнительницей плюс точная
+        // локализованная причина в штатном тосте карточки.
+        SocialCueSignals.Stamp(world, npc, "MedicalAidRejected", null);
+        Reject(world, npc.Id, "MedicalAid", reason, admission);
+    }
+
+    // §121.9: отдельный осознанный приказ на протез. Шины, перевязки и
+    // лекарства сюда больше не попадают.
     private static void ApplyTreatLimbs(
         WorldState world, TreatLimbsCommand command, AdmissionTracker admission)
     {
@@ -1016,39 +1164,18 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        if (!CampDiplomacyMath.CanProvideCare(world, npc, patient))
-        {
-            Reject(world, npc.Id, "TreatLimbs", "NotAlly", admission);
-            return;
-        }
-
         if (patient.IsBeingCarried)
         {
             Reject(world, npc.Id, "TreatLimbs", "PersonNotAvailable", admission);
             return;
         }
 
-        // Тот же порядок выбора, что у TryAssignLimbCare: шина первой.
-        var goal = GoalType.None;
-        var hasSplintDamage = KenshiProstheticMath.TryFindSplintPart(patient, out _);
-        if (Spec118.SplintsEnabled && hasSplintDamage &&
-            KenshiProstheticMath.HasItem(npc, ContentIds.Splint))
+        if (!Spec118.ProstheticsEnabled ||
+            !KenshiProstheticMath.TryFindProstheticPart(
+                world, npc, patient, out _, out _, out _))
         {
-            goal = GoalType.Splint;
-        }
-        else if (Spec118.ProstheticsEnabled &&
-                 KenshiProstheticMath.TryFindProstheticPart(
-                     world, npc, patient, out _, out _, out _))
-        {
-            goal = GoalType.FitProsthetic;
-        }
-
-        if (goal == GoalType.None)
-        {
-            // Повреждение есть, а сделать нечего → нет припаса (или пациентка
-            // лежит не в кровати для протеза); повреждения нет → нечего лечить.
-            var reason = hasSplintDamage || KenshiProstheticMath.HasSeveredLimb(patient)
-                ? "NoSupplies"
+            var reason = KenshiProstheticMath.HasSeveredLimb(patient)
+                ? "NoProsthetic"
                 : "NoLimbDamage";
             Reject(world, npc.Id, "TreatLimbs", reason, admission);
             return;
@@ -1056,7 +1183,8 @@ internal static class ManualCommandExecutor
 
         ClearForNewOrder(world, npc, "Приказ заняться конечностями");
         ClearAttackOrder(world, npc);
-        if (!RescueSystem.TryInstallLimbCarePlan(world, npc, patient, goal))
+        if (!RescueSystem.TryInstallLimbCarePlan(
+                world, npc, patient, GoalType.FitProsthetic))
         {
             npc.Mind.CurrentGoal = GoalType.None;
             // Провал внутри — либо нет подхода, либо станции лежачей заняты.
@@ -1083,7 +1211,7 @@ internal static class ManualCommandExecutor
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
-                $"Order=TreatLimbs Goal={goal} Target=NPC{patient.Id.Value}");
+                $"Order=TreatLimbs Goal=FitProsthetic Target=NPC{patient.Id.Value}");
         }
     }
 

@@ -246,7 +246,11 @@ public enum InteractionType
     // текущее взаимодействие ординалом.
     Rest,
     // §127: paired romantic scene. Append-only: saves store the ordinal.
-    Romance
+    Romance,
+    // §121.9: marker carried by the plan of the unified manual medical order.
+    // RunAid replaces it with the concrete TreatOther/MedicateOther verb at
+    // interaction start. Append-only: saves store interaction ordinals.
+    MedicalAid
 }
 
 }

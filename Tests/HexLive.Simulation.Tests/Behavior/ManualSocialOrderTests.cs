@@ -12,7 +12,8 @@ namespace HexLive.Simulation.Tests.Behavior
 {
 
 /// <summary>
-/// §121.9: социальные ручные приказы — Поговорить, Помочь, Шина/протез.
+/// §121.9: социальные ручные приказы — Поговорить, Помочь, Медицинская помощь,
+/// Протез.
 /// Проверяются обещания, данные игроку:
 /// <list type="number">
 /// <item>принятый приказ носит РОДНУЮ цель (Socialize/Aid, прецедент §138) и
@@ -232,7 +233,119 @@ public sealed class ManualSocialOrderTests
         });
     }
 
-    // ── Шина / протез ────────────────────────────────────────────────────
+    // ── Медицинская помощь / протез ──────────────────────────────────────
+
+    [Test]
+    public void MedicalAidTreatsAnOutsidersOpenWound()
+    {
+        var engine = TestWorld.CreateEngine(1461210);
+        var world = engine.World;
+        var medic = TwoColonists(world)[0];
+        var patient = world.Entities.Npcs.Values.Single(n =>
+            n.Faction == Faction.Outsiders);
+        TakeControl(engine, medic);
+        PlaceOnFreeNeighbor(world, patient, medic);
+        // Даже сильный голод не должен превращать явную «Медицинскую помощь»
+        // в кормление: меню обычной помощи для этого остаётся отдельно.
+        patient.Needs.Hunger = 0.95f;
+        patient.Needs.Thirst = 0f;
+        patient.Wounds.Clear();
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1219,
+            Zone = BodyPart.ArmL,
+            Severity = 0.4f,
+            Heal01 = 0f,
+            Clot01 = 0f,
+            Stabilized = false,
+            BleedFactor = 1f,
+            Seed = 1219
+        });
+        medic.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: false));
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new MedicalAidCommand(medic.Id, patient.Id));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(admission.Status,
+                Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
+            Assert.That(medic.Mind.CurrentGoal, Is.EqualTo(GoalType.Aid));
+        });
+
+        for (var i = 0; i < 800 && !patient.Wounds[0].Stabilized; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(patient.Wounds[0].Stabilized, Is.True,
+            "Явная медицинская помощь должна исполняться и для чужака, а не " +
+            "отменяться дипломатическим гейтом по прибытии.");
+    }
+
+    [Test]
+    public void MedicalAidChoosesSplintWithoutAskingThePlayerForAType()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var pair = TwoColonists(world);
+        var medic = pair[0];
+        var patient = pair[1];
+        TakeControl(engine, medic);
+        PlaceOnFreeNeighbor(world, patient, medic);
+        patient.Wounds.Clear();
+        patient.Body.Parts[BodyPart.LegR] = 0.1f;
+        patient.Body.Condition(BodyPart.LegR).BluntDamage = 0.9f;
+        medic.Inventory.Items.Add(ContentIds.Splint);
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new MedicalAidCommand(medic.Id, patient.Id));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(admission.Status,
+                Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
+            Assert.That(medic.Mind.CurrentGoal, Is.EqualTo(GoalType.Splint));
+        });
+    }
+
+    [Test]
+    public void MedicalAidNamesTheMissingBandage()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var pair = TwoColonists(world);
+        var medic = pair[0];
+        var patient = pair[1];
+        TakeControl(engine, medic);
+        PlaceOnFreeNeighbor(world, patient, medic);
+        medic.Inventory.Items.RemoveAll(i => i.DefinitionId == ContentIds.Bandage);
+        patient.Wounds.Clear();
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1220,
+            Zone = BodyPart.Torso,
+            Severity = 0.3f,
+            Heal01 = 0f,
+            Clot01 = 0f,
+            Stabilized = false,
+            BleedFactor = 1f,
+            Seed = 1220
+        });
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new MedicalAidCommand(medic.Id, patient.Id));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(admission.Status,
+                Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+            Assert.That(admission.Reason, Is.EqualTo("NoBandage"));
+            Assert.That(medic.Execution.LastSocialCueKind,
+                Is.EqualTo("MedicalAidRejected"),
+                "Нехватка должна отвечать жёлтым предупреждением над врачом.");
+        });
+    }
 
     [Test]
     public void TreatLimbsOnHealthyTargetIsRejectedAsNoDamage()

@@ -26,7 +26,8 @@ public enum LlmCommandKind
     CarryPerson,
     PutDownPerson,
     PutPersonInBed,
-    Craft
+    Craft,
+    MedicalAid
 }
 
 /// <summary>

@@ -24159,8 +24159,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Splint / prosthetic
-      - "\u0428\u0438\u043D\u0430 / \u043F\u0440\u043E\u0442\u0435\u0437"
+      - Prosthetic
+      - "\u041F\u0440\u043E\u0442\u0435\u0437"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.medical_aid
+      TermType: 0
+      Description:
+      Languages:
+      - Medical aid
+      - "\u041C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0430\u044F \u043F\u043E\u043C\u043E\u0449\u044C"
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.TargetSelf
@@ -24363,6 +24371,30 @@ MonoBehaviour:
       Languages:
       - No bandage
       - "\u041D\u0435\u0442 \u0431\u0438\u043D\u0442\u0430"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NoSplint
+      TermType: 0
+      Description:
+      Languages:
+      - No splint
+      - "\u041D\u0435\u0442 \u0448\u0438\u043D\u044B"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NoMedicine
+      TermType: 0
+      Description:
+      Languages:
+      - No medicine
+      - "\u041D\u0435\u0442 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NoProsthetic
+      TermType: 0
+      Description:
+      Languages:
+      - No suitable prosthetic or bed
+      - "\u041D\u0435\u0442 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0435\u0433\u043E \u043F\u0440\u043E\u0442\u0435\u0437\u0430 \u0438\u043B\u0438 \u043A\u0440\u043E\u0432\u0430\u0442\u0438"
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NoGroundSpot

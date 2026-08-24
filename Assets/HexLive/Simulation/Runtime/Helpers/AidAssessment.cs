@@ -18,6 +18,32 @@ namespace HexLive.Simulation.Runtime
 // когда одну из двух копий забыли бы.
 internal static class AidAssessment
 {
+    internal static bool NeedsDressing(NPCState target) => Spec118.Enabled
+        ? MortalityHelpers.IsBleeding(target) || WoundMath.NeedsAftercare(target)
+        : target.Wounds.Count > 0 || target.Needs.Blood < 0.6f;
+
+    internal static bool NeedsMedicine(NPCState target, int tick) =>
+        target.Mind.SickUntilTick > tick ||
+        (target.Health < 0.4f && target.Wounds.Count == 0);
+
+    /// <summary>§121.9: медицинская часть общей оценки без еды, воды и
+    /// утешения. Нужна единому ручному приказу: голодная раненая должна
+    /// получить перевязку, а не молча превратить «Медицинскую помощь» в еду.</summary>
+    internal static AidKind AssessMedical(NPCState target, int tick)
+    {
+        if (target.Health <= 0f)
+        {
+            return AidKind.None;
+        }
+
+        if (NeedsDressing(target))
+        {
+            return AidKind.Treat;
+        }
+
+        return NeedsMedicine(target, tick) ? AidKind.Medicate : AidKind.None;
+    }
+
     public static AidKind Assess(NPCState target, int tick, out float severity)
     {
         severity = 0f;

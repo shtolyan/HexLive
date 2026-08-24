@@ -873,10 +873,10 @@ namespace HexLive.UnityPresentation.Input
             // allowed to enter the simulation queue at this scale.
             if (OverviewActive)
             {
-                var shift = Keyboard.current != null &&
+                var overviewShift = Keyboard.current != null &&
                     (Keyboard.current.leftShiftKey.isPressed ||
                      Keyboard.current.rightShiftKey.isPressed);
-                if (TryPickOverviewPerson(mousePosition, snapshot, shift))
+                if (TryPickOverviewPerson(mousePosition, snapshot, overviewShift))
                 {
                     HexSelection.Clear();
                     return;

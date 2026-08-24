@@ -1036,7 +1036,7 @@ namespace HexLive.UnityPresentation.UI
 
             var panelPosition = RuntimePanelUtils.ScreenToPanel(
                 panel, new Vector2(screen.x, screen.y));
-            local = WorldToLocal(panelPosition);
+            local = this.WorldToLocal(panelPosition);
             var rect = contentRect;
             return local.x >= rect.xMin - 32f && local.x <= rect.xMax + 32f &&
                 local.y >= rect.yMin - 32f && local.y <= rect.yMax + 32f;

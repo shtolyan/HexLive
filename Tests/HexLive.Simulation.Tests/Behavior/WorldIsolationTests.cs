@@ -1,6 +1,7 @@
 using System.Linq;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Wildlife;
@@ -12,6 +13,16 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>Derived AI caches must never retain entities from another world.</summary>
 public sealed class WorldIsolationTests
 {
+    [Test]
+    public void NearestJunctionReturnsNullWhenWorldHasNoNavigationGraph()
+    {
+        var world = new WorldState();
+
+        Assert.That(
+            SpatialQueries.FindNearestJunction(world, new Float2(100f, 100f)),
+            Is.Null);
+    }
+
     [Test]
     public void LedgeCacheIsOwnedByWorldNotSharedTopologyNumber()
     {

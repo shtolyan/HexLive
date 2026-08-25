@@ -450,6 +450,15 @@ public static class SpatialQueries
             caches.JunctionPosGridBuilt = true;
         }
 
+        // Small synthetic worlds used by adapters and diagnostics can legally
+        // have no navigation graph.  Their grid bounds stay at the sentinel
+        // values above; feeding those sentinels into maxRing would turn a
+        // simple miss into an almost int.MaxValue-sized ring scan.
+        if (caches.JunctionPosGrid.Count == 0)
+        {
+            return null;
+        }
+
         var cx0 = GridCell(worldPosition.X);
         var cy0 = GridCell(worldPosition.Y);
         var maxRing = System.Math.Max(

@@ -83,7 +83,6 @@ namespace HexLive.UnityPresentation.UI
         private GameObject _portraitSubject;
         private bool _subjectWasActive;
         private bool _layersOverridden;
-        private bool _overviewRevealHeld;
         private readonly List<Transform> _portraitTransforms = new(96);
         private readonly List<int> _savedLayers = new(96);
 
@@ -455,11 +454,6 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _layersOverridden = true;
-            if (!_overviewRevealHeld && _worldRenderer != null && _pendingNpcId >= 0)
-            {
-                _worldRenderer.BeginOverviewPortraitReveal(_pendingNpcId);
-                _overviewRevealHeld = true;
-            }
         }
 
         private void RestorePortraitLayers()
@@ -482,14 +476,6 @@ namespace HexLive.UnityPresentation.UI
             _layersOverridden = false;
             _portraitTransforms.Clear();
             _savedLayers.Clear();
-            if (_overviewRevealHeld)
-            {
-                if (_worldRenderer != null && _pendingNpcId >= 0)
-                {
-                    _worldRenderer.EndOverviewPortraitReveal(_pendingNpcId);
-                }
-                _overviewRevealHeld = false;
-            }
         }
 
         private void RestorePortraitSubjectAfterRender()

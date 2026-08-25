@@ -1,78 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680">
   <defs>
     <style>
-      .bg{fill:#0d1418}.panel{fill:#162128;stroke:#58717c;stroke-width:2}.title{fill:#edf4f3;font:700 25px sans-serif}.label{fill:#cbd8d8;font:16px sans-serif}.small{fill:#95a8a9;font:14px sans-serif}.cyan{fill:#43d8f2}.gold{fill:#ffc95a}.red{fill:#ff5955}.camp{fill:#ff6a24;stroke:#392014;stroke-width:2}.cloth{fill:#c180d4;stroke:#eaf6f7;stroke-width:1}.skin{fill:#efbd91}.hair{fill:#4d3027}.arrow{stroke:#6fd2e4;stroke-width:3;fill:none;marker-end:url(#m)}.water{fill:#0e2936}.seen{fill:#568653;stroke:#203c2c}.memory{fill:#46514a;stroke:#28332e}.unknown{fill:#17201e;stroke:#26312d}.mapline{stroke:#a8c8cf;stroke-width:2;fill:none}.footprint{fill:none;stroke:#ffc95a;stroke-width:4}
+      .bg{fill:#0d1418}.panel{fill:#162128;stroke:#58717c;stroke-width:2}.title{fill:#edf4f3;font:700 25px sans-serif}.label{fill:#dce8e8;font:18px sans-serif}.small{fill:#9fb2b4;font:15px sans-serif}.number{fill:#ffc95a;font:700 18px sans-serif}.world{fill:#263c30;stroke:#78b786;stroke-width:2}.input{fill:#202d38;stroke:#65cce1;stroke-width:2}.action{fill:#352d20;stroke:#ffc95a;stroke-width:2}.arrow{stroke:#65cce1;stroke-width:4;fill:none;marker-end:url(#m)}.same{stroke:#78d79a;stroke-width:5;fill:none}.muted{stroke:#738186;stroke-width:2;stroke-dasharray:8 6;fill:none}.cross{stroke:#ff6b63;stroke-width:5}
     </style>
-    <marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#6fd2e4"/></marker>
+    <marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#65cce1"/></marker>
   </defs>
   <rect class="bg" width="1200" height="680"/>
-  <text class="title" x="44" y="44">§150 r5 · Живые контакты и вещи на мини-карте</text>
+  <text class="title" x="42" y="44">§150 · Один настоящий мир и один click-path на дистанции 0,7–260 wu</text>
 
-  <rect class="panel" x="44" y="78" width="320" height="286" rx="16"/>
-  <rect class="water" x="57" y="143" width="294" height="151" rx="8"/>
-  <text class="label" x="66" y="108">Мини-карта 300×250</text>
-  <text class="small" x="66" y="132">слева под историей</text>
-  <text class="small" x="330" y="108">‹</text>
-  <g transform="translate(95 175)">
-    <path class="water" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="seen" transform="translate(55.426 0)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="memory" transform="translate(27.713 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="unknown" transform="translate(83.139 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="seen" transform="translate(110.852 0)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="water" transform="translate(138.565 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <circle class="cyan" cx="55.426" cy="0" r="11"/>
-    <circle class="skin" cx="55.426" cy="-1" r="7"/>
-    <path class="hair" d="M48 -3 Q55 -12 63 -3 Q60 -9 55 -10 Q50 -9 48 -3 Z"/>
-    <path class="red" d="M101 -9 L106 -4 L111 -8 L116 -4 L121 -9 L118 7 L111 12 L104 7 Z"/>
-    <path class="camp" d="M23 58 C15 51 19 40 28 34 C26 43 37 44 34 54 C32 60 27 62 23 58 Z"/>
-    <rect class="cloth" x="72" y="38" width="10" height="10" rx="1"/>
-    <rect class="cloth" x="84" y="38" width="10" height="10" rx="1"/>
-    <rect class="cloth" x="72" y="50" width="10" height="10" rx="1"/>
-    <path class="gold" d="M138 36 L145 48 L138 60 L131 48 Z"/>
-  </g>
-  <text class="small" x="66" y="313">лицо · волк · домашний костёр · одежда</text>
-  <text class="small" x="66" y="339">только восприятие · море — единый фон</text>
+  <rect class="panel" x="42" y="78" width="1116" height="184" rx="16"/>
+  <text class="label" x="68" y="112">Рендер при изменении Camera ↔ Pivot distance</text>
+  <line class="muted" x1="100" y1="176" x2="1102" y2="176"/>
+  <circle cx="184" cy="176" r="9" fill="#78d79a"/><text class="number" x="153" y="211">0,7 wu</text>
+  <circle cx="337" cy="176" r="9" fill="#78d79a"/><text class="number" x="305" y="211">28 wu</text>
+  <circle cx="377" cy="176" r="9" fill="#ffc95a"/><text class="number" x="345" y="151">32 wu</text>
+  <circle cx="1030" cy="176" r="9" fill="#78d79a"/><text class="number" x="995" y="211">260 wu</text>
+  <path class="same" d="M100 130 L1102 130"/>
+  <text class="small" x="472" y="121">персонажи · деревья · юкка · ресурсы · мебель · VFX — настоящие меши всегда</text>
+  <path class="muted" d="M100 235 L377 235"/>
+  <text class="small" x="112" y="229">трава видима; возврат при ≤ 28 wu</text>
+  <line class="cross" x1="377" y1="224" x2="1102" y2="224"/>
+  <text class="small" x="660" y="250">трава скрыта при ≥ 32 wu</text>
 
-  <path class="arrow" d="M382 215 C425 215 432 215 473 215"/>
-  <text class="small" x="392" y="194">тот же мир и камера</text>
-  <text class="small" x="382" y="237">32 wu: Renderer → Sprite</text>
+  <rect class="panel" x="42" y="290" width="1116" height="328" rx="16"/>
+  <text class="label" x="68" y="326">Левый и правый клик — одинаковая цепочка при любом зуме</text>
 
-  <rect class="panel" x="492" y="78" width="664" height="286" rx="16"/>
-  <text class="label" x="518" y="108">World-space sprite-карта — никакого UI overlay</text>
-  <rect x="520" y="130" width="608" height="205" rx="10" fill="#081116" stroke="#30545e"/>
-  <g transform="translate(672 224) scale(.78)">
-    <path class="water" transform="translate(-110 0)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="memory" transform="translate(-55 0)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="seen" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="unknown" transform="translate(55 0)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="seen" transform="translate(-82.5 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="seen" transform="translate(-27.5 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="memory" transform="translate(27.5 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="footprint" transform="translate(27.5 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <path class="water" transform="translate(82.5 48)" d="M27.713,16 L0,32 L-27.713,16 L-27.713,-16 L0,-32 L27.713,-16 Z"/>
-    <circle class="cyan" cx="-27.5" cy="48" r="8"/>
-    <path class="gold" d="M18 37 L27.5 48 L18 59 L8.5 48 Z"/>
-  </g>
-  <path class="mapline" d="M604 167 L984 167 L1038 281 L635 304 Z"/>
-  <path class="arrow" d="M1000 187 C1062 173 1085 208 1044 232"/>
-  <text class="small" x="985" y="257">yaw / pitch / zoom</text>
-  <text class="small" x="778" y="322">золотой footprint совпадает с pointy-top sprite</text>
+  <rect class="input" x="72" y="365" width="198" height="104" rx="12"/>
+  <text class="label" x="94" y="400">Pointer position</text>
+  <text class="small" x="94" y="428">near / distant</text>
+  <text class="small" x="94" y="452">без overview-ветки</text>
+  <path class="arrow" d="M282 417 L380 417"/>
 
-  <rect class="panel" x="44" y="400" width="1112" height="230" rx="16"/>
-  <text class="label" x="68" y="434">Единый контур</text>
-  <rect x="72" y="458" width="220" height="90" rx="10" fill="#1b2a31" stroke="#537481"/>
-  <text class="label" x="92" y="488">WorldSnapshot</text>
-  <text class="small" x="92" y="515">Tiles · Objects · NPCs · Mobs</text>
-  <text class="small" x="92" y="537">ExploredTiles</text>
-  <path class="arrow" d="M303 502 L414 502"/>
-  <rect x="428" y="452" width="288" height="104" rx="10" fill="#1b2a31" stroke="#537481"/>
-  <text class="label" x="450" y="482">CanControlNpc + perception</text>
-  <text class="small" x="450" y="508">3D · sprites · ростер · follow</text>
-  <text class="small" x="450" y="532">портреты + ItemIcons → один UI mesh</text>
-  <path class="arrow" d="M728 502 L834 502"/>
-  <rect x="848" y="452" width="268" height="104" rx="10" fill="#1b2a31" stroke="#537481"/>
-  <text class="label" x="870" y="482">UI click / world ray → Float2</text>
-  <text class="small" x="870" y="508">SetManualControl</text>
-  <text class="small" x="870" y="532">→ общая очередь MoveTo</text>
-  <text class="small" x="68" y="600">Геометрия: R=1.5 wu · pointy-top −30°+60°i · ширина √3R=2.598 wu · шаг Z=1.5R=2.25 wu · footprint = sprite.</text>
+  <rect class="world" x="394" y="352" width="272" height="130" rx="12"/>
+  <text class="label" x="416" y="389">Обычный world pick</text>
+  <text class="small" x="416" y="419">TryHandleManualClick</text>
+  <text class="small" x="416" y="443">TryPickNpc / TryPickHex</text>
+  <text class="small" x="416" y="467">TryHandleContextClick</text>
+
+  <path class="arrow" d="M678 387 L784 387"/>
+  <path class="arrow" d="M678 447 L784 504"/>
+  <rect class="action" x="798" y="345" width="318" height="90" rx="12"/>
+  <text class="label" x="820" y="382">Объект / персонаж</text>
+  <text class="small" x="820" y="410">то же выделение или контекстное действие</text>
+  <rect class="action" x="798" y="468" width="318" height="112" rx="12"/>
+  <text class="label" x="820" y="505">Земля</text>
+  <text class="small" x="820" y="533">тот же MoveTo / GroupMove</text>
+  <text class="small" x="820" y="557">тот же world-marker «идти сюда»</text>
+
+  <text class="small" x="72" y="594">HUD-мини-карта остаётся отдельной навигацией pivot; полноэкранный DistantWorldMarkersView не подключён.</text>
+  <text class="small" x="42" y="654">Фактические константы кода: orbit min = 0,7 wu · show grass ≤ 28 wu · hide grass ≥ 32 wu · orbit max = 260 wu.</text>
 </svg>

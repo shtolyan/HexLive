@@ -471,15 +471,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private WorldSnapshot? _lastSnapshot;
 
-    // §150: distant overview keeps the authored world and suppresses only
-    // detail groups. forceRenderingOff is orthogonal to Renderer.enabled, so
-    // fog, clothing, VFX and authored per-renderer state survive the round trip.
-    private bool _overviewSmallDetailsHidden;
-    private bool _overviewFloraHidden;
-    private readonly HashSet<Renderer> _overviewSmallRenderers = new();
-    private readonly HashSet<Renderer> _overviewFloraRenderers = new();
+    // §150: distant overview keeps every authored world object and suppresses
+    // only decorative grass. forceRenderingOff is orthogonal to Renderer.enabled.
+    private bool _overviewGrassHidden;
+    private readonly HashSet<Renderer> _overviewGrassRenderers = new();
     private readonly Dictionary<Renderer, bool> _overviewSavedForceRenderingOff = new();
-    private readonly HashSet<int> _overviewPortraitReleases = new();
     private readonly List<Renderer> _overviewRendererScratch = new(64);
 
     private readonly struct Pose
@@ -752,8 +748,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void OnDisable()
     {
-        _overviewPortraitReleases.Clear();
-        SetOverviewDetail(false, false);
+        SetOverviewGrassHidden(false);
     }
 
     private void Update()
@@ -2300,7 +2295,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // гексов памяти. Обе строки — чистая презентация поверх готового кадра.
         SyncUnknownNpcMarkers(snapshot);
         ApplyMemoryShade();
-        RefreshOverviewRendererGroups(snapshot);
+        RefreshOverviewRendererGroups();
         UnityEngine.Profiling.Profiler.EndSample();
 
         // Memory fog: the full first build of this world is behind us — from
@@ -4941,59 +4936,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
             ? _runner.CanControlNpc(npc.Id)
             : npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
 
-    /// <summary>§150: applies the two distant-view detail bands without
-    /// replacing terrain, water, buildings or fog-memory shading.</summary>
-    public void SetOverviewDetail(bool hideSmallDetails, bool hideFlora)
+    /// <summary>§150: suppresses decorative grass without replacing or hiding
+    /// any interactive world geometry.</summary>
+    public void SetOverviewGrassHidden(bool hidden)
     {
-        if (_overviewSmallDetailsHidden == hideSmallDetails &&
-            _overviewFloraHidden == hideFlora)
+        if (_overviewGrassHidden == hidden)
         {
             return;
         }
 
-        _overviewSmallDetailsHidden = hideSmallDetails;
-        _overviewFloraHidden = hideFlora;
+        _overviewGrassHidden = hidden;
         RefreshOverviewSuppression();
-    }
-
-    /// <summary>§150: the isolated portrait camera may temporarily render one
-    /// actor even while the main camera's overview hides all actor bodies.</summary>
-    public void BeginOverviewPortraitReveal(int npcId)
-    {
-        if (!_overviewPortraitReleases.Add(npcId))
-        {
-            return;
-        }
-
-        if ((_npcViews.TryGetValue(npcId, out var root) ||
-             _corpseViews.TryGetValue(npcId, out root)) && root != null)
-        {
-            root.GetComponentsInChildren(true, _overviewRendererScratch);
-            for (var i = 0; i < _overviewRendererScratch.Count; i++)
-            {
-                var renderer = _overviewRendererScratch[i];
-                if (renderer != null &&
-                    _overviewSavedForceRenderingOff.TryGetValue(renderer, out var previous))
-                {
-                    renderer.forceRenderingOff = previous;
-                }
-            }
-            _overviewRendererScratch.Clear();
-        }
-    }
-
-    public void EndOverviewPortraitReveal(int npcId)
-    {
-        if (!_overviewPortraitReleases.Remove(npcId))
-        {
-            return;
-        }
-
-        if ((_npcViews.TryGetValue(npcId, out var root) ||
-             _corpseViews.TryGetValue(npcId, out root)) && root != null)
-        {
-            RegisterOverviewRenderers(root, _overviewSmallRenderers);
-        }
     }
 
     /// <summary>§148/§150: last honest tile of a currently lost outsider.</summary>
@@ -5002,8 +4955,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void RefreshOverviewSuppression()
     {
-        _overviewSmallRenderers.RemoveWhere(renderer => renderer == null);
-        _overviewFloraRenderers.RemoveWhere(renderer => renderer == null);
+        _overviewGrassRenderers.RemoveWhere(renderer => renderer == null);
         _overviewRendererScratch.Clear();
         foreach (var pair in _overviewSavedForceRenderingOff)
         {
@@ -5018,11 +4970,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
         _overviewRendererScratch.Clear();
 
-        foreach (var renderer in _overviewSmallRenderers)
-        {
-            ApplyOverviewRenderer(renderer);
-        }
-        foreach (var renderer in _overviewFloraRenderers)
+        foreach (var renderer in _overviewGrassRenderers)
         {
             ApplyOverviewRenderer(renderer);
         }
@@ -5035,11 +4983,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
-        // A flora renderer can never be registered as a loose item, but this
-        // combined check makes the helper safe if future content is.
-        var shouldHide =
-            (_overviewSmallDetailsHidden && _overviewSmallRenderers.Contains(renderer)) ||
-            (_overviewFloraHidden && _overviewFloraRenderers.Contains(renderer));
+        var shouldHide = _overviewGrassHidden && _overviewGrassRenderers.Contains(renderer);
         if (shouldHide)
         {
             if (!_overviewSavedForceRenderingOff.ContainsKey(renderer))
@@ -5076,109 +5020,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _overviewRendererScratch.Clear();
     }
 
-    private void RefreshOverviewRendererGroups(WorldSnapshot snapshot)
+    private void RefreshOverviewRendererGroups()
     {
         foreach (var grass in _grassByTile.Values)
         {
             if (grass != null)
             {
-                RegisterOverviewRenderers(grass, _overviewSmallRenderers);
+                RegisterOverviewRenderers(grass, _overviewGrassRenderers);
             }
         }
 
-        for (var i = 0; i < snapshot.Objects.Count; i++)
-        {
-            var worldObject = snapshot.Objects[i];
-            if (!_objectViews.TryGetValue(worldObject.Id.Value, out var view) || view == null)
-            {
-                continue;
-            }
-
-            if (IsOverviewFlora(worldObject.DefinitionId))
-            {
-                RegisterOverviewRenderers(view, _overviewFloraRenderers);
-            }
-            else if (IsOverviewLooseItem(worldObject))
-            {
-                RegisterOverviewRenderers(view, _overviewSmallRenderers);
-            }
-        }
-
-        foreach (var view in _npcViews.Values)
-        {
-            RegisterOverviewRenderers(view, _overviewSmallRenderers);
-        }
-        foreach (var view in _corpseViews.Values)
-        {
-            RegisterOverviewRenderers(view, _overviewSmallRenderers);
-        }
-        foreach (var view in _mobViews.Values)
-        {
-            RegisterOverviewRenderers(view, _overviewSmallRenderers);
-        }
-        foreach (var view in _crabViews.Values)
-        {
-            RegisterOverviewRenderers(view, _overviewSmallRenderers);
-        }
-        foreach (var marker in _unknownNpcMarkers.Values)
-        {
-            RegisterOverviewRenderers(marker, _overviewSmallRenderers);
-        }
-
-        // Weather/action particles are detail even when their owner is a
-        // building that otherwise remains visible in overview.
-        GetComponentsInChildren(true, _overviewRendererScratch);
-        for (var i = 0; i < _overviewRendererScratch.Count; i++)
-        {
-            if (_overviewRendererScratch[i] is ParticleSystemRenderer)
-            {
-                _overviewSmallRenderers.Add(_overviewRendererScratch[i]);
-            }
-        }
-        _overviewRendererScratch.Clear();
+        // The distant profile deliberately contains grass only. Trees, yucca,
+        // loose resources, actors, furniture and VFX keep their real renderers,
+        // so their visible geometry and click colliders cannot diverge.
         RefreshOverviewSuppression();
     }
-
-    private bool IsOverviewLooseItem(ObjectSnapshot worldObject)
-    {
-        if (worldObject.Junctions.Count > 0 &&
-            _rackJunctions.Contains(worldObject.Junctions[0]) &&
-            GarmentDropFactory.IsGarment(worldObject.DefinitionId))
-        {
-            return false;
-        }
-
-        if (_runner != null &&
-            _runner.TryGetObjectDefinition(worldObject.DefinitionId, out var definition) &&
-            definition != null)
-        {
-            if (definition.Layer.HasValue || ItemCatalog.Classify(definition) != ItemCategory.Misc)
-            {
-                return true;
-            }
-
-            for (var i = 0; i < definition.Interactions.Count; i++)
-            {
-                if (definition.Interactions[i].Type == InteractionType.PickUp)
-                {
-                    return true;
-                }
-            }
-        }
-
-        var id = worldObject.DefinitionId;
-        return id.StartsWith("food.", StringComparison.Ordinal) ||
-            id.StartsWith("tool.", StringComparison.Ordinal) ||
-            id.StartsWith("item.", StringComparison.Ordinal) ||
-            id.StartsWith("resource.", StringComparison.Ordinal) ||
-            id.StartsWith("clothing.", StringComparison.Ordinal) ||
-            id.StartsWith("underwear.", StringComparison.Ordinal) ||
-            id.StartsWith("armor.", StringComparison.Ordinal);
-    }
-
-    private static bool IsOverviewFlora(string definitionId) =>
-        definitionId.StartsWith("tree.", StringComparison.Ordinal) ||
-        definitionId.StartsWith("plant.", StringComparison.Ordinal);
 
     private const float UnknownMarkerLift = 1.15f;
 

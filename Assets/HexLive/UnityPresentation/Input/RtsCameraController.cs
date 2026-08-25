@@ -83,10 +83,6 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _overviewHideDistance = 32f;
         [Tooltip("§150: мелкие детали возвращаются только после этого порога.")]
         [SerializeField] private float _overviewShowDistance = 28f;
-        [Tooltip("§150: пальмы и прочая flora скрываются после этого порога.")]
-        [SerializeField] private float _floraHideDistance = 64f;
-        [Tooltip("§150: настоящие меши flora возвращаются после этого порога.")]
-        [SerializeField] private float _floraShowDistance = 56f;
 
         private enum Mode
         {
@@ -122,7 +118,6 @@ namespace HexLive.UnityPresentation.Input
         private float _distanceVelocity;
         private float _requestedDistance;
         private bool _overviewActive;
-        private bool _floraHidden;
         private Vector3 _smoothedPivot;
         private Vector3 _pivotVelocity;
         private bool _hasSmoothedPivot;
@@ -214,20 +209,14 @@ namespace HexLive.UnityPresentation.Input
         public bool SelectionInputSuppressed => _selectionInputSuppressors.Count > 0;
 
         /// <summary>§150: overview is still the real 3D world. Hysteresis keeps
-        /// detail renderers from flickering while zoom smoothing crosses 32 wu.</summary>
+        /// decorative grass from flickering while zoom smoothing crosses 32 wu.</summary>
         public bool OverviewActive => _overviewActive;
 
-        /// <summary>§150: marker cross-fade from the full-detail world.</summary>
-        public float OverviewBlend => _overviewActive
-            ? 1f
-            : Mathf.InverseLerp(
-                _overviewShowDistance, _overviewHideDistance, _smoothedDistance);
-
-        /// <summary>§150: palm glyph cross-fade before their meshes hide.</summary>
-        public float FloraBlend => _floraHidden
-            ? 1f
-            : Mathf.InverseLerp(
-                _floraShowDistance, _floraHideDistance, _smoothedDistance);
+        // Compatibility surface for the retired DistantWorldMarkersView type.
+        // The panel never creates that view and zero keeps it inert if a stale
+        // scene happens to instantiate one during an asset transition.
+        public float OverviewBlend => 0f;
+        public float FloraBlend => 0f;
 
         /// <summary>Current smoothed lens-to-pivot distance in world units.</summary>
         public float SmoothedDistance => _smoothedDistance;
@@ -305,8 +294,7 @@ namespace HexLive.UnityPresentation.Input
             NpcSelection.SelectionChanged -= OnSelectionChanged;
             NpcSelection.CameraRequested -= OnCameraRequested;
             _overviewActive = false;
-            _floraHidden = false;
-            _worldRenderer?.SetOverviewDetail(false, false);
+            _worldRenderer?.SetOverviewGrassHidden(false);
         }
 
         // §123: selection no longer implies follow. Losing every selected actor
@@ -412,19 +400,9 @@ namespace HexLive.UnityPresentation.Input
                 _overviewActive = true;
             }
 
-            if (_floraHidden)
-            {
-                if (_smoothedDistance <= _floraShowDistance)
-                {
-                    _floraHidden = false;
-                }
-            }
-            else if (_smoothedDistance >= _floraHideDistance)
-            {
-                _floraHidden = true;
-            }
-
-            _worldRenderer?.SetOverviewDetail(_overviewActive, _floraHidden);
+            // §150: distance may suppress grass for readability, but every
+            // interactive world mesh remains present and uses the normal ray path.
+            _worldRenderer?.SetOverviewGrassHidden(_overviewActive);
         }
 
         // ---- Free mode -------------------------------------------------------
@@ -788,11 +766,6 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            if (OverviewActive)
-            {
-                return;
-            }
-
             if (_manualInput == null)
             {
                 _manualInput = GetComponent<SimulationInputAdapter>();
@@ -867,30 +840,6 @@ namespace HexLive.UnityPresentation.Input
         {
             if (PointerBlockedForWorld()) return;
 
-            // §150: distant overview still shows the real terrain. A person
-            // marker remains selectable; otherwise an explored terrain hex
-            // merely recentres the free camera. No manual/context command is
-            // allowed to enter the simulation queue at this scale.
-            if (OverviewActive)
-            {
-                var overviewShift = Keyboard.current != null &&
-                    (Keyboard.current.leftShiftKey.isPressed ||
-                     Keyboard.current.rightShiftKey.isPressed);
-                if (TryPickOverviewPerson(mousePosition, snapshot, overviewShift))
-                {
-                    HexSelection.Clear();
-                    return;
-                }
-
-                if (TryPickHex(mousePosition, out var overviewCoord, snapshot) &&
-                    TryGetExploredTileCenter(snapshot, overviewCoord, out var mapPoint))
-                {
-                    MoveToMapPoint(mapPoint);
-                }
-
-                return;
-            }
-
             var shift = Keyboard.current != null &&
                 (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
 
@@ -925,77 +874,6 @@ namespace HexLive.UnityPresentation.Input
             {
                 HexSelection.Select(coord);
             }
-        }
-
-        private static bool TryGetExploredTileCenter(
-            WorldSnapshot snapshot, TileCoord coord, out Float2 point)
-        {
-            point = Float2.Zero;
-            if (snapshot == null)
-            {
-                return false;
-            }
-
-            for (var i = 0; i < snapshot.Tiles.Count; i++)
-            {
-                var tile = snapshot.Tiles[i];
-                if (!tile.Coord.Equals(coord) || !tile.Explored)
-                {
-                    continue;
-                }
-
-                point = HexSpatialMath.TileToWorld(coord);
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool TryPickOverviewPerson(
-            Vector2 mousePosition, WorldSnapshot snapshot, bool additiveOnly)
-        {
-            if (snapshot == null || _camera == null)
-            {
-                return false;
-            }
-
-            var markerDiameter = Mathf.Lerp(
-                26f, 16f, Mathf.InverseLerp(
-                    _overviewHideDistance, _orbitMaxDistance, _smoothedDistance));
-            var pickRadius = markerDiameter * 0.5f + 4f;
-            var bestDistance = pickRadius;
-            var bestId = -1;
-            foreach (var person in PickablePeople(snapshot))
-            {
-                if (!CanTargetPerson(person))
-                {
-                    continue;
-                }
-
-                var world = SimulationUnityMapper.ToUnityPosition(
-                    person.Position, SimulationUnityMapper.CameraTargetHeight);
-                if (_worldRenderer != null &&
-                    _worldRenderer.TryGetNpcViewPosition(person.Id.Value, out var viewPosition))
-                {
-                    world = viewPosition + Vector3.up * SimulationUnityMapper.CameraTargetHeight;
-                }
-
-                var screen = _camera.WorldToScreenPoint(world);
-                if (screen.z <= 0f)
-                {
-                    continue;
-                }
-
-                var distance = Vector2.Distance(
-                    mousePosition, new Vector2(screen.x, screen.y));
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    bestId = person.Id.Value;
-                }
-            }
-
-            return bestId >= 0 && ApplyNpcPick(snapshot, bestId, additiveOnly);
         }
 
         // Left-click on an NPC -> enter orbit mode.

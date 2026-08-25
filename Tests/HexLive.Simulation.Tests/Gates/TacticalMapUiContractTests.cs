@@ -4,12 +4,12 @@ using NUnit.Framework;
 namespace HexLive.Simulation.Tests.Gates
 {
 
-/// <summary>§150: the HUD minimap and distant markers share one honest frame,
-/// while distant zoom keeps the real world and never issues RTS commands.</summary>
+/// <summary>§150: the HUD minimap is separate, while every world zoom keeps
+/// the same honest meshes and the same world-input command path.</summary>
 public sealed class TacticalMapUiContractTests
 {
     [Test]
-    public void DistantOverviewKeepsWorldUsesOneMarkerViewAndBlocksCommands()
+    public void DistantOverviewKeepsRealMeshesAndNormalWorldCommands()
     {
         var view = Read("Assets", "HexLive", "UnityPresentation", "UI", "TacticalMapView.cs");
         var panel = Read("Assets", "HexLive", "UnityPresentation", "UI", "TacticalMapPanel.cs");
@@ -17,7 +17,8 @@ public sealed class TacticalMapUiContractTests
         var input = Read("Assets", "HexLive", "UnityPresentation", "Input", "SimulationInputAdapter.cs");
         var renderer = Read("Assets", "HexLive", "UnityPresentation", "Rendering", "HexWorldRenderer.cs");
         var roster = Read("Assets", "HexLive", "UnityPresentation", "UI", "CharacterPanel.cs");
-        var uxml = Read("Assets", "Resources", "HexLive", "UI", "TacticalMapPanel.uxml");
+        var uxml = Read("Assets", "HexLiveContent", "RuntimeSource", "UI",
+            "TacticalMapPanel.uxml");
         var bootstrap = Read("Assets", "HexLive", "UnityPresentation", "Bootstrap",
             "PrototypeRuntimeBootstrap.cs");
 
@@ -31,7 +32,7 @@ public sealed class TacticalMapUiContractTests
             Assert.That(panel, Does.Contain("new TacticalMapView()"));
             Assert.That(panel, Does.Contain("SetMiniCollapsed(true)"));
             Assert.That(panel, Does.Contain("SetPortraitCache(NpcPortraitCache"));
-            Assert.That(panel, Does.Contain("new DistantWorldMarkersView()"));
+            Assert.That(panel, Does.Not.Contain("new DistantWorldMarkersView()"));
             Assert.That(panel, Does.Contain("ItemIcons.Load(marker.DefinitionId)"));
             Assert.That(panel, Does.Contain("IsPortable(runner"));
             Assert.That(panel, Does.Contain("InteractionType.PickUp"));
@@ -68,35 +69,30 @@ public sealed class TacticalMapUiContractTests
             Assert.That(panel, Does.Contain("_cameraController?.MoveToMapPoint(point)"));
             Assert.That(panel, Does.Not.Contain("TryMoveSelectionFromMap(point"));
             Assert.That(camera, Does.Contain("public void MoveToMapPoint(Float2 point)"));
-            Assert.That(camera, Does.Contain("MoveToMapPoint(mapPoint)"));
-            Assert.That(camera, Does.Not.Contain("TryMoveSelectionFromMap(mapPoint"));
+            Assert.That(camera, Does.Not.Contain("MoveToMapPoint(mapPoint)"));
             Assert.That(camera, Does.Contain("_orbitMaxDistance = 260f"));
             Assert.That(camera, Does.Contain("public bool OverviewActive"));
-            Assert.That(camera, Does.Contain("public float OverviewBlend"));
-            Assert.That(camera, Does.Contain("public float FloraBlend"));
             Assert.That(camera, Does.Contain("public float SmoothedDistance"));
             Assert.That(camera, Does.Contain("_overviewHideDistance = 32f"));
             Assert.That(camera, Does.Contain("_overviewShowDistance = 28f"));
-            Assert.That(camera, Does.Contain("_floraHideDistance = 64f"));
-            Assert.That(camera, Does.Contain("_floraShowDistance = 56f"));
-            Assert.That(camera, Does.Contain("TryPickOverviewPerson"));
-            Assert.That(camera, Does.Contain("TryGetExploredTileCenter"));
-            Assert.That(camera, Does.Contain("_worldRenderer?.SetOverviewDetail"));
+            Assert.That(camera, Does.Not.Contain("_floraHideDistance"));
+            Assert.That(camera, Does.Not.Contain("TryPickOverviewPerson"));
+            Assert.That(camera, Does.Not.Contain("TryGetExploredTileCenter"));
+            Assert.That(camera, Does.Not.Contain("if (OverviewActive)"));
+            Assert.That(camera, Does.Contain("_worldRenderer?.SetOverviewGrassHidden"));
             Assert.That(camera, Does.Contain("PruneInvisibleSelection(snapshot)"));
             Assert.That(camera, Does.Not.Contain("TacticalMapActive"));
             Assert.That(camera, Does.Not.Contain("TryPickTacticalMapPoint"));
             Assert.That(renderer, Does.Contain("IsPlayerOwned(npc)"));
             Assert.That(renderer, Does.Contain("public bool PlayerVisibilityReady"));
             Assert.That(renderer, Does.Contain(
-                "public void SetOverviewDetail(bool hideSmallDetails, bool hideFlora)"));
+                "public void SetOverviewGrassHidden(bool hidden)"));
             Assert.That(renderer, Does.Contain("renderer.forceRenderingOff = true"));
             Assert.That(renderer, Does.Contain("_overviewSavedForceRenderingOff"));
-            Assert.That(renderer, Does.Contain("_overviewSmallRenderers"));
-            Assert.That(renderer, Does.Contain("_overviewFloraRenderers"));
-            Assert.That(renderer, Does.Contain("BeginOverviewPortraitReveal"));
-            Assert.That(renderer, Does.Contain("EndOverviewPortraitReveal"));
-            Assert.That(renderer, Does.Contain("InteractionType.PickUp"));
-            Assert.That(renderer, Does.Contain("_rackJunctions.Contains"));
+            Assert.That(renderer, Does.Contain("_overviewGrassRenderers"));
+            Assert.That(renderer, Does.Not.Contain("_overviewFloraRenderers"));
+            Assert.That(renderer, Does.Not.Contain("BeginOverviewPortraitReveal"));
+            Assert.That(renderer, Does.Contain("The distant profile deliberately contains grass only"));
             Assert.That(renderer, Does.Not.Contain("SetTacticalMapMode"));
             Assert.That(renderer, Does.Not.Contain("TacticalHexSprite"));
             Assert.That(renderer, Does.Not.Contain("TacticalMapPlaneY"));
@@ -108,17 +104,17 @@ public sealed class TacticalMapUiContractTests
             Assert.That(input, Does.Contain("new MoveToCommand(actor, point, run)"));
         });
 
-        var overviewBranch = camera.IndexOf(
-            "if (OverviewActive)",
-            camera.IndexOf("private void TryHandleLeftClick", System.StringComparison.Ordinal),
-            System.StringComparison.Ordinal);
+        var leftClickStart = camera.IndexOf(
+            "private void TryHandleLeftClick", System.StringComparison.Ordinal);
         var manualClick = camera.IndexOf(
             "TryHandleManualClick(mousePosition)",
-            overviewBranch,
+            leftClickStart,
             System.StringComparison.Ordinal);
-        Assert.That(overviewBranch, Is.GreaterThanOrEqualTo(0));
-        Assert.That(manualClick, Is.GreaterThan(overviewBranch),
-            "Overview selection/recentre branch must return before manual commands.");
+        Assert.That(leftClickStart, Is.GreaterThanOrEqualTo(0));
+        Assert.That(manualClick, Is.GreaterThan(leftClickStart));
+        Assert.That(camera.Substring(leftClickStart, manualClick - leftClickStart),
+            Does.Not.Contain("OverviewActive"),
+            "Camera distance must not intercept clicks before normal commands.");
     }
 
     private static string Read(params string[] path)

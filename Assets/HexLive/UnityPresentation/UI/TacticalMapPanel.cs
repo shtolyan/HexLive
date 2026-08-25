@@ -17,8 +17,8 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// §150: binds one visibility-safe contact frame to the compact HUD map and
-    /// the full-screen, input-transparent distant-world marker canvas.
+    /// §150: binds one visibility-safe contact frame to the compact HUD map.
+    /// Distant camera zoom continues to render and pick the real world.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class TacticalMapPanel : MonoBehaviour
@@ -35,7 +35,6 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement? _miniExpandTab;
         private VisualElement? _miniCollapse;
         private TacticalMapView? _miniMap;
-        private DistantWorldMarkersView? _distantWorldMarkers;
         private HexWorldRenderer? _worldRenderer;
         private NpcPortraitCache? _portraitCache;
         private SimulationInputAdapter? _input;
@@ -93,7 +92,6 @@ namespace HexLive.UnityPresentation.UI
         {
             ResolveDependencies();
             RefreshMapFrame();
-            _distantWorldMarkers?.RefreshForCamera();
             RefreshPointerState();
         }
 
@@ -122,9 +120,8 @@ namespace HexLive.UnityPresentation.UI
             _miniExpandTab = root.Q<VisualElement>("miniMapExpandTab");
             _miniCollapse = root.Q<VisualElement>("miniMapCollapse");
             var miniHost = root.Q<VisualElement>("miniMapHost");
-            var markerHost = root.Q<VisualElement>("distantWorldMarkersHost");
             if (_root == null || _miniCard == null || _miniExpandTab == null ||
-                _miniCollapse == null || miniHost == null || markerHost == null)
+                _miniCollapse == null || miniHost == null)
             {
                 Debug.LogError("§150 Tactical map visual tree is incomplete.");
                 return;
@@ -133,10 +130,6 @@ namespace HexLive.UnityPresentation.UI
             _miniMap = new TacticalMapView();
             _miniMap.AddToClassList("tactical-map-canvas");
             miniHost.Add(_miniMap);
-
-            _distantWorldMarkers = new DistantWorldMarkersView();
-            _distantWorldMarkers.AddToClassList("distant-world-markers-canvas");
-            markerHost.Add(_distantWorldMarkers);
 
             _miniMap.RegisterCallback<PointerUpEvent>(OnMapPointerUp);
             _miniCollapse.RegisterCallback<PointerDownEvent>(evt =>
@@ -188,8 +181,6 @@ namespace HexLive.UnityPresentation.UI
                 _cameraController = _camera.GetComponent<RtsCameraController>();
             }
 
-            _distantWorldMarkers?.SetPresentation(
-                _camera, _cameraController, _worldRenderer);
         }
 
         private void RefreshMapFrame()
@@ -229,7 +220,6 @@ namespace HexLive.UnityPresentation.UI
                 RefreshMobs(snapshot);
                 RefreshCameraFootprint();
                 _miniMap.SetFrame(_frame);
-                _distantWorldMarkers?.SetFrame(_frame);
                 return;
             }
 
@@ -255,7 +245,6 @@ namespace HexLive.UnityPresentation.UI
             RefreshMobs(snapshot);
             RefreshCameraFootprint();
             _miniMap.SetFrame(_frame);
-            _distantWorldMarkers?.SetFrame(_frame);
         }
 
         private void RefreshRememberedMarkers(

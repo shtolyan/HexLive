@@ -27,7 +27,7 @@ using UnityEngine;
 //  re-authored from scratch.
 //
 //  To put one on a girl: drop the prefab into the `hair` field of her
-//  BodyBones (Assets/Resources/HexLive/Actors/<Girl>.prefab). BodyBones
+//  BodyBones (Assets/HexLiveContent/RuntimeSource/Actors/<Girl>.prefab). BodyBones
 //  spawns it in Construct and Wear.Construct stitches every hair bone onto
 //  the matching body bone by NAME, so any hair fits any actor â€” all thirteen
 //  skin to the shared Genesis3 head/neck/face bones.

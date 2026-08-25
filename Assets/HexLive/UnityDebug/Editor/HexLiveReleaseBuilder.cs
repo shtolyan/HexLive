@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -13,9 +14,9 @@ namespace HexLive.UnityDebug.Editor
     /// </summary>
     public static class HexLiveReleaseBuilder
     {
-        private const string HutAssetPath = "Assets/Resources/HexLive/Objects/building.hut_1hex.fbx";
-        private const string BedAssetPath = "Assets/Resources/HexLive/Objects/bed_basic_final_native.fbx";
         private const string PcPipelineAssetPath = "Assets/Settings/PC_RPAsset.asset";
+        private const long MaximumPlayerBytes = 450L * 1024L * 1024L;
+        private const long MaximumDataAndStreamingBytes = 50L * 1024L * 1024L;
         private const string OutputArgument = "-hexlive-build-output";
         private const string SummaryArgument = "-hexlive-build-summary";
         private const string ReleaseArgument = "-hexlive-release";
@@ -31,6 +32,10 @@ namespace HexLive.UnityDebug.Editor
             public string builtAtUtc;
             public double durationSeconds;
             public long totalBytes;
+            public long playerBytes;
+            public long dataUnity3dBytes;
+            public long streamingAssetsBytes;
+            public int packedAssetEntries;
             public int warnings;
             public int errors;
             public bool development;
@@ -44,6 +49,28 @@ namespace HexLive.UnityDebug.Editor
         public static void BuildWindows()
         {
             Run(BuildTarget.StandaloneWindows64);
+        }
+
+        public static void ValidateAtomicPlayerInputs()
+        {
+            var exitCode = 1;
+            try
+            {
+                ValidateNoForcedPlayerContent();
+                Debug.Log("[BuildGate] Atomic Player inputs are valid.");
+                exitCode = 0;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
+            finally
+            {
+                if (Application.isBatchMode)
+                {
+                    EditorApplication.Exit(exitCode);
+                }
+            }
         }
 
         private static void Run(BuildTarget target)
@@ -81,8 +108,7 @@ namespace HexLive.UnityDebug.Editor
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? ".");
                 Directory.CreateDirectory(Path.GetDirectoryName(summaryPath) ?? ".");
 
-                ValidateBuildingResource(HutAssetPath, "HexLive/Objects/building.hut_1hex", 1);
-                ValidateBuildingResource(BedAssetPath, "HexLive/Objects/bed_basic_final_native", 69);
+                ValidateNoForcedPlayerContent();
                 ValidateRuntimeGeneratedWorldRendering();
 
                 var options = BuildOptions.CompressWithLz4HC;
@@ -103,29 +129,24 @@ namespace HexLive.UnityDebug.Editor
                 var build = report.summary;
                 if (build.result == BuildResult.Succeeded)
                 {
-                    ValidatePackedBuildingResource(report, HutAssetPath);
-                    ValidatePackedBuildingResource(report, BedAssetPath);
+                    ValidatePackedPlayerContent(report);
+                    ValidatePlayerSize(outputPath, target, out var playerBytes,
+                        out var dataUnity3dBytes, out var streamingAssetsBytes);
 
                     // Unity 6 did not consistently rediscover the postprocess
                     // half of a callback that also owns preprocess in batchmode.
                     // This method is idempotent when the interface already ran.
                     HexLiveBuildVersioning.CommitSuccessfulBuild();
-                }
 
-                WriteSummary(summaryPath, new CommandLineBuildSummary
+                    WriteSummary(summaryPath, CreateSummary(
+                        build, development, playerBytes, dataUnity3dBytes,
+                        streamingAssetsBytes, PackedEntryCount(report)));
+                }
+                else
                 {
-                    result = build.result.ToString(),
-                    version = PlayerSettings.bundleVersion,
-                    unityVersion = Application.unityVersion,
-                    target = build.platform.ToString(),
-                    outputPath = build.outputPath,
-                    builtAtUtc = DateTime.UtcNow.ToString("o"),
-                    durationSeconds = build.totalTime.TotalSeconds,
-                    totalBytes = checked((long)build.totalSize),
-                    warnings = build.totalWarnings,
-                    errors = build.totalErrors,
-                    development = development
-                });
+                    WriteSummary(summaryPath, CreateSummary(
+                        build, development, 0, 0, 0, PackedEntryCount(report)));
+                }
 
                 if (build.result != BuildResult.Succeeded)
                 {
@@ -161,75 +182,184 @@ namespace HexLive.UnityDebug.Editor
             throw new ArgumentException($"Required command-line argument is missing: {name}");
         }
 
-        private static void ValidateBuildingResource(
-            string assetPath, string resourcePath, int minimumRenderers)
+        private static CommandLineBuildSummary CreateSummary(
+            BuildSummary build,
+            bool development,
+            long playerBytes,
+            long dataUnity3dBytes,
+            long streamingAssetsBytes,
+            int packedAssetEntries)
         {
-            if (!File.Exists(assetPath))
+            return new CommandLineBuildSummary
             {
-                throw new FileNotFoundException(
-                    $"Required building Resources asset is missing: {assetPath}", assetPath);
-            }
-
-            var imported = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-            var loaded = Resources.Load<GameObject>(resourcePath);
-            if (imported == null || loaded == null)
-            {
-                throw new InvalidOperationException(
-                    $"Building asset is not importable/loadable as Resources GameObject: " +
-                    $"asset={assetPath}, resource={resourcePath}.");
-            }
-
-            var rendererCount = loaded.GetComponentsInChildren<Renderer>(true).Length;
-            if (rendererCount < minimumRenderers)
-            {
-                throw new InvalidOperationException(
-                    $"Building Resources asset is incomplete: {assetPath} has {rendererCount} " +
-                    $"renderers, expected at least {minimumRenderers}.");
-            }
-
-            Debug.Log(
-                $"[BuildGate] Building resource ready: {resourcePath} " +
-                $"({rendererCount} renderers, {new FileInfo(assetPath).Length} bytes).");
+                result = build.result.ToString(),
+                version = PlayerSettings.bundleVersion,
+                unityVersion = Application.unityVersion,
+                target = build.platform.ToString(),
+                outputPath = build.outputPath,
+                builtAtUtc = DateTime.UtcNow.ToString("o"),
+                durationSeconds = build.totalTime.TotalSeconds,
+                totalBytes = checked((long)build.totalSize),
+                playerBytes = playerBytes,
+                dataUnity3dBytes = dataUnity3dBytes,
+                streamingAssetsBytes = streamingAssetsBytes,
+                packedAssetEntries = packedAssetEntries,
+                warnings = build.totalWarnings,
+                errors = build.totalErrors,
+                development = development
+            };
         }
 
-        private static void ValidatePackedBuildingResource(BuildReport report, string assetPath)
+        private static void ValidateNoForcedPlayerContent()
         {
-            // ⭐ Отсутствие УЛИК — не улика отсутствия.
-            //
-            // Проверка читает report.packedAssets. На IL2CPP этот список
-            // приходит ПУСТЫМ (замер: 0 контейнеров, 0 записей при
-            // result=Succeeded), тогда как на Mono он заполнялся — и первый же
-            // виндовый IL2CPP-билд упал здесь, хотя ассет был на месте:
-            // data.unity3d отличался от заведомо рабочего билда на 6 КБ из 719
-            // МБ, то есть содержимое то же.
-            //
-            // Поэтому пустой отчёт больше не считается пропажей: сказать по
-            // нему нечего, и билд из-за этого валить нельзя. Как только записи
-            // есть — проверка снова строгая, ради чего §41.1/баг #111 её и
-            // заводили. Заодно печатаем размер выборки: если однажды список
-            // опустеет и на Mono, это будет видно, а не молча пропущено.
-            var containers = report.packedAssets.Length;
-            var entries = report.packedAssets.Sum(container => container.contents.Length);
-            if (entries == 0)
+            var violations = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets(string.Empty, new[] { "Assets/Resources" }))
             {
-                Debug.LogWarning(
-                    $"[BuildGate] packedAssets пуст ({containers} контейнеров) — проверить упаковку " +
-                    $"{assetPath} по отчёту невозможно. Ассет проверен до сборки " +
-                    "(загружается из Resources с ожидаемым числом рендереров).");
-                return;
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!AssetDatabase.IsValidFolder(path) && IsForbiddenPlayerContent(path))
+                {
+                    violations.Add(path);
+                }
             }
 
-            var packed = report.packedAssets.Any(container =>
-                container.contents.Any(item =>
-                    string.Equals(item.sourceAssetPath, assetPath, StringComparison.Ordinal)));
-            if (!packed)
+            if (Directory.Exists("Assets/StreamingAssets"))
+            {
+                violations.AddRange(Directory.EnumerateFiles(
+                        "Assets/StreamingAssets", "*", SearchOption.AllDirectories)
+                    .Where(path => !path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
+                    .Select(path => path.Replace('\\', '/')));
+            }
+
+            foreach (var scene in EditorBuildSettings.scenes.Where(value => value.enabled))
+            {
+                violations.AddRange(AssetDatabase.GetDependencies(scene.path, true)
+                    .Where(IsForbiddenPlayerContent));
+            }
+
+            if (violations.Count > 0)
+            {
+                var preview = string.Join("\n", violations.OrderBy(path => path).Take(20));
+                throw new InvalidOperationException(
+                    $"Player contains {violations.Count} forced game-content asset(s). " +
+                    "Publish them as atomic ContentObjects and remove them from Resources/" +
+                    "StreamingAssets before building:\n" + preview);
+            }
+
+            Debug.Log("[BuildGate] Resources and StreamingAssets contain bootstrap files only.");
+        }
+
+        private static void ValidatePackedPlayerContent(BuildReport report)
+        {
+            var forbidden = report.packedAssets
+                .SelectMany(container => container.contents)
+                .Select(item => item.sourceAssetPath)
+                .Where(path => IsForbiddenPlayerContent(path))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(path => path)
+                .ToArray();
+            if (forbidden.Length > 0)
             {
                 throw new InvalidOperationException(
-                    $"Player build succeeded but omitted required Resources asset: {assetPath}. " +
-                    $"packedAssets: {containers} контейнеров, {entries} записей.");
+                    $"BuildReport detected {forbidden.Length} game-content asset(s) in Player:\n" +
+                    string.Join("\n", forbidden.Take(20)));
             }
 
-            Debug.Log($"[BuildGate] Player contains building resource: {assetPath}.");
+            Debug.Log($"[BuildGate] BuildReport contains no game content " +
+                      $"({PackedEntryCount(report)} packed entries inspected).");
+        }
+
+        private static bool IsForbiddenPlayerContent(string path)
+        {
+            if (string.IsNullOrEmpty(path) ||
+                path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var normalized = path.Replace('\\', '/');
+            if (normalized.StartsWith("Assets/StreamingAssets/", StringComparison.Ordinal) ||
+                normalized.StartsWith("Assets/ImportedActors/", StringComparison.Ordinal) ||
+                normalized.StartsWith("Assets/HexLiveContent/", StringComparison.Ordinal) ||
+                normalized.StartsWith("Assets/AtomicContent/", StringComparison.Ordinal) ||
+                normalized.StartsWith("Assets/FMODBanks/", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!normalized.StartsWith("Assets/Resources/", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return !BootstrapResourceAllowList.Contains(normalized);
+        }
+
+        private static readonly HashSet<string> BootstrapResourceAllowList =
+            new(StringComparer.Ordinal)
+            {
+                "Assets/Resources/I2Languages.asset",
+                "Assets/Resources/HexLive/DebugPanelSettings.asset",
+                "Assets/Resources/HexLive/UI/Fonts/Caveat-Regular.ttf",
+                "Assets/Resources/HexLive/UI/GameModePanel.uss",
+                "Assets/Resources/HexLive/UI/GameModePanel.uxml",
+                "Assets/Resources/HexLive/UI/WorldLibraryPanel.uss",
+                "Assets/Resources/HexLive/UI/WorldLibraryPanel.uxml",
+                "Assets/Resources/HexLive/UI/loading_island.png",
+                "Assets/Resources/HexLive/UI/logo.png",
+                "Assets/Resources/HexLive/UI/mode_huge_island.png",
+                "Assets/Resources/HexLive/UI/mode_maniac.png"
+            };
+
+        private static int PackedEntryCount(BuildReport report)
+        {
+            return report.packedAssets.Sum(container => container.contents.Length);
+        }
+
+        private static void ValidatePlayerSize(
+            string outputPath,
+            BuildTarget target,
+            out long playerBytes,
+            out long dataUnity3dBytes,
+            out long streamingAssetsBytes)
+        {
+            playerBytes = File.Exists(outputPath)
+                ? new FileInfo(outputPath).Length
+                : DirectorySize(outputPath);
+
+            var dataRoot = target == BuildTarget.StandaloneOSX
+                ? Path.Combine(outputPath, "Contents", "Resources", "Data")
+                : Path.Combine(Path.GetDirectoryName(outputPath) ?? string.Empty,
+                    Path.GetFileNameWithoutExtension(outputPath) + "_Data");
+            var dataUnity3d = Path.Combine(dataRoot, "data.unity3d");
+            var streamingAssets = Path.Combine(dataRoot, "StreamingAssets");
+            dataUnity3dBytes = File.Exists(dataUnity3d) ? new FileInfo(dataUnity3d).Length : 0;
+            streamingAssetsBytes = DirectorySize(streamingAssets);
+
+            if (playerBytes > MaximumPlayerBytes)
+            {
+                throw new InvalidOperationException(
+                    $"Player is {playerBytes} bytes; maximum is {MaximumPlayerBytes} bytes.");
+            }
+
+            if (dataUnity3dBytes + streamingAssetsBytes > MaximumDataAndStreamingBytes)
+            {
+                throw new InvalidOperationException(
+                    $"data.unity3d + StreamingAssets is " +
+                    $"{dataUnity3dBytes + streamingAssetsBytes} bytes; maximum is " +
+                    $"{MaximumDataAndStreamingBytes} bytes.");
+            }
+
+            Debug.Log($"[BuildGate] Minimal Player: {playerBytes} bytes total; " +
+                      $"data.unity3d={dataUnity3dBytes}; StreamingAssets={streamingAssetsBytes}.");
+        }
+
+        private static long DirectorySize(string path)
+        {
+            return Directory.Exists(path)
+                ? Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                    .Sum(file => new FileInfo(file).Length)
+                : 0;
         }
 
         private static void ValidateRuntimeGeneratedWorldRendering()

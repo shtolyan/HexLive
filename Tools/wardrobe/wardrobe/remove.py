@@ -12,7 +12,7 @@
   3. строка `WearSlotCatalog.Slots`;
   4. термины `item.<slug>.name` / `.desc` в I2;
   5. ассет определения `Garments/Assets/<Слой>/<slug>.asset` (+ `.meta`);
-  6. префаб `Resources/HexLive/Wear/<simId>/` (у расцветки его нет — она
+  6. префаб `HexLiveContent/Wear/<simId>/` (у расцветки его нет — она
      берёт геометрию прототипа) и папка материалов расцветки;
   7. иконка `Resources/HexLive/UI/Items/<simId>.png` (+ `.meta`).
 

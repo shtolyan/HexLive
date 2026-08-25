@@ -5,10 +5,16 @@ Assets/StreamingAssets/HexLive/Sfx/*.wav filter=lfs diff=lfs merge=lfs -text
 Assets/StreamingAssets/HexLive/Sfx/*.ogg filter=lfs diff=lfs merge=lfs -text
 Assets/StreamingAssets/HexLive/Music/*.ogg filter=lfs diff=lfs merge=lfs -text
 Assets/StreamingAssets/HexLive/Music/*.mp3 filter=lfs diff=lfs merge=lfs -text
+Assets/HexLiveContent/AudioSource/HexLive/Sfx/**/*.wav filter=lfs diff=lfs merge=lfs -text
+Assets/HexLiveContent/AudioSource/HexLive/Sfx/*.wav filter=lfs diff=lfs merge=lfs -text
+Assets/HexLiveContent/AudioSource/HexLive/Sfx/*.ogg filter=lfs diff=lfs merge=lfs -text
+Assets/HexLiveContent/AudioSource/HexLive/Music/*.ogg filter=lfs diff=lfs merge=lfs -text
+Assets/HexLiveContent/AudioSource/HexLive/Music/*.mp3 filter=lfs diff=lfs merge=lfs -text
 FMODStudio/HexLive/Assets/**/*.wav filter=lfs diff=lfs merge=lfs -text
 FMODStudio/HexLive/Assets/**/*.ogg filter=lfs diff=lfs merge=lfs -text
 FMODStudio/HexLive/Build/**/*.bank filter=lfs diff=lfs merge=lfs -text
 Assets/StreamingAssets/FMODBanks/*.bank filter=lfs diff=lfs merge=lfs -text
+Assets/HexLiveContent/AudioSource/FMODBanks/*.bank filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
 *.mesh filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text

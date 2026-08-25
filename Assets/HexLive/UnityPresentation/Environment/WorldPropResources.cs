@@ -1,13 +1,12 @@
 #nullable enable
+using HexLive.UnityPresentation.Content;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Environment
 {
     /// <summary>
-    /// Single Player-safe resource boundary for authored world props. Runtime
-    /// ids never point at glTF ScriptedImporter assets: every migrated model is
-    /// loaded from a native FBX mirror whose mesh/material sub-assets Unity can
-    /// retain in Player data.
+    /// Atomic-content boundary for authored world props. Runtime ids resolve to
+    /// one self-contained object bundle; Player Resources are never consulted.
     /// </summary>
     public static class WorldPropResources
     {
@@ -36,7 +35,9 @@ namespace HexLive.UnityPresentation.Environment
         };
 
         public static GameObject? Load(string id) =>
-            Resources.Load<GameObject>($"HexLive/Objects/{NativeName(id)}");
+            ContentPrefabCache.GetOrRequest("object", id);
+
+        public static void Prewarm(string id) => ContentPrefabCache.Prewarm("object", id);
 
         /// <summary>
         /// Instantiate the same Player-safe authored prop used by world drops;

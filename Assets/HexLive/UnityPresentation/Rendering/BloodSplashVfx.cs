@@ -25,12 +25,22 @@ public static class BloodSplashVfx
         _prefabs = null;
     }
 
-    public static GameObject[] Prefabs => _prefabs ??= new[]
+    public static GameObject[] Prefabs
     {
-        Resources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatDirectional"),
-        Resources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatDirectional2"),
-        Resources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatWide")
-    };
+        get
+        {
+            if (_prefabs == null || System.Array.TrueForAll(_prefabs, value => value == null))
+            {
+                _prefabs = new[]
+                {
+                    HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatDirectional"),
+                    HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatDirectional2"),
+                    HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatWide")
+                };
+            }
+            return _prefabs;
+        }
+    }
 
     /// <summary>Deterministic prefab pick from any seed (zone hash, tick…).</summary>
     public static GameObject Pick(int seed)

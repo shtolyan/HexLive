@@ -27,7 +27,24 @@ namespace HexLive.UnityPresentation.Config
         public static List<ScriptableObject> LoadAll()
         {
             var result = new List<ScriptableObject>();
-            foreach (var asset in Resources.LoadAll<ScriptableObject>(ResourceFolder))
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                foreach (var guid in UnityEditor.AssetDatabase.FindAssets(
+                             "t:ScriptableObject",
+                             new[] { "Assets/HexLiveContent/RuntimeSource/Balance" }))
+                {
+                    var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<ScriptableObject>(
+                        UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
+                    if (asset != null && SimConfigMirror.IsMirrorConfig(asset.GetType()))
+                    {
+                        result.Add(asset);
+                    }
+                }
+                return result;
+            }
+#endif
+            foreach (var asset in HexLive.UnityPresentation.Content.AtomicResources.LoadAll<ScriptableObject>(ResourceFolder))
             {
                 if (SimConfigMirror.IsMirrorConfig(asset.GetType()))
                 {

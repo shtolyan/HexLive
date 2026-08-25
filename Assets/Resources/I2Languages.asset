@@ -58,6 +58,38 @@ MonoBehaviour:
       - "\u041F\u043E\u0434\u0433\u043E\u043D\u044F\u0435\u043C \u043F\u0440\u043E\u0442\u0435\u0437\u044B\u2026"
       Flags: 0101
       Languages_Touch: []
+    - Term: loading.content.registry
+      TermType: 0
+      Description:
+      Languages:
+      - "Checking content versions…"
+      - "Проверяем версии контента…"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loading.content.download
+      TermType: 0
+      Description:
+      Languages:
+      - "Downloading required objects…"
+      - "Загружаем нужные объекты…"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loading.content.asset
+      TermType: 0
+      Description:
+      Languages:
+      - "Preparing world objects…"
+      - "Готовим объекты мира…"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loading.content.failed
+      TermType: 0
+      Description:
+      Languages:
+      - "Content is unavailable. Check the server or cached files."
+      - "Контент недоступен. Проверьте сервер или локальный кэш."
+      Flags: 0101
+      Languages_Touch: []
     - Term: loading.content.done
       TermType: 0
       Description: 

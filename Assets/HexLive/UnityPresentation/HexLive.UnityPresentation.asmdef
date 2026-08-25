@@ -10,8 +10,7 @@
     "MagicaClothV2",
     "Unity.RenderPipelines.Universal.Runtime",
     "Unity.RenderPipelines.Core.Runtime",
-    "Unity.Addressables",
-    "Unity.ResourceManager"
+    "Unity.Newtonsoft.Json"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

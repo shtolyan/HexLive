@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
+using HexLive.UnityPresentation.Content;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Wearing
@@ -12,15 +15,14 @@ namespace HexLive.UnityPresentation.Wearing
     /// работает, в билде все девушки лысые. Ссылка втягивала их в билд, и это
     /// было ровно то, что требовалось.
     ///
-    /// С переходом на Addressables то же свойство стало проблемой: втягивала
+    /// С переходом на внешний атомарный контент то же свойство стало проблемой: втягивала
     /// она их ВСЕГДА и ЦЕЛИКОМ — 16 причёсок, 254 расцветки, 1754 материала и
     /// все их текстуры, независимо от того, наденет ли кто-то хоть одну. Теперь
     /// содержимое доезжает по адресу и только когда понадобилось, а этот ассет
     /// отвечает на единственный вопрос: ЧТО вообще бывает.
     ///
-    /// Адреса строит <c>HexLiveAddressablesContent</c> по правилу:
-    /// <c>hair/&lt;Причёска&gt;</c> и
-    /// <c>hair/&lt;Причёска&gt;/&lt;Цвет&gt;/&lt;Поверхность&gt;</c>.
+    /// Объект имеет id причёски, а материалы — entries
+    /// <c>colour/&lt;Цвет&gt;/&lt;Поверхность&gt;</c> внутри того же bundle.
     /// Грузит их <see cref="HairContent"/>.
     ///
     /// Перестраивается меню <b>HexLive ▸ Actors ▸ Rebuild Appearance Catalog</b>.
@@ -28,8 +30,6 @@ namespace HexLive.UnityPresentation.Wearing
     [CreateAssetMenu(menuName = "HexLive/Actor Appearance Catalog", fileName = "ActorAppearanceCatalog")]
     public sealed class ActorAppearanceCatalog : ScriptableObject
     {
-        public const string ResourcePath = "HexLive/ActorAppearanceCatalog";
-
         [Tooltip("Имена причёсок (они же имена префабов и часть адреса). Заполняется меню HexLive ▸ Actors ▸ Rebuild Appearance Catalog.")]
         public List<string> hairstyles = new();
 
@@ -56,7 +56,16 @@ namespace HexLive.UnityPresentation.Wearing
 
         private static ActorAppearanceCatalog _instance;
         private static bool _tried;
+        private static bool _subscribed;
         private Dictionary<string, List<HairColour>> _coloursByHair;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _instance = null;
+            _tried = false;
+            _subscribed = false;
+        }
 
         /// <summary>Каталог, или null, если ассета нет.</summary>
         public static ActorAppearanceCatalog Instance
@@ -69,17 +78,57 @@ namespace HexLive.UnityPresentation.Wearing
                 }
 
                 _tried = true;
-                _instance = Resources.Load<ActorAppearanceCatalog>(ResourcePath);
-                if (_instance == null)
+                _instance = CreateInstance<ActorAppearanceCatalog>();
+                _instance.hideFlags = HideFlags.DontSave;
+                var service = ContentAssetService.Instance;
+                if (!_subscribed)
                 {
-                    Debug.LogWarning(
-                        $"[§74] ActorAppearanceCatalog not found at Resources/{ResourcePath} — " +
-                        "run HexLive ▸ Actors ▸ Rebuild Appearance Catalog. " +
-                        "Every girl keeps the hairstyle authored on her actor prefab.");
+                    _subscribed = true;
+                    service.RegistryRefreshed += RebuildFromRegistry;
                 }
+                RebuildFromRegistry();
+                service.RefreshRegistry();
 
                 return _instance;
             }
+        }
+
+        private static void RebuildFromRegistry()
+        {
+            if (_instance == null)
+            {
+                return;
+            }
+
+            _instance.hairstyles.Clear();
+            _instance.hairColours.Clear();
+            foreach (var record in ContentAssetService.Instance.Records("hair"))
+            {
+                _instance.hairstyles.Add(record.id);
+                if (record.metadata?["colours"] is not JArray colours)
+                {
+                    continue;
+                }
+
+                foreach (var token in colours.OfType<JObject>())
+                {
+                    var colour = token.Value<string>("id");
+                    var surfaces = token["surfaces"]?.Values<string>();
+                    if (string.IsNullOrWhiteSpace(colour) || surfaces == null)
+                    {
+                        continue;
+                    }
+
+                    _instance.hairColours.Add(new HairColour
+                    {
+                        hair = record.id,
+                        colour = colour,
+                        surfaces = new List<string>(surfaces),
+                    });
+                }
+            }
+
+            _instance._coloursByHair = null;
         }
 
         /// <summary>Знает ли каталог такую причёску.</summary>

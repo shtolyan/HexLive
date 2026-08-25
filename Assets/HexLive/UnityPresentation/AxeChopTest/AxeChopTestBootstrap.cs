@@ -201,7 +201,7 @@ namespace HexLive.UnityPresentation.AxeChopTest
 
         private void SpawnJana()
         {
-            var prefab = Resources.Load<GameObject>("HexLive/Actors/Jana");
+            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Actors/Jana");
             if (prefab == null)
             {
                 Debug.LogError("[AxeChopTest] Actor prefab 'HexLive/Actors/Jana' not found");
@@ -248,7 +248,7 @@ namespace HexLive.UnityPresentation.AxeChopTest
         private void EquipWear(string resourcePath, string key)
         {
             if (_bodyBones == null) return;
-            var prefab = Resources.Load<GameObject>(resourcePath);
+            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(resourcePath);
             var wear = prefab != null ? prefab.GetComponent<Wear>() : null;
             if (wear == null)
             {
@@ -261,7 +261,7 @@ namespace HexLive.UnityPresentation.AxeChopTest
 
         private void SpawnTree()
         {
-            var tree = Resources.Load<GameObject>("HexLive/Objects/tree.big");
+            var tree = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Objects/tree.big");
             if (tree == null) return;
             var t = Instantiate(tree);
             t.name = "Tree";

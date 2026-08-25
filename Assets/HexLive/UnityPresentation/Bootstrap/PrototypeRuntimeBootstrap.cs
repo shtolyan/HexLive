@@ -3,6 +3,7 @@ using UnityEngine;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.UI;
+using HexLive.UnityPresentation.Content;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.Bootstrap
@@ -31,44 +32,14 @@ public static class PrototypeRuntimeBootstrap
 
     private static void Boot()
     {
-        // Apply the saved tuning asset (hop/swim/water feel) before anything
-        // spawns — the values that used to be hand-edited code constants.
-        // Idempotent (each catalog clears/overrides), so re-running per scene
-        // load is safe.
-        Config.HexTuning.LoadAndApply();
+        // §152: start the live registry while the player is still on the menu.
+        // Local simdata is applied from config/simdata after the player chooses
+        // a local world; a remote server supplies its own simdata in handshake.
+        ContentAssetService.Instance.RefreshRegistry();
 
-        // §59: the themed balance configs (Character / ResourceLoop / Social /
-        // Threat) from Resources/HexLive/Balance → SimBalance + Spec statics
-        // via the reflection mirror.
-        Config.BalanceTuning.LoadAndApply();
-
-        // §132: optional no-rebuild deployment layer. A small strict JSON
-        // beside the Player overrides any registered balance field after the
-        // complete SO defaults are loaded and before worldgen reads them.
-        Config.ExternalBalanceTuning.LoadAndApply();
-
-        // Spec §42: load the wearable wardrobe from the GarmentCatalog asset
-        // into GarmentLibrary before the world (and its content) is built.
-        Config.GarmentTuning.LoadAndApply();
-
-        // Гардероб КОНТЕНТОМ. Порядок важен и обратный привычному: сначала
-        // кодовые умолчания и тюнинг из ассетов (выше), потом меты из папки
-        // рядом с игрой — контент последнее слово. Вещь, которой не было при
-        // сборке exe, появляется в таблицах именно здесь.
+        // Per-object wardrobe metadata is a live record, so one updated skirt
+        // changes its own simulation presentation fields without a catalog.
         Wearing.Garments.WardrobeMeta.Load();
-
-        // Per-mob combat/behaviour from the MobConfig assets (one per mob) into
-        // MobCatalog, before the world spawns any creatures.
-        Config.MobTuning.LoadAndApply();
-
-        // Per-gear (weapon+tool) sheets from the GearConfig assets (one per
-        // item) into GearCatalog + GearLibrary (prefabs, animations).
-        Config.GearTuning.LoadAndApply();
-
-        // Per-world-object action sheets (skills → yields) from the
-        // WorldObjectConfig assets into WorldObjectLibrary (merged into the
-        // content catalog when a world is built).
-        Config.ObjectTuning.LoadAndApply();
 
         var existingRunner = Object.FindAnyObjectByType<SimulationRunnerBehaviour>();
         if (existingRunner is not null)

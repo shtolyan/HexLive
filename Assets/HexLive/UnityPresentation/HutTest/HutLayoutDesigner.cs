@@ -69,7 +69,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
         // ⚠️ Не совмещать путь со стилем: у .uxml при импорте появляется свой
-        // inline-StyleSheet-сабассет, и Resources.Load<StyleSheet> по общему
+        // inline-StyleSheet-сабассет, и HexLive.UnityPresentation.Content.AtomicResources.Load<StyleSheet> по общему
         // пути отдаёт ЕГО — пустой. Панель тогда рисуется голыми кнопками во
         // весь экран. Поэтому таблица стилей живёт под собственным именем.
         private const string StyleResource = "HexLive/UI/HutConstructor/HutConstructorStyles";
@@ -399,8 +399,8 @@ namespace HexLive.UnityPresentation.HutTest
             root.Clear();
             root.style.flexGrow = 1f;
             root.pickingMode = PickingMode.Ignore;
-            var tree = Resources.Load<VisualTreeAsset>(PanelResource);
-            var sheet = Resources.Load<StyleSheet>(StyleResource);
+            var tree = HexLive.UnityPresentation.Content.AtomicResources.Load<VisualTreeAsset>(PanelResource);
+            var sheet = HexLive.UnityPresentation.Content.AtomicResources.Load<StyleSheet>(StyleResource);
             if (tree == null || sheet == null)
             {
                 Debug.LogError("[BlueprintEditor] UI Toolkit resources are missing.", this);
@@ -1500,7 +1500,7 @@ namespace HexLive.UnityPresentation.HutTest
         /// <summary>
         /// Превью карточки — как в Sims: картинка предмета, а до её появления
         /// (или при её отсутствии) глиф на тёмной подложке. Иконки едут тем же
-        /// путём, что у инвентаря (<see cref="ItemIcons"/>, Addressables
+        /// путём, что у инвентаря (<see cref="ItemIcons"/>, owner bundle
         /// «icon/&lt;definitionId&gt;»): нарисованная для вещи иконка появится
         /// в каталоге сама, без правок здесь. Load не блокирует и грузит в
         /// фоне, поэтому карточка недолго опрашивает кэш.

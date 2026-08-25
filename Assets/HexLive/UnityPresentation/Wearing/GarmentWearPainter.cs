@@ -1056,8 +1056,8 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             _artLoaded = true;
-            _texDirt = Resources.Load<Texture2D>("HexLive/Decals/dirt_dust");
-            _texTearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
+            _texDirt = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/dirt_dust");
+            _texTearMask = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/tear_mask");
             // Blood on CLOTH is soak-through, not a wound: it must read as the
             // same red splatter the skin uses for limb damage. The first two
             // entries used to be wound_scratch (a claw gash) and blood_splat —
@@ -1066,9 +1066,9 @@ namespace HexLive.UnityPresentation.Wearing
             // picked by hand), so it leads; the other two give variety.
             _texBloodBrushes = new Texture2D?[]
             {
-                Resources.Load<Texture2D>("HexLive/Decals/blood_stain"),
-                Resources.Load<Texture2D>("HexLive/Decals/blood_splash"),
-                Resources.Load<Texture2D>("HexLive/Decals/blood_splat")
+                HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_stain"),
+                HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splash"),
+                HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splat")
             };
             var erase = Shader.Find("Hidden/HexLive/AlphaErase");
             _alphaErase = erase != null ? new Material(erase) : null;

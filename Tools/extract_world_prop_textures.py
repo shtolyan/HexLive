@@ -25,7 +25,7 @@ def main() -> None:
     for entry_id in args.ids:
         source_name, target_name = TARGETS[entry_id]
         source = args.repo / "Assets/ArtSource/WorldProps" / source_name
-        target = args.repo / "Assets/Resources/HexLive/Objects" / target_name
+        target = args.repo / "Assets/HexLiveContent/RuntimeSource/Objects" / target_name
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=str(source))
         images = [image for image in bpy.data.images if image.name != "Render Result"]

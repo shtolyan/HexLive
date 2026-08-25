@@ -53,7 +53,7 @@ remove_prefix("HL_GameBed_")
 
 def import_game_bed(label, x, y, yaw):
     before = set(bpy.data.objects)
-    bpy.ops.import_scene.fbx(filepath="/Volumes/ORICO/HexLive/Assets/Resources/HexLive/Objects/bed_basic_final_native.fbx")
+    bpy.ops.import_scene.fbx(filepath="/Volumes/ORICO/HexLive/Assets/HexLiveContent/RuntimeSource/Objects/bed_basic_final_native.fbx")
     imported = [obj for obj in bpy.data.objects if obj not in before]
     parented = {child for obj in imported for child in obj.children}
     roots = [obj for obj in imported if obj not in parented]

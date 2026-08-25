@@ -62,7 +62,7 @@ DONOR_MATERIALS = os.path.join(
     REPO, "Assets/ImportedActors/Actors/Molly/Materials")
 DONOR_EYE_MAP_GUID = "2c2a13b66e1fc97469d38d5c92a1671c"
 
-MATERIALS_ROOT = os.path.join(REPO, "Assets/Resources/HexLive/Eyes")
+MATERIALS_ROOT = os.path.join(REPO, "Assets/HexLiveContent/RuntimeSource/Eyes")
 
 # …with ONE exception to "verbatim". The Daz import left `_Metallic: 1` on the
 # iris of all four actresses (the male outsider came in at 0, which is how the

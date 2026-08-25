@@ -545,7 +545,7 @@ public sealed class HutAssembly : MonoBehaviour
 
     private static GameObject BuildRoot(IReadOnlyList<BuildingElementKind>? bayLayout)
     {
-        var prefab = Resources.Load<GameObject>(PrefabPath);
+        var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(PrefabPath);
         if (prefab != null && ObjectFit.HasRenderableGeometry(prefab))
         {
             var instance = Object.Instantiate(prefab);

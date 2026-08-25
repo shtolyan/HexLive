@@ -10,12 +10,12 @@ namespace HexLive.UnityPresentation.Wearing
 
 /// <summary>
 /// World-drop presentation for the four universal prosthetic items. Models
-/// come exclusively from the same external Addressables catalog as fitted
+/// come exclusively from the same atomic object as fitted
 /// devices; a failed load deliberately leaves an empty anchor, never a sphere.
 /// </summary>
 public sealed class ProstheticWorldDropView : MonoBehaviour
 {
-    // Marta source measurements from §118.5. Addressable assets use a 1 m
+    // Marta source measurements from §118.5. Atomic assets use a 1 m
     // joint→end reference, while the world actors use this production scale.
     private const float ActorSourceHeightMeters = 1.7f;
     private const float AuthoredActorHeightMeters = 2.4f;
@@ -46,7 +46,7 @@ public sealed class ProstheticWorldDropView : MonoBehaviour
         int request, string definitionId, int objectId, BodyPart part,
         bool mechanical, GameObject? prefab)
     {
-        // The cached Addressables request may complete after the snapshot
+        // The cached content request may complete after the snapshot
         // removed/replaced this object. Never resurrect a stale world drop.
         if (_destroyed || this == null || request != _requestVersion || prefab == null)
         {
@@ -57,7 +57,7 @@ public sealed class ProstheticWorldDropView : MonoBehaviour
         instance.name = $"Model {definitionId} {part}";
         if (!ObjectFit.HasRenderableGeometry(instance))
         {
-            Debug.LogError($"[ProstheticWorldDrop] Addressable {ProstheticContent.Address(part, definitionId, mechanical)} " +
+            Debug.LogError($"[ProstheticWorldDrop] Atomic object {ProstheticContent.Address(part, definitionId, mechanical)} " +
                            "loaded without renderable geometry.");
             Destroy(instance);
             return;

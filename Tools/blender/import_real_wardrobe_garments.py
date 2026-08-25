@@ -114,7 +114,7 @@ def add_hanging_sample(label, filename, slot_x, rail_z, colour):
     objects = import_obj(OBJ_DIR / filename)
     root = bpy.data.objects.new(f"HL_Wardrobe_Real_{label}_{slot_x:+.3f}", None)
     collection().objects.link(root)
-    root["definitionSource"] = f"Resources/HexLive/Wear/{label}"
+    root["definitionSource"] = f"HexLiveContent/Wear/{label}"
     root["runtimeFactory"] = "GarmentDropFactory.BuildHanging"
     root["hangerAttachMode"] = "bounds_top_to_shoulder_line"
     root["hangerSlotPitchWu"] = SLOT_PITCH

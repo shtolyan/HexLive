@@ -89,7 +89,7 @@ namespace HexLive.UnityPresentation.Environment
 
         // Bug #59: shipped machetes are glTF ScriptedImporter assets rather
         // than ordinary prefabs. Some player builds cannot resolve that main
-        // asset through Resources.Load<GameObject>; unlike the axe/saw, the
+        // asset through HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>; unlike the axe/saw, the
         // machete then had no procedural fallback and simply vanished from the
         // acting hand. Keep the silhouette unmistakable: brown one-handed grip,
         // long iron blade and a short widened cutting tip.

@@ -225,7 +225,7 @@ namespace HexLive.UnityPresentation.Environment
             // fails, use the emergency primitive assembly below instead.
             var prefab = product == "station.drying_rack"
                 ? null
-                : Resources.Load<GameObject>(PrefabPath(product));
+                : HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(PrefabPath(product));
             GameObject? go = null;
             if (prefab != null)
             {
@@ -261,7 +261,7 @@ namespace HexLive.UnityPresentation.Environment
         {
             var root = new GameObject("drying_rack_final (native assembly)");
             var stick = WorldPropResources.Load("resource.stick");
-            var rope = Resources.Load<GameObject>("HexLive/Objects/rope_lashing");
+            var rope = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Objects/rope_lashing");
             if (stick == null || rope == null) return root;
 
             AddNative(root.transform, stick, "stick_00", new Vector3(-0.44f, 0.3675f, 0f),

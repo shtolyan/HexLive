@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using HexLive.Simulation.Content;
-using HexLive.UnityPresentation.Wearing.Garments;
+using HexLive.UnityPresentation.Content;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Config
@@ -9,8 +9,8 @@ namespace HexLive.UnityPresentation.Config
     /// <summary>
     /// §132: optional no-rebuild balance layer for a built player.
     /// ScriptableObjects remain the complete, inspector-friendly defaults;
-    /// <c>HexLiveContent/balance.json</c> is a deliberately small deployment
-    /// overlay applied after them and before world creation.
+    /// The production overlay is the atomic <c>config/simdata</c> object (§152).
+    /// A direct file remains only as an explicit developer override.
     /// </summary>
     public static class ExternalBalanceTuning
     {
@@ -47,6 +47,43 @@ namespace HexLive.UnityPresentation.Config
             Debug.Log($"[BalanceTuning] Applied {applied} external override(s) from {path}");
         }
 
+        /// <summary>
+        /// Loads the full local-simulation catalog from atomic config/simdata.
+        /// Remote sessions intentionally do not call this: their server ships
+        /// its own simdata in the wire handshake.
+        /// </summary>
+        public static void LoadAtomic(System.Action<bool> completed)
+        {
+            ContentAssetService.Instance.GetRawFile("config", "simdata", path =>
+            {
+                if (string.IsNullOrEmpty(path) || !File.Exists(path))
+                {
+                    Debug.LogError("[SimData] No verified config/simdata object is available.");
+                    completed?.Invoke(false);
+                    return;
+                }
+
+                try
+                {
+                    var json = File.ReadAllText(path);
+                    if (!SimDataFile.ApplyJson(json))
+                    {
+                        Debug.LogError("[SimData] Atomic config/simdata is invalid.");
+                        completed?.Invoke(false);
+                        return;
+                    }
+
+                    Debug.Log($"[SimData] Applied atomic config/simdata from verified blob {path}.");
+                    completed?.Invoke(true);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError($"[SimData] Atomic config/simdata is unreadable: {exception.Message}");
+                    completed?.Invoke(false);
+                }
+            });
+        }
+
         public static string ResolvePath()
         {
             string[] args;
@@ -69,10 +106,10 @@ namespace HexLive.UnityPresentation.Config
                 }
             }
 
-            // ExternalContentPath already resolves the shared directory beside
-            // the .app/.exe correctly on macOS, Windows and Linux. Balance and
-            // Addressables therefore deploy through one stable content root.
-            return Path.Combine(ExternalContentPath.Root, FileName);
+            // No implicit file beside the Player: that recreated a hidden
+            // release/content-set coupling. Production config arrives through
+            // ContentAssetService; only -hexlive-balance opts into a local file.
+            return null;
         }
     }
 }

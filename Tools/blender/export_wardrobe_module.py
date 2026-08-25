@@ -4,7 +4,7 @@ import bpy
 import math
 from mathutils import Matrix
 
-OUTPUT = "/Volumes/ORICO/HexLive/Assets/Resources/HexLive/Objects/furniture.wardrobe.fbx"
+OUTPUT = "/Volumes/ORICO/HexLive/Assets/HexLiveContent/RuntimeSource/Objects/furniture.wardrobe.fbx"
 root = bpy.data.objects["HL_Wardrobe_Module"]
 
 descendants = []

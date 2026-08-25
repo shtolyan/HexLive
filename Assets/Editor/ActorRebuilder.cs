@@ -29,7 +29,7 @@ using UnityEngine;
 public static class ActorRebuilder
 {
     private const string ActorRoot = "Assets/ImportedActors/Actors";
-    private const string PrefabRoot = "Assets/Resources/HexLive/Actors";
+    private const string PrefabRoot = "Assets/HexLiveContent/RuntimeSource/Actors";
 
     private static readonly string[] Girls = { "Jolly", "Jana", "Marta", "Molly" };
 

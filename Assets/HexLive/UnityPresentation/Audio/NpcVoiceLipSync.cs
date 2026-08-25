@@ -6,8 +6,8 @@ using UnityEngine;
 namespace HexLive.UnityPresentation.Audio
 {
     /// <summary>
-    /// Spec §67.7: губы по ЗАПЕЧЁННЫМ таймлайнам визем. Рядом с каждым
-    /// voice_-WAV лежит .vis-сайдкар (magic HXLS, печёт
+    /// Spec §67.7/§152: губы по ЗАПЕЧЁННЫМ таймлайнам визем. Каждый
+    /// voice object атомарно владеет attachment <c>vis</c> (magic HXLS, печёт
     /// _ArtSource/Voice/bake_lipsync.py — офлайн-порт бывшего
     /// uLipSync-анализа): 60 кадров/с, на кадр — ratio 14 Daz-визем + volume.
     /// Рантайм лишь сэмплирует таймлайн по позиции FMOD-канала и сглаживает
@@ -132,12 +132,13 @@ namespace HexLive.UnityPresentation.Audio
         /// <summary>Реплика пошла — сэмплируем её таймлайн по каналу.</summary>
         public void Speak(ref FmodSfx.Loop handle)
         {
-            if (!enabled || string.IsNullOrEmpty(handle.File))
+            if (!enabled || string.IsNullOrEmpty(handle.File) ||
+                string.IsNullOrEmpty(handle.VisemeFile))
             {
                 return;
             }
 
-            _timeline = LoadTimeline(handle.File!);
+            _timeline = LoadTimeline(handle.VisemeFile!);
             _handle = handle;
             _idle = false;
 
@@ -262,9 +263,8 @@ namespace HexLive.UnityPresentation.Audio
             speaking = true;
         }
 
-        private static Timeline? LoadTimeline(string wavPath)
+        private static Timeline? LoadTimeline(string path)
         {
-            var path = Path.ChangeExtension(wavPath, ".vis");
             long mtime = 0;
             try
             {

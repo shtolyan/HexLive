@@ -22,7 +22,7 @@ public interface ISpeechStage
     void ShowSpeechIcon(string iconKey, float seconds, bool alarm = false);
 
     // The same bubble slot occupied by a concrete Sprite: a baked face (§108)
-    // or an Addressable item icon (§111.12). String keys follow another loader.
+    // or an owner-bundle item icon (§111.12). String keys follow another loader.
     void ShowSpeechImage(Sprite image, float seconds, bool alarm = false);
 
     void HideSpeechIcon();

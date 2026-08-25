@@ -11,8 +11,8 @@ namespace HexLive.UnityPresentation.Wearing.Garments
 // сделано/всего, поэтому прогресс настоящий, а ждать можно ДО КОНЦА: таймаут
 // не нужен, потому что каждая начатая задача обязана завершиться.
 //
-// ⭐ Почему завершение гарантировано и таймаут не нужен: Addressables ЗАВЕРШАЕТ
-// операцию всегда — и успехом, и провалом. Поэтому End() зовётся из обработчика
+// ⭐ Почему завершение гарантировано и таймаут не нужен: каждая registry,
+// download и AssetBundle operation ЗАВЕРШАЕТ учёт успехом либо ошибкой. End() зовётся из обработчика
 // в любом случае, включая «адреса нет». Задача, начатая без End(), — это
 // ошибка в коде загрузчика, а не повод вешать страховку на экран.
 //
@@ -28,6 +28,9 @@ public static class ContentQueue
         HairColour,
         Icon,
         Prosthetic,
+        Registry,
+        Download,
+        Asset,
     }
 
     private static readonly Dictionary<Kind, int> Started = new();
@@ -134,6 +137,9 @@ public static class ContentQueue
         Kind.HairColour => "loading.content.colour",
         Kind.Icon => "loading.content.icon",
         Kind.Prosthetic => "loading.content.prosthetic",
+        Kind.Registry => "loading.content.registry",
+        Kind.Download => "loading.content.download",
+        Kind.Asset => "loading.content.asset",
         _ => "loading.content.done",
     };
 }

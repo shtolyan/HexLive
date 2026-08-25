@@ -738,7 +738,7 @@ namespace HexLive.UnityPresentation.UI
             if (!_studioPoseTried)
             {
                 _studioPoseTried = true;
-                _studioPose = Resources.Load<AnimationClip>(StudioPosePath);
+                _studioPose = HexLive.UnityPresentation.Content.AtomicResources.Load<AnimationClip>(StudioPosePath);
                 // A non-humanoid import of the pose (it happened once: the FBX
                 // imported before the Poses postprocessor compiled and came out
                 // Generic) flattens the figure into a sheet. Refuse it.
@@ -984,7 +984,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var template = Resources.Load<Material>("HexLive/UI/HealthDoll");
+            var template = HexLive.UnityPresentation.Content.AtomicResources.Load<Material>("HexLive/UI/HealthDoll");
             var shader = template != null ? template.shader : Shader.Find("HexLive/HealthDoll");
             if (shader == null || !string.Equals(
                     shader.name, "HexLive/HealthDoll", StringComparison.Ordinal) ||

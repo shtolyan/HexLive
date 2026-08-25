@@ -93,7 +93,7 @@ public sealed class BedSleepPoseTestBootstrap : MonoBehaviour
 
     private void BuildMarta()
     {
-        var prefab = Resources.Load<GameObject>("HexLive/Actors/Marta");
+        var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Actors/Marta");
         if (prefab == null)
         {
             Debug.LogError("[BedSleepPoseTest] Marta prefab is missing.", this);

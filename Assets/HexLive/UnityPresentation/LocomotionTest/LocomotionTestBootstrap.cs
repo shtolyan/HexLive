@@ -60,7 +60,7 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
 
         _savedVSyncCount = QualitySettings.vSyncCount;
         _savedTargetFrameRate = Application.targetFrameRate;
-        _animSet = Resources.Load<NpcAnimSet>("HexLive/NpcAnimSet");
+        _animSet = HexLive.UnityPresentation.Content.AtomicResources.Load<NpcAnimSet>("HexLive/NpcAnimSet");
 
         var root = new GameObject("LocomotionTest — real world");
         _runner = root.AddComponent<SimulationRunnerBehaviour>();
@@ -316,7 +316,7 @@ public sealed class LocomotionTestBootstrap : MonoBehaviour
         GUILayout.Space(8f);
         if (GUILayout.Button("СОХРАНИТЬ stride + tuning в игру"))
         {
-            var tuning = Resources.Load<Config.HexTuningConfig>(Config.HexTuning.ResourcePath);
+            var tuning = HexLive.UnityPresentation.Content.AtomicResources.Load<Config.HexTuningConfig>(Config.HexTuning.ResourcePath);
             if (tuning != null)
             {
                 Config.HexTuning.Capture(tuning);

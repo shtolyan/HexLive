@@ -8,12 +8,13 @@ namespace HexLive.UnityPresentation.Wearing
 {
     /// <summary>
     /// §74: (re)builds <see cref="ActorAppearanceCatalog"/> — the one asset that
-    /// makes the hairstyle library reachable at runtime and in a build.
+    /// keeps the authoring inventory inspectable. Runtime uses live `hair/*`
+    /// record metadata and never ships this aggregate asset (§152).
     ///
     /// The discriminator is the same one WardrobeTest has used since the 13-hair
     /// drop: everything under <c>Assets/ImportedActors/Wear</c> that carries a
     /// <see cref="Wear"/> component with NO slots is a hairstyle (garments live
-    /// in <c>Resources/HexLive/Wear</c> and always claim slots). Anything else in
+    /// in <c>HexLiveContent/Wear</c> and always claim slots). Anything else in
     /// that tree — the male genital prop, stray material prefabs — has no Wear
     /// component and is skipped.
     ///
@@ -29,7 +30,7 @@ namespace HexLive.UnityPresentation.Wearing
         // раздевало догола всех, кому причёску катает симуляция.
         private const string HairRoot = "Assets/ImportedActors/Hair";
         private const string CatalogPath =
-            "Assets/Resources/HexLive/ActorAppearanceCatalog.asset";
+            "Assets/HexLiveContent/RuntimeSource/ActorAppearanceCatalog.asset";
 
         [MenuItem("HexLive/Actors/Rebuild Appearance Catalog")]
         public static void Rebuild()

@@ -107,7 +107,19 @@ namespace HexLive.UnityPresentation.Config
         // so tuned values ship without touching code constants.
         public static void LoadAndApply()
         {
-            var config = Resources.Load<HexTuningConfig>(ResourcePath);
+            HexTuningConfig config;
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                config = UnityEditor.AssetDatabase.LoadAssetAtPath<HexTuningConfig>(
+                    "Assets/HexLiveContent/RuntimeSource/HexTuningConfig.asset");
+            }
+            else
+#endif
+            {
+                config = HexLive.UnityPresentation.Content.AtomicResources.Load<HexTuningConfig>(
+                    ResourcePath);
+            }
             if (config != null)
             {
                 Apply(config);

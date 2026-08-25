@@ -21,7 +21,7 @@ def remove_prefix(prefix):
 # Production hut FBX contains its real modular walls, windows, door and floor.
 remove_prefix("HL_GameHut_")
 before = set(bpy.data.objects)
-bpy.ops.import_scene.fbx(filepath="/Volumes/ORICO/HexLive/Assets/Resources/HexLive/Objects/building.hut_1hex.fbx")
+bpy.ops.import_scene.fbx(filepath="/Volumes/ORICO/HexLive/Assets/HexLiveContent/RuntimeSource/Objects/building.hut_1hex.fbx")
 imported = [obj for obj in bpy.data.objects if obj not in before]
 parented = {child for obj in imported for child in obj.children}
 roots = [obj for obj in imported if obj not in parented]

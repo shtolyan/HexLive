@@ -38,7 +38,7 @@ internal static class VariantLookAlikeProbe
         }
 
         var art = new Dictionary<string, SkinnedMeshRenderer>();
-        foreach (var folder in AssetDatabase.GetSubFolders("Assets/Resources/HexLive/Wear"))
+        foreach (var folder in AssetDatabase.GetSubFolders("Assets/HexLiveContent/Wear"))
         {
             var prefab = AssetDatabase.FindAssets("t:GameObject", new[] { folder })
                 .Select(AssetDatabase.GUIDToAssetPath)

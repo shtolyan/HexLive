@@ -28,7 +28,7 @@ from mathutils import Vector
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE_BLEND = os.path.join(REPO, "Assets/HexLiveContent/source.blend")
-OUT_FBX = os.path.join(REPO, "Assets/Resources/HexLive/Objects/resource.board.fbx")
+OUT_FBX = os.path.join(REPO, "Assets/HexLiveContent/RuntimeSource/Objects/resource.board.fbx")
 
 # Прежний bbox, повторён точно.
 LENGTH, WIDTH, THICK = 0.9744, 0.1787, 0.0547

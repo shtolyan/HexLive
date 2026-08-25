@@ -59,7 +59,7 @@ public sealed class ShiverTestBootstrap : MonoBehaviour
 
     private void SpawnJana()
     {
-        var prefab = Resources.Load<GameObject>("HexLive/Actors/Jana");
+        var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Actors/Jana");
         if (prefab == null)
         {
             Debug.LogError("ShiverTest: actor prefab 'HexLive/Actors/Jana' not found");

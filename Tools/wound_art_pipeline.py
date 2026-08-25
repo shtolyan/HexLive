@@ -15,7 +15,7 @@ Commands:
          wound_scratch.png) into the four stamp PNGs
 
 Outputs land in --outdir for eyeball review; copy into
-Assets/Resources/HexLive/Decals/ by hand (wound_scratch*.png overwrite in
+Assets/HexLiveContent/RuntimeSource/Decals/ by hand (wound_scratch*.png overwrite in
 place and keep their GUIDs; the *_g.png files are NEW - pre-create .meta
 files with sRGBTexture: 0 before Unity imports them).
 """

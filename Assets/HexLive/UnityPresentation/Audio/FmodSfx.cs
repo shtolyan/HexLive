@@ -1,22 +1,22 @@
 #nullable enable
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
+using HexLive.UnityPresentation.Content;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Audio
 {
     /// <summary>
-    /// Spec §67: thin FMOD Core wrapper — 3D one-shots and loops straight from
-    /// StreamingAssets/HexLive/Sfx, no Studio banks required. Files follow the
-    /// "<id>_<n>.(ogg|wav)" convention; every listed variant of an id is loaded
-    /// at Prewarm and a random one plays per call (with a small pitch jitter),
-    /// so repeated chops/steps never machine-gun the same sample.
+    /// Spec §67/§152: thin FMOD Core wrapper over independently versioned raw
+    /// audio objects. Records with metadata kind=sfx/voice and the same group
+    /// form the random variants of one sound; bytes always come through the
+    /// verified SHA cache, never StreamingAssets.
     /// The FMOD Studio bank pipeline can replace this later without touching
     /// call sites — they only know ids like <see cref="Sfx.ChopWood"/>.
     /// </summary>
     public static class FmodSfx
     {
-        // ---- sound ids (also the StreamingAssets file-name prefixes) ----
+        // ---- stable logical sound-group ids ----
         public static class Sfx
         {
             public const string ChopWood = "chop_wood";       // топор по стволу
@@ -121,8 +121,9 @@ namespace HexLive.UnityPresentation.Audio
             internal bool Valid;
             public bool IsValid => Valid;
             /// <summary>Файл сыгранного варианта (§67.7: липсинк берёт его
-            /// .vis-сайдкар с запечённым таймлайном визем).</summary>
+            /// атомарно привязанный vis-сайдкар с таймлайном визем).</summary>
             public string File;
+            public string VisemeFile;
         }
 
         // §67.6: character voice lines auto-register from the file scan —
@@ -130,63 +131,14 @@ namespace HexLive.UnityPresentation.Audio
         // new colonist's folder needs zero code.
         private static readonly Def VoiceDef = new(0.75f, 1.2f, 22f, 0.03f);
 
-        // §67.10: файлы РОВНО этой группы — стем без последнего "_<вариант>"
-        // должен совпадать с ид-ом. Простая маска "id_*.*" тут ошибается:
-        // общий банк эмоции voice_molly_sad проглотил бы и voice_molly_sad_thirst_0
-        // (реплику под конкретный повод), и фолбэк перестал бы быть фолбэком.
-        //
-        // PERF (Aug-2026): группировка — ОДНИМ рекурсивным обходом дерева.
-        // Прежний ExactGroupFiles ходил Directory.GetFiles(AllDirectories) на
-        // КАЖДУЮ из ~376 групп по дереву в ~4300 файлов — заметный кусок
-        // 11-секундного кадра прогрева. Принадлежность группе та же самая:
-        // ид = стем без последнего "_<вариант>".
-        private static Dictionary<string, List<string>> ScanGroups(string dir)
-        {
-            var groups = new Dictionary<string, List<string>>();
-            foreach (var file in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
-            {
-                if (!IsAudioFile(file))
-                {
-                    continue;
-                }
-
-                var stem = Path.GetFileNameWithoutExtension(file);
-                var cut = stem.LastIndexOf('_');
-                if (cut <= 0)
-                {
-                    continue;
-                }
-
-                var id = stem[..cut];
-                if (!groups.TryGetValue(id, out var list))
-                {
-                    list = new List<string>();
-                    groups[id] = list;
-                }
-
-                list.Add(file);
-            }
-
-            return groups;
-        }
-
-        // Рядом с каждым звуком Unity кладёт "<файл>.meta". Без этого фильтра
-        // они уходят в createSound, FMOD перебирает на них ВСЕ кодеки (ogg →
-        // s3m → xm → it → midi) и сыпет ошибками в консоль — 800+ бесполезных
-        // попыток на прогреве. Звук при этом работал: неудачные просто
-        // пропускались, поэтому баг и жил незаметно.
-        private static bool IsAudioFile(string path)
-        {
-            var ext = Path.GetExtension(path);
-            return ext.Equals(".wav", System.StringComparison.OrdinalIgnoreCase) ||
-                   ext.Equals(".ogg", System.StringComparison.OrdinalIgnoreCase);
-        }
-
         private static readonly Dictionary<string, FMOD.Sound[]> Sounds = new();
         private static readonly Dictionary<string, string[]> Paths = new();
+        private static readonly Dictionary<string, string> VisemePaths = new();
         private static readonly Dictionary<string, Def> LoadedDefs = new();
         private static bool _ready;
         private static bool _failed;
+        private static bool _loading;
+        private static ContentAssetService _subscribedService;
         private static FMOD.ChannelGroup _master;
         private static System.Random _rng = new(9257);
 
@@ -197,9 +149,16 @@ namespace HexLive.UnityPresentation.Audio
         {
             Sounds.Clear();
             Paths.Clear();
+            VisemePaths.Clear();
             LoadedDefs.Clear();
             _ready = false;
             _failed = false;
+            _loading = false;
+            if (_subscribedService != null)
+            {
+                _subscribedService.RegistryRefreshed -= RegistryBecameReady;
+                _subscribedService = null;
+            }
             _rng = new System.Random(9257);
 
             // §70: музыкальный стрим и его группа умирают вместе с системой FMOD.
@@ -213,15 +172,99 @@ namespace HexLive.UnityPresentation.Audio
             _musicGroup = default;
         }
 
-        /// <summary>Load every catalog sound up front (spec §41.4 warm-up rule:
+        /// <summary>Load every currently registered sound up front (§41.4:
         /// a lazy load mid-combat once cost a 2.4 s freeze).</summary>
         public static void Prewarm()
         {
-            if (_ready || _failed)
+            if (_ready || _failed || _loading)
             {
                 return;
             }
 
+            var service = ContentAssetService.Instance;
+            if (!service.RegistryReady)
+            {
+                if (_subscribedService == null)
+                {
+                    _subscribedService = service;
+                    service.RegistryRefreshed += RegistryBecameReady;
+                }
+                service.RefreshRegistry();
+                return;
+            }
+
+            var records = service.Records("audio")
+                .Where(record =>
+                {
+                    var kind = (string)record.metadata?["kind"];
+                    return kind is "sfx" or "voice";
+                })
+                .ToArray();
+            if (records.Length == 0)
+            {
+                _ready = true;
+                return;
+            }
+
+            _loading = true;
+            var groups = new Dictionary<string, List<string>>(System.StringComparer.Ordinal);
+            var pending = records.Length;
+            foreach (var record in records)
+            {
+                var group = (string)record.metadata?["group"];
+                if (string.IsNullOrEmpty(group))
+                {
+                    group = record.id;
+                }
+
+                void Complete(string path, string visemePath)
+                {
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        if (!groups.TryGetValue(group, out var paths))
+                        {
+                            paths = new List<string>();
+                            groups[group] = paths;
+                        }
+                        paths.Add(path);
+                        if (!string.IsNullOrEmpty(visemePath))
+                        {
+                            VisemePaths[path] = visemePath;
+                        }
+                    }
+
+                    pending--;
+                    if (pending == 0)
+                    {
+                        OpenSounds(groups);
+                    }
+                }
+
+                var kind = (string)record.metadata?["kind"];
+                if (kind == "voice")
+                {
+                    service.GetRawFileWithAttachment("audio", record.id, "vis", Complete);
+                }
+                else
+                {
+                    service.GetRawFile("audio", record.id, path => Complete(path, null));
+                }
+            }
+        }
+
+        private static void RegistryBecameReady()
+        {
+            if (_subscribedService != null)
+            {
+                _subscribedService.RegistryRefreshed -= RegistryBecameReady;
+                _subscribedService = null;
+            }
+            Prewarm();
+            ScanMusic();
+        }
+
+        private static void OpenSounds(Dictionary<string, List<string>> groups)
+        {
             try
             {
                 var core = FMODUnity.RuntimeManager.CoreSystem;
@@ -229,21 +272,13 @@ namespace HexLive.UnityPresentation.Audio
                 // Доплер выключен (RTS-камера), метрика дистанций 1:1 в wu.
                 core.set3DSettings(0f, 1f, 1f);
 
-                var dir = Path.Combine(Application.streamingAssetsPath, "HexLive/Sfx");
-                var groups = Directory.Exists(dir)
-                    ? ScanGroups(dir)
-                    : new Dictionary<string, List<string>>();
-
                 LoadedDefs.Clear();
                 foreach (var (id, def) in Defs)
                 {
                     LoadedDefs[id] = def;
                 }
 
-                // Голосовые банки персонажей — по факту наличия файлов.
-                // §67.10: реплики живут в подпапках Voices/<char>/ (их сотни на
-                // персонажа). Ид группы по-прежнему читается из имени файла
-                // (группа = стем без варианта), путь не важен.
+                // Voice groups are discovered from live record metadata.
                 foreach (var groupId in groups.Keys)
                 {
                     if (groupId == "voice" ||
@@ -284,7 +319,7 @@ namespace HexLive.UnityPresentation.Audio
 
                     if (list.Count == 0)
                     {
-                        Debug.LogWarning($"[FmodSfx] no files for '{id}' in {dir}");
+                        Debug.LogWarning($"[FmodSfx] no verified audio records for '{id}'");
                         continue;
                     }
 
@@ -293,11 +328,13 @@ namespace HexLive.UnityPresentation.Audio
                 }
 
                 _ready = true;
+                _loading = false;
             }
             catch (System.Exception e)
             {
                 // Без FMOD игра живёт молча — не спамим, помечаем и выходим.
                 _failed = true;
+                _loading = false;
                 Debug.LogError($"[FmodSfx] init failed, sound disabled: {e.Message}");
             }
         }
@@ -322,11 +359,9 @@ namespace HexLive.UnityPresentation.Audio
         public static bool HasSound(string id) => _ready && Sounds.ContainsKey(id);
 
         // ---- §67.12: маршрут через события FMOD Studio --------------------
-        // Раннтайм теперь ГРУЗИТ банки, поэтому громкость/эффекты/дистанции
-        // берутся из Studio-проекта — там их и крутит звуковик, в том числе
-        // вживую через Live Update. Если события нет (банк не собран, ид
-        // отсутствует), звук играется по-старому из StreamingAssets: тишины
-        // из-за рассинхрона проекта и кода быть не должно.
+        // Если Studio-событие доступно, громкость/эффекты/дистанции берутся из
+        // него. Иначе тот же verified raw object играет через FMOD Core; ни
+        // банки, ни StreamingAssets не являются runtime fallback.
         // §67.12 r2: играть ли ЛУПЫ (эмбиент, костёр) событиями Studio.
         // Пока false — см. комментарий в StartLoop: у сгенерированных событий
         // нет луп-региона, поэтому они одноразовые. Ставится в true сразу
@@ -412,6 +447,10 @@ namespace HexLive.UnityPresentation.Audio
                 Channel = channel,
                 Valid = true,
                 File = Paths.TryGetValue(id, out var paths) ? paths[pick] : null,
+                VisemeFile = Paths.TryGetValue(id, out var selectedPaths) &&
+                             VisemePaths.TryGetValue(selectedPaths[pick], out var visemePath)
+                    ? visemePath
+                    : null,
             };
         }
 
@@ -577,8 +616,7 @@ namespace HexLive.UnityPresentation.Audio
         //  2) он нужен уже в ГЛАВНОМ МЕНЮ, то есть до того, как появится мир,
         //     а вместе с ним и Prewarm — поэтому у музыки свой ленивый init;
         //  3) одновременно звучит ровно один трек, так что и хэндл один.
-        // Файлы: StreamingAssets/HexLive/Music/<id>.(ogg|mp3|wav) — новый трек
-        // добавляется файлом, код трогать не нужно (§70.2).
+        // Каждый трек — отдельный raw object audio/<id>, metadata.kind=music.
         private static readonly Dictionary<string, string> MusicPaths = new();
         private static string[] _musicIds = System.Array.Empty<string>();
         private static bool _musicScanned;
@@ -605,34 +643,39 @@ namespace HexLive.UnityPresentation.Audio
                 return;
             }
 
-            _musicScanned = true;
-            var dir = Path.Combine(Application.streamingAssetsPath, "HexLive/Music");
-            if (!Directory.Exists(dir))
+            var service = ContentAssetService.Instance;
+            if (!service.RegistryReady)
             {
+                if (_subscribedService == null)
+                {
+                    _subscribedService = service;
+                    service.RegistryRefreshed += RegistryBecameReady;
+                }
+                service.RefreshRegistry();
                 return;
             }
 
-            var found = new List<string>();
-            foreach (var file in Directory.GetFiles(dir))
+            _musicScanned = true;
+            var records = service.Records("audio")
+                .Where(record => (string)record.metadata?["kind"] == "music")
+                .ToArray();
+            foreach (var record in records)
             {
-                var ext = Path.GetExtension(file);
-                var ok = ext.Equals(".ogg", System.StringComparison.OrdinalIgnoreCase) ||
-                         ext.Equals(".mp3", System.StringComparison.OrdinalIgnoreCase) ||
-                         ext.Equals(".wav", System.StringComparison.OrdinalIgnoreCase);
-                if (!ok)
+                var id = (string)record.metadata?["trackId"];
+                if (string.IsNullOrEmpty(id))
                 {
-                    continue;
+                    id = record.id;
                 }
-
-                var id = Path.GetFileNameWithoutExtension(file);
-                if (MusicPaths.TryAdd(id, file))
+                service.GetRawFile("audio", record.id, path =>
                 {
-                    found.Add(id);
-                }
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        MusicPaths[id] = path;
+                        _musicIds = MusicPaths.Keys
+                            .OrderBy(value => value, System.StringComparer.Ordinal).ToArray();
+                    }
+                });
             }
-
-            found.Sort(System.StringComparer.Ordinal);
-            _musicIds = found.ToArray();
         }
 
         // Своя core-группа, подвешенная под мастер-ШИНУ Studio (а не под

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.Simulation.Content;
 using UnityEngine;
 using HexLive.UnityPresentation.Environment;
@@ -17,7 +18,23 @@ namespace HexLive.UnityPresentation.Config
         public static void LoadAndApply()
         {
             GearLibrary.Clear();
-            var configs = Resources.LoadAll<GearConfig>(GearConfig.ResourceFolder);
+            GearConfig[] configs;
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                configs = UnityEditor.AssetDatabase.FindAssets(
+                        "t:GearConfig", new[] { "Assets/HexLiveContent/RuntimeSource/Gear" })
+                    .Select(guid => UnityEditor.AssetDatabase.LoadAssetAtPath<GearConfig>(
+                        UnityEditor.AssetDatabase.GUIDToAssetPath(guid)))
+                    .Where(value => value != null)
+                    .ToArray();
+            }
+            else
+#endif
+            {
+                configs = HexLive.UnityPresentation.Content.AtomicResources.LoadAll<GearConfig>(
+                    GearConfig.ResourceFolder);
+            }
             if (configs == null || configs.Length == 0)
             {
                 return;
@@ -84,7 +101,7 @@ namespace HexLive.UnityPresentation.Config
 
                 if (!string.IsNullOrEmpty(config.prefabResourcePath))
                 {
-                    var fromPath = Resources.Load<GameObject>(config.prefabResourcePath);
+                    var fromPath = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(config.prefabResourcePath);
                     if (fromPath != null)
                     {
                         return fromPath;
@@ -92,7 +109,7 @@ namespace HexLive.UnityPresentation.Config
                 }
             }
 
-            return Resources.Load<GameObject>($"HexLive/Objects/{gearId}");
+            return null;
         }
 
         public static AnimationClip[] AttackClipsFor(string gearId)

@@ -57,7 +57,7 @@ internal static class CarryPoseVisuals
 
     private static void EnsureLoaded()
     {
-        if (_loaded)
+        if (_loaded && _carryingClip != null && _beingCarriedClip != null)
         {
             return;
         }
@@ -67,14 +67,14 @@ internal static class CarryPoseVisuals
         _beingCarriedClip = LoadFirstClip(BeingCarriedClipResource);
         if (_carryingClip == null || _beingCarriedClip == null)
         {
-            Debug.LogError("CarryPoseVisuals: carry clips missing from Resources/" +
+            Debug.LogWarning("CarryPoseVisuals: atomic carry clips are not ready: " +
                 CarryingClipResource + " / " + BeingCarriedClipResource);
         }
     }
 
     private static AnimationClip LoadFirstClip(string resourcePath)
     {
-        foreach (var clip in Resources.LoadAll<AnimationClip>(resourcePath))
+        foreach (var clip in HexLive.UnityPresentation.Content.AtomicResources.LoadAll<AnimationClip>(resourcePath))
         {
             if (!clip.name.StartsWith("__preview"))
             {

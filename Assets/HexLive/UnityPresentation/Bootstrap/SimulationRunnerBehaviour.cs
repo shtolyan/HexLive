@@ -45,12 +45,6 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     [SerializeField] private bool _logImportantEventsToConsole = true;
     [SerializeField] private bool _logTraceEventsToConsole;
 
-    // Holds the prewarmed object prefabs alive. Resources.LoadAll hands back
-    // assets nothing references, which a later UnloadUnusedAssets would be free
-    // to drop again — and the whole point of loading them was to not read them
-    // from disk mid-tick.
-    private static GameObject[]? _objectPrefabPin;
-
     private ISimulationBackend? _backend;
     private long _lastLoggedSeq;
     private readonly List<SimulationEvent> _drainedEvents = new();
@@ -539,7 +533,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 
         // Контент, ЗАВИСЯЩИЙ от мира (одежда, причёски, протезы), заказывается
         // здесь всегда: обход Entities.* возможен только пока мир на главном
-        // потоке, а заявки не блокируют — они лишь уходят в Addressables. Так
+        // потоке, а заявки не блокируют — они лишь уходят в ContentAssetService. Так
         // гардероб едет параллельно намотке офлайна, а не после неё.
         Wearing.ScenePrewarm.ForWorld(world);
 
@@ -627,6 +621,9 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         Wearing.GarmentWearPainter.Prewarm();
         Rendering.MobWoundPainter.Prewarm();
         _ = Rendering.BloodSplashVfx.Prefabs;
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/NpcAnimSet");
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/CarryPoses/Carrying");
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/CarryPoses/BeingCarried");
         // Spec §67: every SFX sample loads NOW for the same reason — the FMOD
         // createSound file reads must not land on the first mid-game chop.
         Audio.FmodSfx.Prewarm();
@@ -639,21 +636,9 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             Config.MobLibrary.LoadPrefab(mobId);
         }
 
-        // PERF (profiling, Aug-2026) — the same trap, one level out: a world
-        // OBJECT's model is loaded the first time one of its kind appears, which
-        // happens mid-game, inside the tick, on the main thread. The deep capture
-        // caught a 205 ms frame whose HexWorldRenderer.Update spent 67 ms in a
-        // single blocking File.Read. The whole folder goes in one call on
-        // purpose: a hand-kept id list here would drift the moment someone adds
-        // a prefab (8.3 MB / 64 assets, so there is nothing to ration).
-        _objectPrefabPin = Resources.LoadAll<GameObject>("HexLive/Objects");
-
-        // Иконки — все и сразу: один бандл на 0.73 МБ, разбираться, какие
-        // понадобятся, дороже, чем взять их целиком. От состояния мира не
-        // зависят, поэтому живут здесь, а не в ScenePrewarm.
-        //
-        // Заявка асинхронная и учитывается ContentQueue; ждать её здесь НЕЛЬЗЯ
-        // (WaitForCompletion из корутины — тот самый тупик из 105199ce).
+        // §152: this starts the live-registry delta. It does NOT warm icons:
+        // every icon is inside its owning object's bundle, so warming all icons
+        // would also download every garment, prop and building.
         Wearing.Garments.ItemIcons.PrewarmAll();
     }
 

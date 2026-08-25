@@ -5,10 +5,10 @@
         [--tilt 22] [--samples 64]
 
 Takes a garment OBJ (from Tools/unity_mesh_to_obj.py) or a prop GLB/FBX (the ones
-in Assets/Resources/HexLive/Objects) and renders the 512x512 RGBA icon the
+in Assets/HexLiveContent/RuntimeSource/Objects) and renders the 512x512 RGBA icon the
 inventory expects. The numbers below are NOT free parameters — they reproduce
-the framing of the icons that shipped with the game (compare
-`Assets/Resources/HexLive/UI/Items/Shorts_10_14636.png`). Change them and the
+the framing of the icons that shipped with the game (compare the existing
+`Assets/HexLiveContent/Icons/*.png`). Change them and the
 new icon will not sit in the same row as the old ones.
 
 `--tilt <deg>` rolls the model about its long axis before framing. A FLAT prop
@@ -17,16 +17,12 @@ to white; a roll of ~20 degrees takes the face off that normal and shows the
 edge and the end grain. It is a pose, not a rig change — camera, lights and
 framing stay the ones the whole icon set shares.
 
-`--install <itemId>` also copies the PNG to `Assets/HexLiveContent/Icons/`,
-writes a sprite `.meta`, and registers the Addressables entry `icon/<itemId>` in
-`HexLive.Icons`, so Unity imports it as a Sprite on next launch without an
-editor session.
+`--install <itemId>` copies the PNG to `Assets/HexLiveContent/Icons/` and writes
+a sprite `.meta`. The next atomic owner build embeds it as entry `icon`; no
+global icon group exists.
 
-⚠️ It used to install into `Assets/Resources/HexLive/UI/Items`, and that folder
-is DEAD: `Wearing/Garments/ItemIcons` is the only door to item icons and it asks
-Addressables for `icon/<id>`, nothing else. An icon installed the old way copied
-cleanly, imported cleanly — and never appeared anywhere in the game. A PNG
-without its Addressables entry is invisible in exactly the same silent way.
+`ItemIcons` resolves the owner's `type/id#icon`, so replacing this PNG and
+publishing that owner changes only its next revision.
 """
 import math
 import os
@@ -58,7 +54,6 @@ SUNS = (  # direction, energy: key / fill / rim / top
 )
 
 ICON_DIR = "Assets/HexLiveContent/Icons"
-ICON_GROUP = "Assets/AddressableAssetsData/AssetGroups/HexLive.Icons.asset"
 # Шаблон .meta встроен НАМЕРЕННО. Раньше он копировался с соседней
 # иконки — и когда ту вещь снесли вместе со старым гардеробом,
 # установка иконок сломалась бы на пустом месте. Плюс режим спрайта
@@ -348,44 +343,13 @@ def render(dst, meshes, style, fit, samples):
     bpy.ops.render.render(write_still=True)
 
 
-def register_addressable(guid, item_id):
-    """Прописать `icon/<id>` в группу HexLive.Icons — БЕЗ этого иконки нет.
-
-    Игра берёт иконки только через Addressables (`ItemIcons.Address`), поэтому
-    PNG без записи в группе — это молчаливая пустота: файл на месте, импорт
-    чистый, в игре ничего. Записи в группе отсортированы по GUID, повторный
-    прогон переписывает свою и не плодит дублей.
-    """
-    if not os.path.isfile(ICON_GROUP):
-        raise SystemExit(f"run from the repo root — {ICON_GROUP} not found")
-    text = open(ICON_GROUP, encoding="utf-8").read()
-    address = f"icon/{item_id}"
-    entry = (r"  - m_GUID: (\w+)\n    m_Address: (.+)\n    m_ReadOnly: 0\n"
-             r"    m_SerializedLabels: \[\]\n"
-             r"    FlaggedDuringContentUpdateRestriction: 0\n")
-    block_at = re.search(r"  m_SerializeEntries:\n((?:" + entry + r")+)", text)
-    if block_at is None:
-        raise SystemExit(f"не разобрал m_SerializeEntries в {ICON_GROUP}")
-    kept = [(g, a) for g, a in re.findall(entry, block_at.group(1))
-            if a != address and g != guid]
-    kept.append((guid, address))
-    rebuilt = "".join(
-        f"  - m_GUID: {g}\n    m_Address: {a}\n    m_ReadOnly: 0\n"
-        f"    m_SerializedLabels: []\n    FlaggedDuringContentUpdateRestriction: 0\n"
-        for g, a in sorted(kept))
-    open(ICON_GROUP, "w", encoding="utf-8").write(
-        text[:block_at.start(1)] + rebuilt + text[block_at.end(1):])
-    print("ADDRESSABLE", address, guid, f"({len(kept)} entries)")
-
-
 def install(png, item_id):
     """Положить иконку туда, откуда игра её действительно читает."""
     if not os.path.isdir(ICON_DIR):
         raise SystemExit(f"run from the repo root — {ICON_DIR} not found")
     target = os.path.join(ICON_DIR, item_id + ".png")
     shutil.copyfile(png, target)
-    # GUID переживает переустановку: иначе каждый повторный рендер иконки
-    # рвал бы ссылку на неё из группы Addressables.
+    # GUID переживает переустановку: owner bundle видит тот же asset.
     guid = uuid.uuid4().hex
     if os.path.isfile(target + ".meta"):
         found = re.search(r"^guid: (\w+)", open(target + ".meta", encoding="utf-8").read(),
@@ -397,7 +361,6 @@ def install(png, item_id):
             .replace("__SPRITEID__", uuid.uuid4().hex))
     open(target + ".meta", "w", encoding="utf-8").write(meta)
     print("INSTALLED", target)
-    register_addressable(guid, item_id)
 
 
 def main():

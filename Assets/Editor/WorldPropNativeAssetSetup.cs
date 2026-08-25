@@ -11,10 +11,10 @@ namespace HexLive.Editor
         [MenuItem("HexLive/Content/Create Native Bottle Prefab")]
         public static void CreateNativeBottlePrefab()
         {
-            const string meshPath = "Assets/Resources/HexLive/Objects/tool_bottle_native_mesh.fbx";
-            const string texturePath = "Assets/Resources/HexLive/Objects/tool_bottle_albedo.png";
-            const string materialPath = "Assets/Resources/HexLive/Objects/BottleTransparent.mat";
-            const string prefabPath = "Assets/Resources/HexLive/Objects/tool_bottle_native.prefab";
+            const string meshPath = "Assets/HexLiveContent/RuntimeSource/Objects/tool_bottle_native_mesh.fbx";
+            const string texturePath = "Assets/HexLiveContent/RuntimeSource/Objects/tool_bottle_albedo.png";
+            const string materialPath = "Assets/HexLiveContent/RuntimeSource/Objects/BottleTransparent.mat";
+            const string prefabPath = "Assets/HexLiveContent/RuntimeSource/Objects/tool_bottle_native.prefab";
 
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(meshPath);
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
@@ -54,10 +54,10 @@ namespace HexLive.Editor
         [MenuItem("HexLive/Content/Create Native Machete Prefab")]
         public static void CreateNativeMachetePrefab()
         {
-            const string meshPath = "Assets/Resources/HexLive/Objects/tool_machete_native_mesh.fbx";
-            const string texturePath = "Assets/Resources/HexLive/Objects/tool_machete_albedo.png";
-            const string materialPath = "Assets/Resources/HexLive/Objects/MacheteTextured.mat";
-            const string prefabPath = "Assets/Resources/HexLive/Objects/tool_machete_native.prefab";
+            const string meshPath = "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native_mesh.fbx";
+            const string texturePath = "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_albedo.png";
+            const string materialPath = "Assets/HexLiveContent/RuntimeSource/Objects/MacheteTextured.mat";
+            const string prefabPath = "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native.prefab";
 
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(meshPath);
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);

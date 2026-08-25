@@ -156,7 +156,7 @@ namespace HexLive.UnityPresentation.Wearing
                 return cached;
             }
 
-            var map = Resources.Load<PaintPointMap>($"{ResourceFolder}/{key}");
+            var map = HexLive.UnityPresentation.Content.AtomicResources.Load<PaintPointMap>($"{ResourceFolder}/{key}");
             if (map == null)
             {
                 Debug.LogWarning(
@@ -171,7 +171,10 @@ namespace HexLive.UnityPresentation.Wearing
                 map = null;
             }
 
-            Cache[key] = map;
+            if (map != null)
+            {
+                Cache[key] = map;
+            }
             return map;
         }
 

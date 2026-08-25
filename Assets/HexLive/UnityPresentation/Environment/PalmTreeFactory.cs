@@ -17,7 +17,7 @@ namespace HexLive.UnityPresentation.Environment
 
         public static GameObject? Build(string definitionId)
         {
-            var prefab = Resources.Load<GameObject>(
+            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(
                 "HexLive/Objects/palm_final_native");
             if (prefab == null || !ObjectFit.HasRenderableGeometry(prefab))
             {

@@ -47,9 +47,11 @@ namespace HexLive.UnityPresentation.Wearing.Garments
 
             _byId = new Dictionary<string, GarmentDefinition>();
             _byArt = new Dictionary<string, List<GarmentDefinition>>();
-            var catalog = Resources.Load<GarmentCatalog>(GarmentCatalog.ResourcePath);
+            var catalog = HexLive.UnityPresentation.Content.AtomicResources.Load<GarmentCatalog>(GarmentCatalog.ResourcePath);
             if (catalog == null || catalog.garments == null)
             {
+                _byId = null;
+                _byArt = null;
                 return;
             }
 

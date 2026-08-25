@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Server.Assets;
 using HexLive.Server.Llm;
 
 namespace HexLive.Server
@@ -25,6 +26,7 @@ namespace HexLive.Server
 ///   --port N        listen port (default 5123)
 ///   --save PATH     save file (default ./hexlive-server.sav)
 ///   --simdata PATH  exported catalogs (default &lt;repo&gt;/SimData/simdata.json)
+///   --asset-root PATH persistent atomic content (default /var/lib/hexlive/assets)
 ///   --autosave N    seconds between saves (default 60)
 ///   --debug-details include the per-NPC debug dumps in every frame
 /// </summary>
@@ -52,6 +54,30 @@ public static class Program
         if (options is null)
         {
             return 1;
+        }
+
+        // §152.3: the installed server binary is also the SSH-only promotion
+        // command. It never starts a world or opens an upload endpoint in this
+        // mode; all bytes must already be under asset-root/staging.
+        if (options.PublishCandidatePath is not null)
+        {
+            try
+            {
+                var registry = new AssetRegistryStore(options.AssetRoot);
+                var candidate = AssetRegistryStore.ReadCandidateFile(options.PublishCandidatePath);
+                var published = await registry.PublishAsync(candidate).ConfigureAwait(false);
+                Console.WriteLine(
+                    $"[assets] {(published.Changed ? "published" : "no-op")} " +
+                    $"{published.Record.Type}/{published.Record.Id} revision " +
+                    $"{published.Record.Revision}, registry {published.RegistryRevision}");
+                return 0;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
+                                       ArgumentException or InvalidDataException)
+            {
+                Console.Error.WriteLine($"[assets] publish refused: {ex.Message}");
+                return 1;
+            }
         }
 
         bool continueExistingWorld;
@@ -105,6 +131,19 @@ public static class Program
         Console.WriteLine($"[server] save file     {Path.GetFullPath(options.SavePath)}");
         Console.WriteLine($"[server] admin account {Path.GetFullPath(options.AdminAccountPath)}");
 
+        AssetRegistryStore assetRegistry;
+        try
+        {
+            assetRegistry = new AssetRegistryStore(options.AssetRoot);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            Console.Error.WriteLine($"[fatal] asset registry: {ex.Message}");
+            return 1;
+        }
+
+        Console.WriteLine($"[server] asset root    {assetRegistry.RootPath}");
+
         // §145.4: ОДИН реестр лиз на процесс — MCP-агенты и сетевые игроки
         // делят его, различаясь префиксом owner'а (mcp:/ws:). Создаётся, как
         // только открыта хоть одна дверь управления.
@@ -150,9 +189,11 @@ public static class Program
         });
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
         builder.Services.AddRouting();
+        builder.Services.AddResponseCompression(options => options.EnableForHttps = true);
         builder.WebHost.UseKestrel();
         builder.WebHost.UseUrls($"http://0.0.0.0:{options.Port}");
         var app = builder.Build();
+        app.UseResponseCompression();
         app.UseWebSockets();
 
         app.Map("/watch", async context =>
@@ -279,6 +320,8 @@ public static class Program
             : Task.Run(() => LeaseSweepAsync(worlds, controlLeases, lifetime.Token));
 
         // A plain GET for eyeballing that the thing is alive.
+        AssetEndpoints.Map(app, assetRegistry);
+
         app.MapGet("/", () =>
         {
             var host = worlds.Host;
@@ -446,6 +489,12 @@ public sealed class ServerOptions
 
     public string SavePath { get; private set; } = "hexlive-server.sav";
 
+    /// <summary>§152: persistent objects are independent of this server build.</summary>
+    public string AssetRoot { get; private set; } = "/var/lib/hexlive/assets";
+
+    /// <summary>Administrative one-shot mode, reachable only from the process CLI.</summary>
+    public string? PublishCandidatePath { get; private set; }
+
     private string? _simDataPath;
 
     /// <summary>
@@ -566,6 +615,12 @@ public sealed class ServerOptions
                 case "--simdata" when i + 1 < args.Length:
                     options.SimDataPath = args[++i];
                     break;
+                case "--asset-root" when i + 1 < args.Length:
+                    options.AssetRoot = args[++i];
+                    break;
+                case "--publish-candidate" when i + 1 < args.Length:
+                    options.PublishCandidatePath = args[++i];
+                    break;
                 case "--autosave" when i + 1 < args.Length:
                     options.AutosaveSeconds = int.Parse(args[++i]);
                     break;
@@ -617,6 +672,8 @@ public sealed class ServerOptions
                         "  --port N         listen port (default 5123)\n" +
                         "  --save PATH      save file (default hexlive-server.sav)\n" +
                         "  --simdata PATH   exported catalogs (default SimData/simdata.json)\n" +
+                        "  --asset-root PATH persistent atomic content (default /var/lib/hexlive/assets)\n" +
+                        "  --publish-candidate PATH  validate/promote one staged object, then exit\n" +
                         "  --autosave N     seconds between saves, 0 to disable (default 60)\n" +
                         "  --debug-details  include per-NPC debug dumps in every frame\n" +
                         "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n" +

@@ -1,7 +1,7 @@
 """Export the §120 architecture LEGO elements from the open building kit.
 
 Run inside Blender (normally through Blender MCP). Five FBX files land in
-Assets/Resources/HexLive/Objects, one per constructor element definition:
+Assets/HexLiveContent/RuntimeSource/Objects, one per constructor element definition:
 
     architecture.wall.wood.fbx      <- HL_ARCH_WALL
     architecture.window.wood.fbx    <- HL_ARCH_WINDOW

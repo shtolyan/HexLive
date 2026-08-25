@@ -6,6 +6,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.UI;
+using HexLive.UnityPresentation.Content;
 
 namespace HexLive.UnityPresentation.Wearing
 {
@@ -171,7 +172,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // A paused startup world may not produce another render tick. Ensure
         // starting prostheses are requested here, then keep the curtain up
-        // until their Addressables callbacks have completed. Failures count
+        // until their atomic-content callbacks have completed. Failures count
         // as complete and remain visible as explicit loader errors.
         ApplySeveredLimbs(severedParts);
         SyncProstheticVisuals(partConditions);
@@ -1889,7 +1890,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (!_animSetTried)
         {
             _animSetTried = true;
-            _animSet = Resources.Load<NpcAnimSet>("HexLive/NpcAnimSet");
+            _animSet = HexLive.UnityPresentation.Content.AtomicResources.Load<NpcAnimSet>("HexLive/NpcAnimSet");
             if (_animSet == null)
             {
                 Debug.LogWarning("[NpcAnim] NpcAnimSet not found at Resources/HexLive/NpcAnimSet " +
@@ -6321,7 +6322,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         ContentCoroutines.Run(SpawnHair(hairstyle));
     }
 
-    // Причёска и её цвет едут ПО АДРЕСУ (Addressables), а значит приезжают не
+    // Причёска и её цвет едут по object id, а значит приезжают не
     // мгновенно. Пока едет — на голове та причёска, что авторская на префабе: лучше чужая
     // причёска на кадр, чем лысая голова.
     //
@@ -6453,7 +6454,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         var map = new Dictionary<string, Material>(System.StringComparer.OrdinalIgnoreCase);
-        foreach (var mat in Resources.LoadAll<Material>("HexLive/Eyes/Common"))
+        foreach (var mat in HexLive.UnityPresentation.Content.AtomicResources.LoadAll<Material>("HexLive/Eyes/Common"))
         {
             if (mat != null)
             {
@@ -6461,7 +6462,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
         }
 
-        var tinted = Resources.LoadAll<Material>($"HexLive/Eyes/{eyeColor}");
+        var tinted = HexLive.UnityPresentation.Content.AtomicResources.LoadAll<Material>($"HexLive/Eyes/{eyeColor}");
         if (tinted == null || tinted.Length == 0)
         {
             // No iris under that id: keep the body's own eyes rather than fit
@@ -6495,11 +6496,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         var map = new Dictionary<string, Material>(System.StringComparer.OrdinalIgnoreCase);
-        var prefab = Resources.Load<GameObject>($"HexLive/Actors/{actor}");
+        var prefab = ContentPrefabCache.GetOrRequest("actor", actor);
         if (prefab == null)
         {
-            Debug.LogWarning($"[§74] skin set '{actor}' has no actor prefab at " +
-                $"Resources/HexLive/Actors/{actor} — the body keeps its own materials.");
+            Debug.LogWarning($"[§74] skin set '{actor}' is not ready in atomic content — " +
+                "the body keeps its own materials.");
         }
         else
         {

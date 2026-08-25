@@ -515,19 +515,22 @@ namespace HexLive.UnityPresentation.UI
         {
             for (var i = 0; i < snapshot.Npcs.Count; i++)
             {
-                AddPerson(snapshot.Npcs[i], runner, dead: false);
+                AddPerson(snapshot.Npcs[i], snapshot, runner, dead: false);
             }
 
             for (var i = 0; i < snapshot.Corpses.Count; i++)
             {
-                AddPerson(snapshot.Corpses[i], runner, dead: true);
+                AddPerson(snapshot.Corpses[i], snapshot, runner, dead: true);
             }
         }
 
         private void AddPerson(
-            NpcSnapshot npc, SimulationRunnerBehaviour runner, bool dead)
+            NpcSnapshot npc, WorldSnapshot snapshot, SimulationRunnerBehaviour runner, bool dead)
         {
-            var owned = runner.CanControlNpc(npc.Id);
+            // §149 r2 (#232): «своя» на карте — весь лагерь выданной девушки,
+            // а не только она сама; иначе соседки рисовались нейтралами, а в
+            // BigIsland — врагами (IsHostileToColony посчитан против лагеря №1).
+            var owned = PlayerCampView.IsMine(runner, snapshot, npc);
             var visible = _worldRenderer != null &&
                 _worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, owned);
             if (!visible)
@@ -552,7 +555,7 @@ namespace HexLive.UnityPresentation.UI
                 npc.Id.Value,
                 npc.Position,
                 owned,
-                npc.IsHostileToColony,
+                PlayerCampView.HostileToPlayer(runner, snapshot, npc),
                 NpcSelection.Contains(npc.Id.Value),
                 portrait,
                 dead));

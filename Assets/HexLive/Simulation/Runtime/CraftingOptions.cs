@@ -345,7 +345,13 @@ public static class CraftingOptions
     private static CraftBlockReason ActorBlock(
         WorldState world, NPCState npc, GoalType goal)
     {
-        if (!npc.Mind.ManualControl || npc.Faction != Faction.Colony)
+        // §149.4 / #231: «свой» — это PlayerAuthority, а не буквальная
+        // Faction.Colony. На сервере игроку выдают девушку любого лагеря
+        // (Colony2..Colony6, §149.2), и старая проверка фракции возвращала
+        // NotManual при живой лизе и Mind.ManualControl=true — крафт был
+        // заблокирован целиком с подсказкой «включите ручное управление».
+        // Локальной игре правка инертна: там все свои — Faction.Colony.
+        if (!npc.Mind.ManualControl || !PlayerAuthority.IsPlayerOwned(world, npc))
         {
             return CraftBlockReason.NotManual;
         }

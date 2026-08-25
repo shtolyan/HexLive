@@ -4931,9 +4931,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     public bool IsTileVisibleToPlayer(TileCoord tile) =>
         PlayerVisibilityReady && (!_cullActive || _cullVisibleTiles.Contains(tile));
 
+    // §149 r2 (#232): «свой» — мой персонаж и весь его лагерь, иначе на
+    // сервере соседки выданной девушки жили как fog-контакты: пропадали из
+    // виду и оставляли «?», а глазами тумана была она одна.
     private bool IsPlayerOwned(NpcSnapshot npc) =>
         _runner != null
-            ? _runner.CanControlNpc(npc.Id)
+            ? PlayerCampView.IsMine(_runner, _lastSnapshot, npc)
             : npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
 
     /// <summary>§150: suppresses decorative grass without replacing or hiding
@@ -5222,7 +5225,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// зрителя: там владения нет вовсе, а клан показывать надо.
     /// </summary>
     private bool IsPlayerOwnedNpc(NpcSnapshot npc) =>
-        npc.Faction == HexLive.Simulation.Agents.Faction.Colony ||
+        // §149 r2 (#232): вторым слагаемым — ЛАГЕРЬ выданной девушки, а не
+        // буквальная Colony (фолбэк PlayerCampView для локальной игры и
+        // анонимного зрителя — та же Colony).
+        npc.Faction == PlayerCampView.Of(_runner, _lastSnapshot) ||
         (_runner != null && _runner.CanControlNpc(npc.Id));
 
     private bool FogSeesTile(TileCoord tile)

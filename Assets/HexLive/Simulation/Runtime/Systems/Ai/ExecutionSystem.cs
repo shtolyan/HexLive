@@ -638,8 +638,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // enough to friction/hand-drill it (§45 r5).
                 if (interaction.Type == InteractionType.Fuel)
                 {
-                    var hasWoodNow = npc.Inventory.Items.Contains(ContentIds.Stick) ||
-                        ContainerLootMath.HasQueuedCampfireFuel(world, worldObject);
+                    var manualColdStocking = npc.Plan.Goal == GoalType.PlayerOrder &&
+                        worldObject.ResourceAmount <= 0f;
+                    var carriedStick = npc.Inventory.Items.Find(
+                        item => item.DefinitionId == ContentIds.Stick);
+                    var hasWoodNow = carriedStick is not null ||
+                        (!manualColdStocking &&
+                         ContainerLootMath.HasQueuedCampfireFuel(world, worldObject));
                     // §45 r5 parity: the DECISION layer already lets a genuinely
                     // cold girl SELECT TendFire without the one colony lighter
                     // (canFrictionLight = ThermalComfort < -0.35). Execution must
@@ -658,18 +663,35 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         npc.Needs.Energy < TraitMath.EffectiveSleepThreshold(npc) ||
                         npc.Needs.ThermalComfort < -0.35f ||
                         world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
-                    var missingLighter = worldObject.ResourceAmount <= 0f &&
+                    var missingLighter = !manualColdStocking &&
+                        worldObject.ResourceAmount <= 0f &&
                         !Content.GearCatalog.HasCapability(
                             npc.Inventory.Items, Content.GearCapability.Ignite) &&
                         !canFrictionLight;
-                    if (!hasWoodNow || missingLighter)
+                    var fuelBufferFull = manualColdStocking && carriedStick is not null &&
+                        !ContainerLootMath.CanAccept(
+                            world, worldObject, new[] { carriedStick });
+                    if (!hasWoodNow || missingLighter || fuelBufferFull)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                         PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
-                            $"Cannot fuel fire (wood={hasWoodNow} lighterMissing={missingLighter})");
+                            $"Cannot fuel fire (wood={hasWoodNow} " +
+                            $"lighterMissing={missingLighter} bufferFull={fuelBufferFull})");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
                     }
+                }
+
+                if (interaction.Type == InteractionType.Ignite &&
+                    (worldObject.ResourceAmount > 0f ||
+                     !ContainerLootMath.HasQueuedCampfireFuel(world, worldObject)))
+                {
+                    PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                        $"Cannot ignite fire (lit={worldObject.ResourceAmount > 0f} " +
+                        $"queuedFuel={ContainerLootMath.HasQueuedCampfireFuel(world, worldObject)})");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    continue;
                 }
 
                 // Furniture uses a deliberate two-beat entry: arrive at the
@@ -1285,9 +1307,33 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else if (completedInteraction.Type == InteractionType.Fuel)
         {
-            // Spec 29E.3 / §54 / §151: AI keeps its old one-stick path; a
-            // player may instead light a cold, pre-stocked pit from the first
-            // buffered piece (log = four sticks, board/other wood = one).
+            // Bug #228: a player's «add fuel» on a cold pit only stocks its
+            // visible buffer. Ignition is a separate Ignite order. Autonomous
+            // TendFire intentionally keeps its single-step lighter/friction
+            // chain, so separating the menu does not break the NPC brain.
+            var wasLit = worldObject.ResourceAmount > 0f;
+            if (!wasLit && npc.Plan.Goal == GoalType.PlayerOrder)
+            {
+                var carriedStick = npc.Inventory.Items.Find(
+                    item => item.DefinitionId == ContentIds.Stick);
+                if (carriedStick is null ||
+                    !ContainerLootMath.CanAccept(
+                        world, worldObject, new[] { carriedStick }))
+                {
+                    return false;
+                }
+
+                ContainerLootMath.GiveToContainer(
+                    world, worldObject, npc, new[] { carriedStick });
+                Trace.Emit(world, npc.Id, "FireFuelQueued",
+                    $"{worldObject.DefinitionId} queued={carriedStick.DefinitionId}");
+                worldObject.IsOccupied = false;
+                worldObject.CurrentUser = null;
+                return true;
+            }
+
+            // Spec 29E.3 / §54 / §151: a burning fire and autonomous TendFire
+            // consume fuel immediately; buffered logs preserve their 4x value.
             var fuel = ContainerLootMath.FuelTicksPerStick;
             if (npc.Inventory.Items.Contains(ContentIds.Stick))
             {
@@ -1298,9 +1344,23 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 return false;
             }
-            var wasLit = worldObject.ResourceAmount > 0f;
             worldObject.ResourceAmount += fuel;
             Trace.Emit(world, npc.Id, wasLit ? "FireFueled" : "FireLit",
+                $"{worldObject.DefinitionId} Fuel={worldObject.ResourceAmount:F0} ticks");
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+        }
+        else if (completedInteraction.Type == InteractionType.Ignite)
+        {
+            if (worldObject.ResourceAmount > 0f ||
+                !ContainerLootMath.TryConsumeCampfireFuel(
+                    world, worldObject, out var fuel))
+            {
+                return false;
+            }
+
+            worldObject.ResourceAmount = fuel;
+            Trace.Emit(world, npc.Id, "FireLit",
                 $"{worldObject.DefinitionId} Fuel={worldObject.ResourceAmount:F0} ticks");
             worldObject.IsOccupied = false;
             worldObject.CurrentUser = null;

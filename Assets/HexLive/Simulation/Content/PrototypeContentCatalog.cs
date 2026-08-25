@@ -178,6 +178,13 @@ public static class PrototypeContentCatalog
 
                         DurationTicks = 8
                     },
+                    new InteractionDefinition
+                    {
+                        Id = "ignite.fire",
+                        Type = InteractionType.Ignite,
+                        DurationTicks = 8,
+                        RequiredCapabilities = { GearCapability.Ignite }
+                    },
                     // Spec 42: huddle by the flames — the WarmUp goal parks
                     // here while the fire (a real heat source now) melts the
                     // chill away; comfort seals the ritual.

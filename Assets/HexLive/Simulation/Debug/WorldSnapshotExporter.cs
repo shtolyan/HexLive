@@ -712,6 +712,11 @@ public static class WorldSnapshotExporter
             case InteractionType.Fuel:
                 return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;
 
+            case InteractionType.Ignite:
+                return InventoryContains(npc, GearCatalog.Lighter)
+                    ? GearCatalog.Lighter
+                    : string.Empty;
+
             case InteractionType.Craft:
                 if (npc.Mind.CurrentGoal == GoalType.CookMeat &&
                     InventoryContains(npc, "food.meat_raw"))

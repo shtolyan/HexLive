@@ -250,7 +250,11 @@ public enum InteractionType
     // §121.9: marker carried by the plan of the unified manual medical order.
     // RunAid replaces it with the concrete TreatOther/MedicateOther verb at
     // interaction start. Append-only: saves store interaction ordinals.
-    MedicalAid
+    MedicalAid,
+    // Bug #228: manual stocking and ignition are separate commands. Fuel
+    // remains the autonomous TendFire verb; Ignite is append-only because
+    // saves and wire snapshots persist interaction ordinals.
+    Ignite
 }
 
 }

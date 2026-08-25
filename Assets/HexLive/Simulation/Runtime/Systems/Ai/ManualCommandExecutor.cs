@@ -2123,6 +2123,21 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        if (command.Interaction == InteractionType.Ignite)
+        {
+            if (worldObject.ResourceAmount > 0f)
+            {
+                Reject(world, npc.Id, "Interact", "FireAlreadyLit", admission);
+                return;
+            }
+
+            if (!ContainerLootMath.HasQueuedCampfireFuel(world, worldObject))
+            {
+                Reject(world, npc.Id, "Interact", "FireHasNoFuel", admission);
+                return;
+            }
+        }
+
         if (worldObject.IsOccupied && worldObject.CurrentUser is { } user && !user.Equals(npc.Id))
         {
             Reject(world, npc.Id, "Interact", "Occupied", admission);

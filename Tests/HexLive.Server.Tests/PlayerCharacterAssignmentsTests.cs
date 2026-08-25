@@ -373,6 +373,43 @@ public sealed class PlayerCharacterAssignmentsTests
             "Невыданная девушка чужого лагеря остаётся под ИИ.");
     }
 
+    // §149.4 / #231: крафт-модель обязана считать «своей» девушку ЛЮБОГО
+    // выданного лагеря. CraftingOptions гейтился на буквальную Faction.Colony,
+    // и у соседки при живой лизе и ManualControl=true каждый рецепт приходил
+    // NotManual — «включите ручное управление» при включённом ручном.
+    [Test]
+    public void CraftingReadModelAcceptsAnAssignedNeighbouringCampGirl()
+    {
+        using var host = CreateHost(GameMode.HugeIsland, "huge-crafting.sav");
+        var assignments = PlayerCharacterAssignments.Load(
+            Path.Combine(_directory, "huge-crafting.json"), continueExistingWorld: false);
+        assignments.Reconcile(host, Id(41), characterLimit: 1);
+        var second = assignments.Reconcile(host, Id(42), characterLimit: 1);
+        Assert.That(second, Is.Not.Empty, "Второй игрок обязан получить персонажа.");
+
+        var neighbour = second[0];
+        var faction = host.Read(world =>
+            world.Entities.Npcs[new EntityId(neighbour)].Faction);
+        var admission = host.SubmitManualCommand(
+            new SetManualControlCommand(new EntityId(neighbour), true));
+
+        var snapshot = host.Read(world => PlayerCraftingOptions.Capture(
+            world, new[] { neighbour }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(faction, Is.Not.EqualTo(HexLive.Simulation.Agents.Faction.Colony),
+                "Смысл теста — именно ЧУЖОЙ лагерь; иначе он проходит и на старом гейте.");
+            Assert.That(admission.Accepted, Is.True);
+            Assert.That(snapshot.Npcs.Count, Is.EqualTo(1));
+            Assert.That(snapshot.Npcs[0].Options, Is.Not.Empty);
+            Assert.That(snapshot.Npcs[0].Options,
+                Has.None.Matches<CraftRecipeOption>(option =>
+                    option.BlockReason == CraftBlockReason.NotManual),
+                "Выданная соседка под ручным управлением обязана мочь крафтить.");
+        });
+    }
+
     [Test]
     public void ServerCraftingReadModelContainsOnlyAssignedManualCharacters()
     {

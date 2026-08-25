@@ -100,6 +100,56 @@ public static class AtomicContentBatchBuild
         Run(buildAll: true);
     }
 
+    /// <summary>Release smoke: distinct atomic payloads must coexist in memory.</summary>
+    public static void ValidatePayloads()
+    {
+        var succeeded = false;
+        var loaded = new List<AssetBundle>();
+        try
+        {
+            var payloads = Values(Environment.GetCommandLineArgs(), "-content-payload")
+                .Select(Path.GetFullPath).Distinct(StringComparer.Ordinal).ToArray();
+            if (payloads.Length < 2)
+            {
+                throw new InvalidOperationException(
+                    "Pass at least two distinct -content-payload files.");
+            }
+
+            foreach (var payload in payloads)
+            {
+                var bundle = AssetBundle.LoadFromFile(payload);
+                if (bundle == null)
+                {
+                    throw new InvalidDataException(
+                        $"Atomic payload cannot coexist with earlier payloads: {payload}");
+                }
+                loaded.Add(bundle);
+            }
+
+            Debug.Log($"[AtomicContent] coexistence gate passed for {loaded.Count} payloads.");
+            succeeded = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogException(ex);
+            if (!Application.isBatchMode)
+            {
+                throw;
+            }
+        }
+        finally
+        {
+            foreach (var bundle in loaded)
+            {
+                bundle.Unload(true);
+            }
+            if (Application.isBatchMode)
+            {
+                EditorApplication.Exit(succeeded ? 0 : 1);
+            }
+        }
+    }
+
     private static void Run(bool buildAll)
     {
         var succeeded = false;
@@ -124,6 +174,17 @@ public static class AtomicContentBatchBuild
             else
             {
                 var recipes = DiscoverAllRecipes();
+                var duplicateBuildName = recipes
+                    .GroupBy(recipe => BundleBuildName(recipe.Type, recipe.Id),
+                        StringComparer.Ordinal)
+                    .FirstOrDefault(group => group.Count() > 1);
+                if (duplicateBuildName != null)
+                {
+                    throw new InvalidOperationException(
+                        "Atomic bundle identity collision: " +
+                        string.Join(", ", duplicateBuildName.Select(
+                            recipe => recipe.Type + "/" + recipe.Id)));
+                }
                 var failures = new JArray();
                 var builtCount = 0;
                 foreach (var recipe in recipes)
@@ -247,9 +308,16 @@ public static class AtomicContentBatchBuild
             entryNames.Add(extra.name);
         }
 
+        // Unity derives the internal CAB identity from the AssetBundle name.
+        // Reusing "payload.bundle" for every independently built object made
+        // otherwise different files mutually exclusive at runtime ("another
+        // AssetBundle with the same files is already loaded"). The published
+        // filename stays payload.bundle; only the immutable internal identity
+        // is unique and stable per logical object.
+        var bundleBuildName = BundleBuildName(type, id);
         var build = new AssetBundleBuild
         {
-            assetBundleName = PayloadName,
+            assetBundleName = bundleBuildName,
             assetNames = assetNames.ToArray(),
             addressableNames = entryNames.ToArray(),
         };
@@ -263,12 +331,12 @@ public static class AtomicContentBatchBuild
             throw new InvalidOperationException("BuildPipeline returned no AssetBundleManifest.");
         }
         var built = manifest.GetAllAssetBundles();
-        if (built.Length != 1 || built[0] != PayloadName)
+        if (built.Length != 1 || built[0] != bundleBuildName)
         {
             throw new InvalidOperationException(
                 "Atomic build emitted unexpected bundles: " + string.Join(", ", built));
         }
-        var dependencies = manifest.GetAllDependencies(PayloadName);
+        var dependencies = manifest.GetAllDependencies(bundleBuildName);
         if (dependencies.Length != 0)
         {
             throw new InvalidOperationException(
@@ -276,7 +344,9 @@ public static class AtomicContentBatchBuild
                 string.Join(", ", dependencies));
         }
 
+        var builtPayload = Path.Combine(output, bundleBuildName);
         var payload = Path.Combine(output, PayloadName);
+        File.Move(builtPayload, payload);
         ValidateEntries(payload, entryNames);
         var sha256 = Hash(payload);
         var size = new FileInfo(payload).Length;
@@ -288,6 +358,15 @@ public static class AtomicContentBatchBuild
             $"[AtomicContent] built {type}/{id} for {platform}/{runtimeProfile}: " +
             $"{size} bytes, sha256={sha256}, dependencies=0, " +
             $"icon={(string.IsNullOrEmpty(inputs.Icon) ? "none" : "embedded")}");
+    }
+
+    private static string BundleBuildName(string type, string id)
+    {
+        using var sha = SHA256.Create();
+        var identity = Encoding.UTF8.GetBytes(type + "/" + id);
+        var digest = sha.ComputeHash(identity);
+        return "hexlive." + type + "." +
+               string.Concat(digest.Take(12).Select(value => value.ToString("x2")));
     }
 
     private static void CleanupGeneratedMetadata()
@@ -1117,6 +1196,18 @@ public static class AtomicContentBatchBuild
         }
 
         return null;
+    }
+
+    private static IEnumerable<string> Values(string[] arguments, string name)
+    {
+        for (var index = 0; index + 1 < arguments.Length; index++)
+        {
+            if (string.Equals(arguments[index], name, StringComparison.Ordinal))
+            {
+                yield return arguments[index + 1];
+                index++;
+            }
+        }
     }
 
     private static string Hash(string path)

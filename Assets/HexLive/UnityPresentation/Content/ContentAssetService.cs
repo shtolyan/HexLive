@@ -43,6 +43,15 @@ public sealed class ContentAssetService
         public readonly List<Action<bool>> Waiters = new();
     }
 
+    private sealed class BlobDownloadJob
+    {
+        public ContentRecord Record;
+        public string Sha256;
+        public long Size;
+        public string Label;
+        public Action<bool> Completed;
+    }
+
     private static ContentAssetService _instance;
 
     private readonly Dictionary<string, ContentRecord> _known = new(StringComparer.Ordinal);
@@ -51,6 +60,7 @@ public sealed class ContentAssetService
     private readonly Dictionary<string, ContentRecord> _previous = new(StringComparer.Ordinal);
     private readonly Dictionary<string, BundleState> _bundles = new(StringComparer.Ordinal);
     private readonly Dictionary<string, BlobState> _blobRequests = new(StringComparer.Ordinal);
+    private readonly Queue<BlobDownloadJob> _blobDownloadQueue = new();
     private readonly HashSet<string> _verifiedHashes = new(StringComparer.Ordinal);
     private readonly List<Action> _registryWaiters = new();
 
@@ -60,8 +70,17 @@ public sealed class ContentAssetService
     private readonly string _partial;
     private readonly string _registryStatePath;
     private ContentRegistryState _state = new();
+    private int _activeBlobDownloads;
     private bool _refreshStarted;
     private bool _registryReady;
+
+    // Six is deliberately browser-like. A fresh client can request more than
+    // two thousand audio payloads and attachments during §41.4 prewarm; opening
+    // one HTTP connection per object exhausted an SSH tunnel (and is equally
+    // hostile to a reverse proxy). Queued requests still participate in
+    // ContentQueue progress, but only this many touch the network at once.
+    private const int MaxConcurrentBlobDownloads = 6;
+    private const int BlobDownloadAttempts = 3;
 
     private ContentAssetService()
     {
@@ -687,16 +706,74 @@ public sealed class ContentAssetService
         pending.Waiters.Add(completed);
         _blobRequests[sha256] = pending;
         ContentQueue.Begin(ContentQueue.Kind.Download);
-        ContentCoroutines.Run(DownloadBlob(record, sha256, size, label, success =>
+        _blobDownloadQueue.Enqueue(new BlobDownloadJob
         {
-            ContentQueue.End(ContentQueue.Kind.Download);
-            var waiters = pending.Waiters.ToArray();
-            _blobRequests.Remove(sha256);
-            foreach (var waiter in waiters)
+            Record = record,
+            Sha256 = sha256,
+            Size = size,
+            Label = label,
+            Completed = success => CompleteBlobRequest(sha256, pending, success),
+        });
+        StartQueuedBlobDownloads();
+    }
+
+    private void StartQueuedBlobDownloads()
+    {
+        while (_activeBlobDownloads < MaxConcurrentBlobDownloads &&
+               _blobDownloadQueue.Count > 0)
+        {
+            var job = _blobDownloadQueue.Dequeue();
+            _activeBlobDownloads++;
+            ContentCoroutines.Run(DownloadBlobWithRetries(job, success =>
             {
-                waiter(success);
+                _activeBlobDownloads--;
+                ContentQueue.End(ContentQueue.Kind.Download);
+                job.Completed(success);
+                StartQueuedBlobDownloads();
+            }));
+        }
+    }
+
+    private void CompleteBlobRequest(string sha256, BlobState pending, bool success)
+    {
+        var waiters = pending.Waiters.ToArray();
+        _blobRequests.Remove(sha256);
+        foreach (var waiter in waiters)
+        {
+            waiter(success);
+        }
+    }
+
+    private IEnumerator DownloadBlobWithRetries(
+        BlobDownloadJob job, Action<bool> completed)
+    {
+        string transientError = null;
+        for (var attempt = 1; attempt <= BlobDownloadAttempts; attempt++)
+        {
+            var succeeded = false;
+            yield return DownloadBlob(
+                job.Record, job.Sha256, job.Size, job.Label,
+                success => succeeded = success);
+            if (succeeded)
+            {
+                if (!string.IsNullOrEmpty(transientError) && LastError == transientError)
+                {
+                    LastError = string.Empty;
+                }
+                completed(true);
+                yield break;
             }
-        }));
+
+            transientError = LastError;
+            if (attempt < BlobDownloadAttempts)
+            {
+                Status = $"Повторяем {job.Record.type}/{job.Record.id} " +
+                         $"({job.Label}, {attempt + 1}/{BlobDownloadAttempts})";
+                yield return new WaitForSecondsRealtime(0.5f * attempt);
+            }
+        }
+
+        completed(false);
     }
 
     private IEnumerator DownloadBlob(

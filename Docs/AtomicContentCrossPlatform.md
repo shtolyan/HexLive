@@ -133,4 +133,3 @@ public upload endpoint and do not point `content.py` at production.
 `config/simdata` is emitted by `build-all` from the same committed source. It is
 published like every other atomic object; the server-side simulation file used
 by a running world remains a separate deployment concern.
-

@@ -33,7 +33,7 @@ namespace HexLive.UnityPresentation.Config
             else
 #endif
             {
-                configs = System.Array.Empty<MobConfig>();
+                configs = AtomicResources.LoadAll<MobConfig>(MobConfig.ResourceFolder);
             }
 
             foreach (var config in configs)

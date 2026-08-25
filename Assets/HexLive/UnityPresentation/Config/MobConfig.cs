@@ -6,7 +6,7 @@ namespace HexLive.UnityPresentation.Config
 {
     /// <summary>
     /// One ScriptableObject asset PER MOB — the tunable combat/behaviour sheet
-    /// for a wolf, a shark, or any future creature. Drop the asset under
+    /// for a wolf or any future creature. Drop the asset under
     /// <c>Resources/HexLive/Mobs/</c>; <see cref="MobTuning"/> loads every one
     /// at startup and overrides the matching <see cref="MobCatalog"/> entry the
     /// simulation reads.
@@ -19,7 +19,6 @@ namespace HexLive.UnityPresentation.Config
     public enum MobKind
     {
         Dog = 0,
-        Shark = 1,
         Crab = 2,
     }
 
@@ -36,7 +35,6 @@ namespace HexLive.UnityPresentation.Config
         /// id itself; nobody types "dog" by hand.</summary>
         public string MobId => kind switch
         {
-            MobKind.Shark => MobIds.Shark,
             MobKind.Crab => MobIds.Crab,
             _ => MobIds.Dog,
         };
@@ -93,9 +91,9 @@ namespace HexLive.UnityPresentation.Config
         [Range(0.25f, 3f)] public float glideSegmentSeconds = 1.0f;
         [Tooltip("Дальше этой дистанции — телепорт (спавн/загрузка), не езда.")]
         [Range(1f, 20f)] public float glideSnapDistance = 6.0f;
-        [Tooltip("Боевая стойка: рендер-глайд не подвозит моба к цели ближе этой дистанции (wu) — пара стоит друг напротив друга, а не друг в друге. 0 = выкл (акула).")]
+        [Tooltip("Боевая стойка: рендер-глайд не подвозит моба к цели ближе этой дистанции (wu) — пара стоит друг напротив друга, а не друг в друге. 0 = выкл.")]
         [Range(0f, 3f)] public float meleeHoldDistance = 0.9f;
-        [Tooltip("§106: среда, в которой работает атака. Land — зверь дремлет против пловца (волк); Water — кусает только пловцов и инертен к суше (акула); Amphibious — обе.")]
+        [Tooltip("§106: среда, в которой работает атака. Land — зверь дремлет против пловца; Water — только вода; Amphibious — обе.")]
         public AttackMedium attackMediums = AttackMedium.Land;
 
         [Header("Стайный налёт (0 = одиночка)")]

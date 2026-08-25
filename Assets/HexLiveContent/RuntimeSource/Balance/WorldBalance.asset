@@ -43,9 +43,7 @@ MonoBehaviour:
   rabbitSpearReachHexFraction: 1
   rabbitBowHitChance: 0.6
   arrowRecoverChance: 0.4
-  maxSharks: 2
   hugeIslandMaxLivingNpcs: 42
   hugeIslandMaxCampNpcs: 6
   hugeIslandWolfSlots: 24
   hugeIslandCrabSlots: 48
-  hugeIslandSharkSlots: 24

@@ -20,7 +20,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Включить ампутацию (потерю руки/ноги). Выкл — механика полностью спит.")]
         [MirrorField(typeof(Spec50), "Enabled")]
         public bool limbLossEnabled = true;
-        [Tooltip("Порог урона ОДНОГО удара, при котором добитая до 0 конечность отрывается сразу (акула 0.2). Укус собаки ~0.06 сам по себе не рвёт.")]
+        [Tooltip("Порог урона ОДНОГО удара, при котором добитая до 0 конечность отрывается сразу. Укус собаки ~0.06 сам по себе не рвёт.")]
         [Range(0.05f, 0.5f)] public float limbSeverThreshold = 0.14f;
         [Tooltip("Шанс (0..1), что мелкий укус, ДОБИВШИЙ измолотую ногу до 0, оторвёт её.")]
         [Range(0f, 1f)] public float grindSeverChance = 0.25f;

@@ -2909,7 +2909,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SignalHit(npc.HitStampTick, npc.HitWeaponId, npc.HitPart,
             SimulationUnityMapper.ToUnityPosition(npc.HitFrom, ActorGroundY(npc.Tile)));
         // §29C.3-hit: a health drop staggers her — only while standing still.
-        // Остаётся фолбэком для урона НЕ от удара (падение, акула, огонь): там
+        // Остаётся фолбэком для урона НЕ от удара (падение, огонь): там
         // хит-штампа нет, а вздрогнуть всё равно надо.
         actorView.SignalHealth(npc.Health);
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in

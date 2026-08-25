@@ -93,10 +93,12 @@ public sealed class ContentAssetService
     public bool TryResolveLegacyPath(string path, out ContentRecord record)
     {
         record = _pinned.Values.FirstOrDefault(value => value.IsActive &&
-            string.Equals(
-                (string)value.metadata?["legacyResourcePath"],
-                path,
-                StringComparison.Ordinal));
+            (string.Equals(
+                 (string)value.metadata?["legacyResourcePath"], path,
+                 StringComparison.Ordinal) ||
+             value.metadata?["legacyResourcePaths"] is Newtonsoft.Json.Linq.JArray aliases &&
+             aliases.Values<string>().Any(alias => string.Equals(
+                 alias, path, StringComparison.Ordinal))));
         return record != null;
     }
 

@@ -124,6 +124,39 @@ public sealed class AssetRegistryStoreTests
     }
 
     [Test]
+    public async Task LegacyStableIdWithInternalSpacesRemainsAddressable()
+    {
+        var published = await _store.PublishAsync(
+            Candidate("wear", "FAO Harness Male", "legacy-authored-id", hasIcon: true));
+
+        Assert.That(published.Record.Id, Is.EqualTo("FAO Harness Male"));
+        Assert.That(_store.Resolve(
+            "wear", "FAO Harness Male", "StandaloneOSX", "unity6000-content1")?.Revision,
+            Is.EqualTo(1));
+        Assert.That(File.Exists(Path.Combine(
+            _root, "records", "wear", "FAO Harness Male.json")), Is.True);
+    }
+
+    [Test]
+    public async Task WindowsBootstrapRetainsPublishedMacVariant()
+    {
+        var mac = Candidate("wear", "skirt.anarchy", "mac-v1", hasIcon: true);
+        await _store.PublishAsync(mac);
+        var windows = Candidate("wear", "skirt.anarchy", "windows-v1", hasIcon: true);
+        windows.Variants[0].Platform = "StandaloneWindows64";
+
+        var published = await _store.PublishAsync(windows, retainCurrentVariants: true);
+
+        Assert.That(published.Record.Revision, Is.EqualTo(2));
+        Assert.That(published.Record.Variants.Select(value => value.Platform),
+            Is.EqualTo(new[] { "StandaloneOSX", "StandaloneWindows64" }));
+        Assert.That(_store.Resolve(
+            "wear", "skirt.anarchy", "StandaloneOSX", "unity6000-content1"), Is.Not.Null);
+        Assert.That(_store.Resolve(
+            "wear", "skirt.anarchy", "StandaloneWindows64", "unity6000-content1"), Is.Not.Null);
+    }
+
+    [Test]
     public void CorruptCandidateCannotCreateCurrentRecord()
     {
         var candidate = Candidate("wear", "skirt.anarchy", "good", hasIcon: true);

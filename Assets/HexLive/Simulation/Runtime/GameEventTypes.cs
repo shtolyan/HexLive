@@ -109,7 +109,6 @@ public static class GameEventTypes
         "DogFight",
         "DogKilled",
         "DogShot",
-        "SharkBite",
         "PredatorKilled",
         "PreyFled",
         "PreyFoughtBack",

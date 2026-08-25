@@ -32,7 +32,7 @@ public sealed class TraceGateLintTests
     private static readonly string[] DeathCauses =
     {
         "BledOut", "DogFight", "Drowned", "Heatstroke", "Hypothermia", "LimbSevered",
-        "PreyFoughtBack", "Preyed", "RaidFoughtBack", "RaidStruck", "SharkBite",
+        "PreyFoughtBack", "Preyed", "RaidFoughtBack", "RaidStruck",
         "StarvedToDeath", "Sunburn", "VitalPartDestroyed",
     };
 

@@ -11,10 +11,8 @@ namespace HexLive.Simulation.Tests.Gates
 /// <summary>
 /// «Что такое симуляция» — список систем и их порядок.
 /// <para>
-/// Здесь комментарий наконец становится проверкой. <c>SharkSystem</c> реализован,
-/// его состояние сериализуется — и он не зарегистрирован, то есть не шагает
-/// никогда. Это записано в <see cref="SimulationSystemRegistry"/> прозой; проза
-/// не падает, когда следующая система тихо повторит его судьбу.
+/// Здесь комментарий наконец становится проверкой: реализованная система не
+/// должна тихо остаться вне <see cref="SimulationSystemRegistry"/>.
 /// </para>
 /// </summary>
 public sealed class SystemRegistryGateTests
@@ -24,13 +22,7 @@ public sealed class SystemRegistryGateTests
     /// должно быть заметным решением, а не следствием забывчивости.
     /// </summary>
     private static readonly Dictionary<string, string> KnownUnregistered =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["SharkSystem"] =
-                "Реализован и world.Sharks сохраняется, но не шагал ни в одном " +
-                "прогоне. Включение изменит живое поведение — отдельной задачей, " +
-                "не побочным эффектом рефакторинга (SimulationSystemRegistry.cs).",
-        };
+        new Dictionary<string, string>(StringComparer.Ordinal);
 
     /// <summary>
     /// Порядок регистрации = порядок исполнения внутри слоя, и он несущий:

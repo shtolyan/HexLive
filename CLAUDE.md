@@ -133,18 +133,16 @@ launched with the matching `-buildTarget`.
 
 The Windows script differs where the platform forces it:
 
-- **It builds the Addressables content itself** (first Unity run,
-  `HexLiveContentBatchBuild.Build`, ~12 min), then mirrors it to
-  `~/hex-girls/HexLiveContent/StandaloneWindows64`. `--skip-content` reuses
-  `Build/AddressableContent/StandaloneWindows64` for a player-only retry. The
-  catalog is validated the same way as on macOS: it must expose wear, hair,
-  icons **and** prosthetics, or publication is refused.
+- It is run on Windows against `StandaloneWindows64`; do not launch it from
+  macOS and do not switch a shared checkout back and forth merely to obtain a
+  Player. Platform content is a separate `Tools/content.py build[-all]` job and
+  is never an implicit phase of either Player build.
 - Auto Refresh is forced on through `HKCU\Software\Unity Technologies\Unity
   Editor 5.x` (value names are hashed, so they are matched by prefix) and
   restored afterwards — otherwise `CompileControl` leaves batchmode running
   `-executeMethod` against stale assemblies.
-- The «latest player» pointer and the content link are **NTFS junctions**
-  (`mklink /J`), which need no admin rights, unlike symlinks.
+- The «latest player» pointer is an **NTFS junction** (`mklink /J`), which needs
+  no admin rights. There is no adjacent content junction or catalog.
 - A `Temp/UnityLockfile` left by a batch run that exited non-zero is cleared
   automatically: the file is only treated as a live editor when `Unity.exe` is
   actually in the process table. Do not read the file alone as proof.
@@ -164,14 +162,12 @@ After publication, `~/hex-girls/HexLive.app` is atomically retargeted to the
 latest versioned Player; older releases and their reports remain untouched.
 
 The script must refuse to run while `Temp/UnityLockfile` exists. Do not remove a
-live lock or launch a second Editor. Addressables are deliberately not rebuilt.
-The release folder links its `HexLiveContent` to the existing shared
-`~/hex-girls/HexLiveContent`. Before signing, the script validates that the
-selected external catalog contains wear, hair, icons, and fitted prostheses,
-installs that full catalog as the Player bootstrap, and reports the exact
-catalog and bundle/meta counts. An icon-only patch catalog must never become a
-Player bootstrap; a pre-prosthetics full catalog is stale for current code and
-must also be refused.
+live lock or launch a second Editor. Player builds deliberately do not run
+Addressables or atomic content builds, do not require content output, and do not
+create `HexLiveContent` links. The release manifest records the Asset API
+contract instead: endpoint from `-hexlive-assets` or the ws/wss server address,
+no catalog in Player, and no bundles beside Player. Icons are entries of their
+owning object bundles (§152.2), never a shared icon payload.
 
 After `BuildPipeline` succeeds, the command-line entry point explicitly runs
 the idempotent version finalizer instead of trusting Unity 6 to rediscover the

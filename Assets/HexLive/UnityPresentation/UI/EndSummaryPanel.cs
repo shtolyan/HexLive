@@ -532,7 +532,6 @@ namespace HexLive.UnityPresentation.UI
                 "LimbSevered" => Loc.Get("end.cause_limb"),
                 "PreyFoughtBack" => Loc.Get("end.cause_self_defense"),
                 "Preyed" => Loc.Get("end.cause_predation"),
-                "SharkBite" => Loc.Get("end.cause_shark"),
                 "StarvedToDeath" => Loc.Get("end.cause_starved"),
                 "Sunburn" => Loc.Get("end.cause_sun"),
                 "VitalPartDestroyed" => Loc.Get("end.cause_vital"),

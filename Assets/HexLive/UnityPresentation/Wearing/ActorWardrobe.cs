@@ -34,7 +34,10 @@ public static class ActorWardrobe
         }
 
         Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Wear);
-        ContentAssetService.Instance.LoadMain<GameObject>("wear", simDefinitionId, loaded =>
+        // Metadata is part of the same owner bundle. Load it first so variant
+        // materials are ready before a visual can be attached to a body.
+        Garments.GarmentVariants.PrewarmAsync(simDefinitionId, () =>
+            ContentAssetService.Instance.LoadMain<GameObject>("wear", simDefinitionId, loaded =>
         {
             var result = new List<Wear>();
             if (loaded?.Asset != null)
@@ -54,7 +57,7 @@ public static class ActorWardrobe
             Cache[simDefinitionId] = result;
             Loading.Remove(simDefinitionId);
             Garments.ContentQueue.End(Garments.ContentQueue.Kind.Wear);
-        });
+        }));
     }
 
     public static IReadOnlyList<Wear> GetVisuals(string simDefinitionId)

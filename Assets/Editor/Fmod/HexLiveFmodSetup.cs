@@ -30,7 +30,7 @@ public static class HexLiveFmodSetup
     [MenuItem("HexLive/FMOD/Настроить на банки из репозитория")]
     public static void Configure()
     {
-        var report = Apply();
+        var report = ConfigureAtomicPlayer();
         Debug.Log(report);
     }
 
@@ -94,7 +94,7 @@ public static class HexLiveFmodSetup
         var exitCode = 1;
         try
         {
-            Debug.Log(Apply());
+            Debug.Log(ConfigureAtomicPlayer());
             exitCode = 0;
         }
         catch (Exception exception)
@@ -107,7 +107,12 @@ public static class HexLiveFmodSetup
         }
     }
 
-    private static string Apply()
+    /// <summary>
+    /// Applies the build-safe FMOD authoring mode used by the atomic content
+    /// pipeline. Banks remain source files for raw ContentObjects; FMOD may
+    /// index their events in the editor but must not copy them into Player.
+    /// </summary>
+    public static string ConfigureAtomicPlayer()
     {
         var bankDirectory = Path.Combine(
             Path.GetDirectoryName(Application.dataPath) ?? ".", SourceBankPath);

@@ -16,7 +16,7 @@ public static class ContentIdentity
     };
 
     private static readonly Regex IdPattern = new(
-        "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$", RegexOptions.CultureInvariant);
+        "^[A-Za-z0-9][A-Za-z0-9._ -]{0,127}$", RegexOptions.CultureInvariant);
     private static readonly Regex VariantPattern = new(
         "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$", RegexOptions.CultureInvariant);
     private static readonly Regex ShaPattern = new(

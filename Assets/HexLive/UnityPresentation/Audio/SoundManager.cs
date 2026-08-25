@@ -155,13 +155,6 @@ namespace HexLive.UnityPresentation.Audio
                         Play(FmodSfx.Sfx.BodyFall, died);
                     }
                     break;
-                case "SharkBite":
-                    if (TryNpcPos(e, out var shark))
-                    {
-                        Play(FmodSfx.Sfx.Splash, shark);
-                        Play(FmodSfx.Sfx.HitFlesh, shark);
-                    }
-                    break;
                 case "LimbSevered":
                     if (TryNpcPos(e, out var sever))
                     {

@@ -34,14 +34,6 @@ internal static class MobSlots
         _ => WildlifeBalance.CrabSlots
     };
 
-    internal static int SharkSlotsFor(HexLive.Simulation.Bootstrap.GameMode mode) => mode switch
-    {
-        HexLive.Simulation.Bootstrap.GameMode.BigIsland => WildlifeBalance.BigIslandSharkSlots,
-        HexLive.Simulation.Bootstrap.GameMode.HugeIsland => WildlifeBalance.HugeIslandSharkSlots,
-        HexLive.Simulation.Bootstrap.GameMode.Maniac => WildlifeBalance.HugeIslandSharkSlots,
-        _ => WildlifeBalance.SharkSlots
-    };
-
     // ── Генерация ────────────────────────────────────────────────────────
 
     // §147.1: ленивая, в первом проходе системы (паттерн самолечения
@@ -62,9 +54,7 @@ internal static class MobSlots
             return;
         }
 
-        var candidates = mobId == Content.MobIds.Shark
-            ? SwimCandidates(world)
-            : LandCandidates(world, mobId);
+        var candidates = LandCandidates(world, mobId);
         if (candidates.Count == 0)
         {
             return;
@@ -112,7 +102,7 @@ internal static class MobSlots
                 StoredHealth = Content.MobCatalog.For(mobId).MaxHealth,
                 CycleIndex = 0,
             };
-            BakeRing(world, slot2, mobId == Content.MobIds.Shark);
+            BakeRing(world, slot2);
             if (slot2.Ring.Count == 0)
             {
                 continue;
@@ -226,30 +216,6 @@ internal static class MobSlots
         return candidates;
     }
 
-    private static List<JunctionId> SwimCandidates(WorldState world)
-    {
-        // Swim junctions are worldgen output — the sorted master is built once
-        // per world; each call re-fills the mutable scratch (EnsureSlots
-        // RemoveAt's from it), instead of allocating ~465 KB per medium tick.
-        var master = world.Caches.SwimSlotCandidatesSorted;
-        if (!world.Caches.SwimSlotCandidatesBuilt)
-        {
-            master.Clear();
-            foreach (var id in world.SwimJunctions)
-            {
-                master.Add(id);
-            }
-
-            master.Sort((a, b) => a.Value.CompareTo(b.Value));
-            world.Caches.SwimSlotCandidatesBuilt = true;
-        }
-
-        var candidates = world.Caches.SlotCandidatesScratch;
-        candidates.Clear();
-        candidates.AddRange(master);
-        return candidates;
-    }
-
     private static bool NearWater(WorldState world, TileCoord tile, int radius)
     {
         // §147 PERF: the answer is "is any WATER tile within `radius` of this
@@ -277,7 +243,7 @@ internal static class MobSlots
 
     // §147.1: кольцо печётся один раз (BFS от дома мимо запретных узлов),
     // сохраняется и едет клиенту — превью и материализация читают одни байты.
-    private static void BakeRing(WorldState world, MobSpawnSlot slot, bool water)
+    private static void BakeRing(WorldState world, MobSpawnSlot slot)
     {
         slot.Ring.Clear();
         if (!world.Junctions.Items.TryGetValue(slot.HomeJunction, out var home))
@@ -310,9 +276,8 @@ internal static class MobSlots
 
                 visited.Add(neighborId);
                 var allWater = SpatialQueries.IsAllWaterJunction(world, neighborId);
-                if (neighbor.Tiles.Count == 0 ||
-                    (water ? !allWater : neighbor.Blocked || allWater ||
-                        neighbor.Door || IsIndoorTile(world, neighbor.Tiles[0])))
+                if (neighbor.Tiles.Count == 0 || neighbor.Blocked || allWater ||
+                    neighbor.Door || IsIndoorTile(world, neighbor.Tiles[0]))
                 {
                     continue;
                 }
@@ -472,9 +437,7 @@ internal static class MobSlots
     // кольцо по ТЕКУЩЕЙ топологии, полное здоровье, снова превью.
     internal static void Rehome(WorldState world, MobSpawnSlot slot)
     {
-        var candidates = slot.MobId == Content.MobIds.Shark
-            ? SwimCandidates(world)
-            : LandCandidates(world, slot.MobId);
+        var candidates = LandCandidates(world, slot.MobId);
         if (candidates.Count == 0)
         {
             // Некуда: остаёмся в кулдауне до следующего medium-прохода.
@@ -487,7 +450,7 @@ internal static class MobSlots
             candidates.Count);
         pick = System.Math.Min(pick, candidates.Count - 1);
         slot.HomeJunction = candidates[pick];
-        BakeRing(world, slot, slot.MobId == Content.MobIds.Shark);
+        BakeRing(world, slot);
         if (slot.Ring.Count == 0)
         {
             slot.State = MobSlotState.Cooldown;

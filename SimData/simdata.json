@@ -652,10 +652,8 @@
     "WorldBalance.SurfGiftIntervalDays": 5,
     "WildlifeBalance.ArrowRecoverChance": 0.400000006,
     "WildlifeBalance.BigIslandCrabSlots": 24,
-    "WildlifeBalance.BigIslandSharkSlots": 12,
     "WildlifeBalance.BigIslandWolfSlots": 12,
     "WildlifeBalance.HugeIslandCrabSlots": 48,
-    "WildlifeBalance.HugeIslandSharkSlots": 24,
     "WildlifeBalance.HugeIslandWolfSlots": 24,
     "WildlifeBalance.CrabMaterializeRadiusTiles": 5,
     "WildlifeBalance.CrabSlots": 4,
@@ -665,7 +663,6 @@
     "WildlifeBalance.DogSpawnMinDistanceFromNpc": 5,
     "WildlifeBalance.MaxDogs": 2,
     "WildlifeBalance.MaxRabbits": 4,
-    "WildlifeBalance.MaxSharks": 2,
     "WildlifeBalance.MobMaterializeRadiusTiles": 8,
     "WildlifeBalance.MobPatrolRadiusTiles": 3,
     "WildlifeBalance.MobPreviewPauseChance": 0.449999988,
@@ -681,7 +678,6 @@
     "WildlifeBalance.RaidDepartureBackstopTicks": 2400,
     "WildlifeBalance.RaidDuskOffsetTicks": 1800,
     "WildlifeBalance.RaidLingerTicks": 2400,
-    "WildlifeBalance.SharkSlots": 2,
     "WildlifeBalance.WolfSlots": 2,
     "HexHopTuning.DivePlungeDepth": 0.699999988,
     "HexHopTuning.EdgePadding": 0.100000001,
@@ -694,8 +690,7 @@
     "MovementSystem.SwimSpeedFactor": 0.600000024
   },
   "mobs": [
-    {"id": "dog", "maxHealth": 1.71, "attackDamage": 0.085, "cutFraction": 0.9, "bloodLossMultiplier": 1.2, "attackWindupSeconds": 0.5, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 3, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "meleeHoldDistance": 0.9, "attackMediums": "Land", "raidChancePerDay": 0.08, "raidPackSize": 3},
-    {"id": "shark", "maxHealth": 1, "attackDamage": 0.2, "cutFraction": 1, "bloodLossMultiplier": 1.4, "attackWindupSeconds": 0.1, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 1, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "meleeHoldDistance": 0, "attackMediums": "Water", "raidChancePerDay": 0, "raidPackSize": 0}
+    {"id": "dog", "maxHealth": 1.71, "attackDamage": 0.085, "cutFraction": 0.9, "bloodLossMultiplier": 1.2, "attackWindupSeconds": 0.5, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 3, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "meleeHoldDistance": 0.9, "attackMediums": "Land", "raidChancePerDay": 0.08, "raidPackSize": 3}
   ],
   "gear": [
     {"id": "", "damage": 0.048, "cutFraction": 0, "bloodLossMultiplier": 0, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": [], "strikes": [{"hitDelaySeconds": 0.5, "attackDurationSeconds": 1.48, "cooldownSeconds": 1.52}, {"hitDelaySeconds": 0.5, "attackDurationSeconds": 1.74, "cooldownSeconds": 1.26}, {"hitDelaySeconds": 0.5, "attackDurationSeconds": 1.33, "cooldownSeconds": 1.67}, {"hitDelaySeconds": 0.5, "attackDurationSeconds": 1.19, "cooldownSeconds": 1.81}]},

@@ -137,13 +137,8 @@ public sealed class RuntimeCaches
 
     public int LandSlotHomeBaseBuiltVersion { get; set; } = -1;
 
-    // Swim junctions are pure worldgen output — built once per world.
-    public List<JunctionId> SwimSlotCandidatesSorted { get; } = new();
-
-    public bool SwimSlotCandidatesBuilt { get; set; }
-
     // The per-call candidate list EnsureSlots mutates (RemoveAt): reused, not
-    // reallocated — for sharks it was a fresh ~465 KB list EVERY medium tick.
+    // reallocated on every medium tick.
     public List<JunctionId> SlotCandidatesScratch { get; } = new();
 
     // PERF (Aug-2026): позиции джанкшенов — вывод worldgen и не меняются;

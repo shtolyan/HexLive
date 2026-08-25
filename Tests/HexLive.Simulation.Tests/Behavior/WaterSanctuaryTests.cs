@@ -13,8 +13,8 @@ namespace HexLive.Simulation.Tests.Behavior
 
 /// <summary>
 /// §106 «Вода — убежище»: пловца не бьют с суши, пловец не бьёт сам, и всякая
-/// погоня за нырнувшей жертвой бросается. Плюс контракт фундамента акул —
-/// среда атаки как данные (<c>MobStats.AttackMediums</c>).
+/// погоня за нырнувшей жертвой бросается. Среда атаки остаётся данными
+/// (<c>MobStats.AttackMediums</c>) для будущих видов.
 ///
 /// <para>
 /// Главный риск фичи — кольцо §102 нового образца: гейт «нельзя бить» без
@@ -243,28 +243,23 @@ public sealed class WaterSanctuaryTests
             $"Причина потери цели обязана быть видна в трассе. Dog-события: [{mobEvents}]");
     }
 
-    /// <summary>Контракт фундамента акул: среда атаки — данные, и гейт один на
-    /// всех. Включение SharkSystem не должно потребовать нового правила.</summary>
+    /// <summary>Среда атаки — данные, и гейт один для сухопутных, водных и
+    /// будущих амфибийных противников.</summary>
     [Test]
-    public void AttackMediums_WolfLand_SharkWater_GateHonoursThem()
+    public void AttackMediums_LandAndWaterGateHonoursThem()
     {
         var (world, girl, _, swim) = Setup();
 
         Assert.That(MobCatalog.For(MobIds.Dog).AttackMediums,
             Is.EqualTo(AttackMedium.Land), "Волк — сухопутный.");
-        Assert.That(MobCatalog.For(MobIds.Shark).AttackMediums,
-            Is.EqualTo(AttackMedium.Water),
-            "Акула — водная. Если тут Land — simdata затёр каталог " +
-            "(старый экспорт без attackMediums обязан падать в дефолт КАТАЛОГА).");
-
         Assert.That(CombatMedium.CanEngage(world, AttackMedium.Water, girl),
-            Is.False, "Акула не достаёт стоящую на суше.");
+            Is.False, "Водный противник не достаёт стоящую на суше.");
         Assert.That(CombatMedium.CanEngage(world, AttackMedium.Land, girl),
             Is.True, "Волк достаёт стоящую на суше.");
 
         girl.Tile = swim;
         Assert.That(CombatMedium.CanEngage(world, AttackMedium.Water, girl),
-            Is.True, "Акула достаёт пловчиху.");
+            Is.True, "Водный противник достаёт пловчиху.");
         Assert.That(CombatMedium.CanEngage(world, AttackMedium.Land, girl),
             Is.False, "Волк пловчиху не достаёт.");
         Assert.That(CombatMedium.CanEngage(world, AttackMedium.Amphibious, girl),

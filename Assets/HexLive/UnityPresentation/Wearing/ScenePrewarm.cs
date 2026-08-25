@@ -90,8 +90,7 @@ public static class ScenePrewarm
 
         foreach (var value in world.Entities.Objects.Values)
         {
-            Add(value.DefinitionId.StartsWith("building.", System.StringComparison.Ordinal)
-                ? "building" : "object", value.DefinitionId);
+            Add(ObjectContentType(value.DefinitionId), value.DefinitionId);
         }
         foreach (var mob in world.Mobs)
         {
@@ -213,8 +212,7 @@ public static class ScenePrewarm
                 continue;
             }
 
-            var type = worldObject.DefinitionId.StartsWith("building.",
-                System.StringComparison.Ordinal) ? "building" : "object";
+            var type = ObjectContentType(worldObject.DefinitionId);
             ContentPrefabCache.Prewarm(type, worldObject.DefinitionId);
         }
     }
@@ -257,6 +255,12 @@ public static class ScenePrewarm
             }
         }
     }
+
+    private static string ObjectContentType(string id) =>
+        id.StartsWith("building.", System.StringComparison.Ordinal) ||
+        id.StartsWith("architecture.", System.StringComparison.Ordinal)
+            ? "building"
+            : "object";
 }
 
 }

@@ -582,15 +582,6 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            for (var i = 0; i < snapshot.Sharks.Count; i++)
-            {
-                var shark = snapshot.Sharks[i];
-                if (_frame.VisibleTiles.Contains(shark.Tile))
-                {
-                    _frame.Mobs.Add(new TacticalMapMob(
-                        -1, false, shark.Position, TacticalMapMobKind.Shark));
-                }
-            }
         }
 
         private void RefreshCameraFootprint()

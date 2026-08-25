@@ -108,6 +108,10 @@ namespace HexLive.UnityDebug.Editor
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? ".");
                 Directory.CreateDirectory(Path.GetDirectoryName(summaryPath) ?? ".");
 
+                // The FMOD integration is machine-local and ignored by Git.
+                // Reassert the atomic-content mode on every release build:
+                // editor event indexing is allowed, bank copying is not.
+                ConfigureFmodForAtomicPlayer();
                 ValidateNoForcedPlayerContent();
                 ValidateRuntimeGeneratedWorldRendering();
 
@@ -180,6 +184,28 @@ namespace HexLive.UnityDebug.Editor
             }
 
             throw new ArgumentException($"Required command-line argument is missing: {name}");
+        }
+
+        private static void ConfigureFmodForAtomicPlayer()
+        {
+            // HexLiveFmodSetup deliberately lives in the predefined Editor
+            // assembly beside the machine-local FMOD integration. This build
+            // assembly cannot reference a predefined assembly directly, so use
+            // its stable public entry point and fail loudly if installation or
+            // setup is absent.
+            var setupType = Type.GetType("HexLiveFmodSetup, Assembly-CSharp-Editor");
+            var configure = setupType?.GetMethod(
+                "ConfigureAtomicPlayer",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (configure == null)
+            {
+                throw new InvalidOperationException(
+                    "HexLiveFmodSetup.ConfigureAtomicPlayer is unavailable. " +
+                    "Install/configure the FMOD Unity integration before building Player.");
+            }
+
+            var result = configure.Invoke(null, null);
+            Debug.Log(result as string ?? "[FMOD] atomic Player mode configured.");
         }
 
         private static CommandLineBuildSummary CreateSummary(
@@ -299,6 +325,12 @@ namespace HexLive.UnityDebug.Editor
             new(StringComparer.Ordinal)
             {
                 "Assets/Resources/I2Languages.asset",
+                // com.unity.test-framework.performance creates these two
+                // transient resources in its build callback and removes them
+                // again after the build. They are tooling metadata, not game
+                // content; every other unexpected Resources path still fails.
+                "Assets/Resources/PerformanceTestRunInfo.json",
+                "Assets/Resources/PerformanceTestRunSettings.json",
                 "Assets/Resources/HexLive/DebugPanelSettings.asset",
                 "Assets/Resources/HexLive/UI/Fonts/Caveat-Regular.ttf",
                 "Assets/Resources/HexLive/UI/GameModePanel.uss",

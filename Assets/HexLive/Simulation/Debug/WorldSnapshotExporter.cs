@@ -74,8 +74,6 @@ public static class WorldSnapshotExporter
 
     private static readonly Comparison<CrabSnapshot> ByCrabId = (a, b) => a.Id.CompareTo(b.Id);
 
-    private static readonly Comparison<SharkSnapshot> BySharkId = (a, b) => a.Id.CompareTo(b.Id);
-
     /// <summary>
     /// Puts every entity list in ascending-id order.
     /// <para>
@@ -96,7 +94,6 @@ public static class WorldSnapshotExporter
         snapshot.Corpses.Sort(ByNpcId);
         snapshot.Mobs.Sort(ByMobId);
         snapshot.Crabs.Sort(ByCrabId);
-        snapshot.Sharks.Sort(BySharkId);
     }
 
     public static WorldSnapshot Export(WorldState world, WorldSnapshot reuse)
@@ -323,17 +320,6 @@ public static class WorldSnapshotExporter
                 Id = crab.Id,
                 Tile = crab.Tile,
                 Position = crab.Position
-            });
-        }
-
-        snapshot.Sharks.Clear();
-        foreach (var shark in world.Sharks)
-        {
-            snapshot.Sharks.Add(new SharkSnapshot
-            {
-                Id = shark.Id,
-                Tile = shark.Tile,
-                Position = shark.Position
             });
         }
 

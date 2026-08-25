@@ -27,7 +27,7 @@ namespace HexLive.UnityPresentation.Audio
             // §104 r5: чем именно попали. Вид выбирает по HitWeaponId снапшота:
             // пустой id — кулак, клинковое снаряжение — лезвие, зубы зверя
             // остаются на wolf_bite. Раньше человеческий удар не звучал вовсе —
-            // hit_flesh играл только на укус акулы, отрыв конечности, разделку
+            // hit_flesh играл только на отрыв конечности, разделку
             // туши и на удар девушки ПО ВОЛКУ.
             public const string HitPunch = "hit_punch";       // кулаком по телу
             public const string HitBlade = "hit_blade";       // клинком по телу

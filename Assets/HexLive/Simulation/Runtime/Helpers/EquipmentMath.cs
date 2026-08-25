@@ -163,8 +163,7 @@ internal static class EquipmentMath
     // struck part first, then the body's own innate Toughness.
     //
     // THE one place incoming melee damage is mitigated. Before §76 five combat
-    // systems each wrote their own `damage * (1f - ArmorForPart(...))`, which
-    // is exactly how SharkSystem ended up applying no armor at all. Callers
+    // systems each wrote their own `damage * (1f - ArmorForPart(...))`. Callers
     // that still need the armor figure for a trace should keep their own local
     // — the number, not the arithmetic.
     public static float Mitigate(WorldState world, NPCState target, BodyPart part, float raw)

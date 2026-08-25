@@ -6,7 +6,7 @@ namespace HexLive.UnityPresentation.Config
     /// <summary>
     /// Мир и дикая природа: суточный цикл и тени, штормы, сушка, топливо
     /// костра, гниение фруктов (WorldBalance) + директор популяций — собаки,
-    /// крабы, акулы (WildlifeBalance; БОЕВЫЕ статы мобов остаются в
+    /// крабы (WildlifeBalance; БОЕВЫЕ статы мобов остаются в
     /// MobConfig-ассетах). Поле ассета = camelCase одноимённого статика.
     /// </summary>
     [CreateAssetMenu(menuName = "HexLive/Balance/World", fileName = "WorldBalance")]
@@ -102,10 +102,6 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Шанс вытащить стрелу из добычи обратно.")]
         [Range(0f, 1f)] public float arrowRecoverChance = 0.4f;
 
-        [Header("Акулы")]
-        [Tooltip("Максимум акул одновременно.")]
-        [Range(0, 6)] public int maxSharks = 2;
-
         // §146/§147: ручки, добавленные кодом раньше зеркала, — долг покрытия,
         // который блокировал экспорт SimData (Aug-2026). Дефолты = значения
         // из кода на момент добавления.
@@ -126,20 +122,14 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 30)] public int wolfSlots = 2;
         [Tooltip("§147: слоты крабов в обычном режиме.")]
         [Range(0, 60)] public int crabSlots = 4;
-        [Tooltip("§147: слоты акул в обычном режиме.")]
-        [Range(0, 30)] public int sharkSlots = 2;
         [Tooltip("§146.7: слоты волков на большом острове.")]
         [Range(0, 30)] public int bigIslandWolfSlots = 12;
         [Tooltip("§146.7: слоты крабов на большом острове.")]
         [Range(0, 60)] public int bigIslandCrabSlots = 24;
-        [Tooltip("§146.7: слоты акул на большом острове.")]
-        [Range(0, 30)] public int bigIslandSharkSlots = 12;
         [Tooltip("§146.9: слоты волков на огромном острове.")]
         [Range(0, 60)] public int hugeIslandWolfSlots = 24;
         [Tooltip("§146.9: слоты крабов на огромном острове.")]
         [Range(0, 100)] public int hugeIslandCrabSlots = 48;
-        [Tooltip("§146.9: слоты акул на огромном острове.")]
-        [Range(0, 60)] public int hugeIslandSharkSlots = 24;
         [Tooltip("§147.3: радиус материализации зверя из превью, тайлы от ближайшей девушки.")]
         [Range(1, 20)] public int mobMaterializeRadiusTiles = 8;
         [Tooltip("§147.3: радиус материализации краба, тайлы.")]

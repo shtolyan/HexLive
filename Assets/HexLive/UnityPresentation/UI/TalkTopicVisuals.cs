@@ -40,7 +40,6 @@ public static class TalkTopicVisuals
         switch (topicName)
         {
             case "Escape":  return new Topic("⛵", Cool);      // ⛵ sailboat
-            case "Sharks":  return new Topic("\U0001F988", Danger);// 🦈
             case "Dogs":    return new Topic("\U0001F415", Danger);// 🐕
             case "Weather": return new Topic("\U0001F327", Cool);  // 🌧 rain cloud
             case "Food":    return new Topic("\U0001F965", Warm);  // 🥥 coconut

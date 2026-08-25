@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HexLive.UnityPresentation.Config;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Content
@@ -112,10 +114,9 @@ public static class AtomicResources
         }
 
         var records = ContentAssetService.Instance.Records(type)
-            .Where(record => string.Equals(
-                (string)record.metadata?["legacyResourceFolder"],
-                formerResourceFolder,
-                StringComparison.Ordinal))
+            .Where(record => MetadataContains(
+                record.metadata, "legacyResourceFolder", "legacyResourceFolders",
+                formerResourceFolder))
             .ToArray();
         var values = new List<T>(records.Length);
         foreach (var record in records)
@@ -154,8 +155,29 @@ public static class AtomicResources
     public static void Prewarm(string formerResourcePath) =>
         _ = Load<UnityEngine.Object>(formerResourcePath);
 
-    private static string EntryFor<T>() where T : UnityEngine.Object =>
-        typeof(T).Name == "StyleSheet" ? "style" : null;
+    private static string EntryFor<T>() where T : UnityEngine.Object => typeof(T).Name switch
+    {
+        "StyleSheet" => "style",
+        nameof(WorldObjectConfig) => "world-config",
+        nameof(GearConfig) => "gear-config",
+        nameof(MobConfig) => "mob-config",
+        _ => null,
+    };
+
+    private static bool MetadataContains(
+        JObject metadata, string scalarName, string arrayName, string expected)
+    {
+        if (metadata == null)
+        {
+            return false;
+        }
+        if (string.Equals((string)metadata[scalarName], expected, StringComparison.Ordinal))
+        {
+            return true;
+        }
+        return metadata[arrayName] is JArray values && values.Values<string>()
+            .Any(value => string.Equals(value, expected, StringComparison.Ordinal));
+    }
 
     private static bool TryIdentity(string path, out string type, out string id)
     {

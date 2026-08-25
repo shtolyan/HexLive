@@ -3,7 +3,7 @@ using HexLive.Simulation.Common;
 namespace HexLive.Simulation.Wildlife
 {
 
-// Spec 29C.3: a mob (wolf, shark, any future tiger) is a three-state machine,
+// Spec 29C.3: a mob (wolf, any future tiger) is a three-state machine,
 // not an NPC — no needs, plans, or perception pipeline. Every mob can roam,
 // chase and ATTACK; what the attack looks like (a bite, a peck, a paw swipe)
 // is presentation — the sim only knows a timed windup that lands damage.
@@ -124,20 +124,6 @@ public sealed class RabbitState
     public Float2 Position { get; set; } = Float2.Zero;
 
     public int SpookedUntilTick { get; set; }
-}
-
-// Spec 40.18: a shark — patrols water only, bites any NPC that swims. Like a
-// dog it's a simple roamer, not an NPC (no needs/plans). Dormant against the
-// land colony (it can't leave the water) until swimming gives it prey.
-public sealed class SharkState
-{
-    public int Id { get; set; }
-
-    public TileCoord Tile { get; set; } = TileCoord.Zero;
-
-    public JunctionId Junction { get; set; }
-
-    public Float2 Position { get; set; } = Float2.Zero;
 }
 
 }

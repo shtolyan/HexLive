@@ -14,7 +14,7 @@ namespace HexLive.Simulation.Runtime
 // Spec §50: a prepared amputation hazard — a reef, a bear-trap, a set spot on
 // the map an author places. A survivor standing on a tile holding a "Hazard"
 // object loses a leg (deterministically at chance 1, or by a tuned roll). Like
-// the shark, it's a fixed dangerous place rather than an emergent bite.
+// a predator, it's a fixed dangerous place rather than an emergent bite.
 public sealed class HazardSystem : ISimulationSystem
 {
     public string Name => nameof(HazardSystem);

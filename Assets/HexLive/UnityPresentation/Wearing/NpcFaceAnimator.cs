@@ -117,7 +117,6 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     {
         ["SmallTalk"] = new[] { "05" },
         ["Escape"] = new[] { "12" },
-        ["Sharks"] = new[] { "03" },
         ["Dogs"] = new[] { "x_fear" },
         ["Weather"] = new[] { "17" },
         ["Food"] = new[] { "06" },

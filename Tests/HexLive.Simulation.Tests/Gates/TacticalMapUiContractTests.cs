@@ -41,7 +41,6 @@ public sealed class TacticalMapUiContractTests
             Assert.That(panel, Does.Contain("overflow: true"));
             Assert.That(panel, Does.Contain("snapshot.Mobs.Count"));
             Assert.That(panel, Does.Contain("snapshot.Crabs.Count"));
-            Assert.That(panel, Does.Contain("snapshot.Sharks.Count"));
             Assert.That(panel, Does.Contain("_storedGarmentJunctions"));
             Assert.That(panel, Does.Contain("_emittedMarkerKeys.Clear()"));
             Assert.That(panel, Does.Contain("_emittedItemTypes.Clear()"));
@@ -51,7 +50,6 @@ public sealed class TacticalMapUiContractTests
             Assert.That(view, Does.Contain("frame.DroppedItems"));
             Assert.That(view, Does.Contain("context.Allocate(4, 6, texture)"));
             Assert.That(view, Does.Contain("Mathf.Clamp(hexRadius * 0.82f, 7f, 12f)"));
-            Assert.That(view, Does.Contain("TacticalMapMobKind.Shark"));
             Assert.That(view, Does.Contain("internal sealed class DistantWorldMarkersView"));
             Assert.That(view, Does.Contain("pickingMode = PickingMode.Ignore"));
             Assert.That(view, Does.Not.Contain("new GameObject("));

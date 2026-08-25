@@ -163,7 +163,6 @@ public static class JournalCatalog
             perspective: JournalPerspective.Received);
         r["PreyFled"] = new JournalRule(88, JournalRole.FirstNpc,
             perspective: JournalPerspective.Received);
-        r["SharkBite"] = new JournalRule(93, perspective: JournalPerspective.Received);
         r["DogFight"] = new JournalRule(78, extra: JournalExtra.Token, extraToken: "Dog=");
         r["DogShot"] = new JournalRule(66, extra: JournalExtra.Token, extraToken: "Dog=");
         r["DogKilled"] = new JournalRule(70);

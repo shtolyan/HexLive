@@ -315,7 +315,7 @@ namespace HexLive.Simulation.Runtime
         public static float MinSplittableDamage = 0.09f; // hits below this don't split into gashes
 
         // ─────────────────────────────────────────────────────────────
-        // Combat — dogs & sharks.
+        // Combat — predators.
         // ─────────────────────────────────────────────────────────────
         public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per landed hit
 

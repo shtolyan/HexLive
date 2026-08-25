@@ -22,7 +22,7 @@ public sealed class DeathCauseTests
         var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
 
         world.Tick = 1000;
-        Trace.Emit(world, npc.Id, "SharkBite", $"NPC{npc.Id.Value} bitten by shark 7");
+        Trace.Emit(world, npc.Id, "DogFight", $"Dog=7 bit: NPC{npc.Id.Value}");
 
         // Кольцо (2048) переполняется болтовнёй — прежний поиск по нему уже
         // ничего бы не нашёл и молча свалился бы в вывод причины по нуждам.
@@ -33,9 +33,9 @@ public sealed class DeathCauseTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(npc.Mind.DeathCauseText, Does.StartWith("SharkBite:"));
+            Assert.That(npc.Mind.DeathCauseText, Does.StartWith("DogFight:"));
             Assert.That(npc.Mind.DeathCauseTick, Is.EqualTo(1000));
-            Assert.That(world.Events.Items.Any(e => e.Type == "SharkBite"), Is.False,
+            Assert.That(world.Events.Items.Any(e => e.Type == "DogFight"), Is.False,
                 "предпосылка теста: событие уже вытеснено из кольца");
         });
     }

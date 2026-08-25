@@ -57,7 +57,6 @@ public sealed class SnapshotDeltaEncoder
     }
     private readonly Dictionary<int, byte[]> _mobs = new();
     private readonly Dictionary<int, byte[]> _crabs = new();
-    private readonly Dictionary<int, byte[]> _sharks = new();
     private readonly Dictionary<int, byte[]> _mobSlots = new();
 
     // §136: дневники. Ради этого словаря секция и отделена от записи NPC —
@@ -95,7 +94,6 @@ public sealed class SnapshotDeltaEncoder
         _corpses.Clear();
         _mobs.Clear();
         _crabs.Clear();
-        _sharks.Clear();
         _mobSlots.Clear();
         _journals.Clear();
         _header = Array.Empty<byte>();
@@ -200,9 +198,6 @@ public sealed class SnapshotDeltaEncoder
 
         WriteSection(w, snapshot.Crabs, _crabs,
             (c) => c.Id, (sw, c) => WorldSnapshotCodec.WriteCrabRecord(sw, c));
-
-        WriteSection(w, snapshot.Sharks, _sharks,
-            (s) => s.Id, (sw, s) => WorldSnapshotCodec.WriteSharkRecord(sw, s));
 
         WriteSection(w, snapshot.MobSlots, _mobSlots,
             (s) => s.SlotId, (sw, s) => WorldSnapshotCodec.WriteMobSlotRecord(sw, s));

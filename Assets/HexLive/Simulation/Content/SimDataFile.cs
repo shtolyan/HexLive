@@ -336,12 +336,10 @@ namespace HexLive.Simulation.Content
                         GlideSegmentSeconds = F(m, "glideSegmentSeconds", 1f),
                         GlideSnapDistance = F(m, "glideSnapDistance", 6f),
                         // Pre-hold-distance exports carry no key; 0.9 matches
-                        // the MobStats field default, not the shark's 0.
+                        // the MobStats field default.
                         MeleeHoldDistance = F(m, "meleeHoldDistance", 0.9f),
                         // §106: a pre-AttackMediums export carries no key — fall
-                        // back to the CATALOG default for this id (not the field
-                        // default Land, which would silently turn the shark
-                        // terrestrial on every stale export).
+                        // back to the catalog default for this id.
                         AttackMediums = Medium(m, "attackMediums", Str(m, "id")),
                         RaidChancePerDay = F(m, "raidChancePerDay", 0f),
                         RaidPackSize = I(m, "raidPackSize", 0),
@@ -820,7 +818,7 @@ namespace HexLive.Simulation.Content
 
         // §106: attack medium rides as its enum name ("Land"/"Water"/
         // "Amphibious"); a stale export without the key keeps the mob's own
-        // catalog default so the shark never silently turns terrestrial.
+        // catalog default.
         private static AttackMedium Medium(
             Dictionary<string, object> d, string key, string mobId)
         {

@@ -31,6 +31,23 @@ public sealed class BuildSiteSelectionUiContractTests
         Assert.That(view, Does.Contain("public void SetContextProxy"));
     }
 
+    [Test]
+    public void ConstructionStakesDisappearAfterTheFirstPhysicalProgress()
+    {
+        var renderer = Read("Environment", "BuildSiteStakeRenderer.cs");
+        var rule = Read("Environment", "BuildSiteStakeVisibility.cs");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(renderer,
+                Does.Contain("BuildSiteStakeVisibility.HasPhysicalProgress"));
+            Assert.That(rule, Does.Contain("element.DeliveredTotal > 0"));
+            Assert.That(rule, Does.Contain("element.WorkDone > 0"));
+            Assert.That(rule, Does.Not.Contain("element.Complete"),
+                "Колышки не должны ждать полного завершения элемента.");
+        });
+    }
+
     private static string Read(string folder, string file) => File.ReadAllText(
         Path.Combine(RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
             folder, file));

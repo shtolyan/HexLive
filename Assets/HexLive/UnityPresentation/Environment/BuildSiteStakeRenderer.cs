@@ -144,22 +144,7 @@ namespace HexLive.UnityPresentation.Environment
         private static bool WantsStakes(ObjectSnapshot site, List<ObjectSnapshot> modules)
         {
             if (UI.BuildModePanel.IsOpen) return false;
-            var delivered = site.DeliveredLogs + site.DeliveredSticks + site.DeliveredRope +
-                            site.DeliveredLeaves + site.DeliveredStones + site.DeliveredBoards;
-            if (delivered > 0) return false;
-            if (modules != null)
-            {
-                foreach (var module in modules)
-                {
-                    if (module.ArchitectureElements[0].DeliveredTotal > 0 ||
-                        module.ArchitectureElements[0].WorkDone > 0)
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
+            return !BuildSiteStakeVisibility.HasPhysicalProgress(site, modules);
         }
 
         private GameObject BuildStakes(ObjectSnapshot site, List<ObjectSnapshot> modules)

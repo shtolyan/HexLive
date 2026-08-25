@@ -595,7 +595,9 @@ def write_reports(
         "",
         f"- Результат Unity: `{unity_summary.get('result', '?')}`",
         f"- Длительность: `{float(unity_summary.get('durationSeconds', 0.0)):.1f} с`",
-        f"- Размер Player: `{int(unity_summary.get('totalBytes', 0))} байт`",
+        f"- Размер Player: `{int(unity_summary.get('playerBytes', 0))} байт`",
+        f"- data.unity3d + StreamingAssets: `"
+        f"{int(unity_summary.get('dataUnity3dBytes', 0)) + int(unity_summary.get('streamingAssetsBytes', 0))} байт`",
         f"- Предупреждения / ошибки: `{unity_summary.get('warnings', '?')} / "
         f"{unity_summary.get('errors', '?')}`",
         f"- Лог плеера: `unity-build.log`",

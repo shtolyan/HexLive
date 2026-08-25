@@ -1,0 +1,9 @@
+{
+  "main": "Assets/HexLiveContent/RuntimeSource/Balance/CharacterBalance.asset",
+  "displayName": "balance.characterbalance",
+  "metadata": {
+    "legacyResourcePath": "HexLive/Balance/CharacterBalance",
+    "legacyResourceFolder": "HexLive/Balance"
+  },
+  "entries": []
+}

@@ -55,7 +55,8 @@ public sealed class ClipWindowGateTests
     [Test]
     public void EveryAttackClipFitsItsSimWindow()
     {
-        var gearDir = Path.Combine(RepoPaths.Root, "Assets", "Resources", "HexLive", "Gear");
+        var gearDir = Path.Combine(
+            RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "Gear");
         var assetsRoot = Path.Combine(RepoPaths.Root, "Assets");
         Assert.That(Directory.Exists(gearDir), Is.True, "Не найден каталог ассетов снаряжения: " + gearDir);
 

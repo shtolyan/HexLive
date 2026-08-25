@@ -38,7 +38,8 @@ namespace HexLive.Simulation.Tests.Gates
 public sealed class SimDataFreshnessGateTests
 {
     private static string BalanceAssets =>
-        Path.Combine(RepoPaths.Root, "Assets", "Resources", "HexLive", "Balance");
+        Path.Combine(
+            RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "Balance");
 
     private static string ConfigSources =>
         Path.Combine(RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Config");
@@ -111,7 +112,8 @@ public sealed class SimDataFreshnessGateTests
     [Test]
     public void StrikeTimingsMatchTheGearAssets()
     {
-        var gearAssets = Path.Combine(RepoPaths.Root, "Assets", "Resources", "HexLive", "Gear");
+        var gearAssets = Path.Combine(
+            RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "Gear");
         if (!Directory.Exists(gearAssets))
         {
             Assert.Ignore("Каталог ассетов снаряжения не найден.");

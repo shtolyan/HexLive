@@ -2546,7 +2546,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        var householdHearth = command.CatalogId == "furniture.hearth";
+        var householdHearth = command.CatalogId == ContentIds.FurnitureHearth;
         var site = Core.WorldObjectMutations.SpawnObject(
             world, ContentIds.BuildSite,
             world.Junctions.Items[anchor].Fragment, command.Tile, anchor);

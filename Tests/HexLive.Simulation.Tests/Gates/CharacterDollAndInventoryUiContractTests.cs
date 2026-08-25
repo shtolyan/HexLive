@@ -14,6 +14,12 @@ namespace HexLive.Simulation.Tests.Gates
 /// </summary>
 public sealed class CharacterDollAndInventoryUiContractTests
 {
+    private static string ReadLocalization() => Regex.Replace(
+        File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset")),
+        @"\\u([0-9a-fA-F]{4})",
+        match => ((char)Convert.ToInt32(match.Groups[1].Value, 16)).ToString());
+
     private static string Presentation(params string[] parts) =>
         Path.Combine(new[]
         {
@@ -93,8 +99,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         var loopback = File.ReadAllText(Presentation("Bootstrap", "LoopbackBackend.cs"));
         var remote = File.ReadAllText(Presentation(
             "Bootstrap", "Remote", "RemoteSocketBackend.cs"));
-        var localization = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+        var localization = ReadLocalization();
         var craftStart = panel.IndexOf(
             "private void BuildCraftingView", StringComparison.Ordinal);
         var craftEnd = panel.IndexOf(
@@ -130,7 +135,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(remote, Does.Contain("into.AddRange(options)"));
             Assert.That(localization, Does.Contain("Term: craft.tab.craft"));
             Assert.That(localization, Does.Contain("- Craft"));
-            Assert.That(localization, Does.Contain("\\u041A\\u0440\\u0430\\u0444\\u0442"));
+            Assert.That(localization, Does.Contain("Крафт"));
             Assert.That(localization, Does.Contain("Term: craft.create"));
             Assert.That(localization, Does.Contain("Term: craft.continue"));
             Assert.That(localization, Does.Contain("Term: craft.working"));
@@ -228,8 +233,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     public void ClothesTabUsesIconsAndPreservesTheWornSourceIndex()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var localization = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+        var localization = ReadLocalization();
 
         Assert.Multiple(() =>
         {
@@ -242,7 +246,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Contain("_invSelectedSourceIndex = sourceIndex"));
             Assert.That(localization, Does.Contain("Term: inv.tab.clothes"));
             Assert.That(localization, Does.Contain("- Clothes"));
-            Assert.That(localization, Does.Contain("\\u041E\\u0434\\u0435\\u0436\\u0434\\u0430"));
+            Assert.That(localization, Does.Contain("Одежда"));
         });
     }
 
@@ -346,8 +350,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
         var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
         var icons = File.ReadAllText(Presentation("UI", "VectorIcon.cs"));
-        var localization = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+        var localization = ReadLocalization();
         var selectStart = stage.IndexOf(
             "public void SetVisibleWearLayer", StringComparison.Ordinal);
         var targetStart = stage.IndexOf(
@@ -385,8 +388,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(icons, Does.Contain("private static void DrawShirt"));
             Assert.That(icons, Does.Contain("private static void DrawCoat"));
             Assert.That(icons, Does.Contain("private static void DrawBag"));
-            Assert.That(localization, Does.Contain("Term: 'layer.bags'"));
-            Assert.That(localization, Does.Contain("'Рюкзак'"));
+            Assert.That(localization, Does.Contain("Term: layer.bags"));
+            Assert.That(localization, Does.Contain("Рюкзак"));
         });
     }
 
@@ -665,7 +668,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
     public void ActorPrefabsDoNotReferenceLegacyNativeBodiesAndBodyFbxAreReadable()
     {
         var assets = Path.Combine(RepoPaths.Root, "Assets");
-        var actors = Path.Combine(assets, "Resources", "HexLive", "Actors");
+        var actors = Path.Combine(
+            assets, "HexLiveContent", "RuntimeSource", "Actors");
         var metaByGuid = Directory.EnumerateFiles(assets, "*.fbx.meta", SearchOption.AllDirectories)
             .Select(path => (path, match: Regex.Match(File.ReadAllText(path), @"(?m)^guid: (\w{32})$")))
             .Where(entry => entry.match.Success)

@@ -141,7 +141,6 @@ namespace HexLive.Simulation.Runtime
         // approximation produced by several stacked systems.
         public static float SleepEnergyBaseBonus = 0.002f;
         public static float SleepEnergyFireBonus = 0f;
-        public static float SleepEnergyLeafBedBonus = 0.006f; // + on a leaf mat
         public static float SleepEnergyBasicBedBonus = 0.002f;
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
 

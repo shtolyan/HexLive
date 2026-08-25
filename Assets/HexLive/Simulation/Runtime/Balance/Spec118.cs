@@ -51,13 +51,11 @@ public class Spec118
     // §118.8: кровать лечит ВДВОЕ быстрее, всё остальное — базовый темп.
     // Земля больше не ускоряет (лежание само по себе не медицина). Кровать в
     // игре одна — bed.basic (bed.leaf/building.hut_bed — лишь сейв-алиасы,
-    // загрузчик канонизирует их до первого тика), поэтому Leaf-ручки
-    // зарезервированы и в RestFactors не читаются. Множитель деградации не
-    // тронут: кровать по-прежнему единственное место, где рана не углубляется.
+    // загрузчик канонизирует их до первого тика). Поэтому отдельной Leaf-
+    // ступени и мёртвых ручек для неё нет. Множитель деградации не тронут:
+    // кровать по-прежнему единственное место, где рана не углубляется.
     public static float GroundRestHealMultiplier = 1f;
-    public static float LeafBedHealMultiplier = 1.5f;
     public static float BasicBedHealMultiplier = 2f;
-    public static float LeafBedDegenerationMultiplier = 0.5f;
     public static float BasicBedDegenerationMultiplier = 0f;
 
     // ⭐ §118.8: отлёживание. Раненая ниже EnterHealth сама ложится (в кровать,

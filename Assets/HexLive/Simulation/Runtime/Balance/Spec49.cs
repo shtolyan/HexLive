@@ -46,11 +46,9 @@ public static class Spec49
     // (a per-slow-tick divisor, NOT the stretched visual night). A night's sleep
     // must clearly OUT-pace the ~0.75-per-150-slow-tick waking comfort drain,
     // or a bed feels pointless and comfort stays pinned at 0 (the coma spiral).
-    // So a proper bed is a BIG comfort source: the leaf mat nearly fills the bar
-    // in a night (net-positive even off the fire), the premium bedroll fills it
-    // outright. Bare grass stays a pittance so building the bed matters.
+    // So the one canonical bed is a BIG comfort source and bare grass stays a
+    // pittance. Legacy bed.leaf saves canonicalize to bed.basic before use.
     public static float SleepComfortGrassNight = 0.05f;
-    public static float SleepComfortLeafNight = 0.85f;  // was 0.30 — a leaf bed now significantly raises comfort
     public static float SleepComfortBedNight = 1.40f;   // was 1.00 — premium bedroll fills comfort fully + margin
     // §49.8: a night's sleep beside a lit fire tops up ~5% comfort on its own —
     // the campfire's warmth reads as cosy even on bare grass.

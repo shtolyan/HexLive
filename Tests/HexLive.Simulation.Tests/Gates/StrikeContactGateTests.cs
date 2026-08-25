@@ -57,7 +57,8 @@ public sealed class StrikeContactGateTests
     public void HitDelayMatchesTheClipContactFrame()
     {
         var contacts = LoadContacts();
-        var gearDir = Path.Combine(RepoPaths.Root, "Assets", "Resources", "HexLive", "Gear");
+        var gearDir = Path.Combine(
+            RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "Gear");
         var assetsRoot = Path.Combine(RepoPaths.Root, "Assets");
 
         var offenders = new List<string>();

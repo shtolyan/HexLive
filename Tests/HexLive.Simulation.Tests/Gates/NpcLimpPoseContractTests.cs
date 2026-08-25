@@ -54,7 +54,7 @@ public sealed class NpcLimpPoseContractTests
             "Assets", "ImportedActors", "AnimLibrary", "X Bot@Crawling.fbx.meta");
         var animSetPath = Path.Combine(
             RepoPaths.Root,
-            "Assets", "Resources", "HexLive", "NpcAnimSet.asset");
+            "Assets", "HexLiveContent", "RuntimeSource", "NpcAnimSet.asset");
 
         var guidMatch = Regex.Match(
             File.ReadAllText(clipMetaPath),

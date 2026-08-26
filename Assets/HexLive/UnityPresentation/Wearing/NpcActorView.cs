@@ -27,6 +27,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private BodyBones _bodyBones;
     private Animator _animator;
+    private readonly HashSet<int> _animatorParameterHashes = new();
     private LookAtIK _lookAtIK;
     private FullBodyBipedIK _fullBodyIK;
     private ActorName _actorMesh;
@@ -1833,6 +1834,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
         _bodyBones = GetComponentInChildren<BodyBones>();
         _animator = GetComponentInChildren<Animator>();
+        _animatorParameterHashes.Clear();
+        if (_animator != null)
+        {
+            foreach (var parameter in _animator.parameters)
+            {
+                _animatorParameterHashes.Add(parameter.nameHash);
+            }
+        }
         _lookAtIK = GetComponentInChildren<LookAtIK>();
         _fullBodyIK = GetComponentInChildren<FullBodyBipedIK>();
 
@@ -3025,8 +3034,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 continue;
             }
 
+            // A synchronous wardrobe lookup has two empty shapes: the bundle
+            // may still be travelling, or it may have resolved conclusively to
+            // no visual prefab. Only the latter may enter _equippedSimItems as
+            // count=0. Otherwise the first render tick permanently marked a
+            // real garment art-less and the panel said "Надето" over a nude
+            // body even after its bundle had arrived.
+            if (!ActorWardrobe.TryGetVisuals(simId, out var prefabs))
+            {
+                continue;
+            }
+
             var isNewItem = !_equippedSimItems.ContainsKey(simId);
-            var prefabs = ActorWardrobe.GetVisuals(simId);
             for (var i = 0; i < prefabs.Count; i++)
             {
                 _bodyBones.Equip($"{simId}#{i}", prefabs[i]); // no-op if already on the body
@@ -3185,20 +3204,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             var model = Config.GearLibrary.LoadPrefab(id);
-            GameObject prop;
-            if (model != null)
+            if (model == null)
             {
-                prop = Instantiate(model, anchor);
+                continue; // independent object bundle is pending; retry next frame
             }
-            else
+            var prop = Instantiate(model, anchor);
+            if (!ObjectFit.HasRenderableGeometry(prop))
             {
-                prop = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(id);
-                if (prop == null)
-                {
-                    continue;
-                }
-
-                prop.transform.SetParent(anchor, false);
+                Destroy(prop);
+                continue;
             }
 
             prop.name = $"HolsterProp {id}";
@@ -4094,8 +4108,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // — прежнее поведение бит-в-бит: сторона 0, у головы нет. Боковые
             // дают клипу зеркало и «поза у головы»; сам слот вид не вычисляет,
             // он приезжает числом из симуляции.
-            _animator.SetFloat(StationSideParam, LyingStationSide(lyingStationSlot));
-            _animator.SetBool(StationAtHeadParam, lyingStationSlot is 3 or 4);
+            // Older actor payloads can legitimately carry a controller made
+            // before the optional lying-station parameters were introduced.
+            // Their absence must not flood the console once per NPC per tick;
+            // the base craft pose remains valid until that actor is republished.
+            if (_animatorParameterHashes.Contains(StationSideParam))
+            {
+                _animator.SetFloat(StationSideParam, LyingStationSide(lyingStationSlot));
+            }
+            if (_animatorParameterHashes.Contains(StationAtHeadParam))
+            {
+                _animator.SetBool(StationAtHeadParam, lyingStationSlot is 3 or 4);
+            }
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
@@ -5478,18 +5502,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             itemId = null;
         }
 
-        if (_currentPropId == itemId)
+        if (_currentPropId == itemId &&
+            (string.IsNullOrEmpty(itemId) || _handProp != null))
         {
             return;
         }
 
-        _currentPropId = itemId;
         UpdateArmedStance(itemId);
-        if (_handProp != null)
+        if (_currentPropId != itemId && _handProp != null)
         {
             Destroy(_handProp);
             _handProp = null;
         }
+        _currentPropId = null;
         _handPropRenderers = new Renderer[0];
 
         if (string.IsNullOrEmpty(itemId) || _bodyBones == null)
@@ -5503,35 +5528,23 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        // Real prefab first; otherwise a procedural low-poly model so tools
-        // are visible in hand (spec 20.16 — no prefab wiring required).
+        // Runtime props have one source: object/<id>. A null is an asynchronous
+        // state, not permission to freeze a different mesh into this hand.
         var model = Config.GearLibrary.LoadPrefab(itemId);
-        if (model != null)
+        if (model == null)
         {
-            _handProp = Instantiate(model, hand);
-            // A native Resources prefab may survive Player stripping while
-            // its imported mesh sub-asset does not. Do not accept that empty
-            // shell as a successful prop: the shared procedural fallback is
-            // preferable to drinking from an invisible bottle.
-            if (!ObjectFit.HasRenderableGeometry(_handProp))
-            {
-                Destroy(_handProp);
-                _handProp = null;
-            }
+            return;
         }
 
-        if (_handProp == null)
+        _handProp = Instantiate(model, hand);
+        if (!ObjectFit.HasRenderableGeometry(_handProp))
         {
-            var built = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(itemId);
-            if (built == null)
-            {
-                return;
-            }
-
-            built.transform.SetParent(hand, false);
-            _handProp = built;
+            Destroy(_handProp);
+            _handProp = null;
+            return;
         }
 
+        _currentPropId = itemId;
         _handProp.name = $"HandProp {itemId}";
         _handPropRenderers = _handProp.GetComponentsInChildren<Renderer>();
 
@@ -5762,17 +5775,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             itemId = null;
         }
 
-        if (_currentBackId == itemId)
+        if (_currentBackId == itemId &&
+            (string.IsNullOrEmpty(itemId) || _backProp != null))
         {
             return;
         }
 
-        _currentBackId = itemId;
-        if (_backProp != null)
+        if (_currentBackId != itemId && _backProp != null)
         {
             Destroy(_backProp);
             _backProp = null;
         }
+        _currentBackId = null;
 
         if (string.IsNullOrEmpty(itemId) || _bodyBones == null)
         {
@@ -5788,13 +5802,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         var model = Config.GearLibrary.LoadPrefab(itemId);
-        _backProp = model != null
-            ? Instantiate(model, back)
-            : HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(itemId);
-        if (_backProp == null)
+        if (model == null)
         {
             return;
         }
+        _backProp = Instantiate(model, back);
+        if (!ObjectFit.HasRenderableGeometry(_backProp))
+        {
+            Destroy(_backProp);
+            _backProp = null;
+            return;
+        }
+        _currentBackId = itemId;
 
         if (_backProp.transform.parent != back)
         {

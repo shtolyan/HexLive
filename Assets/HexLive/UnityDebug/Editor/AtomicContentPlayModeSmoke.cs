@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Bootstrap;
@@ -39,8 +40,8 @@ public static class AtomicContentPlayModeSmoke
         ["building"] = 7,
         ["config"] = 754,
         ["hair"] = 16,
-        ["mob"] = 1,
-        ["object"] = 37,
+        ["mob"] = 2,
+        ["object"] = 51,
         ["prosthetic"] = 8,
         ["ui"] = 0,
         ["vfx"] = 69,
@@ -146,7 +147,17 @@ public static class AtomicContentPlayModeSmoke
         else if (state == PlayModeStateChange.EnteredEditMode &&
                  SessionState.GetString(SessionKey, string.Empty) == Active)
         {
-            EditorApplication.delayCall += EnterPlayMode;
+            // Run() intentionally stops a pre-existing manual session once,
+            // but a failed smoke must never auto-enter Play Mode again. Native
+            // systems such as FMOD may still be completing their old teardown.
+            if (!string.IsNullOrEmpty(_failure))
+            {
+                ExitEditor(1);
+            }
+            else
+            {
+                EditorApplication.delayCall += EnterPlayMode;
+            }
         }
         else if (state == PlayModeStateChange.EnteredEditMode &&
                  SessionState.GetString(SessionKey, string.Empty) == Exiting)
@@ -173,6 +184,21 @@ public static class AtomicContentPlayModeSmoke
         }
         if (phase != Active || !EditorApplication.isPlaying)
         {
+            return;
+        }
+
+        // Scene prewarm may already have dozens of bundle/asset requests in
+        // flight when a registry assertion fails. Leaving Play Mode at that
+        // instant strands native AssetBundles in an Editor with domain reload
+        // disabled; the next run then rejects the same files as "already
+        // loaded". Preserve the first failure, but drain the real content
+        // queue before teardown.
+        if (!string.IsNullOrEmpty(_failure))
+        {
+            if (ContentQueue.IsIdle)
+            {
+                Finish();
+            }
             return;
         }
 
@@ -220,7 +246,7 @@ public static class AtomicContentPlayModeSmoke
             }
 
             LoadRepresentativeObjects(service);
-                Debug.Log("[AtomicContentSmoke] Registry has exactly 2710 content records; " +
+                Debug.Log("[AtomicContentSmoke] Registry has exactly 2725 content records; " +
                       "representative payload validation started.");
         }
 
@@ -286,7 +312,7 @@ public static class AtomicContentPlayModeSmoke
         if (_screenshotRequested && File.Exists(ScreenshotPath) &&
             new FileInfo(ScreenshotPath).Length > 0)
         {
-            Debug.Log($"[AtomicContentSmoke] PASS: live world + 2710 content records + " +
+            Debug.Log($"[AtomicContentSmoke] PASS: live world + 2725 content records + " +
                       $"15 representative payload checks + current-world owner icons; " +
                       $"screenshot={ScreenshotPath}");
             Finish(leaveInteractivePlayRunning: true);
@@ -383,28 +409,86 @@ public static class AtomicContentPlayModeSmoke
             return false;
         }
 
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        void Add(string id)
+        var records = new Dictionary<string, ContentRecord>(StringComparer.Ordinal);
+        var unresolved = new HashSet<string>(StringComparer.Ordinal);
+
+        void AddExact(string type, string id)
         {
-            if (!string.IsNullOrWhiteSpace(id))
+            if (string.IsNullOrWhiteSpace(id))
             {
-                ids.Add(id);
+                return;
+            }
+
+            if (service.TryGetRecord(type, id, out var record))
+            {
+                records[type + "/" + id] = record;
+            }
+            else
+            {
+                unresolved.Add(type + "/" + id);
             }
         }
+
+        void AddOwner(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id) || IsPayloadFreeWorldAnchor(id))
+            {
+                return;
+            }
+
+            foreach (var type in new[] { "wear", "object", "building", "mob" })
+            {
+                if (!service.TryGetRecord(type, id, out var record))
+                {
+                    continue;
+                }
+
+                records[type + "/" + id] = record;
+                return;
+            }
+
+            unresolved.Add("owner/" + id);
+        }
+
+        void AddProsthetic(BodyPartConditionSnapshot condition)
+        {
+            var prosthetic = condition?.Prosthetic;
+            if (prosthetic == null)
+            {
+                return;
+            }
+
+            var limb = prosthetic.Part.ToString().StartsWith("Arm", StringComparison.Ordinal)
+                ? "arm"
+                : "leg";
+            var tier = prosthetic.Mechanical ||
+                       prosthetic.DefinitionId.IndexOf(
+                           "mechanical", StringComparison.OrdinalIgnoreCase) >= 0
+                ? "mechanical"
+                : "wood";
+            var side = prosthetic.Part.ToString().EndsWith("L", StringComparison.Ordinal)
+                ? "l"
+                : "r";
+            AddExact("prosthetic", $"{limb}.{tier}.{side}");
+        }
+
         void AddNpcs(IEnumerable<NpcSnapshot> npcs)
         {
             foreach (var npc in npcs)
             {
-                foreach (var id in npc.WornItems) Add(id);
-                foreach (var id in npc.InventoryItems) Add(id);
-                foreach (var id in npc.HolsteredItems) Add(id);
-                Add(npc.HeldItemId);
-                Add(npc.HeldGarmentId);
-                Add(npc.FavoriteWeaponId);
+                AddExact("actor", npc.ActorMesh);
+                AddExact("hair", npc.Hairstyle);
+                foreach (var condition in npc.BodyPartConditions) AddProsthetic(condition);
+                foreach (var id in npc.WornItems) AddOwner(id);
+                foreach (var id in npc.InventoryItems) AddOwner(id);
+                foreach (var id in npc.HolsteredItems) AddOwner(id);
+                AddOwner(npc.HeldItemId);
+                AddOwner(npc.HeldGarmentId);
+                AddOwner(npc.FavoriteWeaponId);
                 foreach (var container in npc.InventoryContainers)
                 {
-                    Add(container.OwnerItemDefinitionId);
-                    foreach (var slot in container.Slots) Add(slot.ItemDefinitionId);
+                    AddOwner(container.OwnerItemDefinitionId);
+                    foreach (var slot in container.Slots) AddOwner(slot.ItemDefinitionId);
                 }
             }
         }
@@ -413,42 +497,109 @@ public static class AtomicContentPlayModeSmoke
         AddNpcs(snapshot.Corpses);
         foreach (var worldObject in snapshot.Objects)
         {
-            Add(worldObject.DefinitionId);
-            foreach (var slot in worldObject.Contents) Add(slot.ItemDefinitionId);
-            foreach (var id in worldObject.CraftIngredients) Add(id);
-            if (worldObject.RoastingRaw > 0) Add("food.meat_raw");
-            if (worldObject.RoastingCooked > 0) Add("food.meat_cooked");
+            if (worldObject.DefinitionId == "carcass.animal")
+            {
+                AddExact("mob", worldObject.Variant);
+            }
+            else if (TryWorldDropProstheticId(
+                         worldObject.DefinitionId, worldObject.Id.Value, out var prostheticId))
+            {
+                AddExact("prosthetic", prostheticId);
+            }
+            else
+            {
+                AddOwner(worldObject.DefinitionId);
+            }
+
+            // A build.site is intentionally invisible, but its delivered model
+            // is already the exact future object and must be available too.
+            if (!string.IsNullOrWhiteSpace(worldObject.BuildProduct) &&
+                worldObject.BuildProduct != "building.hut_plan")
+            {
+                AddOwner(worldObject.BuildProduct);
+            }
+
+            foreach (var slot in worldObject.Contents) AddOwner(slot.ItemDefinitionId);
+            foreach (var id in worldObject.CraftIngredients) AddOwner(id);
+            if (worldObject.RoastingRaw > 0) AddOwner("food.meat_raw");
+            if (worldObject.RoastingCooked > 0) AddOwner("food.meat_cooked");
         }
-        foreach (var mob in snapshot.Mobs) Add(mob.MobId);
+        foreach (var mob in snapshot.Mobs) AddExact("mob", mob.MobId);
+        if (snapshot.Crabs.Count > 0) AddExact("mob", "crab");
+        foreach (var slot in snapshot.MobSlots) AddExact("mob", slot.MobId);
+
+        if (unresolved.Count > 0)
+        {
+            Fail("current world has no active atomic records: " +
+                 string.Join(", ", unresolved.OrderBy(value => value, StringComparer.Ordinal)));
+            return false;
+        }
 
         var realIcons = 0;
-        foreach (var id in ids)
+        var waiting = false;
+        foreach (var pair in records.OrderBy(value => value.Key, StringComparer.Ordinal))
         {
-            ContentRecord record = null;
-            foreach (var type in new[] { "wear", "object", "building", "mob" })
+            var record = pair.Value;
+            var availability = ContentPrefabCache.Request(record.type, record.id, out var prefab);
+            if (availability == ContentPrefabCache.Availability.Loading)
             {
-                if (service.TryGetRecord(type, id, out record))
-                {
-                    break;
-                }
-            }
-            if (record == null || !record.HasRealIcon)
-            {
+                waiting = true;
                 continue;
             }
-
-            realIcons++;
-            if (ItemIcons.Load(id) == null)
+            if (availability != ContentPrefabCache.Availability.Ready || prefab == null)
             {
-                Fail($"current-world icon was not ready before curtain: " +
-                     $"{record.type}/{record.id}");
+                Fail($"current-world payload is {availability}: {record.type}/{record.id}");
                 return false;
+            }
+            if (!HexLive.UnityPresentation.ObjectFit.HasRenderableGeometry(prefab))
+            {
+                Fail($"current-world main has no renderable geometry: {record.type}/{record.id}");
+                return false;
+            }
+
+            if (record.HasRealIcon && record.type is "wear" or "object" or "building" or "mob")
+            {
+                realIcons++;
+                if (ItemIcons.Load(record.id) == null)
+                {
+                    waiting = true;
+                }
             }
         }
 
-        Debug.Log($"[AtomicContentSmoke] {realIcons} current-world owner icons " +
-                  "were ready before the first panel opened.");
+        if (waiting || !ContentQueue.IsIdle)
+        {
+            return false;
+        }
+
+        var manifest = string.Join(", ", records
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .Select(value => $"{value.Key}@{value.Value.revision}"));
+        Debug.Log($"[AtomicContentSmoke] Current-world manifest ({records.Count}): {manifest}");
+        Debug.Log($"[AtomicContentSmoke] {records.Count} current-world model payloads and " +
+                  $"{realIcons} authored owner icons were ready before the first panel opened.");
         return true;
+    }
+
+    private static bool IsPayloadFreeWorldAnchor(string id) =>
+        string.IsNullOrWhiteSpace(id) ||
+        id.StartsWith("water.", StringComparison.Ordinal) ||
+        id is "corpse.npc" or "grave.npc" or "body.limb_severed" or
+            "build.site" or "building.hut_plan" or "remains.human";
+
+    private static bool TryWorldDropProstheticId(
+        string definitionId, int objectId, out string contentId)
+    {
+        var left = (objectId & 1) == 0;
+        var side = left ? "l" : "r";
+        switch (definitionId)
+        {
+            case "prosthetic.arm.wood": contentId = $"arm.wood.{side}"; return true;
+            case "prosthetic.leg.wood": contentId = $"leg.wood.{side}"; return true;
+            case "prosthetic.arm.mechanical": contentId = $"arm.mechanical.{side}"; return true;
+            case "prosthetic.leg.mechanical": contentId = $"leg.mechanical.{side}"; return true;
+            default: contentId = string.Empty; return false;
+        }
     }
 
     private static void LoadMain(ContentAssetService service, string type, string id)
@@ -520,7 +671,14 @@ public static class AtomicContentPlayModeSmoke
 
         _failure = message;
         Debug.LogError("[AtomicContentSmoke] FAIL: " + message);
-        Finish();
+        if (!EditorApplication.isPlaying || ContentQueue.IsIdle)
+        {
+            Finish();
+        }
+        else
+        {
+            Debug.Log("[AtomicContentSmoke] Waiting for in-flight content before clean teardown.");
+        }
     }
 
     private static void Finish(bool leaveInteractivePlayRunning = false)

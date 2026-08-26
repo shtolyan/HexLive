@@ -21,11 +21,12 @@ namespace HexLive.UnityPresentation.Environment
         private BedAssembly? _bedAssembly;
         private GameObject? _hutRoot;
         private HutAssembly? _hutAssembly;
+        private bool _contentPending;
 
         // Cheap per-frame check: only rebuild when the delivered mix changed.
         public void Refresh(ObjectSnapshot site)
         {
-            if (Signature(site) != _signature)
+            if (Signature(site) != _signature || _contentPending)
             {
                 Rebuild(site);
             }
@@ -45,6 +46,7 @@ namespace HexLive.UnityPresentation.Environment
             // exactly what once blinked the whole house off and on again.
             if (site.BuildProduct == ContentIds.HutPlan)
             {
+                _contentPending = false;
                 return;
             }
 
@@ -66,6 +68,7 @@ namespace HexLive.UnityPresentation.Environment
             }
 
             ClearChildren();
+            _contentPending = false;
             var placed = 0;
             placed = Pile("resource.stone", site.DeliveredStones, placed);
             placed = Pile("resource.log", site.DeliveredLogs, placed);
@@ -79,9 +82,10 @@ namespace HexLive.UnityPresentation.Environment
         {
             for (var i = 0; i < count; i++)
             {
-                var piece = LowPolyToolFactory.Build(definitionId);
+                var piece = WorldPropResources.Build(definitionId);
                 if (piece == null)
                 {
+                    _contentPending = true;
                     continue;
                 }
 
@@ -119,9 +123,11 @@ namespace HexLive.UnityPresentation.Environment
             _bedRoot = BedAssembly.BuildPartial(product, 0, 0, 0, 0, 0, 0);
             if (_bedRoot == null)
             {
+                _contentPending = true;
                 return;
             }
 
+            _contentPending = false;
             _bedRoot.transform.SetParent(transform, false); // absolute-sized (1:1)
             _bedAssembly = _bedRoot.GetComponent<BedAssembly>();
         }
@@ -132,6 +138,12 @@ namespace HexLive.UnityPresentation.Environment
             {
                 ClearChildren();
                 _hutRoot = HutAssembly.BuildPartial(site);
+                if (_hutRoot == null)
+                {
+                    _contentPending = true;
+                    return;
+                }
+                _contentPending = false;
                 _hutRoot.transform.SetParent(transform, false);
                 _hutAssembly = _hutRoot.GetComponent<HutAssembly>();
             }

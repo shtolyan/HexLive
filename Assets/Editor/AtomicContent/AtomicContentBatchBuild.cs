@@ -97,6 +97,37 @@ public static class AtomicContentBatchBuild
         Run(buildAll: true);
     }
 
+    /// <summary>
+    /// Builds one candidate inside the already open editor. This is the fast
+    /// iteration path used for staging verification: it does not start a second
+    /// Unity process, switch target, or rebuild any neighbouring object.
+    /// </summary>
+    public static string BuildOneInOpenEditor(
+        string type, string id, string platform, string runtimeProfile, string output)
+    {
+        ValidateIdentity(type, id, platform, runtimeProfile);
+        var target = ValidateTarget(platform);
+        var fullOutput = Path.GetFullPath(output);
+        try
+        {
+            var recipe = DiscoverAllRecipes().FirstOrDefault(value =>
+                string.Equals(value.Type, type, StringComparison.Ordinal) &&
+                string.Equals(value.Id, id, StringComparison.Ordinal));
+            if (recipe == null)
+            {
+                throw new InvalidOperationException(
+                    $"No authored atomic ContentObject found for {type}/{id}.");
+            }
+
+            BuildObject(type, id, platform, runtimeProfile, target, fullOutput, recipe.Inputs());
+            return Path.Combine(fullOutput, "candidate.json");
+        }
+        finally
+        {
+            CleanupGeneratedMetadata();
+        }
+    }
+
     /// <summary>Release smoke: distinct atomic payloads must coexist in memory.</summary>
     public static void ValidatePayloads()
     {
@@ -344,7 +375,7 @@ public static class AtomicContentBatchBuild
         var builtPayload = Path.Combine(output, bundleBuildName);
         var payload = Path.Combine(output, PayloadName);
         File.Move(builtPayload, payload);
-        ValidateEntries(payload, entryNames);
+        ValidateEntries(payload, entryNames, type, id);
         var sha256 = Hash(payload);
         var size = new FileInfo(payload).Length;
         File.WriteAllText(
@@ -765,6 +796,15 @@ public static class AtomicContentBatchBuild
         }
         else
         {
+            var discovered = DiscoverAllRecipes().FirstOrDefault(value =>
+                string.Equals(value.Type, type, StringComparison.Ordinal) &&
+                string.Equals(value.Id, id, StringComparison.Ordinal));
+            if (discovered != null)
+            {
+                resolved = discovered.Inputs();
+                goto resolved_input;
+            }
+
             var descriptorPath = $"{DescriptorRoot}/{type}/{id}.json";
             var descriptorAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(descriptorPath);
             if (descriptorAsset == null)
@@ -794,6 +834,7 @@ public static class AtomicContentBatchBuild
             };
         }
 
+    resolved_input:
         if (!string.IsNullOrEmpty(explicitMetadata))
         {
             resolved.Metadata = explicitMetadata;
@@ -1022,7 +1063,8 @@ public static class AtomicContentBatchBuild
         AssetDatabase.CreateFolder(DescriptorRoot, "Generated");
     }
 
-    private static void ValidateEntries(string payload, IReadOnlyList<string> expected)
+    private static void ValidateEntries(
+        string payload, IReadOnlyList<string> expected, string type, string id)
     {
         var bundle = AssetBundle.LoadFromFile(payload);
         if (bundle == null)
@@ -1038,6 +1080,22 @@ public static class AtomicContentBatchBuild
                 {
                     throw new InvalidOperationException(
                         $"Built payload does not expose required entry '{entry}'.");
+                }
+            }
+
+            // All physical content families must provide an actually visible
+            // root. A non-null empty prefab (or config-only bundle) used to pass
+            // Contains("main") and later freeze a primitive fallback into the
+            // world. VFX/audio/config have different payload semantics and are
+            // validated by their family-specific gates.
+            if (IconBearingTypes.Contains(type))
+            {
+                var main = bundle.LoadAsset<GameObject>("main");
+                if (main == null ||
+                    !HexLive.UnityPresentation.ObjectFit.HasRenderableGeometry(main))
+                {
+                    throw new InvalidOperationException(
+                        $"Built payload {type}/{id} has no renderable GameObject entry 'main'.");
                 }
             }
         }

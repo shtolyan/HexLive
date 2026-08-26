@@ -22,7 +22,7 @@ RUNTIME_PROFILE = "unity6000-content1"
 PLATFORMS = ("StandaloneOSX", "StandaloneWindows64")
 TYPES = {
     "wear", "actor", "hair", "prosthetic", "object", "building",
-    "mob", "ui", "vfx", "audio", "config",
+    "mob", "vfx", "audio", "config",
 }
 SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._ -]{0,127}$")
 SAFE_VARIANT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")

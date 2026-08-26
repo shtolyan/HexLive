@@ -220,23 +220,11 @@ namespace HexLive.UnityPresentation.Environment
         private static GameObject? Instantiate(string product, out BedAssembly asm)
         {
             asm = null!;
-            if (product == "station.drying_rack")
-            {
-                var rack = BuildNativeDryingRack();
-                if (HasExpectedDryingRack(rack))
-                {
-                    asm = rack.GetComponent<BedAssembly>() ?? rack.AddComponent<BedAssembly>();
-                    return rack;
-                }
-                DestroyRuntimeObject(rack);
-            }
-
-            // Never fall back to drying_rack_final: its four nested stands are
-            // legacy stick_final→GLB wrappers. If the native assembly contract
-            // fails, use the emergency primitive assembly below instead.
-            var prefab = product == "station.drying_rack"
-                ? null
-                : LoadAssemblyPrefab(PrefabPath(product));
+            // Every assembled product owns one complete atomic object bundle,
+            // including the drying rack. Never compose it from resource bundles:
+            // that would re-introduce cross-object dependencies and would make a
+            // first asynchronous miss indistinguishable from a missing piece.
+            var prefab = LoadObjectPrefab(product);
             GameObject? go = null;
             if (prefab != null)
             {
@@ -261,7 +249,10 @@ namespace HexLive.UnityPresentation.Environment
                 }
             }
 
-            go ??= BuildSafeFallback(product);
+            if (go == null)
+            {
+                return null;
+            }
             if (product == ContentIds.BedBasic)
                 go.transform.localScale = new Vector3(BedWidthScale, 1f, BedLengthScale);
             asm = go.GetComponent<BedAssembly>() ?? go.AddComponent<BedAssembly>();

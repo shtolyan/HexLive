@@ -62,19 +62,35 @@ public static class ActorWardrobe
 
     public static IReadOnlyList<Wear> GetVisuals(string simDefinitionId)
     {
+        return TryGetVisuals(simDefinitionId, out var visuals) ? visuals : Empty;
+    }
+
+    /// <summary>
+    /// Separates an authoritative empty result from the temporary empty shape
+    /// returned while this object's bundle is still travelling. Callers which
+    /// cache presentation state must use this door: treating a pending load as
+    /// "this item has no art" leaves the simulation dressed and the body nude.
+    /// </summary>
+    public static bool TryGetVisuals(
+        string simDefinitionId,
+        out IReadOnlyList<Wear> visuals)
+    {
         if (string.IsNullOrEmpty(simDefinitionId))
         {
-            return Empty;
+            visuals = Empty;
+            return true;
         }
         if (Cache.TryGetValue(simDefinitionId, out var cached))
         {
-            return cached;
+            visuals = cached;
+            return true;
         }
 
         // Lazy misses remain retryable: completion fills Cache; no permanent
         // empty result is stored while this object's own blob travels.
         PrewarmAsync(simDefinitionId);
-        return Empty;
+        visuals = Empty;
+        return false;
     }
 }
 

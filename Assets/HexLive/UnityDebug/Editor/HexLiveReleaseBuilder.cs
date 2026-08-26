@@ -322,6 +322,16 @@ namespace HexLive.UnityDebug.Editor
                 return false;
             }
 
+            // Runtime UI layouts and their small shared artwork are part of the
+            // stable client interface, just like the C# controllers that bind
+            // them. They must render before the asset API is available and are
+            // intentionally shipped in Player, never as ui/* content objects.
+            if (normalized.StartsWith(
+                    "Assets/Resources/HexLive/UI/", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
             return !BootstrapResourceAllowList.Contains(normalized);
         }
 

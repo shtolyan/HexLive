@@ -29,10 +29,10 @@ namespace HexLive.UnityPresentation.Environment
         private static void ResolveClothingSlots()
         {
             if (_clothingSlotsResolved) return;
-            _clothingSlotsResolved = true;
 
             var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(ResourcePath);
             if (prefab == null) return;
+            _clothingSlotsResolved = true;
 
             // The FBX's imported root carries Unity's Blender-axis conversion.
             // A socket measured relative to prefab.transform is still in the

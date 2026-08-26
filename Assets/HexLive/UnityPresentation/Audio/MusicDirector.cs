@@ -62,13 +62,28 @@ namespace HexLive.UnityPresentation.Audio
 
         private void Awake()
         {
+            FmodSfx.MusicTracksChanged += MusicTracksBecameAvailable;
             var tracks = FmodSfx.MusicTracks;
             Debug.Log(tracks.Length > 0
                 ? $"[Music] {tracks.Length} track(s): {string.Join(", ", tracks)}"
                 : "[Music] no verified audio/music records yet — silence");
         }
 
-        private void OnDestroy() => FmodSfx.StopMusic();
+        private void OnDestroy()
+        {
+            FmodSfx.MusicTracksChanged -= MusicTracksBecameAvailable;
+            FmodSfx.StopMusic();
+        }
+
+        private void MusicTracksBecameAvailable()
+        {
+            // If the first menu attempt happened before the live registry was
+            // ready, do not leave the user in an artificial 60-second silence.
+            if (_started && _menuMode && !_playing)
+            {
+                _nextTrackAt = Mathf.Min(_nextTrackAt, Time.unscaledTime + 0.1f);
+            }
+        }
 
         private void Update()
         {

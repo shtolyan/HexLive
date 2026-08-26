@@ -50,9 +50,10 @@ public sealed class HutAssembly : MonoBehaviour
     // interpolation.
     private const float CutawaySwitchDotMargin = 0.08f;
 
-    public static GameObject BuildFinished()
+    public static GameObject? BuildFinished()
     {
         var root = BuildRoot();
+        if (root == null) return null;
         var assembly = root.GetComponent<HutAssembly>() ?? root.AddComponent<HutAssembly>();
         assembly.ApplyAll();
         return root;
@@ -60,7 +61,10 @@ public sealed class HutAssembly : MonoBehaviour
 
     public static GameObject BuildDesignerPreview(IReadOnlyList<BuildingElementKind> bays)
     {
-        var root = BuildRoot(bays);
+        // The constructor is an authoring surface and remains usable outside
+        // Play Mode before a content endpoint exists. Runtime world rendering,
+        // in contrast, never substitutes this procedural preview for the bundle.
+        var root = BuildRoot(bays) ?? BuildNative(bays);
         var assembly = root.GetComponent<HutAssembly>() ?? root.AddComponent<HutAssembly>();
         assembly.ApplyAll();
         var roofStage = FindStage(root.transform, "3");
@@ -69,18 +73,20 @@ public sealed class HutAssembly : MonoBehaviour
         return root;
     }
 
-    public static GameObject BuildFinished(ObjectSnapshot building)
+    public static GameObject? BuildFinished(ObjectSnapshot building)
     {
         var root = BuildRoot();
+        if (root == null) return null;
         var assembly = root.GetComponent<HutAssembly>() ?? root.AddComponent<HutAssembly>();
         if (building.ArchitectureElements.Count > 0) assembly.ApplyElements(building.ArchitectureElements);
         else assembly.ApplyAll();
         return root;
     }
 
-    public static GameObject BuildPartial(ObjectSnapshot site)
+    public static GameObject? BuildPartial(ObjectSnapshot site)
     {
         var root = BuildRoot();
+        if (root == null) return null;
         var assembly = root.GetComponent<HutAssembly>() ?? root.AddComponent<HutAssembly>();
         assembly.Apply(site);
         return root;
@@ -541,9 +547,9 @@ public sealed class HutAssembly : MonoBehaviour
             : UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
     }
 
-    private static GameObject BuildRoot() => BuildRoot(null);
+    private static GameObject? BuildRoot() => BuildRoot(null);
 
-    private static GameObject BuildRoot(IReadOnlyList<BuildingElementKind>? bayLayout)
+    private static GameObject? BuildRoot(IReadOnlyList<BuildingElementKind>? bayLayout)
     {
         var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(PrefabPath);
         if (prefab != null && ObjectFit.HasRenderableGeometry(prefab))
@@ -553,7 +559,10 @@ public sealed class HutAssembly : MonoBehaviour
             return instance;
         }
 
-        return BuildNative(bayLayout);
+        // A Player/editor Play session waits for building/building.hut_1hex.
+        // Returning the native approximation here used to cache it forever on
+        // the very first frame while the real bundle was still downloading.
+        return Application.isPlaying ? null : BuildNative(bayLayout);
     }
 
     private static GameObject BuildNative(IReadOnlyList<BuildingElementKind>? bayLayout = null)

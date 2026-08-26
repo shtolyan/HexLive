@@ -135,7 +135,15 @@ public sealed class ContentAssetService
                 // only checks the CLR reference and therefore calls Unload on
                 // a destroyed UnityEngine.Object. Use Unity's overloaded null
                 // check so a second Play starts from a clean cache.
-                if (bundle.Bundle != null)
+                // A failed/aborted interactive smoke may leave LoadFromFileAsync
+                // or LoadAssetAsync in flight while Play Mode exits. Unity owns
+                // those native requests and tears them down with the play world;
+                // explicitly unloading here blocks the main thread and emits one
+                // error per working-set object. Only close bundles which reached
+                // a quiescent state. The managed service is discarded below in
+                // either case.
+                if (bundle.Bundle != null && !bundle.Loading &&
+                    bundle.PendingAssetLoads == 0)
                 {
                     bundle.Bundle.Unload(true);
                 }

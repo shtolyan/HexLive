@@ -12,16 +12,20 @@ public sealed class CraftProjectVisualContractTests
         RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Environment", name);
 
     [Test]
-    public void PlayerSafePropBuildPrefersAuthoredResources()
+    public void PlayerSafePropBuildUsesOnlyItsAuthoredOwner()
     {
         var source = File.ReadAllText(EnvironmentFile("WorldPropResources.cs"));
         var methodStart = source.IndexOf("public static GameObject? Build", StringComparison.Ordinal);
         var method = source[methodStart..];
 
-        Assert.That(method.IndexOf("var prefab = Load(id)", StringComparison.Ordinal),
-            Is.LessThan(method.IndexOf("LowPolyToolFactory.Build(id)", StringComparison.Ordinal)),
-            "Valid native art must win over the procedural fallback.");
-        Assert.That(method, Does.Contain("ObjectFit.HasRenderableGeometry(instance)"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(method, Does.Contain("var prefab = Load(id)"));
+            Assert.That(method, Does.Contain("ObjectFit.HasRenderableGeometry(instance)"));
+            Assert.That(method, Does.Contain("return null"));
+            Assert.That(method, Does.Not.Contain("LowPolyToolFactory"));
+            Assert.That(method, Does.Not.Contain("CreatePrimitive"));
+        });
     }
 
     [Test]
@@ -31,7 +35,9 @@ public sealed class CraftProjectVisualContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(source, Does.Contain("WorldPropResources.Build(ids[i])"));
+            Assert.That(source, Does.Contain("WorldPropResources.Load(ids[i])"));
+            Assert.That(source, Does.Contain("Object.Instantiate(prefabs[i])"));
+            Assert.That(source, Does.Not.Contain("WorldPropResources.Build(ids[i])"));
             Assert.That(source, Does.Contain("ObjectFit.FitScaleFactor(model, ids[i])"));
             Assert.That(source, Does.Not.Contain("0.16f / horizontal"));
         });

@@ -1744,19 +1744,13 @@ namespace HexLive.UnityPresentation.UI
                     $"({Wearing.Garments.ContentQueue.MessageKey}); " +
                     $"тела — {Describe(renderer.DescribeActorsNotReady(ids))}");
 
-                // На ЖИВОМ мире ждать бесконечно нельзя, и это не отказ от
-                // правила «каждая начатая задача обязана завершиться»: то
-                // правило про атомарный загрузчик, а здесь ждут ещё и колонистку,
-                // которую мир меняет прямо во время ожидания. Занавес, который
-                // пережил загрузку, — игра, в которую нельзя играть; недошитая
-                // причёска — кадр, который догонит через секунду.
-                if (liveWorld && waited >= LiveWorldGiveUpSeconds)
-                {
-                    Debug.LogError($"[Loading] занавес поднят силой после {waited:F0} с " +
-                        "ожидания на живом мире — см. предыдущую строку, там имя " +
-                        "виноватого.");
-                    yield break;
-                }
+                // A live world may change while content is arriving, therefore
+                // KeepLiveNpcIds above prunes actors which really disappeared.
+                // It is never valid to reveal the world while ContentQueue is
+                // still non-empty: that made the progress curtain lie and let
+                // half-stitched actors appear. A stuck queue is a loader bug
+                // and must remain visible (and fail the smoke), not be hidden
+                // by a time-based escape hatch.
             }
         }
 

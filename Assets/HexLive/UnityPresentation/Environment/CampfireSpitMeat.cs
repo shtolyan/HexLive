@@ -26,16 +26,25 @@ namespace HexLive.UnityPresentation.Environment
 
         private int _signature = -1;
         private Transform? _meatRoot;
+        private bool _contentPending;
 
         public void Refresh(int raw, int cooked)
         {
             var signature = raw * 31 + cooked;
-            if (signature == _signature)
+            if (signature == _signature && !_contentPending)
             {
                 return;
             }
 
             _signature = signature;
+            var rawPrefab = raw > 0 ? WorldPropResources.Load("food.meat_raw") : null;
+            var cookedPrefab = cooked > 0 ? WorldPropResources.Load("food.meat_cooked") : null;
+            if ((raw > 0 && rawPrefab == null) || (cooked > 0 && cookedPrefab == null))
+            {
+                _contentPending = true;
+                return;
+            }
+            _contentPending = false;
             // Own container: this component shares the campfire_final root with
             // BedAssembly's staged pieces — clearing the whole root would wipe
             // the fire itself (and did: MissingReferenceException render stall).
@@ -54,7 +63,8 @@ namespace HexLive.UnityPresentation.Environment
             for (var i = 0; i < total; i++)
             {
                 var id = i < raw ? "food.meat_raw" : "food.meat_cooked";
-                var piece = LoadMeatPiece(id);
+                var prefab = i < raw ? rawPrefab : cookedPrefab;
+                var piece = prefab != null ? Object.Instantiate(prefab) : null;
                 if (piece == null)
                 {
                     continue;
@@ -143,18 +153,5 @@ namespace HexLive.UnityPresentation.Environment
             return found;
         }
 
-        // §54.14 (r3): the hanging chunk uses the SAME modelled prefab as the
-        // ground drop (Resources/HexLive/Objects/<id>) when present, so the spit
-        // shows real meat; falls back to the procedural chunk otherwise.
-        private static GameObject? LoadMeatPiece(string id)
-        {
-            var prefab = WorldPropResources.Load(id);
-            if (prefab != null)
-            {
-                return Object.Instantiate(prefab);
-            }
-
-            return LowPolyToolFactory.Build(id);
-        }
     }
 }

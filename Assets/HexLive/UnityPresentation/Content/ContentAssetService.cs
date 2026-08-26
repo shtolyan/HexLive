@@ -201,6 +201,16 @@ public sealed class ContentAssetService
                     return;
                 }
 
+                // §152.2: `main` and `icon` are two entries of this one atomic
+                // owner bundle. When a current-world object opens its model,
+                // request its Sprite immediately through the same SHA-backed
+                // BundleState. This cannot download/open an icon bundle and it
+                // never touches owners which the world did not request.
+                if (assetEntry == "main" && record.HasRealIcon)
+                {
+                    ItemIcons.PrewarmOwner(record.type, record.id);
+                }
+
                 BeginAssetLoad(loadedSha);
                 var request = bundle.LoadAssetAsync<T>(assetEntry);
                 request.completed += _ =>

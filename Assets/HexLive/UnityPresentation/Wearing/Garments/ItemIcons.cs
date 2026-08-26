@@ -60,6 +60,22 @@ public static class ItemIcons
         }
     }
 
+    /// <summary>
+    /// Reads an owner's icon as soon as its <c>main</c> entry opens the bundle.
+    /// The service de-duplicates by SHA, so this pins a second asset from the
+    /// already open bundle; it does not download or open an icon bundle.
+    /// </summary>
+    public static void PrewarmOwner(string type, string id)
+    {
+        if (type is not ("wear" or "object" or "building" or "mob") ||
+            string.IsNullOrEmpty(id))
+        {
+            return;
+        }
+
+        StartLoad(id, type, id);
+    }
+
     /// <summary>Immediate UI fallback when an owner has no authored icon.</summary>
     public static string FallbackGlyph(string id) => ItemCatalog.Resolve(id).Emoji;
 
@@ -73,33 +89,40 @@ public static class ItemIcons
         {
             return cached;
         }
-        if (!Loading.Add(id))
-        {
-            return null;
-        }
 
         var (type, objectId) = Owner(id);
+        StartLoad(id, type, objectId);
+        return null;
+    }
+
+    private static void StartLoad(string cacheId, string type, string objectId)
+    {
+        if (Missing.Contains(cacheId) || Cache.ContainsKey(cacheId) ||
+            !Loading.Add(cacheId))
+        {
+            return;
+        }
+
         ContentQueue.Begin(ContentQueue.Kind.Icon);
         ContentAssetService.Instance.LoadIcon(type, objectId, loaded =>
         {
             var icon = loaded?.Asset;
             if (icon != null)
             {
-                Cache[id] = icon;
-                Handles[id] = loaded;
+                Cache[cacheId] = icon;
+                Handles[cacheId] = loaded;
             }
             else
             {
                 // Missing icon is an authoritative terminal result for this
                 // session. Do not restart the same owner-bundle request on
                 // every 4 Hz UI rebuild; every caller can show its emoji now.
-                Missing.Add(id);
+                Missing.Add(cacheId);
                 loaded?.Dispose();
             }
-            Loading.Remove(id);
+            Loading.Remove(cacheId);
             ContentQueue.End(ContentQueue.Kind.Icon);
         });
-        return null;
     }
 
     private static (string Type, string Id) Owner(string id)
